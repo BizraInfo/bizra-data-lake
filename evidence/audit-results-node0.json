@@ -13,9 +13,9 @@
         "ram_gb": 127.7
     },
     "application_layer": {
-        "npm_project_detected": false,
-        "lockfile_present": false,
-        "lockfile_sha256": "N/A - NO_ACTIVE_NPM_PROJECT_FOUND_IN_ROOT_OR_SRC"
+        "npm_project_detected": true,
+        "lockfile_present": true,
+        "lockfile_sha256": "4b7264858063071239aa8e37a77e87ab06d7e95450410cc7eb5d8befa238686a"
     },
     "llm_studio": {
         "models": []
