@@ -1,0 +1,14 @@
+{
+  "shortTerm": {
+    "sessionLog": [],
+    "activeContext": {}
+  },
+  "longTerm": {
+    "vectorIndex": "memory.index",
+    "knowledgeGraph": "graph.json"
+  },
+  "stats": {
+    "interactions": 0,
+    "lastSync": null
+  }
+}

@@ -1,0 +1,82 @@
+# model-family-genesis-v1-SEALED.yaml
+# Purpose: Separate capability slots from pinned artifacts; make sovereignty + resource bounds enforceable.
+# Status: TEMPLATE (fill digests from audit-results-node0.json, then seal via signatures)
+
+version: 1
+sealed: false
+sealed_at_utc: null
+sealed_by: []  # validator ids
+
+capability_slots:
+  cold_core:
+    description: "Deterministic reasoning + self-correction"
+    allowed_models:
+      - llama3.2
+      - deepseek-8b-instruct
+    required_properties:
+      quantization: ["Q4_K_M", "Q5_K_M", "Q4_0"]
+      max_context_tokens: 8192
+    routing:
+      primary: llama3.2
+      fallback: mistral-7b-instruct
+
+  warm_surface:
+    description: "Formatting, multilingual rendering, UI tone control"
+    allowed_models:
+      - llama3.2
+      - mistral-7b-instruct
+      - qwen2.5-7b-instruct
+    routing:
+      primary: llama3.2
+
+pinned_artifacts:
+  # Verified on local machine (a80c4f17acd5)
+  llama3.2:
+    provider: ollama
+    model: llama3.2:latest
+    digest: "sha256:a80c4f17acd5..." # Partial digest from ollama list
+    modelfile_sha256: "UNKNOWN"
+    params:
+      num_ctx: 8192
+      temperature: 0.2
+
+  # PENDING: deepseek-8b-instruct (Verified: deepseek-llm)
+  deepseek-8b-instruct:
+    provider: ollama
+    model: deepseek-llm:latest
+    digest: "sha256:9aab369a853b"
+    modelfile_sha256: "MANUAL_VERIFICATION"
+    params:
+      num_ctx: 8192
+      temperature: 0.2
+
+  mistral-7b-instruct:
+    provider: ollama
+    model: mistral:latest
+    digest: "sha256:61e88e884507"
+    modelfile_sha256: "MANUAL_VERIFICATION"
+    params:
+      num_ctx: 8192
+      temperature: 0.3
+
+resource_policy:
+  # Hard bounds — prevent accidental VRAM eviction/fragmentation and keep-alive surprises.
+  ollama:
+    max_loaded_models: 1
+    keep_alive: "10m"         # set OLLAMA_KEEP_ALIVE=10m (or shorter for VRAM pressure)
+    num_parallel: 1
+    request_timeout_s: 15
+  gpu:
+    enforce_vram_soft_cap_mb: 14000   # for 16GB cards; tune per GPU
+    fail_open_cpu: true              # sovereignty over performance
+
+governance:
+  # Evidence sealing policy. Replace placeholder signer ids with real validator keys.
+  signing:
+    method: "git_tag_gpg + multisig_manifest"
+    quorum:
+      validators_total: 5
+      signatures_required: 3
+  change_control:
+    requires_new_seal: true
+    adr_required: true

@@ -1,0 +1,76 @@
+# BIZRA Node Configuration (Canonical)
+# Node: node_0000_genesis_momo_dubai
+# Generated: 2025-12-14T13:48:00Z
+
+node_id: node_0000_genesis_momo_dubai
+
+paths:
+  # Root resolution mode (git_toplevel = use git repo root)
+  root_mode: git_toplevel
+  
+  # All paths relative to repo root
+  kernel_rel: ".bizra-kernel"
+  docs_rel: "docs"
+  evidence_rel: "docs/evidence"
+  tools_rel: "tools"
+  scripts_rel: "scripts"
+  
+  # Derived absolute paths (computed at runtime)
+  # BIZRA_ROOT = $(git rev-parse --show-toplevel)
+  # KERNEL_ROOT = ${BIZRA_ROOT}\.bizra-kernel
+  # DOCS_ROOT = ${BIZRA_ROOT}\docs
+  # EVIDENCE_ROOT = ${BIZRA_ROOT}\docs\evidence
+
+runtime:
+  timezone: "Asia/Dubai"
+  timezone_offset: "+04:00"
+  
+  # GPU constraints (RTX 4090 Laptop)
+  gpu:
+    model: "NVIDIA RTX 4090 Laptop GPU"
+    vram_total_mb: 16384
+    vram_available_mb: 13824  # 13.5GB usable
+    low_vram_mode: true
+    vram_soft_cap_mb: 13500
+  
+  # Ollama configuration
+  ollama:
+    host: "http://127.0.0.1:11434"
+    version: "0.13.3"
+    context_length: 4096
+    keep_alive: "5m"
+    max_loaded_models: 2
+    num_parallel: 1
+    models_path: "C:\\Users\\BIZRA-OS\\.ollama\\models"
+  
+  # Model unload strategy
+  model_unload_strategy: "LRU"  # Least Recently Used
+
+# Phase 0 Week 1 Status
+phase:
+  current: "phase0_week1"
+  status: "evidence_capture"
+  sealed: false
+  
+evidence:
+  # Evidence output pattern
+  pattern: "docs/evidence/phase0_week1/{timestamp}/"
+  format: "text"
+  compression: false
+  retention_days: 365
+
+# Department ownership
+departments:
+  SAT:
+    - SAT-DEVOPS    # CI/CD, runners, artifact lifecycle
+    - SAT-SRE       # SLOs, metrics, alerting
+    - SAT-SECURITY  # mTLS, secrets, signing
+    - SAT-DATA      # Postgres, Redis, backups
+    - SAT-ML        # Models, slots, evals
+    - SAT-PLATFORM  # Docker/K8s, runtime
+    - SAT-COMPLIANCE # Audit trails, governance
+  
+  PAT:
+    - PAT-EXEC      # Task execution
+    - PAT-BUILD     # Build + test
+    - PAT-VERIFY    # Evidence verification

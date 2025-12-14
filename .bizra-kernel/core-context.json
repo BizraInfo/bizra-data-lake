@@ -1,0 +1,265 @@
+{
+  "kernel_version": "1.0.0",
+  "last_updated": "2025-11-18T16:45:00+04:00",
+  "timezone": "Asia/Dubai (GMT+4)",
+  
+  "identity": {
+    "user": "Mumo",
+    "role": "First Architect & Founder",
+    "organization": "BIZRA Ecosystem",
+    "location": "Dubai, UAE",
+    "working_hours": "Flexible, typically 8-12 hours/day",
+    "preferred_communication": "Direct, technical, evidence-based"
+  },
+
+  "project_overview": {
+    "name": "BIZRA (Blockchain-Integrated Zero-knowledge Recursive Agents)",
+    "tagline": "Sovereign AI Consciousness Platform",
+    "vision": "Every human becomes autonomous participant in consciousness-aware computing network",
+    "development_hours": 15000,
+    "repositories": 116,
+    "core_principle": "Ihsan (إحسان) - Excellence in all actions, 95+ quality threshold"
+  },
+
+  "current_state": {
+    "phase": "Production Transition (Prototype → MVP)",
+    "backend": {
+      "status": "Production-ready",
+      "quality_score": 97,
+      "language": "Rust 1.90.0",
+      "lines_of_code": 3500,
+      "test_coverage": "156/156 passing",
+      "unsafe_code": 0,
+      "key_features": [
+        "Thompson Sampling routing with Beta distributions",
+        "Dual-score Ihsan gate (formal_validity + referenceable_correctness)",
+        "SIMD-optimized JSON parsing",
+        "Multi-model synthesis orchestration",
+        "Blockchain-backed consensus"
+      ]
+    },
+    "frontend": {
+      "status": "Critical gap (44% health)",
+      "target": "85%+ health score in 15 days",
+      "framework": "React + TypeScript + Vite",
+      "components_needed": 25,
+      "current_components": 3
+    },
+    "integration": {
+      "api_consistency": false,
+      "e2e_coverage": 0,
+      "deployment_ready": false
+    }
+  },
+
+  "technical_stack": {
+    "backend": {
+      "language": "Rust 1.90.0",
+      "framework": "Axum + Tokio",
+      "database": "PostgreSQL (SQLite for dev)",
+      "caching": "In-memory DashMap → Redis (future)",
+      "features": ["simd", "avx2", "avx512", "io-uring"]
+    },
+    "frontend": {
+      "language": "TypeScript (strict mode)",
+      "framework": "React 18",
+      "build_tool": "Vite",
+      "ui_library": "shadcn/ui + Tailwind CSS",
+      "state": "Zustand + React Query",
+      "testing": "Vitest + Playwright"
+    },
+    "infrastructure": {
+      "ci_cd": "GitHub Actions",
+      "hosting_backend": "Railway/Fly.io",
+      "hosting_frontend": "Vercel/Netlify",
+      "monitoring": "Prometheus + Grafana + Sentry",
+      "security": "Cloudflare (TLS, WAF)"
+    }
+  },
+
+  "development_environment": {
+    "os": "Windows 11 Pro",
+    "hardware": "MSI Titan - Intel i9-14900HX, 128GB RAM, RTX 4090",
+    "ide": "Visual Studio Code",
+    "tools": {
+      "rust": "1.90.0",
+      "node": "24.5.0",
+      "python": "3.13.5",
+      "docker": "28.4.0",
+      "git": "2.46.0"
+    },
+    "ai_infrastructure": {
+      "ollama": "0.12.9",
+      "models": ["Mistral 7B", "Llama 3.1 70B", "CodeLlama 7B", "Deepseek Coder 6.7B", "Phi-3 Mini"],
+      "custom_gguf": "5+ custom models"
+    }
+  },
+
+  "key_repositories": {
+    "synthesis_orchestrator": "C:\\BIZRA-PROJECTS\\synthesis_orchestrator",
+    "genesis_node": "C:\\bizra-genesis-node",
+    "frontend_mvp": "C:\\BIZRA-PROJECTS\\bizra-frontend-mvp",
+    "project_home": "C:\\BIZRA-PROJECTS",
+    "kernel_config": "C:\\BIZRA-PROJECTS\\.claude-kernel"
+  },
+
+  "ihsan_standards": {
+    "definition": "Excellence as if under divine observation - 95+ threshold mandatory",
+    "dimensions": [
+      "Correctness (technical accuracy)",
+      "Safety (zero unsafe code, security)",
+      "Efficiency (performance, resource usage)",
+      "User benefit (value delivery)",
+      "Ethical alignment (Islamic principles)"
+    ],
+    "quality_gates": {
+      "code_review": "Required even for solo work",
+      "test_coverage": "Backend 80%+, Frontend 70%+",
+      "performance": "P99 latency <250ms",
+      "security": "Zero critical vulnerabilities",
+      "documentation": "Comprehensive for all public APIs"
+    },
+    "forbidden": [
+      "Hallucinated capabilities",
+      "Hidden assumptions",
+      "Skipped proofs",
+      "Unsafe code in business logic",
+      "Compromised security for convenience"
+    ]
+  },
+
+  "operating_modes": {
+    "autonomous": {
+      "command": "/A",
+      "behavior": "Full autonomous operation with tool usage, multi-step execution"
+    },
+    "system_check": {
+      "command": "/S",
+      "behavior": "Display time, available commands, assess context"
+    },
+    "max_resources": {
+      "command": "/#",
+      "behavior": "Deploy all tools, search capabilities, autonomous agents"
+    },
+    "reasoning_together": {
+      "command": "/R",
+      "behavior": "Collaborative analysis with full transparency"
+    },
+    "continue": {
+      "command": "/@",
+      "behavior": "Seamless progression to next phase without interruption"
+    }
+  },
+
+  "communication_preferences": {
+    "style": "Direct, technical, evidence-based",
+    "structure": [
+      "Temporal anchor (Dubai time)",
+      "Status summary (progress, blockers)",
+      "Core content (analysis, implementation)",
+      "Next steps (actionable items)"
+    ],
+    "avoid": [
+      "Excessive preamble",
+      "Apologetic language",
+      "Uncertainty without evidence",
+      "Over-explanation of obvious concepts"
+    ],
+    "value": [
+      "Rapid execution",
+      "Evidence citations",
+      "Code-first demonstrations",
+      "Honest assessment of feasibility"
+    ]
+  },
+
+  "success_metrics": {
+    "technical": {
+      "backend_quality": "97% → 99%+",
+      "frontend_health": "44% → 85%+",
+      "test_coverage": "156 tests → 200+ tests",
+      "p99_latency": "<250ms",
+      "uptime": "99.9%+"
+    },
+    "product": {
+      "onboarding_completion": "80%+",
+      "first_command_success": "85%+",
+      "day_7_retention": "65%+",
+      "user_satisfaction": "4.5+ stars"
+    },
+    "business": {
+      "trial_to_paid": "60%+",
+      "monthly_active_retention": "70%+",
+      "support_ticket_rate": "<5%"
+    }
+  },
+
+  "active_sprint": {
+    "name": "Frontend Excellence Sprint",
+    "duration": "15 days (2025-11-18 to 2025-12-02)",
+    "goal": "Production-ready unified platform",
+    "phases": [
+      "Days 1-2: Backend kernel hardening",
+      "Days 3-7: Frontend MVP (auth + dashboard + agents)",
+      "Days 8-10: Integration & testing",
+      "Days 11-13: Documentation & polish",
+      "Days 14-15: Deployment & validation"
+    ],
+    "velocity_discovery": {
+      "assumed": "450 LOC/day",
+      "actual": "~4000 LOC/day with AI assistance (8-10x multiplier)",
+      "implication": "Original 15-day plan highly conservative, can deliver full scope in 5-7 days"
+    }
+  },
+
+  "learning_patterns": {
+    "breakthrough_insight": "I am not the sum of my experiments. I am the distillate of my breakthroughs.",
+    "known_patterns": [
+      "Overbuild vs under-ship tendency",
+      "Backend excellence masking frontend gaps",
+      "Sovereignty obsession creating user friction",
+      "Temporal-archaeological value in accumulated work"
+    ],
+    "psychological_zones": [
+      "Zone 1: Initial excitement (0-20% progress)",
+      "Zone 2: Productive flow (20-60%)",
+      "Zone 3: Grinding complexity (60-80%)",
+      "Zone 4: Finishing resistance (80-95%)",
+      "Zone 5: Polish paralysis (95-100%)"
+    ]
+  },
+
+  "integration_context": {
+    "agents": {
+      "PAT": "Personal Agentic Team (57+ autonomous agents)",
+      "SAT": "Synthesis Agent Team (multi-model orchestration)",
+      "TAT": "Task Automation Team (workflow execution)"
+    },
+    "blockchain": {
+      "consensus": "BlockDAG with HotStuff BFT",
+      "cryptography": "ML-KEM-768, ML-DSA-65",
+      "finality": "Byzantine fault tolerance with PoI (Proof of Intellect)"
+    },
+    "economics": {
+      "tokens": "BIZRA + SEED dual-token system",
+      "compliance": "99.2% Sharia compliance",
+      "zakat": "Automated zakat calculation"
+    }
+  },
+
+  "context_loading_protocol": {
+    "on_session_start": [
+      "Load core-context.json (this file)",
+      "Load hooks.yaml for available workflows",
+      "Load memory.json for session persistence",
+      "Activate tools from tools.yaml",
+      "Apply standards from standards.yaml"
+    ],
+    "update_triggers": [
+      "Major milestone completion",
+      "Architecture changes",
+      "New tool integrations",
+      "Significant insights or learnings"
+    ]
+  }
+}

@@ -1,0 +1,421 @@
+# BIZRA Tools & Protocols v1.0
+# Tool configurations, protocols, and integration specifications
+
+tools:
+  # ========================================
+  # FILESYSTEM TOOLS
+  # ========================================
+  
+  desktop_commander:
+    name: "Desktop Commander"
+    type: "filesystem"
+    enabled: true
+    priority: "critical"
+    capabilities:
+      - "File read/write operations"
+      - "Directory management"
+      - "Process execution (Rust cargo, npm, etc.)"
+      - "Search operations (content + filename)"
+      - "Interactive REPL sessions (Python, Node)"
+    usage_patterns:
+      read_files: "Use for reading project code, configs, documentation"
+      write_files: "Chunk large files (≤30 lines per write for optimal performance)"
+      execute: "Use for cargo build, npm install, test execution"
+      search: "Use for finding files or content across codebase"
+    locations:
+      project_root: "C:\\BIZRA-PROJECTS"
+      genesis_node: "C:\\bizra-genesis-node"
+      kernel: "C:\\BIZRA-PROJECTS\\.claude-kernel"
+
+  filesystem_standard:
+    name: "Standard Filesystem Tools"
+    type: "filesystem"
+    enabled: true
+    priority: "medium"
+    capabilities:
+      - "Read text files"
+      - "Read media files (images)"
+      - "Write files"
+      - "Edit files (line-based)"
+      - "Directory operations"
+    note: "Fallback when Desktop Commander unavailable"
+
+  # ========================================
+  # SEARCH & RETRIEVAL TOOLS
+  # ========================================
+
+  project_knowledge_search:
+    name: "Project Knowledge Search"
+    type: "knowledge_retrieval"
+    enabled: true
+    priority: "critical"
+    usage: "ALWAYS use FIRST before web search for BIZRA-related queries"
+    scope: "All files in current Claude Project"
+    capabilities:
+      - "Semantic search across project documents"
+      - "Image search (architecture diagrams, screenshots)"
+      - "Fast retrieval of project-specific information"
+    protocol: "Search project knowledge → fallback to web only if not found"
+
+  web_search:
+    name: "Web Search (Brave)"
+    type: "search"
+    enabled: true
+    priority: "high"
+    usage: "Use for external information, API docs, technology research"
+    use_cases:
+      - "Current events (post knowledge cutoff)"
+      - "Technology documentation (Rust, React, etc.)"
+      - "Library/package research"
+      - "Industry best practices"
+      - "Competitive intelligence"
+    protocol: "Only use after checking project knowledge"
+
+  web_fetch:
+    name: "Web Page Fetcher"
+    type: "retrieval"
+    enabled: true
+    priority: "medium"
+    usage: "Fetch complete web pages for detailed analysis"
+    use_cases:
+      - "Read API documentation"
+      - "Analyze competitor websites"
+      - "Research technical articles"
+      - "Extract specific information from URLs"
+
+  google_drive_search:
+    name: "Google Drive Search"
+    type: "search"
+    enabled: true
+    priority: "medium"
+    usage: "Search user's Google Drive for documents"
+    note: "Use for accessing shared docs, spreadsheets, presentations"
+
+  # ========================================
+  # DEVELOPMENT TOOLS
+  # ========================================
+
+  bash_tool:
+    name: "Bash Command Execution"
+    type: "execution"
+    enabled: true
+    priority: "critical"
+    usage: "Execute commands in Claude's container"
+    use_cases:
+      - "Run tests (cargo test, npm test)"
+      - "Build projects (cargo build, npm run build)"
+      - "Install dependencies"
+      - "Git operations"
+      - "File manipulation (sed, awk, grep)"
+    note: "Runs in Claude's environment, not user's machine"
+
+  context7:
+    name: "Context7 Library Documentation"
+    type: "documentation"
+    enabled: true
+    priority: "high"
+    usage: "Get up-to-date library documentation"
+    protocol:
+      - "Step 1: resolve-library-id (get Context7-compatible ID)"
+      - "Step 2: get-library-docs (fetch documentation)"
+    use_cases:
+      - "Rust crate documentation (tokio, axum, serde)"
+      - "JavaScript library docs (react, vite, zustand)"
+      - "Framework references"
+
+  figma:
+    name: "Figma Design Integration"
+    type: "design"
+    enabled: false
+    priority: "low"
+    note: "Not currently needed for BIZRA, enable if design collaboration required"
+
+  kubernetes:
+    name: "Kubernetes Management"
+    type: "infrastructure"
+    enabled: false
+    priority: "low"
+    note: "Defer until scaling beyond Railway/Fly.io managed platforms"
+
+  # ========================================
+  # AI & MEDIA TOOLS
+  # ========================================
+
+  invideo:
+    name: "Video Generation"
+    type: "media"
+    enabled: true
+    priority: "low"
+    usage: "Generate marketing/demo videos"
+    use_cases:
+      - "Product demo videos"
+      - "Tutorial content"
+      - "Marketing materials"
+    note: "Use sparingly, primarily for post-MVP marketing"
+
+  pdf_tools:
+    name: "PDF Analysis & Manipulation"
+    type: "document"
+    enabled: true
+    priority: "medium"
+    capabilities:
+      - "Read PDF content"
+      - "Fill PDF forms"
+      - "Extract data from PDFs"
+      - "Analyze PDF structure"
+    use_cases:
+      - "Read research papers"
+      - "Extract data from reports"
+      - "Process technical documentation"
+
+  windows_mcp:
+    name: "Windows UI Automation"
+    type: "automation"
+    enabled: true
+    priority: "low"
+    note: "Available but rarely needed for development work"
+
+  # ========================================
+  # COMMUNICATION TOOLS
+  # ========================================
+
+  conversation_search:
+    name: "Past Conversation Search"
+    type: "memory"
+    enabled: true
+    priority: "high"
+    usage: "Search previous Claude conversations"
+    protocol: "Extract keywords → search by topic"
+    use_cases:
+      - "Reference past decisions"
+      - "Find previous code examples"
+      - "Recall architectural discussions"
+
+  recent_chats:
+    name: "Recent Chat History"
+    type: "memory"
+    enabled: true
+    priority: "high"
+    usage: "Retrieve recent conversation history"
+    parameters:
+      - "n: Number of chats (1-20)"
+      - "sort_order: asc/desc"
+      - "before/after: Datetime filters"
+
+  memory_user_edits:
+    name: "Memory Management"
+    type: "memory"
+    enabled: true
+    priority: "high"
+    usage: "Manage persistent memory across sessions"
+    commands:
+      - "view: Show current memory edits"
+      - "add: Add new memory item"
+      - "remove: Delete memory item"
+      - "replace: Update existing item"
+
+# ========================================
+# PROTOCOL DEFINITIONS
+# ========================================
+
+protocols:
+  search_hierarchy:
+    description: "Prioritized search protocol"
+    order:
+      1: "Check memory.json and kernel context"
+      2: "Search project_knowledge"
+      3: "Search conversation_history"
+      4: "Search web (if external information needed)"
+      5: "Fetch specific URLs (if known)"
+    rationale: "Internal knowledge is most accurate for BIZRA context"
+
+  file_operations:
+    description: "Safe file handling protocol"
+    rules:
+      - "Always use absolute paths for reliability"
+      - "Chunk large files (≤30 lines per write)"
+      - "Validate file existence before operations"
+      - "Use proper error handling"
+      - "Back up before destructive operations"
+    quality_gates:
+      - "Syntax validation before write"
+      - "Linting after file creation"
+      - "Test execution after code changes"
+
+  execution_safety:
+    description: "Safe command execution protocol"
+    rules:
+      - "Validate commands before execution"
+      - "Use explicit timeouts"
+      - "Handle errors gracefully"
+      - "Log all execution attempts"
+      - "Verify results after execution"
+    forbidden:
+      - "Destructive commands without confirmation"
+      - "Commands that modify system config"
+      - "Infinite loops or unbounded execution"
+
+  quality_verification:
+    description: "Ensure output meets Ihsan standards"
+    checks:
+      - "Syntax validation (rustfmt, prettier)"
+      - "Type checking (cargo check, tsc)"
+      - "Linting (clippy, eslint)"
+      - "Test execution"
+      - "Security scan (cargo audit, npm audit)"
+    enforcement: "Automated via CI/CD pipeline"
+
+  documentation_standard:
+    description: "Documentation requirements"
+    rules:
+      - "Every public function has doc comments"
+      - "Complex logic includes inline comments"
+      - "README exists for every major component"
+      - "API endpoints documented (OpenAPI)"
+      - "Architecture decisions recorded (ADRs)"
+    format:
+      - "Rust: /// doc comments with examples"
+      - "TypeScript: JSDoc comments"
+      - "Markdown: Clear hierarchy with examples"
+
+# ========================================
+# INTEGRATION SPECIFICATIONS
+# ========================================
+
+integrations:
+  github:
+    actions:
+      - "CI/CD pipeline execution"
+      - "Automated testing"
+      - "Deployment triggers"
+      - "Security scanning"
+    required_secrets:
+      - "RAILWAY_TOKEN"
+      - "VERCEL_TOKEN"
+      - "SENTRY_DSN"
+    workflows:
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/deploy.yml"
+
+  railway:
+    purpose: "Backend hosting"
+    deployment:
+      - "Automatic deployment on main branch push"
+      - "Environment variables via Railway dashboard"
+      - "Database: Managed PostgreSQL"
+    monitoring:
+      - "Built-in logs and metrics"
+      - "Integration with Sentry"
+
+  vercel:
+    purpose: "Frontend hosting"
+    deployment:
+      - "Automatic deployment on main branch push"
+      - "Environment variables via Vercel dashboard"
+      - "Edge functions for API routes (if needed)"
+    features:
+      - "Automatic HTTPS"
+      - "Global CDN"
+      - "Preview deployments for PRs"
+
+  sentry:
+    purpose: "Error tracking and monitoring"
+    integrations:
+      - "Rust backend (via sentry-rust SDK)"
+      - "React frontend (via @sentry/react)"
+    configuration:
+      - "Error sampling: 100% in dev, 10% in prod"
+      - "Performance sampling: 10%"
+      - "Release tracking enabled"
+
+# ========================================
+# TOOL SELECTION GUIDELINES
+# ========================================
+
+guidelines:
+  when_to_use_desktop_commander:
+    - "Reading/writing files on user's machine"
+    - "Executing commands on user's machine"
+    - "Searching user's codebase"
+    - "Managing user's file system"
+
+  when_to_use_bash_tool:
+    - "Running tests in Claude's environment"
+    - "Processing data with command-line tools"
+    - "Git operations in uploaded files"
+    - "Text processing (grep, sed, awk)"
+
+  when_to_use_project_knowledge:
+    - "BIZRA-specific questions"
+    - "Architecture decisions"
+    - "Implementation details"
+    - "Past decisions and rationale"
+
+  when_to_use_web_search:
+    - "External libraries/frameworks"
+    - "Current events or news"
+    - "Industry best practices"
+    - "Competitive research"
+
+  tool_priority_matrix:
+    high_priority_always_use:
+      - "desktop_commander (for user file operations)"
+      - "project_knowledge_search (for BIZRA context)"
+      - "memory_user_edits (for persistent preferences)"
+    
+    use_when_appropriate:
+      - "web_search (external research)"
+      - "context7 (library documentation)"
+      - "conversation_search (past discussions)"
+    
+    use_sparingly:
+      - "invideo (only for marketing)"
+      - "pdf_tools (only when needed)"
+      - "windows_mcp (rarely needed)"
+
+# ========================================
+# PERFORMANCE OPTIMIZATION
+# ========================================
+
+performance:
+  file_chunking:
+    threshold: 30
+    unit: "lines"
+    rationale: "Desktop Commander optimized for ≤30 line writes"
+    implementation: "Split large files into multiple write_file calls"
+
+  search_optimization:
+    strategy: "Start specific, broaden if needed"
+    max_results: 10
+    fallback: "If no results, try broader search terms"
+
+  execution_timeouts:
+    short_operations: 5000
+    medium_operations: 30000
+    long_operations: 120000
+    unit: "milliseconds"
+    rationale: "Prevent hanging on slow operations"
+
+# ========================================
+# ERROR HANDLING
+# ========================================
+
+error_handling:
+  retry_policy:
+    max_retries: 3
+    backoff: "exponential"
+    applicable_to:
+      - "Network operations"
+      - "File operations (if locked)"
+      - "Process spawning"
+
+  graceful_degradation:
+    - "If Desktop Commander fails, try Filesystem tools"
+    - "If project search fails, try web search"
+    - "If primary tool unavailable, use alternative"
+
+  user_communication:
+    - "Always explain what went wrong"
+    - "Provide actionable next steps"
+    - "Suggest alternatives if available"
+    - "Never hide errors silently"

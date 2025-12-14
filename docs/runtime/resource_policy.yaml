@@ -1,0 +1,71 @@
+# BIZRA Resource Policy (Phase 0 Week 1)
+# Node: node_0000_genesis_momo_dubai
+# GPU: NVIDIA RTX 4090 Laptop (16GB VRAM, 13.5GB available)
+
+node_id: node_0000_genesis_momo_dubai
+
+gpu:
+  model: "NVIDIA RTX 4090 Laptop GPU"
+  vram_total_mb: 16384
+  vram_available_mb: 13824  # 13.5GB usable (low VRAM mode active)
+  vram_soft_cap_mb: 13500   # Safety margin
+  low_vram_mode: true
+  cuda_version: "13.1"
+  compute_capability: "8.9"
+
+ollama:
+  host: "http://127.0.0.1:11434"
+  version: "0.13.3"
+  context_length: 4096
+  keep_alive: "5m"
+  max_loaded_models: 2       # Can fit 2 models simultaneously
+  num_parallel: 1
+  models_path: "C:\\Users\\BIZRA-OS\\.ollama\\models"
+  
+  # Low VRAM threshold (Ollama sets to 20GB, triggers for <20GB systems)
+  low_vram_threshold_mb: 20480
+
+# Model unload strategy
+model_unload_strategy: "LRU"  # Least Recently Used
+
+# Valid combinations (VRAM-safe)
+valid_combinations:
+  - name: "planner + embed"
+    models: ["bizra-planner:latest", "nomic-embed-text:latest"]
+    total_vram_mb: 6731
+    status: "✅ Safe (6.7GB < 13.5GB)"
+  
+  - name: "deepseek + embed"
+    models: ["deepseek-r1:8b", "nomic-embed-text:latest"]
+    total_vram_mb: 5604
+    status: "✅ Safe (5.6GB < 13.5GB)"
+  
+  - name: "planner + deepseek (simultaneous)"
+    models: ["bizra-planner:latest", "deepseek-r1:8b"]
+    total_vram_mb: 11775
+    status: "✅ Safe (11.8GB < 13.5GB)"
+  
+  - name: "all 6 models (simultaneous)"
+    models: ["bizra-planner", "deepseek-r1", "qwen2.5", "mistral", "llama3.2", "nomic-embed"]
+    total_vram_mb: 23427
+    status: "❌ UNSAFE (23.4GB > 13.5GB) — Ollama will unload oldest"
+
+# Evidence requirement
+evidence_file: "docs/evidence/phase0_week1/<timestamp>/10_gpu_nvidia_smi.txt"
+
+# Performance baselines (to be filled from evidence)
+performance:
+  first_token_latency_ms:
+    bizra_planner: "[EVIDENCE_FILL from probe]"
+    deepseek_r1: "[EVIDENCE_FILL]"
+    nomic_embed: "[EVIDENCE_FILL]"
+  
+  throughput_tokens_per_sec:
+    bizra_planner: "[EVIDENCE_FILL]"
+    deepseek_r1: "[EVIDENCE_FILL]"
+
+# Alert thresholds
+alerts:
+  vram_critical_pct: 95   # Alert if VRAM usage > 95%
+  vram_warning_pct: 85    # Warn if VRAM usage > 85%
+  p95_latency_breach_ms: 1500  # Alert if p95 latency > 1.5s

@@ -1,0 +1,36 @@
+{
+    "schema_version": 1,
+    "captured_at_utc": null,
+    "host": {
+        "os": "Windows",
+        "machine": "REPLACE",
+        "cpu": "REPLACE",
+        "ram_gb": "REPLACE",
+        "gpu": {
+            "name": "REPLACE",
+            "vram_total_mb": null,
+            "vram_used_mb": null,
+            "vram_free_mb": null
+        }
+    },
+    "ollama": {
+        "reachable": null,
+        "host": "http://localhost:11434",
+        "env": {
+            "OLLAMA_HOST": null,
+            "OLLAMA_KEEP_ALIVE": null,
+            "OLLAMA_MAX_LOADED_MODELS": null,
+            "OLLAMA_NUM_PARALLEL": null
+        },
+        "models": [],
+        "smoke_test": {
+            "prompt": "What is the SHA-256 output size in bits?",
+            "response": null,
+            "ok": null,
+            "latency_ms": null
+        }
+    },
+    "llm_studio": {
+        "models": []
+    }
+}

@@ -1,0 +1,296 @@
+# BIZRA Workflow Hooks v1.0
+# Pre-configured execution patterns for common operations
+
+hooks:
+  # ========================================
+  # DEVELOPMENT HOOKS
+  # ========================================
+  
+  backend_kernel_fix:
+    name: "Backend Kernel Hardening"
+    command: "@kernel-fix"
+    description: "Execute Week 1-4 kernel fixes for Rust backend"
+    files:
+      - path: "synthesis_orchestrator/src/types.rs"
+        lines: 450
+        priority: critical
+      - path: "synthesis_orchestrator/src/parser.rs"
+        lines: 280
+        priority: critical
+      - path: "synthesis_orchestrator/src/ihsan_gate.rs"
+        lines: 380
+        priority: high
+      - path: "synthesis_orchestrator/src/routing.rs"
+        lines: 320
+        priority: high
+      - path: ".github/workflows/ci.yml"
+        lines: 120
+        priority: medium
+    success_criteria:
+      - "Zero unsafe code maintained"
+      - "All tests passing (156 → 200+)"
+      - "CI pipeline green with feature matrix"
+      - "P99 latency <85ms"
+    estimated_time: "4-6 hours"
+
+  frontend_mvp:
+    name: "Frontend MVP Development"
+    command: "@frontend-mvp"
+    description: "Build production-ready React dashboard"
+    phases:
+      authentication:
+        files: ["AuthContext.tsx", "auth.ts", "Login.jsx", "Register.jsx"]
+        lines: 730
+        priority: critical
+      dashboard:
+        files: ["Dashboard.jsx", "SystemHealth.jsx", "QuickActions.jsx"]
+        lines: 480
+        priority: critical
+      agents:
+        files: ["Agents.jsx", "AgentSelector.jsx", "CommandInput.jsx"]
+        lines: 570
+        priority: high
+    success_criteria:
+      - "85%+ health score"
+      - "TypeScript strict mode"
+      - "70%+ test coverage"
+      - "<3s initial load"
+    estimated_time: "8-12 hours"
+
+  integration_test:
+    name: "End-to-End Integration"
+    command: "@integration-test"
+    description: "Validate backend-frontend integration"
+    steps:
+      - "Start backend server (Rust)"
+      - "Start frontend dev server (Vite)"
+      - "Run Playwright E2E tests"
+      - "Verify WebSocket connections"
+      - "Test authentication flow"
+      - "Test synthesis workflow"
+    success_criteria:
+      - "All E2E tests passing"
+      - "API consistency verified"
+      - "95%+ flow coverage"
+    estimated_time: "2-3 hours"
+
+  deploy_staging:
+    name: "Deploy to Staging"
+    command: "@deploy-staging"
+    description: "Deploy unified platform to staging environment"
+    steps:
+      - "Run full test suite"
+      - "Build production artifacts"
+      - "Deploy backend to Railway"
+      - "Deploy frontend to Vercel"
+      - "Configure environment variables"
+      - "Run smoke tests"
+    success_criteria:
+      - "Staging environment accessible"
+      - "Health checks passing"
+      - "No critical errors in logs"
+    estimated_time: "1-2 hours"
+
+  # ========================================
+  # ANALYSIS HOOKS
+  # ========================================
+
+  architecture_review:
+    name: "Architecture Deep Dive"
+    command: "@arch-review"
+    description: "Comprehensive architecture analysis"
+    scope:
+      - "System component diagram"
+      - "Technology stack evaluation"
+      - "Scalability assessment"
+      - "Security posture review"
+      - "Performance bottleneck identification"
+    deliverables:
+      - "Architecture diagram (ASCII + Mermaid)"
+      - "Technology decision records (ADRs)"
+      - "Improvement recommendations"
+    estimated_time: "2-3 hours"
+
+  code_quality_audit:
+    name: "Quality & Standards Audit"
+    command: "@quality-audit"
+    description: "Comprehensive Ihsan quality assessment"
+    checks:
+      correctness:
+        - "Type safety verification"
+        - "Logic correctness review"
+        - "Test coverage analysis"
+      safety:
+        - "Unsafe code detection"
+        - "Security vulnerability scan"
+        - "Dependency audit"
+      efficiency:
+        - "Performance benchmarks"
+        - "Resource usage analysis"
+        - "Optimization opportunities"
+      user_benefit:
+        - "UX friction points"
+        - "Onboarding flow analysis"
+        - "Error message quality"
+    deliverables:
+      - "Quality scorecard (per Ihsan dimension)"
+      - "Priority improvement list"
+      - "Remediation timeline"
+    estimated_time: "3-4 hours"
+
+  # ========================================
+  # DOCUMENTATION HOOKS
+  # ========================================
+
+  generate_api_docs:
+    name: "API Documentation Generation"
+    command: "@api-docs"
+    description: "Auto-generate OpenAPI/Swagger documentation"
+    inputs:
+      - "Rust backend API endpoints"
+      - "TypeScript API client"
+    outputs:
+      - "OpenAPI 3.0 specification"
+      - "Interactive Swagger UI"
+      - "Client SDK examples"
+    estimated_time: "1-2 hours"
+
+  write_readme:
+    name: "Comprehensive README"
+    command: "@readme"
+    description: "Generate production-ready README.md"
+    sections:
+      - "Project overview & vision"
+      - "Quick start guide"
+      - "Architecture overview"
+      - "Development setup"
+      - "Testing & deployment"
+      - "Contributing guidelines"
+      - "License & acknowledgments"
+    estimated_time: "1 hour"
+
+  # ========================================
+  # RESEARCH HOOKS
+  # ========================================
+
+  temporal_archaeology:
+    name: "Temporal-Archaeological Mining"
+    command: "@archaeology"
+    description: "Extract value from 15,000 hours of accumulated work"
+    scope:
+      - "Scan 116 repositories"
+      - "Extract breakthrough insights"
+      - "Identify reusable components"
+      - "Map dependency graph"
+      - "Catalog research findings"
+    deliverables:
+      - "Knowledge graph visualization"
+      - "Reusable component library"
+      - "Research synthesis document"
+    estimated_time: "8-12 hours (high value)"
+
+  competitive_analysis:
+    name: "Competitive Landscape Analysis"
+    command: "@competitive"
+    description: "Analyze similar platforms and differentiation"
+    competitors:
+      - "LangChain / LangGraph"
+      - "AutoGPT / AgentGPT"
+      - "CrewAI"
+      - "Microsoft Semantic Kernel"
+    dimensions:
+      - "Feature comparison matrix"
+      - "Architecture differences"
+      - "Pricing models"
+      - "Market positioning"
+      - "BIZRA differentiation"
+    estimated_time: "4-6 hours"
+
+  # ========================================
+  # UTILITY HOOKS
+  # ========================================
+
+  sprint_report:
+    name: "Sprint Progress Report"
+    command: "@sprint-report"
+    description: "Generate comprehensive sprint status"
+    includes:
+      - "Completed tasks with evidence"
+      - "In-progress work with blockers"
+      - "Velocity metrics (planned vs actual)"
+      - "Quality gates status"
+      - "Timeline projection"
+      - "Risk assessment"
+    format: "Markdown + JSON export"
+    estimated_time: "30 minutes"
+
+  backup_checkpoint:
+    name: "Create System Checkpoint"
+    command: "@checkpoint"
+    description: "Full backup of current state"
+    includes:
+      - "Git commit with descriptive message"
+      - "Database snapshot"
+      - "Configuration backup"
+      - "Documentation snapshot"
+      - "Checkpoint manifest (JSON)"
+    outputs:
+      - "Checkpoint ID with timestamp"
+      - "Rollback instructions"
+    estimated_time: "15 minutes"
+
+  kernel_update:
+    name: "Update Context Kernel"
+    command: "@kernel-update"
+    description: "Refresh kernel with latest state"
+    updates:
+      - "Current project status"
+      - "Recent learnings"
+      - "New tool integrations"
+      - "Updated success metrics"
+      - "Revised timelines"
+    method: "Interactive prompts + auto-detection"
+    estimated_time: "20-30 minutes"
+
+# ========================================
+# HOOK COMPOSITION
+# ========================================
+
+workflows:
+  complete_sprint:
+    name: "Execute Full Development Sprint"
+    command: "@sprint-complete"
+    sequence:
+      - "@kernel-fix"
+      - "@frontend-mvp"
+      - "@integration-test"
+      - "@quality-audit"
+      - "@deploy-staging"
+      - "@sprint-report"
+    estimated_time: "20-30 hours"
+
+  production_release:
+    name: "Production Release Pipeline"
+    command: "@release"
+    sequence:
+      - "@integration-test"
+      - "@quality-audit"
+      - "@api-docs"
+      - "@readme"
+      - "@checkpoint"
+      - "Manual approval gate"
+      - "@deploy-production"
+      - "Post-deployment monitoring"
+    estimated_time: "4-6 hours"
+
+# ========================================
+# CONFIGURATION
+# ========================================
+
+settings:
+  auto_checkpoint: true
+  checkpoint_frequency: "every 4 hours of work"
+  quality_gates_mandatory: true
+  ihsan_threshold_enforcement: true
+  verbose_logging: true
+  progress_tracking: true

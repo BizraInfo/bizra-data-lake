@@ -1,0 +1,108 @@
+# BIZRA Slot Policy (Phase 0 Week 1)
+# Node: node_0000_genesis_momo_dubai
+# Status: UNSEALED (pending evidence capture + seal)
+
+slots:
+  primary_reasoning:
+    prod:
+      model: "bizra-planner:latest"
+      blob_digest: "[EVIDENCE_FILL from 30_modelfile_bizra_planner.txt]"
+      deterministic: false
+      config:
+        temperature: 0.7
+        top_p: 0.9
+        context: 4096
+    sat:
+      model: "bizra-planner:det"
+      blob_digest: "[TO_BE_CREATED]"
+      deterministic: true
+      config:
+        temperature: 0
+        top_p: 1.0
+        context: 4096
+    purpose: "Multi-agent orchestration + strategic planning"
+    vram_mb: 6451
+    slo:
+      p95_latency_ms: 1000
+      timeout_ms: 5000
+
+  reasoning_engine:
+    prod:
+      model: "deepseek-r1:8b"
+      blob_digest: "[EVIDENCE_FILL from 31_modelfile_deepseek_r1.txt]"
+      deterministic: false
+      config:
+        temperature: 0.6
+        top_p: 0.95
+    sat:
+      model: "deepseek-r1:det"
+      blob_digest: "[TO_BE_CREATED]"
+      deterministic: true
+      config:
+        temperature: 0
+        top_p: 1.0
+    purpose: "Deep chain-of-thought reasoning; SAT proofs use deterministic variant"
+    vram_mb: 5324
+    slo:
+      p95_latency_ms: 1200
+      timeout_ms: 8000
+
+  embedding:
+    prod:
+      model: "nomic-embed-text:latest"
+      blob_digest: "[EVIDENCE_FILL from 35_modelfile_nomic_embed.txt]"
+      deterministic: true  # Embeddings are always deterministic
+      config:
+        dimension: 768
+    purpose: "HyperGraph semantic retrieval + vector search"
+    vram_mb: 280
+    slo:
+      p95_latency_ms: 50
+      timeout_ms: 200
+
+  warm_surface:
+    prod:
+      model: "qwen2.5:7b"
+      blob_digest: "[EVIDENCE_FILL from 32_modelfile_qwen.txt]"
+      deterministic: false  # UX layer, fuzzy OK
+      config:
+        temperature: "[EVIDENCE_FILL]"
+        top_p: "[EVIDENCE_FILL]"
+    purpose: "User-facing formatting, localization, polishing"
+    vram_mb: 4812
+    slo:
+      p95_latency_ms: 800
+      timeout_ms: 8000
+
+  fallback_reasoning:
+    prod:
+      model: "llama3.2:latest"
+      blob_digest: "[EVIDENCE_FILL from 34_modelfile_llama.txt]"
+      deterministic: false
+      config:
+        temperature: "[EVIDENCE_FILL]"
+        top_p: "[EVIDENCE_FILL]"
+    purpose: "Fast fallback when primary_reasoning is slow or unloaded"
+    vram_mb: 2048
+    slo:
+      p95_latency_ms: 600
+      timeout_ms: 2000
+
+# Routing logic
+routing:
+  primary_reasoning:
+    rule: "Use prod for normal operations; use sat only for golden set validation"
+    fallback: "fallback_reasoning"
+    
+  reasoning_engine:
+    rule: "Exploration/analysis use prod; consensus/SAT proofs use sat variant"
+    
+  embedding:
+    rule: "Always use prod (already deterministic)"
+
+# Evidence requirements (before seal)
+evidence_required:
+  - "Blob digests from all modelfiles"
+  - "Temperature/top_p configs verified"
+  - "VRAM measurements captured (ollama ps during load)"
+  - "Inference probes completed (bizra-planner + embed)"

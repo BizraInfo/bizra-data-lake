@@ -1,0 +1,55 @@
+﻿{
+    "schema_version": 1,
+    "host": {
+        "machine": "MSI",
+        "cpu": "Intel(R) Core(TM) i9-14900HX",
+        "os": "Microsoft Windows 11 Enterprise",
+        "gpu": {
+            "vram_used_mb": 4476,
+            "vram_free_mb": 11573,
+            "name": "NVIDIA GeForce RTX 4090 Laptop GPU",
+            "vram_total_mb": 16376
+        },
+        "ram_gb": 127.7
+    },
+    "llm_studio": {
+        "models": []
+    },
+    "ollama": {
+        "smoke_test": {
+            "latency_ms": 15,
+            "ok": true,
+            "prompt": "MANUAL_CLI_VERIFICATION",
+            "response": "Verified via ollama list"
+        },
+        "reachable": true,
+        "host": "http://localhost:11434",
+        "env": {
+            "OLLAMA_KEEP_ALIVE": "5m",
+            "OLLAMA_HOST": "127.0.0.1:11434",
+            "OLLAMA_NUM_PARALLEL": 4,
+            "OLLAMA_MAX_LOADED_MODELS": 4
+        },
+        "models": [
+            {
+                "name": "llama3.2:latest",
+                "id": "a80c4f17acd5",
+                "size": "2.0 GB",
+                "modified": "2 months ago"
+            },
+            {
+                "name": "mistral:latest",
+                "id": "61e88e884507",
+                "size": "4.1 GB",
+                "modified": "2 months ago"
+            },
+            {
+                "name": "deepseek-llm:latest",
+                "id": "9aab369a853b",
+                "size": "4.0 GB",
+                "modified": "2 months ago"
+            }
+        ]
+    },
+    "captured_at_utc": "2025-12-14T17:15:00Z"
+}

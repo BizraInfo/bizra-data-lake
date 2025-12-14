@@ -1,0 +1,23 @@
+{
+  "watchers": [
+    {
+      "id": "code-change-monitor",
+      "pattern": "**/*.ts",
+      "events": ["change", "add"],
+      "action": "automation/validate-syntax.ts"
+    },
+    {
+      "id": "docs-update-monitor",
+      "pattern": "**/*.md",
+      "events": ["change"],
+      "action": "automation/update-index.ts"
+    }
+  ],
+  "schedules": [
+    {
+      "id": "daily-memory-consolidation",
+      "cron": "0 0 * * *",
+      "action": "memory/consolidate.ts"
+    }
+  ]
+}

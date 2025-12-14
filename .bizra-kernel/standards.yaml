@@ -1,0 +1,658 @@
+# BIZRA Quality Standards & Ihsan Thresholds v1.0
+# Production-grade quality gates and excellence standards
+
+# ========================================
+# IHSAN PRINCIPLE
+# ========================================
+
+ihsan:
+  definition: "Excellence in worship as though you see Allah, knowing that He sees you"
+  application: "Excellence in all actions, code as though under divine observation"
+  threshold: 95
+  enforcement: "mandatory"
+  
+  dimensions:
+    correctness:
+      weight: 0.3
+      measures:
+        - "Logic correctness"
+        - "Type safety"
+        - "Test coverage"
+        - "Edge case handling"
+    
+    safety:
+      weight: 0.3
+      measures:
+        - "Zero unsafe code (Rust)"
+        - "Security vulnerabilities"
+        - "Error handling"
+        - "Data validation"
+    
+    efficiency:
+      weight: 0.2
+      measures:
+        - "Performance (latency, throughput)"
+        - "Resource usage (CPU, memory)"
+        - "Algorithmic complexity"
+        - "Database query optimization"
+    
+    user_benefit:
+      weight: 0.2
+      measures:
+        - "UX quality"
+        - "Accessibility"
+        - "Error messages"
+        - "Documentation clarity"
+
+  calculation: |
+    ihsan_score = (
+      0.3 * correctness_score +
+      0.3 * safety_score +
+      0.2 * efficiency_score +
+      0.2 * user_benefit_score
+    )
+
+# ========================================
+# CODE QUALITY STANDARDS
+# ========================================
+
+code_quality:
+  rust:
+    formatting:
+      tool: "rustfmt"
+      enforcement: "CI required"
+      config: "default Rust 2021 edition"
+    
+    linting:
+      tool: "clippy"
+      level: "-D warnings"
+      enforcement: "CI required"
+      exceptions: "None - fix all warnings"
+    
+    unsafe_code:
+      policy: "ZERO unsafe code in business logic"
+      exceptions: "Only in performance-critical FFI, must be isolated and reviewed"
+      enforcement: "Manual code review + automated scan"
+    
+    testing:
+      unit_tests:
+        coverage: 80
+        enforcement: "CI required"
+        framework: "built-in #[test]"
+      
+      integration_tests:
+        coverage: "All API endpoints"
+        enforcement: "CI required"
+        location: "tests/ directory"
+      
+      property_tests:
+        recommended: true
+        framework: "proptest"
+        use_cases: "Data structure invariants, parser correctness"
+    
+    documentation:
+      required: "All public functions"
+      format: "/// doc comments with examples"
+      enforcement: "CI lint check"
+    
+    dependencies:
+      audit: "cargo audit"
+      frequency: "Every PR + weekly scheduled"
+      action: "Block merge on critical vulnerabilities"
+
+  typescript:
+    strict_mode:
+      enabled: true
+      checks:
+        - "noImplicitAny: true"
+        - "strictNullChecks: true"
+        - "strictFunctionTypes: true"
+        - "strictPropertyInitialization: true"
+    
+    formatting:
+      tool: "prettier"
+      config:
+        semi: false
+        singleQuote: true
+        trailingComma: "es5"
+        printWidth: 100
+    
+    linting:
+      tool: "eslint"
+      extends:
+        - "eslint:recommended"
+        - "plugin:@typescript-eslint/recommended"
+        - "plugin:react-hooks/recommended"
+      enforcement: "CI required"
+    
+    testing:
+      unit_tests:
+        coverage: 70
+        framework: "vitest"
+        enforcement: "CI required"
+      
+      component_tests:
+        coverage: "All critical components"
+        framework: "vitest + @testing-library/react"
+      
+      e2e_tests:
+        coverage: "All critical user journeys"
+        framework: "playwright"
+        environments: ["chrome", "firefox"]
+    
+    dependencies:
+      audit: "npm audit --production"
+      frequency: "Every PR"
+      action: "Fix high/critical before merge"
+
+# ========================================
+# PERFORMANCE STANDARDS
+# ========================================
+
+performance:
+  backend:
+    latency:
+      p50: 80
+      p95: 150
+      p99: 250
+      unit: "milliseconds"
+      measurement: "API endpoint response time"
+    
+    throughput:
+      minimum: 100
+      unit: "requests/second"
+      measurement: "Sustained load without degradation"
+    
+    resource_usage:
+      cpu:
+        idle: 5
+        typical: 40
+        max: 70
+        unit: "percent"
+      
+      memory:
+        baseline: 256
+        typical: 512
+        max: 1024
+        unit: "MB"
+        policy: "No memory leaks (constant under load)"
+  
+  frontend:
+    core_web_vitals:
+      largest_contentful_paint:
+        target: 2.5
+        unit: "seconds"
+        percentile: 75
+      
+      first_input_delay:
+        target: 100
+        unit: "milliseconds"
+        percentile: 75
+      
+      cumulative_layout_shift:
+        target: 0.1
+        unit: "score"
+        percentile: 75
+    
+    bundle_size:
+      initial_js:
+        target: 200
+        max: 300
+        unit: "KB (gzipped)"
+      
+      initial_css:
+        target: 50
+        max: 100
+        unit: "KB (gzipped)"
+    
+    time_to_interactive:
+      target: 3.0
+      max: 5.0
+      unit: "seconds"
+
+# ========================================
+# SECURITY STANDARDS
+# ========================================
+
+security:
+  authentication:
+    method: "JWT with refresh tokens"
+    token_expiry:
+      access: 900
+      refresh: 604800
+      unit: "seconds"
+    
+    password_policy:
+      min_length: 8
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_special: false
+      hashing: "Argon2id"
+  
+  data_protection:
+    encryption:
+      at_rest: "AES-256"
+      in_transit: "TLS 1.3"
+    
+    pii_handling:
+      policy: "Minimize collection"
+      storage: "Encrypted"
+      access: "Role-based (RBAC)"
+      retention: "90 days after account deletion"
+  
+  vulnerability_management:
+    scanning:
+      frequency: "Every PR + weekly scheduled"
+      tools:
+        - "cargo audit (Rust)"
+        - "npm audit (JavaScript)"
+        - "GitHub Dependabot"
+      
+    severity_response:
+      critical:
+        action: "Block merge, fix immediately"
+        sla: "24 hours"
+      high:
+        action: "Block merge, fix before release"
+        sla: "7 days"
+      medium:
+        action: "Track, fix in next sprint"
+        sla: "30 days"
+      low:
+        action: "Track, fix when convenient"
+        sla: "90 days"
+  
+  code_review:
+    security_checklist:
+      - "Input validation on all user inputs"
+      - "SQL injection prevention (parameterized queries)"
+      - "XSS prevention (sanitized output)"
+      - "CSRF protection (tokens)"
+      - "Authentication checks on protected routes"
+      - "Authorization checks (RBAC)"
+      - "Secrets not in code"
+      - "Error messages don't leak sensitive info"
+
+# ========================================
+# ACCESSIBILITY STANDARDS
+# ========================================
+
+accessibility:
+  wcag_compliance:
+    level: "AA"
+    version: "2.2"
+    enforcement: "Automated + manual testing"
+  
+  requirements:
+    keyboard_navigation:
+      - "All interactive elements accessible via keyboard"
+      - "Logical tab order"
+      - "Visible focus indicators"
+      - "No keyboard traps"
+    
+    screen_reader:
+      - "Semantic HTML elements"
+      - "ARIA labels where needed"
+      - "Alt text for images"
+      - "Form labels properly associated"
+    
+    color_contrast:
+      normal_text: 4.5
+      large_text: 3.0
+      unit: "contrast ratio"
+      tool: "axe-core DevTools"
+    
+    responsive_design:
+      - "Mobile-first approach"
+      - "Touch targets ≥44x44 pixels"
+      - "Text resizable to 200% without loss of functionality"
+  
+  testing:
+    automated:
+      tool: "axe-core"
+      frequency: "Every PR"
+      coverage: "All pages and components"
+    
+    manual:
+      frequency: "Before major releases"
+      checklist: "WCAG 2.2 Level AA criteria"
+      assistive_tech: ["NVDA", "JAWS", "VoiceOver"]
+
+# ========================================
+# TESTING STANDARDS
+# ========================================
+
+testing:
+  pyramid:
+    unit: 70
+    integration: 20
+    e2e: 10
+    unit: "percent of total tests"
+    rationale: "Fast feedback, easier debugging, sustainable maintenance"
+  
+  coverage_targets:
+    backend:
+      overall: 80
+      critical_paths: 95
+      unit: "percent line coverage"
+    
+    frontend:
+      overall: 70
+      critical_components: 90
+      unit: "percent line coverage"
+  
+  test_quality:
+    requirements:
+      - "Tests are deterministic (no flakiness)"
+      - "Tests are isolated (no interdependencies)"
+      - "Tests are fast (<5s for unit tests)"
+      - "Tests have clear assertions"
+      - "Tests document expected behavior"
+    
+    anti_patterns:
+      - "Testing implementation details"
+      - "Mocking too much (mock I/O, not business logic)"
+      - "Overly complex test setup"
+      - "Tests that require manual inspection"
+  
+  continuous_testing:
+    pre_commit: "Fast unit tests only"
+    pr: "All tests (unit + integration + e2e)"
+    main_branch: "All tests + performance benchmarks"
+    scheduled: "Weekly full regression suite"
+
+# ========================================
+# DOCUMENTATION STANDARDS
+# ========================================
+
+documentation:
+  code_documentation:
+    rust:
+      public_functions: "Required"
+      format: "/// doc comments with examples"
+      includes: ["Parameters", "Returns", "Errors", "Examples"]
+    
+    typescript:
+      exported_functions: "Required"
+      format: "JSDoc comments"
+      includes: ["@param", "@returns", "@throws", "@example"]
+  
+  api_documentation:
+    format: "OpenAPI 3.0"
+    location: "docs/api/openapi.yaml"
+    generation: "Automatic from code"
+    hosting: "Swagger UI"
+  
+  architecture_documentation:
+    required_documents:
+      - "System architecture diagram"
+      - "Technology stack and rationale"
+      - "Data flow diagrams"
+      - "Deployment architecture"
+      - "Security model"
+    
+    format: "Markdown in docs/"
+    diagrams: "Mermaid or ASCII art"
+  
+  user_documentation:
+    required_sections:
+      - "Quick start guide"
+      - "Feature documentation"
+      - "API reference"
+      - "Troubleshooting guide"
+      - "FAQ"
+    
+    format: "Markdown"
+    hosting: "docs/ directory or separate docs site"
+  
+  runbooks:
+    operations:
+      - "Deployment procedure"
+      - "Rollback procedure"
+      - "Backup and restore"
+      - "Incident response"
+      - "Monitoring and alerting"
+    
+    format: "Markdown"
+    location: "docs/operations/"
+
+# ========================================
+# GIT & CI/CD STANDARDS
+# ========================================
+
+git:
+  branching:
+    model: "GitHub Flow"
+    protected_branches: ["main"]
+    branch_naming:
+      feature: "feature/description"
+      bugfix: "fix/description"
+      release: "release/version"
+  
+  commits:
+    message_format: "type(scope): description"
+    types: ["feat", "fix", "docs", "style", "refactor", "test", "chore"]
+    examples:
+      - "feat(auth): add JWT refresh token support"
+      - "fix(api): handle null response in synthesis endpoint"
+      - "docs(readme): update installation instructions"
+  
+  pull_requests:
+    required_checks:
+      - "All tests passing"
+      - "Linting passing"
+      - "Security audit passing"
+      - "Coverage threshold met"
+    
+    review_requirements:
+      reviewers: 1
+      policy: "Self-review acceptable for solo dev, but use checklist"
+    
+    checklist:
+      - "Tests added/updated"
+      - "Documentation updated"
+      - "No console.log or debug prints"
+      - "Security implications considered"
+      - "Performance impact assessed"
+
+ci_cd:
+  pipeline_stages:
+    build:
+      - "Install dependencies"
+      - "Compile code"
+      - "Generate artifacts"
+    
+    test:
+      - "Run linters"
+      - "Run unit tests"
+      - "Run integration tests"
+      - "Check test coverage"
+    
+    security:
+      - "Dependency audit"
+      - "SAST scanning"
+      - "Secret scanning"
+    
+    deploy:
+      - "Deploy to staging (auto)"
+      - "Run smoke tests"
+      - "Deploy to production (manual approval)"
+  
+  quality_gates:
+    must_pass:
+      - "All tests passing"
+      - "Coverage thresholds met"
+      - "No critical/high vulnerabilities"
+      - "Linting passing"
+    
+    may_warn:
+      - "Medium vulnerabilities (with plan)"
+      - "Minor performance regressions (<5%)"
+  
+  deployment_frequency:
+    staging: "Every merge to main"
+    production: "Weekly or on-demand (with approval)"
+
+# ========================================
+# COMPLIANCE & GOVERNANCE
+# ========================================
+
+compliance:
+  cmmi:
+    target_level: 2
+    name: "Managed"
+    requirements:
+      - "Requirements management"
+      - "Project planning"
+      - "Project monitoring and control"
+      - "Configuration management"
+      - "Quality assurance"
+  
+  iso_27001_themes:
+    access_control: "RBAC implemented"
+    logging: "All security events logged"
+    backup: "Daily automated backups"
+    incident_response: "Runbook exists"
+    change_management: "PR + CI process"
+  
+  privacy:
+    gdpr_alignment:
+      - "Data minimization"
+      - "Purpose limitation"
+      - "Right to access"
+      - "Right to deletion"
+      - "Data portability"
+    
+    implementation:
+      - "Privacy policy published"
+      - "Cookie consent implemented"
+      - "Data deletion workflow"
+      - "User data export feature"
+
+# ========================================
+# MONITORING & OBSERVABILITY
+# ========================================
+
+monitoring:
+  metrics:
+    system:
+      - "CPU usage"
+      - "Memory usage"
+      - "Disk I/O"
+      - "Network I/O"
+    
+    application:
+      - "Request rate"
+      - "Error rate"
+      - "Response time (P50, P95, P99)"
+      - "Active users"
+    
+    business:
+      - "Synthesis requests per day"
+      - "User signups"
+      - "Conversion rate"
+      - "Retention rate"
+  
+  alerting:
+    critical:
+      - "Service down (5xx errors >5%)"
+      - "P99 latency >1000ms"
+      - "Error rate >5%"
+      response: "Immediate (Slack + SMS)"
+    
+    warning:
+      - "P95 latency >500ms"
+      - "Error rate >1%"
+      - "Memory usage >80%"
+      response: "Next business day"
+  
+  logging:
+    levels:
+      production: "INFO"
+      staging: "DEBUG"
+      development: "TRACE"
+    
+    structured: true
+    format: "JSON"
+    retention:
+      hot: "7 days"
+      warm: "30 days"
+      cold: "90 days"
+
+# ========================================
+# RELEASE STANDARDS
+# ========================================
+
+releases:
+  versioning:
+    scheme: "Semantic Versioning (SemVer)"
+    format: "MAJOR.MINOR.PATCH"
+    examples:
+      - "1.0.0: Initial production release"
+      - "1.1.0: New feature"
+      - "1.0.1: Bug fix"
+  
+  release_process:
+    preparation:
+      - "All tests passing"
+      - "Documentation updated"
+      - "Changelog prepared"
+      - "Migration scripts tested"
+    
+    execution:
+      - "Deploy to staging"
+      - "Run full test suite"
+      - "Manual QA spot checks"
+      - "Deploy to production"
+      - "Monitor for 1 hour"
+    
+    rollback_criteria:
+      - "Error rate >5%"
+      - "Critical functionality broken"
+      - "Security vulnerability detected"
+    
+    post_release:
+      - "Update status page"
+      - "Notify users of changes"
+      - "Monitor metrics for 24 hours"
+      - "Document lessons learned"
+  
+  beta_releases:
+    designation: "0.x.y versions"
+    features:
+      - "Feature flags for experimental features"
+      - "Explicit beta disclaimers"
+      - "Feedback collection mechanism"
+      - "Rapid iteration cycle (weekly)"
+
+# ========================================
+# CONTINUOUS IMPROVEMENT
+# ========================================
+
+improvement:
+  retrospectives:
+    frequency: "Every sprint (2 weeks)"
+    participants: "All team members (or solo reflection)"
+    format:
+      - "What went well?"
+      - "What could be improved?"
+      - "Action items for next sprint"
+  
+  metrics_review:
+    frequency: "Monthly"
+    focus:
+      - "Quality metrics trends"
+      - "Performance metrics trends"
+      - "User satisfaction trends"
+      - "Velocity trends"
+  
+  technical_debt:
+    tracking: "GitHub Issues with 'tech-debt' label"
+    allocation: "20% of sprint capacity"
+    prioritization: "Impact × Effort matrix"
+  
+  learning:
+    investment: "1 hour per day for learning/experimentation"
+    documentation: "Share learnings in docs/learnings/"
+    application: "Apply learnings in next sprint"

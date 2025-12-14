@@ -1,0 +1,22 @@
+{
+  "kernelVersion": "1.0.0-genesis",
+  "environment": "production",
+  "mode": "autonomous",
+  "modules": {
+    "automation": true,
+    "hooks": true,
+    "injection": true,
+    "memory": true,
+    "context": true,
+    "triggers": true
+  },
+  "permissions": {
+    "fileSystem": "read-write",
+    "network": "local-only",
+    "execution": "script-sandboxed"
+  },
+  "telemetry": {
+    "enabled": true,
+    "destination": "local-memory"
+  }
+}
