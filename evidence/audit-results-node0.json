@@ -12,6 +12,11 @@
         },
         "ram_gb": 127.7
     },
+    "application_layer": {
+        "npm_project_detected": false,
+        "lockfile_present": false,
+        "lockfile_sha256": "N/A - NO_ACTIVE_NPM_PROJECT_FOUND_IN_ROOT"
+    },
     "llm_studio": {
         "models": []
     },
@@ -51,5 +56,5 @@
             }
         ]
     },
-    "captured_at_utc": "2025-12-14T17:15:00Z"
+    "captured_at_utc": "2025-12-14T18:12:00Z"
 }

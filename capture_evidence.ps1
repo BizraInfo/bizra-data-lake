@@ -9,48 +9,49 @@ $outFile = Join-Path $outDir "audit-results-node0.json"
 $now = (Get-Date).ToUniversalTime().ToString("o")
 
 $result = @{
-  schema_version = 1
+  schema_version  = 1
   captured_at_utc = $now
-  host = @{
-    os = (Get-CimInstance Win32_OperatingSystem).Caption
+  host            = @{
+    os      = (Get-CimInstance Win32_OperatingSystem).Caption
     machine = $env:COMPUTERNAME
-    cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
-    ram_gb = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 1)
-    gpu = @{}
+    cpu     = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
+    ram_gb  = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 1)
+    gpu     = @{}
   }
-  ollama = @{
-    reachable = $false
-    host = "http://localhost:11434"
-    env = @{
-      OLLAMA_HOST = $env:OLLAMA_HOST
-      OLLAMA_KEEP_ALIVE = $env:OLLAMA_KEEP_ALIVE
+  ollama          = @{
+    reachable  = $false
+    host       = "http://localhost:11434"
+    env        = @{
+      OLLAMA_HOST              = $env:OLLAMA_HOST
+      OLLAMA_KEEP_ALIVE        = $env:OLLAMA_KEEP_ALIVE
       OLLAMA_MAX_LOADED_MODELS = $env:OLLAMA_MAX_LOADED_MODELS
-      OLLAMA_NUM_PARALLEL = $env:OLLAMA_NUM_PARALLEL
+      OLLAMA_NUM_PARALLEL      = $env:OLLAMA_NUM_PARALLEL
     }
-    models = @()
+    models     = @()
     smoke_test = @{
-      prompt = "What is the SHA-256 output size in bits? Return ONLY the number."
-      response = $null
-      ok = $false
+      prompt     = "What is the SHA-256 output size in bits? Return ONLY the number."
+      response   = $null
+      ok         = $false
       latency_ms = $null
     }
   }
-  llm_studio = @{ models = @() }
+  llm_studio      = @{ models = @() }
 }
 
 # GPU info (nvidia-smi optional)
 try {
-  $gpuCsv = nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free --format=csv,nounits | Select-Object -Skip 1
+  $gpuCsv = nvidia-smi --query-gpu=name, memory.total, memory.used, memory.free --format=csv, nounits | Select-Object -Skip 1
   if ($gpuCsv) {
     $parts = $gpuCsv -split "," | ForEach-Object { $_.Trim() }
     $result.host.gpu = @{
-      name = $parts[0]
+      name          = $parts[0]
       vram_total_mb = [int]$parts[1]
-      vram_used_mb = [int]$parts[2]
-      vram_free_mb = [int]$parts[3]
+      vram_used_mb  = [int]$parts[2]
+      vram_free_mb  = [int]$parts[3]
     }
   }
-} catch { }
+}
+catch { }
 
 # Ollama model list + modelfiles (captures digests if present)
 try {
@@ -73,20 +74,21 @@ try {
     }
 
     $result.ollama.models += @{
-      name = $name
-      digest = $digest
+      name             = $name
+      digest           = $digest
       modelfile_sha256 = $mfHash
     }
   }
   $result.ollama.reachable = $true
-} catch {
+}
+catch {
   $result.ollama.reachable = $false
 }
 
 # Smoke test via Ollama HTTP API
 try {
   $body = @{
-    model = "deepseek-8b-instruct"
+    model  = "deepseek-8b-instruct"
     prompt = "What is the SHA-256 output size in bits? Return ONLY the number."
     stream = $false
   } | ConvertTo-Json
@@ -98,7 +100,25 @@ try {
   $result.ollama.smoke_test.response = $resp.response
   $result.ollama.smoke_test.latency_ms = [int]$sw.ElapsedMilliseconds
   $result.ollama.smoke_test.ok = ($resp.response -match "^256\b")
-} catch { }
+}
+catch { }
 
-$result | ConvertTo-Json -Depth 12 | Set-Content -Path $outFile -Encoding UTF8
-Write-Host "Wrote: $outFile" -ForegroundColor Green
+# 3. Capture Application Layer (NPM Supply Chain)
+$npmFile = "package.json"
+$lockFile = "package-lock.json"
+
+if (Test-Path $npmFile) {
+  $result.application_layer.npm_project_detected = $true
+  if (Test-Path $lockFile) {
+    $result.application_layer.lockfile_present = $true
+    $result.application_layer.lockfile_sha256 = (Get-FileHash -Path $lockFile -Algorithm SHA256).Hash.ToLower()
+  }
+  else {
+    Write-Warning "CRITICAL: package.json found but package-lock.json MISSING. Supply chain is OPEN."
+    $result.application_layer.lockfile_present = $false
+    $result.application_layer.lockfile_sha256 = "MISSING_CRITICAL"
+  }
+}
+
+$result | ConvertTo-Json -Depth 5 | Set-Content -Path $outFile -Encoding UTF8
+Write-Host "Evidence captured to: $outFile" -ForegroundColor Green

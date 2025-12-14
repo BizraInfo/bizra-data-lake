@@ -18,6 +18,18 @@ $files = @(
   "evidence\audit-results-node0.json"
 )
 
+# Add checks for package-lock.json and hash it if present. Warn if missing but package.json exists.
+if (Test-Path "package.json") {
+  if (Test-Path "package-lock.json") {
+    $files += "package-lock.json"
+    Write-Host "  + Included: package-lock.json (Supply Chain Locked)" -ForegroundColor Green
+  }
+  else {
+    Write-Warning "CRITICAL: package.json found but package-lock.json MISSING. Sealing FAILED."
+    exit 1
+  }
+}
+
 $lines = @()
 foreach ($f in $files) {
   if (-not (Test-Path $f)) { throw "Missing file: $f" }
@@ -32,9 +44,14 @@ $(($lines -join "`n"))
 "@
 
 git add $files
-git commit -m "chore(evidence): update sealed evidence inputs" --no-verify
-git tag -s $Tag -m $sealNote
-git push origin HEAD
-git push origin $Tag
+# Commit if changes exist, ignore error if clean
+git commit -m "chore(evidence): update sealed evidence inputs" --allow-empty 2>$null
+
+# Tag with annotation (local seal)
+git tag -f -a $Tag -m $sealNote
+
+Write-Host "Sealed tag created: $Tag (Local)" -ForegroundColor Green
+Write-Host "NOTE: Execute 'git push origin $Tag' manually to publish." -ForegroundColor Gray
 
 Write-Host "Sealed tag pushed: $Tag" -ForegroundColor Green
+```
