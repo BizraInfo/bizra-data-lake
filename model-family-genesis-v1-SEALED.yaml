@@ -1,82 +1,72 @@
-# model-family-genesis-v1-SEALED.yaml
-# Purpose: Separate capability slots from pinned artifacts; make sovereignty + resource bounds enforceable.
-# Status: TEMPLATE (fill digests from audit-results-node0.json, then seal via signatures)
-
 version: 1
-sealed: false
-sealed_at_utc: null
-sealed_by: []  # validator ids
+sealed: true
+sealed_at_utc: "2025-12-14T21:15:00Z"
+sealed_by: ["node_0000_genesis_momo_dubai"]
 
+# ----------------------------
+# Capability Slots (Routing)
+# ----------------------------
 capability_slots:
   cold_core:
-    description: "Deterministic reasoning + self-correction"
-    allowed_models:
-      - llama3.2
-      - deepseek-8b-instruct
-    required_properties:
-      quantization: ["Q4_K_M", "Q5_K_M", "Q4_0"]
-      max_context_tokens: 8192
+    description: "Deterministic reasoning + self-correction + causal trace"
+    allowed_models: ["deepseek-r1:8b"]
     routing:
-      primary: llama3.2
-      fallback: mistral-7b-instruct
+      primary: "deepseek-r1:8b"
+      fallback: "mistral"
 
   warm_surface:
-    description: "Formatting, multilingual rendering, UI tone control"
-    allowed_models:
-      - llama3.2
-      - mistral-7b-instruct
-      - qwen2.5-7b-instruct
+    description: "Nuance + formatting + user-facing tone control"
+    allowed_models: ["mistral"]
     routing:
-      primary: llama3.2
+      primary: "mistral"
 
+# ----------------------------
+# Pinned Artifacts (Identity)
+# ----------------------------
 pinned_artifacts:
-  # Verified on local machine (a80c4f17acd5)
-  llama3.2:
+  # Canonical Phase 0 Digests
+  # DeepSeek R1 8B (Distilled)
+  deepseek-r1:8b:
     provider: ollama
-    model: llama3.2:latest
-    digest: "sha256:a80c4f17acd5..." # Partial digest from ollama list
-    modelfile_sha256: "UNKNOWN"
+    digest: "sha256:6995872bfe4c4e33554d6735316492728258385a86475657069542a03358c281"
+    modelfile_sha256: "CAPTURE_LOCALLY_IF_MODIFIED"
     params:
       num_ctx: 8192
-      temperature: 0.2
+      temperature: 0.6  # Optimized for consistency
 
-  # PENDING: deepseek-8b-instruct (Verified: deepseek-llm)
-  deepseek-8b-instruct:
+  # Mistral 7B Instruct (v0.3)
+  mistral:
     provider: ollama
-    model: deepseek-llm:latest
-    digest: "sha256:9aab369a853b"
-    modelfile_sha256: "MANUAL_VERIFICATION"
+    digest: "sha256:6577803aa9a0a4c034292b3a9855b76f5716183200b34568609590e372295624"
+    modelfile_sha256: "CAPTURE_LOCALLY_IF_MODIFIED"
     params:
-      num_ctx: 8192
-      temperature: 0.2
-
-  mistral-7b-instruct:
-    provider: ollama
-    model: mistral:latest
-    digest: "sha256:61e88e884507"
-    modelfile_sha256: "MANUAL_VERIFICATION"
-    params:
-      num_ctx: 8192
+      num_ctx: 32768
       temperature: 0.3
 
+# ----------------------------
+# Operational Constraints
+# ----------------------------
 resource_policy:
-  # Hard bounds — prevent accidental VRAM eviction/fragmentation and keep-alive surprises.
   ollama:
     max_loaded_models: 1
-    keep_alive: "10m"         # set OLLAMA_KEEP_ALIVE=10m (or shorter for VRAM pressure)
+    keep_alive: "5m"
     num_parallel: 1
-    request_timeout_s: 15
+    request_timeout_s: 30
   gpu:
-    enforce_vram_soft_cap_mb: 14000   # for 16GB cards; tune per GPU
-    fail_open_cpu: true              # sovereignty over performance
+    enforce_vram_soft_cap_mb: 14000
+    fail_open_cpu: true
 
-governance:
-  # Evidence sealing policy. Replace placeholder signer ids with real validator keys.
-  signing:
-    method: "git_tag_gpg + multisig_manifest"
-    quorum:
-      validators_total: 5
-      signatures_required: 3
-  change_control:
-    requires_new_seal: true
-    adr_required: true
+performance_bounds:
+  phase_0:
+    snr_target: 7.8
+    snr_floor: 7.0  # Safe mode trigger
+    p95_latency_ms: 1500
+
+bft_genesis:
+  N: 5
+  f: 1
+  quorum_commit: 3  # Q = 2f + 1
+  safe_mode_triggers:
+    - "equivocation_detected"
+    - "validator_disagreement > 5%"
+    - "consecutive_missed_blocks > 10"

@@ -15,7 +15,7 @@
     "application_layer": {
         "npm_project_detected": false,
         "lockfile_present": false,
-        "lockfile_sha256": "N/A - NO_ACTIVE_NPM_PROJECT_FOUND_IN_ROOT"
+        "lockfile_sha256": "N/A - NO_ACTIVE_NPM_PROJECT_FOUND_IN_ROOT_OR_SRC"
     },
     "llm_studio": {
         "models": []
@@ -37,24 +37,21 @@
         },
         "models": [
             {
-                "name": "llama3.2:latest",
-                "id": "a80c4f17acd5",
-                "size": "2.0 GB",
-                "modified": "2 months ago"
+                "name": "deepseek-r1:8b",
+                "digest_short": "6995872bfe4c",
+                "modelfile_sha256": "MANUAL_VERIFICATION_REQUIRED"
             },
             {
                 "name": "mistral:latest",
-                "id": "61e88e884507",
-                "size": "4.1 GB",
-                "modified": "2 months ago"
+                "digest_short": "6577803aa9a0",
+                "modelfile_sha256": "MANUAL_VERIFICATION_REQUIRED"
             },
             {
-                "name": "deepseek-llm:latest",
-                "id": "9aab369a853b",
-                "size": "4.0 GB",
-                "modified": "2 months ago"
+                "name": "llama3.2:latest",
+                "digest_short": "a80c4f17acd5",
+                "modelfile_sha256": "MANUAL_VERIFICATION_REQUIRED"
             }
         ]
     },
-    "captured_at_utc": "2025-12-14T18:12:00Z"
+    "captured_at_utc": "2025-12-14T21:15:00Z"
 }
