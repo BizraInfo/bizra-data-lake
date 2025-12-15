@@ -1,122 +1,113 @@
 # capture_evidence.ps1
-# Runs local model + GPU audit and writes evidence/audit-results-node0.json
-
 $ErrorActionPreference = "Stop"
-$outDir = ".\evidence"
-New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+# Resolve workspace/repo roots (works even if invoked from a subfolder)
+$repoRoot = $PSScriptRoot
+$resolver = Join-Path $repoRoot "scripts\\resolve-bizra-root.ps1"
+if (Test-Path $resolver) {
+  try { & $resolver | Out-Null } catch { Write-Warning "Workspace resolver failed: $($_.Exception.Message)" }
+}
+if ($env:BIZRA_REPO_ROOT) { $repoRoot = $env:BIZRA_REPO_ROOT }
+
+$outDir = Join-Path $repoRoot "evidence"
+if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
 $outFile = Join-Path $outDir "audit-results-node0.json"
 
 $now = (Get-Date).ToUniversalTime().ToString("o")
 
 $result = @{
-  schema_version  = 1
-  captured_at_utc = $now
-  host            = @{
-    os      = (Get-CimInstance Win32_OperatingSystem).Caption
-    machine = $env:COMPUTERNAME
-    cpu     = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
-    ram_gb  = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 1)
-    gpu     = @{}
-  }
-  ollama          = @{
-    reachable  = $false
-    host       = "http://localhost:11434"
-    env        = @{
-      OLLAMA_HOST              = $env:OLLAMA_HOST
-      OLLAMA_KEEP_ALIVE        = $env:OLLAMA_KEEP_ALIVE
-      OLLAMA_MAX_LOADED_MODELS = $env:OLLAMA_MAX_LOADED_MODELS
-      OLLAMA_NUM_PARALLEL      = $env:OLLAMA_NUM_PARALLEL
-    }
-    models     = @()
-    smoke_test = @{
-      prompt     = "What is the SHA-256 output size in bits? Return ONLY the number."
-      response   = $null
-      ok         = $false
-      latency_ms = $null
+  schema_version    = 1
+  captured_at_utc   = $now
+  host              = $env:COMPUTERNAME
+  ollama            = @{
+    reachable = $false
+    models    = @()
+    env       = @{
+      OLLAMA_HOST         = $env:OLLAMA_HOST
+      OLLAMA_KEEP_ALIVE   = $env:OLLAMA_KEEP_ALIVE
+      OLLAMA_NUM_PARALLEL = $env:OLLAMA_NUM_PARALLEL
     }
   }
-  llm_studio      = @{ models = @() }
+  gpu               = @{}
+  application_layer = @{
+    npm_project_detected = $false
+    lockfile_present     = $false
+    lockfile_sha256      = "N/A"
+  }
 }
 
-# GPU info (nvidia-smi optional)
+# 1. Capture GPU State
 try {
-  $gpuCsv = nvidia-smi --query-gpu=name, memory.total, memory.used, memory.free --format=csv, nounits | Select-Object -Skip 1
+  $gpuCsv = nvidia-smi --query-gpu=name, memory.total, memory.used --format=csv, nounits, noheader
   if ($gpuCsv) {
-    $parts = $gpuCsv -split "," | ForEach-Object { $_.Trim() }
-    $result.host.gpu = @{
-      name          = $parts[0]
-      vram_total_mb = [int]$parts[1]
-      vram_used_mb  = [int]$parts[2]
-      vram_free_mb  = [int]$parts[3]
-    }
+    $p = $gpuCsv -split ","
+    $result.gpu = @{ name = $p[0].Trim(); total_mb = [int]$p[1]; used_mb = [int]$p[2] }
   }
 }
-catch { }
+catch { Write-Warning "NVIDIA-SMI not found or failed." }
 
-# Ollama model list + modelfiles (captures digests if present)
+# 2. Capture Ollama Models & Digests
 try {
-  $list = ollama list
-  $lines = $list | Select-Object -Skip 1
+  $models = ollama list
+  $lines = $models -split "`n" | Select-Object -Skip 1
   foreach ($line in $lines) {
     if (-not $line.Trim()) { continue }
-    $cols = ($line -split "\s{2,}")
-    $name = $cols[0]
-    if (-not $name) { continue }
-
+    # Parse "NAME ID SIZE MODIFIED"
+    $parts = $line -split "\s{2,}"
+    $name = $parts[0]
+    $id = $parts[1]
+    
+    # Capture Modelfile Hash for extra integrity
     $modelfile = ollama show $name --modelfile
-    $tmp = New-TemporaryFile
-    Set-Content -Path $tmp.FullName -Value ($modelfile -join "`n") -Encoding UTF8
-    $mfHash = (Get-FileHash -Algorithm SHA256 -Path $tmp.FullName).Hash.ToLower()
-
-    $digest = ($modelfile | Select-String -Pattern "sha256:" -AllMatches | Select-Object -First 1).ToString()
-    if ($digest) {
-      $digest = ($digest | Select-String -Pattern "sha256:[0-9a-f]{64}" -AllMatches).Matches.Value | Select-Object -First 1
-    }
+    $mfStream = [System.IO.MemoryStream]::new([System.Text.Encoding]::UTF8.GetBytes(($modelfile -join "`n")))
+    $mfHash = (Get-FileHash -InputStream $mfStream -Algorithm SHA256).Hash.ToLower()
 
     $result.ollama.models += @{
       name             = $name
-      digest           = $digest
+      digest_short     = $id
       modelfile_sha256 = $mfHash
     }
   }
   $result.ollama.reachable = $true
 }
-catch {
-  $result.ollama.reachable = $false
+catch { 
+  Write-Warning "Ollama unreachable."
+  $result.ollama.reachable = $false 
 }
-
-# Smoke test via Ollama HTTP API
-try {
-  $body = @{
-    model  = "deepseek-8b-instruct"
-    prompt = "What is the SHA-256 output size in bits? Return ONLY the number."
-    stream = $false
-  } | ConvertTo-Json
-
-  $sw = [System.Diagnostics.Stopwatch]::StartNew()
-  $resp = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" -Method POST -Body $body -ContentType "application/json" -TimeoutSec 15
-  $sw.Stop()
-
-  $result.ollama.smoke_test.response = $resp.response
-  $result.ollama.smoke_test.latency_ms = [int]$sw.ElapsedMilliseconds
-  $result.ollama.smoke_test.ok = ($resp.response -match "^256\b")
-}
-catch { }
 
 # 3. Capture Application Layer (NPM Supply Chain)
-$npmFile = "package.json"
-$lockFile = "package-lock.json"
+$npmFile = Join-Path $repoRoot "package.json"
+$lockFile = Join-Path $repoRoot "package-lock.json"
 
 if (Test-Path $npmFile) {
-  $result.application_layer.npm_project_detected = $true
   if (Test-Path $lockFile) {
+    $result.application_layer.npm_project_detected = $true
     $result.application_layer.lockfile_present = $true
     $result.application_layer.lockfile_sha256 = (Get-FileHash -Path $lockFile -Algorithm SHA256).Hash.ToLower()
   }
   else {
     Write-Warning "CRITICAL: package.json found but package-lock.json MISSING. Supply chain is OPEN."
+    $result.application_layer.npm_project_detected = $true
     $result.application_layer.lockfile_present = $false
     $result.application_layer.lockfile_sha256 = "MISSING_CRITICAL"
+  }
+}
+else {
+  # If not in root, try to find deeper project
+  $deepPkg = Get-ChildItem -Path $repoRoot -Filter "package.json" -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch "\\\\node_modules\\\\" } |
+    Select-Object -First 1
+  if ($deepPkg) {
+    $result.application_layer.npm_project_detected = $true
+    $lockPath = Join-Path $deepPkg.DirectoryName "package-lock.json"
+    if (Test-Path $lockPath) {
+      $result.application_layer.lockfile_present = $true
+      $result.application_layer.lockfile_sha256 = (Get-FileHash -Path $lockPath -Algorithm SHA256).Hash.ToLower()
+    }
+    else {
+      $result.application_layer.lockfile_present = $false
+      $result.application_layer.lockfile_sha256 = "MISSING_CRITICAL_DEEP"
+    }
   }
 }
 

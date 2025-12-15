@@ -1,0 +1,14 @@
+workspace_version: 1
+workspace_id: node_0000_genesis_momo_dubai
+
+paths:
+  bizra_root: 'C:\BIZRA-TaskMaster'
+  infra_root: 'C:\bizra-genesis-node'
+  kernel_root: 'C:\bizra-genesis-node\.bizra-kernel'
+  evidence_root: 'C:\bizra-genesis-node\evidence'
+
+runtime:
+  ollama_host: 'http://127.0.0.1:11434'
+  postgres_dsn: 'postgresql://postgres:bizra_genesis_2025@localhost:5432/bizra'
+  redis_host: 'localhost'
+  redis_port: 6379

@@ -5,10 +5,9 @@
  * Usage: const root = execSync('node scripts/bizra-root.js').toString().trim();
  */
 
-import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import process from "node:process";
+const { execSync } = require("node:child_process");
+const { existsSync } = require("node:fs");
+const path = require("node:path");
 
 function gitRoot() {
     try {

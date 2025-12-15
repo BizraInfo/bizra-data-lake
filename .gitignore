@@ -19,10 +19,12 @@ Thumbs.db
 .env
 .env.local
 
+# Node dependencies
+**/node_modules/
+
 # Log files
 *.log
 
 # Temporary files
 /tmp/
 *.tmp
-

@@ -145,7 +145,11 @@ class BizraKernel {
     
     try {
       // Try to connect to Ollama (DeepSeek/Bizra-Planner)
-      const response = await fetch('http://localhost:11434/api/generate', {
+      const rawHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
+      const baseHost = rawHost.trim().replace(/\/+$/, '');
+      const ollamaHost = baseHost.match(/^https?:\/\//i) ? baseHost : `http://${baseHost}`;
+
+      const response = await fetch(`${ollamaHost}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,7 +175,7 @@ class BizraKernel {
 // In ES modules, we can just call it if we are the entry point
 const isMainModule = import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`;
 
-if (true) { // Simplified for immediate execution in this context
+if (isMainModule) {
   const kernel = new BizraKernel(process.cwd());
   kernel.init().catch(console.error);
 }

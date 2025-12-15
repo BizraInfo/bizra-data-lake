@@ -60,7 +60,7 @@ Options:
     -Help           Show this help message
 
 Components Started:
-    1. Docker: bizra-postgres (5433), bizra-redis (6379)
+    1. Docker Compose: postgres (5432), redis (6379)
     2. Rust API: http://localhost:3001
     3. WebSocket Bridge: ws://localhost:8080
     4. Dashboard: http://localhost:5173
@@ -72,7 +72,7 @@ Quick Start:
 }
 
 function Start-DockerServices {
-    Write-Status "Starting Docker services..." "INFO"
+    Write-Status "Starting Docker services (Compose)..." "INFO"
     
     # Check if Docker is running
     $dockerStatus = docker info 2>&1
@@ -80,34 +80,44 @@ function Start-DockerServices {
         Write-Status "Docker is not running! Please start Docker Desktop." "ERROR"
         return $false
     }
-    
-    # Start PostgreSQL
-    docker start bizra-postgres 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Status "PostgreSQL container started (port 5433)" "OK"
-    } else {
-        Write-Status "PostgreSQL container may already be running" "WARN"
+
+    $infraRoot = $env:INFRA_ROOT
+    if (-not $infraRoot) { $infraRoot = (Get-Location).Path }
+
+    $composeFile = Join-Path $infraRoot "docker-compose.database.yml"
+    if (-not (Test-Path $composeFile)) {
+        Write-Status "Compose file not found: $composeFile" "ERROR"
+        return $false
     }
-    
-    # Start Redis
-    docker start bizra-redis 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Status "Redis container started (port 6379)" "OK"
-    } else {
-        Write-Status "Redis container may already be running" "WARN"
+
+    if (-not $env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME = "bizra_node0" }
+    Write-Status "COMPOSE_PROJECT_NAME=$env:COMPOSE_PROJECT_NAME" "INFO"
+
+    docker compose -f $composeFile up -d
+    if ($LASTEXITCODE -ne 0) {
+        Write-Status "docker compose up failed" "ERROR"
+        return $false
     }
-    
-    # Wait for PostgreSQL health
-    Write-Status "Waiting for PostgreSQL to be healthy..." "INFO"
-    Start-Sleep -Seconds 5
-    
-    $pgHealth = docker inspect bizra-postgres --format '{{.State.Health.Status}}' 2>$null
-    if ($pgHealth -eq "healthy") {
-        Write-Status "PostgreSQL is healthy" "OK"
+
+    $pgId = (docker compose -f $composeFile ps -q postgres 2>$null)
+    $redisId = (docker compose -f $composeFile ps -q redis 2>$null)
+
+    if ($pgId) {
+        $pgHealth = docker inspect $pgId --format '{{.State.Health.Status}}' 2>$null
+        if ($pgHealth -eq "healthy") { Write-Status "PostgreSQL is healthy" "OK" }
+        else { Write-Status "PostgreSQL health: $pgHealth (continuing anyway)" "WARN" }
     } else {
-        Write-Status "PostgreSQL health: $pgHealth (continuing anyway)" "WARN"
+        Write-Status "PostgreSQL container id not found (continuing anyway)" "WARN"
     }
-    
+
+    if ($redisId) {
+        $redisHealth = docker inspect $redisId --format '{{.State.Health.Status}}' 2>$null
+        if ($redisHealth -eq "healthy") { Write-Status "Redis is healthy" "OK" }
+        else { Write-Status "Redis health: $redisHealth (continuing anyway)" "WARN" }
+    } else {
+        Write-Status "Redis container id not found (continuing anyway)" "WARN"
+    }
+
     return $true
 }
 
@@ -235,8 +245,18 @@ if ($Help) {
 
 Write-Banner
 
-# Change to project directory
-Set-Location "C:\bizra-genesis-node"
+# Load workspace contract if present (sets INFRA_ROOT / COMPOSE_PROJECT_NAME)
+try {
+    $resolver = Resolve-Path (Join-Path $PSScriptRoot "..\\scripts\\resolve-bizra-root.ps1") -ErrorAction Stop
+    & $resolver.Path | Out-Null
+} catch {
+    Write-Status "Workspace resolver unavailable (continuing in local-only mode)" "WARN"
+}
+
+# Change to infra directory (default: C:\bizra-genesis-node)
+$infraRoot = $env:INFRA_ROOT
+if (-not $infraRoot) { $infraRoot = "C:\bizra-genesis-node" }
+Set-Location $infraRoot
 
 if ($ApiOnly) {
     # API only mode
