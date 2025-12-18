@@ -1,8 +1,9 @@
 # P1 APEX Tracking Manifest
 
-**Document ID:** `BIZRA-P1-MANIFEST-v1.0.0`  
+**Document ID:** `BIZRA-P1-MANIFEST-v1.0.1`  
 **Status:** ACTIVE  
 **Created:** 2025-12-19  
+**Updated:** 2025-12-19  
 **Parent Framework:** `P1_APEX_IMPLEMENTATION_FRAMEWORK.md`
 
 ---
@@ -10,6 +11,40 @@
 ## Manifest Purpose
 
 Track progress across all P1 implementation tasks with evidence-linked verification.
+
+---
+
+## Sovereignty Implementation Progress
+
+### SA-1 — Stand Alone Validation Suite
+| Field | Value |
+|-------|-------|
+| Status | ✅ COMPLETE |
+| Owner | Node0 |
+| Start Date | 2025-12-19 |
+| Completed Date | 2025-12-19 |
+| Evidence | `tools/validate_sovereignty.py` |
+| Verification | Validates PAT-7 + SAT-5 with latency benchmarks |
+
+### SA-2 — Instruction Synthesis Engine
+| Field | Value |
+|-------|-------|
+| Status | ✅ COMPLETE |
+| Owner | Node0 |
+| Start Date | 2025-12-19 |
+| Completed Date | 2025-12-19 |
+| Evidence | `tools/synthesize_instructions.py` |
+| Verification | Generates JSONL training data with Ihsān filtering |
+
+### SA-3 — Ihsān Runtime Gate
+| Field | Value |
+|-------|-------|
+| Status | ✅ COMPLETE |
+| Owner | Node0 |
+| Start Date | 2025-12-19 |
+| Completed Date | 2025-12-19 |
+| Evidence | `src/ihsan_gate.py` |
+| Verification | FATE evaluator + @ihsan_protected decorator |
 
 ---
 
