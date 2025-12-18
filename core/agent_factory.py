@@ -334,6 +334,23 @@ class AgentFactory:
         except ImportError:
             logger.warning("FATE not available - running without ethics gate")
         
+        # Import Synapse for A2A communication
+        self._synapse_enabled = False
+        self._agent_buses: Dict[str, Any] = {}  # agent_id -> SynapseBus
+        try:
+            from core.synapse import create_synapse_for_agent, get_synapse
+            self._synapse_factory = create_synapse_for_agent
+            self._synapse_conn = get_synapse()
+            if self._synapse_conn.connect():
+                self._synapse_enabled = True
+                logger.info("Synapse integration enabled (Trinity connected)")
+            else:
+                logger.warning("Synapse connection failed - running without A2A")
+        except ImportError:
+            self._synapse_factory = None
+            self._synapse_conn = None
+            logger.warning("Synapse not available - running without A2A communication")
+        
         # Create evidence directory
         EVIDENCE_PATH.mkdir(parents=True, exist_ok=True)
         
@@ -431,6 +448,17 @@ class AgentFactory:
             
             self._agents[agent_id] = agent
             
+            # Connect to Synapse for A2A communication
+            if self._synapse_enabled and self._synapse_factory:
+                try:
+                    bus = self._synapse_factory(agent_id, name, "PAT")
+                    capabilities = [spec.get("role", "general")]
+                    bus.connect(capabilities)
+                    self._agent_buses[agent_id] = bus
+                    logger.info(f"Agent {name} connected to Trinity Synapse")
+                except Exception as e:
+                    logger.warning(f"Synapse connection failed for {name}: {e}")
+            
             logger.info(f"Spawned PAT agent: {name} ({instance_id})")
             self._record_spawn(agent)
             
@@ -472,6 +500,18 @@ class AgentFactory:
             )
             
             self._agents[agent_id] = agent
+            
+            # Connect to Synapse for A2A communication
+            if self._synapse_enabled and self._synapse_factory:
+                try:
+                    bus = self._synapse_factory(agent_id, name, "SAT")
+                    capabilities = [spec.get("role", "system")]
+                    bus.connect(capabilities)
+                    self._agent_buses[agent_id] = bus
+                    logger.info(f"SAT agent {name} connected to Trinity Synapse")
+                except Exception as e:
+                    logger.warning(f"Synapse connection failed for {name}: {e}")
+            
             logger.info(f"Spawned SAT agent: {name} ({instance_id})")
             
             return agent
@@ -484,6 +524,14 @@ class AgentFactory:
             
             agent = self._agents[agent_id]
             agent.status = AgentStatus.TERMINATED
+            
+            # Disconnect from Synapse
+            if agent_id in self._agent_buses:
+                try:
+                    self._agent_buses[agent_id].disconnect()
+                    del self._agent_buses[agent_id]
+                except Exception as e:
+                    logger.warning(f"Synapse disconnect failed: {e}")
             
             # Release URP lease
             if agent.lease_id:
@@ -516,6 +564,10 @@ class AgentFactory:
         """Get session by ID."""
         return self._sessions.get(session_id)
     
+    def get_synapse_bus(self, agent_id: str) -> Optional[Any]:
+        """Get synapse bus for agent A2A communication."""
+        return self._agent_buses.get(agent_id)
+    
     def snapshot(self) -> Dict[str, Any]:
         """Get factory state snapshot."""
         with self._agent_lock:
@@ -523,14 +575,25 @@ class AgentFactory:
             pat_count = sum(1 for a in active if a.agent_type == AgentType.PAT)
             sat_count = sum(1 for a in active if a.agent_type == AgentType.SAT)
             
+            # Get synapse health
+            synapse_health = None
+            if self._synapse_conn:
+                try:
+                    synapse_health = self._synapse_conn.health_check()
+                except Exception:
+                    synapse_health = {"status": "error"}
+            
             return {
                 "total_agents": len(self._agents),
                 "active_agents": len(active),
                 "pat_agents": pat_count,
                 "sat_agents": sat_count,
                 "sessions": len(self._sessions),
+                "synapse_connections": len(self._agent_buses),
                 "urp_enabled": self._urp is not None,
                 "fate_enabled": self._fate is not None,
+                "synapse_enabled": self._synapse_enabled,
+                "synapse_health": synapse_health,
                 "agents": [a.to_dict() for a in active]
             }
     
