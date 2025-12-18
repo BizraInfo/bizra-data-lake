@@ -1,0 +1,205 @@
+{
+  "entries": [
+    {
+      "bytes": 811,
+      "path": ".bizra-kernel/BIZRA-Thermal-Synthesis/Cargo.toml",
+      "repo": "core",
+      "sha256": "08619502f7ca20b18dfd21d1e28113ef7edf487dec2f49f0125c64960bad47b6"
+    },
+    {
+      "bytes": 1789,
+      "path": ".bizra-kernel/BIZRA-Thermal-Synthesis/synthesis_orchestrator/Cargo.toml",
+      "repo": "core",
+      "sha256": "23fb97e739549246c2730f6e3c2ab671d4f959d566ea5733ac8e8b4d02623346"
+    },
+    {
+      "bytes": 1547,
+      "path": ".bizra-kernel/BIZRA-Thermal-Synthesis/synthesis_orchestrator/src/lib.rs",
+      "repo": "core",
+      "sha256": "31271763cefd66819229e6f2693a26a507040f3f2ffa58c210b6d6660ef96047"
+    },
+    {
+      "bytes": 4191,
+      "path": ".bizra-kernel/BIZRA-Thermal-Synthesis/synthesis_orchestrator/src/thermal_router.rs",
+      "repo": "core",
+      "sha256": "15d9dd7f746f417c8522e14fc1f76b2c6d7dbc04e39187deb2151051d7e75142"
+    },
+    {
+      "bytes": 16466,
+      "path": ".bizra-kernel/BIZRA-Thermal-Synthesis/synthesis_orchestrator/src/types.rs",
+      "repo": "core",
+      "sha256": "cd4c0d449b9416ac104a1ea02bb823d16e5157cf42e8291aefed4d92d06cab2b"
+    },
+    {
+      "bytes": 959,
+      "path": "Cargo.toml",
+      "repo": "core",
+      "sha256": "90ff9839c9b3204d1ea18a39a29c8c807db4e04bb30a70b8cccabceed775577a"
+    },
+    {
+      "bytes": 3403,
+      "path": "golden-set-genesis-v1-DETERMINISTIC.json",
+      "repo": "core",
+      "sha256": "41b77af384bf89534ed3c5e0fbf3a015f539a4c6a5203531fdd3a3190894ea75"
+    },
+    {
+      "bytes": 6486,
+      "path": "model-family-genesis-v1-SEALED.yaml",
+      "repo": "core",
+      "sha256": "2dcd67447fabfb80d0841864e9823459b01e03848ec1b3975ca1adb6b09bfc06"
+    },
+    {
+      "bytes": 3237,
+      "path": "src/a2a.rs",
+      "repo": "core",
+      "sha256": "c115718ee731ef057fb715f6f2182b1ee6095ec3b00e911ddb45512888ac2e3f"
+    },
+    {
+      "bytes": 3182,
+      "path": "src/bizra_integration.rs",
+      "repo": "core",
+      "sha256": "8508d6495c05170543780179a33a4a0907296f311dc4b830058467f6cac9425f"
+    },
+    {
+      "bytes": 7308,
+      "path": "src/bridge.rs",
+      "repo": "core",
+      "sha256": "dd7234be9807ef225bb6e024c2d519adb62334a1b78988fab5fe59c926402aad"
+    },
+    {
+      "bytes": 898,
+      "path": "src/errors.rs",
+      "repo": "core",
+      "sha256": "7f507b01cb6d07d7a5e02f896c55b1ec1d20cc78a78dbf6efb8e42fa8f7f257f"
+    },
+    {
+      "bytes": 10072,
+      "path": "src/http.rs",
+      "repo": "core",
+      "sha256": "60de56ff0b8a6aba59a55cf3b145bcc5f7c6e4fc5d4dd35bf53b376b537c8464"
+    },
+    {
+      "bytes": 1088,
+      "path": "src/lib.rs",
+      "repo": "core",
+      "sha256": "7d7bf26744643aa81b922fd4c235a1255396b1a1768a60f163df74085f1eedc9"
+    },
+    {
+      "bytes": 4863,
+      "path": "src/main.rs",
+      "repo": "core",
+      "sha256": "651cb50ca64cf277aad1aa160aeec883370c4a722e0a30de430c83710cd34a90"
+    },
+    {
+      "bytes": 5409,
+      "path": "src/mcp.rs",
+      "repo": "core",
+      "sha256": "dfddd2ddf0e9b8a40ae135bb189ed389b46f5e818bd9262884c15deca7a7f41f"
+    },
+    {
+      "bytes": 5966,
+      "path": "src/pat.rs",
+      "repo": "core",
+      "sha256": "077bcb195f709ba215409c657729b72fc8169c40e9f04ca50c5c81af71a0a715"
+    },
+    {
+      "bytes": 17549,
+      "path": "src/pat_enhanced.rs",
+      "repo": "core",
+      "sha256": "459774e2fff5e049e995cf6910a6fe471fdbf12731bdc9f39a648f5a3503b067"
+    },
+    {
+      "bytes": 7269,
+      "path": "src/reasoning.rs",
+      "repo": "core",
+      "sha256": "845ca1420d4aa3f4910ef52dd78842a575d0bcf7c7d1b414868c52b889ef9198"
+    },
+    {
+      "bytes": 7128,
+      "path": "src/sat.rs",
+      "repo": "core",
+      "sha256": "a3237f9a6ba519db91d299ea0ae75942353be13798d53eca4f5a41dae3f253f6"
+    },
+    {
+      "bytes": 4700,
+      "path": "src/types.rs",
+      "repo": "core",
+      "sha256": "1297d3cd83aa5cc1899f65d0ceff85f5a1e56be8f83c12960f78402515bd8ffa"
+    },
+    {
+      "bytes": 1902,
+      "path": "backend/Cargo.toml",
+      "repo": "node0",
+      "sha256": "5268aa69f02da25a6009ab3a079970c0b02327ab28611e8589b02d8b65a7575a"
+    },
+    {
+      "bytes": 1000,
+      "path": "backend/src/lib/mod.rs",
+      "repo": "node0",
+      "sha256": "80c1d84eeb5a8dd071d67f4ebd3492ac4c29f6b933480d11e4bc15f2d86fcfd9"
+    },
+    {
+      "bytes": 40376,
+      "path": "backend/src/main.rs",
+      "repo": "node0",
+      "sha256": "9ce275b8754dd1ef4ec148eaad84952634a5a2cd5954e2aa63efb32827439def"
+    },
+    {
+      "bytes": 5554,
+      "path": "QUICKSTART.md",
+      "repo": "node0",
+      "sha256": "cb4a333068502026e0b81454b587ce0ad3b4d65687e82935b08009d3b1a131f4"
+    },
+    {
+      "bytes": 18042,
+      "path": "scripts/init-db.sql",
+      "repo": "node0",
+      "sha256": "e40e8c4b892fe748adf7de4898de096230fe7dd85f3208e8d59ab4be40af2664"
+    },
+    {
+      "bytes": 5891,
+      "path": "SECURITY.md",
+      "repo": "node0",
+      "sha256": "ea5705d2ed6fe7a934f1f96222b4bdfb6791ad2b0f87641d953fca3dfd2e5080"
+    }
+  ],
+  "generated_at_utc": "2025-12-17T13:24:47.803532+00:00",
+  "generator": {
+    "name": "tools/genesis_manifest.py",
+    "version": "1.0.0"
+  },
+  "policy_hashes": {
+    "ihsan_constitution_sha256": "6b406443796b7c35ece21d05baf3441feec33be9d555072fe8f63e2c0bddb915",
+    "lexicon_contract_sha256": "df51379f34789a458383221ffd40039a55bca6d34e799e88b4daed2d456f2635",
+    "lexicon_receipt_schema_sha256": "1bab56fe12c2506045e22b903fa9211f1c2b453b315499b1fc6d4e787b4a12db",
+    "lexicon_schema_sha256": "6583762b19cc29fb952e0355aed493eedae0a99fb9a624499c5b240bb3487a30",
+    "lexicon_sha256": "90014652464b780f9bd4a4493f3ac511403917ff447d4d8c703cb3a7f3d1a2e7"
+  },
+  "policy_sha256": "ea51e6f7a538bf6cfe0495e6910127ecc040f190c7c726be97a29024e0cf893d",
+  "profile": {
+    "id": "bizra_genesis_manifest_profile_v1",
+    "path": "constitution/genesis_manifest_profile_v1.yaml",
+    "sha256": "087e7e86f932d716a3c65dfb0f52441a126e666679de0df1534ef7f5c1d06ec1"
+  },
+  "repositories": [
+    {
+      "commit": "24d743681be2141fe4b73a31159a47e2863a3b55",
+      "dirty": true,
+      "name": "core",
+      "root": "."
+    },
+    {
+      "commit": "6367f23f3baf0f37bb197bece3547a0f22cbb9c8",
+      "dirty": true,
+      "name": "node0",
+      "root": "bizra-genesis-node"
+    }
+  ],
+  "source": {
+    "core_commit": "24d743681be2141fe4b73a31159a47e2863a3b55",
+    "core_dirty": true,
+    "mode": "worktree"
+  },
+  "type": "GenesisManifest",
+  "version": 1
+}

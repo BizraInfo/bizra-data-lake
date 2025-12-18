@@ -46,7 +46,7 @@ impl MCPClient {
             tool_registry: HashMap::new(),
         }
     }
-    
+
     /// Register MCP server
     pub async fn register_server(
         &mut self,
@@ -58,76 +58,77 @@ impl MCPClient {
         self.discover_tools().await?;
         Ok(())
     }
-    
+
     /// Discover all available tools from registered servers
     #[instrument(skip(self))]
     async fn discover_tools(&mut self) -> anyhow::Result<()> {
-        for (server_name, _server) in &self.servers {
+        for (server_name, server) in &self.servers {
+            debug!(
+                server_name,
+                server_url = %server.url,
+                transport = ?server.transport,
+                "Discovering MCP tools (simulated)"
+            );
             // Simulated tool discovery (in production: actual MCP protocol)
             let tools = vec![
                 ToolDefinition {
                     name: "filesystem_read".to_string(),
                     description: "Read file from filesystem".to_string(),
-                    parameters: vec![
-                        ToolParameter {
-                            name: "path".to_string(),
-                            type_: "string".to_string(),
-                            description: "File path to read".to_string(),
-                            required: true,
-                        }
-                    ],
+                    parameters: vec![ToolParameter {
+                        name: "path".to_string(),
+                        type_: "string".to_string(),
+                        description: "File path to read".to_string(),
+                        required: true,
+                    }],
                     server: server_name.clone(),
                 },
                 ToolDefinition {
                     name: "web_search".to_string(),
                     description: "Search the web".to_string(),
-                    parameters: vec![
-                        ToolParameter {
-                            name: "query".to_string(),
-                            type_: "string".to_string(),
-                            description: "Search query".to_string(),
-                            required: true,
-                        }
-                    ],
+                    parameters: vec![ToolParameter {
+                        name: "query".to_string(),
+                        type_: "string".to_string(),
+                        description: "Search query".to_string(),
+                        required: true,
+                    }],
                     server: server_name.clone(),
                 },
                 ToolDefinition {
                     name: "database_query".to_string(),
                     description: "Query database".to_string(),
-                    parameters: vec![
-                        ToolParameter {
-                            name: "sql".to_string(),
-                            type_: "string".to_string(),
-                            description: "SQL query".to_string(),
-                            required: true,
-                        }
-                    ],
+                    parameters: vec![ToolParameter {
+                        name: "sql".to_string(),
+                        type_: "string".to_string(),
+                        description: "SQL query".to_string(),
+                        required: true,
+                    }],
                     server: server_name.clone(),
                 },
                 ToolDefinition {
                     name: "code_analysis".to_string(),
                     description: "Analyze source code".to_string(),
-                    parameters: vec![
-                        ToolParameter {
-                            name: "code".to_string(),
-                            type_: "string".to_string(),
-                            description: "Code to analyze".to_string(),
-                            required: true,
-                        }
-                    ],
+                    parameters: vec![ToolParameter {
+                        name: "code".to_string(),
+                        type_: "string".to_string(),
+                        description: "Code to analyze".to_string(),
+                        required: true,
+                    }],
                     server: server_name.clone(),
                 },
             ];
-            
+
             for tool in tools {
                 self.tool_registry.insert(tool.name.clone(), tool);
             }
         }
-        
-        debug!(tools_count = self.tool_registry.len(), "MCP tools discovered");
+
+        debug!(
+            tools_count = self.tool_registry.len(),
+            "MCP tools discovered"
+        );
         Ok(())
     }
-    
+
     /// Execute tool via MCP
     #[instrument(skip(self))]
     pub async fn call_tool(
@@ -135,9 +136,11 @@ impl MCPClient {
         tool_name: &str,
         arguments: HashMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value> {
-        let _tool = self.tool_registry.get(tool_name)
+        let _tool = self
+            .tool_registry
+            .get(tool_name)
             .ok_or_else(|| anyhow::anyhow!("Tool not found: {}", tool_name))?;
-        
+
         // In production: actual MCP protocol call
         // For now: simulated execution
         let result = serde_json::json!({
@@ -146,15 +149,15 @@ impl MCPClient {
             "result": format!("Executed {} successfully", tool_name),
             "status": "success",
         });
-        
+
         Ok(result)
     }
-    
+
     /// List available tools
     pub fn list_tools(&self) -> Vec<&ToolDefinition> {
         self.tool_registry.values().collect()
     }
-    
+
     /// Filter tools by capability
     pub fn filter_tools(&self, filter: &str) -> Vec<&ToolDefinition> {
         self.tool_registry

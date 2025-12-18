@@ -101,8 +101,10 @@ impl ThermalRouter {
             + (self.temperature as f64);
         
         // Sample from Beta distribution
-        let beta_dist = Beta::new(alpha, beta_param)
-            .expect("valid beta parameters");
+        let beta_dist = match Beta::new(alpha, beta_param) {
+            Ok(d) => d,
+            Err(_) => return self.apply_boltzmann_weight(0.5),
+        };
         let sample = beta_dist.sample(&mut rand::thread_rng()) as f32;
         
         // Apply Boltzmann weighting

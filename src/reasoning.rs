@@ -12,7 +12,7 @@ impl MultiMethodReasoning {
     pub fn new(methods: Vec<ReasoningMethod>) -> Self {
         Self { methods }
     }
-    
+
     /// Select optimal reasoning method for task
     pub fn select_method(
         &self,
@@ -21,14 +21,16 @@ impl MultiMethodReasoning {
         user_preference: Option<ReasoningMethod>,
     ) -> ReasoningMethod {
         if let Some(pref) = user_preference {
-            return pref;
+            if self.methods.contains(&pref) {
+                return pref;
+            }
         }
-        
+
         // Auto-select based on task characteristics
         if task_type == "exploration" || complexity > 0.7 {
             return ReasoningMethod::TreeOfThought;
         }
-        
+
         match (task_type, complexity) {
             ("linear_process", c) if c < 0.3 => ReasoningMethod::ChainOfThought,
             ("strategic_planning", _) | ("interdisciplinary", _) => ReasoningMethod::GraphOfThought,
@@ -37,7 +39,7 @@ impl MultiMethodReasoning {
             _ => ReasoningMethod::ChainOfThought,
         }
     }
-    
+
     /// Execute reasoning with selected method
     #[instrument(skip(self))]
     pub async fn reason(
@@ -54,8 +56,12 @@ impl MultiMethodReasoning {
             ReasoningMethod::Reflexion => self.reflexion(prompt, context).await,
         }
     }
-    
-    async fn chain_of_thought(&self, prompt: &str, _context: serde_json::Value) -> anyhow::Result<ReasoningResult> {
+
+    async fn chain_of_thought(
+        &self,
+        prompt: &str,
+        _context: serde_json::Value,
+    ) -> anyhow::Result<ReasoningResult> {
         // Step-by-step linear reasoning
         let steps = vec![
             format!("Step 1: Analyze '{}'", prompt),
@@ -64,7 +70,7 @@ impl MultiMethodReasoning {
             "Step 4: Validate against constraints".to_string(),
             format!("Step 5: Formulate final answer for '{}'", prompt),
         ];
-        
+
         Ok(ReasoningResult {
             method: ReasoningMethod::ChainOfThought,
             steps,
@@ -72,8 +78,12 @@ impl MultiMethodReasoning {
             confidence: 0.85,
         })
     }
-    
-    async fn tree_of_thought(&self, prompt: &str, _context: serde_json::Value) -> anyhow::Result<ReasoningResult> {
+
+    async fn tree_of_thought(
+        &self,
+        prompt: &str,
+        _context: serde_json::Value,
+    ) -> anyhow::Result<ReasoningResult> {
         // Explore multiple branches
         let steps = vec![
             format!("Root: Analyzing '{}'", prompt),
@@ -83,16 +93,23 @@ impl MultiMethodReasoning {
             "Evaluation: Branch 3 shows highest potential".to_string(),
             format!("Selected: Hybrid approach for '{}'", prompt),
         ];
-        
+
         Ok(ReasoningResult {
             method: ReasoningMethod::TreeOfThought,
             steps,
-            conclusion: format!("Tree exploration completed, optimal path selected for: {}", prompt),
+            conclusion: format!(
+                "Tree exploration completed, optimal path selected for: {}",
+                prompt
+            ),
             confidence: 0.88,
         })
     }
-    
-    async fn graph_of_thought(&self, prompt: &str, _context: serde_json::Value) -> anyhow::Result<ReasoningResult> {
+
+    async fn graph_of_thought(
+        &self,
+        prompt: &str,
+        _context: serde_json::Value,
+    ) -> anyhow::Result<ReasoningResult> {
         // Build reasoning graph with cross-connections
         let steps = vec![
             format!("Initialize concept graph for '{}'", prompt),
@@ -103,16 +120,23 @@ impl MultiMethodReasoning {
             "Node 5: Integrated solution synthesizing all perspectives".to_string(),
             "Cross-domain insights: Technical + Business synergy identified".to_string(),
         ];
-        
+
         Ok(ReasoningResult {
             method: ReasoningMethod::GraphOfThought,
             steps,
-            conclusion: format!("Graph-of-thought synthesis complete: Multi-dimensional solution for '{}'", prompt),
+            conclusion: format!(
+                "Graph-of-thought synthesis complete: Multi-dimensional solution for '{}'",
+                prompt
+            ),
             confidence: 0.91,
         })
     }
-    
-    async fn react(&self, prompt: &str, _context: serde_json::Value) -> anyhow::Result<ReasoningResult> {
+
+    async fn react(
+        &self,
+        prompt: &str,
+        _context: serde_json::Value,
+    ) -> anyhow::Result<ReasoningResult> {
         // Reasoning + Acting (tool use)
         let steps = vec![
             format!("Thought: I need to gather information about '{}'", prompt),
@@ -122,9 +146,12 @@ impl MultiMethodReasoning {
             "Action: Execute database_query to cross-reference".to_string(),
             "Observation: Data confirmed, 95% accuracy".to_string(),
             "Thought: Now I can formulate comprehensive answer".to_string(),
-            format!("Final: Synthesized answer for '{}' using 5 tool calls", prompt),
+            format!(
+                "Final: Synthesized answer for '{}' using 5 tool calls",
+                prompt
+            ),
         ];
-        
+
         Ok(ReasoningResult {
             method: ReasoningMethod::ReAct,
             steps,
@@ -132,8 +159,12 @@ impl MultiMethodReasoning {
             confidence: 0.87,
         })
     }
-    
-    async fn reflexion(&self, prompt: &str, _context: serde_json::Value) -> anyhow::Result<ReasoningResult> {
+
+    async fn reflexion(
+        &self,
+        prompt: &str,
+        _context: serde_json::Value,
+    ) -> anyhow::Result<ReasoningResult> {
         // Self-reflection and iteration
         let steps = vec![
             format!("Iteration 1: Initial solution for '{}'", prompt),
@@ -142,13 +173,19 @@ impl MultiMethodReasoning {
             "Self-Critique: Edge case Y not covered".to_string(),
             "Iteration 3: Comprehensive solution covering all cases".to_string(),
             "Self-Critique: Solution meets all quality standards".to_string(),
-            format!("Final: Refined solution after 3 reflexion iterations for '{}'", prompt),
+            format!(
+                "Final: Refined solution after 3 reflexion iterations for '{}'",
+                prompt
+            ),
         ];
-        
+
         Ok(ReasoningResult {
             method: ReasoningMethod::Reflexion,
             steps,
-            conclusion: format!("Reflexive improvement completed: High-quality solution for '{}'", prompt),
+            conclusion: format!(
+                "Reflexive improvement completed: High-quality solution for '{}'",
+                prompt
+            ),
             confidence: 0.93,
         })
     }

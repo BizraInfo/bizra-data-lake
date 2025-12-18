@@ -9,23 +9,23 @@ use std::time::Duration;
 pub struct EnhancedAgentCapabilities {
     /// MCP: Tool access
     pub mcp_tools: Vec<String>,
-    
+
     /// A2A: Agent communication
     pub a2a_capabilities: Vec<String>,
-    
+
     /// Reasoning methods
     pub reasoning_methods: Vec<ReasoningMethod>,
-    
+
     /// Sub-agent generation
     pub can_spawn_sub_agents: bool,
     pub max_sub_agents: usize,
-    
+
     /// Swarm capabilities
     pub swarm_modes: Vec<SwarmMode>,
-    
+
     /// Memory access
     pub memory_tiers: Vec<MemoryTier>,
-    
+
     /// Hook support
     pub hooks: Vec<String>,
 }
@@ -81,7 +81,7 @@ pub enum Priority {
 pub struct EnhancedDualAgenticRequest {
     /// Base request
     pub base: DualAgenticRequest,
-    
+
     /// Advanced controls
     pub reasoning_preference: Option<ReasoningMethod>,
     #[serde(default)]
@@ -91,7 +91,7 @@ pub struct EnhancedDualAgenticRequest {
     pub memory_context: Option<serde_json::Value>,
     #[serde(default)]
     pub hooks_config: HashMap<String, serde_json::Value>,
-    
+
     /// Slash command support
     pub slash_command: Option<SlashCommand>,
 }
@@ -138,6 +138,34 @@ pub struct AgentResult {
     pub confidence: f64,
     #[serde(with = "duration_serde")]
     pub execution_time: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AdapterMode {
+    Simulated,
+    Real,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdapterModes {
+    pub pat: AdapterMode,
+    pub sat: AdapterMode,
+    pub mcp: AdapterMode,
+    pub a2a: AdapterMode,
+    pub reasoning: AdapterMode,
+}
+
+impl AdapterModes {
+    pub fn current() -> Self {
+        Self {
+            pat: AdapterMode::Simulated,
+            sat: AdapterMode::Simulated,
+            mcp: AdapterMode::Simulated,
+            a2a: AdapterMode::Simulated,
+            reasoning: AdapterMode::Simulated,
+        }
+    }
 }
 
 // Custom Duration serialization

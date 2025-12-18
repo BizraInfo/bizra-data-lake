@@ -1,0 +1,51 @@
+{
+  "schema": "bizra_genesis_receipt_v1",
+  "version": 1,
+  "truth_label": "MEASURED",
+  "timestamp_utc": "2025-12-18T12:34:56.789012+00:00",
+  "git_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "artifacts": {
+    "compose_file": "docker-compose.yml",
+    "compose_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "model_family_manifest": "model-family-genesis-v1-SEALED.yaml",
+    "model_family_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "healthz_config": {
+    "budget_s": 0.85,
+    "redis_timeout_s": 0.35,
+    "neo4j_timeout_s": 0.55,
+    "llm_timeout_s": 0.25,
+    "cache_ttl_s": 0.5
+  },
+  "healthz_snapshot": {
+    "url": "http://127.0.0.1:8010/healthz",
+    "status_code": 200,
+    "body_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "elapsed_ms": 12.34,
+    "checks": {
+      "synapse": { "enabled": true, "ok": true, "url": "redis://synapse:6379" },
+      "wisdom": { "enabled": true, "ok": true, "url": "bolt://wisdom:7687" },
+      "ollama": { "enabled": true, "ok": true, "status": "ok" },
+      "lmstudio": { "enabled": true, "ok": false, "status": "degraded" }
+    }
+  },
+  "first_sape_plan": {
+    "url": "http://127.0.0.1:8010/v1/sape/plan",
+    "request_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "http_status": 200,
+    "latency_ms": 123.45,
+    "response_status": "PLANNED",
+    "slot": "primary_reasoning",
+    "prompt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "warnings": []
+  },
+  "neo4j_snapshot": {
+    "http_url": "http://127.0.0.1:7474",
+    "node_count": 26922,
+    "relationship_count": 26922,
+    "query_response_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "error": null
+  },
+  "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+}

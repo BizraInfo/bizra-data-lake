@@ -1,0 +1,44 @@
+requirements_version: 1
+scope_note: "This file is a baseline template. Promote items to VERIFIED only with evidence."
+
+assumed_goals_unverified:
+  - id: GOAL-001
+    statement: "Multi-provider AI orchestration"
+  - id: GOAL-002
+    statement: "Sub-2s synthesis latency (P95) under defined workload"
+  - id: GOAL-003
+    statement: ">=99.9% availability under defined SLO window"
+  - id: GOAL-004
+    statement: "Cost-aware routing with enforceable budgets"
+
+functional_requirements:
+  - id: FR-001
+    title: "Execute dual-agentic workflow"
+    status: implemented
+    evidence:
+      code:
+        - "src/lib.rs:37"
+        - "src/bridge.rs:27"
+      verification:
+        - "cargo test (note: currently 0 tests in this repo; add tests before claiming verified)"
+
+nonfunctional_requirements:
+  - id: NFR-001
+    title: "Secrets not stored in tracked files"
+    status: planned
+    acceptance:
+      - "No credentials in repo files"
+      - "Secrets provided via env vars or vault"
+  - id: NFR-002
+    title: "API not exposed publicly by default"
+    status: planned
+    acceptance:
+      - "Default bind is localhost"
+      - "Public exposure requires explicit config"
+  - id: NFR-003
+    title: "Evidence receipts for decisions"
+    status: planned
+    acceptance:
+      - "Every request emits a receipt"
+      - "Receipts can be sealed and audited"
+

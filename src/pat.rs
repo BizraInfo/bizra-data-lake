@@ -19,7 +19,7 @@ struct PATAgent {
 impl PATOrchestrator {
     pub async fn new() -> anyhow::Result<Self> {
         info!("🎭 Initializing PAT (Personal Agentic Team)");
-        
+
         let agents = vec![
             PATAgent {
                 name: "strategic_visionary".to_string(),
@@ -57,11 +57,11 @@ impl PATOrchestrator {
                 specialty: "System integration and harmony".to_string(),
             },
         ];
-        
+
         info!(agents_count = agents.len(), "PAT agents initialized");
         Ok(Self { agents })
     }
-    
+
     /// Execute all agents in parallel
     #[instrument(skip(self))]
     pub async fn execute_parallel(
@@ -70,59 +70,79 @@ impl PATOrchestrator {
         request: DualAgenticRequest,
     ) -> anyhow::Result<Vec<AgentResult>> {
         let start = Instant::now();
-        
+
         let mut results = Vec::new();
-        
+
         for agent in &self.agents {
             let result = self.execute_agent(agent, &request).await?;
             results.push(result);
         }
-        
+
         let total_time = start.elapsed();
         info!(
             agents_executed = results.len(),
             total_time_ms = total_time.as_millis(),
             "PAT parallel execution completed"
         );
-        
+
         Ok(results)
     }
-    
+
     async fn execute_agent(
         &self,
         agent: &PATAgent,
         request: &DualAgenticRequest,
     ) -> anyhow::Result<AgentResult> {
         let start = Instant::now();
-        
+
         // Simulate agent processing with role-specific contribution
-        let contribution = match agent.name.as_str() {
+        let base_contribution = match agent.name.as_str() {
             "strategic_visionary" => {
                 format!("[Strategic] Long-term vision for '{}': Establish foundation for sustainable growth", request.task)
             }
             "creative_innovator" => {
-                format!("[Innovation] Novel approach for '{}': Apply cutting-edge methodologies", request.task)
+                format!(
+                    "[Innovation] Novel approach for '{}': Apply cutting-edge methodologies",
+                    request.task
+                )
             }
             "analytical_optimizer" => {
-                format!("[Analysis] Data-driven insights for '{}': Optimize for 95% efficiency", request.task)
+                format!(
+                    "[Analysis] Data-driven insights for '{}': Optimize for 95% efficiency",
+                    request.task
+                )
             }
             "implementation_specialist" => {
-                format!("[Implementation] Practical execution plan for '{}': 5-phase delivery", request.task)
+                format!(
+                    "[Implementation] Practical execution plan for '{}': 5-phase delivery",
+                    request.task
+                )
             }
             "quality_guardian" => {
-                format!("[Quality] Excellence standards for '{}': إحسان score target 0.95+", request.task)
+                format!(
+                    "[Quality] Excellence standards for '{}': إحسان score target 0.95+",
+                    request.task
+                )
             }
             "user_advocate" => {
-                format!("[UX] User-centric design for '{}': Optimize for user satisfaction", request.task)
+                format!(
+                    "[UX] User-centric design for '{}': Optimize for user satisfaction",
+                    request.task
+                )
             }
             "integration_coordinator" => {
-                format!("[Coordination] Harmonized approach for '{}': Ensure seamless integration", request.task)
+                format!(
+                    "[Coordination] Harmonized approach for '{}': Ensure seamless integration",
+                    request.task
+                )
             }
             _ => format!("[{}] Contribution for '{}'", agent.role, request.task),
         };
-        
+
+        let contribution = format!("{} (Specialty: {})", base_contribution, agent.specialty);
+
         let execution_time = start.elapsed();
-        
+
         Ok(AgentResult {
             agent_name: agent.name.clone(),
             contribution,
@@ -130,7 +150,7 @@ impl PATOrchestrator {
             execution_time,
         })
     }
-    
+
     pub fn get_agent_count(&self) -> usize {
         self.agents.len()
     }
@@ -140,16 +160,16 @@ impl PATOrchestrator {
 pub(crate) mod rand {
     use std::cell::Cell;
     use std::time::{SystemTime, UNIX_EPOCH};
-    
+
     thread_local! {
         static SEED: Cell<u64> = Cell::new(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_nanos() as u64
         );
     }
-    
+
     pub fn random<T: From<f64>>() -> T {
         SEED.with(|seed| {
             let mut s = seed.get();

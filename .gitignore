@@ -22,9 +22,25 @@ Thumbs.db
 # Node dependencies
 **/node_modules/
 
+# Python cache
+__pycache__/
+
 # Log files
 *.log
 
 # Temporary files
 /tmp/
 *.tmp
+
+# Local/private datasets
+/chat data sample/
+
+# Evidence receipts (local, can be regenerated)
+/docs/evidence/receipts/
+
+# BIZRA data vault (local/private datasets; may be very large)
+/bizra_data_vault/
+
+# Refinery outputs (may include sensitive filenames/paths)
+BIZRA_KNOWLEDGE_MANIFEST.json
+BIZRA_KNOWLEDGE_LEDGER.jsonl

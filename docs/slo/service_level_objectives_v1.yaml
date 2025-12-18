@@ -1,0 +1,26 @@
+slo_version: 1
+note: "Define SLIs/SLOs and error budgets. Only mark MEASURED with captured evidence outputs."
+
+services:
+  - name: "dual-agentic-api"
+    slis:
+      - name: "availability"
+        definition: "percentage of successful health checks over window"
+      - name: "latency_ms"
+        definition: "request latency for key endpoints"
+      - name: "error_rate"
+        definition: "5xx responses / total responses"
+    slos:
+      - id: SLO-001
+        sli: availability
+        target: ">= 99.5% (initial)"
+        window: "30d"
+      - id: SLO-002
+        sli: latency_ms
+        target: "P95 <= 300ms (define workload)"
+        window: "7d"
+      - id: SLO-003
+        sli: error_rate
+        target: "<= 1%"
+        window: "7d"
+

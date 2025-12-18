@@ -5,6 +5,7 @@ pub mod bizra_integration;
 pub mod bridge;
 pub mod errors;
 pub mod http;
+pub mod ihsan;
 pub mod mcp;
 pub mod pat;
 pub mod pat_enhanced;
@@ -13,8 +14,8 @@ pub mod sat;
 pub mod types;
 
 use bridge::BridgeCoordinator;
-use types::{DualAgenticRequest, DualAgenticResponse};
 use tracing::info;
+use types::{DualAgenticRequest, DualAgenticResponse};
 
 /// Complete Meta Alpha Dual Agentic System
 pub struct MetaAlphaDualAgentic {
@@ -25,14 +26,14 @@ impl MetaAlphaDualAgentic {
     /// Initialize the complete system
     pub async fn initialize() -> anyhow::Result<Self> {
         info!("🚀 Initializing BIZRA META ALPHA ELITE - Complete Unified System");
-        
+
         let bridge = BridgeCoordinator::new().await?;
-        
+
         info!("✅ Core system initialized successfully");
-        
+
         Ok(Self { bridge })
     }
-    
+
     /// Execute dual-agentic workflow
     pub async fn execute(
         &self,

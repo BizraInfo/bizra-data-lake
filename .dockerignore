@@ -1,0 +1,30 @@
+.git/
+.github/
+__pycache__/
+target/
+temp_brain_check/
+temp_kit_check/
+
+# Secrets (never send to docker build context)
+.env
+.env.local
+
+# Large/local datasets
+bizra_data_vault/
+chat data sample/
+evidence/
+docs/evidence/receipts/
+
+# Large bundles
+bizra-genesis-node/
+bizra_ops_kit/
+bizra_momo_activation_kit (1)/
+BIZRA_Phase1_Wiring_Brain_Pack_v1_0_1/
+
+# Generated refinery outputs
+BIZRA_KNOWLEDGE_LEDGER.jsonl
+BIZRA_KNOWLEDGE_MANIFEST.json
+
+# Archives/media
+*.zip
+*.pdf

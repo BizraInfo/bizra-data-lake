@@ -1,0 +1,81 @@
+version: 1
+sealed: false
+candidate_revision: "v1.0.1"
+candidate_reason: "Fix slot consistency, add embeddings slot, canonicalize model names, require evidence-captured digests."
+
+# ----------------------------
+# Capability Slots (Routing)
+# ----------------------------
+capability_slots:
+  cold_core:
+    description: "Deterministic reasoning + self-correction + causal trace"
+    allowed_models: ["deepseek-r1:8b", "mistral:latest"]
+    routing:
+      primary: "deepseek-r1:8b"
+      fallback: "mistral:latest"
+
+  warm_surface:
+    description: "Nuance + formatting + user-facing tone control"
+    allowed_models: ["mistral:latest"]
+    routing:
+      primary: "mistral:latest"
+
+  embeddings:
+    description: "Deterministic embedding for RAG / semantic search"
+    allowed_models: ["text-embedding-nomic-embed-text-v1.5"]
+    routing:
+      primary: "text-embedding-nomic-embed-text-v1.5"
+
+# ----------------------------
+# Pinned Artifacts (Identity)
+# ----------------------------
+pinned_artifacts:
+  deepseek-r1:8b:
+    provider: ollama
+    digest: "EVIDENCE_CAPTURE_REQUIRED"
+    modelfile_sha256: "EVIDENCE_CAPTURE_REQUIRED"
+    params:
+      num_ctx: 8192
+      temperature: 0.6
+
+  mistral:latest:
+    provider: ollama
+    digest: "EVIDENCE_CAPTURE_REQUIRED"
+    modelfile_sha256: "EVIDENCE_CAPTURE_REQUIRED"
+    params:
+      num_ctx: 32768
+      temperature: 0.3
+
+  text-embedding-nomic-embed-text-v1.5:
+    provider: lm_studio
+    digest: "EVIDENCE_CAPTURE_REQUIRED"
+    params:
+      embedding_dim: 768  # NOTE: LM Studio will report actual; tests assert expected_dim in slots.yaml
+
+# ----------------------------
+# Operational Constraints
+# ----------------------------
+resource_policy:
+  ollama:
+    max_loaded_models: 1
+    keep_alive: "5m"
+    num_parallel: 1
+    request_timeout_s: 30
+  gpu:
+    enforce_vram_soft_cap_mb: 14000
+    fail_open_cpu: true
+
+performance_bounds:
+  phase_0:
+    snr_target: 7.8
+    snr_floor: 7.0
+    p95_latency_ms: 1500
+
+bft_genesis:
+  N: 5
+  f: 1
+  quorum_commit: 3
+  safe_mode_triggers:
+    - "equivocation_detected"
+    - "validator_disagreement > 5%"
+    - "consecutive_missed_blocks > 10"

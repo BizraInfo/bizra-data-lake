@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/genesis_receipt_v1.schema.json",
+  "title": "BIZRA GenesisReceipt (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "truth_label",
+    "timestamp_utc",
+    "git_commit_sha",
+    "artifacts",
+    "healthz_config",
+    "first_sape_plan",
+    "neo4j_snapshot",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema": { "type": "string", "const": "bizra_genesis_receipt_v1" },
+    "version": { "type": "integer", "const": 1 },
+    "truth_label": { "type": "string", "enum": ["VERIFIED", "MEASURED", "TARGET", "DERIVED"] },
+    "timestamp_utc": { "type": "string", "format": "date-time" },
+    "git_commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compose_file",
+        "compose_sha256",
+        "model_family_manifest",
+        "model_family_manifest_sha256"
+      ],
+      "properties": {
+        "compose_file": { "type": "string", "minLength": 1 },
+        "compose_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "model_family_manifest": { "type": "string", "minLength": 1 },
+        "model_family_manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "healthz_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["budget_s", "redis_timeout_s", "neo4j_timeout_s", "llm_timeout_s", "cache_ttl_s"],
+      "properties": {
+        "budget_s": { "type": "number", "minimum": 0.0 },
+        "redis_timeout_s": { "type": "number", "minimum": 0.0 },
+        "neo4j_timeout_s": { "type": "number", "minimum": 0.0 },
+        "llm_timeout_s": { "type": "number", "minimum": 0.0 },
+        "cache_ttl_s": { "type": "number", "minimum": 0.0 }
+      }
+    },
+    "healthz_snapshot": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "first_sape_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "request_sha256", "response_sha256", "http_status", "latency_ms", "response_status"],
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "request_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "response_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "http_status": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "latency_ms": { "type": "number", "minimum": 0.0 },
+        "response_status": { "type": "string", "minLength": 1 },
+        "slot": { "type": ["string", "null"] },
+        "prompt_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "warnings": { "type": ["array", "null"], "items": { "type": "string" } }
+      }
+    },
+    "neo4j_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["http_url", "node_count", "relationship_count", "query_response_sha256", "error"],
+      "properties": {
+        "http_url": { "type": "string", "minLength": 1 },
+        "node_count": { "type": ["integer", "null"], "minimum": 0 },
+        "relationship_count": { "type": ["integer", "null"], "minimum": 0 },
+        "query_response_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "receipt_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
+

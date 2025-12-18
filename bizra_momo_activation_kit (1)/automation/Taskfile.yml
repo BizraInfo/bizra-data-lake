@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  bootstrap:
+    desc: Generate inventory + baseline secret scan + evidence bundle (momo_ops/)
+    cmds:
+      - python scripts/bizra_ops_bootstrap.py --root . --fail-on-secrets

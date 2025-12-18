@@ -41,7 +41,8 @@ runtime:
     keep_alive: "5m"
     max_loaded_models: 2
     num_parallel: 1
-    models_path: "C:\\Users\\BIZRA-OS\\.ollama\\models"
+    # Use env override for portability (set OLLAMA_MODELS_PATH if needed).
+    models_path: "${OLLAMA_MODELS_PATH}"
   
   # Model unload strategy
   model_unload_strategy: "LRU"  # Least Recently Used

@@ -9,28 +9,24 @@ impl NODE0Integration {
     pub fn new(base_url: String) -> Self {
         Self { base_url }
     }
-    
+
     /// Call NODE0 ACE Framework
-    pub async fn call_ace_framework(
-        &self,
-        task: &str,
-    ) -> anyhow::Result<serde_json::Value> {
+    pub async fn call_ace_framework(&self, task: &str) -> anyhow::Result<serde_json::Value> {
         // In production: HTTP call to NODE0
         // For now: simulated
         Ok(serde_json::json!({
+            "base_url": &self.base_url,
             "generator_output": format!("Generated plan for: {}", task),
             "reflector_output": "Validated plan quality",
             "curator_output": "Synthesized final recommendation",
         }))
     }
-    
+
     /// Query HyperGraphRAG (18.7x advantage)
-    pub async fn query_hypergraph_rag(
-        &self,
-        query: &str,
-    ) -> anyhow::Result<Vec<String>> {
+    pub async fn query_hypergraph_rag(&self, query: &str) -> anyhow::Result<Vec<String>> {
         // In production: Connect to NODE0's HyperGraphRAG
         Ok(vec![
+            format!("NODE0 endpoint: {}", self.base_url),
             format!("Knowledge: {}", query),
             "Context from semantic memory".to_string(),
             "18.7x retrieval advantage applied".to_string(),
@@ -47,7 +43,7 @@ impl TaskMasterIntegration {
     pub fn new(base_url: String) -> Self {
         Self { base_url }
     }
-    
+
     /// Execute task with Hive-Mind pattern (84.8% solve rate)
     pub async fn execute_hive_mind(
         &self,
@@ -56,6 +52,7 @@ impl TaskMasterIntegration {
     ) -> anyhow::Result<serde_json::Value> {
         // In production: HTTP call to TaskMaster
         Ok(serde_json::json!({
+            "base_url": &self.base_url,
             "hive_mind_solution": format!("Solved with {} agents", agent_count),
             "solve_rate": 0.848,
             "pattern": "collaborative",
@@ -72,15 +69,14 @@ impl DeepAgentIntegration {
     pub fn new(base_url: String) -> Self {
         Self { base_url }
     }
-    
+
     /// Execute CUDA-accelerated inference
-    pub async fn cuda_inference(
-        &self,
-        prompt: &str,
-        model: &str,
-    ) -> anyhow::Result<String> {
+    pub async fn cuda_inference(&self, prompt: &str, model: &str) -> anyhow::Result<String> {
         // In production: HTTP call to deepagent
-        Ok(format!("CUDA-accelerated result for: {} (model: {})", prompt, model))
+        Ok(format!(
+            "CUDA-accelerated result for: {} (model: {}, endpoint: {})",
+            prompt, model, self.base_url
+        ))
     }
 }
 
@@ -93,7 +89,7 @@ impl BlockGraphIntegration {
     pub fn new(base_url: String) -> Self {
         Self { base_url }
     }
-    
+
     /// Generate Proof-of-Impact attestation
     pub async fn generate_poi_attestation(
         &self,
@@ -102,6 +98,12 @@ impl BlockGraphIntegration {
         _evidence: serde_json::Value,
     ) -> anyhow::Result<String> {
         // In production: Blockchain transaction
-        Ok(format!("POI-{}-{}-{}", user_id, impact_type, chrono::Utc::now().timestamp()))
+        Ok(format!(
+            "POI-{}-{}-{}-{}",
+            user_id,
+            impact_type,
+            chrono::Utc::now().timestamp(),
+            self.base_url
+        ))
     }
 }

@@ -1,0 +1,17 @@
+vault_version: 1
+node_id: node_0000_genesis_momo_dubai
+
+# Canonical BIZRA Data Lake (raw -> processed -> indexed -> gold)
+data_lake_root: 'C:\BIZRA-DATA-LAKE'
+
+# High-value local roots (inventory + indexing only; no deletes)
+roots:
+  dual_agentic_repo: 'C:\BIZRA-Dual-Agentic-system--main'
+  taskmaster_repo: 'C:\BIZRA-TaskMaster'
+  genesis_node_repo: 'C:\bizra-genesis-node'
+  node0_repo: 'C:\BIZRA-NODE0'
+  projects_root: 'C:\BIZRA-PROJECTS'
+  crash_temp: 'C:\temp'
+  crash_tmp: 'C:\tmp'
+  driver_cache: 'C:\DRIVER'
+  secure_vault: 'C:\BIZRA-SECURE-VAULT'

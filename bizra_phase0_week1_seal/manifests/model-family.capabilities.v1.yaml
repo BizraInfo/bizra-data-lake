@@ -1,0 +1,98 @@
+###############################################################################
+# BIZRA Model Family: Capabilities Manifest (Provider-Agnostic)
+# Purpose: defines what each SLOT is allowed to do (policy layer).
+# Note: slots bind to pinned artifacts in the artifacts manifest.
+###############################################################################
+
+version: "1.0"
+schema: "bizra.model_family.capabilities.v1"
+sealed: false
+sealed_date_utc: null
+sealed_by: null
+
+routing_slots:
+  primary_reasoning:
+    slot_id: "primary_reasoning"
+    role: "PoI claim evaluation + planning + evidence analysis"
+    required_features: ["structured_output", "refusal", "json_mode_optional"]
+    slo:
+      p95_latency_ms: 1500
+      timeout_ms: 5000
+    fallback_slot: "fallback_reasoning"
+    gate:
+      safety_policy: "ihsan_refusal_enabled"
+
+  warm_surface:
+    slot_id: "warm_surface"
+    role: "User-facing rewriting, summaries, tone control"
+    required_features: ["refusal"]
+    slo:
+      p95_latency_ms: 2000
+      timeout_ms: 5000
+    gate:
+      safety_policy: "ihsan_refusal_enabled"
+
+  embeddings:
+    slot_id: "embeddings"
+    role: "Text embeddings for HyperGraph RAG"
+    required_features: ["embedding"]
+    slo:
+      p95_latency_ms: 100
+      timeout_ms: 200
+    gate:
+      safety_policy: "none"
+
+  vision_async:
+    slot_id: "vision_async"
+    role: "Optional: image grounding / enrichment"
+    required_features: ["vision"]
+    slo:
+      p95_latency_ms: 4000
+      timeout_ms: 10000
+    optional: true
+    gate:
+      safety_policy: "content_filter_enabled"
+
+  crypto:
+    slot_id: "crypto"
+    role: "Deterministic cryptographic ops (sign/verify/hash)"
+    required_features: ["deterministic"]
+    slo:
+      timeout_ms: 500
+    gate:
+      safety_policy: "none"
+
+fallback_slots:
+  fallback_reasoning:
+    slot_id: "fallback_reasoning"
+    role: "Fallback when primary is slow/unavailable"
+    required_features: ["refusal"]
+    slo:
+      p95_latency_ms: 2000
+      timeout_ms: 2500
+    gate:
+      safety_policy: "ihsan_refusal_enabled"
+      acceptable_quality_loss: "15%"
+
+routing_logic:
+  rule_1: |
+    if (claim_type == "proof_of_impact"):
+      use_slot "primary_reasoning"
+      if timeout or p95_latency_ms > 1500 then use_slot "fallback_reasoning"
+
+  rule_2: |
+    if (has_image_attachment):
+      async_call "vision_async"
+      then "primary_reasoning"
+
+  rule_3: |
+    if (operation in ["retrieve","index","search"]):
+      use_slot "embeddings"
+
+safety_enforcement:
+  ihsan_gate: "enabled"
+  evidence_required_for_high_impact: true
+  no_web_calls_in_golden_set: true
+
+evidence_root: "evidence/model_family"
+

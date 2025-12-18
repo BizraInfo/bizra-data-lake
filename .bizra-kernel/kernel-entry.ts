@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // BIZRA KERNEL ENTRY POINT
 // This script initializes the kernel for the current directory context.
@@ -55,8 +55,12 @@ class BizraKernel {
     
     console.log('[BIZRA-KERNEL] System Active.');
     
-    // Demonstration: Execute security scan hook
-    await this.executeHook('pre-commit');
+    // Hooks are security-sensitive; keep disabled unless explicitly enabled.
+    if (process.env.BIZRA_ENABLE_HOOKS === '1') {
+      await this.executeHook('pre-commit');
+    } else {
+      console.log('[HOOK] Hooks disabled (set BIZRA_ENABLE_HOOKS=1 to enable)');
+    }
 
     // Self-test: Query the Oracle
     await this.queryOracle("Kernel initialized. Status report?");
@@ -118,19 +122,44 @@ class BizraKernel {
   }
 
   public async executeHook(hookName: string) {
+    if (process.env.BIZRA_ENABLE_HOOKS !== '1') return;
+
     const registryPath = path.join(this.rootDir, '.bizra-kernel', 'hooks', 'registry.json');
     if (!fs.existsSync(registryPath)) return;
 
     const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
-    const scripts = registry[hookName] || [];
+    const scripts = Array.isArray(registry?.[hookName]) ? registry[hookName] : [];
+
+    const kernelRoot = path.resolve(this.rootDir, '.bizra-kernel');
+    const kernelRootLower = kernelRoot.toLowerCase() + path.sep;
 
     for (const script of scripts) {
-      const scriptPath = path.join(this.rootDir, '.bizra-kernel', script);
+      if (typeof script !== 'string' || !script.trim()) continue;
+
+      const resolved = path.resolve(kernelRoot, script);
+      const resolvedLower = resolved.toLowerCase();
+      if (!resolvedLower.startsWith(kernelRootLower)) {
+        console.error(`[HOOK] Refusing to execute path outside kernel root: ${script}`);
+        continue;
+      }
+
+      const ext = path.extname(resolved).toLowerCase();
+      if (ext !== '.js') {
+        console.error(`[HOOK] Refusing to execute non-.js hook: ${script}`);
+        continue;
+      }
+
+      if (!fs.existsSync(resolved)) {
+        console.error(`[HOOK] Hook not found: ${script}`);
+        continue;
+      }
+
       console.log(`[HOOK] Executing ${script}...`);
       try {
-        // Determine execution engine based on extension
-        const cmd = script.endsWith('.js') ? `node "${scriptPath}"` : `"${scriptPath}"`;
-        const { stdout, stderr } = await execAsync(cmd);
+        const { stdout, stderr } = await execFileAsync(process.execPath, [resolved], {
+          cwd: this.rootDir,
+          windowsHide: true,
+        });
         if (stdout) console.log(`  [OUT] ${stdout.trim()}`);
         if (stderr) console.error(`  [ERR] ${stderr.trim()}`);
       } catch (error: any) {

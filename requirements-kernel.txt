@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+neo4j
+PyYAML
+prometheus-client
+httpx
