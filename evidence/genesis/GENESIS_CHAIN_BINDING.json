@@ -10,9 +10,9 @@
             "hash": "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e"
         },
         "origin_amendment": {
-            "description": "Amendment binding the 2023 Ramadan origin documents",
+            "description": "Amendment binding the 2023 Ramadan origin documents + Sadaqah Jariyah declaration",
             "file": "evidence/genesis/GENESIS_AMENDMENT_ORIGIN.json",
-            "hash": "5158E9A98C0E61ABE155A4355E6D5F649F88BE764FC0AC12A40093C9A23E47C3"
+            "hash": "DC63EE839918D1E2E824E68E963EE7C047EF1EC1598FA25E1E2BB76CDD17F820"
         },
         "origin_message": {
             "description": "الرسالة | The Message - A Letter from Darkness to Light (Ramadan 2023)",
@@ -39,5 +39,12 @@
         "seeking": "Allah's pleasure and my family's happiness",
         "purpose": "To give humans a moment of freedom—to break the survival loop—to make good deeds profitable through Proof of Impact",
         "prayer": "اللَّهُمَّ تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ (O Allah, accept from us. Indeed, You are the All-Hearing, the All-Knowing)"
+    },
+
+    "sadaqah_jariyah_declaration": {
+        "arabic": "صدقة جارية لى ولأهلى وللأمة المسلمة والبشرية أجمعين",
+        "english": "Continuous charity for myself, my family, the Muslim Ummah, and all of humanity",
+        "alhamdulillah": "الحمد لله رب العالمين",
+        "sealed": true
     }
 }

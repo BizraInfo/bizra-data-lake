@@ -85,6 +85,33 @@
         "seeking_their_happiness": true
     },
 
+    "sadaqah_jariyah": {
+        "arabic": "صدقة جارية لى ولأهلى وللأمة المسلمة والبشرية أجمعين",
+        "english": "Continuous charity for myself, my family, the Muslim Ummah, and all of humanity",
+        "declaration": "This system is declared as Sadaqah Jariyah—perpetual charity that continues to benefit even after the architect passes from this world.",
+        "hadith_reference": "The Prophet ﷺ said: 'When a person dies, all their deeds end except three: a continuing charity (Sadaqah Jariyah), beneficial knowledge, or a righteous child who prays for them.' [Sahih Muslim]",
+        "beneficiaries": [
+            {
+                "scope": "لى (For myself)",
+                "intention": "May this work be a source of good deeds that continues after my time"
+            },
+            {
+                "scope": "لأهلى (For my family)", 
+                "intention": "May this honor the sacrifice of those who stood by me in darkness"
+            },
+            {
+                "scope": "للأمة المسلمة (For the Muslim Ummah)",
+                "intention": "May this serve the community of believers with integrity and Ihsān"
+            },
+            {
+                "scope": "للبشرية أجمعين (For all of humanity)",
+                "intention": "May this give every human space to breathe, to think, to be free from the survival loop"
+            }
+        ],
+        "prayer": "اللَّهُمَّ اجْعَلْ هَذَا الْعَمَلَ صَدَقَةً جَارِيَةً تَنْفَعُنَا يَوْمَ لَا يَنْفَعُ مَالٌ وَلَا بَنُونَ إِلَّا مَنْ أَتَى اللَّهَ بِقَلْبٍ سَلِيمٍ",
+        "prayer_english": "O Allah, make this work a continuous charity that benefits us on the Day when neither wealth nor children will avail, except one who comes to Allah with a sound heart."
+    },
+
     "cryptographic_seal": {
         "binding_method": "This amendment chains to the parent Genesis Block by including its hash, creating an immutable link between the 2023 origin documents and Block 0",
         "verification": "Anyone can verify: hash the original .md files with SHA-256 and compare to the content_sha256 values above",
