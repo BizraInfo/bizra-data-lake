@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-BIZRA Unified Resource Planner (URP) - VRAM Lease Manager
-==========================================================
+BIZRA Unified Resource Planner (URP) - Resource Lease Manager
+==============================================================
 Fixes F-PERF-001: Resource Blindness
 
-Enforces hardware constraints:
-- RTX 4090: 16GB VRAM total
-- Usable: 14GB (2GB overhead for system/driver)
-- Max concurrent thinking agents: 3
+Node0 Hardware Profile:
+- GPU: NVIDIA RTX 4090 (16GB VRAM, 14GB usable)
+- CPU: Intel Core i9-14900 (24 cores, 32 threads)
+- RAM: 128GB DDR5 System Memory
+- Storage: 3TB NVMe SSD
+
+Resource Tiers:
+- VRAM (GPU): For LLM inference, max 3 concurrent 7B models
+- RAM (CPU): For CPU-offload agents, embeddings, caching
+- Storage: For knowledge vault, session persistence
 
 Lease-based allocation prevents OOM crashes by:
 1. Pre-allocating VRAM quotas before agent spawn
@@ -78,22 +84,44 @@ logger = logging.getLogger("urp.manager")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION (Hardware Calibrated)
+# CONFIGURATION (Node0 Hardware Profile)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# RTX 4090 Specifications
+# ─────────────────────────────────────────────────────────────────────────────
+# GPU: NVIDIA RTX 4090
+# ─────────────────────────────────────────────────────────────────────────────
 TOTAL_VRAM_GB = float(os.getenv("BIZRA_TOTAL_VRAM_GB", "16.0"))
 SYSTEM_OVERHEAD_GB = float(os.getenv("BIZRA_VRAM_OVERHEAD_GB", "2.0"))
-USABLE_VRAM_GB = TOTAL_VRAM_GB - SYSTEM_OVERHEAD_GB  # 14GB
+USABLE_VRAM_GB = TOTAL_VRAM_GB - SYSTEM_OVERHEAD_GB  # 14GB usable
 
-# Concurrency limits
-MAX_CONCURRENT_AGENTS = int(os.getenv("BIZRA_MAX_AGENTS", "3"))
+# ─────────────────────────────────────────────────────────────────────────────
+# CPU: Intel Core i9-14900 (24 cores / 32 threads)
+# ─────────────────────────────────────────────────────────────────────────────
+TOTAL_RAM_GB = float(os.getenv("BIZRA_TOTAL_RAM_GB", "128.0"))
+RAM_OVERHEAD_GB = float(os.getenv("BIZRA_RAM_OVERHEAD_GB", "16.0"))  # OS + apps
+USABLE_RAM_GB = TOTAL_RAM_GB - RAM_OVERHEAD_GB  # 112GB usable for agents
+CPU_CORES = int(os.getenv("BIZRA_CPU_CORES", "24"))
+CPU_THREADS = int(os.getenv("BIZRA_CPU_THREADS", "32"))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Storage: 3TB NVMe SSD
+# ─────────────────────────────────────────────────────────────────────────────
+TOTAL_STORAGE_GB = float(os.getenv("BIZRA_TOTAL_STORAGE_GB", "3000.0"))
+STORAGE_RESERVED_GB = float(os.getenv("BIZRA_STORAGE_RESERVED_GB", "500.0"))  # OS + system
+USABLE_STORAGE_GB = TOTAL_STORAGE_GB - STORAGE_RESERVED_GB  # 2.5TB for vault
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Concurrency Limits
+# ─────────────────────────────────────────────────────────────────────────────
+MAX_GPU_AGENTS = int(os.getenv("BIZRA_MAX_GPU_AGENTS", "3"))  # VRAM-bound
+MAX_CPU_AGENTS = int(os.getenv("BIZRA_MAX_CPU_AGENTS", "10"))  # RAM-bound
+MAX_CONCURRENT_AGENTS = MAX_GPU_AGENTS + MAX_CPU_AGENTS  # Total: 13
 MAX_LEASE_TTL_SEC = int(os.getenv("BIZRA_MAX_LEASE_TTL", "300"))  # 5 minutes
 DEFAULT_LEASE_TTL_SEC = int(os.getenv("BIZRA_DEFAULT_LEASE_TTL", "60"))  # 1 minute
 
 # Agent VRAM requirements (empirical measurements)
 AGENT_VRAM_REQUIREMENTS = {
-    # PAT Agents (7B models)
+    # PAT Agents (7B models) - GPU mode
     "MasterReasoner": 4.5,      # deepseek-r1:7b
     "MemoryArchitect": 4.0,     # qwen2.5:7b
     "CreativeSynthesizer": 4.0, # qwen2.5:7b
@@ -109,6 +137,28 @@ AGENT_VRAM_REQUIREMENTS = {
     "EvidenceEngine": 0.1,
     # Default for unknown agents
     "_default": 4.0,
+}
+
+# Agent RAM requirements for CPU-offload mode (GB)
+AGENT_RAM_REQUIREMENTS = {
+    # PAT Agents in CPU mode (larger memory footprint)
+    "MasterReasoner": 16.0,      # CPU inference needs more RAM
+    "MemoryArchitect": 14.0,
+    "CreativeSynthesizer": 14.0,
+    "DataAnalyzer": 14.0,
+    "Communicator": 14.0,
+    "ExecutionPlanner": 14.0,
+    "EthicsGuardian": 14.0,
+    # SAT Agents (minimal)
+    "PoiVerifier": 0.5,
+    "ResourceAllocator": 0.5,
+    "RiskGuardian": 0.5,
+    "GovernanceEngine": 0.5,
+    "EvidenceEngine": 0.5,
+    # Embedding models
+    "EmbeddingService": 2.0,
+    # Default
+    "_default": 8.0,
 }
 
 # Evidence path
@@ -169,22 +219,44 @@ class LeaseStatus(Enum):
     RELEASED = "RELEASED"
 
 
+class ResourceMode(Enum):
+    """Execution mode for resource allocation."""
+    GPU = "GPU"      # Uses VRAM (faster inference)
+    CPU = "CPU"      # Uses RAM (CPU-offload for more agents)
+    HYBRID = "HYBRID"  # Both GPU and CPU
+
+
 @dataclass
 class ResourceRequest:
-    """Request for VRAM allocation."""
+    """Request for resource allocation (VRAM and/or RAM)."""
     agent_id: str
+    mode: ResourceMode = ResourceMode.GPU  # Default to GPU mode
     vram_gb: Optional[float] = None  # None = auto-detect
+    ram_gb: Optional[float] = None   # None = auto-detect for CPU mode
     ttl_sec: int = DEFAULT_LEASE_TTL_SEC
     priority: int = 0  # Higher = more priority
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
-        # Auto-detect VRAM if not specified
-        if self.vram_gb is None:
-            self.vram_gb = AGENT_VRAM_REQUIREMENTS.get(
-                self.agent_id,
-                AGENT_VRAM_REQUIREMENTS["_default"]
-            )
+        # Auto-detect VRAM if not specified (GPU mode)
+        if self.mode in (ResourceMode.GPU, ResourceMode.HYBRID):
+            if self.vram_gb is None:
+                self.vram_gb = AGENT_VRAM_REQUIREMENTS.get(
+                    self.agent_id,
+                    AGENT_VRAM_REQUIREMENTS["_default"]
+                )
+        else:
+            self.vram_gb = 0.0
+        
+        # Auto-detect RAM if not specified (CPU mode)
+        if self.mode in (ResourceMode.CPU, ResourceMode.HYBRID):
+            if self.ram_gb is None:
+                self.ram_gb = AGENT_RAM_REQUIREMENTS.get(
+                    self.agent_id,
+                    AGENT_RAM_REQUIREMENTS["_default"]
+                )
+        else:
+            self.ram_gb = 0.0
         
         # Clamp TTL
         self.ttl_sec = min(self.ttl_sec, MAX_LEASE_TTL_SEC)
@@ -195,7 +267,9 @@ class Lease:
     """Granted resource lease."""
     lease_id: str
     agent_id: str
+    mode: ResourceMode
     vram_gb: float
+    ram_gb: float
     granted_at: str
     expires_at: str
     ttl_sec: int
@@ -221,7 +295,9 @@ class Lease:
         return {
             "lease_id": self.lease_id,
             "agent_id": self.agent_id,
+            "mode": self.mode.value,
             "vram_gb": self.vram_gb,
+            "ram_gb": self.ram_gb,
             "granted_at": self.granted_at,
             "expires_at": self.expires_at,
             "ttl_sec": self.ttl_sec,
@@ -234,13 +310,33 @@ class Lease:
 @dataclass
 class URPSnapshot:
     """Current state of URP resources."""
+    # GPU Resources
     total_vram_gb: float
     usable_vram_gb: float
     allocated_vram_gb: float
     available_vram_gb: float
+    gpu_agents: int
+    max_gpu_agents: int
+    vram_utilization_pct: float
+    
+    # RAM Resources
+    total_ram_gb: float
+    usable_ram_gb: float
+    allocated_ram_gb: float
+    available_ram_gb: float
+    cpu_agents: int
+    max_cpu_agents: int
+    ram_utilization_pct: float
+    
+    # CPU & Storage
+    cpu_cores: int
+    cpu_threads: int
+    total_storage_gb: float
+    usable_storage_gb: float
+    
+    # Leases
     active_leases: int
     max_agents: int
-    utilization_pct: float
     leases: List[Dict[str, Any]]
     timestamp: str
 
@@ -251,9 +347,15 @@ class URPSnapshot:
 
 class URPManager:
     """
-    Unified Resource Planner - VRAM Lease Manager
+    Unified Resource Planner - Resource Lease Manager
     
-    Thread-safe singleton that manages VRAM allocation across all agents.
+    Thread-safe singleton that manages VRAM and RAM allocation across all agents.
+    
+    Node0 Hardware Profile:
+    - GPU: RTX 4090 (16GB VRAM, 14GB usable)
+    - RAM: 128GB DDR5 (112GB usable)
+    - CPU: i9-14900 (24 cores, 32 threads)
+    - Storage: 3TB NVMe
     """
     
     _instance: Optional['URPManager'] = None
@@ -275,7 +377,13 @@ class URPManager:
         
         self._leases: Dict[str, Lease] = {}
         self._agent_leases: Dict[str, str] = {}  # agent_id -> lease_id
-        self._allocated_gb: float = 0.0
+        
+        # Separate tracking for GPU and CPU resources
+        self._allocated_vram_gb: float = 0.0
+        self._allocated_ram_gb: float = 0.0
+        self._gpu_agent_count: int = 0
+        self._cpu_agent_count: int = 0
+        
         self._lease_lock = threading.Lock()
         self._cleanup_thread: Optional[threading.Thread] = None
         self._shutdown = threading.Event()
@@ -289,8 +397,11 @@ class URPManager:
         self._initialized = True
         
         logger.info(
-            f"URP Manager initialized: {USABLE_VRAM_GB:.1f}GB usable, "
-            f"{MAX_CONCURRENT_AGENTS} max agents"
+            f"URP Manager initialized | "
+            f"GPU: {USABLE_VRAM_GB:.1f}GB VRAM ({MAX_GPU_AGENTS} max) | "
+            f"RAM: {USABLE_RAM_GB:.1f}GB ({MAX_CPU_AGENTS} max) | "
+            f"CPU: {CPU_CORES}c/{CPU_THREADS}t | "
+            f"Storage: {USABLE_STORAGE_GB/1000:.1f}TB"
         )
     
     def _start_cleanup_daemon(self) -> None:
@@ -333,7 +444,18 @@ class URPManager:
         """Internal release without lock (caller must hold lock)."""
         lease = self._leases.get(lease_id)
         if lease and lease.status == LeaseStatus.ACTIVE:
-            self._allocated_gb -= lease.vram_gb
+            # Free resources based on mode
+            self._allocated_vram_gb -= lease.vram_gb
+            self._allocated_ram_gb -= lease.ram_gb
+            
+            if lease.mode == ResourceMode.GPU:
+                self._gpu_agent_count -= 1
+            elif lease.mode == ResourceMode.CPU:
+                self._cpu_agent_count -= 1
+            elif lease.mode == ResourceMode.HYBRID:
+                self._gpu_agent_count -= 1
+                self._cpu_agent_count -= 1
+            
             lease.status = (
                 LeaseStatus.EXPIRED if reason == "EXPIRED" 
                 else LeaseStatus.RELEASED
@@ -345,7 +467,7 @@ class URPManager:
             
             logger.info(
                 f"Lease {lease_id} {reason}: "
-                f"freed {lease.vram_gb:.1f}GB for {lease.agent_id}"
+                f"freed {lease.vram_gb:.1f}GB VRAM, {lease.ram_gb:.1f}GB RAM for {lease.agent_id}"
             )
     
     # ───────────────────────────────────────────────────────────────────────────
@@ -363,7 +485,7 @@ class URPManager:
             Lease object with granted resources
             
         Raises:
-            OverCapacityError: If VRAM request exceeds available
+            OverCapacityError: If resource request exceeds available
             MaxAgentsError: If max concurrent agents reached
         """
         with self._lease_lock:
@@ -375,18 +497,30 @@ class URPManager:
                     # Extend existing lease
                     return self.extend(existing_id, request.ttl_sec)
             
-            # Check agent count
-            active_count = sum(
-                1 for l in self._leases.values() 
-                if l.status == LeaseStatus.ACTIVE
-            )
-            if active_count >= MAX_CONCURRENT_AGENTS:
-                raise MaxAgentsError(active_count, MAX_CONCURRENT_AGENTS)
+            # Check agent count based on mode
+            if request.mode == ResourceMode.GPU:
+                if self._gpu_agent_count >= MAX_GPU_AGENTS:
+                    raise MaxAgentsError(self._gpu_agent_count, MAX_GPU_AGENTS)
+            elif request.mode == ResourceMode.CPU:
+                if self._cpu_agent_count >= MAX_CPU_AGENTS:
+                    raise MaxAgentsError(self._cpu_agent_count, MAX_CPU_AGENTS)
+            elif request.mode == ResourceMode.HYBRID:
+                if self._gpu_agent_count >= MAX_GPU_AGENTS:
+                    raise MaxAgentsError(self._gpu_agent_count, MAX_GPU_AGENTS)
             
-            # Check VRAM capacity
-            available = USABLE_VRAM_GB - self._allocated_gb
-            if request.vram_gb > available:
-                raise OverCapacityError(request.vram_gb, available)
+            # Check VRAM capacity (GPU and HYBRID modes)
+            if request.mode in (ResourceMode.GPU, ResourceMode.HYBRID):
+                available_vram = USABLE_VRAM_GB - self._allocated_vram_gb
+                if request.vram_gb > available_vram:
+                    raise OverCapacityError(request.vram_gb, available_vram, 
+                        f"VRAM: Requested {request.vram_gb:.2f}GB > available {available_vram:.2f}GB")
+            
+            # Check RAM capacity (CPU and HYBRID modes)
+            if request.mode in (ResourceMode.CPU, ResourceMode.HYBRID):
+                available_ram = USABLE_RAM_GB - self._allocated_ram_gb
+                if request.ram_gb > available_ram:
+                    raise OverCapacityError(request.ram_gb, available_ram,
+                        f"RAM: Requested {request.ram_gb:.2f}GB > available {available_ram:.2f}GB")
             
             # Grant lease
             now = datetime.now(timezone.utc)
@@ -398,7 +532,9 @@ class URPManager:
             lease = Lease(
                 lease_id=self._generate_lease_id(),
                 agent_id=request.agent_id,
+                mode=request.mode,
                 vram_gb=request.vram_gb,
+                ram_gb=request.ram_gb,
                 granted_at=now.isoformat(),
                 expires_at=expires.isoformat(),
                 ttl_sec=request.ttl_sec,
@@ -408,11 +544,23 @@ class URPManager:
             
             self._leases[lease.lease_id] = lease
             self._agent_leases[request.agent_id] = lease.lease_id
-            self._allocated_gb += request.vram_gb
+            
+            # Update allocation counters
+            self._allocated_vram_gb += request.vram_gb
+            self._allocated_ram_gb += request.ram_gb
+            
+            if request.mode == ResourceMode.GPU:
+                self._gpu_agent_count += 1
+            elif request.mode == ResourceMode.CPU:
+                self._cpu_agent_count += 1
+            elif request.mode == ResourceMode.HYBRID:
+                self._gpu_agent_count += 1
+                self._cpu_agent_count += 1
             
             logger.info(
                 f"Lease GRANTED: {lease.lease_id} | {request.agent_id} | "
-                f"{request.vram_gb:.1f}GB | TTL={request.ttl_sec}s"
+                f"Mode={request.mode.value} | VRAM={request.vram_gb:.1f}GB | "
+                f"RAM={request.ram_gb:.1f}GB | TTL={request.ttl_sec}s"
             )
             
             # Record evidence
@@ -511,32 +659,59 @@ class URPManager:
                 if l.status == LeaseStatus.ACTIVE
             ]
             
-            utilization = (
-                (self._allocated_gb / USABLE_VRAM_GB * 100)
+            vram_utilization = (
+                (self._allocated_vram_gb / USABLE_VRAM_GB * 100)
                 if USABLE_VRAM_GB > 0 else 0
             )
             
+            ram_utilization = (
+                (self._allocated_ram_gb / USABLE_RAM_GB * 100)
+                if USABLE_RAM_GB > 0 else 0
+            )
+            
             return URPSnapshot(
+                # GPU
                 total_vram_gb=TOTAL_VRAM_GB,
                 usable_vram_gb=USABLE_VRAM_GB,
-                allocated_vram_gb=self._allocated_gb,
-                available_vram_gb=USABLE_VRAM_GB - self._allocated_gb,
+                allocated_vram_gb=self._allocated_vram_gb,
+                available_vram_gb=USABLE_VRAM_GB - self._allocated_vram_gb,
+                gpu_agents=self._gpu_agent_count,
+                max_gpu_agents=MAX_GPU_AGENTS,
+                vram_utilization_pct=round(vram_utilization, 1),
+                # RAM
+                total_ram_gb=TOTAL_RAM_GB,
+                usable_ram_gb=USABLE_RAM_GB,
+                allocated_ram_gb=self._allocated_ram_gb,
+                available_ram_gb=USABLE_RAM_GB - self._allocated_ram_gb,
+                cpu_agents=self._cpu_agent_count,
+                max_cpu_agents=MAX_CPU_AGENTS,
+                ram_utilization_pct=round(ram_utilization, 1),
+                # CPU & Storage
+                cpu_cores=CPU_CORES,
+                cpu_threads=CPU_THREADS,
+                total_storage_gb=TOTAL_STORAGE_GB,
+                usable_storage_gb=USABLE_STORAGE_GB,
+                # Leases
                 active_leases=len(active_leases),
                 max_agents=MAX_CONCURRENT_AGENTS,
-                utilization_pct=round(utilization, 1),
                 leases=active_leases,
                 timestamp=datetime.now(timezone.utc).isoformat()
             )
     
-    def can_allocate(self, vram_gb: float) -> bool:
+    def can_allocate(self, vram_gb: float = 0, ram_gb: float = 0, mode: ResourceMode = ResourceMode.GPU) -> bool:
         """Check if allocation is possible without acquiring."""
         with self._lease_lock:
-            available = USABLE_VRAM_GB - self._allocated_gb
-            active_count = sum(
-                1 for l in self._leases.values() 
-                if l.status == LeaseStatus.ACTIVE
-            )
-            return vram_gb <= available and active_count < MAX_CONCURRENT_AGENTS
+            if mode == ResourceMode.GPU:
+                available_vram = USABLE_VRAM_GB - self._allocated_vram_gb
+                return vram_gb <= available_vram and self._gpu_agent_count < MAX_GPU_AGENTS
+            elif mode == ResourceMode.CPU:
+                available_ram = USABLE_RAM_GB - self._allocated_ram_gb
+                return ram_gb <= available_ram and self._cpu_agent_count < MAX_CPU_AGENTS
+            else:  # HYBRID
+                available_vram = USABLE_VRAM_GB - self._allocated_vram_gb
+                available_ram = USABLE_RAM_GB - self._allocated_ram_gb
+                return (vram_gb <= available_vram and ram_gb <= available_ram and 
+                        self._gpu_agent_count < MAX_GPU_AGENTS)
     
     def shutdown(self) -> None:
         """Shutdown the URP manager gracefully."""
