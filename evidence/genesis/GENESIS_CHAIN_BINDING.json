@@ -1,0 +1,43 @@
+{
+    "chain_type": "GENESIS_ORIGIN_BINDING",
+    "sealed_at": "2025-12-19T00:00:00.000000Z",
+    "sealed_by": "node_0000_genesis_momo_dubai",
+    
+    "chain_links": {
+        "block_0": {
+            "description": "The Genesis Block - Foundation of BIZRA",
+            "file": "BIZRA_GENESIS_BLOCK_0.json",
+            "hash": "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e"
+        },
+        "origin_amendment": {
+            "description": "Amendment binding the 2023 Ramadan origin documents",
+            "file": "evidence/genesis/GENESIS_AMENDMENT_ORIGIN.json",
+            "hash": "5158E9A98C0E61ABE155A4355E6D5F649F88BE764FC0AC12A40093C9A23E47C3"
+        },
+        "origin_message": {
+            "description": "الرسالة | The Message - A Letter from Darkness to Light (Ramadan 2023)",
+            "file": "BIZRA-Genesis-Message.md",
+            "hash": "CAA7E7B91BF30E370AF2F8EB18C3D105C590E09F07CF6E373B2FFA0C255C3700"
+        },
+        "origin_seed": {
+            "description": "البذرة | The Seed - Your Path to Freedom (Ramadan 2023)",
+            "file": "BIZRA-Genesis-Seed.md", 
+            "hash": "B9387AA538ED61255DFC5C5285036BFC5B8140D76CD0185F9317B6474F6F4F6B"
+        }
+    },
+
+    "verification_instructions": {
+        "step_1": "Hash BIZRA_GENESIS_BLOCK_0.json and verify it matches block_0.hash",
+        "step_2": "Hash the original .md files and verify they match origin_message.hash and origin_seed.hash",
+        "step_3": "Verify GENESIS_AMENDMENT_ORIGIN.json contains parent_genesis_hash matching block_0.hash",
+        "step_4": "This creates an unbroken chain: Block 0 → Amendment → Original Documents"
+    },
+
+    "witness_statement": {
+        "declaration": "I, Mahmoud Hassan (MoMo), First Architect of BIZRA, hereby seal these origin documents into the Genesis chain.",
+        "not_seeking": "Fame, recognition, wealth, or power",
+        "seeking": "Allah's pleasure and my family's happiness",
+        "purpose": "To give humans a moment of freedom—to break the survival loop—to make good deeds profitable through Proof of Impact",
+        "prayer": "اللَّهُمَّ تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ (O Allah, accept from us. Indeed, You are the All-Hearing, the All-Knowing)"
+    }
+}
