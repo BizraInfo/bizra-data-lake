@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bizra.io/schemas/sape_cycle_v1.schema.json",
+  "title": "SAPE Cycle",
+  "description": "Schema for SAPE (Symbolic-Abstraction-Probe-Elevation) cycle tracking",
+  "type": "object",
+  "required": ["cycle_id", "phase", "status", "created_at"],
+  "properties": {
+    "cycle_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this SAPE cycle"
+    },
+    "parent_cycle_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Parent cycle if this is a refinement"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["symbolic", "abstraction", "probe", "elevation"],
+      "description": "Current phase of the SAPE cycle"
+    },
+    "symbolic": {
+      "type": "object",
+      "description": "Symbolic phase: name the failure precisely",
+      "properties": {
+        "failure_name": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Precise name of the identified failure"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "References to evidence supporting the failure identification"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Assessed severity of the failure"
+        }
+      },
+      "required": ["failure_name"]
+    },
+    "abstraction": {
+      "type": "object",
+      "description": "Abstraction phase: generalize into reusable standard",
+      "properties": {
+        "standard_derived": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "The reusable standard derived from the failure"
+        },
+        "applicable_contexts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Contexts where this standard applies"
+        },
+        "prior_art": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "References to existing standards or patterns"
+        }
+      },
+      "required": ["standard_derived"]
+    },
+    "probe": {
+      "type": "object",
+      "description": "Probe phase: implement smallest measurable experiment",
+      "properties": {
+        "hypothesis": {
+          "type": "string",
+          "description": "The hypothesis being tested"
+        },
+        "measurement": {
+          "type": "string",
+          "description": "How the hypothesis will be measured"
+        },
+        "success_criteria": {
+          "type": "string",
+          "description": "Criteria for probe success"
+        },
+        "implementation": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["ci_gate", "runtime_check", "manual_review", "automated_test"]
+            },
+            "artifact_path": { "type": "string" },
+            "command": { "type": "string" }
+          }
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "passed": { "type": "boolean" },
+            "measured_value": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        }
+      },
+      "required": ["hypothesis", "measurement", "success_criteria"]
+    },
+    "elevation": {
+      "type": "object",
+      "description": "Elevation phase: integrate into platform",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["documentation", "automation", "policy", "training"]
+              },
+              "path": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["type", "path"]
+          },
+          "description": "Artifacts produced during elevation"
+        },
+        "culture_change": {
+          "type": "string",
+          "description": "Cultural or process changes implemented"
+        },
+        "verification": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "string" },
+            "verified_at": { "type": "string", "format": "date-time" },
+            "verified_by": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ihsan_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Composite Ihsān score for this cycle"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "elevated", "regressed", "abandoned", "blocked"],
+      "description": "Current status of the SAPE cycle"
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0,
+      "description": "Number of retries attempted"
+    },
+    "rejections": {
+      "type": "array",
+      "items": {
+        "$ref": "rejection_reason_v1.schema.json"
+      },
+      "description": "History of rejections for this cycle"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Owner responsible for this cycle"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "cycle_time_hours": {
+          "type": "number",
+          "description": "Total time from symbolic to elevation"
+        },
+        "snr_improvement": {
+          "type": "number",
+          "description": "Signal-to-noise ratio improvement achieved"
+        },
+        "regression_risk": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Estimated risk of regression"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
