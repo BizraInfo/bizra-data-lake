@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy core module
 COPY core/refinery_daemon.py /app/core/refinery_daemon.py
-COPY core/__init__.py /app/core/__init__.py 2>/dev/null || echo "# BIZRA Core" > /app/core/__init__.py
+COPY core/__init__.py /app/core/
 
 # Copy genesis block (required for chain continuity)
 COPY BIZRA_GENESIS_BLOCK_0.json /app/BIZRA_GENESIS_BLOCK_0.json
