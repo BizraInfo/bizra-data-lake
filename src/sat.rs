@@ -125,6 +125,11 @@ impl SATOrchestrator {
     }
 
     /// Validate request through SAT consensus
+    /// 
+    /// CONSENSUS RULES:
+    /// - Security threats are VETO: any security rejection blocks the request
+    /// - Ethics violations are VETO: any ethics rejection blocks the request
+    /// - Other rejections use Byzantine consensus: require 3/5 approval
     #[instrument(skip(self))]
     pub async fn validate_request(
         &self,
@@ -139,20 +144,63 @@ impl SATOrchestrator {
             validations.push(validation);
         }
 
-        // Byzantine fault tolerant consensus: require 3/5 approval
-        let approvals = validations.iter().filter(|v| v.approved).count();
-        let rejections = validations.iter().filter(|v| !v.approved).count();
-        let consensus_reached = approvals >= 3;
-        
         // Collect all rejection codes for audit trail
         let rejection_codes: Vec<RejectionCode> = validations
             .iter()
             .filter_map(|v| v.rejection_code.clone())
             .collect();
+        
+        // VETO CHECK: Critical rejections are absolute (fail-safe)
+        let has_security_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::SecurityThreat(_)));
+        let has_ethics_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::EthicsViolation(_)));
+        let has_quarantine = rejection_codes.iter().any(|r| matches!(r, RejectionCode::Quarantine(_)));
+        let has_performance_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::PerformanceBudgetExceeded(_)));
+        let has_consistency_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::ConsistencyFailure(_)));
+        let has_resource_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::ResourceConstraintViolated(_)));
+        
+        // Byzantine fault tolerant consensus: require 3/5 approval
+        let approvals = validations.iter().filter(|v| v.approved).count();
+        let rejections = validations.iter().filter(|v| !v.approved).count();
+        
+        // Consensus logic:
+        // ALL rejection types are VETO - fail-safe principle
+        // This ensures no malicious/problematic request can slip through
+        let has_any_veto = has_security_veto || has_ethics_veto || has_quarantine || 
+                          has_performance_veto || has_consistency_veto || has_resource_veto;
+        
+        let consensus_reached = if has_any_veto {
+            false
+        } else {
+            approvals >= 3
+        };
 
         let validation_time = start.elapsed();
 
-        if consensus_reached {
+        if has_security_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Security threat detected - request BLOCKED"
+            );
+        } else if has_ethics_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Ethics violation detected - request BLOCKED"
+            );
+        } else if has_quarantine {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "⚠️ SAT QUARANTINE: Uncertain request - needs human review"
+            );
+        } else if has_any_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Validator rejection - request BLOCKED"
+            );
+        } else if consensus_reached {
             info!(
                 approvals,
                 rejections,
