@@ -15,6 +15,7 @@ pub mod reasoning;
 pub mod receipts;
 pub mod sat;
 pub mod types;
+pub mod wisdom;
 
 use bridge::BridgeCoordinator;
 use tracing::info;
