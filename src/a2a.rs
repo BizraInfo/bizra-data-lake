@@ -1,12 +1,15 @@
 // src/a2a.rs - Agent-to-Agent Protocol
 //
 // SECURITY: Agent delegation is gated by allowlists and timeouts
+// METRICS: All delegations tracked via A2A_DELEGATIONS_TOTAL and A2A_DELEGATION_DEPTH
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use tokio::time::timeout;
-use tracing::{warn, instrument};
+use tracing::{info, warn, instrument};
+
+use crate::metrics::{A2A_DELEGATIONS_TOTAL, A2A_DELEGATION_DEPTH};
 
 /// Default timeout for agent delegation (60 seconds)
 const DEFAULT_DELEGATION_TIMEOUT: Duration = Duration::from_secs(60);
@@ -83,7 +86,9 @@ pub struct A2AServer {
     allowlist: HashSet<String>,
     /// Custom timeout for delegation
     timeout: Duration,
-    /// Current delegation depth (for recursion protection)
+    /// Current delegation depth tracking (for session-level depth limits)
+    /// Note: Per-request depth is passed through method parameters
+    #[allow(dead_code)]
     current_depth: u8,
 }
 
@@ -163,7 +168,7 @@ impl A2AServer {
         self.delegate_with_depth(agent_name, task, 0).await
     }
     
-    /// Internal delegation with depth tracking
+    /// Internal delegation with depth tracking and metrics
     async fn delegate_with_depth(
         &self,
         agent_name: &str,
@@ -171,6 +176,9 @@ impl A2AServer {
         depth: u8,
     ) -> Result<DelegationResult, DelegationError> {
         let start = std::time::Instant::now();
+        
+        // METRICS: Track maximum delegation depth observed
+        A2A_DELEGATION_DEPTH.set(depth as f64);
         
         // SECURITY CHECK 1: Delegation depth limit
         if depth >= MAX_DELEGATION_DEPTH {
@@ -180,23 +188,37 @@ impl A2AServer {
                 max_depth = MAX_DELEGATION_DEPTH,
                 "Delegation depth exceeded - preventing infinite chain"
             );
+            A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "depth_exceeded"]).inc();
             return Err(DelegationError::MaxDepthExceeded(depth));
         }
         
         // SECURITY CHECK 2: Allowlist/Blocklist
-        self.is_agent_allowed(agent_name)?;
+        if let Err(e) = self.is_agent_allowed(agent_name) {
+            A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "blocked"]).inc();
+            return Err(e);
+        }
         
         // SECURITY CHECK 3: Agent must be registered
-        let agent = self
-            .agent_registry
-            .get(agent_name)
-            .ok_or_else(|| DelegationError::AgentNotFound(agent_name.to_string()))?;
+        let agent = match self.agent_registry.get(agent_name) {
+            Some(a) => a,
+            None => {
+                A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "not_found"]).inc();
+                return Err(DelegationError::AgentNotFound(agent_name.to_string()));
+            }
+        };
         
         // SECURITY CHECK 4: Execute with timeout
         let execution_future = self.execute_delegation_internal(agent, &task);
         
         match timeout(self.timeout, execution_future).await {
             Ok(Ok(result)) => {
+                A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "success"]).inc();
+                info!(
+                    agent_name,
+                    depth,
+                    execution_time_ms = start.elapsed().as_millis() as u64,
+                    "A2A delegation completed successfully"
+                );
                 Ok(DelegationResult {
                     agent: agent_name.to_string(),
                     task,
@@ -207,6 +229,7 @@ impl A2AServer {
                 })
             }
             Ok(Err(e)) => {
+                A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "failed"]).inc();
                 Err(DelegationError::ExecutionFailed(e.to_string()))
             }
             Err(_) => {
@@ -215,6 +238,7 @@ impl A2AServer {
                     timeout_secs = self.timeout.as_secs(),
                     "Agent delegation timed out"
                 );
+                A2A_DELEGATIONS_TOTAL.with_label_values(&[agent_name, "timeout"]).inc();
                 Err(DelegationError::Timeout(agent_name.to_string()))
             }
         }
@@ -281,6 +305,49 @@ impl A2AServer {
         }
 
         Ok(responses)
+    }
+    
+    /// Chained delegation - when an agent needs to delegate to another agent
+    /// This increments depth to prevent infinite delegation chains
+    #[instrument(skip(self))]
+    pub async fn delegate_chain(
+        &self,
+        agent_name: &str,
+        task: String,
+        current_depth: u8,
+    ) -> Result<DelegationResult, DelegationError> {
+        info!(
+            agent_name,
+            current_depth,
+            next_depth = current_depth + 1,
+            "Chained delegation initiated"
+        );
+        self.delegate_with_depth(agent_name, task, current_depth + 1).await
+    }
+    
+    /// Get current maximum delegation depth (for metrics/monitoring)
+    pub fn max_delegation_depth() -> u8 {
+        MAX_DELEGATION_DEPTH
+    }
+    
+    /// Get list of blocked agents
+    pub fn blocked_agents() -> &'static [&'static str] {
+        AGENT_BLOCKLIST
+    }
+    
+    /// Check if an agent is registered
+    pub fn is_registered(&self, agent_name: &str) -> bool {
+        self.agent_registry.contains_key(agent_name)
+    }
+    
+    /// Get count of registered agents
+    pub fn agent_count(&self) -> usize {
+        self.agent_registry.len()
+    }
+    
+    /// Get all agent names
+    pub fn agent_names(&self) -> Vec<String> {
+        self.agent_registry.keys().cloned().collect()
     }
 }
 

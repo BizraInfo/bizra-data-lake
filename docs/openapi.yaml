@@ -1,0 +1,803 @@
+openapi: 3.1.0
+info:
+  title: BIZRA META ALPHA ELITE API
+  description: |
+    Complete Unified Multi-Agent System with PAT(7) + SAT(5) + Full Arsenal.
+    
+    ## Architecture
+    - **PAT (Primary Agent Team)**: 7 specialized agents for task execution
+    - **SAT (Sentinel Agent Team)**: 5 consensus validators for security
+    - **SAPE (Security Agent Probe Engine)**: Multi-dimensional threat scanning
+    - **FATE (Flexible Agent Task Escalator)**: Human-in-the-loop escalation
+    - **Ihsān Constitution**: Ethical AI governance framework
+    
+    ## Authentication
+    Protected endpoints require Bearer token authentication:
+    ```
+    Authorization: Bearer <API_TOKEN>
+    ```
+    
+    ## Rate Limiting
+    - Token bucket algorithm: 100 tokens max, 2 tokens/second refill
+    - Per-IP tracking with automatic cleanup
+    
+    ## Security Features
+    - Request ID tracing for audit trails
+    - Prometheus metrics for monitoring
+    - CORS with configurable origins
+  version: 2.0.0
+  contact:
+    name: BIZRA Development Team
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local development server
+  - url: http://127.0.0.1:{port}
+    description: Custom port
+    variables:
+      port:
+        default: "8080"
+        description: Server port
+
+tags:
+  - name: Public
+    description: Public endpoints (no authentication required)
+  - name: Core
+    description: Core dual-agent execution endpoints
+  - name: MCP
+    description: Model Context Protocol integration
+  - name: SAPE
+    description: Security Agent Probe Engine
+  - name: Ollama
+    description: LLM integration via Ollama
+
+paths:
+  /:
+    get:
+      tags: [Public]
+      summary: System status and capabilities
+      description: Returns system information including version, architecture, and Ihsān constitution status
+      operationId: getRoot
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+
+  /health:
+    get:
+      tags: [Public]
+      summary: Health check
+      description: Simple health check endpoint for load balancers and monitoring
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags: [Public]
+      summary: Prometheus metrics
+      description: Exposes Prometheus-format metrics for monitoring
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP bizra_sat_validations_total SAT validation outcomes
+                  # TYPE bizra_sat_validations_total counter
+                  bizra_sat_validations_total{outcome="approved"} 42
+
+  /stats:
+    get:
+      tags: [Public]
+      summary: Aggregated statistics
+      description: Returns aggregated system statistics in JSON format
+      operationId: getStats
+      responses:
+        '200':
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+  /dashboard:
+    get:
+      tags: [Public]
+      summary: Dashboard redirect
+      description: Redirects to the static dashboard HTML
+      operationId: dashboardRedirect
+      responses:
+        '302':
+          description: Redirect to dashboard
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /static/dashboard.html
+
+  /dual/execute:
+    post:
+      tags: [Core]
+      summary: Execute dual-agent task
+      description: |
+        Execute a task through the PAT+SAT dual-agent pipeline.
+        
+        Pipeline flow:
+        1. SAT consensus validation (3/5 required)
+        2. PAT agent delegation
+        3. Ihsān ethical scoring
+        4. Response aggregation
+      operationId: executeDual
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DualAgenticRequest'
+            examples:
+              simple:
+                summary: Simple task
+                value:
+                  task: "Write a Python function to calculate factorial"
+              contextual:
+                summary: Task with context
+                value:
+                  task: "Review this code for security issues"
+                  context: "def login(user, pwd): return db.query(f'SELECT * FROM users WHERE name={user}')"
+              prioritized:
+                summary: High priority task
+                value:
+                  task: "Generate security audit report"
+                  priority: "high"
+      responses:
+        '200':
+          description: Task executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DualAgenticResponse'
+        '400':
+          description: Bad request (validation failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (SAT rejected request)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectionResponse'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /enhanced/execute:
+    post:
+      tags: [Core]
+      summary: Execute enhanced dual-agent task
+      description: |
+        Execute through enhanced pipeline with additional features:
+        - SAPE multi-dimensional probing
+        - Adapter mode selection
+        - Sub-agent spawning
+        - Swarm intelligence patterns
+      operationId: executeEnhanced
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnhancedDualAgenticRequest'
+      responses:
+        '200':
+          description: Task executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DualAgenticResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /mcp/rpc:
+    post:
+      tags: [MCP]
+      summary: Model Context Protocol RPC
+      description: |
+        JSON-RPC 2.0 endpoint for MCP tool invocation.
+        
+        Available methods:
+        - `tools/list`: List available tools
+        - `tools/call`: Execute a tool
+        - `ping`: Health check
+      operationId: mcpRpc
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcRequest'
+            examples:
+              listTools:
+                summary: List available tools
+                value:
+                  jsonrpc: "2.0"
+                  id: "1"
+                  method: "tools/list"
+                  params: {}
+              callTool:
+                summary: Call a tool
+                value:
+                  jsonrpc: "2.0"
+                  id: "2"
+                  method: "tools/call"
+                  params:
+                    name: "bizra-file-read"
+                    arguments:
+                      path: "/etc/passwd"
+              ping:
+                summary: Ping
+                value:
+                  jsonrpc: "2.0"
+                  id: "3"
+                  method: "ping"
+                  params: {}
+      responses:
+        '200':
+          description: JSON-RPC response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonRpcResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /mcp/tools:
+    get:
+      tags: [MCP]
+      summary: List MCP tools
+      description: Returns list of available MCP tools with their schemas
+      operationId: mcpToolsList
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tool list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpToolsList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sape/probes:
+    post:
+      tags: [SAPE]
+      summary: Execute SAPE probes
+      description: |
+        Run Security Agent Probe Engine probes on input.
+        
+        Probe dimensions:
+        - threat_scan: Malicious pattern detection
+        - safety_check: Content safety validation
+        - pattern_analysis: Behavioral pattern recognition
+      operationId: sapeProbes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SapeProbeRequest'
+      responses:
+        '200':
+          description: Probe results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SapeProbeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sape/stats:
+    get:
+      tags: [SAPE]
+      summary: SAPE statistics
+      description: Returns SAPE pattern statistics and detection counts
+      operationId: sapeStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: SAPE statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SapeStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /ollama/generate:
+    post:
+      tags: [Ollama]
+      summary: Generate text with Ollama
+      description: Direct text generation via Ollama LLM
+      operationId: ollamaGenerate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OllamaGenerateRequest'
+      responses:
+        '200':
+          description: Generated text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaGenerateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Ollama service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ollama/chat:
+    post:
+      tags: [Ollama]
+      summary: Chat with Ollama
+      description: Multi-turn chat conversation via Ollama LLM
+      operationId: ollamaChat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OllamaChatRequest'
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaChatResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Ollama service unavailable
+
+  /ollama/status:
+    get:
+      tags: [Ollama]
+      summary: Ollama status
+      description: Check Ollama service connection status
+      operationId: ollamaStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ollama status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OllamaStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API token for protected endpoints
+
+  responses:
+    Unauthorized:
+      description: Unauthorized (missing or invalid token)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            message: "Missing or invalid Authorization header"
+
+    Forbidden:
+      description: Forbidden (SAT rejected request)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RejectionResponse'
+
+    RateLimited:
+      description: Rate limited
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Rate Limited"
+            message: "Too many requests, please try again later"
+
+  schemas:
+    SystemStatus:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "BIZRA META ALPHA ELITE - Complete Unified System"
+        version:
+          type: string
+          example: "2.0.0"
+        architecture:
+          type: string
+          example: "PAT(7) + SAT(5) + Full Arsenal"
+        capabilities:
+          type: array
+          items:
+            type: string
+        ihsan:
+          type: object
+          properties:
+            environment:
+              type: string
+              example: "staging"
+            threshold_applied:
+              type: number
+              format: float
+              example: 0.75
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+
+    StatsResponse:
+      type: object
+      properties:
+        uptime_seconds:
+          type: integer
+        total_requests:
+          type: integer
+        sat_approvals:
+          type: integer
+        sat_rejections:
+          type: integer
+        ihsan_average:
+          type: number
+          format: float
+
+    DualAgenticRequest:
+      type: object
+      required:
+        - task
+      properties:
+        task:
+          type: string
+          description: The task to execute
+          example: "Write a Python function to calculate factorial"
+        context:
+          type: string
+          description: Optional additional context for the task
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          description: Task priority level
+
+    EnhancedDualAgenticRequest:
+      allOf:
+        - $ref: '#/components/schemas/DualAgenticRequest'
+        - type: object
+          properties:
+            adapter_modes:
+              type: array
+              items:
+                type: string
+                enum: [reasoning, coding, security, ethics]
+              description: Active adapter modes
+            enable_sape:
+              type: boolean
+              default: true
+              description: Enable SAPE probing
+            max_sub_agents:
+              type: integer
+              default: 3
+              description: Maximum sub-agents to spawn
+
+    DualAgenticResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          type: string
+          description: Aggregated response from agents
+        pat_agents_consulted:
+          type: integer
+          description: Number of PAT agents that contributed
+        sat_consensus:
+          type: object
+          properties:
+            approved:
+              type: boolean
+            votes_for:
+              type: integer
+            votes_against:
+              type: integer
+        ihsan_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        execution_time_ms:
+          type: integer
+        request_id:
+          type: string
+          format: uuid
+        fate_pending_count:
+          type: integer
+          description: Tasks pending human review
+
+    RejectionResponse:
+      type: object
+      properties:
+        rejected:
+          type: boolean
+          example: true
+        reason:
+          type: string
+          example: "SAT consensus rejected: potential security risk detected"
+        rejection_type:
+          type: string
+          enum: [security, ethics, policy, complexity]
+        receipt_id:
+          type: string
+          format: uuid
+          description: Audit receipt ID for the rejection
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+          format: uuid
+
+    JsonRpcRequest:
+      type: object
+      required:
+        - jsonrpc
+        - method
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+        method:
+          type: string
+        params:
+          type: object
+
+    JsonRpcResponse:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+        result:
+          type: object
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            data:
+              type: object
+
+    McpToolsList:
+      type: object
+      properties:
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              inputSchema:
+                type: object
+
+    SapeProbeRequest:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          type: string
+          description: Content to probe
+        dimensions:
+          type: array
+          items:
+            type: string
+            enum: [threat_scan, safety_check, pattern_analysis]
+          description: Specific dimensions to probe (default all)
+
+    SapeProbeResponse:
+      type: object
+      properties:
+        safe:
+          type: boolean
+        threat_level:
+          type: string
+          enum: [none, low, medium, high, critical]
+        probes:
+          type: array
+          items:
+            type: object
+            properties:
+              dimension:
+                type: string
+              passed:
+                type: boolean
+              confidence:
+                type: number
+                format: float
+              findings:
+                type: array
+                items:
+                  type: string
+
+    SapeStatsResponse:
+      type: object
+      properties:
+        total_probes:
+          type: integer
+        threats_detected:
+          type: integer
+        patterns:
+          type: object
+          additionalProperties:
+            type: integer
+
+    OllamaGenerateRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+        model:
+          type: string
+          default: "llama3.2"
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 2
+          default: 0.7
+
+    OllamaGenerateResponse:
+      type: object
+      properties:
+        response:
+          type: string
+        model:
+          type: string
+        eval_count:
+          type: integer
+        eval_duration:
+          type: integer
+
+    OllamaChatRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        model:
+          type: string
+          default: "llama3.2"
+        messages:
+          type: array
+          items:
+            type: object
+            required:
+              - role
+              - content
+            properties:
+              role:
+                type: string
+                enum: [system, user, assistant]
+              content:
+                type: string
+        temperature:
+          type: number
+          format: float
+          default: 0.7
+
+    OllamaChatResponse:
+      type: object
+      properties:
+        message:
+          type: object
+          properties:
+            role:
+              type: string
+            content:
+              type: string
+        model:
+          type: string
+        done:
+          type: boolean
+
+    OllamaStatusResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        model:
+          type: string
+        endpoint:
+          type: string
