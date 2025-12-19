@@ -2,8 +2,11 @@
 
 use crate::{
     ihsan,
+    mcp::{self, JsonRpcRequest},
     metrics,
+    ollama,
     pat_enhanced::EnhancedPATOrchestrator,
+    sape,
     types::{AdapterModes, DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
     MetaAlphaDualAgentic,
 };
@@ -17,6 +20,7 @@ use axum::{
 use std::{collections::HashSet, sync::Arc};
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
+    services::ServeDir,
     trace::TraceLayer,
 };
 use tracing::{info, warn};
@@ -36,6 +40,13 @@ pub async fn create_http_server(
         );
     }
 
+    // Initialize MCP client with BIZRA tools
+    {
+        let mcp_client = mcp::get_mcp().await;
+        let mut client = mcp_client.lock().await;
+        client.register_bizra_tools();
+    }
+
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health))
@@ -43,6 +54,17 @@ pub async fn create_http_server(
         .route("/dual/execute", post(execute_dual))
         .route("/enhanced/execute", post(execute_enhanced))
         .route("/stats", get(stats))
+        // New endpoints
+        .route("/mcp/rpc", post(mcp_rpc_handler))
+        .route("/mcp/tools", get(mcp_tools_list))
+        .route("/sape/probes", post(sape_probes_handler))
+        .route("/sape/stats", get(sape_stats_handler))
+        .route("/ollama/generate", post(ollama_generate_handler))
+        .route("/ollama/chat", post(ollama_chat_handler))
+        .route("/ollama/status", get(ollama_status_handler))
+        .route("/dashboard", get(dashboard_redirect))
+        // Serve static files (dashboard)
+        .nest_service("/static", ServeDir::new("static"))
         .layer(cors_layer())
         .layer(TraceLayer::new_for_http())
         .with_state((system, enhanced_pat, api_token));
@@ -50,6 +72,7 @@ pub async fn create_http_server(
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
 
     info!("🌐 HTTP Server listening on http://127.0.0.1:{}", port);
+    info!("📊 Dashboard available at http://127.0.0.1:{}/static/dashboard.html", port);
 
     axum::serve(listener, app).await?;
 
@@ -189,6 +212,221 @@ fn api_token_from_env_or_generate() -> (Arc<str>, bool) {
         _ => (Arc::<str>::from(Uuid::new_v4().simple().to_string()), true),
     }
 }
+
+// ============================================================
+// Dashboard Handler
+// ============================================================
+
+async fn dashboard_redirect() -> impl IntoResponse {
+    axum::response::Redirect::permanent("/static/dashboard.html")
+}
+
+// ============================================================
+// MCP JSON-RPC Handlers
+// ============================================================
+
+/// Handle MCP JSON-RPC 2.0 requests
+async fn mcp_rpc_handler(
+    Json(request): Json<JsonRpcRequest>,
+) -> impl IntoResponse {
+    let mcp_client = mcp::get_mcp().await;
+    let client = mcp_client.lock().await;
+    let response = client.handle_jsonrpc(request).await;
+    Json(response)
+}
+
+/// List available MCP tools
+async fn mcp_tools_list() -> impl IntoResponse {
+    let mcp_client = mcp::get_mcp().await;
+    let client = mcp_client.lock().await;
+    let tools: Vec<serde_json::Value> = client.list_tools()
+        .into_iter()
+        .map(|t| serde_json::json!({
+            "name": t.name,
+            "description": t.description,
+            "parameters": t.parameters.iter().map(|p| serde_json::json!({
+                "name": p.name,
+                "type": p.type_,
+                "description": p.description,
+                "required": p.required,
+            })).collect::<Vec<_>>(),
+        }))
+        .collect();
+    
+    Json(serde_json::json!({
+        "tools": tools,
+        "count": tools.len(),
+    }))
+}
+
+// ============================================================
+// SAPE Probe Handlers
+// ============================================================
+
+#[derive(serde::Deserialize)]
+struct SAPEProbeRequest {
+    content: String,
+}
+
+/// Execute SAPE probes on content
+async fn sape_probes_handler(
+    Json(request): Json<SAPEProbeRequest>,
+) -> impl IntoResponse {
+    let sape_engine = sape::get_sape();
+    let mut engine = sape_engine.lock().unwrap();
+    
+    let results = engine.execute_probes(&request.content);
+    let ihsan_score = engine.calculate_ihsan_score(&results);
+    
+    let probe_results: Vec<serde_json::Value> = results.iter().map(|r| {
+        serde_json::json!({
+            "dimension": r.dimension.name(),
+            "score": r.score,
+            "confidence": r.confidence,
+            "flags": r.flags,
+            "passed": r.passed(0.7),
+        })
+    }).collect();
+    
+    Json(serde_json::json!({
+        "ihsan_score": ihsan_score,
+        "passed": ihsan_score >= 0.85,
+        "probes": probe_results,
+        "dimensions_analyzed": results.len(),
+    }))
+}
+
+/// Get SAPE statistics
+async fn sape_stats_handler() -> impl IntoResponse {
+    let sape_engine = sape::get_sape();
+    let engine = sape_engine.lock().unwrap();
+    let stats = engine.get_statistics();
+    
+    let patterns: Vec<serde_json::Value> = engine.get_active_patterns()
+        .iter()
+        .map(|p| serde_json::json!({
+            "id": p.id,
+            "name": p.name,
+            "activations": p.activation_count,
+            "latency_saved_ms": p.latency_reduction_ms,
+            "snr_improvement": p.snr_improvement,
+        }))
+        .collect();
+    
+    Json(serde_json::json!({
+        "total_patterns": stats.total_patterns,
+        "active_patterns": stats.active_patterns,
+        "sequences_observed": stats.sequences_observed,
+        "total_latency_saved_ms": stats.total_latency_saved_ms,
+        "total_snr_improvement": stats.total_snr_improvement,
+        "patterns": patterns,
+    }))
+}
+
+// ============================================================
+// Ollama LLM Handlers
+// ============================================================
+
+#[derive(serde::Deserialize)]
+struct OllamaGenerateRequest {
+    prompt: String,
+    model: Option<String>,
+    temperature: Option<f64>,
+}
+
+#[derive(serde::Deserialize)]
+struct OllamaChatRequest {
+    message: String,
+    history: Option<Vec<ollama::ChatMessage>>,
+    model: Option<String>,
+}
+
+/// Generate text with Ollama
+async fn ollama_generate_handler(
+    Json(request): Json<OllamaGenerateRequest>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let client = ollama::get_ollama().await;
+    
+    if !client.is_connected() {
+        // Return fallback response
+        let fallback = ollama::OllamaFallback::simulated_response(&request.prompt);
+        return Ok(Json(serde_json::json!({
+            "response": fallback.response,
+            "model": fallback.model,
+            "simulated": true,
+        })));
+    }
+    
+    let options = request.temperature.map(|t| ollama::GenerationOptions {
+        temperature: Some(t),
+        ..Default::default()
+    });
+    
+    match client.bizra_generate(&request.prompt, request.model.as_deref()).await {
+        Ok(response) => Ok(Json(serde_json::json!({
+            "response": response.response,
+            "model": response.model,
+            "done": response.done,
+            "eval_count": response.eval_count,
+            "simulated": false,
+        }))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+/// Chat with Ollama
+async fn ollama_chat_handler(
+    Json(request): Json<OllamaChatRequest>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let client = ollama::get_ollama().await;
+    
+    if !client.is_connected() {
+        return Ok(Json(serde_json::json!({
+            "message": {
+                "role": "assistant",
+                "content": "[SIMULATED] Ollama not available"
+            },
+            "model": "simulated",
+            "simulated": true,
+        })));
+    }
+    
+    let history = request.history.unwrap_or_default();
+    
+    match client.bizra_chat(&request.message, history, request.model.as_deref()).await {
+        Ok(response) => Ok(Json(serde_json::json!({
+            "message": response.message,
+            "model": response.model,
+            "done": response.done,
+            "simulated": false,
+        }))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+/// Get Ollama connection status
+async fn ollama_status_handler() -> impl IntoResponse {
+    let client = ollama::get_ollama().await;
+    let connected = client.is_connected();
+    
+    let models = if connected {
+        client.list_models().await.ok()
+    } else {
+        None
+    };
+    
+    Json(serde_json::json!({
+        "connected": connected,
+        "models": models.map(|m| m.into_iter().map(|info| serde_json::json!({
+            "name": info.name,
+            "size": info.size,
+        })).collect::<Vec<_>>()),
+    }))
+}
+
+// ============================================================
+// Helper Functions
+// ============================================================
 
 fn parse_extra_cors_origins() -> HashSet<String> {
     let mut set = HashSet::new();
