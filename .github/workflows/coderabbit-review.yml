@@ -1,0 +1,333 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA CodeRabbit Integration Workflow
+# ═══════════════════════════════════════════════════════════════════════════════
+# Extends elite-ci-cd.yml with AI-powered code review
+# Triggers: All PRs to main/develop branches
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: 🐰 CodeRabbit Review Gate
+
+on:
+  pull_request:
+    branches: [main, develop, "release/**"]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  # SNR thresholds for quality gates
+  SNR_MINIMUM: 1.5
+  SNR_VERIFIED: 2.0
+  IHSAN_THRESHOLD: 3.5
+
+jobs:
+  # ============================================================
+  # PRE-REVIEW: Collect Metrics for CodeRabbit Context
+  # ============================================================
+  pre-review:
+    name: '📊 Pre-Review Metrics'
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      files_changed: ${{ steps.metrics.outputs.files_changed }}
+      lines_added: ${{ steps.metrics.outputs.lines_added }}
+      lines_removed: ${{ steps.metrics.outputs.lines_removed }}
+      critical_paths: ${{ steps.metrics.outputs.critical_paths }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Calculate PR Metrics
+        id: metrics
+        run: |
+          # Get changed files
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          echo "files_changed=$FILES" >> $GITHUB_OUTPUT
+          
+          # Get line counts
+          STATS=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1)
+          ADDED=$(echo "$STATS" | grep -oP '\d+(?= insertion)' || echo "0")
+          REMOVED=$(echo "$STATS" | grep -oP '\d+(?= deletion)' || echo "0")
+          echo "lines_added=$ADDED" >> $GITHUB_OUTPUT
+          echo "lines_removed=$REMOVED" >> $GITHUB_OUTPUT
+          
+          # Check for critical path changes
+          CRITICAL=""
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE '^bizra_kernel/'; then
+            CRITICAL="${CRITICAL}kernel,"
+          fi
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE '^api/'; then
+            CRITICAL="${CRITICAL}api,"
+          fi
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE '^migrations/'; then
+            CRITICAL="${CRITICAL}migrations,"
+          fi
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE '^constitution/'; then
+            CRITICAL="${CRITICAL}constitution,"
+          fi
+          echo "critical_paths=${CRITICAL%,}" >> $GITHUB_OUTPUT
+      
+      - name: Post Metrics Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const metrics = {
+              files: '${{ steps.metrics.outputs.files_changed }}',
+              added: '${{ steps.metrics.outputs.lines_added }}',
+              removed: '${{ steps.metrics.outputs.lines_removed }}',
+              critical: '${{ steps.metrics.outputs.critical_paths }}'
+            };
+            
+            const criticalPaths = metrics.critical ? 
+              `⚠️ **Critical Paths Modified**: ${metrics.critical}` : 
+              '✅ No critical paths modified';
+            
+            const body = `## 📊 PR Metrics for CodeRabbit Review
+            
+            | Metric | Value |
+            |--------|-------|
+            | Files Changed | ${metrics.files} |
+            | Lines Added | +${metrics.added} |
+            | Lines Removed | -${metrics.removed} |
+            
+            ${criticalPaths}
+            
+            ---
+            🐰 CodeRabbit will provide detailed review shortly.
+            `;
+            
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const botComment = comments.find(c => 
+              c.user.type === 'Bot' && c.body.includes('PR Metrics for CodeRabbit')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  # ============================================================
+  # BIZRA-SPECIFIC CHECKS (Runs alongside CodeRabbit)
+  # ============================================================
+  bizra-checks:
+    name: '🏛️ BIZRA Compliance'
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: pre-review
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Check Receipt Compliance
+        id: receipts
+        run: |
+          echo "🧾 Checking receipt-native compliance..."
+          
+          # Find Python files with database operations
+          DB_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.py$' || true)
+          
+          VIOLATIONS=0
+          for file in $DB_FILES; do
+            if [ -f "$file" ]; then
+              # Check for INSERT/UPDATE without receipt
+              if grep -n -E "(INSERT|UPDATE|DELETE)" "$file" | grep -v "receipt" | grep -v "#" | grep -v "kg_receipts"; then
+                echo "⚠️ Potential receipt missing in $file"
+                VIOLATIONS=$((VIOLATIONS + 1))
+              fi
+            fi
+          done
+          
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "::warning::Found $VIOLATIONS potential receipt compliance issues"
+          else
+            echo "✅ Receipt compliance check passed"
+          fi
+      
+      - name: Check Fail-Closed Patterns
+        id: failclosed
+        run: |
+          echo "🔒 Checking fail-closed patterns..."
+          
+          VIOLATIONS=0
+          CHANGED_PY=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.py$' || true)
+          
+          for file in $CHANGED_PY; do
+            if [ -f "$file" ]; then
+              # Check for bare except with pass
+              if grep -n -E "except.*:\s*$" "$file" | head -5; then
+                # Look for 'pass' on next line
+                if grep -A1 -E "except.*:" "$file" | grep -q "^\s*pass\s*$"; then
+                  echo "⚠️ Silent exception in $file"
+                  VIOLATIONS=$((VIOLATIONS + 1))
+                fi
+              fi
+            fi
+          done
+          
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "::error::Found $VIOLATIONS fail-closed violations"
+            exit 1
+          else
+            echo "✅ Fail-closed pattern check passed"
+          fi
+      
+      - name: Check Sovereignty Violations
+        id: sovereignty
+        run: |
+          echo "🏴 Checking sovereignty-first compliance..."
+          
+          VIOLATIONS=0
+          CHANGED_PY=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.py$' || true)
+          
+          for file in $CHANGED_PY; do
+            if [ -f "$file" ]; then
+              # Check for hardcoded external URLs without sovereignty flag
+              if grep -n -E "https?://" "$file" | grep -v "localhost" | grep -v "127.0.0.1" | grep -v "SOVEREIGNTY_OVERRIDE" | grep -v "#"; then
+                echo "⚠️ Potential external call without sovereignty override in $file"
+                VIOLATIONS=$((VIOLATIONS + 1))
+              fi
+            fi
+          done
+          
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "::warning::Found $VIOLATIONS potential sovereignty issues"
+          else
+            echo "✅ Sovereignty check passed"
+          fi
+      
+      - name: Generate Compliance Report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const receipts = '${{ steps.receipts.outputs.violations }}';
+            const failclosed = '${{ steps.failclosed.outputs.violations }}';
+            const sovereignty = '${{ steps.sovereignty.outputs.violations }}';
+            
+            const total = parseInt(receipts) + parseInt(failclosed) + parseInt(sovereignty);
+            const status = total === 0 ? '✅ PASS' : total < 3 ? '⚠️ WARN' : '❌ FAIL';
+            
+            const body = `## 🏛️ BIZRA Compliance Report
+            
+            | Check | Violations | Status |
+            |-------|------------|--------|
+            | Receipt-Native | ${receipts} | ${receipts === '0' ? '✅' : '⚠️'} |
+            | Fail-Closed | ${failclosed} | ${failclosed === '0' ? '✅' : '❌'} |
+            | Sovereignty-First | ${sovereignty} | ${sovereignty === '0' ? '✅' : '⚠️'} |
+            
+            **Overall Status**: ${status}
+            
+            ---
+            📋 See workflow logs for details.
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+  # ============================================================
+  # POST-REVIEW: Aggregate CodeRabbit + BIZRA Results
+  # ============================================================
+  review-gate:
+    name: '🚦 Review Gate'
+    runs-on: ubuntu-latest
+    needs: [pre-review, bizra-checks]
+    if: always()
+    
+    steps:
+      - name: Evaluate Gate Status
+        id: gate
+        run: |
+          BIZRA_STATUS="${{ needs.bizra-checks.result }}"
+          CRITICAL="${{ needs.pre-review.outputs.critical_paths }}"
+          
+          if [ "$BIZRA_STATUS" = "failure" ]; then
+            echo "status=blocked" >> $GITHUB_OUTPUT
+            echo "::error::BIZRA compliance checks failed - PR blocked"
+            exit 1
+          elif [ -n "$CRITICAL" ] && [ "$CRITICAL" != "" ]; then
+            echo "status=review-required" >> $GITHUB_OUTPUT
+            echo "::warning::Critical paths modified - extra review required"
+          else
+            echo "status=ready" >> $GITHUB_OUTPUT
+            echo "✅ All checks passed"
+          fi
+      
+      - name: Post Gate Status
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const status = '${{ steps.gate.outputs.status }}';
+            const critical = '${{ needs.pre-review.outputs.critical_paths }}';
+            
+            let emoji, message;
+            switch(status) {
+              case 'blocked':
+                emoji = '🚫';
+                message = 'PR is blocked due to BIZRA compliance failures. Please address issues before merging.';
+                break;
+              case 'review-required':
+                emoji = '👀';
+                message = `Extra review required for critical paths: ${critical}. Please ensure SAT Council member reviews.`;
+                break;
+              default:
+                emoji = '✅';
+                message = 'All automated checks passed. Ready for human review.';
+            }
+            
+            const body = `## ${emoji} Review Gate Status
+            
+            ${message}
+            
+            ---
+            🐰 CodeRabbit AI review + 🏛️ BIZRA compliance = 💪 Quality Code
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });

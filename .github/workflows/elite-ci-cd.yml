@@ -177,6 +177,46 @@ jobs:
       - name: Install deps
         run: python -m pip install pyyaml
 
+        - name: Verify HG-RTP compliance artifacts
+        run: |
+          python - << 'PY'
+          from pathlib import Path
+          import sys
+
+          checks = {
+            "docs/HG-RTP_Approval_Log.md": ["Approved", "Ihsān Attestation"],
+            "docs/HG-RTP_Telemetry_Backlog.md": ["Priority 1", "Definition of Done"],
+            "docs/HG-RTP_Sprint_Planning_Sync.md": ["Sprint Planning Sync", "Expected Outcomes"],
+          }
+
+          missing = []
+          violations = []
+
+          for path, tokens in checks.items():
+            file_path = Path(path)
+            if not file_path.exists():
+              missing.append(path)
+              continue
+
+            content = file_path.read_text(encoding="utf-8")
+            if not content.strip():
+              violations.append(f"{path} is empty")
+              continue
+
+            for token in tokens:
+              if token not in content:
+                violations.append(f"{path} missing required token '{token}'")
+
+          if missing or violations:
+            if missing:
+              print(f"::error::Missing compliance artifacts: {', '.join(missing)}")
+            if violations:
+              print(f"::error::Compliance content issues: {'; '.join(violations)}")
+            sys.exit(1)
+
+          print("✅ HG-RTP compliance artifacts validated")
+          PY
+
       - name: Validate Ihsān Constitution
         run: |
           python - << 'PY'

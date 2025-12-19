@@ -1,0 +1,253 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA CodeRabbit Configuration v1.0.0
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI-powered code review aligned with BIZRA Elite Implementation Blueprint
+# Integrates: SNR gates, Ihsān scoring, FATE compliance, PoI verification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+language: "en-US"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REVIEW CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+reviews:
+  # High-level settings
+  auto_review:
+    enabled: true
+    drafts: false                    # Don't review draft PRs
+    base_branches:
+      - main
+      - develop
+      - "release/*"
+  
+  # Request changes vs suggestions threshold
+  request_changes_workflow: true
+  
+  # Review profile: assertive for BIZRA quality standards
+  profile: "assertive"
+  
+  # Review scope
+  review_status: true                # Include status checks
+  collapse_walkthrough: false        # Show full walkthrough
+  poem: false                        # Disable poems (professional mode)
+  
+  # Path-based review configuration
+  path_instructions:
+    # Core kernel - highest scrutiny
+    - path: "bizra_kernel/**"
+      instructions: |
+        CRITICAL PATH: BIZRA Kernel Core
+        - Verify fail-closed defaults on ALL error paths
+        - Check SNR calculations use approved formulas
+        - Ensure ALL decisions emit receipts
+        - Validate no silent failures (must log + receipt)
+        - Confirm FATE level compliance (integrity checks)
+        - Flag any network egress without sovereignty override
+    
+    # API layer - security focus
+    - path: "api/**"
+      instructions: |
+        API SECURITY REVIEW:
+        - Validate input sanitization (prompt injection defense)
+        - Check authentication/authorization on all endpoints
+        - Verify rate limiting is applied
+        - Ensure error responses don't leak internal state
+        - Confirm all responses include trace_id for auditability
+        - Check SNR headers are included in responses
+    
+    # Migrations - schema integrity
+    - path: "migrations/**"
+      instructions: |
+        SCHEMA MIGRATION REVIEW:
+        - Verify backwards compatibility or migration path
+        - Check for data loss potential
+        - Ensure append-only constraints where required
+        - Validate index strategy for query patterns
+        - Confirm receipt tables are immutable (no UPDATE/DELETE)
+    
+    # Agent implementations - PAT compliance
+    - path: "agents/**"
+      instructions: |
+        PAT AGENT REVIEW (Polymathic Agent Types):
+        - Verify agent type matches its role (Guardian/Prime/Scholar/Artisan/Merchant/Mirror)
+        - Check reasoning traces are captured
+        - Ensure SNR thresholds are enforced
+        - Validate SAPE probes are integrated
+        - Confirm agent decisions emit structured receipts
+    
+    # Knowledge graph - integrity focus
+    - path: "kg/**"
+      instructions: |
+        KNOWLEDGE GRAPH REVIEW:
+        - Verify embedding operations respect sovereignty settings
+        - Check graph traversal has depth limits
+        - Ensure retrieval includes provenance tracking
+        - Validate no unbounded queries
+        - Confirm Ihsān impact scoring is applied
+    
+    # Constitution & policies - governance focus
+    - path: "constitution/**"
+      instructions: |
+        GOVERNANCE REVIEW:
+        - This is sacred ground - changes require SAT Council review
+        - Verify version bumps follow semver
+        - Check policy changes are backwards compatible
+        - Ensure all policies have expiry/review dates
+        - Confirm changes are logged to policy registry
+    
+    # Tests - coverage focus
+    - path: "tests/**"
+      instructions: |
+        TEST REVIEW:
+        - Verify edge cases are covered
+        - Check for chaos/failure testing scenarios
+        - Ensure SNR gate testing is included
+        - Validate receipt verification tests exist
+        - Confirm >95% coverage for critical paths
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CHAT CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+chat:
+  auto_reply: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CUSTOM INSTRUCTIONS (BIZRA-SPECIFIC)
+# ─────────────────────────────────────────────────────────────────────────────
+instructions: |
+  ## BIZRA Code Review Standards
+  
+  You are reviewing code for BIZRA - a decentralized intelligence operating system 
+  built on Islamic intellectual values: Ihsān (excellence), Adl (justice), 
+  Amānah (trustworthiness).
+  
+  ### Core Principles
+  1. **Fail-Closed by Default**: All error paths must fail safely and visibly
+  2. **Receipt-Native**: Every decision must emit an auditable receipt
+  3. **SNR-Gated**: Quality gates based on Signal-to-Noise Ratio
+  4. **Sovereignty-First**: No external network calls without explicit opt-in
+  5. **Transparent Failures**: Never hide errors; log + receipt + notify
+  
+  ### SNR Quality Gates
+  - SNR < 1.5 → HYPOTHESIS (not executable)
+  - SNR 1.5-2.0 → PENDING (needs verification)
+  - SNR ≥ 2.0 → VERIFIED (eligible for execution)
+  - Probe fail → FAIL_CLOSED (audit before retry)
+  
+  ### Review Checklist
+  For EVERY PR, verify:
+  - [ ] No silent failures (all errors logged + receipted)
+  - [ ] No unbounded loops or queries
+  - [ ] No hardcoded secrets or API keys
+  - [ ] All external calls wrapped in try/catch with receipts
+  - [ ] Tests cover the happy path AND failure scenarios
+  - [ ] Documentation updated if behavior changed
+  
+  ### Ihsān Scoring (Rate 1-5)
+  When reviewing, consider these dimensions:
+  1. **Technical Excellence**: Is the code clean, efficient, maintainable?
+  2. **Human Impact**: Does this serve user flourishing?
+  3. **Justice (Fairness)**: Are there bias risks? Accessibility issues?
+  4. **Trustworthiness**: Is it auditable, reproducible, transparent?
+  
+  ### Flag Immediately (Security)
+  - Prompt injection vulnerabilities
+  - Unvalidated user input in queries
+  - Missing authentication/authorization
+  - Secrets in code or logs
+  - Unbounded resource consumption
+  
+  ### BIZRA Terminology
+  - PAT: Polymathic Agent Types (Guardian, Prime, Scholar, Artisan, Merchant, Mirror)
+  - FATE: Fail-closed Auditable Transparent Ethical (quality framework)
+  - SAPE: Symbolic-Abstraction Probe Elevation (meta-reasoning probes)
+  - PoI: Proof of Impact (verification mechanism)
+  - SNR: Signal-to-Noise Ratio (quality metric)
+  - SAT: Strategic Advisory Team (governance council)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KNOWLEDGE BASE
+# ─────────────────────────────────────────────────────────────────────────────
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOOLS CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+tools:
+  # Language-specific linters
+  ruff:
+    enabled: true
+  eslint:
+    enabled: true
+  biome:
+    enabled: true
+  
+  # Security scanning
+  gitleaks:
+    enabled: true
+  
+  # Documentation
+  markdownlint:
+    enabled: true
+  
+  # Infrastructure
+  yamllint:
+    enabled: true
+  hadolint:
+    enabled: true
+  
+  # GitHub-specific
+  github-checks:
+    enabled: true
+    timeout_ms: 90000
+  
+  # Shell scripts
+  shellcheck:
+    enabled: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IGNORE PATTERNS
+# ─────────────────────────────────────────────────────────────────────────────
+path_filters:
+  # Dependencies and build artifacts
+  - "!**/node_modules/**"
+  - "!**/vendor/**"
+  - "!**/dist/**"
+  - "!**/build/**"
+  - "!**/.venv/**"
+  - "!**/target/**"
+  - "!**/__pycache__/**"
+  
+  # Generated files
+  - "!**/package-lock.json"
+  - "!**/poetry.lock"
+  - "!**/Cargo.lock"
+  - "!**/*.min.js"
+  - "!**/*.min.css"
+  
+  # Assets
+  - "!**/*.png"
+  - "!**/*.jpg"
+  - "!**/*.gif"
+  - "!**/*.ico"
+  - "!**/*.woff*"
+  - "!**/*.ttf"
+  
+  # Archives and sealed documents (immutable by design)
+  - "!archive/**"
+  - "!**/SEALED*.md"
+  - "!**/*_SEALED.yaml"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EARLY ACCESS FEATURES
+# ─────────────────────────────────────────────────────────────────────────────
+early_access: true
+enable_free_tier: true
