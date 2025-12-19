@@ -137,21 +137,75 @@ All CI runs on `main` generate cryptographically-signed evidence:
 - Existing legitimate requests unaffected
 - YAML/JSON configurations unchanged
 
+## Phase 2: PAT↔SAT Runtime Activation
+
+### 7. FATE (Fail-Safe Agentic Trust Escalation)
+
+A new `fate.rs` module handles escalation and quarantine:
+
+```rust
+pub enum EscalationLevel {
+    Low,       // Auto-resolved
+    Medium,    // Logged for review
+    High,      // Requires human review
+    Critical,  // Immediate block, security notification
+}
+```
+
+**Key behaviors:**
+- Security/Ethics → Critical escalation
+- Quarantine → High escalation (human review required)
+- Performance/Resource → Low/Medium escalation
+- Context sanitization: passwords, secrets, keys are redacted
+
+### 8. Rejection Receipts
+
+Every SAT rejection emits a machine-verifiable receipt:
+
+```json
+{
+  "schema": "bizra-rejection-receipt-v1",
+  "receipt_id": "REJ-20251219-000001",
+  "rejection_codes": ["SECURITY_THREAT: Blocked pattern: rm -rf"],
+  "escalation_id": "FATE-000001",
+  "escalation_level": "CRITICAL",
+  "integrity_hash": "sha256:..."
+}
+```
+
+### 9. Execution Receipts
+
+Successful flows also emit receipts for auditability:
+
+```json
+{
+  "schema": "bizra-execution-receipt-v1",
+  "receipt_id": "EXEC-20251219-000001",
+  "synergy_score": 0.87,
+  "ihsan_score": 0.92,
+  "ihsan_threshold": 0.90,
+  "integrity_hash": "sha256:..."
+}
+```
+
+### 10. Bridge Integration
+
+The `bridge.rs` now integrates FATE and receipts:
+
+1. SAT validates → if rejected → FATE escalates → Receipt emitted → Error returned
+2. SAT validates → if approved → PAT executes → SAT evaluates → Ihsān gate → Receipt emitted
+3. All flows produce machine-verifiable evidence
+
 ## Validation
 
 | Artifact | Verification |
 |----------|-------------|
 | [tests/sat_rejection_tests.rs](../../tests/sat_rejection_tests.rs) | 15/15 tests passing |
+| [tests/pat_sat_runtime_tests.rs](../../tests/pat_sat_runtime_tests.rs) | 13/13 E2E tests passing |
 | [src/sat.rs](../../src/sat.rs) | Real validators implemented |
-| [src/mcp.rs](../../src/mcp.rs) | Allowlist + timeout + size limit |
-| [src/a2a.rs](../../src/a2a.rs) | Blocklist + depth limit + timeout |
-| [phase0_integrity.yml](../../.github/workflows/phase0_integrity.yml) | Performance gates + evidence |
-
-## Related
-
-- **ADR-001:** Architecture overview
-- **ADR-006:** Test coverage framework
-- **GAP Analysis:** Internal audit document
+| [src/fate.rs](../../src/fate.rs) | FATE escalation module |
+| [src/receipts.rs](../../src/receipts.rs) | Receipt emission module |
+| [src/bridge.rs](../../src/bridge.rs) | FATE + receipts integration |
 - **Ihsān Constitution:** `constitution/ihsan_v1.yaml`
 
 ## References

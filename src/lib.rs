@@ -4,12 +4,14 @@ pub mod a2a;
 pub mod bizra_integration;
 pub mod bridge;
 pub mod errors;
+pub mod fate;
 pub mod http;
 pub mod ihsan;
 pub mod mcp;
 pub mod pat;
 pub mod pat_enhanced;
 pub mod reasoning;
+pub mod receipts;
 pub mod sat;
 pub mod types;
 

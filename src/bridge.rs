@@ -1,31 +1,37 @@
 // src/bridge.rs - PAT-SAT Bridge Coordinator
 
 use crate::{
+    fate::FATECoordinator,
     ihsan,
     pat::PATOrchestrator,
+    receipts::ReceiptEmitter,
     sat::SATOrchestrator,
     types::{AdapterModes, AgentResult, DualAgenticRequest, DualAgenticResponse},
 };
-use std::{collections::BTreeMap, time::Instant};
-use tracing::{info, instrument};
+use std::{collections::BTreeMap, sync::Mutex, time::Instant};
+use tracing::{info, warn, instrument};
 
 /// Bridge coordinator between PAT and SAT
 pub struct BridgeCoordinator {
     pat: PATOrchestrator,
     sat: SATOrchestrator,
+    fate: Mutex<FATECoordinator>,
+    receipts: ReceiptEmitter,
 }
 
 impl BridgeCoordinator {
     pub async fn new() -> anyhow::Result<Self> {
-        info!("dYO% Initializing PAT-SAT Bridge Coordinator");
+        info!("🌉 Initializing PAT-SAT Bridge Coordinator");
 
         let pat = PATOrchestrator::new().await?;
         let sat = SATOrchestrator::new().await?;
+        let fate = Mutex::new(FATECoordinator::new());
+        let receipts = ReceiptEmitter::default();
 
-        Ok(Self { pat, sat })
+        Ok(Self { pat, sat, fate, receipts })
     }
 
-    /// Execute full dual-agentic workflow
+    /// Execute full dual-agentic workflow with FATE escalation and receipt emission
     #[instrument(skip(self))]
     pub async fn execute(
         &self,
@@ -33,24 +39,71 @@ impl BridgeCoordinator {
     ) -> anyhow::Result<DualAgenticResponse> {
         let start = Instant::now();
 
-        info!("dYs? Starting dual-agentic execution");
+        info!("🚀 Starting dual-agentic execution");
 
         // Step 1: SAT validates the request
         let validation = self.sat.validate_request(&request).await?;
+        let sat_validation_time = validation.validation_time;
 
         if !validation.consensus_reached {
+            // FATE escalation for SAT rejection
+            let escalation = {
+                let mut fate = self.fate.lock().unwrap();
+                fate.escalate_rejection(
+                    &validation.rejection_codes,
+                    &request.task,
+                    &request.context,
+                )
+            };
+
+            // Collect rejecting and approving validators
+            let rejecting: Vec<String> = validation.validations
+                .iter()
+                .filter(|v| !v.approved)
+                .map(|v| v.agent_name.clone())
+                .collect();
+            let approving: Vec<String> = validation.validations
+                .iter()
+                .filter(|v| v.approved)
+                .map(|v| v.agent_name.clone())
+                .collect();
+
+            // Emit rejection receipt
+            let receipt = self.receipts.emit_rejection(
+                &request.task,
+                &validation.rejection_codes,
+                &escalation,
+                rejecting,
+                approving,
+            );
+
+            warn!(
+                receipt_id = %receipt.receipt_id,
+                escalation_id = %escalation.id,
+                escalation_level = ?escalation.level,
+                "🚨 Request BLOCKED by SAT - receipt emitted"
+            );
+
             return Err(anyhow::anyhow!(
-                "SAT consensus not reached for request validation"
+                "SAT BLOCKED: {} (escalation={}, receipt={})",
+                validation.rejection_codes.iter()
+                    .map(|c| c.to_string())
+                    .collect::<Vec<_>>()
+                    .join("; "),
+                escalation.id,
+                receipt.receipt_id,
             ));
         }
 
         info!(
-            validation_time_ms = validation.validation_time.as_millis(),
-            "SAT validation passed"
+            validation_time_ms = sat_validation_time.as_millis(),
+            "✅ SAT validation passed"
         );
 
         // Step 2: PAT executes the task
+        let pat_start = Instant::now();
         let pat_results = self.pat.execute_parallel(vec![], request.clone()).await?;
+        let pat_execution_time = pat_start.elapsed();
 
         info!(pat_agents = pat_results.len(), "PAT execution completed");
 
@@ -73,22 +126,55 @@ impl BridgeCoordinator {
         let ihsan_passes_threshold = ihsan_score >= ihsan_threshold_applied;
 
         if !ihsan_passes_threshold && ihsan::should_enforce() {
-            return Err(anyhow::anyhow!(
-                "Ihsan gate failed (env={env} artifact_class={artifact} score={score:.4} threshold={threshold:.4}); escalate via FATE",
-                env = ihsan_env,
-                artifact = ihsan_artifact_class,
-                score = ihsan_score,
+            // FATE escalation for Ihsān failure
+            let escalation = {
+                let mut fate = self.fate.lock().unwrap();
+                fate.escalate_ihsan_failure(
+                    &ihsan_env,
+                    ihsan_artifact_class,
+                    ihsan_score,
+                    ihsan_threshold_applied,
+                    &request.context,
+                )
+            };
+
+            warn!(
+                escalation_id = %escalation.id,
+                ihsan_score = ihsan_score,
                 threshold = ihsan_threshold_applied,
+                "⚠️ Ihsān gate failed - escalated via FATE"
+            );
+
+            return Err(anyhow::anyhow!(
+                "IHSAN GATE FAILED: env={} score={:.4} < threshold={:.4} (escalation={})",
+                ihsan_env,
+                ihsan_score,
+                ihsan_threshold_applied,
+                escalation.id,
             ));
         }
 
         let total_latency = start.elapsed();
 
+        // Emit execution receipt for successful flow
+        let sat_approvers = validation.validations.iter().filter(|v| v.approved).count();
+        let _execution_receipt = self.receipts.emit_execution(
+            &request.task,
+            sat_validation_time.as_millis(),
+            pat_execution_time.as_millis(),
+            total_latency.as_millis(),
+            synergy_score,
+            ihsan_score,
+            ihsan_threshold_applied,
+            pat_results.len(),
+            sat_approvers,
+        );
+
         info!(
             synergy = synergy_score,
             ihsan = ihsan_score,
             latency_ms = total_latency.as_millis(),
-            "Dual-agentic execution completed"
+            "✅ Dual-agentic execution completed - receipt emitted"
         );
 
         Ok(DualAgenticResponse {
@@ -104,7 +190,8 @@ impl BridgeCoordinator {
                 "pat_agents": self.pat.get_agent_count(),
                 "sat_agents": self.sat.get_agent_count(),
                 "adapter_modes": AdapterModes::current(),
-                "validation_time_ms": validation.validation_time.as_millis(),
+                "validation_time_ms": sat_validation_time.as_millis(),
+                "pat_execution_time_ms": pat_execution_time.as_millis(),
                 "ihsan_constitution_id": ihsan::constitution().id(),
                 "ihsan_threshold_baseline": ihsan::constitution().threshold(),
                 "ihsan_env": ihsan_env,
@@ -113,6 +200,7 @@ impl BridgeCoordinator {
                 "ihsan_passes_threshold": ihsan_passes_threshold,
                 "ihsan_vector": ihsan_vector,
                 "ihsan_vector_source": "simulated_confidence_mapping_v0",
+                "fate_pending_escalations": self.fate.lock().unwrap().pending_count(),
             }),
         })
     }
