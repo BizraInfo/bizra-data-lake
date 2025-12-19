@@ -163,6 +163,28 @@ lazy_static! {
         "bizra_a2a_delegation_depth_max",
         "Maximum A2A delegation depth observed"
     ).unwrap();
+
+    // ============================================================
+    // HTTP Security Metrics
+    // ============================================================
+
+    /// HTTP requests allowed (passed rate limiting)
+    pub static ref HTTP_REQUESTS_ALLOWED: prometheus::Counter = prometheus::register_counter!(
+        "bizra_http_requests_allowed_total",
+        "Total HTTP requests that passed rate limiting"
+    ).unwrap();
+
+    /// HTTP requests rate limited (rejected)
+    pub static ref HTTP_REQUESTS_RATE_LIMITED: prometheus::Counter = prometheus::register_counter!(
+        "bizra_http_requests_rate_limited_total",
+        "Total HTTP requests rejected due to rate limiting"
+    ).unwrap();
+
+    /// HTTP requests rejected for missing/invalid authentication
+    pub static ref HTTP_REQUESTS_UNAUTHORIZED: prometheus::Counter = prometheus::register_counter!(
+        "bizra_http_requests_unauthorized_total",
+        "Total HTTP requests rejected due to missing/invalid authentication"
+    ).unwrap();
 }
 
 /// Timer guard for measuring operation duration

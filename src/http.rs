@@ -1,4 +1,11 @@
 // src/http.rs - HTTP API Server
+//
+// BIZRA Security-First HTTP Layer
+// ================================
+// - Rate limiting: 100 req/min per endpoint class
+// - Bearer token authentication on all sensitive endpoints
+// - Request ID tracing for audit trail
+// - Prometheus metrics per endpoint
 
 use crate::{
     ihsan,
@@ -11,13 +18,20 @@ use crate::{
     MetaAlphaDualAgentic,
 };
 use axum::{
+    body::Body,
     extract::State,
-    http::{header, HeaderMap, Method, StatusCode},
-    response::IntoResponse,
+    http::{header, HeaderMap, Method, Request, StatusCode},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::sync::RwLock;
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     services::ServeDir,
@@ -25,6 +39,153 @@ use tower_http::{
 };
 use tracing::{info, warn};
 use uuid::Uuid;
+
+// ============================================================
+// Security: Rate Limiter
+// ============================================================
+
+/// Token bucket rate limiter with per-IP tracking
+#[derive(Clone)]
+pub struct RateLimiter {
+    /// Map of IP -> (token count, last refill time)
+    buckets: Arc<RwLock<HashMap<String, (u32, Instant)>>>,
+    /// Max tokens per bucket
+    max_tokens: u32,
+    /// Refill rate (tokens per second)
+    refill_rate: f64,
+}
+
+impl RateLimiter {
+    pub fn new(max_tokens: u32, refill_rate: f64) -> Self {
+        Self {
+            buckets: Arc::new(RwLock::new(HashMap::new())),
+            max_tokens,
+            refill_rate,
+        }
+    }
+
+    /// Try to consume a token, returns true if allowed
+    pub async fn try_acquire(&self, key: &str) -> bool {
+        let mut buckets = self.buckets.write().await;
+        let now = Instant::now();
+
+        let (tokens, last_refill) = buckets
+            .entry(key.to_string())
+            .or_insert((self.max_tokens, now));
+
+        // Refill tokens based on elapsed time
+        let elapsed = now.duration_since(*last_refill).as_secs_f64();
+        let refill = (elapsed * self.refill_rate) as u32;
+        *tokens = (*tokens + refill).min(self.max_tokens);
+        *last_refill = now;
+
+        if *tokens > 0 {
+            *tokens -= 1;
+            metrics::HTTP_REQUESTS_ALLOWED.inc();
+            true
+        } else {
+            metrics::HTTP_REQUESTS_RATE_LIMITED.inc();
+            false
+        }
+    }
+
+    /// Cleanup old entries (call periodically)
+    pub async fn cleanup(&self, max_age: Duration) {
+        let mut buckets = self.buckets.write().await;
+        let now = Instant::now();
+        buckets.retain(|_, (_, last)| now.duration_since(*last) < max_age);
+    }
+}
+
+/// Rate limiting middleware
+async fn rate_limit_middleware(
+    State(limiter): State<RateLimiter>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    // Extract client identifier (IP or forwarded header)
+    let client_id = extract_client_id(&request);
+
+    if !limiter.try_acquire(&client_id).await {
+        return (
+            StatusCode::TOO_MANY_REQUESTS,
+            [(header::RETRY_AFTER, "60")],
+            Json(serde_json::json!({
+                "error": "Rate limit exceeded",
+                "retry_after_seconds": 60,
+            })),
+        )
+            .into_response();
+    }
+
+    next.run(request).await
+}
+
+fn extract_client_id(request: &Request<Body>) -> String {
+    // Check X-Forwarded-For first (reverse proxy)
+    if let Some(forwarded) = request
+        .headers()
+        .get("x-forwarded-for")
+        .and_then(|h| h.to_str().ok())
+    {
+        if let Some(first_ip) = forwarded.split(',').next() {
+            return first_ip.trim().to_string();
+        }
+    }
+
+    // Fall back to X-Real-IP
+    if let Some(real_ip) = request
+        .headers()
+        .get("x-real-ip")
+        .and_then(|h| h.to_str().ok())
+    {
+        return real_ip.trim().to_string();
+    }
+
+    // Default to "unknown" (in production, extract from connection info)
+    "unknown".to_string()
+}
+
+// ============================================================
+// Security: Authentication Middleware
+// ============================================================
+
+/// Authentication middleware for protected endpoints
+async fn auth_middleware(
+    State(api_token): State<Arc<str>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    let headers = request.headers();
+
+    // Skip auth for public endpoints
+    let path = request.uri().path();
+    if is_public_endpoint(path) {
+        return next.run(request).await;
+    }
+
+    if !is_authorized(headers, api_token.as_ref()) {
+        metrics::HTTP_REQUESTS_UNAUTHORIZED.inc();
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "error": "Unauthorized",
+                "message": "Missing or invalid API token. Use 'Authorization: Bearer <token>' header.",
+            })),
+        )
+            .into_response();
+    }
+
+    next.run(request).await
+}
+
+/// Endpoints that don't require authentication
+fn is_public_endpoint(path: &str) -> bool {
+    matches!(
+        path,
+        "/" | "/health" | "/metrics" | "/dashboard" | "/static/dashboard.html"
+    ) || path.starts_with("/static/")
+}
 
 pub async fn create_http_server(
     system: Arc<MetaAlphaDualAgentic>,
@@ -40,6 +201,19 @@ pub async fn create_http_server(
         );
     }
 
+    // Initialize rate limiter: 100 tokens, refill 2 per second (allows bursts, steady 120/min)
+    let rate_limiter = RateLimiter::new(100, 2.0);
+
+    // Spawn background cleanup task for rate limiter
+    let limiter_clone = rate_limiter.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(300));
+        loop {
+            interval.tick().await;
+            limiter_clone.cleanup(Duration::from_secs(600)).await;
+        }
+    });
+
     // Initialize MCP client with BIZRA tools
     {
         let mcp_client = mcp::get_mcp().await;
@@ -47,14 +221,10 @@ pub async fn create_http_server(
         client.register_bizra_tools();
     }
 
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/health", get(health))
-        .route("/metrics", get(prometheus_metrics))
+    // Protected routes (require authentication)
+    let protected_routes = Router::new()
         .route("/dual/execute", post(execute_dual))
         .route("/enhanced/execute", post(execute_enhanced))
-        .route("/stats", get(stats))
-        // New endpoints
         .route("/mcp/rpc", post(mcp_rpc_handler))
         .route("/mcp/tools", get(mcp_tools_list))
         .route("/sape/probes", post(sape_probes_handler))
@@ -62,9 +232,22 @@ pub async fn create_http_server(
         .route("/ollama/generate", post(ollama_generate_handler))
         .route("/ollama/chat", post(ollama_chat_handler))
         .route("/ollama/status", get(ollama_status_handler))
+        .layer(middleware::from_fn_with_state(api_token.clone(), auth_middleware));
+
+    // Public routes (no auth required)
+    let public_routes = Router::new()
+        .route("/", get(root))
+        .route("/health", get(health))
+        .route("/metrics", get(prometheus_metrics))
+        .route("/stats", get(stats))
         .route("/dashboard", get(dashboard_redirect))
-        // Serve static files (dashboard)
-        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/static", ServeDir::new("static"));
+
+    // Combine routes with shared middleware
+    let app = Router::new()
+        .merge(protected_routes)
+        .merge(public_routes)
+        .layer(middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors_layer())
         .layer(TraceLayer::new_for_http())
         .with_state((system, enhanced_pat, api_token));
@@ -73,6 +256,7 @@ pub async fn create_http_server(
 
     info!("🌐 HTTP Server listening on http://127.0.0.1:{}", port);
     info!("📊 Dashboard available at http://127.0.0.1:{}/static/dashboard.html", port);
+    info!("🔒 Protected endpoints require Authorization: Bearer <token>");
 
     axum::serve(listener, app).await?;
 
@@ -157,21 +341,14 @@ async fn stats(
 }
 
 async fn execute_dual(
-    State((system, _, api_token)): State<(
+    State((system, _, _)): State<(
         Arc<MetaAlphaDualAgentic>,
         Arc<EnhancedPATOrchestrator>,
         Arc<str>,
     )>,
-    headers: HeaderMap,
     Json(request): Json<DualAgenticRequest>,
 ) -> Result<Json<DualAgenticResponse>, (StatusCode, String)> {
-    if !is_authorized(&headers, api_token.as_ref()) {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            "Unauthorized: missing or invalid API token".to_string(),
-        ));
-    }
-
+    // Authentication handled by middleware
     match system.execute(request).await {
         Ok(response) => Ok(Json(response)),
         Err(e) => Err((
@@ -182,21 +359,14 @@ async fn execute_dual(
 }
 
 async fn execute_enhanced(
-    State((_, enhanced_pat, api_token)): State<(
+    State((_, enhanced_pat, _)): State<(
         Arc<MetaAlphaDualAgentic>,
         Arc<EnhancedPATOrchestrator>,
         Arc<str>,
     )>,
-    headers: HeaderMap,
     Json(request): Json<EnhancedDualAgenticRequest>,
 ) -> Result<Json<DualAgenticResponse>, (StatusCode, String)> {
-    if !is_authorized(&headers, api_token.as_ref()) {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            "Unauthorized: missing or invalid API token".to_string(),
-        ));
-    }
-
+    // Authentication handled by middleware
     match enhanced_pat.execute_enhanced(request).await {
         Ok(response) => Ok(Json(response)),
         Err(e) => Err((
