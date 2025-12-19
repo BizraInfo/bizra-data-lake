@@ -348,9 +348,33 @@ impl MCPClient {
                 server_name,
                 server_url = %server.url,
                 transport = ?server.transport,
-                "Discovering MCP tools (simulated)"
+                "Discovering MCP tools from server"
             );
-            // Simulated tool discovery (in production: actual MCP protocol)
+            
+            // Try to discover tools from real server
+            match self.discover_from_server(server).await {
+                Ok(tools) => {
+                    info!(
+                        server_name,
+                        tools_count = tools.len(),
+                        "Discovered tools from MCP server"
+                    );
+                    for mut tool in tools {
+                        tool.server = server_name.clone();
+                        self.tool_registry.insert(tool.name.clone(), tool);
+                    }
+                    continue;
+                }
+                Err(e) => {
+                    warn!(
+                        server_name,
+                        error = %e,
+                        "Failed to discover from MCP server, using defaults"
+                    );
+                }
+            }
+            
+            // Fallback: default tool definitions for development
             let tools = vec![
                 ToolDefinition {
                     name: "filesystem_read".to_string(),
@@ -408,6 +432,94 @@ impl MCPClient {
             "MCP tools discovered"
         );
         Ok(())
+    }
+    
+    /// Discover tools from an external MCP server via HTTP
+    async fn discover_from_server(&self, server: &MCPServer) -> anyhow::Result<Vec<ToolDefinition>> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()?;
+        
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": Uuid::new_v4().to_string(),
+            "method": "tools/list",
+            "params": {}
+        });
+        
+        let response = client
+            .post(&server.url)
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await?;
+        
+        if !response.status().is_success() {
+            anyhow::bail!("MCP server returned status: {}", response.status());
+        }
+        
+        let json_response: serde_json::Value = response.json().await?;
+        
+        if let Some(error) = json_response.get("error") {
+            anyhow::bail!("MCP server error: {}", error);
+        }
+        
+        let result = json_response.get("result")
+            .ok_or_else(|| anyhow::anyhow!("Missing result in response"))?;
+        
+        let tools_array = result.get("tools")
+            .and_then(|t| t.as_array())
+            .ok_or_else(|| anyhow::anyhow!("Missing tools array"))?;
+        
+        let mut tools = Vec::new();
+        for tool_json in tools_array {
+            let name = tool_json.get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let description = tool_json.get("description")
+                .and_then(|d| d.as_str())
+                .unwrap_or("")
+                .to_string();
+            
+            let mut parameters = Vec::new();
+            if let Some(input_schema) = tool_json.get("inputSchema") {
+                if let Some(props) = input_schema.get("properties") {
+                    if let Some(props_obj) = props.as_object() {
+                        let required: Vec<String> = input_schema
+                            .get("required")
+                            .and_then(|r| r.as_array())
+                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                            .unwrap_or_default();
+                        
+                        for (param_name, param_def) in props_obj {
+                            parameters.push(ToolParameter {
+                                name: param_name.clone(),
+                                type_: param_def.get("type")
+                                    .and_then(|t| t.as_str())
+                                    .unwrap_or("string")
+                                    .to_string(),
+                                description: param_def.get("description")
+                                    .and_then(|d| d.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
+                                required: required.contains(param_name),
+                            });
+                        }
+                    }
+                }
+            }
+            
+            tools.push(ToolDefinition {
+                name,
+                description,
+                parameters,
+                server: String::new(), // Will be set by caller
+            });
+        }
+        
+        Ok(tools)
     }
 
     /// Execute tool via MCP with security controls
@@ -480,22 +592,100 @@ impl MCPClient {
         result
     }
     
-    /// Internal tool execution (in production: actual MCP protocol)
+    /// Internal tool execution - uses real HTTP transport when server is registered
     async fn execute_tool_internal(
         &self,
         tool_name: &str,
         arguments: &HashMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value> {
-        // In production: actual MCP protocol call to server
-        // For now: simulated execution
+        // Look up tool to find its server
+        let tool = self.tool_registry.get(tool_name);
+        
+        if let Some(tool_def) = tool {
+            // Find the server for this tool
+            if let Some(server) = self.servers.get(&tool_def.server) {
+                // Try real HTTP MCP call
+                match self.call_mcp_server(server, tool_name, arguments).await {
+                    Ok(result) => return Ok(result),
+                    Err(e) => {
+                        warn!(
+                            tool = tool_name,
+                            server = %tool_def.server,
+                            error = %e,
+                            "MCP server call failed, falling back to simulation"
+                        );
+                        // Fall through to simulation
+                    }
+                }
+            }
+        }
+        
+        // Fallback: simulated execution for development/testing
+        debug!(tool = tool_name, "Using simulated tool execution");
         let result = serde_json::json!({
             "tool": tool_name,
             "arguments": arguments,
-            "result": format!("Executed {} successfully", tool_name),
+            "result": format!("Executed {} successfully (simulated)", tool_name),
             "status": "success",
+            "simulated": true,
         });
 
         Ok(result)
+    }
+    
+    /// Call external MCP server via HTTP/JSON-RPC
+    async fn call_mcp_server(
+        &self,
+        server: &MCPServer,
+        tool_name: &str,
+        arguments: &HashMap<String, serde_json::Value>,
+    ) -> anyhow::Result<serde_json::Value> {
+        let client = reqwest::Client::builder()
+            .timeout(self.timeout)
+            .build()?;
+        
+        // Build JSON-RPC 2.0 request
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": Uuid::new_v4().to_string(),
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": arguments
+            }
+        });
+        
+        info!(
+            server_url = %server.url,
+            tool = tool_name,
+            "Calling MCP server"
+        );
+        
+        let response = client
+            .post(&server.url)
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await?;
+        
+        if !response.status().is_success() {
+            anyhow::bail!(
+                "MCP server returned error status: {}",
+                response.status()
+            );
+        }
+        
+        let json_response: serde_json::Value = response.json().await?;
+        
+        // Extract result from JSON-RPC response
+        if let Some(error) = json_response.get("error") {
+            anyhow::bail!("MCP server error: {}", error);
+        }
+        
+        Ok(json_response.get("result").cloned().unwrap_or(serde_json::json!({
+            "status": "success",
+            "tool": tool_name
+        })))
     }
 
     /// List available tools

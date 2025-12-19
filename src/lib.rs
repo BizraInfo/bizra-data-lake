@@ -16,6 +16,7 @@ pub mod reasoning;
 pub mod receipts;
 pub mod sape;
 pub mod sat;
+pub mod synapse;
 pub mod types;
 pub mod wisdom;
 
