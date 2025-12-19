@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 import yaml
 
@@ -14,6 +15,24 @@ def _normalize_key(raw: str) -> str:
 ThresholdCombine = Literal["max", "min"]
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# IhsanDimension Enum (for backward compatibility with kernel.py)
+# ──────────────────────────────────────────────────────────────────────────────
+class IhsanDimension(Enum):
+    """The 8 dimensions of the Ihsān Vector."""
+    CORRECTNESS = "correctness"
+    SAFETY = "safety"
+    USER_BENEFIT = "user_benefit"
+    EFFICIENCY = "efficiency"
+    AUDITABILITY = "auditability"
+    ANTI_CENTRALIZATION = "anti_centralization"
+    ROBUSTNESS = "robustness"
+    ADL_FAIRNESS = "adl_fairness"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IhsanConstitution - YAML-loaded constitution (single source of truth)
+# ──────────────────────────────────────────────────────────────────────────────
 @dataclass(frozen=True)
 class IhsanConstitution:
     id: str
@@ -189,4 +208,97 @@ def score_plain(scores: Dict[str, float]) -> float:
 
 def threshold_for(env_name: str, artifact_class: str) -> float:
     return float(constitution().threshold_for(env_name, artifact_class))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IHSAN_WEIGHTS and IHSAN_THRESHOLD (backward compatibility)
+# ──────────────────────────────────────────────────────────────────────────────
+def _get_ihsan_weights() -> Dict[IhsanDimension, float]:
+    """Load weights from constitution and map to IhsanDimension enum."""
+    c = constitution()
+    weights: Dict[IhsanDimension, float] = {}
+    for dim in IhsanDimension:
+        weights[dim] = c.weights.get(dim.value, 0.0)
+    return weights
+
+
+# Lazy-loaded weights (populated on first access)
+IHSAN_WEIGHTS: Dict[IhsanDimension, float] = {}
+
+def _ensure_weights():
+    global IHSAN_WEIGHTS
+    if not IHSAN_WEIGHTS:
+        IHSAN_WEIGHTS.update(_get_ihsan_weights())
+
+
+# Threshold from constitution (0.70 default, may differ by env/artifact)
+IHSAN_THRESHOLD = 0.70  # Will be overridden by constitution on load
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IhsanVector class (backward compatibility with kernel.py)
+# ──────────────────────────────────────────────────────────────────────────────
+@dataclass
+class IhsanVector:
+    """
+    Ihsān Vector - 8-dimensional ethical scoring.
+    
+    Wraps the YAML-loaded constitution for backward compatibility with
+    code that expects the class-based API.
+    """
+    scores: Dict[IhsanDimension, float] = field(default_factory=dict)
+    history: List[Dict[str, float]] = field(default_factory=list)
+    
+    def __post_init__(self):
+        _ensure_weights()
+        # Initialize all dimensions to 0.5 (neutral) if not provided
+        for dim in IhsanDimension:
+            if dim not in self.scores:
+                self.scores[dim] = 0.5
+    
+    def set_dimension(self, dimension: IhsanDimension, score: float) -> None:
+        """Set a single dimension score (0.0 to 1.0)."""
+        self.scores[dimension] = max(0.0, min(1.0, score))
+    
+    def get_dimension(self, dimension: IhsanDimension) -> float:
+        """Get a single dimension score."""
+        return self.scores.get(dimension, 0.5)
+    
+    def calculate_score(self) -> float:
+        """Calculate weighted sum: I_vec = Σ(w_i × d_i)."""
+        _ensure_weights()
+        return sum(
+            IHSAN_WEIGHTS.get(dim, 0.0) * score
+            for dim, score in self.scores.items()
+        )
+    
+    def passes_threshold(self, threshold: Optional[float] = None) -> bool:
+        """Check if score meets threshold."""
+        t = threshold if threshold is not None else constitution().threshold
+        return self.calculate_score() >= t
+    
+    def to_dict(self) -> Dict[str, float]:
+        """Export scores as string-keyed dict."""
+        return {dim.value: score for dim, score in self.scores.items()}
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, float]) -> "IhsanVector":
+        """Create from string-keyed dict."""
+        scores = {}
+        for key, value in data.items():
+            try:
+                dim = IhsanDimension(key)
+                scores[dim] = float(value)
+            except (ValueError, TypeError):
+                pass
+        return cls(scores=scores)
+    
+    def snapshot(self) -> None:
+        """Save current state to history."""
+        self.history.append(self.to_dict())
+    
+    def __repr__(self) -> str:
+        score = self.calculate_score()
+        return f"IhsanVector(score={score:.4f}, passes={self.passes_threshold()})"
+
 
