@@ -1,0 +1,103 @@
+ M .bizra-kernel/BIZRA-Thermal-Synthesis/synthesis_orchestrator/src/thermal_router.rs
+ M .bizra-kernel/kernel-entry.ts
+ M .bizra-kernel/start_genesis_zero.ps1
+ M .bizra/config/node.yaml
+ M .bizra/workspace.yaml
+ M .gitignore
+ M Cargo.toml
+ M EVIDENCE_SEALING_PACK_README.md
+ M README.md
+ M SUMMARY.md
+ M VALIDATION.txt
+ M ace-framework/orchestrator-ihsan-wrapper.js
+ M ace-framework/package.json
+ M capture_evidence.ps1
+ M evidence/audit-results-node0.json
+ M model-family-genesis-v1-SEALED.yaml
+ M scripts/resolve-bizra-root.ps1
+ M src/a2a.rs
+ M src/bizra_integration.rs
+ M src/bridge.rs
+ M src/errors.rs
+ M src/http.rs
+ M src/lib.rs
+ M src/main.rs
+ M src/mcp.rs
+ M src/pat.rs
+ M src/pat_enhanced.rs
+ M src/reasoning.rs
+ M src/sat.rs
+ M src/types.rs
+ M tools/phase0_audit.ps1
+?? .bizra/vault.yaml
+?? .claude/
+?? .dockerignore
+?? .env.example
+?? .github/
+?? .gitleaksignore
+?? BIZRA_GENESIS_BLOCK_0.json
+?? BIZRA_Phase1_Wiring_Brain_Pack_v1_0_1/
+?? BIZRA_TOKENOMICS_GENESIS.yaml
+?? Dockerfile
+?? ace-framework/team-runner.js
+?? bizra-genesis-node/
+?? "bizra_momo_activation_kit (1)/"
+?? bizra_ops_kit/
+?? bizra_phase0_week1_seal.zip
+?? bizra_phase0_week1_seal/
+?? bizra_phase0_week_seal.zip
+?? bizra_refinery.py
+?? bizra_synaptic_loader.py
+?? constitution/
+?? core/
+?? docs/accessibility/
+?? docs/blueprints/
+?? docs/data-migration/
+?? docs/evidence/00_INDEX.md
+?? docs/evidence/gates/
+?? docs/evidence/genesis_receipt_v1.example.json
+?? docs/finops/
+?? docs/operations/
+?? docs/privacy/
+?? docs/process/
+?? docs/requirements/
+?? docs/retirement/
+?? docs/security/
+?? docs/slo/
+?? evidence/genesis/
+?? evidence/phase0/
+?? genesis_tribute.py
+?? requirements-kernel.txt
+?? schemas/
+?? scripts/Untitled-1.ps1
+?? scripts/genesis_ignite_all.ps1
+?? scripts/genesis_receipt.py
+?? scripts/ignite_node0.ps1
+?? scripts/install_sovereign_kernel_junction.ps1
+?? scripts/resolve-bizra-vault.ps1
+?? scripts/seed_min_evidence.py
+?? scripts/start_neo4j_local.ps1
+?? scripts/stop_neo4j_local.ps1
+?? scripts/test_sape_plan.ps1
+?? scripts/verify_node0.ps1
+?? src/bin/
+?? src/ihsan.rs
+?? temp_brain_check/
+?? temp_kit_check/
+?? tools/activate_team.ps1
+?? tools/bin/
+?? tools/codebase_inventory.py
+?? tools/generate_lexicon_receipt.py
+?? tools/genesis_manifest.py
+?? tools/ihsan_parity_check.py
+?? tools/ingest_chat_sample.py
+?? tools/ingest_crash_reports.py
+?? tools/lexicon_lint.py
+?? tools/lexicon_tamper_test.py
+?? tools/model_family_lint.py
+?? tools/node0_secure_defaults_lint.py
+?? tools/node0_warning_budget.py
+?? tools/portability_lint.py
+?? tools/run_master.ps1
+?? tools/summarize_chat_index.py
+?? tools/truth_lint.py

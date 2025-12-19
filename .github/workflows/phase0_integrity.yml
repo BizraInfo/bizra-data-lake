@@ -1,0 +1,125 @@
+name: phase0-integrity
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  rust-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust fmt
+        run: cargo fmt --check
+
+      - name: Rust clippy (deny warnings)
+        run: cargo clippy -- -D warnings
+
+      - name: Rust tests
+        run: cargo test
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Python deps
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Python syntax (repo scripts)
+        run: python -m py_compile genesis_tribute.py bizra_refinery.py bizra_synaptic_loader.py scripts/genesis_receipt.py core/__init__.py core/fate.py core/wisdom.py core/model_family.py core/llm.py core/sape.py core/main.py
+
+      - name: YAML sanity (blueprints + tokenomics)
+        run: |
+          python - <<'PY'
+          import yaml
+          from pathlib import Path
+          for p in [
+            Path("docs/blueprints/backlog_v1.yaml"),
+            Path("constitution/ihsan_v1.yaml"),
+            Path("BIZRA_TOKENOMICS_GENESIS.yaml"),
+            Path("docs/slo/service_level_objectives_v1.yaml"),
+            Path("docker-compose.yml"),
+          ]:
+            yaml.safe_load(p.read_text(encoding="utf-8", errors="replace"))
+          print("yaml_ok")
+          PY
+
+      - name: JSON sanity (schemas + examples)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for p in [
+            Path("schemas/genesis_receipt_v1.schema.json"),
+            Path("docs/evidence/genesis_receipt_v1.example.json"),
+          ]:
+            json.loads(p.read_text(encoding="utf-8", errors="replace"))
+          print("json_ok")
+          PY
+
+      - name: Portability lint
+        run: python tools/portability_lint.py
+
+      - name: Model family lint (sealed manifests)
+        run: python tools/model_family_lint.py
+
+      - name: Truth-label lint
+        run: python tools/truth_lint.py
+
+      - name: Lexicon lint
+        run: python tools/lexicon_lint.py
+
+      - name: Lexicon tamper test
+        run: python tools/lexicon_tamper_test.py
+
+      - name: Node0 secure-defaults lint
+        run: python tools/node0_secure_defaults_lint.py
+
+      - name: Ihsan parity (Rust/Python)
+        run: python tools/ihsan_parity_check.py
+
+      - name: Genesis manifest profile lint
+        run: python tools/genesis_manifest.py profile-lint
+
+      - name: Genesis manifest verify (optional)
+        run: python tools/genesis_manifest.py verify --optional --allow-missing-repos
+
+  node0-backend:
+    if: ${{ hashFiles('bizra-genesis-node/backend/Cargo.toml') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Node0 backend (SQLx offline + warning budget)
+        env:
+          NODE0_MAX_WARNINGS: "205"
+        run: python tools/node0_warning_budget.py
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2

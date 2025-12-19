@@ -1,0 +1,223 @@
+###############################################################################
+# BIZRA Model Family: Artifacts Manifest (Pinned Identities)
+# Purpose: exact model identity + runtime endpoints.
+# Providers supported: ollama, lmstudio, local_python
+###############################################################################
+
+version: "1.0"
+schema: "bizra.model_family.artifacts.v1"
+sealed: false
+sealed_date_utc: null
+sealed_by: null
+
+runtime:
+  ollama:
+    base_url: "http://127.0.0.1:11434"
+    version: "AUDIT_FILL"
+    env:
+      OLLAMA_KEEP_ALIVE: "AUDIT_FILL"
+      OLLAMA_MAX_LOADED_MODELS: "AUDIT_FILL"
+      OLLAMA_NUM_PARALLEL: "AUDIT_FILL"
+  lmstudio:
+    # LM Studio OpenAI-compatible server
+    base_url: "http://127.0.0.1:1234"
+    openai_compat: true
+    version: "AUDIT_FILL"
+  system:
+    hostname: "AUDIT_FILL"
+    os: "Windows"
+    cpu: "AUDIT_FILL"
+    ram_gb: "AUDIT_FILL"
+    gpu:
+      name: "AUDIT_FILL"
+      vram_total_mb: "AUDIT_FILL"
+
+# ----------------------------
+# Pinned Artifacts (fill hashes from audit)
+# ----------------------------
+artifacts:
+  # ---- Ollama models ----
+  - ref: "ollama/bizra-planner:latest"
+    provider: "ollama"
+    display_name: "bizra-planner"
+    ollama_id: "31f7cb3c1048"
+    size_gb: 6.3
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "Custom artifact (candidate primary orchestrator)."
+
+  - ref: "ollama/llama3.2:latest"
+    provider: "ollama"
+    display_name: "llama3.2"
+    ollama_id: "a80c4f17acd5"
+    size_gb: 2.0
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "Warm surface (fast rewrite)."
+
+  - ref: "ollama/deepseek-r1:8b"
+    provider: "ollama"
+    display_name: "deepseek-r1:8b"
+    ollama_id: "6995872bfe4c"
+    size_gb: 5.2
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "Reasoning specialist (candidate primary)."
+
+  - ref: "ollama/qwen2.5:7b"
+    provider: "ollama"
+    display_name: "qwen2.5:7b"
+    ollama_id: "845dbda0ea48"
+    size_gb: 4.7
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "General purpose fallback."
+
+  - ref: "ollama/deepseek-llm:latest"
+    provider: "ollama"
+    display_name: "deepseek-llm"
+    ollama_id: "9aab369a853b"
+    size_gb: 4.0
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "General reasoning fallback."
+
+  - ref: "ollama/mistral:latest"
+    provider: "ollama"
+    display_name: "mistral"
+    ollama_id: "6577803aa9a0"
+    size_gb: 4.1
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "Fallback / warm surface alternate."
+
+  - ref: "ollama/nomic-embed-text:latest"
+    provider: "ollama"
+    display_name: "nomic-embed-text"
+    ollama_id: "0a109f422b47"
+    size_gb: 0.3
+    pins:
+      manifest_digest: "UNKNOWN_SHA256"
+      layer_digests: []
+    notes: "Embeddings (Ollama) fallback/alternate."
+
+  # ---- LM Studio models (GGUF / Embeddings) ----
+  - ref: "lmstudio/agentflow-planner-7b-i1"
+    provider: "lmstudio"
+    model_id: "agentflow-planner-7b-i1"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Candidate SAT/PAT controller."
+
+  - ref: "lmstudio/mistralai/ministral-3-14b-reasoning"
+    provider: "lmstudio"
+    model_id: "mistralai/ministral-3-14b-reasoning"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Advanced reasoning (candidate primary if resources allow)."
+
+  - ref: "lmstudio/qwen/qwen3-4b-thinking-2507"
+    provider: "lmstudio"
+    model_id: "qwen/qwen3-4b-thinking-2507"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Experimental thinking model."
+
+  - ref: "lmstudio/qwen/qwen3-vl-8b"
+    provider: "lmstudio"
+    model_id: "qwen/qwen3-vl-8b"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Vision-language (multimodal)."
+
+  - ref: "lmstudio/qwen/qwen3-vl-4b"
+    provider: "lmstudio"
+    model_id: "qwen/qwen3-vl-4b"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Efficient vision-language."
+
+  - ref: "lmstudio/ibm/granite-4-h-tiny"
+    provider: "lmstudio"
+    model_id: "ibm/granite-4-h-tiny"
+    model_type: "GGUF"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Edge utility fallback."
+
+  - ref: "lmstudio/text-embedding-nomic-embed-text-v1.5"
+    provider: "lmstudio"
+    model_id: "text-embedding-nomic-embed-text-v1.5"
+    model_type: "Embedding"
+    pins:
+      file_path: "AUDIT_FILL"
+      file_sha256: "UNKNOWN_SHA256"
+    notes: "Embeddings for semantic search / RAG."
+
+  # ---- Local Python embeddings (optional fallback) ----
+  - ref: "local_python/sentence-transformers/all-MiniLM-L6-v2"
+    provider: "local_python"
+    model_id: "sentence-transformers/all-MiniLM-L6-v2"
+    pins:
+      env_lock_digest: "UNKNOWN_SHA256"
+      model_files_digest: "UNKNOWN_SHA256"
+    notes: "Fallback embeddings: expected dim=384."
+
+# ----------------------------
+# Slot bindings (routing -> pinned artifacts)
+# ----------------------------
+bindings:
+  primary_reasoning:
+    priority:
+      - "ollama/bizra-planner:latest"
+      - "ollama/deepseek-r1:8b"
+      - "lmstudio/mistralai/ministral-3-14b-reasoning"
+
+  warm_surface:
+    priority:
+      - "ollama/llama3.2:latest"
+      - "ollama/mistral:latest"
+
+  fallback_reasoning:
+    priority:
+      - "ollama/mistral:latest"
+      - "ollama/qwen2.5:7b"
+      - "lmstudio/ibm/granite-4-h-tiny"
+
+  vision_async:
+    priority:
+      - "lmstudio/qwen/qwen3-vl-8b"
+      - "lmstudio/qwen/qwen3-vl-4b"
+
+  embeddings:
+    priority:
+      - "lmstudio/text-embedding-nomic-embed-text-v1.5"
+      - "ollama/nomic-embed-text:latest"
+      - "local_python/sentence-transformers/all-MiniLM-L6-v2"
+
+status: "pending_audit_seal"
+
+evidence_artifacts:
+  ollama_list: "evidence/model_family/ollama_list.txt"
+  ollama_show: "evidence/model_family/ollama_show_modelfile_*.txt"
+  lmstudio_models: "evidence/model_family/lmstudio_models.json"
+  lmstudio_hashes: "evidence/model_family/lmstudio_file_hashes.json"
+  gpu_memory: "evidence/model_family/gpu_memory.txt"
+

@@ -1,0 +1,68 @@
+version: 1
+id: bizra_lexicon_ledger_contract_v1
+status: canonical
+
+append_only: true
+
+purpose: >
+  Define the rules that make the BIZRA Lexicon Ledger an append-only, audit-grade
+  single source of truth for core terms used across docs, code, agents, and receipts.
+
+scope:
+  lexicon_files:
+    - constitution/lexicon_v1.yaml
+  constitution_files:
+    - constitution/ihsan_v1.yaml
+  schema_files:
+    - schemas/lexicon_v1.schema.json
+    - schemas/lexicon_receipt_v1.schema.json
+
+change_policy:
+  - rule: "No in-place meaning edits"
+    requirement: >
+      Changes to a term's meaning must be released as a new lexicon file (e.g.,
+      constitution/lexicon_v2.yaml) with a new `id` and incremented `version`.
+  - rule: "Append-only additions allowed"
+    requirement: >
+      New terms may be added to the current lexicon file only if they do not change
+      existing definitions; otherwise create a new lexicon version.
+  - rule: "Receipts bind to versions"
+    requirement: >
+      Any system receipt/audit record must bind to immutable versions via IDs + hashes.
+
+receipt_requirements:
+  required_fields:
+    - lexicon_id
+    - lexicon_sha256
+    - ihsan_constitution_id
+    - ihsan_constitution_sha256
+    - lexicon_contract_sha256
+    - lexicon_schema_sha256
+    - lexicon_receipt_schema_sha256
+    - policy_sha256
+    - repo_commit
+    - adapter_modes
+    - truth_label
+    - timestamp
+  note: >
+    "Real" adapter claims require evidence in receipts; "Simulated" must be explicit.
+
+update_procedure:
+  - step: "Propose change"
+    requirement: >
+      Submit a PR that either (a) appends new terms to constitution/lexicon_v1.yaml without
+      changing existing meanings, or (b) introduces a new lexicon version file if meanings change.
+  - step: "Run lints"
+    requirement: >
+      Run python tools/lexicon_lint.py and ensure Phase-0 integrity gates pass.
+  - step: "Generate LexiconReceipt"
+    requirement: >
+      Generate an append-only LexiconReceipt that binds lexicon + Ihsan + contract + schema hashes and repo commit:
+      python tools/generate_lexicon_receipt.py --truth-label MEASURED --output evidence/receipts/lexicon/<name>.json
+  - step: "Review"
+    requirement: >
+      Review must validate: (1) truth labels are correct, (2) no meaning drift, (3) receipt hashes
+      match the proposed files, and (4) adapter mode claims remain honest (simulated vs real).
+  - step: "Seal (optional)"
+    requirement: >
+      If the change is part of a Genesis seal, include the LexiconReceipt path in the GenesisManifest allowlist.

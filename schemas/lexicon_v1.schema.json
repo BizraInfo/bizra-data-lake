@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/lexicon_v1.schema.json",
+  "title": "BIZRA Lexicon Ledger (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "semver",
+    "id",
+    "status",
+    "append_only",
+    "contract",
+    "schema",
+    "receipt_schema",
+    "purpose",
+    "terms",
+    "truth_labels"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["canonical"]
+    },
+    "append_only": {
+      "type": "boolean",
+      "const": true
+    },
+    "contract": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "receipt_schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "terms": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/term" }
+    },
+    "truth_labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["VERIFIED", "MEASURED", "TARGET", "DERIVED"],
+      "properties": {
+        "VERIFIED": { "type": "string" },
+        "MEASURED": { "type": "string" },
+        "TARGET": { "type": "string" },
+        "DERIVED": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "term": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expansion", "role"],
+      "properties": {
+        "expansion": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "required_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "variants": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "invariants": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

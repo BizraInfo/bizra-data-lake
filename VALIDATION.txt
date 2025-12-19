@@ -6,6 +6,9 @@
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
+Truth: TARGET (historical checklist; do not treat PASS items as current without reproducing)
+Truth Labels: VERIFIED | MEASURED | TARGET | DERIVED
+
 VALIDATION DATE: 2025-11-02
 SYSTEM VERSION: 2.0.0
 RUST VERSION: 1.90.0

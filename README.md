@@ -1,5 +1,8 @@
 # 🚀 BIZRA META ALPHA ELITE - Complete Unified Production System
 
+Truth: TARGET (scaffold/demo; several subsystems are simulated; see `docs/blueprints/MASTER_BLUEPRINT.md`)
+Truth Labels: VERIFIED | MEASURED | TARGET | DERIVED
+
 [![Rust](https://img.shields.io/badge/rust-1.90%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-production-success.svg)](https://github.com/BizraInfo/BIZRA-Dual-Agentic-system-)
@@ -137,6 +140,17 @@ cargo run --release
 ```
 
 ## 🎯 Quick Start
+
+### Personal Agentic Team (Evidence Run)
+
+Runs a safe, evidence-first activation that produces receipts under `docs/evidence/receipts/` and indexes into your Data Lake (no deletions).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\\run_master.ps1 `
+  -IngestCrashReports `
+  -RunLLMTeam `
+  -ModelTarget qwen2.5:7b
+```
 
 ### HTTP API Usage
 

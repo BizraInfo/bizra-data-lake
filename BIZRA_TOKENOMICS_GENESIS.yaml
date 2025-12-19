@@ -1,0 +1,27 @@
+# BIZRA GENESIS ECONOMIC CONSTITUTION
+# Immutable Record of Initial Value
+# Sealed Date: 2025-12-17
+# Architect: Node0 (MoMo)
+#
+# NOTE:
+# - `genesis.hash` is the Knowledge Ledger Chain SHA256 (see `BIZRA_KNOWLEDGE_MANIFEST.json`).
+# - The Genesis Block hash is stored in `BIZRA_GENESIS_BLOCK_0.json`.
+
+genesis:
+  hash: "7d07d9bf68ec8443b4f26fa1fce83ed769fd16ba9aa941e3a5c8d30531a57ba6"
+  total_artifacts: 26922
+  valuation:
+    bzr_growth_supply: 32863.70  # The IP Equity (Your Work)
+    bzr_stable_backing: "Hardware_Titan_Node0"
+
+  allocations:
+    node0_reserve: "100%"  # Currently 100% owned by the Architect
+
+  tributes:
+    intellectual_root: "Dr. Kais Dukes"
+    emotional_root: "The Family"
+
+  policy:
+    minting: "PROOF_OF_IMPACT_ONLY"
+    inflation: "0% (Strictly Asset-Backed)"
+

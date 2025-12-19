@@ -1,0 +1,27 @@
+{
+  "receipt_id": "receipt_example_001",
+  "timestamp_utc": "2025-12-16T00:00:00Z",
+  "actor": {
+    "name": "MuMu",
+    "role": "Architect"
+  },
+  "action": "inventory.scan",
+  "intent": "Create a file manifest for cataloging",
+  "truth_label": "Measured",
+  "inputs": {
+    "root": "C:\\BIZRA",
+    "include_hash": false
+  },
+  "outputs": {
+    "manifest": "catalog/manifest.jsonl",
+    "summary": "catalog/catalog_summary.json"
+  },
+  "evidence": [
+    {
+      "type": "file",
+      "path": "catalog/manifest.jsonl",
+      "sha256": ""
+    }
+  ],
+  "notes": "Hash omitted for speed; add --include-hash for small files."
+}

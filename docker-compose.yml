@@ -103,6 +103,34 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Refinery Daemon: continuous ingestion service (F-PERF-002)
+  refinery:
+    build:
+      context: .
+      dockerfile: Dockerfile.refinery
+    environment:
+      BIZRA_REFINERY_THROUGHPUT: ${BIZRA_REFINERY_THROUGHPUT:-10}
+      BIZRA_REFINERY_PORT: ${BIZRA_REFINERY_PORT:-8081}
+      BIZRA_REFINERY_BATCH_SIZE: ${BIZRA_REFINERY_BATCH_SIZE:-50}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./bizra_data_vault:/app/bizra_data_vault:ro
+      - ./BIZRA_KNOWLEDGE_LEDGER.jsonl:/app/BIZRA_KNOWLEDGE_LEDGER.jsonl
+      - ./BIZRA_GENESIS_BLOCK_0.json:/app/BIZRA_GENESIS_BLOCK_0.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # Optional: background auditor (enable via: docker compose --profile optional up -d)
   fate_auditor:
     profiles: ["optional"]

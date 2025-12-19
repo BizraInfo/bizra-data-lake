@@ -33,22 +33,22 @@ impl A2AServer {
             agent_registry: HashMap::new(),
         }
     }
-    
+
     /// Register agent capabilities
     pub fn register_agent(&mut self, card: AgentCard) {
         self.agent_registry.insert(card.name.clone(), card);
     }
-    
+
     /// Discover available agents
     pub fn discover_agents(&self) -> Vec<&AgentCard> {
         self.agent_registry.values().collect()
     }
-    
+
     /// Get specific agent
     pub fn get_agent(&self, name: &str) -> Option<&AgentCard> {
         self.agent_registry.get(name)
     }
-    
+
     /// Delegate task to another agent
     #[instrument(skip(self))]
     pub async fn delegate(
@@ -56,9 +56,11 @@ impl A2AServer {
         agent_name: &str,
         task: String,
     ) -> anyhow::Result<serde_json::Value> {
-        let agent = self.agent_registry.get(agent_name)
+        let agent = self
+            .agent_registry
+            .get(agent_name)
             .ok_or_else(|| anyhow::anyhow!("Agent not found: {}", agent_name))?;
-        
+
         // In production: actual A2A protocol call (JSON-RPC over HTTP)
         // For now: simulated delegation
         let result = serde_json::json!({
@@ -68,10 +70,10 @@ impl A2AServer {
             "result": format!("{} completed task: {}", agent_name, task),
             "capabilities_used": agent.capabilities.iter().map(|c| &c.id).collect::<Vec<_>>(),
         });
-        
+
         Ok(result)
     }
-    
+
     /// Request vote from agent (for SAT consensus)
     #[instrument(skip(self))]
     pub async fn request_vote(
@@ -79,14 +81,16 @@ impl A2AServer {
         agent_name: &str,
         proposal: serde_json::Value,
     ) -> anyhow::Result<bool> {
-        let _agent = self.agent_registry.get(agent_name)
+        let _agent = self
+            .agent_registry
+            .get(agent_name)
             .ok_or_else(|| anyhow::anyhow!("Agent not found: {}", agent_name))?;
-        
+
         // In production: actual consensus protocol
         // For now: simulated voting (Byzantine fault tolerant)
         Ok(true)
     }
-    
+
     /// Broadcast message to all agents
     #[instrument(skip(self))]
     pub async fn broadcast(
@@ -94,7 +98,7 @@ impl A2AServer {
         message: serde_json::Value,
     ) -> anyhow::Result<Vec<serde_json::Value>> {
         let mut responses = Vec::new();
-        
+
         for agent in self.agent_registry.values() {
             let response = serde_json::json!({
                 "agent": agent.name,
@@ -103,7 +107,7 @@ impl A2AServer {
             });
             responses.push(response);
         }
-        
+
         Ok(responses)
     }
 }

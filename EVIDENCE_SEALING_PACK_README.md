@@ -7,6 +7,11 @@ Contains templates and scripts to:
 - run a deterministic golden set
 - seal the evidence with signed git tags
 
+Also included:
+- Exportable dual-provider seal pack (Ollama + LM Studio): `bizra_phase0_week1_seal.zip`
+  - Source folder: `bizra_phase0_week1_seal/`
+  - Includes its own audit script and manifests for portability.
+
 ## Quick start (Windows PowerShell)
 
 1) Capture evidence:

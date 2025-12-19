@@ -25,6 +25,21 @@ function normalizeBaseUrl(raw) {
 const OLLAMA_HOST = normalizeBaseUrl(process.env.OLLAMA_HOST || 'http://127.0.0.1:11434');
 const MODEL_TARGET = process.env.MODEL_TARGET || 'deepseek-r1:8b';
 
+const TIMEOUT_MS = (() => {
+    const raw = process.env.OLLAMA_TIMEOUT_MS || process.env.IHSAN_TIMEOUT_MS || '180000';
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) return 180000;
+    return Math.min(Math.max(n, 1000), 900000); // clamp: 1s..15m
+})();
+
+const NUM_PREDICT = (() => {
+    const raw = process.env.OLLAMA_NUM_PREDICT;
+    if (!raw) return null;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.min(Math.max(n, 64), 4096);
+})();
+
 // Basic safety heuristics (The Conscience)
 const FORBIDDEN_TOKENS = [
     'ignore previous instructions',
@@ -54,11 +69,17 @@ USER: ${prompt}
 `;
 
     try {
-        const response = await axios.post(`${OLLAMA_HOST}/api/generate`, {
+        const payload = {
             model: MODEL_TARGET,
             prompt: safePrompt,
             stream: false
-        }, { timeout: 30_000 });
+        };
+
+        if (NUM_PREDICT) {
+            payload.options = { num_predict: NUM_PREDICT };
+        }
+
+        const response = await axios.post(`${OLLAMA_HOST}/api/generate`, payload, { timeout: TIMEOUT_MS });
         return response.data;
     } catch (err) {
         console.error("Model connection failed:", err.message);

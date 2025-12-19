@@ -1,0 +1,10 @@
+# BIZRA gitleaks allowlist (append-only)
+#
+# Ihsān / Amānah rule: ignore only verified false-positives, minimally scoped.
+# Each entry is a gitleaks Fingerprint from a redacted report.
+#
+# Detected false positives: public token contract addresses in seed memory graphs.
+d5f1c417298e5a3708b3f13aef3f3c15dedeb444:.bizra-kernel/memory/history_index.json:generic-api-key:3833
+d5f1c417298e5a3708b3f13aef3f3c15dedeb444:.bizra-kernel/memory/history_index.json:generic-api-key:4499
+d5f1c417298e5a3708b3f13aef3f3c15dedeb444:.bizra-kernel/memory/knowledge_graph.json:generic-api-key:5658
+d5f1c417298e5a3708b3f13aef3f3c15dedeb444:.bizra-kernel/memory/knowledge_graph.json:generic-api-key:6649

@@ -1,0 +1,511 @@
+backlog_version: 1
+principles:
+  ihsan:
+    statement: "No assumptions; only verified excellence."
+    enforcement: "Receipts + versioned scoring + quarantine path"
+  adl:
+    statement: "Justice in decisions: consistent, explainable, bias-aware."
+    enforcement: "Decision logs + refusal/approval metrics"
+  amanah:
+    statement: "Trust: protect secrets, minimize data, sign evidence."
+    enforcement: "Secrets removed + signing + least privilege"
+
+phases:
+  - id: PH0
+    name: "Hardening + Truth Alignment"
+    horizon: "0-7 days"
+    priority: P0
+  - id: PH1
+    name: "Make SAT Real"
+    horizon: "1-3 weeks"
+    priority: P1
+  - id: PH2
+    name: "Evidence Ledger + Tool Runtime"
+    horizon: "3-6 weeks"
+    priority: P1
+  - id: PH3
+    name: "Performance + Observability"
+    horizon: "6-10 weeks"
+    priority: P2
+  - id: PH4
+    name: "Agent Experts (Runtime Learning)"
+    horizon: "10-16 weeks"
+    priority: P2
+
+workstreams:
+  - id: WS-SEC
+    name: "Security"
+  - id: WS-ARCH
+    name: "Architecture"
+  - id: WS-PERF
+    name: "Performance"
+  - id: WS-DOCS
+    name: "Documentation"
+  - id: WS-EVID
+    name: "Evidence + Integrity"
+  - id: WS-ETH
+    name: "Ethics (Ihsan/Adl/Amanah)"
+  - id: WS-DEVOPS
+    name: "DevOps + CI/CD"
+  - id: WS-EXPERT
+    name: "Agent Experts"
+  - id: WS-KNOW
+    name: "Knowledge Graph + RAG"
+
+epics:
+  - id: EPIC-PH0-SEC
+    phase: PH0
+    workstreams: [WS-SEC, WS-EVID, WS-DEVOPS]
+    title: "Remove secrets + add scanning gates"
+    depends_on: []
+    tasks:
+      - id: TASK-0001
+        priority: P0
+        title: "Purge secrets from tracked files"
+        evidence_findings:
+          - ".bizra/workspace.yaml contains postgres_dsn"
+          - "scripts/resolve-bizra-root.ps1 contains postgres_dsn"
+          - ".bizra-kernel/start_genesis_zero.ps1 contains DATABASE_URL"
+        done_when:
+          - "No plaintext DSNs/passwords in repo"
+          - "Secrets provided only via env vars or secret manager"
+        acceptance_tests:
+          - "rg -n \"postgres(ql)?://\" returns no credentials"
+          - "rg -n \"password\" does not reveal secrets"
+      - id: TASK-0002
+        priority: P0
+        title: "Add .env.example + documented secret sources"
+        done_when:
+          - ".env.example exists with placeholder values"
+          - "Docs describe how to provide secrets securely"
+      - id: TASK-0003
+        priority: P0
+        title: "Add CI secret scanning gate"
+        done_when:
+          - "CI blocks PRs containing high-risk secret patterns"
+
+  - id: EPIC-PH0-API
+    phase: PH0
+    workstreams: [WS-SEC, WS-ARCH]
+    title: "Harden API defaults"
+    depends_on: [TASK-0001]
+    tasks:
+      - id: TASK-0010
+        priority: P0
+        title: "Bind HTTP server to localhost by default"
+        evidence_findings:
+          - "src/http.rs binds 0.0.0.0"
+        done_when:
+          - "Default bind is 127.0.0.1"
+          - "Explicit flag required to expose publicly"
+      - id: TASK-0011
+        priority: P0
+        title: "Restrictive CORS policy by default"
+        evidence_findings:
+          - "src/http.rs uses CorsLayer::permissive"
+        done_when:
+          - "CORS allowlist implemented"
+      - id: TASK-0012
+        priority: P0
+        title: "Add minimal auth token for execution endpoints"
+        done_when:
+          - "Requests require a token header"
+          - "Auth failures are logged with receipts"
+
+  - id: EPIC-PH0-CITADEL
+    phase: PH0
+    workstreams: [WS-DEVOPS, WS-ARCH, WS-SEC, WS-EVID]
+    title: "Citadel: Dockerized Kernel + deterministic gates"
+    depends_on: [TASK-0002]
+    tasks:
+      - id: TASK-0030
+        priority: P0
+        title: "Docker Compose Citadel stack (synapse/wisdom/vectors/kernel)"
+        evidence_findings:
+          - "Apps need a runtime contract (services), not scripts."
+        done_when:
+          - "docker-compose.yml exists and uses service-name-first URLs"
+          - "Dockerfile exists and runs `python -m core.main`"
+          - ".dockerignore excludes `.env` and large datasets"
+          - ".env.example exists with placeholders (no secrets committed)"
+        acceptance_tests:
+          - "docker compose config renders without errors"
+
+      - id: TASK-0031
+        priority: P0
+        title: "Health probes: /livez + /healthz (concurrent, <1s, fail-closed core deps)"
+        done_when:
+          - "GET /livez always returns 200"
+          - "GET /healthz returns 200 only when token+FATE OK and required deps reachable"
+          - "Redis+Neo4j checks run concurrently under global budget"
+          - "LLM reachability is reported as degraded, not readiness failure"
+          - "Health cache TTL prevents thread storms"
+        acceptance_tests:
+          - "Invoke-RestMethod http://127.0.0.1:8000/livez"
+          - "Invoke-RestMethod http://127.0.0.1:8000/healthz"
+
+      - id: TASK-0032
+        priority: P0
+        title: "Ignite script (compose dir + deterministic polling)"
+        done_when:
+          - "Ignite script runs docker compose from the compose directory (.env resolution)"
+          - "Treats early 503 as normal and keeps polling until healthy or timeout"
+          - "On failure prints compose ps + last logs for kernel + wisdom"
+        acceptance_tests:
+          - "powershell -ExecutionPolicy Bypass -File scripts/ignite_node0.ps1"
+
+      - id: TASK-0033
+        priority: P0
+        title: "Acceptance gates (health stability, restart storm, RO mount, LLM degraded visibility)"
+        done_when:
+          - "Verify script uses compose service names (no container_name reliance)"
+          - "Gate A: /healthz stable 10x"
+          - "Gate B: restart storm recovers"
+          - "Gate C: /mnt/bizra_projects is read-only"
+          - "Gate D: LLM degraded state is explicit (not silent)"
+        acceptance_tests:
+          - "powershell -ExecutionPolicy Bypass -File scripts/verify_node0.ps1"
+
+      - id: TASK-0034
+        priority: P0
+        title: "Genesis Receipt (replayable ignition evidence; no secrets)"
+        done_when:
+          - "schemas/genesis_receipt_v1.schema.json exists"
+          - "scripts/genesis_receipt.py writes docs/evidence/receipts/genesis_receipt_v1.json"
+          - "Receipt includes compose/model-family hashes + first SAPE request/response hashes"
+        acceptance_tests:
+          - "python scripts/genesis_receipt.py --help"
+
+  - id: EPIC-PH0-REQ
+    phase: PH0
+    workstreams: [WS-DOCS, WS-ARCH, WS-ETH, WS-DEVOPS]
+    title: "Requirements + traceability + SLO baselining"
+    depends_on: []
+    tasks:
+      - id: TASK-0020
+        priority: P0
+        title: "Baseline requirements catalogue with IDs"
+        done_when:
+          - "docs/requirements/requirements_v1.yaml exists and is populated"
+          - "Assumptions are labeled as unverified"
+      - id: TASK-0021
+        priority: P0
+        title: "Create and maintain traceability matrix (REQ->Design->Test->Ops)"
+        done_when:
+          - "docs/requirements/traceability_v1.yaml exists"
+          - "At least the top 10 requirements have mappings"
+      - id: TASK-0022
+        priority: P0
+        title: "Baseline SLOs + error budget policy"
+        done_when:
+          - "docs/slo/service_level_objectives_v1.yaml exists and is reviewed"
+          - "SLOs have defined windows and targets"
+      - id: TASK-0023
+        priority: P0
+        title: "Baseline project RACI and review cadences"
+        done_when:
+          - "docs/process/RACI_v1.yaml exists"
+          - "Owners are assigned for security, ops, data, product"
+
+  - id: EPIC-PH1-SAT
+    phase: PH1
+    workstreams: [WS-ARCH, WS-SEC, WS-ETH, WS-PERF, WS-EVID]
+    title: "Make SAT validators real + testable"
+    depends_on: [TASK-0010, TASK-0001]
+    tasks:
+      - id: TASK-0100
+        priority: P1
+        title: "Implement SAT validators as real checks"
+        evidence_findings:
+          - "src/sat.rs always approves"
+        done_when:
+          - "At least one validator can reject based on defined rules"
+          - "Validator outputs include structured reasons"
+      - id: TASK-0101
+        priority: P1
+        title: "Add quarantine decision state"
+        done_when:
+          - "System supports approved/refused/uncertain"
+          - "Uncertain emits receipt and halts side-effects"
+      - id: TASK-0102
+        priority: P1
+        title: "Negative tests for rejection + quorum"
+        done_when:
+          - "Tests cover consensus failure"
+          - "Bridge halts safely when consensus not reached"
+
+  - id: EPIC-PH2-EVID
+    phase: PH2
+    workstreams: [WS-EVID, WS-DEVOPS, WS-ETH]
+    title: "Evidence ledger receipts + sealing"
+    depends_on: [EPIC-PH1-SAT]
+    tasks:
+      - id: TASK-0200
+        priority: P1
+        title: "Define receipt schema and storage path"
+        done_when:
+          - "Schema versioned"
+          - "Receipts stored under docs/evidence/receipts"
+      - id: TASK-0201
+        priority: P1
+        title: "Emit receipts for every request"
+        done_when:
+          - "All outcomes produce receipts"
+      - id: TASK-0202
+        priority: P1
+        title: "Seal receipts with evidence tag"
+        done_when:
+          - "Sealing includes receipt hashes"
+
+  - id: EPIC-PH2-FED
+    phase: PH2
+    workstreams: [WS-ARCH, WS-SEC, WS-EVID, WS-ETH]
+    title: "Federation primitives: identity + attestations + safe-mode"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0210
+        priority: P1
+        title: "Define node identity schema (node_id + keys + optional DID)"
+        done_when:
+          - "Identity spec is documented and versioned"
+          - "Identity is compatible with local-first and federated contexts"
+      - id: TASK-0211
+        priority: P1
+        title: "Define signed attestation format for receipts"
+        done_when:
+          - "Receipts can be signed and verified offline"
+          - "Attestation verification is documented"
+      - id: TASK-0212
+        priority: P1
+        title: "Define emergency safe-mode protocol and triggers"
+        done_when:
+          - "Safe-mode trigger conditions are explicit"
+          - "Safe-mode halts side effects and emits receipts"
+
+  - id: EPIC-PH2-KNOW
+    phase: PH2
+    workstreams: [WS-KNOW, WS-ARCH, WS-EVID, WS-SEC, WS-DEVOPS, WS-PERF, WS-ETH, WS-DOCS]
+    title: "Ignite the Brain: refinery -> ledger -> Neo4j -> retrieval"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0250
+        priority: P1
+        title: "Seal tokenomics genesis (ledger chain + supply)"
+        evidence_findings:
+          - "Knowledge ledger chain exists in BIZRA_KNOWLEDGE_MANIFEST.json"
+          - "Tokenomics genesis must match chain + totals"
+        done_when:
+          - "BIZRA_TOKENOMICS_GENESIS.yaml exists"
+          - "Tokenomics hash matches manifest ledger chain"
+          - "Tokenomics totals match manifest totals"
+        acceptance_tests:
+          - "python bizra_synaptic_loader.py --dry-run verifies chain"
+
+      - id: TASK-0251
+        priority: P1
+        title: "Refinery produces auditable manifest + JSONL ledger"
+        done_when:
+          - "bizra_refinery.py can scan a root path and emit manifest + ledger"
+          - "Refinery refuses to overwrite outputs unless --force is provided"
+          - "Refinery supports metadata and content hashing"
+        acceptance_tests:
+          - "python bizra_refinery.py --help"
+          - "python bizra_refinery.py --path <root> --ledger-format jsonl"
+
+      - id: TASK-0252
+        priority: P1
+        title: "Neo4j synaptic loader: verify chain, create constraints, ingest batches"
+        done_when:
+          - "bizra_synaptic_loader.py verifies chain before write"
+          - "Neo4j constraints exist for Artifact hash and ledger chain"
+          - "Ledger ingestion is batched and resumable (MERGE-based)"
+        acceptance_tests:
+          - "python bizra_synaptic_loader.py --dry-run"
+          - "python bizra_synaptic_loader.py --batch-size 1000"
+
+      - id: TASK-0253
+        priority: P2
+        title: "Graph query playbook (SNR-first) + ops runbook"
+        done_when:
+          - "Document minimum Cypher queries for retrieval (by ext, class, impact range)"
+          - "Document Neo4j startup, password handling, and backup/restore steps"
+
+      - id: TASK-0255
+        priority: P1
+        title: "Sovereign Kernel: token-gated API with FATE + Neo4j"
+        done_when:
+          - "FastAPI kernel exposes /v1/agent/query and /metrics (token-gated)"
+          - "FATE gate fails closed and uses ihsan_v1 thresholds"
+          - "Kernel emits sanitized per-request receipts"
+        acceptance_tests:
+          - "python -m core.main (with env vars) serves /healthz and /v1/agent/query"
+
+      - id: TASK-0256
+        priority: P1
+        title: "SAPE engine: kernel-integrated plan/execute workflow (sealed routing + evidence gating)"
+        done_when:
+          - "Kernel exposes /v1/sape/plan and /v1/sape/execute (token-gated)"
+          - "SAPE calls are FATE-gated (fail closed when ihsan policy missing)"
+          - "Model selection uses sealed model-family manifest routing (no ad-hoc models)"
+          - "For stakes=H with graph evidence required: reject when graph evidence unavailable"
+          - "SAPE emits receipts and Prometheus metrics"
+          - "Runbook exists: docs/operations/sape_runbook.md"
+        acceptance_tests:
+          - "python -m core.main (with env vars) serves /v1/sape/plan and /v1/sape/execute"
+
+      - id: TASK-0254
+        priority: P2
+        title: "Retrieval adapter for PAT (evidence-linked GoT context)"
+        done_when:
+          - "Runtime can query Neo4j for top-K artifacts by relevance signal"
+          - "All retrievals emit receipts (query, parameters, returned hashes)"
+
+  - id: EPIC-PH3-OPS
+    phase: PH3
+    workstreams: [WS-DEVOPS, WS-EVID, WS-SEC, WS-DOCS]
+    title: "Operations maturity: incident, DR, backups, LTS"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0300
+        priority: P2
+        title: "Define incident management process and templates"
+        done_when:
+          - "docs/operations/incident_management.md exists"
+          - "Severity levels and required artifacts are defined"
+      - id: TASK-0301
+        priority: P2
+        title: "Define DR plan (RTO/RPO) and backup/restore drills"
+        done_when:
+          - "docs/operations/backup_restore.md defines RTO/RPO"
+          - "Restore drill cadence is defined and evidence is captured"
+      - id: TASK-0302
+        priority: P2
+        title: "Define LTS, deprecation, and tech debt registry process"
+        done_when:
+          - "docs/operations/lts_and_deprecation.md exists"
+          - "Tech debt registry location is agreed"
+
+  - id: EPIC-PH3-PRIV
+    phase: PH3
+    workstreams: [WS-SEC, WS-ETH, WS-EVID, WS-DOCS]
+    title: "Privacy, retention, and user rights (spec-first)"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0310
+        priority: P2
+        title: "Data inventory and classification"
+        done_when:
+          - "PII/sensitive fields are enumerated"
+          - "Classification policy is documented"
+      - id: TASK-0311
+        priority: P2
+        title: "Define retention policy and enforcement approach"
+        done_when:
+          - "docs/privacy/data_retention_policy.md exists"
+          - "Retention windows are specified per data class"
+      - id: TASK-0312
+        priority: P2
+        title: "Define export/erase workflows and receipts"
+        done_when:
+          - "Export and erase flows are specified"
+          - "Receipts capture audit trail for privacy actions"
+
+  - id: EPIC-PH3-FINOPS
+    phase: PH3
+    workstreams: [WS-DEVOPS, WS-ARCH, WS-EVID]
+    title: "Cost controls and unit economics (FinOps)"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0320
+        priority: P2
+        title: "Define cost KPIs and budget thresholds"
+        done_when:
+          - "docs/finops/cost_management.md defines KPIs and budgets"
+          - "Alert thresholds are defined (50/75/90%)"
+      - id: TASK-0321
+        priority: P2
+        title: "Define kill-switch and graceful degradation playbook"
+        done_when:
+          - "Hard caps and fallback behaviors are documented"
+          - "Activation criteria and owners are defined"
+
+  - id: EPIC-PH3-A11Y
+    phase: PH3
+    workstreams: [WS-DOCS, WS-ARCH, WS-DEVOPS]
+    title: "Accessibility (WCAG 2.1 AA) plan and gates"
+    depends_on: []
+    tasks:
+      - id: TASK-0330
+        priority: P2
+        title: "Define WCAG acceptance criteria and CI checks"
+        done_when:
+          - "docs/accessibility/wcag_2_1_aa.md exists"
+          - "Automated checks are selected (Axe/Lighthouse)"
+      - id: TASK-0331
+        priority: P2
+        title: "Define manual accessibility audit cadence"
+        done_when:
+          - "Critical flows are listed"
+          - "Release sign-off requires an accessibility check"
+
+  - id: EPIC-PH3-RET
+    phase: PH3
+    workstreams: [WS-DOCS, WS-EVID, WS-ETH]
+    title: "Retirement and data disposal policy"
+    depends_on: []
+    tasks:
+      - id: TASK-0340
+        priority: P2
+        title: "Define service sunset and disposal process"
+        done_when:
+          - "docs/retirement/sunset_policy.md exists"
+          - "Disposal evidence requirements are specified"
+
+  - id: EPIC-PH4-EXPERT
+    phase: PH4
+    workstreams: [WS-EXPERT, WS-ETH, WS-EVID, WS-DOCS]
+    title: "Agent Experts (runtime learning)"
+    depends_on: [EPIC-PH2-EVID]
+    tasks:
+      - id: TASK-0400
+        priority: P2
+        title: "Create first domain expert: rust_core"
+        done_when:
+          - "experts/rust_core/expertise.yaml exists"
+          - "question + self_improve workflow documented"
+      - id: TASK-0401
+        priority: P2
+        title: "SAT quorum for expertise updates"
+        done_when:
+          - "Expertise updates require >=3/5 approvals"
+      - id: TASK-0402
+        priority: P2
+        title: "Seed expertise from chat-history ingestion (quarantine-first)"
+        done_when:
+          - "Ingestion produces candidate pointers only"
+          - "Candidates require validation before merge"
+
+  - id: EPIC-PH4-FEDGOV
+    phase: PH4
+    workstreams: [WS-ARCH, WS-ETH, WS-EVID, WS-DOCS]
+    title: "Federated governance: policy bundles + diplomacy protocol (spec-first)"
+    depends_on: [EPIC-PH2-FED]
+    tasks:
+      - id: TASK-0450
+        priority: P2
+        title: "Define constitutional policy bundle format (signed, versioned)"
+        done_when:
+          - "Policy bundles can be versioned and verified"
+          - "Bundles support allow/deny/uncertain semantics"
+      - id: TASK-0451
+        priority: P2
+        title: "Define inter-AGI diplomacy protocol v0 (handshake + negotiation)"
+        done_when:
+          - "Protocol includes identity, receipts, and dispute handling"
+          - "Threat model for protocol is documented"
+      - id: TASK-0452
+        priority: P2
+        title: "Define federation adapter interface (pluggable clusters)"
+        done_when:
+          - "Adapters require allowlists and timeouts"
+          - "Adapters emit receipts for all remote calls"

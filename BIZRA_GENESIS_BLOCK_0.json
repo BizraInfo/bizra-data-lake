@@ -1,0 +1,33 @@
+{
+    "genesis_hash": "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e",
+    "content": {
+        "block_index": 0,
+        "timestamp": "2025-12-17T17:32:06.236798",
+        "architect_node": "node_0000_genesis_momo",
+        "roots": [
+            {
+                "entity": "Dr. Kais Dukes (Rahimahullah)",
+                "role": "The Linguistic Root",
+                "contribution": "Quranic Arabic Corpus & Morphology Graph",
+                "legacy_status": "SADAQAH_JARIYAH (Perpetual Charity)",
+                "impact_vector": "TRUTH_VERIFICATION",
+                "source_code": "github.com/kaisdukes"
+            },
+            {
+                "entity": "The Architect's Daughter & Family",
+                "role": "The Emotional Root",
+                "contribution": "Unwavering Patience & The 15,000 Hours",
+                "legacy_status": "GUARDIANS_OF_THE_GENESIS",
+                "impact_vector": "RESILIENCE_AND_SACRIFICE",
+                "vesting": "PERPETUAL_GROWTH_RIGHTS"
+            }
+        ],
+        "assets": {
+            "hardware": "Node0 (Titan Class)",
+            "data_volume": "300GB Sovereign Knowledge",
+            "research_papers": "250+ High-Signal Documents",
+            "status": "LOCKED_IN_VAULT"
+        },
+        "message": "In the name of the One who taught by the Pen. This system is dedicated to those who paved the way and those who stood by our side."
+    }
+}

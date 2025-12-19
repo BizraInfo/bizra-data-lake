@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "truth_label": "MEASURED",
+  "notes": [
+    "Sanitized receipt: aggregated totals only (no file paths).",
+    "Source of truth for totals is BIZRA_KNOWLEDGE_MANIFEST.json (local output)."
+  ],
+  "anchors": {
+    "genesis_block_hash": "7253d9f015bcac66e0f996d3cc3ebac021151ec8c75aa8890e4a902447218e8e",
+    "knowledge_ledger_chain_sha256": "7d07d9bf68ec8443b4f26fa1fce83ed769fd16ba9aa941e3a5c8d30531a57ba6"
+  },
+  "totals": {
+    "total_files": 26922,
+    "total_bytes": 1687492484,
+    "total_knowledge_value_bzr_g": 32863.6994
+  },
+  "tokenomics": {
+    "genesis_supply_bzr_g": 32863.7,
+    "allocations": {
+      "node0_reserve_percent": 100
+    },
+    "policy": {
+      "minting": "PROOF_OF_IMPACT_ONLY",
+      "inflation": "0% (Strictly Asset-Backed)"
+    }
+  }
+}
+

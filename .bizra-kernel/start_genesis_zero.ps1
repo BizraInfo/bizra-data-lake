@@ -125,7 +125,12 @@ function Start-RustAPI {
     Write-Status "Starting Rust API server on port 3001..." "INFO"
     
     # Set environment variables
-    $env:DATABASE_URL = "postgres://bizra_user:bizra_password@localhost:5433/bizra_genesis"
+    # SECURITY: do not hardcode credentials in repo-tracked scripts.
+    # Prefer: set $env:DATABASE_URL (or $env:POSTGRES_DSN) before running this script.
+    $dbUrl = $env:DATABASE_URL
+    if (-not $dbUrl) { $dbUrl = $env:POSTGRES_DSN }
+    if (-not $dbUrl) { $dbUrl = "postgres://postgres@localhost:5433/bizra_genesis" }
+    $env:DATABASE_URL = $dbUrl
     $env:PORT = "3001"
     $env:SQLX_OFFLINE = "true"
     $env:RUST_LOG = "info,bizra_genesis_node=debug"
@@ -142,7 +147,7 @@ function Start-RustAPI {
     }
     
     # Start API in new window
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set DATABASE_URL=postgres://bizra_user:bizra_password@localhost:5433/bizra_genesis && set PORT=3001 && set SQLX_OFFLINE=true && .\target\release\api_server.exe" -WindowStyle Normal
+    Start-Process -FilePath $apiPath -WorkingDirectory (Get-Location).Path -WindowStyle Normal
     
     Write-Status "API server starting..." "OK"
     Start-Sleep -Seconds 3

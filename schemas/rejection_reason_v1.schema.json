@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bizra.io/schemas/rejection_reason_v1.schema.json",
+  "title": "SAPE Rejection Reason",
+  "description": "Schema for SAPE recursive correction loop rejection reasons",
+  "type": "object",
+  "required": ["code", "category", "message", "timestamp"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^RJ-[A-Z]{2}-[0-9]{3}$",
+      "description": "Structured rejection code (e.g., RJ-IH-001)",
+      "examples": ["RJ-IH-001", "RJ-SV-002", "RJ-VF-001"]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "IHSAN_VIOLATION",
+        "SOVEREIGNTY_BREACH",
+        "RESOURCE_EXHAUSTION",
+        "VALIDATION_FAILURE",
+        "DEPENDENCY_UNAVAILABLE",
+        "POLICY_CONFLICT"
+      ],
+      "description": "High-level rejection category"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Human-readable explanation (must not contain secrets)"
+    },
+    "remediation_hints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "maxItems": 5,
+      "description": "Suggested corrections for next attempt"
+    },
+    "ihsan_components": {
+      "type": "object",
+      "description": "Breakdown of Ihsān score components",
+      "properties": {
+        "itqan_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Technical excellence score"
+        },
+        "birr_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Benevolence/positive impact score"
+        },
+        "adl_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Justice/fairness score"
+        },
+        "amanah_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Trust/stewardship score"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp of rejection"
+    },
+    "plan_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256 of the rejected plan for correlation"
+    },
+    "attempt_number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Which attempt this rejection corresponds to"
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Optional correlation ID for distributed tracing"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "code": "RJ-IH-001",
+      "category": "IHSAN_VIOLATION",
+      "message": "Ihsān score 0.87 below threshold 0.95",
+      "remediation_hints": [
+        "Review action for potential harm",
+        "Add explicit user consent step"
+      ],
+      "ihsan_components": {
+        "itqan_score": 0.95,
+        "birr_score": 0.92,
+        "adl_score": 0.85,
+        "amanah_score": 0.76
+      },
+      "timestamp": "2025-12-19T14:30:00Z",
+      "plan_hash": "a3b2c1d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "attempt_number": 1
+    },
+    {
+      "code": "RJ-SV-001",
+      "category": "SOVEREIGNTY_BREACH",
+      "message": "External API dependency detected: openai-gpt-4",
+      "remediation_hints": [
+        "Use local model: bizra-7b-planner",
+        "Configure sovereignty fallback policy"
+      ],
+      "timestamp": "2025-12-19T14:35:00Z",
+      "plan_hash": "b4c3d2e1f0a9876543210987654321098765432109876543210987654321dcba",
+      "attempt_number": 2
+    }
+  ]
+}

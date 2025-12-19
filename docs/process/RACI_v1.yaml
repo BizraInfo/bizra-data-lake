@@ -1,0 +1,42 @@
+version: 1
+note: "Edit roles/names for your org. Keep this file up to date."
+
+roles:
+  tech_lead:
+    owns:
+      - architecture_decisions
+      - technical_risk_acceptance
+  backend_engineering:
+    owns:
+      - rust_services
+      - api_contracts
+      - test_automation
+  sre_devops:
+    owns:
+      - ci_cd
+      - observability
+      - incident_response
+      - backups_restore
+  security:
+    owns:
+      - threat_model
+      - pentest_schedule
+      - secrets_management
+  product_ux:
+    owns:
+      - requirements_prioritization
+      - accessibility_acceptance
+  data_owner:
+    owns:
+      - data_classification
+      - retention_policy
+      - migration_signoff
+
+cadences:
+  weekly:
+    - risk_register_review
+    - slo_review
+  per_release:
+    - evidence_pack_seal
+    - change_approval
+

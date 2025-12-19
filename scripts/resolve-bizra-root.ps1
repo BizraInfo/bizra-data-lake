@@ -106,7 +106,8 @@ paths:
 
 runtime:
   ollama_host: 'http://127.0.0.1:11434'
-  postgres_dsn: 'postgresql://postgres:bizra_genesis_2025@localhost:5432/bizra'
+  # SECURITY: do not commit DB passwords; use passwordless local auth or a secret manager/.pgpass.
+  postgres_dsn: 'postgresql://postgres@localhost:5432/bizra'
   redis_host: 'localhost'
   redis_port: 6379
 "@ | Set-Content -Path $WorkspaceFile -Encoding UTF8

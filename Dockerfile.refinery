@@ -1,0 +1,72 @@
+# BIZRA Refinery Daemon
+# Continuous ingestion service for sovereign data processing
+#
+# Build:
+#   docker build -f Dockerfile.refinery -t bizra-refinery-daemon .
+#
+# Run:
+#   docker run -d \
+#     -v ./bizra_data_vault:/app/bizra_data_vault:ro \
+#     -v ./BIZRA_KNOWLEDGE_LEDGER.jsonl:/app/BIZRA_KNOWLEDGE_LEDGER.jsonl \
+#     -p 8081:8081 \
+#     --name refinery-daemon \
+#     bizra-refinery-daemon
+#
+# Health check:
+#   curl http://localhost:8081/health
+#   curl http://localhost:8081/metrics
+
+FROM python:3.11-slim
+
+LABEL maintainer="BIZRA Genesis Node <node0@bizra.io>"
+LABEL description="BIZRA Refinery Daemon - Continuous Ingestion Service"
+LABEL version="1.0.0"
+
+# Set working directory
+WORKDIR /app
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    BIZRA_REFINERY_THROUGHPUT=10 \
+    BIZRA_REFINERY_PORT=8081 \
+    BIZRA_REFINERY_BATCH_SIZE=50
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy core module
+COPY core/refinery_daemon.py /app/core/refinery_daemon.py
+COPY core/__init__.py /app/core/__init__.py 2>/dev/null || echo "# BIZRA Core" > /app/core/__init__.py
+
+# Copy genesis block (required for chain continuity)
+COPY BIZRA_GENESIS_BLOCK_0.json /app/BIZRA_GENESIS_BLOCK_0.json
+
+# Create data directories
+RUN mkdir -p /app/bizra_data_vault/roots \
+    && touch /app/BIZRA_KNOWLEDGE_LEDGER.jsonl
+
+# Create non-root user
+RUN useradd -m -u 1000 bizra \
+    && chown -R bizra:bizra /app
+USER bizra
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${BIZRA_REFINERY_PORT}/health')" || exit 1
+
+# Expose health/metrics port
+EXPOSE 8081
+
+# Use tini as init
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Run the daemon
+CMD ["python", "-m", "core.refinery_daemon", \
+     "--watch", "bizra_data_vault/roots", \
+     "--ledger", "BIZRA_KNOWLEDGE_LEDGER.jsonl", \
+     "--throughput", "${BIZRA_REFINERY_THROUGHPUT}", \
+     "--port", "${BIZRA_REFINERY_PORT}", \
+     "--batch-size", "${BIZRA_REFINERY_BATCH_SIZE}"]

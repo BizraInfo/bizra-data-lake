@@ -1,0 +1,43 @@
+version: 1
+id: bizra_genesis_manifest_profile_v1
+status: canonical
+
+purpose: >
+  Define the seal boundary for a GenesisManifest: which repositories participate in
+  the seal, and which tracked paths are allowlisted for hashing.
+
+repositories:
+  - name: core
+    root: "."
+    include:
+      - ".github/workflows/phase0_integrity.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "model-family-genesis-v1-SEALED.yaml"
+      - "golden-set-genesis-v1-DETERMINISTIC.json"
+      - "constitution/*.yaml"
+      - "schemas/*.json"
+      - "src/*.rs"
+      - "src/**/*.rs"
+      - "tools/*.py"
+    exclude:
+      - "target/**"
+
+  - name: node0
+    root: "bizra-genesis-node"
+    include:
+      - "SECURITY.md"
+      - "QUICKSTART.md"
+      - "scripts/init-db.sql"
+      - "backend/Cargo.toml"
+      - "backend/Cargo.lock"
+      - "backend/src/*.rs"
+      - "backend/src/**/*.rs"
+      - "backend/.sqlx/*"
+      - "backend/.sqlx/**/*"
+    exclude:
+      - "backend/target/**"
+
+notes:
+  - "Allowlist is tracked-files only (git ls-files); generated artifacts must be committed to be seal-eligible."
+  - "Hashing is performed against git content at the referenced commit for determinism across platforms."

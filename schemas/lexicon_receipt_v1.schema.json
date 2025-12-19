@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/lexicon_receipt_v1.schema.json",
+  "title": "BIZRA LexiconReceipt (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "version",
+    "timestamp",
+    "truth_label",
+    "lexicon_id",
+    "lexicon_sha256",
+    "ihsan_constitution_id",
+    "ihsan_constitution_sha256",
+    "lexicon_contract_sha256",
+    "lexicon_schema_sha256",
+    "lexicon_receipt_schema_sha256",
+    "policy_sha256",
+    "repo_commit",
+    "adapter_modes"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "LexiconReceipt"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "truth_label": {
+      "type": "string",
+      "enum": ["VERIFIED", "MEASURED", "TARGET", "DERIVED"]
+    },
+    "lexicon_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lexicon_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ihsan_constitution_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ihsan_constitution_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "lexicon_contract_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "lexicon_schema_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "lexicon_receipt_schema_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policy_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repo_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "adapter_modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pat", "sat", "mcp", "a2a", "reasoning"],
+      "properties": {
+        "pat": { "$ref": "#/$defs/adapter_mode" },
+        "sat": { "$ref": "#/$defs/adapter_mode" },
+        "mcp": { "$ref": "#/$defs/adapter_mode" },
+        "a2a": { "$ref": "#/$defs/adapter_mode" },
+        "reasoning": { "$ref": "#/$defs/adapter_mode" }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "adapter_mode": {
+      "type": "string",
+      "enum": ["simulated", "real"]
+    }
+  }
+}

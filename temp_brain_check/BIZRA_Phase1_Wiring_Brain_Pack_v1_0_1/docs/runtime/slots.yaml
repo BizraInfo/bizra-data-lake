@@ -1,0 +1,29 @@
+schema_version: 1
+
+endpoints:
+  ollama: "http://localhost:11434"
+  lm_studio: "http://localhost:1234/v1"
+
+slots:
+  cold_core:
+    provider: "ollama"
+    model: "deepseek-r1:8b"
+    mode: "generate"
+    params:
+      temperature: 0.6
+      num_ctx: 8192
+
+  warm_surface:
+    provider: "ollama"
+    model: "mistral:latest"
+    mode: "generate"
+    params:
+      temperature: 0.3
+      num_ctx: 32768
+
+  embeddings:
+    provider: "lm_studio"
+    model: "text-embedding-nomic-embed-text-v1.5"
+    mode: "embeddings"
+    params:
+      expected_dim: 384

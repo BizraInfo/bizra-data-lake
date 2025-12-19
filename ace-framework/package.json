@@ -5,6 +5,7 @@
     "main": "orchestrator-ihsan-wrapper.js",
     "scripts": {
         "start": "node orchestrator-ihsan-wrapper.js",
+        "team": "node team-runner.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [
