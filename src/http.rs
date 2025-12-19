@@ -527,7 +527,7 @@ async fn ollama_generate_handler(
         })));
     }
     
-    let options = request.temperature.map(|t| ollama::GenerationOptions {
+    let _options = request.temperature.map(|t| ollama::GenerationOptions {
         temperature: Some(t),
         ..Default::default()
     });

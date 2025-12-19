@@ -13,7 +13,6 @@ use lazy_static::lazy_static;
 use prometheus::{register_counter_vec, register_gauge, register_histogram_vec, CounterVec, Gauge, HistogramVec};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::OnceCell;

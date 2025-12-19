@@ -1,12 +1,14 @@
 // src/receipts.rs - Rejection and Execution Receipts
 // Machine-verifiable evidence of SAT decisions and FATE escalations
+//
+// PERSISTENCE: Uses Redis (Synapse) for durable receipt storage + filesystem
 
 use crate::fate::{Escalation, EscalationLevel};
 use crate::sat::RejectionCode;
+use crate::synapse::SynapseClient;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tracing::{info, warn};
@@ -94,6 +96,8 @@ pub struct ReceiptEmitter {
     output_dir: String,
     /// Counter for receipt IDs
     counter: std::sync::atomic::AtomicU64,
+    /// Redis client for persistence (optional)
+    synapse: Option<SynapseClient>,
 }
 
 impl ReceiptEmitter {
@@ -108,6 +112,36 @@ impl ReceiptEmitter {
         Self {
             output_dir: output_dir.to_string(),
             counter: std::sync::atomic::AtomicU64::new(1),
+            synapse: None,
+        }
+    }
+    
+    /// Create with Redis persistence
+    pub fn with_synapse(output_dir: &str, synapse: SynapseClient) -> Self {
+        if let Err(e) = fs::create_dir_all(output_dir) {
+            warn!(error = %e, dir = output_dir, "Failed to create receipts directory");
+        }
+        
+        info!(output_dir = output_dir, "📋 Receipt emitter initialized with Redis persistence");
+        
+        Self {
+            output_dir: output_dir.to_string(),
+            counter: std::sync::atomic::AtomicU64::new(1),
+            synapse: Some(synapse),
+        }
+    }
+    
+    /// Create from environment (auto-detect Redis)
+    pub async fn from_env(output_dir: &str) -> Self {
+        match crate::synapse::SynapseClient::from_env().await {
+            Ok(synapse) if synapse.is_available() => {
+                info!("📋 ReceiptEmitter connected to Redis for durable persistence");
+                Self::with_synapse(output_dir, synapse)
+            }
+            _ => {
+                warn!("📋 ReceiptEmitter running without Redis (filesystem only)");
+                Self::new(output_dir)
+            }
         }
     }
 
@@ -278,6 +312,7 @@ impl ReceiptEmitter {
         
         match serde_json::to_string_pretty(receipt) {
             Ok(json) => {
+                // Persist to filesystem (Redis persistence via async method)
                 if let Err(e) = fs::write(&path, json) {
                     warn!(error = %e, path = ?path, "Failed to persist rejection receipt");
                 }
@@ -294,6 +329,7 @@ impl ReceiptEmitter {
         
         match serde_json::to_string_pretty(receipt) {
             Ok(json) => {
+                // Persist to filesystem (Redis persistence via async method)
                 if let Err(e) = fs::write(&path, json) {
                     warn!(error = %e, path = ?path, "Failed to persist execution receipt");
                 }
@@ -302,6 +338,50 @@ impl ReceiptEmitter {
                 warn!(error = %e, "Failed to serialize execution receipt");
             }
         }
+    }
+    
+    /// Persist receipt to Redis asynchronously
+    pub async fn persist_to_synapse(&self, receipt_id: &str, json: &str) -> Result<(), anyhow::Error> {
+        if let Some(ref synapse) = self.synapse {
+            synapse.store_receipt(receipt_id, json).await?;
+        }
+        Ok(())
+    }
+    
+    /// Retrieve a receipt from Redis by ID (async)
+    pub async fn get_receipt_async(&self, receipt_id: &str) -> Option<String> {
+        if let Some(ref synapse) = self.synapse {
+            if let Ok(Some(json)) = synapse.get_receipt(receipt_id).await {
+                return Some(json);
+            }
+        }
+        
+        // Fallback to filesystem
+        let filename = format!("{}.json", receipt_id);
+        let path = Path::new(&self.output_dir).join(&filename);
+        fs::read_to_string(&path).ok()
+    }
+    
+    /// Get recent receipts from Redis (async)
+    pub async fn recent_receipts_async(&self, limit: usize) -> Vec<String> {
+        if let Some(ref synapse) = self.synapse {
+            if let Ok(receipts) = synapse.recent_receipts(limit as isize).await {
+                return receipts;
+            }
+        }
+        Vec::new()
+    }
+    
+    /// Sync version: Retrieve a receipt from filesystem only
+    pub fn get_receipt(&self, receipt_id: &str) -> Option<String> {
+        let filename = format!("{}.json", receipt_id);
+        let path = Path::new(&self.output_dir).join(&filename);
+        fs::read_to_string(&path).ok()
+    }
+    
+    /// Sync version: returns empty (use async for Redis)
+    pub fn recent_receipts(&self, _limit: usize) -> Vec<String> {
+        Vec::new()
     }
 }
 

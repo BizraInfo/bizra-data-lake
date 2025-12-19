@@ -1,7 +1,10 @@
 // src/fate.rs - FATE (Fail-Safe Agentic Trust Escalation) Module
 // Handles quarantine, escalation, and human review routing
+//
+// PERSISTENCE: Uses Redis (Synapse) for durable escalation storage
 
 use crate::sat::RejectionCode;
+use crate::synapse::SynapseClient;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -63,8 +66,10 @@ pub enum EscalationStatus {
 
 /// FATE Coordinator - manages escalations and quarantine
 pub struct FATECoordinator {
-    /// Pending escalations (in production, this would be persisted)
+    /// Pending escalations (in-memory cache)
     pending_escalations: Vec<Escalation>,
+    /// Redis client for persistence (optional)
+    synapse: Option<SynapseClient>,
 }
 
 impl FATECoordinator {
@@ -72,6 +77,30 @@ impl FATECoordinator {
         info!("⚖️  Initializing FATE (Fail-Safe Agentic Trust Escalation)");
         Self {
             pending_escalations: Vec::new(),
+            synapse: None,
+        }
+    }
+    
+    /// Create with Redis persistence
+    pub fn with_synapse(synapse: SynapseClient) -> Self {
+        info!("⚖️  Initializing FATE with Redis persistence");
+        Self {
+            pending_escalations: Vec::new(),
+            synapse: Some(synapse),
+        }
+    }
+    
+    /// Create from environment (auto-detect Redis)
+    pub async fn from_env() -> Self {
+        match crate::synapse::SynapseClient::from_env().await {
+            Ok(synapse) if synapse.is_available() => {
+                info!("⚖️  FATE connected to Redis for persistent escalations");
+                Self::with_synapse(synapse)
+            }
+            _ => {
+                warn!("⚖️  FATE running without Redis (in-memory only)");
+                Self::new()
+            }
         }
     }
 
@@ -190,10 +219,64 @@ impl FATECoordinator {
 
         // Store pending escalations (not auto-resolved)
         if escalation.status == EscalationStatus::Pending {
+            // Note: Redis persistence happens via async method persist_to_synapse()
+            // Also keep in memory for fast access
             self.pending_escalations.push(escalation.clone());
         }
 
         escalation
+    }
+    
+    /// Persist escalation to Redis (call this separately if synapse is available)
+    pub async fn persist_to_synapse(&self, escalation: &Escalation) -> Result<(), anyhow::Error> {
+        if let Some(ref synapse) = self.synapse {
+            let json = serde_json::to_string(escalation)?;
+            synapse.push_fate_escalation(&escalation.id, &json).await?;
+        }
+        Ok(())
+    }
+    
+    /// Get pending escalations from memory
+    pub fn get_pending_escalations(&self) -> Vec<Escalation> {
+        self.pending_escalations.clone()
+    }
+    
+    /// Pop next pending escalation for review (async for Redis)
+    pub async fn pop_pending_escalation_async(&mut self) -> Option<Escalation> {
+        if let Some(ref synapse) = self.synapse {
+            if let Ok(Some(json)) = synapse.pop_pending_escalation().await {
+                if let Ok(escalation) = serde_json::from_str::<Escalation>(&json) {
+                    // Remove from memory cache too
+                    self.pending_escalations.retain(|e| e.id != escalation.id);
+                    return Some(escalation);
+                }
+            }
+        }
+        self.pending_escalations.pop()
+    }
+    
+    /// Resolve an escalation with Redis persistence (async)
+    pub async fn resolve_escalation_async(&mut self, escalation_id: &str, approved: bool) -> bool {
+        if let Some(ref synapse) = self.synapse {
+            let resolution = if approved { "approved" } else { "blocked" };
+            if synapse.resolve_escalation(escalation_id, resolution).await.is_ok() {
+                self.pending_escalations.retain(|e| e.id != escalation_id);
+                return true;
+            }
+        }
+        
+        // Fallback to memory-only resolution
+        if let Some(pos) = self.pending_escalations.iter().position(|e| e.id == escalation_id) {
+            let mut esc = self.pending_escalations.remove(pos);
+            esc.status = if approved {
+                EscalationStatus::Approved
+            } else {
+                EscalationStatus::Blocked
+            };
+            true
+        } else {
+            false
+        }
     }
 
     /// Escalate an Ihsān threshold failure

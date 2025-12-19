@@ -10,7 +10,6 @@
 use anyhow::{Context, Result};
 use redis::{aio::ConnectionManager, AsyncCommands, Client};
 use serde::{de::DeserializeOwned, Serialize};
-use std::time::Duration;
 use tracing::{debug, error, info, instrument, warn};
 
 /// Redis key prefixes for namespacing
@@ -80,7 +79,7 @@ impl SynapseClient {
     
     /// Push escalation to queue
     #[instrument(skip(self, escalation))]
-    pub async fn push_fate_escalation<T: Serialize>(&mut self, escalation_id: &str, escalation: &T) -> Result<()> {
+    pub async fn push_fate_escalation<T: Serialize>(&self, escalation_id: &str, escalation: &T) -> Result<()> {
         if !self.available {
             debug!("Synapse unavailable, escalation stored in memory only");
             return Ok(());
@@ -89,13 +88,14 @@ impl SynapseClient {
         let key = format!("{}{}", KEY_PREFIX_FATE, escalation_id);
         let value = serde_json::to_string(escalation)?;
         
-        self.conn
+        let mut conn = self.conn.clone();
+        conn
             .set_ex::<_, _, ()>(&key, &value, FATE_TTL_SECS)
             .await
             .context("Failed to store FATE escalation")?;
         
         // Also add to the pending queue
-        self.conn
+        conn
             .lpush::<_, _, ()>("bizra:fate:pending", escalation_id)
             .await
             .context("Failed to add to pending queue")?;
@@ -106,13 +106,14 @@ impl SynapseClient {
     
     /// Get escalation by ID
     #[instrument(skip(self))]
-    pub async fn get_fate_escalation<T: DeserializeOwned>(&mut self, escalation_id: &str) -> Result<Option<T>> {
+    pub async fn get_fate_escalation<T: DeserializeOwned>(&self, escalation_id: &str) -> Result<Option<T>> {
         if !self.available {
             return Ok(None);
         }
         
         let key = format!("{}{}", KEY_PREFIX_FATE, escalation_id);
-        let value: Option<String> = self.conn.get(&key).await?;
+        let mut conn = self.conn.clone();
+        let value: Option<String> = conn.get(&key).await?;
         
         match value {
             Some(v) => Ok(Some(serde_json::from_str(&v)?)),
@@ -122,43 +123,46 @@ impl SynapseClient {
     
     /// Get pending escalation count
     #[instrument(skip(self))]
-    pub async fn pending_escalation_count(&mut self) -> Result<usize> {
+    pub async fn pending_escalation_count(&self) -> Result<usize> {
         if !self.available {
             return Ok(0);
         }
         
-        let count: usize = self.conn.llen("bizra:fate:pending").await?;
+        let mut conn = self.conn.clone();
+        let count: usize = conn.llen("bizra:fate:pending").await?;
         Ok(count)
     }
     
     /// Pop next pending escalation ID
     #[instrument(skip(self))]
-    pub async fn pop_pending_escalation(&mut self) -> Result<Option<String>> {
+    pub async fn pop_pending_escalation(&self) -> Result<Option<String>> {
         if !self.available {
             return Ok(None);
         }
         
-        let id: Option<String> = self.conn.rpop("bizra:fate:pending", None).await?;
+        let mut conn = self.conn.clone();
+        let id: Option<String> = conn.rpop("bizra:fate:pending", None).await?;
         Ok(id)
     }
     
     /// Mark escalation as resolved
     #[instrument(skip(self))]
-    pub async fn resolve_escalation(&mut self, escalation_id: &str, resolution: &str) -> Result<()> {
+    pub async fn resolve_escalation(&self, escalation_id: &str, resolution: &str) -> Result<()> {
         if !self.available {
             return Ok(());
         }
         
         let key = format!("{}{}:resolution", KEY_PREFIX_FATE, escalation_id);
-        self.conn
+        let mut conn = self.conn.clone();
+        conn
             .set_ex::<_, _, ()>(&key, resolution, FATE_TTL_SECS)
             .await?;
         
         // Move from pending to resolved
-        self.conn
+        conn
             .lrem::<_, _, ()>("bizra:fate:pending", 1, escalation_id)
             .await?;
-        self.conn
+        conn
             .lpush::<_, _, ()>("bizra:fate:resolved", escalation_id)
             .await?;
         
@@ -172,7 +176,7 @@ impl SynapseClient {
     
     /// Store receipt
     #[instrument(skip(self, receipt))]
-    pub async fn store_receipt<T: Serialize>(&mut self, receipt_id: &str, receipt: &T) -> Result<()> {
+    pub async fn store_receipt<T: Serialize + ?Sized>(&self, receipt_id: &str, receipt: &T) -> Result<()> {
         if !self.available {
             debug!("Synapse unavailable, receipt stored locally only");
             return Ok(());
@@ -181,14 +185,15 @@ impl SynapseClient {
         let key = format!("{}{}", KEY_PREFIX_RECEIPT, receipt_id);
         let value = serde_json::to_string(receipt)?;
         
-        self.conn
+        let mut conn = self.conn.clone();
+        conn
             .set_ex::<_, _, ()>(&key, &value, RECEIPT_TTL_SECS)
             .await
             .context("Failed to store receipt")?;
         
         // Add to receipt index (score = timestamp, member = receipt_id)
         let score = chrono::Utc::now().timestamp() as f64;
-        let _: () = self.conn
+        let _: () = conn
             .zadd("bizra:receipts:index", receipt_id, score)
             .await?;
         
@@ -198,13 +203,14 @@ impl SynapseClient {
     
     /// Get receipt by ID
     #[instrument(skip(self))]
-    pub async fn get_receipt<T: DeserializeOwned>(&mut self, receipt_id: &str) -> Result<Option<T>> {
+    pub async fn get_receipt<T: DeserializeOwned>(&self, receipt_id: &str) -> Result<Option<T>> {
         if !self.available {
             return Ok(None);
         }
         
         let key = format!("{}{}", KEY_PREFIX_RECEIPT, receipt_id);
-        let value: Option<String> = self.conn.get(&key).await?;
+        let mut conn = self.conn.clone();
+        let value: Option<String> = conn.get(&key).await?;
         
         match value {
             Some(v) => Ok(Some(serde_json::from_str(&v)?)),
@@ -214,12 +220,13 @@ impl SynapseClient {
     
     /// Get recent receipts (last N)
     #[instrument(skip(self))]
-    pub async fn recent_receipts(&mut self, count: isize) -> Result<Vec<String>> {
+    pub async fn recent_receipts(&self, count: isize) -> Result<Vec<String>> {
         if !self.available {
             return Ok(vec![]);
         }
         
-        let ids: Vec<String> = self.conn
+        let mut conn = self.conn.clone();
+        let ids: Vec<String> = conn
             .zrevrange("bizra:receipts:index", 0, count - 1)
             .await?;
         
@@ -232,7 +239,7 @@ impl SynapseClient {
     
     /// Acquire distributed lock
     #[instrument(skip(self))]
-    pub async fn acquire_lock(&mut self, resource: &str) -> Result<bool> {
+    pub async fn acquire_lock(&self, resource: &str) -> Result<bool> {
         if !self.available {
             return Ok(true); // No locking in fallback mode
         }
@@ -240,7 +247,8 @@ impl SynapseClient {
         let key = format!("{}{}", KEY_PREFIX_LOCK, resource);
         let lock_id = uuid::Uuid::new_v4().to_string();
         
-        let acquired: bool = self.conn
+        let mut conn = self.conn.clone();
+        let acquired: bool = conn
             .set_options(
                 &key,
                 &lock_id,
@@ -256,13 +264,14 @@ impl SynapseClient {
     
     /// Release distributed lock
     #[instrument(skip(self))]
-    pub async fn release_lock(&mut self, resource: &str) -> Result<()> {
+    pub async fn release_lock(&self, resource: &str) -> Result<()> {
         if !self.available {
             return Ok(());
         }
         
         let key = format!("{}{}", KEY_PREFIX_LOCK, resource);
-        self.conn.del::<_, ()>(&key).await?;
+        let mut conn = self.conn.clone();
+        conn.del::<_, ()>(&key).await?;
         Ok(())
     }
     
@@ -272,25 +281,27 @@ impl SynapseClient {
     
     /// Increment a metric counter
     #[instrument(skip(self))]
-    pub async fn incr_metric(&mut self, metric: &str) -> Result<i64> {
+    pub async fn incr_metric(&self, metric: &str) -> Result<i64> {
         if !self.available {
             return Ok(0);
         }
         
         let key = format!("{}{}", KEY_PREFIX_METRICS, metric);
-        let value: i64 = self.conn.incr(&key, 1).await?;
+        let mut conn = self.conn.clone();
+        let value: i64 = conn.incr(&key, 1).await?;
         Ok(value)
     }
     
     /// Get metric value
     #[instrument(skip(self))]
-    pub async fn get_metric(&mut self, metric: &str) -> Result<i64> {
+    pub async fn get_metric(&self, metric: &str) -> Result<i64> {
         if !self.available {
             return Ok(0);
         }
         
         let key = format!("{}{}", KEY_PREFIX_METRICS, metric);
-        let value: i64 = self.conn.get(&key).await.unwrap_or(0);
+        let mut conn = self.conn.clone();
+        let value: i64 = conn.get(&key).await.unwrap_or(0);
         Ok(value)
     }
     
@@ -300,13 +311,14 @@ impl SynapseClient {
     
     /// Ping Redis
     #[instrument(skip(self))]
-    pub async fn ping(&mut self) -> Result<bool> {
+    pub async fn ping(&self) -> Result<bool> {
         if !self.available {
             return Ok(false);
         }
         
+        let mut conn = self.conn.clone();
         let pong: String = redis::cmd("PING")
-            .query_async(&mut self.conn)
+            .query_async(&mut conn)
             .await
             .unwrap_or_else(|_| "FAIL".to_string());
         

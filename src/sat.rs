@@ -73,7 +73,8 @@ pub struct SATOrchestrator {
     agents: Vec<SATAgent>,
     /// Maximum allowed task complexity (token estimate)
     max_task_tokens: usize,
-    /// Maximum allowed execution time budget
+    /// Maximum allowed execution time budget (reserved for future performance gates)
+    #[allow(dead_code)]
     max_execution_ms: u64,
 }
 
@@ -81,6 +82,8 @@ pub struct SATOrchestrator {
 struct SATAgent {
     name: String,
     role: String,
+    /// Agent specialty (reserved for enhanced routing)
+    #[allow(dead_code)]
     specialty: String,
 }
 
