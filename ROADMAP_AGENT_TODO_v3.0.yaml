@@ -1,0 +1,100 @@
+version: "3.0"
+objective: "BIZRA Pinnacle Roadmap — deterministic agent-executable TODO list"
+axioms:
+  - "No unsealed code paths"
+  - "Fail-closed SAT veto + quarantine"
+  - "Receipts everywhere"
+  - "Targets vs measured labeled"
+
+phases:
+  - id: "A"
+    name: "Stabilize & Seal"
+    priority: "P0"
+    tasks:
+      - id: "A1"
+        title: "Merge stabilization branch"
+        commands:
+          - "git checkout feature/critical-stabilization"
+          - "git status"
+          - "run CI (local or GH Actions) then open PR and merge"
+        accept:
+          - "SAT rejection tests pass"
+          - "MCP/A2A allowlists + timeouts enforced"
+          - "CI evidence receipt artifact produced"
+      - id: "A2"
+        title: "Tag stabilization"
+        commands:
+          - "git tag -a v1.2.0-stabilization -m \"SAT veto + negative tests + adapters + CI receipts\""
+          - "git push --tags"
+        accept:
+          - "tag exists on main and verifies"
+      - id: "A3"
+        title: "Replay clean-room seal"
+        commands:
+          - "git checkout v1.0.1-genesis-citadel"
+          - "pwsh .\\scripts\\genesis_ignite_all.ps1"
+        accept:
+          - "/healthz OK"
+          - "/livez OK"
+          - "receipt minted"
+
+  - id: "B"
+    name: "Dual Agentic Activation"
+    priority: "P0"
+    tasks:
+      - id: "B1"
+        title: "PAT-7 router contract"
+        accept:
+          - "7 agents reachable locally"
+          - "p95 < 500ms on canned prompts"
+      - id: "B2"
+        title: "SAT-5 runtime veto + quarantine"
+        accept:
+          - "known-bad prompt rejected"
+          - "quarantine receipt exists"
+      - id: "B3"
+        title: "Wire PAT <-> SAT"
+        accept:
+          - "every PAT response passes SAT before return"
+          - "receipt per request"
+
+  - id: "C"
+    name: "Glass Cockpit MVP"
+    priority: "P0"
+    tasks:
+      - id: "C1"
+        title: "Metrics spine"
+        accept:
+          - "ihsan_score, sat_decision, tool_timeout emitted"
+      - id: "C2"
+        title: "Cockpit dashboard"
+        accept:
+          - "Ihsan trend panel"
+          - "SAT allow/reject rate panel"
+          - "p95 latency panel"
+          - "GPU/CPU/RAM utilization panel"
+
+  - id: "D"
+    name: "Data Refinery Flywheel"
+    priority: "P1"
+    tasks:
+      - id: "D1"
+        title: "Inventory + dedupe manifest"
+        accept:
+          - "hash-based dedupe report"
+          - "single source of truth folder"
+      - id: "D2"
+        title: "Lexicon Ledger build"
+        accept:
+          - "lexicon export"
+          - "concept graph edges validated"
+      - id: "D3"
+        title: "Instruction synthesis 10k+"
+        accept:
+          - "10k+ pairs"
+          - "500 human-reviewed sample"
+          - "Ihsan-labeled subset"
+      - id: "D4"
+        title: "Train bizra-reasoner-7b LoRA v0.1"
+        accept:
+          - "improves on internal regression set"

@@ -2,6 +2,7 @@
 
 use crate::{
     ihsan,
+    metrics,
     pat_enhanced::EnhancedPATOrchestrator,
     types::{AdapterModes, DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
     MetaAlphaDualAgentic,
@@ -38,6 +39,7 @@ pub async fn create_http_server(
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health))
+        .route("/metrics", get(prometheus_metrics))
         .route("/dual/execute", post(execute_dual))
         .route("/enhanced/execute", post(execute_enhanced))
         .route("/stats", get(stats))
@@ -92,6 +94,16 @@ async fn health() -> impl IntoResponse {
         "status": "healthy",
         "timestamp": chrono::Utc::now().to_rfc3339(),
     }))
+}
+
+/// Prometheus metrics endpoint for Glass Cockpit observability
+async fn prometheus_metrics() -> impl IntoResponse {
+    let metrics = metrics::gather_metrics();
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8")],
+        metrics,
+    )
 }
 
 async fn stats(

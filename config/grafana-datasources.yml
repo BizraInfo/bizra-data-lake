@@ -1,0 +1,24 @@
+# Grafana datasource provisioning for BIZRA Glass Cockpit
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: POST
+
+  - name: Neo4j
+    type: neo4j-datasource
+    access: proxy
+    url: bolt://wisdom:7687
+    editable: false
+    jsonData:
+      database: neo4j
+    secureJsonData:
+      password: ${NEO4J_PASSWORD}

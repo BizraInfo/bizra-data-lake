@@ -8,6 +8,7 @@ pub mod fate;
 pub mod http;
 pub mod ihsan;
 pub mod mcp;
+pub mod metrics;
 pub mod pat;
 pub mod pat_enhanced;
 pub mod reasoning;

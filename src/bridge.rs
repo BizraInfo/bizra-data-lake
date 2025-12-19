@@ -3,6 +3,7 @@
 use crate::{
     fate::FATECoordinator,
     ihsan,
+    metrics,
     pat::PATOrchestrator,
     receipts::ReceiptEmitter,
     sat::SATOrchestrator,
@@ -45,6 +46,17 @@ impl BridgeCoordinator {
         let validation = self.sat.validate_request(&request).await?;
         let sat_validation_time = validation.validation_time;
 
+        // Record SAT validation metrics
+        let rejection_codes_str: Vec<String> = validation.rejection_codes.iter()
+            .map(|c| c.to_string())
+            .collect();
+        metrics::record_sat_validation(
+            validation.consensus_reached,
+            &rejection_codes_str,
+            sat_validation_time.as_secs_f64(),
+            validation.validations.iter().filter(|v| v.approved).count(),
+        );
+
         if !validation.consensus_reached {
             // FATE escalation for SAT rejection
             let escalation = {
@@ -55,6 +67,10 @@ impl BridgeCoordinator {
                     &request.context,
                 )
             };
+
+            // Record FATE escalation metrics
+            let fate_pending = self.fate.lock().unwrap().pending_count();
+            metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
 
             // Collect rejecting and approving validators
             let rejecting: Vec<String> = validation.validations
@@ -76,6 +92,9 @@ impl BridgeCoordinator {
                 rejecting,
                 approving,
             );
+
+            // Record receipt emission
+            metrics::record_receipt_emitted("rejection");
 
             warn!(
                 receipt_id = %receipt.receipt_id,
@@ -125,6 +144,9 @@ impl BridgeCoordinator {
             ihsan::constitution().threshold_for(&ihsan_env, ihsan_artifact_class);
         let ihsan_passes_threshold = ihsan_score >= ihsan_threshold_applied;
 
+        // Record Ihsān metrics
+        metrics::record_ihsan_result(ihsan_score, ihsan_passes_threshold, &ihsan_env, &ihsan_vector);
+
         if !ihsan_passes_threshold && ihsan::should_enforce() {
             // FATE escalation for Ihsān failure
             let escalation = {
@@ -137,6 +159,10 @@ impl BridgeCoordinator {
                     &request.context,
                 )
             };
+
+            // Record FATE escalation for Ihsān failure
+            let fate_pending = self.fate.lock().unwrap().pending_count();
+            metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
 
             warn!(
                 escalation_id = %escalation.id,
@@ -156,6 +182,9 @@ impl BridgeCoordinator {
 
         let total_latency = start.elapsed();
 
+        // Record request latency metrics
+        metrics::record_request_completion("success", total_latency.as_secs_f64(), synergy_score);
+
         // Emit execution receipt for successful flow
         let sat_approvers = validation.validations.iter().filter(|v| v.approved).count();
         let _execution_receipt = self.receipts.emit_execution(
@@ -169,6 +198,9 @@ impl BridgeCoordinator {
             pat_results.len(),
             sat_approvers,
         );
+
+        // Record execution receipt emission
+        metrics::record_receipt_emitted("execution");
 
         info!(
             synergy = synergy_score,

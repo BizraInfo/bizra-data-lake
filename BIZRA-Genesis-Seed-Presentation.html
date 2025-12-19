@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البذرة | The Seed - BIZRA Genesis Vision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gold: #C9A962;
+            --deep-navy: #0A1628;
+            --soft-white: #F8F6F1;
+            --accent-teal: #2A9D8F;
+            --sacred-purple: #6B4C9A;
+            --dawn-pink: #E76F51;
+            --emerald: #00A896;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0A1628 0%, #1a2744 50%, #0A1628 100%);
+            color: var(--soft-white);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Sacred Geometry Background */
+        .sacred-geometry {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .sacred-pattern {
+            position: absolute;
+            border: 1px solid var(--primary-gold);
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1.5rem 4rem;
+            background: rgba(10, 22, 40, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-gold), var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-item a {
+            color: var(--soft-white);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-item a:hover {
+            opacity: 1;
+            color: var(--primary-gold);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 8rem 2rem 4rem;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(201, 169, 98, 0.1);
+            border: 1px solid var(--primary-gold);
+            border-radius: 50px;
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.2s;
+        }
+
+        .hero-title-ar {
+            font-family: 'Amiri', serif;
+            font-size: 6rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-gold), var(--soft-white), var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.4s;
+            line-height: 1.1;
+        }
+
+        .hero-title-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.6s;
+        }
+
+        .hero-subtitle {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto 3rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.8s;
+            color: rgba(248, 246, 241, 0.85);
+        }
+
+        .hero-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 900px;
+            margin: 3rem auto;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 1s;
+        }
+
+        .meta-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .meta-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-gold);
+            box-shadow: 0 10px 30px rgba(201, 169, 98, 0.2);
+        }
+
+        .meta-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 6rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-number {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-family: 'Amiri', serif;
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-gold), var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.3;
+        }
+
+        .section-title-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .section-intro {
+            font-size: 1.2rem;
+            line-height: 2;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            opacity: 0.9;
+        }
+
+        /* Prayer Card */
+        .prayer-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(201, 169, 98, 0.3);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 3rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .prayer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(201, 169, 98, 0.05), rgba(42, 157, 143, 0.05));
+            z-index: -1;
+        }
+
+        .prayer-arabic {
+            font-family: 'Amiri', serif;
+            font-size: 2rem;
+            line-height: 2.5;
+            text-align: right;
+            direction: rtl;
+            color: var(--primary-gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .prayer-english {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        .prayer-reference {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--accent-teal);
+            font-weight: 500;
+        }
+
+        /* Rules Section */
+        .rules-grid {
+            display: grid;
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .rule-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid var(--primary-gold);
+            padding: 2.5rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .rule-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateX(10px);
+        }
+
+        .rule-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-gold);
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        .rule-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--primary-gold);
+        }
+
+        .rule-content {
+            font-size: 1.1rem;
+            line-height: 1.9;
+            opacity: 0.9;
+        }
+
+        .rule-highlight {
+            color: var(--emerald);
+            font-weight: 600;
+        }
+
+        /* Verse Grid */
+        .verse-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .verse-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 15px;
+            padding: 2.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .verse-card:hover {
+            border-color: var(--primary-gold);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(201, 169, 98, 0.15);
+        }
+
+        .verse-ref {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-teal);
+            margin-bottom: 1.5rem;
+        }
+
+        .verse-arabic {
+            font-family: 'Amiri', serif;
+            font-size: 1.6rem;
+            line-height: 2.3;
+            text-align: right;
+            direction: rtl;
+            color: var(--primary-gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .verse-english {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        /* Quote Block */
+        .quote-block {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin: 4rem 0;
+            position: relative;
+        }
+
+        .quote-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            line-height: 1.5;
+            font-style: italic;
+            color: var(--primary-gold);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .quote-ar {
+            font-family: 'Amiri', serif;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .quote-marks {
+            font-size: 8rem;
+            opacity: 0.08;
+            position: absolute;
+            font-family: serif;
+            color: var(--primary-gold);
+        }
+
+        /* Content Block */
+        .content-block {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 3px solid var(--accent-teal);
+            padding: 2.5rem;
+            margin: 2.5rem 0;
+            border-radius: 10px;
+        }
+
+        .content-text {
+            font-size: 1.15rem;
+            line-height: 2;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-text:last-child {
+            margin-bottom: 0;
+        }
+
+        .content-highlight {
+            color: var(--primary-gold);
+            font-weight: 600;
+        }
+
+        /* List Styles */
+        .styled-list {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+
+        .styled-list li {
+            padding: 1.2rem 0;
+            padding-left: 2.5rem;
+            position: relative;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            border-bottom: 1px solid rgba(201, 169, 98, 0.1);
+        }
+
+        .styled-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-teal);
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 15px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--primary-gold);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            font-size: 1rem;
+            line-height: 1.7;
+            opacity: 0.85;
+        }
+
+        /* Epilogue */
+        .epilogue {
+            background: linear-gradient(135deg, rgba(201, 169, 98, 0.1), rgba(0, 168, 150, 0.1));
+            border: 2px solid var(--primary-gold);
+            border-radius: 25px;
+            padding: 4rem;
+            margin: 5rem 0;
+            position: relative;
+        }
+
+        .epilogue-badge {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--deep-navy);
+            padding: 0.6rem 2.5rem;
+            border: 2px solid var(--primary-gold);
+            border-radius: 25px;
+            font-size: 0.95rem;
+            letter-spacing: 3px;
+            color: var(--primary-gold);
+            font-weight: 600;
+        }
+
+        .epilogue-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            text-align: center;
+            margin-bottom: 2.5rem;
+            color: var(--primary-gold);
+        }
+
+        .epilogue-content {
+            font-size: 1.2rem;
+            line-height: 2;
+            margin-bottom: 2rem;
+        }
+
+        .epilogue-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            border: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Footer */
+        .footer {
+            background: rgba(10, 22, 40, 0.95);
+            border-top: 1px solid rgba(201, 169, 98, 0.2);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .footer-quote-ar {
+            font-family: 'Amiri', serif;
+            font-size: 1.8rem;
+            line-height: 2.2;
+            text-align: right;
+            direction: rtl;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+        }
+
+        .footer-quote-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-style: italic;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .footer-item {
+            text-align: center;
+        }
+
+        .footer-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-value {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .nav {
+                padding: 1.5rem 2rem;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .hero-title-ar {
+                font-size: 4rem;
+            }
+
+            .hero-title-en {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 2.5rem;
+            }
+
+            .verse-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .verse-card {
+                min-width: unset;
+            }
+
+            .quote-text {
+                font-size: 1.8rem;
+            }
+
+            .quote-ar {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sacred Geometry Background -->
+    <div class="sacred-geometry" id="geometryBg"></div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <div class="logo">BIZRA</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="#bismillah">Opening</a></li>
+                <li class="nav-item"><a href="#rules">The Rules</a></li>
+                <li class="nav-item"><a href="#vision">The Vision</a></li>
+                <li class="nav-item"><a href="#guarantee">The Guarantee</a></li>
+                <li class="nav-item"><a href="#epilogue">Epilogue</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">GENESIS VISION DOCUMENT</div>
+            <h1 class="hero-title-ar">البذرة</h1>
+            <h2 class="hero-title-en">The Seed</h2>
+            <p class="hero-subtitle">
+                Your Path to Financial and Spiritual Freedom<br>
+                The seed from which BIZRA's complete system architecture grew
+            </p>
+            <div class="hero-meta-grid">
+                <div class="meta-card">
+                    <div class="meta-label">Author</div>
+                    <div class="meta-value">Mahmoud Hassan (MoMo)</div>
+                </div>
+                <div class="meta-card">
+                    <div class="meta-label">Written</div>
+                    <div class="meta-value">Ramadan 2023</div>
+                </div>
+                <div class="meta-card">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-value">Genesis Vision</div>
+                </div>
+                <div class="meta-card">
+                    <div class="meta-label">Manifested</div>
+                    <div class="meta-value">October 2025</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Opening Prayers -->
+    <section id="bismillah" class="section">
+        <div class="section-container">
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </div>
+                <div class="prayer-english">
+                    In the name of Allah, the Most Gracious, the Most Merciful
+                </div>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    بِسْمِ اللَّهِ الْعَلِيِّ الْخَبِيرِ الْحَكِيمِ
+                </div>
+                <div class="prayer-english">
+                    In the name of Allah, the Most High, the All-Knowing, the All-Wise
+                </div>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    اللَّهُمَّ لَا عِلْمَ لَنَا إِلَّا مَا عَلَّمْتَنَا
+                </div>
+                <div class="prayer-english">
+                    "O Allah, we have no knowledge except what You have taught us."
+                </div>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي، وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي يَفْقَهُوا قَوْلِي
+                </div>
+                <div class="prayer-english">
+                    "My Lord, expand my chest, ease my task, and remove the impediment from my speech so they may understand what I say."
+                </div>
+                <div class="prayer-reference">Qur'an 20:25-28 (Prayer of Prophet Musa)</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Rules Section -->
+    <section id="rules" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART I</div>
+                <h2 class="section-title">القواعد</h2>
+                <h3 class="section-title-en">The Rules</h3>
+            </div>
+
+            <p class="section-intro">
+                Everything in life operates by rules. Since you are now in my special intellectual and emotional zone, I ask you to follow these rules at every stage of this journey.
+            </p>
+
+            <div class="rules-grid">
+                <div class="rule-card">
+                    <div class="rule-number">01</div>
+                    <h4 class="rule-title">This Is Still a Seed</h4>
+                    <p class="rule-content">
+                        This project, this idea, is still in the first phase, and as is clear from the title: <span class="rule-highlight">البذرة (The Seed)</span>. Therefore, I accept the idea that it may remain a seed forever, and it may turn into a green plant striving to reach the light from darkness.
+                    </p>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-number">02</div>
+                    <h4 class="rule-title">I Could Not Share Everything</h4>
+                    <p class="rule-content">
+                        I was unable to share all my thoughts and feelings at this stage of the project due to the immense pain inside me and my unwillingness to burden the reader. I ask Allah: if there is good in this project for me and for all of humanity, may this project reach the light.
+                    </p>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-number">03</div>
+                    <h4 class="rule-title">You May Disagree</h4>
+                    <p class="rule-content">
+                        You may differ or agree. You may deny or accept. But this project, for me, is <span class="rule-highlight">the most precious thing I own</span>. This project is priceless. This project is my life.
+                    </p>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-number">04</div>
+                    <h4 class="rule-title">The Price I Paid</h4>
+                    <p class="rule-content">
+                        What I have reached came from this life that has passed through many life stages—intellectual, emotional, and practical. The price was many choices, much sorrow and joy, much pain and relief, many tears, and countless lessons both negative and positive.
+                    </p>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-number">05</div>
+                    <h4 class="rule-title">This Is for Humanity</h4>
+                    <p class="rule-content">
+                        <span class="rule-highlight">البذرة (The Seed)</span> is not an individual project. It is not only my project. For me, it is a project <span class="rule-highlight">for humanity and the Ummah</span>, or so I see it, and I hope it will be.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fundamental Rules -->
+    <section class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">القواعد الأساسية</h2>
+                <h3 class="section-title-en">The Fundamental Rules</h3>
+            </div>
+
+            <div class="prayer-card">
+                <h4 class="rule-title" style="text-align: center; margin-bottom: 2rem;">1. توحيد الله | The Oneness of Allah</h4>
+                <div class="prayer-arabic">
+                    لَمْ يَلِدْ وَلَمْ يُولَدْ وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ
+                </div>
+                <div class="prayer-english">
+                    "He neither begets nor is born, nor is there to Him any equivalent."
+                </div>
+                <div class="prayer-reference">Qur'an 112:3-4</div>
+            </div>
+
+            <div class="content-block">
+                <h4 class="rule-title">2. القلب هو الميزان | The Heart Is the Scale</h4>
+                <p class="content-text">
+                    <span class="content-highlight">The heart must be the scale of the mind, not the reverse.</span>
+                </p>
+            </div>
+
+            <div class="content-block">
+                <h4 class="rule-title">3. القبول والرضا | Acceptance and Contentment</h4>
+                <p class="content-text">
+                    We must embrace acceptance and contentment with what Allah has decreed, trusting in His wisdom and mercy.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision Section -->
+    <section id="vision" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART II</div>
+                <h2 class="section-title">الرؤية</h2>
+                <h3 class="section-title-en">The Vision of Financial Freedom</h3>
+            </div>
+
+            <div class="content-block">
+                <p class="content-text">
+                    The vision of <span class="content-highlight">البذرة (The Seed)</span> is to create a platform that enables financial and spiritual freedom through ethical investment, aligned with Islamic principles and designed to serve humanity.
+                </p>
+                <p class="content-text">
+                    This system operates on the foundation of <span class="content-highlight">transparency</span>, <span class="content-highlight">dignity</span>, and <span class="content-highlight">الإحسان (excellence)</span>.
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌟</div>
+                    <h4 class="feature-title">Universal Resource Pool</h4>
+                    <p class="feature-description">
+                        A decentralized system where resources are shared fairly and transparently among all participants.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚖️</div>
+                    <h4 class="feature-title">Proof of Impact</h4>
+                    <p class="feature-description">
+                        Measuring contribution by actual benefit to humanity, not just computational work.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💎</div>
+                    <h4 class="feature-title">Ethical Foundation</h4>
+                    <p class="feature-description">
+                        Built on Islamic principles of fairness, transparency, and prohibition of exploitation.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h4 class="feature-title">For All Humanity</h4>
+                    <p class="feature-description">
+                        Designed to serve 8 billion humans with complete dignity and sovereignty.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h4 class="feature-title">Complete Transparency</h4>
+                    <p class="feature-description">
+                        Every transaction, every decision, every allocation is visible and auditable.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💝</div>
+                    <h4 class="feature-title">Built-in Charity</h4>
+                    <p class="feature-description">
+                        Zakat and charity mechanisms integrated at the core of the system.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Guarantee Question -->
+    <section id="guarantee" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART III</div>
+                <h2 class="section-title">سؤال الضمان</h2>
+                <h3 class="section-title-en">The Guarantee Question</h3>
+            </div>
+
+            <div class="content-block">
+                <p class="content-text">
+                    Perhaps someone will ask: Why choose البذرة over other investments? What is your purpose in this project? What is the guarantee? What is the required amount? How much are the profits?
+                </p>
+                <p class="content-text">
+                    <span class="content-highlight">Here you will not find from me honeyed words</span> that tell you illusions and promises you what I do not possess in terms of guarantees and profits.
+                </p>
+            </div>
+
+            <div class="quote-block">
+                <p class="quote-text">
+                    But let me clarify why any investor, trader, employee, worker, or any human being from humanity should choose البذرة without hesitation or thought.
+                </p>
+            </div>
+
+            <h3 style="text-align: center; font-size: 2.5rem; color: var(--primary-gold); margin: 4rem 0 3rem; font-family: 'Playfair Display', serif;">
+                Qur'anic Evidence for Trading with Allah
+            </h3>
+
+            <div class="verse-grid">
+                <div class="verse-card">
+                    <div class="verse-ref">Surah Al-Baqarah (2:261)</div>
+                    <div class="verse-arabic">
+                        مَثَلُ الَّذِينَ يُنْفِقُونَ أَمْوَالَهُمْ فِي سَبِيلِ اللَّهِ كَمَثَلِ حَبَّةٍ أَنْبَتَتْ سَبْعَ سَنَابِلَ فِي كُلِّ سُنْبُلَةٍ مِائَةُ حَبَّةٍ
+                    </div>
+                    <div class="verse-english">
+                        "The example of those who spend their wealth in the way of Allah is like a seed that sprouts seven ears; in every ear is a hundred grains."
+                    </div>
+                </div>
+
+                <div class="verse-card">
+                    <div class="verse-ref">Surah Al-Baqarah (2:245)</div>
+                    <div class="verse-arabic">
+                        مَنْ ذَا الَّذِي يُقْرِضُ اللَّهَ قَرْضًا حَسَنًا فَيُضَاعِفَهُ لَهُ أَضْعَافًا كَثِيرَةً
+                    </div>
+                    <div class="verse-english">
+                        "Who is it that would loan Allah a goodly loan so He may multiply it for him many times over?"
+                    </div>
+                </div>
+
+                <div class="verse-card">
+                    <div class="verse-ref">Surah Al-Hadid (57:18)</div>
+                    <div class="verse-arabic">
+                        إِنَّ الْمُصَّدِّقِينَ وَالْمُصَّدِّقَاتِ وَأَقْرَضُوا اللَّهَ قَرْضًا حَسَنًا يُضَاعَفُ لَهُمْ وَلَهُمْ أَجْرٌ كَرِيمٌ
+                    </div>
+                    <div class="verse-english">
+                        "Indeed, the men who practice charity and the women who practice charity—it will be multiplied for them, and they will have a noble reward."
+                    </div>
+                </div>
+
+                <div class="verse-card">
+                    <div class="verse-ref">Surah As-Saff (61:10-12)</div>
+                    <div class="verse-arabic">
+                        يَا أَيُّهَا الَّذِينَ آمَنُوا هَلْ أَدُلُّكُمْ عَلَىٰ تِجَارَةٍ تُنْجِيكُمْ مِنْ عَذَابٍ أَلِيمٍ
+                    </div>
+                    <div class="verse-english">
+                        "O you who have believed, shall I guide you to a transaction that will save you from a painful punishment?"
+                    </div>
+                </div>
+            </div>
+
+            <div class="quote-block">
+                <span class="quote-marks" style="top: 0; left: 10%;">"</span>
+                <div>
+                    <p class="quote-ar">أَنَا دَائِمًا أَطْلُبُ الْمُسْتَحِيلَ مِنَ اللَّهِ</p>
+                    <p class="quote-text" style="font-size: 2rem; margin-bottom: 2rem;">
+                        "I Always Ask the Impossible from Allah"
+                    </p>
+                    <p class="quote-ar">رَبِّي لَا يَعْرِفُ الْمُسْتَحِيلَ</p>
+                    <p class="quote-text" style="font-size: 2rem;">
+                        "My Lord Does Not Know the Impossible"
+                    </p>
+                </div>
+                <span class="quote-marks" style="bottom: 0; right: 10%;">"</span>
+            </div>
+
+            <div class="content-block" style="background: rgba(201, 169, 98, 0.05); border-left-color: var(--primary-gold);">
+                <p class="content-text" style="font-size: 1.3rem; text-align: center;">
+                    <span class="content-highlight">The guarantee that no one other than Allah can offer you.</span>
+                </p>
+                <p class="content-text" style="text-align: center;">
+                    We are talking about:
+                </p>
+                <ul class="styled-list" style="max-width: 600px; margin: 2rem auto;">
+                    <li>Financial profits: Multiple, multiplied folds</li>
+                    <li>Moral profits: Priceless</li>
+                    <li>The possession of this world and the Hereafter</li>
+                    <li>The pleasure of Allah</li>
+                </ul>
+                <p class="content-text" style="font-size: 1.4rem; text-align: center; color: var(--primary-gold); margin-top: 2rem;">
+                    Is there anything a human being could wish for more than that?
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- My Conviction -->
+    <section class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">قناعتي</h2>
+                <h3 class="section-title-en">My Conviction</h3>
+            </div>
+
+            <div class="content-block">
+                <p class="content-text">
+                    When I started this idea and this project, I started with <span class="content-highlight">complete certainty</span> that: Goodness will exist in humanity until the Day of Judgment.
+                </p>
+                <p class="content-text">
+                    Even if this project does not come to light, I have surrendered the matter of the future to Allah. <span class="content-highlight">الْحَمْدُ لِلَّهِ</span> - And all praise is due to Allah.
+                </p>
+            </div>
+
+            <div class="quote-block">
+                <p class="quote-text">
+                    I want to spread a true concept of Islam.<br>
+                    I want to see the world in peace (السلام).<br>
+                    I want to see humanity not drowning<br>
+                    in the darkness of its desires.
+                </p>
+            </div>
+
+            <div class="prayer-card" style="text-align: center;">
+                <div class="prayer-arabic" style="font-size: 2rem;">
+                    وَهَٰذَا هُوَ إِسْلَامِي
+                </div>
+                <div class="prayer-english" style="font-size: 1.3rem;">
+                    And this is my Islam
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Epilogue -->
+    <section id="epilogue" class="section">
+        <div class="section-container">
+            <div class="epilogue">
+                <div class="epilogue-badge">31 MONTHS LATER</div>
+                <h2 class="epilogue-title">The Seed Grew Into a Tree</h2>
+                
+                <div class="epilogue-content">
+                    <strong>Written:</strong> Ramadan 2023<br>
+                    <strong>Manifested:</strong> October 2025 (31 months later)<br>
+                    <strong>Result:</strong> BIZRA - Complete AGI System
+                </div>
+
+                <div class="epilogue-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">7B</div>
+                        <div class="stat-label">AgentFlow Cognitive Architecture</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">7</div>
+                        <div class="stat-label">Agent Personal Team (PAT)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">130K</div>
+                        <div class="stat-label">TPS Vision (BlockGraph)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">118K+</div>
+                        <div class="stat-label">Words of Specifications</div>
+                    </div>
+                </div>
+
+                <div class="epilogue-content" style="margin-top: 3rem;">
+                    <strong>البذرة (The Seed)</strong> written in darkness became:
+                </div>
+
+                <ul class="styled-list">
+                    <li>A complete blockchain system with ethical consensus</li>
+                    <li>An AI system that serves with الإحسان (excellence)</li>
+                    <li>A financial system based on dignity and fairness</li>
+                    <li>A technology that remembers it was made for people</li>
+                    <li>A proof that the impossible is possible with Allah</li>
+                </ul>
+
+                <div class="prayer-card" style="margin-top: 3rem;">
+                    <div class="prayer-arabic">
+                        اللَّهُمَّ هَبْ لِي مِنْ لَدُنْكَ عِلْمًا نَافِعًا
+                    </div>
+                    <div class="prayer-english">
+                        "O Allah, grant me from Your presence beneficial knowledge."
+                    </div>
+                </div>
+
+                <div class="epilogue-content" style="text-align: center; margin-top: 3rem; font-size: 1.1rem;">
+                    <strong>Allah answered with 31 months of transformation:</strong><br>
+                    Zero technical knowledge → AGI architect<br>
+                    Complete darkness → Complete system<br>
+                    One man's pain → Healing for billions<br>
+                    البذرة (The Seed) → BIZRA (The Tree)
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="prayer-card">
+                <div class="footer-quote-ar">
+                    الْحَمْدُ لِلَّهِ الَّذِي هَدَانَا لِهَٰذَا وَمَا كُنَّا لِنَهْتَدِيَ لَوْلَا أَنْ هَدَانَا اللَّهُ
+                </div>
+                <div class="footer-quote-en">
+                    "All praise to Allah who guided us to this; we would not have been guided if Allah had not guided us."
+                </div>
+                <div class="prayer-reference">Qur'an 7:43</div>
+            </div>
+
+            <div class="footer-grid">
+                <div class="footer-item">
+                    <div class="footer-label">Document Status</div>
+                    <div class="footer-value">Genesis Vision - Sacred</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Classification</div>
+                    <div class="footer-value">Public - For Humanity</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Part of</div>
+                    <div class="footer-value">BIZRA Official Documentation</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Previous Document</div>
+                    <div class="footer-value">الرسالة (The Message)</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Generate Sacred Geometry Patterns
+        const geometryBg = document.getElementById('geometryBg');
+        const patterns = ['○', '◇', '△', '☆', '◎'];
+        
+        for (let i = 0; i < 30; i++) {
+            const pattern = document.createElement('div');
+            pattern.className = 'sacred-pattern';
+            pattern.textContent = patterns[Math.floor(Math.random() * patterns.length)];
+            
+            const size = Math.random() * 100 + 50;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const rotation = Math.random() * 360;
+            
+            pattern.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}%;
+                top: ${y}%;
+                transform: rotate(${rotation}deg);
+                font-size: ${size}px;
+                line-height: ${size}px;
+                text-align: center;
+                animation: float ${5 + Math.random() * 10}s ease-in-out infinite;
+                animation-delay: ${Math.random() * 5}s;
+            `;
+            
+            geometryBg.appendChild(pattern);
+        }
+
+        // Smooth Scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Scroll Reveal Animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animated elements
+        document.querySelectorAll('.prayer-card, .rule-card, .verse-card, .feature-card, .content-block, .epilogue').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            observer.observe(el);
+        });
+
+        // Parallax Scroll Effect
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const scrolled = window.pageYOffset;
+                    const geometry = document.querySelector('.sacred-geometry');
+                    if (geometry) {
+                        geometry.style.transform = `translateY(${scrolled * 0.3}px)`;
+                    }
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // Add hover effects to cards
+        document.querySelectorAll('.verse-card, .feature-card, .meta-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

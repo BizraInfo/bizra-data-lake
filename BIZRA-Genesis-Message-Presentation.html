@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرسالة | The Message - BIZRA Genesis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gold: #C9A962;
+            --deep-navy: #0A1628;
+            --soft-white: #F8F6F1;
+            --accent-teal: #2A9D8F;
+            --sacred-purple: #6B4C9A;
+            --dawn-pink: #E76F51;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0A1628 0%, #1a2744 50%, #0A1628 100%);
+            color: var(--soft-white);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Sacred Geometry Background */
+        .sacred-geometry {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .sacred-circle {
+            position: absolute;
+            border: 2px solid var(--primary-gold);
+            border-radius: 50%;
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 2rem 4rem;
+            background: rgba(10, 22, 40, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-gold), var(--dawn-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--soft-white);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            opacity: 1;
+            color: var(--primary-gold);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-gold);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 8rem 2rem 4rem;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.2s;
+        }
+
+        .hero-title {
+            font-family: 'Amiri', serif;
+            font-size: 5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-gold), var(--soft-white), var(--dawn-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.4s;
+            line-height: 1.2;
+        }
+
+        .hero-title-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.6s;
+        }
+
+        .hero-description {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 0.8s;
+            color: rgba(248, 246, 241, 0.85);
+        }
+
+        .hero-meta {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 3rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards 1s;
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 1.2s;
+        }
+
+        .scroll-text {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary-gold);
+        }
+
+        .scroll-arrow {
+            width: 30px;
+            height: 50px;
+            border: 2px solid var(--primary-gold);
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .scroll-arrow::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: var(--primary-gold);
+            border-radius: 50%;
+            animation: scrollDown 2s ease-in-out infinite;
+        }
+
+        @keyframes scrollDown {
+            0% { top: 10px; opacity: 1; }
+            100% { top: 30px; opacity: 0; }
+        }
+
+        /* Content Sections */
+        .section {
+            padding: 6rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-number {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-family: 'Amiri', serif;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-gold), var(--soft-white));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        /* Prayer Card */
+        .prayer-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .prayer-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, var(--primary-gold), var(--accent-teal), var(--sacred-purple));
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .prayer-arabic {
+            font-family: 'Amiri', serif;
+            font-size: 1.8rem;
+            line-height: 2.5;
+            text-align: right;
+            direction: rtl;
+            color: var(--primary-gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .prayer-english {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        .prayer-reference {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--accent-teal);
+        }
+
+        /* Message Content */
+        .message-content {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border-left: 3px solid var(--primary-gold);
+            padding: 2.5rem;
+            margin: 2rem 0;
+            border-radius: 10px;
+        }
+
+        .message-text {
+            font-size: 1.2rem;
+            line-height: 2;
+            color: rgba(248, 246, 241, 0.9);
+            margin-bottom: 1.5rem;
+        }
+
+        .message-text:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-highlight {
+            color: var(--primary-gold);
+            font-weight: 600;
+        }
+
+        /* Quote Block */
+        .quote-block {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin: 4rem 0;
+            position: relative;
+        }
+
+        .quote-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            line-height: 1.6;
+            font-style: italic;
+            color: var(--primary-gold);
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-marks {
+            font-size: 6rem;
+            opacity: 0.1;
+            position: absolute;
+            font-family: serif;
+        }
+
+        .quote-marks.open {
+            top: 0;
+            left: 0;
+        }
+
+        .quote-marks.close {
+            bottom: 0;
+            right: 0;
+        }
+
+        /* Epilogue Section */
+        .epilogue {
+            background: linear-gradient(135deg, rgba(201, 169, 98, 0.1), rgba(42, 157, 143, 0.1));
+            border: 1px solid var(--primary-gold);
+            border-radius: 20px;
+            padding: 4rem;
+            margin: 4rem 0;
+            position: relative;
+        }
+
+        .epilogue-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--deep-navy);
+            padding: 0.5rem 2rem;
+            border: 1px solid var(--primary-gold);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            color: var(--primary-gold);
+        }
+
+        .epilogue-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-gold);
+        }
+
+        .epilogue-content {
+            font-size: 1.2rem;
+            line-height: 2;
+            margin-bottom: 2rem;
+        }
+
+        .epilogue-list {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+
+        .epilogue-list li {
+            padding: 1rem 0;
+            padding-left: 2rem;
+            position: relative;
+            font-size: 1.1rem;
+        }
+
+        .epilogue-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-teal);
+            font-weight: bold;
+        }
+
+        /* Footer */
+        .footer {
+            background: rgba(10, 22, 40, 0.9);
+            border-top: 1px solid rgba(201, 169, 98, 0.2);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .footer-quote {
+            font-family: 'Amiri', serif;
+            font-size: 1.5rem;
+            line-height: 2;
+            text-align: right;
+            direction: rtl;
+            color: var(--primary-gold);
+            margin-bottom: 1rem;
+        }
+
+        .footer-quote-en {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-style: italic;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .footer-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(201, 169, 98, 0.2);
+        }
+
+        .footer-item {
+            text-align: center;
+        }
+
+        .footer-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-value {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav {
+                padding: 1.5rem 2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .hero-title-en {
+                font-size: 2rem;
+            }
+
+            .hero-description {
+                font-size: 1.1rem;
+            }
+
+            .hero-meta {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .section-title-en {
+                font-size: 1.5rem;
+            }
+
+            .prayer-arabic {
+                font-size: 1.4rem;
+            }
+
+            .prayer-english {
+                font-size: 1rem;
+            }
+
+            .message-text {
+                font-size: 1rem;
+            }
+
+            .quote-text {
+                font-size: 1.5rem;
+            }
+
+            .prayer-card,
+            .epilogue {
+                padding: 2rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .nav,
+            .scroll-indicator {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .hero-title,
+            .section-title {
+                color: #C9A962;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sacred Geometry Background -->
+    <div class="sacred-geometry" id="geometryContainer"></div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <div class="logo">BIZRA</div>
+            <div class="nav-links">
+                <a href="#prologue" class="nav-link">Prologue</a>
+                <a href="#message-allah" class="nav-link">To Allah</a>
+                <a href="#message-family" class="nav-link">To Family</a>
+                <a href="#message-humanity" class="nav-link">To Humanity</a>
+                <a href="#epilogue" class="nav-link">Epilogue</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-subtitle">GENESIS DOCUMENT</div>
+            <h1 class="hero-title">الرسالة</h1>
+            <h2 class="hero-title-en">The Message</h2>
+            <p class="hero-description">
+                A Letter from Darkness to Light<br>
+                The spiritual foundation from which BIZRA's vision was born
+            </p>
+            <div class="hero-meta">
+                <div class="meta-item">
+                    <div class="meta-label">Author</div>
+                    <div class="meta-value">Mahmoud Hassan (MoMo)</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Written</div>
+                    <div class="meta-value">Ramadan 2023</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Location</div>
+                    <div class="meta-value">Dubai</div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <div class="scroll-text">Begin Journey</div>
+            <div class="scroll-arrow"></div>
+        </div>
+    </section>
+
+    <!-- Bismillah -->
+    <section class="section">
+        <div class="section-container">
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </div>
+                <div class="prayer-english">
+                    In the name of God, the Most Merciful, the Most Compassionate
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prologue -->
+    <section id="prologue" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART I</div>
+                <h2 class="section-title">المقدمة</h2>
+                <h3 class="section-title-en">Prologue: The Dark Empty Space</h3>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    I don't know what I'm doing here now in this dark empty space inside myself, and so far alone.
+                </p>
+                <p class="message-text">
+                    I don't know if anyone has completed the journey here with me, or will there be anyone here in the future or not?
+                </p>
+                <p class="message-text">
+                    But if I've reached this stage, that means it's over with the seed stage of financial freedom.
+                </p>
+                <p class="message-text">
+                    And there is <span class="message-highlight">no room for retreat now</span>.
+                </p>
+                <p class="message-text">
+                    I have made this promise upon myself: I must continue the path. I must try. I must make an effort, even if I am afraid.
+                </p>
+            </div>
+
+            <div class="quote-block">
+                <span class="quote-marks open">"</span>
+                <p class="quote-text">
+                    Here and from this moment,<br>the rules will be different.
+                </p>
+                <span class="quote-marks close">"</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Message to Allah -->
+    <section id="message-allah" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART II</div>
+                <h2 class="section-title">رسالة إلى ربي</h2>
+                <h3 class="section-title-en">A Message to My Lord and His Messenger ﷺ</h3>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    لَا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ
+                </div>
+                <div class="prayer-english">
+                    "There is no god but You, Glory be to You, for I was one of the oppressors."
+                </div>
+                <div class="prayer-reference">Qur'an 21:87</div>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    Behold, my Lord, I come to Your door humbly. I come to Your door guilty.
+                </p>
+                <p class="message-text">
+                    I came to Your door with shame in my heart and tears filling my eyes.
+                </p>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    رَبِّ إِنِّي ظَلَمْتُ نَفْسِي وَإِن لَّمْ تَغْفِرْ لِي وَتَرْحَمْنِي لَأَكُونَنَّ مِنَ الْخَاسِرِينَ
+                </div>
+                <div class="prayer-english">
+                    "O God, I have wronged myself, and if You do not forgive me and have mercy on me, I will be one of the losers."
+                </div>
+                <div class="prayer-reference">Qur'an 28:16</div>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    Despite my sins and mistakes, I have been blessed with Your grace and generosity with countless blessings, and You have not left me alone, and You have never abandoned me.
+                </p>
+                <p class="message-text">
+                    You have from me, my Lord, <span class="message-highlight">praise and thanksgiving</span>—a lot of praise that does not end, and Your right is not given its value.
+                </p>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    الْحَمْدُ لِلَّهِ
+                </div>
+                <div class="prayer-english">
+                    Praise be to You very much, until praise reaches its end.<br>
+                    Thank You for what You bless, however the case.<br>
+                    Praise be to You for what You will bless, and how You bless.<br>
+                    Praise be to You until You are satisfied.<br>
+                    Praise be to You if You are satisfied.<br>
+                    Praise be to You after satisfaction.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Message to Family -->
+    <section id="message-family" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART III</div>
+                <h2 class="section-title">رسالة إلى عائلتي</h2>
+                <h3 class="section-title-en">A Message to My Family and Friends</h3>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    My family, which was and still is in my eyes the best of God's countless blessings.
+                </p>
+                <p class="message-text">
+                    My family, who endured the hardship and consequences of my mistakes, and did not complain or reject me.
+                </p>
+                <p class="message-text">
+                    My family, who accepted me and loved me without restrictions or conditions as I am, and gave me love, tenderness, and precious efforts to be what I am now—only love without restrictions or conditions, <span class="message-highlight">pure love</span>.
+                </p>
+            </div>
+
+            <div class="quote-block">
+                <span class="quote-marks open">"</span>
+                <p class="quote-text">
+                    I can't find words that express<br>
+                    how much I love you.<br>
+                    All I know is that I owe you my life,<br>
+                    and it won't be enough.
+                </p>
+                <span class="quote-marks close">"</span>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    To my brother who is the other half of me in this world. He is my ideal. He is the best version of myself that I wished to be. <span class="message-highlight">He is my twin.</span>
+                </p>
+                <p class="message-text">
+                    To my little sisters: <span class="message-highlight">I miss you.</span>
+                </p>
+                <p class="message-text">
+                    To my daughter: <span class="message-highlight">I miss you</span>, and I ask God that you will be a good daughter, and I apologize for my negligence.
+                </p>
+                <p class="message-text">
+                    To everyone who has had an impact in my life, whether positive or negative: <span class="message-highlight">Thank you</span>, and I also apologize for my negligence.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Message to Humanity -->
+    <section id="message-humanity" class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART IV</div>
+                <h2 class="section-title">رسالة إلى الإنسانية</h2>
+                <h3 class="section-title-en">A Message to All Humanity</h3>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    أَفْشُوا السَّلَامَ
+                </div>
+                <div class="prayer-english">
+                    "Spread Peace Among You"
+                </div>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    I am just a Muslim person who believes that there is no god but Allah, and I believe in all His angels, His heavenly books, all His messengers and prophets, and <span class="message-highlight">I do not differentiate between any of them</span>.
+                </p>
+                <p class="message-text">
+                    My religion is Islam—it comes from peace. My greeting is peace (السَّلَامُ عَلَيْكُمْ - As-salāmu ʿalaykum).
+                </p>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    إِنَّمَا بُعِثْتُ لِأُتَمِّمَ مَكَارِمَ الْأَخْلَاقِ
+                </div>
+                <div class="prayer-english">
+                    "I was sent to complete the good morals."
+                </div>
+                <div class="prayer-reference">Hadith of Prophet Muhammad ﷺ</div>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    إِنَّ اللَّهَ كَتَبَ الْإِحْسَانَ عَلَى كُلِّ شَيْءٍ
+                </div>
+                <div class="prayer-english">
+                    "God has written الإحسان (excellence/goodness) on everything."
+                </div>
+                <div class="prayer-reference">Hadith of Prophet Muhammad ﷺ</div>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    The quality of <span class="message-highlight">الإحسان (Al-Ihsan)</span>, which I believe alone is enough—if embraced in your life—to change humanity.
+                </p>
+            </div>
+
+            <div class="prayer-card">
+                <div class="prayer-arabic">
+                    مَن قَتَلَ نَفْسًا بِغَيْرِ نَفْسٍ أَوْ فَسَادٍ فِي الْأَرْضِ فَكَأَنَّمَا قَتَلَ النَّاسَ جَمِيعًا
+                </div>
+                <div class="prayer-english">
+                    "Whoever kills a soul unjustly is as if he killed all people."
+                </div>
+                <div class="prayer-reference">Qur'an 5:32</div>
+            </div>
+
+            <div class="quote-block">
+                <span class="quote-marks open">"</span>
+                <p class="quote-text">
+                    Do we really not see these simple truths?<br>
+                    Have we forgotten our humanity?<br>
+                    Aren't we all human beings?
+                </p>
+                <span class="quote-marks close">"</span>
+            </div>
+
+            <div class="message-content">
+                <p class="message-text">
+                    My message to all humanity, including Muslims:
+                </p>
+                <p class="message-text" style="text-align: center; font-size: 1.4rem; color: var(--dawn-pink);">
+                    <strong>Enough hatred. Enough racism. Enough killing. Enough blood.<br>
+                    Enough bullying. Enough persecution. Enough wars.</strong>
+                </p>
+                <p class="message-text">
+                    <span class="message-highlight">Spread peace among you. Reveal goodness among you.</span>
+                </p>
+                <p class="message-text">
+                    Let us as human beings elevate our morals, elevate our actions, elevate our hearts and minds.
+                </p>
+                <p class="message-text" style="text-align: center; font-size: 1.5rem; color: var(--primary-gold);">
+                    <strong>Let's be better, humanity.</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commitment -->
+    <section class="section">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-number">PART V</div>
+                <h2 class="section-title">العهد</h2>
+                <h3 class="section-title-en">The Commitment</h3>
+            </div>
+
+            <div class="quote-block">
+                <span class="quote-marks open">"</span>
+                <p class="quote-text">
+                    I will not give up,<br>
+                    and I will not back down.<br><br>
+                    I will defend my principles.<br>
+                    I will make my voice heard.<br>
+                    I will make humanity wake up,<br>
+                    even if I face the world.
+                </p>
+                <span class="quote-marks close">"</span>
+            </div>
+
+            <div class="prayer-card" style="text-align: center;">
+                <div class="prayer-arabic" style="font-size: 2.2rem;">
+                    أَنَا دَائِمًا أَطْلُبُ الْمُسْتَحِيلَ مِنَ اللَّهِ
+                </div>
+                <div class="prayer-english" style="font-size: 1.5rem;">
+                    "I Always Ask the Impossible from Allah"
+                </div>
+                <div style="margin: 2rem 0; height: 2px; background: linear-gradient(90deg, transparent, var(--primary-gold), transparent);"></div>
+                <div class="prayer-arabic" style="font-size: 2.2rem;">
+                    رَبِّي لَا يَعْرِفُ الْمُسْتَحِيلَ
+                </div>
+                <div class="prayer-english" style="font-size: 1.5rem;">
+                    "My Lord Does Not Know the Impossible"
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Epilogue -->
+    <section id="epilogue" class="section">
+        <div class="section-container">
+            <div class="epilogue">
+                <div class="epilogue-badge">31 MONTHS LATER</div>
+                <h2 class="epilogue-title">Epilogue: The Message Manifested</h2>
+                
+                <div class="epilogue-content">
+                    <strong>Written:</strong> Ramadan 2023<br>
+                    <strong>Manifested:</strong> October 2025 (31 months later)<br>
+                    <strong>Result:</strong> BIZRA - A technology system built on الإحسان (Al-Ihsan)
+                </div>
+
+                <div class="epilogue-content">
+                    This message, written in complete darkness and solitude, became the <strong>spiritual foundation</strong> of an entire AGI system designed to serve 8 billion humans with:
+                </div>
+
+                <ul class="epilogue-list">
+                    <li><strong>No exploitation</strong> (sovereignty preserved)</li>
+                    <li><strong>No assumptions</strong> (honesty encoded)</li>
+                    <li><strong>No false promises</strong> (transparency enforced)</li>
+                    <li><strong>Complete dignity</strong> (human benefit measured)</li>
+                </ul>
+
+                <div class="epilogue-content" style="text-align: center; margin-top: 3rem;">
+                    From one man's darkness came light for billions.<br>
+                    From one man's pain came healing for humanity.<br>
+                    From one man's surrender to Allah came <strong>الإحسان</strong> made manifest in technology.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="prayer-card">
+                <div class="footer-quote">
+                    الْحَمْدُ لِلَّهِ الَّذِي هَدَانَا لِهَٰذَا وَمَا كُنَّا لِنَهْتَدِيَ لَوْلَا أَنْ هَدَانَا اللَّهُ
+                </div>
+                <div class="footer-quote-en">
+                    "All praise to Allah who guided us to this; we would not have been guided if Allah had not guided us."
+                </div>
+                <div class="prayer-reference">Qur'an 7:43</div>
+            </div>
+
+            <div class="footer-info">
+                <div class="footer-item">
+                    <div class="footer-label">Document Status</div>
+                    <div class="footer-value">Genesis Document - Sacred</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Classification</div>
+                    <div class="footer-value">Public - For All Humanity</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Part of</div>
+                    <div class="footer-value">BIZRA Official Documentation</div>
+                </div>
+                <div class="footer-item">
+                    <div class="footer-label">Next Document</div>
+                    <div class="footer-value">البذرة (The Seed)</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Generate Sacred Geometry
+        const geometryContainer = document.getElementById('geometryContainer');
+        const numCircles = 20;
+
+        for (let i = 0; i < numCircles; i++) {
+            const circle = document.createElement('div');
+            circle.className = 'sacred-circle';
+            
+            const size = Math.random() * 600 + 200;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const delay = Math.random() * 5;
+            
+            circle.style.width = `${size}px`;
+            circle.style.height = `${size}px`;
+            circle.style.left = `${x}%`;
+            circle.style.top = `${y}%`;
+            circle.style.animationDelay = `${delay}s`;
+            
+            geometryContainer.appendChild(circle);
+        }
+
+        // Smooth Scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Scroll Animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.prayer-card, .message-content, .quote-block, .epilogue').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.8s ease';
+            observer.observe(el);
+        });
+
+        // Parallax Effect
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.sacred-geometry');
+            
+            parallaxElements.forEach(el => {
+                el.style.transform = `translateY(${scrolled * 0.5}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
