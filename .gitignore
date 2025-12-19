@@ -1,46 +1,189 @@
-# Rust build artifacts
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA .gitignore - Noise-Free Codebase Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RUST BUILD ARTIFACTS
+# ─────────────────────────────────────────────────────────────────────────────
 /target/
 **/*.rs.bk
 *.pdb
 Cargo.lock
 
-# IDE files
+# ─────────────────────────────────────────────────────────────────────────────
+# PYTHON ARTIFACTS
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.local
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# mypy / type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JAVASCRIPT / NODE
+# ─────────────────────────────────────────────────────────────────────────────
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE / EDITOR FILES
+# ─────────────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+*.code-workspace
 
-# OS files
+# ─────────────────────────────────────────────────────────────────────────────
+# OS FILES
+# ─────────────────────────────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Environment files
+# ─────────────────────────────────────────────────────────────────────────────
+# ENVIRONMENT / SECRETS
+# ─────────────────────────────────────────────────────────────────────────────
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.yaml
+secrets.json
 
-# Node dependencies
-**/node_modules/
-
-# Python cache
-__pycache__/
-
-# Log files
+# ─────────────────────────────────────────────────────────────────────────────
+# LOGS / TEMP FILES
+# ─────────────────────────────────────────────────────────────────────────────
 *.log
-
-# Temporary files
+logs/
 /tmp/
 *.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
 
-# Local/private datasets
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCKER
+# ─────────────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+.docker/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATABASES
+# ─────────────────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+pg_data/
+redis_data/
+neo4j_data/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BIZRA-SPECIFIC: LOCAL DATA (may be large or sensitive)
+# ─────────────────────────────────────────────────────────────────────────────
+# Private datasets
 /chat data sample/
+/chat_data_sample/
+
+# Data vault (local datasets, may be very large)
+/bizra_data_vault/
 
 # Evidence receipts (local, can be regenerated)
 /docs/evidence/receipts/
 
-# BIZRA data vault (local/private datasets; may be very large)
-/bizra_data_vault/
-
 # Refinery outputs (may include sensitive filenames/paths)
 BIZRA_KNOWLEDGE_MANIFEST.json
 BIZRA_KNOWLEDGE_LEDGER.jsonl
+
+# HyperGraphRAG outputs (large graph files)
+/evidence/bizra_hypergraph_*/
+/evidence/quran_hypergraph_test/
+
+# Model files (large)
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pkl
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEMP WORKING DIRECTORIES
+# ─────────────────────────────────────────────────────────────────────────────
+temp_*/
+.tmp_*/
+scratch/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KERNEL LOGS (auto-generated)
+# ─────────────────────────────────────────────────────────────────────────────
+.kernel_logs/
+.bizra-kernel/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ARCHIVE (old experiments, not for main branch)
+# ─────────────────────────────────────────────────────────────────────────────
+# Uncomment if you want to exclude archive from git:
+# /archive/

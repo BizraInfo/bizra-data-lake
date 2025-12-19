@@ -1,0 +1,832 @@
+# BIZRA Ontology v1.0.0 - The Secret Sauce
+# Formal knowledge representation binding SAPE, Ihsān, and 7-layer architecture
+# DNA Signature: 7-3-6-9-00
+
+version: 1
+semver: 1.0.0
+id: bizra_ontology_v1_0_0
+status: canonical
+dna_signature: "7-3-6-9-00"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NAMESPACES
+# ═══════════════════════════════════════════════════════════════════════════════
+namespaces:
+  bizra: "https://bizra.ai/ontology#"
+  ihsan: "https://bizra.ai/ihsan#"
+  sape: "https://bizra.ai/sape#"
+  owl: "http://www.w3.org/2002/07/owl#"
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+  skos: "http://www.w3.org/2004/02/skos/core#"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLASSES - 7-Layer Architecture Hierarchy
+# ═══════════════════════════════════════════════════════════════════════════════
+classes:
+  # Layer 0: Foundation (Meta-layer)
+  Thing:
+    label: "Thing"
+    description: "Root class - all BIZRA entities"
+    layer: 0
+    invariants:
+      - "Every instance must have a unique identifier"
+      - "Every instance must be traceable to a genesis block"
+
+  BizraEntity:
+    label: "BIZRA Entity"
+    description: "Base class for all BIZRA-specific concepts"
+    layer: 0
+    superclass: "bizra:Thing"
+    invariants:
+      - "Must align with at least one Ihsān dimension"
+
+  # Layer 1: Knowledge
+  KnowledgeAsset:
+    label: "Knowledge Asset"
+    description: "Any reified knowledge unit"
+    layer: 1
+    superclass: "bizra:BizraEntity"
+    sape_module: 1
+    ihsan_dimension: correctness
+    lexicon_term: "HouseOfWisdom"
+
+  Concept:
+    label: "Concept"
+    description: "Abstract idea or notion"
+    layer: 1
+    superclass: "bizra:KnowledgeAsset"
+    sape_module: 6
+    ihsan_dimension: correctness
+
+  Axiom:
+    label: "Axiom"
+    description: "Self-evident truth or foundational principle"
+    layer: 1
+    superclass: "bizra:KnowledgeAsset"
+    sape_module: 6
+    invariants:
+      - "Cannot be derived from other axioms"
+      - "Must be consistent with Genesis Block 0"
+
+  LexiconTerm:
+    label: "Lexicon Term"
+    description: "Canonical term from Lexicon Ledger"
+    layer: 1
+    superclass: "bizra:KnowledgeAsset"
+    lexicon_term: "LexiconReceipt"
+
+  # Layer 2: Compute
+  ComputeUnit:
+    label: "Compute Unit"
+    description: "Executable reasoning or processing unit"
+    layer: 2
+    superclass: "bizra:BizraEntity"
+    sape_module: 2
+    ihsan_dimension: efficiency
+
+  ReasoningMethod:
+    label: "Reasoning Method"
+    description: "One of the 5 GoT reasoning methods"
+    layer: 2
+    superclass: "bizra:ComputeUnit"
+    sape_module: 2
+    lexicon_term: "GoT"
+    disjoint_with:
+      - "bizra:KnowledgeAsset"
+
+  SAPEModule:
+    label: "SAPE Module"
+    description: "One of the 7 SAPE framework modules"
+    layer: 2
+    superclass: "bizra:ComputeUnit"
+    sape_module: 3
+
+  # Layer 3: Blockchain (Resilience)
+  BlockchainAsset:
+    label: "Blockchain Asset"
+    description: "Immutable on-chain entity"
+    layer: 3
+    superclass: "bizra:BizraEntity"
+    ihsan_dimension: auditability
+    lexicon_term: "GenesisSeal"
+
+  GenesisBlock:
+    label: "Genesis Block"
+    description: "Immutable origin block"
+    layer: 3
+    superclass: "bizra:BlockchainAsset"
+    invariants:
+      - "Only one Genesis Block 0 may exist"
+      - "Hash must be deterministic and reproducible"
+
+  Receipt:
+    label: "Receipt"
+    description: "Cryptographic evidence of action"
+    layer: 3
+    superclass: "bizra:BlockchainAsset"
+    lexicon_term: "LexiconReceipt"
+
+  # Layer 4: Resilience
+  ResilienceComponent:
+    label: "Resilience Component"
+    description: "Fault-tolerance and recovery mechanism"
+    layer: 4
+    superclass: "bizra:BizraEntity"
+    ihsan_dimension: robustness
+    sape_module: 4
+
+  ConsensusProtocol:
+    label: "Consensus Protocol"
+    description: "Byzantine fault-tolerant agreement"
+    layer: 4
+    superclass: "bizra:ResilienceComponent"
+    lexicon_term: "SAT"
+    invariants:
+      - "Requires n ≥ 3f+1 validators for f Byzantine faults"
+
+  EscalationProtocol:
+    label: "Escalation Protocol"
+    description: "Fail-closed escalation mechanism"
+    layer: 4
+    superclass: "bizra:ResilienceComponent"
+    lexicon_term: "FATE"
+
+  # Layer 5: Agentic
+  Agent:
+    label: "Agent"
+    description: "Autonomous acting entity"
+    layer: 5
+    superclass: "bizra:BizraEntity"
+    sape_module: 5
+    ihsan_dimension: user_benefit
+
+  Orchestrator:
+    label: "Orchestrator"
+    description: "Multi-agent coordination layer"
+    layer: 5
+    superclass: "bizra:Agent"
+    lexicon_term: "PAT"
+
+  Verifier:
+    label: "Verifier"
+    description: "Validation and verification agent"
+    layer: 5
+    superclass: "bizra:Agent"
+    lexicon_term: "SAT"
+
+  Tool:
+    label: "Tool"
+    description: "Executable capability"
+    layer: 5
+    superclass: "bizra:BizraEntity"
+    lexicon_term: "MCP"
+
+  # Layer 6: Economy
+  EconomicPrimitive:
+    label: "Economic Primitive"
+    description: "Value exchange mechanism"
+    layer: 6
+    superclass: "bizra:BizraEntity"
+    ihsan_dimension: adl_fairness
+
+  Token:
+    label: "Token"
+    description: "Fungible or non-fungible value unit"
+    layer: 6
+    superclass: "bizra:EconomicPrimitive"
+
+  Incentive:
+    label: "Incentive"
+    description: "Reward or penalty mechanism"
+    layer: 6
+    superclass: "bizra:EconomicPrimitive"
+
+  # Layer 7: DAO
+  GovernanceEntity:
+    label: "Governance Entity"
+    description: "Decision-making structure"
+    layer: 7
+    superclass: "bizra:BizraEntity"
+    ihsan_dimension: anti_centralization
+    lexicon_term: "Constitution"
+
+  Constitution:
+    label: "Constitution"
+    description: "Normative policy document"
+    layer: 7
+    superclass: "bizra:GovernanceEntity"
+    invariants:
+      - "Must be versioned and hashable"
+      - "Changes require multi-sig governance"
+
+  Proposal:
+    label: "Proposal"
+    description: "Governance change request"
+    layer: 7
+    superclass: "bizra:GovernanceEntity"
+
+  # Cross-cutting: Ihsān
+  IhsanDimension:
+    label: "Ihsān Dimension"
+    description: "One of the 8 excellence dimensions"
+    layer: 0
+    superclass: "bizra:Thing"
+    disjoint_with:
+      - "bizra:BizraEntity"
+
+  # Cross-cutting: SAPE
+  TensionPoint:
+    label: "Tension Point"
+    description: "Identified contradiction or conflict"
+    layer: 2
+    superclass: "bizra:ComputeUnit"
+    sape_module: 7
+    ihsan_dimension: safety
+
+  SymbolicAnchor:
+    label: "Symbolic Anchor"
+    description: "Grounded symbol for neural-symbolic bridge"
+    layer: 1
+    superclass: "bizra:KnowledgeAsset"
+    sape_module: 5
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RELATIONS - Object Properties
+# ═══════════════════════════════════════════════════════════════════════════════
+relations:
+  # Structural relations
+  partOf:
+    label: "part of"
+    description: "Mereological part-whole relation"
+    domain: "bizra:BizraEntity"
+    range: "bizra:BizraEntity"
+    characteristics: ["transitive", "asymmetric"]
+
+  hasPart:
+    label: "has part"
+    description: "Inverse of partOf"
+    domain: "bizra:BizraEntity"
+    range: "bizra:BizraEntity"
+    inverse_of: "bizra:partOf"
+    characteristics: ["transitive"]
+
+  dependsOn:
+    label: "depends on"
+    description: "Functional dependency"
+    domain: "bizra:BizraEntity"
+    range: "bizra:BizraEntity"
+    characteristics: ["transitive"]
+
+  # Layer relations
+  belongsToLayer:
+    label: "belongs to layer"
+    description: "Maps entity to architecture layer"
+    domain: "bizra:BizraEntity"
+    range: "xsd:integer"
+    characteristics: ["functional"]
+    cardinality:
+      exact: 1
+
+  # Ihsān relations
+  alignsWithDimension:
+    label: "aligns with dimension"
+    description: "Maps entity to Ihsān dimension"
+    domain: "bizra:BizraEntity"
+    range: "bizra:IhsanDimension"
+
+  hasIhsanScore:
+    label: "has Ihsān score"
+    description: "Computed Ihsān alignment score"
+    domain: "bizra:BizraEntity"
+    range: "xsd:float"
+    characteristics: ["functional"]
+
+  # SAPE relations
+  processedByModule:
+    label: "processed by module"
+    description: "Maps entity to SAPE module"
+    domain: "bizra:BizraEntity"
+    range: "bizra:SAPEModule"
+
+  elevatesTo:
+    label: "elevates to"
+    description: "SAPE elevation from instance to pattern to principle"
+    domain: "bizra:Concept"
+    range: "bizra:Concept"
+    characteristics: ["transitive", "asymmetric"]
+
+  groundsSymbol:
+    label: "grounds symbol"
+    description: "Neural-symbolic grounding relation"
+    domain: "bizra:Agent"
+    range: "bizra:SymbolicAnchor"
+
+  detectsTension:
+    label: "detects tension"
+    description: "Tension detection relation"
+    domain: "bizra:Agent"
+    range: "bizra:TensionPoint"
+
+  # Agentic relations
+  orchestrates:
+    label: "orchestrates"
+    description: "PAT orchestration of agents"
+    domain: "bizra:Orchestrator"
+    range: "bizra:Agent"
+
+  validates:
+    label: "validates"
+    description: "SAT validation of artifacts"
+    domain: "bizra:Verifier"
+    range: "bizra:BizraEntity"
+
+  invokesTool:
+    label: "invokes tool"
+    description: "MCP tool invocation"
+    domain: "bizra:Agent"
+    range: "bizra:Tool"
+
+  # Provenance relations
+  derivedFrom:
+    label: "derived from"
+    description: "Provenance derivation chain"
+    domain: "bizra:BizraEntity"
+    range: "bizra:BizraEntity"
+    characteristics: ["transitive", "asymmetric", "irreflexive"]
+
+  attestedBy:
+    label: "attested by"
+    description: "Receipt attestation"
+    domain: "bizra:BizraEntity"
+    range: "bizra:Receipt"
+
+  sealedIn:
+    label: "sealed in"
+    description: "Genesis sealing relation"
+    domain: "bizra:BizraEntity"
+    range: "bizra:GenesisBlock"
+
+  # Governance relations
+  governedBy:
+    label: "governed by"
+    description: "Constitutional governance"
+    domain: "bizra:BizraEntity"
+    range: "bizra:Constitution"
+
+  proposedChange:
+    label: "proposed change"
+    description: "Governance proposal relation"
+    domain: "bizra:Proposal"
+    range: "bizra:BizraEntity"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AXIOMS - Formal Constraints
+# ═══════════════════════════════════════════════════════════════════════════════
+axioms:
+  - id: "AX001"
+    type: subsumption
+    expression: "Agent SubClassOf (alignsWithDimension some IhsanDimension)"
+    natural_language: "Every Agent must align with at least one Ihsān dimension"
+    enforced_by: validator
+    severity: error
+
+  - id: "AX002"
+    type: cardinality
+    expression: "GenesisBlock and (id value 0) -> max 1"
+    natural_language: "Only one Genesis Block 0 may exist"
+    enforced_by: runtime
+    severity: error
+
+  - id: "AX003"
+    type: domain_range
+    expression: "validates Domain Verifier Range BizraEntity"
+    natural_language: "Only Verifiers can validate entities"
+    enforced_by: reasoner
+    severity: error
+
+  - id: "AX004"
+    type: closure
+    expression: "Receipt SubClassOf (attestedBy exactly 1 Receipt)"
+    natural_language: "Every Receipt must be self-attested exactly once"
+    enforced_by: validator
+    severity: error
+
+  - id: "AX005"
+    type: custom
+    expression: "ConsensusProtocol -> hasValidators min 5"
+    natural_language: "Byzantine consensus requires at least 5 validators (for f=1)"
+    enforced_by: runtime
+    severity: error
+
+  - id: "AX006"
+    type: disjointness
+    expression: "IhsanDimension DisjointWith BizraEntity"
+    natural_language: "Ihsān dimensions are meta-level, not regular entities"
+    enforced_by: reasoner
+    severity: error
+
+  - id: "AX007"
+    type: custom
+    expression: "SAPEModule hasModuleNumber value [1..7]"
+    natural_language: "SAPE has exactly 7 modules"
+    enforced_by: validator
+    severity: error
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE RULES - SWRL-style
+# ═══════════════════════════════════════════════════════════════════════════════
+inference_rules:
+  - id: "IR001"
+    antecedent:
+      - "?x rdf:type bizra:Agent"
+      - "?x bizra:validates ?y"
+      - "?y bizra:attestedBy ?r"
+    consequent:
+      - "?x bizra:hasAuditTrail ?r"
+    description: "Agents that validate attested entities have audit trails"
+
+  - id: "IR002"
+    antecedent:
+      - "?x rdf:type bizra:Concept"
+      - "?x bizra:elevatesTo ?y"
+      - "?y bizra:elevatesTo ?z"
+    consequent:
+      - "?x bizra:elevatesTo ?z"
+    description: "Elevation is transitive (instance → pattern → principle)"
+
+  - id: "IR003"
+    antecedent:
+      - "?a rdf:type bizra:Agent"
+      - "?a bizra:detectsTension ?t"
+      - "?t bizra:severity 'high'"
+    consequent:
+      - "?a bizra:mustEscalate ?t"
+    description: "High-severity tensions must be escalated (FATE)"
+
+  - id: "IR004"
+    antecedent:
+      - "?x bizra:sealedIn bizra:GenesisBlock0"
+      - "?x bizra:governedBy ?c"
+    consequent:
+      - "?x bizra:isImmutable true"
+    description: "Genesis-sealed governed entities are immutable"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INDIVIDUALS - Named Instances
+# ═══════════════════════════════════════════════════════════════════════════════
+individuals:
+  # Ihsān Dimensions (8)
+  Correctness:
+    type: "bizra:IhsanDimension"
+    label: "Correctness"
+    properties:
+      weight: 0.22
+      priority: 1
+
+  Safety:
+    type: "bizra:IhsanDimension"
+    label: "Safety"
+    properties:
+      weight: 0.22
+      priority: 2
+
+  UserBenefit:
+    type: "bizra:IhsanDimension"
+    label: "User Benefit"
+    properties:
+      weight: 0.14
+      priority: 3
+
+  Efficiency:
+    type: "bizra:IhsanDimension"
+    label: "Efficiency"
+    properties:
+      weight: 0.12
+      priority: 4
+
+  Auditability:
+    type: "bizra:IhsanDimension"
+    label: "Auditability"
+    properties:
+      weight: 0.12
+      priority: 5
+
+  AntiCentralization:
+    type: "bizra:IhsanDimension"
+    label: "Anti-Centralization"
+    properties:
+      weight: 0.08
+      priority: 6
+
+  Robustness:
+    type: "bizra:IhsanDimension"
+    label: "Robustness"
+    properties:
+      weight: 0.06
+      priority: 7
+
+  ADLFairness:
+    type: "bizra:IhsanDimension"
+    label: "ADL Fairness"
+    properties:
+      weight: 0.04
+      priority: 8
+
+  # SAPE Modules (7)
+  PatternRecognizer:
+    type: "bizra:SAPEModule"
+    label: "Pattern Recognizer"
+    properties:
+      module_number: 1
+
+  ContextualFramer:
+    type: "bizra:SAPEModule"
+    label: "Contextual Framer"
+    properties:
+      module_number: 2
+
+  StrategicPlanner:
+    type: "bizra:SAPEModule"
+    label: "Strategic Planner"
+    properties:
+      module_number: 3
+
+  AdaptiveExecutor:
+    type: "bizra:SAPEModule"
+    label: "Adaptive Executor"
+    properties:
+      module_number: 4
+
+  SymbolicHarness:
+    type: "bizra:SAPEModule"
+    label: "Symbolic Harness"
+    properties:
+      module_number: 5
+
+  AbstractionElevator:
+    type: "bizra:SAPEModule"
+    label: "Abstraction Elevator"
+    properties:
+      module_number: 6
+
+  TensionStudio:
+    type: "bizra:SAPEModule"
+    label: "Tension Studio"
+    properties:
+      module_number: 7
+
+  # Genesis Block
+  GenesisBlock0:
+    type: "bizra:GenesisBlock"
+    label: "Genesis Block 0"
+    properties:
+      block_number: 0
+      is_immutable: true
+      sha256: "genesis_block_0_hash_placeholder"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EXTRACTED INDIVIDUALS (from chat data analysis 2025-12-19)
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  # Reasoning Architecture
+  HRM_MoE_Engine:
+    type: "bizra:ComputeUnit"
+    label: "Hierarchical Reasoning Mixture-of-Experts"
+    properties:
+      tier_1_latency_ms: 50
+      tier_2_latency_ms: 200
+      tier_3_latency_ms: 500
+      tier_4_latency_ms: 2000
+    lexicon_term: "HRM_MoE"
+
+  # Task Decomposition
+  HTDAG_Structure:
+    type: "bizra:ComputeUnit"
+    label: "Hierarchical Task DAG"
+    properties:
+      enables_parallel_execution: true
+      supports_topological_sort: true
+    lexicon_term: "HTDAG"
+
+  # Safety Protocols
+  TMP_Protocol:
+    type: "bizra:ResilienceComponent"
+    label: "Temporal Measurement Protocol"
+    properties:
+      version: "0.2"
+      components: ["SCM", "CausalDrag", "LeverageThreshold", "CrownVerifier"]
+    lexicon_term: "TMP"
+
+  SCM_Metric:
+    type: "bizra:ComputeUnit"
+    label: "Structured Cognitive Metric"
+    properties:
+      component_count: 5
+      components: ["PatternDensity", "EvolutionarySignals", "ProofOfImpact", 
+                   "BehavioralAlignment", "AestheticCoherence"]
+    lexicon_term: "SCM"
+
+  CrownVerifier_Gate:
+    type: "bizra:ResilienceComponent"
+    label: "Crown Verifier Gate"
+    properties:
+      algorithm: "Ed25519"
+      purpose: "RSI deployment approval"
+    lexicon_term: "CrownVerifier"
+
+  CausalDrag_Metric:
+    type: "bizra:ComputeUnit"
+    label: "Causal Drag (Ω)"
+    properties:
+      symbol: "Ω"
+      purpose: "structural risk quantification"
+    lexicon_term: "CausalDrag"
+
+  # Ledger Architecture
+  CausalFabric_Ledger:
+    type: "bizra:BlockchainAsset"
+    label: "Causal Fabric"
+    properties:
+      guarantees: ["happened-before ordering", "temporal causality"]
+    lexicon_term: "CausalFabric"
+
+  BlockGraph_Ledger:
+    type: "bizra:BlockchainAsset"
+    label: "Block Graph / BlockTree"
+    properties:
+      structure: "hybrid DAG-blockchain"
+      enables_parallel_blocks: true
+    lexicon_term: "BlockGraph"
+
+  # Token Economy
+  SEED_Token:
+    type: "bizra:Token"
+    label: "SEED Token"
+    properties:
+      token_type: "utility"
+      stability: "pegged"
+    lexicon_term: "SEEDToken"
+
+  BLOOM_Token:
+    type: "bizra:Token"
+    label: "BLOOM Token"
+    properties:
+      token_type: "impact"
+      appreciates_with: "PoI contributions"
+    lexicon_term: "BLOOMToken"
+
+  # Network Genesis
+  Node0_Genesis:
+    type: "bizra:GovernanceEntity"
+    label: "Node Zero"
+    properties:
+      is_genesis_node: true
+      network_bootstrap: true
+    invariants:
+      - "Only one Node0 may exist per network"
+    lexicon_term: "Node0"
+
+  # Consensus Mechanism
+  PoI_Consensus:
+    type: "bizra:ConsensusProtocol"
+    label: "Proof-of-Impact"
+    properties:
+      measures: "value creation"
+      alternative_to: ["PoW", "PoS"]
+    lexicon_term: "PoI"
+
+  # Agent Architecture
+  ReflectorAgent_Instance:
+    type: "bizra:Agent"
+    label: "Reflector Agent"
+    properties:
+      role: "learning synthesizer"
+      layer: "cognitive"
+    lexicon_term: "ReflectorAgent"
+
+  HostAgent_Instance:
+    type: "bizra:Orchestrator"
+    label: "Host Agent"
+    properties:
+      role: "primary coordinator"
+      manages: "HTDAG execution"
+    lexicon_term: "HostAgent"
+
+  # Dual-Agentic System
+  DualAgentic_Architecture:
+    type: "bizra:GovernanceEntity"
+    label: "Dual-Agentic Architecture"
+    properties:
+      pat_agent_count: 7
+      sat_validator_count: 5
+    lexicon_term: "DualAgentic"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IHSĀN ALIGNMENT MAPPING
+# ═══════════════════════════════════════════════════════════════════════════════
+ihsan_alignment:
+  constitution_ref: "constitution/ihsan_v1.yaml"
+  dimensions:
+    correctness:
+      weight: 0.22
+      primary_classes:
+        - "bizra:KnowledgeAsset"
+        - "bizra:Concept"
+        - "bizra:Axiom"
+      governing_relations:
+        - "bizra:derivedFrom"
+        - "bizra:validates"
+
+    safety:
+      weight: 0.22
+      primary_classes:
+        - "bizra:TensionPoint"
+        - "bizra:EscalationProtocol"
+      governing_relations:
+        - "bizra:detectsTension"
+        - "bizra:mustEscalate"
+
+    user_benefit:
+      weight: 0.14
+      primary_classes:
+        - "bizra:Agent"
+        - "bizra:Tool"
+      governing_relations:
+        - "bizra:invokesTool"
+        - "bizra:orchestrates"
+
+    efficiency:
+      weight: 0.12
+      primary_classes:
+        - "bizra:ComputeUnit"
+        - "bizra:ReasoningMethod"
+      governing_relations:
+        - "bizra:processedByModule"
+
+    auditability:
+      weight: 0.12
+      primary_classes:
+        - "bizra:Receipt"
+        - "bizra:BlockchainAsset"
+      governing_relations:
+        - "bizra:attestedBy"
+        - "bizra:sealedIn"
+
+    anti_centralization:
+      weight: 0.08
+      primary_classes:
+        - "bizra:GovernanceEntity"
+        - "bizra:Constitution"
+        - "bizra:Proposal"
+      governing_relations:
+        - "bizra:governedBy"
+        - "bizra:proposedChange"
+
+    robustness:
+      weight: 0.06
+      primary_classes:
+        - "bizra:ResilienceComponent"
+        - "bizra:ConsensusProtocol"
+      governing_relations:
+        - "bizra:dependsOn"
+
+    adl_fairness:
+      weight: 0.04
+      primary_classes:
+        - "bizra:EconomicPrimitive"
+        - "bizra:Token"
+        - "bizra:Incentive"
+      governing_relations: []
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEXICON BINDING
+# ═══════════════════════════════════════════════════════════════════════════════
+lexicon_binding:
+  lexicon_id: "bizra_lexicon_v1_0_1"
+  term_mappings:
+    Agent: "ACE"
+    Tool: "MCP"
+    Orchestrator: "PAT"
+    Verifier: "SAT"
+    EscalationProtocol: "FATE"
+    KnowledgeAsset: "HouseOfWisdom"
+    ReasoningMethod: "GoT"
+    Constitution: "Constitution"
+    Receipt: "LexiconReceipt"
+    GenesisBlock: "GenesisSeal"
+    # Extracted mappings (2025-12-19)
+    HRM_MoE_Engine: "HRM_MoE"
+    HTDAG_Structure: "HTDAG"
+    TMP_Protocol: "TMP"
+    SCM_Metric: "SCM"
+    CrownVerifier_Gate: "CrownVerifier"
+    CausalDrag_Metric: "CausalDrag"
+    CausalFabric_Ledger: "CausalFabric"
+    BlockGraph_Ledger: "BlockGraph"
+    SEED_Token: "SEEDToken"
+    BLOOM_Token: "BLOOMToken"
+    Node0_Genesis: "Node0"
+    PoI_Consensus: "PoI"
+    ReflectorAgent_Instance: "ReflectorAgent"
+    HostAgent_Instance: "HostAgent"
+    DualAgentic_Architecture: "DualAgentic"

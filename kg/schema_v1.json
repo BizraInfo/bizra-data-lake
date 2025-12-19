@@ -1,0 +1,246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bizra.io/schemas/kg_schema_v1.json",
+  "title": "BIZRA Knowledge Graph Schema v1",
+  "description": "Typed nodes, edges, and mandatory provenance for the Knowledge Substrate",
+  "version": "1.0.0",
+  "definitions": {
+    "NodeType": {
+      "type": "string",
+      "enum": [
+        "CONCEPT",
+        "PROTOCOL",
+        "MODULE",
+        "AGENT",
+        "METRIC",
+        "TOKEN",
+        "DOCUMENT",
+        "CODE_ARTIFACT",
+        "VERSE",
+        "POLICY",
+        "RECEIPT",
+        "EVENT"
+      ],
+      "description": "Canonical node types in the knowledge graph"
+    },
+    "EdgeType": {
+      "type": "string",
+      "enum": [
+        "DEFINES",
+        "DEPENDS_ON",
+        "VERIFIES",
+        "RISKS",
+        "MEASURES",
+        "REWARDS",
+        "IMPLEMENTS",
+        "EXTENDS",
+        "CONTRADICTS",
+        "SUPERSEDES",
+        "CITES",
+        "SEMANTIC_SIMILAR",
+        "TEMPORAL_FOLLOWS",
+        "CAUSAL_CAUSES",
+        "PART_OF"
+      ],
+      "description": "Canonical edge types with semantic meaning"
+    },
+    "Provenance": {
+      "type": "object",
+      "required": ["source_doc", "timestamp", "hash"],
+      "properties": {
+        "source_doc": {
+          "type": "string",
+          "description": "Document ID or file path that originated this fact"
+        },
+        "source_span": {
+          "type": "object",
+          "properties": {
+            "start_line": { "type": "integer" },
+            "end_line": { "type": "integer" },
+            "start_char": { "type": "integer" },
+            "end_char": { "type": "integer" }
+          },
+          "description": "Optional precise location within source document"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO8601 timestamp when this fact was extracted"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model/extractor that produced this fact (null if human)"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA256 hash of the source content at extraction time"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Extraction confidence score"
+        },
+        "lexicon_version": {
+          "type": "string",
+          "description": "Lexicon version used to resolve entity names"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Node": {
+      "type": "object",
+      "required": ["id", "type", "label", "provenance"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Globally unique node identifier"
+        },
+        "type": {
+          "$ref": "#/definitions/NodeType"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Human-readable label"
+        },
+        "canonical_name": {
+          "type": "string",
+          "description": "Lexicon-resolved canonical name (must exist in lexicon_v*.yaml)"
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alternative names that resolve to this node"
+        },
+        "embedding": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "Vector embedding (dimension depends on model)"
+        },
+        "embedding_model": {
+          "type": "string",
+          "description": "Model used to generate embedding"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Type-specific properties"
+        },
+        "provenance": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "truth_label": {
+          "type": "string",
+          "enum": ["VERIFIED", "MEASURED", "TARGET", "DERIVED", "UNVERIFIED"],
+          "default": "UNVERIFIED"
+        },
+        "ihsan_tier": {
+          "type": "string",
+          "enum": ["GOLD", "SILVER", "BRONZE", "UNRATED"],
+          "default": "UNRATED"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Edge": {
+      "type": "object",
+      "required": ["id", "type", "source_id", "target_id", "provenance"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "type": {
+          "$ref": "#/definitions/EdgeType"
+        },
+        "source_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Source node UUID (must exist in nodes table)"
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Target node UUID (must exist in nodes table)"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1.0,
+          "description": "Edge strength/confidence"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Edge-specific metadata"
+        },
+        "provenance": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "HyperEdge": {
+      "type": "object",
+      "required": ["id", "node_ids", "provenance"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "node_ids": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" },
+          "minItems": 2,
+          "description": "Nodes connected by this hyperedge"
+        },
+        "label": {
+          "type": "string",
+          "description": "Semantic label for the hyperedge"
+        },
+        "knowledge_segment": {
+          "type": "string",
+          "description": "The knowledge chunk this hyperedge represents"
+        },
+        "embedding": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "embedding_model": {
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/definitions/Provenance"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Edge" }
+    },
+    "hyperedges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/HyperEdge" }
+    }
+  },
+  "validation_rules": {
+    "no_orphan_edges": "Every edge source_id and target_id must reference an existing node",
+    "lexicon_binding": "Every node.canonical_name must exist in active lexicon version",
+    "provenance_required": "No node or edge may be created without provenance",
+    "hash_integrity": "provenance.hash must match sha256(source_content)"
+  }
+}

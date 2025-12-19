@@ -18,6 +18,7 @@ pub mod sape;
 pub mod sat;
 pub mod synapse;
 pub mod types;
+pub mod vectors;
 pub mod wisdom;
 
 use bridge::BridgeCoordinator;

@@ -395,6 +395,7 @@ impl Default for ReceiptEmitter {
 mod tests {
     use super::*;
     use crate::fate::FATECoordinator;
+    use std::collections::HashMap;
 
     #[test]
     fn test_rejection_receipt_creation() {

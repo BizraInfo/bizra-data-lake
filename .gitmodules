@@ -1,0 +1,6 @@
+[submodule "HyperGraphRAG"]
+	path = HyperGraphRAG
+	url = https://github.com/LHRLAB/HyperGraphRAG.git
+[submodule "bizra-genesis-node"]
+	path = bizra-genesis-node
+	url = https://github.com/BizraInfo/bizra-genesis-node.git

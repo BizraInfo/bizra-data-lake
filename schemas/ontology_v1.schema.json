@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/ontology_v1.schema.json",
+  "title": "BIZRA Ontology Schema (v1)",
+  "description": "Formal ontology schema for BIZRA knowledge representation - the 'secret sauce' binding concepts, relations, and axioms",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "semver",
+    "id",
+    "status",
+    "dna_signature",
+    "namespaces",
+    "classes",
+    "relations",
+    "axioms",
+    "ihsan_alignment"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version counter"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^bizra_ontology_v[0-9]+_[0-9]+_[0-9]+$",
+      "description": "Unique ontology identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "canonical", "sealed", "deprecated"],
+      "description": "Lifecycle status of the ontology"
+    },
+    "dna_signature": {
+      "type": "string",
+      "pattern": "^[0-9]+-[0-9]+-[0-9]+-[0-9]+-[0-9]+$",
+      "description": "SAPE DNA signature (modules-passes-checks-probes-version)",
+      "examples": ["7-3-6-9-00"]
+    },
+    "namespaces": {
+      "type": "object",
+      "description": "Namespace prefixes for URIs",
+      "additionalProperties": {
+        "type": "string",
+        "format": "uri"
+      },
+      "required": ["bizra", "ihsan", "sape", "owl", "rdfs"],
+      "properties": {
+        "bizra": { "type": "string", "const": "https://bizra.ai/ontology#" },
+        "ihsan": { "type": "string", "const": "https://bizra.ai/ihsan#" },
+        "sape": { "type": "string", "const": "https://bizra.ai/sape#" },
+        "owl": { "type": "string", "const": "http://www.w3.org/2002/07/owl#" },
+        "rdfs": { "type": "string", "const": "http://www.w3.org/2000/01/rdf-schema#" }
+      }
+    },
+    "classes": {
+      "type": "object",
+      "description": "Ontology classes (concepts)",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/class" }
+    },
+    "relations": {
+      "type": "object",
+      "description": "Ontology relations (object properties)",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/relation" }
+    },
+    "axioms": {
+      "type": "array",
+      "description": "Ontology axioms (constraints and rules)",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/axiom" }
+    },
+    "inference_rules": {
+      "type": "array",
+      "description": "SWRL-style inference rules",
+      "items": { "$ref": "#/$defs/inference_rule" }
+    },
+    "individuals": {
+      "type": "object",
+      "description": "Named individuals (instances)",
+      "additionalProperties": { "$ref": "#/$defs/individual" }
+    },
+    "ihsan_alignment": {
+      "type": "object",
+      "description": "Mapping of ontology elements to Ihsān dimensions",
+      "$ref": "#/$defs/ihsan_mapping"
+    },
+    "lexicon_binding": {
+      "type": "object",
+      "description": "Binding to Lexicon Ledger terms",
+      "properties": {
+        "lexicon_id": { "type": "string" },
+        "lexicon_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "term_mappings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "description": "Maps ontology class/relation to lexicon term"
+          }
+        }
+      },
+      "required": ["lexicon_id"]
+    }
+  },
+  "$defs": {
+    "class": {
+      "type": "object",
+      "description": "Ontology class definition",
+      "additionalProperties": false,
+      "required": ["label", "layer"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable label"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7,
+          "description": "BIZRA architecture layer (0=Foundation, 1=Knowledge, ..., 7=DAO)"
+        },
+        "superclass": {
+          "type": "string",
+          "description": "Parent class URI"
+        },
+        "disjoint_with": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Disjoint class URIs"
+        },
+        "equivalent_to": {
+          "type": "string",
+          "description": "Equivalent class expression"
+        },
+        "sape_module": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7,
+          "description": "Associated SAPE module (1-7)"
+        },
+        "ihsan_dimension": {
+          "type": "string",
+          "enum": ["correctness", "safety", "user_benefit", "efficiency", "auditability", "anti_centralization", "robustness", "adl_fairness"],
+          "description": "Primary Ihsān dimension alignment"
+        },
+        "lexicon_term": {
+          "type": "string",
+          "description": "Reference to Lexicon Ledger term"
+        },
+        "invariants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Class invariant constraints"
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "description": "Ontology relation (object property)",
+      "additionalProperties": false,
+      "required": ["label", "domain", "range"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable label"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain class URI"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range class URI"
+        },
+        "inverse_of": {
+          "type": "string",
+          "description": "Inverse relation URI"
+        },
+        "characteristics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["functional", "inverse_functional", "transitive", "symmetric", "asymmetric", "reflexive", "irreflexive"]
+          },
+          "description": "OWL property characteristics"
+        },
+        "subproperty_of": {
+          "type": "string",
+          "description": "Parent property URI"
+        },
+        "cardinality": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 1 },
+            "exact": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "axiom": {
+      "type": "object",
+      "description": "Ontology axiom (constraint)",
+      "additionalProperties": false,
+      "required": ["id", "type", "expression"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^AX[0-9]{3}$",
+          "description": "Axiom identifier"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["subsumption", "disjointness", "equivalence", "cardinality", "domain_range", "closure", "custom"],
+          "description": "Axiom type"
+        },
+        "expression": {
+          "type": "string",
+          "description": "Formal expression (Manchester OWL syntax)"
+        },
+        "natural_language": {
+          "type": "string",
+          "description": "Human-readable explanation"
+        },
+        "enforced_by": {
+          "type": "string",
+          "enum": ["reasoner", "validator", "runtime", "manual"],
+          "description": "Enforcement mechanism"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning", "info"],
+          "description": "Violation severity"
+        }
+      }
+    },
+    "inference_rule": {
+      "type": "object",
+      "description": "SWRL-style inference rule",
+      "additionalProperties": false,
+      "required": ["id", "antecedent", "consequent"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^IR[0-9]{3}$",
+          "description": "Rule identifier"
+        },
+        "antecedent": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rule conditions (body)"
+        },
+        "consequent": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rule conclusions (head)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Natural language explanation"
+        }
+      }
+    },
+    "individual": {
+      "type": "object",
+      "description": "Named individual (instance)",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Class URI this individual belongs to"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Property values",
+          "additionalProperties": true
+        },
+        "same_as": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Same individual URIs"
+        }
+      }
+    },
+    "ihsan_mapping": {
+      "type": "object",
+      "description": "Ihsān dimension alignment mapping",
+      "additionalProperties": false,
+      "required": ["dimensions"],
+      "properties": {
+        "constitution_ref": {
+          "type": "string",
+          "description": "Reference to Ihsān constitution file"
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["correctness", "safety", "user_benefit", "efficiency", "auditability", "anti_centralization", "robustness", "adl_fairness"],
+          "properties": {
+            "correctness": { "$ref": "#/$defs/dimension_mapping" },
+            "safety": { "$ref": "#/$defs/dimension_mapping" },
+            "user_benefit": { "$ref": "#/$defs/dimension_mapping" },
+            "efficiency": { "$ref": "#/$defs/dimension_mapping" },
+            "auditability": { "$ref": "#/$defs/dimension_mapping" },
+            "anti_centralization": { "$ref": "#/$defs/dimension_mapping" },
+            "robustness": { "$ref": "#/$defs/dimension_mapping" },
+            "adl_fairness": { "$ref": "#/$defs/dimension_mapping" }
+          }
+        }
+      }
+    },
+    "dimension_mapping": {
+      "type": "object",
+      "description": "Mapping for a single Ihsān dimension",
+      "properties": {
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Constitutional weight"
+        },
+        "primary_classes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Classes primarily aligned with this dimension"
+        },
+        "governing_relations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relations that enforce this dimension"
+        }
+      }
+    }
+  }
+}

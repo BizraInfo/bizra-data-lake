@@ -302,7 +302,12 @@ SAT consensus requires 3/5 approvals:
 consensus = (approvals >= 3) && (total_validators == 5)
 ```
 
-Tolerates up to 2 Byzantine faults.
+Tolerates up to **1 Byzantine fault** (correct BFT bound: n ≥ 3f + 1, so f ≤ 1 for n = 5).
+
+> **Note:** Previous documentation claimed f = 2; this was mathematically incorrect.
+> With 5 validators requiring 3 approvals, the system remains safe if at most 1 validator
+> is Byzantine (malicious). If 2 validators are Byzantine, they could collude with 1
+> honest validator to reach the 3-approval threshold, violating safety.
 
 ## Performance Characteristics
 

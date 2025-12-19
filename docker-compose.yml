@@ -1,4 +1,30 @@
 services:
+  # ══════════════════════════════════════════════════════════════════════════════
+  # KNOWLEDGE SUBSTRATE (P1.11) — Postgres + pgvector
+  # ══════════════════════════════════════════════════════════════════════════════
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bizra}
+      POSTGRES_USER: ${POSTGRES_USER:-bizra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bizra_dev_password}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizra -d bizra"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   synapse:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -260,6 +286,7 @@ services:
         max-file: "3"
 
 volumes:
+  pgdata:
   synapse_data:
   wisdom_data:
   wisdom_logs:
