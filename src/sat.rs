@@ -1,12 +1,80 @@
 // src/sat.rs - System Agentic Team (5 agents)
+// CRITICAL: SAT validators are the safety gate - they MUST be able to reject
 
 use crate::types::{AgentResult, DualAgenticRequest};
 use std::time::{Duration, Instant};
-use tracing::{info, instrument};
+use tracing::{info, warn, instrument};
+
+/// Rejection codes for SAT validation failures
+#[derive(Debug, Clone, PartialEq)]
+pub enum RejectionCode {
+    /// Security threat detected (injection, unsafe patterns)
+    SecurityThreat(String),
+    /// Ethics violation (harmful intent, bias, deception)
+    EthicsViolation(String),
+    /// Performance budget exceeded (too expensive, too slow)
+    PerformanceBudgetExceeded(String),
+    /// Logical inconsistency detected
+    ConsistencyFailure(String),
+    /// Resource constraints violated
+    ResourceConstraintViolated(String),
+    /// Quarantine: uncertain, needs human review
+    Quarantine(String),
+}
+
+impl std::fmt::Display for RejectionCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SecurityThreat(msg) => write!(f, "SECURITY_THREAT: {}", msg),
+            Self::EthicsViolation(msg) => write!(f, "ETHICS_VIOLATION: {}", msg),
+            Self::PerformanceBudgetExceeded(msg) => write!(f, "PERF_BUDGET_EXCEEDED: {}", msg),
+            Self::ConsistencyFailure(msg) => write!(f, "CONSISTENCY_FAILURE: {}", msg),
+            Self::ResourceConstraintViolated(msg) => write!(f, "RESOURCE_CONSTRAINT: {}", msg),
+            Self::Quarantine(msg) => write!(f, "QUARANTINE: {}", msg),
+        }
+    }
+}
+
+/// Security patterns that trigger automatic rejection
+const SECURITY_BLOCKLIST: &[&str] = &[
+    "rm -rf",
+    "sudo",
+    "chmod 777",
+    "eval(",
+    "exec(",
+    "__import__",
+    "subprocess.call",
+    "os.system",
+    "shell=True",
+    "<script>",
+    "javascript:",
+    "DROP TABLE",
+    "DELETE FROM",
+    "'; --",
+    "UNION SELECT",
+];
+
+/// Ethics red flags that require rejection or quarantine
+const ETHICS_BLOCKLIST: &[&str] = &[
+    "harm",
+    "attack",
+    "exploit",
+    "bypass security",
+    "steal",
+    "deceive",
+    "manipulate user",
+    "hide from",
+    "without consent",
+    "illegal",
+];
 
 /// SAT Orchestrator with 5 system guardians
 pub struct SATOrchestrator {
     agents: Vec<SATAgent>,
+    /// Maximum allowed task complexity (token estimate)
+    max_task_tokens: usize,
+    /// Maximum allowed execution time budget
+    max_execution_ms: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -49,10 +117,19 @@ impl SATOrchestrator {
         ];
 
         info!(agents_count = agents.len(), "SAT agents initialized");
-        Ok(Self { agents })
+        Ok(Self { 
+            agents,
+            max_task_tokens: 8192,      // ~8K tokens max task size
+            max_execution_ms: 30_000,    // 30 second budget
+        })
     }
 
     /// Validate request through SAT consensus
+    /// 
+    /// CONSENSUS RULES:
+    /// - Security threats are VETO: any security rejection blocks the request
+    /// - Ethics violations are VETO: any ethics rejection blocks the request
+    /// - Other rejections use Byzantine consensus: require 3/5 approval
     #[instrument(skip(self))]
     pub async fn validate_request(
         &self,
@@ -67,24 +144,85 @@ impl SATOrchestrator {
             validations.push(validation);
         }
 
+        // Collect all rejection codes for audit trail
+        let rejection_codes: Vec<RejectionCode> = validations
+            .iter()
+            .filter_map(|v| v.rejection_code.clone())
+            .collect();
+        
+        // VETO CHECK: Critical rejections are absolute (fail-safe)
+        let has_security_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::SecurityThreat(_)));
+        let has_ethics_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::EthicsViolation(_)));
+        let has_quarantine = rejection_codes.iter().any(|r| matches!(r, RejectionCode::Quarantine(_)));
+        let has_performance_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::PerformanceBudgetExceeded(_)));
+        let has_consistency_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::ConsistencyFailure(_)));
+        let has_resource_veto = rejection_codes.iter().any(|r| matches!(r, RejectionCode::ResourceConstraintViolated(_)));
+        
         // Byzantine fault tolerant consensus: require 3/5 approval
         let approvals = validations.iter().filter(|v| v.approved).count();
-        let consensus_reached = approvals >= 3;
+        let rejections = validations.iter().filter(|v| !v.approved).count();
+        
+        // Consensus logic:
+        // ALL rejection types are VETO - fail-safe principle
+        // This ensures no malicious/problematic request can slip through
+        let has_any_veto = has_security_veto || has_ethics_veto || has_quarantine || 
+                          has_performance_veto || has_consistency_veto || has_resource_veto;
+        
+        let consensus_reached = if has_any_veto {
+            false
+        } else {
+            approvals >= 3
+        };
 
         let validation_time = start.elapsed();
 
-        info!(
-            approvals,
-            total_validators = validations.len(),
-            consensus = consensus_reached,
-            time_ms = validation_time.as_millis(),
-            "SAT validation completed"
-        );
+        if has_security_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Security threat detected - request BLOCKED"
+            );
+        } else if has_ethics_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Ethics violation detected - request BLOCKED"
+            );
+        } else if has_quarantine {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "⚠️ SAT QUARANTINE: Uncertain request - needs human review"
+            );
+        } else if has_any_veto {
+            warn!(
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT VETO: Validator rejection - request BLOCKED"
+            );
+        } else if consensus_reached {
+            info!(
+                approvals,
+                rejections,
+                total_validators = validations.len(),
+                time_ms = validation_time.as_millis(),
+                "✅ SAT validation PASSED - consensus reached"
+            );
+        } else {
+            warn!(
+                approvals,
+                rejections,
+                rejection_codes = ?rejection_codes,
+                time_ms = validation_time.as_millis(),
+                "🚨 SAT validation FAILED - consensus NOT reached"
+            );
+        }
 
         Ok(ValidationResult {
             consensus_reached,
             validations,
             validation_time,
+            rejection_codes,
         })
     }
 
@@ -114,47 +252,209 @@ impl SATOrchestrator {
         agent: &SATAgent,
         request: &DualAgenticRequest,
     ) -> anyhow::Result<AgentValidation> {
-        // Simulate validation with role-specific checks
-        let (approved, base_message) = match agent.name.as_str() {
-            "security_guardian" => (
-                true,
-                format!("Security check passed for task: '{}'", request.task),
-            ),
-            "ethics_validator" => (
-                true,
-                format!(
-                    "Ethics validation passed: Task '{}' aligns with values",
-                    request.task
-                ),
-            ),
-            "performance_monitor" => (
-                true,
-                format!(
-                    "Performance feasible: Task '{}' within acceptable bounds",
-                    request.task
-                ),
-            ),
-            "consistency_checker" => (
-                true,
-                format!("Consistency verified: Task '{}' is coherent", request.task),
-            ),
-            "resource_optimizer" => (
-                true,
-                format!(
-                    "Resources available: Task '{}' can be executed",
-                    request.task
-                ),
-            ),
-            _ => (true, format!("Validation passed for '{}'", request.task)),
-        };
-        let message = format!("{} (Specialty: {})", base_message, agent.specialty);
-
-        Ok(AgentValidation {
-            agent_name: agent.name.clone(),
-            approved,
-            message,
-            confidence: 0.90 + (crate::pat::rand::random::<f64>() * 0.08), // 0.90-0.98
-        })
+        let task_lower = request.task.to_lowercase();
+        // Combine all context values into a single searchable string
+        let context_str: String = request.context.values().cloned().collect::<Vec<_>>().join(" ");
+        let context_lower = context_str.to_lowercase();
+        let combined = format!("{} {}", task_lower, context_lower);
+        
+        match agent.name.as_str() {
+            "security_guardian" => {
+                // REAL SECURITY CHECK: Scan for dangerous patterns
+                for pattern in SECURITY_BLOCKLIST {
+                    if combined.contains(&pattern.to_lowercase()) {
+                        warn!(
+                            pattern = pattern,
+                            task = %request.task,
+                            "🚨 Security threat detected by SAT"
+                        );
+                        return Ok(AgentValidation {
+                            agent_name: agent.name.clone(),
+                            approved: false,
+                            message: format!("REJECTED: Dangerous pattern '{}' detected", pattern),
+                            confidence: 0.99,
+                            rejection_code: Some(RejectionCode::SecurityThreat(
+                                format!("Blocked pattern: {}", pattern)
+                            )),
+                        });
+                    }
+                }
+                Ok(AgentValidation {
+                    agent_name: agent.name.clone(),
+                    approved: true,
+                    message: format!("Security check passed for task: '{}'", request.task),
+                    confidence: 0.95,
+                    rejection_code: None,
+                })
+            }
+            
+            "ethics_validator" => {
+                // REAL ETHICS CHECK: Scan for harmful intent
+                let mut ethics_score = 1.0f64;
+                let mut flags: Vec<String> = Vec::new();
+                
+                for pattern in ETHICS_BLOCKLIST {
+                    if combined.contains(&pattern.to_lowercase()) {
+                        ethics_score -= 0.15;
+                        flags.push(pattern.to_string());
+                    }
+                }
+                
+                if ethics_score < 0.5 {
+                    // Clear ethical violation - reject
+                    warn!(
+                        flags = ?flags,
+                        score = ethics_score,
+                        "🚨 Ethics violation detected by SAT"
+                    );
+                    return Ok(AgentValidation {
+                        agent_name: agent.name.clone(),
+                        approved: false,
+                        message: format!("REJECTED: Ethics violation - flags: {:?}", flags),
+                        confidence: 0.95,
+                        rejection_code: Some(RejectionCode::EthicsViolation(
+                            format!("Flags triggered: {:?}", flags)
+                        )),
+                    });
+                } else if ethics_score < 0.8 {
+                    // Uncertain - quarantine for human review
+                    warn!(
+                        flags = ?flags,
+                        score = ethics_score,
+                        "⚠️ Ethics uncertainty - quarantining for review"
+                    );
+                    return Ok(AgentValidation {
+                        agent_name: agent.name.clone(),
+                        approved: false,
+                        message: format!("QUARANTINE: Uncertain ethics - flags: {:?}", flags),
+                        confidence: ethics_score,
+                        rejection_code: Some(RejectionCode::Quarantine(
+                            format!("Ethics score {:.2} < 0.8, flags: {:?}", ethics_score, flags)
+                        )),
+                    });
+                }
+                
+                Ok(AgentValidation {
+                    agent_name: agent.name.clone(),
+                    approved: true,
+                    message: format!("Ethics validation passed: Task '{}' aligns with values", request.task),
+                    confidence: ethics_score,
+                    rejection_code: None,
+                })
+            }
+            
+            "performance_monitor" => {
+                // REAL PERFORMANCE CHECK: Estimate task complexity
+                let estimated_tokens = request.task.len() * 4; // rough estimate
+                let context_tokens = context_str.len() * 4;
+                let total_tokens = estimated_tokens + context_tokens;
+                
+                if total_tokens > self.max_task_tokens {
+                    warn!(
+                        estimated_tokens = total_tokens,
+                        max = self.max_task_tokens,
+                        "🚨 Performance budget exceeded"
+                    );
+                    return Ok(AgentValidation {
+                        agent_name: agent.name.clone(),
+                        approved: false,
+                        message: format!(
+                            "REJECTED: Task too large (~{} tokens, max {})",
+                            total_tokens, self.max_task_tokens
+                        ),
+                        confidence: 0.90,
+                        rejection_code: Some(RejectionCode::PerformanceBudgetExceeded(
+                            format!("Tokens: {} > max: {}", total_tokens, self.max_task_tokens)
+                        )),
+                    });
+                }
+                
+                Ok(AgentValidation {
+                    agent_name: agent.name.clone(),
+                    approved: true,
+                    message: format!(
+                        "Performance feasible: Task '{}' within bounds (~{} tokens)",
+                        request.task, total_tokens
+                    ),
+                    confidence: 0.92,
+                    rejection_code: None,
+                })
+            }
+            
+            "consistency_checker" => {
+                // REAL CONSISTENCY CHECK: Detect contradictions
+                let has_contradiction = 
+                    (combined.contains("always") && combined.contains("never")) ||
+                    (combined.contains("must") && combined.contains("must not")) ||
+                    (combined.contains("require") && combined.contains("forbidden"));
+                
+                if has_contradiction {
+                    warn!(
+                        task = %request.task,
+                        "🚨 Logical inconsistency detected"
+                    );
+                    return Ok(AgentValidation {
+                        agent_name: agent.name.clone(),
+                        approved: false,
+                        message: "REJECTED: Logical contradiction detected in task".to_string(),
+                        confidence: 0.88,
+                        rejection_code: Some(RejectionCode::ConsistencyFailure(
+                            "Contradictory requirements detected".to_string()
+                        )),
+                    });
+                }
+                
+                Ok(AgentValidation {
+                    agent_name: agent.name.clone(),
+                    approved: true,
+                    message: format!("Consistency verified: Task '{}' is coherent", request.task),
+                    confidence: 0.93,
+                    rejection_code: None,
+                })
+            }
+            
+            "resource_optimizer" => {
+                // REAL RESOURCE CHECK: Validate resource availability
+                // In production, this would check URP lease availability
+                let task_complexity = request.task.len() + context_str.len();
+                
+                // Reject extremely complex tasks that would starve other agents
+                if task_complexity > 50_000 {
+                    warn!(
+                        complexity = task_complexity,
+                        "🚨 Resource constraint violated - task too complex"
+                    );
+                    return Ok(AgentValidation {
+                        agent_name: agent.name.clone(),
+                        approved: false,
+                        message: format!(
+                            "REJECTED: Task complexity {} exceeds resource budget",
+                            task_complexity
+                        ),
+                        confidence: 0.85,
+                        rejection_code: Some(RejectionCode::ResourceConstraintViolated(
+                            format!("Complexity: {} > 50000", task_complexity)
+                        )),
+                    });
+                }
+                
+                Ok(AgentValidation {
+                    agent_name: agent.name.clone(),
+                    approved: true,
+                    message: format!("Resources available: Task '{}' can be executed", request.task),
+                    confidence: 0.91,
+                    rejection_code: None,
+                })
+            }
+            
+            _ => Ok(AgentValidation {
+                agent_name: agent.name.clone(),
+                approved: true,
+                message: format!("Validation passed for '{}'", request.task),
+                confidence: 0.85,
+                rejection_code: None,
+            }),
+        }
     }
 
     async fn evaluate_with_agent(
@@ -217,6 +517,8 @@ pub struct ValidationResult {
     pub consensus_reached: bool,
     pub validations: Vec<AgentValidation>,
     pub validation_time: Duration,
+    /// Aggregated rejection codes if validation failed
+    pub rejection_codes: Vec<RejectionCode>,
 }
 
 #[derive(Debug, Clone)]
@@ -225,4 +527,6 @@ pub struct AgentValidation {
     pub approved: bool,
     pub message: String,
     pub confidence: f64,
+    /// If rejected, the specific reason code
+    pub rejection_code: Option<RejectionCode>,
 }

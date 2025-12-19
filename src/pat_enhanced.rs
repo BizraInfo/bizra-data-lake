@@ -260,7 +260,8 @@ impl EnhancedPATOrchestrator {
             SlashCommand::Delegate { agent, task } => {
                 info!(agent, task, "Slash command: Delegate to agent");
                 let a2a = self.a2a_server.read().await;
-                let result = a2a.delegate(agent, task.clone()).await?;
+                let result = a2a.delegate(agent, task.clone()).await
+                    .map_err(|e| anyhow::anyhow!("Delegation failed: {}", e))?;
 
                 let (ihsan_score, ihsan_vector) = self.ihsan_from_scalar_confidence(0.5)?;
                 let (ihsan_env, ihsan_threshold_applied, ihsan_passes_threshold) =
@@ -270,9 +271,7 @@ impl EnhancedPATOrchestrator {
                     pat_contributions: vec![format!(
                         "Delegated to {}: {}",
                         agent,
-                        result
-                            .get("result")
-                            .unwrap_or(&serde_json::json!("completed"))
+                        result.result
                     )],
                     sat_contributions: vec![],
                     synergy_score: 0.93,
@@ -281,7 +280,9 @@ impl EnhancedPATOrchestrator {
                     meta: serde_json::json!({
                         "slash_command": "delegate",
                         "agent": agent,
-                        "result": result,
+                        "result": result.result,
+                        "execution_time_ms": result.execution_time_ms,
+                        "delegation_depth": result.delegation_depth,
                         "sat_absent": true,
                         "adapter_modes": AdapterModes::current(),
                         "ihsan_constitution_id": ihsan::constitution().id(),

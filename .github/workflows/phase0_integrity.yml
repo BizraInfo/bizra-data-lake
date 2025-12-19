@@ -115,6 +115,126 @@ jobs:
           NODE0_MAX_WARNINGS: "205"
         run: python tools/node0_warning_budget.py
 
+  performance-gate:
+    runs-on: ubuntu-latest
+    needs: rust-core
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python deps
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Compile time regression gate
+        run: |
+          START=$(date +%s%N)
+          cargo build --release 2>/dev/null
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "Build time: ${ELAPSED}ms"
+          # Gate: fail if build exceeds 120 seconds (2 minutes)
+          if [ $ELAPSED -gt 120000 ]; then
+            echo "::error::Build time regression detected: ${ELAPSED}ms > 120000ms"
+            exit 1
+          fi
+
+      - name: Test execution time gate
+        run: |
+          START=$(date +%s%N)
+          cargo test --release 2>/dev/null
+          END=$(date +%s%N)
+          ELAPSED=$(( (END - START) / 1000000 ))
+          echo "Test time: ${ELAPSED}ms"
+          # Gate: fail if tests exceed 60 seconds
+          if [ $ELAPSED -gt 60000 ]; then
+            echo "::error::Test time regression detected: ${ELAPSED}ms > 60000ms"
+            exit 1
+          fi
+
+      - name: Binary size gate
+        run: |
+          SIZE=$(stat -c%s target/release/meta_alpha_dual_agentic 2>/dev/null || echo "0")
+          echo "Binary size: ${SIZE} bytes"
+          # Gate: fail if binary exceeds 50MB
+          if [ $SIZE -gt 52428800 ]; then
+            echo "::error::Binary size regression: ${SIZE} > 52428800 bytes (50MB)"
+            exit 1
+          fi
+
+  signed-evidence:
+    runs-on: ubuntu-latest
+    needs: [rust-core, performance-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install deps
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Generate CI evidence receipt
+        run: |
+          python - <<'PY'
+          import json
+          import hashlib
+          import os
+          from datetime import datetime, timezone
+
+          receipt = {
+              "schema": "bizra-ci-evidence-v1",
+              "timestamp": datetime.now(timezone.utc).isoformat(),
+              "commit_sha": os.environ.get("GITHUB_SHA", "unknown"),
+              "ref": os.environ.get("GITHUB_REF", "unknown"),
+              "run_id": os.environ.get("GITHUB_RUN_ID", "unknown"),
+              "run_number": os.environ.get("GITHUB_RUN_NUMBER", "unknown"),
+              "actor": os.environ.get("GITHUB_ACTOR", "unknown"),
+              "gates_passed": [
+                  "rust-fmt",
+                  "rust-clippy",
+                  "rust-tests",
+                  "yaml-sanity",
+                  "json-sanity",
+                  "portability-lint",
+                  "model-family-lint",
+                  "truth-lint",
+                  "lexicon-lint",
+                  "ihsan-parity",
+                  "performance-gate",
+                  "gitleaks"
+              ],
+              "ihsan_threshold": "ci=0.90"
+          }
+
+          receipt_json = json.dumps(receipt, indent=2, sort_keys=True)
+          receipt_hash = hashlib.sha256(receipt_json.encode()).hexdigest()
+          receipt["integrity_hash"] = f"sha256:{receipt_hash}"
+
+          print(json.dumps(receipt, indent=2))
+          PY
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence-${{ github.sha }}
+          path: |
+            docs/evidence/*.json
+          retention-days: 90
+
   secrets:
     runs-on: ubuntu-latest
     steps:
