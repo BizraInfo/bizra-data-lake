@@ -84,6 +84,9 @@ from .audit import (
     get_audit_hooks,
 )
 
+# Orchestrator
+from .orchestrator import ConstellationOrchestrator
+
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +151,7 @@ class ConstellationRuntime:
         self._running = False
         
         # Subsystems (lazily initialized)
+        self._orchestrator: Optional[ConstellationOrchestrator] = None
         self._knowledge_connector: Optional[HyperGraphRAGConnector] = None
         self._memory_manager: Optional[MemoryManager] = None
         self._hook_registry: Optional[HookRegistry] = None
@@ -163,6 +167,73 @@ class ConstellationRuntime:
         self._agent_knowledge: dict[str, AgentKnowledgeInterface] = {}
         self._agent_memory: dict[str, AgentMemoryInterface] = {}
         self._agent_a2a: dict[str, A2AProtocol] = {}
+        
+        # Initialize orchestrator eagerly (it's always needed)
+        self._orchestrator = ConstellationOrchestrator()
+        
+        # Initialize hook and trigger registries for sync access
+        self._hook_registry = get_hook_registry()
+        self._trigger_engine = get_trigger_engine()
+        self._command_registry = get_command_registry()
+        self._skill_registry = get_skill_registry()
+        
+    # ─────────────────────────────────────────────────────────────────────────
+    # PROPERTY ACCESSORS (Synchronous)
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    @property
+    def orchestrator(self) -> ConstellationOrchestrator:
+        """Get the constellation orchestrator."""
+        return self._orchestrator
+        
+    @property
+    def hook_registry(self) -> HookRegistry:
+        """Get the hook registry."""
+        return self._hook_registry
+        
+    @property
+    def trigger_engine(self) -> TriggerEngine:
+        """Get the trigger engine."""
+        return self._trigger_engine
+        
+    @property
+    def command_registry(self) -> CommandRegistry:
+        """Get the command registry."""
+        return self._command_registry
+        
+    @property
+    def skill_registry(self) -> SkillRegistry:
+        """Get the skill registry."""
+        return self._skill_registry
+        
+    @property
+    def memory_manager(self) -> Optional[MemoryManager]:
+        """Get the memory manager (may be None until initialized)."""
+        return self._memory_manager
+        
+    @property
+    def knowledge_connector(self) -> Optional[HyperGraphRAGConnector]:
+        """Get the knowledge connector (may be None until initialized)."""
+        return self._knowledge_connector
+        
+    @property
+    def mcp_server(self) -> Optional[MCPServer]:
+        """Get the MCP server (may be None if not enabled)."""
+        return self._mcp_server
+        
+    @property
+    def a2a_router(self) -> Optional[A2ARouter]:
+        """Get the A2A router (may be None if not enabled)."""
+        return self._a2a_router
+        
+    @property
+    def audit_engine(self) -> Optional[AutoAuditEngine]:
+        """Get the audit engine (may be None if not enabled)."""
+        return self._audit_engine
+        
+    def run_command(self, command_text: str, **kwargs) -> CommandResult:
+        """Execute a slash command synchronously."""
+        return self._command_registry.execute_sync(command_text, **kwargs)
         
     # ─────────────────────────────────────────────────────────────────────────
     # INITIALIZATION

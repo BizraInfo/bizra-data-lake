@@ -108,6 +108,16 @@ class CommandResult:
     data: Optional[Any] = None
     execution_time_ms: float = 0.0
     error: Optional[str] = None
+    
+    @property
+    def status(self) -> str:
+        """Get status string."""
+        return "success" if self.success else "error"
+        
+    @property
+    def response(self) -> str:
+        """Get response text (alias for message)."""
+        return self.message
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -325,6 +335,65 @@ class CommandRegistry:
         
         try:
             result = await command.handler(context)
+            
+            # Update stats
+            command.invocation_count += 1
+            command.last_invoked = datetime.now(timezone.utc).isoformat()
+            
+            result.execution_time_ms = (time.perf_counter() - start) * 1000
+            return result
+            
+        except Exception as e:
+            logger.error(f"Command /{command.name} failed: {e}", exc_info=True)
+            return CommandResult(
+                success=False,
+                message=f"Command failed: {str(e)}",
+                error=str(e),
+                execution_time_ms=(time.perf_counter() - start) * 1000,
+            )
+            
+    def execute_sync(self, input_text: str, **kwargs) -> CommandResult:
+        """Parse and execute a command synchronously."""
+        import asyncio
+        import time
+        
+        context = self.parse(input_text)
+        
+        if not context:
+            return CommandResult(
+                success=False,
+                message="Unknown command or invalid syntax",
+                error="PARSE_ERROR",
+            )
+            
+        # Add extra context
+        for key, value in kwargs.items():
+            setattr(context, key, value)
+            
+        command = self._commands[context.command_name]
+        
+        start = time.perf_counter()
+        
+        try:
+            # Check if handler is async
+            import inspect
+            if inspect.iscoroutinefunction(command.handler):
+                # Run async handler in event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Can't await in running loop - return indication
+                        return CommandResult(
+                            success=False,
+                            message="Command is async and cannot be run synchronously in async context",
+                            error="ASYNC_CONTEXT",
+                        )
+                    result = loop.run_until_complete(command.handler(context))
+                except RuntimeError:
+                    # No event loop - create one
+                    result = asyncio.run(command.handler(context))
+            else:
+                result = command.handler(context)
             
             # Update stats
             command.invocation_count += 1
