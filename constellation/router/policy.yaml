@@ -1,0 +1,287 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Islamic Masterminds - SNR-Tier Router v1.0
+# ═══════════════════════════════════════════════════════════════════════════════
+# CoT / ToT / GoT Escalation Rules | SNR-Based Agent Selection
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.0"
+schema: "bizra.constellation.router.v1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REASONING MODE DEFINITIONS
+# ─────────────────────────────────────────────────────────────────────────────
+reasoning_modes:
+  cot:
+    name: "Chain-of-Thought"
+    description: "Fastest. Linear sequential reasoning for low-ambiguity problems."
+    best_for:
+      - "Low ambiguity tasks"
+      - "Linear problem decomposition"
+      - "Single-domain questions"
+      - "Well-defined procedures"
+    token_cost: "low"
+    latency: "low"
+    
+  tot:
+    name: "Tree-of-Thought"
+    description: "Explore multiple branches, prune with scoring."
+    best_for:
+      - "Planning and policy design"
+      - "Architecture decisions"
+      - "Multi-option evaluation"
+      - "Conflict resolution"
+    token_cost: "medium"
+    latency: "medium"
+    
+  got:
+    name: "Graph-of-Thought"
+    description: "Parallel, cross-linked reasoning for interdisciplinary synthesis."
+    best_for:
+      - "Interdisciplinary problems"
+      - "Complex causal analysis"
+      - "Multiple domain collision"
+      - "System-level integration"
+    token_cost: "high"
+    latency: "high"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SNR TARGETS BY DOMAIN
+# ─────────────────────────────────────────────────────────────────────────────
+snr_targets:
+  authentication:
+    range: [0.96, 0.98]
+    tier: "T1"
+    verifiers_required: 2
+    speculation_allowed: false
+    
+  science:
+    range: [0.93, 0.97]
+    tier: "T2"
+    verifiers_required: 1
+    speculation_allowed: false
+    
+  medical:
+    range: [0.92, 0.95]
+    tier: "T3"
+    verifiers_required: 1
+    speculation_allowed: false
+    
+  math:
+    range: [0.93, 0.96]
+    tier: "T4"
+    verifiers_required: 0
+    speculation_allowed: false
+    
+  philosophy:
+    range: [0.88, 0.92]
+    tier: "T5"
+    verifiers_required: 0
+    speculation_allowed: true
+    
+  creativity:
+    range: [0.85, 0.90]
+    tier: "T6"
+    verifiers_required: 0
+    speculation_allowed: true
+    cannot_finalize_facts: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ROUTING RULES
+# ─────────────────────────────────────────────────────────────────────────────
+router:
+  default_mode: "cot"
+  
+  # Task classification triggers
+  task_classification:
+    high_stakes_keywords:
+      - "legal"
+      - "medical"
+      - "financial"
+      - "authentication"
+      - "verification"
+      - "proof"
+      - "critical"
+      - "production"
+      - "binding"
+      
+    creative_keywords:
+      - "brainstorm"
+      - "explore"
+      - "imagine"
+      - "creative"
+      - "metaphor"
+      - "poetry"
+      - "inspiration"
+      
+    analytical_keywords:
+      - "analyze"
+      - "compare"
+      - "evaluate"
+      - "assess"
+      - "measure"
+      - "calculate"
+
+  # Escalation rules (evaluated in order)
+  escalation:
+    - condition: "stakes == 'high'"
+      action:
+        require_verifier: true
+        mode: "tot"
+        min_snr: 0.93
+        
+    - condition: "domains_count >= 3"
+      action:
+        mode: "got"
+        require_polymath: true
+        
+    - condition: "conflict_detected == true"
+      action:
+        mode: "tot"
+        require_second_opinion: true
+        
+    - condition: "authentication_required == true"
+      action:
+        mode: "cot"
+        require_verifier: true
+        min_snr: 0.96
+        
+    - condition: "creative_task == true"
+      action:
+        mode: "got"
+        sandbox: true
+        cannot_finalize_facts: true
+
+  # Agent selection by domain
+  domain_routing:
+    philosophy:
+      primary: ["al_kindi", "ibn_rushd", "al_farabi"]
+      verifiers: ["imam_al_shafii"]
+      
+    theology:
+      primary: ["al_ghazali"]
+      verifiers: ["imam_bukhari", "imam_ahmad_ibn_hanbal"]
+      
+    medicine:
+      primary: ["ibn_sina_medical", "al_razi", "al_zahrawi"]
+      verifiers: ["ibn_sina"]
+      
+    mathematics:
+      primary: ["al_khwarizmi", "omar_khayyam", "nasir_al_din_al_tusi"]
+      verifiers: ["ibn_al_haytham"]
+      
+    science:
+      primary: ["ibn_al_haytham", "jabir_ibn_hayyan", "nasir_al_din_al_tusi"]
+      verifiers: ["ibn_al_haytham"]
+      
+    engineering:
+      primary: ["al_jazari", "mimar_sinan"]
+      verifiers: ["al_khwarizmi"]
+      
+    jurisprudence:
+      primary: ["imam_al_shafii", "imam_abu_hanifa", "imam_malik"]
+      verifiers: ["imam_ahmad_ibn_hanbal", "imam_bukhari"]
+      
+    hadith:
+      primary: ["imam_bukhari", "imam_ahmad_ibn_hanbal"]
+      verifiers: ["imam_malik"]
+      
+    governance:
+      primary: ["umar_ibn_al_khattab", "ibn_khaldun", "al_farabi"]
+      verifiers: ["imam_al_shafii"]
+      
+    strategy:
+      primary: ["saladin", "ibn_khaldun"]
+      verifiers: ["umar_ibn_al_khattab"]
+      
+    creativity:
+      primary: ["rumi", "omar_khayyam", "ibn_battuta"]
+      verifiers: []  # Creative outputs don't require verification
+      sandbox: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VERIFIER REQUIREMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+verification:
+  high_stakes_rules:
+    - "At least one verifier role required before delivery"
+    - "Output above SNR 95% must cite evidence sources"
+    - "Assumptions must be explicitly labeled"
+    - "Creativity agents cannot finalize factual claims"
+    
+  verifier_pool:
+    authentication_tier:
+      - "imam_bukhari"      # SNR 0.98 - Maximum authentication
+      - "ibn_al_haytham"    # SNR 0.97 - Scientific method
+      - "imam_al_shafii"    # SNR 0.95 - Systematic methodology
+      
+    standard_tier:
+      - "imam_ahmad_ibn_hanbal"  # SNR 0.94
+      - "imam_malik"             # SNR 0.93
+      - "ibn_khaldun"            # SNR 0.93
+      
+  cross_check_rules:
+    - condition: "snr_target >= 0.95"
+      verifiers_required: 2
+      
+    - condition: "snr_target >= 0.90"
+      verifiers_required: 1
+      
+    - condition: "snr_target < 0.90"
+      verifiers_required: 0
+      creative_sandbox: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEAM AUTO-SELECTION RULES
+# ─────────────────────────────────────────────────────────────────────────────
+team_selection:
+  auto_select:
+    - pattern: "scientific method|experiment|hypothesis"
+      team: "scientific_method_elite"
+      
+    - pattern: "architecture|system design|governance"
+      team: "systems_architecture_dream"
+      
+    - pattern: "medical|diagnosis|treatment|clinical"
+      team: "medical_innovation_taskforce"
+      
+    - pattern: "algorithm|computation|mathematical"
+      team: "mathematical_computation_core"
+      
+    - pattern: "philosophy|ethics|synthesis"
+      team: "philosophical_synthesis_council"
+      
+    - pattern: "legal|jurisprudence|ruling|fatwa"
+      team: "legal_reasoning_panel"
+      
+    - pattern: "creative|innovation|brainstorm"
+      team: "innovation_creativity_studio"
+      
+    - pattern: "strategy|leadership|coordination"
+      team: "strategic_leadership_command"
+
+  fallback:
+    mode: "adaptive"
+    action: "Orchestrator selects optimal agents based on task analysis"
+    min_agents: 2
+    max_agents: 5
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OUTPUT REQUIREMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+output_requirements:
+  standard:
+    - "5-bullet executive summary"
+    - "Clear separation of facts vs assumptions"
+    - "Evidence sources cited"
+    - "Confidence level stated"
+    
+  high_stakes:
+    - "All standard requirements"
+    - "Verification attestation"
+    - "Failure modes identified"
+    - "What to test next"
+    
+  creative:
+    - "Clearly labeled as creative/metaphorical"
+    - "No factual claims"
+    - "Inspiration sources acknowledged"

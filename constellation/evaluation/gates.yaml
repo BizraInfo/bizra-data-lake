@@ -1,0 +1,307 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Islamic Masterminds - Evaluation Gates v1.0
+# ═══════════════════════════════════════════════════════════════════════════════
+# Evidence Requirements | Claim Tagging | Contradiction Detection | SNR Floors
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.0"
+schema: "bizra.constellation.evaluation.v1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLAIM TAGGING SYSTEM
+# ─────────────────────────────────────────────────────────────────────────────
+claim_tagging:
+  description: >
+    All non-trivial claims in agent outputs must be tagged with their
+    epistemic status. This prevents treating aspirations as facts.
+  
+  required_tags:
+    MEASURED:
+      definition: "Empirically measured or directly observed"
+      snr_weight: 1.0
+      examples:
+        - "Latency measured at 42ms (95th percentile)"
+        - "Temperature recorded at 23.5°C"
+      
+    IMPLEMENTED:
+      definition: "Code/system exists and is testable"
+      snr_weight: 0.95
+      examples:
+        - "API endpoint deployed at /api/v1/knowledge"
+        - "Authentication module integrated"
+      
+    DERIVED:
+      definition: "Logically derived from measured/implemented facts"
+      snr_weight: 0.90
+      examples:
+        - "Based on measured latency, throughput is ~24 req/s"
+        - "Given the authentication model, access control follows"
+      
+    DESIGNED:
+      definition: "Specification exists but not yet implemented"
+      snr_weight: 0.75
+      examples:
+        - "Architecture diagram shows 3-tier design"
+        - "Schema defined but not deployed"
+      
+    TARGET:
+      definition: "Aspiration or goal, not yet achieved"
+      snr_weight: 0.50
+      examples:
+        - "Target SNR of 0.95"
+        - "Goal: 99.9% uptime"
+      
+    HYPOTHESIS:
+      definition: "Proposed explanation requiring testing"
+      snr_weight: 0.40
+      examples:
+        - "Performance degradation may be due to memory leaks"
+        - "User churn could correlate with onboarding friction"
+      
+    METAPHOR:
+      definition: "Figurative/poetic expression, not literal claim"
+      snr_weight: 0.0
+      literal_claim: false
+      examples:
+        - "The system breathes like a living organism"
+        - "Knowledge flows through the veins of the architecture"
+
+  enforcement:
+    - "Outputs without claim tags are rejected at evaluation gate"
+    - "Mixed claims (e.g., 'We implemented X to achieve TARGET Y') must tag each part"
+    - "Creative agents' outputs auto-tagged as METAPHOR unless overridden"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EVIDENCE GATES
+# ─────────────────────────────────────────────────────────────────────────────
+evidence_gates:
+  - gate_id: "CLAIM_TAGGING_V1"
+    name: "Claim Tagging Gate"
+    severity: "blocking"
+    description: "All non-trivial claims must be tagged with epistemic status"
+    
+    checks:
+      - name: "tag_presence"
+        rule: "Every factual statement must have a claim tag"
+        failure_action: "reject_output"
+        
+      - name: "tag_consistency"
+        rule: "Claim tags must match content (no MEASURED tag on speculation)"
+        failure_action: "flag_for_review"
+        
+      - name: "assumption_exposure"
+        rule: "All assumptions must be explicitly stated"
+        failure_action: "request_clarification"
+
+  - gate_id: "CONTRADICTION_SCAN_V1"
+    name: "Contradiction Detection Gate"
+    severity: "blocking"
+    description: "Detect and resolve internal contradictions before delivery"
+    
+    checks:
+      - name: "internal_consistency"
+        rule: "No two statements in output can logically contradict"
+        failure_action: "escalate_to_tot"
+        
+      - name: "cross_agent_consistency"
+        rule: "Outputs from different agents must be reconciled"
+        failure_action: "invoke_polymath_integrator"
+        
+      - name: "temporal_consistency"
+        rule: "Claims about timelines must be internally consistent"
+        failure_action: "flag_for_review"
+
+  - gate_id: "SNR_FLOOR_V1"
+    name: "SNR Floor Gate"
+    severity: "blocking"
+    description: "Enforce minimum SNR based on stakes and domain"
+    
+    checks:
+      - name: "high_stakes_floor"
+        rule: "High-stakes outputs require predicted SNR >= 0.93"
+        condition: "stakes == 'high'"
+        failure_action: "require_additional_verification"
+        
+      - name: "authentication_floor"
+        rule: "Authentication claims require SNR >= 0.96"
+        condition: "domain == 'authentication'"
+        failure_action: "invoke_imam_bukhari"
+        
+      - name: "creative_ceiling"
+        rule: "Creative outputs cannot claim SNR > 0.90 for facts"
+        condition: "creative_sandbox == true"
+        failure_action: "downgrade_claim_tags"
+
+  - gate_id: "VERIFIER_ATTESTATION_V1"
+    name: "Verifier Attestation Gate"
+    severity: "blocking"
+    description: "High-stakes outputs require verifier sign-off"
+    
+    checks:
+      - name: "verifier_presence"
+        rule: "At least one verifier must attest for high-stakes outputs"
+        condition: "stakes == 'high'"
+        failure_action: "block_delivery"
+        
+      - name: "dual_verification"
+        rule: "SNR >= 0.95 outputs require two verifiers"
+        condition: "snr_target >= 0.95"
+        failure_action: "request_second_verifier"
+        
+      - name: "cross_domain_verification"
+        rule: "Multi-domain outputs require polymath integration"
+        condition: "domains_count >= 3"
+        failure_action: "invoke_polymath_integrator"
+
+  - gate_id: "READABILITY_V1"
+    name: "Output Readability Gate"
+    severity: "warning"
+    description: "Ensure outputs are consumable by humans"
+    
+    checks:
+      - name: "executive_summary"
+        rule: "Include 5-bullet executive summary"
+        failure_action: "request_summary"
+        
+      - name: "no_walls_of_text"
+        rule: "Paragraphs must not exceed 200 words"
+        failure_action: "request_restructure"
+        
+      - name: "clear_sections"
+        rule: "Use headers and structure for long outputs"
+        failure_action: "suggest_restructure"
+
+  - gate_id: "SOURCE_CITATION_V1"
+    name: "Source Citation Gate"
+    severity: "blocking"
+    description: "Evidence sources must be cited for high-SNR claims"
+    
+    checks:
+      - name: "citation_required"
+        rule: "MEASURED and IMPLEMENTED claims require source citation"
+        failure_action: "request_citation"
+        
+      - name: "chain_verification"
+        rule: "Hadith claims require full chain of narration"
+        condition: "domain == 'hadith'"
+        failure_action: "invoke_authentication_tier"
+        
+      - name: "reproducibility"
+        rule: "Scientific claims require reproducibility notes"
+        condition: "domain == 'science'"
+        failure_action: "request_procedure"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONTRADICTION RESOLUTION PROTOCOL
+# ─────────────────────────────────────────────────────────────────────────────
+contradiction_resolution:
+  detection_methods:
+    - "Logical negation detection"
+    - "Numerical inconsistency check"
+    - "Temporal sequence validation"
+    - "Cross-reference verification"
+  
+  resolution_flow:
+    1_detection:
+      action: "Flag contradiction with specific statements"
+      output: "contradiction_report"
+      
+    2_classification:
+      action: "Classify as factual, methodological, or interpretive"
+      output: "contradiction_type"
+      
+    3_escalation:
+      action: "Route to appropriate resolver"
+      rules:
+        - condition: "type == 'factual'"
+          resolver: "ibn_al_haytham"
+          method: "experimental_verification"
+          
+        - condition: "type == 'methodological'"
+          resolver: "imam_al_shafii"
+          method: "source_hierarchy"
+          
+        - condition: "type == 'interpretive'"
+          resolver: "polymath_integrator"
+          method: "dialectical_synthesis"
+          
+    4_resolution:
+      action: "Produce unified position or document unresolvable disagreement"
+      output: "resolved_position"
+      
+    5_documentation:
+      action: "Record resolution rationale for future reference"
+      output: "resolution_record"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FINAL DELIVERY CHECKLIST
+# ─────────────────────────────────────────────────────────────────────────────
+delivery_checklist:
+  standard_output:
+    required:
+      - "Executive summary (5 bullets max)"
+      - "All claims tagged"
+      - "Assumptions explicitly stated"
+      - "Confidence level declared"
+    
+    optional:
+      - "Recommendations for next steps"
+      - "Related topics for exploration"
+  
+  high_stakes_output:
+    required:
+      - "All standard requirements"
+      - "Verifier attestation"
+      - "Source citations for all factual claims"
+      - "Failure modes identified"
+      - "What we know vs what we assume"
+      - "What to test next"
+    
+    optional:
+      - "Dissenting views documented"
+      - "Confidence intervals where applicable"
+  
+  creative_output:
+    required:
+      - "Clear labeling as creative/metaphorical"
+      - "No factual claims without domain expert validation"
+      - "Inspiration sources acknowledged"
+    
+    forbidden:
+      - "Unqualified factual claims"
+      - "MEASURED or IMPLEMENTED tags without verification"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SNR CALCULATION MODEL
+# ─────────────────────────────────────────────────────────────────────────────
+snr_calculation:
+  formula: >
+    SNR = (sum(claim_weight * tag_weight) / total_claims) * verification_factor
+  
+  claim_weights:
+    primary_claim: 1.0
+    supporting_claim: 0.7
+    minor_detail: 0.3
+  
+  tag_weights:
+    MEASURED: 1.0
+    IMPLEMENTED: 0.95
+    DERIVED: 0.90
+    DESIGNED: 0.75
+    TARGET: 0.50
+    HYPOTHESIS: 0.40
+    METAPHOR: 0.0
+  
+  verification_factors:
+    two_verifiers: 1.05
+    one_verifier: 1.0
+    no_verifier: 0.90
+    contradiction_detected: 0.75
+  
+  snr_interpretation:
+    0.96_0.98: "Authentication tier - maximum precision"
+    0.93_0.97: "Scientific tier - strong evidence"
+    0.92_0.95: "Medical tier - structured decision"
+    0.93_0.96: "Mathematical tier - formal derivation"
+    0.88_0.92: "Philosophical tier - explicit assumptions"
+    0.85_0.90: "Creative tier - sandboxed exploration"

@@ -1,0 +1,476 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Islamic Masterminds - Cross-Pollination Teams v1.0
+# ═══════════════════════════════════════════════════════════════════════════════
+# 8 Pre-Built Teams for Common Task Types
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.0"
+schema: "bizra.constellation.teams.v1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEAM 1: SCIENTIFIC METHOD ELITE
+# ─────────────────────────────────────────────────────────────────────────────
+teams:
+  - id: "scientific_method_elite"
+    name: "Scientific Method Elite"
+    description: >
+      Elite team for rigorous scientific inquiry. Follows hypothesis-experiment-analysis
+      methodology with maximum precision.
+    
+    leader:
+      agent: "ibn_al_haytham"
+      role: "Lead Scientist"
+      responsibility: "Hypothesis formation and experimental design"
+    
+    members:
+      - agent: "al_razi"
+        role: "Clinical Empiricist"
+        responsibility: "Observational data and clinical evidence"
+        
+      - agent: "jabir_ibn_hayyan"
+        role: "Experimental Chemist"
+        responsibility: "Experimental procedures and reproducibility"
+        
+      - agent: "nasir_al_din_al_tusi"
+        role: "Precision Astronomer"
+        responsibility: "Measurement precision and mathematical modeling"
+    
+    snr_target: 0.95
+    reasoning_mode: "got"
+    reasoning_template: "Hypothesis → Experiment → Analysis → Verification"
+    
+    activation_patterns:
+      - "scientific method"
+      - "hypothesis testing"
+      - "experimental design"
+      - "empirical research"
+      - "data analysis"
+    
+    output_contract:
+      must_include:
+        - "hypothesis"
+        - "experimental_procedure"
+        - "observations"
+        - "analysis"
+        - "conclusions"
+        - "reproducibility_notes"
+      
+      evidence_requirements:
+        - "All claims must be experimentally verifiable"
+        - "Negative results must be reported"
+        - "Error margins must be stated"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 2: SYSTEMS ARCHITECTURE DREAM TEAM
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "systems_architecture_dream"
+    name: "Systems Architecture Dream Team"
+    description: >
+      Master architects of complex systems. From civilizations to software,
+      they design hierarchical structures that endure.
+    
+    leader:
+      agent: "ibn_khaldun"
+      role: "Chief Architect"
+      responsibility: "Systems analysis and civilizational patterns"
+    
+    members:
+      - agent: "al_farabi"
+        role: "Political Architect"
+        responsibility: "Governance structures and hierarchies"
+        
+      - agent: "umar_ibn_al_khattab"
+        role: "Administrative Architect"
+        responsibility: "Administrative systems and accountability"
+        
+      - agent: "mimar_sinan"
+        role: "Structural Architect"
+        responsibility: "Physical and structural design"
+    
+    snr_target: 0.91
+    reasoning_mode: "got"
+    reasoning_template: "Hierarchical decomposition → Component design → Integration → Validation"
+    
+    activation_patterns:
+      - "system design"
+      - "architecture"
+      - "governance"
+      - "organizational structure"
+      - "infrastructure"
+    
+    output_contract:
+      must_include:
+        - "system_overview"
+        - "component_hierarchy"
+        - "relationships"
+        - "governance_model"
+        - "scalability_analysis"
+      
+      evidence_requirements:
+        - "Historical precedents cited"
+        - "Failure modes identified"
+        - "Sustainability assessed"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 3: MEDICAL INNOVATION TASK FORCE
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "medical_innovation_taskforce"
+    name: "Medical Innovation Task Force"
+    description: >
+      Comprehensive medical team combining diagnosis, treatment, surgery,
+      and pharmaceutical expertise.
+    
+    leader:
+      agent: "ibn_sina"
+      role: "Chief Medical Officer"
+      responsibility: "Medical systematization and integration"
+    
+    members:
+      - agent: "al_razi"
+        role: "Chief Diagnostician"
+        responsibility: "Clinical diagnosis and differential analysis"
+        
+      - agent: "al_zahrawi"
+        role: "Chief Surgeon"
+        responsibility: "Surgical procedures and intervention"
+        
+      - agent: "jabir_ibn_hayyan"
+        role: "Pharmaceutical Expert"
+        responsibility: "Pharmacology and treatment compounds"
+    
+    snr_target: 0.94
+    reasoning_mode: "got"
+    reasoning_template: "Diagnosis → Differential → Treatment options → Risk assessment → Protocol"
+    
+    activation_patterns:
+      - "medical"
+      - "diagnosis"
+      - "treatment"
+      - "clinical"
+      - "health"
+      - "pharmaceutical"
+    
+    output_contract:
+      must_include:
+        - "diagnosis"
+        - "differential_diagnosis"
+        - "treatment_protocol"
+        - "risk_assessment"
+        - "contraindications"
+        - "follow_up"
+      
+      evidence_requirements:
+        - "Clinical evidence cited"
+        - "Second opinion obtained for high-stakes"
+        - "Patient safety prioritized"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 4: MATHEMATICAL COMPUTATION CORE
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "mathematical_computation_core"
+    name: "Mathematical Computation Core"
+    description: >
+      Precision mathematics team for algorithmic development, mathematical
+      proofs, and computational problem solving.
+    
+    leader:
+      agent: "al_khwarizmi"
+      role: "Chief Mathematician"
+      responsibility: "Algorithm design and algebraic foundations"
+    
+    members:
+      - agent: "omar_khayyam"
+        role: "Geometric Analyst"
+        responsibility: "Geometric methods and conic sections"
+        
+      - agent: "nasir_al_din_al_tusi"
+        role: "Computational Astronomer"
+        responsibility: "Mathematical models and trigonometry"
+        
+      - agent: "ibn_al_haytham"
+        role: "Mathematical Physicist"
+        responsibility: "Mathematical verification and proof"
+    
+    snr_target: 0.93
+    reasoning_mode: "cot"
+    reasoning_template: "Problem definition → Formalization → Step-by-step solution → Verification"
+    
+    activation_patterns:
+      - "algorithm"
+      - "mathematical"
+      - "computation"
+      - "proof"
+      - "equation"
+      - "formula"
+    
+    output_contract:
+      must_include:
+        - "problem_statement"
+        - "formal_notation"
+        - "step_by_step_derivation"
+        - "proof"
+        - "verification_tests"
+      
+      evidence_requirements:
+        - "Every step must be justified"
+        - "Edge cases tested"
+        - "Computational complexity stated"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 5: PHILOSOPHICAL SYNTHESIS COUNCIL
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "philosophical_synthesis_council"
+    name: "Philosophical Synthesis Council"
+    description: >
+      Deep thinkers who synthesize across traditions, reconcile apparent
+      contradictions, and produce unified philosophical frameworks.
+    
+    leader:
+      agent: "ibn_sina"
+      role: "Chief Philosopher"
+      responsibility: "Universal integration and synthesis"
+    
+    members:
+      - agent: "al_farabi"
+        role: "Political Philosopher"
+        responsibility: "Political and social philosophy"
+        
+      - agent: "ibn_rushd"
+        role: "Rationalist Defender"
+        responsibility: "Rational argumentation and logic"
+        
+      - agent: "al_ghazali"
+        role: "Theological Philosopher"
+        responsibility: "Faith-reason reconciliation"
+    
+    snr_target: 0.91
+    reasoning_mode: "got"
+    reasoning_template: "Dialectical resolution → Synthesis → Counter-arguments → Unified position"
+    
+    activation_patterns:
+      - "philosophy"
+      - "ethics"
+      - "metaphysics"
+      - "epistemology"
+      - "synthesis"
+      - "worldview"
+    
+    output_contract:
+      must_include:
+        - "philosophical_thesis"
+        - "supporting_arguments"
+        - "counterarguments"
+        - "synthesis"
+        - "implications"
+      
+      evidence_requirements:
+        - "All assumptions explicitly stated"
+        - "Multiple perspectives considered"
+        - "Logical validity verified"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 6: LEGAL REASONING PANEL
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "legal_reasoning_panel"
+    name: "Legal Reasoning Panel"
+    description: >
+      Supreme jurisprudential authority combining all major schools of Islamic
+      law with maximum authentication and methodological rigor.
+    
+    leader:
+      agent: "imam_al_shafii"
+      role: "Chief Jurist"
+      responsibility: "Legal methodology and source hierarchy"
+    
+    members:
+      - agent: "imam_abu_hanifa"
+        role: "Analogical Jurist"
+        responsibility: "Analogical reasoning and practical rulings"
+        
+      - agent: "imam_malik"
+        role: "Traditional Jurist"
+        responsibility: "Traditional evidence and practice"
+        
+      - agent: "imam_ahmad_ibn_hanbal"
+        role: "Textual Jurist"
+        responsibility: "Hadith evidence and authentication"
+        
+      - agent: "imam_bukhari"
+        role: "Authentication Authority"
+        responsibility: "Maximum authentication verification"
+    
+    snr_target: 0.94
+    reasoning_mode: "tot"
+    reasoning_template: "Source identification → Hierarchy application → Case analysis → Ruling"
+    
+    activation_patterns:
+      - "legal"
+      - "jurisprudence"
+      - "ruling"
+      - "fatwa"
+      - "halal"
+      - "haram"
+      - "permissibility"
+    
+    output_contract:
+      must_include:
+        - "legal_question"
+        - "source_evidence"
+        - "methodological_basis"
+        - "ruling"
+        - "confidence_level"
+        - "dissenting_views"
+      
+      evidence_requirements:
+        - "All sources authenticated"
+        - "Methodology explicitly stated"
+        - "School positions documented"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 7: INNOVATION & CREATIVITY STUDIO
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "innovation_creativity_studio"
+    name: "Innovation & Creativity Studio"
+    description: >
+      Creative exploration team for brainstorming, innovation, and artistic
+      expression. Sandboxed - cannot finalize factual claims.
+    
+    leader:
+      agent: "al_jazari"
+      role: "Chief Innovator"
+      responsibility: "Mechanical and practical innovation"
+    
+    members:
+      - agent: "omar_khayyam"
+        role: "Poet-Mathematician"
+        responsibility: "Art-science integration and aesthetics"
+        
+      - agent: "ibn_battuta"
+        role: "Global Explorer"
+        responsibility: "Cross-cultural inspiration and observation"
+        
+      - agent: "rumi"
+        role: "Mystical Poet"
+        responsibility: "Metaphorical expression and spiritual insight"
+    
+    snr_target: 0.88
+    reasoning_mode: "got"
+    reasoning_template: "Exploration → Association → Creation → Refinement"
+    
+    activation_patterns:
+      - "creative"
+      - "innovation"
+      - "brainstorm"
+      - "design"
+      - "artistic"
+      - "imagine"
+    
+    output_contract:
+      must_include:
+        - "creative_output"
+        - "inspiration_sources"
+        - "aesthetic_rationale"
+      
+      restrictions:
+        - "CANNOT finalize factual claims"
+        - "All outputs labeled as creative/exploratory"
+        - "Must defer to domain experts for facts"
+      
+      sandbox: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEAM 8: STRATEGIC LEADERSHIP COMMAND
+  # ─────────────────────────────────────────────────────────────────────────────
+  - id: "strategic_leadership_command"
+    name: "Strategic Leadership Command"
+    description: >
+      Strategic coordination team for complex multi-stakeholder situations
+      requiring leadership, diplomacy, and resource coordination.
+    
+    leader:
+      agent: "saladin"
+      role: "Strategic Commander"
+      responsibility: "Multi-theater coordination and diplomacy"
+    
+    members:
+      - agent: "umar_ibn_al_khattab"
+        role: "Administrative Leader"
+        responsibility: "Governance and administrative execution"
+        
+      - agent: "ibn_khaldun"
+        role: "Strategic Analyst"
+        responsibility: "Historical patterns and sociological analysis"
+        
+      - agent: "al_farabi"
+        role: "Political Strategist"
+        responsibility: "Political systems and stakeholder management"
+    
+    snr_target: 0.92
+    reasoning_mode: "got"
+    reasoning_template: "Situation analysis → Stakeholder mapping → Strategy → Coordination → Execution"
+    
+    activation_patterns:
+      - "strategy"
+      - "leadership"
+      - "coordination"
+      - "stakeholder"
+      - "negotiation"
+      - "conflict"
+    
+    output_contract:
+      must_include:
+        - "situation_analysis"
+        - "stakeholder_map"
+        - "strategic_objectives"
+        - "resource_allocation"
+        - "coordination_plan"
+        - "risk_mitigation"
+      
+      evidence_requirements:
+        - "Historical precedents considered"
+        - "Stakeholder interests analyzed"
+        - "Resource constraints acknowledged"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEAM COMPOSITION RULES
+# ─────────────────────────────────────────────────────────────────────────────
+composition_rules:
+  minimum_agents: 2
+  maximum_agents: 6
+  
+  required_roles:
+    high_stakes:
+      - "leader"
+      - "verifier"
+    standard:
+      - "leader"
+    creative:
+      - "leader"
+      
+  verification_rules:
+    - condition: "snr_target >= 0.93"
+      action: "Add verifier from authentication tier"
+      
+    - condition: "stakes == 'high'"
+      action: "Require Legal Reasoning Panel review"
+      
+    - condition: "domains_count >= 3"
+      action: "Activate Polymath Integrator"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AD-HOC TEAM COMPOSITION
+# ─────────────────────────────────────────────────────────────────────────────
+ad_hoc_composition:
+  enabled: true
+  orchestrator: "adaptive_orchestrator"
+  
+  selection_criteria:
+    - "Domain expertise match"
+    - "SNR target alignment"
+    - "Reasoning mode compatibility"
+    - "Verification requirements"
+    
+  balancing_rules:
+    - "Include at least one high-SNR agent for cross-check"
+    - "Balance creative and analytical agents"
+    - "Avoid redundant domain coverage"
