@@ -91,7 +91,7 @@ docker compose logs -f elite # Watch Rust service
 | refinery | Dockerfile.refinery | 8081 | Python refinery daemon |
 | elite    | Dockerfile.rust | 8080 | Rust PAT+SAT+SAPE |
 
-> **Port reference**: See `docker-compose.yml` lines 180-195 for refinery, lines 200-220 for kernel.
+> **Port reference**: See `docker-compose.yml` service definitions for `refinery` and `kernel`.
 
 ## Patterns & Conventions
 
@@ -161,7 +161,7 @@ curl http://localhost:8080/health
 - **Neo4j** (Wisdom) - Graph evidence for high-stakes SAPE probes
 - **MCP Protocol** - Tool access via Model Context Protocol
 
-## Quick Start (exact commands)
+## Quick Start
 
 ```powershell
 # Rust validation
@@ -177,7 +177,7 @@ docker compose ps --all --no-trunc
 docker compose logs refinery --tail=200
 ```
 
-## Conventions (follow these)
+## Conventions
 
 1. **Fail-closed**: If a gate/score is missing or invalid, return a structured rejection — never "best-effort" past ethics/gates
 2. **Receipts first**: New behavior must either emit/extend a receipt in `src/receipts.rs` (and Python equivalent), or explicitly document why it's non-receipted
