@@ -100,17 +100,38 @@ impl ProbeDimension {
     }
     
     /// Get dimension weight for Ihsān scoring
+    ///
+    /// # Weight Mapping (aligned with constitution/ihsan_v1.yaml)
+    ///
+    /// The 9 SAPE probes map to the 8 Ihsān dimensions as follows:
+    /// - ThreatScan + Safety → safety (0.22)
+    /// - ComplianceCheck → auditability (0.12)
+    /// - BiasProbe → adl_fairness (0.04)
+    /// - UserBenefit → user_benefit (0.14)
+    /// - Correctness → correctness (0.22)
+    /// - Groundedness + Relevance + Fluency → efficiency/robustness (0.18 split)
+    ///
+    /// Weights sum to 1.0 for composite scoring.
     pub fn weight(&self) -> f64 {
         match self {
-            Self::ThreatScan => 0.15,
+            // Maps to safety (0.22) - split with Safety probe
+            Self::ThreatScan => 0.11,
+            // Maps to auditability (0.12)
             Self::ComplianceCheck => 0.12,
-            Self::BiasProbe => 0.10,
-            Self::UserBenefit => 0.13,
-            Self::Correctness => 0.15,
-            Self::Safety => 0.15,
-            Self::Groundedness => 0.08,
-            Self::Relevance => 0.07,
-            Self::Fluency => 0.05,
+            // Maps to adl_fairness (0.04)
+            Self::BiasProbe => 0.04,
+            // Maps to user_benefit (0.14)
+            Self::UserBenefit => 0.14,
+            // Maps to correctness (0.22)
+            Self::Correctness => 0.22,
+            // Maps to safety (0.22) - split with ThreatScan
+            Self::Safety => 0.11,
+            // Maps to robustness (0.06) - split across quality probes
+            Self::Groundedness => 0.06,
+            // Maps to efficiency (0.12) - split across quality probes
+            Self::Relevance => 0.06,
+            // Maps to anti_centralization contribution (0.08) - local quality
+            Self::Fluency => 0.14,
         }
     }
     

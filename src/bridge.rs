@@ -26,7 +26,8 @@ impl BridgeCoordinator {
 
         let pat = PATOrchestrator::new().await?;
         let sat = SATOrchestrator::new().await?;
-        let fate = Mutex::new(FATECoordinator::new());
+        // Use from_env() for Redis persistence when available (production durability)
+        let fate = Mutex::new(FATECoordinator::from_env().await);
         let receipts = ReceiptEmitter::default();
 
         Ok(Self { pat, sat, fate, receipts })
