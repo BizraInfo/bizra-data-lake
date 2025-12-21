@@ -1,6 +1,10 @@
-fastapi
-uvicorn
-neo4j
-PyYAML
-prometheus-client
-httpx
+# BIZRA Kernel Python Dependencies
+# Pinned to secure versions (pip-audit verified)
+
+fastapi>=0.115.0  # Requires starlette>=0.40.0 (CVE-2024-47874 fix)
+uvicorn>=0.30.0
+neo4j>=5.0.0
+PyYAML>=6.0.1
+prometheus-client>=0.20.0
+httpx>=0.27.0
+starlette>=0.47.2  # Explicit pin: CVE-2024-47874, CVE-2025-54121 fixes
