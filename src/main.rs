@@ -3,7 +3,7 @@
 use meta_alpha_dual_agentic::types::{
     AdapterModes, DualAgenticRequest, EnhancedDualAgenticRequest, ReasoningMethod, SlashCommand,
 };
-use meta_alpha_dual_agentic::{create_http_server, ihsan, pat_enhanced, MetaAlphaDualAgentic};
+use meta_alpha_dual_agentic::{create_http_server, ihsan, metrics, pat_enhanced, MetaAlphaDualAgentic};
 use std::sync::Arc;
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -14,6 +14,9 @@ async fn main() -> anyhow::Result<()> {
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
+
+    // Initialize Prometheus metrics
+    metrics::init_metrics();
 
     let constitution = ihsan::constitution();
     let adapter_modes = AdapterModes::current();

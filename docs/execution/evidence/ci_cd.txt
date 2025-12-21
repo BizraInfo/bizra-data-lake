@@ -1,0 +1,302 @@
+>>> Get-ChildItem .github/workflows
+coderabbit-review.yml
+elite-ci-cd.yml
+phase0_integrity.yml
+
+>>> rg -n "^(name|on|jobs):" .github/workflows
+.github/workflows\phase0_integrity.yml:1:name: phase0-integrity
+.github/workflows\phase0_integrity.yml:3:on:
+.github/workflows\phase0_integrity.yml:8:jobs:
+.github/workflows\elite-ci-cd.yml:13:name: BIZRA Elite CI/CD v1.5
+.github/workflows\elite-ci-cd.yml:15:on:
+.github/workflows\elite-ci-cd.yml:38:jobs:
+.github/workflows\coderabbit-review.yml:8:name: ???? CodeRabbit Review Gate
+.github/workflows\coderabbit-review.yml:10:on:
+.github/workflows\coderabbit-review.yml:28:jobs:
+
+>>> Get-ChildItem scripts
+bizra-root.js
+bizra-root.ps1
+bizra_hypergraphrag_integration.py
+bizra_hypergraphrag_wrapper.py
+bizra_hypergraph_rag.py
+chat_knowledge_extractor.py
+genesis_ignite_all.ps1
+genesis_receipt.py
+ignite_node0.ps1
+install_sovereign_kernel_junction.ps1
+knowledge_graph_miner.py
+langextract_knowledge_miner.py
+memories_streamer.py
+merge_hypergraphs.py
+process_json_conversations.py
+resolve-bizra-root.ps1
+resolve-bizra-vault.ps1
+sape_analysis.py
+sape_deep_probe.py
+seed_min_evidence.py
+start_neo4j_local.ps1
+stop_neo4j_local.ps1
+test_sape_plan.ps1
+Untitled-1.ps1
+verify_e2b_sandbox.py
+verify_node0.ps1
+
+>>> rg -n "ci|pipeline|lint|test|build" scripts
+scripts\genesis_receipt.py:28:    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+scripts\genesis_receipt.py:123:    token = base64.b64encode(f"{user}:{password}".encode("utf-8")).decode("ascii")
+scripts\genesis_receipt.py:215:    gates_path = (repo_root / "docs/evidence/gates/node0_gates_latest.json").resolve()
+scripts\genesis_receipt.py:257:        "success_criteria": "Identify inflation risk vectors, propose mitigations, cite evidence artifacts.",
+scripts\genesis_receipt.py:258:        "forbidden_moves": ["hallucination", "hidden assumptions", "skipped proof", "missing verification steps"],
+scripts\genesis_receipt.py:259:        "lenses": ["Systems Architect", "Pragmatic Engineer", "Ethicist"],
+scripts\genesis_receipt.py:346:    out_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+scripts\chat_knowledge_extractor.py:132:    # BIZRA-specific term patterns
+scripts\chat_knowledge_extractor.py:146:        r'\bIhsan\b|??????????': ('Ihsan', 'Excellence principle - triadic ethical constraint'),
+scripts\chat_knowledge_extractor.py:179:            'efficiency', 'benchmark', 'scaling'
+scripts\chat_knowledge_extractor.py:315:        # Match BIZRA-specific terms
+scripts\chat_knowledge_extractor.py:593:        json.dump(manifest, f, indent=2, ensure_ascii=False)
+scripts\bizra_hypergraph_rag.py:14:BIZRA-specific enhancements:
+scripts\bizra_hypergraph_rag.py:24:import asyncio
+scripts\bizra_hypergraph_rag.py:41:    """BIZRA-specific entity types for knowledge graph."""
+scripts\bizra_hypergraph_rag.py:43:    AXIOM = "AXIOM"               # Foundational principles
+scripts\bizra_hypergraph_rag.py:65:    "efficiency": "Resource optimization and performance",
+scripts\bizra_hypergraph_rag.py:75:    "3-AxiomAnvil": "Principle extraction",
+scripts\bizra_hypergraph_rag.py:140:This is for building a Knowledge HyperGraph for the BIZRA dual-agentic framework.
+scripts\bizra_hypergraph_rag.py:159:- Ihs??n (??????????): Excellence principle with 8 dimensions
+scripts\bizra_hypergraph_rag.py:188:("hyper-relation"<|>"BIZRA implements Ihs??n through eight dimensions for AI excellence"<|>8)##("hyper-relation"<|>"HRM-MoE pattern enables hierarchical reasoning in BIZRA"<|>7)##("entity"<|>"BIZRA"<|>"CONCEPT"<|>"A dual-agentic AI framework emphasizing Islamic excellence principles"<|>95)##("entity"<|>"IHS??N"<|>"CONCEPT"<|>"Arabic term for excellence, core ethical principle with 8 evaluation dimensions"<|>90)##("entity"<|>"HRM-MOE"<|>"PATTERN"<|>"Hierarchical Reflective Mixture of Experts for multi-level AI reasoning"<|>85)##("entity"<|>"CORRECTNESS"<|>"DIMENSION"<|>"Ihs??n dimension measuring accuracy and truth of AI outputs"<|>70)##("entity"<|>"SAFETY"<|>"DIMENSION"<|>"Ihs??n dimension ensuring AI alignment with human values"<|>75)<|COMPLETE|>""",
+scripts\bizra_hypergraph_rag.py:204:    Implementation uses NetworkX with special hyperedge nodes.
+scripts\bizra_hypergraph_rag.py:327:            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
+scripts\bizra_hypergraph_rag.py:448:        # Principle statements
+scripts\bizra_hypergraph_rag.py:449:        r'(?:The\s+)?(?P<principle>[A-Z][a-zA-Z_-]+)\s+principle\s+(?:states?|requires?|ensures?)\s+(?P<content>[^.!?]+[.!?])',
+scripts\bizra_hypergraph_rag.py:547:        # Boost for numeric specifics
+scripts\genesis_ignite_all.ps1:86:$planScript = Join-Path $repoRoot "scripts/test_sape_plan.ps1"
+scripts\genesis_ignite_all.ps1:129:    Write-Host "[FAIL] test_sape_plan.ps1 exited with code $planExit" -ForegroundColor Red
+scripts\genesis_ignite_all.ps1:170:      Write-Host "[FAIL] test_sape_plan.ps1 (after seed) exited with code $planExit" -ForegroundColor Red
+scripts\ignite_node0.ps1:47:    docker compose -f $composeName up -d --build
+scripts\bizra_hypergraphrag_wrapper.py:5:Wraps the official HyperGraphRAG library (NeurIPS 2025) for BIZRA knowledge mining.
+scripts\bizra_hypergraphrag_wrapper.py:13:- BIZRA-specific entity types and Ihs??n dimensions
+scripts\bizra_hypergraphrag_wrapper.py:27:import asyncio
+scripts\bizra_hypergraphrag_wrapper.py:51:    "AXIOM",        # Foundational principles  
+scripts\bizra_hypergraphrag_wrapper.py:68:- Ihs??n (??????????): Islamic excellence principle with 8 evaluation dimensions
+scripts\bizra_hypergraphrag_wrapper.py:75:When extracting entities, prefer these BIZRA-specific types:
+scripts\bizra_hypergraphrag_wrapper.py:120:    loop = asyncio.new_event_loop()
+scripts\bizra_hypergraphrag_wrapper.py:136:    - BIZRA-specific entity types
+scripts\bizra_hypergraphrag_wrapper.py:440:        # Specific
+scripts\resolve-bizra-root.ps1:6:  # Optional explicit workspace file path (overrides BIZRA_WORKSPACE env var).
+scripts\langextract_knowledge_miner.py:6:from AI conversation exports with precise source grounding.
+scripts\langextract_knowledge_miner.py:9:- Few-shot learning for BIZRA-specific entity extraction
+scripts\langextract_knowledge_miner.py:47:    Extract BIZRA-specific knowledge entities from AI conversation transcripts.
+scripts\langextract_knowledge_miner.py:53:    5. AXIOMS: Foundational principles and invariants
+scripts\langextract_knowledge_miner.py:61:    Ihs??n dimensions: correctness, safety, user_benefit, efficiency, 
+scripts\langextract_knowledge_miner.py:73:            Proof-of-Work with measurable value creation attestation. This enables 
+scripts\langextract_knowledge_miner.py:74:            the SEED token to maintain stability while BLOOM appreciates with impact.
+scripts\langextract_knowledge_miner.py:105:                extraction_class="decision",
+scripts\langextract_knowledge_miner.py:109:                    "ihsan_dimension": "efficiency",
+scripts\langextract_knowledge_miner.py:119:            tolerance. This dual-agentic design ensures both efficiency and safety.
+scripts\langextract_knowledge_miner.py:146:                extraction_text="efficiency and safety",
+scripts\langextract_knowledge_miner.py:168:                    "ihsan_dimension": "efficiency",
+scripts\langextract_knowledge_miner.py:181:                    "ihsan_dimension": "efficiency",
+scripts\langextract_knowledge_miner.py:205:    with precise source grounding and few-shot learning.
+scripts\langextract_knowledge_miner.py:270:            # Add model-specific options
+scripts\langextract_knowledge_miner.py:410:                f.write(json.dumps(doc, ensure_ascii=False) + '\n')
+scripts\langextract_knowledge_miner.py:461:            json.dump(manifest, f, indent=2, ensure_ascii=False)
+scripts\process_json_conversations.py:4:Processes conversations.json exports and feeds them into the hypergraph pipeline.
+scripts\process_json_conversations.py:180:    """Process JSON conversation files and build hypergraph."""
+scripts\knowledge_graph_miner.py:71:    DECISION = "decision"
+scripts\knowledge_graph_miner.py:325:    """Extract BIZRA-specific patterns using regex and heuristics."""
+scripts\knowledge_graph_miner.py:338:            (r'\b(Ihsan|??????????)\b', 'Excellence Principle'),
+scripts\knowledge_graph_miner.py:359:            (r'\b(App[- ]?Agent)\b', 'Specialized Agent'),
+scripts\knowledge_graph_miner.py:385:        'correctness': ['accurate', 'correct', 'valid', 'truth', 'precise'],
+scripts\knowledge_graph_miner.py:388:        'efficiency': ['fast', 'efficient', 'optimize', 'latency', 'speed'],
+scripts\knowledge_graph_miner.py:544:def build_graph_node(state: GraphMinerState) -> GraphMinerState:
+scripts\knowledge_graph_miner.py:576:    """Decide whether to run sandbox validation."""
+scripts\knowledge_graph_miner.py:579:    return "build"
+scripts\knowledge_graph_miner.py:587:    def build_knowledge_mining_graph() -> StateGraph:
+scripts\knowledge_graph_miner.py:595:        workflow.add_node("build_graph", build_graph_node)
+scripts\knowledge_graph_miner.py:605:                "build": "build_graph"
+scripts\knowledge_graph_miner.py:608:        workflow.add_edge("validate", "build_graph")
+scripts\knowledge_graph_miner.py:609:        workflow.add_edge("build_graph", END)
+scripts\knowledge_graph_miner.py:613:    def build_knowledge_mining_graph():
+scripts\knowledge_graph_miner.py:637:            self.workflow = build_knowledge_mining_graph()
+scripts\knowledge_graph_miner.py:776:            }, f, indent=2, ensure_ascii=False)
+scripts\bizra_hypergraphrag_integration.py:7:Uses official HyperGraphRAG with BIZRA-specific:
+scripts\bizra_hypergraphrag_integration.py:33:import asyncio
+scripts\bizra_hypergraphrag_integration.py:57:    "AXIOM",        # Foundational principles
+scripts\bizra_hypergraphrag_integration.py:73:    """Inject BIZRA-specific prompts into HyperGraphRAG."""
+scripts\bizra_hypergraphrag_integration.py:83:        # Add BIZRA-specific example
+scripts\bizra_hypergraphrag_integration.py:92:("entity"<|>"BIZRA"<|>"CONCEPT"<|>"A dual-agentic AI framework emphasizing Islamic excellence principles and decentralized sovereignty"<|>95)##
+scripts\bizra_hypergraphrag_integration.py:93:("entity"<|>"IHS??N"<|>"CONCEPT"<|>"Arabic term for excellence, core ethical principle with 8 evaluation dimensions (correctness, safety, user_benefit, efficiency, auditability, anti_centralization, robustness, adl_fairness)"<|>90)##
+scripts\bizra_hypergraphrag_integration.py:95:("entity"<|>"HRM-MOE"<|>"PATTERN"<|>"Hierarchical Reflective Mixture of Experts - multi-level AI reasoning pattern with specialized expert agents"<|>85)##
+scripts\bizra_hypergraphrag_integration.py:132:            response = await asyncio.to_thread(
+scripts\bizra_hypergraphrag_integration.py:156:                response = await asyncio.to_thread(
+scripts\bizra_hypergraphrag_integration.py:250:            print("   Make sure HyperGraphRAG is cloned and dependencies installed")
+scripts\memories_streamer.py:48:        (r'\bIhsan\b|??????????|excellence\s+principle', 'Ihsan'),
+scripts\memories_streamer.py:105:        """Stream using ijson for memory-efficient parsing."""
+scripts\seed_min_evidence.py:60:    token = base64.b64encode(f"{user}:{password}".encode("utf-8")).decode("ascii")
+scripts\sape_analysis.py:67:    print(f"    Pre-registered Axioms: {len(elevator.principles)}")
+scripts\sape_analysis.py:68:    for ax_id, axiom in elevator.principles.items():
+scripts\sape_analysis.py:83:    test_text = """
+scripts\sape_analysis.py:88:    tensions = studio.analyze_text(test_text)
+scripts\sape_deep_probe.py:8:1. Rarely-fired tension detection circuits
+scripts\sape_deep_probe.py:41:def probe_tension_circuits():
+scripts\sape_deep_probe.py:47:    # Edge cases designed to fire rarely-used circuits
+scripts\sape_deep_probe.py:48:    test_cases = [
+scripts\sape_deep_probe.py:52:        # Temporal inconsistencies
+scripts\sape_deep_probe.py:56:        ("Maximize efficiency by removing safety checks.", "VALUE"),
+scripts\sape_deep_probe.py:66:    for text, expected_type in test_cases:
+scripts\sape_deep_probe.py:84:            print(f"    ??? No tension detected (circuit gap)")
+scripts\sape_deep_probe.py:113:    test_concepts = [
+scripts\sape_deep_probe.py:116:        ("fail_closed", "Principle of refusing action under uncertainty (FATE)"),
+scripts\sape_deep_probe.py:119:    for name, definition in test_concepts:
+scripts\sape_deep_probe.py:131:    """Probe the Abstraction Elevator for instance???pattern???principle chains."""
+scripts\sape_deep_probe.py:138:    for pid, prin in elevator.principles.items():
+scripts\sape_deep_probe.py:145:    print("\n  Testing Instance ??? Pattern ??? Principle elevation:")
+scripts\sape_deep_probe.py:149:    test_data = [
+scripts\sape_deep_probe.py:161:    for desc, features, outcome in test_data:
+scripts\sape_deep_probe.py:178:    # Check for principle elevation
+scripts\sape_deep_probe.py:179:    print(f"\n  Principles in registry: {len(elevator.principles)}")
+scripts\sape_deep_probe.py:181:    return {"instances": len(elevator.instances), "patterns": len(elevator.patterns), "principles": len(elevator.principles)}
+scripts\sape_deep_probe.py:213:    test_sequences = [
+scripts\sape_deep_probe.py:219:    for seq in test_sequences:
+scripts\sape_deep_probe.py:238:    test_paths = [
+scripts\sape_deep_probe.py:250:    for tp in test_paths:
+scripts\sape_deep_probe.py:296:    test_vectors = [
+scripts\sape_deep_probe.py:297:        {"correctness": 1.0, "safety": 1.0, "user_benefit": 0.9, "efficiency": 0.8,
+scripts\sape_deep_probe.py:299:        {"correctness": 0.5, "safety": 0.5, "user_benefit": 0.5, "efficiency": 0.5,
+scripts\sape_deep_probe.py:301:        {"correctness": 1.0, "safety": 0.0, "user_benefit": 1.0, "efficiency": 1.0,
+scripts\sape_deep_probe.py:305:    for i, dims in enumerate(test_vectors):
+scripts\sape_deep_probe.py:365:    results["tensions"] = probe_tension_circuits()
+scripts\sape_deep_probe.py:379:    print(f"    ??? Abstraction elevator: {results['abstraction']['principles']} principles active")
+scripts\sape_deep_probe.py:384:    print("\n  Untapped circuits identified:")
+scripts\sape_deep_probe.py:385:    print("    1. Cross-domain principle transfer (AbstractionElevator)")
+scripts\sape_deep_probe.py:391:    print("  PROBE COMPLETE - All circuits exercised")
+scripts\verify_node0.ps1:53:$gatesOutFile = Join-Path $repoRoot "docs/evidence/gates/node0_gates_latest.json"
+scripts\verify_node0.ps1:55:$gateStatuses = New-Object System.Collections.Specialized.OrderedDictionary
+scripts\verify_node0.ps1:56:$gateDetails = New-Object System.Collections.Specialized.OrderedDictionary
+scripts\verify_node0.ps1:112:  $out = docker compose -f $composeName exec -T kernel sh -lc "if echo test > /mnt/bizra_projects/__ro_test 2>/dev/null; then rm -f /mnt/bizra_projects/__ro_test; echo RO_FAIL; else echo RO_OK; fi"
+scripts\verify_node0.ps1:120:  Info "Gate D: LLM reachability observable (DEGRADED allowed, must be explicit)"
+scripts\verify_e2b_sandbox.py:38:    sb.files.write('/tmp/test.txt', 'BIZRA sandbox verified')
+scripts\verify_e2b_sandbox.py:39:    content = sb.files.read('/tmp/test.txt')
+scripts\test_sape_plan.ps1:57:  success_criteria = "Identify inflation risk vectors, propose mitigations, cite evidence artifacts."
+
+>>> rg -n "jobs:|runs-on:|name:" .github/workflows
+.github/workflows\phase0_integrity.yml:1:name: phase0-integrity
+.github/workflows\phase0_integrity.yml:8:jobs:
+.github/workflows\phase0_integrity.yml:10:    runs-on: ubuntu-latest
+.github/workflows\phase0_integrity.yml:16:      - name: Setup Rust
+.github/workflows\phase0_integrity.yml:21:      - name: Rust fmt
+.github/workflows\phase0_integrity.yml:24:      - name: Rust clippy (deny warnings)
+.github/workflows\phase0_integrity.yml:27:      - name: Rust tests
+.github/workflows\phase0_integrity.yml:30:      - name: Setup Python
+.github/workflows\phase0_integrity.yml:35:      - name: Python deps
+.github/workflows\phase0_integrity.yml:38:      - name: Python syntax (repo scripts)
+.github/workflows\phase0_integrity.yml:41:      - name: YAML sanity (blueprints + tokenomics)
+.github/workflows\phase0_integrity.yml:57:      - name: JSON sanity (schemas + examples)
+.github/workflows\phase0_integrity.yml:70:      - name: Portability lint
+.github/workflows\phase0_integrity.yml:73:      - name: Model family lint (sealed manifests)
+.github/workflows\phase0_integrity.yml:76:      - name: Truth-label lint
+.github/workflows\phase0_integrity.yml:79:      - name: Lexicon lint
+.github/workflows\phase0_integrity.yml:82:      - name: Lexicon tamper test
+.github/workflows\phase0_integrity.yml:85:      - name: Node0 secure-defaults lint
+.github/workflows\phase0_integrity.yml:88:      - name: Ihsan parity (Rust/Python)
+.github/workflows\phase0_integrity.yml:91:      - name: Genesis manifest profile lint
+.github/workflows\phase0_integrity.yml:94:      - name: Genesis manifest verify (optional)
+.github/workflows\phase0_integrity.yml:99:    runs-on: ubuntu-latest
+.github/workflows\phase0_integrity.yml:105:      - name: Setup Rust
+.github/workflows\phase0_integrity.yml:108:      - name: Setup Python
+.github/workflows\phase0_integrity.yml:113:      - name: Node0 backend (SQLx offline + warning budget)
+.github/workflows\phase0_integrity.yml:119:    runs-on: ubuntu-latest
+.github/workflows\phase0_integrity.yml:126:      - name: Setup Rust
+.github/workflows\phase0_integrity.yml:129:      - name: Setup Python
+.github/workflows\phase0_integrity.yml:134:      - name: Install Python deps
+.github/workflows\phase0_integrity.yml:137:      - name: Compile time regression gate
+.github/workflows\phase0_integrity.yml:150:      - name: Test execution time gate
+.github/workflows\phase0_integrity.yml:163:      - name: Binary size gate
+.github/workflows\phase0_integrity.yml:174:    runs-on: ubuntu-latest
+.github/workflows\phase0_integrity.yml:182:      - name: Setup Python
+.github/workflows\phase0_integrity.yml:187:      - name: Install deps
+.github/workflows\phase0_integrity.yml:190:      - name: Generate CI evidence receipt
+.github/workflows\phase0_integrity.yml:230:      - name: Upload evidence artifact
+.github/workflows\phase0_integrity.yml:233:          name: ci-evidence-${{ github.sha }}
+.github/workflows\phase0_integrity.yml:239:    runs-on: ubuntu-latest
+.github/workflows\phase0_integrity.yml:244:      - name: Gitleaks
+.github/workflows\coderabbit-review.yml:8:name: =ƒÉ¦ CodeRabbit Review Gate
+.github/workflows\coderabbit-review.yml:28:jobs:
+.github/workflows\coderabbit-review.yml:33:    name: '=ƒôè Pre-Review Metrics'
+.github/workflows\coderabbit-review.yml:34:    runs-on: ubuntu-latest
+.github/workflows\coderabbit-review.yml:43:      - name: Checkout
+.github/workflows\coderabbit-review.yml:48:      - name: Calculate PR Metrics
+.github/workflows\coderabbit-review.yml:78:      - name: Post Metrics Comment
+.github/workflows\coderabbit-review.yml:138:    name: '=ƒÅ¢n+Å BIZRA Compliance'
+.github/workflows\coderabbit-review.yml:139:    runs-on: ubuntu-latest
+.github/workflows\coderabbit-review.yml:144:      - name: Checkout
+.github/workflows\coderabbit-review.yml:149:      - name: Setup Python
+.github/workflows\coderabbit-review.yml:154:      - name: Check Receipt Compliance
+.github/workflows\coderabbit-review.yml:181:      - name: Check Fail-Closed Patterns
+.github/workflows\coderabbit-review.yml:211:      - name: Check Sovereignty Violations
+.github/workflows\coderabbit-review.yml:237:      - name: Generate Compliance Report
+.github/workflows\coderabbit-review.yml:273:    name: '=ƒÜª Review Gate'
+.github/workflows\coderabbit-review.yml:274:    runs-on: ubuntu-latest
+.github/workflows\coderabbit-review.yml:279:      - name: Evaluate Gate Status
+.github/workflows\coderabbit-review.yml:297:      - name: Post Gate Status
+.github/workflows\elite-ci-cd.yml:13:name: BIZRA Elite CI/CD v1.5
+.github/workflows\elite-ci-cd.yml:38:jobs:
+.github/workflows\elite-ci-cd.yml:43:    name: '=ƒöÆ Security Gate'
+.github/workflows\elite-ci-cd.yml:44:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:49:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:54:      - name: Setup Rust
+.github/workflows\elite-ci-cd.yml:57:      - name: Install cargo-audit
+.github/workflows\elite-ci-cd.yml:60:      - name: Cargo Audit (CVE Check)
+.github/workflows\elite-ci-cd.yml:69:      - name: Install cargo-deny
+.github/workflows\elite-ci-cd.yml:72:      - name: Cargo Deny (License & Bans)
+.github/workflows\elite-ci-cd.yml:100:      - name: GitLeaks Secret Scan
+.github/workflows\elite-ci-cd.yml:105:      - name: Upload Security Results
+.github/workflows\elite-ci-cd.yml:109:          name: security-audit-${{ github.sha }}
+.github/workflows\elite-ci-cd.yml:117:    name: 'G£à Quality Gate'
+.github/workflows\elite-ci-cd.yml:118:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:121:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:124:      - name: Setup Rust
+.github/workflows\elite-ci-cd.yml:129:      - name: Cache Cargo
+.github/workflows\elite-ci-cd.yml:134:      - name: Rust Format Check
+.github/workflows\elite-ci-cd.yml:137:      - name: Rust Clippy (Zero Warnings)
+.github/workflows\elite-ci-cd.yml:140:      - name: Run Tests
+.github/workflows\elite-ci-cd.yml:145:      - name: Test Count Gate
+.github/workflows\elite-ci-cd.yml:153:      - name: Upload Test Results
+.github/workflows\elite-ci-cd.yml:157:          name: test-results-${{ github.sha }}
+.github/workflows\elite-ci-cd.yml:165:    name: 'Gÿ¬n+Å Ihs-ün Gate'
+.github/workflows\elite-ci-cd.yml:166:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:169:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:172:      - name: Setup Python
+.github/workflows\elite-ci-cd.yml:177:      - name: Install deps
+.github/workflows\elite-ci-cd.yml:180:      - name: Verify HG-RTP compliance artifacts
+.github/workflows\elite-ci-cd.yml:220:      - name: Validate Ihs-ün Constitution
+.github/workflows\elite-ci-cd.yml:246:      - name: Ihs-ün Parity Check (Rust/Python)
+.github/workflows\elite-ci-cd.yml:254:      - name: SAPE Probe Validation
+.github/workflows\elite-ci-cd.yml:289:    name: 'GÜí Performance Gate'
+.github/workflows\elite-ci-cd.yml:290:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:293:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:296:      - name: Setup Rust
+.github/workflows\elite-ci-cd.yml:299:      - name: Cache Cargo
+.github/workflows\elite-ci-cd.yml:302:      - name: Build Time Gate (< 120s)
+.github/workflows\elite-ci-cd.yml:315:      - name: Test Time Gate (< 60s)
+.github/workflows\elite-ci-cd.yml:328:      - name: Binary Size Gate (< 50MB)
+.github/workflows\elite-ci-cd.yml:339:      - name: Performance Summary
+.github/workflows\elite-ci-cd.yml:352:    name: '=ƒÉ¦ Container Gate'
+.github/workflows\elite-ci-cd.yml:353:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:360:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:363:      - name: Set up Docker Buildx
+.github/workflows\elite-ci-cd.yml:366:      - name: Log in to Container Registry
+.github/workflows\elite-ci-cd.yml:370:          username: ${{ github.actor }}
+.github/workflows\elite-ci-cd.yml:373:      - name: Extract metadata
+.github/workflows\elite-ci-cd.yml:384:      - name: Build Container
+.github/workflows\elite-ci-cd.yml:395:      - name: Trivy Container Scan
+.github/workflows\elite-ci-cd.yml:405:      - name: Push Container (main only)
+.github/workflows\elite-ci-cd.yml:419:    name: '=ƒô£ Evidence Gate'
+.github/workflows\elite-ci-cd.yml:420:    runs-on: ubuntu-latest
+.github/workflows\elite-ci-cd.yml:424:      - name: Checkout
+.github/workflows\elite-ci-cd.yml:427:      - name: Setup Python
+.github/workflows\elite-ci-cd.yml:432:      - name: Generate CI Evidence Receipt
+.github/workflows\elite-ci-cd.yml:481:      - name: Upload Evidence Artifact
+.github/workflows\elite-ci-cd.yml:484:          name: ci-evidence-${{ github.sha }}
+.github/workflows\elite-ci-cd.yml:488:      - name: Pipeline Summary
+

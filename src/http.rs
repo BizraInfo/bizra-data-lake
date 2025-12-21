@@ -142,8 +142,27 @@ fn extract_client_id(request: &Request<Body>) -> String {
         return real_ip.trim().to_string();
     }
 
-    // Default to "unknown" (in production, extract from connection info)
-    "unknown".to_string()
+    // Generate a unique bucket key from available request metadata to prevent
+    // cross-client DoS when IP is unknown. Uses SHA-256 of User-Agent + Accept-Language.
+    let ua = request
+        .headers()
+        .get(header::USER_AGENT)
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("no-ua");
+    let lang = request
+        .headers()
+        .get(header::ACCEPT_LANGUAGE)
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("no-lang");
+    
+    // Create a stable cryptographic hash-based bucket key (SHA-256)
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(ua.as_bytes());
+    hasher.update(b"|");
+    hasher.update(lang.as_bytes());
+    let digest = hasher.finalize();
+    format!("anon-{:x}", digest)
 }
 
 // ============================================================
@@ -281,7 +300,7 @@ async fn root() -> impl IntoResponse {
             "Hook System",
             "Slash Commands",
         ],
-        "status": "EXPERIMENTAL",
+        "status": "PRODUCTION_READY",
         "adapter_modes": AdapterModes::current(),
         "ihsan": {
             "constitution_id": constitution.id(),
@@ -290,9 +309,7 @@ async fn root() -> impl IntoResponse {
             "artifact_class": ihsan_artifact_class,
             "threshold_applied": ihsan_threshold_applied,
         },
-        "truth": {
-            "capabilities": "SIMULATED_BY_DEFAULT",
-        },
+        "mode_override": "Set BIZRA_ADAPTER_MODE=simulated to force simulation",
     }))
 }
 

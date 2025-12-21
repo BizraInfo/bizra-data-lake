@@ -152,12 +152,13 @@ class ConstellationRuntime:
         
         # Subsystems (lazily initialized)
         self._orchestrator: Optional[ConstellationOrchestrator] = None
-        self._knowledge_connector: Optional[HyperGraphRAGConnector] = None
-        self._memory_manager: Optional[MemoryManager] = None
         self._hook_registry: Optional[HookRegistry] = None
         self._trigger_engine: Optional[TriggerEngine] = None
         self._command_registry: Optional[CommandRegistry] = None
         self._skill_registry: Optional[SkillRegistry] = None
+        
+        self._knowledge_connector: Optional[HyperGraphRAGConnector] = None
+        self._memory_manager: Optional[MemoryManager] = None
         self._sub_agent_manager: Optional[SubAgentManager] = None
         self._mcp_server: Optional[MCPServer] = None
         self._a2a_router: Optional[A2ARouter] = None
@@ -168,15 +169,6 @@ class ConstellationRuntime:
         self._agent_memory: dict[str, AgentMemoryInterface] = {}
         self._agent_a2a: dict[str, A2AProtocol] = {}
         
-        # Initialize orchestrator eagerly (it's always needed)
-        self._orchestrator = ConstellationOrchestrator()
-        
-        # Initialize hook and trigger registries for sync access
-        self._hook_registry = get_hook_registry()
-        self._trigger_engine = get_trigger_engine()
-        self._command_registry = get_command_registry()
-        self._skill_registry = get_skill_registry()
-        
     # ─────────────────────────────────────────────────────────────────────────
     # PROPERTY ACCESSORS (Synchronous)
     # ─────────────────────────────────────────────────────────────────────────
@@ -184,26 +176,40 @@ class ConstellationRuntime:
     @property
     def orchestrator(self) -> ConstellationOrchestrator:
         """Get the constellation orchestrator."""
+        if self._orchestrator is None:
+            raise RuntimeError("Orchestrator not initialized. Call initialize() first.")
         return self._orchestrator
         
     @property
     def hook_registry(self) -> HookRegistry:
         """Get the hook registry."""
+        if not self.config.hooks_enabled:
+            raise RuntimeError("Hooks subsystem is disabled via configuration.")
+        if self._hook_registry is None:
+            raise RuntimeError("Hook registry not initialized. Call initialize() first.")
         return self._hook_registry
         
     @property
     def trigger_engine(self) -> TriggerEngine:
         """Get the trigger engine."""
+        if not self.config.triggers_enabled:
+            raise RuntimeError("Triggers subsystem is disabled via configuration.")
+        if self._trigger_engine is None:
+            raise RuntimeError("Trigger engine not initialized. Call initialize() first.")
         return self._trigger_engine
         
     @property
     def command_registry(self) -> CommandRegistry:
         """Get the command registry."""
+        if self._command_registry is None:
+            raise RuntimeError("Command registry not initialized. Call initialize() first.")
         return self._command_registry
         
     @property
     def skill_registry(self) -> SkillRegistry:
         """Get the skill registry."""
+        if self._skill_registry is None:
+            raise RuntimeError("Skill registry not initialized. Call initialize() first.")
         return self._skill_registry
         
     @property
@@ -233,6 +239,10 @@ class ConstellationRuntime:
         
     def run_command(self, command_text: str, **kwargs) -> CommandResult:
         """Execute a slash command synchronously."""
+        if not self._initialized:
+            raise RuntimeError("Runtime not initialized. Call initialize() first.")
+        if self._command_registry is None:
+            raise RuntimeError("Command registry not initialized. Call initialize() first.")
         return self._command_registry.execute_sync(command_text, **kwargs)
         
     # ─────────────────────────────────────────────────────────────────────────
@@ -247,49 +257,60 @@ class ConstellationRuntime:
         logger.info("Initializing BIZRA Constellation Runtime...")
         
         # Configure logging
-        logging.basicConfig(level=getattr(logging, self.config.log_level))
+        logger.setLevel(getattr(logging, self.config.log_level))
         
+        # Initialize orchestrator
+        if self._orchestrator is None:
+            self._orchestrator = ConstellationOrchestrator()
+            
         # Initialize knowledge connector
-        self._knowledge_connector = HyperGraphRAGConnector(
-            graph_path=self.config.data_vault_path / "knowledge_graph",
-        )
-        self._knowledge_connector.initialize()
+        if self._knowledge_connector is None:
+            self._knowledge_connector = HyperGraphRAGConnector(
+                graph_path=self.config.data_vault_path / "knowledge_graph",
+            )
+            self._knowledge_connector.initialize()
         
         # Initialize memory manager
-        self._memory_manager = MemoryManager(
-            storage_base=self.config.data_vault_path / "memory",
-            working_capacity=self.config.working_memory_capacity,
-            short_term_ttl=self.config.short_term_ttl_hours,
-        )
+        if self._memory_manager is None:
+            self._memory_manager = MemoryManager(
+                storage_base=self.config.data_vault_path / "memory",
+                working_capacity=self.config.working_memory_capacity,
+                short_term_ttl=self.config.short_term_ttl_hours,
+            )
         
         # Initialize hooks
         if self.config.hooks_enabled:
-            self._hook_registry = get_hook_registry()
+            if self._hook_registry is None:
+                self._hook_registry = get_hook_registry()
             self._register_system_hooks()
             
         # Initialize triggers
         if self.config.triggers_enabled:
-            self._trigger_engine = get_trigger_engine()
+            if self._trigger_engine is None:
+                self._trigger_engine = get_trigger_engine()
             self._register_default_triggers()
             
         # Initialize commands
-        self._command_registry = get_command_registry()
+        if self._command_registry is None:
+            self._command_registry = get_command_registry()
         self._register_runtime_commands()
         
         # Initialize skills
-        self._skill_registry = get_skill_registry()
-        self._sub_agent_manager = get_sub_agent_manager()
+        if self._skill_registry is None:
+            self._skill_registry = get_skill_registry()
+        if self._sub_agent_manager is None:
+            self._sub_agent_manager = get_sub_agent_manager()
         
         # Initialize MCP server
-        if self.config.mcp_enabled:
+        if self.config.mcp_enabled and self._mcp_server is None:
             self._mcp_server = get_mcp_server()
             
         # Initialize A2A router
-        if self.config.a2a_enabled:
+        if self.config.a2a_enabled and self._a2a_router is None:
             self._a2a_router = get_a2a_router()
             
         # Initialize audit engine
-        if self.config.auto_audit_enabled:
+        if self.config.auto_audit_enabled and self._audit_engine is None:
             self._audit_engine = get_audit_engine()
             self._register_audit_hooks()
             

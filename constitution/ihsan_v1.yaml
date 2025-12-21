@@ -22,6 +22,7 @@ threshold_policy:
     config: 0.90
     data: 0.90
     evidence: 0.95
+    mcp_tool: 0.90  # MCP tool invocations require high trust
 
   normalization:
     env_aliases:
@@ -30,6 +31,7 @@ threshold_policy:
     artifact_class_aliases:
       documentation: docs
       receipt: evidence
+      tool: mcp_tool  # Alias for MCP tool calls
 
 definition: >
   Ihsān is operationalized as a weighted composite ethical score over eight dimensions.

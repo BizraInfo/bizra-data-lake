@@ -1,0 +1,111 @@
+>>> rg -n CMD \[ -g Dockerfile* .
+.\Dockerfile.refinery:67:CMD ["python", "-m", "core.refinery_daemon", \
+.\Dockerfile:21:CMD ["python", "-m", "core.main"]
+.\bizra-genesis-node\backend\Dockerfile:70:    CMD ["/app/apiserver", "--health-check"] || exit 1
+.\Dockerfile.rust:89:CMD ["/app/bizra-elite"]
+.\bizra-genesis-node\bridge\Dockerfile:70:CMD ["node", "dist/index.js"]
+.\bizra-genesis-node\apps\dashboard\Dockerfile:82:CMD ["node", "server.js"]
+
+>>> rg -n run_master.ps1|cargo run --release|cargo build --release README.md
+136:cargo build --release
+139:cargo run --release
+149:powershell -ExecutionPolicy Bypass -File tools\\run_master.ps1 `
+160:cargo run --release
+
+>>> rg -n __main__ core -g *.py
+core\refinery_daemon.py:676:if __name__ == "__main__":
+core\fate_auditor_worker.py:168:if __name__ == "__main__":
+core\spawn_api.py:219:if __name__ == "__main__":
+core\main.py:975:if __name__ == "__main__":
+core\agent_factory.py:760:if __name__ == "__main__":
+core\synapse.py:789:if __name__ == "__main__":
+core\urp\manager.py:897:if __name__ == "__main__":
+
+>>> rg -n __main__ bizra_refinery.py
+547:if __name__ == "__main__":
+
+>>> rg -n fn main|tokio::main src/main.rs
+10:#[tokio::main]
+11:async fn main() -> anyhow::Result<()> {
+
+>>> rg -n fn main|tokio::main bizra-genesis-node/backend/src/main.rs
+55:#[tokio::main]
+56:async fn main() -> anyhow::Result<()> {
+
+>>> Get-Content -TotalCount 40 tools/run_master.ps1
+# tools/run_master.ps1
+# One-command, evidence-first activation for the solo-dev "personal agentic team".
+# Safe defaults: no deletions; indexes + receipts only.
+
+[CmdletBinding()]
+param(
+  [string]$ChatInputDir,
+  [string]$ModelTarget,
+  [string]$OllamaHost,
+  [switch]$SkipChatIngest,
+  [switch]$IngestCrashReports,
+  [switch]$RunLLMTeam,
+  [switch]$StoreFullText
+)
+
+$ErrorActionPreference = "Stop"
+
+if ($ModelTarget) { $env:MODEL_TARGET = $ModelTarget }
+if ($OllamaHost) { $env:OLLAMA_HOST = $OllamaHost }
+
+Write-Host "BIZRA Master Run" -ForegroundColor Cyan
+Write-Host "MODEL_TARGET=$($env:MODEL_TARGET)" -ForegroundColor DarkCyan
+Write-Host "OLLAMA_HOST=$($env:OLLAMA_HOST)" -ForegroundColor DarkCyan
+
+$activateParams = @{}
+if ($ChatInputDir) { $activateParams.ChatInputDir = $ChatInputDir }
+if ($SkipChatIngest) { $activateParams.SkipChatIngest = $true }
+if ($StoreFullText) { $activateParams.StoreFullText = $true }
+if ($IngestCrashReports) { $activateParams.IngestCrashReports = $true }
+if ($RunLLMTeam) { $activateParams.RunLLMTeam = $true }
+
+Write-Host ("Flags: SkipChatIngest=$SkipChatIngest StoreFullText=$StoreFullText IngestCrashReports=$IngestCrashReports RunLLMTeam=$RunLLMTeam") -ForegroundColor DarkCyan
+Write-Host ("Forwarding: tools\\activate_team.ps1 " + (($activateParams.Keys | Sort-Object) -join ", ")) -ForegroundColor DarkCyan
+
+& (Join-Path $PSScriptRoot "activate_team.ps1") @activateParams
+
+>>> Extract env var names from docker-compose.yml and .env.example (no values)
+ANONYMIZED_TELEMETRY
+BIZRA_API_TOKEN
+BIZRA_HEALTHZ_BUDGET_S
+BIZRA_HEALTHZ_CACHE_TTL_S
+BIZRA_HEALTHZ_LLM_TIMEOUT_S
+BIZRA_HEALTHZ_NEO4J_TIMEOUT_S
+BIZRA_HEALTHZ_REDIS_TIMEOUT_S
+BIZRA_HTTP_PORT
+BIZRA_IHSAN_ENV
+BIZRA_REFINERY_BATCH_SIZE
+BIZRA_REFINERY_PORT
+BIZRA_REFINERY_THROUGHPUT
+BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H
+CHROMA_URL
+ENV
+FATE_LEVEL
+GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+GF_SECURITY_ADMIN_PASSWORD
+GF_SECURITY_ADMIN_USER
+GF_USERS_ALLOW_SIGN_UP
+GRAFANA_ADMIN_PASSWORD
+GRAFANA_ADMIN_USER
+GRAPH_PASSWORD
+IS_PERSISTENT
+LMSTUDIO_BASE_URL
+NEO4J_AUTH
+NEO4J_PASSWORD
+NEO4J_URI
+NEO4J_USER
+OLLAMA_BASE_URL
+OLLAMA_URL
+POSTGRES_DB
+POSTGRES_PASSWORD
+POSTGRES_USER
+REDIS_URL
+RUST_LOG
+SYNAPSE_URL
+WISDOM_URL
+

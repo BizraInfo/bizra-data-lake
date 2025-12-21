@@ -1,0 +1,18 @@
+=== REFINERY LOGS SNAPSHOT ===
+Timestamp: 2025-12-21T12:39:19+04:00
+
+=== docker compose logs refinery --tail=200 ===
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon | Genesis hash loaded: 7253d9f015bcac66...
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon | ============================================================
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon |   BIZRA REFINERY DAEMON
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon | ============================================================
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon |   Watch paths: ['bizra_data_vault/roots']
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon |   Target throughput: 10.0 MB/sec
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon |   Health port: 8081
+refinery-1  | 2025-12-21 00:18:46 | INFO | refinery.daemon | ============================================================
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | Initial scan: 643 files from bizra_data_vault/roots
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | Total files queued: 643
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | File watcher started (polling mode)
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | Refinery worker started
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | Health server on http://0.0.0.0:8081
+refinery-1  | 2025-12-21 00:18:51 | INFO | refinery.daemon | Daemon started successfully

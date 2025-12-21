@@ -138,10 +138,15 @@ paths:
         Execute a task through the PAT+SAT dual-agent pipeline.
         
         Pipeline flow:
-        1. SAT consensus validation (3/5 required)
-        2. PAT agent delegation
-        3. Ihsān ethical scoring
+        1. SAT sentinel validation (veto-only: ANY rejection blocks execution)
+        2. PAT agent delegation across 7 specialized agents
+        3. Ihsān 8-dimension ethical scoring
         4. Response aggregation
+        
+        **SAT Veto-Only Consensus**: Unlike democratic voting, SAT uses a fail-safe model
+        where any single SAT agent (Security, Ethics, Policy, Complexity, Resources)
+        can veto the entire request. This ensures maximum safety at the cost of
+        potential false rejections.
       operationId: executeDual
       security:
         - bearerAuth: []
@@ -155,17 +160,27 @@ paths:
               simple:
                 summary: Simple task
                 value:
+                  user_id: "user-12345"
                   task: "Write a Python function to calculate factorial"
+                  requirements: ["handle negative numbers", "include docstring"]
+                  target: "python_function"
               contextual:
                 summary: Task with context
                 value:
+                  user_id: "user-12345"
                   task: "Review this code for security issues"
-                  context: "def login(user, pwd): return db.query(f'SELECT * FROM users WHERE name={user}')"
+                  requirements: ["check SQL injection", "check XSS"]
+                  target: "security_report"
+                  context:
+                    code: "def login(user, pwd): return db.query(f'SELECT * FROM users WHERE name={user}')"
               prioritized:
                 summary: High priority task
                 value:
+                  user_id: "user-12345"
                   task: "Generate security audit report"
-                  priority: "high"
+                  requirements: ["comprehensive", "actionable"]
+                  target: "audit_report"
+                  priority: "High"
       responses:
         '200':
           description: Task executed successfully
@@ -518,74 +533,153 @@ components:
     DualAgenticRequest:
       type: object
       required:
+        - user_id
         - task
+        - requirements
+        - target
       properties:
+        user_id:
+          type: string
+          format: uuid
+          x-pii: true
+          x-sensitive: true
+          description: |
+            Unique identifier for the user. This field is PII and must be:
+            - Masked or hashed before logging/persistence
+            - Subject to audit trail retention policies
+          example: "550e8400-e29b-41d4-a716-446655440000"
         task:
           type: string
           description: The task to execute
           example: "Write a Python function to calculate factorial"
-        context:
+        requirements:
+          type: array
+          items:
+            type: string
+          description: List of requirements for the task
+          example: ["handle negative numbers", "include docstring"]
+        target:
           type: string
-          description: Optional additional context for the task
+          description: Target output or destination
+          example: "python_function"
         priority:
-          type: string
-          enum: [low, medium, high]
-          default: medium
-          description: Task priority level
+          $ref: '#/components/schemas/Priority'
+        context:
+          type: object
+          additionalProperties:
+            anyOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: object
+              - type: array
+              - type: "null"
+          description: Optional key-value context for the task (supports mixed types)
+          example:
+            language: "python"
+            style: "functional"
+            max_retries: 3
+            debug_mode: true
+
+    Priority:
+      type: string
+      enum: [Low, Medium, High, Critical]
+      default: Medium
+      description: Task priority level
 
     EnhancedDualAgenticRequest:
-      allOf:
-        - $ref: '#/components/schemas/DualAgenticRequest'
-        - type: object
-          properties:
-            adapter_modes:
-              type: array
-              items:
-                type: string
-                enum: [reasoning, coding, security, ethics]
-              description: Active adapter modes
-            enable_sape:
-              type: boolean
-              default: true
-              description: Enable SAPE probing
-            max_sub_agents:
-              type: integer
-              default: 3
-              description: Maximum sub-agents to spawn
+      type: object
+      required:
+        - base
+      properties:
+        base:
+          $ref: '#/components/schemas/DualAgenticRequest'
+        reasoning_preference:
+          $ref: '#/components/schemas/ReasoningMethod'
+        enable_sub_agents:
+          type: boolean
+          default: false
+          description: Enable sub-agent spawning
+        enable_swarm:
+          $ref: '#/components/schemas/SwarmMode'
+        mcp_tools_whitelist:
+          type: array
+          items:
+            type: string
+          description: Whitelist of MCP tools to use
+        memory_context:
+          type: object
+          additionalProperties: true
+          description: Additional memory context as JSON (arbitrary properties allowed)
+        hooks_config:
+          type: object
+          additionalProperties: true
+          description: Hook configuration map
+        slash_command:
+          $ref: '#/components/schemas/SlashCommand'
+
+    ReasoningMethod:
+      type: string
+      enum: [ChainOfThought, TreeOfThought, GraphOfThought, ReAct, Reflexion]
+      description: Reasoning method to use
+
+    SwarmMode:
+      type: string
+      enum: [Collaborative, Competitive, Hierarchical, Consensus]
+      description: Swarm intelligence mode
+
+    SlashCommand:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [Reason, Spawn, Swarm, Memory, Hook, Tools, Delegate, Synthesize, Reflect, Export]
+      description: Slash command for advanced control
 
     DualAgenticResponse:
       type: object
+      required:
+        - pat_contributions
+        - sat_contributions
+        - synergy_score
+        - ihsan_score
+        - latency
       properties:
-        success:
-          type: boolean
-        result:
-          type: string
-          description: Aggregated response from agents
-        pat_agents_consulted:
-          type: integer
-          description: Number of PAT agents that contributed
-        sat_consensus:
-          type: object
-          properties:
-            approved:
-              type: boolean
-            votes_for:
-              type: integer
-            votes_against:
-              type: integer
-        ihsan_score:
+        pat_contributions:
+          type: array
+          items:
+            type: string
+          description: Contributions from PAT agents
+        sat_contributions:
+          type: array
+          items:
+            type: string
+          description: Contributions from SAT agents
+        synergy_score:
           type: number
-          format: float
+          format: double
           minimum: 0
           maximum: 1
-        execution_time_ms:
-          type: integer
-        request_id:
-          type: string
-          format: uuid
-        fate_pending_count:
-          type: integer
-          description: Tasks pending human review
+          description: PAT+SAT synergy score
+        ihsan_score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: Ihsān ethical score (8-dimension)
+        latency:
+          type: object
+          properties:
+            secs:
+              type: integer
+            nanos:
+              type: integer
+          description: Execution latency
+        meta:
+          type: object
+          description: Additional metadata from execution
 
     RejectionResponse:
       type: object
@@ -673,26 +767,26 @@ components:
     SapeProbeRequest:
       type: object
       required:
-        - input
+        - content
       properties:
-        input:
+        content:
           type: string
-          description: Content to probe
-        dimensions:
-          type: array
-          items:
-            type: string
-            enum: [threat_scan, safety_check, pattern_analysis]
-          description: Specific dimensions to probe (default all)
+          description: Content to probe for security and ethical concerns
 
     SapeProbeResponse:
       type: object
       properties:
-        safe:
+        ihsan_score:
+          type: number
+          format: double
+          description: Aggregate Ihsān score across all dimensions
+        threshold:
+          type: number
+          format: double
+          description: Environment-specific threshold value used to evaluate content
+        passed:
           type: boolean
-        threat_level:
-          type: string
-          enum: [none, low, medium, high, critical]
+          description: Whether content passed the configured threshold
         probes:
           type: array
           items:
@@ -700,15 +794,22 @@ components:
             properties:
               dimension:
                 type: string
-              passed:
-                type: boolean
+                description: Ihsān dimension name
+              score:
+                type: number
+                format: double
               confidence:
                 type: number
-                format: float
-              findings:
+                format: double
+              flags:
                 type: array
                 items:
                   type: string
+              passed:
+                type: boolean
+        dimensions_analyzed:
+          type: integer
+          description: Number of dimensions analyzed
 
     SapeStatsResponse:
       type: object
@@ -746,20 +847,23 @@ components:
           type: string
         model:
           type: string
+        done:
+          type: boolean
         eval_count:
           type: integer
-        eval_duration:
-          type: integer
+        simulated:
+          type: boolean
+          description: Whether response is simulated (Ollama unavailable)
 
     OllamaChatRequest:
       type: object
       required:
-        - messages
+        - message
       properties:
-        model:
+        message:
           type: string
-          default: "llama3.2"
-        messages:
+          description: The user message to send
+        history:
           type: array
           items:
             type: object
@@ -772,10 +876,11 @@ components:
                 enum: [system, user, assistant]
               content:
                 type: string
-        temperature:
-          type: number
-          format: float
-          default: 0.7
+          description: Optional conversation history
+        model:
+          type: string
+          default: "llama3.2"
+          description: Model to use for chat
 
     OllamaChatResponse:
       type: object
@@ -791,6 +896,9 @@ components:
           type: string
         done:
           type: boolean
+        simulated:
+          type: boolean
+          description: Whether response is simulated (Ollama unavailable)
 
     OllamaStatusResponse:
       type: object

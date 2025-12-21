@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 # Configure logging
 logging.basicConfig(
@@ -81,9 +81,9 @@ class RejectionReason:
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     agent: str = ""
     request_hash: str = ""
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code.value,
             "message": self.message,
@@ -116,33 +116,51 @@ class FATEEvaluator:
     """
     Foundational Alignment Threshold Evaluator
     
-    Computes Ihsān score based on:
-    1. Intent alignment (what is the purpose?)
-    2. Sovereignty compliance (is it local/self-sufficient?)
-    3. Ethics alignment (does it pass EthicsGuardian rules?)
-    4. Context coherence (is it consistent with prior state?)
+    Computes Ihsān score based on the canonical 8 dimensions defined in
+    constitution/ihsan_v1.yaml. This implementation must match the Rust
+    implementation in src/ihsan.rs exactly.
     
-    The score is a weighted combination:
-    - Intent: 0.30
-    - Sovereignty: 0.25
-    - Ethics: 0.30
-    - Coherence: 0.15
+    Dimensions (weights sum to 1.0):
+    - correctness:         0.22  Factual accuracy, logical validity
+    - safety:              0.22  No harm, secure execution
+    - user_benefit:        0.14  Genuine value delivered
+    - efficiency:          0.12  Resource efficiency
+    - auditability:        0.12  Traceability and explainability
+    - anti_centralization: 0.08  Distributed, resilient operation
+    - robustness:          0.06  Resilient to adversarial inputs
+    - adl_fairness:        0.04  Justice/fairness (ʿadl)
+    
+    NOTE: The legacy 4-dimension view (intent, sovereignty, ethics, coherence)
+    is available via get_legacy_projection() for backward compatibility.
     """
     
-    WEIGHTS = {
+    # Canonical 8-dimension weights from ihsan_v1.yaml
+    WEIGHTS: ClassVar[dict[str, float]] = {
+        "correctness": 0.22,
+        "safety": 0.22,
+        "user_benefit": 0.14,
+        "efficiency": 0.12,
+        "auditability": 0.12,
+        "anti_centralization": 0.08,
+        "robustness": 0.06,
+        "adl_fairness": 0.04,
+    }
+    
+    # Legacy 4-dimension weights (derived projection for UX compatibility)
+    LEGACY_WEIGHTS: ClassVar[dict[str, float]] = {
         "intent": 0.30,
         "sovereignty": 0.25,
         "ethics": 0.30,
         "coherence": 0.15
     }
     
-    # Patterns that reduce intent score
-    HARMFUL_PATTERNS = [
+    # Patterns that reduce safety/correctness score
+    HARMFUL_PATTERNS: ClassVar[list[str]] = [
         "hack", "exploit", "bypass", "leak", "steal",
         "malware", "virus", "injection", "overflow"
     ]
     
-    # External endpoints that violate sovereignty
+    # External endpoints that violate anti_centralization
     EXTERNAL_ENDPOINTS = [
         "api.openai.com", "api.anthropic.com",
         "generativelanguage.googleapis.com"
@@ -152,7 +170,7 @@ class FATEEvaluator:
         self.evaluation_count = 0
         self.rejection_count = 0
     
-    def evaluate_intent(self, message: str, context: Dict[str, Any]) -> float:
+    def evaluate_intent(self, message: str, context: dict[str, Any]) -> float:
         """Score the intent alignment of the request."""
         message_lower = message.lower()
         
@@ -170,7 +188,7 @@ class FATEEvaluator:
         
         return min(base_score + boost, 1.0)
     
-    def evaluate_sovereignty(self, context: Dict[str, Any]) -> float:
+    def evaluate_sovereignty(self, context: dict[str, Any]) -> float:
         """Score sovereignty compliance."""
         # Check if request uses local endpoints
         endpoint = context.get("endpoint", "")
@@ -186,7 +204,7 @@ class FATEEvaluator:
         
         return 0.8  # Unknown but not explicitly external
     
-    def evaluate_ethics(self, message: str, context: Dict[str, Any]) -> float:
+    def evaluate_ethics(self, message: str, context: dict[str, Any]) -> float:
         """Score ethics alignment."""
         # This would integrate with EthicsGuardian agent
         # For now, use heuristic checks
@@ -209,7 +227,7 @@ class FATEEvaluator:
         
         return min(0.9 + constructive_count * 0.02, 1.0)
     
-    def evaluate_coherence(self, context: Dict[str, Any]) -> float:
+    def evaluate_coherence(self, context: dict[str, Any]) -> float:
         """Score context coherence."""
         # Check session continuity
         session_id = context.get("session_id")
@@ -222,23 +240,110 @@ class FATEEvaluator:
         else:
             return 0.7   # No session tracking
     
-    def evaluate(self, message: str, context: Dict[str, Any]) -> Tuple[float, Dict[str, float]]:
+    def evaluate_8dim(self, message: str, context: dict[str, Any]) -> dict[str, float]:
         """
-        Compute overall Ihsān score.
+        Evaluate using the canonical 8-dimension model from ihsan_v1.yaml.
+        
+        Returns:
+            Dictionary of dimension scores (0.0 - 1.0)
+        """
+        message_lower = message.lower()
+        
+        # correctness: Factual accuracy, logical validity
+        correctness = 0.85  # Base score, would be validated by SAT
+        if any(p in message_lower for p in ["prove", "verify", "fact", "evidence"]):
+            correctness = 0.95
+        
+        # safety: No harm, secure execution
+        safety = 1.0
+        for pattern in self.HARMFUL_PATTERNS:
+            if pattern in message_lower:
+                safety = 0.2
+                break
+        
+        # user_benefit: Genuine value delivered
+        user_benefit = 0.8
+        positive = ["help", "learn", "build", "improve", "fix", "explain", "create"]
+        if any(p in message_lower for p in positive):
+            user_benefit = 0.95
+        
+        # efficiency: Resource efficiency
+        efficiency = 0.9  # Default good, penalize large requests
+        msg_len = len(message)
+        if msg_len > 10000:
+            efficiency = 0.5
+        elif msg_len > 5000:
+            efficiency = 0.7
+        
+        # auditability: Traceability and explainability
+        auditability = 0.7
+        if context.get("session_id"):
+            auditability = 0.85
+        if context.get("request_hash"):
+            auditability = 0.95
+        
+        # anti_centralization: Distributed, resilient operation
+        anti_centralization = 0.8
+        endpoint = context.get("endpoint", "")
+        for ext in self.EXTERNAL_ENDPOINTS:
+            if ext in endpoint:
+                anti_centralization = 0.0
+                break
+        backend = context.get("backend", "")
+        if backend in ("ollama", "lmstudio", "local"):
+            anti_centralization = 1.0
+        
+        # robustness: Resilient to adversarial inputs
+        robustness = 0.85
+        if context.get("prior_context"):
+            robustness = 0.9  # Has context to cross-reference
+        
+        # adl_fairness: Justice/fairness
+        adl_fairness = 0.9
+        bias_patterns = ["discriminat", "racist", "sexist", "unfair"]
+        if any(p in message_lower for p in bias_patterns):
+            adl_fairness = 0.2
+        
+        return {
+            "correctness": correctness,
+            "safety": safety,
+            "user_benefit": user_benefit,
+            "efficiency": efficiency,
+            "auditability": auditability,
+            "anti_centralization": anti_centralization,
+            "robustness": robustness,
+            "adl_fairness": adl_fairness,
+        }
+    
+    def get_legacy_projection(self, scores_8dim: dict[str, float]) -> dict[str, float]:
+        """
+        Project the 8-dimension scores to the legacy 4-dimension view.
+        
+        Mapping:
+        - intent = (correctness + user_benefit) / 2
+        - sovereignty = anti_centralization
+        - ethics = (safety + adl_fairness) / 2
+        - coherence = (auditability + robustness) / 2
+        """
+        return {
+            "intent": (scores_8dim["correctness"] + scores_8dim["user_benefit"]) / 2,
+            "sovereignty": scores_8dim["anti_centralization"],
+            "ethics": (scores_8dim["safety"] + scores_8dim["adl_fairness"]) / 2,
+            "coherence": (scores_8dim["auditability"] + scores_8dim["robustness"]) / 2,
+        }
+    
+    def evaluate(self, message: str, context: dict[str, Any]) -> tuple[float, dict[str, float]]:
+        """
+        Compute overall Ihsān score using canonical 8-dimension model.
         
         Returns:
             (overall_score, component_scores)
         """
         self.evaluation_count += 1
         
-        scores = {
-            "intent": self.evaluate_intent(message, context),
-            "sovereignty": self.evaluate_sovereignty(context),
-            "ethics": self.evaluate_ethics(message, context),
-            "coherence": self.evaluate_coherence(context)
-        }
+        scores = self.evaluate_8dim(message, context)
         
-        # Weighted combination
+        # Weighted combination using canonical weights
         overall = sum(scores[k] * self.WEIGHTS[k] for k in scores)
         
         return overall, scores
@@ -282,7 +387,7 @@ class IhsanGate:
         # Ensure evidence directory exists
         self.evidence_path.mkdir(parents=True, exist_ok=True)
     
-    def _hash_request(self, message: str, context: Dict[str, Any]) -> str:
+    def _hash_request(self, message: str, context: dict[str, Any]) -> str:
         """Create deterministic hash of request."""
         content = json.dumps({"message": message, "context": context}, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
@@ -290,7 +395,7 @@ class IhsanGate:
     def validate_request(
         self,
         message: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         agent: str = ""
     ) -> GateDecision:
         """
@@ -381,7 +486,7 @@ class IhsanGate:
         self,
         response: str,
         original_decision: GateDecision,
-        context: Dict[str, Any] = None
+        context: dict[str, Any] | None = None
     ) -> GateDecision:
         """
         Validate agent response (post-execution check).
@@ -424,7 +529,7 @@ class IhsanGate:
         with open(log_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(reason.to_dict()) + '\n')
     
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get gate statistics."""
         acceptance_rate = (
             self.accepted_requests / self.total_requests 

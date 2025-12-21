@@ -1,0 +1,285 @@
+>>> rg --files -g ".env" -g ".env.*"
+.env
+.env.example
+bizra-genesis-node\.env.example
+bizra-genesis-node\apps\dashboard\.env.local.example
+bizra-genesis-node\apps\dashboard\.env.production
+
+>>> Extract env var names (no values)
+.env: BIZRA_API_TOKEN
+.env: ENV
+.env: FATE_LEVEL
+.env: NEO4J_AUTH
+.env: WISDOM_URL
+.env: GRAPH_PASSWORD
+.env: SYNAPSE_URL
+.env: CHROMA_URL
+.env: OLLAMA_BASE_URL
+.env: LMSTUDIO_BASE_URL
+.env: BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H
+.env: E2B_API_KEY
+.env: BIZRA_PG_DSN
+.env: POSTGRES_DB
+.env: POSTGRES_USER
+.env: POSTGRES_PASSWORD
+.env: BIZRA_HEALTHZ_BUDGET_S
+.env: BIZRA_HEALTHZ_REDIS_TIMEOUT_S
+.env: BIZRA_HEALTHZ_NEO4J_TIMEOUT_S
+.env: BIZRA_HEALTHZ_LLM_TIMEOUT_S
+.env: BIZRA_HEALTHZ_CACHE_TTL_S
+.env.example: BIZRA_API_TOKEN
+.env.example: ENV
+.env.example: FATE_LEVEL
+.env.example: NEO4J_AUTH
+.env.example: WISDOM_URL
+.env.example: GRAPH_PASSWORD
+.env.example: SYNAPSE_URL
+.env.example: CHROMA_URL
+.env.example: OLLAMA_BASE_URL
+.env.example: LMSTUDIO_BASE_URL
+.env.example: BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H
+.env.example: BIZRA_HEALTHZ_BUDGET_S
+.env.example: BIZRA_HEALTHZ_REDIS_TIMEOUT_S
+.env.example: BIZRA_HEALTHZ_NEO4J_TIMEOUT_S
+.env.example: BIZRA_HEALTHZ_LLM_TIMEOUT_S
+.env.example: BIZRA_HEALTHZ_CACHE_TTL_S
+bizra-genesis-node\.env.example: DB_HOST
+bizra-genesis-node\.env.example: DB_PORT
+bizra-genesis-node\.env.example: DB_NAME
+bizra-genesis-node\.env.example: DB_USER
+bizra-genesis-node\.env.example: DB_PASSWORD
+bizra-genesis-node\.env.example: GRAPH_HOST
+bizra-genesis-node\.env.example: GRAPH_BOLT_PORT
+bizra-genesis-node\.env.example: GRAPH_HTTP_PORT
+bizra-genesis-node\.env.example: GRAPH_USER
+bizra-genesis-node\.env.example: GRAPH_PASSWORD
+bizra-genesis-node\.env.example: REDIS_HOST
+bizra-genesis-node\.env.example: REDIS_PORT
+bizra-genesis-node\.env.example: REDIS_PASSWORD
+bizra-genesis-node\.env.example: QDRANT_HOST
+bizra-genesis-node\.env.example: QDRANT_HTTP_PORT
+bizra-genesis-node\.env.example: QDRANT_GRPC_PORT
+bizra-genesis-node\.env.example: API_HOST
+bizra-genesis-node\.env.example: API_PORT
+bizra-genesis-node\.env.example: BRIDGE_HOST
+bizra-genesis-node\.env.example: BRIDGE_PORT
+bizra-genesis-node\.env.example: TELEMETRY_WS_HOST
+bizra-genesis-node\.env.example: TELEMETRY_WS_PORT
+bizra-genesis-node\.env.example: DASHBOARD_PORT
+bizra-genesis-node\.env.example: OLLAMA_HOST
+bizra-genesis-node\.env.example: OLLAMA_PORT
+bizra-genesis-node\.env.example: OLLAMA_URL
+bizra-genesis-node\.env.example: OLLAMA_MODEL_REASONER
+bizra-genesis-node\.env.example: OLLAMA_MODEL_CREATIVE
+bizra-genesis-node\.env.example: OLLAMA_MODEL_VISION
+bizra-genesis-node\.env.example: OLLAMA_MODEL_COMMUNICATOR
+bizra-genesis-node\.env.example: OLLAMA_MODEL_CODE
+bizra-genesis-node\.env.example: OLLAMA_MODEL_EMBED
+bizra-genesis-node\.env.example: LMSTUDIO_HOST
+bizra-genesis-node\.env.example: LMSTUDIO_PORT
+bizra-genesis-node\.env.example: LMSTUDIO_URL
+bizra-genesis-node\.env.example: LMSTUDIO_MODEL_PLANNER
+bizra-genesis-node\.env.example: LMSTUDIO_MODEL_CODER
+bizra-genesis-node\.env.example: LMSTUDIO_MODEL_LARGE
+bizra-genesis-node\.env.example: LMSTUDIO_MODEL_FLAGSHIP
+bizra-genesis-node\.env.example: EXECUTION_PLANNER_BACKEND
+bizra-genesis-node\.env.example: KNOWLEDGE_ENRICHMENT
+bizra-genesis-node\.env.example: KNOWLEDGE_SOURCE_ROOT
+bizra-genesis-node\.env.example: KNOWLEDGE_GRAPH_DIR
+bizra-genesis-node\.env.example: KNOWLEDGE_EMBED_MODEL
+bizra-genesis-node\.env.example: KNOWLEDGE_MAX_TOKENS
+bizra-genesis-node\.env.example: NODE_ID
+bizra-genesis-node\.env.example: NODE_NAME
+bizra-genesis-node\.env.example: NODE_VERSION
+bizra-genesis-node\.env.example: NODE_CPU_CORES
+bizra-genesis-node\.env.example: NODE_RAM_GB
+bizra-genesis-node\.env.example: NODE_GPU_VRAM_GB
+bizra-genesis-node\.env.example: NODE_STORAGE_GB
+bizra-genesis-node\.env.example: POI_IHSAN_THRESHOLD
+bizra-genesis-node\.env.example: POI_BZC_RATE
+bizra-genesis-node\.env.example: POI_IMP_RATE
+bizra-genesis-node\.env.example: JWT_SECRET
+bizra-genesis-node\.env.example: ENCRYPTION_KEY
+bizra-genesis-node\.env.example: CORS_ORIGINS
+bizra-genesis-node\.env.example: LOG_LEVEL
+bizra-genesis-node\.env.example: LOG_OUTPUT
+bizra-genesis-node\.env.example: LOG_DIR
+bizra-genesis-node\.env.example: LOG_FILE_API
+bizra-genesis-node\.env.example: LOG_FILE_BRIDGE
+bizra-genesis-node\.env.example: TELEMETRY_INTERVAL_MS
+bizra-genesis-node\.env.example: METRICS_RETENTION_HOURS
+bizra-genesis-node\.env.example: ASSET_INDEX_PATHS
+bizra-genesis-node\.env.example: ASSET_INDEX_EXTENSIONS
+bizra-genesis-node\.env.example: ASSET_MAX_FILE_SIZE
+bizra-genesis-node\.env.example: NODE_ENV
+bizra-genesis-node\.env.example: DEBUG
+bizra-genesis-node\.env.example: HOT_RELOAD
+bizra-genesis-node\apps\dashboard\.env.local.example: NEXT_PUBLIC_API_URL
+bizra-genesis-node\apps\dashboard\.env.local.example: NEXT_PUBLIC_WS_URL
+bizra-genesis-node\apps\dashboard\.env.local.example: NEXT_PUBLIC_SITE_URL
+bizra-genesis-node\apps\dashboard\.env.local.example: NEXT_PUBLIC_ENABLE_ANALYTICS
+bizra-genesis-node\apps\dashboard\.env.local.example: NEXT_PUBLIC_ENABLE_TELEMETRY
+bizra-genesis-node\apps\dashboard\.env.production: NEXT_PUBLIC_API_URL
+bizra-genesis-node\apps\dashboard\.env.production: NEXT_PUBLIC_WS_URL
+bizra-genesis-node\apps\dashboard\.env.production: NEXT_PUBLIC_SITE_URL
+bizra-genesis-node\apps\dashboard\.env.production: NEXT_PUBLIC_ENABLE_ANALYTICS
+bizra-genesis-node\apps\dashboard\.env.production: NEXT_PUBLIC_ENABLE_TELEMETRY
+
+>>> rg --files -g "*.pem" -g "*.key" -g "*.pfx" -g "id_rsa*"
+<no output>
+
+>>> rg -l -i "api_key|token|secret|password|private_key" -g "*.env" -g "*.yml" -g "*.yaml" -g "*.json" -g "*.toml" -g "*.py" -g "*.rs" -g "*.ps1"
+.coderabbit.yaml
+bizra_synaptic_loader.py
+.env
+api\kg.py
+config\substrate_v1.yaml
+bizra_kernel\sape_engine.py
+bizra_kernel\lexicon_ledger.py
+config\grafana-datasources.yml
+bizra_kernel\kernel.py
+bizra_kernel\snr_tracker.py
+bizra_kernel\session_manager.py
+bizra_momo_activation_kit\scripts\bizra_ops_bootstrap.py
+bizra_kernel\symbolic_harness.py
+bizra_kernel\verifier.py
+bizra_ops_kit\scripts\secrets_scan.ps1
+bizra-genesis-node\agent_runner.py
+bizra-genesis-node\.pre-commit-config.yaml
+core\__init__.py
+bizra_momo_activation_kit\automation\Taskfile.yml
+core\wisdom.py
+core\main.py
+core\fate_auditor_worker.py
+archive\BIZRA-Thermal-Synthesis\synthesis_orchestrator\src\types.rs
+core\agent_factory.py
+bizra-genesis-node\bizra_kernel\verifier.py
+constitution\ontology_v1.yaml
+bizra-genesis-node\bizra_kernel\snr_tracker.py
+constitution\lexicon_v2.yaml
+core\urp\manager.py
+bizra-genesis-node\bizra_kernel\session_manager.py
+constitution\lexicon_v1.yaml
+bizra-genesis-node\bizra_kernel\sape_engine.py
+bizra-genesis-node\bizra_kernel\kernel.py
+bizra-genesis-node\bizra_kernel\ihsan_vector.py
+constitution\ihsan_v1.yaml
+constellation\router\policy.yaml
+core\snr.py
+bizra-genesis-node\trivy.yaml
+bizra-genesis-node\trivy-secret.yaml
+bizra-genesis-node\backend\tests\core_integration_tests.rs
+kg\schema_v1.json
+kg\receipts.py
+kg\embeddings.py
+bizra-genesis-node\backend\src\main.rs
+scripts\bizra_hypergraphrag_wrapper.py
+scripts\genesis_receipt.py
+tools\validate_sovereignty.py
+scripts\bizra_hypergraphrag_integration.py
+docker-compose.yml
+scripts\chat_knowledge_extractor.py
+scripts\bizra_hypergraph_rag.py
+scripts\langextract_knowledge_miner.py
+scripts\verify_node0.ps1
+scripts\verify_e2b_sandbox.py
+schemas\rejection_reason_v1.schema.json
+scripts\memories_streamer.py
+schemas\ontology_v1.schema.json
+scripts\knowledge_graph_miner.py
+bizra-genesis-node\system_protocol_kernel.py
+HyperGraphRAG\script_query.py
+scripts\test_sape_plan.ps1
+tools\kg_seed_from_concept_graph.py
+HyperGraphRAG\script_construct.py
+bizra-genesis-node\backend\src\lib\services\poi_ledger.rs
+scripts\resolve-bizra-root.ps1
+scripts\seed_min_evidence.py
+scripts\start_neo4j_local.ps1
+tools\ingest_chat_sample.py
+tools\activate_team.ps1
+bizra-genesis-node\backend\src\lib\services\knowledge.rs
+scripts\sape_deep_probe.py
+bizra-genesis-node\backend\src\lib\mod.rs
+docs\blueprints\backlog_v1.yaml
+tests\test_kg_receipts.py
+HyperGraphRAG\hypergraphrag\hypergraphrag.py
+tests\sat_rejection_tests.rs
+HyperGraphRAG\hypergraphrag\base.py
+tests\pat_sat_runtime_tests.rs
+bizra-genesis-node\backend\Cargo.toml
+bizra-genesis-node\backend\src\lib\core\scheduler.rs
+bizra-genesis-node\backend\src\lib\core\rate_limiter.rs
+bizra-genesis-node\backend\src\lib\core\mod.rs
+bizra-genesis-node\scripts\validate_system.py
+HyperGraphRAG\hypergraphrag\kg\tidb_impl.py
+HyperGraphRAG\hypergraphrag\kg\oracle_impl.py
+HyperGraphRAG\hypergraphrag\utils.py
+HyperGraphRAG\hypergraphrag\kg\neo4j_impl.py
+bizra-genesis-node\backend\benches\core_benchmarks.rs
+HyperGraphRAG\hypergraphrag\kg\milvus_impl.py
+HyperGraphRAG\hypergraphrag\kg\chroma_impl.py
+HyperGraphRAG\hypergraphrag\llm.py
+bizra-genesis-node\pnpm-lock.yaml
+HyperGraphRAG\hypergraphrag\operate.py
+bizra-genesis-node\backend\src\lib\api\knowledge.rs
+bizra-genesis-node\apex_runner.py
+bizra-genesis-node\apps\dashboard\pnpm-lock.yaml
+evidence\genesis\KNOWLEDGE_MANIFEST_RECEIPT.json
+evidence\chat_extraction_manifest.json
+bizra-genesis-node\package-lock.json
+HyperGraphRAG\evaluation\simcse\trainers.py
+bizra-genesis-node\backend\src\lib\agents\pat.rs
+bizra-genesis-node\k8s\base\secrets.yaml
+bizra-genesis-node\docker\docker-compose.node0.yml
+docs\runtime\resource_policy.yaml
+bizra-genesis-node\k8s\base\postgres-statefulset.yaml
+HyperGraphRAG\evaluation\simcse\tool.py
+bizra-genesis-node\docker\docker-compose.full.yml
+bizra-genesis-node\k8s\base\kustomization.yaml
+bizra-genesis-node\k8s\base\ingress.yaml
+HyperGraphRAG\evaluation\simcse\models.py
+bizra-genesis-node\k8s\base\api-deployment.yaml
+bizra-genesis-node\monitoring\prometheus\prometheus.yml
+docs\process\RACI_v1.yaml
+HyperGraphRAG\evaluation\script_insert.py
+bizra-genesis-node\expert_runner.py
+HyperGraphRAG\evaluation\script_hypergraphrag.py
+src\wisdom.rs
+bizra-genesis-node\bizra_taskmaster\knowledge\semantic_query_suite.py
+bizra-genesis-node\apps\dashboard\src\locales\fr.json
+docs\requirements\requirements_v1.yaml
+HyperGraphRAG\evaluation\hypergraphrag\utils.py
+docs\openapi.yaml
+src\sat.rs
+bizra-genesis-node\apps\dashboard\src\locales\es.json
+src\sape.rs
+HyperGraphRAG\evaluation\hypergraphrag\operate.py
+bizra-genesis-node\apps\dashboard\src\locales\en.json
+src\fate.rs
+src\http.rs
+HyperGraphRAG\evaluation\hypergraphrag\llm.py
+src\ollama.rs
+HyperGraphRAG\evaluation\get_generation.py
+bizra-genesis-node\experts\knowledge\expertise.yaml
+HyperGraphRAG\evaluation\hypergraphrag\base.py
+HyperGraphRAG\evaluation\hypergraphrag\hypergraphrag.py
+HyperGraphRAG\evaluation\eval_g.py
+HyperGraphRAG\evaluation\eval.py
+bizra-genesis-node\monitoring\alertmanager\alertmanager.yml
+bizra-genesis-node\experts\inference\expertise.yaml
+bizra-genesis-node\bizra_momo_activation_kit (1)\automation\Taskfile.yml
+bizra-genesis-node\experts\database\expertise.yaml
+bizra-genesis-node\bizra_momo_activation_kit (1)\scripts\bizra_ops_bootstrap.py
+bizra-genesis-node\knowledge\ingest_assets.py
+bizra-genesis-node\knowledge\rag_engine.py
+bizra-genesis-node\knowledge\REFINED_KNOWLEDGE_BASE.json
+HyperGraphRAG\evaluation\hypergraphrag\kg\chroma_impl.py
+bizra-genesis-node\knowledge\test_rag_engine.py
+HyperGraphRAG\evaluation\hypergraphrag\kg\oracle_impl.py
+HyperGraphRAG\evaluation\hypergraphrag\kg\milvus_impl.py
+HyperGraphRAG\evaluation\hypergraphrag\kg\tidb_impl.py
+HyperGraphRAG\evaluation\hypergraphrag\kg\neo4j_impl.py
+bizra-genesis-node\knowledge\scripts\generate_embeddings.py
+bizra-genesis-node\knowledge\scripts\context_assembler.py
+

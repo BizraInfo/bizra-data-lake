@@ -1,0 +1,60 @@
+
+>>> git remote -v
+origin	https://github.com/BizraInfo/bizra-genesis-node.git (fetch)
+origin	https://github.com/BizraInfo/bizra-genesis-node.git (push)
+
+>>> git branch --show-current
+feature/coderabbit-integration-dual-system
+
+>>> git rev-parse HEAD
+56d6b93d6af29370bd50ac84dfcffc79a65abdaa
+
+>>> git status
+On branch feature/coderabbit-integration-dual-system
+Your branch is based on 'origin/feature/coderabbit-integration-dual-system', but the upstream is gone.
+  (use "git branch --unset-upstream" to fixup)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .github/workflows/elite-ci-cd.yml
+	modified:   constellation/runtime.py
+	modified:   constitution/ihsan_v1.yaml
+	modified:   docs/API_DOCUMENTATION.md
+	modified:   docs/openapi.yaml
+	modified:   src/http.rs
+	modified:   src/ihsan.rs
+	modified:   src/ihsan_gate.py
+	modified:   src/main.rs
+	modified:   src/mcp.rs
+	modified:   src/types.rs
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.gitattributes
+	.github/copilot-instructions.md
+	BIZRA-DevOps-Blueprint.md
+	BIZRA-Ethical-Integrity-Manifesto.md
+	BIZRA-Pinnacle-Implementation-Framework-v5.0.md
+	ROADMAP_v5.0.yaml
+	SAPE-Strategy-Document.md
+	docs/audit/
+	docs/execution/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+>>> git diff --stat
+warning: in the working copy of 'docs/openapi.yaml', CRLF will be replaced by LF the next time Git touches it
+ .github/workflows/elite-ci-cd.yml |    2 +-
+ constellation/runtime.py          |   79 +-
+ constitution/ihsan_v1.yaml        |    2 +
+ docs/API_DOCUMENTATION.md         |   54 +-
+ docs/openapi.yaml                 | 1714 ++++++++++++++++++++-----------------
+ src/http.rs                       |   29 +-
+ src/ihsan.rs                      |    6 +
+ src/ihsan_gate.py                 |  173 +++-
+ src/main.rs                       |    5 +-
+ src/mcp.rs                        |  108 ++-
+ src/types.rs                      |   20 +-
+ 11 files changed, 1304 insertions(+), 888 deletions(-)
+

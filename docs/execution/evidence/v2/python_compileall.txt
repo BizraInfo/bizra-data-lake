@@ -1,0 +1,15 @@
+=== PYTHON VALIDATION SNAPSHOT ===
+Timestamp: 2025-12-21T12:30:15+04:00
+
+=== python --version ===
+Python 3.13.5
+
+=== python -m compileall core ===
+Listing 'core'...
+Listing 'core\\urp'...
+
+=== python -c 'import core; print(\"core import OK\")' ===
+core import OK
+
+=== pytest availability check ===
+pytest NOT FOUND in PATH

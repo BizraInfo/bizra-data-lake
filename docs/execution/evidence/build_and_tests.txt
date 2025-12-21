@@ -1,0 +1,70 @@
+# Build and test log
+>>> cargo build
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.84s
+exit code: 0
+
+>>> cargo test --lib
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.73s
+     Running unittests src\lib.rs (target\debug\deps\meta_alpha_dual_agentic-7733974073dc1df6.exe)
+
+running 45 tests
+test fate::tests::test_ihsan_escalation ... ok
+test fate::tests::test_quarantine_escalation_is_high ... ok
+test fate::tests::test_security_escalation_is_critical ... ok
+test fate::tests::test_context_sanitization ... ok
+test mcp::tests::test_jsonrpc_response_success ... ok
+test http::tests::extract_presented_token_prefers_bearer_then_fallback_header ... ok
+test ollama::tests::test_generation_options ... ok
+test http::tests::loopback_origin_predicate_is_reasonable ... ok
+test mcp::tests::test_claude_tool_result ... ok
+test mcp::tests::test_jsonrpc_response_error ... ok
+test sape::tests::test_probe_dimensions ... ok
+test mcp::tests::test_handle_ping ... ok
+test mcp::tests::test_mcp_client_creation ... ok
+test ollama::tests::test_bizra_system_prompt ... ok
+test synapse::tests::test_key_prefixes ... ok
+test mcp::tests::test_handle_tools_list ... ok
+test synapse::tests::test_ttl_values ... ok
+test ollama::tests::test_client_from_env ... ok
+test metrics::tests::test_ihsan_metrics ... ok
+test metrics::tests::test_sat_validation_metrics ... ok
+test sape::tests::test_blueprint_patterns ... ok
+test ihsan::tests::constitution_weights_sum_to_one ... ok
+test ihsan::tests::score_matches_manual_dot_product ... ok
+test ihsan::tests::threshold_policy_is_applied ... ok
+test sape::tests::test_safety_probe ... ok
+test ollama::tests::test_fallback_response ... ok
+test sape::tests::test_threat_probe ... ok
+test vectors::tests::test_unavailable_client ... ok
+test mcp::tests::test_jsonrpc_error_codes ... ok
+test sape::tests::test_execute_probes ... ok
+test metrics::tests::test_fate_escalation_metrics ... ok
+test ollama::tests::test_chat_message_construction ... ok
+test metrics::tests::test_metrics_endpoint_output ... ok
+test vectors::tests::test_vector_document_creation ... ok
+test vectors::tests::test_relevance_score_calculation ... ok
+test sape::tests::test_pattern_detection ... ok
+test receipts::tests::test_execution_receipt_creation ... ok
+test http::tests::is_authorized_matches_expected_token ... ok
+test wisdom::tests::test_hybrid_search_result_structure ... ok
+test receipts::tests::test_quarantine_receipt_type ... ok
+test vectors::tests::test_vector_metadata_serialization ... ok
+test wisdom::tests::test_knowledge_node_creation ... ok
+test wisdom::tests::test_wisdom_fallback ... ok
+test wisdom::tests::test_house_of_wisdom_from_env ... ok
+test receipts::tests::test_rejection_receipt_creation ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+exit code: 0
+
+>>> cargo test --tests -- --nocapture
+NOTE: cargo test --tests -- --nocapture timed out after 300s (tool timeout).
+>>> python -m compileall .
+NOTE: python -m compileall . timed out after 300s (tool timeout).
+>>> pytest -q
+SKIP: pytest not found in PATH
+
+>>> npm test
+SKIP: package.json not found at repo root
+

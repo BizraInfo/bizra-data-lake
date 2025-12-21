@@ -17,7 +17,6 @@ use meta_alpha_dual_agentic::{
     MetaAlphaDualAgentic,
 };
 use std::collections::{BTreeMap, HashMap};
-use std::time::Duration;
 
 // ============================================================================
 // TEST FIXTURES
@@ -301,7 +300,8 @@ mod fate_integration_tests {
         
         // Coordinator should be created successfully
         let pending = coordinator.pending_count();
-        assert!(pending >= 0, "Should have valid pending count");
+        // pending_count returns usize which is always >= 0, just verify it's a valid value
+        assert_eq!(pending, 0, "New coordinator should have zero pending escalations");
     }
 }
 

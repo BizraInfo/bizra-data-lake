@@ -1,11 +1,12 @@
 // src/mcp.rs - Model Context Protocol (MCP) Integration
 //
 // Full JSON-RPC 2.0 implementation for Claude-compatible tool execution.
-// SECURITY: Tool execution is gated by allowlists, timeouts, and SAT validation.
+// SECURITY: Tool execution is gated by allowlists, timeouts, SAT validation, and SAPE/Ihsan probing.
 //
 // MCP Specification: https://modelcontextprotocol.io/specification
 // A2A Protocol: https://google.github.io/a2a-spec/
 
+use crate::{ihsan, sape};
 use lazy_static::lazy_static;
 use prometheus::{register_counter_vec, register_histogram_vec, CounterVec, HistogramVec};
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,13 @@ lazy_static! {
         "MCP tool call latency",
         &["tool"],
         vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
+    ).unwrap();
+    
+    /// SAPE-gated MCP tool rejections
+    pub static ref MCP_SAPE_REJECTIONS: CounterVec = register_counter_vec!(
+        "bizra_mcp_sape_rejections_total",
+        "MCP tool calls rejected by SAPE/Ihsan gate",
+        &["tool"]
     ).unwrap();
 }
 
@@ -210,6 +218,16 @@ pub struct ToolResult {
     pub truncated: bool,
 }
 
+/// Result of SAPE/Ihsan gate evaluation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SapeGateResult {
+    pub ihsan_score: f64,
+    pub threshold: f64,
+    pub passed: bool,
+    pub probe_count: usize,
+    pub flags: Vec<String>,
+}
+
 /// Tool execution error types
 #[derive(Debug, Clone)]
 pub enum ToolError {
@@ -219,6 +237,15 @@ pub enum ToolError {
     Timeout(String),
     OutputTooLarge(String),
     ExecutionFailed(String),
+    /// SAPE/Ihsan gate rejected the tool invocation
+    SapeRejected {
+        tool_name: String,
+        ihsan_score: f64,
+        threshold: f64,
+        flags: Vec<String>,
+    },
+    /// Internal lock was poisoned (panic in another thread)
+    LockPoisoned(String),
 }
 
 impl std::fmt::Display for ToolError {
@@ -230,6 +257,14 @@ impl std::fmt::Display for ToolError {
             Self::Timeout(t) => write!(f, "Tool execution timed out: {}", t),
             Self::OutputTooLarge(t) => write!(f, "Tool output exceeded max size: {}", t),
             Self::ExecutionFailed(msg) => write!(f, "Tool execution failed: {}", msg),
+            Self::SapeRejected { tool_name, ihsan_score, threshold, flags } => {
+                write!(
+                    f,
+                    "Tool '{}' rejected by SAPE/Ihsan gate: score={:.4} < threshold={:.4}, flags={:?}",
+                    tool_name, ihsan_score, threshold, flags
+                )
+            }
+            Self::LockPoisoned(msg) => write!(f, "Internal lock poisoned: {}", msg),
         }
     }
 }
@@ -326,6 +361,60 @@ impl MCPClient {
         }
         
         Ok(())
+    }
+    
+    /// SAPE/Ihsan gate for MCP tool invocations (symbolic-neural bridge)
+    /// 
+    /// This activates the 8-dimension SAPE probe engine (aligned with ihsan_v1.yaml)
+    /// and calculates an aggregate Ihsan score. If the score falls below the
+    /// environment-specific threshold AND enforcement is enabled, the tool call is rejected.
+    pub fn sape_ihsan_gate(&self, tool_name: &str, content: &str) -> Result<SapeGateResult, ToolError> {
+        let sape_engine = sape::get_sape();
+        let mut engine = sape_engine.lock().map_err(|_| {
+            ToolError::LockPoisoned("SAPE engine lock poisoned".to_string())
+        })?;
+        
+        // Execute SAPE probes across Ihsan dimensions
+        let probe_results = engine.execute_probes(content);
+        let ihsan_score = engine.calculate_ihsan_score(&probe_results);
+        
+        // Get environment-specific threshold
+        let env = ihsan::current_env();
+        let threshold = ihsan::constitution().threshold_for(&env, "mcp_tool");
+        let passed = ihsan_score >= threshold;
+        
+        // Collect any flags from probes
+        let flags: Vec<String> = probe_results
+            .iter()
+            .flat_map(|r| r.flags.clone())
+            .collect();
+        
+        // Enforce if required
+        if !passed && ihsan::should_enforce() {
+            MCP_SAPE_REJECTIONS.with_label_values(&[tool_name]).inc();
+            warn!(
+                tool_name,
+                ihsan_score,
+                threshold,
+                env = %env,
+                flags = ?flags,
+                "MCP tool rejected by SAPE/Ihsan gate"
+            );
+            return Err(ToolError::SapeRejected {
+                tool_name: tool_name.to_string(),
+                ihsan_score,
+                threshold,
+                flags,
+            });
+        }
+        
+        Ok(SapeGateResult {
+            ihsan_score,
+            threshold,
+            passed,
+            probe_count: probe_results.len(),
+            flags,
+        })
     }
 
     /// Register MCP server
@@ -540,7 +629,22 @@ impl MCPClient {
             .get(tool_name)
             .ok_or_else(|| ToolError::NotFound(tool_name.to_string()))?;
         
-        // SECURITY CHECK 3: Execute with timeout
+        // SECURITY CHECK 3: SAPE/Ihsan gate (symbolic-neural bridge)
+        let content_for_sape = format!(
+            "MCP tool invocation: {} with arguments: {:?}",
+            tool_name,
+            arguments
+        );
+        let sape_result = self.sape_ihsan_gate(tool_name, &content_for_sape)?;
+        
+        info!(
+            tool_name,
+            ihsan_score = sape_result.ihsan_score,
+            passed = sape_result.passed,
+            "SAPE/Ihsan gate evaluation for MCP tool"
+        );
+        
+        // SECURITY CHECK 4: Execute with timeout
         let execution_future = self.execute_tool_internal(tool_name, &arguments);
         
         let result = match timeout(self.timeout, execution_future).await {

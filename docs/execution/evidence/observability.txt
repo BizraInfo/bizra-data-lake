@@ -1,0 +1,152 @@
+>>> rg -n "tracing_subscriber|TraceLayer|tracing::" src
+src\main.rs:8:use tracing_subscriber::{fmt, EnvFilter};
+src\bizra_integration.rs:6:use tracing::{info, warn};
+src\http.rs:38:    trace::TraceLayer,
+src\http.rs:40:use tracing::{info, warn};
+src\http.rs:271:        .layer(TraceLayer::new_for_http())
+src\pat.rs:13:use tracing::{debug, info, instrument, warn};
+src\lib.rs:25:use tracing::info;
+src\fate.rs:12:use tracing::{info, warn};
+src\wisdom.rs:13:use tracing::{info, warn, instrument};
+src\vectors.rs:13:use tracing::{debug, info, instrument, warn};
+src\bridge.rs:13:use tracing::{info, warn, instrument};
+src\mcp.rs:18:use tracing::{debug, info, instrument, warn};
+src\metrics.rs:11:use tracing::info;
+src\ollama.rs:19:use tracing::{debug, error, info, instrument, warn};
+src\synapse.rs:13:use tracing::{debug, error, info, instrument, warn};
+src\receipts.rs:14:use tracing::{info, warn};
+src\pat_enhanced.rs:9:use tracing::{info, instrument};
+src\sat.rs:6:use tracing::{info, warn, instrument};
+src\a2a.rs:10:use tracing::{info, warn, instrument};
+src\reasoning.rs:9:use tracing::{info, instrument, warn};
+src\sape.rs:13:use tracing::{debug, info, instrument, warn};
+
+>>> rg -n "metrics|prometheus|/metrics" src
+src\mcp.rs:11:use prometheus::{register_counter_vec, register_histogram_vec, CounterVec, HistogramVec};
+src\mcp.rs:22:    /// MCP tool call metrics
+src\main.rs:6:use meta_alpha_dual_agentic::{create_http_server, ihsan, metrics, pat_enhanced, MetaAlphaDualAgentic};
+src\main.rs:18:    // Initialize Prometheus metrics
+src\main.rs:19:    metrics::init_metrics();
+src\bridge.rs:6:    metrics,
+src\bridge.rs:49:        // Record SAT validation metrics
+src\bridge.rs:53:        metrics::record_sat_validation(
+src\bridge.rs:71:            // Record FATE escalation metrics
+src\bridge.rs:73:            metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
+src\bridge.rs:97:            metrics::record_receipt_emitted("rejection");
+src\bridge.rs:147:        // Record Ihs??n metrics
+src\bridge.rs:148:        metrics::record_ihsan_result(ihsan_score, ihsan_passes_threshold, &ihsan_env, &ihsan_vector);
+src\bridge.rs:165:            metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
+src\bridge.rs:185:        // Record request latency metrics
+src\bridge.rs:186:        metrics::record_request_completion("success", total_latency.as_secs_f64(), synergy_score);
+src\bridge.rs:203:        metrics::record_receipt_emitted("execution");
+src\lib.rs:11:pub mod metrics;
+src\wisdom.rs:7:use crate::metrics;
+src\wisdom.rs:120:                metrics::NEO4J_CONNECTED.set(1.0);
+src\wisdom.rs:125:                metrics::NEO4J_CONNECTED.set(0.0);
+src\wisdom.rs:141:        metrics::NEO4J_CONNECTED.set(0.0);
+src\wisdom.rs:164:        metrics::record_neo4j_query("raw", latency.as_secs_f64(), true);
+src\wisdom.rs:227:        metrics::record_neo4j_query("knowledge", latency.as_secs_f64(), true);
+src\wisdom.rs:272:        metrics::record_neo4j_query("store", latency.as_secs_f64(), true);
+src\wisdom.rs:310:        metrics::record_neo4j_query("relationship", latency.as_secs_f64(), true);
+src\http.rs:8:// - Prometheus metrics per endpoint
+src\http.rs:13:    metrics,
+src\http.rs:84:            metrics::HTTP_REQUESTS_ALLOWED.inc();
+src\http.rs:87:            metrics::HTTP_REQUESTS_RATE_LIMITED.inc();
+src\http.rs:187:        metrics::HTTP_REQUESTS_UNAUTHORIZED.inc();
+src\http.rs:205:        "/" | "/health" | "/metrics" | "/dashboard" | "/static/dashboard.html"
+src\http.rs:260:        .route("/metrics", get(prometheus_metrics))
+src\http.rs:323:/// Prometheus metrics endpoint for Glass Cockpit observability
+src\http.rs:324:async fn prometheus_metrics() -> impl IntoResponse {
+src\http.rs:325:    let metrics = metrics::gather_metrics();
+src\http.rs:329:        metrics,
+src\ollama.rs:13:use prometheus::{register_counter_vec, register_gauge, register_histogram_vec, CounterVec, Gauge, HistogramVec};
+src\ollama.rs:351:        // Record metrics
+src\synapse.rs:18:const KEY_PREFIX_METRICS: &str = "bizra:metrics:";
+src\pat.rs:70:Focus on: metrics, efficiency gains, performance improvements, evidence-based decisions.
+src\pat.rs:100:Focus on: user needs, usability, accessibility, satisfaction metrics.
+src\metrics.rs:1:// src/metrics.rs - Glass Cockpit Prometheus Metrics Exporter
+src\metrics.rs:5:use prometheus::{
+src\metrics.rs:172:    pub static ref HTTP_REQUESTS_ALLOWED: prometheus::Counter = prometheus::register_counter!(
+src\metrics.rs:178:    pub static ref HTTP_REQUESTS_RATE_LIMITED: prometheus::Counter = prometheus::register_counter!(
+src\metrics.rs:184:    pub static ref HTTP_REQUESTS_UNAUTHORIZED: prometheus::Counter = prometheus::register_counter!(
+src\metrics.rs:282:pub fn gather_metrics() -> String {
+src\metrics.rs:284:    let metric_families = prometheus::gather();
+src\metrics.rs:290:/// Initialize metrics (call once at startup)
+src\metrics.rs:291:pub fn init_metrics() {
+src\metrics.rs:292:    info!("???? Glass Cockpit metrics initialized");
+src\metrics.rs:305:    fn test_sat_validation_metrics() {
+src\metrics.rs:309:        let output = gather_metrics();
+src\metrics.rs:315:    fn test_fate_escalation_metrics() {
+src\metrics.rs:318:        let output = gather_metrics();
+src\metrics.rs:324:    fn test_ihsan_metrics() {
+src\metrics.rs:331:        let output = gather_metrics();
+src\metrics.rs:337:    fn test_metrics_endpoint_output() {
+src\metrics.rs:338:        init_metrics();
+src\metrics.rs:339:        let output = gather_metrics();
+src\sat.rs:108:                specialty: "Performance metrics and optimization".to_string(),
+src\sape.rs:8:use prometheus::{register_counter_vec, register_gauge_vec, register_histogram, CounterVec, GaugeVec, Histogram};
+src\a2a.rs:12:use crate::metrics::{A2A_DELEGATIONS_TOTAL, A2A_DELEGATION_DEPTH};
+src\a2a.rs:171:    /// Internal delegation with depth tracking and metrics
+src\a2a.rs:328:    /// Get current maximum delegation depth (for metrics/monitoring)
+
+>>> rg -n "logging.basicConfig|logging.getLogger" core
+core\refinery_daemon.py:59:logging.basicConfig(
+core\refinery_daemon.py:64:logger = logging.getLogger("refinery.daemon")
+core\agent_factory.py:54:logging.basicConfig(
+core\agent_factory.py:59:logger = logging.getLogger("agent.factory")
+core\spawn_api.py:28:logging.basicConfig(
+core\spawn_api.py:32:logger = logging.getLogger("spawn.api")
+core\fate.py:17:logging.basicConfig(
+core\fate.py:22:logger = logging.getLogger("fate.gate")
+core\synapse.py:71:logging.basicConfig(
+core\synapse.py:76:logger = logging.getLogger("synapse")
+core\urp\manager.py:78:logging.basicConfig(
+core\urp\manager.py:83:logger = logging.getLogger("urp.manager")
+
+>>> Get-Content -TotalCount 120 config/prometheus.yml
+# Prometheus configuration for BIZRA Glass Cockpit
+# Scrape interval: 15s for real-time observability
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'bizra-glass-cockpit'
+    environment: 'development'
+
+# Alerting configuration (future: wire to PagerDuty/Slack)
+alerting:
+  alertmanagers: []
+
+# Rule files for SLO burn rate alerts
+rule_files: []
+  # - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # BIZRA Kernel metrics endpoint
+  - job_name: 'bizra-kernel'
+    static_configs:
+      - targets: ['kernel:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Neo4j (wisdom) - if metrics endpoint enabled
+  - job_name: 'neo4j'
+    static_configs:
+      - targets: ['wisdom:2004']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis (synapse) - via redis_exporter if deployed
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['synapse:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+

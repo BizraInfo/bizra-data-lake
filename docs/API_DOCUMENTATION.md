@@ -99,6 +99,37 @@ When rate limited, you'll receive:
 
 ---
 
+## Architecture: PAT + SAT Dual-Agent Pipeline
+
+### PAT (Primary Agent Team) - 7 Agents
+
+Specialized execution agents that handle the actual task work:
+
+- Code, Security, Ethics, Reasoning, Memory, Integration, Synthesis
+
+### SAT (Sentinel Agent Team) - 5 Agents (Veto-Only)
+
+Validation sentinels that gate requests before PAT execution:
+
+- Security, Ethics, Policy, Complexity, Resources
+
+**⚠️ SAT Uses Veto-Only Consensus (Fail-Safe Design)**
+
+Unlike democratic voting (e.g., 3/5 majority), SAT operates on a **fail-safe veto model**:
+
+- **ANY single SAT agent can reject** the entire request
+- All 5 agents must approve for execution to proceed
+- This maximizes safety at the potential cost of false rejections
+
+Rejection types trigger immediate abort:
+- `RejectionType::Security` - Malicious patterns detected
+- `RejectionType::Ethics` - Ihsān constitution violation
+- `RejectionType::Policy` - Policy constraint breach
+- `RejectionType::Complexity` - Task exceeds safe complexity
+- `RejectionType::Resources` - Resource limits exceeded
+
+---
+
 ## Example Requests
 
 ### Simple Task Execution
@@ -107,8 +138,11 @@ curl -X POST http://localhost:8080/dual/execute \
   -H "Authorization: Bearer $BIZRA_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "user_id": "user-12345",
     "task": "Write a Python function to calculate factorial",
-    "priority": "high"
+    "requirements": ["handle negative numbers", "include docstring"],
+    "target": "python_function",
+    "priority": "High"
   }'
 ```
 
@@ -118,10 +152,17 @@ curl -X POST http://localhost:8080/enhanced/execute \
   -H "Authorization: Bearer $BIZRA_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "task": "Review this code for security issues",
-    "context": "def login(user, pwd): return db.query(f\"SELECT * FROM users WHERE name={user}\")",
-    "adapter_modes": ["security", "coding"],
-    "enable_sape": true
+    "base": {
+      "user_id": "user-12345",
+      "task": "Review this code for security issues",
+      "requirements": ["check SQL injection", "check XSS"],
+      "target": "security_report",
+      "context": {
+        "code": "def login(user, pwd): return db.query(f\"SELECT * FROM users WHERE name={user}\")"
+      }
+    },
+    "reasoning_preference": "ChainOfThought",
+    "enable_sub_agents": true
   }'
 ```
 
@@ -144,8 +185,7 @@ curl -X POST http://localhost:8080/sape/probes \
   -H "Authorization: Bearer $BIZRA_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "input": "rm -rf /",
-    "dimensions": ["threat_scan", "safety_check"]
+    "content": "rm -rf /"
   }'
 ```
 

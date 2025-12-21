@@ -1,0 +1,127 @@
+=== RUST CLIPPY SNAPSHOT ===
+Timestamp: 2025-12-21T12:28:19+04:00
+
+warning: this `if` has identical blocks
+   --> src\fate.rs:354:39
+    |
+354 |           } else if moderate_count == 1 {
+    |  _______________________________________^
+355 | |             EscalationLevel::Low
+356 | |         } else {
+    | |_________^
+    |
+note: same as this
+   --> src\fate.rs:356:16
+    |
+356 |           } else {
+    |  ________________^
+357 | |             EscalationLevel::Low
+358 | |         }
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#if_same_then_else
+    = note: `#[warn(clippy::if_same_then_else)]` on by default
+
+warning: this function has too many arguments (10/7)
+   --> src\receipts.rs:226:5
+    |
+226 | /     pub fn emit_execution(
+227 | |         &self,
+228 | |         task: &str,
+229 | |         sat_validation_ms: u128,
+...   |
+236 | |         sat_approvers_count: usize,
+237 | |     ) -> ExecutionReceipt {
+    | |_________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+    = note: `#[warn(clippy::too_many_arguments)]` on by default
+
+warning: manual `Range::contains` implementation
+   --> src\sape.rs:747:35
+    |
+747 |                 .filter(|(_, &c)| c >= 2 && c < ELEVATION_THRESHOLD)
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(2..ELEVATION_THRESHOLD).contains(&c)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+warning: useless use of `format!`
+   --> src\wisdom.rs:181:22
+    |
+181 |           let cypher = format!(
+    |  ______________________^
+182 | |             r#"
+183 | |             CALL db.index.fulltext.queryNodes('knowledge_index', $query)
+184 | |             YIELD node, score
+...   |
+191 | |             "#
+192 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#useless_format
+    = note: `#[warn(clippy::useless_format)]` on by default
+help: consider using `.to_string()`
+    |
+181 ~         let cypher = r#"
+182 +             CALL db.index.fulltext.queryNodes('knowledge_index', $query)
+183 +             YIELD node, score
+184 +             WITH node, score
+185 +             ORDER BY score DESC
+186 +             LIMIT $limit
+187 +             OPTIONAL MATCH (node)-[r]-(related)
+188 +             WITH node, score, collect(DISTINCT related) AS context
+189 +             RETURN node, score, size(context) AS context_size
+190 ~             "#.to_string();
+    |
+
+warning: `meta_alpha_dual_agentic` (lib) generated 4 warnings (run `cargo clippy --fix --lib -p meta_alpha_dual_agentic` to apply 2 suggestions)
+warning: `meta_alpha_dual_agentic` (lib test) generated 4 warnings (4 duplicates)
+    Checking meta_alpha_dual_agentic v2.0.0 (C:\BIZRA-Dual-Agentic-system--main)
+warning: manual `RangeInclusive::contains` implementation
+   --> tests\integration_harness.rs:240:25
+    |
+240 |                 assert!(threshold >= 0.0 && threshold <= 1.0, 
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(0.0..=1.0).contains(&threshold)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+warning: `assert!(true)` will be optimized out by the compiler
+   --> tests\integration_harness.rs:289:41
+    |
+289 |                 EscalationLevel::Low => assert!(true),
+    |                                         ^^^^^^^^^^^^^
+    |
+    = help: remove it
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#assertions_on_constants
+    = note: `#[warn(clippy::assertions_on_constants)]` on by default
+
+warning: `assert!(true)` will be optimized out by the compiler
+   --> tests\integration_harness.rs:290:44
+    |
+290 |                 EscalationLevel::Medium => assert!(true),
+    |                                            ^^^^^^^^^^^^^
+    |
+    = help: remove it
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#assertions_on_constants
+
+warning: `assert!(true)` will be optimized out by the compiler
+   --> tests\integration_harness.rs:291:42
+    |
+291 |                 EscalationLevel::High => assert!(true),
+    |                                          ^^^^^^^^^^^^^
+    |
+    = help: remove it
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#assertions_on_constants
+
+warning: `assert!(true)` will be optimized out by the compiler
+   --> tests\integration_harness.rs:292:46
+    |
+292 |                 EscalationLevel::Critical => assert!(true),
+    |                                              ^^^^^^^^^^^^^
+    |
+    = help: remove it
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#assertions_on_constants
+
+warning: `meta_alpha_dual_agentic` (test "integration_harness") generated 5 warnings (run `cargo clippy --fix --test "integration_harness"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.01s

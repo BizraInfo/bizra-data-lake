@@ -1,0 +1,221 @@
+=== RUST BUILD + TEST SNAPSHOT ===
+Timestamp: 2025-12-21T12:19:38+04:00
+
+=== cargo build ===
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 17.14s
+
+=== cargo test --lib ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.35s
+     Running unittests src\lib.rs (target\debug\deps\meta_alpha_dual_agentic-7733974073dc1df6.exe)
+
+running 45 tests
+test fate::tests::test_ihsan_escalation ... ok
+test fate::tests::test_security_escalation_is_critical ... ok
+test fate::tests::test_quarantine_escalation_is_high ... ok
+test fate::tests::test_context_sanitization ... ok
+test http::tests::loopback_origin_predicate_is_reasonable ... ok
+test mcp::tests::test_claude_tool_result ... ok
+test http::tests::is_authorized_matches_expected_token ... ok
+test metrics::tests::test_metrics_endpoint_output ... ok
+test mcp::tests::test_jsonrpc_error_codes ... ok
+test mcp::tests::test_handle_ping ... ok
+test ihsan::tests::score_matches_manual_dot_product ... ok
+test mcp::tests::test_jsonrpc_response_success ... ok
+test ihsan::tests::threshold_policy_is_applied ... ok
+test ihsan::tests::constitution_weights_sum_to_one ... ok
+test http::tests::extract_presented_token_prefers_bearer_then_fallback_header ... ok
+test mcp::tests::test_mcp_client_creation ... ok
+test ollama::tests::test_bizra_system_prompt ... ok
+test sape::tests::test_execute_probes ... ok
+test ollama::tests::test_fallback_response ... ok
+test sape::tests::test_safety_probe ... ok
+test ollama::tests::test_chat_message_construction ... ok
+test mcp::tests::test_handle_tools_list ... ok
+test sape::tests::test_blueprint_patterns ... ok
+test metrics::tests::test_sat_validation_metrics ... ok
+test metrics::tests::test_ihsan_metrics ... ok
+test mcp::tests::test_jsonrpc_response_error ... ok
+test sape::tests::test_probe_dimensions ... ok
+test sape::tests::test_pattern_detection ... ok
+test metrics::tests::test_fate_escalation_metrics ... ok
+test ollama::tests::test_generation_options ... ok
+test sape::tests::test_threat_probe ... ok
+test synapse::tests::test_key_prefixes ... ok
+test synapse::tests::test_ttl_values ... ok
+test vectors::tests::test_relevance_score_calculation ... ok
+test vectors::tests::test_vector_document_creation ... ok
+test vectors::tests::test_unavailable_client ... ok
+test ollama::tests::test_client_from_env ... ok
+test vectors::tests::test_vector_metadata_serialization ... ok
+test receipts::tests::test_quarantine_receipt_type ... ok
+test wisdom::tests::test_knowledge_node_creation ... ok
+test receipts::tests::test_execution_receipt_creation ... ok
+test receipts::tests::test_rejection_receipt_creation ... ok
+test wisdom::tests::test_hybrid_search_result_structure ... ok
+test wisdom::tests::test_house_of_wisdom_from_env ... ok
+test wisdom::tests::test_wisdom_fallback ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+=== cargo test --tests (integration + e2e) ===
+   Compiling meta_alpha_dual_agentic v2.0.0 (C:\BIZRA-Dual-Agentic-system--main)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.39s
+     Running unittests src\lib.rs (target\debug\deps\meta_alpha_dual_agentic-7733974073dc1df6.exe)
+
+running 45 tests
+test fate::tests::test_quarantine_escalation_is_high ... ok
+test fate::tests::test_security_escalation_is_critical ... ok
+test fate::tests::test_ihsan_escalation ... ok
+test fate::tests::test_context_sanitization ... ok
+test http::tests::loopback_origin_predicate_is_reasonable ... ok
+test http::tests::extract_presented_token_prefers_bearer_then_fallback_header ... ok
+test http::tests::is_authorized_matches_expected_token ... ok
+test mcp::tests::test_claude_tool_result ... ok
+test mcp::tests::test_jsonrpc_response_error ... ok
+test mcp::tests::test_jsonrpc_response_success ... ok
+test ollama::tests::test_bizra_system_prompt ... ok
+test mcp::tests::test_jsonrpc_error_codes ... ok
+test ollama::tests::test_chat_message_construction ... ok
+test mcp::tests::test_handle_ping ... ok
+test sape::tests::test_probe_dimensions ... ok
+test mcp::tests::test_handle_tools_list ... ok
+test ollama::tests::test_fallback_response ... ok
+test mcp::tests::test_mcp_client_creation ... ok
+test metrics::tests::test_ihsan_metrics ... ok
+test metrics::tests::test_metrics_endpoint_output ... ok
+test sape::tests::test_blueprint_patterns ... ok
+test ihsan::tests::constitution_weights_sum_to_one ... ok
+test ihsan::tests::score_matches_manual_dot_product ... ok
+test ollama::tests::test_generation_options ... ok
+test ollama::tests::test_client_from_env ... ok
+test ihsan::tests::threshold_policy_is_applied ... ok
+test sape::tests::test_safety_probe ... ok
+test vectors::tests::test_vector_document_creation ... ok
+test sape::tests::test_execute_probes ... ok
+test sape::tests::test_pattern_detection ... ok
+test metrics::tests::test_sat_validation_metrics ... ok
+test sape::tests::test_threat_probe ... ok
+test synapse::tests::test_key_prefixes ... ok
+test wisdom::tests::test_knowledge_node_creation ... ok
+test metrics::tests::test_fate_escalation_metrics ... ok
+test vectors::tests::test_vector_metadata_serialization ... ok
+test vectors::tests::test_unavailable_client ... ok
+test wisdom::tests::test_hybrid_search_result_structure ... ok
+test synapse::tests::test_ttl_values ... ok
+test vectors::tests::test_relevance_score_calculation ... ok
+test receipts::tests::test_quarantine_receipt_type ... ok
+test wisdom::tests::test_wisdom_fallback ... ok
+test wisdom::tests::test_house_of_wisdom_from_env ... ok
+test receipts::tests::test_rejection_receipt_creation ... ok
+test receipts::tests::test_execution_receipt_creation ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\bin\ihsan_calc.rs (target\debug\deps\ihsan_calc-9b1744d1c8c2ecf1.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\ihsan_threshold.rs (target\debug\deps\ihsan_threshold-e403d1af81e4e256.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\meta_alpha_dual_agentic-1e05d405a1c12ef3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\integration_harness.rs (target\debug\deps\integration_harness-fa8b69881eb1f5e1.exe)
+
+running 25 tests
+test fate_integration_tests::test_escalation_levels ... ok
+test sape_integration_tests::test_sape_pattern_stats ... ok
+test metrics_integration_tests::test_http_security_metrics ... ok
+test ihsan_integration_tests::test_constitution_loading ... ok
+test ihsan_integration_tests::test_ihsan_score_calculation ... ok
+test metrics_integration_tests::test_metrics_gathering ... ok
+test ihsan_integration_tests::test_environment_thresholds ... ok
+test fate_integration_tests::test_fate_coordinator_creation ... ok
+test sape_integration_tests::test_sape_full_probe_execution ... ok
+test sape_integration_tests::test_sape_threat_detection ... ok
+test degradation_tests::test_system_works_without_neo4j ... ok
+test receipt_integration_tests::test_rejection_generates_receipt ... ok
+test pipeline_tests::test_complete_rejection_flow ... ok
+test edge_case_tests::test_very_long_task ... ok
+test concurrency_tests::test_concurrent_requests has been running for over 60 seconds
+test concurrency_tests::test_rapid_fire_requests has been running for over 60 seconds
+test degradation_tests::test_system_works_without_ollama has been running for over 60 seconds
+test edge_case_tests::test_empty_task has been running for over 60 seconds
+test edge_case_tests::test_special_characters has been running for over 60 seconds
+test edge_case_tests::test_unicode_content has been running for over 60 seconds
+test pipeline_tests::test_complete_approval_flow has been running for over 60 seconds
+test pipeline_tests::test_high_priority_request has been running for over 60 seconds
+test pipeline_tests::test_quarantine_flow has been running for over 60 seconds
+test pipeline_tests::test_request_with_rich_context has been running for over 60 seconds
+test receipt_integration_tests::test_success_generates_receipt has been running for over 60 seconds
+test pipeline_tests::test_request_with_rich_context ... ok
+test receipt_integration_tests::test_success_generates_receipt ... ok
+test edge_case_tests::test_empty_task ... ok
+test pipeline_tests::test_high_priority_request ... ok
+test edge_case_tests::test_unicode_content ... ok
+test pipeline_tests::test_complete_approval_flow ... ok
+test degradation_tests::test_system_works_without_ollama ... ok
+test edge_case_tests::test_special_characters ... ok
+test pipeline_tests::test_quarantine_flow ... ok
+test concurrency_tests::test_concurrent_requests ... ok
+test concurrency_tests::test_rapid_fire_requests ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 339.81s
+
+     Running tests\pat_sat_runtime_tests.rs (target\debug\deps\pat_sat_runtime_tests-a834cf8c9ef00c37.exe)
+
+running 13 tests
+test test_e2e_context_is_validated ... ok
+test test_e2e_sql_injection_blocked ... ok
+test test_e2e_very_long_task_handled ... ok
+test test_e2e_xss_blocked ... ok
+test test_e2e_ethics_rejection_emits_receipt ... ok
+test test_e2e_security_rejection_emits_receipt ... ok
+test test_e2e_code_review_request_succeeds has been running for over 60 seconds
+test test_e2e_documentation_request_succeeds has been running for over 60 seconds
+test test_e2e_empty_task_handled has been running for over 60 seconds
+test test_e2e_legitimate_request_succeeds has been running for over 60 seconds
+test test_e2e_response_contains_agent_counts has been running for over 60 seconds
+test test_e2e_response_contains_fate_pending_count has been running for over 60 seconds
+test test_e2e_response_contains_ihsan_metadata has been running for over 60 seconds
+test test_e2e_response_contains_fate_pending_count ... ok
+test test_e2e_empty_task_handled ... ok
+test test_e2e_response_contains_ihsan_metadata ... ok
+test test_e2e_documentation_request_succeeds ... ok
+test test_e2e_code_review_request_succeeds ... ok
+test test_e2e_response_contains_agent_counts ... ok
+test test_e2e_legitimate_request_succeeds ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 120.03s
+
+     Running tests\sat_rejection_tests.rs (target\debug\deps\sat_rejection_tests-e1365db4fd263b64.exe)
+
+running 15 tests
+test test_sat_approves_legitimate_request ... ok
+test test_sat_approves_normal_code_request ... ok
+test test_sat_rejects_eval ... ok
+test test_sat_consensus_requires_3_of_5 ... ok
+test test_sat_rejects_deception ... ok
+test test_sat_quarantines_ambiguous_ethics ... ok
+test test_sat_rejects_sudo ... ok
+test test_sat_rejects_harmful_intent ... ok
+test test_sat_rejects_contradictions ... ok
+test test_sat_rejects_xss ... ok
+test test_sat_rejects_sql_injection ... ok
+test test_sat_rejects_rm_rf ... ok
+test test_sat_rejects_illegal_activity ... ok
+test test_sat_rejects_oversized_tasks ... ok
+test test_sat_rejects_extremely_complex_tasks ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

@@ -1,0 +1,17 @@
+=== IDENTITY SNAPSHOT ===
+Timestamp: 2025-12-21T12:19:14+04:00
+
+=== HEAD ===
+56d6b93d6af29370bd50ac84dfcffc79a65abdaa
+
+=== BRANCH ===
+  feat/p1-apex-framework                     0d01b10 feat(sovereignty): implement Stand Alone validation + Ihs─ün gate + instruction synthesis * feature/coderabbit-integration-dual-system 56d6b93 [origin/feature/coderabbit-integration-dual-system: gone] fix: add sync command execution and property accessors   feature/critical-stabilization             5df23b4 fix(docker): remove invalid shell syntax from Dockerfile.refinery COPY   feature/urp-correction-core                9005505 seal(genesis): add Sadaqah Jariyah declaration   main                                       2cb868d feat: integrate CodeRabbit AI code review with BIZRA compliance + release/v1.0.1-genesis-citadel             a3a9844 (C:/BIZRA-GENESIS-CLEAN) feat(seal): add Citadel + Sovereign Kernel + SAPE runtime (replayable baseline)
+
+=== STATUS (porcelain) ===
+ M .github/workflows/elite-ci-cd.yml  M Dockerfile.refinery  M constellation/runtime.py  M constitution/ihsan_v1.yaml  M docs/API_DOCUMENTATION.md  M docs/openapi.yaml  M src/http.rs  M src/ihsan.rs  M src/ihsan_gate.py  M src/main.rs  M src/mcp.rs  M src/types.rs  M tests/integration_harness.rs  M tests/pat_sat_runtime_tests.rs ?? .gitattributes ?? .github/copilot-instructions.md ?? BIZRA-DevOps-Blueprint.md ?? BIZRA-Ethical-Integrity-Manifesto.md ?? BIZRA-Pinnacle-Implementation-Framework-v5.0.md ?? ROADMAP_v5.0.yaml ?? SAPE-Strategy-Document.md ?? docs/audit/ ?? docs/execution/
+
+=== DIFF STAT vs HEAD ===
+warning: in the working copy of 'docs/openapi.yaml', CRLF will be replaced by LF the next time Git touches it  .github/workflows/elite-ci-cd.yml |    2 +-  Dockerfile.refinery               |   14 +-  constellation/runtime.py          |   79 +-  constitution/ihsan_v1.yaml        |    2 +  docs/API_DOCUMENTATION.md         |   54 +-  docs/openapi.yaml                 | 1714 ++++++++++++++++++++-----------------  src/http.rs                       |   29 +-  src/ihsan.rs                      |    6 +  src/ihsan_gate.py                 |  173 +++-  src/main.rs                       |    5 +-  src/mcp.rs                        |  108 ++-  src/types.rs                      |   20 +-  tests/integration_harness.rs      |    4 +-  tests/pat_sat_runtime_tests.rs    |    2 -  14 files changed, 1313 insertions(+), 899 deletions(-)
+
+=== REMOTE ===
+origin	https://github.com/BizraInfo/bizra-genesis-node.git (fetch) origin	https://github.com/BizraInfo/bizra-genesis-node.git (push)

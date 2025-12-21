@@ -301,6 +301,12 @@ pub fn score(scores: &BTreeMap<String, f64>) -> anyhow::Result<f64> {
 }
 
 pub fn current_env() -> String {
+    // Check BIZRA_IHSAN_ENV first (set by docker-compose)
+    if let Ok(v) = std::env::var("BIZRA_IHSAN_ENV") {
+        if !v.trim().is_empty() {
+            return v.trim().to_string();
+        }
+    }
     if let Ok(v) = std::env::var("BIZRA_ENV") {
         if !v.trim().is_empty() {
             return v.trim().to_string();

@@ -63,10 +63,10 @@ EXPOSE 8081
 # Use tini as init
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Run the daemon
-CMD ["python", "-m", "core.refinery_daemon", \
-     "--watch", "bizra_data_vault/roots", \
-     "--ledger", "BIZRA_KNOWLEDGE_LEDGER.jsonl", \
-     "--throughput", "${BIZRA_REFINERY_THROUGHPUT}", \
-     "--port", "${BIZRA_REFINERY_PORT}", \
-     "--batch-size", "${BIZRA_REFINERY_BATCH_SIZE}"]
+# Run the daemon (shell form to expand env vars)
+CMD python -m core.refinery_daemon \
+    --watch bizra_data_vault/roots \
+    --ledger BIZRA_KNOWLEDGE_LEDGER.jsonl \
+    --throughput ${BIZRA_REFINERY_THROUGHPUT:-10} \
+    --port ${BIZRA_REFINERY_PORT:-8081} \
+    --batch-size ${BIZRA_REFINERY_BATCH_SIZE:-50}

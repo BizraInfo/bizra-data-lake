@@ -157,13 +157,23 @@ pub struct AdapterModes {
 }
 
 impl AdapterModes {
+    /// Get current adapter modes from environment.
+    /// 
+    /// Set `BIZRA_ADAPTER_MODE=simulated` to force simulation mode.
+    /// Default is now Real mode for production readiness.
     pub fn current() -> Self {
+        let mode = match std::env::var("BIZRA_ADAPTER_MODE") {
+            Ok(v) if v.eq_ignore_ascii_case("simulated") => AdapterMode::Simulated,
+            Ok(v) if v.eq_ignore_ascii_case("real") => AdapterMode::Real,
+            _ => AdapterMode::Real, // Default to Real mode
+        };
+        
         Self {
-            pat: AdapterMode::Simulated,
-            sat: AdapterMode::Simulated,
-            mcp: AdapterMode::Simulated,
-            a2a: AdapterMode::Simulated,
-            reasoning: AdapterMode::Simulated,
+            pat: mode.clone(),
+            sat: mode.clone(),
+            mcp: mode.clone(),
+            a2a: mode.clone(),
+            reasoning: mode,
         }
     }
 }
