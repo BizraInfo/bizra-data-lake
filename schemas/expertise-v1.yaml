@@ -1,0 +1,197 @@
+# PAT Agent Expertise File Schema
+# Based on Kimi Agent Expert research (docs/research/agent-learning-lifecycle.md)
+#
+# Each PAT agent maintains an expertise file representing its "mental model" -
+# working memory validated against the codebase (single source of truth).
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://bizra.ai/schemas/expertise-v1.json"
+title: "BIZRA PAT Agent Expertise Schema"
+description: "Schema for agent mental models with codebase-validated knowledge"
+type: object
+
+required:
+  - version
+  - agent_id
+  - agent_role
+  - expertise_domains
+  - mental_model
+
+properties:
+  version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "Schema version (semver)"
+    examples: ["1.0.0"]
+
+  agent_id:
+    type: string
+    pattern: "^[a-z_]+$"
+    description: "Unique agent identifier (snake_case)"
+    examples: ["strategic_agent", "quality_guardian", "user_advocate"]
+
+  agent_role:
+    type: string
+    enum:
+      - strategic      # Strategic planning and orchestration
+      - creative       # Novel solution generation
+      - analytical     # Data analysis and pattern recognition
+      - implementation # Code writing and task execution
+      - quality        # Quality assurance and testing
+      - advocacy       # User benefit and experience focus
+      - coordination   # Team coordination and communication
+    description: "Agent's primary role in PAT team"
+
+  expertise_domains:
+    type: array
+    items:
+      type: object
+      required: [domain, proficiency, last_validated]
+      properties:
+        domain:
+          type: string
+          description: "Knowledge domain"
+          examples: ["rust_async", "ihsan_scoring", "fate_escalation"]
+        proficiency:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: "Proficiency level (0.0-1.0)"
+        last_validated:
+          type: string
+          format: date-time
+          description: "Last validation timestamp (ISO 8601)"
+        source_files:
+          type: array
+          items:
+            type: string
+          description: "Codebase files this expertise is grounded in"
+          examples: [["src/sape.rs", "src/ihsan.rs"]]
+        snr_tier:
+          type: string
+          enum: ["T1", "T2", "T3", "T4", "T5", "T6"]
+          description: "SNR quality tier for this domain"
+
+  mental_model:
+    type: object
+    description: "Agent's working memory - validated against codebase"
+    required: [concepts, patterns, constraints]
+    properties:
+      concepts:
+        type: array
+        items:
+          type: object
+          required: [name, definition, evidence]
+          properties:
+            name:
+              type: string
+              description: "Concept name"
+            definition:
+              type: string
+              description: "Agent's understanding of the concept"
+            evidence:
+              type: array
+              items:
+                type: string
+              description: "File paths grounding this concept"
+            confidence:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              description: "Confidence in understanding"
+
+      patterns:
+        type: array
+        description: "Recognized patterns (SAPE elevation candidates)"
+        items:
+          type: object
+          required: [pattern_id, description, trigger_conditions]
+          properties:
+            pattern_id:
+              type: string
+              description: "Pattern identifier"
+            description:
+              type: string
+              description: "What the pattern represents"
+            trigger_conditions:
+              type: array
+              items:
+                type: string
+              description: "Conditions that activate this pattern"
+            optimization:
+              type: string
+              description: "How this pattern optimizes execution"
+            activation_count:
+              type: integer
+              minimum: 0
+              description: "Times this pattern was activated"
+
+      constraints:
+        type: array
+        description: "Invariants the agent must respect"
+        items:
+          type: object
+          required: [constraint_id, rule, severity]
+          properties:
+            constraint_id:
+              type: string
+              description: "Constraint identifier"
+            rule:
+              type: string
+              description: "The constraint rule"
+            severity:
+              type: string
+              enum: ["critical", "high", "medium", "low"]
+              description: "Severity if violated"
+            source:
+              type: string
+              description: "Source file defining this constraint"
+              examples: ["constitution/ihsan_v1.yaml"]
+
+  learning_state:
+    type: object
+    description: "Agent's learning progress (self-improvement loop)"
+    properties:
+      total_tasks_completed:
+        type: integer
+        minimum: 0
+        description: "Tasks completed by this agent"
+      success_rate:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Task success rate"
+      knowledge_half_life_days:
+        type: number
+        minimum: 1.0
+        default: 87.0
+        description: "Days until knowledge needs reinforcement"
+      last_self_improvement:
+        type: string
+        format: date-time
+        description: "Last self-improvement cycle timestamp"
+      improvement_notes:
+        type: array
+        items:
+          type: string
+        description: "Notes from last improvement cycle"
+
+  meta:
+    type: object
+    description: "Metadata and provenance"
+    properties:
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      validated_by:
+        type: string
+        description: "Entity that validated this expertise file"
+        examples: ["codebase_sync", "human_review", "sat_evaluation"]
+      ihsan_score:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Ihsān alignment score for this agent's expertise"

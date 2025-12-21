@@ -72,6 +72,18 @@ jobs:
           
           echo "✅ Copilot instructions validated"
 
+      - name: Cross-boundary parity check
+        run: |
+          echo "🔍 Running Rust/Python parity verification..."
+          
+          # Install PyYAML for the check script
+          pip install --quiet pyyaml
+          
+          # Run parity check
+          python scripts/check_parity.py
+          
+          echo "✅ Cross-boundary parity verified"
+
   # ============================================================
   # GATE 1: SECURITY GATE
   # ============================================================

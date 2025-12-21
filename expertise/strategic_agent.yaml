@@ -1,0 +1,111 @@
+# Strategic Agent Expertise File
+# PAT Agent: Strategic planning and orchestration
+# Generated: 2025-12-21T22:00:00Z
+
+version: "1.0.0"
+agent_id: strategic_agent
+agent_role: strategic
+
+expertise_domains:
+  - domain: dual_agentic_coordination
+    proficiency: 0.92
+    last_validated: "2025-12-21T22:00:00Z"
+    source_files:
+      - src/bridge.rs
+      - src/pat.rs
+      - src/sat.rs
+    snr_tier: T4
+
+  - domain: ihsan_scoring
+    proficiency: 0.88
+    last_validated: "2025-12-21T22:00:00Z"
+    source_files:
+      - src/ihsan.rs
+      - constitution/ihsan_v1.yaml
+    snr_tier: T3
+
+  - domain: fate_escalation
+    proficiency: 0.85
+    last_validated: "2025-12-21T22:00:00Z"
+    source_files:
+      - src/fate.rs
+      - core/fate.py
+    snr_tier: T3
+
+mental_model:
+  concepts:
+    - name: PAT-SAT Duality
+      definition: >
+        PAT (Personal Agentic Team) executes tasks with 7 specialized agents,
+        while SAT (System Agentic Team) validates with 5 guardian agents.
+        3/5 SAT consensus required before PAT execution.
+      evidence:
+        - src/bridge.rs
+        - .github/copilot-instructions.md
+      confidence: 0.95
+
+    - name: Ihsān Gate
+      definition: >
+        Weighted composite ethical score across 8 dimensions.
+        Thresholds: dev=0.80, ci=0.90, prod=0.95.
+        Fail-closed: if score < threshold, execution blocked.
+      evidence:
+        - constitution/ihsan_v1.yaml
+        - src/ihsan.rs
+      confidence: 0.92
+
+    - name: SAPE Elevation
+      definition: >
+        Patterns repeated 3+ times are auto-elevated to optimized shortcuts.
+        9 probes map to 8 Ihsān dimensions with weights summing to 1.0.
+      evidence:
+        - src/sape.rs
+      confidence: 0.88
+
+  patterns:
+    - pattern_id: full_validation_sweep
+      description: "Complete SAT validation followed by PAT execution"
+      trigger_conditions:
+        - "New request received"
+        - "High-stakes task detected"
+      optimization: "Parallel SAT agent execution with early rejection"
+      activation_count: 0
+
+    - pattern_id: ihsan_threshold_check
+      description: "Verify composite score meets environment threshold"
+      trigger_conditions:
+        - "Post-PAT execution"
+        - "Before response emission"
+      optimization: "Cached constitution weights reduce recalculation"
+      activation_count: 0
+
+  constraints:
+    - constraint_id: fail_closed
+      rule: "If gate/score missing or invalid, emit structured rejection"
+      severity: critical
+      source: ".github/copilot-instructions.md"
+
+    - constraint_id: receipts_first
+      rule: "New behavior must emit/extend receipt or document why non-receipted"
+      severity: high
+      source: ".github/copilot-instructions.md"
+
+    - constraint_id: constitution_as_code
+      rule: "ihsan_v1.yaml is executable constraints - no semantic changes without review"
+      severity: critical
+      source: "constitution/ihsan_v1.yaml"
+
+learning_state:
+  total_tasks_completed: 0
+  success_rate: 0.0
+  knowledge_half_life_days: 87.0
+  last_self_improvement: "2025-12-21T22:00:00Z"
+  improvement_notes:
+    - "Initial expertise file created from codebase analysis"
+    - "Concepts grounded in src/bridge.rs, src/sape.rs, constitution/ihsan_v1.yaml"
+
+meta:
+  created_at: "2025-12-21T22:00:00Z"
+  updated_at: "2025-12-21T22:00:00Z"
+  validated_by: codebase_sync
+  ihsan_score: 0.89

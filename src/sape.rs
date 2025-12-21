@@ -173,6 +173,110 @@ impl ProbeResult {
     }
 }
 
+// ============================================================
+// SNR-Tier Quality Classification System
+// ============================================================
+// Based on Kimi Agent Expert research (docs/research/agent-learning-lifecycle.md)
+// T1-T6 tiers for probe quality routing and agent selection
+
+/// SNR (Signal-to-Noise Ratio) quality tier for probe results
+/// Higher tiers indicate higher quality/confidence outputs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SnrTier {
+    /// T1: Baseline (SNR 7.0-7.4) - Safe mode trigger
+    T1 = 1,
+    /// T2: Acceptable (SNR 7.4-7.8) - Below target
+    T2 = 2,
+    /// T3: Target (SNR 7.8-8.2) - Phase 0 goal
+    T3 = 3,
+    /// T4: Strong (SNR 8.2-8.6) - Exceeds expectations
+    T4 = 4,
+    /// T5: Expert (SNR 8.6-9.0) - World-class quality
+    T5 = 5,
+    /// T6: Elite (SNR 9.0+) - Theoretical maximum
+    T6 = 6,
+}
+
+impl SnrTier {
+    /// Classify SNR value into tier
+    pub fn from_snr(snr: f64) -> Self {
+        match snr {
+            s if s >= 9.0 => Self::T6,
+            s if s >= 8.6 => Self::T5,
+            s if s >= 8.2 => Self::T4,
+            s if s >= 7.8 => Self::T3,
+            s if s >= 7.4 => Self::T2,
+            _ => Self::T1,
+        }
+    }
+    
+    /// Classify Ihsān score (0.0-1.0) into SNR tier
+    /// Maps 0.80-1.0 Ihsān range to 7.0-9.0 SNR range
+    pub fn from_ihsan_score(score: f64) -> Self {
+        // Linear mapping: ihsan 0.80 -> SNR 7.0, ihsan 1.0 -> SNR 9.0
+        let snr = 7.0 + (score.clamp(0.0, 1.0) - 0.80).max(0.0) * 10.0;
+        Self::from_snr(snr)
+    }
+    
+    /// Get tier name
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::T1 => "baseline",
+            Self::T2 => "acceptable",
+            Self::T3 => "target",
+            Self::T4 => "strong",
+            Self::T5 => "expert",
+            Self::T6 => "elite",
+        }
+    }
+    
+    /// Get minimum SNR for this tier
+    pub fn min_snr(&self) -> f64 {
+        match self {
+            Self::T1 => 7.0,
+            Self::T2 => 7.4,
+            Self::T3 => 7.8,
+            Self::T4 => 8.2,
+            Self::T5 => 8.6,
+            Self::T6 => 9.0,
+        }
+    }
+    
+    /// Check if tier meets minimum requirement for high-stakes tasks
+    pub fn meets_high_stakes(&self) -> bool {
+        *self >= Self::T4
+    }
+    
+    /// Check if tier is in safe mode (below floor)
+    pub fn is_safe_mode(&self) -> bool {
+        *self == Self::T1
+    }
+}
+
+/// SNR-aware probe result with tier classification
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TieredProbeResult {
+    pub result: ProbeResult,
+    pub snr_tier: SnrTier,
+    pub snr_value: f64,
+}
+
+impl TieredProbeResult {
+    /// Create tiered result from probe result
+    pub fn from_probe(result: ProbeResult) -> Self {
+        // Convert confidence-weighted score to SNR
+        // Higher score + higher confidence = higher SNR
+        let weighted = result.score * result.confidence;
+        let snr = 7.0 + weighted * 2.0; // Maps 0.0-1.0 to 7.0-9.0
+        
+        Self {
+            snr_tier: SnrTier::from_snr(snr),
+            snr_value: snr,
+            result,
+        }
+    }
+}
+
 /// Compiled probe result (elevated pattern)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElevatedPattern {
@@ -877,5 +981,56 @@ mod tests {
         assert!(pattern_ids.contains(&"ethical_shadow_stack"));
         assert!(pattern_ids.contains(&"benevolence_cache"));
         assert!(pattern_ids.contains(&"consensus_shortcut"));
+    }
+    
+    #[test]
+    fn test_snr_tier_classification() {
+        // Test SNR value classification
+        assert_eq!(SnrTier::from_snr(6.5), SnrTier::T1);
+        assert_eq!(SnrTier::from_snr(7.0), SnrTier::T1);
+        assert_eq!(SnrTier::from_snr(7.5), SnrTier::T2);
+        assert_eq!(SnrTier::from_snr(7.8), SnrTier::T3);
+        assert_eq!(SnrTier::from_snr(8.2), SnrTier::T4);
+        assert_eq!(SnrTier::from_snr(8.6), SnrTier::T5);
+        assert_eq!(SnrTier::from_snr(9.0), SnrTier::T6);
+        assert_eq!(SnrTier::from_snr(9.5), SnrTier::T6);
+    }
+    
+    #[test]
+    fn test_snr_tier_from_ihsan() {
+        // Map Ihsān scores to SNR tiers
+        assert_eq!(SnrTier::from_ihsan_score(0.80), SnrTier::T1); // 7.0
+        assert_eq!(SnrTier::from_ihsan_score(0.88), SnrTier::T3); // 7.8
+        assert_eq!(SnrTier::from_ihsan_score(0.95), SnrTier::T4); // 8.5
+        assert_eq!(SnrTier::from_ihsan_score(1.00), SnrTier::T6); // 9.0
+    }
+    
+    #[test]
+    fn test_snr_tier_ordering() {
+        assert!(SnrTier::T1 < SnrTier::T2);
+        assert!(SnrTier::T3 < SnrTier::T4);
+        assert!(SnrTier::T5 < SnrTier::T6);
+        
+        // High-stakes requires T4+
+        assert!(!SnrTier::T3.meets_high_stakes());
+        assert!(SnrTier::T4.meets_high_stakes());
+        assert!(SnrTier::T6.meets_high_stakes());
+    }
+    
+    #[test]
+    fn test_tiered_probe_result() {
+        let result = ProbeResult {
+            dimension: ProbeDimension::Correctness,
+            score: 0.95,
+            confidence: 0.90,
+            flags: vec![],
+            latency_ms: 5.0,
+        };
+        
+        let tiered = TieredProbeResult::from_probe(result);
+        
+        // 0.95 * 0.90 = 0.855 weighted, maps to SNR 8.71 (T5)
+        assert!(tiered.snr_value > 8.5);
+        assert!(tiered.snr_tier >= SnrTier::T5);
     }
 }
