@@ -7,16 +7,18 @@
 ---
 
 ## 1) Snapshot header
+
 | Field | Value |
-|-------|-------|
+| ----- | ----- |
 | Dubai time | 2025-12-21T12:39:00+04:00 |
 | Rust | 1.91.1 |
 | Python | 3.13.5 |
 | Docker Compose | v2.40.3 |
 
 ## 2) Repo identity
+
 | Field | Value | Evidence |
-|-------|-------|----------|
+| ----- | ----- | -------- |
 | Remote | `origin https://github.com/BizraInfo/bizra-genesis-node.git` | [identity_git.txt](evidence/v2/identity_git.txt) |
 | Branch | `feature/coderabbit-integration-dual-system` | [identity_git.txt](evidence/v2/identity_git.txt) |
 | HEAD | `56d6b93d6af29370bd50ac84dfcffc79a65abdaa` | [identity_git.txt](evidence/v2/identity_git.txt) |
@@ -29,8 +31,9 @@
 ## 3) Build & test truth
 
 ### Rust (cargo)
+
 | Test Suite | Result | Count | Duration | Evidence |
-|------------|--------|-------|----------|----------|
+| ---------- | ------ | ----- | -------- | -------- |
 | `cargo build` | ✅ PASS | — | 0.81s | [rust_build_test.txt](evidence/v2/rust_build_test.txt) |
 | `cargo test --lib` | ✅ PASS | 45/45 | 0.42s | [rust_build_test.txt](evidence/v2/rust_build_test.txt) |
 | `cargo test --tests` | ✅ PASS | 28/28 | 120.03s | [rust_build_test.txt](evidence/v2/rust_build_test.txt) |
@@ -39,8 +42,9 @@
 **Total**: **73 tests passed**, 0 failed
 
 ### Python (core)
+
 | Check | Result | Evidence |
-|-------|--------|----------|
+| ----- | ------ | -------- |
 | `python -m compileall core` | ✅ PASS | [python_compileall.txt](evidence/v2/python_compileall.txt) |
 | `import core` | ✅ PASS | [python_compileall.txt](evidence/v2/python_compileall.txt) |
 
@@ -51,8 +55,9 @@
 ## 4) Docker/Runtime health
 
 ### Service status
+
 | Service | Status | Health | Uptime | Evidence |
-|---------|--------|--------|--------|----------|
+| ------- | ------ | ------ | ------ | -------- |
 | kernel (Python :8010) | Running | ✅ healthy | 10h | [docker_ps.txt](evidence/v2/docker_ps.txt) |
 | refinery (:8081) | Running | ✅ healthy | 8h | [docker_ps.txt](evidence/v2/docker_ps.txt) |
 | synapse (Redis) | Running | ✅ healthy | 10h | [docker_ps.txt](evidence/v2/docker_ps.txt) |
@@ -61,6 +66,7 @@
 | elite (Rust :8080) | **NOT RUNNING** | — | — | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
 
 ### Refinery daemon
+
 ```json
 {
   "status": "healthy",
@@ -69,11 +75,13 @@
   "chain_hash": "d6fc6f5b94abce69..."
 }
 ```
+
 Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 
 ### API endpoints
+
 | Endpoint | Status | Evidence |
-|----------|--------|----------|
+| -------- | ------ | -------- |
 | `localhost:8010/docs` | ✅ 200 (Swagger) | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
 | `localhost:8081/health` | ✅ 200 | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
 | `localhost:8080/metrics` | ❌ 404 (not running) | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
@@ -81,14 +89,14 @@ Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 ## 5) CI/CD reality
 
 | Check | Result | Evidence |
-|-------|--------|----------|
+| ----- | ------ | -------- |
 | YAML validity | ✅ `elite-ci-cd.yml` parses | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
 | CI execution logs | ⚠️ NOT CAPTURED | Push branch to trigger |
 
 ## 6) UNKNOWNs closed (v1 → v2)
 
 | Item | v1 Status | v2 Status | Resolution |
-|------|-----------|-----------|------------|
+| ---- | --------- | --------- | ---------- |
 | `cargo test --tests` | TIMEOUT (300s) | ✅ 28/28 PASS (120s) | Ran with default timeout |
 | `python -m compileall` | TIMEOUT | ✅ PASS | Scoped to `core/` |
 | CI YAML validity | UNKNOWN | ✅ VALID | `yaml.safe_load()` passed |
@@ -99,21 +107,21 @@ Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 ### 🔴 CRITICAL (must resolve before merge)
 
 | # | Issue | Impact | Fix | Evidence |
-|---|-------|--------|-----|----------|
+| - | ----- | ------ | --- | -------- |
 | C1 | **Elite (Rust :8080) NOT RUNNING** | No `/metrics` endpoint; Prometheus scraping fails; observability blind spot | Add `elite` to default services in `docker-compose.yml` | [metrics_probe.txt](evidence/v2/metrics_probe.txt) |
 | C2 | **Uncommitted files** *(snapshot: 2025-12-21T15:50+04:00)* | Pre-commit state; resolved by executing `git add -A && git commit` per [NEXT_STEP_DECISION.md](NEXT_STEP_DECISION.md) | Commit pending; not a merge blocker once committed | [identity_git.txt](evidence/v2/identity_git.txt) |
 
 ### 🟠 HIGH (blocks CI or testing)
 
 | # | Issue | Impact | Fix | Evidence |
-|---|-------|--------|-----|----------|
+| - | ----- | ------ | --- | -------- |
 | H1 | pytest not installed | Python unit tests blocked | `pip install pytest` | [python_compileall.txt](evidence/v2/python_compileall.txt) |
 | H2 | Branch upstream "gone" | Push will fail without force | `git push --force-with-lease` | [identity_git.txt](evidence/v2/identity_git.txt) |
 
 ### 🟡 MEDIUM (CI warnings, polish)
 
 | # | Issue | Impact | Fix | Evidence |
-|---|-------|--------|-----|----------|
+| - | ----- | ------ | --- | -------- |
 | M1 | 5 clippy warnings | CI lint gate may warn | Fix `assert!(true)` in tests | [rust_clippy.txt](evidence/v2/rust_clippy.txt) |
 
 ## 8) Security posture
@@ -121,7 +129,7 @@ Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 **Status**: ⚠️ **ESCALATED** — Full audit not performed; issue created for tracking.
 
 | Item | Finding | Status |
-|------|---------|--------|
+| ---- | ------- | ------ |
 | `.env` files | Secret-like variable names detected (`POSTGRES_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`) | 🔶 **Unaudited** |
 | `k8s/base/secrets.yaml` | Flagged by keyword scan | 🔶 **Unaudited** |
 | `.env.example` | Template exists | ✅ Safe |
@@ -131,6 +139,7 @@ Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 **Severity**: Medium (no confirmed secret exposure; .gitignore patterns exist)  
 **Owner**: Security review required before production deployment  
 **Required Actions**:
+
 1. Verify `.env` is in `.gitignore` (confirmed: yes)
 2. Replace `k8s/base/secrets.yaml` with templated version
 3. Document secret injection process for deployment
@@ -138,8 +147,9 @@ Evidence: [refinery_logs.txt](evidence/v2/refinery_logs.txt)
 **Remediation taken**: None yet. Escalated for tracking.
 
 ## 9) Observability
+
 | Component | Implementation |
-|-----------|----------------|
+| --------- | -------------- |
 | Rust tracing | `tracing` + `TraceLayer` |
 | Prometheus | `/metrics` route wired |
 | Python logging | `logging.basicConfig` |

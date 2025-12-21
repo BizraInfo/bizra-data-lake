@@ -2,7 +2,8 @@
 
 > **Version**: 1.0.0  
 > **Status**: Canonical  
-> **Last Updated**: 2025-12-21
+> **Last Updated**: 2025-12-21  
+> **Scope**: This document covers the Rust backend request lifecycle. For Python orchestration components, see [Python Constellation Components](#python-constellation-components) below.
 
 ## Overview
 
@@ -10,7 +11,7 @@ This document describes the complete request lifecycle in the BIZRA Dual-Agentic
 
 ## Architecture Layers
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           LAYER 0: INGESTION                                │
 │                                                                             │
@@ -118,7 +119,7 @@ This document describes the complete request lifecycle in the BIZRA Dual-Agentic
 
 ## Critical Path Sequence
 
-```
+```text
 Request
    │
    ▼
@@ -201,7 +202,7 @@ SAPE (Symbolic-Abstraction Probe Elevation) operates at multiple layers:
 
 ### SAPE Probe Dimensions → Ihsān Mapping
 
-```
+```text
 SAPE Probes (9)              Ihsān Dimensions (8)
 ─────────────────            ──────────────────
 ThreatScan ─────────────┐
@@ -239,6 +240,23 @@ From `model-family-genesis-v1-SEALED.yaml`:
 | SNR | 7.8 | 7.0 | Safe mode triggers at floor |
 | P95 Latency | 1500ms | - | End-to-end request latency |
 | BFT Quorum | 3/5 | - | N=5, f=1, Q=2f+1 |
+
+## Python Constellation Components
+
+The Python `constellation/` package provides higher-level orchestration capabilities that complement the Rust backend:
+
+| Module | Purpose | Lifecycle Participation |
+|--------|---------|------------------------|
+| [constellation/__init__.py](../../constellation/__init__.py) | Package initialization | Import-time setup |
+| [constellation/orchestrator.py](../../constellation/orchestrator.py) | Multi-agent orchestration | Layer 2 (PAT coordination) |
+| [constellation/runtime.py](../../constellation/runtime.py) | Execution runtime | All layers |
+| [constellation/audit/](../../constellation/audit/) | Audit logging and evidence | Layer 5 (Receipt emission) |
+| [constellation/memory/](../../constellation/memory/) | Agent memory management | Layer 2-3 (PAT/SAT state) |
+| [constellation/protocols/](../../constellation/protocols/) | Inter-agent communication | Layer 1-2 (SAT/PAT messaging) |
+| [constellation/hooks/](../../constellation/hooks/) | Lifecycle event hooks | All layers |
+| [constellation/triggers/](../../constellation/triggers/) | Event-driven activation | Layer 0 (Ingestion) |
+
+The Rust backend (`src/`) handles the core request lifecycle with performance-critical paths, while Python (`constellation/`) provides flexible orchestration and extensibility.
 
 ## Cross-Reference
 

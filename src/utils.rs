@@ -40,11 +40,17 @@ pub fn avg_confidence<I>(iter: I) -> f64
 where
     I: Iterator<Item = f64>,
 {
-    let values: Vec<f64> = iter.collect();
-    if values.is_empty() {
-        return 0.0;
+    let mut sum = 0.0;
+    let mut count = 0usize;
+    for value in iter {
+        sum += value;
+        count += 1;
     }
-    values.iter().sum::<f64>() / values.len() as f64
+    if count == 0 {
+        0.0
+    } else {
+        sum / count as f64
+    }
 }
 
 /// Generate a unique ID with prefix

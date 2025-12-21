@@ -16,6 +16,10 @@ required:
   - agent_role
   - expertise_domains
   - mental_model
+  # Note: learning_state and meta are optional to support progressive knowledge
+  # population. New agents start with core fields only; learning_state is added
+  # after first task completion, meta after validation. This enables backward
+  # compatibility and allows gradual expertise file maturation.
 
 properties:
   version:
@@ -33,13 +37,13 @@ properties:
   agent_role:
     type: string
     enum:
-      - strategic      # Strategic planning and orchestration
-      - creative       # Novel solution generation
-      - analytical     # Data analysis and pattern recognition
-      - implementation # Code writing and task execution
-      - quality        # Quality assurance and testing
-      - advocacy       # User benefit and experience focus
-      - coordination   # Team coordination and communication
+      - strategic       # Strategic planning and orchestration
+      - creative        # Novel solution generation
+      - analytical      # Data analysis and pattern recognition
+      - implementation  # Code writing and task execution
+      - quality         # Quality assurance and testing
+      - advocacy        # User benefit and experience focus
+      - coordination    # Team coordination and communication
     description: "Agent's primary role in PAT team"
 
   expertise_domains:
