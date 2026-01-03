@@ -1,0 +1,57 @@
+{
+  "timestamp": 1767269749.0943377,
+  "federation": {
+    "cross_node_latency": {
+      "avg_latency_ms": 2.408133,
+      "p95_latency_ms": 2.8428200000000006,
+      "node_count": 3,
+      "iterations": 100
+    },
+    "consensus": {
+      "avg_consensus_time_ms": 1.56512,
+      "success_rate_percent": 100.0,
+      "rounds": 50,
+      "node_count": 3
+    }
+  },
+  "chaos": {
+    "node_crash": {
+      "scenario": "node_crash",
+      "avg_mttr_ms": 2.28696,
+      "p95_mttr_ms": 2.564,
+      "successful_recoveries": 5,
+      "total_iterations": 5,
+      "success_rate_percent": 100.0
+    },
+    "network_partition": {
+      "scenario": "network_partition",
+      "avg_mttr_ms": 1.72886,
+      "p95_mttr_ms": 2.0003,
+      "successful_recoveries": 5,
+      "total_iterations": 5,
+      "success_rate_percent": 100.0
+    },
+    "resource_exhaustion": {
+      "scenario": "resource_exhaustion",
+      "avg_mttr_ms": 3.24718,
+      "p95_mttr_ms": 3.5602,
+      "successful_recoveries": 5,
+      "total_iterations": 5,
+      "success_rate_percent": 100.0
+    },
+    "corrupted_state": {
+      "scenario": "corrupted_state",
+      "avg_mttr_ms": 5.33728,
+      "p95_mttr_ms": 5.4121,
+      "successful_recoveries": 5,
+      "total_iterations": 5,
+      "success_rate_percent": 100.0
+    }
+  },
+  "system": {
+    "logic_gate": {
+      "avg": 0.2233127,
+      "p99": 0.47579299999999997
+    }
+  }
+}

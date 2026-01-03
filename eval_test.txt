@@ -1,0 +1,35 @@
+2026-01-01 16:19:03 - === BIZRA Governance Pipeline Phase 9 Starting ===
+2026-01-01 16:19:03 - Starting Ihs─ün Gate verification...
+[0;32mSUCCESS: Ihsan Gate PASSED - Score: 0.976[0m
+2026-01-01 16:19:03 - SUCCESS: Ihsan Gate PASSED - Score: 0.976
+2026-01-01 16:19:03 - Requesting Auditor Mufti AI approval...
+[0;32mSUCCESS: Auditor Mufti APPROVED - Confidence: 0.97[0m
+2026-01-01 16:19:03 - SUCCESS: Auditor Mufti APPROVED - Confidence: 0.97
+2026-01-01 16:19:03 - Running Z3 Logic verification...
+[1;33mWARNING: Z3 Python bindings not found, attempting to install...[0m
+2026-01-01 16:19:04 - WARNING: Z3 Python bindings not found, attempting to install...
+error: externally-managed-environment
+
+├ù This environment is externally managed
+Γò░ΓöÇ> To install Python packages system-wide, try apt install
+    python3-xyz, where xyz is the package you are trying to
+    install.
+ 
+    If you wish to install a non-Debian-packaged Python package,
+    create a virtual environment using python3 -m venv path/to/venv.
+    Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
+    sure you have python3-full installed.
+ 
+    If you wish to install a non-Debian packaged Python application,
+    it may be easiest to use pipx install xyz, which will manage a
+    virtual environment for you. Make sure you have pipx installed.
+ 
+    See /usr/share/doc/python3.12/README.venv for more information.
+
+note: If you believe this is a mistake, please contact your Python installation or OS distribution provider. You can override this, at the risk of breaking your Python installation or OS, by passing --break-system-packages.
+hint: See PEP 668 for the detailed specification.
+ERROR: Failed to install Z3. Please ensure Z3 theorem prover is available.
+2026-01-01 16:19:04 - ERROR: Failed to install Z3. Please ensure Z3 theorem prover is available.
+ERROR: Governance gate failure detected - Deployment BLOCKED
+2026-01-01 16:19:04 - ERROR: Governance gate failure detected - Deployment BLOCKED
+2026-01-01 16:19:04 - === Governance Pipeline FAILED - DEPLOYMENT BLOCKED ===

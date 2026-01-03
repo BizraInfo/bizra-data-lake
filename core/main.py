@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import socket
@@ -17,15 +18,30 @@ from pydantic import BaseModel, Field
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from starlette.responses import JSONResponse, Response
 
-from core.fate import FateEngine, FateSeal
+from core.fate import FateEngine, FateSeal, get_fate_engine
 from core.llm import LLMCallError, chat_with_routing
 from core.model_family import ModelFamily, load_model_family
 from core.sape import SapeExecuteRequest, SapeExecuteResponse, SapePlanRequest, SapePlanResponse, compile_sape_plan, sha256_text
 from core.wisdom import HouseOfWisdom
+from tools.ecosystem.config import load_ecosystem_config
+from tools.ecosystem.indexer import build_manifest
+from tools.ecosystem.sealer import seal_manifest, write_manifest
+from core.meta_prompt.models import MetaPromptRequest, MetaPromptResponse
+from core.meta_prompt.engine import MetaPromptEngine
 
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _safe_json_snippet(value: Any, *, limit: int = 8000) -> str:
+    try:
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    except Exception:
+        text = str(value)
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "…[truncated]"
 
 
 _HEALTHZ_CACHE: Optional[tuple[float, Dict[str, Any], int]] = None
@@ -174,6 +190,20 @@ def _receipt_dir() -> Path:
     return (Path(__file__).resolve().parents[1] / "docs" / "evidence" / "receipts").resolve()
 
 
+def _sha256_hex_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+
+
 def _write_receipt(payload: Dict[str, Any]) -> Optional[Path]:
     if os.getenv("BIZRA_KERNEL_RECEIPTS", "1").strip().lower() in {"0", "false", "no"}:
         return None
@@ -181,6 +211,34 @@ def _write_receipt(payload: Dict[str, Any]) -> Optional[Path]:
     base.mkdir(parents=True, exist_ok=True)
     folder = base / f"kernel_request_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%SZ')}_{payload['request_id']}"
     folder.mkdir(parents=True, exist_ok=True)
+
+    # Optional evidence artifact emission (keeps receipts small + auditable).
+    # If payload already contains evidence hashes/paths, we still write evidence.json to provide
+    # a stable evidence bundle with its own sha256.
+    try:
+        evidence = payload.get("evidence")
+        if isinstance(evidence, list) and evidence:
+            evidence_bytes = _canonical_json_bytes(evidence)
+            evidence_sha = _sha256_hex_bytes(evidence_bytes)
+            (folder / "evidence.json").write_bytes(evidence_bytes + b"\n")
+            payload.setdefault(
+                "evidence_artifact",
+                {
+                    "file": "evidence.json",
+                    "sha256": f"sha256:{evidence_sha}",
+                    "count": len(evidence),
+                },
+            )
+    except Exception:
+        # Evidence artifacts are best-effort; receipt write must not fail because of them.
+        pass
+
+    # Deterministic integrity hash (self-sealing receipts).
+    # Only set if not already present so callers can override.
+    if not payload.get("integrity_hash"):
+        canonical = _canonical_json_bytes({k: v for k, v in payload.items() if k != "integrity_hash"})
+        payload["integrity_hash"] = f"sha256:{_sha256_hex_bytes(canonical)}"
+
     out = folder / "receipt.json"
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return out
@@ -955,6 +1013,354 @@ async def sape_execute(request: SapeExecuteRequest):
         warnings=compiled.warnings + warnings,
         request_id=request_id,
     )
+
+
+# ============================================================================
+# QUALITY RADAR ENDPOINT
+# ============================================================================
+
+class QualityRadarResponse(BaseModel):
+    """Quality Radar assessment response."""
+    id: str
+    timestamp: str
+    overall_score: float = Field(..., description="Overall quality score 0-10")
+    ihsan_composite: float = Field(..., description="Ihsān composite score 0-1")
+    ihsan_snr: float = Field(..., description="SNR value 7-9")
+    ihsan_tier: str = Field(..., description="SNR tier T1-T6")
+    math_rigor_score: float = Field(..., description="Mathematical rigor 0-1")
+    trend_direction: str = Field(..., description="improving/stable/declining/unknown")
+    probes: Dict[str, Any] = Field(default_factory=dict)
+    ihsan_vector: Dict[str, float] = Field(default_factory=dict)
+    invariants_passed: int = 0
+    invariants_total: int = 0
+    evidence_count: int = 0
+    warnings: list = Field(default_factory=list)
+
+
+@app.get("/v1/quality/radar", response_model=QualityRadarResponse, dependencies=[Depends(verify_token)])
+async def quality_radar():
+    """
+    Real-time quality radar assessment.
+    
+    Returns comprehensive quality metrics with Ihsān 8-dimension vector,
+    SNR-tier classification, and mathematical invariant verification.
+    """
+    request_id = uuid.uuid4().hex[:12]
+
+    repo_root = Path(__file__).resolve().parents[1]
+    evidence_dir = repo_root / "evidence"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    script_path = repo_root / "scripts" / "quality_radar_elite.py"
+    if not script_path.exists():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Quality radar script missing: {script_path}",
+        )
+
+    out_prefix = evidence_dir / f"radar_{request_id}"
+    json_path = out_prefix.with_suffix(".json")
+
+    def _decode(b: bytes, limit: int = 4000) -> str:
+        try:
+            s = b.decode("utf-8", errors="replace")
+        except Exception:
+            s = str(b)
+        return s if len(s) <= limit else (s[:limit] + "...<truncated>")
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "python",
+            str(script_path),
+            "--skip-tests",  # Real-time endpoint: keep fast
+            "--json",
+            "-o",
+            str(out_prefix),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+
+        if proc.returncode != 0:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Quality radar subprocess failed (exit={proc.returncode}). "
+                    f"stdout={_decode(stdout_b)} stderr={_decode(stderr_b)}"
+                ),
+            )
+
+        if not json_path.exists():
+            raise HTTPException(
+                status_code=500,
+                detail=f"Quality report generation failed (missing {json_path})",
+            )
+
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+
+        return QualityRadarResponse(
+            id=data.get("id", request_id),
+            timestamp=data.get("timestamp", utc_now_iso()),
+            overall_score=data.get("overall_score", 0.0),
+            ihsan_composite=data.get("ihsan", {}).get("composite", 0.0),
+            ihsan_snr=data.get("ihsan", {}).get("snr", 7.0),
+            ihsan_tier=data.get("ihsan", {}).get("tier", "T1"),
+            math_rigor_score=data.get("math_rigor_score", 0.0),
+            trend_direction=data.get("trend", {}).get("direction", "unknown"),
+            probes=data.get("probes", {}),
+            ihsan_vector=data.get("ihsan", {}).get("vector", {}),
+            invariants_passed=sum(1 for i in data.get("invariants", []) if i.get("passed")),
+            invariants_total=len(data.get("invariants", [])),
+            evidence_count=data.get("evidence_count", 0),
+            warnings=data.get("warnings", []),
+        )
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Quality radar timed out")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quality radar error: {e}")
+    finally:
+        # Cleanup generated artifacts even on errors
+        try:
+            for p in evidence_dir.glob(f"radar_{request_id}*"):
+                if p.is_file():
+                    p.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+@app.get("/v1/quality/prometheus", dependencies=[Depends(verify_token)])
+async def quality_prometheus():
+    """
+    Export quality metrics in Prometheus format.
+    """
+    prom_path = Path(__file__).parent.parent / "evidence" / "quality_radar_elite.prom"
+    
+    if prom_path.exists():
+        content = prom_path.read_text(encoding="utf-8")
+        return Response(content, media_type="text/plain; charset=utf-8")
+    else:
+        return Response("# No quality metrics available\n", media_type="text/plain")
+
+
+# =========================================================================
+# ECOSYSTEM INDEX + SEAL ENDPOINT
+# =========================================================================
+
+
+class EcosystemSealRequest(BaseModel):
+    config_path: str = Field(
+        default="tools/ecosystem/ecosystem_config.yaml",
+        description="Path to ecosystem_config.yaml (relative to repo root or absolute)",
+    )
+    out_path: str = Field(
+        default="BIZRA_ECOSYSTEM_MANIFEST.json",
+        description="Output manifest path (relative to repo root or absolute)",
+    )
+    max_projects: int = Field(
+        default=500,
+        ge=1,
+        le=5000,
+        description="Max projects to index (safety bound)",
+    )
+    seal_note: str = Field(
+        default="BIZRA Ecosystem Manifest sealed",
+        description="Seal note included in the receipt",
+    )
+
+
+class EcosystemSealResponse(BaseModel):
+    status: str
+    generated_at: str
+    manifest_path: str
+    manifest_sha256: str
+    receipt: Dict[str, Any]
+    request_id: str
+
+
+@app.post("/v1/ecosystem/seal", response_model=EcosystemSealResponse, dependencies=[Depends(verify_token)])
+async def ecosystem_seal(req: EcosystemSealRequest):
+    """Generate the ecosystem manifest and emit a SHA-256 seal receipt."""
+    request_id = uuid.uuid4().hex[:12]
+    repo_root = Path(__file__).resolve().parents[1]
+
+    try:
+        config_path = Path(req.config_path)
+        if not config_path.is_absolute():
+            config_path = (repo_root / config_path).resolve()
+        out_path = Path(req.out_path)
+        if not out_path.is_absolute():
+            out_path = (repo_root / out_path).resolve()
+
+        cfg = load_ecosystem_config(config_path)
+        manifest = build_manifest(repo_root=repo_root, cfg=cfg, max_projects=req.max_projects)
+        write_manifest(manifest, out_path=out_path)
+
+        receipt = seal_manifest(manifest_path=out_path, seal_note=req.seal_note)
+
+        payload = {
+            "schema": "bizra_ecosystem_seal_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/ecosystem/seal",
+            "manifest_path": str(out_path),
+            "manifest_sha256": receipt.get("manifest_sha256"),
+            "ecosystem_receipt": receipt,
+        }
+        _write_receipt(payload)
+
+        return EcosystemSealResponse(
+            status="SUCCESS",
+            generated_at=utc_now_iso(),
+            manifest_path=str(out_path),
+            manifest_sha256=str(receipt.get("manifest_sha256")),
+            receipt=receipt,
+            request_id=request_id,
+        )
+    except Exception as e:
+        payload = {
+            "schema": "bizra_ecosystem_seal_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": "/v1/ecosystem/seal",
+            "status": "ERROR",
+            "error": str(e),
+        }
+        _write_receipt(payload)
+        raise HTTPException(status_code=500, detail=f"ecosystem_seal_failed: {e}")
+
+
+_META_PROMPT_ENGINE: Optional[MetaPromptEngine] = None
+
+def _extract_meta_prompt_evidence(results: List[MetaPromptResult]) -> List[Dict[str, Any]]:
+    evidence: List[Dict[str, Any]] = []
+    seen = set()
+    for result in results:
+        if result.source_agent != "OntologyArchitect":
+            continue
+        content = result.content
+        if not isinstance(content, dict):
+            continue
+        items = content.get("evidence")
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            entry: Dict[str, Any] = {}
+            hash_value = item.get("hash")
+            path_value = item.get("path")
+            if hash_value:
+                entry["hash"] = hash_value
+            if path_value:
+                entry["path"] = path_value
+            if not entry:
+                continue
+            key = (entry.get("hash"), entry.get("path"))
+            if key in seen:
+                continue
+            seen.add(key)
+            evidence.append(entry)
+    return evidence
+
+def _get_meta_prompt_engine() -> MetaPromptEngine:
+    global _META_PROMPT_ENGINE
+    if _META_PROMPT_ENGINE is None:
+        _META_PROMPT_ENGINE = MetaPromptEngine(wisdom=wisdom)
+    return _META_PROMPT_ENGINE
+
+@app.post("/v1/meta-prompt/query", response_model=MetaPromptResponse, dependencies=[Depends(verify_token)])
+async def meta_prompt_query(req: MetaPromptRequest):
+    """
+    Execute a Meta Prompt Generator workflow.
+    """
+    request_id = str(uuid.uuid4())
+    endpoint = "/v1/meta-prompt/query"
+
+    fate_engine = get_fate_engine()
+
+    # Preflight: block unsafe/low-Ihsān intent before running the workflow.
+    pre_intent = f"meta_prompt_query: {req.query}"
+    pre_context = _safe_json_snippet({"context": req.context, "preferences": req.preferences})
+    pre_seal, pre_feedback = fate_engine.audit_request_with_feedback(intent=pre_intent, context=pre_context)
+    if pre_seal.verdict == "REJECTED":
+        payload = {
+            "schema": "bizra_meta_prompt_fate_receipt_v1",
+            "generated_at": utc_now_iso(),
+            "truth_label": "MEASURED",
+            "request_id": request_id,
+            "endpoint": endpoint,
+            "stage": "preflight",
+            "status": "BLOCKED_BY_FATE",
+            "fate_seal": pre_seal.model_dump(),
+            "feedback": pre_feedback.to_dict() if pre_feedback else None,
+        }
+        _write_receipt(payload)
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "meta_prompt_blocked_by_fate_preflight",
+                "reason": pre_seal.reason,
+                "seal_id": pre_seal.id,
+                "feedback": pre_feedback.to_dict() if pre_feedback else None,
+            },
+        )
+
+    engine = _get_meta_prompt_engine()
+    response = await engine.run_knowledge_expansion(req)
+    meta_prompt_evidence = _extract_meta_prompt_evidence(response.results)
+
+    # Postflight: gate the generated output as well (fail-closed).
+    post_intent = f"meta_prompt_response: {response.explanation}"
+    post_context = _safe_json_snippet(
+        {
+            "query": req.query,
+            "explanation": response.explanation,
+            "confidence": response.confidence,
+            "results": [r.model_dump() for r in response.results],
+        }
+    )
+    post_seal, post_feedback = fate_engine.audit_request_with_feedback(intent=post_intent, context=post_context)
+
+    payload = {
+        "schema": "bizra_meta_prompt_fate_receipt_v1",
+        "generated_at": utc_now_iso(),
+        "truth_label": "MEASURED",
+        "request_id": request_id,
+        "endpoint": endpoint,
+        "stage": "postflight",
+        "status": "APPROVED" if post_seal.verdict == "APPROVED" else "BLOCKED_BY_FATE",
+        "preflight": {
+            "seal": pre_seal.model_dump(),
+            "feedback": pre_feedback.to_dict() if pre_feedback else None,
+        },
+        "postflight": {
+            "seal": post_seal.model_dump(),
+            "feedback": post_feedback.to_dict() if post_feedback else None,
+        },
+        "workflow_id": str(response.workflow_id),
+        "evidence_count": len(meta_prompt_evidence),
+        "evidence": meta_prompt_evidence,
+    }
+    _write_receipt(payload)
+
+    if post_seal.verdict == "REJECTED":
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "meta_prompt_blocked_by_fate_postflight",
+                "reason": post_seal.reason,
+                "seal_id": post_seal.id,
+                "feedback": post_feedback.to_dict() if post_feedback else None,
+            },
+        )
+
+    return response
 
 
 @app.on_event("shutdown")

@@ -1,0 +1,34 @@
+# BIZRA Production Reverse Proxy Configuration
+# Handles SSL termination, load balancing, and routing to internal services
+
+# Main domain (adjust as needed)
+bizra.example.com {
+    # SSL automatic with Let's Encrypt
+    tls admin@bizra.example.com
+
+    # API Gateway routes
+    route /api/kernel/* {
+        uri strip_prefix /api/kernel
+        reverse_proxy kernel:8000
+    }
+
+    route /api/elite/* {
+        uri strip_prefix /api/elite
+        reverse_proxy elite:8080
+    }
+
+    route /api/refinery/* {
+        uri strip_prefix /api/refinery
+        reverse_proxy refinery:8081
+    }
+
+    # Health checks
+    route /health {
+        respond "OK" 200
+    }
+
+    # Default response
+    respond "BIZRA API Gateway" 200
+}
+
+# Optional: Additional domains or configurations can be added here

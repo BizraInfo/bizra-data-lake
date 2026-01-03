@@ -1,0 +1,2945 @@
+{
+  "schema": "bizra_ecosystem_manifest_v1",
+  "version": 1,
+  "generated_at_utc": "2025-12-22T23:34:28.318155+00:00",
+  "metadata": {
+    "bismillah": "Bismillah-ir-Rahman-ir-Rahim",
+    "authority": "node_0000_genesis_momo_dubai",
+    "tool": "tools/ecosystem/indexer.py",
+    "config_sha256": "82deb6ee7987082e615a56bacca761f9cda45eea38e2dc47d3431af6736a3f55"
+  },
+  "roots": [
+    {
+      "key": "dual_agentic_repo",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main"
+    },
+    {
+      "key": "genesis_node_repo",
+      "path": "C:\\bizra-genesis-node"
+    },
+    {
+      "key": "node0_repo",
+      "path": "C:\\BIZRA-NODE0"
+    },
+    {
+      "key": "projects_root",
+      "path": "C:\\BIZRA-PROJECTS"
+    },
+    {
+      "key": "taskmaster_repo",
+      "path": "C:\\BIZRA-TaskMaster"
+    }
+  ],
+  "projects": [
+    {
+      "id": "1042d3d4a2844fa6",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\.benchmarks",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "fde0c554785719f427e7eeba7ab5096688ed8cdec7dc0ff32ba5fb570b3a7be6",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6be13472f2805cd8",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\.bizra",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1cb7df4c7ea01ada897322f6e471d041a8cae8757ff2f3677e810fc13c944614",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ed1e819de97dec6e",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\.claude",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "087d6373464ba38df1f3be2643145f1a169be4e8e4caf95069720096e8d37e1d",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "90a6bd2bc4827fef",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\.github",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "9cd23cbce0a1ca2f4a9944b840a45641352e3423fca703ff2c5988ad80367d82",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "30df1580d0c2c207",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\ace-framework",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8f5d28075d31ed762c46c939d6eea1c831f0a95d35037cd72585daee045a3ac9",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "198569125a3f711c",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\api",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "18c79de47df7be97405a09c22d742085f5e4ffd6398456ed8ce7967168b71b6a",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d0fbcd5b730b1146",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\archive",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3a078506349a8a4b91382264547fc427abfb9dd9c6b49ef0d35b086f868be366",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4d93724c8c9d7650",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra-genesis-node",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e278c75ebd03c1409c24458c199e187cacc1cc789f7b919208466c5b239a7834",
+      "git": {
+        "head_sha": "2e658cf8c459a7caf829c074c3a7c8fd2f0c641d",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "2384a0ccf879e1c5",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra_data_vault",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ac38b317421d52692e6b10034f799d94515918a475a6343422ed930aab01df5d",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "89b9058cf2721166",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra_kernel",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "93c76bff485268faab3e4a37d87151072820a2b99e30984370380b6005d7f5c9",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ca11907096c0c86a",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra_momo_activation_kit",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ddef64753e5a69df6f88fa8a8c0cb4f06afc649e5cd9956151d709bad33cef38",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "013cdfbcd20dc32e",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra_ops_kit",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1d2706018cadf48e31149e7c09a1923130d50711a48ce09bfe866f5d1dd81855",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e3bb02047c1bda8e",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\bizra_phase0_week1_seal",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b9210ca5c5e29e8af1c81076ccc4b0a12403923d33d5dc21a505363f14ddd222",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "42e1e9ffef88823c",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\BIZRA_Phase1_Wiring_Brain_Pack_v1_0_1",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d13a4684ea7e0cffc0bcf644a8201ef5f982cce104879127f6bab7f947b0bc40",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "2fdbad42188805ee",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\blueprints",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1a9f761da9d21586f294db2e99f6f06b0580000ab0771e3500a4547f5ac4bc84",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "569403251187f83c",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\chat data sample",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6bd2189da070db594c2c07781b0a4715f01d0da85b52a2b4980b3e5a228fcbd1",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0fdbdba86b716478",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\config",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f1e2808e0ad0762f7a39dfee9d5b540d6fd855d0faf647a6710af568c8d0f871",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e5d4738489ad102a",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\constellation",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2bb52ba6b79c704f3d5e1652cee2274302f02b01a6ff161e48bb45f674cd0d24",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8c13c87643f320f3",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\constitution",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "68f66bfc554f8f5a78aa5792e0c9f9f25ee5989bca493c40d97bc4e21bdc62dc",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "466e1ee3e62912bd",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\core",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2fb06149153d9b21f894830ca55cb4e51c4fc73daa42974e2fcad72a29d14e14",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "704b7fec6f788bbb",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\dashboards",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "398db04c22e80515f142eda2b91ad09412f80250fcbadb2df136fa2c9f68e4af",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8ab6c808ce1bfcc2",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\docs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0a1bdc563b60f3ee85eb25ad8b51d22a93ae065a53bbfcc38e65501794037a7b",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "cff31ab2cc6a8e42",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\evidence",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1826d10c184af31bcf9aa15a08fa1b0b6ac9e633b9b10380683993bc07c7becc",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "aa78eadce35215f0",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\expertise",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5b31574fb5db5727b9dcd2b0e187dba235a9ff9a299aad8c795d7b78aabf32d6",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4c16283d4ebf9ad5",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\HyperGraphRAG",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "66adbd0f6dbfd34add51f9888dfc8122a6f45e3b07f33877ca34a49cb10e58c2",
+      "git": {
+        "head_sha": "a8048274936b08e55d09a85f032681e679df8943",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "43d082618636ff4e",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\kg",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a62173d018624425db63cc79d61140a7f029ae49bdbd1a84c138a2eaee999c2d",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "44682a705ef97871",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\migrations",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "debaa1624194393e1f49b24f989c13ecd8e2e5b63869ffc2f5de4e92d7555ca9",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3a5bc78abe55b811",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\schemas",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6c5d37a8edc9744365beb45a76557644bfa42d539146b03d963a1eb49294da0e",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d192d56ad8688f7b",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\scripts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "505b46c088d355565b06626f3d05a8c4cd905ce410ba31d0797cd60232b48eab",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8b50c130b2bf6218",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\sessions",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e49c6be389a1605e52b99311cfde03a781fa120461236b11ed1318343ac8a766",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "891e1aa32ddf1ff5",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\src",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "16fef7e36cc2ff6c6e11c5b453c8d6756e02431e3337864ad11d9ea3c9330597",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "bcd89c707010fd5e",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\static",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "814252e4b610b23faff4b7050a9ed09f3b8228640fb1f2112ac20c05e4a99b14",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7c94cc0e59a0443f",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\tests",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "337815c576b1d7c9f13c9d29dcc228d4a1744885db05a36da4886391cd8b6aa7",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "f3b2d0e78a77c873",
+      "path": "C:\\BIZRA-Dual-Agentic-system--main\\tools",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a8e8c131064c05b85e80fa407f777c45677bc29445ad7acca567ecc46c07837f",
+      "git": {
+        "head_sha": "da035dd82e3c7e3c538b9d3c4294ccaffcdc9e68",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "09d3e48c713c3928",
+      "path": "C:\\bizra-genesis-node\\.bizra",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "d45930f8c6874781687876c85d6a72d7fb868582fbda589045b4c020860ea08a",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "783d5cbde3498968",
+      "path": "C:\\bizra-genesis-node\\.bizra-kernel",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "a03dc9718130ede5dc45c15259347f87954d4084f20c684c81bb39f0f660f383",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "3e3167493bf09823",
+      "path": "C:\\bizra-genesis-node\\.claude",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "875825001dffbde6189410386f9ac14660f586cd0c75d80ebfbe56240eb814da",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "4768f8d4dadb554a",
+      "path": "C:\\bizra-genesis-node\\apps",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "0a31ecb1086b8ceebde4e89c1fee214184f35d577aca31b950ab7575cf30c67e",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "282d3607a5adb409",
+      "path": "C:\\bizra-genesis-node\\evidence",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "713c96498f012b04d9a90f592ce55a2df8d0b4252e0d54b03a7dc2904e2b380b",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "c61764c5aa159e3c",
+      "path": "C:\\bizra-genesis-node\\infra",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "101e4c6aa043d0480cd2af28ad79e18cff5253ef987269e1d0beb6402e099c44",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "0d31b199502833ba",
+      "path": "C:\\bizra-genesis-node\\manifests",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "8227f423aa275d8bda6ebcbee1152c04e31b2f211378bcf06d71b30d691d7280",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "b3bb7d2b3979d24a",
+      "path": "C:\\bizra-genesis-node\\monitoring",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "c73a385408d796a808f50d052457d3ae102ebf60ef4e34a16045ed9453e81106",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "59b5a814a20a8914",
+      "path": "C:\\bizra-genesis-node\\scripts",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "41329bebe30b6e47450f7ba6479e5b0eadde3e1aace3e9d049cae469b2dc274b",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "57f5649a82e91828",
+      "path": "C:\\bizra-genesis-node\\tools",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "f58cd54dd77166ca3db3c4328fd1c39146e80444b95b36f57fd6b79c63be759e",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "9dc266f19a0f4ea9",
+      "path": "C:\\BIZRA-NODE0\\--prepare-resources",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0295cc81bb56e58876465b685512927a5a73d10bc4f9a4716c73b01880db7da4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "dfd7ff224580387b",
+      "path": "C:\\BIZRA-NODE0\\--store-results",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8ee2f5935b2cdcf72563719740c8af0afc25e1bfdc23312de9ff6702d52db5df",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d5c6e034189a0cb5",
+      "path": "C:\\BIZRA-NODE0\\--track-metrics",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "975a626efe737ab5e65e44c4014e64d654e7dcc89db7e45870101e9a8bb843ae",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "b2905b713b01dce3",
+      "path": "C:\\BIZRA-NODE0\\--validate-safety",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "bb2ce23c46adbd7361845880a04171bdebfba5d80a7d49ef48a863b7fa86748e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e49faa0e2e8b2f4b",
+      "path": "C:\\BIZRA-NODE0\\-p",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "eff786a3c67209def27b6b4578d97fa32f066dc2f50349e8fcced1d2907605c8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "55942533df2de9d8",
+      "path": "C:\\BIZRA-NODE0\\.bizra-kernel",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ce6c6280b1fec0dcf604ff81ff3f087e79d255666de629bda242c7b295943437",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "778dcb3a0c5d57dd",
+      "path": "C:\\BIZRA-NODE0\\.ci",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6efa2b16df07773a89d52ad64c2c425530b9875f4f20936ab565fb905f6cf17a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a74f58a7bcf7767b",
+      "path": "C:\\BIZRA-NODE0\\.claude",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "97840584fb1cc4a3f790dd7cb8da2e10c4133ac461766a86a95d4340f75a5ef5",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7fe2f25c8938bfd3",
+      "path": "C:\\BIZRA-NODE0\\.claude-flow",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "cbfb7f609f9a9175751a83a2693d86eca0aef0f2859bd0d985cdedc02da3715c",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "dcc4000966cc6230",
+      "path": "C:\\BIZRA-NODE0\\.cursor",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3f0bc07b52b5c8d45aabe9bcd137a319997121d1f0077a70f76c99e31d0e2bd0",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "cfcde3dc8d3ae53e",
+      "path": "C:\\BIZRA-NODE0\\.devcontainer",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "554686e2d5871edff6303271ad2432bdd8b015418678c818019787e906da9b52",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "691622df0bbe0c00",
+      "path": "C:\\BIZRA-NODE0\\.github",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "c980df8afec5f3a3c1c6962c52f26efc3173b88c61ec660b04097a45b613459e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8bb5bdeff5fd6601",
+      "path": "C:\\BIZRA-NODE0\\.hive-mind",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "41d710d70f5ad2c7af9a16d0cbb5edaf81453bee3e52a86169b9e36811a273de",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6891d8e30d8c814e",
+      "path": "C:\\BIZRA-NODE0\\.husky",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5fd687dcbab0f0f949d905f0ed33fd98ee5e520c0588ea5ef3c8c91a53822348",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3ff33556905927c2",
+      "path": "C:\\BIZRA-NODE0\\.kilocode",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b70d19d2105e76c96beaea22db44f08c93e4a2c4543a15728f375adc458472a9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e05d0f0b51215dcf",
+      "path": "C:\\BIZRA-NODE0\\.qodo",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2a8b1fa097d4a24f734a9a49904134d2dec47eec22fe151a9b3e3296f4898e52",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c7df562e231510f9",
+      "path": "C:\\BIZRA-NODE0\\.quality-gates",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2a22e0abda0f21d574be56a91979977d9c0a445b1ff50c47ce927cec1fe52b1a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6b6a7301616f62f4",
+      "path": "C:\\BIZRA-NODE0\\.swarm",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8dd704d2ae04fbaadac42571f11ba1f0cf28f281e0c352ae79f864cc04d5a5ae",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "01058568f2ba7645",
+      "path": "C:\\BIZRA-NODE0\\.vs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "20463eb1efb33f4b50a0687039e77078b680a91a3cee1a97d2022223e58a7ab0",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "2d85704fec5398a9",
+      "path": "C:\\BIZRA-NODE0\\.vscode",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "96be2c528624972d063022e896dfc2166232bfb3b612985e0ac2b2c5211ccd09",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ad46c10791059dfa",
+      "path": "C:\\BIZRA-NODE0\\ace-framework",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0236692f9b64ee4e97ce6d9f5d0c59ef0b0aa2848012209d1b134416d3d490b7",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0e1d30624a4625fe",
+      "path": "C:\\BIZRA-NODE0\\agent-profiles",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "45d3312a663d9b29638c8e356a49354f826bf9d990da53134672b97d6c5b8ab9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a3e549da0e1af447",
+      "path": "C:\\BIZRA-NODE0\\agents",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d94a3b4e46593fffa8adc4d848ba47c0ec5559fc9655cccb899cdde9565513e0",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6eb55799ac06e88e",
+      "path": "C:\\BIZRA-NODE0\\analysis",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "adba76eaeb416dfdf21dc84162785a43c5173f772c448380f8f574f4b80d0d86",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9281bdad3d121b10",
+      "path": "C:\\BIZRA-NODE0\\analysis-reports",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "45b17f1da50ef15211b011ece9737538cca6ed8d4f6255b12a18b89109b10661",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7c2ee09c63f19515",
+      "path": "C:\\BIZRA-NODE0\\artifacts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "dad0c6de191b0d3dc89f1acc913f9cfc4b4d28b1cc2c213c1b8a23a549c6ed5f",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "378d5bb667665d90",
+      "path": "C:\\BIZRA-NODE0\\benchmark-results",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1e4b3d7b44c5c5b7ce0f9134ab2de6d68ee0fcae2e35e684e98f1b0d178d3d35",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "59fc7f92af74e623",
+      "path": "C:\\BIZRA-NODE0\\bin",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b7dd924bf2ffd2a23246bce81e525900c01e119546b60b436d7dfd116a09a978",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "caf330e0145e50c4",
+      "path": "C:\\BIZRA-NODE0\\bizra",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "4670f3427b22a39d2535bbf1dc0a1d81d596027770ef72c99ce1ebc8eaabea5e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4bd7148c4b35a377",
+      "path": "C:\\BIZRA-NODE0\\BIZRA CLI",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7b0633b35927d70e25efe3d992f572421fb514c46bcbeca4c88188f6227f7b1f",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c983de04a9a0cd70",
+      "path": "C:\\BIZRA-NODE0\\BIZRA SC",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a0f23f5524c820dfeb1f66ff2cc01de51203776c4ac7a445d6918c105dfa35b8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9058d1c7c562d278",
+      "path": "C:\\BIZRA-NODE0\\bizra-dashboard",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "70c4cdb91a9d67085c6de12c1a32229596ff2aac84b45272e00618da495c08f4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "729641cc753e81b1",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-DATA",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e92296f04788b105e5f4953dfaaf6423c8599726fcf75ac956805924b90b0bb5",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "f9bad795ba08a64d",
+      "path": "C:\\BIZRA-NODE0\\bizra-hq",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5c5e827e55ee1fbafb5c22c8938279b4630042f6bdaa32aa8bd575652073de0f",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "bbadb48bfbbb6575",
+      "path": "C:\\BIZRA-NODE0\\bizra-ihsan-enforcement",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1fa466b90f3a952c3289385561efcd6f4065255937dea230efb38ce54b45689e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8f4b12f5a5fa509e",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-INFRASTRUCTURE",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "c89feb0a15334fef72cb6972dd0e7b1910d85f241ddee57a65107ac5d1b5c1e5",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "b5276a5b19c21463",
+      "path": "C:\\BIZRA-NODE0\\bizra-lab",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3a5809116f8b87e5437cbf4703d9ce24c6cc6aa8a8dd70276576db2b6147d416",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "1801375960b9ea88",
+      "path": "C:\\BIZRA-NODE0\\bizra-ledger",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d95150e3858ab2d3aae1c6d61d30c9045398b72f62dd6cfda9e78313b36c339c",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "5ae18b6f3c92f402",
+      "path": "C:\\BIZRA-NODE0\\bizra-public-website",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b4a8e89ac44cae2af86a542deba79e21132d725c82a9f20c4b7527c72c715db8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "972e9bca00341de5",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-SC-UNIFICATION",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7a970e3ae1c0d2f105510b964cac0642a0e97b310bebdc496cba7bd68cf55c0e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a2adb3acc65b2b79",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-SECURITY",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "edd52bef48b73c4cb4c2b98344a68c73c623dec440462553b10b88f4d73719d0",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c682d5a11113cba2",
+      "path": "C:\\BIZRA-NODE0\\bizra-storage",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e2db96f157eb0aa470bdd4d236a4f6ed3c3b3bedf6071467afce8b592c5539ff",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9872932461543f0f",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-TOOLS",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "567f5b58fc3ce48d57078d5af0b05c0cc27733ce1ab64abaaa6bac8e396d0403",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9598a45621812daf",
+      "path": "C:\\BIZRA-NODE0\\bizra-ui",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ac2f6ca2f9033bb88db64de36b54d555cedbcdf1c235f4bfbd5e5fd50bb1ad40",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d1d83acbeb1af6f5",
+      "path": "C:\\BIZRA-NODE0\\BIZRA-WORKSPACE",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "4924431dbb6057d68e603c1dbe1763248fcfc3f4d24515067a73c8fc121f5edc",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c3b7383185d0216a",
+      "path": "C:\\BIZRA-NODE0\\blockchain",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "bfac7bb0d4e87ab52cb84d82785cbb2d1fab36e294c46d5d8e02b1a2436f80a6",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7f1186240941a53e",
+      "path": "C:\\BIZRA-NODE0\\brand bizra",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "164ba1d7531f1b15f8a49e6af813030eec7b99e130d0ae6591d8926f3e11bfaf",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c4fc32a6356ab50b",
+      "path": "C:\\BIZRA-NODE0\\cli",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "dc824c2165ef59837b3d6691d483b0158d70a503281cd0113397d9817fa202d2",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4d56a87bf164a0c6",
+      "path": "C:\\BIZRA-NODE0\\config",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5e1f2f4da6ac83e6ec4bcf15c2cb1946df164b9db74bdc9b4f035368fbb582a7",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4409533d19f8b3a2",
+      "path": "C:\\BIZRA-NODE0\\configs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ba0227bac36fd3c85b5cff503c26d196752e7e9a11438b3d966324b58bdea671",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0159ab7907449fcb",
+      "path": "C:\\BIZRA-NODE0\\coordination",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "45ef9c6aa40c57444288bff179cc08e2317069ea8ec5ca5cec8b2759e1fd0eb5",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7a0233edbda084db",
+      "path": "C:\\BIZRA-NODE0\\coverage",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5315aefba3c6fe25947f4ffebf61a49ac7ac24a4b403fc76aea2e0103f4cb51a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "322c778938a98d7b",
+      "path": "C:\\BIZRA-NODE0\\crates",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6c034935306deb3ce83219ea64365b9eca0b2e8eb2ea392f86c44c30b32b8266",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c0b91b3037e2809c",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0.ci",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b751d04a97e2521489ce1db0cdb5bee9d445ba0b4c59a851962cc311b566f1ce",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "273d4a802fc956fe",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0artifactsgrafana-panels-v2.2.0-rc1",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2717e5d3bad05ce97b03b09a89176d5049f3992b2a0c0ca6b6a00ecfcada7a61",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ae0f80791e12df6b",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0config",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d8032264be83bd3ada3646fbefc262fc9acb6f742288810464dc7281144759a4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "080d7f15c42a778f",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0databasemigrations",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "398dd4cbe43198160a4299ceb596c80ff609305941d72638986478a35e1c2ee8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d9867ee08e099bc5",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0databaseseeds",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f17b229104613cbbdb748bbca0705237dae3dcbf7f6078ea0b96529378781609",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0a5012ed1df824ad",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0docsdatabase",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d70ec003b01de438a386c3712916d4b53f978dc30c110f92dc58cdf25acebcc3",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "94e450a217893751",
+      "path": "C:\\BIZRA-NODE0\\CBIZRA-NODE0tests{performance,services,service-mesh,integration,utils}",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "69175cbd98c855e45133aa69bd88983ed9b7adb1ee3795a9515022d1f4ebf260",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8c443d721d74ca7b",
+      "path": "C:\\BIZRA-NODE0\\data",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "78cb67dba2236876039aeb70551a4dd17424728ad3fa45087d8184074ac78f49",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "b97ec42dc65270ee",
+      "path": "C:\\BIZRA-NODE0\\database",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "12d762704c5bdffaddbb8a06f2c27137a05ec36d5bda09d1e9e671164e93002e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7a1894555b2a6fbd",
+      "path": "C:\\BIZRA-NODE0\\departments",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ef0516008d72d70ea2e9bf234ff0a2ce1f8efb0e23619f2b9a678c407ee5ac97",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "5bcee3ca5eda5ee6",
+      "path": "C:\\BIZRA-NODE0\\deployment",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b87d6476ccc9bab6f14b26306e288039ecfb31a9b05b807474be7508604c599b",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "497ab6619c4e6a02",
+      "path": "C:\\BIZRA-NODE0\\docs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "245a696083ab87a71ebbb8ee7a23fa28cfb21f66e8891899ddaa7c3252277ee7",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8aca31782c8aee67",
+      "path": "C:\\BIZRA-NODE0\\drop-zone",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1b801622dc73b904c84810054e7930a459742efa0bfa5806d02bcec8cbbe71b6",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "11f13e24516440cd",
+      "path": "C:\\BIZRA-NODE0\\emulator",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2e7c2c15299dca6db527f9d9f08bf953c39b3d59910966770191a5f9f69e6d23",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "2a705926d4ea4637",
+      "path": "C:\\BIZRA-NODE0\\enhanced",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e888fd93adf7dc74b2f788e55595b3a596a232e53d763e0d901c0a813fd70e4e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "52480e80981ac1cb",
+      "path": "C:\\BIZRA-NODE0\\evidence",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "03139dacbaa6d4ce350be21347b64c05e56b5304e6d53e19cb0492952742afe7",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9e595e29a0e78ddd",
+      "path": "C:\\BIZRA-NODE0\\examples",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3ff193ecf87b2e688767d57e83d4f51d40699c3c8239c47714cddc71ce5ab738",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "612192e78b94e3fa",
+      "path": "C:\\BIZRA-NODE0\\founder-node",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8bcb6424e0e37068669a89fe4ae86c4dcd4cdca9799c0d8d533625aa7160a097",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "31247784fe237ee4",
+      "path": "C:\\BIZRA-NODE0\\gaia-evaluation",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e927fa6d0bb32e90b0b14d73068cbbc970ac0003eaeff6450abfc694035938bd",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "f290ff609b4365e7",
+      "path": "C:\\BIZRA-NODE0\\genesis",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8b2eb3565c4a6ebb47d18663a395db7f36fcba002723ac51c3347c9980ef4867",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "263c6457b6fd3c54",
+      "path": "C:\\BIZRA-NODE0\\genesis-extraction",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f22d502f54341a9b74ebab9bc24d53f0357e3946db00f8ebb9ba35f293f54e15",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "730d7b79db41d10f",
+      "path": "C:\\BIZRA-NODE0\\ground_truth_data",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "cc7a342ffeb8b6aaf3b9e84a61e1931a296ec174d7302d4f96d99298e61921b6",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "da5fd62f7a4cab4f",
+      "path": "C:\\BIZRA-NODE0\\hive-mind",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8619eb58e1e25c4404124cfc2666ecfb93294339b827d0d2e8dd959ef859467e",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "95e084e2c949d7b1",
+      "path": "C:\\BIZRA-NODE0\\hive_mind",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e2c5734e32fec52206c698cf2dce3eecd23aae75e470fc9db35d7e9c3b92f0e4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0ca088de4d9dba9a",
+      "path": "C:\\BIZRA-NODE0\\infra",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0b2049f2c07aa23615689312cf5bb7e7a78d54b705f5af672d0c91c9fce7a344",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "303b01abbec3dd39",
+      "path": "C:\\BIZRA-NODE0\\infrastructure",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f81502657a4ed1b5a34fc5a8a56358156c595c4d609008a8987a9efcab51d316",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ecd59df6f1b749e9",
+      "path": "C:\\BIZRA-NODE0\\interop",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0049d739b389b36083f0782069366d169ccb2991ec796b4f98ecdc2134fc544a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "b002de0a1c35e418",
+      "path": "C:\\BIZRA-NODE0\\k6",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f76220d77134f932b984135cb616cb9495636ae72f37bd0e4b33bc8931441902",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "859ea0068c6376d7",
+      "path": "C:\\BIZRA-NODE0\\k8s",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d916d93dac4ce9b6a35649d017757d677c236cd67b36daae3ec1f758e0e71b90",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "dd53b05798a5e62c",
+      "path": "C:\\BIZRA-NODE0\\knowledge",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "08b7d9ef385653f0fd1b5a1a3a6e2094f8f36d588345c2a01bab647918ebbe37",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "7e7ceeda21886e13",
+      "path": "C:\\BIZRA-NODE0\\logs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "cfd8a37ad8afb7afc19a95c6f49f7d315b7da19b923d8c8205df7c7756118bbe",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c2b35740c37371f1",
+      "path": "C:\\BIZRA-NODE0\\marketing",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "79e2b492a46adcea2a031c10b0c581e2e169ea64e1a5edb0c6b6d42e8bed0b43",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e79613156ef9dc78",
+      "path": "C:\\BIZRA-NODE0\\mcp",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "9833bac2b5272b3acb96d8e711a3415004bdfc7cfc347232c1f16e576d06c6f4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "1e833aeeaf826e83",
+      "path": "C:\\BIZRA-NODE0\\memory",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f40c1bfcc8cfcdfc3d0b9379b3bb9ec25998b387228c3c88307fad5a022d6099",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "d53e8298f8ea223a",
+      "path": "C:\\BIZRA-NODE0\\mobile",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "edbc878485a3b011e899f0b0b4c09f7363d1544b359afdc575d41d1baab2bec9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a571add39d948dd6",
+      "path": "C:\\BIZRA-NODE0\\models",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "822a07d939cd5e1c3650f51fd637af6a2133892c18354b3acbbb39eb3e8191e8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "572c5b42f2cfd020",
+      "path": "C:\\BIZRA-NODE0\\MoMo The Bizra first Architect",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2b663579c05d60d259c2f1e3ac84da7c3d39660238c609cd11ba8dde5ff16e99",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e751aec78bb1bef2",
+      "path": "C:\\BIZRA-NODE0\\monitoring",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a2eb1799f1734d95a1050ae5649c1525f1bfb4fc03503f211ae6e0a1259376f3",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6eb551895ee8517c",
+      "path": "C:\\BIZRA-NODE0\\NAVMAP",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "34b7dc110cd75cfb81f71856b4afdfe7924ed21de1df9afbbf85f8384eb81d85",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "bb0029c012bdf59f",
+      "path": "C:\\BIZRA-NODE0\\node0",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3a9597580912d625406a34fd538351846f44fa887f70ca12b6b65b79bd02f83a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c05d1c665ae8e591",
+      "path": "C:\\BIZRA-NODE0\\ops",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1fa7e0f73f430a83a2eb4afdb5d9d2ed3274e28abe309b4bca00b1506f9e62da",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "5dbede341f3004d4",
+      "path": "C:\\BIZRA-NODE0\\optimization",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7b5b26e523da4489ec5814625beff12ef40fe1be3aec83c0e1725cb1a3475b59",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3b779cae529e2220",
+      "path": "C:\\BIZRA-NODE0\\partnerships",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "44fac1b61b94798c90772109b9f3b6ad4264cc0a3c81434e1c29f5314b51f3e8",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "eec7a29747945f2d",
+      "path": "C:\\BIZRA-NODE0\\peak_masterpiece_pack",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "29fe02e939450212cfbd013790af2ec3f86ddedcfc327a835e67c757646da86a",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "600ec375dead3cc6",
+      "path": "C:\\BIZRA-NODE0\\prometheus",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "fab563713f7c83c38890e04f2a800bb531d444d4eb2fe5270c253aad053dae6b",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "26288aafb6a6f7d6",
+      "path": "C:\\BIZRA-NODE0\\prompts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "cd9848880925dbb0d9d8d9c78557b64d7aff4019d1a72a1360e82fe14f3604f9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "50e10a1ba2ee9076",
+      "path": "C:\\BIZRA-NODE0\\public",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "9eed4b8ea9ffc49e580189f61a54f6f486a262be8a513df57218b87511e4b1dd",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e20a1f3ac68406a5",
+      "path": "C:\\BIZRA-NODE0\\rag",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7a12dd4c204f4e4ab01f1b1e06288592fe45685190c9b428c07aef75c979e945",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c60d71d944d75bf3",
+      "path": "C:\\BIZRA-NODE0\\research-papers",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e5d6740016405b612a67a72a4128a13ac135e3ce5e259f97e2744582b63b83d5",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "100d0bcfebbbdca4",
+      "path": "C:\\BIZRA-NODE0\\resource-pool",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6a12dabd4979713570bf951c7bbdbc8595bf32d9feca782b0695cd2830ea20ff",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c42f10f354e470ae",
+      "path": "C:\\BIZRA-NODE0\\resource_pool",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8e47b2f8cd166abe6d948475f5d83f9d30e59b9ebc7a20fc37940d10f8ddd60c",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4c01e3e19fc9106e",
+      "path": "C:\\BIZRA-NODE0\\rust",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f863e0a84dd7d37b63b26a1df8d4f9962f3052a6a6fda18a2d2e2c6bd599cb0c",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "580fba5c62643235",
+      "path": "C:\\BIZRA-NODE0\\rust-validator",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2129ce0dbf90bae7d1b3a88fef0303c4e070ad040cf0d056f5ba8be712ad1535",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "093fd88bf6a04f4a",
+      "path": "C:\\BIZRA-NODE0\\sandboxes",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3daf0ca30797272fdca9548fb7d178b3170d7bd0b9bf5482a54f404f8b39946f",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "324ab204feb159cf",
+      "path": "C:\\BIZRA-NODE0\\scripts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f5933c074724f4420e3b92f101f24a95a253963dd5bdf162c4814851220b2bbb",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3b4a1968eb179b30",
+      "path": "C:\\BIZRA-NODE0\\security",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2479b63675b4bd25189a3a881b439c3838bae00a1ff9899d277e616a40a6fc49",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "adcbce59b0216d7b",
+      "path": "C:\\BIZRA-NODE0\\server",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b3c6b52614067f8018116c1b71556627ade1bf56b9524262dfed6f5fb0692da2",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "2839e474c8dfcbaa",
+      "path": "C:\\BIZRA-NODE0\\specs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "c73b4de52ae74f3bfe8a755e8939094c4403674b9220febc24701298481996db",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e8840087720c5457",
+      "path": "C:\\BIZRA-NODE0\\src",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "23ccc8086047ae00c1c92191647028c3c769e64b263dfc95ce89148eb78d42ec",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "37b69899dea7986f",
+      "path": "C:\\BIZRA-NODE0\\state",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "62dc5ffe6a0841f6a00d67dc80a865cfe0bdb151bc63ac8b230bf5e2a9183d23",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a0d3ebab9aaae7df",
+      "path": "C:\\BIZRA-NODE0\\swarms",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7cc28144518cf794f5049eea018dc051494ffc36fa77f8d30f7d85d008c83da0",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3838c947f91fc2e5",
+      "path": "C:\\BIZRA-NODE0\\synaptic-construction-engine",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f5515727dc000b2aa9fe608688280dee67aba8e8cbec51dc0c6a9f8ca8fcf6a3",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "526fb5485f431236",
+      "path": "C:\\BIZRA-NODE0\\teams",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "325f13d60554fa9485124536ed081166a3a3e7e730503fd9301a4279875e7f08",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "f6e45d3a4ed89ad5",
+      "path": "C:\\BIZRA-NODE0\\test-results",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ad141a6b98edc468447cc73b4172ae0d72022556e50cae67ac2cec954c4be3c9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "86dbaf9c4c9a7499",
+      "path": "C:\\BIZRA-NODE0\\testnet",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8952fd00859c74ae2ca8ccced9e7d0774029795b7d699ec22e3f83fbdff9ae79",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0cfdb44bbb699866",
+      "path": "C:\\BIZRA-NODE0\\tests",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b626bd937db87834746fecfe68575acc83f508f43185638317edc857e5cf6eb4",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "aa42131cbeb9da02",
+      "path": "C:\\BIZRA-NODE0\\the hidden pattern",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b4b655d611576f53f0032a373e2a6494640b45e2ee161e0551acb2a6f912b1eb",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4c76cf709873f154",
+      "path": "C:\\BIZRA-NODE0\\trading-giants-max",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "c7d3cc2621210e97204f6f9fb2c10368d35c4ede0bfa95fcae266cc4dd0b7573",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ad22e0697707de4e",
+      "path": "C:\\BIZRA-NODE0\\training",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d6279e4445b2af2a0061595931349ce5a547c24ec50ffa7c11af8f1adc8764ff",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "dcd5fe492b34e1e5",
+      "path": "C:\\BIZRA-NODE0\\true",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "fe1f2d5d1b0b5bc7064a128968be2471009622a57f9f85b8d6789de9b056effe",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6803086371cb8fe6",
+      "path": "C:\\BIZRA-NODE0\\ui-revamp",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "d1a3da123be80183fc5f05ec2a6833dca3cd39f69f3a27bd0993c6bf0ad36dc7",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "ca319d10cc2a3751",
+      "path": "C:\\BIZRA-NODE0\\unified-data-lake",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "dec0c645adaa3c6ecef339409264bf4d31f7b7a9031f58427ef47d8469e4b98b",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0cbf73936aadb3de",
+      "path": "C:\\BIZRA-NODE0\\users",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "77bb02fcca658779ebe3e9f9c33945841b7a855eb75467703d72de0553aaedc9",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "addce62a9272dcfb",
+      "path": "C:\\BIZRA-NODE0\\vllm-peak-pack",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "0b2e9efaf2c57bbd777b27abd6afe0213967ff43633887c94ee37ee43563e346",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e6402a8ae1dcf9c5",
+      "path": "C:\\BIZRA-NODE0\\webpage",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1d8fd555674a4ec0ad75cef9fe75661ab112aba40462c80172b2d51f32c5d3cb",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c12f74cdeba66662",
+      "path": "C:\\BIZRA-NODE0\\website",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "1fed4906d63444baa248c27400b8577cbc72af45c961d797bb46b16bdef81836",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "76f670efaded1b60",
+      "path": "C:\\BIZRA-NODE0\\workflows",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "931f290142fd269f839cfc9fde5793979b1eccc543d877374d0f8027b58ca9fb",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3b81418551b11672",
+      "path": "C:\\BIZRA-PROJECTS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "8cb1f10467a867591785ae084559ee364a6947caa10438947fb455495190a94c",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "cea49519df73df53",
+      "path": "C:\\BIZRA-PROJECTS\\.bizra-kernel",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "52e6aad2c8846b6256915c6f1334f2dc55728a36963feba80246ebd0889ca8ec",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "13a969014c699c7a",
+      "path": "C:\\BIZRA-PROJECTS\\.claude",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "b2411966a4fb4ea0a8bb00708f2f2cf70063fad7169cfa9358cb3c752671aecc",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "4eb7024b288783f9",
+      "path": "C:\\BIZRA-PROJECTS\\.github",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "98ffe13d4319dd3fd88d61a5d8d10a85e7db488357f2bc12f1fb25cc40014b7a",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "47a0c4c18f3c6795",
+      "path": "C:\\BIZRA-PROJECTS\\00-GENESIS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "9e020b9fcfe9a4f819bbd2e51f1eaf95c2c58f6294f713d2bf1b1f698b98c616",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "c9c562d3551ffa12",
+      "path": "C:\\BIZRA-PROJECTS\\01-INFRASTRUCTURE",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "5f7ad640086ec093b0d003334b1c352151fb0b42b8807435e0f07911b453b275",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "fd6554d2df49a744",
+      "path": "C:\\BIZRA-PROJECTS\\02-DATA-VAULT",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "ee152ee7ff64991d66af5fb1121b3611a4985dbf095abcdcb2d658e9e41642cd",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "cb5e815f42bd1dbb",
+      "path": "C:\\BIZRA-PROJECTS\\03-RESEARCH",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "f779d7d04a68b01b409abbd252de8d250eab15bcbff0279273e2718a0b5aa052",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "8cbc0adb7951c777",
+      "path": "C:\\BIZRA-PROJECTS\\04-DOCUMENTATION",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "794180249d74d434d47c0919462388d3d7144885717bef8eba0c855e6066084a",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "abf8a15b25fa47d0",
+      "path": "C:\\BIZRA-PROJECTS\\05-AI-KNOWLEDGE",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "7b70aad274cad0584511504581bd2680e6fc0d6c39e3472375a93abf6aeda1b7",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "d306d8fb9d99ef1c",
+      "path": "C:\\BIZRA-PROJECTS\\06-MEDIA-ASSETS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "3d7f244e0a9a9101802102e6a1bb8b976591df56fd5ea7741763e052d0185c48",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "d47f5d2e6555d328",
+      "path": "C:\\BIZRA-PROJECTS\\07-ARCHIVES",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "22378e193725c4881df265976fe6ab94fb7e8cf095c250efee8082d7d6575ff9",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "f4e8e0be74984652",
+      "path": "C:\\BIZRA-PROJECTS\\08-STAGING",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "9f3b134fd1dcbef90f7b9dab8bb2cb6f59585b5c33ce776fb037d878ffa0c668",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "bb0c9d71ea2a4ac9",
+      "path": "C:\\BIZRA-PROJECTS\\09-DEPLOYMENT",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "9a63091b995acd5ba3df5c9cbeb43da08873f624a0d5bebc3caa4898ae895a48",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "b57dc87724230631",
+      "path": "C:\\BIZRA-PROJECTS\\10-TOOLS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "c23226f4280dd18dd8a5627105dc3143fa804d58f6a264eca7bb9f4cd6c1c7ea",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "eef953aad92254c0",
+      "path": "C:\\BIZRA-PROJECTS\\ANALYTICS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "cca0f1a2bbfbc8647abe6b6e9a230fe5d219b61c0606c764ff76d315f1e67269",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "ce2eea1d6540f660",
+      "path": "C:\\BIZRA-PROJECTS\\award-winner-design",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "c3385db74ee3de245beb26d071b1d5d5be94af100c229f9bdab0ba3d2dc1e4d6",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "3cc88bd30c20c38b",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-agent",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3304159b8cbb44bf18a4c725e3f75f424d6b4604c72da7e03c92d7c37ebc5ac3",
+      "git": {
+        "head_sha": "2d6666f6b06ac6e7c597526df0791acf3fe09536",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "66af189e2281143d",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-apex",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "69a822070ba7c608b456243c41a50be64c915609cc56727b129a10b1f8282317",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "46b455d2edc6fd39",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-blockchain",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f7625d6f8238221f86bdf6d658d6d0763c8719eb9411aa533c4cff2d38e0a021",
+      "git": {
+        "head_sha": "d89394a549cb74cc6b5a76a56829787933b94808",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "6c8d98f84c9c8603",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-dag",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3a14932fd3cab718c741f91b677f4a0f1b19da4885d399f2e1c592cbdf16c0f8",
+      "git": {
+        "head_sha": "770e5e3f526ae7956ea70b7c4e6704991739935d",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "904301b17d537e05",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-devtools",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e9bdf468de24d2198afc71176d7660e87f9a0db9cce1c65f252711df0e797d5b",
+      "git": {
+        "head_sha": "182d795c763bfcca1d177965723ed0cab8aa6d56",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "40c9e130cf048fcf",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-docs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "9b4da4cfbcb5cbe696103bca4db50aaa01f14d15ba1d26a1a3a2a5bd37e57547",
+      "git": {
+        "head_sha": "e2e898d9d3f99634e2381c04c0984602619e81a9",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "dd594d3eb3106a21",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-frontend-mvp",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "c2d4a6b7ccdfb093ef054df7d6e51a1fd093c5756f2791c1f1669058532923ee",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "c0710a1f20e8cef4",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-intelligence",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "15e288d6624d5855eafe7f192b83a0a31dcdd375d238a05f3933a02a62f0956f",
+      "git": {
+        "head_sha": "c4a9149ba9b0bc97b23ca7b2829c384a79b1f383",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "201e531046e2890e",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-lab",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "9a3f3d0aab3f49dcd8ffc92a807677e89fbdb31d63d4d43dfb01b89254aa12d3",
+      "git": {
+        "head_sha": "f88e4b3a2b46808fe618c8684167c8822f70429b",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "feb4b19d8e1de4ea",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-os",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "5b8a548c3f0ca6a1cf7e3fa4b674dc14d0fbf09208ed1443b974012f458577cf",
+      "git": {
+        "head_sha": "bcc2b28a31500a3361eabc7fff3154f2e86cfc47",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "7d9005c38a3e6b5d",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-poi",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b6631b3db91d22a35c9538e3e8f2a48086045be670a76287c3d7f98df20fa936",
+      "git": {
+        "head_sha": "754ef6fb48c9e56cccd35f9c2cbe1c8fc308616f",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e26f67cd0b4e8ebb",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-rag",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "fa1f552cde61f1c770ed2a4ae44141d509911abd41ae9071303b602c365da43a",
+      "git": {
+        "head_sha": "35d709c4370cafcf2844e70bcbe762603dd18bd4",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "b253fd0e1a007577",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-revolutionary-experience",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "2c17f132d1dbb3f36584d556e65aa4f9152f8bd7441d6df7caede54e05d4632d",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "93f38af2749bbf00",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-seed",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8fb90e0d7371d86b7d138806637e748afcc29fc9a6b56936d46a3247e38e87a7",
+      "git": {
+        "head_sha": "d179916cf4008de7035e5a6ca33ae474eb427b93",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "52f271a45361def5",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-synthesis-orchestrator",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "72a9f78f520a614e478b9328e32cf7ecf5cda49b1baa108f22145bc2cd36b49f",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "cee1915cf7c8d323",
+      "path": "C:\\BIZRA-PROJECTS\\bizra-web",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a42653919df8ad735b20489c929c298c3c66b85488884085eccf1951ba2fc313",
+      "git": {
+        "head_sha": "e9e509a8d8759df0ef9ad33694682d94d9e01f16",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "f0e09d0480eedd6b",
+      "path": "C:\\BIZRA-PROJECTS\\CAMPAIGN",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "f3ba179ef3bb31ab4bb9a5334e6e6f0d35e51eae9b3354afee27556142fae957",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "80e55b858adb6d16",
+      "path": "C:\\BIZRA-PROJECTS\\chat data samples",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "8d3fa69bceae5a967838a13e2a6307da6b3ab5c7f1a3d10b8234138c43c670e1",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "4a143e650d5fbac1",
+      "path": "C:\\BIZRA-PROJECTS\\CORE",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "859339385b359509baae47939d111a9f851f03e8dbf2675bfc8b5f06ae444a86",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "43b628f46760d0bb",
+      "path": "C:\\BIZRA-PROJECTS\\DEVOPS_EXCELLENCE_EVIDENCE",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "7a79afb8b92681cb8c057e57c8583416d042ed50c27f82582d9cb802cf6e1c7a",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "a4ef39432b12ca07",
+      "path": "C:\\BIZRA-PROJECTS\\DOCS",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "16a35d5a060f78983b3795ed773dca5b6f41302d5805afc87ba36d54a47c5d19",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "906f3dcf55cb552d",
+      "path": "C:\\BIZRA-PROJECTS\\META",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "8680387483679f17a8bd24057ae40bc1d77fe3f2b33a2c8e63691181272d463a",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "f3d06c527abea153",
+      "path": "C:\\BIZRA-PROJECTS\\PAT-WORKSPACE",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "232f2da26135ab6348c7d541a9497299a0dafee235954eab94e9905aaac62524",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "e58fb61bb532955e",
+      "path": "C:\\BIZRA-PROJECTS\\SECURITY",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "dd569327f110590b0c24f83be54f3a2e55d83e77fcfb5c90dfb2839fba81c586",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "41fd94ab1b7b2f7b",
+      "path": "C:\\BIZRA-PROJECTS\\UX",
+      "status": "ACTIVE",
+      "kind": "folder",
+      "identity_sha256": "0f1fe19ca4973246c58ec7b7e209c8122ea993dfe3b353edb0d6cfafcedd2a9f",
+      "git": null,
+      "tags": []
+    },
+    {
+      "id": "47dd3b9b6d0ef5a2",
+      "path": "C:\\BIZRA-TaskMaster",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ec1e7c9cf246b60b4f932528b1c61ae025cc23fccaddfe8ef8fb216a066ef3cf",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "3f839d77ee178b88",
+      "path": "C:\\BIZRA-TaskMaster\\.benchmarks",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a5b60bb00a64ac125f4dddfdda979f6d5fee09a84168f0d1c8bffdc579a6a273",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6f73dfed49d9f7b3",
+      "path": "C:\\BIZRA-TaskMaster\\.bizra",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "8ea32ac6d77ae5c97e99977cc4a90cadf0fd32953f3dec1a7aaefc79d17491bb",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "f2b5ecc7baa6fcee",
+      "path": "C:\\BIZRA-TaskMaster\\.claude",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "7fdfa01b6e997aace3de7150af4467705e3cefa01ed22660bb8eeeaa90f23dc3",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "eb9044b1fb5dd8a8",
+      "path": "C:\\BIZRA-TaskMaster\\.generated",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "98bb93412a28691950e04648edd8e3bc0de0a62448a84e2934d5a5876268ffc2",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "765771c368cdeef2",
+      "path": "C:\\BIZRA-TaskMaster\\.github",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "c816d3a3b8f72f929c484ed4d83fe2d8bc889875f46e348f91439db0c6c7a576",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "eacef5a6d3871142",
+      "path": "C:\\BIZRA-TaskMaster\\.kilocode",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a487969dae282b9c18964b81cafae71ae93fc5d4388beb22bf60c37c315b32d2",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a1bc5810956fd2c6",
+      "path": "C:\\BIZRA-TaskMaster\\.vscode",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "4ea1c934551e72702de51e48bc1a0e5405547a5e81e9c48bf185c54ed706d953",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6796f00076752666",
+      "path": "C:\\BIZRA-TaskMaster\\artifacts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "61b221f1a9cf9eabb99d7e921107df7f1f9f41e5f24d617b639950b392a046d8",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6341d76be5f01976",
+      "path": "C:\\BIZRA-TaskMaster\\backend-rs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "05ef376b9e814256eae00d15ef0761542c1776c141ce441ee1130bd9237ce31f",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "1003e41d01291033",
+      "path": "C:\\BIZRA-TaskMaster\\benchmarks",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "f98772485720a7572e2ecda78f2831ab0ecd64ecd378ca713ca2981081f27196",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c2b4cfa9fc71641d",
+      "path": "C:\\BIZRA-TaskMaster\\bizra_taskmaster",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b54d5ac7c0e63e17750f7f7624f3043c2228556b0cac65653f4e99a426f87aee",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "4b42e3ecb51241de",
+      "path": "C:\\BIZRA-TaskMaster\\compose-for-agents",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "e3f89912b3ded0524077ee9b3315084f902f568143bc9f2d9eb89246d6096784",
+      "git": {
+        "head_sha": "dadeae249c960513b0ceef498df2e7ef4a513e6a",
+        "dirty": false
+      },
+      "tags": []
+    },
+    {
+      "id": "a816ad01d7cebabb",
+      "path": "C:\\BIZRA-TaskMaster\\config",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "2855f4be3115e46bf9d5ef32e756d0ce8b220ab094ed4e40db9ed09e4b0a2463",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "07e5ffe009854b2f",
+      "path": "C:\\BIZRA-TaskMaster\\data",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "da14e7526f6c9b80887990d649866c5faae64a466de1f5550d1ccc7f50a4d571",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "1a68244788624cdc",
+      "path": "C:\\BIZRA-TaskMaster\\docs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "aa05d4eff4d9be9ac4ea082b08014db0022a60889d9f032542185cc9b07f6e22",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "91738cddad4678c5",
+      "path": "C:\\BIZRA-TaskMaster\\examples",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "95344638edce3523a45cce521b635b1dbb24067569e384b155ab8f1cd8c27101",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "88a152f4689fc414",
+      "path": "C:\\BIZRA-TaskMaster\\grafana",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6518b082077502bde581c89d268fb7773f675fa63be4daba4aa8ae4591f2c518",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "e094b719dbfa2da0",
+      "path": "C:\\BIZRA-TaskMaster\\infrastructure",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "62a08dc9dd984f5dcda8cddc9d05999b70400fa79a1dc45ebe5b52760768cefc",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6db8d82503e22e4a",
+      "path": "C:\\BIZRA-TaskMaster\\k8s",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3c6148e71f36095f00e954d4a38edfb86f9dbc8a0935a0690da8e2dd0c9c3c7e",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "91579e16663fc299",
+      "path": "C:\\BIZRA-TaskMaster\\last",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "6f161a344416f1fe726c1ac69b22fed86be4973f0984da8c1d8463d1df345910",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "29d44f236a1dfd0a",
+      "path": "C:\\BIZRA-TaskMaster\\lib",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "39dbb9851d25937c5b08c18f1cc5659e1dc7b56119c5f26e0ddf55b0b05e3e0e",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "a4660e1f7be3de39",
+      "path": "C:\\BIZRA-TaskMaster\\logs",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "fb4b385cac9b112a4981b33e2aa219edef964326f374465657cef2f529e9fec1",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "c24df1b8f3349055",
+      "path": "C:\\BIZRA-TaskMaster\\node0",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "136bd5bc468da9f4da1852e2c8a870f2403ade845ac7f4f1efa1be2397bf799e",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "8cbcb82846382c9d",
+      "path": "C:\\BIZRA-TaskMaster\\proto",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "3a3331940e303324b564c22cf61ea3b7ec66dff974fba4de3d69361a6071b814",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "0688d88f7a37f4b8",
+      "path": "C:\\BIZRA-TaskMaster\\reports",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "4609d65226e05842ae8a5c7cbd8e231196b51bdcd855d44297ad26aa2e0aea23",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "5a3d4dc7af6ff50d",
+      "path": "C:\\BIZRA-TaskMaster\\scripts",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "a0766c2729cf093a09deeb782bc8acf98bda7a2ed9145e857210a997bca23582",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "42a8c7354c6e2bc8",
+      "path": "C:\\BIZRA-TaskMaster\\services",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "26611c4c205664ac0b30894918f2d4ebeee0c8909a76f8fb141a6680771bf1b5",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "6beebaac55a88b83",
+      "path": "C:\\BIZRA-TaskMaster\\site",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "b935b384a144dc00f03be617bd8959ba104490503a4711ce3262ea940bf2f585",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "9a14ff450f2788f1",
+      "path": "C:\\BIZRA-TaskMaster\\tests",
+      "status": "ACTIVE",
+      "kind": "git",
+      "identity_sha256": "ad6c2d411c5afe17cbae452c13a7f05b1ee61623fa2503213b6f2c53d7a42adf",
+      "git": {
+        "head_sha": "be1f773f9f729cad5c91fada3b90f6ba205a5aff",
+        "dirty": true
+      },
+      "tags": []
+    },
+    {
+      "id": "fb28c967e429ee31",
+      "path": "C:\\BIZRA-NODE0\\.git.corrupt.backup",
+      "status": "ARCHIVED_TAGGED",
+      "kind": "folder",
+      "identity_sha256": "7a03fe7e1fbb4f711e1c124a3c0b6d17041a843b7f0f596081fcf58d3cea7cd6",
+      "git": null,
+      "tags": [
+        "archived_tagged"
+      ]
+    },
+    {
+      "id": "0f2f604535309618",
+      "path": "C:\\BIZRA-NODE0\\.tmp.driveupload",
+      "status": "ARCHIVED_TAGGED",
+      "kind": "git",
+      "identity_sha256": "3a5065437f2a5296d15b4337726ab5b7f9df4c8ada7b0d61f0e1e33c175f5f6f",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": [
+        "archived_tagged"
+      ]
+    },
+    {
+      "id": "d997b19ee70e193f",
+      "path": "C:\\BIZRA-NODE0\\bizra-node-template-analysis",
+      "status": "ARCHIVED_TAGGED",
+      "kind": "git",
+      "identity_sha256": "35e3b51560efc2ca16de455622f059c692b85a5289965cb3f69df6341cf62b43",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": [
+        "archived_tagged"
+      ]
+    },
+    {
+      "id": "c44237015a667164",
+      "path": "C:\\BIZRA-NODE0\\bizra-website-github-template",
+      "status": "ARCHIVED_TAGGED",
+      "kind": "git",
+      "identity_sha256": "2d304c874a5e67534a4bec815e142eb2b11cacd9fd8c7204a64686c945bc589d",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": [
+        "archived_tagged"
+      ]
+    },
+    {
+      "id": "080669e35a8f2648",
+      "path": "C:\\BIZRA-NODE0\\templates",
+      "status": "ARCHIVED_TAGGED",
+      "kind": "git",
+      "identity_sha256": "73eeda516a11d52812dab73bff6e2fd48c81f8f6115f31db33dde3be41620171",
+      "git": {
+        "head_sha": "69a2d0e21b5c7e543f204f8b2a129c772f5c6e59",
+        "dirty": true
+      },
+      "tags": [
+        "archived_tagged"
+      ]
+    }
+  ],
+  "canonical_invariants": [
+    "deterministic_ordering",
+    "sha256_identity",
+    "no_delete_side_effects",
+    "fail_closed_on_invalid_config"
+  ],
+  "architecture_hashes": {
+    "ihsan_constitution_sha256": "1ede7d24f96724353c5b47c61f311b25ad8a467ed4fbe330837ac827cd40fdf6",
+    "model_family_manifest_sha256": "2dcd67447fabfb80d0841864e9823459b01e03848ec1b3975ca1adb6b09bfc06"
+  },
+  "manifest_sha256": "16a10279c382d3b01bda1c70fc59e044d196107c1dbf87943e79f88cb1778ffe"
+}

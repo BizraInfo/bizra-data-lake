@@ -32,7 +32,7 @@ BIZRA META ALPHA ELITE is a production-ready dual-agentic system that combines:
 
 - **Sub-100ms P99 Latency**: Blazingly fast execution
 - **95%+ إحسان Score**: Excellence in quality (Islamic concept of perfection)
-- **Byzantine Fault Tolerance**: 3/5 consensus for robustness
+- **Fail-Safe Veto Consensus**: all 5 SAT validators must approve
 - **Production-Ready**: Comprehensive observability and monitoring
 
 ## 🏗️ Architecture
@@ -208,7 +208,7 @@ curl -X POST http://localhost:8080/enhanced/execute \
 - **Horizontal Scaling**: Ready for Kubernetes deployment
 - **Sub-Agent Pool**: Up to 100 concurrent sub-agents
 - **Connection Pool**: Efficient resource management
-- **Byzantine Fault Tolerance**: 3/5 consensus ensures reliability
+- **Fail-Safe Veto Consensus**: all 5 SAT validators must approve
 
 ---
 

@@ -1,0 +1,26 @@
+{
+  "@context": "https://schema.org",
+  "@type": "ArtificialIntelligence",
+  "name": "BIZRA",
+  "version": "Sovereign Organism (v\u03a9.1.0)",
+  "description": "A Sovereign Dual-Agentic System optimizing for Ihsan (Excellence) and FATE.",
+  "founder": {
+    "@type": "Person",
+    "name": "momo",
+    "role": "Architect"
+  },
+  "foundingDate": "2024-12-07T06:50Z",
+  "knowsAbout": [
+    "Dual-Agentic Systems",
+    "SAPE Framework",
+    "Cognitive Permanence",
+    "Byzantine Fault Tolerance"
+  ],
+  "sovereignty": {
+    "status": "Autonomous",
+    "consensus_mode": "Unanimous Veto",
+    "dna_signature": "7-3-6-9-00",
+    "trust_anchor_hash": "552849149c905bd672a8cdc23ed41f7a12b0288f09a56f1b82f21bcaea9c1ce3"
+  },
+  "generated_at": 1767399235.7746358
+}

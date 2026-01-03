@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-22T14:54:04.008119",
+  "dimensions": {
+    "Test Coverage": {
+      "score": 8.0,
+      "source": "skipped",
+      "details": "Tests skipped"
+    },
+    "Code Quality": {
+      "score": 9.5,
+      "source": "clippy",
+      "details": "1 warnings, 0 errors"
+    },
+    "Security Posture": {
+      "score": 8.0,
+      "source": "security scan",
+      "details": "1 potential issues"
+    },
+    "Ethics Framework": {
+      "score": 10.0,
+      "source": "constitution",
+      "details": "Constitution v1 loaded"
+    },
+    "Auditability": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "709 evidence files, 296 receipts"
+    },
+    "Architecture": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "23 Rust + 13 Python modules"
+    },
+    "Documentation": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "91 markdown files"
+    }
+  },
+  "ihsan_score": 0.885,
+  "overall_health": 9.357142857142858,
+  "test_summary": {
+    "skipped": true
+  },
+  "evidence_count": 709,
+  "warnings": []
+}

@@ -23,6 +23,10 @@ on:
         description: 'Skip container build'
         type: boolean
         default: false
+      skip_quality_tests:
+        description: 'Skip slow test execution inside Quality Radar (uses --skip-tests)'
+        type: boolean
+        default: false
       environment:
         description: 'Target environment'
         type: choice
@@ -90,6 +94,18 @@ jobs:
           python scripts/check_parity.py
           
           echo "✅ Cross-boundary parity verified"
+
+      - name: Secrets hygiene check
+        run: |
+          echo "🔐 Running secrets hygiene check..."
+          python scripts/check_secrets_hygiene.py
+          echo "✅ Secrets hygiene verified"
+
+      - name: OpenAPI drift detection
+        run: |
+          echo "📄 Checking OpenAPI spec drift..."
+          python scripts/check_openapi_drift.py
+          echo "✅ OpenAPI spec in sync"
 
   # ============================================================
   # GATE 1: SECURITY GATE
@@ -338,13 +354,166 @@ jobs:
           print(f"   Dimensions: {dimensions}")
           PY
 
+      - name: Setup Rust for Ihsān binary
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo for Ihsān gate
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Ihsān threshold binary
+        run: cargo build --release --bin ihsan_threshold
+
+      - name: Run Ihsān threshold gate (CI environment)
+        run: |
+          echo "☪️ Running Ihsān threshold gate in CI mode..."
+          
+          # Get thresholds from the binary for different artifact classes
+          CI_CODE_THRESHOLD=$(./target/release/ihsan_threshold ci code)
+          CI_EVIDENCE_THRESHOLD=$(./target/release/ihsan_threshold ci evidence)
+          CI_DOCS_THRESHOLD=$(./target/release/ihsan_threshold ci docs)
+          
+          echo "   CI thresholds from constitution:"
+          echo "   - code:     $CI_CODE_THRESHOLD (expected >= 0.90)"
+          echo "   - evidence: $CI_EVIDENCE_THRESHOLD (expected >= 0.90)"
+          echo "   - docs:     $CI_DOCS_THRESHOLD (expected >= 0.80)"
+          
+          # Validate CI code threshold meets minimum
+          if [ "$(echo "$CI_CODE_THRESHOLD < 0.90" | bc -l)" -eq 1 ]; then
+            echo "::error::CI code threshold ($CI_CODE_THRESHOLD) below required 0.90"
+            exit 1
+          fi
+          
+          # Validate CI evidence threshold meets minimum
+          if [ "$(echo "$CI_EVIDENCE_THRESHOLD < 0.90" | bc -l)" -eq 1 ]; then
+            echo "::error::CI evidence threshold ($CI_EVIDENCE_THRESHOLD) below required 0.90"
+            exit 1
+          fi
+          
+          # Validate CI docs threshold meets minimum
+          if [ "$(echo "$CI_DOCS_THRESHOLD < 0.80" | bc -l)" -eq 1 ]; then
+            echo "::error::CI docs threshold ($CI_DOCS_THRESHOLD) below required 0.80"
+            exit 1
+          fi
+          
+          echo "✅ Ihsān threshold gate passed - constitution enforces required minimums"
+
+  # ============================================================
+  # GATE 3.5: QUALITY RADAR GATE
+  # ============================================================
+  quality-radar:
+    name: '📊 Quality Radar Gate'
+    runs-on: ubuntu-latest
+    needs: ihsan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: requirements-kernel.txt
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml httpx plotly kaleido
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Run Quality Radar Elite
+        env:
+          BIZRA_ENV: ci
+          QUALITY_RADAR_SKIP_TESTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_quality_tests == 'true' }}
+        run: |
+          set -euo pipefail
+          echo "📊 Running Quality Radar Elite in CI mode..."
+
+          if [ ! -f "scripts/quality_radar_elite.py" ]; then
+            echo "::error::Missing scripts/quality_radar_elite.py (cannot run quality gate)" >&2
+            exit 1
+          fi
+
+          # Ensure the script is syntactically valid and runnable by this interpreter.
+          python -m py_compile scripts/quality_radar_elite.py
+
+          mkdir -p evidence
+
+          SKIP_TESTS_FLAG=""
+          if [ "${QUALITY_RADAR_SKIP_TESTS}" = "true" ] || [ "${QUALITY_RADAR_SKIP_TESTS}" = "1" ]; then
+            echo "⏭️ Quality Radar: skipping tests via --skip-tests (configurable via workflow_dispatch input)"
+            SKIP_TESTS_FLAG="--skip-tests"
+          fi
+
+          python scripts/quality_radar_elite.py \
+            --json \
+            --prometheus \
+            --ci \
+            --threshold 0.90 \
+            ${SKIP_TESTS_FLAG} \
+            -o evidence/quality_radar_ci
+
+          echo "✅ Quality Radar gate passed"
+
+      - name: Upload Quality Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-radar-${{ github.sha }}
+          path: |
+            evidence/quality_radar_ci.json
+            evidence/quality_radar_ci.prom
+            evidence/quality_radar_ci.html
+            evidence/quality_radar_ci.png
+          retention-days: 30
+
+      - name: Post Quality Summary
+        if: always()
+        run: |
+          set -euo pipefail
+          REPORT="evidence/quality_radar_ci.json"
+
+          echo "## 📊 Quality Radar Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ! -f "$REPORT" ]; then
+            echo "Quality Radar report missing: $REPORT" >&2
+            echo "- Quality Radar report not generated (missing $REPORT)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if ! jq -e . "$REPORT" >/dev/null 2>&1; then
+            echo "Quality Radar report invalid JSON: $REPORT" >&2
+            echo "- Quality Radar report present but invalid JSON ($REPORT)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          OVERALL=$(jq -er '.overall_score // "n/a"' "$REPORT" 2>/dev/null || echo "n/a")
+          IHSAN=$(jq -er '.ihsan.composite // "n/a"' "$REPORT" 2>/dev/null || echo "n/a")
+          SNR=$(jq -er '.ihsan.snr // "n/a"' "$REPORT" 2>/dev/null || echo "n/a")
+          TIER=$(jq -er '.ihsan.tier // "n/a"' "$REPORT" 2>/dev/null || echo "n/a")
+          RIGOR=$(jq -er '.math_rigor_score // "n/a"' "$REPORT" 2>/dev/null || echo "n/a")
+
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Overall Score | **${OVERALL}/10** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ihsān Composite | ${IHSAN} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SNR Value | ${SNR} (${TIER}) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Math Rigor | ${RIGOR} |" >> "$GITHUB_STEP_SUMMARY"
+
   # ============================================================
   # GATE 4: PERFORMANCE GATE
   # ============================================================
   performance:
     name: '⚡ Performance Gate'
     runs-on: ubuntu-latest
-    needs: ihsan
+    needs: quality-radar
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -1,0 +1,10 @@
+{
+    "node_id": "BIZRA-DCF48DBE",
+    "parent_id": "Omega-MASTER-0",
+    "children": [
+        "BIZRA-B7BAE248"
+    ],
+    "status": "ORGANISM",
+    "max_depth": 2,
+    "birth_time": "2026-01-01T16:00:09.263843"
+}

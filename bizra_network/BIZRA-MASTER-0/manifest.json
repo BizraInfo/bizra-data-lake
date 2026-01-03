@@ -1,0 +1,28 @@
+{
+    "node_id": "BIZRA-MASTER-0",
+    "parent_id": null,
+    "children": [
+        "BIZRA-C541A3DD",
+        "BIZRA-3065219F",
+        "BIZRA-9FEAF46E",
+        "BIZRA-DFE03814",
+        "BIZRA-FB06A23D",
+        "BIZRA-99C24E1C",
+        "BIZRA-156CEF4A",
+        "BIZRA-CB398A65",
+        "BIZRA-138D049F",
+        "BIZRA-65E4C803",
+        "BIZRA-7C4645D1",
+        "BIZRA-72EBDD80",
+        "BIZRA-5D369369",
+        "BIZRA-133E9881",
+        "BIZRA-0583C498",
+        "BIZRA-00198D20",
+        "BIZRA-C4DE36CB",
+        "BIZRA-F17C6DC5",
+        "BIZRA-28701492",
+        "BIZRA-B339F4AA"
+    ],
+    "status": "ORGANISM",
+    "birth_time": "2026-01-01T03:20:30.544179"
+}

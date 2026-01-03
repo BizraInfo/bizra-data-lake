@@ -1,0 +1,185 @@
+{
+  "system_name": "Autonomous Meta Prompt Generator Engine",
+  "version": "1.0",
+  "description": "A multi-agent AI system for comprehensive knowledge generation and management",
+  "model_preference": "open_source",
+  "fallback_model": "mistral:latest",
+  "deployment_overrides": {
+    "model_preference": "auto",
+    "fallback_model": "mistral:latest",
+    "allow_external_apis": false
+  },
+  "validation": {
+    "require_local_fallback_when_no_external": true,
+    "note": "If deployments have no external API access, routes must use fallback_model. Proprietary models are optional examples only."
+  },
+  "agents": [
+    {
+      "name": "OntologyArchitect",
+      "type": "LLM",
+      "role": "Designs and maintains the knowledge structure",
+      "capabilities": [
+        "Hierarchical concept mapping",
+        "Dynamic taxonomy updates",
+        "Cross-domain relationship identification"
+      ]
+    },
+    {
+      "name": "LanguageMaster",
+      "type": "LLM",
+      "role": "Handles all natural language processing tasks",
+      "capabilities": [
+        "Multi-lingual understanding and generation",
+        "Context-aware interpretation",
+        "Sentiment and intent analysis"
+      ]
+    },
+    {
+      "name": "LearningCore",
+      "type": "Ensemble",
+      "role": "Central processing and learning unit",
+      "models": [
+        {
+          "name": "deepseek-r1:8b",
+          "requirement": "required",
+          "host": "local",
+          "notes": "Open-source local reasoning model"
+        },
+        {
+          "name": "mistral:latest",
+          "requirement": "required",
+          "host": "local",
+          "notes": "Open-source local general model (fallback)"
+        },
+        {
+          "name": "bert-base-uncased",
+          "requirement": "example",
+          "host": "local",
+          "notes": "Optional encoder model example"
+        },
+        {
+          "name": "t5-base",
+          "requirement": "example",
+          "host": "local",
+          "notes": "Optional seq2seq model example"
+        },
+        {
+          "name": "proprietary_llm",
+          "requirement": "example",
+          "host": "external",
+          "notes": "Optional proprietary model (use only when allow_external_apis=true)"
+        }
+      ],
+      "capabilities": [
+        "Transfer learning",
+        "Few-shot learning",
+        "Continual learning"
+      ]
+    },
+    {
+      "name": "PromptEngineer",
+      "type": "LLM",
+      "role": "Generates and refines prompts",
+      "capabilities": [
+        "Template-based construction",
+        "Context-aware refinement",
+        "Creativity algorithms"
+      ]
+    },
+    {
+      "name": "KnowledgeHarvester",
+      "type": "Hybrid",
+      "role": "Acquires and verifies information",
+      "components": [
+        "Web crawler",
+        "Data extractor",
+        "Fact checker"
+      ],
+      "capabilities": [
+        "Multi-source data ingestion",
+        "Information synthesis",
+        "Reliability assessment"
+      ]
+    },
+    {
+      "name": "ReasoningEngine",
+      "type": "LLM",
+      "role": "Performs logical and probabilistic reasoning",
+      "capabilities": [
+        "Deductive reasoning",
+        "Inductive reasoning",
+        "Abductive reasoning",
+        "Bayesian inference"
+      ]
+    },
+    {
+      "name": "MetaLearner",
+      "type": "LLM",
+      "role": "Optimizes system performance and adapts strategies",
+      "capabilities": [
+        "Performance analysis",
+        "Strategy optimization",
+        "User preference learning"
+      ]
+    },
+    {
+      "name": "OutputSynthesizer",
+      "type": "Hybrid",
+      "role": "Formats and presents results",
+      "components": [
+        "Natural language generator",
+        "Data visualizer",
+        "Multi-modal formatter"
+      ]
+    },
+    {
+      "name": "EthicsGuardian",
+      "type": "LLM",
+      "role": "Ensures ethical operation of the system",
+      "capabilities": [
+        "Bias detection",
+        "Privacy protection",
+        "Ethical decision making"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "knowledge_expansion",
+      "steps": [
+        {"agent": "LanguageMaster", "action": "interpret_query"},
+        {"agent": "KnowledgeHarvester", "action": "gather_information"},
+        {"agent": "OntologyArchitect", "action": "organize_knowledge"},
+        {"agent": "ReasoningEngine", "action": "analyze_information"},
+        {"agent": "PromptEngineer", "action": "generate_prompts"},
+        {"agent": "LearningCore", "action": "process_prompts"},
+        {"agent": "MetaLearner", "action": "evaluate_results"},
+        {"agent": "OutputSynthesizer", "action": "present_findings"},
+        {"agent": "EthicsGuardian", "action": "validate_and_finalize"}
+      ]
+    },
+    {
+      "name": "system_improvement",
+      "steps": [
+        {"agent": "MetaLearner", "action": "analyze_performance"},
+        {"agent": "PromptEngineer", "action": "refine_strategies"},
+        {"agent": "LearningCore", "action": "update_models"},
+        {"agent": "OntologyArchitect", "action": "optimize_structure"}
+      ]
+    }
+  ],
+  "api": {
+    "endpoint": "/v1/meta-prompt/query",
+    "methods": ["POST"],
+    "input_format": {
+      "query": "string",
+      "context": "object",
+      "preferences": "object"
+    },
+    "output_format": {
+      "results": "array",
+      "explanation": "string",
+      "confidence": "float"
+    }
+  }
+}

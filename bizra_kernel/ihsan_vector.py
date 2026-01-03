@@ -15,9 +15,9 @@ def _normalize_key(raw: str) -> str:
 ThresholdCombine = Literal["max", "min"]
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 # IhsanDimension Enum (for backward compatibility with kernel.py)
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 class IhsanDimension(Enum):
     """The 8 dimensions of the Ihsān Vector."""
     CORRECTNESS = "correctness"
@@ -30,9 +30,9 @@ class IhsanDimension(Enum):
     ADL_FAIRNESS = "adl_fairness"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 # IhsanConstitution - YAML-loaded constitution (single source of truth)
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 @dataclass(frozen=True)
 class IhsanConstitution:
     id: str
@@ -210,9 +210,9 @@ def threshold_for(env_name: str, artifact_class: str) -> float:
     return float(constitution().threshold_for(env_name, artifact_class))
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 # IHSAN_WEIGHTS and IHSAN_THRESHOLD (backward compatibility)
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 def _get_ihsan_weights() -> Dict[IhsanDimension, float]:
     """Load weights from constitution and map to IhsanDimension enum."""
     c = constitution()
@@ -235,9 +235,9 @@ def _ensure_weights():
 IHSAN_THRESHOLD = 0.70  # Will be overridden by constitution on load
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 # IhsanVector class (backward compatibility with kernel.py)
-# ──────────────────────────────────────────────────────────────────────────────
+# ==============================================================================
 @dataclass
 class IhsanVector:
     """
@@ -263,6 +263,15 @@ class IhsanVector:
     def get_dimension(self, dimension: IhsanDimension) -> float:
         """Get a single dimension score."""
         return self.scores.get(dimension, 0.5)
+
+    def set_score(self, dimension: IhsanDimension, score: float) -> None:
+        """Alias for set_dimension for backward compatibility."""
+        self.set_dimension(dimension, score)
+    
+    @property
+    def composite_score(self) -> float:
+        """Alias for calculate_score for property-style access."""
+        return self.calculate_score()
     
     def calculate_score(self) -> float:
         """Calculate weighted sum: I_vec = Σ(w_i × d_i)."""
@@ -272,26 +281,61 @@ class IhsanVector:
             for dim, score in self.scores.items()
         )
     
-    def passes_threshold(self, threshold: Optional[float] = None) -> bool:
-        """Check if score meets threshold."""
-        t = threshold if threshold is not None else constitution().threshold
-        return self.calculate_score() >= t
-    
+    @property
+    def passes_threshold(self) -> bool:
+        """Property-style access for passes_threshold (aliased in kernel)."""
+        return self.calculate_score() >= constitution().threshold
+
     def to_dict(self) -> Dict[str, float]:
         """Export scores as string-keyed dict."""
         return {dim.value: score for dim, score in self.scores.items()}
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, float]) -> "IhsanVector":
-        """Create from string-keyed dict."""
-        scores = {}
+        """Import scores from a string-keyed dict."""
+        if not data:
+            return cls()
+        key_map = {_normalize_key(dim.value): dim for dim in IhsanDimension}
+        scores: Dict[IhsanDimension, float] = {}
         for key, value in data.items():
-            try:
-                dim = IhsanDimension(key)
+            if isinstance(key, IhsanDimension):
+                scores[key] = float(value)
+                continue
+            if not isinstance(key, str):
+                continue
+            dim = key_map.get(_normalize_key(key))
+            if dim is not None:
                 scores[dim] = float(value)
-            except (ValueError, TypeError):
-                pass
         return cls(scores=scores)
+
+    @classmethod
+    def from_agent_response(
+        cls, 
+        response: str, 
+        latency_ms: int = 0, 
+        token_count: int = 0, 
+        rag_used: bool = False,
+        agent_role: str = "generic"
+    ) -> "IhsanVector":
+        """
+        Heuristic-based IhsanVector initialization from agent metadata.
+        Used by the SystemProtocolKernel.
+        """
+        vec = cls()
+        # Heuristic 1: Efficiency (latency-based)
+        if latency_ms > 0:
+            efficiency = 1.0 - min(1.0, latency_ms / 5000.0) # 5s limit for 0 score
+            vec.set_dimension(IhsanDimension.EFFICIENCY, efficiency)
+        
+        # Heuristic 2: Robustness (presence of structure)
+        if "{" in response and "}" in response: # JSON-like
+            vec.set_dimension(IhsanDimension.ROBUSTNESS, 0.9)
+            
+        # Heuristic 3: User Benefit (RAG used usually improves context)
+        if rag_used:
+            vec.set_dimension(IhsanDimension.USER_BENEFIT, 0.95)
+            
+        return vec
     
     def snapshot(self) -> None:
         """Save current state to history."""
@@ -300,5 +344,4 @@ class IhsanVector:
     def __repr__(self) -> str:
         score = self.calculate_score()
         return f"IhsanVector(score={score:.4f}, passes={self.passes_threshold()})"
-
 

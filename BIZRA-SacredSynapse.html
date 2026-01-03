@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZRA Genesis Synapse — Sacred Geometry Telemetry</title>
+    <style>
+        :root {
+            --color-tawhid: #E8D5B5;
+            --color-creation-life: #2ECC71;
+            --color-creation-knowledge: #3498DB;
+            --color-creation-wisdom: #9B59B6;
+            --color-creation-energy: #E74C3C;
+            --color-creation-creativity: #F39C12;
+            --color-creation-balance: #1ABC9C;
+            --color-accent: #FFD700;
+            --color-danger: #ff0000;
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #1a1a1a;
+            --color-bg-tertiary: #2a2a2a;
+            --color-border: rgba(232, 213, 181, 0.15);
+            --color-text-primary: #f5f5f5;
+            --color-text-secondary: #888888;
+            --font-mono: 'Courier New', monospace;
+            --transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* SACRED GEOMETRY HEADER */
+        .synapse-header {
+            background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(232, 213, 181, 0.03) 100%);
+            border-bottom: 2px solid var(--color-tawhid);
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(232, 213, 181, 0.08);
+        }
+
+        .header-logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .bizra-tawhid-header {
+            animation: tawhid-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes tawhid-pulse {
+            0%, 100% { filter: drop-shadow(0 0 4px rgba(232, 213, 181, 0.3)); }
+            50% { filter: drop-shadow(0 0 12px rgba(232, 213, 181, 0.6)); }
+        }
+
+        .synapse-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-tawhid);
+            letter-spacing: 0.5px;
+        }
+
+        .header-status {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(232, 213, 181, 0.08);
+            border: 1px solid var(--color-tawhid);
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            color: var(--color-text-secondary);
+        }
+
+        .status-badge.active {
+            color: var(--color-tawhid);
+            background: rgba(232, 213, 181, 0.12);
+        }
+
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            background: var(--color-tawhid);
+            border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        /* MAIN CONTENT — SACRED GEOMETRY LAYOUT */
+        .synapse-main {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sacred-geometry-container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .sacred-geometry-container {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+
+        /* LEFT: TAWHID MANDALA */
+        .tawhid-mandala-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .mandala-canvas {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mandala-svg {
+            filter: drop-shadow(0 0 20px rgba(232, 213, 181, 0.2));
+        }
+
+        /* METRICS ORBITING TAWHID */
+        .creation-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+
+        .creation-metric-card {
+            background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, rgba(232, 213, 181, 0.02) 100%);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .creation-metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, var(--metric-color) 0%, transparent 70%);
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .creation-metric-card:hover {
+            border-color: var(--metric-color);
+            box-shadow: 0 0 12px rgba(232, 213, 181, 0.1);
+        }
+
+        .metric-principle {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--metric-color);
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .metric-value-large {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--metric-color);
+            margin-bottom: 4px;
+        }
+
+        .metric-label-small {
+            font-size: 10px;
+            color: var(--color-text-secondary);
+            font-family: var(--font-mono);
+        }
+
+        /* RIGHT: UMMAH FLOWERING */
+        .ummah-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .ummah-flower-panel {
+            background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, rgba(232, 213, 181, 0.03) 100%);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .ummah-flower-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 25% 30%, rgba(46, 204, 113, 0.04) 0%, transparent 30%),
+                radial-gradient(circle at 75% 25%, rgba(52, 152, 219, 0.04) 0%, transparent 30%),
+                radial-gradient(circle at 85% 60%, rgba(155, 89, 182, 0.04) 0%, transparent 30%),
+                radial-gradient(circle at 65% 80%, rgba(231, 76, 60, 0.04) 0%, transparent 30%),
+                radial-gradient(circle at 20% 70%, rgba(243, 156, 18, 0.04) 0%, transparent 30%),
+                radial-gradient(circle at 15% 40%, rgba(26, 188, 156, 0.04) 0%, transparent 30%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .ummah-flower-panel > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .ummah-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-accent);
+            margin-bottom: 12px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        .ummah-flower-svg {
+            margin: 0 auto 12px;
+            filter: drop-shadow(0 0 8px rgba(232, 213, 181, 0.15));
+            animation: bloom-flower 4s ease-in-out infinite;
+        }
+
+        @keyframes bloom-flower {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .ummah-status {
+            font-size: 11px;
+            color: var(--color-accent);
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        .ummah-description {
+            font-size: 9px;
+            color: var(--color-text-secondary);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* AGENT TEAMS */
+        .agent-teams-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .agent-team-card {
+            background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(232, 213, 181, 0.02) 100%);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 14px;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .agent-team-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--team-color), transparent);
+            border-radius: 6px 6px 0 0;
+        }
+
+        .agent-team-card:hover {
+            border-color: var(--team-color);
+            box-shadow: 0 0 12px rgba(232, 213, 181, 0.1);
+        }
+
+        .agent-team-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-text-secondary);
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .agent-team-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--team-color);
+            margin-bottom: 4px;
+        }
+
+        .agent-count {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--team-color);
+            margin-bottom: 4px;
+        }
+
+        .agent-principle {
+            font-size: 9px;
+            color: var(--color-text-secondary);
+            font-style: italic;
+        }
+
+        /* FOOTER */
+        .synapse-footer {
+            background: var(--color-bg-secondary);
+            border-top: 1px solid var(--color-border);
+            padding: 12px 24px;
+            font-size: 10px;
+            color: var(--color-text-secondary);
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+
+        .footer-item {
+            flex: 1;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(232, 213, 181, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(232, 213, 181, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- SACRED HEADER -->
+        <header class="synapse-header">
+            <div class="header-logo-section">
+                <svg class="bizra-tawhid-header" viewBox="0 0 80 80" width="32" height="32">
+                    <defs>
+                        <filter id="tawhid-glow">
+                            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <circle cx="40" cy="40" r="4" fill="#E8D5B5" filter="url(#tawhid-glow)" opacity="0.95"/>
+                    <circle cx="40" cy="15" r="8" fill="none" stroke="#2ECC71" stroke-width="1" opacity="0.6"/>
+                    <circle cx="63" cy="23" r="8" fill="none" stroke="#3498DB" stroke-width="1" opacity="0.6"/>
+                    <circle cx="63" cy="53" r="8" fill="none" stroke="#9B59B6" stroke-width="1" opacity="0.6"/>
+                    <circle cx="40" cy="65" r="8" fill="none" stroke="#E74C3C" stroke-width="1" opacity="0.6"/>
+                    <circle cx="17" cy="53" r="8" fill="none" stroke="#F39C12" stroke-width="1" opacity="0.6"/>
+                    <circle cx="17" cy="23" r="8" fill="none" stroke="#1ABC9C" stroke-width="1" opacity="0.6"/>
+                </svg>
+                <h1>GENESIS SYNAPSE</h1>
+            </div>
+            <div class="header-status">
+                <div class="status-badge active" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span id="connText">CONNECTED</span>
+                </div>
+                <div class="status-badge">
+                    <span>IHSAN:</span>
+                    <span id="headerIhsan">--</span>
+                </div>
+                <div class="status-badge">
+                    <span>LATENCY:</span>
+                    <span id="headerLatency">-- ms</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="synapse-main">
+            <div class="sacred-geometry-container">
+                <!-- LEFT: TAWHID MANDALA -->
+                <div class="tawhid-mandala-section">
+                    <div class="mandala-canvas">
+                        <svg class="mandala-svg" viewBox="0 0 280 280" width="280" height="280">
+                            <defs>
+                                <radialGradient id="tawhid-center" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" style="stop-color:#E8D5B5;stop-opacity:0.9" />
+                                    <stop offset="100%" style="stop-color:#E8D5B5;stop-opacity:0.2" />
+                                </radialGradient>
+                            </defs>
+                            <circle cx="140" cy="140" r="135" fill="none" stroke="#E8D5B5" stroke-width="0.5" opacity="0.3"/>
+                            <circle cx="140" cy="40" r="30" fill="none" stroke="#2ECC71" stroke-width="2" opacity="0.7"/>
+                            <circle cx="210" cy="70" r="30" fill="none" stroke="#3498DB" stroke-width="2" opacity="0.7"/>
+                            <circle cx="210" cy="160" r="30" fill="none" stroke="#9B59B6" stroke-width="2" opacity="0.7"/>
+                            <circle cx="140" cy="240" r="30" fill="none" stroke="#E74C3C" stroke-width="2" opacity="0.7"/>
+                            <circle cx="70" cy="160" r="30" fill="none" stroke="#F39C12" stroke-width="2" opacity="0.7"/>
+                            <circle cx="70" cy="70" r="30" fill="none" stroke="#1ABC9C" stroke-width="2" opacity="0.7"/>
+                            <circle cx="140" cy="140" r="12" fill="url(#tawhid-center)"/>
+                            <circle cx="140" cy="140" r="8" fill="none" stroke="#E8D5B5" stroke-width="0.5" opacity="0.5"/>
+                        </svg>
+                    </div>
+
+                    <!-- Metrics Orbiting Tawhid -->
+                    <div class="creation-metrics">
+                        <div class="creation-metric-card" style="--metric-color: #2ECC71;">
+                            <div class="metric-principle">Life</div>
+                            <div class="metric-value-large" id="lifeMetric">7</div>
+                            <div class="metric-label-small">Growth Rate</div>
+                        </div>
+                        <div class="creation-metric-card" style="--metric-color: #3498DB;">
+                            <div class="metric-principle">Knowledge</div>
+                            <div class="metric-value-large" id="knowledgeMetric">5</div>
+                            <div class="metric-label-small">Data Nodes</div>
+                        </div>
+                        <div class="creation-metric-card" style="--metric-color: #9B59B6;">
+                            <div class="metric-principle">Wisdom</div>
+                            <div class="metric-value-large" id="wisdomMetric">6</div>
+                            <div class="metric-label-small">Insights</div>
+                        </div>
+                        <div class="creation-metric-card" style="--metric-color: #E74C3C;">
+                            <div class="metric-principle">Energy</div>
+                            <div class="metric-value-large" id="energyMetric">92</div>
+                            <div class="metric-label-small">CPU %</div>
+                        </div>
+                        <div class="creation-metric-card" style="--metric-color: #F39C12;">
+                            <div class="metric-principle">Creativity</div>
+                            <div class="metric-value-large" id="creativityMetric">84</div>
+                            <div class="metric-label-small">Innovations</div>
+                        </div>
+                        <div class="creation-metric-card" style="--metric-color: #1ABC9C;">
+                            <div class="metric-principle">Balance</div>
+                            <div class="metric-value-large" id="balanceMetric">95</div>
+                            <div class="metric-label-small">Harmony</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: UMMAH FLOWERING -->
+                <div class="ummah-section">
+                    <div class="ummah-flower-panel">
+                        <div class="ummah-title">⭐ UMMAH FLOWERING</div>
+                        <svg class="ummah-flower-svg" viewBox="0 0 160 160" width="140" height="140">
+                            <defs>
+                                <radialGradient id="ummah-core" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" style="stop-color:#E8D5B5;stop-opacity:0.95" />
+                                    <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0.3" />
+                                </radialGradient>
+                            </defs>
+                            <circle cx="80" cy="25" r="14" fill="#2ECC71" opacity="0.8"/>
+                            <circle cx="125" cy="40" r="14" fill="#3498DB" opacity="0.8"/>
+                            <circle cx="135" cy="90" r="14" fill="#9B59B6" opacity="0.8"/>
+                            <circle cx="100" cy="145" r="14" fill="#E74C3C" opacity="0.8"/>
+                            <circle cx="35" cy="135" r="14" fill="#F39C12" opacity="0.8"/>
+                            <circle cx="25" cy="70" r="14" fill="#1ABC9C" opacity="0.8"/>
+                            <circle cx="80" cy="80" r="10" fill="url(#ummah-core)"/>
+                        </svg>
+                        <div class="ummah-status" id="ummahStatus">EXEMPLARY HARMONY</div>
+                        <div class="ummah-description">Tawhid Unity → 6 Creation → Community Excellence</div>
+                    </div>
+
+                    <!-- AGENT TEAMS MAPPED TO CREATION -->
+                    <div class="agent-teams-grid">
+                        <div class="agent-team-card" style="--team-color: #2ECC71;">
+                            <div class="agent-team-label">TEAM</div>
+                            <div class="agent-team-name">PAT</div>
+                            <div class="agent-count" id="patCount">7</div>
+                            <div class="agent-principle">Personal Agentic Team</div>
+                        </div>
+                        <div class="agent-team-card" style="--team-color: #3498DB;">
+                            <div class="agent-team-label">TEAM</div>
+                            <div class="agent-team-name">SAT</div>
+                            <div class="agent-count" id="satCount">5</div>
+                            <div class="agent-principle">System Agentic Team</div>
+                        </div>
+                        <div class="agent-team-card" style="--team-color: #9B59B6;">
+                            <div class="agent-team-label">TEAM</div>
+                            <div class="agent-team-name">TAT</div>
+                            <div class="agent-count" id="tatCount">6</div>
+                            <div class="agent-principle">Tactical Agentic Team</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="synapse-footer">
+            <div class="footer-item">BIZRA Genesis Synapse v2.1</div>
+            <div class="footer-item" id="connectionTime">Connected: --</div>
+            <div class="footer-item">© 2025 BIZRA Elite Systems</div>
+        </footer>
+    </div>
+
+    <script>
+        class GenesisSacredSynapse {
+            constructor(wsUrl = 'ws://localhost:8081') {
+                this.wsUrl = wsUrl;
+                this.ws = null;
+                this.isConnected = false;
+                this.connectionTime = null;
+                this.init();
+            }
+
+            init() {
+                this.connect();
+                setInterval(() => this.updateUI(), 100);
+            }
+
+            connect() {
+                try {
+                    this.ws = new WebSocket(this.wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        this.connectionTime = Date.now();
+                        this.updateConnectionStatus(true);
+                        console.log('✅ SYNAPSE SACRED GEOMETRY CONNECTED');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            if (message.type === 'TELEMETRY_UPDATE' && message.payload) {
+                                this.updateMetrics(message.payload);
+                            }
+                        } catch (err) {
+                            console.error('Parse error:', err);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                        console.log('❌ SYNAPSE DISCONNECTED');
+                        setTimeout(() => this.connect(), 3000);
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateConnectionStatus(false);
+                    };
+                } catch (err) {
+                    console.error('Connection failed:', err);
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const badge = document.getElementById('connectionStatus');
+                const text = document.getElementById('connText');
+                
+                if (connected) {
+                    badge.classList.add('active');
+                    text.textContent = 'CONNECTED';
+                } else {
+                    badge.classList.remove('active');
+                    text.textContent = 'OFFLINE';
+                }
+            }
+
+            updateMetrics(data) {
+                if (!data) return;
+
+                // Six Creation Principles mapped from telemetry
+                document.getElementById('lifeMetric').textContent = data.active_agents?.pat || 0;
+                document.getElementById('knowledgeMetric').textContent = data.active_agents?.sat || 0;
+                document.getElementById('wisdomMetric').textContent = data.active_agents?.tat || 0;
+                document.getElementById('energyMetric').textContent = Math.round((data.error_rate ? 100 - (data.error_rate * 100) : 92));
+                document.getElementById('creativityMetric').textContent = Math.round(data.ihsan_score * 100);
+                document.getElementById('balanceMetric').textContent = Math.round((data.latency_us / 100) % 100 || 95);
+
+                // Agent Teams
+                document.getElementById('patCount').textContent = data.active_agents?.pat || 0;
+                document.getElementById('satCount').textContent = data.active_agents?.sat || 0;
+                document.getElementById('tatCount').textContent = data.active_agents?.tat || 0;
+
+                // Header metrics
+                const latencyMs = (data.latency_us / 1000).toFixed(1);
+                document.getElementById('headerLatency').textContent = latencyMs + ' ms';
+                
+                const ihsanPercent = Math.round(data.ihsan_score * 100);
+                document.getElementById('headerIhsan').textContent = ihsanPercent + '%';
+
+                // Ummah Status
+                let ummahStatus = 'EXEMPLARY HARMONY';
+                if (data.ihsan_score >= 0.9) {
+                    ummahStatus = 'EXEMPLARY HARMONY';
+                } else if (data.ihsan_score >= 0.75) {
+                    ummahStatus = 'BALANCED FLOURISHING';
+                } else {
+                    ummahStatus = 'REQUIRES ALIGNMENT';
+                }
+                document.getElementById('ummahStatus').textContent = ummahStatus;
+            }
+
+            updateUI() {
+                if (this.connectionTime) {
+                    const elapsed = Math.floor((Date.now() - this.connectionTime) / 1000);
+                    const mins = Math.floor(elapsed / 60);
+                    const secs = elapsed % 60;
+                    document.getElementById('connectionTime').textContent = 
+                        `Connected: ${mins}m ${secs}s`;
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.synapse = new GenesisSacredSynapse();
+        });
+    </script>
+</body>
+</html>

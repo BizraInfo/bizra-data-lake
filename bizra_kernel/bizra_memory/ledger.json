@@ -1,0 +1,10 @@
+[
+    {
+        "index": 0,
+        "timestamp": "2026-01-01T00:00:00Z",
+        "state": "GENESIS",
+        "data": "Universal Genesis Activation \u2014 BIZRA Node0",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "e4224c7e47fc1f587bae7e0c1c433c816ae66bdeb4192e3411af49aeaf821f2f"
+    }
+]

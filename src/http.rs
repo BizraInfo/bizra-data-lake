@@ -8,19 +8,20 @@
 // - Prometheus metrics per endpoint
 
 use crate::{
+    errors::{BridgeError, PolicyError},
     ihsan,
     mcp::{self, JsonRpcRequest},
-    metrics,
-    ollama,
+    metrics, ollama,
     pat_enhanced::EnhancedPATOrchestrator,
     sape,
     types::{AdapterModes, DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
     MetaAlphaDualAgentic,
 };
+use anyhow::bail;
 use axum::{
     body::Body,
-    extract::State,
-    http::{header, HeaderMap, Method, Request, StatusCode},
+    extract::{Extension, State},
+    http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -121,6 +122,43 @@ async fn rate_limit_middleware(
     next.run(request).await
 }
 
+// ============================================================
+// Request ID Middleware
+// ============================================================
+
+const REQUEST_ID_HEADER: &str = "x-request-id";
+
+#[derive(Clone, Debug)]
+struct RequestId(String);
+
+async fn request_id_middleware(mut request: Request<Body>, next: Next) -> Response {
+    let request_id = request
+        .headers()
+        .get(REQUEST_ID_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.trim())
+        .filter(|value| {
+            // Validate: 1-64 chars, alphanumeric or hyphens only
+            !value.is_empty()
+                && value.len() <= 64
+                && value.chars().all(|c| c.is_alphanumeric() || c == '-')
+        })
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| Uuid::new_v4().simple().to_string());
+
+    request
+        .extensions_mut()
+        .insert(RequestId(request_id.clone()));
+
+    let mut response = next.run(request).await;
+    if let Ok(value) = HeaderValue::from_str(&request_id) {
+        response
+            .headers_mut()
+            .insert(header::HeaderName::from_static(REQUEST_ID_HEADER), value);
+    }
+    response
+}
+
 fn extract_client_id(request: &Request<Body>) -> String {
     // Check X-Forwarded-For first (reverse proxy)
     if let Some(forwarded) = request
@@ -154,9 +192,9 @@ fn extract_client_id(request: &Request<Body>) -> String {
         .get(header::ACCEPT_LANGUAGE)
         .and_then(|h| h.to_str().ok())
         .unwrap_or("no-lang");
-    
+
     // Create a stable cryptographic hash-based bucket key (SHA-256)
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(ua.as_bytes());
     hasher.update(b"|");
@@ -202,7 +240,12 @@ async fn auth_middleware(
 fn is_public_endpoint(path: &str) -> bool {
     matches!(
         path,
-        "/" | "/health" | "/metrics" | "/dashboard" | "/static/dashboard.html"
+        "/" | "/health"
+            | "/health/ready"
+            | "/health/live"
+            | "/metrics"
+            | "/dashboard"
+            | "/static/dashboard.html"
     ) || path.starts_with("/static/")
 }
 
@@ -212,13 +255,7 @@ pub async fn create_http_server(
 ) -> anyhow::Result<()> {
     let enhanced_pat = Arc::new(EnhancedPATOrchestrator::new().await?);
 
-    let (api_token, api_token_generated) = api_token_from_env_or_generate();
-    if api_token_generated {
-        warn!(
-            "BIZRA_API_TOKEN not set; generated ephemeral token for this run: {}",
-            api_token
-        );
-    }
+    let api_token = api_token_from_env()?;
 
     // Initialize rate limiter: 100 tokens, refill 2 per second (allows bursts, steady 120/min)
     let rate_limiter = RateLimiter::new(100, 2.0);
@@ -251,12 +288,17 @@ pub async fn create_http_server(
         .route("/ollama/generate", post(ollama_generate_handler))
         .route("/ollama/chat", post(ollama_chat_handler))
         .route("/ollama/status", get(ollama_status_handler))
-        .layer(middleware::from_fn_with_state(api_token.clone(), auth_middleware));
+        .layer(middleware::from_fn_with_state(
+            api_token.clone(),
+            auth_middleware,
+        ));
 
     // Public routes (no auth required)
     let public_routes = Router::new()
         .route("/", get(root))
         .route("/health", get(health))
+        .route("/health/ready", get(health_ready))
+        .route("/health/live", get(health_live))
         .route("/metrics", get(prometheus_metrics))
         .route("/stats", get(stats))
         .route("/dashboard", get(dashboard_redirect))
@@ -266,15 +308,23 @@ pub async fn create_http_server(
     let app = Router::new()
         .merge(protected_routes)
         .merge(public_routes)
-        .layer(middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
+        .layer(middleware::from_fn_with_state(
+            rate_limiter,
+            rate_limit_middleware,
+        ))
         .layer(cors_layer())
         .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(request_id_middleware))
         .with_state((system, enhanced_pat, api_token));
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
+    let host = http_bind_host();
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", host, port)).await?;
 
-    info!("🌐 HTTP Server listening on http://127.0.0.1:{}", port);
-    info!("📊 Dashboard available at http://127.0.0.1:{}/static/dashboard.html", port);
+    info!("🌐 HTTP Server listening on http://{}:{}", host, port);
+    info!(
+        "📊 Dashboard available at http://{}:{}/static/dashboard.html",
+        host, port
+    );
     info!("🔒 Protected endpoints require Authorization: Bearer <token>");
 
     axum::serve(listener, app).await?;
@@ -314,10 +364,129 @@ async fn root() -> impl IntoResponse {
 }
 
 async fn health() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "status": "healthy",
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-    }))
+    let constitution = ihsan::constitution();
+    let ihsan_env = ihsan::current_env();
+
+    // Get SAPE statistics
+    let sape_stats = {
+        let sape_engine = sape::get_sape();
+        let guard = sape_engine.lock().unwrap();
+        guard.get_statistics()
+    };
+
+    // Determine overall system health
+    let ihsan_healthy = constitution.threshold() <= 1.0;
+    let sape_healthy = sape_stats.total_patterns >= 5;
+    let overall_healthy = ihsan_healthy && sape_healthy;
+
+    let status_code = if overall_healthy {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        status_code,
+        Json(serde_json::json!({
+            "status": if overall_healthy { "healthy" } else { "degraded" },
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "ihsan": {
+                "constitution_id": constitution.id(),
+                "env": ihsan_env,
+                "threshold_baseline": constitution.threshold(),
+                "threshold_ci": constitution.threshold_for("ci", "code"),
+                "threshold_production": constitution.threshold_for("production", "code"),
+                "dimensions_count": constitution.weights().len(),
+                "enforcement_active": ihsan::should_enforce()
+            },
+            "sape": {
+                "patterns_registered": sape_stats.total_patterns,
+                "patterns_active": sape_stats.active_patterns,
+                "sequences_observed": sape_stats.sequences_observed,
+                "unique_sequences": sape_stats.unique_sequences,
+                "pending_elevations": sape_stats.pending_elevations,
+                "total_latency_saved_ms": sape_stats.total_latency_saved_ms,
+                "total_snr_improvement": sape_stats.total_snr_improvement
+            },
+            "agents": {
+                "pat_count": 7,
+                "sat_count": 5,
+                "total": 12
+            },
+            "gates": {
+                "security": "active",
+                "quality": "active",
+                "ihsan": if ihsan_healthy { "active" } else { "degraded" },
+                "performance": "active"
+            }
+        })),
+    )
+}
+
+/// Kubernetes-style readiness probe
+/// Returns 200 if service is ready to accept traffic, 503 otherwise
+async fn health_ready() -> impl IntoResponse {
+    let constitution = ihsan::constitution();
+
+    // Check critical components
+    let sape_ready = {
+        let sape_engine = sape::get_sape();
+        let guard = sape_engine.lock().unwrap();
+        guard.get_statistics().total_patterns >= 5
+    };
+
+    // Check MCP
+    let mcp_ready = {
+        let mcp_client = mcp::get_mcp().await;
+        let client = mcp_client.lock().await;
+        !client.list_tools().is_empty()
+    };
+
+    // Check Ollama
+    let ollama_ready = {
+        let client = ollama::get_ollama().await;
+        client.is_connected()
+    };
+
+    // Check Filesystem (evidence/ write access)
+    let fs_ready = std::fs::create_dir_all("evidence")
+        .and_then(|_| std::fs::write("evidence/.health_check", b"ok"))
+        .is_ok();
+
+    let ihsan_ready = constitution.weights().len() >= 5;
+    let is_ready = sape_ready && ihsan_ready && mcp_ready && ollama_ready && fs_ready;
+
+    let status_code = if is_ready {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        status_code,
+        Json(serde_json::json!({
+            "ready": is_ready,
+            "checks": {
+                "sape_patterns": sape_ready,
+                "ihsan_constitution": ihsan_ready,
+                "mcp_tools": mcp_ready,
+                "ollama_connection": ollama_ready,
+                "fs_write_access": fs_ready
+            }
+        })),
+    )
+}
+
+/// Kubernetes-style liveness probe
+/// Returns 200 if process is alive, used for restart decisions
+async fn health_live() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "alive": true,
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        })),
+    )
 }
 
 /// Prometheus metrics endpoint for Glass Cockpit observability
@@ -325,7 +494,10 @@ async fn prometheus_metrics() -> impl IntoResponse {
     let metrics = metrics::gather_metrics();
     (
         StatusCode::OK,
-        [(header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8")],
+        [(
+            header::CONTENT_TYPE,
+            "text/plain; version=0.0.4; charset=utf-8",
+        )],
         metrics,
     )
 }
@@ -363,15 +535,52 @@ async fn execute_dual(
         Arc<EnhancedPATOrchestrator>,
         Arc<str>,
     )>,
-    Json(request): Json<DualAgenticRequest>,
-) -> Result<Json<DualAgenticResponse>, (StatusCode, String)> {
+    Extension(request_id): Extension<RequestId>,
+    Json(mut request): Json<DualAgenticRequest>,
+) -> Result<Json<DualAgenticResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Authentication handled by middleware
+    let request_id = request_id.0;
+    request
+        .context
+        .entry("request_id".to_string())
+        .or_insert_with(|| request_id.clone());
     match system.execute(request).await {
         Ok(response) => Ok(Json(response)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Execution failed: {}", e),
-        )),
+        Err(e) => {
+            if let Some(err) = e.downcast_ref::<BridgeError>() {
+                let (status, code, message) = match err {
+                    BridgeError::SatBlocked { message, .. } => {
+                        (StatusCode::FORBIDDEN, "SAT_BLOCKED", message.clone())
+                    }
+                    BridgeError::IhsanGateFailed { .. } => (
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "IHSAN_GATE_FAILED",
+                        err.to_string(),
+                    ),
+                };
+                warn!(error = %message, code = %code, request_id = %request_id, "Policy VETO");
+                return Err((
+                    status,
+                    Json(serde_json::json!({
+                        "error": "policy_rejection",
+                        "code": code,
+                        "message": message,
+                        "request_id": request_id,
+                    })),
+                ));
+            }
+
+            warn!(error = %e, request_id = %request_id, "Execution failed");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "internal_error",
+                    "code": "EXECUTION_FAILED",
+                    "message": "Execution failed",
+                    "request_id": request_id,
+                })),
+            ))
+        }
     }
 }
 
@@ -381,23 +590,61 @@ async fn execute_enhanced(
         Arc<EnhancedPATOrchestrator>,
         Arc<str>,
     )>,
-    Json(request): Json<EnhancedDualAgenticRequest>,
-) -> Result<Json<DualAgenticResponse>, (StatusCode, String)> {
+    Extension(request_id): Extension<RequestId>,
+    Json(mut request): Json<EnhancedDualAgenticRequest>,
+) -> Result<Json<DualAgenticResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Authentication handled by middleware
+    let request_id = request_id.0;
+    request
+        .base
+        .context
+        .entry("request_id".to_string())
+        .or_insert_with(|| request_id.clone());
     match enhanced_pat.execute_enhanced(request).await {
         Ok(response) => Ok(Json(response)),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Enhanced execution failed: {}", e),
-        )),
+        Err(e) => {
+            if let Some(err) = e.downcast_ref::<PolicyError>() {
+                let (status, code) = match err {
+                    PolicyError::McpToolsBlocked { .. } => {
+                        (StatusCode::FORBIDDEN, "MCP_POLICY_BLOCKED")
+                    }
+                    PolicyError::IhsanGateFailed { .. } => {
+                        (StatusCode::UNPROCESSABLE_ENTITY, "IHSAN_GATE_FAILED")
+                    }
+                };
+                return Err((
+                    status,
+                    Json(serde_json::json!({
+                        "error": "policy_rejection",
+                        "code": code,
+                        "message": err.to_string(),
+                        "request_id": request_id,
+                    })),
+                ));
+            }
+            warn!(error = %e, request_id = %request_id, "Enhanced execution failed");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "internal_error",
+                    "code": "ENHANCED_EXECUTION_FAILED",
+                    "message": "Enhanced execution failed",
+                    "request_id": request_id,
+                })),
+            ))
+        }
     }
 }
 
-fn api_token_from_env_or_generate() -> (Arc<str>, bool) {
+fn api_token_from_env() -> anyhow::Result<Arc<str>> {
     match std::env::var("BIZRA_API_TOKEN") {
-        Ok(v) if !v.trim().is_empty() => (Arc::<str>::from(v.trim().to_string()), false),
-        _ => (Arc::<str>::from(Uuid::new_v4().simple().to_string()), true),
+        Ok(v) if !v.trim().is_empty() => Ok(Arc::<str>::from(v.trim().to_string())),
+        _ => bail!("BIZRA_API_TOKEN not set; refusing to start without auth"),
     }
+}
+
+fn http_bind_host() -> String {
+    std::env::var("BIZRA_HTTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 // ============================================================
@@ -413,9 +660,7 @@ async fn dashboard_redirect() -> impl IntoResponse {
 // ============================================================
 
 /// Handle MCP JSON-RPC 2.0 requests
-async fn mcp_rpc_handler(
-    Json(request): Json<JsonRpcRequest>,
-) -> impl IntoResponse {
+async fn mcp_rpc_handler(Json(request): Json<JsonRpcRequest>) -> impl IntoResponse {
     let mcp_client = mcp::get_mcp().await;
     let client = mcp_client.lock().await;
     let response = client.handle_jsonrpc(request).await;
@@ -426,20 +671,23 @@ async fn mcp_rpc_handler(
 async fn mcp_tools_list() -> impl IntoResponse {
     let mcp_client = mcp::get_mcp().await;
     let client = mcp_client.lock().await;
-    let tools: Vec<serde_json::Value> = client.list_tools()
+    let tools: Vec<serde_json::Value> = client
+        .list_tools()
         .into_iter()
-        .map(|t| serde_json::json!({
-            "name": t.name,
-            "description": t.description,
-            "parameters": t.parameters.iter().map(|p| serde_json::json!({
-                "name": p.name,
-                "type": p.type_,
-                "description": p.description,
-                "required": p.required,
-            })).collect::<Vec<_>>(),
-        }))
+        .map(|t| {
+            serde_json::json!({
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.parameters.iter().map(|p| serde_json::json!({
+                    "name": p.name,
+                    "type": p.type_,
+                    "description": p.description,
+                    "required": p.required,
+                })).collect::<Vec<_>>(),
+            })
+        })
         .collect();
-    
+
     Json(serde_json::json!({
         "tools": tools,
         "count": tools.len(),
@@ -456,25 +704,26 @@ struct SAPEProbeRequest {
 }
 
 /// Execute SAPE probes on content
-async fn sape_probes_handler(
-    Json(request): Json<SAPEProbeRequest>,
-) -> impl IntoResponse {
+async fn sape_probes_handler(Json(request): Json<SAPEProbeRequest>) -> impl IntoResponse {
     let sape_engine = sape::get_sape();
     let mut engine = sape_engine.lock().unwrap();
-    
+
     let results = engine.execute_probes(&request.content);
     let ihsan_score = engine.calculate_ihsan_score(&results);
-    
-    let probe_results: Vec<serde_json::Value> = results.iter().map(|r| {
-        serde_json::json!({
-            "dimension": r.dimension.name(),
-            "score": r.score,
-            "confidence": r.confidence,
-            "flags": r.flags,
-            "passed": r.passed(0.7),
+
+    let probe_results: Vec<serde_json::Value> = results
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "dimension": r.dimension.name(),
+                "score": r.score,
+                "confidence": r.confidence,
+                "flags": r.flags,
+                "passed": r.passed(0.7),
+            })
         })
-    }).collect();
-    
+        .collect();
+
     Json(serde_json::json!({
         "ihsan_score": ihsan_score,
         "passed": ihsan_score >= 0.85,
@@ -488,18 +737,21 @@ async fn sape_stats_handler() -> impl IntoResponse {
     let sape_engine = sape::get_sape();
     let engine = sape_engine.lock().unwrap();
     let stats = engine.get_statistics();
-    
-    let patterns: Vec<serde_json::Value> = engine.get_active_patterns()
+
+    let patterns: Vec<serde_json::Value> = engine
+        .get_active_patterns()
         .iter()
-        .map(|p| serde_json::json!({
-            "id": p.id,
-            "name": p.name,
-            "activations": p.activation_count,
-            "latency_saved_ms": p.latency_reduction_ms,
-            "snr_improvement": p.snr_improvement,
-        }))
+        .map(|p| {
+            serde_json::json!({
+                "id": p.id,
+                "name": p.name,
+                "activations": p.activation_count,
+                "latency_saved_ms": p.latency_reduction_ms,
+                "snr_improvement": p.snr_improvement,
+            })
+        })
         .collect();
-    
+
     Json(serde_json::json!({
         "total_patterns": stats.total_patterns,
         "active_patterns": stats.active_patterns,
@@ -533,7 +785,7 @@ async fn ollama_generate_handler(
     Json(request): Json<OllamaGenerateRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let client = ollama::get_ollama().await;
-    
+
     if !client.is_connected() {
         // Return fallback response
         let fallback = ollama::OllamaFallback::simulated_response(&request.prompt);
@@ -543,13 +795,16 @@ async fn ollama_generate_handler(
             "simulated": true,
         })));
     }
-    
+
     let _options = request.temperature.map(|t| ollama::GenerationOptions {
         temperature: Some(t),
         ..Default::default()
     });
-    
-    match client.bizra_generate(&request.prompt, request.model.as_deref()).await {
+
+    match client
+        .bizra_generate(&request.prompt, request.model.as_deref())
+        .await
+    {
         Ok(response) => Ok(Json(serde_json::json!({
             "response": response.response,
             "model": response.model,
@@ -566,7 +821,7 @@ async fn ollama_chat_handler(
     Json(request): Json<OllamaChatRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let client = ollama::get_ollama().await;
-    
+
     if !client.is_connected() {
         return Ok(Json(serde_json::json!({
             "message": {
@@ -577,10 +832,13 @@ async fn ollama_chat_handler(
             "simulated": true,
         })));
     }
-    
+
     let history = request.history.unwrap_or_default();
-    
-    match client.bizra_chat(&request.message, history, request.model.as_deref()).await {
+
+    match client
+        .bizra_chat(&request.message, history, request.model.as_deref())
+        .await
+    {
         Ok(response) => Ok(Json(serde_json::json!({
             "message": response.message,
             "model": response.model,
@@ -595,13 +853,13 @@ async fn ollama_chat_handler(
 async fn ollama_status_handler() -> impl IntoResponse {
     let client = ollama::get_ollama().await;
     let connected = client.is_connected();
-    
+
     let models = if connected {
         client.list_models().await.ok()
     } else {
         None
     };
-    
+
     Json(serde_json::json!({
         "connected": connected,
         "models": models.map(|m| m.into_iter().map(|info| serde_json::json!({

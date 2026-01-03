@@ -40,3 +40,44 @@ pub enum SystemError {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
+
+#[derive(Error, Debug)]
+pub enum BridgeError {
+    #[error("SAT BLOCKED: {message} (escalation={escalation_id}, receipt={receipt_id})")]
+    SatBlocked {
+        message: String,
+        escalation_id: String,
+        receipt_id: String,
+    },
+    #[error(
+        "IHSAN GATE FAILED: env={env} score={score:.4} < threshold={threshold:.4} (escalation={escalation_id})"
+    )]
+    IhsanGateFailed {
+        env: String,
+        score: f64,
+        threshold: f64,
+        escalation_id: String,
+    },
+}
+
+#[derive(Error, Debug)]
+pub enum PolicyError {
+    #[error("MCP TOOLS BLOCKED: {message}")]
+    McpToolsBlocked { message: String },
+    #[error("IHSAN GATE FAILED: env={env} score={score:.4} < threshold={threshold:.4}")]
+    IhsanGateFailed {
+        env: String,
+        score: f64,
+        threshold: f64,
+    },
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OpErrorCode {
+    SatBlocked,
+    IhsanGateFailed,
+    McpPolicyBlocked,
+    ExecutionFailed,
+    InternalError,
+}

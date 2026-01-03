@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-12-22T14:42:11.873205",
+  "dimensions": {
+    "Test Coverage": {
+      "score": 5.0,
+      "source": "cargo test",
+      "details": "Tests timed out after 10 minutes"
+    },
+    "Code Quality": {
+      "score": 9.5,
+      "source": "clippy",
+      "details": "1 warnings, 0 errors"
+    },
+    "Security Posture": {
+      "score": 8.0,
+      "source": "security scan",
+      "details": "1 potential issues"
+    },
+    "Ethics Framework": {
+      "score": 10.0,
+      "source": "constitution",
+      "details": "Constitution v1 loaded"
+    },
+    "Auditability": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "709 evidence files, 296 receipts"
+    },
+    "Architecture": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "23 Rust + 13 Python modules"
+    },
+    "Documentation": {
+      "score": 10.0,
+      "source": "filesystem",
+      "details": "91 markdown files"
+    }
+  },
+  "ihsan_score": 0.819,
+  "overall_health": 8.928571428571429,
+  "test_summary": {},
+  "evidence_count": 709,
+  "warnings": []
+}

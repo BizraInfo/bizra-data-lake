@@ -1,0 +1,665 @@
+[
+    {
+        "index": 0,
+        "timestamp": "2026-01-01T00:00:00Z",
+        "state": "GENESIS",
+        "data": "TAMPERED DATA",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "e4224c7e47fc1f587bae7e0c1c433c816ae66bdeb4192e3411af49aeaf821f2f"
+    },
+    {
+        "index": 1,
+        "timestamp": "2026-01-01T03:35:55.154998",
+        "state": "TamperTest",
+        "data": {
+            "data": "Data",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "ihsan": 1.0
+            }
+        },
+        "prev_hash": "e4224c7e47fc1f587bae7e0c1c433c816ae66bdeb4192e3411af49aeaf821f2f",
+        "hash": "d4d7bb6d98a570387ad58fffd1ae3e8ae7fe0badfa4481319abc2924f29a6e2d"
+    },
+    {
+        "index": 2,
+        "timestamp": "2026-01-01T03:36:35.422246",
+        "state": "TamperTest",
+        "data": {
+            "data": "Data",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "ihsan": 1.0
+            }
+        },
+        "prev_hash": "d4d7bb6d98a570387ad58fffd1ae3e8ae7fe0badfa4481319abc2924f29a6e2d",
+        "hash": "8e91fea643d1e1d308a47f27d31420fb728e1a137acf271b62d3f3980ec40c40"
+    },
+    {
+        "index": 3,
+        "timestamp": "2026-01-01T03:40:49.634833",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:40:49.634571",
+                "status": "APPROVED",
+                "signature": "44176a0ba055f246ff8ab6ad705596e39717ddeb9936f2620258ed7d32ab6ca1"
+            }
+        },
+        "prev_hash": "8e91fea643d1e1d308a47f27d31420fb728e1a137acf271b62d3f3980ec40c40",
+        "hash": "f40036f8dad000ab8cef0ac12997a290183147e5d0d80005b69b8af0c300e172"
+    },
+    {
+        "index": 4,
+        "timestamp": "2026-01-01T03:53:10.070012",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:53:10.069726",
+                "status": "APPROVED",
+                "signature": "4a20ebd60dac5ba7b115b0f6e35a5a209082272f378dd664b43c86d82086108e"
+            }
+        },
+        "prev_hash": "f40036f8dad000ab8cef0ac12997a290183147e5d0d80005b69b8af0c300e172",
+        "hash": "ddceb829a8eb70f766bf38bdc875ad71467593ffd71770dd949e0fad072785da"
+    },
+    {
+        "index": 5,
+        "timestamp": "2026-01-01T03:53:10.082988",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Generate a truthfulness-anchored economic proposal standing on the shoulders of giants.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:53:10.072289",
+                "status": "APPROVED",
+                "signature": "15e5c0094af8ae8bef517d4e9b29a987afad37dbd019da44b95833ba9f9bb125"
+            }
+        },
+        "prev_hash": "ddceb829a8eb70f766bf38bdc875ad71467593ffd71770dd949e0fad072785da",
+        "hash": "b8abb50f297fa555cc8b5c146274dbd4de4f59c64cb015f49b78471710db9b97"
+    },
+    {
+        "index": 6,
+        "timestamp": "2026-01-01T03:53:59.784908",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:53:59.784401",
+                "status": "APPROVED",
+                "signature": "2fc97d46db1ace23d888731c5de54f283c8b0828a30892b8369e0d165863387c"
+            }
+        },
+        "prev_hash": "b8abb50f297fa555cc8b5c146274dbd4de4f59c64cb015f49b78471710db9b97",
+        "hash": "4f9b0626865e99f7e9e0f3d1736e32609a703f94f7ba2535c229e3471554be2a"
+    },
+    {
+        "index": 7,
+        "timestamp": "2026-01-01T03:53:59.797071",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Generate a truthfulness-anchored economic proposal standing on the shoulders of giants.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:53:59.787045",
+                "status": "APPROVED",
+                "signature": "7f0621c296a848697565c93403f5bea56728414d0b47558eda313f5952ab1836"
+            }
+        },
+        "prev_hash": "4f9b0626865e99f7e9e0f3d1736e32609a703f94f7ba2535c229e3471554be2a",
+        "hash": "05360313dedde6326ed3bbcb621da33652b82290791f0c8c19ebe82a403ea32b"
+    },
+    {
+        "index": 8,
+        "timestamp": "2026-01-01T03:54:37.151231",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:54:37.150801",
+                "status": "APPROVED",
+                "signature": "70e9e9a512673e4773f6465797c8e471c598bb80a5465ca94dde0befdfe7b39b"
+            }
+        },
+        "prev_hash": "05360313dedde6326ed3bbcb621da33652b82290791f0c8c19ebe82a403ea32b",
+        "hash": "fc99edabd6d4a8b3fcedf35db03a2aefa708cbdd9d19ebb931f05c48898b8fe8"
+    },
+    {
+        "index": 9,
+        "timestamp": "2026-01-01T03:54:37.164411",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Generate a truthfulness-anchored economic proposal standing on the shoulders of giants.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:54:37.153377",
+                "status": "APPROVED",
+                "signature": "ba1328185c3642608cbc0551917aa72fc6164a29ee751ea0946f3aa99001459d"
+            }
+        },
+        "prev_hash": "fc99edabd6d4a8b3fcedf35db03a2aefa708cbdd9d19ebb931f05c48898b8fe8",
+        "hash": "376acc28135cf9911c7e08d94ca1bbea89fbe39b1740800ed16c79653dda3842"
+    },
+    {
+        "index": 10,
+        "timestamp": "2026-01-01T03:55:01.772055",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:55:01.771562",
+                "status": "APPROVED",
+                "signature": "7d6b7c13aaa1fa75453914354387fef3081ceee4244e051cf77e486d2bcf48b0"
+            }
+        },
+        "prev_hash": "376acc28135cf9911c7e08d94ca1bbea89fbe39b1740800ed16c79653dda3842",
+        "hash": "fd363bb25a0fdf5e2ac152648b54d52227b2b5ee3f3122447fcfa1b980498c48"
+    },
+    {
+        "index": 11,
+        "timestamp": "2026-01-01T03:55:01.785358",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Generate a truthfulness-anchored economic proposal standing on the shoulders of giants.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:55:01.774659",
+                "status": "APPROVED",
+                "signature": "21376f336e39ef54691eb13480e551dc9fc7bcef5861b3ba637036244dc12e16"
+            }
+        },
+        "prev_hash": "fd363bb25a0fdf5e2ac152648b54d52227b2b5ee3f3122447fcfa1b980498c48",
+        "hash": "ca8edb88d508b6cf74a2d191e0c19cf421ebac85d190121915810f14ae6464b2"
+    },
+    {
+        "index": 12,
+        "timestamp": "2026-01-01T03:55:31.239680",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:55:31.239386",
+                "status": "APPROVED",
+                "signature": "f093c32d8d154ed4da1cd49b0390de2ae8ae03becc801f68828defb5937fc802"
+            }
+        },
+        "prev_hash": "ca8edb88d508b6cf74a2d191e0c19cf421ebac85d190121915810f14ae6464b2",
+        "hash": "0fe370b67d995042df6e790e095cbf93a5edcf02011ef4dd579882cb018973b0"
+    },
+    {
+        "index": 13,
+        "timestamp": "2026-01-01T03:55:31.252299",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Generate a truthfulness-anchored economic proposal standing on the shoulders of giants.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T03:55:31.241851",
+                "status": "APPROVED",
+                "signature": "98b93a77fdabdcc42a9f6a67376dc7f41b175c63d5c7bc890641bca28cc09730"
+            }
+        },
+        "prev_hash": "0fe370b67d995042df6e790e095cbf93a5edcf02011ef4dd579882cb018973b0",
+        "hash": "13a1934a310d26248f2285e920dd3d2766cf2bb10cf248e227f02eb510b6e959"
+    },
+    {
+        "index": 14,
+        "timestamp": "2026-01-01T04:42:35.296159",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:42:35.295848",
+                "status": "APPROVED",
+                "signature": "b2128407f9cfde1ab00a55e320281e99ebb4a0acb01bde95292ef9c64028d663"
+            }
+        },
+        "prev_hash": "13a1934a310d26248f2285e920dd3d2766cf2bb10cf248e227f02eb510b6e959",
+        "hash": "1c61a72895fb7c172f1b2fe561795843f207cc4e5d9b58cd255f657d5a5a4287"
+    },
+    {
+        "index": 15,
+        "timestamp": "2026-01-01T04:42:35.364936",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:42:35.364564",
+                "status": "APPROVED",
+                "signature": "9e58a00eb19184460a53691d2408f60250328f27c2eb753ac7289f64a0538372"
+            }
+        },
+        "prev_hash": "1c61a72895fb7c172f1b2fe561795843f207cc4e5d9b58cd255f657d5a5a4287",
+        "hash": "c046718e7ced3e3287dbf245111ac323395f1e73d24b5c29412fbd4325c2f225"
+    },
+    {
+        "index": 16,
+        "timestamp": "2026-01-01T04:43:04.107975",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:43:04.107508",
+                "status": "APPROVED",
+                "signature": "cacd7a3f96521001b91f3c8e4c999e68ac7989fd46417c7f25315be2ad36a537"
+            }
+        },
+        "prev_hash": "c046718e7ced3e3287dbf245111ac323395f1e73d24b5c29412fbd4325c2f225",
+        "hash": "5aad9ace7c967086f779356f4b19fa2774937d68b8512b641554fe8555044687"
+    },
+    {
+        "index": 17,
+        "timestamp": "2026-01-01T04:43:04.178613",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:43:04.178223",
+                "status": "APPROVED",
+                "signature": "c2accad1c8cac8f28598e883df541482b61e97de9a36d75341f418480b7c3982"
+            }
+        },
+        "prev_hash": "5aad9ace7c967086f779356f4b19fa2774937d68b8512b641554fe8555044687",
+        "hash": "5eac9b19871861d33bfb5753db01700f99564ad7e166b176abd72e50180dd660"
+    },
+    {
+        "index": 18,
+        "timestamp": "2026-01-01T04:45:13.133641",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:45:13.133348",
+                "status": "APPROVED",
+                "signature": "613d912b911669991383c486bb346c855b0afa2dfa07e63274ab379ef29fd411"
+            }
+        },
+        "prev_hash": "5eac9b19871861d33bfb5753db01700f99564ad7e166b176abd72e50180dd660",
+        "hash": "600f3c3f85ea7a1b8e7aa51a5b14676c5d1ab1e352518fbc031bee931ed89f0d"
+    },
+    {
+        "index": 19,
+        "timestamp": "2026-01-01T04:45:13.202174",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:45:13.201852",
+                "status": "APPROVED",
+                "signature": "7a7c2da96199a03783ace27e672c01297953b6d473c5f356f1d34fe7a33126fc"
+            }
+        },
+        "prev_hash": "600f3c3f85ea7a1b8e7aa51a5b14676c5d1ab1e352518fbc031bee931ed89f0d",
+        "hash": "daf59d566fd24f3dc9f0ba38c2f7192e87e883fbc6d0599d19281cb421ed2d3b"
+    },
+    {
+        "index": 20,
+        "timestamp": "2026-01-01T04:45:49.929834",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:45:49.929583",
+                "status": "APPROVED",
+                "signature": "aacc24bfc007a1b012f7bcb30a63bae182352e6620cbdeae5bf76d5cb03e03cf"
+            }
+        },
+        "prev_hash": "daf59d566fd24f3dc9f0ba38c2f7192e87e883fbc6d0599d19281cb421ed2d3b",
+        "hash": "641b73c4bdb8d2c364e4bc2484caf5e38614d774297a326501b9861870795dc1"
+    },
+    {
+        "index": 21,
+        "timestamp": "2026-01-01T04:45:49.998133",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:45:49.997716",
+                "status": "APPROVED",
+                "signature": "8a03931c77f0de974225ad84a88d78b8fabb7bab4c8d9502071ee037f18b6ec2"
+            }
+        },
+        "prev_hash": "641b73c4bdb8d2c364e4bc2484caf5e38614d774297a326501b9861870795dc1",
+        "hash": "3b7ef1b954160b534f0d7ff8af4e7c316d97204b18d4de7a7348f9c17a896d67"
+    },
+    {
+        "index": 22,
+        "timestamp": "2026-01-01T04:57:19.726234",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:57:19.726001",
+                "status": "APPROVED",
+                "signature": "1426a1fa69acce9fe0f488e9b2ba3a154a54df27b4fc67c76e05be77481d6c42"
+            }
+        },
+        "prev_hash": "3b7ef1b954160b534f0d7ff8af4e7c316d97204b18d4de7a7348f9c17a896d67",
+        "hash": "1b97df800da928e3956deafad16848ee5ea1eb1c4bd698ff8c4efa985eab6d00"
+    },
+    {
+        "index": 23,
+        "timestamp": "2026-01-01T04:57:19.798383",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:57:19.798154",
+                "status": "APPROVED",
+                "signature": "489290c698b8df73e8b8a8247d46c2f462d8cda10259ff77daa056fcfe8f92fd"
+            }
+        },
+        "prev_hash": "1b97df800da928e3956deafad16848ee5ea1eb1c4bd698ff8c4efa985eab6d00",
+        "hash": "af1f36f543c7bb181c9c0f0f007ff3cc373ccc9a51b544efc04cd70166c22dd0"
+    },
+    {
+        "index": 24,
+        "timestamp": "2026-01-01T04:58:38.444548",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:58:38.444339",
+                "status": "APPROVED",
+                "signature": "0d1a0ca4a304bf52321e7d2d16ef1c8c556af453e4f74630057b108f2bfdf983"
+            }
+        },
+        "prev_hash": "af1f36f543c7bb181c9c0f0f007ff3cc373ccc9a51b544efc04cd70166c22dd0",
+        "hash": "1c6884b3014f88595b27851bfbc3b0fcc74eabd81384658c98c065c8a3150a3a"
+    },
+    {
+        "index": 25,
+        "timestamp": "2026-01-01T04:58:38.516400",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a strategy for BIZRA Universal Genesis using the discovered 12 local LLM nodes.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T04:58:38.515816",
+                "status": "APPROVED",
+                "signature": "69e55df326edbb68463971a82ce5640ac3d6c1e06fa6e9b69c5faa76a02528b9"
+            }
+        },
+        "prev_hash": "1c6884b3014f88595b27851bfbc3b0fcc74eabd81384658c98c065c8a3150a3a",
+        "hash": "7c18febe7e61d527400cda242bfa92b3ea03fdef80a0f105ea2580cdfd53cf80"
+    },
+    {
+        "index": 26,
+        "timestamp": "2026-01-01T14:35:29.145461",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:35:29.145114",
+                "status": "APPROVED",
+                "signature": "79b997aebbf80454017ef25f55008c22e8245733dc3f0430637dccceb1298e50"
+            }
+        },
+        "prev_hash": "7c18febe7e61d527400cda242bfa92b3ea03fdef80a0f105ea2580cdfd53cf80",
+        "hash": "de5e323cbc92c1140d6cc32db7d858b0ad86808ec40d34def1eb504c95e4a223"
+    },
+    {
+        "index": 27,
+        "timestamp": "2026-01-01T14:35:29.219109",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a sovereign economic protocol based on the Third Fact.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:35:29.218744",
+                "status": "APPROVED",
+                "signature": "58124b6becbd92c8acc5a4a225c94a72227b6502459e909a485758341aee4ff4"
+            }
+        },
+        "prev_hash": "de5e323cbc92c1140d6cc32db7d858b0ad86808ec40d34def1eb504c95e4a223",
+        "hash": "bdcda8b016d45077164e281a1a59bd689c7fc3bddc61641a8a6912b17e4bf4f4"
+    },
+    {
+        "index": 28,
+        "timestamp": "2026-01-01T14:36:09.711135",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:36:09.710652",
+                "status": "APPROVED",
+                "signature": "79fb3bdfde2e24bf1fa1b9dd2fa1d9ed74e7f54ddce8bf4c1e983e0ad10d3098"
+            }
+        },
+        "prev_hash": "bdcda8b016d45077164e281a1a59bd689c7fc3bddc61641a8a6912b17e4bf4f4",
+        "hash": "e0f1243446f3a93853a048197810b717b649aecbacb7dbe49db9fe2fac49d768"
+    },
+    {
+        "index": 29,
+        "timestamp": "2026-01-01T14:36:09.785672",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a sovereign economic protocol based on the Third Fact.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:36:09.785107",
+                "status": "APPROVED",
+                "signature": "f4de487cee355842fe16be0906162f7a06cf8cb5df46a88b435b371f30bc7494"
+            }
+        },
+        "prev_hash": "e0f1243446f3a93853a048197810b717b649aecbacb7dbe49db9fe2fac49d768",
+        "hash": "58abb5b1f3b4019a18279d26938588f9cda51ed2391c1439d031849cb2c046de"
+    },
+    {
+        "index": 30,
+        "timestamp": "2026-01-01T14:36:47.418393",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:36:47.417943",
+                "status": "APPROVED",
+                "signature": "ffba2caf5c05de8a01e4da9e3ac887f9037c38bb50ef5fedf71f533109e23768"
+            }
+        },
+        "prev_hash": "58abb5b1f3b4019a18279d26938588f9cda51ed2391c1439d031849cb2c046de",
+        "hash": "9de8e2b1f9333936bdfb64b33ae8d84dddb85c074927810fec9bdc74814d7c2a"
+    },
+    {
+        "index": 31,
+        "timestamp": "2026-01-01T14:36:47.490594",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Synthesize a sovereign economic protocol based on the Third Fact.",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:36:47.490030",
+                "status": "APPROVED",
+                "signature": "0c7af63faf5c567e39b733a065dbefed9687cf3e07d6d6c2936b2bc845ac5a27"
+            }
+        },
+        "prev_hash": "9de8e2b1f9333936bdfb64b33ae8d84dddb85c074927810fec9bdc74814d7c2a",
+        "hash": "8997a210a2943c80d8f7e1a337f68b416a8c9999e222e35fa961e8ed238bb8d4"
+    },
+    {
+        "index": 32,
+        "timestamp": "2026-01-01T14:36:47.569313",
+        "state": "TASK_EXECUTION",
+        "data": {
+            "data": "Optimize CUDA resonance for distributed model hub discovery.",
+            "ihsan_score": 0.996,
+            "metrics": {
+                "verified": true,
+                "im_score": 0.996,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T14:36:47.568860",
+                "status": "APPROVED",
+                "signature": "5a00175e6fb54c36f3dcf86765ec3dafe344eb5263561249ed628db206ed1a8b"
+            }
+        },
+        "prev_hash": "8997a210a2943c80d8f7e1a337f68b416a8c9999e222e35fa961e8ed238bb8d4",
+        "hash": "51a3894e5b50fed8a035222eb22c3261fcf26683675feaf732027545049dfb26"
+    },
+    {
+        "index": 33,
+        "timestamp": "2026-01-01T16:00:00.481968",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T16:00:00.481385",
+                "status": "APPROVED",
+                "signature": "dff6b21e2649d8a16ec93587b589f94dad98ac17543faf07ee8bca0f4d1ce158"
+            }
+        },
+        "prev_hash": "51a3894e5b50fed8a035222eb22c3261fcf26683675feaf732027545049dfb26",
+        "hash": "84beb2b1fa897accef50662790372c21cba6f6552460c5cb3146e34b9c46004a"
+    },
+    {
+        "index": 34,
+        "timestamp": "2026-01-01T16:00:09.118423",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T16:00:09.117888",
+                "status": "APPROVED",
+                "signature": "6ebaf3d9c9f76df5ccd93e14d98d28ad366e921530651dc9dc391ffe2619fe3f"
+            }
+        },
+        "prev_hash": "84beb2b1fa897accef50662790372c21cba6f6552460c5cb3146e34b9c46004a",
+        "hash": "f036b9041129c8089b9a8831984c87c1c9c9708aab3ec854168732de11b0642c"
+    },
+    {
+        "index": 35,
+        "timestamp": "2026-01-01T16:20:10.492656",
+        "state": "ORGANISM_BOOT",
+        "data": {
+            "data": "Home Base Unified",
+            "ihsan_score": 1.0,
+            "metrics": {
+                "verified": true,
+                "im_score": 1.0,
+                "reason": "APPROVED",
+                "timestamp": "2026-01-01T16:20:10.492362",
+                "status": "APPROVED",
+                "signature": "6d11b89f5faacbb8df44789ac55e292b598ae6cfa71564ca5fbc9ec8f40a7e39"
+            }
+        },
+        "prev_hash": "f036b9041129c8089b9a8831984c87c1c9c9708aab3ec854168732de11b0642c",
+        "hash": "6a84f54cabf7453e3f4dfefa876d7aac3cf615e5975961c6e1e6ae9c5a635aa5"
+    }
+]

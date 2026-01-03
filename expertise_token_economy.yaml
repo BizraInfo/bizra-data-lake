@@ -1,0 +1,9 @@
+constraints: {}
+domain: token_economy
+last_updated: '2026-01-01T06:40:48.353833'
+patterns:
+  High emission = 92% retention:
+    confidence: 0.7
+    last_used: '2026-01-01T06:40:48.353831'
+    uses: 2
+version: 1.0.0

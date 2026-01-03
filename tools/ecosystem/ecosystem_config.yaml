@@ -1,0 +1,50 @@
+version: 1
+id: bizra_ecosystem_config_v1
+
+# Scan roots can reference the canonical vault roots (preferred) and/or explicit paths.
+# The indexer will resolve `vault_root_keys` from .bizra/vault.yaml.
+scan:
+  vault_yaml_path: .bizra/vault.yaml
+  vault_root_keys:
+    - dual_agentic_repo
+    - taskmaster_repo
+    - genesis_node_repo
+    - node0_repo
+    - projects_root
+
+  # Optional explicit paths (kept empty by default)
+  explicit_roots: []
+
+  # Skip directories anywhere in traversal
+  skip_directories:
+    - .git
+    - .venv
+    - venv
+    - node_modules
+    - target
+    - dist
+    - build
+    - __pycache__
+    - .pytest_cache
+
+# Folder-name heuristics to tag archived/backup worktrees without moving files.
+archive_tagging:
+  archived_name_fragments:
+    - backup
+    - worktrees
+    - old
+    - repaired
+    - fresh
+    - temp
+    - tmp
+  archived_name_prefixes:
+    - "BIZRA-TaskMaster.backup."
+
+# Optional curated known roots (for reporting only).
+# This references the human map in C_ROOT_MAP.md.
+known_folders_doc: C_ROOT_MAP.md
+
+github:
+  owner: BizraInfo
+  # When present, a token enables richer metadata. If absent, GitHub scan is skipped.
+  token_env: GITHUB_TOKEN

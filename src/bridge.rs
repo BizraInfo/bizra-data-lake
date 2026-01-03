@@ -1,6 +1,7 @@
 // src/bridge.rs - PAT-SAT Bridge Coordinator
 
 use crate::{
+    errors::BridgeError,
     fate::FATECoordinator,
     ihsan,
     metrics,
@@ -40,6 +41,7 @@ impl BridgeCoordinator {
         request: DualAgenticRequest,
     ) -> anyhow::Result<DualAgenticResponse> {
         let start = Instant::now();
+        let request_id = request.context.get("request_id").cloned();
 
         info!("🚀 Starting dual-agentic execution");
 
@@ -92,6 +94,7 @@ impl BridgeCoordinator {
                 &escalation,
                 rejecting,
                 approving,
+                request_id.clone(),
             );
 
             // Record receipt emission
@@ -104,15 +107,18 @@ impl BridgeCoordinator {
                 "🚨 Request BLOCKED by SAT - receipt emitted"
             );
 
-            return Err(anyhow::anyhow!(
-                "SAT BLOCKED: {} (escalation={}, receipt={})",
-                validation.rejection_codes.iter()
-                    .map(|c| c.to_string())
-                    .collect::<Vec<_>>()
-                    .join("; "),
-                escalation.id,
-                receipt.receipt_id,
-            ));
+            let rejection_message = validation
+                .rejection_codes
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join("; ");
+            return Err(BridgeError::SatBlocked {
+                message: rejection_message,
+                escalation_id: escalation.id,
+                receipt_id: receipt.receipt_id,
+            }
+            .into());
         }
 
         info!(
@@ -172,13 +178,13 @@ impl BridgeCoordinator {
                 "⚠️ Ihsān gate failed - escalated via FATE"
             );
 
-            return Err(anyhow::anyhow!(
-                "IHSAN GATE FAILED: env={} score={:.4} < threshold={:.4} (escalation={})",
-                ihsan_env,
-                ihsan_score,
-                ihsan_threshold_applied,
-                escalation.id,
-            ));
+            return Err(BridgeError::IhsanGateFailed {
+                env: ihsan_env,
+                score: ihsan_score,
+                threshold: ihsan_threshold_applied,
+                escalation_id: escalation.id,
+            }
+            .into());
         }
 
         let total_latency = start.elapsed();
@@ -198,6 +204,7 @@ impl BridgeCoordinator {
             ihsan_threshold_applied,
             pat_results.len(),
             sat_approvers,
+            request_id,
         );
 
         // Record execution receipt emission

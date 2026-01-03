@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/bizra_ecosystem_receipt_v1.schema.json",
+  "title": "BIZRA Ecosystem Seal Receipt (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "truth_label",
+    "timestamp_utc",
+    "manifest_path",
+    "manifest_sha256",
+    "integrity_hash"
+  ],
+  "properties": {
+    "schema": { "type": "string", "const": "bizra_ecosystem_receipt_v1" },
+    "version": { "type": "integer", "const": 1 },
+    "truth_label": { "type": "string", "enum": ["MEASURED", "DERIVED"] },
+    "timestamp_utc": { "type": "string", "format": "date-time" },
+    "manifest_path": { "type": "string" },
+    "manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "seal_note": { "type": ["string", "null"] },
+    "integrity_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+  }
+}

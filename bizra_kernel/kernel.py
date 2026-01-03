@@ -26,6 +26,7 @@ from .session_manager import SessionManager, Session, SessionState
 from .verifier import MultiStageVerifier, VerificationResult
 from .snr_tracker import SNRTracker, SNRMetrics, estimate_useful_tokens
 from .sape_engine import SAPEEngine, ElevatedPattern
+from .identity import get_identity
 
 
 @dataclass
@@ -109,7 +110,7 @@ class SystemProtocolKernel:
         knowledge_context: str = "",
         token_count: int = 0,
         latency_ms: int = 0,
-        user_id: str = "anonymous",
+        user_id: str = "momo",  # Dedicated identity anchor
     ) -> ExecutionResult:
         """
         Execute a kernel-managed agent interaction.
@@ -238,6 +239,7 @@ class SystemProtocolKernel:
                 "snr_target_met": snr_stats.get("average_snr", 0) >= self.config.snr_target,
                 "fate_escalations": session_stats.get("paused_for_fate", 0),
             },
+            "sovereignty": get_identity().to_dict(),
         }
     
     def register_fate_callback(

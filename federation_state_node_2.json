@@ -1,0 +1,1495 @@
+{
+  "node_id": "node_2",
+  "timestamp": 1767286725.120807,
+  "sharding": {
+    "shards": {
+      "shard_node_1_9582ee02_0": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_9582ee02_0_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_cdcc2daf_2": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_1_cdcc2daf_2_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_0_6796293f_4": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_0_6796293f_4_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_2_bec62068_6": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_2_bec62068_6_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_1_eaab4dc9_8": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_1_eaab4dc9_8_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_0_56fa7d4e_10": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_56fa7d4e_10_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_bec10541_12": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_0_bec10541_12_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_1_2faee3bd_14": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_1_2faee3bd_14_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_0_d735fedf_16": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_0_d735fedf_16_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_1_f8b77f86_18": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_f8b77f86_18_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_44cc391a_20": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_1_44cc391a_20_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_2_eecf100e_22": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_eecf100e_22_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_091343e4_24": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_2_091343e4_24_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_0_29510db8_26": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_29510db8_26_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_0d2175b8_28": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_0d2175b8_28_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_a10a6ca1_30": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_0_a10a6ca1_30_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_2_f79e4e12_32": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_2_f79e4e12_32_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_1_8222f169_34": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_1_8222f169_34_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_0_0a52fd31_36": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_0_0a52fd31_36_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_1_564f27d1_38": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      },
+      "shard_node_1_564f27d1_38_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      },
+      "shard_node_1_9582ee02_40": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_9582ee02_40_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_cdcc2daf_42": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_1_cdcc2daf_42_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_0_6796293f_44": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_0_6796293f_44_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_2_bec62068_46": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_2_bec62068_46_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_1_eaab4dc9_48": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_1_eaab4dc9_48_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_0_56fa7d4e_50": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_56fa7d4e_50_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_bec10541_52": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_0_bec10541_52_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_1_2faee3bd_54": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_1_2faee3bd_54_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_0_d735fedf_56": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_0_d735fedf_56_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_1_f8b77f86_58": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_f8b77f86_58_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_44cc391a_60": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_1_44cc391a_60_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_2_eecf100e_62": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_eecf100e_62_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_091343e4_64": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_2_091343e4_64_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_0_29510db8_66": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_29510db8_66_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_0d2175b8_68": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_0d2175b8_68_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_a10a6ca1_70": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_0_a10a6ca1_70_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_2_f79e4e12_72": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_2_f79e4e12_72_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_1_8222f169_74": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_1_8222f169_74_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_0_0a52fd31_76": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_0_0a52fd31_76_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_1_564f27d1_78": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      },
+      "shard_node_1_564f27d1_78_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      },
+      "shard_node_1_9582ee02_80": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_9582ee02_80_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "9582ee02"
+        ]
+      },
+      "shard_node_1_cdcc2daf_82": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_1_cdcc2daf_82_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "cdcc2daf"
+        ]
+      },
+      "shard_node_0_6796293f_84": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_0_6796293f_84_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "6796293f"
+        ]
+      },
+      "shard_node_2_bec62068_86": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_2_bec62068_86_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec62068"
+        ]
+      },
+      "shard_node_1_eaab4dc9_88": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_1_eaab4dc9_88_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eaab4dc9"
+        ]
+      },
+      "shard_node_0_56fa7d4e_90": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_56fa7d4e_90_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "56fa7d4e"
+        ]
+      },
+      "shard_node_0_bec10541_92": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_0_bec10541_92_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "bec10541"
+        ]
+      },
+      "shard_node_1_2faee3bd_94": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_1_2faee3bd_94_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "2faee3bd"
+        ]
+      },
+      "shard_node_0_d735fedf_96": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_0_d735fedf_96_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "d735fedf"
+        ]
+      },
+      "shard_node_1_f8b77f86_98": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_f8b77f86_98_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f8b77f86"
+        ]
+      },
+      "shard_node_1_44cc391a_100": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_1_44cc391a_100_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "44cc391a"
+        ]
+      },
+      "shard_node_2_eecf100e_102": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_eecf100e_102_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "eecf100e"
+        ]
+      },
+      "shard_node_2_091343e4_104": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_2_091343e4_104_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "091343e4"
+        ]
+      },
+      "shard_node_0_29510db8_106": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_29510db8_106_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "29510db8"
+        ]
+      },
+      "shard_node_0_0d2175b8_108": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_0d2175b8_108_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0d2175b8"
+        ]
+      },
+      "shard_node_0_a10a6ca1_110": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_0_a10a6ca1_110_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "a10a6ca1"
+        ]
+      },
+      "shard_node_2_f79e4e12_112": {
+        "node_id": "node_2",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_2_f79e4e12_112_replica_node_0": {
+        "node_id": "node_0",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "f79e4e12"
+        ]
+      },
+      "shard_node_1_8222f169_114": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_1_8222f169_114_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "8222f169"
+        ]
+      },
+      "shard_node_0_0a52fd31_116": {
+        "node_id": "node_0",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_0_0a52fd31_116_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "0a52fd31"
+        ]
+      },
+      "shard_node_1_564f27d1_118": {
+        "node_id": "node_1",
+        "entity_count": 1,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      },
+      "shard_node_1_564f27d1_118_replica_node_2": {
+        "node_id": "node_2",
+        "entity_count": 0,
+        "semantic_clusters": [
+          "564f27d1"
+        ]
+      }
+    },
+    "entity_assignments": {
+      "1d890ae3": [
+        {
+          "shard_id": "shard_node_1_9582ee02_0",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_9582ee02_0_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_9582ee02_40",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_9582ee02_40_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_9582ee02_80",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_9582ee02_80_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "32b731e0": [
+        {
+          "shard_id": "shard_node_1_cdcc2daf_2",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_cdcc2daf_2_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_cdcc2daf_42",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_cdcc2daf_42_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_cdcc2daf_82",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_cdcc2daf_82_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "44041691": [
+        {
+          "shard_id": "shard_node_0_6796293f_4",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_6796293f_4_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_6796293f_44",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_6796293f_44_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_6796293f_84",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_6796293f_84_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "498f031c": [
+        {
+          "shard_id": "shard_node_2_bec62068_6",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_bec62068_6_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_bec62068_46",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_bec62068_46_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_bec62068_86",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_bec62068_86_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        }
+      ],
+      "586662be": [
+        {
+          "shard_id": "shard_node_1_eaab4dc9_8",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_eaab4dc9_8_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_eaab4dc9_48",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_eaab4dc9_48_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_eaab4dc9_88",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_eaab4dc9_88_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "69356f63": [
+        {
+          "shard_id": "shard_node_0_56fa7d4e_10",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_56fa7d4e_10_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_56fa7d4e_50",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_56fa7d4e_50_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_56fa7d4e_90",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_56fa7d4e_90_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "6f77ace6": [
+        {
+          "shard_id": "shard_node_0_bec10541_12",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_bec10541_12_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_bec10541_52",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_bec10541_52_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_bec10541_92",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_bec10541_92_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "8d1d0a71": [
+        {
+          "shard_id": "shard_node_1_2faee3bd_14",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_2faee3bd_14_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_2faee3bd_54",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_2faee3bd_54_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_2faee3bd_94",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_2faee3bd_94_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "93a89361": [
+        {
+          "shard_id": "shard_node_0_d735fedf_16",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_d735fedf_16_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_d735fedf_56",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_d735fedf_56_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_d735fedf_96",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_d735fedf_96_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "98a38505": [
+        {
+          "shard_id": "shard_node_1_f8b77f86_18",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_f8b77f86_18_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_f8b77f86_58",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_f8b77f86_58_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_f8b77f86_98",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_f8b77f86_98_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "9d76d8c6": [
+        {
+          "shard_id": "shard_node_1_44cc391a_20",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_44cc391a_20_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_44cc391a_60",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_44cc391a_60_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_44cc391a_100",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_44cc391a_100_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "aa8d02c3": [
+        {
+          "shard_id": "shard_node_2_eecf100e_22",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_eecf100e_22_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_eecf100e_62",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_eecf100e_62_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_eecf100e_102",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_eecf100e_102_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        }
+      ],
+      "c201202e": [
+        {
+          "shard_id": "shard_node_2_091343e4_24",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_091343e4_24_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_091343e4_64",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_091343e4_64_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_091343e4_104",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_091343e4_104_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        }
+      ],
+      "c31b2da2": [
+        {
+          "shard_id": "shard_node_0_29510db8_26",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_29510db8_26_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_29510db8_66",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_29510db8_66_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_29510db8_106",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_29510db8_106_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "da944bff": [
+        {
+          "shard_id": "shard_node_0_0d2175b8_28",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0d2175b8_28_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_0d2175b8_68",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0d2175b8_68_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_0d2175b8_108",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0d2175b8_108_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "e2e62799": [
+        {
+          "shard_id": "shard_node_0_a10a6ca1_30",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_a10a6ca1_30_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_a10a6ca1_70",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_a10a6ca1_70_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_a10a6ca1_110",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_a10a6ca1_110_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "e4399811": [
+        {
+          "shard_id": "shard_node_2_f79e4e12_32",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_f79e4e12_32_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_f79e4e12_72",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_f79e4e12_72_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_2_f79e4e12_112",
+          "node_id": "node_2",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_2_f79e4e12_112_replica_node_0",
+          "node_id": "node_0",
+          "primary": false
+        }
+      ],
+      "e53c5566": [
+        {
+          "shard_id": "shard_node_1_8222f169_34",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_8222f169_34_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_8222f169_74",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_8222f169_74_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_8222f169_114",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_8222f169_114_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "f1f22d79": [
+        {
+          "shard_id": "shard_node_0_0a52fd31_36",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0a52fd31_36_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_0a52fd31_76",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0a52fd31_76_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_0_0a52fd31_116",
+          "node_id": "node_0",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_0_0a52fd31_116_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ],
+      "f331c9db": [
+        {
+          "shard_id": "shard_node_1_564f27d1_38",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_564f27d1_38_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_564f27d1_78",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_564f27d1_78_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        },
+        {
+          "shard_id": "shard_node_1_564f27d1_118",
+          "node_id": "node_1",
+          "primary": true
+        },
+        {
+          "shard_id": "shard_node_1_564f27d1_118_replica_node_2",
+          "node_id": "node_2",
+          "primary": false
+        }
+      ]
+    }
+  },
+  "consensus": {
+    "view_number": 30,
+    "sequence_number": 0,
+    "current_leader": ""
+  }
+}

@@ -1,10 +1,19 @@
 // src/pat_enhanced.rs - PAT with all capabilities
 
 use crate::{
-    a2a::A2AServer, ihsan, mcp::MCPClient, pat::PATOrchestrator, reasoning::MultiMethodReasoning,
+    a2a::A2AServer,
+    errors::PolicyError,
+    ihsan,
+    mcp::MCPClient,
+    pat::PATOrchestrator,
+    reasoning::MultiMethodReasoning,
     types::*,
 };
-use std::{collections::BTreeMap, sync::Arc, time::Instant};
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+    time::Instant,
+};
 use tokio::sync::RwLock;
 use tracing::{info, instrument};
 
@@ -90,9 +99,11 @@ impl EnhancedPATOrchestrator {
 
         info!(?method, "Selected reasoning method");
 
+        let tool_allowlist = Self::normalize_tool_allowlist(&request.mcp_tools_whitelist);
+
         // Execute with MCP tools if needed
         let mcp = self.mcp_client.read().await;
-        let available_tools = mcp.list_tools();
+        let available_tools = Self::apply_tool_allowlist(mcp.list_tools(), &tool_allowlist);
         info!(tools_count = available_tools.len(), "MCP tools available");
 
         // Spawn sub-agents if enabled
@@ -126,6 +137,7 @@ impl EnhancedPATOrchestrator {
             meta: serde_json::json!({
                 "reasoning_method": format!("{:?}", method),
                 "mcp_tools_available": available_tools.len(),
+                "mcp_allowlist_provided": request.mcp_tools_whitelist.is_some(),
                 "sub_agents_spawned": *self.sub_agent_count.read().await,
                 "sat_absent": true,
                 "synergy_score_source": "pat_avg_confidence_v0",
@@ -148,6 +160,7 @@ impl EnhancedPATOrchestrator {
         request: &EnhancedDualAgenticRequest,
     ) -> anyhow::Result<DualAgenticResponse> {
         let start = Instant::now();
+        let tool_allowlist = Self::normalize_tool_allowlist(&request.mcp_tools_whitelist);
         match command {
             SlashCommand::Reason { method } => {
                 info!(?method, "Slash command: Force reasoning method");
@@ -187,8 +200,9 @@ impl EnhancedPATOrchestrator {
 
             SlashCommand::Tools { filter } => {
                 info!(filter, "Slash command: List tools");
+                Self::ensure_tools_allowed(&tool_allowlist)?;
                 let mcp = self.mcp_client.read().await;
-                let tools = mcp.filter_tools(filter);
+                let tools = Self::apply_tool_allowlist(mcp.filter_tools(filter), &tool_allowlist);
 
                 let (ihsan_score, ihsan_vector) = self.ihsan_from_scalar_confidence(1.0)?;
                 let (ihsan_env, ihsan_threshold_applied, ihsan_passes_threshold) =
@@ -207,6 +221,7 @@ impl EnhancedPATOrchestrator {
                         "slash_command": "tools",
                         "filter": filter,
                         "count": tools.len(),
+                        "mcp_allowlist_provided": request.mcp_tools_whitelist.is_some(),
                         "sat_absent": true,
                         "adapter_modes": AdapterModes::current(),
                         "ihsan_constitution_id": ihsan::constitution().id(),
@@ -327,6 +342,47 @@ impl EnhancedPATOrchestrator {
         }
     }
 
+    fn normalize_tool_allowlist(
+        raw: &Option<Vec<String>>,
+    ) -> Option<HashSet<String>> {
+        let Some(list) = raw else {
+            return None;
+        };
+
+        let mut allowlist = HashSet::new();
+        for name in list {
+            let trimmed = name.trim();
+            if !trimmed.is_empty() {
+                allowlist.insert(trimmed.to_string());
+            }
+        }
+        Some(allowlist)
+    }
+
+    fn apply_tool_allowlist<'a>(
+        tools: Vec<&'a crate::mcp::ToolDefinition>,
+        allowlist: &Option<HashSet<String>>,
+    ) -> Vec<&'a crate::mcp::ToolDefinition> {
+        match allowlist {
+            Some(set) => tools
+                .into_iter()
+                .filter(|tool| set.contains(&tool.name))
+                .collect(),
+            None => tools,
+        }
+    }
+
+    fn ensure_tools_allowed(allowlist: &Option<HashSet<String>>) -> Result<(), PolicyError> {
+        if let Some(set) = allowlist {
+            if set.is_empty() {
+                return Err(PolicyError::McpToolsBlocked {
+                    message: "MCP allowlist provided but empty".to_string(),
+                });
+            }
+        }
+        Ok(())
+    }
+
     fn enforce_ihsan(
         &self,
         ihsan_score: f64,
@@ -336,13 +392,12 @@ impl EnhancedPATOrchestrator {
         let threshold = ihsan::constitution().threshold_for(&env, artifact_class);
         let passes = ihsan_score >= threshold;
         if !passes && ihsan::should_enforce() {
-            anyhow::bail!(
-                "Ihsan gate failed (env={env} artifact_class={artifact} score={score:.4} threshold={threshold:.4}); escalate via FATE",
-                env = env,
-                artifact = artifact_class,
-                score = ihsan_score,
-                threshold = threshold,
-            );
+            return Err(PolicyError::IhsanGateFailed {
+                env,
+                score: ihsan_score,
+                threshold,
+            }
+            .into());
         }
         Ok((env, threshold, passes))
     }
@@ -407,6 +462,147 @@ impl EnhancedPATOrchestrator {
 
         let score = ihsan::score(&scores)?;
         Ok((score, scores))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcp::ToolDefinition;
+
+    #[test]
+    fn normalize_tool_allowlist_trims_and_dedupes() {
+        let raw = Some(vec![
+            "calculator".to_string(),
+            "  calculator  ".to_string(),
+            "".to_string(),
+        ]);
+        let allowlist = EnhancedPATOrchestrator::normalize_tool_allowlist(&raw)
+            .expect("expected allowlist");
+        assert_eq!(allowlist.len(), 1);
+        assert!(allowlist.contains("calculator"));
+    }
+
+    #[test]
+    fn apply_tool_allowlist_filters_tools() {
+        let tools = vec![
+            ToolDefinition {
+                name: "calculator".to_string(),
+                description: "math".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+            ToolDefinition {
+                name: "filesystem_read".to_string(),
+                description: "fs".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+        ];
+        let refs: Vec<&ToolDefinition> = tools.iter().collect();
+
+        let mut allow = HashSet::new();
+        allow.insert("calculator".to_string());
+        let filtered =
+            EnhancedPATOrchestrator::apply_tool_allowlist(refs, &Some(allow));
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "calculator");
+    }
+
+    #[test]
+    fn ensure_tools_allowed_blocks_empty_allowlist() {
+        let allowlist = Some(HashSet::<String>::new());
+        let err = EnhancedPATOrchestrator::ensure_tools_allowed(&allowlist)
+            .expect_err("expected empty allowlist error");
+        assert!(err.to_string().contains("MCP allowlist provided but empty"));
+    }
+
+    #[test]
+    fn normalize_tool_allowlist_with_none_returns_none() {
+        let result = EnhancedPATOrchestrator::normalize_tool_allowlist(&None);
+        assert!(result.is_none(), "None input should return None");
+    }
+
+    #[test]
+    fn normalize_tool_allowlist_with_only_empty_strings_returns_empty_set() {
+        let raw = Some(vec![
+            "".to_string(),
+            "   ".to_string(),
+            "\t".to_string(),
+        ]);
+        let allowlist = EnhancedPATOrchestrator::normalize_tool_allowlist(&raw)
+            .expect("expected Some with empty set");
+        assert!(
+            allowlist.is_empty(),
+            "Allowlist with only empty/whitespace strings should be empty set"
+        );
+    }
+
+    #[test]
+    fn apply_tool_allowlist_with_none_returns_all_tools() {
+        let tools = vec![
+            ToolDefinition {
+                name: "calculator".to_string(),
+                description: "math".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+            ToolDefinition {
+                name: "filesystem_read".to_string(),
+                description: "fs".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+        ];
+        let refs: Vec<&ToolDefinition> = tools.iter().collect();
+
+        let filtered = EnhancedPATOrchestrator::apply_tool_allowlist(refs.clone(), &None);
+
+        assert_eq!(
+            filtered.len(),
+            2,
+            "None allowlist should return all tools unchanged"
+        );
+    }
+
+    #[test]
+    fn apply_tool_allowlist_with_nonexistent_names_returns_empty() {
+        let tools = vec![
+            ToolDefinition {
+                name: "calculator".to_string(),
+                description: "math".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+            ToolDefinition {
+                name: "filesystem_read".to_string(),
+                description: "fs".to_string(),
+                parameters: vec![],
+                server: "local".to_string(),
+            },
+        ];
+        let refs: Vec<&ToolDefinition> = tools.iter().collect();
+
+        let mut allow = HashSet::new();
+        allow.insert("nonexistent_tool".to_string());
+        allow.insert("another_missing_tool".to_string());
+        let filtered = EnhancedPATOrchestrator::apply_tool_allowlist(refs, &Some(allow));
+
+        assert!(
+            filtered.is_empty(),
+            "Allowlist with names not present in tools should return empty vec"
+        );
+    }
+
+    #[test]
+    fn ensure_tools_allowed_with_none_returns_ok() {
+        let result = EnhancedPATOrchestrator::ensure_tools_allowed(&None);
+        assert!(
+            result.is_ok(),
+            "None allowlist should return Ok, got: {:?}",
+            result
+        );
     }
 }
 

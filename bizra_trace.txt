@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\BIZRA-Dual-Agentic-system--main\bizra_kernel\emulation_genesis.py", line 62, in <module>
+    run_genesis_emulation()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\BIZRA-Dual-Agentic-system--main\bizra_kernel\emulation_genesis.py", line 7, in run_genesis_emulation
+    print("\n" + "\u03a9"*60)
+    ~~~~~^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 2-61: character maps to <undefined>

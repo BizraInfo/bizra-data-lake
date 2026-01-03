@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bizra://schemas/bizra_ecosystem_manifest_v1.schema.json",
+  "title": "BIZRA Ecosystem Manifest (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "generated_at_utc",
+    "metadata",
+    "roots",
+    "projects",
+    "canonical_invariants",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema": { "type": "string", "const": "bizra_ecosystem_manifest_v1" },
+    "version": { "type": "integer", "const": 1 },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bismillah", "authority", "tool"],
+      "properties": {
+        "bismillah": { "type": "string" },
+        "authority": { "type": "string" },
+        "tool": { "type": "string" },
+        "config_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "roots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "path"],
+        "properties": {
+          "key": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "status", "kind", "identity_sha256"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE", "ARCHIVED_TAGGED", "UNKNOWN"] },
+          "kind": { "type": "string", "enum": ["git", "folder"] },
+          "git": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["head_sha", "dirty"],
+            "properties": {
+              "head_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+              "dirty": { "type": "boolean" }
+            }
+          },
+          "identity_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "canonical_invariants": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "architecture_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ihsan_constitution_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "model_family_manifest_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

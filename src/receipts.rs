@@ -35,6 +35,9 @@ pub struct RejectionReceipt {
     pub receipt_type: ReceiptType,
     /// Unique receipt ID
     pub receipt_id: String,
+    /// Optional request ID for traceability
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
     /// Timestamp of rejection
     pub timestamp: DateTime<Utc>,
     /// Task that was rejected (truncated for privacy)
@@ -66,6 +69,9 @@ pub struct ExecutionReceipt {
     pub receipt_type: ReceiptType,
     /// Unique receipt ID
     pub receipt_id: String,
+    /// Optional request ID for traceability
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
     /// Timestamp of execution
     pub timestamp: DateTime<Utc>,
     /// Task that was executed (truncated for privacy)
@@ -153,6 +159,7 @@ impl ReceiptEmitter {
         escalation: &Escalation,
         rejecting_validators: Vec<String>,
         approving_validators: Vec<String>,
+        request_id: Option<String>,
     ) -> RejectionReceipt {
         let receipt_id = format!(
             "REJ-{}-{:06}",
@@ -195,6 +202,7 @@ impl ReceiptEmitter {
             schema: "bizra-rejection-receipt-v1".to_string(),
             receipt_type,
             receipt_id: receipt_id.clone(),
+            request_id,
             timestamp: Utc::now(),
             task_summary,
             rejection_codes: rejection_code_strings,
@@ -234,6 +242,7 @@ impl ReceiptEmitter {
         ihsan_threshold: f64,
         pat_agents_count: usize,
         sat_approvers_count: usize,
+        request_id: Option<String>,
     ) -> ExecutionReceipt {
         let receipt_id = format!(
             "EXEC-{}-{:06}",
@@ -251,6 +260,7 @@ impl ReceiptEmitter {
             schema: "bizra-execution-receipt-v1".to_string(),
             receipt_type: ReceiptType::Execution,
             receipt_id: receipt_id.clone(),
+            request_id,
             timestamp: Utc::now(),
             task_summary,
             sat_validation_ms,
@@ -411,6 +421,7 @@ mod tests {
             &escalation,
             vec!["security_guardian".to_string()],
             vec![],
+            Some("REQ-TEST-001".to_string()),
         );
 
         assert_eq!(receipt.receipt_type, ReceiptType::Rejection);
@@ -433,6 +444,7 @@ mod tests {
             &escalation,
             vec!["ethics_validator".to_string()],
             vec!["security_guardian".to_string()],
+            Some("REQ-TEST-002".to_string()),
         );
 
         assert_eq!(receipt.receipt_type, ReceiptType::Quarantine);
@@ -452,6 +464,7 @@ mod tests {
             0.90,
             7,
             5,
+            Some("REQ-TEST-003".to_string()),
         );
 
         assert_eq!(receipt.receipt_type, ReceiptType::Execution);

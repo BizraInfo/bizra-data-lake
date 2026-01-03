@@ -78,7 +78,11 @@ curl -X POST http://localhost:8080/dual/execute \
   -d '{"task": "Write a factorial function"}'
 ```
 
-The API token is set via the `BIZRA_API_TOKEN` environment variable.
+The API token is set via the `BIZRA_API_TOKEN` environment variable. The server fails to start if the token is missing.
+
+## Request ID
+
+All responses include an `x-request-id` header for correlation across logs, receipts, and metrics.
 
 ---
 
@@ -166,6 +170,8 @@ curl -X POST http://localhost:8080/enhanced/execute \
   }'
 ```
 
+Note: Use `mcp_tools_whitelist` to restrict MCP tool access for this request. If provided as an empty list, tool listing and calls are blocked.
+
 ### MCP Tool Call
 ```bash
 curl -X POST http://localhost:8080/mcp/rpc \
@@ -199,6 +205,7 @@ curl -X POST http://localhost:8080/sape/probes \
 | 400 | Bad request (validation failed) |
 | 401 | Unauthorized (missing/invalid token) |
 | 403 | Forbidden (SAT rejected request) |
+| 422 | Unprocessable entity (Ihsan gate failed) |
 | 429 | Rate limited |
 | 500 | Internal server error |
 | 503 | Service unavailable (Ollama down) |

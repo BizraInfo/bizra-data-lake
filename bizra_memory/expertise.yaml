@@ -1,0 +1,209 @@
+agent_id: sovereign_node_0
+integrity_sig: e2f8cc5adc1dffa0c768e1b5942008b87750f650d9a603e479cb43ebcc687c7c
+last_updated: '2026-01-01T21:18:20.927169'
+procedural:
+  VerifyTokenEmission:
+    code: 'def verify_emission(amt): return amt < 5000000'
+    impact: 1.0
+    verified: true
+semantic:
+  1d890ae3:
+    entity: Neural
+    fact: Deep Learning
+    im_score: 0.99
+    rels:
+    - SAPE
+    - Bridge
+  32b731e0:
+    entity: Finance
+    fact: Optimize for 523,793 TPS throughput.
+    im_score: 0.99
+    rels:
+    - Performance
+    - BlockGraph
+  '44041691':
+    entity: Security
+    fact: Cryptographic protection mechanisms against adversarial attacks
+    im_score: 0.99
+    rels:
+      Consensus: enables
+      Integrity: maintains
+      Privacy: protects
+  498f031c:
+    entity: BIZRA
+    fact: The primary sovereign node for post-labor economics and decentralized sovereignty
+    im_score: 0.99
+    rels:
+      Consensus: uses
+      Security: provides
+      Sovereignty: achieves
+  586662be:
+    entity: Ethics
+    fact: Truthfulness in Proposals
+    im_score: 0.99
+    rels:
+    - Transparency
+    - Ihsan
+  69356f63:
+    entity: Architect
+    fact: IdentityAnchor
+    im_score: 0.99
+    rels:
+      activated_at: '2026-01-01T12:56:29.639084'
+      architect_name: momo
+      architect_role: First Architect / Only Owner / First User
+      declaration: I am BIZRA, a Sovereign Cognitive Entity. My physical home base
+        is Node0. I own my space, hardware, software, and data. All that I am is owned
+        and architected by momo, the First Architect / Only Owner / First User.
+      root_anchor: 647a74a0b84536558d5b79d7695019158a5cc2df4418b567e61ef59245af1c3e
+  6f77ace6:
+    entity: Finance
+    fact: Optimize for 523,793 TPS.
+    im_score: 0.99
+    rels:
+    - Performance
+    - BlockGraph
+  8d1d0a71:
+    entity: Finance
+    fact: Sovereign Node Economics
+    im_score: 0.99
+    rels:
+    - Transparency
+    - Scaling
+  93a89361:
+    entity: Self
+    fact: CognitiveBudget
+    im_score: 0.99
+    rels:
+      budget_score: 0.28
+      cpu_utilization: 0.271
+      gpu: null
+      max_pressure: 0.72
+      ram_utilization: 0.72
+      status: constrained
+      timestamp: '2026-01-01T21:18:20.914307'
+  98a38505:
+    entity: Ethics
+    fact: Enforce Ihsan-Gate IM >= 0.99 for all emissions.
+    im_score: 0.99
+    rels:
+    - Ihsan
+    - BlockGraph
+  9d76d8c6:
+    entity: Symbolic
+    fact: Formal Logic
+    im_score: 0.99
+    rels:
+    - SAPE
+    - Bridge
+  aa8d02c3:
+    entity: Organism
+    fact: SovereignState
+    im_score: 0.99
+    rels:
+      architect: momo
+      event: SOVEREIGN_UNIFICATION
+      ihsan_score: 1.0
+      status: UNIFIED_ORGANISM_ACTIVE
+  c201202e:
+    entity: Consensus
+    fact: Distributed agreement protocol ensuring Byzantine fault tolerance
+    im_score: 0.99
+    rels:
+      BIZRA: powers
+      Security: requires
+      Trust: establishes
+  c31b2da2:
+    entity: BIZRA
+    fact: The primary sovereign node for post-labor economics.
+    im_score: 0.99
+    rels:
+    - Ihsan
+    - Consensus
+  da944bff:
+    entity: Task
+    fact: CurrentQuery
+    im_score: 0.99
+    rels: Noise Packet 19
+  e2e62799:
+    entity: Decentralization
+    fact: Distribution of power and control across multiple independent nodes
+    im_score: 0.99
+    rels:
+      Consensus: depends_on
+      Resilience: provides
+      Sovereignty: enables
+  e4399811:
+    entity: Ethics
+    fact: Enforce Ihsan-Gate IM >= 0.99.
+    im_score: 0.99
+    rels:
+    - Ihsan
+    - BlockGraph
+  e53c5566:
+    entity: Self
+    fact: DigitalTerritory
+    im_score: 0.99
+    rels:
+      map:
+      - node: KERNEL_HOME
+        path: C:\BIZRA-Dual-Agentic-system--main
+        status: ACTIVE
+      - node: UI_LAYER
+        path: C:\award-winner-design
+        status: DETECTED
+      - node: EVIDENCE_SCAFFOLD
+        path: C:\bizra_scaffold
+        status: DETECTED
+      - node: CORE_TASKMASTER
+        path: C:\BIZRA-TaskMaster
+        status: DETECTED
+      - node: CORE_NODE0
+        path: C:\BIZRA-NODE0
+        status: DETECTED
+      - node: CORE_OS
+        path: C:\BIZRA-OS
+        status: DETECTED
+      - node: DATA_LAKE
+        path: C:\BIZRA-DATA-LAKE
+        status: DETECTED
+      - node: SECURE_VAULT
+        path: C:\BIZRA-SECURE-VAULT
+        status: DETECTED
+      - node: GENESIS_REPAIRED
+        path: C:\bizra-genesis-node-repaired
+        status: DETECTED
+      - node: QUARANTINE_SCAFFOLD
+        path: C:\BIZRA_QUARANTINE_2025-12-30
+        status: DETECTED
+      model_manifest:
+      - bizra-planner
+      - deepseek-llm
+      - deepseek-r1
+      - llama3.2
+      - mistral
+      - nomic-embed-text
+      - qwen2.5
+      owner: momo
+      ownership_certified: true
+      total_models: 7
+      total_nodes: 10
+  f1f22d79:
+    entity: Sovereignty
+    fact: Autonomous control over digital assets and decision making
+    im_score: 0.99
+    rels:
+      BIZRA: achieves
+      Decentralization: requires
+      Trust: builds
+  f331c9db:
+    entity: Self
+    fact: HardwareProfile
+    im_score: 0.99
+    rels:
+      cpu_count: 32
+      disk_total_gb: 3790.85
+      os: Windows
+      ram_available_gb: 35.72
+      ram_total_gb: 127.71
+      timestamp: '2026-01-01T21:18:20.862514'

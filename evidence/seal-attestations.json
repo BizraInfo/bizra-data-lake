@@ -1,8 +1,0 @@
-{
-    "seal_event": {
-        "epoch": "Genesis_Phase0_Week1",
-        "target_manifest_sha256": "7AF2993501F28ACF0E215403787E5E3DA6324BB39320C86B756DD2EB72DA48E3",
-        "timestamp_utc": "2025-12-14T21:15:00Z"
-    },
-    "attestations": []
-}

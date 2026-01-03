@@ -1,7 +1,0 @@
-﻿generated_at_utc=2025-12-17T13:25:11.2924943Z
-core_repo_commit=24d743681be2141fe4b73a31159a47e2863a3b55
-node0_repo_commit=6367f23f3baf0f37bb197bece3547a0f22cbb9c8
-command_generate=python tools/genesis_manifest.py generate --profile constitution/genesis_manifest_profile_v1.yaml --output evidence/genesis/GENESIS_MANIFEST.json --source worktree --allow-missing-repos
-command_verify=python tools/genesis_manifest.py verify --manifest evidence/genesis/GENESIS_MANIFEST.json --source worktree --allow-missing-repos
-genesis_manifest_sha256=521f8e2f73b7a50ff5332e53314f3004eb79a13385a21ba98946e389b633ff61
-

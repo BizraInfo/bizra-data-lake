@@ -1,0 +1,11 @@
+{
+    "node_id": "Omega-MASTER-0",
+    "parent_id": null,
+    "children": [
+        "BIZRA-082433F3",
+        "BIZRA-72310947"
+    ],
+    "status": "SEED",
+    "max_depth": 2,
+    "birth_time": "2026-01-01T16:20:10.718987"
+}

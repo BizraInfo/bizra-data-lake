@@ -1,0 +1,325 @@
+version: '3.8'
+
+networks:
+  bizra_internal:
+    driver: bridge
+    internal: true
+  bizra_external:
+    driver: bridge
+
+services:
+  # ══════════════════════════════════════════════════════════════════════════════
+  # KNOWLEDGE SUBSTRATE (P1.11) — Postgres + pgvector
+  # ══════════════════════════════════════════════════════════════════════════════
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bizra}
+      POSTGRES_USER: ${POSTGRES_USER:-bizra}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - bizra_internal
+    restart: unless-stopped
+    user: postgres
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U bizra -d bizra" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  synapse:
+    image: redis:7-alpine
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - synapse_data:/data
+    networks:
+      - bizra_internal
+    restart: unless-stopped
+    user: redis
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 1s
+      retries: 20
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  wisdom:
+    image: neo4j:5.15-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+    secrets:
+      - neo4j_password
+    volumes:
+      - wisdom_data:/data
+      - wisdom_logs:/logs
+    networks:
+      - bizra_internal
+    restart: unless-stopped
+    user: neo4j
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/lib/neo4j/import
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  vectors:
+    image: chromadb/chroma:latest
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - vectors_data:/chroma/chroma
+    networks:
+      - bizra_internal
+    restart: unless-stopped
+    user: chroma
+    read_only: true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  kernel:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      SYNAPSE_URL: redis://synapse:6379
+      WISDOM_URL: bolt://wisdom:7687
+      CHROMA_URL: http://vectors:8000
+      BIZRA_SAPE_REQUIRE_NEO4J_EVIDENCE_H: 1
+    volumes:
+      - ../bizra_data_vault:/app/bizra_data_vault:ro
+      - kernel_receipts:/app/docs/evidence/receipts
+    networks:
+      - bizra_internal
+    depends_on:
+      - synapse
+      - wisdom
+      - vectors
+    restart: unless-stopped
+    user: appuser
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=0.95).read()" ]
+      interval: 10s
+      timeout: 2s
+      retries: 20
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  elite:
+    build:
+      context: ..
+      dockerfile: Dockerfile.rust
+    env_file:
+      - ../.env
+    environment:
+      RUST_LOG: info
+      BIZRA_HTTP_PORT: 8080
+      BIZRA_HTTP_HOST: 0.0.0.0
+      OLLAMA_URL: http://host.docker.internal:11434
+      NEO4J_URI: bolt://wisdom:7687
+      NEO4J_USER: neo4j
+      REDIS_URL: redis://synapse:6379
+      CHROMA_URL: http://vectors:8000
+      BIZRA_IHSAN_ENV: production
+    volumes:
+      - elite_receipts:/app/docs/evidence/receipts
+    networks:
+      - bizra_internal
+    depends_on:
+      synapse:
+        condition: service_healthy
+      wisdom:
+        condition: service_started
+      vectors:
+        condition: service_started
+    restart: unless-stopped
+    user: appuser
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  refinery:
+    build:
+      context: ..
+      dockerfile: Dockerfile.refinery
+    environment:
+      BIZRA_REFINERY_THROUGHPUT: 10
+      BIZRA_REFINERY_PORT: 8081
+      BIZRA_REFINERY_BATCH_SIZE: 50
+    volumes:
+      - ../bizra_data_vault:/app/bizra_data_vault:ro
+      - ../BIZRA_KNOWLEDGE_LEDGER.jsonl:/app/BIZRA_KNOWLEDGE_LEDGER.jsonl
+      - ../BIZRA_GENESIS_BLOCK_0.json:/app/BIZRA_GENESIS_BLOCK_0.json:ro
+    networks:
+      - bizra_internal
+    restart: unless-stopped
+    user: appuser
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  caddy:
+    image: caddy:2.7-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - bizra_external
+      - bizra_internal
+    restart: unless-stopped
+    user: caddy
+    read_only: true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+secrets:
+  postgres_password:
+    file: ../secrets/postgres_password.txt
+  neo4j_password:
+    file: ../secrets/neo4j_password.txt
+
+volumes:
+  pgdata:
+  synapse_data:
+  wisdom_data:
+  wisdom_logs:
+  vectors_data:
+  kernel_receipts:
+  elite_receipts:
+  caddy_data:
+  caddy_config:

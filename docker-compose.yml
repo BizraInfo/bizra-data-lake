@@ -139,6 +139,7 @@ services:
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       BIZRA_HTTP_PORT: 8080
+      BIZRA_HTTP_HOST: 0.0.0.0
       BIZRA_API_TOKEN: ${BIZRA_API_TOKEN:-}
       OLLAMA_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       NEO4J_URI: ${WISDOM_URL:-bolt://wisdom:7687}

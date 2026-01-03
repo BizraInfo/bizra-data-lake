@@ -34,7 +34,7 @@ This document describes the complete request lifecycle in the BIZRA Dual-Agentic
 │   │  │ Checker       │ │ Optimizer     │                               │   │
 │   │  └───────────────┘ └───────────────┘                               │   │
 │   │                                                                     │   │
-│   │  Consensus: 3/5 approval required                                  │   │
+│   │  Consensus: veto-only (all 5 approve)                                  │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
             │                                           │
@@ -129,7 +129,7 @@ Request
          │
          ▼
 ┌──────────────────┐
-│ sat.validate()   │ ← SAT consensus (3/5)
+│ sat.validate()   │ ← SAT consensus (veto-only)
 └────────┬─────────┘
          │
     ┌────┴────┐
@@ -239,7 +239,7 @@ From `model-family-genesis-v1-SEALED.yaml`:
 |--------|--------|-------|-------|
 | SNR | 7.8 | 7.0 | Safe mode triggers at floor |
 | P95 Latency | 1500ms | - | End-to-end request latency |
-| BFT Quorum | 3/5 | - | N=5, f=1, Q=2f+1 |
+| SAT Consensus | veto-only | - | all 5 validators must approve |
 
 ## Python Constellation Components
 

@@ -83,6 +83,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
+  /health/ready:
+    get:
+      tags: [Public]
+      summary: Readiness probe
+      description: Kubernetes readiness probe - indicates system is ready to receive traffic
+      operationId: healthReady
+      responses:
+        '200':
+          description: System ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: System not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/live:
+    get:
+      tags: [Public]
+      summary: Liveness probe
+      description: Kubernetes liveness probe - indicates system is alive (not deadlocked)
+      operationId: healthLive
+      responses:
+        '200':
+          description: System alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
   /metrics:
     get:
       tags: [Public]
@@ -184,30 +218,54 @@ paths:
       responses:
         '200':
           description: Task executed successfully
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DualAgenticResponse'
         '400':
           description: Bad request (validation failed)
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized (missing or invalid token)
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden (SAT rejected request)
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RejectionResponse'
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable entity (Ihsan gate failed)
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: Rate limited
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
@@ -235,6 +293,9 @@ paths:
       responses:
         '200':
           description: Task executed successfully
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
           content:
             application/json:
               schema:
@@ -243,6 +304,15 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '422':
+          description: Unprocessable entity (policy gate failed)
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           $ref: '#/components/responses/RateLimited'
 
@@ -451,6 +521,9 @@ components:
   responses:
     Unauthorized:
       description: Unauthorized (missing or invalid token)
+      headers:
+        x-request-id:
+          $ref: '#/components/headers/RequestId'
       content:
         application/json:
           schema:
@@ -460,14 +533,20 @@ components:
             message: "Missing or invalid Authorization header"
 
     Forbidden:
-      description: Forbidden (SAT rejected request)
+      description: Forbidden (policy rejection)
+      headers:
+        x-request-id:
+          $ref: '#/components/headers/RequestId'
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RejectionResponse'
+            $ref: '#/components/schemas/ErrorResponse'
 
     RateLimited:
       description: Rate limited
+      headers:
+        x-request-id:
+          $ref: '#/components/headers/RequestId'
       content:
         application/json:
           schema:
@@ -475,6 +554,13 @@ components:
           example:
             error: "Rate Limited"
             message: "Too many requests, please try again later"
+
+  headers:
+    RequestId:
+      description: Request correlation ID
+      schema:
+        type: string
+        example: "c4b8b8a9c08c4d12945a1a50e7a1c8b1"
 
   schemas:
     SystemStatus:
@@ -606,7 +692,7 @@ components:
           type: array
           items:
             type: string
-          description: Whitelist of MCP tools to use
+          description: Whitelist of MCP tools to use; empty list blocks tool access for this request
         memory_context:
           type: object
           additionalProperties: true
@@ -702,6 +788,8 @@ components:
       type: object
       properties:
         error:
+          type: string
+        code:
           type: string
         message:
           type: string

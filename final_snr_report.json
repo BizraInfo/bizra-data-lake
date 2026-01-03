@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-01-01T20:04:25.869759",
+  "system_overview": {
+    "current_snr": 0.20106240000000003,
+    "average_snr": 0.47090161428571425,
+    "target_snr": 0.9,
+    "system_tier": "T1 (CRITICAL)",
+    "status": "BELOW_TARGET"
+  },
+  "performance_metrics": {
+    "token_efficiency_percent": 68.57142857142857,
+    "agent_count": 4,
+    "total_measurements": 7,
+    "meets_target": false
+  },
+  "optimization_potential": {
+    "sape_patterns_count": 4,
+    "max_snr_improvement": 0.53,
+    "max_latency_reduction_ms": 290,
+    "avg_token_savings_percent": 40.0
+  },
+  "recommendations": {
+    "primary_focus": "IMPROVE",
+    "sape_activation": true,
+    "monitoring_required": true
+  }
+}

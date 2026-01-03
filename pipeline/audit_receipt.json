@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-01T12:19:03Z",
+  "pipeline": "governance",
+  "phase": "9",
+  "gates": {
+    "ihsan_check": {"status": "passed", "details": "Score: 0.976", "timestamp": "2026-01-01T12:19:03Z"},
+    "auditor_mufti": {"status": "approved", "details": "Confidence: 0.97, Reason: Ethical standards met", "timestamp": "2026-01-01T12:19:03Z"},
+    "z3_verification": {"status": "failed", "details": "Z3 not available", "timestamp": "2026-01-01T12:19:04Z"}
+  },
+  "overall_status": "blocked"
+}
