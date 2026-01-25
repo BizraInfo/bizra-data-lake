@@ -731,6 +731,10 @@ async fn health_live() -> impl IntoResponse {
 
 /// Prometheus metrics endpoint for Glass Cockpit observability
 async fn prometheus_metrics() -> impl IntoResponse {
+    // Refresh critical connectivity metrics
+    let ollama_connected = ollama::get_ollama().await.is_connected();
+    metrics::update_ollama_status(ollama_connected);
+
     let metrics = metrics::gather_metrics();
     (
         StatusCode::OK,

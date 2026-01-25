@@ -415,25 +415,45 @@ impl UnifiedNode0Manager {
     /// Get storage status for key mount points
     pub async fn get_storage_status(&self) -> Vec<StorageStatus> {
         let mut storage = Vec::new();
-        let mounts = ["/", "/mnt/c", "/mnt/d", &self.data_lake_path];
 
-        for mount in mounts {
-            if let Ok(stat) = nix::sys::statvfs::statvfs(mount) {
-                let total = stat.blocks() * stat.fragment_size() as u64;
-                let free = stat.blocks_available() * stat.fragment_size() as u64;
-                let used = total - free;
+        #[cfg(unix)]
+        {
+            let mounts = ["/", "/mnt/c", "/mnt/d", &self.data_lake_path];
+            for mount in mounts {
+                if let Ok(stat) = nix::sys::statvfs::statvfs(mount) {
+                    let total = stat.blocks() * stat.fragment_size() as u64;
+                    let free = stat.blocks_available() * stat.fragment_size() as u64;
+                    let used = total - free;
 
+                    storage.push(StorageStatus {
+                        mount_point: mount.to_string(),
+                        total_gb: total as f64 / 1024.0 / 1024.0 / 1024.0,
+                        used_gb: used as f64 / 1024.0 / 1024.0 / 1024.0,
+                        free_gb: free as f64 / 1024.0 / 1024.0 / 1024.0,
+                        usage_percent: if total > 0 {
+                            (used as f64 / total as f64) * 100.0
+                        } else {
+                            0.0
+                        },
+                        filesystem: "unknown".to_string(),
+                    });
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            // On Windows, provide placeholder storage info
+            // Real implementation would use GetDiskFreeSpaceExW
+            let mounts = ["C:\\", "D:\\"];
+            for mount in mounts {
                 storage.push(StorageStatus {
                     mount_point: mount.to_string(),
-                    total_gb: total as f64 / 1024.0 / 1024.0 / 1024.0,
-                    used_gb: used as f64 / 1024.0 / 1024.0 / 1024.0,
-                    free_gb: free as f64 / 1024.0 / 1024.0 / 1024.0,
-                    usage_percent: if total > 0 {
-                        (used as f64 / total as f64) * 100.0
-                    } else {
-                        0.0
-                    },
-                    filesystem: "unknown".to_string(),
+                    total_gb: 500.0,  // Placeholder
+                    used_gb: 250.0,   // Placeholder
+                    free_gb: 250.0,   // Placeholder
+                    usage_percent: 50.0,
+                    filesystem: "NTFS".to_string(),
                 });
             }
         }

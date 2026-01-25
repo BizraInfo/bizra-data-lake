@@ -185,6 +185,37 @@ lazy_static! {
         "bizra_http_requests_unauthorized_total",
         "Total HTTP requests rejected due to missing/invalid authentication"
     ).expect("HTTP_REQUESTS_UNAUTHORIZED metric registration failed");
+
+    // ============================================================
+    // Phase C1 - Glass Cockpit Metrics (Observability)
+    // ============================================================
+
+    /// Tool execution timeouts
+    pub static ref TOOL_TIMEOUT_TOTAL: CounterVec = register_counter_vec!(
+        "bizra_tool_timeout_total",
+        "Total tool execution timeouts",
+        &["tool_name"]
+    ).expect("TOOL_TIMEOUT_TOTAL metric registration failed");
+
+    /// URP (Unified Resource Pool) Lease Usage
+    pub static ref URP_LEASE_ACTIVE: GaugeVec = register_gauge_vec!(
+        "bizra_urp_lease_active",
+        "Active URP resource leases",
+        &["resource_type"] // gpu, cpu, ram
+    ).expect("URP_LEASE_ACTIVE metric registration failed");
+    
+    /// RAG Knowledge Hits
+    pub static ref RAG_HIT_TOTAL: CounterVec = register_counter_vec!(
+        "bizra_rag_hit_total",
+        "Total RAG knowledge retrieval hits",
+        &["source"] // vector, graph, hybrid
+    ).expect("RAG_HIT_TOTAL metric registration failed");
+
+    /// Ollama connectivity (1=Connected, 0=Disconnected)
+    pub static ref OLLAMA_CONNECTED: Gauge = register_gauge!(
+        "bizra_ollama_connected",
+        "Ollama connection status (1=connected, 0=disconnected)"
+    ).expect("OLLAMA_CONNECTED metric registration failed");
 }
 
 /// Timer guard for measuring operation duration
@@ -276,6 +307,51 @@ pub fn record_neo4j_query(query_type: &str, latency_secs: f64, connected: bool) 
         .with_label_values(&[query_type])
         .observe(latency_secs);
     NEO4J_CONNECTED.set(if connected { 1.0 } else { 0.0 });
+}
+
+/// Record tool execution result
+pub fn record_tool_execution(tool_name: &str, success: bool, timeout: bool) {
+    let result = if timeout {
+        "timeout"
+    } else if success {
+        "success"
+    } else {
+        "failure"
+    };
+    
+    MCP_TOOL_CALLS_TOTAL.with_label_values(&[tool_name, result]).inc();
+    
+    if timeout {
+        TOOL_TIMEOUT_TOTAL.with_label_values(&[tool_name]).inc();
+    }
+}
+
+/// Update connection status metrics
+pub fn update_connection_status(neo4j: bool, ollama: bool) {
+    NEO4J_CONNECTED.set(if neo4j { 1.0 } else { 0.0 });
+    OLLAMA_CONNECTED.set(if ollama { 1.0 } else { 0.0 });
+}
+
+/// Update Ollama status only
+pub fn update_ollama_status(connected: bool) {
+    OLLAMA_CONNECTED.set(if connected { 1.0 } else { 0.0 });
+}
+
+/// Update Neo4j status only
+pub fn update_neo4j_status(connected: bool) {
+    NEO4J_CONNECTED.set(if connected { 1.0 } else { 0.0 });
+}
+
+/// Update URP usage
+pub fn update_urp_usage(gpu: f64, cpu: f64, ram: f64) {
+    URP_LEASE_ACTIVE.with_label_values(&["gpu"]).set(gpu);
+    URP_LEASE_ACTIVE.with_label_values(&["cpu"]).set(cpu);
+    URP_LEASE_ACTIVE.with_label_values(&["ram"]).set(ram);
+}
+
+/// Record RAG hit
+pub fn record_rag_hit(source: &str) {
+    RAG_HIT_TOTAL.with_label_values(&[source]).inc();
 }
 
 /// Generate Prometheus text format output

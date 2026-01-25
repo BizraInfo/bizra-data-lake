@@ -18,6 +18,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Embedding caches
+.fastembed_cache/
 build/
 develop-eggs/
 dist/
@@ -98,12 +101,12 @@ Thumbs.db
 Desktop.ini
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ENVIRONMENT / SECRETS
+# ENVIRONMENT / SECRETS & CREDENTIALS
 # ─────────────────────────────────────────────────────────────────────────────
 .env
 .env.*
 !.env.example
-*.pem
+*.pem  # Includes Redis TLS certificates (config/redis/*-key.pem - C2)
 *.key
 secrets.yaml
 secrets.json
@@ -187,3 +190,9 @@ scratch/
 # ─────────────────────────────────────────────────────────────────────────────
 # Uncomment if you want to exclude archive from git:
 # /archive/
+.linuxvenv/
+tmpclaude-*/
+*.err
+nul
+claude-code-damage-control/
+rlm/
