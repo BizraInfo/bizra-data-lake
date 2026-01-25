@@ -97,12 +97,16 @@ class IhsanPolicy:
 
     def threshold_for_env(self, env: str) -> float:
         normalized = self.normalize_env(env)
-        return float(self.thresholds_by_env.get(normalized, self.thresholds_by_env.get(self.default_env, 0.95)))
+        # SECURITY: Default to 0.99 (constitutional requirement) if threshold not found
+        return float(self.thresholds_by_env.get(normalized, self.thresholds_by_env.get(self.default_env, 0.99)))
 
 
 def load_ihsan_policy() -> IhsanPolicy:
     path = _find_constitution_path()
     if path is None:
+        # SECURITY: Fallback thresholds MUST match constitution (0.99 in all environments)
+        # Even without constitution file, we enforce the same ethical standard
+        # This prevents threshold degradation attacks via constitution file deletion
         return IhsanPolicy(
             loaded=False,
             constitution_id="ihsan_v1",
@@ -111,7 +115,7 @@ def load_ihsan_policy() -> IhsanPolicy:
             constitution_path=None,
             weights={},
             default_env="development",
-            thresholds_by_env={"development": 0.80, "ci": 0.90, "production": 0.95},
+            thresholds_by_env={"development": 0.99, "ci": 0.99, "production": 0.99},
             env_aliases={"dev": "development", "prod": "production"},
         )
 

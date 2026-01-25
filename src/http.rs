@@ -8,18 +8,28 @@
 // - Prometheus metrics per endpoint
 
 use crate::{
+    autopoietic::{
+        self,
+        blueprints::AgentBlueprint,
+        loop_engine::{AutopoieticLoop, LoopControl},
+        types::AutopoieticConfig,
+    },
     errors::{BridgeError, PolicyError},
     ihsan,
+    lmstudio,
     mcp::{self, JsonRpcRequest},
-    metrics, ollama,
+    metrics,
+    model_router,
+    ollama,
     pat_enhanced::EnhancedPATOrchestrator,
     sape,
-    types::{AdapterModes, DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
+    types::{DualAgenticRequest, DualAgenticResponse, EnhancedDualAgenticRequest},
+    voice,
     MetaAlphaDualAgentic,
 };
 use anyhow::bail;
 use axum::{
-    body::Body,
+    body::{Body, Bytes},
     extract::{Extension, State},
     http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode},
     middleware::{self, Next},
@@ -32,7 +42,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     services::ServeDir,
@@ -285,9 +295,24 @@ pub async fn create_http_server(
         .route("/mcp/tools", get(mcp_tools_list))
         .route("/sape/probes", post(sape_probes_handler))
         .route("/sape/stats", get(sape_stats_handler))
+        .route("/router/status", get(router_status_handler))
         .route("/ollama/generate", post(ollama_generate_handler))
         .route("/ollama/chat", post(ollama_chat_handler))
         .route("/ollama/status", get(ollama_status_handler))
+        .route("/voice/transcribe", post(voice_transcribe_handler))
+        .route("/voice/speak", post(voice_speak_handler))
+        // Autopoietic Loop endpoints
+        .route("/autopoietic/start", post(autopoietic_start_handler))
+        .route("/autopoietic/stop", post(autopoietic_stop_handler))
+        .route("/autopoietic/status", get(autopoietic_status_handler))
+        .route("/autopoietic/history", get(autopoietic_history_handler))
+        .route("/autopoietic/inject", post(autopoietic_inject_handler))
+        .route("/autopoietic/verify", get(autopoietic_verify_handler))
+        // Node0 Unified System endpoints
+        .route("/node0/status", get(node0_status_handler))
+        .route("/node0/resources", get(node0_resources_handler))
+        .route("/node0/verify", get(node0_verify_handler))
+        .route("/node0/services", get(node0_services_handler))
         .layer(middleware::from_fn_with_state(
             api_token.clone(),
             auth_middleware,
@@ -337,10 +362,21 @@ async fn root() -> impl IntoResponse {
     let ihsan_env = ihsan::current_env();
     let ihsan_artifact_class = "docs";
     let ihsan_threshold_applied = constitution.threshold_for(&ihsan_env, ihsan_artifact_class);
+    let ihsan_threshold_target = constitution.threshold();
+    let cert_bundle = std::env::var("BIZRA_CERT_BUNDLE_SHA256")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let (normalized_env, status, certification) = truth_kernel_status(
+        &ihsan_env,
+        ihsan_threshold_applied,
+        ihsan_threshold_target,
+        cert_bundle.as_deref(),
+    );
     Json(serde_json::json!({
         "name": "BIZRA META ALPHA ELITE - Complete Unified System",
         "version": "2.0.0",
-        "architecture": "PAT(7) + SAT(5) + Full Arsenal",
+        "architecture": "PAT(6) + SAT(5) + Full Arsenal",
         "capabilities": [
             "MCP Integration",
             "A2A Protocol",
@@ -350,22 +386,103 @@ async fn root() -> impl IntoResponse {
             "Hook System",
             "Slash Commands",
         ],
-        "status": "PRODUCTION_READY",
-        "adapter_modes": AdapterModes::current(),
+        "execution_mode": "REAL_LLMS_ONLY",
+        "profile": normalized_env,
+        "certification": certification,
+        "status": status,
         "ihsan": {
             "constitution_id": constitution.id(),
-            "threshold_baseline": constitution.threshold(),
+            "threshold_target": ihsan_threshold_target,
             "env": ihsan_env,
             "artifact_class": ihsan_artifact_class,
-            "threshold_applied": ihsan_threshold_applied,
+            "threshold_enforced": ihsan_threshold_applied,
         },
-        "mode_override": "Set BIZRA_ADAPTER_MODE=simulated to force simulation",
     }))
+}
+
+fn truth_kernel_status(
+    ihsan_env: &str,
+    threshold_enforced: f64,
+    threshold_target: f64,
+    cert_bundle: Option<&str>,
+) -> (&'static str, &'static str, serde_json::Value) {
+    let env_key = ihsan_env.trim().to_ascii_lowercase().replace(['-', ' '], "_");
+    let normalized_env = match env_key.as_str() {
+        "dev" | "development" => "development",
+        "prod" | "production" => "production",
+        "staging" => "staging",
+        _ => "unknown",
+    };
+
+    match normalized_env {
+        "development" => (
+            "development",
+            "DEV_REAL_LLMS",
+            serde_json::json!({
+                "state": "NOT_CERTIFIED",
+                "reason": "dev_threshold"
+            }),
+        ),
+        "staging" => (
+            "staging",
+            if threshold_enforced >= 0.95 {
+                "STAGING_CERTIFIABLE"
+            } else {
+                "PRODUCTION_BLOCKED"
+            },
+            serde_json::json!({
+                "state": "CANDIDATE",
+                "required": ["sbom", "provenance", "receipts", "policy_digest"]
+            }),
+        ),
+        "production" => {
+            if cert_bundle.is_some() && threshold_enforced >= threshold_target {
+                (
+                    "production",
+                    "PRODUCTION_CERTIFIED",
+                    serde_json::json!({
+                        "state": "CERTIFIED",
+                        "bundle_sha256": cert_bundle
+                    }),
+                )
+            } else {
+                (
+                    "production",
+                    "PRODUCTION_BLOCKED",
+                    serde_json::json!({
+                        "state": "NOT_CERTIFIED",
+                        "reason": "missing_cert_bundle_or_threshold"
+                    }),
+                )
+            }
+        }
+        _ => (
+            "unknown",
+            "PRODUCTION_BLOCKED",
+            serde_json::json!({
+                "state": "NOT_CERTIFIED",
+                "reason": "unknown_env"
+            }),
+        ),
+    }
 }
 
 async fn health() -> impl IntoResponse {
     let constitution = ihsan::constitution();
     let ihsan_env = ihsan::current_env();
+    let ihsan_artifact_class = "code";
+    let ihsan_threshold_applied = constitution.threshold_for(&ihsan_env, ihsan_artifact_class);
+    let ihsan_threshold_target = constitution.threshold();
+    let cert_bundle = std::env::var("BIZRA_CERT_BUNDLE_SHA256")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let (normalized_env, status_label, certification) = truth_kernel_status(
+        &ihsan_env,
+        ihsan_threshold_applied,
+        ihsan_threshold_target,
+        cert_bundle.as_deref(),
+    );
 
     // Get SAPE statistics
     let sape_stats = {
@@ -379,6 +496,34 @@ async fn health() -> impl IntoResponse {
     let sape_healthy = sape_stats.total_patterns >= 5;
     let overall_healthy = ihsan_healthy && sape_healthy;
 
+    let lmstudio_ready = {
+        let client = lmstudio::get_lmstudio().await;
+        client.is_connected()
+    };
+
+    let voice_config = voice::VoiceConfig::from_env();
+    let whisper_ready = voice_config
+        .whisper_bin
+        .as_deref()
+        .map(|p| std::path::Path::new(p).exists())
+        .unwrap_or(false)
+        && voice_config
+            .whisper_model
+            .as_deref()
+            .map(|p| std::path::Path::new(p).exists())
+            .unwrap_or(false);
+    let piper_ready = voice_config
+        .piper_bin
+        .as_deref()
+        .map(|p| std::path::Path::new(p).exists())
+        .unwrap_or(false)
+        && voice_config
+            .piper_model
+            .as_deref()
+            .map(|p| std::path::Path::new(p).exists())
+            .unwrap_or(false);
+    let voice_ready = whisper_ready && piper_ready;
+
     let status_code = if overall_healthy {
         StatusCode::OK
     } else {
@@ -390,11 +535,18 @@ async fn health() -> impl IntoResponse {
         Json(serde_json::json!({
             "status": if overall_healthy { "healthy" } else { "degraded" },
             "timestamp": chrono::Utc::now().to_rfc3339(),
+            "execution_mode": "REAL_LLMS_ONLY",
+            "profile": normalized_env,
+            "certification": certification,
+            "status_label": status_label,
             "ihsan": {
                 "constitution_id": constitution.id(),
                 "env": ihsan_env,
-                "threshold_baseline": constitution.threshold(),
+                "threshold_target": ihsan_threshold_target,
+                "threshold_enforced": ihsan_threshold_applied,
+                "threshold_development": constitution.threshold_for("development", "code"),
                 "threshold_ci": constitution.threshold_for("ci", "code"),
+                "threshold_staging": constitution.threshold_for("staging", "code"),
                 "threshold_production": constitution.threshold_for("production", "code"),
                 "dimensions_count": constitution.weights().len(),
                 "enforcement_active": ihsan::should_enforce()
@@ -409,15 +561,24 @@ async fn health() -> impl IntoResponse {
                 "total_snr_improvement": sape_stats.total_snr_improvement
             },
             "agents": {
-                "pat_count": 7,
+                "pat_count": 6,
                 "sat_count": 5,
-                "total": 12
+                "total": 11
             },
             "gates": {
                 "security": "active",
                 "quality": "active",
                 "ihsan": if ihsan_healthy { "active" } else { "degraded" },
                 "performance": "active"
+            },
+            "llm_backends": {
+                "ollama_connected": ollama::get_ollama().await.is_connected(),
+                "lmstudio_connected": lmstudio_ready
+            },
+            "voice": {
+                "configured": voice_ready,
+                "whisper_ready": whisper_ready,
+                "piper_ready": piper_ready
             }
         })),
     )
@@ -427,6 +588,19 @@ async fn health() -> impl IntoResponse {
 /// Returns 200 if service is ready to accept traffic, 503 otherwise
 async fn health_ready() -> impl IntoResponse {
     let constitution = ihsan::constitution();
+    let ihsan_env = ihsan::current_env();
+    let ihsan_threshold_applied = constitution.threshold_for(&ihsan_env, "code");
+    let ihsan_threshold_target = constitution.threshold();
+    let cert_bundle = std::env::var("BIZRA_CERT_BUNDLE_SHA256")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let (normalized_env, status_label, certification) = truth_kernel_status(
+        &ihsan_env,
+        ihsan_threshold_applied,
+        ihsan_threshold_target,
+        cert_bundle.as_deref(),
+    );
 
     // Check critical components
     let sape_ready = {
@@ -448,10 +622,38 @@ async fn health_ready() -> impl IntoResponse {
         client.is_connected()
     };
 
+    let lmstudio_ready = {
+        let client = lmstudio::get_lmstudio().await;
+        client.is_connected()
+    };
+
     // Check Filesystem (evidence/ write access)
     let fs_ready = std::fs::create_dir_all("evidence")
         .and_then(|_| std::fs::write("evidence/.health_check", b"ok"))
         .is_ok();
+
+    let voice_config = voice::VoiceConfig::from_env();
+    let whisper_ready = voice_config
+        .whisper_bin
+        .as_deref()
+        .map(|p| std::path::Path::new(p).exists())
+        .unwrap_or(false)
+        && voice_config
+            .whisper_model
+            .as_deref()
+            .map(|p| std::path::Path::new(p).exists())
+            .unwrap_or(false);
+    let piper_ready = voice_config
+        .piper_bin
+        .as_deref()
+        .map(|p| std::path::Path::new(p).exists())
+        .unwrap_or(false)
+        && voice_config
+            .piper_model
+            .as_deref()
+            .map(|p| std::path::Path::new(p).exists())
+            .unwrap_or(false);
+    let voice_ready = whisper_ready && piper_ready;
 
     let ihsan_ready = constitution.weights().len() >= 5;
     let is_ready = sape_ready && ihsan_ready && mcp_ready && ollama_ready && fs_ready;
@@ -466,12 +668,26 @@ async fn health_ready() -> impl IntoResponse {
         status_code,
         Json(serde_json::json!({
             "ready": is_ready,
+            "execution_mode": "REAL_LLMS_ONLY",
+            "profile": normalized_env,
+            "certification": certification,
+            "status_label": status_label,
+            "ihsan": {
+                "constitution_id": constitution.id(),
+                "env": ihsan_env,
+                "threshold_target": ihsan_threshold_target,
+                "threshold_enforced": ihsan_threshold_applied
+            },
             "checks": {
                 "sape_patterns": sape_ready,
                 "ihsan_constitution": ihsan_ready,
                 "mcp_tools": mcp_ready,
                 "ollama_connection": ollama_ready,
-                "fs_write_access": fs_ready
+                "lmstudio_connection": lmstudio_ready,
+                "fs_write_access": fs_ready,
+                "voice_configured": voice_ready,
+                "whisper_ready": whisper_ready,
+                "piper_ready": piper_ready
             }
         })),
     )
@@ -480,11 +696,35 @@ async fn health_ready() -> impl IntoResponse {
 /// Kubernetes-style liveness probe
 /// Returns 200 if process is alive, used for restart decisions
 async fn health_live() -> impl IntoResponse {
+    let constitution = ihsan::constitution();
+    let ihsan_env = ihsan::current_env();
+    let ihsan_threshold_applied = constitution.threshold_for(&ihsan_env, "code");
+    let ihsan_threshold_target = constitution.threshold();
+    let cert_bundle = std::env::var("BIZRA_CERT_BUNDLE_SHA256")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let (normalized_env, status_label, certification) = truth_kernel_status(
+        &ihsan_env,
+        ihsan_threshold_applied,
+        ihsan_threshold_target,
+        cert_bundle.as_deref(),
+    );
     (
         StatusCode::OK,
         Json(serde_json::json!({
             "alive": true,
-            "timestamp": chrono::Utc::now().to_rfc3339()
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "execution_mode": "REAL_LLMS_ONLY",
+            "profile": normalized_env,
+            "certification": certification,
+            "status_label": status_label,
+            "ihsan": {
+                "constitution_id": constitution.id(),
+                "env": ihsan_env,
+                "threshold_target": ihsan_threshold_target,
+                "threshold_enforced": ihsan_threshold_applied
+            }
         })),
     )
 }
@@ -513,19 +753,33 @@ async fn stats(
     let ihsan_env = ihsan::current_env();
     let ihsan_artifact_class = "docs";
     let ihsan_threshold_applied = constitution.threshold_for(&ihsan_env, ihsan_artifact_class);
+    let ihsan_threshold_target = constitution.threshold();
+    let cert_bundle = std::env::var("BIZRA_CERT_BUNDLE_SHA256")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let (normalized_env, status_label, certification) = truth_kernel_status(
+        &ihsan_env,
+        ihsan_threshold_applied,
+        ihsan_threshold_target,
+        cert_bundle.as_deref(),
+    );
     Json(serde_json::json!({
-        "pat_agents": 7,
+        "pat_agents": 6,
         "sat_agents": 5,
-        "total_agents": 12,
+        "total_agents": 11,
         "reasoning_methods": 5,
         "mcp_tools": 4,
         "uptime": "operational",
-        "adapter_modes": AdapterModes::current(),
+        "execution_mode": "REAL_LLMS_ONLY",
+        "profile": normalized_env,
+        "certification": certification,
+        "status_label": status_label,
         "ihsan_constitution_id": constitution.id(),
-        "ihsan_threshold_baseline": constitution.threshold(),
+        "ihsan_threshold_target": ihsan_threshold_target,
         "ihsan_env": ihsan_env,
         "ihsan_artifact_class": ihsan_artifact_class,
-        "ihsan_threshold_applied": ihsan_threshold_applied,
+        "ihsan_threshold_enforced": ihsan_threshold_applied,
     }))
 }
 
@@ -556,6 +810,36 @@ async fn execute_dual(
                         StatusCode::UNPROCESSABLE_ENTITY,
                         "IHSAN_GATE_FAILED",
                         err.to_string(),
+                    ),
+                    BridgeError::RequestInProgress { key } => (
+                        StatusCode::CONFLICT,
+                        "REQUEST_IN_PROGRESS",
+                        format!("Request already in progress: {}", key),
+                    ),
+                    BridgeError::IdempotencyError { message } => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "IDEMPOTENCY_ERROR",
+                        message.clone(),
+                    ),
+                    BridgeError::FateLockPoisoned { message } => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "FATE_LOCK_POISONED",
+                        message.clone(),
+                    ),
+                    BridgeError::DataLakeError { message } => (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "DATA_LAKE_ERROR",
+                        message.clone(),
+                    ),
+                    BridgeError::ConnectionFailed(message) => (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "CONNECTION_FAILED",
+                        message.clone(),
+                    ),
+                    BridgeError::ProtocolError(message) => (
+                        StatusCode::BAD_GATEWAY,
+                        "PROTOCOL_ERROR",
+                        message.clone(),
                     ),
                 };
                 warn!(error = %message, code = %code, request_id = %request_id, "Policy VETO");
@@ -763,6 +1047,152 @@ async fn sape_stats_handler() -> impl IntoResponse {
 }
 
 // ============================================================
+// Model Router Handlers
+// ============================================================
+
+/// Get Model Router status and capability slot availability
+async fn router_status_handler() -> impl IntoResponse {
+    match model_router::get_router().await {
+        Ok(router) => {
+            let stats = router.get_stats().await;
+            
+            Json(serde_json::json!({
+                "status": "operational",
+                "available_models": stats.available_models,
+                "available_models_ollama": stats.available_models_ollama,
+                "available_models_lmstudio": stats.available_models_lmstudio,
+                "last_refresh_seconds": stats.last_refresh,
+                "capability_slots": stats.slots.iter().map(|s| {
+                    serde_json::json!({
+                        "name": s.name,
+                        "primary_model": s.primary,
+                        "fallback_model": s.fallback,
+                        "primary_available": s.primary_available,
+                        "fallback_available": s.fallback_available,
+                        "primary_available_ollama": s.primary_available_ollama,
+                        "primary_available_lmstudio": s.primary_available_lmstudio,
+                        "fallback_available_ollama": s.fallback_available_ollama,
+                        "fallback_available_lmstudio": s.fallback_available_lmstudio,
+                        "alternative_models": s.alternatives,
+                        "alternatives_available": s.alternatives_available,
+                        "alternatives_available_ollama": s.alternatives_available_ollama,
+                        "alternatives_available_lmstudio": s.alternatives_available_lmstudio,
+                        "operational": s.primary_available || s.fallback_available || s.alternatives_available,
+                    })
+                }).collect::<Vec<_>>(),
+                "routing_strategy": "capability_based",
+                "slots_description": {
+                    "cold_core": "Deterministic reasoning (deepseek-r1)",
+                    "warm_surface": "User-facing nuance (mistral)",
+                    "primary_reasoning": "Strategic planning (bizra-planner)",
+                    "embeddings": "Semantic search (nomic-embed-text)",
+                    "vision": "Multimodal (qwen3-vl, llava fallback)"
+                }
+            }))
+        }
+        Err(e) => {
+            Json(serde_json::json!({
+                "status": "unavailable",
+                "error": e.to_string(),
+                "available_models": [],
+                "capability_slots": [],
+            }))
+        }
+    }
+}
+
+// ============================================================
+// Voice (Offline STT/TTS) Handlers
+// ============================================================
+
+#[derive(serde::Deserialize)]
+struct VoiceSpeakRequest {
+    text: String,
+}
+
+/// Transcribe audio bytes using local whisper.cpp (BIZRA_WHISPER_BIN/BIZRA_WHISPER_MODEL)
+async fn voice_transcribe_handler(body: Bytes) -> impl IntoResponse {
+    if body.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "empty_request_body",
+                "message": "Audio payload is required"
+            })),
+        );
+    }
+
+    let audio = body.to_vec();
+    let result = tokio::task::spawn_blocking(move || voice::transcribe_sync(&audio)).await;
+
+    match result {
+        Ok(Ok(text)) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "text": text,
+                "provider": "whisper.cpp"
+            })),
+        ),
+        Ok(Err(err)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "transcription_failed",
+                "message": err.to_string()
+            })),
+        ),
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "transcription_join_failed",
+                "message": err.to_string()
+            })),
+        ),
+    }
+}
+
+/// Synthesize speech using local piper (BIZRA_PIPER_BIN/BIZRA_PIPER_MODEL)
+async fn voice_speak_handler(Json(payload): Json<VoiceSpeakRequest>) -> impl IntoResponse {
+    let text = payload.text.trim();
+    if text.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "empty_text",
+                "message": "Text is required"
+            })),
+        )
+            .into_response();
+    }
+
+    let text_owned = text.to_string();
+    let result = tokio::task::spawn_blocking(move || voice::synthesize_sync(&text_owned)).await;
+
+    match result {
+        Ok(Ok(audio)) => {
+            let mut headers = HeaderMap::new();
+            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("audio/wav"));
+            (StatusCode::OK, headers, Bytes::from(audio)).into_response()
+        }
+        Ok(Err(err)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "synthesis_failed",
+                "message": err.to_string()
+            })),
+        )
+            .into_response(),
+        Err(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "synthesis_join_failed",
+                "message": err.to_string()
+            })),
+        )
+            .into_response(),
+    }
+}
+
+// ============================================================
 // Ollama LLM Handlers
 // ============================================================
 
@@ -787,13 +1217,11 @@ async fn ollama_generate_handler(
     let client = ollama::get_ollama().await;
 
     if !client.is_connected() {
-        // Return fallback response
-        let fallback = ollama::OllamaFallback::simulated_response(&request.prompt);
-        return Ok(Json(serde_json::json!({
-            "response": fallback.response,
-            "model": fallback.model,
-            "simulated": true,
-        })));
+        // Fail-closed: Production systems must return error when Ollama unavailable
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Ollama LLM service is not available. Please ensure Ollama is running.".to_string(),
+        ));
     }
 
     let _options = request.temperature.map(|t| ollama::GenerationOptions {
@@ -810,7 +1238,6 @@ async fn ollama_generate_handler(
             "model": response.model,
             "done": response.done,
             "eval_count": response.eval_count,
-            "simulated": false,
         }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
@@ -823,14 +1250,11 @@ async fn ollama_chat_handler(
     let client = ollama::get_ollama().await;
 
     if !client.is_connected() {
-        return Ok(Json(serde_json::json!({
-            "message": {
-                "role": "assistant",
-                "content": "[SIMULATED] Ollama not available"
-            },
-            "model": "simulated",
-            "simulated": true,
-        })));
+        // Fail-closed: Production systems must return error when Ollama unavailable
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Ollama LLM service is not available. Please ensure Ollama is running.".to_string(),
+        ));
     }
 
     let history = request.history.unwrap_or_default();
@@ -843,7 +1267,6 @@ async fn ollama_chat_handler(
             "message": response.message,
             "model": response.model,
             "done": response.done,
-            "simulated": false,
         }))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
@@ -960,6 +1383,386 @@ fn is_authorized(headers: &HeaderMap, expected: &str) -> bool {
         return false;
     };
     presented == expected
+}
+
+// ============================================================
+// Autopoietic Loop Handlers
+// ============================================================
+
+/// Global autopoietic loop instance (lazy initialized)
+static AUTOPOIETIC_LOOP: tokio::sync::OnceCell<Arc<RwLock<Option<AutopoieticLoopHandle>>>> =
+    tokio::sync::OnceCell::const_new();
+
+/// Handle to control the autopoietic loop
+struct AutopoieticLoopHandle {
+    loop_engine: Arc<AutopoieticLoop>,
+    control_tx: mpsc::Sender<LoopControl>,
+}
+
+async fn get_autopoietic_handle() -> Arc<RwLock<Option<AutopoieticLoopHandle>>> {
+    AUTOPOIETIC_LOOP
+        .get_or_init(|| async { Arc::new(RwLock::new(None)) })
+        .await
+        .clone()
+}
+
+#[derive(serde::Deserialize)]
+struct AutopoieticStartRequest {
+    generation_duration_ms: Option<u64>,
+    max_generations: Option<u64>,
+    ihsan_threshold: Option<f64>,
+}
+
+#[derive(serde::Deserialize)]
+struct AutopoieticHistoryQuery {
+    limit: Option<usize>,
+}
+
+/// Start the autopoietic loop
+async fn autopoietic_start_handler(
+    Json(request): Json<AutopoieticStartRequest>,
+) -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let mut guard = handle.write().await;
+
+    if guard.is_some() {
+        return (
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({
+                "error": "already_running",
+                "message": "Autopoietic loop is already running"
+            })),
+        );
+    }
+
+    // Create configuration
+    let config = AutopoieticConfig {
+        generation_duration_ms: request.generation_duration_ms.unwrap_or(60_000),
+        max_generations: request.max_generations.unwrap_or(0),
+        ihsan_threshold: request.ihsan_threshold.unwrap_or(0.95),
+        ..Default::default()
+    };
+
+    // Create the loop
+    let (loop_engine, mut event_rx, control_tx) = AutopoieticLoop::new(config.clone());
+    let loop_arc = Arc::new(loop_engine);
+
+    // Initialize default blueprints
+    loop_arc.initialize_default_blueprints().await;
+
+    // Start the loop in background
+    let loop_clone = loop_arc.clone();
+    tokio::spawn(async move {
+        if let Err(e) = loop_clone.run().await {
+            warn!(error = %e, "Autopoietic loop ended with error");
+        }
+    });
+
+    // Drain events to prevent bounded channel backpressure from stalling the loop.
+    tokio::spawn(async move {
+        while let Some(_event) = event_rx.recv().await {
+            // Intentionally discard; swap with logging/streaming if needed later.
+        }
+    });
+
+    // Store handle
+    *guard = Some(AutopoieticLoopHandle {
+        loop_engine: loop_arc.clone(),
+        control_tx,
+    });
+
+    info!(
+        generation_duration_ms = config.generation_duration_ms,
+        max_generations = config.max_generations,
+        ihsan_threshold = config.ihsan_threshold,
+        "🚀 Autopoietic loop started via HTTP"
+    );
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "status": "started",
+            "config": {
+                "generation_duration_ms": config.generation_duration_ms,
+                "max_generations": config.max_generations,
+                "ihsan_threshold": config.ihsan_threshold,
+            }
+        })),
+    )
+}
+
+/// Stop the autopoietic loop
+async fn autopoietic_stop_handler() -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let mut guard = handle.write().await;
+
+    match guard.take() {
+        Some(handle) => {
+            handle.loop_engine.stop();
+            info!("🛑 Autopoietic loop stopped via HTTP");
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "stopped",
+                    "message": "Autopoietic loop stopped gracefully"
+                })),
+            )
+        }
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "error": "not_running",
+                "message": "Autopoietic loop is not running"
+            })),
+        ),
+    }
+}
+
+/// Get autopoietic loop status
+async fn autopoietic_status_handler() -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let guard = handle.read().await;
+
+    match guard.as_ref() {
+        Some(handle) => {
+            let status = handle.loop_engine.status().await;
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "running": true,
+                    "current_generation": status.current_generation,
+                    "kep_state": format!("{:?}", status.kep_state),
+                    "aggregate_ihsan": status.aggregate_ihsan,
+                    "active_agents": status.active_agents,
+                    "blueprint_count": status.blueprint_count,
+                    "convergence_state": status.convergence_state,
+                    "proof_chain_length": status.proof_chain_length,
+                    "receipts_emitted": status.receipts_emitted,
+                })),
+            )
+        }
+        None => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "running": false,
+                "message": "Autopoietic loop is not running. Use POST /autopoietic/start to begin."
+            })),
+        ),
+    }
+}
+
+/// Get autopoietic evolution history
+async fn autopoietic_history_handler(
+    axum::extract::Query(query): axum::extract::Query<AutopoieticHistoryQuery>,
+) -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let guard = handle.read().await;
+
+    let limit = query.limit.unwrap_or(10);
+
+    match guard.as_ref() {
+        Some(handle) => {
+            let history = handle.loop_engine.history(limit).await;
+            let history_json: Vec<serde_json::Value> = history
+                .iter()
+                .map(|p| {
+                    serde_json::json!({
+                        "generation": p.generation,
+                        "aggregate_ihsan": p.aggregate_ihsan,
+                        "tasks_processed": p.tasks_processed,
+                        "successful_executions": p.successful_executions,
+                        "rejections": p.rejections,
+                        "avg_latency_ms": p.avg_latency_ms,
+                        "p95_latency_ms": p.p95_latency_ms,
+                        "kep_progress": {
+                            "knowledge_mass": p.kep_progress.knowledge_mass,
+                            "discovery_velocity": p.kep_progress.discovery_velocity,
+                            "synergy_density": p.kep_progress.synergy_density,
+                        },
+                        "improvements_count": p.improvements_applied.len(),
+                        "proof_hash": p.proof_hash,
+                        "receipt_id": p.receipt_id,
+                        "duration_ms": p.duration_ms,
+                    })
+                })
+                .collect();
+
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "history": history_json,
+                    "count": history.len(),
+                    "limit": limit,
+                })),
+            )
+        }
+        None => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "history": [],
+                "count": 0,
+                "message": "Autopoietic loop is not running"
+            })),
+        ),
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct AutopoieticInjectRequest {
+    id: String,
+    name: String,
+    team: String,
+    capability_slot: String,
+    system_prompt: String,
+    model: String,
+}
+
+/// Inject a blueprint for testing
+async fn autopoietic_inject_handler(
+    Json(request): Json<AutopoieticInjectRequest>,
+) -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let guard = handle.read().await;
+
+    match guard.as_ref() {
+        Some(handle) => {
+            let team = match request.team.to_uppercase().as_str() {
+                "PAT" => autopoietic::blueprints::AgentTeam::PAT,
+                "SAT" => autopoietic::blueprints::AgentTeam::SAT,
+                _ => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({
+                            "error": "invalid_team",
+                            "message": "Team must be 'PAT' or 'SAT'"
+                        })),
+                    );
+                }
+            };
+
+            let slot = autopoietic::blueprints::CapabilitySlot::Dynamic(request.capability_slot.clone());
+
+            let blueprint = AgentBlueprint::genesis(
+                &request.id,
+                &request.name,
+                team,
+                slot,
+                &request.system_prompt,
+                &request.model,
+                "ollama",
+                4.0,
+            );
+
+            handle.loop_engine.inject_blueprint(blueprint).await;
+
+            info!(
+                blueprint_id = %request.id,
+                team = %request.team,
+                "📋 Blueprint injected via HTTP"
+            );
+
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "injected",
+                    "blueprint_id": request.id,
+                    "team": request.team,
+                })),
+            )
+        }
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "error": "not_running",
+                "message": "Autopoietic loop is not running"
+            })),
+        ),
+    }
+}
+
+/// Verify proof chain integrity
+async fn autopoietic_verify_handler() -> impl IntoResponse {
+    let handle = get_autopoietic_handle().await;
+    let guard = handle.read().await;
+
+    match guard.as_ref() {
+        Some(handle) => {
+            let verification = handle.loop_engine.verify_chain().await;
+
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "is_valid": verification.is_valid,
+                    "verified_nodes": verification.verified_nodes,
+                    "total_nodes": verification.total_nodes,
+                    "errors": verification.errors,
+                    "chain_hash": verification.chain_hash,
+                })),
+            )
+        }
+        None => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "is_valid": true,
+                "verified_nodes": 0,
+                "total_nodes": 0,
+                "errors": [],
+                "message": "Autopoietic loop is not running - no chain to verify"
+            })),
+        ),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NODE0 UNIFIED SYSTEM HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Get complete Node0 unified status
+async fn node0_status_handler() -> impl IntoResponse {
+    use crate::node0_unified::UnifiedNode0Manager;
+
+    let manager = UnifiedNode0Manager::new();
+    let status = manager.full_health_check().await;
+
+    (StatusCode::OK, Json(status))
+}
+
+/// Get Node0 resource summary
+async fn node0_resources_handler() -> impl IntoResponse {
+    use crate::node0_unified::UnifiedNode0Manager;
+
+    let manager = UnifiedNode0Manager::new();
+    let resources = manager.get_resource_summary().await;
+
+    (StatusCode::OK, Json(resources))
+}
+
+/// Verify Node0 standalone operation capability
+async fn node0_verify_handler() -> impl IntoResponse {
+    use crate::node0_unified::UnifiedNode0Manager;
+
+    let manager = UnifiedNode0Manager::new();
+    let verification = manager.verify_standalone().await;
+
+    let status_code = if verification.standalone_ready {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (status_code, Json(verification))
+}
+
+/// Get Node0 service status
+async fn node0_services_handler() -> impl IntoResponse {
+    use crate::node0_unified::UnifiedNode0Manager;
+
+    let manager = UnifiedNode0Manager::new();
+    let mut services = manager.check_docker_services().await;
+    let ollama = manager.check_ollama().await;
+    services.push(ollama);
+
+    (StatusCode::OK, Json(services))
 }
 
 #[cfg(test)]

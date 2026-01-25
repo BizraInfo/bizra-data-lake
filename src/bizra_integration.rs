@@ -1,6 +1,6 @@
 // src/bizra_integration.rs - Connect to external BIZRA components
 
-use crate::wisdom::{HouseOfWisdom, WisdomFallback};
+use crate::wisdom::HouseOfWisdom;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 use tracing::{info, warn};
@@ -31,7 +31,7 @@ pub struct NODE0Integration {
 
 impl NODE0Integration {
     pub fn new(base_url: String) -> Self {
-        Self { 
+        Self {
             base_url,
             wisdom: None,
         }
@@ -46,15 +46,10 @@ impl NODE0Integration {
     }
 
     /// Call NODE0 ACE Framework
-    pub async fn call_ace_framework(&self, task: &str) -> anyhow::Result<serde_json::Value> {
-        // In production: HTTP call to NODE0
-        // For now: simulated
-        Ok(serde_json::json!({
-            "base_url": &self.base_url,
-            "generator_output": format!("Generated plan for: {}", task),
-            "reflector_output": "Validated plan quality",
-            "curator_output": "Synthesized final recommendation",
-        }))
+    pub async fn call_ace_framework(&self, _task: &str) -> anyhow::Result<serde_json::Value> {
+        // STRICT MODE: Real implementation required
+        // Removing simulation/mock
+        anyhow::bail!("ACE Framework integration not implemented - real-time execution required");
     }
 
     /// Query HyperGraphRAG (18.7x advantage) via House of Wisdom
@@ -70,7 +65,9 @@ impl NODE0Integration {
                             query_time_ms = result.query_time_ms,
                             "🏛️ HyperGraphRAG query succeeded"
                         );
-                        return Ok(result.nodes.iter()
+                        return Ok(result
+                            .nodes
+                            .iter()
                             .map(|n| format!("[{}] {}", n.node_type, n.content))
                             .collect());
                     }
@@ -81,19 +78,19 @@ impl NODE0Integration {
             }
         }
 
-        // Fallback to simulated response
-        let fallback = WisdomFallback::simulated_query(query);
-        Ok(fallback.nodes.iter()
-            .map(|n| format!("[simulated] {}", n.content))
-            .collect())
+        // Fail-closed: Production systems must return error when Neo4j unavailable
+        anyhow::bail!(
+            "Neo4j (House of Wisdom) is not available or query failed. \
+             Please ensure Neo4j is running and properly configured."
+        )
     }
 
     /// Store knowledge in the graph (if connected)
     pub async fn store_knowledge(
-        &self, 
+        &self,
         node_type: &str,
-        content: &str, 
-        metadata: serde_json::Value
+        content: &str,
+        metadata: serde_json::Value,
     ) -> anyhow::Result<Option<String>> {
         if let Some(wisdom) = &self.wisdom {
             if wisdom.is_connected().await {

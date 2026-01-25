@@ -6,6 +6,7 @@
 use crate::fate::{Escalation, EscalationLevel};
 use crate::sat::RejectionCode;
 use crate::synapse::SynapseClient;
+use anyhow::bail;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -24,6 +25,26 @@ pub enum ReceiptType {
     Quarantine,
     /// Ihsān threshold failure
     IhsanFailure,
+    // KEP Receipt Types
+    /// Synergy detection between knowledge elements
+    SynergyDetection,
+    /// Compound knowledge synthesis
+    CompoundDiscovery,
+    /// Explosion mode entry
+    ExplosionModeEntry,
+    /// Explosion mode exit
+    ExplosionModeExit,
+    /// Learning rate acceleration
+    LearningAcceleration,
+    /// Feedback loop cycle
+    FeedbackLoopCycle,
+    // Autopoietic Receipt Types
+    /// Autopoietic generation cycle
+    AutopoieticGeneration,
+    /// Blueprint evolution
+    BlueprintEvolution,
+    /// Proof chain anchor
+    ProofChainAnchor,
 }
 
 /// Rejection receipt - evidence of SAT blocking a request
@@ -96,6 +117,278 @@ pub struct ExecutionReceipt {
     pub integrity_hash: String,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// KEP RECEIPT TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Receipt for synergy detection between knowledge elements (KEP)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SynergyDetectionReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of detection
+    pub timestamp: DateTime<Utc>,
+    /// Source element ID (principle/pattern)
+    pub source_id: String,
+    /// Target element ID
+    pub target_id: String,
+    /// Source domain
+    pub source_domain: String,
+    /// Target domain
+    pub target_domain: String,
+    /// Semantic similarity score
+    pub similarity_score: f64,
+    /// Graph structural score
+    pub structural_score: f64,
+    /// Combined composite score
+    pub composite_score: f64,
+    /// Hypothesized emergent capability
+    pub potential_compound: String,
+    /// Pre-validated Ihsān alignment
+    pub ihsan_alignment: f64,
+    /// Whether threshold was passed
+    pub passed_threshold: bool,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
+/// Receipt for compound knowledge synthesis (KEP)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompoundDiscoveryReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of synthesis
+    pub timestamp: DateTime<Utc>,
+    /// Compound ID
+    pub compound_id: String,
+    /// Compound name
+    pub compound_name: String,
+    /// Emergent capability description
+    pub emergent_capability: String,
+    /// Synthesis type (additive, multiplicative, transcendent)
+    pub synthesis_type: String,
+    /// Source principle IDs
+    pub source_principles: Vec<String>,
+    /// Domains bridged by this compound
+    pub domains_bridged: Vec<String>,
+    /// Ihsān alignment score
+    pub ihsan_alignment: f64,
+    /// SAT votes in favor
+    pub sat_votes_for: usize,
+    /// SAT votes against
+    pub sat_votes_against: usize,
+    /// Whether SAT consensus was reached (3/5)
+    pub sat_consensus_reached: bool,
+    /// Related synergy receipt ID
+    pub synergy_receipt_id: String,
+    /// Synthesis latency in milliseconds
+    pub synthesis_latency_ms: u64,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
+/// Receipt for explosion mode transitions (KEP)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplosionModeReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type (ExplosionModeEntry or ExplosionModeExit)
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of transition
+    pub timestamp: DateTime<Utc>,
+    /// Whether this is an entry (true) or exit (false)
+    pub is_entry: bool,
+    /// Knowledge mass at transition
+    pub knowledge_mass: u64,
+    /// Discovery velocity (compounds/hour)
+    pub discovery_velocity: f64,
+    /// Synergy density ratio
+    pub synergy_density: f64,
+    /// Learning rate multiplier
+    pub learning_rate_multiplier: f64,
+    /// System-wide Ihsān average
+    pub ihsan_average: f64,
+    /// Whether knowledge mass condition was met
+    pub mass_threshold_met: bool,
+    /// Whether velocity condition was met
+    pub velocity_threshold_met: bool,
+    /// Whether synergy condition was met
+    pub synergy_threshold_met: bool,
+    /// Whether Ihsān condition was met
+    pub ihsan_threshold_met: bool,
+    /// SAT votes for explosion mode (requires 4/5)
+    pub sat_votes_for: usize,
+    /// SAT votes against
+    pub sat_votes_against: usize,
+    /// Duration in seconds (for exit receipts)
+    pub duration_seconds: u64,
+    /// Compounds synthesized during explosion (for exit)
+    pub compounds_synthesized: u64,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUTOPOIETIC RECEIPT TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Receipt for autopoietic generation cycle
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutopoieticGenerationReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of generation
+    pub timestamp: DateTime<Utc>,
+    /// Generation number
+    pub generation: u64,
+    /// Generation duration in milliseconds
+    pub duration_ms: u64,
+    /// Aggregate Ihsān score
+    pub aggregate_ihsan: f64,
+    /// Individual Ihsān dimension scores
+    pub ihsan_dimensions: AutopoieticIhsanDimensions,
+    /// KEP state at end of generation
+    pub kep_state: String,
+    /// KEP progress metrics
+    pub kep_progress: AutopoieticKEPProgress,
+    /// Number of tasks processed
+    pub tasks_processed: u64,
+    /// Number of successful executions
+    pub successful_executions: u64,
+    /// Number of rejections
+    pub rejections: u64,
+    /// Average latency in milliseconds
+    pub avg_latency_ms: u64,
+    /// P95 latency in milliseconds
+    pub p95_latency_ms: u64,
+    /// Number of blueprint improvements applied
+    pub improvements_count: usize,
+    /// List of improvement descriptions
+    pub improvements: Vec<String>,
+    /// Proof chain hash for this generation
+    pub proof_hash: String,
+    /// Previous generation's proof hash (for lineage)
+    pub previous_proof_hash: String,
+    /// Whether Ihsān gate passed
+    pub ihsan_gate_passed: bool,
+    /// Whether all SAPE probes passed
+    pub sape_all_passed: bool,
+    /// Number of active blueprints
+    pub active_blueprints: usize,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
+/// Ihsān dimensions for autopoietic receipts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutopoieticIhsanDimensions {
+    pub correctness: f64,
+    pub safety: f64,
+    pub user_benefit: f64,
+    pub efficiency: f64,
+    pub auditability: f64,
+    pub anti_centralization: f64,
+    pub robustness: f64,
+    pub adl_fairness: f64,
+}
+
+/// KEP progress for autopoietic receipts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutopoieticKEPProgress {
+    pub knowledge_mass: u64,
+    pub discovery_velocity: f64,
+    pub synergy_density: f64,
+    pub learning_rate_multiplier: f64,
+    pub synergies_detected: u64,
+    pub compounds_synthesized: u64,
+}
+
+/// Receipt for blueprint evolution events
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlueprintEvolutionReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of evolution
+    pub timestamp: DateTime<Utc>,
+    /// Blueprint ID (new evolved version)
+    pub blueprint_id: String,
+    /// Parent blueprint ID
+    pub parent_blueprint_id: String,
+    /// Blueprint name
+    pub blueprint_name: String,
+    /// Agent team (PAT or SAT)
+    pub team: String,
+    /// Capability slot
+    pub capability_slot: String,
+    /// Generation number
+    pub generation: u64,
+    /// Number of mutations applied
+    pub mutations_count: usize,
+    /// Description of mutations
+    pub mutations: Vec<String>,
+    /// Lineage hash
+    pub lineage_hash: String,
+    /// Previous Ihsān average
+    pub previous_ihsan_avg: Option<f64>,
+    /// Fitness score
+    pub fitness_score: f64,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
+/// Receipt for proof chain blockchain anchoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProofChainAnchorReceipt {
+    /// Schema version
+    pub schema: String,
+    /// Receipt type
+    pub receipt_type: ReceiptType,
+    /// Unique receipt ID
+    pub receipt_id: String,
+    /// Timestamp of anchoring
+    pub timestamp: DateTime<Utc>,
+    /// Chain name (e.g., "bizra-native")
+    pub chain: String,
+    /// Transaction hash
+    pub tx_hash: String,
+    /// Block number
+    pub block_number: u64,
+    /// Generations included in this anchor
+    pub generations: Vec<u64>,
+    /// First generation in range
+    pub first_generation: u64,
+    /// Last generation in range
+    pub last_generation: u64,
+    /// Merkle root of included proofs
+    pub merkle_root: String,
+    /// Genesis hash of the proof chain
+    pub genesis_hash: String,
+    /// Head hash before anchoring
+    pub head_hash: String,
+    /// Total proof chain length
+    pub chain_length: usize,
+    /// SHA-256 hash of receipt content
+    pub integrity_hash: String,
+}
+
 /// Receipt emitter - creates and persists receipts
 pub struct ReceiptEmitter {
     /// Directory to store receipts
@@ -137,18 +430,14 @@ impl ReceiptEmitter {
         }
     }
     
-    /// Create from environment (auto-detect Redis)
-    pub async fn from_env(output_dir: &str) -> Self {
-        match crate::synapse::SynapseClient::from_env().await {
-            Ok(synapse) if synapse.is_available() => {
-                info!("📋 ReceiptEmitter connected to Redis for durable persistence");
-                Self::with_synapse(output_dir, synapse)
-            }
-            _ => {
-                warn!("📋 ReceiptEmitter running without Redis (filesystem only)");
-                Self::new(output_dir)
-            }
+    /// Create from environment (hard fail if Redis unavailable)
+    pub async fn from_env(output_dir: &str) -> anyhow::Result<Self> {
+        let synapse = crate::synapse::SynapseClient::from_env().await?;
+        if !synapse.is_available() {
+            bail!("Synapse client reported unavailable state");
         }
+        info!("📋 ReceiptEmitter connected to Redis for durable persistence");
+        Ok(Self::with_synapse(output_dir, synapse))
     }
 
     /// Emit a rejection receipt
@@ -392,6 +681,84 @@ impl ReceiptEmitter {
     /// Sync version: returns empty (use async for Redis)
     pub fn recent_receipts(&self, _limit: usize) -> Vec<String> {
         Vec::new()
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BLOCKCHAIN ANCHORING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// Anchor an execution receipt to BIZRA native blockchain
+    ///
+    /// This creates an immutable record on the BIZRA chain for:
+    /// - Proof of execution
+    /// - Ihsān score attestation
+    /// - SAT consensus evidence
+    pub async fn anchor_execution_to_chain(
+        &self,
+        receipt: &ExecutionReceipt,
+    ) -> Result<crate::blockchain::AnchorResult, anyhow::Error> {
+        info!(
+            receipt_id = %receipt.receipt_id,
+            ihsan = receipt.ihsan_score,
+            "⛓️ Anchoring execution receipt to BIZRA chain"
+        );
+
+        crate::blockchain::anchor_receipt(
+            &receipt.receipt_id,
+            &format!("{:?}", receipt.receipt_type),
+            &receipt.integrity_hash,
+            receipt.ihsan_score,
+            receipt.sat_approvers_count as u8,
+        ).await
+    }
+
+    /// Anchor a rejection receipt to BIZRA native blockchain
+    ///
+    /// This creates an immutable record for:
+    /// - Rejection evidence
+    /// - FATE escalation record
+    /// - SAT voting record
+    pub async fn anchor_rejection_to_chain(
+        &self,
+        receipt: &RejectionReceipt,
+    ) -> Result<crate::blockchain::AnchorResult, anyhow::Error> {
+        info!(
+            receipt_id = %receipt.receipt_id,
+            escalation = %receipt.escalation_level,
+            "⛓️ Anchoring rejection receipt to BIZRA chain"
+        );
+
+        crate::blockchain::anchor_receipt(
+            &receipt.receipt_id,
+            &format!("{:?}", receipt.receipt_type),
+            &receipt.integrity_hash,
+            0.0, // Rejections don't have Ihsān score
+            receipt.approving_validators.len() as u8,
+        ).await
+    }
+
+    /// Anchor any receipt to chain by ID (generic method)
+    pub async fn anchor_to_chain(
+        &self,
+        receipt_id: &str,
+        receipt_type: ReceiptType,
+        integrity_hash: &str,
+        ihsan_score: f64,
+        sat_approvers: u8,
+    ) -> Result<crate::blockchain::AnchorResult, anyhow::Error> {
+        info!(
+            receipt_id = %receipt_id,
+            receipt_type = ?receipt_type,
+            "⛓️ Anchoring receipt to BIZRA chain"
+        );
+
+        crate::blockchain::anchor_receipt(
+            receipt_id,
+            &format!("{:?}", receipt_type),
+            integrity_hash,
+            ihsan_score,
+            sat_approvers,
+        ).await
     }
 }
 

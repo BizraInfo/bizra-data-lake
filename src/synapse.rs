@@ -10,7 +10,8 @@
 use anyhow::{Context, Result};
 use redis::{aio::ConnectionManager, AsyncCommands, Client};
 use serde::{de::DeserializeOwned, Serialize};
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, info, instrument};
+use url::Url;
 
 /// Redis key prefixes for namespacing
 const KEY_PREFIX_FATE: &str = "bizra:fate:";
@@ -35,37 +36,44 @@ pub struct SynapseClient {
 }
 
 impl SynapseClient {
-    /// Create new Synapse client from environment
+    /// Create new Synapse client from environment (with TLS support)
     #[instrument]
     pub async fn from_env() -> Result<Self> {
         let url = std::env::var("REDIS_URL")
-            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        
+            .unwrap_or_else(|_| "rediss://:bizra_synapse_secure@127.0.0.1:6379".to_string());
+
         Self::connect(&url).await
     }
     
-    /// Connect to Redis
+    /// Connect to Redis (supports both redis:// and rediss:// for TLS)
     #[instrument(skip(url))]
     pub async fn connect(url: &str) -> Result<Self> {
-        info!(url = %url, "Connecting to Synapse (Redis)");
+        // Redact password from logs
+        let safe_url = if let Ok(parsed) = Url::parse(url) {
+            if parsed.password().is_some() {
+                // reconstruct without password
+                format!("{}://***@{}:{}", parsed.scheme(), parsed.host_str().unwrap_or("unknown"), parsed.port().unwrap_or(6379))
+            } else {
+                url.to_string()
+            }
+        } else {
+            "invalid_url".to_string()
+        };
         
+        info!(url = %safe_url, "Connecting to Synapse (Redis) with TLS support");
+
         let client = Client::open(url)
             .context("Failed to create Redis client")?;
-        
-        match ConnectionManager::new(client).await {
-            Ok(conn) => {
-                info!("✅ Synapse connection established");
-                Ok(Self { conn, available: true })
-            }
-            Err(e) => {
-                warn!(error = %e, "Synapse unavailable, using fallback mode");
-                // Create a dummy connection for fallback mode
-                let dummy_client = Client::open("redis://127.0.0.1:6379")?;
-                let conn = ConnectionManager::new(dummy_client).await
-                    .unwrap_or_else(|_| panic!("Cannot create even dummy connection"));
-                Ok(Self { conn, available: false })
-            }
-        }
+
+        let conn = ConnectionManager::new(client)
+            .await
+            .with_context(|| format!("Failed to connect to Redis at {safe_url}"))?;
+
+        info!(
+            "✅ Synapse connection established (TLS: {})",
+            url.starts_with("rediss://")
+        );
+        Ok(Self { conn, available: true })
     }
     
     /// Check if Synapse is available
@@ -326,21 +334,9 @@ impl SynapseClient {
     }
 }
 
-/// Create Synapse client with fallback
-pub async fn synapse_client() -> SynapseClient {
-    match SynapseClient::from_env().await {
-        Ok(client) => client,
-        Err(e) => {
-            error!(error = %e, "Failed to create Synapse client, running in degraded mode");
-            // Return a client in unavailable mode
-            SynapseClient {
-                conn: ConnectionManager::new(Client::open("redis://127.0.0.1:6379").unwrap())
-                    .await
-                    .expect("Fallback connection failed"),
-                available: false,
-            }
-        }
-    }
+/// Create Synapse client (hard-fail if Redis is unavailable)
+pub async fn synapse_client() -> Result<SynapseClient> {
+    SynapseClient::from_env().await
 }
 
 #[cfg(test)]

@@ -46,12 +46,22 @@ pub enum SwarmMode {
     HiveMind,
 }
 
+/// Memory tiers for unified memory system.
+/// Maps to Data Lake tiers (M1-M6) and local tiers (L1-L5).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MemoryTier {
+    /// L1/M1: Current task context (immediate/working)
     Working,
+    /// L3/M2: Past conversations and experiences
     Episodic,
+    /// L4/M3: Facts and knowledge
     Semantic,
+    /// L5/M4: Learned skills and patterns
     Procedural,
+    /// M5: Historical archive (Data Lake only)
+    Historical,
+    /// M6: Cross-domain omniscient memory (Data Lake Sovereign tier)
+    Sovereign,
 }
 
 /// Base dual agentic request
@@ -140,43 +150,8 @@ pub struct AgentResult {
     pub execution_time: Duration,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AdapterMode {
-    Simulated,
-    Real,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AdapterModes {
-    pub pat: AdapterMode,
-    pub sat: AdapterMode,
-    pub mcp: AdapterMode,
-    pub a2a: AdapterMode,
-    pub reasoning: AdapterMode,
-}
-
-impl AdapterModes {
-    /// Get current adapter modes from environment.
-    /// 
-    /// Set `BIZRA_ADAPTER_MODE=simulated` to force simulation mode.
-    /// Default is now Real mode for production readiness.
-    pub fn current() -> Self {
-        let mode = match std::env::var("BIZRA_ADAPTER_MODE") {
-            Ok(v) if v.eq_ignore_ascii_case("simulated") => AdapterMode::Simulated,
-            Ok(v) if v.eq_ignore_ascii_case("real") => AdapterMode::Real,
-            _ => AdapterMode::Real, // Default to Real mode
-        };
-        
-        Self {
-            pat: mode.clone(),
-            sat: mode.clone(),
-            mcp: mode.clone(),
-            a2a: mode.clone(),
-            reasoning: mode,
-        }
-    }
-}
+// AdapterMode removed - system is production-only (always "Real" mode)
+// Simulation mode eliminated for elite production standards
 
 // Custom Duration serialization
 mod duration_serde {

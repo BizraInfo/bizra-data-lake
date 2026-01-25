@@ -20,28 +20,28 @@ lazy_static! {
         "bizra_sat_requests_total",
         "Total number of SAT validation requests",
         &["result"]  // approved, rejected, quarantine
-    ).unwrap();
+    ).expect("SAT_REQUESTS_TOTAL metric registration failed");
 
     /// SAT rejections by rejection code
     pub static ref SAT_REJECTIONS_BY_CODE: CounterVec = register_counter_vec!(
         "bizra_sat_rejections_total",
         "Total SAT rejections by rejection code",
         &["code"]  // security_threat, ethics_violation, performance_exceeded, etc.
-    ).unwrap();
+    ).expect("SAT_REJECTIONS_BY_CODE metric registration failed");
 
     /// SAT validation latency histogram
     pub static ref SAT_VALIDATION_LATENCY: Histogram = register_histogram!(
         "bizra_sat_validation_seconds",
         "SAT validation latency in seconds",
         vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
-    ).unwrap();
+    ).expect("SAT_VALIDATION_LATENCY metric registration failed");
 
     /// SAT consensus approvals (3/5 required)
     pub static ref SAT_CONSENSUS_APPROVALS: GaugeVec = register_gauge_vec!(
         "bizra_sat_consensus_approvals",
         "Number of SAT validators that approved (last request)",
         &["request_id"]
-    ).unwrap();
+    ).expect("SAT_CONSENSUS_APPROVALS metric registration failed");
 
     // ============================================================
     // FATE Metrics - Escalation layer observability
@@ -52,13 +52,13 @@ lazy_static! {
         "bizra_fate_escalations_total",
         "Total FATE escalations by severity level",
         &["level"]  // low, medium, high, critical
-    ).unwrap();
+    ).expect("FATE_ESCALATIONS_TOTAL metric registration failed");
 
     /// FATE pending escalations (queue depth)
     pub static ref FATE_PENDING_ESCALATIONS: Gauge = register_gauge!(
         "bizra_fate_pending_escalations",
         "Number of FATE escalations pending human review"
-    ).unwrap();
+    ).expect("FATE_PENDING_ESCALATIONS metric registration failed");
 
     // ============================================================
     // Ihsān Metrics - Ethics/Quality gate observability
@@ -69,21 +69,21 @@ lazy_static! {
         "bizra_ihsan_score",
         "Ihsān score distribution",
         vec![0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.98, 1.0]
-    ).unwrap();
+    ).expect("IHSAN_SCORE_HISTOGRAM metric registration failed");
 
     /// Ihsān dimension scores (last request)
     pub static ref IHSAN_DIMENSION_SCORES: GaugeVec = register_gauge_vec!(
         "bizra_ihsan_dimension_score",
         "Ihsān score by dimension (last request)",
         &["dimension"]  // correctness, safety, user_benefit, etc.
-    ).unwrap();
+    ).expect("IHSAN_DIMENSION_SCORES metric registration failed");
 
     /// Ihsān gate pass/fail
     pub static ref IHSAN_GATE_RESULTS: CounterVec = register_counter_vec!(
         "bizra_ihsan_gate_total",
         "Ihsān gate results",
         &["result", "env"]  // passed/failed, dev/ci/prod
-    ).unwrap();
+    ).expect("IHSAN_GATE_RESULTS metric registration failed");
 
     // ============================================================
     // Request Lifecycle Metrics
@@ -95,21 +95,21 @@ lazy_static! {
         "End-to-end request latency in seconds",
         &["outcome"],  // success, sat_rejected, ihsan_failed
         vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
-    ).unwrap();
+    ).expect("REQUEST_LATENCY metric registration failed");
 
     /// PAT execution latency
     pub static ref PAT_EXECUTION_LATENCY: Histogram = register_histogram!(
         "bizra_pat_execution_seconds",
         "PAT agent execution latency in seconds",
         vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]
-    ).unwrap();
+    ).expect("PAT_EXECUTION_LATENCY metric registration failed");
 
     /// Synergy score histogram
     pub static ref SYNERGY_SCORE_HISTOGRAM: Histogram = register_histogram!(
         "bizra_synergy_score",
         "PAT-SAT synergy score distribution",
         vec![0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-    ).unwrap();
+    ).expect("SYNERGY_SCORE_HISTOGRAM metric registration failed");
 
     // ============================================================
     // Receipt Metrics
@@ -120,7 +120,7 @@ lazy_static! {
         "bizra_receipts_emitted_total",
         "Total receipts emitted by type",
         &["type"]  // rejection, execution, quarantine
-    ).unwrap();
+    ).expect("RECEIPTS_EMITTED_TOTAL metric registration failed");
 
     // ============================================================
     // Neo4j/HyperGraph Metrics
@@ -132,13 +132,13 @@ lazy_static! {
         "Neo4j query latency in seconds",
         &["query_type"],  // evidence_retrieval, graph_traversal, etc.
         vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]
-    ).unwrap();
+    ).expect("NEO4J_QUERY_LATENCY metric registration failed");
 
     /// Neo4j connection status (1 = connected, 0 = disconnected)
     pub static ref NEO4J_CONNECTED: Gauge = register_gauge!(
         "bizra_neo4j_connected",
         "Neo4j connection status (1=connected, 0=disconnected)"
-    ).unwrap();
+    ).expect("NEO4J_CONNECTED metric registration failed");
 
     // ============================================================
     // MCP/A2A Metrics
@@ -149,20 +149,20 @@ lazy_static! {
         "bizra_mcp_tool_calls_total",
         "Total MCP tool calls by tool name",
         &["tool", "result"]  // tool name, success/failure/timeout
-    ).unwrap();
+    ).expect("MCP_TOOL_CALLS_TOTAL metric registration failed");
 
     /// A2A delegations by agent
     pub static ref A2A_DELEGATIONS_TOTAL: CounterVec = register_counter_vec!(
         "bizra_a2a_delegations_total",
         "Total A2A delegations by agent",
         &["agent", "result"]  // agent name, success/failure/blocked
-    ).unwrap();
+    ).expect("A2A_DELEGATIONS_TOTAL metric registration failed");
 
     /// A2A delegation depth (current max)
     pub static ref A2A_DELEGATION_DEPTH: Gauge = register_gauge!(
         "bizra_a2a_delegation_depth_max",
         "Maximum A2A delegation depth observed"
-    ).unwrap();
+    ).expect("A2A_DELEGATION_DEPTH metric registration failed");
 
     // ============================================================
     // HTTP Security Metrics
@@ -172,19 +172,19 @@ lazy_static! {
     pub static ref HTTP_REQUESTS_ALLOWED: prometheus::Counter = prometheus::register_counter!(
         "bizra_http_requests_allowed_total",
         "Total HTTP requests that passed rate limiting"
-    ).unwrap();
+    ).expect("HTTP_REQUESTS_ALLOWED metric registration failed");
 
     /// HTTP requests rate limited (rejected)
     pub static ref HTTP_REQUESTS_RATE_LIMITED: prometheus::Counter = prometheus::register_counter!(
         "bizra_http_requests_rate_limited_total",
         "Total HTTP requests rejected due to rate limiting"
-    ).unwrap();
+    ).expect("HTTP_REQUESTS_RATE_LIMITED metric registration failed");
 
     /// HTTP requests rejected for missing/invalid authentication
     pub static ref HTTP_REQUESTS_UNAUTHORIZED: prometheus::Counter = prometheus::register_counter!(
         "bizra_http_requests_unauthorized_total",
         "Total HTTP requests rejected due to missing/invalid authentication"
-    ).unwrap();
+    ).expect("HTTP_REQUESTS_UNAUTHORIZED metric registration failed");
 }
 
 /// Timer guard for measuring operation duration
@@ -283,8 +283,10 @@ pub fn gather_metrics() -> String {
     let encoder = TextEncoder::new();
     let metric_families = prometheus::gather();
     let mut buffer = Vec::new();
-    encoder.encode(&metric_families, &mut buffer).unwrap();
-    String::from_utf8(buffer).unwrap()
+    if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
+        return format!("# Error encoding metrics: {}", e);
+    }
+    String::from_utf8(buffer).unwrap_or_else(|e| format!("# Error converting metrics to UTF-8: {}", e))
 }
 
 /// Initialize metrics (call once at startup)

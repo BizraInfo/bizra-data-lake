@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::OnceCell;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, info, instrument, warn};
 
 /// Default Ollama server URL
 const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
@@ -591,31 +591,8 @@ RESPONSE GUIDELINES:
     }
 }
 
-/// Ollama fallback for when service is unavailable
-pub struct OllamaFallback;
-
-impl OllamaFallback {
-    /// Return simulated response when Ollama is unavailable
-    pub fn simulated_response(prompt: &str) -> GenerateResponse {
-        warn!("⚠️ Ollama unavailable, returning simulated response");
-        
-        GenerateResponse {
-            model: "simulated".to_string(),
-            response: format!(
-                "[SIMULATED] Ollama is not available. Your prompt was: '{}'",
-                &prompt[..prompt.len().min(100)]
-            ),
-            done: true,
-            context: None,
-            total_duration: Some(0),
-            load_duration: Some(0),
-            prompt_eval_count: Some(0),
-            prompt_eval_duration: Some(0),
-            eval_count: Some(0),
-            eval_duration: Some(0),
-        }
-    }
-}
+// OllamaFallback removed - production systems must fail-closed when Ollama unavailable
+// No simulated responses in production
 
 #[cfg(test)]
 mod tests {
@@ -655,14 +632,7 @@ mod tests {
         assert!(prompt.contains("0.92"));
     }
     
-    #[test]
-    fn test_fallback_response() {
-        let response = OllamaFallback::simulated_response("Test prompt");
-        
-        assert_eq!(response.model, "simulated");
-        assert!(response.response.contains("SIMULATED"));
-        assert!(response.done);
-    }
+    // test_fallback_response removed - no fallback simulation in production
     
     #[tokio::test]
     async fn test_client_from_env() {

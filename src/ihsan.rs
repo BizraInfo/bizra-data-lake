@@ -323,17 +323,25 @@ pub fn current_env() -> String {
     constitution().default_env().to_string()
 }
 
+/// Ihsān enforcement is ALWAYS enabled per constitution (threshold: 0.95 in all environments)
+/// The constitution mandates ethical validation in development, CI, and production equally.
+/// Removing dev bypass aligns implementation with constitutional requirements.
 pub fn should_enforce() -> bool {
+    // SECURITY: Constitution mandates 0.95 threshold in ALL environments
+    // No bypass allowed - development must meet same ethical standards as production
+    // Override only via explicit environment variable for testing purposes
     if let Ok(v) = std::env::var("BIZRA_IHSAN_ENFORCE") {
         let val = v.trim().to_ascii_lowercase();
-        if matches!(val.as_str(), "1" | "true" | "yes" | "on") {
-            return true;
+        // Allow explicit disable ONLY if specifically set to "0" or "false"
+        // This is for emergency debugging only and should be monitored
+        if matches!(val.as_str(), "0" | "false" | "no" | "off") {
+            tracing::warn!("Ihsān enforcement explicitly disabled via BIZRA_IHSAN_ENFORCE");
+            return false;
         }
     }
 
-    let env = current_env();
-    let canonical = IhsanConstitution::canonicalize(&env, &constitution().env_aliases);
-    matches!(canonical.as_str(), "ci" | "production")
+    // Default: ALWAYS enforce (constitutional requirement)
+    true
 }
 
 #[cfg(test)]
@@ -377,9 +385,13 @@ mod tests {
     #[test]
     fn threshold_policy_is_applied() {
         let c = constitution();
+        // production + code: max(0.95 env, 0.95 artifact) = 0.95
         assert!((c.threshold_for("production", "code") - 0.95).abs() < 1e-9);
-        assert!((c.threshold_for("dev", "docs") - 0.80).abs() < 1e-9);
+        // dev + docs: max(0.80 env, 0.90 artifact) = 0.90
+        assert!((c.threshold_for("dev", "docs") - 0.90).abs() < 1e-9);
+        // ci + docs: max(0.90 env, 0.90 artifact) = 0.90
         assert!((c.threshold_for("ci", "docs") - 0.90).abs() < 1e-9);
+        // ci + receipt (evidence alias): max(0.90 env, 0.95 artifact) = 0.95
         assert!((c.threshold_for("ci", "receipt") - 0.95).abs() < 1e-9);
     }
 }

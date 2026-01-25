@@ -14,15 +14,16 @@ threshold_policy:
   thresholds_by_env:
     development: 0.80
     ci: 0.90
+    staging: 0.95
     production: 0.95
 
   thresholds_by_artifact_class:
     code: 0.95
-    docs: 0.80
-    config: 0.90
+    docs: 0.90
+    config: 0.95
     data: 0.90
     evidence: 0.95
-    mcp_tool: 0.90  # MCP tool invocations require high trust
+    mcp_tool: 0.95  # MCP tool invocations require high trust
 
   normalization:
     env_aliases:

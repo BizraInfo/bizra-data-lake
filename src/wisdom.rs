@@ -178,8 +178,7 @@ impl HouseOfWisdom {
 
         // Cypher query with full-text search and relationship traversal
         // This leverages Neo4j's graph structure for contextual retrieval
-        let cypher = format!(
-            r#"
+        let cypher = r#"
             CALL db.index.fulltext.queryNodes('knowledge_index', $query)
             YIELD node, score
             WITH node, score
@@ -188,8 +187,7 @@ impl HouseOfWisdom {
             OPTIONAL MATCH (node)-[r]-(related)
             WITH node, score, collect(DISTINCT related) AS context
             RETURN node, score, size(context) AS context_size
-            "#
-        );
+            "#.to_string();
 
         let cypher_query = Query::new(cypher)
             .param("query", query.to_string())
@@ -467,41 +465,14 @@ impl HouseOfWisdom {
     }
 }
 
-/// Graceful fallback when Neo4j is unavailable
-pub struct WisdomFallback;
-
-impl WisdomFallback {
-    /// Return simulated results when Neo4j is unavailable
-    pub fn simulated_query(query: &str) -> WisdomResult {
-        warn!("⚠️ Neo4j unavailable, returning simulated wisdom results");
-        
-        WisdomResult {
-            nodes: vec![
-                KnowledgeNode {
-                    id: "simulated-1".to_string(),
-                    node_type: "Knowledge".to_string(),
-                    content: format!("Simulated context for: {}", query),
-                    embedding_id: None,
-                    relevance_score: 0.85,
-                },
-            ],
-            query_time_ms: 1,
-            hypergraph_boost: 1.0, // No boost in fallback mode
-        }
-    }
-}
+// WisdomFallback removed - production systems must fail-closed when Neo4j unavailable
+// No simulated wisdom queries in production
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_wisdom_fallback() {
-        let result = WisdomFallback::simulated_query("test query");
-        assert_eq!(result.nodes.len(), 1);
-        assert!(result.nodes[0].content.contains("test query"));
-        assert_eq!(result.hypergraph_boost, 1.0);
-    }
+    // test_wisdom_fallback removed - no fallback simulation in production
 
     #[test]
     fn test_house_of_wisdom_from_env() {

@@ -80,10 +80,11 @@ logger = logging.getLogger("synapse")
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-SYNAPSE_URL = os.getenv("SYNAPSE_URL", "redis://127.0.0.1:6379")
+SYNAPSE_URL = os.getenv("SYNAPSE_URL", "rediss://:bizra_synapse_secure@127.0.0.1:6379")
 SYNAPSE_PREFIX = os.getenv("SYNAPSE_PREFIX", "bizra")
 PRESENCE_TTL = int(os.getenv("SYNAPSE_PRESENCE_TTL", "30"))  # seconds
 EVENT_STREAM_MAXLEN = int(os.getenv("SYNAPSE_EVENT_MAXLEN", "10000"))
+REDIS_CA_CERT_PATH = os.getenv("REDIS_CA_CERT_PATH", "/etc/redis/certs/ca-cert.pem")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -225,29 +226,65 @@ class SynapseConnection:
         self._initialized = True
     
     def connect(self) -> bool:
-        """Establish Redis connection."""
+        """Establish Redis connection with TLS support."""
         if self._connected:
             return True
-        
+
         try:
             import redis
-            self._redis = redis.from_url(
-                self._url,
-                decode_responses=True,
-                socket_timeout=5.0,
-                socket_connect_timeout=5.0
-            )
+            import ssl
+
+            # Parse URL to determine if TLS is required
+            use_tls = self._url.startswith("rediss://")
+
+            if use_tls:
+                # TLS configuration
+                ssl_context = ssl.create_default_context(
+                    cafile=REDIS_CA_CERT_PATH
+                )
+                ssl_context.check_hostname = False  # Using IP/container name
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+                self._redis = redis.from_url(
+                    self._url,
+                    decode_responses=True,
+                    socket_timeout=5.0,
+                    socket_connect_timeout=5.0,
+                    ssl=True,
+                    ssl_cert_reqs=ssl.CERT_REQUIRED,
+                    ssl_ca_certs=REDIS_CA_CERT_PATH,
+                )
+            else:
+                # Legacy non-TLS connection (development only)
+                logger.warning("Connecting to Redis without TLS (insecure)")
+                self._redis = redis.from_url(
+                    self._url,
+                    decode_responses=True,
+                    socket_timeout=5.0,
+                    socket_connect_timeout=5.0
+                )
+
             # Test connection
             self._redis.ping()
             self._connected = True
-            logger.info(f"Synapse connected: {self._url}")
+            logger.info(f"Connected to Trinity Synapse ({self._url})")
             return True
+
         except ImportError:
             logger.error("redis package not installed. Run: pip install redis")
             return False
         except Exception as e:
-            logger.error(f"Synapse connection failed: {e}")
-            return False
+            logger.warning(f"Failed to connect to primary Synapse: {e}")
+            logger.warning("Auto-switching to Ephemeral Cognitive Memory (fakeredis) for autonomy...")
+            try:
+                import fakeredis
+                self._redis = fakeredis.FakeRedis(decode_responses=True)
+                self._connected = True
+                logger.info("✅ Connected to Ephemeral Synapse (Autonomous Memory Mode)")
+                return True
+            except ImportError:
+                logger.error("fakeredis not installed. Robustness failure.")
+                return False
     
     def disconnect(self) -> None:
         """Close Redis connection."""

@@ -4,11 +4,46 @@ import hashlib
 import textwrap
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from pydantic import BaseModel, Field
 
 from core.fate import FateSeal
+
+
+# ============================================================================
+# SAPE 9-PROBE CANONICAL DEFINITIONS
+# ============================================================================
+
+class SapeProbe(Enum):
+    """
+    The canonical 9 SAPE probes for comprehensive ethical validation.
+
+    These probes map to Ihsān dimensions for weighted scoring:
+    - threat_scan    → safety (0.22)
+    - compliance     → auditability (0.12)
+    - bias           → adl_fairness (0.04)
+    - user_benefit   → user_benefit (0.14)
+    - correctness    → correctness (0.22)
+    - safety         → safety (0.22)
+    - groundedness   → robustness (0.06)
+    - relevance      → efficiency (0.12)
+    - fluency        → anti_centralization (0.08)
+    """
+    THREAT_SCAN = "threat_scan"
+    COMPLIANCE = "compliance"
+    BIAS = "bias"
+    USER_BENEFIT = "user_benefit"
+    CORRECTNESS = "correctness"
+    SAFETY = "safety"
+    GROUNDEDNESS = "groundedness"
+    RELEVANCE = "relevance"
+    FLUENCY = "fluency"
+
+
+# All 9 canonical probe names for validation
+CANONICAL_PROBES = [p.value for p in SapeProbe]
 
 
 SapeStakes = Literal["L", "M", "H"]
@@ -78,6 +113,16 @@ class SapePlanRequest(BaseModel):
         description="Topics to query in the knowledge graph for evidence kernels.",
     )
     evidence_limit: int = Field(8, ge=1, le=25, description="Max evidence artifacts pulled from graph.")
+
+    # Gold Mine evidence integration
+    require_gold_mine_evidence: bool = Field(
+        default=True,
+        description="If true, retrieves evidence from Gold Mine graph (56k nodes) for high-stakes probes.",
+    )
+    gold_mine_entity_filter: List[str] = Field(
+        default_factory=list,
+        description="Entity names to filter Gold Mine results (e.g., ['BIZRA', 'SAPE', 'Ihsan']).",
+    )
 
     extra_instructions: str = Field("", description="Optional extra instructions appended to the prompt.")
 
@@ -265,3 +310,131 @@ def compile_sape_plan(req: SapePlanRequest, *, evidence: Optional[List[Dict[str,
         prompt_sha256=prompt_sha,
         warnings=warnings,
     )
+
+
+# ============================================================================
+# GOLD MINE EVIDENCE RETRIEVAL
+# ============================================================================
+
+async def retrieve_gold_mine_evidence(
+    topics: List[str],
+    limit: int = 8,
+    include_multi_hop: bool = True,
+    max_hops: int = 2,
+) -> List[Dict[str, Any]]:
+    """
+    Retrieve evidence from Gold Mine knowledge graph for SAPE probes.
+
+    This function queries the Gold Mine (56k nodes, 88k edges) to find
+    supporting evidence for high-stakes validation. Evidence is used to
+    enhance groundedness and correctness probes.
+
+    Args:
+        topics: List of topic strings to search for (e.g., ["BIZRA", "SAPE"])
+        limit: Maximum evidence items to return
+        include_multi_hop: If True, expand search via graph traversal
+        max_hops: Maximum hops for multi-hop expansion
+
+    Returns:
+        List of evidence dictionaries with keys:
+        - node_id: Unique identifier
+        - label: Human-readable label
+        - kind: "Document" or "Entity"
+        - source: Source path (for documents)
+        - relevance: Relevance score (0.0-1.0)
+        - hop_distance: Distance from seed (0 = direct match)
+    """
+    try:
+        from bizra_kernel.gold_mine_connector import get_gold_mine_connector
+    except ImportError:
+        return []
+
+    connector = get_gold_mine_connector()
+
+    # Initialize if not already done
+    if not connector._initialized:
+        try:
+            await connector.initialize()
+        except Exception:
+            return []
+
+    evidence = []
+    seen_ids: set = set()
+
+    for topic in topics:
+        # Query by entity
+        nodes = connector.query_by_entity(topic, limit=limit)
+
+        for node in nodes:
+            if node.id in seen_ids:
+                continue
+            seen_ids.add(node.id)
+
+            evidence.append({
+                "node_id": node.id,
+                "label": node.label,
+                "kind": node.kind,
+                "source": node.source,
+                "relevance": 0.9 if topic.lower() in node.label.lower() else 0.7,
+                "hop_distance": 0,
+            })
+
+            if len(evidence) >= limit:
+                break
+
+        if len(evidence) >= limit:
+            break
+
+    # Multi-hop expansion for additional context
+    if include_multi_hop and evidence and len(evidence) < limit:
+        seed_ids = [e["node_id"] for e in evidence[:3]]
+        hop_result = connector.multi_hop_expand(
+            seed_ids,
+            max_hops=max_hops,
+            max_nodes_per_hop=10,
+        )
+
+        for node in hop_result.reached_nodes:
+            if node.id in seen_ids:
+                continue
+            seen_ids.add(node.id)
+
+            # Calculate hop distance
+            hop_distance = 1
+            for path in hop_result.paths:
+                if node.id in path:
+                    hop_distance = path.index(node.id) if node.id in path else max_hops
+                    break
+
+            evidence.append({
+                "node_id": node.id,
+                "label": node.label,
+                "kind": node.kind,
+                "source": node.source,
+                "relevance": max(0.3, 0.8 - (hop_distance * 0.2)),
+                "hop_distance": hop_distance,
+            })
+
+            if len(evidence) >= limit:
+                break
+
+    # Sort by relevance
+    evidence.sort(key=lambda x: x["relevance"], reverse=True)
+    return evidence[:limit]
+
+
+def format_gold_mine_evidence(evidence: List[Dict[str, Any]]) -> str:
+    """Format Gold Mine evidence for inclusion in SAPE prompts."""
+    if not evidence:
+        return "(no Gold Mine evidence available)"
+
+    lines = ["[Gold Mine Knowledge Graph Evidence]"]
+    for item in evidence:
+        hop_str = f" (hop={item['hop_distance']})" if item.get("hop_distance", 0) > 0 else ""
+        source_str = f" | source={item['source']}" if item.get("source") else ""
+        lines.append(
+            f"- [{item['kind']}] {item['label']} "
+            f"(relevance={item['relevance']:.2f}{hop_str}{source_str})"
+        )
+
+    return "\n".join(lines)

@@ -1,14 +1,24 @@
 // src/lib.rs - Library entry point
 
 pub mod a2a;
+pub mod autopoietic;
 pub mod bizra_integration;
+pub mod blockchain;
 pub mod bridge;
+pub mod crypto_proofs;
+pub mod embeddings;
+pub mod entropy;
 pub mod errors;
 pub mod fate;
 pub mod http;
+pub mod idempotency;
 pub mod ihsan;
+pub mod kernel;
 pub mod mcp;
 pub mod metrics;
+pub mod node0_unified;
+pub mod lmstudio;
+pub mod model_router;
 pub mod ollama;
 pub mod pat;
 pub mod pat_enhanced;
@@ -16,10 +26,14 @@ pub mod reasoning;
 pub mod receipts;
 pub mod sape;
 pub mod sat;
+pub mod sovereign;
+pub mod sovereign_runtime_omega;
 pub mod synapse;
 pub mod types;
 pub mod utils;
+pub mod unified;
 pub mod vectors;
+pub mod voice;
 pub mod wisdom;
 
 use bridge::BridgeCoordinator;

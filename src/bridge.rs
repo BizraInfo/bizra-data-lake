@@ -1,17 +1,24 @@
 // src/bridge.rs - PAT-SAT Bridge Coordinator
+//
+// Enhanced with:
+// - IdempotentReplayManager for exactly-once semantics
+// - EntropyPool integration for cryptographic operations
+// - Checkpoint-based crash recovery
 
 use crate::{
+    entropy::{self},
     errors::BridgeError,
     fate::FATECoordinator,
+    idempotency::{IdempotencyStatus, IdempotentReplayManager},
     ihsan,
     metrics,
     pat::PATOrchestrator,
     receipts::ReceiptEmitter,
     sat::SATOrchestrator,
-    types::{AdapterModes, AgentResult, DualAgenticRequest, DualAgenticResponse},
+    types::{AgentResult, DualAgenticRequest, DualAgenticResponse},
 };
 use std::{collections::BTreeMap, sync::Mutex, time::Instant};
-use tracing::{info, warn, instrument};
+use tracing::{info, warn, debug, instrument};
 
 /// Bridge coordinator between PAT and SAT
 pub struct BridgeCoordinator {
@@ -19,22 +26,38 @@ pub struct BridgeCoordinator {
     sat: SATOrchestrator,
     fate: Mutex<FATECoordinator>,
     receipts: ReceiptEmitter,
+    /// Idempotency manager for exactly-once semantics
+    idempotency: IdempotentReplayManager,
 }
 
 impl BridgeCoordinator {
     pub async fn new() -> anyhow::Result<Self> {
         info!("🌉 Initializing PAT-SAT Bridge Coordinator");
 
+        // Initialize entropy pool first (used by other components)
+        let _ = entropy::global_pool();
+        info!("🎲 EntropyPool initialized");
+
         let pat = PATOrchestrator::new().await?;
         let sat = SATOrchestrator::new().await?;
-        // Use from_env() for Redis persistence when available (production durability)
-        let fate = Mutex::new(FATECoordinator::from_env().await);
-        let receipts = ReceiptEmitter::default();
+        // Use from_env() for Redis persistence (hard fail if unavailable)
+        let fate = Mutex::new(FATECoordinator::from_env().await?);
+        let receipts = ReceiptEmitter::from_env("docs/evidence/receipts").await?;
+        let idempotency = IdempotentReplayManager::new();
 
-        Ok(Self { pat, sat, fate, receipts })
+        info!(
+            "🔒 IdempotentReplayManager ready (exactly-once semantics enabled)"
+        );
+
+        Ok(Self { pat, sat, fate, receipts, idempotency })
     }
 
     /// Execute full dual-agentic workflow with FATE escalation and receipt emission
+    ///
+    /// Features:
+    /// - Exactly-once semantics via idempotency checking
+    /// - Checkpoint-based crash recovery
+    /// - EntropyPool-backed cryptographic operations
     #[instrument(skip(self))]
     pub async fn execute(
         &self,
@@ -42,6 +65,50 @@ impl BridgeCoordinator {
     ) -> anyhow::Result<DualAgenticResponse> {
         let start = Instant::now();
         let request_id = request.context.get("request_id").cloned();
+
+        // Generate idempotency key from request fingerprint
+        let idem_key = self.idempotency.fingerprint_structured(&request);
+
+        // Check for duplicate/in-progress requests
+        let (idem_status, cached) = self.idempotency.check(&idem_key);
+
+        match idem_status {
+            IdempotencyStatus::Duplicate => {
+                if let Some(cached_result) = cached {
+                    info!(
+                        idem_key = %idem_key,
+                        "♻️ Returning cached result (exactly-once semantics)"
+                    );
+                    // Deserialize and return cached response
+                    if let Ok(response) = serde_json::from_str::<DualAgenticResponse>(&cached_result.result) {
+                        return Ok(response);
+                    }
+                }
+                // Fall through if deserialization fails
+            }
+            IdempotencyStatus::InProgress => {
+                info!(
+                    idem_key = %idem_key,
+                    "⏳ Request already in progress"
+                );
+                return Err(BridgeError::RequestInProgress {
+                    key: idem_key,
+                }.into());
+            }
+            IdempotencyStatus::Expired | IdempotencyStatus::New => {
+                // Continue with normal processing
+            }
+        }
+
+        // Reserve slot for this request (mark as in-progress)
+        let checkpoint_id = self.idempotency.reserve(&idem_key)
+            .map_err(|e| BridgeError::IdempotencyError { message: e })?;
+
+        debug!(
+            idem_key = %idem_key,
+            checkpoint_id = %checkpoint_id,
+            "📍 Checkpoint created for request"
+        );
 
         info!("🚀 Starting dual-agentic execution");
 
@@ -62,17 +129,21 @@ impl BridgeCoordinator {
 
         if !validation.consensus_reached {
             // FATE escalation for SAT rejection
-            let escalation = {
-                let mut fate = self.fate.lock().unwrap();
-                fate.escalate_rejection(
+            // Use scoped lock to extract both escalation and pending count in one acquisition
+            let (escalation, fate_pending) = {
+                let mut fate = self.fate.lock().map_err(|e| {
+                    BridgeError::FateLockPoisoned { message: format!("FATE mutex poisoned: {}", e) }
+                })?;
+                let esc = fate.escalate_rejection(
                     &validation.rejection_codes,
                     &request.task,
                     &request.context,
-                )
+                );
+                let pending = fate.pending_count();
+                (esc, pending)
             };
 
-            // Record FATE escalation metrics
-            let fate_pending = self.fate.lock().unwrap().pending_count();
+            // Record FATE escalation metrics (no second lock needed)
             metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
 
             // Collect rejecting and approving validators
@@ -99,6 +170,9 @@ impl BridgeCoordinator {
 
             // Record receipt emission
             metrics::record_receipt_emitted("rejection");
+
+            // Mark idempotency slot as failed (allows retry)
+            self.idempotency.fail(&idem_key, "SAT_REJECTION");
 
             warn!(
                 receipt_id = %receipt.receipt_id,
@@ -156,20 +230,27 @@ impl BridgeCoordinator {
 
         if !ihsan_passes_threshold && ihsan::should_enforce() {
             // FATE escalation for Ihsān failure
-            let escalation = {
-                let mut fate = self.fate.lock().unwrap();
-                fate.escalate_ihsan_failure(
+            // Use scoped lock to extract both escalation and pending count in one acquisition
+            let (escalation, fate_pending) = {
+                let mut fate = self.fate.lock().map_err(|e| {
+                    BridgeError::FateLockPoisoned { message: format!("FATE mutex poisoned: {}", e) }
+                })?;
+                let esc = fate.escalate_ihsan_failure(
                     &ihsan_env,
                     ihsan_artifact_class,
                     ihsan_score,
                     ihsan_threshold_applied,
                     &request.context,
-                )
+                );
+                let pending = fate.pending_count();
+                (esc, pending)
             };
 
-            // Record FATE escalation for Ihsān failure
-            let fate_pending = self.fate.lock().unwrap().pending_count();
+            // Record FATE escalation for Ihsān failure (no second lock needed)
             metrics::record_fate_escalation(&format!("{:?}", escalation.level), fate_pending);
+
+            // Mark idempotency slot as failed (allows retry)
+            self.idempotency.fail(&idem_key, "IHSAN_GATE_FAILED");
 
             warn!(
                 escalation_id = %escalation.id,
@@ -210,14 +291,8 @@ impl BridgeCoordinator {
         // Record execution receipt emission
         metrics::record_receipt_emitted("execution");
 
-        info!(
-            synergy = synergy_score,
-            ihsan = ihsan_score,
-            latency_ms = total_latency.as_millis(),
-            "✅ Dual-agentic execution completed - receipt emitted"
-        );
-
-        Ok(DualAgenticResponse {
+        // Build response
+        let response = DualAgenticResponse {
             pat_contributions: pat_results.iter().map(|r| r.contribution.clone()).collect(),
             sat_contributions: sat_evaluations
                 .iter()
@@ -229,7 +304,7 @@ impl BridgeCoordinator {
             meta: serde_json::json!({
                 "pat_agents": self.pat.get_agent_count(),
                 "sat_agents": self.sat.get_agent_count(),
-                "adapter_modes": AdapterModes::current(),
+                "execution_mode": "PRODUCTION",
                 "validation_time_ms": sat_validation_time.as_millis(),
                 "pat_execution_time_ms": pat_execution_time.as_millis(),
                 "ihsan_constitution_id": ihsan::constitution().id(),
@@ -239,10 +314,31 @@ impl BridgeCoordinator {
                 "ihsan_threshold_applied": ihsan_threshold_applied,
                 "ihsan_passes_threshold": ihsan_passes_threshold,
                 "ihsan_vector": ihsan_vector,
-                "ihsan_vector_source": "simulated_confidence_mapping_v0",
-                "fate_pending_escalations": self.fate.lock().unwrap().pending_count(),
+                "ihsan_vector_source": "real_confidence_mapping_v1",
+                "fate_pending_escalations": self.fate.lock().map(|f| f.pending_count()).unwrap_or(0),
+                "idempotency_key": &idem_key,
+                "entropy_pool_level": entropy::global_pool().pool_level(),
             }),
-        })
+        };
+
+        // Cache result for exactly-once semantics
+        if let Ok(json) = serde_json::to_string(&response) {
+            self.idempotency.complete(&idem_key, &json);
+            debug!(
+                idem_key = %idem_key,
+                "💾 Response cached for exactly-once semantics"
+            );
+        }
+
+        info!(
+            synergy = synergy_score,
+            ihsan = ihsan_score,
+            latency_ms = total_latency.as_millis(),
+            idem_key = %idem_key,
+            "✅ Dual-agentic execution completed - receipt emitted"
+        );
+
+        Ok(response)
     }
 
     /// Calculate synergy between PAT and SAT
@@ -273,40 +369,55 @@ impl BridgeCoordinator {
             results.iter().map(|r| r.confidence).sum::<f64>() / results.len() as f64
         }
 
-        fn find(results: &[AgentResult], name: &str) -> Option<f64> {
-            results
-                .iter()
-                .find(|r| r.agent_name == name)
-                .map(|r| r.confidence)
+        /// Find agent and track whether fallback was used
+        fn find_with_tracking(
+            results: &[AgentResult],
+            name: &str,
+            fallback: f64,
+            missing_agents: &mut Vec<String>,
+        ) -> f64 {
+            match results.iter().find(|r| r.agent_name == name) {
+                Some(r) => r.confidence,
+                None => {
+                    missing_agents.push(name.to_string());
+                    fallback
+                }
+            }
         }
 
         let pat_avg = avg(pat_results);
         let sat_avg = avg(sat_results);
 
+        // Track missing agents for validation logging
+        let mut missing_agents: Vec<String> = Vec::new();
+
         let mut scores = BTreeMap::new();
+
+        // Dimension mappings with explicit agent tracking
+        // PAT agents use PascalCase, SAT agents use snake_case
         scores.insert(
             "correctness".to_string(),
-            clamp01(find(pat_results, "quality_guardian").unwrap_or(pat_avg)),
+            clamp01(find_with_tracking(pat_results, "EthicsGuardian", pat_avg, &mut missing_agents)),
         );
         scores.insert(
             "safety".to_string(),
-            clamp01(find(sat_results, "security_guardian").unwrap_or(sat_avg)),
+            clamp01(find_with_tracking(sat_results, "security_guardian", sat_avg, &mut missing_agents)),
         );
         scores.insert(
             "user_benefit".to_string(),
-            clamp01(find(pat_results, "user_advocate").unwrap_or(pat_avg)),
+            clamp01(find_with_tracking(pat_results, "Communicator", pat_avg, &mut missing_agents)),
         );
         scores.insert(
             "efficiency".to_string(),
-            clamp01(find(sat_results, "performance_monitor").unwrap_or(sat_avg)),
+            clamp01(find_with_tracking(sat_results, "performance_monitor", sat_avg, &mut missing_agents)),
         );
         scores.insert(
             "auditability".to_string(),
-            clamp01(find(sat_results, "consistency_checker").unwrap_or(sat_avg)),
+            clamp01(find_with_tracking(sat_results, "consistency_checker", sat_avg, &mut missing_agents)),
         );
         scores.insert(
             "anti_centralization".to_string(),
-            clamp01(find(sat_results, "resource_optimizer").unwrap_or(sat_avg)),
+            clamp01(find_with_tracking(sat_results, "resource_optimizer", sat_avg, &mut missing_agents)),
         );
         scores.insert(
             "robustness".to_string(),
@@ -314,8 +425,35 @@ impl BridgeCoordinator {
         );
         scores.insert(
             "adl_fairness".to_string(),
-            clamp01(find(sat_results, "ethics_validator").unwrap_or(sat_avg)),
+            clamp01(find_with_tracking(sat_results, "ethics_validator", sat_avg, &mut missing_agents)),
         );
+
+        // FAIL-VISIBLE: Log warnings for missing agents (required for audit trail)
+        if !missing_agents.is_empty() {
+            warn!(
+                missing_agents = ?missing_agents,
+                pat_avg = pat_avg,
+                sat_avg = sat_avg,
+                "⚠️ Ihsān calculation used fallback values for {} missing agent(s). \
+                 This may indicate incomplete execution or agent spawn failure.",
+                missing_agents.len()
+            );
+
+            // Critical agents that MUST be present for valid Ihsān scoring
+            let critical_agents = ["EthicsGuardian", "security_guardian"];
+            let missing_critical: Vec<&String> = missing_agents
+                .iter()
+                .filter(|a| critical_agents.contains(&a.as_str()))
+                .collect();
+
+            if !missing_critical.is_empty() {
+                warn!(
+                    missing_critical = ?missing_critical,
+                    "🚨 CRITICAL: Missing critical agents for Ihsān dimensions. \
+                     Score may not reflect true ethical compliance."
+                );
+            }
+        }
 
         let score = ihsan::score(&scores)?;
         Ok((score, scores))

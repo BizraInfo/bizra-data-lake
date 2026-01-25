@@ -1,0 +1,324 @@
+# constitution/token_constitution_v1.yaml
+# BIZRA Token Constitution v1.0 - Canonical Dual-Token Specification
+# Status: CANONICAL | Effective: 2026-01-23
+#
+# Based on:
+# - Kiayias et al. "Single-Token vs Two-Token Blockchain Tokenomics" (2024)
+# - BIZRA Proof-of-Impact (PoI) mechanism
+# - Thermal Consciousness integration
+#
+# This file is the SINGLE SOURCE OF TRUTH for BIZRA token economics.
+
+version: "1.0.0"
+status: CANONICAL
+effective_date: "2026-01-23"
+genesis_hash: "9dfa0bd5375ee06120e72c04618b407b2cf184f110075a573984a4b185f25974"
+chain_id: 727866
+
+# ============================================================================
+# DUAL-TOKEN MODEL
+# ============================================================================
+# BIZRA implements a two-token system following Kiayias et al. research:
+# - SEED: Stable utility token (fixed supply, deflationary)
+# - BLOOM: Impact growth token (minted via PoI, inflationary)
+
+tokens:
+  # --------------------------------------------------------------------------
+  # SEED TOKEN (بذرة - The Seed)
+  # --------------------------------------------------------------------------
+  # Stable utility token for ecosystem operations
+  # Arabic: "Al-Bazra" (البذرة) - The seed that grows through impact
+  SEED:
+    symbol: BZC
+    name: "BIZRA SEED Token"
+    type: utility
+    transferable: true
+    decimals: 18
+
+    supply:
+      initial: 1_000_000_000    # 1 billion SEED
+      max: 1_000_000_000        # Hard cap (no inflation)
+      mechanism: FIXED_DEFLATIONARY
+
+    issuance:
+      method: GENESIS_DISTRIBUTION
+      distribution:
+        ecosystem_reserve: 0.30      # 30% - Development and grants
+        proof_of_impact_rewards: 0.25 # 25% - Staking rewards pool
+        founding_team: 0.15          # 15% - 4-year vesting
+        treasury: 0.15               # 15% - DAO governance
+        community_airdrop: 0.10      # 10% - Early adopters
+        strategic_partners: 0.05     # 5% - Integration partners
+
+    staking:
+      enabled: true
+      annual_rate_bps: 500          # 5% annual yield
+      min_stake: 100                # 100 SEED minimum
+      unstake_delay_epochs: 7       # 7-day unbonding
+      validator_minimum: 10_000     # 10k SEED for validators
+
+    burns:
+      enabled: true
+      mechanisms:
+        - transaction_fees           # All tx fees burned
+        - penalty_slashing           # Validator misbehavior
+        - harberger_tax             # Resource inefficiency tax
+        - governance_votes          # Proposal submission fee
+
+    utility:
+      - transaction_fees
+      - staking_collateral
+      - validator_bonding
+      - governance_voting_weight
+      - resource_pool_access
+      - api_access_fees
+
+  # --------------------------------------------------------------------------
+  # BLOOM TOKEN (زهرة - The Bloom)
+  # --------------------------------------------------------------------------
+  # Impact-based growth token minted through verified positive impact
+  # Represents excellence (Ihsan) in the ecosystem
+  BLOOM:
+    symbol: BZT
+    name: "BIZRA BLOOM Token"
+    type: governance
+    transferable: false            # SOULBOUND - cannot be traded
+    decimals: 18
+
+    supply:
+      initial: 0                   # No pre-mine (fair launch)
+      max: null                    # Unlimited (grows with impact)
+      mechanism: PROOF_OF_IMPACT
+
+    issuance:
+      method: PROOF_OF_IMPACT
+      base_rate: 0.001             # 0.001 BLOOM per impact point
+      min_impact_threshold: 10     # Minimum impact to mint
+      epoch_seconds: 86400         # 1 epoch = 24 hours
+
+      # Category multipliers (basis points: 10000 = 1.0x)
+      category_multipliers:
+        education: 12000           # 1.2x - Learning contributions
+        healthcare: 15000          # 1.5x - Health impact
+        environment: 13000         # 1.3x - Sustainability
+        economic: 11000            # 1.1x - Economic empowerment
+        governance: 10000          # 1.0x - Governance participation
+        technical: 14000           # 1.4x - Code/infrastructure
+        community: 11000           # 1.1x - Community building
+
+    acquisition:
+      method: EARNED_ONLY
+      sources:
+        - poi_contribution         # Verified impact attestations
+        - validator_service        # Block production rewards
+        - governance_participation # DAO voting participation
+        - resource_contribution    # Compute/storage provision
+
+    governance:
+      voting_method: quadratic     # votes = sqrt(tokens) * weight
+      governance_weight: 2         # 2x multiplier
+      decay_rate_per_epoch: 0.01   # 1% decay if inactive
+      proposal_threshold: 100      # 100 BLOOM to create proposal
+
+    staking:
+      enabled: false               # Cannot stake (soulbound)
+      validator_minimum: null
+
+    utility:
+      - governance_voting_power
+      - reputation_score
+      - premium_features_access
+      - proposal_creation
+      - validator_eligibility
+
+# ============================================================================
+# ECONOMIC INVARIANTS
+# ============================================================================
+# Hard constraints that MUST be enforced at protocol level
+
+invariants:
+  # Anti-concentration: Gini coefficient cap
+  gini_max: 0.35
+  gini_calculation: lorenz_curve
+  gini_enforcement: on_transfer
+
+  # Ethics gate: Minimum Ihsan score for minting
+  ihsan_min_mint: 0.90
+  ihsan_dimensions: 8
+  ihsan_enforcement: on_attestation
+
+  # Signal quality: Minimum SNR for network boost
+  snr_min_boost: 0.95
+  snr_calculation: signal_to_noise_ratio
+
+  # Validator requirements
+  validator_min_stake: 10_000     # 10k SEED
+  validator_min_reputation: 50   # 50/100 reputation
+  validator_quorum: 3            # 3 validators minimum
+
+  # Network health
+  max_inflation_rate_bps: 500    # 5% max annual BLOOM inflation
+  min_circulation_ratio: 0.60   # 60% SEED must be circulating
+
+# ============================================================================
+# HARBERGER TAX MECHANISM
+# ============================================================================
+# Self-assessed valuation tax for resource efficiency
+
+harberger_tax:
+  enabled: true
+  base_rate_bps: 100             # 1% annual base rate
+
+  formula: |
+    tax = size × base_rate × (1/ihsan) × gini_factor
+
+  parameters:
+    size_weight: 1.0
+    ihsan_inverse_weight: 1.0
+    gini_factor_weight: 1.0
+
+  redistribution:
+    method: LOW_GINI_PRIORITY
+    recipients: nodes_below_median_gini
+
+  exemptions:
+    - genesis_allocations_first_year
+    - governance_treasury
+    - proof_of_impact_pool
+
+# ============================================================================
+# NETWORK MULTIPLIER
+# ============================================================================
+# Reverse scaling: Efficiency IMPROVES with network size
+
+network_multiplier:
+  enabled: true
+  formula: |
+    M = 1 + log10(node_count + 1) / 10
+
+  bounds:
+    M_min: 1.0                   # Minimum multiplier
+    M_max: 2.0                   # Maximum 3x boost (at scale)
+
+  safety_gates:
+    min_ihsan_for_boost: 0.85
+    min_decentralization: 0.60   # D_net threshold
+
+  scaling_milestones:
+    1_000_nodes: 1.3             # 1.3x efficiency
+    1_000_000_nodes: 1.6         # 1.6x efficiency
+    1_000_000_000_nodes: 1.9     # 1.9x efficiency
+    8_000_000_000_nodes: 1.99    # 1.99x efficiency (full humanity)
+
+# ============================================================================
+# CONSENSUS THRESHOLDS
+# ============================================================================
+# SAT (System Agentic Team) approval requirements
+
+consensus:
+  standard:
+    threshold: "3/5"             # 60% - Standard operations
+    use_cases:
+      - regular_transactions
+      - staking_operations
+      - resource_contributions
+
+  elevated:
+    threshold: "4/5"             # 80% - Sensitive operations
+    use_cases:
+      - large_transfers          # >1% of supply
+      - validator_registration
+      - governance_proposals
+
+  critical:
+    threshold: "5/5"             # 100% - Critical operations
+    use_cases:
+      - protocol_upgrades
+      - constitution_amendments
+      - emergency_actions
+
+# ============================================================================
+# PROOF-OF-IMPACT ATTESTATION
+# ============================================================================
+# Mechanism for verifying and rewarding positive impact
+
+proof_of_impact:
+  attestation_requirements:
+    min_validators: 3
+    max_validators: 10
+    timeout_epochs: 7
+
+  evidence_requirements:
+    hash_algorithm: SHA-256
+    storage: IPFS_OR_CHAIN
+    retention_epochs: 365        # 1 year minimum
+
+  scoring:
+    base_score_range: [10, 10000]
+    multiplier_application: POST_VALIDATION
+    final_score: base × category_multiplier / 10000
+
+  rewards:
+    bloom_mint: true
+    seed_bonus: false            # No SEED minting
+    reputation_increase: true
+
+# ============================================================================
+# VESTING SCHEDULES
+# ============================================================================
+
+vesting:
+  founding_team:
+    cliff_months: 12
+    duration_months: 48
+    release_schedule: LINEAR_MONTHLY
+
+  strategic_partners:
+    cliff_months: 6
+    duration_months: 24
+    release_schedule: LINEAR_MONTHLY
+
+  ecosystem_grants:
+    cliff_months: 0
+    duration_months: 12
+    release_schedule: MILESTONE_BASED
+
+# ============================================================================
+# EMERGENCY PROCEDURES
+# ============================================================================
+
+emergency:
+  circuit_breaker:
+    enabled: true
+    triggers:
+      - price_deviation_pct: 50   # 50% price swing
+      - volume_spike_factor: 10   # 10x normal volume
+      - validator_offline_pct: 30 # 30% validators down
+
+  recovery:
+    cooldown_epochs: 24          # 24-hour cooldown
+    governance_vote_required: true
+    threshold: "5/5"             # Unanimous SAT approval
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+metadata:
+  created: "2026-01-23T00:00:00Z"
+  last_modified: "2026-01-23T00:00:00Z"
+  author: "BIZRA Foundation"
+  license: "MIT"
+
+  references:
+    - title: "Single-Token vs Two-Token Blockchain Tokenomics"
+      authors: "Kiayias et al."
+      year: 2024
+    - title: "BIZRA Tokenomics Genesis"
+      file: "BIZRA_TOKENOMICS_GENESIS.yaml"
+    - title: "Ihsan Constitution"
+      file: "constitution/ihsan_v1.yaml"
+
+  integrity:
+    hash_algorithm: SHA-256
+    document_hash: null          # Computed at seal time

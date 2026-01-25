@@ -90,18 +90,14 @@ impl FATECoordinator {
         }
     }
     
-    /// Create from environment (auto-detect Redis)
-    pub async fn from_env() -> Self {
-        match crate::synapse::SynapseClient::from_env().await {
-            Ok(synapse) if synapse.is_available() => {
-                info!("⚖️  FATE connected to Redis for persistent escalations");
-                Self::with_synapse(synapse)
-            }
-            _ => {
-                warn!("⚖️  FATE running without Redis (in-memory only)");
-                Self::new()
-            }
+    /// Create from environment (hard fail if Redis unavailable to avoid fake persistence)
+    pub async fn from_env() -> anyhow::Result<Self> {
+        let synapse = crate::synapse::SynapseClient::from_env().await?;
+        if !synapse.is_available() {
+            anyhow::bail!("Synapse client reported unavailable state");
         }
+        info!("⚖️  FATE connected to Redis for persistent escalations");
+        Ok(Self::with_synapse(synapse))
     }
 
     /// Escalate a SAT rejection through FATE

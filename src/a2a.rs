@@ -248,19 +248,15 @@ impl A2AServer {
     async fn execute_delegation_internal(
         &self,
         agent: &AgentCard,
-        task: &str,
+        _task: &str,
     ) -> anyhow::Result<serde_json::Value> {
-        // In production: actual A2A protocol call (JSON-RPC over HTTP)
-        // For now: simulated delegation
-        let result = serde_json::json!({
-            "agent": agent.name,
-            "task": task,
-            "status": "completed",
-            "result": format!("{} completed task: {}", agent.name, task),
-            "capabilities_used": agent.capabilities.iter().map(|c| &c.id).collect::<Vec<_>>(),
-        });
-
-        Ok(result)
+        // Production A2A requires real JSON-RPC over HTTP implementation
+        // Fail-closed: Cannot delegate tasks without proper A2A infrastructure
+        anyhow::bail!(
+            "Task delegation to agent '{}' failed: A2A infrastructure not implemented. \
+             Real A2A protocol requires JSON-RPC over HTTP communication.",
+            agent.name
+        )
     }
 
     /// Request vote from agent (for SAT consensus) with security controls
@@ -278,10 +274,14 @@ impl A2AServer {
             .get(agent_name)
             .ok_or_else(|| DelegationError::AgentNotFound(agent_name.to_string()))?;
 
-        // In production: actual consensus protocol with timeout
-        // For now: simulated voting (Byzantine fault tolerant)
-        // Note: Real implementation should use cryptographic voting
-        Ok(true)
+        // Production voting requires real Byzantine fault-tolerant consensus
+        // Fail-closed: Cannot vote without proper consensus protocol
+        // Note: Using ExecutionFailed as Byzantine consensus is not implemented
+        Err(DelegationError::ExecutionFailed(format!(
+            "Vote request for '{}' failed: Byzantine fault-tolerant consensus not implemented. \
+             Real implementation requires cryptographic voting protocol.",
+            agent_name
+        )))
     }
 
     /// Broadcast message to all agents with timeout
