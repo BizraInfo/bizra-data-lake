@@ -17,7 +17,7 @@ Usage:
 import json
 import os
 import glob
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import argparse
 
@@ -36,14 +36,14 @@ class GenesisProofPack:
         self.proof_pack = {
             "metadata": {
                 "version": "1.0",
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "phase": "Phase 9 - Genesis Proof Pack",
                 "description": "Automated collection of evidence for BIZRA Genesis validation"
             },
             "artifacts": {}
         }
 
-    def collect_boot_logs(self, min_score: float = 0.95) -> List[Dict[str, Any]]:
+    def collect_boot_logs(self, min_score: float = 0.99) -> List[Dict[str, Any]]:
         """
         Collect boot logs with Ihsan scores ≥ min_score.
         """
@@ -109,7 +109,7 @@ class GenesisProofPack:
                             "path": proof_file,
                             "content": content,
                             "type": "Z3" if proof_file.endswith('.z3') else "SMT2",
-                            "collected_at": datetime.utcnow().isoformat()
+                            "collected_at": datetime.now(timezone.utc).isoformat()
                         })
                 except Exception as e:
                     print(f"Warning: Could not read proof file {proof_file}: {e}")
@@ -147,8 +147,8 @@ class GenesisProofPack:
 (assert (and (>= fairness 0.0) (<= fairness 1.0)))
 (assert (and (>= sustainability 0.0) (<= sustainability 1.0)))
 
-; Code Law: Ihsan score must be >= 0.95 for production
-(assert (>= ihsan_score 0.95))
+; Code Law: Ihsan score must be >= 0.99 for production
+(assert (>= ihsan_score 0.99))
 
 ; Check satisfiability
 (check-sat)
@@ -161,7 +161,7 @@ class GenesisProofPack:
             "content": sample_smt2.strip(),
             "type": "SMT2",
             "description": "Formal verification that Code Law Ihsan constraints are satisfiable",
-            "collected_at": datetime.utcnow().isoformat()
+            "collected_at": datetime.now(timezone.utc).isoformat()
         }
 
     def collect_ihsan_compliance_reports(self) -> Dict[str, Any]:
@@ -234,7 +234,7 @@ class GenesisProofPack:
             benchmarks["logic_gate_benchmark"] = {
                 "iterations": 1000,
                 "results": logic_results,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             print(f"Warning: Logic gate benchmark failed: {e}")
@@ -247,7 +247,7 @@ class GenesisProofPack:
                 "design_tps": 523793,
                 "duration_simulated": 1.0,
                 "operations_processed": 523793,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             print(f"Warning: BlockGraph simulation failed: {e}")
@@ -263,7 +263,7 @@ class GenesisProofPack:
                     "p99": 0.25 + (node_id * 0.02)
                 },
                 "tps_capacity": 500000 + (node_id * 5000),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
             benchmarks["federation_results"].append(node_result)
 
