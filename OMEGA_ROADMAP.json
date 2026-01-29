@@ -1,0 +1,564 @@
+{
+  "generated": "2026-01-29T07:37:13.070471+00:00",
+  "current_phase": "genesis",
+  "total_effort_hours": 304,
+  "effort_by_phase": {
+    "genesis": 26,
+    "seeding": 62,
+    "blooming": 88,
+    "fruiting": 84,
+    "harvest": 44
+  },
+  "effort_by_category": {
+    "architecture": 69,
+    "security": 86,
+    "documentation": 19,
+    "ethical": 12,
+    "performance": 34,
+    "devops": 20,
+    "quality": 28,
+    "deployment": 36
+  },
+  "work_packages": [
+    {
+      "id": "GEN-ARCH-001",
+      "name": "Verify and document current running infrastructure",
+      "phase": "genesis",
+      "category": "architecture",
+      "priority": 1,
+      "effort_hours": 4,
+      "dependencies": [],
+      "ihsan_dimensions": [
+        "transparency",
+        "correctness"
+      ],
+      "acceptance_criteria": [
+        "GENESIS_MANIFEST_VERIFIED.yaml exists",
+        "All running services documented",
+        "All health statuses verified"
+      ],
+      "assigned_to": null,
+      "status": "complete"
+    },
+    {
+      "id": "GEN-ARCH-002",
+      "name": "Fix ChromaDB unhealthy status",
+      "phase": "genesis",
+      "category": "architecture",
+      "priority": 2,
+      "effort_hours": 2,
+      "dependencies": [
+        "GEN-ARCH-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "safety"
+      ],
+      "acceptance_criteria": [
+        "ChromaDB reports healthy",
+        "Vector operations verified"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "GEN-ARCH-003",
+      "name": "Deploy nucleus.py as systemd service",
+      "phase": "genesis",
+      "category": "architecture",
+      "priority": 1,
+      "effort_hours": 3,
+      "dependencies": [
+        "GEN-ARCH-001"
+      ],
+      "ihsan_dimensions": [
+        "sustainability",
+        "correctness"
+      ],
+      "acceptance_criteria": [
+        "nucleus.service file created",
+        "Service starts on boot",
+        "Health endpoint accessible"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "GEN-SEC-001",
+      "name": "Remove all hardcoded secrets",
+      "phase": "genesis",
+      "category": "security",
+      "priority": 1,
+      "effort_hours": 4,
+      "dependencies": [],
+      "ihsan_dimensions": [
+        "safety",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "No hardcoded passwords in codebase",
+        "All secrets from environment variables",
+        "Secret scanning CI check passes"
+      ],
+      "assigned_to": null,
+      "status": "in_progress"
+    },
+    {
+      "id": "GEN-SEC-002",
+      "name": "Implement API token authentication on all endpoints",
+      "phase": "genesis",
+      "category": "security",
+      "priority": 1,
+      "effort_hours": 6,
+      "dependencies": [
+        "GEN-SEC-001"
+      ],
+      "ihsan_dimensions": [
+        "safety"
+      ],
+      "acceptance_criteria": [
+        "All endpoints require BIZRA_API_TOKEN",
+        "401 returned for missing/invalid tokens",
+        "Token rotation mechanism documented"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "GEN-DOC-001",
+      "name": "Create honest architecture diagram",
+      "phase": "genesis",
+      "category": "documentation",
+      "priority": 2,
+      "effort_hours": 3,
+      "dependencies": [
+        "GEN-ARCH-001"
+      ],
+      "ihsan_dimensions": [
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "Diagram shows only verified components",
+        "All connections documented",
+        "Mermaid/PlantUML source included"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "GEN-ETH-001",
+      "name": "Define Ihs\u0101n constraints for all AI operations",
+      "phase": "genesis",
+      "category": "ethical",
+      "priority": 2,
+      "effort_hours": 4,
+      "dependencies": [],
+      "ihsan_dimensions": [
+        "beneficence",
+        "safety",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "IHSAN_CONSTRAINTS.yaml created",
+        "All LLM prompts include ethical bounds",
+        "Rejection logging for ethical violations"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-ARCH-001",
+      "name": "Design unified API gateway routing",
+      "phase": "seeding",
+      "category": "architecture",
+      "priority": 1,
+      "effort_hours": 8,
+      "dependencies": [
+        "GEN-ARCH-003"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "sustainability"
+      ],
+      "acceptance_criteria": [
+        "Kong routes documented",
+        "All services behind gateway",
+        "Rate limiting configured"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-ARCH-002",
+      "name": "Implement event bus for service communication",
+      "phase": "seeding",
+      "category": "architecture",
+      "priority": 2,
+      "effort_hours": 12,
+      "dependencies": [
+        "SEED-ARCH-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "sustainability"
+      ],
+      "acceptance_criteria": [
+        "Redis Streams or NATS configured",
+        "Pub/sub patterns documented",
+        "At-least-once delivery verified"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-SEC-001",
+      "name": "Implement mTLS between services",
+      "phase": "seeding",
+      "category": "security",
+      "priority": 1,
+      "effort_hours": 16,
+      "dependencies": [
+        "GEN-SEC-002"
+      ],
+      "ihsan_dimensions": [
+        "safety"
+      ],
+      "acceptance_criteria": [
+        "All service-to-service calls use TLS",
+        "Certificates auto-rotated",
+        "Plaintext connections rejected"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-PERF-001",
+      "name": "Establish performance baseline metrics",
+      "phase": "seeding",
+      "category": "performance",
+      "priority": 2,
+      "effort_hours": 6,
+      "dependencies": [
+        "GEN-ARCH-003"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "P50/P95/P99 latencies measured",
+        "Throughput baseline established",
+        "Prometheus dashboards created"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-CICD-001",
+      "name": "Configure GitHub Actions CI pipeline",
+      "phase": "seeding",
+      "category": "devops",
+      "priority": 1,
+      "effort_hours": 8,
+      "dependencies": [],
+      "ihsan_dimensions": [
+        "correctness",
+        "sustainability"
+      ],
+      "acceptance_criteria": [
+        "Lint, test, build on every PR",
+        "Security scanning enabled",
+        "Coverage reports generated"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "SEED-CICD-002",
+      "name": "Configure GitOps CD with ArgoCD",
+      "phase": "seeding",
+      "category": "devops",
+      "priority": 2,
+      "effort_hours": 12,
+      "dependencies": [
+        "SEED-CICD-001"
+      ],
+      "ihsan_dimensions": [
+        "sustainability",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "ArgoCD deployed to Kind cluster",
+        "All manifests in git",
+        "Automatic sync on merge"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "BLOOM-ARCH-001",
+      "name": "Compile Rust MoshiCortex",
+      "phase": "blooming",
+      "category": "architecture",
+      "priority": 2,
+      "effort_hours": 24,
+      "dependencies": [
+        "SEED-ARCH-002"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "sustainability"
+      ],
+      "acceptance_criteria": [
+        "Rust code compiles without errors",
+        "Unit tests pass",
+        "Benchmarks show <100ms latency"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "BLOOM-ARCH-002",
+      "name": "Integrate Moshi with Python flywheel",
+      "phase": "blooming",
+      "category": "architecture",
+      "priority": 2,
+      "effort_hours": 16,
+      "dependencies": [
+        "BLOOM-ARCH-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness"
+      ],
+      "acceptance_criteria": [
+        "PyO3 bindings working",
+        "Audio streaming verified",
+        "Latency within target"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "BLOOM-SEC-001",
+      "name": "Deploy SPIFFE/SPIRE for workload identity",
+      "phase": "blooming",
+      "category": "security",
+      "priority": 1,
+      "effort_hours": 20,
+      "dependencies": [
+        "SEED-SEC-001"
+      ],
+      "ihsan_dimensions": [
+        "safety"
+      ],
+      "acceptance_criteria": [
+        "SPIRE server deployed",
+        "All workloads have SVID",
+        "Zero-trust communication verified"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "BLOOM-PERF-001",
+      "name": "Optimize LLM inference latency",
+      "phase": "blooming",
+      "category": "performance",
+      "priority": 1,
+      "effort_hours": 16,
+      "dependencies": [
+        "SEED-PERF-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "beneficence"
+      ],
+      "acceptance_criteria": [
+        "P95 latency < 2000ms",
+        "Model quantization optimized",
+        "Batch inference implemented"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "BLOOM-PERF-002",
+      "name": "Implement model weight caching",
+      "phase": "blooming",
+      "category": "performance",
+      "priority": 2,
+      "effort_hours": 12,
+      "dependencies": [
+        "BLOOM-PERF-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness"
+      ],
+      "acceptance_criteria": [
+        "Cold start < 5 seconds",
+        "Warm inference < 500ms",
+        "Memory-mapped weights working"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "FRUIT-QA-001",
+      "name": "Implement chaos engineering tests",
+      "phase": "fruiting",
+      "category": "quality",
+      "priority": 1,
+      "effort_hours": 16,
+      "dependencies": [
+        "BLOOM-ARCH-002"
+      ],
+      "ihsan_dimensions": [
+        "safety",
+        "correctness"
+      ],
+      "acceptance_criteria": [
+        "Chaos Monkey deployed",
+        "System survives pod failures",
+        "Recovery time < 30 seconds"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "FRUIT-QA-002",
+      "name": "Load testing to 1000 concurrent users",
+      "phase": "fruiting",
+      "category": "quality",
+      "priority": 1,
+      "effort_hours": 12,
+      "dependencies": [
+        "BLOOM-PERF-002"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "beneficence"
+      ],
+      "acceptance_criteria": [
+        "System handles 1000 concurrent",
+        "No errors under load",
+        "Latency degrades gracefully"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "FRUIT-SEC-001",
+      "name": "Third-party security audit",
+      "phase": "fruiting",
+      "category": "security",
+      "priority": 1,
+      "effort_hours": 40,
+      "dependencies": [
+        "BLOOM-SEC-001"
+      ],
+      "ihsan_dimensions": [
+        "safety",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "No critical vulnerabilities",
+        "No high vulnerabilities",
+        "Remediation plan for mediums"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "FRUIT-DOC-001",
+      "name": "Complete API documentation",
+      "phase": "fruiting",
+      "category": "documentation",
+      "priority": 2,
+      "effort_hours": 16,
+      "dependencies": [
+        "BLOOM-ARCH-002"
+      ],
+      "ihsan_dimensions": [
+        "transparency",
+        "beneficence"
+      ],
+      "acceptance_criteria": [
+        "OpenAPI spec for all endpoints",
+        "Examples for all operations",
+        "SDK generated and published"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "HARV-DEP-001",
+      "name": "Production deployment to cloud",
+      "phase": "harvest",
+      "category": "deployment",
+      "priority": 1,
+      "effort_hours": 24,
+      "dependencies": [
+        "FRUIT-QA-001",
+        "FRUIT-QA-002",
+        "FRUIT-SEC-001"
+      ],
+      "ihsan_dimensions": [
+        "correctness",
+        "safety",
+        "sustainability"
+      ],
+      "acceptance_criteria": [
+        "Blue-green deployment working",
+        "Rollback tested",
+        "Zero-downtime verified"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "HARV-DEP-002",
+      "name": "Monitoring and alerting setup",
+      "phase": "harvest",
+      "category": "deployment",
+      "priority": 1,
+      "effort_hours": 12,
+      "dependencies": [
+        "HARV-DEP-001"
+      ],
+      "ihsan_dimensions": [
+        "safety",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "All critical metrics alerted",
+        "PagerDuty integration",
+        "Runbook for each alert"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    },
+    {
+      "id": "HARV-ETH-001",
+      "name": "Ihs\u0101n compliance certification",
+      "phase": "harvest",
+      "category": "ethical",
+      "priority": 1,
+      "effort_hours": 8,
+      "dependencies": [
+        "HARV-DEP-001"
+      ],
+      "ihsan_dimensions": [
+        "beneficence",
+        "safety",
+        "transparency"
+      ],
+      "acceptance_criteria": [
+        "All 5 Ihs\u0101n dimensions >= 90%",
+        "Audit trail complete",
+        "Stakeholder sign-off"
+      ],
+      "assigned_to": null,
+      "status": "pending"
+    }
+  ]
+}

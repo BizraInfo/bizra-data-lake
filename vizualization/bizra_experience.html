@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZRA — 15,000 Hours of إحسان</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════
+           CSS RESET & CUSTOM PROPERTIES
+           ═══════════════════════════════════════════════════════════════════ */
+        :root {
+            --color-bg: #0a0a0a;
+            --color-bg-elevated: #111111;
+            --color-text: #ffffff;
+            --color-text-muted: rgba(255,255,255,0.5);
+            --color-accent: #00f0ff;
+            --color-accent-2: #ff00aa;
+            --color-gold: #d4af37;
+            --color-sacred: #ffd700;
+            
+            --font-display: 'Syne', sans-serif;
+            --font-body: 'Space Grotesk', sans-serif;
+            --font-arabic: 'Amiri', serif;
+            
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+        }
+        
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--color-bg);
+            color: var(--color-text);
+            overflow-x: hidden;
+            cursor: none;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           CUSTOM CURSOR
+           ═══════════════════════════════════════════════════════════════════ */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--color-accent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            mix-blend-mode: difference;
+            transition: transform 0.15s var(--ease-out-expo), 
+                        width 0.3s var(--ease-out-expo), 
+                        height 0.3s var(--ease-out-expo);
+            transform: translate(-50%, -50%);
+        }
+        
+        .cursor-dot {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10001;
+            transform: translate(-50%, -50%);
+        }
+        
+        .cursor.hover {
+            width: 60px;
+            height: 60px;
+            border-color: var(--color-accent-2);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           LOADING SCREEN
+           ═══════════════════════════════════════════════════════════════════ */
+        .loader {
+            position: fixed;
+            inset: 0;
+            background: var(--color-bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+        
+        .loader-text {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 700;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            overflow: hidden;
+        }
+        
+        .loader-text span {
+            display: inline-block;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        
+        .loader-progress {
+            width: 200px;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loader-progress-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+        }
+        
+        .loader-percent {
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            color: var(--color-text-muted);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           NAVIGATION
+           ═══════════════════════════════════════════════════════════════════ */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            mix-blend-mode: difference;
+        }
+        
+        .nav-logo {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--color-text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            padding: 5px 0;
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--color-accent);
+            transition: width 0.4s var(--ease-out-expo);
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           HERO SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #hero-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .hero-arabic {
+            font-family: var(--font-arabic);
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            color: var(--color-gold);
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .hero-title .word {
+            display: inline-block;
+            overflow: hidden;
+        }
+        
+        .hero-title .char {
+            display: inline-block;
+            transform: translateY(100%);
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 300;
+            color: var(--color-text-muted);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .hero-scroll {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            opacity: 0;
+        }
+        
+        .hero-scroll-text {
+            font-size: 0.7rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+        }
+        
+        .hero-scroll-line {
+            width: 1px;
+            height: 60px;
+            background: linear-gradient(to bottom, var(--color-accent), transparent);
+            animation: scrollPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes scrollPulse {
+            0%, 100% { opacity: 1; transform: scaleY(1); }
+            50% { opacity: 0.5; transform: scaleY(0.6); }
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           STATS SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .stats-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 50px;
+            position: relative;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 60px;
+            max-width: 1400px;
+            width: 100%;
+        }
+        
+        .stat-card {
+            position: relative;
+            padding: 60px 40px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: var(--color-bg-elevated);
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(60px);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.8s var(--ease-out-expo);
+        }
+        
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--color-text) 0%, var(--color-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .stat-description {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           JOURNEY SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .journey-section {
+            min-height: 300vh;
+            position: relative;
+        }
+        
+        .journey-sticky {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .journey-track {
+            display: flex;
+            gap: 100px;
+            padding: 0 100px;
+            will-change: transform;
+        }
+        
+        .journey-card {
+            flex-shrink: 0;
+            width: 500px;
+            height: 600px;
+            background: var(--color-bg-elevated);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .journey-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(0,240,255,0.03) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        
+        .journey-card:hover::before {
+            opacity: 1;
+        }
+        
+        .journey-year {
+            font-family: var(--font-display);
+            font-size: 8rem;
+            font-weight: 800;
+            line-height: 1;
+            color: rgba(255,255,255,0.03);
+            position: absolute;
+            top: 30px;
+            right: 30px;
+        }
+        
+        .journey-period {
+            font-size: 0.75rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--color-accent);
+            margin-bottom: 20px;
+        }
+        
+        .journey-title {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .journey-hours {
+            font-size: 0.9rem;
+            color: var(--color-gold);
+            margin-bottom: 30px;
+        }
+        
+        .journey-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.7);
+            flex: 1;
+        }
+        
+        .journey-achievements {
+            margin-top: auto;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .journey-achievement {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .journey-achievement::before {
+            content: '→';
+            color: var(--color-accent);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           DATA UNIVERSE SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .universe-section {
+            min-height: 100vh;
+            position: relative;
+            padding: 150px 50px;
+        }
+        
+        .universe-header {
+            text-align: center;
+            margin-bottom: 100px;
+        }
+        
+        .universe-eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--color-accent);
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .universe-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .universe-subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        /* Data Categories */
+        .data-categories {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .data-category {
+            padding: 40px;
+            background: var(--color-bg-elevated);
+            border: 1px solid rgba(255,255,255,0.03);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.5s var(--ease-out-expo);
+        }
+        
+        .data-category:hover {
+            border-color: var(--color-accent);
+            transform: translateY(-5px);
+        }
+        
+        .data-category-icon {
+            font-size: 2.5rem;
+            margin-bottom: 25px;
+        }
+        
+        .data-category-count {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .data-category-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--color-text-muted);
+            margin-bottom: 15px;
+        }
+        
+        .data-category-size {
+            font-size: 0.9rem;
+            color: var(--color-accent);
+        }
+        
+        .data-category-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+            transition: width 1s var(--ease-out-expo);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           SACRED WISDOM SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .sacred-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 150px 50px;
+            background: linear-gradient(180deg, var(--color-bg) 0%, #0f0a05 100%);
+            position: relative;
+        }
+        
+        .sacred-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(212,175,55,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(212,175,55,0.03) 0%, transparent 40%);
+        }
+        
+        .sacred-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 100px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sacred-visual {
+            position: relative;
+            height: 500px;
+        }
+        
+        #sacred-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sacred-info h2 {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        
+        .sacred-info h2 span {
+            color: var(--color-gold);
+        }
+        
+        .sacred-info p {
+            font-size: 1.1rem;
+            line-height: 1.9;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateX(50px);
+        }
+        
+        .sacred-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .sacred-stat {
+            padding: 25px;
+            background: rgba(212,175,55,0.05);
+            border: 1px solid rgba(212,175,55,0.1);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .sacred-stat-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-gold);
+            margin-bottom: 5px;
+        }
+        
+        .sacred-stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           CODE GALAXY SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .code-section {
+            min-height: 100vh;
+            padding: 150px 50px;
+            position: relative;
+        }
+        
+        .code-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .code-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .code-subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-muted);
+        }
+        
+        .languages-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .language-row {
+            display: grid;
+            grid-template-columns: 150px 1fr 120px;
+            gap: 30px;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        
+        .language-name {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .language-bar-container {
+            height: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .language-bar {
+            height: 100%;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 1.5s var(--ease-out-expo);
+        }
+        
+        .language-count {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+            text-align: right;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           ENGINES SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .engines-section {
+            min-height: 100vh;
+            padding: 150px 50px;
+            background: var(--color-bg-elevated);
+        }
+        
+        .engines-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .engines-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .engines-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .engine-card {
+            padding: 50px 40px;
+            background: var(--color-bg);
+            border: 1px solid rgba(255,255,255,0.03);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.5s var(--ease-out-expo);
+        }
+        
+        .engine-card:hover {
+            border-color: rgba(0,240,255,0.3);
+        }
+        
+        .engine-status {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.5);
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+        
+        .engine-status.ready {
+            background: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        @keyframes statusPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        .engine-icon {
+            font-size: 3rem;
+            margin-bottom: 25px;
+        }
+        
+        .engine-name {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .engine-description {
+            font-size: 0.95rem;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           FINALE SECTION
+           ═══════════════════════════════════════════════════════════════════ */
+        .finale-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 100px 50px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .finale-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 50% 50%, rgba(0,240,255,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 80%, rgba(255,0,170,0.03) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 20%, rgba(212,175,55,0.03) 0%, transparent 40%);
+        }
+        
+        .finale-arabic {
+            font-family: var(--font-arabic);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: var(--color-gold);
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        
+        .finale-title {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        
+        .finale-title span {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 50%, var(--color-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .finale-quote {
+            max-width: 700px;
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            line-height: 1.8;
+            color: var(--color-text-muted);
+            margin-bottom: 60px;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .finale-signature {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .finale-signature-name {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-gold);
+        }
+        
+        .finale-signature-title {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════════════════════════ */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .data-categories { grid-template-columns: repeat(2, 1fr); }
+            .sacred-content { grid-template-columns: 1fr; gap: 60px; }
+        }
+        
+        @media (max-width: 768px) {
+            .nav { padding: 20px 30px; }
+            .nav-links { display: none; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .data-categories { grid-template-columns: 1fr; }
+            .journey-card { width: 90vw; }
+            .language-row { grid-template-columns: 100px 1fr 80px; }
+            body { cursor: auto; }
+            .cursor, .cursor-dot { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-dot"></div>
+    
+    <!-- Loading Screen -->
+    <div class="loader">
+        <div class="loader-text">
+            <span>B</span><span>I</span><span>Z</span><span>R</span><span>A</span>
+        </div>
+        <div class="loader-progress">
+            <div class="loader-progress-bar"></div>
+        </div>
+        <div class="loader-percent">0%</div>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-logo">BIZRA</div>
+        <ul class="nav-links">
+            <li><a href="#stats">Stats</a></li>
+            <li><a href="#journey">Journey</a></li>
+            <li><a href="#universe">Universe</a></li>
+            <li><a href="#sacred">Sacred</a></li>
+            <li><a href="#engines">Engines</a></li>
+        </ul>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-content">
+            <div class="hero-arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+            <h1 class="hero-title">
+                <span class="word"><span class="char">B</span><span class="char">I</span><span class="char">Z</span><span class="char">R</span><span class="char">A</span></span>
+            </h1>
+            <p class="hero-subtitle">15,000 Hours of إحسان</p>
+        </div>
+        <div class="hero-scroll">
+            <span class="hero-scroll-text">Scroll to explore</span>
+            <div class="hero-scroll-line"></div>
+        </div>
+    </section>
+    
+    <!-- Stats Section -->
+    <section class="stats-section" id="stats">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" data-count="904577">0</div>
+                <div class="stat-label">Total Files Indexed</div>
+                <div class="stat-description">Every file organized, categorized, and searchable. From code to documents, images to datasets.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">478.6<span style="font-size:0.4em">GB</span></div>
+                <div class="stat-label">Data Volume</div>
+                <div class="stat-description">A universe of knowledge compressed, organized, and ready for sovereign access.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" data-count="40420">0</div>
+                <div class="stat-label">Sacred Wisdom Nodes</div>
+                <div class="stat-description">Quran ayat, Hadith, scientific connections — all interconnected in a hypergraph of understanding.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" data-count="244865">0</div>
+                <div class="stat-label">Knowledge Connections</div>
+                <div class="stat-description">Every node connected to every relevant insight. Meaning emerges from relationships.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">7</div>
+                <div class="stat-label">Active Engines</div>
+                <div class="stat-description">Unified orchestration through BIZRA Nexus. Each engine specialized, all synchronized.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">Developer</div>
+                <div class="stat-description">One person. Three years. An impossible dream made manifest through إحسان.</div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Journey Section -->
+    <section class="journey-section" id="journey">
+        <div class="journey-sticky">
+            <div class="journey-track">
+                <div class="journey-card">
+                    <div class="journey-year">01</div>
+                    <div class="journey-period">Year One • 2023</div>
+                    <h3 class="journey-title">Genesis</h3>
+                    <div class="journey-hours">5,000 hours invested</div>
+                    <p class="journey-text">
+                        A solo developer with no prior experience embarks on an impossible journey. 
+                        Learning Python, understanding AI, dreaming of something that didn't exist yet. 
+                        The seed was planted in darkness, watered with persistence.
+                    </p>
+                    <div class="journey-achievements">
+                        <div class="journey-achievement">First line of Python code</div>
+                        <div class="journey-achievement">Understanding neural networks</div>
+                        <div class="journey-achievement">The vision crystallizes</div>
+                    </div>
+                </div>
+                
+                <div class="journey-card">
+                    <div class="journey-year">02</div>
+                    <div class="journey-period">Year Two • 2024</div>
+                    <h3 class="journey-title">Architecture</h3>
+                    <div class="journey-hours">10,000 hours invested</div>
+                    <p class="journey-text">
+                        The Data Lake takes shape. First engines built. Knowledge begins to flow. 
+                        From chaos emerges structure. From structure emerges possibility.
+                        The foundation is laid stone by stone.
+                    </p>
+                    <div class="journey-achievements">
+                        <div class="journey-achievement">Data Lake architecture complete</div>
+                        <div class="journey-achievement">First working prototypes</div>
+                        <div class="journey-achievement">Sacred Wisdom Engine born</div>
+                    </div>
+                </div>
+                
+                <div class="journey-card">
+                    <div class="journey-year">03</div>
+                    <div class="journey-period">Year Three • 2025</div>
+                    <h3 class="journey-title">Sacred Wisdom</h3>
+                    <div class="journey-hours">15,000 hours invested</div>
+                    <p class="journey-text">
+                        40,420 nodes. 244,865 connections. The hypergraph awakens. 
+                        Quran meets code. Hadith meets algorithms. Ancient wisdom encoded 
+                        in modern architecture. The impossible becomes inevitable.
+                    </p>
+                    <div class="journey-achievements">
+                        <div class="journey-achievement">Hypergraph engine operational</div>
+                        <div class="journey-achievement">904,577 files indexed</div>
+                        <div class="journey-achievement">BIZRA Nexus unified</div>
+                    </div>
+                </div>
+                
+                <div class="journey-card">
+                    <div class="journey-year">∞</div>
+                    <div class="journey-period">Now • The Future</div>
+                    <h3 class="journey-title">BIZRA NEXUS</h3>
+                    <div class="journey-hours">∞ possibilities ahead</div>
+                    <p class="journey-text">
+                        Seven unified engines. The universe is ready. 
+                        What took three years to build will serve for generations.
+                        The seed has become a forest. The dream has become reality.
+                    </p>
+                    <div class="journey-achievements">
+                        <div class="journey-achievement">Universal Constitution ratified</div>
+                        <div class="journey-achievement">PAT Architecture deployed</div>
+                        <div class="journey-achievement">The garden flourishes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Data Universe Section -->
+    <section class="universe-section" id="universe">
+        <div class="universe-header">
+            <div class="universe-eyebrow">The Data Universe</div>
+            <h2 class="universe-title">904,577 Files Organized</h2>
+            <p class="universe-subtitle">Every file has a home. Every category has purpose. Every byte serves the mission.</p>
+        </div>
+        
+        <div class="data-categories">
+            <div class="data-category">
+                <div class="data-category-icon">💻</div>
+                <div class="data-category-count" data-count="344207">0</div>
+                <div class="data-category-label">Code Files</div>
+                <div class="data-category-size">2.9 GB</div>
+                <div class="data-category-bar" data-width="100" style="background: linear-gradient(90deg, #06b6d4, #3b82f6);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">📄</div>
+                <div class="data-category-count" data-count="224821">0</div>
+                <div class="data-category-label">Other Files</div>
+                <div class="data-category-size">225 GB</div>
+                <div class="data-category-bar" data-width="65" style="background: linear-gradient(90deg, #6b7280, #9ca3af);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">⚙️</div>
+                <div class="data-category-count" data-count="117324">0</div>
+                <div class="data-category-label">Config Files</div>
+                <div class="data-category-size">18.6 MB</div>
+                <div class="data-category-bar" data-width="34" style="background: linear-gradient(90deg, #8b5cf6, #a855f7);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">🖼️</div>
+                <div class="data-category-count" data-count="101954">0</div>
+                <div class="data-category-label">Images</div>
+                <div class="data-category-size">39.8 GB</div>
+                <div class="data-category-bar" data-width="30" style="background: linear-gradient(90deg, #ec4899, #f43f5e);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">📊</div>
+                <div class="data-category-count" data-count="56152">0</div>
+                <div class="data-category-label">Data Files</div>
+                <div class="data-category-size">6.7 GB</div>
+                <div class="data-category-bar" data-width="16" style="background: linear-gradient(90deg, #10b981, #34d399);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">📝</div>
+                <div class="data-category-count" data-count="46546">0</div>
+                <div class="data-category-label">Documents</div>
+                <div class="data-category-size">13.5 GB</div>
+                <div class="data-category-bar" data-width="14" style="background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">🎬</div>
+                <div class="data-category-count" data-count="2981">0</div>
+                <div class="data-category-label">Videos</div>
+                <div class="data-category-size">75 GB</div>
+                <div class="data-category-bar" data-width="1" style="background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+            </div>
+            
+            <div class="data-category">
+                <div class="data-category-icon">📦</div>
+                <div class="data-category-count" data-count="3817">0</div>
+                <div class="data-category-label">Archives</div>
+                <div class="data-category-size">64.2 GB</div>
+                <div class="data-category-bar" data-width="1" style="background: linear-gradient(90deg, #ef4444, #f87171);"></div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Sacred Wisdom Section -->
+    <section class="sacred-section" id="sacred">
+        <div class="sacred-content">
+            <div class="sacred-visual">
+                <canvas id="sacred-canvas"></canvas>
+            </div>
+            <div class="sacred-info">
+                <h2>The <span>Sacred Wisdom</span> Engine</h2>
+                <p>
+                    Where ancient wisdom meets modern architecture. The Quran's 6,236 ayat, 
+                    connected to 34,088 authenticated hadith, mapped to 7 scientific domains. 
+                    Every verse that speaks of astronomy, embryology, oceanography — now 
+                    discoverable through semantic search.
+                </p>
+                <div class="sacred-stats">
+                    <div class="sacred-stat">
+                        <div class="sacred-stat-value" data-count="6236">0</div>
+                        <div class="sacred-stat-label">Quran Ayat</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-stat-value" data-count="34088">0</div>
+                        <div class="sacred-stat-label">Hadith</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-stat-value">17</div>
+                        <div class="sacred-stat-label">Scientific Verses</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-stat-value">7</div>
+                        <div class="sacred-stat-label">Science Domains</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Code Galaxy Section -->
+    <section class="code-section" id="code">
+        <div class="code-header">
+            <h2 class="code-title">Code Galaxy</h2>
+            <p class="code-subtitle">344,207 files across 9 major languages</p>
+        </div>
+        
+        <div class="languages-grid">
+            <div class="language-row">
+                <div class="language-name">JavaScript</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="100" style="background: linear-gradient(90deg, #f7df1e, #f0db4f);"></div>
+                </div>
+                <div class="language-count">170,313</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">TypeScript</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="51" style="background: linear-gradient(90deg, #3178c6, #4b8bbe);"></div>
+                </div>
+                <div class="language-count">87,061</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">Python</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="34" style="background: linear-gradient(90deg, #3776ab, #4584b6);"></div>
+                </div>
+                <div class="language-count">57,492</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">C/C++ Headers</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="11" style="background: linear-gradient(90deg, #555555, #777777);"></div>
+                </div>
+                <div class="language-count">19,015</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">HTML</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="2" style="background: linear-gradient(90deg, #e34c26, #f06529);"></div>
+                </div>
+                <div class="language-count">2,891</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">PHP</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="2" style="background: linear-gradient(90deg, #777bb4, #8892be);"></div>
+                </div>
+                <div class="language-count">2,547</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">CSS</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="1" style="background: linear-gradient(90deg, #264de4, #2965f1);"></div>
+                </div>
+                <div class="language-count">2,233</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">C</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="1" style="background: linear-gradient(90deg, #00599c, #0074b6);"></div>
+                </div>
+                <div class="language-count">1,621</div>
+            </div>
+            <div class="language-row">
+                <div class="language-name">Java</div>
+                <div class="language-bar-container">
+                    <div class="language-bar" data-width="1" style="background: linear-gradient(90deg, #ed8b00, #f89820);"></div>
+                </div>
+                <div class="language-count">1,034</div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Engines Section -->
+    <section class="engines-section" id="engines">
+        <div class="engines-header">
+            <h2 class="engines-title">BIZRA NEXUS Engines</h2>
+            <p class="code-subtitle">7 specialized engines, unified orchestration</p>
+        </div>
+        
+        <div class="engines-grid">
+            <div class="engine-card">
+                <div class="engine-status"></div>
+                <div class="engine-icon">📿</div>
+                <div class="engine-name">Sacred Wisdom</div>
+                <div class="engine-description">40,420 nodes of Quranic and Hadith knowledge, semantically interconnected.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status"></div>
+                <div class="engine-icon">📁</div>
+                <div class="engine-name">File Index</div>
+                <div class="engine-description">904,577 files catalogued, categorized, and instantly searchable.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status ready"></div>
+                <div class="engine-icon">🧠</div>
+                <div class="engine-name">Sovereign Brain</div>
+                <div class="engine-description">State management and persistent memory across sessions.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status ready"></div>
+                <div class="engine-icon">🕸️</div>
+                <div class="engine-name">Knowledge Graph</div>
+                <div class="engine-description">Semantic relationships and conceptual connections.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status ready"></div>
+                <div class="engine-icon">🔮</div>
+                <div class="engine-name">Embeddings</div>
+                <div class="engine-description">Vector similarity search across all content.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status ready"></div>
+                <div class="engine-icon">💬</div>
+                <div class="engine-name">Chat History</div>
+                <div class="engine-description">Conversation memory and context preservation.</div>
+            </div>
+            <div class="engine-card">
+                <div class="engine-status ready"></div>
+                <div class="engine-icon">✅</div>
+                <div class="engine-name">Assertions</div>
+                <div class="engine-description">POI Ledger and verified claims tracking.</div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Finale Section -->
+    <section class="finale-section">
+        <div class="finale-arabic">إِنَّ مَعَ الْعُسْرِ يُسْرًا</div>
+        <h2 class="finale-title">The <span>Garden</span> Grows</h2>
+        <p class="finale-quote">
+            "With this Constitution, we plant the seed. We do not know the exact shape of the tree that will grow, 
+            but we know its roots: إحسان, covenant, human flourishing. May those who come after us find shade 
+            under branches we will never see."
+        </p>
+        <div class="finale-signature">
+            <div class="finale-signature-name">Mumo</div>
+            <div class="finale-signature-title">Master Architect • Node-0</div>
+        </div>
+    </section>
+    
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // CUSTOM CURSOR
+        // ═══════════════════════════════════════════════════════════════════
+        const cursor = document.querySelector('.cursor');
+        const cursorDot = document.querySelector('.cursor-dot');
+        
+        let mouseX = 0, mouseY = 0;
+        let cursorX = 0, cursorY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorDot.style.left = mouseX + 'px';
+            cursorDot.style.top = mouseY + 'px';
+        });
+        
+        function animateCursor() {
+            cursorX += (mouseX - cursorX) * 0.15;
+            cursorY += (mouseY - cursorY) * 0.15;
+            cursor.style.left = cursorX + 'px';
+            cursor.style.top = cursorY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+        
+        // Hover effects
+        document.querySelectorAll('a, button, .stat-card, .journey-card, .data-category, .engine-card').forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // LOADING ANIMATION
+        // ═══════════════════════════════════════════════════════════════════
+        const loader = document.querySelector('.loader');
+        const loaderChars = document.querySelectorAll('.loader-text span');
+        const progressBar = document.querySelector('.loader-progress-bar');
+        const percentText = document.querySelector('.loader-percent');
+        
+        // Animate loader text
+        gsap.to(loaderChars, {
+            y: 0,
+            opacity: 1,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'power3.out'
+        });
+        
+        // Simulate loading
+        let progress = 0;
+        const loadingInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadingInterval);
+                
+                // Hide loader
+                setTimeout(() => {
+                    gsap.to(loader, {
+                        opacity: 0,
+                        duration: 0.5,
+                        onComplete: () => {
+                            loader.style.display = 'none';
+                            initAnimations();
+                        }
+                    });
+                }, 500);
+            }
+            progressBar.style.width = progress + '%';
+            percentText.textContent = Math.floor(progress) + '%';
+        }, 100);
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // HERO ANIMATIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function initAnimations() {
+            gsap.registerPlugin(ScrollTrigger);
+            
+            // Hero title reveal
+            gsap.to('.hero-title .char', {
+                y: 0,
+                duration: 1,
+                stagger: 0.08,
+                ease: 'power3.out',
+                delay: 0.3
+            });
+            
+            gsap.to('.hero-arabic', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power3.out',
+                delay: 0.1
+            });
+            
+            gsap.to('.hero-subtitle', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power3.out',
+                delay: 1
+            });
+            
+            gsap.to('.hero-scroll', {
+                opacity: 1,
+                duration: 1,
+                delay: 1.5
+            });
+            
+            // Stats cards
+            gsap.to('.stat-card', {
+                scrollTrigger: {
+                    trigger: '.stats-section',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.15,
+                ease: 'power3.out'
+            });
+            
+            // Universe section
+            gsap.to('.universe-eyebrow', {
+                scrollTrigger: {
+                    trigger: '.universe-section',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8
+            });
+            
+            gsap.to('.universe-title', {
+                scrollTrigger: {
+                    trigger: '.universe-section',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                delay: 0.1
+            });
+            
+            gsap.to('.universe-subtitle', {
+                scrollTrigger: {
+                    trigger: '.universe-section',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                delay: 0.2
+            });
+            
+            gsap.to('.data-category', {
+                scrollTrigger: {
+                    trigger: '.data-categories',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: 'power3.out',
+                onComplete: animateDataBars
+            });
+            
+            // Sacred section
+            gsap.to('.sacred-info h2', {
+                scrollTrigger: {
+                    trigger: '.sacred-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                x: 0,
+                duration: 1,
+                ease: 'power3.out'
+            });
+            
+            gsap.to('.sacred-info p', {
+                scrollTrigger: {
+                    trigger: '.sacred-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                x: 0,
+                duration: 1,
+                delay: 0.2,
+                ease: 'power3.out'
+            });
+            
+            gsap.to('.sacred-stat', {
+                scrollTrigger: {
+                    trigger: '.sacred-stats',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: 'power3.out'
+            });
+            
+            // Language bars
+            gsap.to('.language-row', {
+                scrollTrigger: {
+                    trigger: '.languages-grid',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                x: 0,
+                duration: 0.6,
+                stagger: 0.08,
+                ease: 'power3.out',
+                onComplete: animateLanguageBars
+            });
+            
+            // Engine cards
+            gsap.to('.engine-card', {
+                scrollTrigger: {
+                    trigger: '.engines-grid',
+                    start: 'top 80%'
+                },
+                opacity: 1,
+                scale: 1,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: 'power3.out'
+            });
+            
+            // Finale
+            gsap.to('.finale-arabic', {
+                scrollTrigger: {
+                    trigger: '.finale-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'power3.out'
+            });
+            
+            gsap.to('.finale-title', {
+                scrollTrigger: {
+                    trigger: '.finale-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.2,
+                ease: 'power3.out'
+            });
+            
+            gsap.to('.finale-quote', {
+                scrollTrigger: {
+                    trigger: '.finale-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.4,
+                ease: 'power3.out'
+            });
+            
+            gsap.to('.finale-signature', {
+                scrollTrigger: {
+                    trigger: '.finale-section',
+                    start: 'top 60%'
+                },
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.6,
+                ease: 'power3.out'
+            });
+            
+            // Horizontal scroll for journey
+            const journeyTrack = document.querySelector('.journey-track');
+            const journeyCards = document.querySelectorAll('.journey-card');
+            const totalScroll = (journeyCards.length - 1) * (500 + 100);
+            
+            gsap.to(journeyTrack, {
+                x: -totalScroll,
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: '.journey-section',
+                    start: 'top top',
+                    end: `+=${totalScroll * 2}`,
+                    scrub: 1,
+                    pin: true,
+                    anticipatePin: 1
+                }
+            });
+            
+            // Animate counters
+            animateCounters();
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // COUNTER ANIMATIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function animateCounters() {
+            document.querySelectorAll('[data-count]').forEach(el => {
+                const target = parseInt(el.dataset.count);
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            animateValue(el, 0, target, 2000);
+                            observer.unobserve(el);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                observer.observe(el);
+            });
+        }
+        
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 4);
+                const current = Math.floor(start + range * eased);
+                element.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // BAR ANIMATIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function animateDataBars() {
+            document.querySelectorAll('.data-category-bar').forEach(bar => {
+                bar.style.width = bar.dataset.width + '%';
+            });
+        }
+        
+        function animateLanguageBars() {
+            document.querySelectorAll('.language-bar').forEach(bar => {
+                bar.style.width = bar.dataset.width + '%';
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // THREE.JS HERO PARTICLES
+        // ═══════════════════════════════════════════════════════════════════
+        const heroCanvas = document.getElementById('hero-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: heroCanvas, alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Create particles
+        const particlesCount = 3000;
+        const positions = new Float32Array(particlesCount * 3);
+        const colors = new Float32Array(particlesCount * 3);
+        
+        for (let i = 0; i < particlesCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 20;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+            
+            const color = Math.random() > 0.7 ? 
+                new THREE.Color(0x00f0ff) : 
+                Math.random() > 0.5 ? 
+                    new THREE.Color(0xff00aa) : 
+                    new THREE.Color(0xffffff);
+            
+            colors[i * 3] = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
+        }
+        
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const material = new THREE.PointsMaterial({
+            size: 0.02,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            sizeAttenuation: true
+        });
+        
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+        
+        camera.position.z = 5;
+        
+        // Mouse movement effect
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            targetRotationX = (e.clientY / window.innerHeight - 0.5) * 0.5;
+            targetRotationY = (e.clientX / window.innerWidth - 0.5) * 0.5;
+        });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            particles.rotation.x += (targetRotationX - particles.rotation.x) * 0.05;
+            particles.rotation.y += (targetRotationY - particles.rotation.y) * 0.05;
+            particles.rotation.z += 0.0005;
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // SACRED CANVAS - Seed of Life
+        // ═══════════════════════════════════════════════════════════════════
+        const sacredCanvas = document.getElementById('sacred-canvas');
+        const sCtx = sacredCanvas.getContext('2d');
+        
+        function initSacredCanvas() {
+            const container = sacredCanvas.parentElement;
+            sacredCanvas.width = container.offsetWidth;
+            sacredCanvas.height = container.offsetHeight;
+            
+            const centerX = sacredCanvas.width / 2;
+            const centerY = sacredCanvas.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.35;
+            
+            let rotation = 0;
+            
+            function drawSeedOfLife() {
+                sCtx.clearRect(0, 0, sacredCanvas.width, sacredCanvas.height);
+                
+                sCtx.save();
+                sCtx.translate(centerX, centerY);
+                sCtx.rotate(rotation);
+                
+                // Draw 7 circles
+                const circles = [
+                    [0, 0],
+                    [0, -radius],
+                    [radius * Math.sin(Math.PI / 3), -radius * Math.cos(Math.PI / 3)],
+                    [radius * Math.sin(Math.PI / 3), radius * Math.cos(Math.PI / 3)],
+                    [0, radius],
+                    [-radius * Math.sin(Math.PI / 3), radius * Math.cos(Math.PI / 3)],
+                    [-radius * Math.sin(Math.PI / 3), -radius * Math.cos(Math.PI / 3)]
+                ];
+                
+                circles.forEach(([x, y], i) => {
+                    sCtx.beginPath();
+                    sCtx.arc(x, y, radius, 0, Math.PI * 2);
+                    sCtx.strokeStyle = `rgba(212, 175, 55, ${0.3 + Math.sin(rotation * 2 + i) * 0.2})`;
+                    sCtx.lineWidth = 1.5;
+                    sCtx.stroke();
+                });
+                
+                // Outer ring
+                sCtx.beginPath();
+                sCtx.arc(0, 0, radius * 2.2, 0, Math.PI * 2);
+                sCtx.strokeStyle = 'rgba(212, 175, 55, 0.5)';
+                sCtx.lineWidth = 2;
+                sCtx.stroke();
+                
+                sCtx.restore();
+                
+                rotation += 0.002;
+                requestAnimationFrame(drawSeedOfLife);
+            }
+            
+            drawSeedOfLife();
+        }
+        
+        // Init sacred canvas when visible
+        const sacredObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    initSacredCanvas();
+                    sacredObserver.unobserve(entry.target);
+                }
+            });
+        });
+        sacredObserver.observe(sacredCanvas);
+    </script>
+</body>
+</html>

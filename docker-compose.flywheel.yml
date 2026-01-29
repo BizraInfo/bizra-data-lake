@@ -1,0 +1,215 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#    BIZRA FLYWHEEL — Docker Compose Extension
+#    
+#    Extends the main stack with:
+#    1. Embedded Ollama (no host dependency)
+#    2. Flywheel service (autopoietic core)
+#    3. Moshi audio streaming (when available)
+#    4. Fail-closed authentication
+#    
+#    Usage: docker compose -f docker-compose.yml -f docker-compose.flywheel.yml up -d
+#    
+#    Created: 2026-01-29 | BIZRA Sovereignty
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # EMBEDDED OLLAMA — LLM Inference Inside the Stack
+  # ═══════════════════════════════════════════════════════════════════════════════
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bizra-ollama
+    restart: unless-stopped
+    
+    # GPU access for acceleration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    volumes:
+      # Persist models to avoid re-downloading
+      - ollama_models:/root/.ollama
+      # Pre-baked model weights (optional, for zero cold-start)
+      - ${BIZRA_MODELS_PATH:-./models}:/models:ro
+    
+    environment:
+      OLLAMA_HOST: "0.0.0.0"
+      OLLAMA_MODELS: "/root/.ollama/models"
+      # Keep models loaded longer
+      OLLAMA_KEEP_ALIVE: "24h"
+      # Limit concurrent requests for stability
+      OLLAMA_NUM_PARALLEL: "2"
+    
+    ports:
+      - "127.0.0.1:11434:11434"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # MODEL PRELOADER — Warm Models on Stack Start
+  # ═══════════════════════════════════════════════════════════════════════════════
+  model-preloader:
+    image: curlimages/curl:latest
+    container_name: bizra-model-preloader
+    depends_on:
+      ollama:
+        condition: service_healthy
+    
+    # Pull and warm priority models
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "═══════════════════════════════════════════════════════════════════"
+        echo "    BIZRA Model Preloader — Warming the Stack"
+        echo "═══════════════════════════════════════════════════════════════════"
+        
+        # Wait for Ollama to be fully ready
+        sleep 5
+        
+        # Priority models to preload
+        MODELS="llama3.1:8b nomic-embed-text:latest"
+        
+        for model in $MODELS; do
+          echo "[Preloader] Pulling $model..."
+          curl -s -X POST http://ollama:11434/api/pull -d "{\"name\": \"$model\"}" | head -1
+          
+          echo "[Preloader] Warming $model..."
+          curl -s -X POST http://ollama:11434/api/generate -d "{\"model\": \"$model\", \"prompt\": \".\", \"stream\": false, \"options\": {\"num_predict\": 1}}" > /dev/null
+          echo "[Preloader] ✅ $model ready"
+        done
+        
+        echo "═══════════════════════════════════════════════════════════════════"
+        echo "    All models preloaded and warm"
+        echo "═══════════════════════════════════════════════════════════════════"
+    
+    restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # FLYWHEEL — Autopoietic Self-Sustaining Core
+  # ═══════════════════════════════════════════════════════════════════════════════
+  flywheel:
+    build:
+      context: .
+      dockerfile: Dockerfile.flywheel
+    container_name: bizra-flywheel
+    restart: unless-stopped
+    
+    depends_on:
+      ollama:
+        condition: service_healthy
+      model-preloader:
+        condition: service_completed_successfully
+    
+    environment:
+      # Inference backends
+      OLLAMA_URL: "http://ollama:11434"
+      LMSTUDIO_URL: "http://host.docker.internal:1234"  # LM Studio on host
+      BIZRA_INFERENCE_BACKEND: "auto"  # auto, ollama, or lmstudio
+      
+      # Fail-closed auth
+      BIZRA_AUTH_MODE: "FAIL_CLOSED"
+      BIZRA_API_TOKEN: "${BIZRA_API_TOKEN}"
+      
+      # State persistence
+      FLYWHEEL_STATE_DIR: "/var/lib/bizra"
+      
+      # Logging
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    
+    volumes:
+      # Persist flywheel state across restarts
+      - flywheel_state:/var/lib/bizra
+      # Logs
+      - flywheel_logs:/var/log/bizra/flywheel
+    
+    # Access to host network for LM Studio
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    ports:
+      # Flywheel API (authenticated)
+      - "127.0.0.1:8100:8100"
+      # Audio WebSocket
+      - "127.0.0.1:8101:8101"
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=2).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # MOSHI AUDIO — Real-Time Voice Streaming (when available)
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # Uncomment when Moshi is production-ready
+  #
+  # moshi:
+  #   image: bizra-moshi:latest
+  #   container_name: bizra-moshi
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.moshi
+  #   
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   
+  #   environment:
+  #     MOSHI_MODEL_PATH: "/models/moshi-1.0"
+  #     MOSHI_SAMPLE_RATE: "24000"
+  #     MOSHI_CHUNK_SIZE: "1920"
+  #   
+  #   volumes:
+  #     - moshi_models:/models
+  #   
+  #   ports:
+  #     - "127.0.0.1:8102:8102"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VOLUMES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+volumes:
+  ollama_models:
+    name: bizra-ollama-models
+  flywheel_state:
+    name: bizra-flywheel-state
+  flywheel_logs:
+    name: bizra-flywheel-logs
+  # moshi_models:
+  #   name: bizra-moshi-models
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NETWORKS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+networks:
+  default:
+    name: bizra-flywheel-network

@@ -1,0 +1,74 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                     NODE0 ECOSYSTEM IDENTITY MARKER                          ║
+# ║                    BIZRA Sovereign Autonomous System                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# This file declares that this repository is part of NODE0 — The Genesis Block.
+# NODE0 is the complete MSI Titan machine: hardware, software, data, network.
+#
+# DO NOT DELETE THIS FILE. It binds this component to the sovereign ecosystem.
+
+node0:
+  genesis_block: true
+  hostname: "MSI"
+  network_identity: "172.22.61.234"
+  
+  canonical_source:
+    kernel_path: "/root/bizra-genesis"
+    kernel_repo: "https://github.com/BizraInfo/BIZRA-Dual-Agentic-system-.git"
+    registry: "NODE0_REGISTRY.yaml"
+  
+  hardware_substrate:
+    cpu: "Intel Core i9-14900HX"
+    gpu: "NVIDIA RTX 4090 16GB"
+    memory: "64 GB DDR5"
+    storage: "3.8 TB"
+
+  declaration: |
+    This repository is ONE WINDOW into the Node0 sovereign space.
+    Node0 IS the machine — every byte, cycle, packet, and process.
+    All components derive authority from the Kernel and Ihsan Constitution.
+    
+# Component-specific identity (set per-repo)
+component:
+  name: "💾 Vault (Data Lake)"
+  role: "VAULT"
+  path: "C:\\BIZRA-DATA-LAKE"
+  repository: null  # Pure data storage, no git
+  type: "data-lake"
+  responsibilities:
+    - "Persistent data storage (medallion architecture)"
+    - "Evidence archival and chain of custody"
+    - "Processing pipeline stages"
+  data_zones:
+    genesis: "00_GENESIS — Origin artifacts, seeds"
+    raw: "01_RAW — Unprocessed input"
+    processed: "02_PROCESSED — Transformed data"
+    indexed: "03_INDEXED — Searchable data"
+    gold: "04_GOLD — Production-ready"
+    quarantine: "99_QUARANTINE — Isolated/suspicious"
+    
+seal:
+  created: "2026-01-26"
+  by: "SAPE v1.∞"
+component:
+  name: "💾 Vault (Data Lake)"
+  role: "VAULT"
+  path: "C:\\BIZRA-DATA-LAKE"
+  repository: null
+  type: "data-lake"
+  responsibilities:
+    - "Persistent data storage (medallion architecture)"
+    - "Evidence archival and chain of custody"
+    - "Processing pipeline stages"
+  data_zones:
+    genesis: "00_GENESIS — Origin artifacts, seeds"
+    raw: "01_RAW — Unprocessed input"
+    processed: "02_PROCESSED — Transformed data"
+    indexed: "03_INDEXED — Searchable data"
+    gold: "04_GOLD — Production-ready"
+    quarantine: "99_QUARANTINE — Isolated/suspicious"
+    
+seal:
+  created: "2026-01-26"
+  by: "SAPE v1.∞"

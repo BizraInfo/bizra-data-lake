@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZRA — Executive Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #0c0c0c;
+            --bg-secondary: #141414;
+            --bg-card: #1a1a1a;
+            --border: rgba(255,255,255,0.08);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255,255,255,0.6);
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Top Nav */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        
+        .logo-text {
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+        
+        .nav-stats {
+            display: flex;
+            gap: 40px;
+        }
+        
+        .nav-stat {
+            text-align: right;
+        }
+        
+        .nav-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+        
+        .nav-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Hero Metrics */
+        .hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            padding: 30px 40px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+        
+        .hero-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .hero-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-4px);
+        }
+        
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        
+        .hero-card:nth-child(1)::before { background: var(--accent-cyan); }
+        .hero-card:nth-child(2)::before { background: var(--accent-purple); }
+        .hero-card:nth-child(3)::before { background: var(--accent-green); }
+        .hero-card:nth-child(4)::before { background: var(--accent-yellow); }
+        .hero-card:nth-child(5)::before { background: var(--accent-pink); }
+        
+        .hero-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .hero-value {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        
+        .hero-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .hero-change {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .hero-change.up {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+        
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 0 40px 40px;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .card-badge {
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* File Type Breakdown */
+        .breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .breakdown-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .breakdown-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .breakdown-info {
+            flex: 1;
+        }
+        
+        .breakdown-name {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .breakdown-count {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .breakdown-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .breakdown-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+        
+        /* Engine Status */
+        .engine-grid {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .engine-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .engine-row:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .engine-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .engine-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .engine-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .engine-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .engine-status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .engine-status.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+        
+        .engine-status.ready {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+        }
+        
+        /* Journey Timeline */
+        .journey-steps {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .journey-steps::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-purple), var(--accent-yellow));
+        }
+        
+        .journey-step {
+            position: relative;
+            padding: 16px 0;
+        }
+        
+        .journey-step::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 22px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 3px solid var(--accent-cyan);
+        }
+        
+        .journey-step:nth-child(2)::before { border-color: var(--accent-purple); }
+        .journey-step:nth-child(3)::before { border-color: var(--accent-yellow); }
+        .journey-step:nth-child(4)::before { border-color: var(--accent-green); }
+        
+        .journey-date {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .journey-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* Code Languages */
+        .languages-chart {
+            height: 250px;
+        }
+        
+        /* Sacred Stats */
+        .sacred-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .sacred-stat {
+            text-align: center;
+            padding: 20px;
+            background: rgba(251, 191, 36, 0.05);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            border-radius: 12px;
+        }
+        
+        .sacred-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            margin-bottom: 4px;
+        }
+        
+        .sacred-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        
+        .footer-quote {
+            font-size: 24px;
+            color: var(--accent-yellow);
+            font-family: 'Arial', serif;
+            margin-bottom: 10px;
+            direction: rtl;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card, .hero-card {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        
+        .hero-card:nth-child(1) { animation-delay: 0.1s; }
+        .hero-card:nth-child(2) { animation-delay: 0.2s; }
+        .hero-card:nth-child(3) { animation-delay: 0.3s; }
+        .hero-card:nth-child(4) { animation-delay: 0.4s; }
+        .hero-card:nth-child(5) { animation-delay: 0.5s; }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .hero-metrics { grid-template-columns: repeat(3, 1fr); }
+            .main-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-metrics { grid-template-columns: repeat(2, 1fr); }
+            .nav-stats { display: none; }
+            .breakdown-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="logo">
+            <div class="logo-icon">B</div>
+            <div class="logo-text">BIZRA</div>
+        </div>
+        <div class="nav-stats">
+            <div class="nav-stat">
+                <div class="nav-stat-value">15,000</div>
+                <div class="nav-stat-label">Hours Invested</div>
+            </div>
+            <div class="nav-stat">
+                <div class="nav-stat-value">3</div>
+                <div class="nav-stat-label">Years</div>
+            </div>
+            <div class="nav-stat">
+                <div class="nav-stat-value">1</div>
+                <div class="nav-stat-label">Developer</div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Metrics -->
+    <section class="hero-metrics">
+        <div class="hero-card">
+            <div class="hero-icon">📁</div>
+            <div class="hero-value" id="totalFiles">0</div>
+            <div class="hero-label">Total Files Indexed</div>
+            <div class="hero-change up">+904,577</div>
+        </div>
+        <div class="hero-card">
+            <div class="hero-icon">💾</div>
+            <div class="hero-value">478.6 GB</div>
+            <div class="hero-label">Total Data Volume</div>
+            <div class="hero-change up">Organized</div>
+        </div>
+        <div class="hero-card">
+            <div class="hero-icon">🧠</div>
+            <div class="hero-value" id="sacredNodes">0</div>
+            <div class="hero-label">Sacred Wisdom Nodes</div>
+            <div class="hero-change up">+40,420</div>
+        </div>
+        <div class="hero-card">
+            <div class="hero-icon">🔗</div>
+            <div class="hero-value" id="connections">0</div>
+            <div class="hero-label">Knowledge Connections</div>
+            <div class="hero-change up">+244,865</div>
+        </div>
+        <div class="hero-card">
+            <div class="hero-icon">⚡</div>
+            <div class="hero-value">7</div>
+            <div class="hero-label">Active Engines</div>
+            <div class="hero-change up">Unified</div>
+        </div>
+    </section>
+    
+    <!-- Main Grid -->
+    <main class="main-grid">
+        <!-- Left Column -->
+        <div>
+            <!-- File Distribution Chart -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2 class="card-title">📊 File Distribution by Category</h2>
+                    <span class="card-badge">904,577 Files</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Code Languages -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">💻 Code Galaxy — 344,207 Files</h2>
+                    <span class="card-badge">57,492 Python</span>
+                </div>
+                <div class="languages-chart">
+                    <canvas id="languagesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+            <!-- File Type Breakdown -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2 class="card-title">📂 Type Breakdown</h2>
+                </div>
+                <div class="breakdown-grid" id="breakdownGrid"></div>
+            </div>
+            
+            <!-- Engine Status -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2 class="card-title">⚡ Nexus Engines</h2>
+                </div>
+                <div class="engine-grid" id="engineGrid"></div>
+            </div>
+            
+            <!-- Sacred Wisdom -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h2 class="card-title">📿 Sacred Wisdom Engine</h2>
+                </div>
+                <div class="sacred-grid">
+                    <div class="sacred-stat">
+                        <div class="sacred-value">6,236</div>
+                        <div class="sacred-label">Quran Ayat</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-value">34,088</div>
+                        <div class="sacred-label">Hadith</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-value">17</div>
+                        <div class="sacred-label">Scientific Verses</div>
+                    </div>
+                    <div class="sacred-stat">
+                        <div class="sacred-value">7</div>
+                        <div class="sacred-label">Science Domains</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Journey -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🚀 The Journey</h2>
+                </div>
+                <div class="journey-steps">
+                    <div class="journey-step">
+                        <div class="journey-date">Year 1 • 5,000 Hours</div>
+                        <div class="journey-title">Genesis</div>
+                        <div class="journey-desc">A solo developer with no prior experience begins the impossible journey.</div>
+                    </div>
+                    <div class="journey-step">
+                        <div class="journey-date">Year 2 • 10,000 Hours</div>
+                        <div class="journey-title">Architecture</div>
+                        <div class="journey-desc">Data Lake takes shape. First engines built. Knowledge begins to flow.</div>
+                    </div>
+                    <div class="journey-step">
+                        <div class="journey-date">Year 3 • 15,000 Hours</div>
+                        <div class="journey-title">Sacred Wisdom</div>
+                        <div class="journey-desc">40,420 nodes. 244,865 connections. The hypergraph awakens.</div>
+                    </div>
+                    <div class="journey-step">
+                        <div class="journey-date">Now • ∞ Possibilities</div>
+                        <div class="journey-title">BIZRA NEXUS</div>
+                        <div class="journey-desc">7 unified engines. 904,577 files. 478.6 GB. The universe is ready.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-quote">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+        <div class="footer-text">BIZRA • 15,000 Hours of إخلاص • Built with faith, perseverance, and the blessing of Allah</div>
+    </footer>
+    
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // DATA
+        // ═══════════════════════════════════════════════════════════════════
+        const DATA = {
+            categories: [
+                { name: 'Code', count: 344207, size: '2.9 GB', color: '#06b6d4', percent: 38 },
+                { name: 'Other', count: 224821, size: '225 GB', color: '#6b7280', percent: 25 },
+                { name: 'Configs', count: 117324, size: '18.6 MB', color: '#8b5cf6', percent: 13 },
+                { name: 'Images', count: 101954, size: '39.8 GB', color: '#ec4899', percent: 11 },
+                { name: 'Data', count: 56152, size: '6.7 GB', color: '#10b981', percent: 6 },
+                { name: 'Documents', count: 46546, size: '13.5 GB', color: '#f59e0b', percent: 5 },
+                { name: 'Archives', count: 3817, size: '64.2 GB', color: '#ef4444', percent: 0.4 },
+                { name: 'Videos', count: 2981, size: '75 GB', color: '#3b82f6', percent: 0.3 }
+            ],
+            languages: [
+                { name: 'JavaScript', ext: '.js', count: 170313, color: '#f7df1e' },
+                { name: 'TypeScript', ext: '.ts', count: 87061, color: '#3178c6' },
+                { name: 'Python', ext: '.py', count: 57492, color: '#3776ab' },
+                { name: 'C/C++ Headers', ext: '.h', count: 19015, color: '#555555' },
+                { name: 'HTML', ext: '.html', count: 2891, color: '#e34c26' },
+                { name: 'PHP', ext: '.php', count: 2547, color: '#777bb4' },
+                { name: 'CSS', ext: '.css', count: 2233, color: '#264de4' },
+                { name: 'C', ext: '.c', count: 1621, color: '#00599c' },
+                { name: 'Java', ext: '.java', count: 1034, color: '#ed8b00' }
+            ],
+            engines: [
+                { name: 'Sacred Wisdom', desc: '40,420 nodes', icon: '📿', bg: 'rgba(251, 191, 36, 0.1)', status: 'active' },
+                { name: 'File Index', desc: '904,577 files', icon: '📁', bg: 'rgba(6, 182, 212, 0.1)', status: 'active' },
+                { name: 'Sovereign Brain', desc: 'State management', icon: '🧠', bg: 'rgba(139, 92, 246, 0.1)', status: 'ready' },
+                { name: 'Knowledge Graph', desc: 'Semantic search', icon: '🕸️', bg: 'rgba(16, 185, 129, 0.1)', status: 'ready' },
+                { name: 'Embeddings', desc: 'Vector similarity', icon: '🔮', bg: 'rgba(236, 72, 153, 0.1)', status: 'ready' },
+                { name: 'Chat History', desc: 'Conversations', icon: '💬', bg: 'rgba(59, 130, 246, 0.1)', status: 'ready' },
+                { name: 'Assertions', desc: 'POI Ledger', icon: '✅', bg: 'rgba(239, 68, 68, 0.1)', status: 'ready' }
+            ]
+        };
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // ANIMATED COUNTERS
+        // ═══════════════════════════════════════════════════════════════════
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(start + range * eased);
+                element.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // DISTRIBUTION CHART
+        // ═══════════════════════════════════════════════════════════════════
+        function createDistributionChart() {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: DATA.categories.map(c => c.name),
+                    datasets: [{
+                        data: DATA.categories.map(c => c.count),
+                        backgroundColor: DATA.categories.map(c => c.color),
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'Inter' },
+                            bodyFont: { family: 'Inter' },
+                            callbacks: {
+                                label: (ctx) => {
+                                    const cat = DATA.categories[ctx.dataIndex];
+                                    return `${ctx.raw.toLocaleString()} files (${cat.size})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Inter' } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255,255,255,0.8)', font: { family: 'Inter', weight: 500 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // LANGUAGES CHART
+        // ═══════════════════════════════════════════════════════════════════
+        function createLanguagesChart() {
+            const ctx = document.getElementById('languagesChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: DATA.languages.map(l => l.name),
+                    datasets: [{
+                        data: DATA.languages.map(l => l.count),
+                        backgroundColor: DATA.languages.map(l => l.color),
+                        borderColor: '#1a1a1a',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'rgba(255,255,255,0.8)',
+                                font: { family: 'Inter', size: 11 },
+                                padding: 12,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            callbacks: {
+                                label: (ctx) => `${ctx.raw.toLocaleString()} files`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // BREAKDOWN GRID
+        // ═══════════════════════════════════════════════════════════════════
+        function createBreakdownGrid() {
+            const grid = document.getElementById('breakdownGrid');
+            const maxCount = Math.max(...DATA.categories.map(c => c.count));
+            
+            DATA.categories.slice(0, 8).forEach(cat => {
+                const item = document.createElement('div');
+                item.className = 'breakdown-item';
+                item.innerHTML = `
+                    <div class="breakdown-dot" style="background: ${cat.color}"></div>
+                    <div class="breakdown-info">
+                        <div class="breakdown-name">${cat.name}</div>
+                        <div class="breakdown-count">${cat.count.toLocaleString()} files</div>
+                    </div>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-bar-fill" style="width: 0%; background: ${cat.color}"></div>
+                    </div>
+                `;
+                grid.appendChild(item);
+                
+                // Animate bar
+                setTimeout(() => {
+                    const bar = item.querySelector('.breakdown-bar-fill');
+                    bar.style.width = `${(cat.count / maxCount) * 100}%`;
+                }, 300);
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // ENGINE GRID
+        // ═══════════════════════════════════════════════════════════════════
+        function createEngineGrid() {
+            const grid = document.getElementById('engineGrid');
+            
+            DATA.engines.forEach(engine => {
+                const row = document.createElement('div');
+                row.className = 'engine-row';
+                row.innerHTML = `
+                    <div class="engine-left">
+                        <div class="engine-icon" style="background: ${engine.bg}">${engine.icon}</div>
+                        <div>
+                            <div class="engine-name">${engine.name}</div>
+                            <div class="engine-desc">${engine.desc}</div>
+                        </div>
+                    </div>
+                    <div class="engine-status ${engine.status}">${engine.status === 'active' ? 'Active' : 'Ready'}</div>
+                `;
+                grid.appendChild(row);
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // INITIALIZE
+        // ═══════════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate counters
+            animateValue(document.getElementById('totalFiles'), 0, 904577, 2500);
+            animateValue(document.getElementById('sacredNodes'), 0, 40420, 2500);
+            animateValue(document.getElementById('connections'), 0, 244865, 2500);
+            
+            // Create charts
+            createDistributionChart();
+            createLanguagesChart();
+            createBreakdownGrid();
+            createEngineGrid();
+        });
+    </script>
+</body>
+</html>

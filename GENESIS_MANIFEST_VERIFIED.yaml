@@ -1,0 +1,301 @@
+# GENESIS MANIFEST — VERIFIED REALITY
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This manifest documents WHAT IS ACTUALLY RUNNING, not aspirations.
+# Generated: 2026-01-29T11:10:00+04:00
+#
+# Giants Protocol Applied:
+#   Al-Khwarizmi — Algorithmic verification, not assumption
+#   Ibn Sina — Diagnostic truth over optimistic claims
+#
+# The One Rule: لا نفترض — We do not assume.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+genesis:
+  version: "0.1.0-alpha"
+  status: "SEEDING"
+  date: "2026-01-29"
+  verified_by: "maestro"
+  verification_method: "runtime inspection"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: VERIFIED RUNNING COMPONENTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+verified_running:
+  
+  llm_backends:
+    ollama:
+      url: "http://localhost:11434"
+      status: "HEALTHY"
+      models:
+        - "mistral:latest"  # 7.2B Q4_K_M
+        - "nomic-embed-text:latest"
+      last_verified: "2026-01-29T11:00:00+04:00"
+    
+    lmstudio:
+      url: "http://192.168.56.1:1234"
+      status: "HEALTHY"
+      models:
+        - "liquid/lfm2.5-1.2b"
+        - "qwen2.5-14b_uncensored_instruct"
+        - "nvidia/nemotron-3-nano"
+        - "agentflow-planner-7b"
+        - "qwen2.5-0.5b-instruct"
+        - "mistralai/ministral-3-14b-reasoning"
+        - "text-embedding-nomic-embed-text-v1.5"
+      last_verified: "2026-01-29T11:00:00+04:00"
+      inference_test:
+        model: "liquid/lfm2.5-1.2b"
+        latency_ms: 4899
+        success: true
+  
+  docker_services:
+    kong:
+      status: "HEALTHY"
+      ports: ["8000", "8443", "8002"]
+      uptime: "8 hours"
+    
+    chromadb:
+      status: "UNHEALTHY"
+      ports: ["8100"]
+      note: "Needs investigation"
+    
+    redis:
+      status: "HEALTHY"
+      ports: ["6379"]
+      uptime: "9 hours"
+    
+    postgres:
+      status: "HEALTHY"
+      ports: ["5432", "5433"]
+      uptime: "9+ hours"
+    
+    kernel:
+      status: "HEALTHY"
+      ports: ["8010"]
+      uptime: "34 hours"
+    
+    elite:
+      status: "HEALTHY"
+      ports: ["8080"]
+      uptime: "39 hours"
+    
+    grafana:
+      status: "HEALTHY"
+      ports: ["3000"]
+      uptime: "39 hours"
+    
+    prometheus:
+      status: "HEALTHY"
+      ports: ["9090"]
+      uptime: "39 hours"
+    
+    neo4j_wisdom:
+      status: "RUNNING"
+      ports: ["7474", "7687"]
+      uptime: "39 hours"
+  
+  kubernetes:
+    provider: "kind"
+    control_plane: "127.0.0.1:58023"
+    workers: 9
+    status: "RUNNING"
+    uptime: "39 hours"
+  
+  python_stack:
+    nucleus:
+      path: "/mnt/c/BIZRA-DATA-LAKE/nucleus.py"
+      size_kb: 37
+      status: "EXISTS"
+      running_as_service: false
+    
+    accumulator:
+      path: "/mnt/c/BIZRA-DATA-LAKE/accumulator.py"
+      size_kb: 44
+      status: "LOADABLE"
+      state: "seeding"
+      first_seed:
+        id: "b22a7317626e1529"
+        contributor: "genesis:mumo"
+        category: "knowledge"
+        amount: 1000.0
+        bloom: 100.0
+      poi_attestations: 2
+    
+    flywheel:
+      path: "/mnt/c/BIZRA-DATA-LAKE/flywheel.py"
+      size_kb: 41
+      status: "EXISTS"
+      running_as_service: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 2: NOT YET IMPLEMENTED (Honest Assessment)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+not_implemented:
+  
+  moshi_audio:
+    status: "SPECIFICATION_ONLY"
+    rust_code: "EXISTS_IN_SPEC"
+    compiled: false
+    deployed: false
+    note: "Rust MoshiCortex code provided as specification, not compiled or running"
+  
+  autopoietic_loop_rust:
+    status: "PYTHON_PLACEHOLDER"
+    rust_implementation: false
+    merkle_persistence: false
+    note: "Python flywheel exists, Rust version is aspirational"
+  
+  spiffe_mtls:
+    status: "KUBERNETES_MANIFEST_ONLY"
+    deployed: false
+    istio_installed: false
+    note: "Auth manifests exist but not applied to cluster"
+  
+  baked_weights:
+    status: "NOT_IMPLEMENTED"
+    note: "Weights loaded at runtime from Ollama/LM Studio, not baked into binary"
+  
+  sub_100ms_latency:
+    status: "NOT_ACHIEVED"
+    actual_latency_ms: 4899
+    target_latency_ms: 100
+    gap: "49x slower than target"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 3: VERIFIED FIRST TRANSACTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+genesis_transactions:
+  
+  - id: 1
+    type: "seed_planted"
+    contributor: "genesis:mumo"
+    category: "knowledge"
+    amount: 1000.0
+    bloom_generated: 100.0
+    attestation_hash: "da8b08a27d8a6b31c4407ad4ba6fd3a4..."
+    timestamp: "2026-01-29T11:05:00+04:00"
+  
+  - id: 2
+    type: "computation"
+    contributor: "genesis:mumo"
+    tokens_processed: 150
+    latency_ms: 4899
+    model: "liquid/lfm2.5-1.2b"
+    bloom_added: 0.07
+    timestamp: "2026-01-29T11:08:00+04:00"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 4: HONEST SCORE CARD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+scorecard:
+  
+  infrastructure:
+    llm_backends: "100%"  # Both Ollama and LM Studio working
+    docker_services: "90%"  # ChromaDB unhealthy
+    kubernetes: "100%"  # Kind cluster running
+    score: "97%"
+  
+  python_stack:
+    nucleus: "100%"  # Exists and loadable
+    accumulator: "100%"  # Active with first seed
+    flywheel: "80%"  # Exists but not running as service
+    genesis_script: "100%"  # Exists
+    score: "95%"
+  
+  rust_stack:
+    moshi_cortex: "0%"  # Not compiled
+    autopoietic_rust: "0%"  # Not implemented
+    weight_baking: "0%"  # Not implemented
+    score: "0%"
+  
+  security:
+    fail_closed_auth: "50%"  # Python has BIZRA_API_TOKEN, no mTLS
+    spiffe: "0%"  # Not deployed
+    mtls: "0%"  # Not deployed
+    score: "17%"
+  
+  performance:
+    target_latency: "100ms"
+    actual_latency: "4899ms"
+    cold_start: "present"  # Models not baked
+    score: "2%"  # Honest
+  
+  overall:
+    weighted_average: "42%"
+    status: "ALPHA_DEVELOPMENT"
+    honesty_level: "HIGH"  # This manifest tells truth
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 5: ROADMAP TO VERIFIED OPERATIONAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+roadmap:
+  
+  phase_1_current:
+    name: "Seeding (Current)"
+    status: "IN_PROGRESS"
+    tasks:
+      - "✅ Accumulator activated with first seed"
+      - "✅ First inference recorded to PoI chain"
+      - "⏳ Run nucleus.py as persistent service"
+      - "⏳ Fix ChromaDB health issue"
+      - "⏳ Test full genesis.sh boot sequence"
+  
+  phase_2_blooming:
+    name: "Blooming"
+    status: "NOT_STARTED"
+    tasks:
+      - "Deploy flywheel_api.py as service"
+      - "Deploy accumulator_api.py as service"
+      - "Integrate with existing kernel/elite services"
+      - "Add authentication to APIs"
+      - "Reach 1000 bloom threshold"
+  
+  phase_3_rust:
+    name: "Rust Hardening"
+    status: "NOT_STARTED"
+    tasks:
+      - "Compile MoshiCortex Rust code"
+      - "Implement lock-free audio ring buffers"
+      - "Achieve sub-100ms latency"
+      - "Memory-map model weights"
+  
+  phase_4_security:
+    name: "Zero-Trust Perimeter"
+    status: "NOT_STARTED"
+    tasks:
+      - "Deploy SPIFFE/SPIRE"
+      - "Enable mTLS everywhere"
+      - "Remove all hardcoded secrets"
+      - "Implement fail-closed auth"
+  
+  phase_5_production:
+    name: "Production Hardening"
+    status: "NOT_STARTED"
+    tasks:
+      - "Bake model weights into containers"
+      - "Eliminate cold start"
+      - "Chaos engineering tests"
+      - "Real BFT consensus (4+ nodes)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTESTATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+attestation:
+  signer: "maestro"
+  method: "runtime_verification"
+  principle: "لا نفترض — We do not assume"
+  claim: |
+    This manifest represents the verified state of the BIZRA system
+    as of 2026-01-29. Claims are based on actual runtime inspection,
+    not aspirational specifications. The Rust/Moshi code exists as
+    specification only and is NOT running. The Python stack is
+    operational at alpha level.
+  
+  hash: null  # Will be computed when sealed

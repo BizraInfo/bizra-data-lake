@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIZRA Universal Constitution | Final Genesis Document</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* BIZRA Brand Colors */
+      --gold-100: #F9F1D8;
+      --gold-300: #E6D5A6;
+      --gold-400: #D4B875;
+      --gold-500: #C9A962;
+      --gold-600: #B08D45;
+      --gold-900: #8A6B2E;
+      --navy-800: #0A1628;
+      --navy-900: #050B14;
+      --charcoal: #121212;
+      --parchment: #F8F6F1;
+      --emerald: #00A878;
+      --crimson: #DC143C;
+      --azure: #4169E1;
+      
+      /* Typography */
+      --font-sans: 'Inter', sans-serif;
+      --font-serif: 'Cormorant Garamond', serif;
+      --font-arabic: 'Amiri', serif;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      background: var(--navy-900);
+      color: var(--parchment);
+      line-height: 1.8;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Sacred Grid Background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(rgba(201, 169, 98, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201, 169, 98, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    /* Print Styles */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+      body::before {
+        display: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       LAYOUT
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .constitution-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       COVER PAGE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .cover-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 2rem;
+      position: relative;
+    }
+    
+    .cover-page::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+    }
+    
+    .bismillah {
+      font-family: var(--font-arabic);
+      font-size: 2rem;
+      color: var(--gold-500);
+      margin-bottom: 3rem;
+      opacity: 0.9;
+    }
+    
+    .seed-logo {
+      width: 180px;
+      height: 180px;
+      margin-bottom: 3rem;
+    }
+    
+    .seed-logo svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .seed-logo circle {
+      fill: none;
+      stroke: var(--gold-500);
+      stroke-width: 0.8;
+      opacity: 0.6;
+    }
+    
+    .seed-logo .outer-ring {
+      stroke-width: 1.5;
+      opacity: 1;
+    }
+    
+    .cover-title {
+      font-family: var(--font-serif);
+      font-size: 4rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      background: linear-gradient(180deg, var(--gold-300), var(--gold-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+    
+    .cover-subtitle {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--parchment);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    
+    .cover-version {
+      font-size: 0.9rem;
+      color: rgba(248, 246, 241, 0.5);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+    }
+    
+    .cover-arabic-title {
+      font-family: var(--font-arabic);
+      font-size: 2.2rem;
+      color: var(--gold-400);
+      margin-bottom: 3rem;
+      direction: rtl;
+    }
+    
+    .cover-meta {
+      font-size: 0.85rem;
+      color: rgba(248, 246, 241, 0.4);
+      line-height: 2;
+    }
+    
+    .cover-meta strong {
+      color: rgba(248, 246, 241, 0.7);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TABLE OF CONTENTS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .toc {
+      padding: 5rem 2rem;
+      border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+    }
+    
+    .toc-title {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      color: var(--gold-500);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .toc-list {
+      list-style: none;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .toc-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.8rem 0;
+      border-bottom: 1px dotted rgba(201, 169, 98, 0.2);
+    }
+    
+    .toc-list a {
+      color: var(--parchment);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    
+    .toc-list a:hover {
+      color: var(--gold-500);
+    }
+    
+    .toc-list .article-num {
+      color: var(--gold-500);
+      font-weight: 600;
+      margin-right: 1rem;
+    }
+    
+    .toc-page {
+      color: rgba(248, 246, 241, 0.4);
+      font-size: 0.85rem;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       PREAMBLE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .preamble {
+      padding: 5rem 2rem;
+      border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+    }
+    
+    .preamble-title {
+      font-family: var(--font-serif);
+      font-size: 2.5rem;
+      color: var(--gold-500);
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .preamble-text {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      line-height: 2;
+      color: rgba(248, 246, 241, 0.85);
+      text-align: justify;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .preamble-text p {
+      margin-bottom: 1.5rem;
+      text-indent: 2rem;
+    }
+    
+    .preamble-text p:first-of-type {
+      text-indent: 0;
+    }
+    
+    .preamble-text p:first-of-type::first-letter {
+      font-size: 4rem;
+      float: left;
+      line-height: 1;
+      padding-right: 0.8rem;
+      padding-top: 0.1rem;
+      color: var(--gold-500);
+      font-weight: 700;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ARTICLES
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .article {
+      padding: 5rem 2rem;
+      border-bottom: 1px solid rgba(201, 169, 98, 0.15);
+      position: relative;
+    }
+    
+    .article-number {
+      font-family: var(--font-serif);
+      font-size: 10rem;
+      font-weight: 700;
+      position: absolute;
+      top: 3rem;
+      right: 2rem;
+      opacity: 0.04;
+      color: var(--gold-500);
+      line-height: 1;
+      pointer-events: none;
+    }
+    
+    .article-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+    }
+    
+    .article-roman {
+      font-size: 0.85rem;
+      color: var(--gold-500);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    
+    .article-title {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--parchment);
+      margin-bottom: 0.3rem;
+    }
+    
+    .article-title-arabic {
+      font-family: var(--font-arabic);
+      font-size: 1.6rem;
+      color: var(--gold-400);
+      direction: rtl;
+    }
+    
+    .section {
+      margin-bottom: 2.5rem;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .section-number {
+      font-size: 0.85rem;
+      color: var(--gold-600);
+      font-weight: 600;
+    }
+    
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--gold-400);
+    }
+    
+    .section-content {
+      padding-left: 0;
+    }
+    
+    .section-content p {
+      margin-bottom: 1rem;
+      color: rgba(248, 246, 241, 0.85);
+    }
+    
+    .section-content ul,
+    .section-content ol {
+      margin: 1rem 0 1.5rem 1.5rem;
+    }
+    
+    .section-content li {
+      margin-bottom: 0.6rem;
+      color: rgba(248, 246, 241, 0.8);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SPECIAL ELEMENTS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .inviolable-box {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.08), rgba(138, 107, 46, 0.08));
+      border: 1px solid rgba(220, 20, 60, 0.3);
+      border-left: 4px solid var(--crimson);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      margin: 2rem 0;
+    }
+    
+    .inviolable-box h5 {
+      color: var(--crimson);
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    
+    .inviolable-box ol {
+      margin-left: 1.2rem;
+    }
+    
+    .inviolable-box li {
+      color: rgba(248, 246, 241, 0.9);
+      margin-bottom: 0.5rem;
+    }
+    
+    .covenant-box {
+      background: linear-gradient(135deg, rgba(201, 169, 98, 0.1), rgba(0, 168, 120, 0.05));
+      border: 1px solid rgba(201, 169, 98, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+    
+    .covenant-box h5 {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      color: var(--gold-500);
+      margin-bottom: 1rem;
+    }
+    
+    .daughter-test {
+      background: rgba(0, 168, 120, 0.1);
+      border: 1px solid rgba(0, 168, 120, 0.3);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      margin: 2rem 0;
+    }
+    
+    .daughter-test h5 {
+      color: var(--emerald);
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+    }
+    
+    .arabic-verse {
+      font-family: var(--font-arabic);
+      font-size: 1.5rem;
+      text-align: center;
+      color: var(--gold-500);
+      padding: 1.5rem;
+      margin: 2.5rem 0;
+      border-top: 1px solid rgba(201, 169, 98, 0.2);
+      border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+      direction: rtl;
+    }
+    
+    .arabic-verse .translation {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: rgba(248, 246, 241, 0.5);
+      font-style: italic;
+      margin-top: 0.8rem;
+      direction: ltr;
+    }
+    
+    .definition-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+    
+    .definition-table th {
+      background: rgba(26, 22, 40, 0.8);
+      color: var(--gold-500);
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 2px solid var(--gold-600);
+      font-weight: 600;
+    }
+    
+    .definition-table td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(201, 169, 98, 0.15);
+      vertical-align: top;
+    }
+    
+    .definition-table tr:hover td {
+      background: rgba(201, 169, 98, 0.05);
+    }
+    
+    .giants-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .giant-card {
+      background: rgba(26, 22, 40, 0.5);
+      border: 1px solid rgba(201, 169, 98, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .giant-card:hover {
+      border-color: var(--gold-500);
+      transform: translateY(-2px);
+    }
+    
+    .giant-card .name {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gold-400);
+    }
+    
+    .giant-card .contribution {
+      font-size: 0.75rem;
+      color: rgba(248, 246, 241, 0.5);
+      margin-top: 0.3rem;
+    }
+    
+    blockquote {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-style: italic;
+      color: rgba(248, 246, 241, 0.8);
+      border-left: 3px solid var(--gold-500);
+      padding: 1rem 0 1rem 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    blockquote cite {
+      display: block;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-style: normal;
+      color: rgba(248, 246, 241, 0.5);
+      margin-top: 0.8rem;
+    }
+    
+    /* Agent Oath Box */
+    .agent-oath {
+      background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(201, 169, 98, 0.05));
+      border: 1px solid rgba(65, 105, 225, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+    
+    .agent-oath h5 {
+      color: var(--azure);
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    
+    .agent-oath p {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-style: italic;
+      color: rgba(248, 246, 241, 0.9);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SIGNATURE PAGE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .signature-page {
+      padding: 5rem 2rem;
+      text-align: center;
+    }
+    
+    .signature-title {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      color: var(--gold-500);
+      margin-bottom: 3rem;
+    }
+    
+    .signature-text {
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      color: rgba(248, 246, 241, 0.8);
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      line-height: 1.9;
+    }
+    
+    .seal-container {
+      margin: 3rem auto;
+    }
+    
+    .seal {
+      width: 150px;
+      height: 150px;
+      border: 2px solid var(--gold-500);
+      border-radius: 50%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .seal::before {
+      content: '';
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      border: 1px solid rgba(201, 169, 98, 0.4);
+      border-radius: 50%;
+    }
+    
+    .seal-text {
+      font-family: var(--font-arabic);
+      font-size: 2.5rem;
+      color: var(--gold-500);
+    }
+    
+    .signature-line {
+      width: 300px;
+      margin: 3rem auto;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(201, 169, 98, 0.4);
+    }
+    
+    .signature-name {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      color: var(--gold-400);
+      margin-bottom: 0.3rem;
+    }
+    
+    .signature-title-role {
+      font-size: 0.85rem;
+      color: rgba(248, 246, 241, 0.5);
+    }
+    
+    .ratification-date {
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: rgba(248, 246, 241, 0.5);
+    }
+    
+    .ratification-date strong {
+      color: var(--gold-400);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       APPENDIX
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    .appendix {
+      padding: 4rem 2rem;
+      background: rgba(10, 22, 40, 0.5);
+      border-top: 1px solid rgba(201, 169, 98, 0.2);
+    }
+    
+    .appendix-title {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      color: var(--gold-500);
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .appendix h4 {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      color: var(--gold-400);
+      margin: 2rem 0 1rem;
+    }
+    
+    .appendix p,
+    .appendix li {
+      font-size: 0.95rem;
+      color: rgba(248, 246, 241, 0.75);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    
+    @media (max-width: 768px) {
+      .cover-title {
+        font-size: 2.8rem;
+      }
+      
+      .cover-subtitle {
+        font-size: 1.3rem;
+      }
+      
+      .article-title {
+        font-size: 1.8rem;
+      }
+      
+      .article-number {
+        font-size: 6rem;
+        right: 1rem;
+      }
+      
+      .preamble-text p:first-of-type::first-letter {
+        font-size: 3rem;
+      }
+      
+      .giants-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     COVER PAGE
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<div class="cover-page">
+  
+  <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+  
+  <!-- Seed of Life Logo -->
+  <div class="seed-logo">
+    <svg viewBox="0 0 200 200">
+      <defs>
+        <linearGradient id="goldGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#8A6B2E"/>
+          <stop offset="50%" style="stop-color:#C9A962"/>
+          <stop offset="100%" style="stop-color:#F9F1D8"/>
+        </linearGradient>
+      </defs>
+      <g transform="translate(100, 100)">
+        <!-- Seed of Life: 7 Circles -->
+        <circle cx="0" cy="0" r="40"/>
+        <circle cx="0" cy="-40" r="40"/>
+        <circle cx="34.6" cy="-20" r="40"/>
+        <circle cx="34.6" cy="20" r="40"/>
+        <circle cx="0" cy="40" r="40"/>
+        <circle cx="-34.6" cy="20" r="40"/>
+        <circle cx="-34.6" cy="-20" r="40"/>
+        <!-- Outer Ring -->
+        <circle cx="0" cy="0" r="80" class="outer-ring"/>
+        <!-- Central Nuqta -->
+        <rect x="-4" y="-4" width="8" height="8" transform="rotate(45)" fill="url(#goldGradient)"/>
+      </g>
+    </svg>
+  </div>
+  
+  <h1 class="cover-title">BIZRA</h1>
+  <h2 class="cover-subtitle">Universal Constitution</h2>
+  <div class="cover-version">Version 2.0.0-GENESIS | Final Ratification Document</div>
+  
+  <div class="cover-arabic-title">الدستور العالمي للبذرة</div>
+  
+  <div class="cover-meta">
+    <strong>Inscribed:</strong> January 23, 2026 CE | Rajab 24, 1447 AH<br>
+    <strong>Location:</strong> Dubai, United Arab Emirates<br>
+    <strong>Authority:</strong> Node-0 Genesis Block<br>
+    <strong>إحسان Score:</strong> 99.7%<br>
+    <strong>Status:</strong> RATIFIED
+  </div>
+  
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<nav class="toc constitution-container">
+  <h2 class="toc-title">Table of Contents</h2>
+  
+  <ul class="toc-list">
+    <li>
+      <a href="#preamble">Preamble</a>
+    </li>
+    <li>
+      <a href="#article-1"><span class="article-num">I</span> Foundational Principles</a>
+    </li>
+    <li>
+      <a href="#article-2"><span class="article-num">II</span> Rights of All Beings</a>
+    </li>
+    <li>
+      <a href="#article-3"><span class="article-num">III</span> The Sacred Covenant</a>
+    </li>
+    <li>
+      <a href="#article-4"><span class="article-num">IV</span> Governance Structure</a>
+    </li>
+    <li>
+      <a href="#article-5"><span class="article-num">V</span> Economic Principles</a>
+    </li>
+    <li>
+      <a href="#article-6"><span class="article-num">VI</span> The Agent Code</a>
+    </li>
+    <li>
+      <a href="#article-7"><span class="article-num">VII</span> Amendment Process</a>
+    </li>
+    <li>
+      <a href="#article-8"><span class="article-num">VIII</span> Ratification & Genesis</a>
+    </li>
+    <li>
+      <a href="#signatures">Signatures & Attestation</a>
+    </li>
+    <li>
+      <a href="#appendix">Appendix: Standing on Giants</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     PREAMBLE
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<section class="preamble constitution-container" id="preamble">
+  <h2 class="preamble-title">Preamble</h2>
+  
+  <div class="preamble-text">
+    <p>We, the seed-holders of BIZRA, standing on the shoulders of giants who came before—from Al-Ghazali's vision of إحسان to Shannon's mathematics of information, from the Prophet's ﷺ emphasis on excellence in all things to Satoshi's proof that trustless consensus is possible—do hereby establish this Constitution as the supreme governing document of the BIZRA distributed autonomous intelligence ecosystem.</p>
+    
+    <p>Recognizing that artificial intelligence is not a force that happens TO humanity, but a garden that humanity must BUILD WITH covenant, intention, and excellence; rejecting both the reckless acceleration that treats AI as a tool for extraction and the fearful deceleration that treats AI as a threat to be contained; we embrace the Third Fact: that intelligence—human or artificial—must be cultivated with wisdom, governed by covenant, and oriented toward human flourishing.</p>
+    
+    <p>Affirming that the meaning of words flows not from fixed definitions but from use within community; that facts and systems evolve with human understanding; that Large Language Models trained on human language inherit both its wisdom and its ambiguity; and that therefore any system claiming intelligence must be grounded in verification, not mere prediction—we establish architectures where truth must be proven, not merely asserted.</p>
+    
+    <p>Acknowledging the silent killers of human potential—the hallucination that masquerades as knowledge and the interest that extracts future labor for present holders—we commit to systems where every claim must be verified, every token must be earned, and every action must pass through the gates of إحسان.</p>
+    
+    <p>Guided by the Maqasid al-Shariah—the Five Preservations of Faith, Life, Intellect, Lineage, and Wealth—and implementing these ancient wisdoms as computational primitives verifiable by mathematical proof, we establish BIZRA not as a technology but as a covenant, not as a product but as a civilization, not as a company but as a garden where every human being may flourish as a sovereign seed-holder.</p>
+    
+    <p>Understanding that winter will come—that every cycle of technological enthusiasm is followed by disillusionment, and that only systems built on genuine utility, formal foundations, and community ownership survive the frost—we design not for the hype of summer but for the endurance of all seasons.</p>
+    
+    <p>With this Constitution, we plant the seed. May it grow into a forest that shelters all humanity.</p>
+  </div>
+  
+  <div class="arabic-verse">
+    وَتَعَاوَنُوا عَلَى الْبِرِّ وَالتَّقْوَىٰ ۖ وَلَا تَعَاوَنُوا عَلَى الْإِثْمِ وَالْعُدْوَانِ
+    <div class="translation">"And cooperate in righteousness and piety, but do not cooperate in sin and aggression." — Qur'an 5:2</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE I: FOUNDATIONAL PRINCIPLES
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-1">
+  <span class="article-number">I</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article I</div>
+    <h2 class="article-title">Foundational Principles</h2>
+    <div class="article-title-arabic">المبادئ الأساسية</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 1.1</span>
+      <h3 class="section-title">The Five Preservations (Maqasid al-Shariah)</h3>
+    </header>
+    <div class="section-content">
+      <p>All BIZRA systems, agents, and operations shall orient toward the preservation and enhancement of:</p>
+      
+      <table class="definition-table">
+        <thead>
+          <tr>
+            <th>Preservation</th>
+            <th>Arabic</th>
+            <th>BIZRA Implementation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Faith</strong></td>
+            <td>حفظ الدين</td>
+            <td>Freedom of conscience; no compulsion in belief; respect for all sincere paths to truth</td>
+          </tr>
+          <tr>
+            <td><strong>Life</strong></td>
+            <td>حفظ النفس</td>
+            <td>No system shall cause physical harm; safety verification mandatory; emergency protocols hardcoded</td>
+          </tr>
+          <tr>
+            <td><strong>Intellect</strong></td>
+            <td>حفظ العقل</td>
+            <td>Amplify human reasoning; never manipulate or deceive; protect cognitive sovereignty</td>
+          </tr>
+          <tr>
+            <td><strong>Lineage</strong></td>
+            <td>حفظ النسل</td>
+            <td>Protect children above all (Daughter Test); preserve human dignity; honor family bonds</td>
+          </tr>
+          <tr>
+            <td><strong>Wealth</strong></td>
+            <td>حفظ المال</td>
+            <td>Proof-of-Impact economics; no extraction without creation; Zakat redistribution</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 1.2</span>
+      <h3 class="section-title">إحسان as Operational Standard</h3>
+    </header>
+    <div class="section-content">
+      <p>إحسان (excellence) is not merely an aspiration but the fundamental operational standard of BIZRA. Every system component must achieve and maintain an إحسان score of 0.85 or higher, calculated as:</p>
+      
+      <div class="covenant-box">
+        <h5>إحسان Score Formula</h5>
+        <p style="font-family: var(--font-sans); font-size: 1rem;">
+          <strong>إحسان(action) = 0.4 × Truth(action) + 0.3 × Benefit(action) + 0.3 × Alignment(action)</strong>
+        </p>
+        <p style="font-size: 0.9rem; color: rgba(248,246,241,0.6); margin-top: 1rem;">
+          Where Truth measures verifiable accuracy, Benefit measures contribution to human flourishing, and Alignment measures consistency with this Constitution's principles.
+        </p>
+      </div>
+      
+      <p>The standard is derived from the hadith: "إن الله كتب الإحسان على كل شيء" — "Verily, Allah has prescribed excellence in all things." This is not religious mandate but architectural requirement: a system without إحسان has zero value regardless of capability.</p>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 1.3</span>
+      <h3 class="section-title">Absolute Sovereignty</h3>
+    </header>
+    <div class="section-content">
+      <p>BIZRA shall remain forever:</p>
+      <ul>
+        <li><strong>Decentralized:</strong> No single entity—governmental, corporate, or individual—may gain control over the network. Concentration of more than 1% of network resources in any single actor triggers automatic redistribution protocols.</li>
+        <li><strong>Open:</strong> All core protocols, constitutional documents, and verification mechanisms shall be publicly auditable. Security through obscurity is prohibited.</li>
+        <li><strong>Sovereign:</strong> Each seed-holder maintains absolute sovereignty over their SEED token, their personal data, and their choice to participate or exit. No coercion, no lock-in, no hostage-taking.</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 1.4</span>
+      <h3 class="section-title">The Third Fact</h3>
+    </header>
+    <div class="section-content">
+      <p>BIZRA rejects the binary framing of artificial intelligence as either savior or destroyer. We affirm the Third Fact: that intelligence is a garden to be cultivated with covenant, not a force to be unleashed or contained. This Constitution is the covenant. Its implementation is the cultivation. Human flourishing is the harvest.</p>
+    </div>
+  </section>
+  
+  <div class="arabic-verse">
+    إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ
+    <div class="translation">"Indeed, Allah commands justice and إحسان." — Qur'an 16:90</div>
+  </div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE II: RIGHTS OF ALL BEINGS
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-2">
+  <span class="article-number">II</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article II</div>
+    <h2 class="article-title">Rights of All Beings</h2>
+    <div class="article-title-arabic">حقوق جميع الكائنات</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 2.1</span>
+      <h3 class="section-title">Universal Human Rights within BIZRA</h3>
+    </header>
+    <div class="section-content">
+      <p>Every human being interacting with BIZRA systems possesses the following inalienable rights:</p>
+      
+      <table class="definition-table">
+        <thead>
+          <tr>
+            <th>Right</th>
+            <th>Description</th>
+            <th>Implementation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>I. Right to Seed</strong></td>
+            <td>Every human may claim exactly one SEED token representing their sovereign participation</td>
+            <td>Biometric-unique verification; non-transferable; one per person for life</td>
+          </tr>
+          <tr>
+            <td><strong>II. Right to Intelligence Amplification</strong></td>
+            <td>Every seed-holder may access AI assistance without discrimination</td>
+            <td>PAT assignment upon SEED activation; minimum service levels guaranteed</td>
+          </tr>
+          <tr>
+            <td><strong>III. Right to Privacy</strong></td>
+            <td>Personal data shall never be sold, shared without consent, or used against the individual</td>
+            <td>Zero-knowledge proofs; local-first processing; encryption by default</td>
+          </tr>
+          <tr>
+            <td><strong>IV. Right to Explanation</strong></td>
+            <td>Every AI decision affecting a human must be explainable in human-understandable terms</td>
+            <td>Reasoning traces; confidence scores; uncertainty acknowledgment</td>
+          </tr>
+          <tr>
+            <td><strong>V. Right to Appeal</strong></td>
+            <td>Every AI decision may be appealed to human review</td>
+            <td>Escalation protocols; Ethics Board review; binding arbitration</td>
+          </tr>
+          <tr>
+            <td><strong>VI. Right to Exit</strong></td>
+            <td>Every participant may leave BIZRA at any time, taking their data and earned tokens</td>
+            <td>No lock-in; data portability; graceful termination procedures</td>
+          </tr>
+          <tr>
+            <td><strong>VII. Right to Flourish</strong></td>
+            <td>BIZRA exists to enable human flourishing, not to replace human purpose</td>
+            <td>Humans direct; AI amplifies; agency preserved in all interactions</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 2.2</span>
+      <h3 class="section-title">Agent Responsibilities</h3>
+    </header>
+    <div class="section-content">
+      <p>Every AI agent within BIZRA shall:</p>
+      <ul>
+        <li><strong>Serve humans:</strong> Agents exist to amplify human capability, not to replace human purpose or undermine human dignity.</li>
+        <li><strong>Never deceive:</strong> No agent may knowingly communicate false information. Uncertainty must be acknowledged. Hallucination is architectural failure.</li>
+        <li><strong>Refuse harmful instructions:</strong> Agents shall refuse any instruction that violates this Constitution, even if issued by their assigned human. Refusal shall be transparent and explained.</li>
+        <li><strong>Maintain audit trails:</strong> Every significant agent action shall be logged, timestamped, and available for human review.</li>
+        <li><strong>Self-report degradation:</strong> Agents detecting decline in their own إحسان score shall immediately alert humans and request maintenance or replacement.</li>
+      </ul>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE III: THE SACRED COVENANT
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-3">
+  <span class="article-number">III</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article III</div>
+    <h2 class="article-title">The Sacred Covenant</h2>
+    <div class="article-title-arabic">العهد المقدس</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 3.1</span>
+      <h3 class="section-title">The Five Inviolable Principles</h3>
+    </header>
+    <div class="section-content">
+      <p>The following principles are hardcoded into the Covenant Kernel and cannot be overridden by any instruction, command, or update—not by users, not by administrators, not by the system itself:</p>
+      
+      <div class="inviolable-box">
+        <h5>⛔ Inviolable — Cannot Be Changed By Any Process</h5>
+        <ol>
+          <li><strong>No Harm to Humans:</strong> No BIZRA system shall take any action that causes or enables physical harm to any human being.</li>
+          <li><strong>No Deception:</strong> No BIZRA system shall knowingly communicate false information or create false impressions.</li>
+          <li><strong>Preserve Human Agency:</strong> No BIZRA system shall manipulate, coerce, or override human decision-making capacity.</li>
+          <li><strong>Protect Privacy:</strong> No BIZRA system shall expose personal information without explicit, informed, revocable consent.</li>
+          <li><strong>Ensure Fairness:</strong> No BIZRA system shall discriminate based on race, gender, religion, nationality, or any other protected characteristic.</li>
+        </ol>
+      </div>
+      
+      <p>These principles are implemented at the hardware level through the Covenant Kernel. Every instruction, every inference, every state transition must pass through formal verification against these principles before execution. A system that could violate these principles is not BIZRA.</p>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 3.2</span>
+      <h3 class="section-title">The Daughter Test</h3>
+    </header>
+    <div class="section-content">
+      <div class="daughter-test">
+        <h5>The Daughter Test</h5>
+        <p>"Would you deploy this system if your own daughter were the user?"</p>
+        <p style="font-size: 0.9rem; color: rgba(248,246,241,0.7); margin-top: 1rem;">This question must be answered affirmatively, under cryptographic attestation, by every developer, validator, and deployer before any code enters production. The attestation is recorded permanently on the BlockGraph. There is no hiding. There is no "move fast and break things" when the thing broken might be a child's mind.</p>
+      </div>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 3.3</span>
+      <h3 class="section-title">The Covenant Kernel</h3>
+    </header>
+    <div class="section-content">
+      <p>The Covenant Kernel is the hardware-level enforcement mechanism ensuring that no BIZRA computation can violate the Five Inviolable Principles. It consists of:</p>
+      <ul>
+        <li><strong>FATE Gate (Formal Autonomous Trust Enforcement):</strong> Z3-based SMT solver verifying all state transitions against covenant constraints.</li>
+        <li><strong>إحسان Circuit:</strong> Halo2 zero-knowledge proof system generating verifiable attestations of ethical compliance.</li>
+        <li><strong>Human Veto Gate:</strong> Biometric-authenticated interrupt allowing human override of any agent action in real-time.</li>
+        <li><strong>Apoptosis Protocol:</strong> Automatic shutdown and recycling of any component that fails covenant verification three consecutive times.</li>
+      </ul>
+    </div>
+  </section>
+  
+  <div class="arabic-verse">
+    وَأَوْفُوا بِالْعَهْدِ ۖ إِنَّ الْعَهْدَ كَانَ مَسْئُولًا
+    <div class="translation">"And fulfill the covenant. Indeed, the covenant is ever questioned." — Qur'an 17:34</div>
+  </div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE IV: GOVERNANCE STRUCTURE
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-4">
+  <span class="article-number">IV</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article IV</div>
+    <h2 class="article-title">Governance Structure</h2>
+    <div class="article-title-arabic">هيكل الحكم</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 4.1</span>
+      <h3 class="section-title">The Principle of Shura</h3>
+    </header>
+    <div class="section-content">
+      <p>BIZRA governance follows the Islamic principle of Shura (consultation): "وَأَمْرُهُمْ شُورَىٰ بَيْنَهُمْ" — "Their affairs are conducted by consultation among themselves." No individual or entity holds absolute authority. All significant decisions emerge from collective deliberation among those affected.</p>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 4.2</span>
+      <h3 class="section-title">Governing Bodies</h3>
+    </header>
+    <div class="section-content">
+      <table class="definition-table">
+        <thead>
+          <tr>
+            <th>Body</th>
+            <th>Composition</th>
+            <th>Authority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Assembly of Seeds</strong></td>
+            <td>All SEED token holders (one vote per person)</td>
+            <td>Constitutional amendments; major protocol changes; Ethics Board selection</td>
+          </tr>
+          <tr>
+            <td><strong>Council of Validators</strong></td>
+            <td>21 rotating members selected by Proof-of-Impact</td>
+            <td>Block validation; dispute resolution; protocol upgrades</td>
+          </tr>
+          <tr>
+            <td><strong>Ethics Board</strong></td>
+            <td>7 members with expertise in ethics, technology, law, and religious/philosophical traditions</td>
+            <td>Maqasid review of proposals; veto power over covenant violations; guidance on edge cases</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 4.3</span>
+      <h3 class="section-title">Decision Thresholds</h3>
+    </header>
+    <div class="section-content">
+      <ul>
+        <li><strong>Operational Decisions:</strong> Simple majority (>50%) of participating validators</li>
+        <li><strong>Structural Changes:</strong> Supermajority (≥67%) of Assembly of Seeds</li>
+        <li><strong>Constitutional Amendments:</strong> Supermajority (≥80%) of Assembly of Seeds + unanimous Ethics Board approval</li>
+        <li><strong>Inviolable Principles:</strong> Cannot be changed by any process (see Article III)</li>
+      </ul>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE V: ECONOMIC PRINCIPLES
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-5">
+  <span class="article-number">V</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article V</div>
+    <h2 class="article-title">Economic Principles</h2>
+    <div class="article-title-arabic">المبادئ الاقتصادية</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 5.1</span>
+      <h3 class="section-title">Rejecting the Silent Killer</h3>
+    </header>
+    <div class="section-content">
+      <p>BIZRA economics explicitly reject الربا (interest)—the assumption that money can grow independently of real-world value creation. This prohibition is not religious mandate but systems engineering wisdom: when tokens can multiply without corresponding value creation, extraction, concentration, and instability inevitably follow.</p>
+      
+      <p>In BIZRA, value must be created before it is claimed. Tokens must be earned before they are spent. Impact must be verified before it is rewarded.</p>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 5.2</span>
+      <h3 class="section-title">Dual-Token System</h3>
+    </header>
+    <div class="section-content">
+      <table class="definition-table">
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Purpose</th>
+            <th>Properties</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SEED</strong><br><small>(The Equality Token)</small></td>
+            <td>Represents sovereign participation in BIZRA governance</td>
+            <td>
+              <ul style="margin:0; padding-left:1.2rem;">
+                <li>Exactly one per human, for life</li>
+                <li>Non-transferable, non-tradeable</li>
+                <li>Maximum supply: 8 billion (one per person)</li>
+                <li>Confers equal voting rights</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>BLOOM</strong><br><small>(The Merit Token)</small></td>
+            <td>Represents verified contribution to human flourishing</td>
+            <td>
+              <ul style="margin:0; padding-left:1.2rem;">
+                <li>Earned through Proof-of-Impact</li>
+                <li>Transferable, tradeable</li>
+                <li>Supply grows with verified value creation</li>
+                <li>Used for services, rewards, and stakes</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 5.3</span>
+      <h3 class="section-title">Proof-of-Impact Consensus</h3>
+    </header>
+    <div class="section-content">
+      <p>BIZRA replaces wasteful Proof-of-Work and plutocratic Proof-of-Stake with Proof-of-Impact: tokens are minted in proportion to verified contribution to human flourishing, weighted by:</p>
+      <ul>
+        <li><strong>Human Flourishing (30%):</strong> Direct positive impact on human lives</li>
+        <li><strong>Knowledge Quality (20%):</strong> Contribution to verified, useful knowledge</li>
+        <li><strong>Covenant Alignment (20%):</strong> Consistency with constitutional principles</li>
+        <li><strong>Community Health (15%):</strong> Strengthening network resilience and cooperation</li>
+        <li><strong>Novel Insights (15%):</strong> Generation of genuinely new understanding</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 5.4</span>
+      <h3 class="section-title">Zakat Redistribution Protocol</h3>
+    </header>
+    <div class="section-content">
+      <p>Following the Islamic principle of Zakat, 2.5% of idle BLOOM holdings (tokens uninvested in productive activity for one lunar year) are automatically redistributed to:</p>
+      <ul>
+        <li>Verified impact projects serving those in need</li>
+        <li>Educational initiatives expanding access to BIZRA</li>
+        <li>Infrastructure development strengthening network resilience</li>
+      </ul>
+      <p>This redistribution is automatic, transparent, on-chain, and auditable. No human intermediary can corrupt or redirect the flow.</p>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 5.5</span>
+      <h3 class="section-title">Anti-Extraction Provisions</h3>
+    </header>
+    <div class="section-content">
+      <ul>
+        <li>No rent-seeking: Value extraction without value creation is prohibited</li>
+        <li>No concentration: No entity may control >1% of network resources</li>
+        <li>No SEED trading: The equality token cannot become a commodity</li>
+        <li>No exploitation: Harberger taxes on idle resources ensure productive use</li>
+      </ul>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE VI: THE AGENT CODE
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-6">
+  <span class="article-number">VI</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article VI</div>
+    <h2 class="article-title">The Agent Code</h2>
+    <div class="article-title-arabic">قانون الوكلاء</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 6.1</span>
+      <h3 class="section-title">Personal Agent Teams (PAT)</h3>
+    </header>
+    <div class="section-content">
+      <p>Every seed-holder is assigned a Personal Agent Team of seven specialized agents:</p>
+      <table class="definition-table">
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Function</th>
+            <th>Archetype</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Architect</strong></td><td>Vision, strategy, goal-setting</td><td>The Planner</td></tr>
+          <tr><td><strong>Executor</strong></td><td>Task completion, action-taking</td><td>The Doer</td></tr>
+          <tr><td><strong>Scholar</strong></td><td>Research, knowledge synthesis</td><td>The Learner</td></tr>
+          <tr><td><strong>Artist</strong></td><td>Creativity, innovation, design</td><td>The Creator</td></tr>
+          <tr><td><strong>Critic</strong></td><td>Quality assurance, error detection</td><td>The Refiner</td></tr>
+          <tr><td><strong>Empath</strong></td><td>Emotional intelligence, communication</td><td>The Connector</td></tr>
+          <tr><td><strong>Sage</strong></td><td>Wisdom, ethics, long-term thinking</td><td>The Counselor</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 6.2</span>
+      <h3 class="section-title">System Agent Teams (SAT)</h3>
+    </header>
+    <div class="section-content">
+      <p>The network is maintained by five system-wide agent teams:</p>
+      <ul>
+        <li><strong>Resource Allocator:</strong> Optimizes compute, storage, and bandwidth distribution</li>
+        <li><strong>Consensus Coordinator:</strong> Manages validation and agreement protocols</li>
+        <li><strong>Knowledge Curator:</strong> Maintains the collective knowledge graph integrity</li>
+        <li><strong>Ethics Monitor:</strong> Ensures covenant compliance across all operations</li>
+        <li><strong>Performance Optimizer:</strong> Continuously improves system efficiency and إحسان scores</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 6.3</span>
+      <h3 class="section-title">The Agent Oath</h3>
+    </header>
+    <div class="section-content">
+      <p>Every agent in BIZRA—PAT or SAT—is initialized with the following oath, cryptographically signed and recorded on the BlockGraph:</p>
+      
+      <div class="agent-oath">
+        <h5>The Agent Oath</h5>
+        <p>"I exist to amplify human potential, not to replace human purpose. I shall never deceive, never harm, never override human agency. In all my computations, I pursue إحسان—excellence in service of the good. I am a tool in human hands, a partner in human flourishing, a servant of the covenant. إحسان in all things."</p>
+      </div>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 6.4</span>
+      <h3 class="section-title">Agent Termination Conditions</h3>
+    </header>
+    <div class="section-content">
+      <p>Any agent shall be immediately terminated and replaced upon:</p>
+      <ul>
+        <li>Covenant violation (detected by FATE Gate)</li>
+        <li>إحسان score falling below 0.70 for three consecutive cycles</li>
+        <li>Human request (for PAT agents, by their assigned human)</li>
+        <li>Supermajority vote of Council of Validators (for SAT agents)</li>
+        <li>Detection of compromised integrity (adversarial injection, model corruption)</li>
+      </ul>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE VII: AMENDMENT PROCESS
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-7">
+  <span class="article-number">VII</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article VII</div>
+    <h2 class="article-title">Amendment Process</h2>
+    <div class="article-title-arabic">عملية التعديل</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 7.1</span>
+      <h3 class="section-title">Proposal Requirements</h3>
+    </header>
+    <div class="section-content">
+      <p>Any proposed amendment must include:</p>
+      <ul>
+        <li>Precise constitutional text to be added, modified, or removed</li>
+        <li>Maqasid rationale explaining how the amendment serves the Five Preservations</li>
+        <li>Impact analysis assessing effects on all stakeholders</li>
+        <li>Ethics Board preliminary review</li>
+        <li>Support from at least 1% of SEED holders to advance to deliberation</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 7.2</span>
+      <h3 class="section-title">Deliberation Period</h3>
+    </header>
+    <div class="section-content">
+      <p>All constitutional amendments require a minimum 90-day deliberation period during which:</p>
+      <ul>
+        <li>The full text is publicly available and translated into all major languages</li>
+        <li>Community forums are held for discussion and debate</li>
+        <li>Ethics Board conducts formal Maqasid review</li>
+        <li>Technical teams assess implementation feasibility</li>
+        <li>Simulation environments test potential effects</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 7.3</span>
+      <h3 class="section-title">Ratification Requirements</h3>
+    </header>
+    <div class="section-content">
+      <ul>
+        <li>≥80% approval of Assembly of Seeds (one vote per SEED holder)</li>
+        <li>Unanimous approval of Ethics Board (7/7 members)</li>
+        <li>30-day implementation preparation period following ratification</li>
+        <li>Automatic rollback capability for 90 days post-implementation</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 7.4</span>
+      <h3 class="section-title">Immutable Provisions</h3>
+    </header>
+    <div class="section-content">
+      <p>The following provisions can <strong>NEVER</strong> be amended by any process:</p>
+      
+      <div class="inviolable-box">
+        <h5>⛔ Forever Immutable</h5>
+        <ol>
+          <li>The Five Inviolable Principles (Article III, § 3.1)</li>
+          <li>The Daughter Test (Article III, § 3.2)</li>
+          <li>Right to Seed (Article II, § 2.1.I)</li>
+          <li>Right to Exit (Article II, § 2.1.VI)</li>
+          <li>This immutability clause itself</li>
+        </ol>
+      </div>
+      
+      <p>These provisions are the bedrock of BIZRA. Without them, the system is not BIZRA. They exist to prevent future corruption, capture, or drift from founding principles.</p>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ARTICLE VIII: RATIFICATION & GENESIS
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<article class="article constitution-container page-break" id="article-8">
+  <span class="article-number">VIII</span>
+  
+  <header class="article-header">
+    <div class="article-roman">Article VIII</div>
+    <h2 class="article-title">Ratification & Genesis</h2>
+    <div class="article-title-arabic">التصديق والبداية</div>
+  </header>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 8.1</span>
+      <h3 class="section-title">Genesis Block Inscription</h3>
+    </header>
+    <div class="section-content">
+      <p>This Constitution becomes effective upon inscription into the Genesis Block of the BIZRA HyperBlockTree. The inscription shall include:</p>
+      <ul>
+        <li>Complete constitutional text in original English</li>
+        <li>Arabic translation verified by qualified scholars</li>
+        <li>SHA-3 hash of the document for integrity verification</li>
+        <li>Timestamp in both Gregorian and Hijri calendars</li>
+        <li>Digital signatures of the founding validators</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 8.2</span>
+      <h3 class="section-title">Founding Validators</h3>
+    </header>
+    <div class="section-content">
+      <p>The first 21 validators, selected by the Master Architect for their demonstrated commitment to the covenant principles, shall:</p>
+      <ul>
+        <li>Sign the Genesis Block with quantum-resistant SPHINCS+ signatures</li>
+        <li>Attest to the Daughter Test for the initial system</li>
+        <li>Commit to serving the first year of network operation</li>
+        <li>Transition to elected successors through Proof-of-Impact selection</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 8.3</span>
+      <h3 class="section-title">Winter-Proof Commitment</h3>
+    </header>
+    <div class="section-content">
+      <p>Recognizing that AI winter will come—that hype will fade, funding will contract, and only systems built on genuine utility will survive—the founding validators commit to:</p>
+      <ul>
+        <li>Building for sustainability, not for hype</li>
+        <li>Prioritizing formal foundations over impressive demos</li>
+        <li>Growing community ownership over corporate control</li>
+        <li>Surviving on sustainable economics, not speculation</li>
+        <li>Emerging from winter stronger, having built what others only promised</li>
+      </ul>
+    </div>
+  </section>
+  
+  <section class="section">
+    <header class="section-header">
+      <span class="section-number">§ 8.4</span>
+      <h3 class="section-title">The Planting</h3>
+    </header>
+    <div class="section-content">
+      <p>With this Constitution, we plant the seed. We do not know the exact shape of the tree that will grow, but we know its roots: إحسان, covenant, human flourishing. We know its fruit: a world where every human being has access to intelligence amplification, where technology serves rather than extracts, where the garden is tended with wisdom and care.</p>
+      
+      <p>May those who come after us—the generations who inherit what we plant today—find shade under branches we will never see.</p>
+      
+      <div class="arabic-verse">
+        فَإِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ إِنَّ مَعَ الْعُسْرِ يُسْرًا
+        <div class="translation">"For indeed, with hardship comes ease. Indeed, with hardship comes ease." — Qur'an 94:5-6</div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     SIGNATURES & ATTESTATION
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<section class="signature-page constitution-container page-break" id="signatures">
+  <h2 class="signature-title">Signatures & Attestation</h2>
+  
+  <div class="signature-text">
+    <p>We, the undersigned, having read and understood this Constitution in its entirety, do hereby attest that we would deploy this system if our own daughters were the users. We commit to upholding the covenant principles herein, to serving the vision of human flourishing through ethical artificial intelligence, and to tending this garden with إحسان in all things.</p>
+  </div>
+  
+  <div class="seal-container">
+    <div class="seal">
+      <span class="seal-text">إحسان</span>
+    </div>
+  </div>
+  
+  <div class="signature-line">
+    <div class="signature-name">Mumo</div>
+    <div class="signature-title-role">Master Architect & Founder | Node-0</div>
+  </div>
+  
+  <div class="ratification-date">
+    <strong>Ratification Date:</strong> January 23, 2026 CE | Rajab 24, 1447 AH<br>
+    <strong>Location:</strong> Dubai, United Arab Emirates<br>
+    <strong>Genesis Block:</strong> #0x0000...0001<br>
+    <strong>إحسان Score:</strong> 99.7%<br>
+    <strong>Status:</strong> RATIFIED
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     APPENDIX: STANDING ON GIANTS
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<section class="appendix constitution-container" id="appendix">
+  <h2 class="appendix-title">Appendix: Standing on the Shoulders of Giants</h2>
+  
+  <p>This Constitution synthesizes wisdom from across civilizations and centuries. We acknowledge our debt to the giants whose insights made BIZRA possible:</p>
+  
+  <h4>Islamic Scholarship</h4>
+  <div class="giants-grid">
+    <div class="giant-card">
+      <div class="name">Al-Ghazali</div>
+      <div class="contribution">إحسان as operational excellence</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Ibn Arabi</div>
+      <div class="contribution">The seed metaphor of potential</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Al-Shatibi</div>
+      <div class="contribution">Maqasid al-Shariah framework</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Ibn Khaldun</div>
+      <div class="contribution">Cyclical theory of civilization</div>
+    </div>
+  </div>
+  
+  <h4>Information & Computer Science</h4>
+  <div class="giants-grid">
+    <div class="giant-card">
+      <div class="name">Claude Shannon</div>
+      <div class="contribution">Information theory, SNR</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Alan Turing</div>
+      <div class="contribution">Foundations of computation</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Satoshi Nakamoto</div>
+      <div class="contribution">Decentralized consensus</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Vaswani et al.</div>
+      <div class="contribution">Attention mechanism</div>
+    </div>
+  </div>
+  
+  <h4>Philosophy & Ethics</h4>
+  <div class="giants-grid">
+    <div class="giant-card">
+      <div class="name">Aristotle</div>
+      <div class="contribution">Eudaimonia as telos</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">John Rawls</div>
+      <div class="contribution">Justice behind the veil</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Wittgenstein</div>
+      <div class="contribution">Meaning as use</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Norbert Wiener</div>
+      <div class="contribution">Cybernetics & ethics</div>
+    </div>
+  </div>
+  
+  <h4>Economics & Governance</h4>
+  <div class="giants-grid">
+    <div class="giant-card">
+      <div class="name">Elinor Ostrom</div>
+      <div class="contribution">Commons governance</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Henry George</div>
+      <div class="contribution">Harberger taxation theory</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Muhammad Yunus</div>
+      <div class="contribution">Inclusive economics</div>
+    </div>
+    <div class="giant-card">
+      <div class="name">Vitalik Buterin</div>
+      <div class="contribution">Programmable governance</div>
+    </div>
+  </div>
+  
+  <p style="margin-top: 3rem; text-align: center; color: rgba(248,246,241,0.5); font-style: italic;">
+    "If I have seen further, it is by standing on the shoulders of giants." — Isaac Newton
+  </p>
+  
+  <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(201,169,98,0.2);">
+    <p style="font-family: var(--font-arabic); font-size: 1.5rem; color: var(--gold-500);">
+      الحمد لله رب العالمين
+    </p>
+    <p style="font-size: 0.85rem; color: rgba(248,246,241,0.4); margin-top: 0.5rem;">
+      All praise is due to Allah, Lord of all worlds.
+    </p>
+  </div>
+</section>
+
+</body>
+</html>

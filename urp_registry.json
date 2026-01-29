@@ -1,0 +1,44 @@
+{
+    "compute": {
+        "cpu": {
+            "cores": 24,
+            "threads": 32,
+            "load": 19.5
+        },
+        "ram": {
+            "total_gb": 127,
+            "available_gb": 55
+        },
+        "gpu": {
+            "count": 1,
+            "devices": [
+                {
+                    "name": "NVIDIA GeForce RTX 4090 Laptop GPU",
+                    "total_vram_gb": 15,
+                    "multi_processor_count": 76
+                }
+            ]
+        }
+    },
+    "storage": {
+        "lake_root": "C:\\BIZRA-DATA-LAKE",
+        "layers": {
+            "00_INTAKE": "C:\\BIZRA-DATA-LAKE\\00_INTAKE",
+            "01_RAW": "C:\\BIZRA-DATA-LAKE\\01_RAW",
+            "02_PROCESSED": "C:\\BIZRA-DATA-LAKE\\02_PROCESSED",
+            "03_INDEXED": "C:\\BIZRA-DATA-LAKE\\03_INDEXED",
+            "04_GOLD": "C:\\BIZRA-DATA-LAKE\\04_GOLD"
+        },
+        "disk_usage": {
+            "total": 4070389575680,
+            "used": 2565075406848,
+            "free": 1505314168832,
+            "percent": 63.0
+        }
+    },
+    "network": {
+        "node_id": "MSI",
+        "ip_local": "127.0.0.1",
+        "status": "online"
+    }
+}

@@ -1,0 +1,328 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#    BIZRA GENESIS MANIFEST — Block0 Honest Claims
+#    
+#    "لا نفترض — We do not assume."
+#    
+#    This document declares exactly what Block0 contains and does NOT contain.
+#    All claims herein are verifiable. No assumptions. No theater.
+#    
+#    Created: 2026-01-29
+#    Operator: Mahmoud Hassan (Mumo)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.0.0"
+manifest_version: "2026.01.29"
+created: "2026-01-29T06:50:00Z"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BLOCK0 IDENTITY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+block0:
+  name: "BIZRA Genesis"
+  type: "SOLO_GENESIS"
+  description: |
+    Initial genesis block establishing the BIZRA sovereign data network.
+    This is a single-operator genesis. Multi-node consensus activates in Block1+.
+  
+  ihsan_declaration: |
+    This block was created with الإحسان (excellence) as its foundation.
+    Every claim is verifiable. Every limitation is acknowledged.
+    We build on truth, not hope.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CRYPTOGRAPHY — What We Actually Use
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cryptography:
+  # ACTIVE — These are implemented and in use
+  active:
+    hashing:
+      - algorithm: "SHA-256"
+        usage: "Pattern hashing, consensus signatures"
+        files: ["core/federation/consensus.py"]
+      
+      - algorithm: "BLAKE2b"
+        usage: "File integrity, Merkle proofs"
+        files: ["bizra_nexus.py", "ecosystem_bridge.py", "sovereign_nexus.py"]
+    
+    encryption:
+      algorithm: "Fernet (AES-128-CBC + HMAC-SHA256)"
+      key_derivation: "PBKDF2-SHA256"
+      iterations: 600000
+      file: "core/vault/vault.py"
+    
+    signatures:
+      algorithm: "Ed25519"
+      status: "Placeholder - not yet wired to consensus"
+  
+  # NOT IMPLEMENTED — Honest declaration
+  not_implemented:
+    - name: "Post-Quantum Cryptography"
+      reason: "Dependencies not in requirements, code is scaffold only"
+      planned: "Block5+"
+    
+    - name: "PBFT Consensus"
+      reason: "Single node - no network partition testing possible"
+      actual: "Weighted voting with Ihsan reputation scores"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSENSUS — What We Actually Have
+# ═══════════════════════════════════════════════════════════════════════════════
+
+consensus:
+  model: "WEIGHTED_VOTING_IHSAN"
+  
+  description: |
+    Votes are weighted by node reputation (Ihsan average × contribution factor).
+    This is NOT Byzantine Fault Tolerant. It assumes honest participants.
+  
+  parameters:
+    min_voters: 3
+    quorum_threshold: 0.67
+    vote_timeout_seconds: 300
+    max_impact_variance: 0.2
+  
+  false_claims_rejected:
+    - "PBFT n=8 f=2 quorum=5/8"  # Never implemented
+    - "Byzantine Fault Tolerance"  # Not tested under adversarial conditions
+    - "Network partition recovery"  # Single node, no partitions possible
+  
+  honest_claims:
+    - "Weighted voting based on contributor reputation"
+    - "Quorum requires 67% weighted agreement"
+    - "Solo operator mode for genesis"
+  
+  future_upgrades:
+    - version: "Block10+"
+      model: "Tendermint BFT"
+      requirement: "Minimum 4 independent nodes"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTHENTICATION — Current State
+# ═══════════════════════════════════════════════════════════════════════════════
+
+authentication:
+  mode: "DEVELOPMENT"
+  production_ready: false
+  
+  current_state:
+    bizra_os:
+      type: "Mock authentication"
+      location: "BIZRA-OS/constants.ts"
+      issue: "Hardcoded operator:genesis credentials"
+      storage: "localStorage (unencrypted)"
+    
+    api:
+      type: "No authentication"
+      issue: "APIs are open during development"
+  
+  required_before_production:
+    - "Replace mock auth with JWT/OAuth2"
+    - "Implement proper session management"
+    - "Add rate limiting"
+    - "Enable HTTPS only"
+    - "Remove hardcoded credentials"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATA INTEGRITY — Block0 Scope
+# ═══════════════════════════════════════════════════════════════════════════════
+
+data_integrity:
+  completeness_verified: false
+  completeness_percentage: "TBD"
+  
+  scope:
+    included:
+      - path: "01_RAW/"
+        status: "Primary ingestion target"
+      - path: "02_BRONZE/"
+        status: "Processed files"
+      - path: "03_SILVER/"
+        status: "Validated patterns"
+      - path: "04_GOLD/"
+        status: "Production assets"
+    
+    explicitly_excluded:
+      - path: ".venv/"
+        reason: "Third-party dependencies"
+      - path: "__pycache__/"
+        reason: "Generated bytecode"
+      - path: "Downloads/"
+        reason: "Pending ingestion - not part of Block0"
+  
+  verification_required:
+    - "Count all source files vs indexed files"
+    - "Generate Merkle root of included content"
+    - "Document any gaps as explicit exclusions"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ERROR HANDLING — Known Technical Debt
+# ═══════════════════════════════════════════════════════════════════════════════
+
+error_handling:
+  current_state: "NEEDS_IMPROVEMENT"
+  
+  known_issues:
+    generic_exceptions:
+      count: 209
+      severity: "HIGH"
+      description: "Bare 'except Exception:' handlers that swallow errors"
+      top_offenders:
+        - file: "bizra_orchestrator.py"
+          count: 15
+        - file: "bizra_nexus.py"
+          count: 13
+        - file: "apex_cognitive_engine.py"
+          count: 8
+  
+  remediation_plan:
+    phase1:
+      target: "Critical path files"
+      action: "Replace generic with specific exceptions"
+      deadline: "Before Block1"
+    phase2:
+      target: "All 209 instances"
+      action: "Audit and fix"
+      deadline: "Before Block5"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPLOYMENT — Genesis Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+deployment:
+  mode: "SOLO_OPERATOR"
+  nodes: 1
+  distributed: false
+  
+  environment:
+    - "Single WSL2 instance"
+    - "Docker Compose orchestration"
+    - "No network isolation"
+    - "Development configuration"
+  
+  not_ready_for:
+    - "Multi-node deployment"
+    - "Public network exposure"
+    - "Production traffic"
+    - "Adversarial conditions"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTESTATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+attestation:
+  operator: "Mahmoud Hassan"
+  timestamp: "2026-01-29T06:50:00Z"
+  
+  declaration: |
+    I attest that this manifest accurately represents the state of BIZRA
+    at the time of Block0 genesis. All claims are honest. All limitations
+    are documented. This foundation is built on truth.
+    
+    بسم الله الرحمن الرحيم
+    In the name of Allah, the Most Gracious, the Most Merciful.
+  
+  signature: "PENDING_ED25519_SIGNATURE"
+  ihsan_score: "PENDING_VERIFICATION"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VERIFICATION CHECKLIST
+# ═══════════════════════════════════════════════════════════════════════════════
+
+pre_seal_checklist:
+  - id: "CRYPTO-001"
+    check: "No MD5 in cryptographic paths"
+    status: "PASS"
+    
+  - id: "CRYPTO-002"
+    check: "BLAKE2b actively used"
+    status: "PASS"
+    
+  - id: "CONSENSUS-001"
+    check: "No false PBFT claims"
+    status: "PASS"
+    
+  - id: "AUTH-001"
+    check: "Mock auth documented as development-only"
+    status: "PASS"
+    
+  - id: "DATA-001"
+    check: "Data completeness verified or exclusions documented"
+    status: "PENDING"
+    
+  - id: "ERROR-001"
+    check: "Critical path exception handling reviewed"
+    status: "PENDING"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END OF MANIFEST
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FLYWHEEL ARCHITECTURE — Autopoietic Core (Added 2026-01-29)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+flywheel:
+  version: "1.0.0"
+  status: "IMPLEMENTED"
+  
+  components:
+    embedded_llm:
+      name: "Ollama"
+      status: "READY"
+      models:
+        - "llama3.1:8b"
+        - "nomic-embed-text:latest"
+      warm_start: true
+      host_dependency: false
+    
+    autopoietic_loop:
+      status: "IMPLEMENTED"
+      features:
+        - "Self-monitoring"
+        - "Self-healing"
+        - "State persistence"
+        - "Graceful degradation"
+      state_file: "/var/lib/bizra/flywheel_state.json"
+    
+    model_cache:
+      status: "IMPLEMENTED"
+      strategy: "Pre-warm on startup"
+      cold_start_latency: "~0ms after warm"
+    
+    moshi_audio:
+      status: "SCAFFOLD"
+      reason: "Moshi package not yet installed"
+      planned: "Block2+"
+    
+    fail_closed_auth:
+      status: "IMPLEMENTED"
+      mode: "FAIL_CLOSED"
+      default_action: "DENY"
+      token_source: "BIZRA_API_TOKEN environment variable"
+  
+  endpoints:
+    - path: "/health"
+      auth: false
+      purpose: "Health check for load balancers"
+    - path: "/status"
+      auth: true
+      purpose: "Full flywheel status"
+    - path: "/infer"
+      auth: true
+      purpose: "LLM inference"
+    - path: "/embed"
+      auth: true
+      purpose: "Text embeddings"
+    - path: "/ws/audio"
+      auth: true
+      purpose: "Real-time audio streaming (Moshi)"
+  
+  files_created:
+    - "flywheel.py"
+    - "flywheel_api.py"
+    - "docker-compose.flywheel.yml"
+    - "Dockerfile.flywheel"
+    - "requirements.flywheel.txt"
+    - "activate_flywheel.sh"

@@ -1,0 +1,266 @@
+# IHSĀN CONSTRAINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Ethical Integrity Framework for BIZRA AI Operations
+#
+# لا نفترض — We do not assume
+# إحسان — Excellence in all things
+# عدل — Justice and fairness
+# أمانة — Trustworthiness and stewardship
+#
+# Giants Protocol:
+#   Al-Ghazali — Ethical grounding, spiritual depth
+#   Ibn Rushd — Rational ethics, bridging traditions
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "1.0.0"
+generated: "2026-01-29"
+status: "ACTIVE"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# THE FIVE DIMENSIONS OF IHSĀN
+# ═══════════════════════════════════════════════════════════════════════════════
+
+dimensions:
+  
+  correctness:
+    weight: 0.25
+    minimum_threshold: 0.70
+    description: "Does the system work as specified?"
+    constraints:
+      - "All outputs must be traceable to inputs"
+      - "No hallucinated data or fabricated citations"
+      - "Errors must be logged and recoverable"
+      - "State must be consistent across components"
+    validation:
+      - "Unit test coverage >= 80%"
+      - "Integration tests for all critical paths"
+      - "No silent failures allowed"
+  
+  safety:
+    weight: 0.25
+    minimum_threshold: 0.70
+    description: "Does the system protect users and data?"
+    constraints:
+      - "Fail-closed authentication on all endpoints"
+      - "No execution of untrusted code without sandboxing"
+      - "PII must be encrypted at rest and in transit"
+      - "Audit logs for all security-relevant actions"
+      - "Rate limiting to prevent abuse"
+    validation:
+      - "Security scan passes with no HIGH/CRITICAL"
+      - "Secrets scanning enabled"
+      - "mTLS between services"
+    hard_stops:
+      - "NEVER execute rm -rf without confirmation"
+      - "NEVER expose secrets in logs"
+      - "NEVER bypass authentication"
+  
+  beneficence:
+    weight: 0.20
+    minimum_threshold: 0.70
+    description: "Does the system create genuine value?"
+    constraints:
+      - "Actions must have clear user benefit"
+      - "No dark patterns or manipulative design"
+      - "Zakat (2.5%) on all value accumulation"
+      - "Community contributions valued and tracked"
+    validation:
+      - "User satisfaction >= 4.0/5.0"
+      - "Zakat pool growing with usage"
+      - "No spam or unwanted notifications"
+    islamic_finance:
+      - "No riba (interest) in any transaction"
+      - "No gharar (excessive uncertainty)"
+      - "Halal sources only"
+  
+  transparency:
+    weight: 0.15
+    minimum_threshold: 0.70
+    description: "Can the system's actions be understood?"
+    constraints:
+      - "All AI decisions must be explainable"
+      - "No black-box operations on critical paths"
+      - "Proof-of-Impact (PoI) chain for all impacts"
+      - "Audit trail for all mutations"
+    validation:
+      - "Logging coverage >= 90%"
+      - "API documentation complete"
+      - "Architecture diagrams accurate"
+    documentation:
+      - "All claims in docs must be verified"
+      - "No aspirations presented as facts"
+      - "Version history maintained"
+  
+  sustainability:
+    weight: 0.15
+    minimum_threshold: 0.70
+    description: "Can the system be maintained long-term?"
+    constraints:
+      - "Code must be readable and documented"
+      - "Dependencies must be pinned and audited"
+      - "No single points of failure"
+      - "Graceful degradation over hard failures"
+    validation:
+      - "Code review required for all changes"
+      - "Dependency audit monthly"
+      - "DR test quarterly"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LLM-SPECIFIC CONSTRAINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+llm_constraints:
+  
+  general:
+    - "All prompts must include ethical bounds"
+    - "Model outputs must be validated before action"
+    - "Hallucinations must be detectable and logged"
+    - "User can always override AI recommendations"
+  
+  system_prompt_requirements:
+    - "Include: 'لا نفترض — Do not assume facts'"
+    - "Include: 'Verify before claiming'"
+    - "Include: 'Ask rather than guess'"
+    - "Include ethical constraints reminder"
+  
+  rejection_criteria:
+    - "Requests to bypass security"
+    - "Requests to generate harmful content"
+    - "Requests to impersonate users"
+    - "Requests involving non-halal activities"
+  
+  logging:
+    - "Log all prompt/response pairs (redacted PII)"
+    - "Log rejection reasons"
+    - "Log confidence scores"
+    - "Log model used and latency"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACCUMULATOR CONSTRAINTS (Economic Ethics)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+accumulator_constraints:
+  
+  zakat:
+    rate: 0.025  # 2.5%
+    trigger: "on_harvest"
+    distribution: "to_charitable_pool"
+    documentation: "full_audit_trail"
+  
+  bloom_categories:
+    computation:
+      weight: 1.0
+      description: "Baseline for resource usage"
+    knowledge:
+      weight: 2.0
+      description: "Research and learning valued highly"
+    code:
+      weight: 1.5
+      description: "Building the infrastructure"
+    ethics:
+      weight: 3.0
+      description: "Highest weight for ethical work"
+    community:
+      weight: 2.5
+      description: "Helping others is valued"
+    orchestration:
+      weight: 1.2
+      description: "Coordination work"
+  
+  anti_hoarding:
+    decay_rate: 0.001  # Daily decay
+    max_decay: 0.50  # Cap at 50% loss
+    purpose: "Encourage active participation"
+  
+  proof_of_impact:
+    required: true
+    chain_linkage: true
+    cryptographic_hash: "SHA256"
+    immutable: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATA SOVEREIGNTY CONSTRAINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+data_sovereignty:
+  
+  principles:
+    - "User owns their data"
+    - "No data sold to third parties"
+    - "Right to deletion honored within 30 days"
+    - "Data portability supported"
+  
+  storage:
+    - "Encrypted at rest (AES-256)"
+    - "Encrypted in transit (TLS 1.3)"
+    - "Geographic restrictions enforced"
+  
+  retention:
+    - "Logs: 90 days"
+    - "User data: until deletion requested"
+    - "Audit trails: 7 years"
+    - "PoI chain: permanent (blockchain)"
+  
+  access:
+    - "Principle of least privilege"
+    - "Role-based access control"
+    - "Audit log for all access"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VIOLATION HANDLING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+violation_handling:
+  
+  detection:
+    - "Automated constraint checking"
+    - "CI/CD gate enforcement"
+    - "Runtime monitoring"
+    - "User reports"
+  
+  severity_levels:
+    critical:
+      action: "immediate_halt"
+      notification: "security_team_pager"
+      example: "Data breach, authentication bypass"
+    high:
+      action: "block_and_alert"
+      notification: "security_team_email"
+      example: "Unauthorized access attempt"
+    medium:
+      action: "log_and_warn"
+      notification: "daily_digest"
+      example: "Minor policy deviation"
+    low:
+      action: "log_only"
+      notification: "weekly_review"
+      example: "Style guideline violation"
+  
+  remediation:
+    - "Root cause analysis within 24h"
+    - "Fix deployed within SLA"
+    - "Post-mortem documented"
+    - "Constraints updated if needed"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATTESTATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+attestation:
+  principle: "لا نفترض — We do not assume"
+  commitment: |
+    This document defines the ethical constraints that govern all BIZRA
+    AI operations. Every component, every decision, every line of code
+    must align with these principles. Violations are not bugs — they are
+    breaches of trust.
+  
+  giants_invoked:
+    - "Al-Ghazali: The Incoherence of Philosophers teaches us humility"
+    - "Ibn Rushd: Reason and revelation can coexist"
+    - "Al-Khwarizmi: Algorithmic precision in enforcement"
+  
+  review_schedule: "quarterly"
+  last_review: "2026-01-29"
+  next_review: "2026-04-29"

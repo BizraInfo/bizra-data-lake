@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#    BIZRA FLYWHEEL — Dockerfile
+#    
+#    Self-contained autopoietic core with:
+#    - Local LLM inference (via Ollama client)
+#    - Moshi audio streaming (when available)
+#    - Fail-closed authentication
+#    - State persistence
+#    
+#    Created: 2026-01-29 | BIZRA Sovereignty
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FROM python:3.11-slim AS base
+
+# Metadata
+LABEL org.opencontainers.image.title="BIZRA Flywheel"
+LABEL org.opencontainers.image.description="Autopoietic self-sustaining cognitive core"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="BIZRA"
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r bizra && useradd -r -g bizra bizra
+
+# Create directories
+RUN mkdir -p /var/lib/bizra /var/log/bizra/flywheel /var/run/bizra \
+    && chown -R bizra:bizra /var/lib/bizra /var/log/bizra /var/run/bizra
+
+WORKDIR /app
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FROM base AS dependencies
+
+# Copy requirements first for layer caching
+COPY requirements.flywheel.txt /app/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRODUCTION IMAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FROM dependencies AS production
+
+# Copy application code
+COPY flywheel.py flywheel_api.py /app/
+COPY core/ /app/core/
+
+# Switch to non-root user
+USER bizra
+
+# Expose ports
+EXPOSE 8100 8101
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8100/health || exit 1
+
+# Entry point — run the API server
+ENTRYPOINT ["python", "flywheel_api.py"]

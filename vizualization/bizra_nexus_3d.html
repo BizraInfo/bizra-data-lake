@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIZRA NEXUS — 3D Neural Network</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #000;
+            overflow: hidden;
+            color: #fff;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .overlay {
+            position: absolute;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .top-left {
+            top: 30px;
+            left: 30px;
+        }
+        
+        .top-right {
+            top: 30px;
+            right: 30px;
+            text-align: right;
+        }
+        
+        .bottom-left {
+            bottom: 30px;
+            left: 30px;
+        }
+        
+        .bottom-right {
+            bottom: 30px;
+            right: 30px;
+            text-align: right;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00d4ff, #a855f7, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 8px;
+            text-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 6px;
+            margin-top: 5px;
+        }
+        
+        .stats-box {
+            background: rgba(0, 20, 40, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 20px 25px;
+            max-width: 280px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .stat-label {
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .stat-value {
+            color: #00d4ff;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stat-value.gold { color: #fbbf24; }
+        .stat-value.purple { color: #a855f7; }
+        .stat-value.emerald { color: #10b981; }
+        .stat-value.rose { color: #f43f5e; }
+        
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .engine-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        
+        .engine-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        
+        .center-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .center-number {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00d4ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 100px rgba(0, 212, 255, 0.8);
+        }
+        
+        .center-label {
+            font-size: 16px;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 4px;
+        }
+        
+        .quote {
+            font-style: italic;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            max-width: 300px;
+        }
+        
+        .arabic {
+            font-family: 'Arial', serif;
+            font-size: 18px;
+            color: #fbbf24;
+            direction: rtl;
+            margin-bottom: 5px;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s ease;
+        }
+        
+        .loader {
+            width: 100px;
+            height: 100px;
+            border: 3px solid transparent;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
+        
+        .loader::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            border: 3px solid transparent;
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite reverse;
+        }
+        
+        .loader::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 3px solid transparent;
+            border-top-color: #fbbf24;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .hidden { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+    </div>
+    
+    <div id="container"></div>
+    
+    <!-- Top Left - Title -->
+    <div class="overlay top-left">
+        <div class="title">BIZRA</div>
+        <div class="subtitle">Neural Data Universe</div>
+    </div>
+    
+    <!-- Top Right - Core Stats -->
+    <div class="overlay top-right">
+        <div class="stats-box">
+            <div class="stat-row">
+                <span class="stat-label">Total Nodes</span>
+                <span class="stat-value">904,577</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Data Volume</span>
+                <span class="stat-value gold">478.6 GB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Sacred Nodes</span>
+                <span class="stat-value purple">40,420</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Connections</span>
+                <span class="stat-value emerald">244,865</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Hours Invested</span>
+                <span class="stat-value rose">15,000</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Left - Engines -->
+    <div class="overlay bottom-left">
+        <div class="stats-box">
+            <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 12px; letter-spacing: 2px;">NEXUS ENGINES</div>
+            <div class="engine-list">
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #fbbf24;"></div>
+                    <span>Sacred Wisdom (40K nodes)</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #00d4ff;"></div>
+                    <span>File Index (904K files)</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #a855f7;"></div>
+                    <span>Knowledge Graph</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #10b981;"></div>
+                    <span>Sovereign Brain</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #f43f5e;"></div>
+                    <span>Embeddings</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #06b6d4;"></div>
+                    <span>Chat History</span>
+                </div>
+                <div class="engine-item">
+                    <div class="engine-dot" style="background: #8b5cf6;"></div>
+                    <span>Assertions</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Right - Quote -->
+    <div class="overlay bottom-right">
+        <div class="arabic">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+        <div class="quote">
+            "3 years. 15,000 hours. 1 solo developer.<br>
+            No funding. Only إخلاص."
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // BIZRA NEXUS 3D NEURAL VISUALIZATION
+        // ═══════════════════════════════════════════════════════════════════
+        
+        let scene, camera, renderer, controls;
+        let nodes = [], edges = [];
+        let time = 0;
+        
+        const COLORS = {
+            code: 0x00d4ff,
+            data: 0x10b981,
+            sacred: 0xfbbf24,
+            images: 0xf43f5e,
+            documents: 0xa855f7,
+            configs: 0x8b5cf6,
+            other: 0x6b7280,
+            core: 0xffffff
+        };
+        
+        const NODE_DATA = [
+            { name: 'NEXUS', type: 'core', size: 15, x: 0, y: 0, z: 0 },
+            // Code cluster
+            { name: 'Code', type: 'code', size: 12, x: -80, y: 40, z: 30, count: 344207 },
+            { name: '.js', type: 'code', size: 8, x: -120, y: 60, z: 50, count: 170313 },
+            { name: '.ts', type: 'code', size: 7, x: -100, y: 80, z: 20, count: 87061 },
+            { name: '.py', type: 'code', size: 6, x: -60, y: 70, z: 60, count: 57492 },
+            // Sacred cluster
+            { name: 'Sacred', type: 'sacred', size: 11, x: 80, y: 50, z: -20, count: 40420 },
+            { name: 'Quran', type: 'sacred', size: 7, x: 120, y: 70, z: -40, count: 6236 },
+            { name: 'Hadith', type: 'sacred', size: 8, x: 100, y: 80, z: 10, count: 34088 },
+            // Data cluster
+            { name: 'Data', type: 'data', size: 8, x: 0, y: -70, z: 80, count: 56152 },
+            { name: '.json', type: 'data', size: 6, x: -30, y: -90, z: 100, count: 46371 },
+            { name: '.csv', type: 'data', size: 4, x: 30, y: -80, z: 110, count: 1264 },
+            // Images cluster
+            { name: 'Images', type: 'images', size: 9, x: -60, y: -50, z: -70, count: 101954 },
+            // Documents cluster
+            { name: 'Docs', type: 'documents', size: 7, x: 60, y: -40, z: -60, count: 46546 },
+            // Configs
+            { name: 'Config', type: 'configs', size: 8, x: 0, y: 80, z: -50, count: 117324 },
+            // Additional nodes for visual density
+            ...generateClusterNodes('code', 40, -80, 40, 30, 60),
+            ...generateClusterNodes('sacred', 30, 80, 50, -20, 50),
+            ...generateClusterNodes('data', 25, 0, -70, 80, 50),
+            ...generateClusterNodes('images', 20, -60, -50, -70, 40),
+            ...generateClusterNodes('documents', 15, 60, -40, -60, 35),
+            ...generateClusterNodes('configs', 20, 0, 80, -50, 40)
+        ];
+        
+        function generateClusterNodes(type, count, cx, cy, cz, spread) {
+            const nodes = [];
+            for (let i = 0; i < count; i++) {
+                nodes.push({
+                    name: `${type}_${i}`,
+                    type: type,
+                    size: Math.random() * 2 + 1,
+                    x: cx + (Math.random() - 0.5) * spread * 2,
+                    y: cy + (Math.random() - 0.5) * spread * 2,
+                    z: cz + (Math.random() - 0.5) * spread * 2
+                });
+            }
+            return nodes;
+        }
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000510);
+            scene.fog = new THREE.FogExp2(0x000510, 0.002);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(150, 100, 200);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const pointLight1 = new THREE.PointLight(0x00d4ff, 1, 500);
+            pointLight1.position.set(100, 100, 100);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xa855f7, 0.8, 500);
+            pointLight2.position.set(-100, -50, -100);
+            scene.add(pointLight2);
+            
+            const pointLight3 = new THREE.PointLight(0xfbbf24, 0.6, 500);
+            pointLight3.position.set(0, 150, 0);
+            scene.add(pointLight3);
+            
+            // Create nodes
+            createNodes();
+            
+            // Create connections
+            createConnections();
+            
+            // Create particle field
+            createParticleField();
+            
+            // Create outer rings
+            createOrbitalRings();
+            
+            // Hide loading
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 1500);
+            
+            // Start animation
+            animate();
+        }
+        
+        function createNodes() {
+            NODE_DATA.forEach((nodeData, index) => {
+                const geometry = new THREE.SphereGeometry(nodeData.size, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: COLORS[nodeData.type] || COLORS.other,
+                    emissive: COLORS[nodeData.type] || COLORS.other,
+                    emissiveIntensity: nodeData.type === 'core' ? 0.8 : 0.3,
+                    transparent: true,
+                    opacity: nodeData.size > 5 ? 0.9 : 0.6
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(nodeData.x, nodeData.y, nodeData.z);
+                mesh.userData = nodeData;
+                
+                // Add glow
+                if (nodeData.size > 5) {
+                    const glowGeometry = new THREE.SphereGeometry(nodeData.size * 1.5, 16, 16);
+                    const glowMaterial = new THREE.MeshBasicMaterial({
+                        color: COLORS[nodeData.type] || COLORS.other,
+                        transparent: true,
+                        opacity: 0.1
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    mesh.add(glow);
+                }
+                
+                scene.add(mesh);
+                nodes.push(mesh);
+            });
+        }
+        
+        function createConnections() {
+            const mainNodes = nodes.filter(n => n.userData.size > 5);
+            const core = nodes[0];
+            
+            // Connect main nodes to core
+            mainNodes.forEach((node, i) => {
+                if (i === 0) return; // Skip core
+                createEdge(core.position, node.position, 0.15);
+            });
+            
+            // Connect cluster nodes to their parents
+            nodes.forEach(node => {
+                if (node.userData.size <= 5) {
+                    // Find parent cluster
+                    const parent = mainNodes.find(p => p.userData.type === node.userData.type);
+                    if (parent) {
+                        createEdge(parent.position, node.position, 0.05);
+                    }
+                }
+            });
+        }
+        
+        function createEdge(start, end, opacity) {
+            const points = [];
+            points.push(new THREE.Vector3(start.x, start.y, start.z));
+            points.push(new THREE.Vector3(end.x, end.y, end.z));
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({
+                color: 0x00d4ff,
+                transparent: true,
+                opacity: opacity
+            });
+            
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            edges.push(line);
+        }
+        
+        function createParticleField() {
+            const particleCount = 2000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            
+            const colorPalette = [
+                new THREE.Color(0x00d4ff),
+                new THREE.Color(0xa855f7),
+                new THREE.Color(0xfbbf24),
+                new THREE.Color(0x10b981),
+                new THREE.Color(0xf43f5e)
+            ];
+            
+            for (let i = 0; i < particleCount; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = 200 + Math.random() * 300;
+                
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+                
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 1,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6,
+                sizeAttenuation: true
+            });
+            
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+        }
+        
+        function createOrbitalRings() {
+            const ringRadii = [150, 220, 300];
+            const ringColors = [0x00d4ff, 0xa855f7, 0xfbbf24];
+            
+            ringRadii.forEach((radius, i) => {
+                const geometry = new THREE.TorusGeometry(radius, 0.3, 16, 200);
+                const material = new THREE.MeshBasicMaterial({
+                    color: ringColors[i],
+                    transparent: true,
+                    opacity: 0.15
+                });
+                
+                const ring = new THREE.Mesh(geometry, material);
+                ring.rotation.x = Math.PI / 2 + (i * 0.2);
+                ring.rotation.y = i * 0.3;
+                scene.add(ring);
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.01;
+            
+            // Animate nodes
+            nodes.forEach((node, i) => {
+                if (node.userData.size <= 5) {
+                    node.position.y += Math.sin(time + i * 0.1) * 0.02;
+                }
+                node.rotation.y += 0.002;
+            });
+            
+            // Pulse core
+            if (nodes[0]) {
+                const scale = 1 + Math.sin(time * 2) * 0.1;
+                nodes[0].scale.set(scale, scale, scale);
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
