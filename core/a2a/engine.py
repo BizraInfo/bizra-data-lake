@@ -73,7 +73,7 @@ class A2AEngine:
     ):
         """
         Initialize A2A engine with agent identity.
-        
+
         Args:
             agent_card: This agent's identity and capabilities
             private_key: Ed25519 private key for signing
@@ -82,20 +82,23 @@ class A2AEngine:
         """
         self.agent_card = agent_card
         self.private_key = private_key
-        
+
         # Callbacks
         self.on_task_received = on_task_received
         self.on_message_received = on_message_received
-        
+
         # Agent registry (discovered agents)
         self.registry: Dict[str, AgentCard] = {}
-        
+
         # Capability index for fast lookup
         self._capability_index: Dict[str, List[str]] = {}  # capability_name -> [agent_ids]
-        
+
         # Pending tasks
         self.pending_tasks: Dict[str, TaskCard] = {}
-        
+
+        # Transport layer (set by IntegrationBridge for result delivery)
+        self._transport: Optional[Any] = None
+
         # Message handlers by type
         self._handlers: Dict[MessageType, Callable] = {
             MessageType.DISCOVER: self._handle_discover,
@@ -106,7 +109,7 @@ class A2AEngine:
             MessageType.TASK_RESULT: self._handle_task_result,
             MessageType.PING: self._handle_ping,
         }
-        
+
         # Running state
         self._running = False
         
@@ -315,7 +318,7 @@ class A2AEngine:
         return accept_msg
     
     async def _execute_task(self, task: TaskCard, requester_id: str):
-        """Execute a task and send result."""
+        """Execute a task and send result via transport layer."""
         try:
             if self.on_task_received:
                 result = await self.on_task_received(task)
@@ -324,9 +327,27 @@ class A2AEngine:
                 task.mark_failed("No task handler registered")
         except Exception as e:
             task.mark_failed(str(e))
-        
-        # Send result (would need transport layer)
-        print(f"📤 Task {task.task_id} completed: {task.status.value}")
+
+        # Send result via transport layer
+        result_msg = self.create_message(
+            MessageType.TASK_RESULT,
+            {
+                "task_id": task.task_id,
+                "status": task.status.value,
+                "result": task.result,
+                "error": task.error,
+            },
+            recipient_id=requester_id
+        )
+
+        if self._transport:
+            try:
+                await self._transport.send(result_msg, requester_id)
+                print(f"📤 Task {task.task_id} result sent to {requester_id}")
+            except Exception as e:
+                print(f"⚠️ Failed to send result for {task.task_id}: {e}")
+        else:
+            print(f"📤 Task {task.task_id} completed: {task.status.value} (no transport)")
     
     async def _handle_task_accept(self, msg: A2AMessage) -> None:
         """Handle task acceptance."""

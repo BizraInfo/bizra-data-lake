@@ -50,7 +50,12 @@ from enum import Enum
 from bizra_config import DATA_LAKE_ROOT, GOLD_PATH, INDEXED_PATH, IHSAN_CONSTRAINT
 from arte_engine import ARTEEngine
 from vector_engine import VectorEngine
-from sovereign_memory import SovereignMemory
+try:
+    from sovereign_memory import UnifiedMemory
+    MEMORY_CLASS = UnifiedMemory
+except ImportError:
+    from sovereign_memory import SovereignMemory
+    MEMORY_CLASS = SovereignMemory
 from local_llm_gateway import LocalLLMGateway, LLMResponse
 
 # Import Sovereign Bridge for high-performance caching
@@ -145,7 +150,7 @@ class BizraPrime:
         self.vector_engine = VectorEngine()
         
         print("   🌐 Mounting M6 Sovereign Memory...")
-        self.sovereign_memory = SovereignMemory()
+        self.sovereign_memory = MEMORY_CLASS()
         
         print("   🔌 Mounting Local LLM Gateway...")
         self.llm_gateway = LocalLLMGateway()

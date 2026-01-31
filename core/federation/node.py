@@ -14,17 +14,17 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
+import logging
 import asyncio
 import json
-import time
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Callable, Any
 
-from .gossip import GossipEngine, NodeInfo, NodeState, GossipMessage, MessageType
+from .gossip import GossipEngine, MessageType
 from .propagation import PatternStore, PropagationEngine, ElevatedPattern, PatternStatus
-from .consensus import ConsensusEngine, ConsensusRound, Vote, VoteType
+from .consensus import ConsensusEngine, Proposal, Vote
+
+logger = logging.getLogger("FEDERATION")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -56,6 +56,7 @@ class FederationNode:
         node_id: Optional[str] = None,
         bind_address: str = "0.0.0.0:7654",
         public_key: str = "",
+        private_key: str = "",
         ihsan_score: float = 0.95,
         contribution_count: int = 0,
     ):
@@ -78,7 +79,7 @@ class FederationNode:
             self.pattern_store, broadcast_fn=self._broadcast_pattern
         )
         self.consensus = ConsensusEngine(
-            self.node_id, ihsan_score=ihsan_score, contributions=contribution_count
+            self.node_id, private_key=private_key, public_key=self.public_key
         )
 
         # State
@@ -88,6 +89,7 @@ class FederationNode:
 
         # Register message handlers
         self._register_handlers()
+        self._setup_consensus_callbacks()
 
     def _on_pattern_received(self, data: Dict):
         """Callback when gossip receives a pattern."""
@@ -99,8 +101,9 @@ class FederationNode:
         """Register handlers for different message types."""
         self._message_handlers = {
             "PATTERN_PROPAGATE": self._handle_pattern_propagate,
-            "PATTERN_VOTE": self._handle_pattern_vote,
-            "PATTERN_ACCEPTED": self._handle_pattern_accepted,
+            "PROPOSE": self._handle_propose,
+            "VOTE": self._handle_vote,
+            "COMMIT": self._handle_commit,
             "PATTERN_REQUEST": self._handle_pattern_request,
         }
 
@@ -180,45 +183,39 @@ class FederationNode:
         except Exception as e:
             print(f"⚠️ Broadcast failed: {e}")
 
-    def _handle_pattern_propagate(self, payload: Dict):
-        """Handle incoming pattern from network."""
-        if self.propagation.receive_pattern(payload):
-            # We accepted it, now vote on it
-            pattern = ElevatedPattern.from_dict(payload.get("pattern", payload))
+    def _handle_propose(self, payload: Dict):
+        """Handle incoming BFT proposal."""
+        proposal = Proposal(**payload)
+        self.consensus.active_proposals[proposal.proposal_id] = proposal
 
-            # Start consensus round
-            self.consensus.propose_pattern(
-                pattern.pattern_id,
-                pattern.compute_hash(),
-                pattern.compute_impact_score(),
-            )
+        # Auto-validate and vote
+        pattern_data = proposal.pattern_data
+        # Simulated Ihsan check (in real app, this would use arte_engine)
+        ihsan = pattern_data.get("ihsan", 0.95)
 
-            # Cast our vote based on local validation
-            vote = self.consensus.cast_vote(
-                pattern.pattern_id,
-                pattern.compute_hash(),
-                VoteType.ACCEPT,
-                pattern.compute_impact_score(),
-            )
+        vote = self.consensus.cast_vote(proposal, ihsan)
+        if vote:
+            self._broadcast_consensus_msg("VOTE", vote.__dict__)
 
-            if vote:
-                self._pending_votes.append(vote)
-
-    def _handle_pattern_vote(self, payload: Dict):
-        """Handle a vote from another node."""
+    def _handle_vote(self, payload: Dict):
+        """Handle incoming BFT vote."""
         vote = Vote(**payload)
-        self.consensus.receive_vote(vote)
+        alive_count = self.gossip.get_network_size()
+        self.consensus.receive_vote(vote, alive_count)
 
-    def _handle_pattern_accepted(self, payload: Dict):
-        """Handle notification that a pattern was accepted by consensus."""
-        pattern_id = payload.get("pattern_id")
-        final_impact = payload.get("final_impact", 0.0)
-
-        # Update local pattern if we have it
-        if pattern_id in self.pattern_store.network_patterns:
+    def _handle_commit(self, payload: Dict):
+        """Handle incoming BFT commit certificate."""
+        pattern_id = payload.get("proposal_id")
+        if pattern_id in self.consensus.active_proposals:
             self.pattern_store.network_patterns[
                 pattern_id
             ].status = PatternStatus.VALIDATED
+            logger.info(f"✅ Pattern {pattern_id} validated by Global Consensus")
+
+    def _broadcast_consensus_msg(self, msg_type: str, data: Dict):
+        """Helper to broadcast BFT messages."""
+        msg = {"type": msg_type, **data}
+        self._broadcast_pattern(json.dumps(msg).encode("utf-8"))
 
     def _handle_pattern_request(self, payload: Dict):
         """Handle request for patterns from a peer."""

@@ -1,0 +1,471 @@
+"""
+BIZRA Sovereign LLM - LM Studio Backend Integration
+
+Integrates with LM Studio's v1 REST API for local inference.
+Supports model management, stateful chats, and MCP integration.
+
+"Every model is welcome if they accept the rules of BIZRA."
+
+Dependencies:
+    pip install httpx
+"""
+
+import json
+import logging
+import asyncio
+from typing import Optional, List, Dict, Any, AsyncGenerator, TYPE_CHECKING
+from dataclasses import dataclass, field
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+# Optional dependency - httpx
+_HTTPX_AVAILABLE = False
+try:
+    import httpx
+    _HTTPX_AVAILABLE = True
+except ImportError:
+    logger.warning("httpx not installed. LM Studio backend unavailable. Install with: pip install httpx")
+    httpx = None  # type: ignore
+
+# Constitutional thresholds
+IHSAN_THRESHOLD = 0.95
+SNR_THRESHOLD = 0.85
+
+
+class LMStudioEndpoint(Enum):
+    """LM Studio v1 API endpoints."""
+    CHAT = "/api/v1/chat"
+    MODELS = "/api/v1/models"
+    LOAD = "/api/v1/models/load"
+    UNLOAD = "/api/v1/models/unload"
+    DOWNLOAD = "/api/v1/models/download"
+    DOWNLOAD_STATUS = "/api/v1/models/download/status"
+    # OpenAI-compatible
+    CHAT_COMPLETIONS = "/v1/chat/completions"
+    RESPONSES = "/v1/responses"
+    # Anthropic-compatible
+    MESSAGES = "/v1/messages"
+
+
+@dataclass
+class LMStudioConfig:
+    """Configuration for LM Studio backend."""
+    host: str = "192.168.56.1"  # Default from BIZRA config
+    port: int = 1234
+    api_key: Optional[str] = None
+    timeout: float = 120.0
+    use_native_api: bool = True  # Use /api/v1/* instead of OpenAI-compat
+    context_length: Optional[int] = None
+    enable_mcp: bool = True
+
+    @property
+    def base_url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+
+@dataclass
+class ModelInfo:
+    """Information about a loaded model."""
+    id: str
+    name: str
+    path: Optional[str] = None
+    loaded: bool = False
+    context_length: int = 4096
+    parameters: Optional[int] = None
+    quantization: Optional[str] = None
+
+
+@dataclass
+class ChatMessage:
+    """Chat message structure."""
+    role: str  # "user", "assistant", "system"
+    content: str
+
+
+@dataclass
+class ChatResponse:
+    """Response from chat endpoint."""
+    content: str
+    model: str
+    finish_reason: str
+    usage: Dict[str, int] = field(default_factory=dict)
+    raw_response: Optional[Dict] = None
+
+
+class LMStudioBackend:
+    """
+    LM Studio v1 API Backend for BIZRA Sovereign LLM.
+
+    Provides:
+    - Model listing, loading, unloading, downloading
+    - Native /api/v1/chat with stateful chats and MCP support
+    - OpenAI-compatible /v1/chat/completions fallback
+    - Streaming support
+
+    Usage:
+        backend = LMStudioBackend(LMStudioConfig())
+        await backend.connect()
+
+        # List models
+        models = await backend.list_models()
+
+        # Load a model
+        await backend.load_model("lmstudio-community/Meta-Llama-3-8B-GGUF")
+
+        # Chat
+        response = await backend.chat([
+            ChatMessage(role="user", content="Hello!")
+        ])
+    """
+
+    def __init__(self, config: Optional[LMStudioConfig] = None):
+        self.config = config or LMStudioConfig()
+        self._client: Optional[httpx.AsyncClient] = None
+        self._connected = False
+        self._current_model: Optional[str] = None
+        self._chat_id: Optional[str] = None
+
+    async def connect(self) -> bool:
+        """Connect to LM Studio server."""
+        try:
+            headers = {}
+            if self.config.api_key:
+                headers["Authorization"] = f"Bearer {self.config.api_key}"
+
+            self._client = httpx.AsyncClient(
+                base_url=self.config.base_url,
+                headers=headers,
+                timeout=self.config.timeout
+            )
+
+            # Test connection by listing models
+            response = await self._client.get(LMStudioEndpoint.MODELS.value)
+            response.raise_for_status()
+
+            self._connected = True
+            logger.info(f"Connected to LM Studio at {self.config.base_url}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to connect to LM Studio: {e}")
+            self._connected = False
+            return False
+
+    async def disconnect(self):
+        """Disconnect from LM Studio."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+        self._connected = False
+
+    async def list_models(self) -> List[ModelInfo]:
+        """List all available models."""
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        response = await self._client.get(LMStudioEndpoint.MODELS.value)
+        response.raise_for_status()
+        data = response.json()
+
+        models = []
+        for model_data in data.get("data", []):
+            models.append(ModelInfo(
+                id=model_data.get("id", ""),
+                name=model_data.get("id", "").split("/")[-1],
+                path=model_data.get("path"),
+                loaded=model_data.get("loaded", False),
+                context_length=model_data.get("context_length", 4096),
+            ))
+
+        return models
+
+    async def load_model(
+        self,
+        model_id: str,
+        context_length: Optional[int] = None,
+        gpu_layers: Optional[int] = None
+    ) -> bool:
+        """
+        Load a model into LM Studio.
+
+        Args:
+            model_id: Model identifier (e.g., "lmstudio-community/Meta-Llama-3-8B-GGUF")
+            context_length: Optional context window size
+            gpu_layers: Optional number of GPU layers (-1 for all)
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        payload = {"model": model_id}
+
+        if context_length:
+            payload["context_length"] = context_length
+        if gpu_layers is not None:
+            payload["gpu_layers"] = gpu_layers
+
+        response = await self._client.post(
+            LMStudioEndpoint.LOAD.value,
+            json=payload
+        )
+        response.raise_for_status()
+
+        self._current_model = model_id
+        logger.info(f"Loaded model: {model_id}")
+        return True
+
+    async def unload_model(self, model_id: Optional[str] = None) -> bool:
+        """Unload a model from LM Studio."""
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        model_to_unload = model_id or self._current_model
+        if not model_to_unload:
+            raise ValueError("No model specified to unload")
+
+        response = await self._client.post(
+            LMStudioEndpoint.UNLOAD.value,
+            json={"model": model_to_unload}
+        )
+        response.raise_for_status()
+
+        if model_to_unload == self._current_model:
+            self._current_model = None
+
+        logger.info(f"Unloaded model: {model_to_unload}")
+        return True
+
+    async def download_model(
+        self,
+        model_id: str,
+        quantization: Optional[str] = None
+    ) -> str:
+        """
+        Download a model from Hugging Face.
+
+        Returns download task ID for status tracking.
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        payload = {"model": model_id}
+        if quantization:
+            payload["quantization"] = quantization
+
+        response = await self._client.post(
+            LMStudioEndpoint.DOWNLOAD.value,
+            json=payload
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        task_id = data.get("task_id", "")
+        logger.info(f"Started download for {model_id}, task_id: {task_id}")
+        return task_id
+
+    async def get_download_status(self, task_id: str) -> Dict[str, Any]:
+        """Get status of a download task."""
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        response = await self._client.get(
+            LMStudioEndpoint.DOWNLOAD_STATUS.value,
+            params={"task_id": task_id}
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def chat(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        stream: bool = False,
+        context_length: Optional[int] = None,
+        mcp_servers: Optional[List[str]] = None
+    ) -> ChatResponse:
+        """
+        Send a chat request using native /api/v1/chat endpoint.
+
+        Features:
+        - Stateful chats (maintains conversation context)
+        - MCP integration
+        - Model load streaming events
+        - Prompt processing streaming events
+        - Custom context length
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        model_id = model or self._current_model
+        if not model_id:
+            raise ValueError("No model specified or loaded")
+
+        # Build payload for native API
+        payload = {
+            "model": model_id,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": stream
+        }
+
+        # Native API features
+        if context_length:
+            payload["context_length"] = context_length
+
+        if mcp_servers and self.config.enable_mcp:
+            payload["mcp_servers"] = mcp_servers
+
+        # Use stateful chat if we have a chat_id
+        if self._chat_id:
+            payload["chat_id"] = self._chat_id
+
+        if stream:
+            return await self._stream_chat(payload)
+
+        response = await self._client.post(
+            LMStudioEndpoint.CHAT.value,
+            json=payload
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # Store chat_id for stateful conversations
+        if "chat_id" in data:
+            self._chat_id = data["chat_id"]
+
+        return ChatResponse(
+            content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
+            model=data.get("model", model_id),
+            finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
+            usage=data.get("usage", {}),
+            raw_response=data
+        )
+
+    async def _stream_chat(self, payload: Dict) -> AsyncGenerator[str, None]:
+        """Stream chat response."""
+        async with self._client.stream(
+            "POST",
+            LMStudioEndpoint.CHAT.value,
+            json=payload
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        if "content" in delta:
+                            yield delta["content"]
+                    except json.JSONDecodeError:
+                        continue
+
+    async def chat_openai_compat(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        tools: Optional[List[Dict]] = None
+    ) -> ChatResponse:
+        """
+        Send a chat request using OpenAI-compatible endpoint.
+
+        Use this for custom tools support.
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        model_id = model or self._current_model
+        if not model_id:
+            raise ValueError("No model specified or loaded")
+
+        payload = {
+            "model": model_id,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        if tools:
+            payload["tools"] = tools
+
+        response = await self._client.post(
+            LMStudioEndpoint.CHAT_COMPLETIONS.value,
+            json=payload
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        return ChatResponse(
+            content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
+            model=data.get("model", model_id),
+            finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
+            usage=data.get("usage", {}),
+            raw_response=data
+        )
+
+    def reset_chat(self):
+        """Reset stateful chat session."""
+        self._chat_id = None
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connected
+
+    @property
+    def current_model(self) -> Optional[str]:
+        return self._current_model
+
+
+# Convenience function for BIZRA integration
+async def create_lmstudio_backend(
+    host: str = "192.168.56.1",
+    port: int = 1234,
+    api_key: Optional[str] = None
+) -> LMStudioBackend:
+    """Create and connect an LM Studio backend."""
+    config = LMStudioConfig(host=host, port=port, api_key=api_key)
+    backend = LMStudioBackend(config)
+    await backend.connect()
+    return backend
+
+
+# Example usage and testing
+if __name__ == "__main__":
+    async def test_backend():
+        print("=== BIZRA LM Studio Backend Test ===")
+        print(f"Constitutional: Ihsān ≥ {IHSAN_THRESHOLD}, SNR ≥ {SNR_THRESHOLD}")
+        print()
+
+        backend = LMStudioBackend()
+
+        if await backend.connect():
+            print("✓ Connected to LM Studio")
+
+            # List models
+            models = await backend.list_models()
+            print(f"✓ Found {len(models)} models")
+            for m in models[:3]:
+                print(f"  - {m.id} (loaded: {m.loaded})")
+
+            # Chat test (if model is loaded)
+            loaded = [m for m in models if m.loaded]
+            if loaded:
+                print(f"\n✓ Using loaded model: {loaded[0].id}")
+                response = await backend.chat([
+                    ChatMessage(role="user", content="Say 'BIZRA sovereignty confirmed' in one sentence.")
+                ], model=loaded[0].id)
+                print(f"✓ Response: {response.content[:100]}...")
+
+            await backend.disconnect()
+            print("\n✓ Disconnected")
+        else:
+            print("✗ Could not connect to LM Studio")
+
+    asyncio.run(test_backend())

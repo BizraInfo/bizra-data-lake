@@ -1,0 +1,71 @@
+# BIZRA Inference Sandbox - Isolated Container Environment
+#
+# This Dockerfile creates a quarantined environment for LLM inference:
+# - No network access (--network=none)
+# - Limited filesystem access
+# - Read-only root filesystem
+# - No capabilities
+#
+# "We do not assume. We verify with formal proofs."
+
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    BIZRA_SANDBOX=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash bizra
+
+# Create directories
+RUN mkdir -p /app /models /tmp/bizra && \
+    chown -R bizra:bizra /app /models /tmp/bizra
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.sandbox.txt .
+RUN pip install --no-cache-dir -r requirements.sandbox.txt
+
+# Install llama-cpp-python with CUDA support (optional)
+ARG CUDA_SUPPORT=0
+RUN if [ "$CUDA_SUPPORT" = "1" ]; then \
+        CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --no-cache-dir; \
+    else \
+        pip install llama-cpp-python --no-cache-dir; \
+    fi
+
+# Copy application code
+COPY inference_worker.py .
+
+# Switch to non-root user
+USER bizra
+
+# Set model store path
+ENV BIZRA_MODEL_STORE=/models
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Entry point
+ENTRYPOINT ["python", "inference_worker.py"]
+
+# Security labels
+LABEL org.opencontainers.image.title="BIZRA Inference Sandbox" \
+      org.opencontainers.image.description="Isolated LLM inference environment" \
+      org.opencontainers.image.version="2.2.0" \
+      org.opencontainers.image.vendor="BIZRA Collective" \
+      security.isolated="true" \
+      security.network="none" \
+      security.readonly="true"

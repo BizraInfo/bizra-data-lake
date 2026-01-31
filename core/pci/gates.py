@@ -3,6 +3,7 @@ BIZRA PROOF-CARRYING INFERENCE (PCI) PROTOCOL
 Receipt and Verification Gates
 """
 
+import hmac
 import time
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
@@ -14,6 +15,8 @@ from .crypto import verify_signature
 
 IHSAN_MINIMUM_THRESHOLD = 0.95
 MAX_CLOCK_SKEW_SECONDS = 120
+NONCE_TTL_SECONDS = 300  # 5 minutes - nonces older than this are pruned
+MAX_NONCE_CACHE_SIZE = 10000  # Hard limit to prevent memory exhaustion
 
 @dataclass
 class VerificationResult:
@@ -28,12 +31,12 @@ DEFAULT_CONSTITUTION_HASH = "d9c9b5f7a3e2c8d4f1a6e9b2c5d8a3f7e0c2b5d8a1e4f7c0b3d
 class PCIGateKeeper:
     """
     Executes the 3-tier gate chain for PCI Envelopes.
-    
+
     Sovereignty: Default-deny with explicit policy verification.
     """
-    
+
     def __init__(
-        self, 
+        self,
         seen_nonces_cache: Dict[str, float] = None,
         constitution_hash: str = None,
         policy_enforcement: bool = True
@@ -41,6 +44,32 @@ class PCIGateKeeper:
         self.seen_nonces = seen_nonces_cache if seen_nonces_cache is not None else {}
         self.constitution_hash = constitution_hash or DEFAULT_CONSTITUTION_HASH
         self.policy_enforcement = policy_enforcement
+        self._last_prune_time = time.time()
+
+    def _prune_expired_nonces(self) -> int:
+        """
+        Remove nonces older than NONCE_TTL_SECONDS.
+        Returns count of pruned entries.
+
+        SECURITY: Prevents unbounded memory growth (DoS vector).
+        Called automatically during verify() to maintain cache hygiene.
+        """
+        now = time.time()
+        cutoff = now - NONCE_TTL_SECONDS
+        expired = [nonce for nonce, ts in self.seen_nonces.items() if ts < cutoff]
+        for nonce in expired:
+            del self.seen_nonces[nonce]
+
+        # Emergency pruning if cache exceeds hard limit (keep newest)
+        if len(self.seen_nonces) > MAX_NONCE_CACHE_SIZE:
+            sorted_nonces = sorted(self.seen_nonces.items(), key=lambda x: x[1])
+            excess = len(self.seen_nonces) - MAX_NONCE_CACHE_SIZE
+            for nonce, _ in sorted_nonces[:excess]:
+                del self.seen_nonces[nonce]
+            expired.extend([n for n, _ in sorted_nonces[:excess]])
+
+        self._last_prune_time = now
+        return len(expired)
         
     def verify(self, envelope: PCIEnvelope) -> VerificationResult:
         gates_passed = []
@@ -73,10 +102,14 @@ class PCIGateKeeper:
              return VerificationResult(False, RejectCode.REJECT_SCHEMA, "Invalid timestamp format")
         gates_passed.append("TIMESTAMP")
         
-        # 4. Replay
+        # 4. Replay Protection (with TTL-based eviction)
+        # Prune expired nonces periodically (every 60s or if cache is large)
+        if (time.time() - self._last_prune_time > 60) or (len(self.seen_nonces) > MAX_NONCE_CACHE_SIZE * 0.9):
+            self._prune_expired_nonces()
+
         if envelope.nonce in self.seen_nonces:
-             return VerificationResult(False, RejectCode.REJECT_NONCE_REPLAY, "Nonce reused")
-        self.seen_nonces[envelope.nonce] = time.time() # Should prune old ones
+            return VerificationResult(False, RejectCode.REJECT_NONCE_REPLAY, "Nonce reused")
+        self.seen_nonces[envelope.nonce] = time.time()
         gates_passed.append("REPLAY")
         
         # ════════════════════════════════════════════════
@@ -90,12 +123,13 @@ class PCIGateKeeper:
         gates_passed.append("IHSAN")
         
         # 8. Policy (Sovereignty: Default-deny with explicit verification)
+        # SECURITY: Use constant-time comparison to prevent timing attacks
         if self.policy_enforcement:
             payload_policy = getattr(envelope.payload, 'policy_hash', None)
-            if payload_policy and payload_policy != self.constitution_hash:
+            if payload_policy and not hmac.compare_digest(payload_policy, self.constitution_hash):
                 return VerificationResult(
-                    False, 
-                    RejectCode.REJECT_POLICY_MISMATCH, 
+                    False,
+                    RejectCode.REJECT_POLICY_MISMATCH,
                     f"Policy hash mismatch: expected {self.constitution_hash[:16]}..."
                 )
         gates_passed.append("POLICY")

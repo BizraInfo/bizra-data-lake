@@ -1,0 +1,58 @@
+{
+  "name": "@bizra/sovereign",
+  "version": "2.2.0",
+  "description": "BIZRA Sovereign LLM Ecosystem - Constitutional AI with formal verification",
+  "type": "module",
+  "main": "./dist/ts/core/sovereign/index.js",
+  "types": "./dist/ts/core/sovereign/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/ts/core/sovereign/index.js",
+      "types": "./dist/ts/core/sovereign/index.d.ts"
+    },
+    "./federation": {
+      "import": "./dist/ts/core/federation/index.js",
+      "types": "./dist/ts/core/federation/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:sovereign": "tsc -p tsconfig.sovereign.json",
+    "build:native": "cd ../native && cargo build --release",
+    "build:all": "npm run build:native && npm run build",
+    "clean": "rm -rf ../dist/ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-test-coverage tests/**/*.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "bizra",
+    "sovereign",
+    "llm",
+    "constitutional-ai",
+    "offline-first",
+    "federation",
+    "z3-smt",
+    "formal-verification"
+  ],
+  "author": "BIZRA Node0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "multicast-dns": "^7.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "@bizra/fate-binding": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@bizra/fate-binding": {
+      "optional": true
+    }
+  }
+}

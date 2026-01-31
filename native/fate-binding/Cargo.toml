@@ -1,0 +1,52 @@
+[package]
+name = "fate-binding"
+version = "2.2.0"
+edition = "2021"
+description = "FATE (Formal Assertion Through Execution) binding for BIZRA Sovereign LLM"
+license = "MIT"
+authors = ["BIZRA Collective"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Node-API bindings for TypeScript integration
+napi = { version = "2.14", features = ["async", "napi8"] }
+napi-derive = "2.14"
+
+# Z3 SMT solver for formal verification
+z3 = "0.12"
+
+# Post-quantum cryptography (Dilithium-5)
+pqcrypto-dilithium = "0.5"
+pqcrypto-traits = "0.3"
+
+# Ed25519 for CapabilityCard signatures
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Hashing for model fingerprinting
+sha2 = "0.10"
+blake3 = "1.5"
+
+# Timestamp handling
+chrono = { version = "0.4", features = ["serde"] }
+
+[build-dependencies]
+napi-build = "2.1"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1

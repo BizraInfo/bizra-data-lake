@@ -9,6 +9,7 @@ import blake3
 from typing import Any, Dict, Tuple
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
+from cryptography.exceptions import InvalidSignature
 
 PCI_DOMAIN_PREFIX = "bizra-pci-v1:"
 
@@ -17,13 +18,17 @@ def canonical_json(data: Dict[str, Any]) -> bytes:
     RFC 8785 JSON Canonicalization Scheme (JCS).
     - Keys sorted lexicographically
     - No whitespace
-    - UTF-8
+    - ASCII-only output (RFC 8785 mandate)
+
+    SECURITY: ensure_ascii=True is REQUIRED for RFC 8785 compliance.
+    Using False allows Unicode normalization differences across systems,
+    enabling signature malleability attacks.
     """
     return json.dumps(
         data,
         separators=(',', ':'),
         sort_keys=True,
-        ensure_ascii=False
+        ensure_ascii=True  # CRITICAL: RFC 8785 compliance - DO NOT CHANGE
     ).encode('utf-8')
 
 def domain_separated_digest(canonical_data: bytes) -> str:
@@ -53,17 +58,25 @@ def sign_message(digest_hex: str, private_key_hex: str) -> str:
 def verify_signature(digest_hex: str, signature_hex: str, public_key_hex: str) -> bool:
     """
     Verify an Ed25519 signature.
+
+    SECURITY: Catches only InvalidSignature and ValueError (malformed hex).
+    Other exceptions (library bugs, memory errors) should propagate.
     """
     try:
         pub_bytes = bytes.fromhex(public_key_hex)
         sig_bytes = bytes.fromhex(signature_hex)
         digest_bytes = bytes.fromhex(digest_hex)
-        
+
         public_key = ed25519.Ed25519PublicKey.from_public_bytes(pub_bytes)
         public_key.verify(sig_bytes, digest_bytes)
         return True
-    except Exception:
+    except InvalidSignature:
+        # Expected: signature does not match
         return False
+    except ValueError:
+        # Expected: malformed hex input
+        return False
+    # NOTE: Other exceptions (TypeError, MemoryError, etc.) propagate intentionally
 
 def generate_keypair() -> Tuple[str, str]:
     """Generates (private_key_hex, public_key_hex)."""

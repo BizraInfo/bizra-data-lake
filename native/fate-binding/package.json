@@ -1,0 +1,52 @@
+{
+  "name": "@bizra/fate-binding",
+  "version": "2.2.0",
+  "description": "FATE (Formal Assertion Through Execution) - Rust binding for BIZRA Sovereign LLM with Z3 SMT verification",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "napi": {
+    "name": "fate-binding",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "x86_64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu"
+      ]
+    }
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "cargo test",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "keywords": [
+    "bizra",
+    "fate",
+    "z3",
+    "smt",
+    "formal-verification",
+    "dilithium",
+    "post-quantum",
+    "constitutional-ai"
+  ],
+  "author": "BIZRA Node0",
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ]
+}

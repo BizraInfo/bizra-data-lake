@@ -12,7 +12,7 @@ from .propagation import (
     PatternStatus,
     PatternMetrics
 )
-from .consensus import ConsensusEngine, ConsensusRound, Vote, VoteType
+from .consensus import ConsensusEngine, Vote, Proposal
 from .node import FederationNode, SyncFederationNode
 from .protocol import FederatedPattern, PatternImpact, FederationProtocol
 
@@ -31,9 +31,8 @@ __all__ = [
     "PatternMetrics",
     # Consensus
     "ConsensusEngine",
-    "ConsensusRound",
     "Vote",
-    "VoteType",
+    "Proposal",
     # Node
     "FederationNode",
     "SyncFederationNode",

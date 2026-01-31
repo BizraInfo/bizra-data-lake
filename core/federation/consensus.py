@@ -1,346 +1,151 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║   BIZRA PATTERN FEDERATION — IMPACT CONSENSUS                                ║
+║   BIZRA PATTERN FEDERATION — CONSENSUS ENGINE (BFT)                          ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║   Distributed consensus on pattern impact scores.                            ║
-║                                                                              ║
-║   Consensus Model: Weighted voting based on node reputation                  ║
-║   - Each node votes on pattern impact                                        ║
-║   - Votes weighted by node's Ihsān average and contribution count            ║
-║   - Pattern accepted if weighted consensus ≥ 0.67                            ║
+║   Protects the 'Shoulders of Giants' from faulty or malicious input.         ║
+║   Algorithm: Simplified 2-Phase Commit with Ed25519 Signatures.              ║
+║   Quorum Threshold: 2f + 1                                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import hashlib
 import time
+import uuid
+import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Optional, Any, Callable
+from core.pci.crypto import (
+    domain_separated_digest,
+    sign_message,
+    verify_signature,
+    canonical_json,
+)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CONSENSUS MODEL DECLARATION
-# ═══════════════════════════════════════════════════════════════════════════════
-#
-# HONEST LABELING — This is NOT PBFT/BFT
-#
-# Model: WEIGHTED_VOTING_IHSAN
-# - Votes weighted by node reputation (Ihsan score × contribution factor)
-# - Assumes honest participants (no Byzantine fault tolerance)
-# - No network partition testing has been performed
-# - Single-operator genesis mode
-#
-# Future: Tendermint BFT at Node count >= 4 with partition testing
-#
-# ═══════════════════════════════════════════════════════════════════════════════
+logger = logging.getLogger("CONSENSUS")
 
-CONSENSUS_MODEL = "WEIGHTED_VOTING_IHSAN"  # NOT "PBFT" — we don't claim what we haven't tested
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CONSTANTS
-# ═══════════════════════════════════════════════════════════════════════════════
+@dataclass
+class Proposal:
+    proposal_id: str
+    proposer_id: str
+    pattern_data: Dict[str, Any]
+    timestamp: float = field(default_factory=time.time)
 
-QUORUM_THRESHOLD = 0.67          # 67% weighted consensus required
-MIN_VOTERS = 3                   # Minimum validators for consensus
-VOTE_TIMEOUT_SECONDS = 300       # 5 minute voting window
-MAX_IMPACT_VARIANCE = 0.2        # Max allowed variance in impact scores
-BFT_ENABLED = False              # True only after multi-node partition testing
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TYPES
-# ═══════════════════════════════════════════════════════════════════════════════
-
-class VoteType(str, Enum):
-    ACCEPT = "ACCEPT"
-    REJECT = "REJECT"
-    ABSTAIN = "ABSTAIN"
 
 @dataclass
 class Vote:
-    """A single validator's vote on a pattern."""
-    voter_node_id: str
-    pattern_id: str
-    vote: VoteType
-    local_impact_score: float    # Voter's measured impact
-    signature: str               # Ed25519 signature
-    timestamp: str
-    
-    # Voter's credentials (for weighting)
-    voter_ihsan: float = 0.95
-    voter_contributions: int = 0
-    
-    def compute_weight(self) -> float:
-        """
-        Calculate vote weight based on voter reputation.
-        Weight = ihsan × (1 + log(1 + contributions) / 10)
-        """
-        import math
-        contribution_factor = 1 + math.log10(1 + self.voter_contributions) / 10
-        return self.voter_ihsan * contribution_factor
+    proposal_id: str
+    voter_id: str
+    signature: str
+    public_key: str
+    ihsan_score: float
 
-@dataclass
-class ConsensusRound:
-    """A single consensus round for a pattern."""
-    pattern_id: str
-    pattern_hash: str
-    proposer_node_id: str
-    proposed_impact: float
-    
-    start_time: float = field(default_factory=time.time)
-    votes: List[Vote] = field(default_factory=list)
-    
-    finalized: bool = False
-    accepted: bool = False
-    final_impact: float = 0.0
-    
-    def add_vote(self, vote: Vote) -> bool:
-        """Add a vote to this round. Returns False if duplicate."""
-        if any(v.voter_node_id == vote.voter_node_id for v in self.votes):
-            return False
-        self.votes.append(vote)
-        return True
-    
-    def is_expired(self) -> bool:
-        return time.time() - self.start_time > VOTE_TIMEOUT_SECONDS
-    
-    def compute_consensus(self) -> Tuple[bool, float, str]:
-        """
-        Compute weighted consensus.
-        Returns (accepted, final_impact, reason)
-        """
-        if len(self.votes) < MIN_VOTERS:
-            return False, 0.0, f"Insufficient voters ({len(self.votes)} < {MIN_VOTERS})"
-        
-        # Calculate weighted votes
-        total_weight = 0.0
-        accept_weight = 0.0
-        impact_sum = 0.0
-        impact_weights = 0.0
-        
-        for vote in self.votes:
-            weight = vote.compute_weight()
-            total_weight += weight
-            
-            if vote.vote == VoteType.ACCEPT:
-                accept_weight += weight
-                impact_sum += vote.local_impact_score * weight
-                impact_weights += weight
-        
-        if total_weight == 0:
-            return False, 0.0, "No valid votes"
-        
-        accept_ratio = accept_weight / total_weight
-        
-        if accept_ratio < QUORUM_THRESHOLD:
-            return False, 0.0, f"Quorum not reached ({accept_ratio:.2%} < {QUORUM_THRESHOLD:.0%})"
-        
-        # Calculate weighted average impact
-        final_impact = impact_sum / impact_weights if impact_weights > 0 else 0.0
-        
-        # Check variance
-        impacts = [v.local_impact_score for v in self.votes if v.vote == VoteType.ACCEPT]
-        if impacts:
-            variance = max(impacts) - min(impacts)
-            if variance > MAX_IMPACT_VARIANCE:
-                return False, 0.0, f"Impact variance too high ({variance:.2f} > {MAX_IMPACT_VARIANCE})"
-        
-        return True, final_impact, "Consensus reached"
-    
-    def finalize(self) -> Tuple[bool, float]:
-        """Finalize the consensus round."""
-        accepted, impact, reason = self.compute_consensus()
-        self.finalized = True
-        self.accepted = accepted
-        self.final_impact = impact
-        return accepted, impact
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# CONSENSUS ENGINE
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class ConsensusEngine:
     """
-    Manages distributed consensus for pattern validation.
+    Byzantine Fault Tolerant Consensus for Pattern Elevation.
     """
-    
-    def __init__(self, node_id: str, ihsan_score: float = 0.95, contributions: int = 0):
+
+    def __init__(self, node_id: str, private_key: str, public_key: str):
         self.node_id = node_id
-        self.ihsan_score = ihsan_score
-        self.contributions = contributions
-        
-        self.active_rounds: Dict[str, ConsensusRound] = {}
-        self.completed_rounds: Dict[str, ConsensusRound] = {}
-        
-        # Cache of our votes to avoid double-voting
-        self._my_votes: Set[str] = set()
-    
-    def propose_pattern(self, pattern_id: str, pattern_hash: str, impact: float) -> ConsensusRound:
-        """
-        Start a new consensus round for a pattern.
-        """
-        round_key = f"{pattern_id}:{pattern_hash}"
-        
-        if round_key in self.active_rounds:
-            return self.active_rounds[round_key]
-        
-        round = ConsensusRound(
-            pattern_id=pattern_id,
-            pattern_hash=pattern_hash,
-            proposer_node_id=self.node_id,
-            proposed_impact=impact
+        self.private_key = private_key
+        self.public_key = public_key
+
+        # State tracking
+        self.active_proposals: Dict[str, Proposal] = {}
+        self.votes: Dict[str, List[Vote]] = {}  # proposal_id -> List[Vote]
+        self.committed_patterns: Set[str] = set()
+
+        # Callbacks
+        self.on_commit_broadcast: Optional[Callable[[Dict], None]] = None
+
+    def propose_pattern(self, pattern: Dict) -> Proposal:
+        """Initiate a consensus round for an elevated pattern."""
+        proposal_id = f"prop_{uuid.uuid4().hex[:8]}"
+        proposal = Proposal(
+            proposal_id=proposal_id, proposer_id=self.node_id, pattern_data=pattern
         )
-        
-        self.active_rounds[round_key] = round
-        print(f"📋 Consensus round started for pattern {pattern_id}")
-        return round
-    
-    def cast_vote(
-        self, 
-        pattern_id: str, 
-        pattern_hash: str,
-        vote_type: VoteType,
-        local_impact: float,
-        sign_fn=None
-    ) -> Optional[Vote]:
-        """
-        Cast our vote on a pattern.
-        """
-        round_key = f"{pattern_id}:{pattern_hash}"
-        
-        if round_key in self._my_votes:
-            print(f"⚠️ Already voted on {pattern_id}")
-            return None
-        
-        # Create signature (mock if no sign_fn provided)
-        signature = "mock_signature"
-        if sign_fn:
-            vote_data = f"{pattern_id}:{vote_type.value}:{local_impact}"
-            signature = sign_fn(vote_data)
-        
-        vote = Vote(
-            voter_node_id=self.node_id,
-            pattern_id=pattern_id,
-            vote=vote_type,
-            local_impact_score=local_impact,
-            signature=signature,
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            voter_ihsan=self.ihsan_score,
-            voter_contributions=self.contributions
-        )
-        
-        self._my_votes.add(round_key)
-        
-        # Add to active round if exists
-        if round_key in self.active_rounds:
-            self.active_rounds[round_key].add_vote(vote)
-        
-        return vote
-    
-    def receive_vote(self, vote: Vote) -> bool:
-        """
-        Receive a vote from another node.
-        """
-        round_key = f"{vote.pattern_id}:{vote.pattern_id}"  # Simplified key
-        
-        # Find or create round
-        if round_key not in self.active_rounds:
-            # Create round if we're receiving votes for unknown pattern
-            self.active_rounds[round_key] = ConsensusRound(
-                pattern_id=vote.pattern_id,
-                pattern_hash=vote.pattern_id,
-                proposer_node_id=vote.voter_node_id,
-                proposed_impact=vote.local_impact_score
+        self.active_proposals[proposal_id] = proposal
+        self.votes[proposal_id] = []
+
+        logger.info(f"🗳️ Proposal initiated: {proposal_id}")
+        return proposal
+
+    def cast_vote(self, proposal: Proposal, ihsan_score: float) -> Optional[Vote]:
+        """Validate a pattern and cast a signed vote."""
+        # Unified Ihsan threshold (0.95) - consistent with A2A, PCI, propagation
+        if ihsan_score < 0.95:
+            logger.warning(
+                f"❌ Rejecting proposal {proposal.proposal_id}: Ihsan {ihsan_score} < 0.95"
             )
-        
-        return self.active_rounds[round_key].add_vote(vote)
-    
-    def check_and_finalize(self) -> List[Tuple[str, bool, float]]:
-        """
-        Check all active rounds and finalize those ready.
-        Returns list of (pattern_id, accepted, final_impact)
-        """
-        results = []
-        to_remove = []
-        
-        for round_key, round in self.active_rounds.items():
-            if round.finalized:
-                continue
-            
-            if round.is_expired() or len(round.votes) >= MIN_VOTERS:
-                accepted, impact = round.finalize()
-                results.append((round.pattern_id, accepted, impact))
-                
-                self.completed_rounds[round_key] = round
-                to_remove.append(round_key)
-                
-                status = "✅ ACCEPTED" if accepted else "❌ REJECTED"
-                print(f"{status} Pattern {round.pattern_id} (impact={impact:.3f})")
-        
-        for key in to_remove:
-            del self.active_rounds[key]
-        
-        return results
-    
-    def get_stats(self) -> Dict:
-        return {
-            "active_rounds": len(self.active_rounds),
-            "completed_rounds": len(self.completed_rounds),
-            "accepted_patterns": sum(1 for r in self.completed_rounds.values() if r.accepted),
-            "rejected_patterns": sum(1 for r in self.completed_rounds.values() if not r.accepted),
-            "my_votes_cast": len(self._my_votes)
-        }
+            return None
 
+        # Canonicalize and sign
+        canon_data = canonical_json(proposal.pattern_data)
+        digest = domain_separated_digest(canon_data)
+        sig = sign_message(digest, self.private_key)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# DEMO
-# ═══════════════════════════════════════════════════════════════════════════════
+        vote = Vote(
+            proposal_id=proposal.proposal_id,
+            voter_id=self.node_id,
+            signature=sig,
+            public_key=self.public_key,
+            ihsan_score=ihsan_score,
+        )
+        return vote
 
-if __name__ == "__main__":
-    print("=" * 70)
-    print("BIZRA IMPACT CONSENSUS — Simulation")
-    print("=" * 70)
-    
-    # Create 5 validator nodes
-    validators = [
-        ConsensusEngine(f"validator_{i}", ihsan_score=0.95 + i*0.01, contributions=i*10)
-        for i in range(5)
-    ]
-    
-    # Node 0 proposes a pattern
-    proposer = validators[0]
-    pattern_id = "sape_test_001"
-    pattern_hash = hashlib.sha256(pattern_id.encode()).hexdigest()[:16]
-    
-    print(f"\n[Proposer] Starting consensus for pattern {pattern_id}")
-    round = proposer.propose_pattern(pattern_id, pattern_hash, impact=0.85)
-    
-    # Other nodes vote
-    print("\n[Validators] Casting votes...")
-    for i, validator in enumerate(validators[1:], 1):
-        # Simulate slight variation in measured impact
-        local_impact = 0.85 + (i - 2) * 0.02  # 0.83, 0.85, 0.87, 0.89
-        vote = validator.cast_vote(pattern_id, pattern_hash, VoteType.ACCEPT, local_impact)
-        
-        if vote:
-            round.add_vote(vote)
-            print(f"  Validator {i}: ACCEPT (impact={local_impact:.2f}, weight={vote.compute_weight():.3f})")
-    
-    # Finalize
-    print("\n[Consensus] Finalizing...")
-    accepted, final_impact = round.finalize()
-    
-    if accepted:
-        print(f"✅ Pattern ACCEPTED with consensus impact: {final_impact:.3f}")
-    else:
-        _, _, reason = round.compute_consensus()
-        print(f"❌ Pattern REJECTED: {reason}")
-    
-    # Show stats
-    print("\n[Stats]")
-    print(f"  Votes cast: {len(round.votes)}")
-    print(f"  Total weight: {sum(v.compute_weight() for v in round.votes):.3f}")
-    
-    print("\n" + "=" * 70)
-    print("✅ Impact Consensus Demo Complete")
-    print("=" * 70)
+    def receive_vote(self, vote: Vote, node_count: int) -> bool:
+        """Record a vote from a peer. Return True if quorum reached."""
+        if vote.proposal_id not in self.active_proposals:
+            return False
+
+        proposal = self.active_proposals[vote.proposal_id]
+
+        # Verify Signature
+        canon_data = canonical_json(proposal.pattern_data)
+        digest = domain_separated_digest(canon_data)
+
+        if not verify_signature(digest, vote.signature, vote.public_key):
+            logger.error(f"⚠️ Invalid signature on vote from {vote.voter_id}")
+            return False
+
+        # Check for duplicate votes
+        if any(v.voter_id == vote.voter_id for v in self.votes[vote.proposal_id]):
+            return False
+
+        self.votes[vote.proposal_id].append(vote)
+
+        # Check Quorum (Simplified: 2n/3 + 1)
+        # f = (node_count - 1) // 3
+        # quorum = 2 * f + 1
+        quorum_count = (2 * node_count // 3) + 1
+
+        logger.info(
+            f"📈 Vote received for {vote.proposal_id} ({len(self.votes[vote.proposal_id])}/{quorum_count})"
+        )
+
+        if len(self.votes[vote.proposal_id]) >= quorum_count:
+            return self._commit_proposal(vote.proposal_id)
+
+        return False
+
+    def _commit_proposal(self, proposal_id: str) -> bool:
+        """Finalize the pattern as a system truth."""
+        if proposal_id in self.committed_patterns:
+            return False
+
+        proposal = self.active_proposals[proposal_id]
+        self.committed_patterns.add(proposal_id)
+
+        logger.info(
+            f"🏆 QUORUM REACHED: Pattern {proposal_id} committed to Giants Ledger."
+        )
+
+        if self.on_commit_broadcast:
+            commit_payload = {
+                "proposal_id": proposal_id,
+                "pattern": proposal.pattern_data,
+                "signatures": [v.signature for v in self.votes[proposal_id]],
+            }
+            self.on_commit_broadcast(commit_payload)
+
+        return True

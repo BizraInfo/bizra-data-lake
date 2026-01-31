@@ -1,18 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir /s /b /ad \"*marketing*\")",
-      "Bash(dir:*)",
-      "Bash(where /r C: marketing)",
-      "Bash(winget search:*)",
-      "Bash(powershell.exe -Command \"winget search R.Project\")",
-      "Bash(powershell.exe -Command \"choco --version\")",
-      "Bash(powershell.exe -Command \"choco install r.project -y\")",
-      "Bash(powershell.exe -Command \"Remove-Item -Force ''C:\\\\ProgramData\\\\chocolatey\\\\lib\\\\04c82b2f2290fadb3c708714cec6e3d5610dd12f'' -ErrorAction SilentlyContinue; choco install r.project -y --force\")",
-      "Bash(where Rscript:*)",
-      "Bash(powershell.exe -Command \"Invoke-WebRequest -Uri ''https://cran.r-project.org/bin/windows/base/R-4.5.2-win.exe'' -OutFile ''C:\\\\BIZRA-DATA-LAKE\\\\R-4.5.2-win.exe'' -UseBasicParsing\")",
-      "Bash(powershell.exe:*)",
-      "Bash(C:/R/R-4.5.2/bin/Rscript.exe:*)"
+      "Bash(mount:*)",
+      "Bash(python3:*)"
     ]
   }
 }

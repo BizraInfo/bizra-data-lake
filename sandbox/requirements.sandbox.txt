@@ -1,0 +1,11 @@
+# BIZRA Sandbox Requirements
+# Minimal dependencies for isolated inference
+
+# Core - llama.cpp Python bindings (installed separately with optional CUDA)
+# llama-cpp-python
+
+# Utilities
+typing-extensions>=4.0.0
+
+# Note: No network libraries allowed in sandbox
+# Note: No filesystem libraries except standard pathlib

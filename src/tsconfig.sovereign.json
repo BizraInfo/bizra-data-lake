@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../dist/sovereign",
+    "rootDir": "./core/sovereign",
+    "composite": true
+  },
+  "include": [
+    "core/sovereign/**/*.ts"
+  ],
+  "references": []
+}
