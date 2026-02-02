@@ -3,8 +3,8 @@
 Status: **Active**
 
 ## 1) Immediate Actions (No Risk)
-- [ ] Create fast, read‑only **index** of core docs + code entry points
-- [ ] Build **doc lineage map** (Genesis → Architecture → SAPE → Sovereign)
+- [x] Create fast, read‑only **index** of core docs + code entry points
+- [x] Build **doc lineage map** (Genesis → Architecture → SAPE → Sovereign)
 - [ ] Create **data lake glossary** (key terms, acronyms, conventions)
 
 ## 2) Security & Footprint Reduction (Requires approval)
@@ -21,8 +21,8 @@ Status: **Active**
 - [ ] Confirm elite/living/iaas suites remain green
 
 ## 4) Knowledge Base System (Core)
-- [ ] Implement **lightweight manifest** per folder (README + index)
-- [ ] Build **SNR‑aware retrieval** for 00_GENESIS + 02_PROCESSED
+- [x] Implement **lightweight manifest** per folder (README + index)
+- [x] Build **SNR‑aware retrieval** for 00_GENESIS + 02_PROCESSED (ingest gates + query trace)
 - [ ] Create **hypergraph entry points** (graph seeds)
 
 ---
