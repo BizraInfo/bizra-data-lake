@@ -1,0 +1,180 @@
+{
+  "Artificial Intelligence": [
+    "TAXONOMY.md"
+  ],
+  "Biology": [
+    "TAXONOMY.md"
+  ],
+  "Computer Science": [
+    "TAXONOMY.md"
+  ],
+  "DDAGI": [
+    "ARCHITECTURE.md",
+    "README.md",
+    "RECOVERY-REPORT.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "TAXONOMY.md"
+  ],
+  "Economics": [
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "TAXONOMY.md"
+  ],
+  "Engineering": [
+    "02_PROCESSED/text/research_papers/IEEE_TKDE_2025_LLM_Data_Prep.md",
+    "ARCHITECTURE.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "TAXONOMY.md"
+  ],
+  "Finance": [
+    "TAXONOMY.md"
+  ],
+  "Hypergraph": [
+    "ARCHITECTURE.md",
+    "ARCHITECTURE_LOCK.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "HYPERGRAPH-RAG-VISION.md",
+    "RECOVERY-REPORT.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md"
+  ],
+  "Ihsān": [
+    "ARCHITECTURE.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "NODE0_GENESIS_COVENANT.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "TAXONOMY.md"
+  ],
+  "Information Theory": [
+    "TAXONOMY.md"
+  ],
+  "KEP": [
+    "AGENT_ROLES.md",
+    "ARCHITECTURE.md",
+    "ARCHITECTURE_LOCK.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "CLAUDE.md",
+    "IMPLEMENTATION-COMPLETE.md",
+    "QUICK-START.md",
+    "README.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SLEEPING-BEAST-STATUS.md",
+    "TAXONOMY.md"
+  ],
+  "Legal": [
+    "TAXONOMY.md"
+  ],
+  "Linguistics": [
+    "TAXONOMY.md"
+  ],
+  "Marketing": [
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "TAXONOMY.md"
+  ],
+  "Mathematics": [
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "TAXONOMY.md"
+  ],
+  "Network Science": [
+    "TAXONOMY.md"
+  ],
+  "Operations": [
+    "ARCHITECTURE.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "IMPLEMENTATION-COMPLETE.md",
+    "QUICK-START.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "TAXONOMY.md"
+  ],
+  "PAT": [
+    "02_PROCESSED/text/research_papers/IEEE_TKDE_2025_LLM_Data_Prep.md",
+    "AGENT_ROLES.md",
+    "ARCHITECTURE.md",
+    "ARCHITECTURE_LOCK.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "CLAUDE.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "HYPERGRAPH-RAG-VISION.md",
+    "IMPLEMENTATION-COMPLETE.md",
+    "NODE0_GENESIS_COVENANT.md",
+    "QUICK-START.md",
+    "RECOVERY-REPORT.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "SLEEPING-BEAST-STATUS.md",
+    "TAXONOMY.md"
+  ],
+  "POI": [
+    "ARCHITECTURE.md",
+    "ARCHITECTURE_LOCK.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "HYPERGRAPH-RAG-VISION.md",
+    "NODE0_GENESIS_COVENANT.md",
+    "README.md",
+    "RECOVERY-REPORT.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SLEEPING-BEAST-STATUS.md",
+    "TAXONOMY.md"
+  ],
+  "Philosophy": [
+    "FINAL_OMNI_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "TAXONOMY.md"
+  ],
+  "Physics": [
+    "TAXONOMY.md"
+  ],
+  "Product Development": [
+    "TAXONOMY.md"
+  ],
+  "Psychology": [
+    "TAXONOMY.md"
+  ],
+  "Research": [
+    "ARCHITECTURE.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "TAXONOMY.md"
+  ],
+  "SAPE": [
+    "ARCHITECTURE.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "HYPERGRAPH-RAG-VISION.md",
+    "IMPLEMENTATION-COMPLETE.md",
+    "QUICK-START.md",
+    "RECOVERY-REPORT.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "SLEEPING-BEAST-STATUS.md"
+  ],
+  "SNR": [
+    "ARCHITECTURE.md",
+    "BIZRA-ECOSYSTEM-MAP.md",
+    "CLAUDE.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "README.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "TAXONOMY.md"
+  ],
+  "Sovereign": [
+    "02_PROCESSED/text/research_papers/IEEE_TKDE_2025_LLM_Data_Prep.md",
+    "ARCHITECTURE_LOCK.md",
+    "CLAUDE.md",
+    "FINAL_OMNI_BLUEPRINT.md",
+    "IMPLEMENTATION-COMPLETE.md",
+    "NODE0_GENESIS_COVENANT.md",
+    "README.md",
+    "SAPE_COMPREHENSIVE_ANALYSIS.md",
+    "SAPE_SOVEREIGN_REVIEW_2026.md",
+    "SLEEPING-BEAST-STATUS.md"
+  ]
+}
