@@ -247,10 +247,23 @@ class VectorEngine:
             if save_every and save_every > 0:
                 print(f"⚡ Generating text embeddings on {self.device} (chunked save every {save_every})...")
                 part = 0
+                import concurrent.futures
                 for i in range(0, len(df_chunks), save_every):
                     batch_df = df_chunks.iloc[i:i+save_every].copy()
                     texts = batch_df['chunk_text'].tolist()
-                    embeddings = self.text_model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True)
+                    # Parallel embedding (CPU) when GPU unavailable
+                    if self.device == "cpu" and len(texts) > BATCH_SIZE:
+                        def enc(chunk):
+                            return self.text_model.encode(chunk, batch_size=BATCH_SIZE, show_progress_bar=False)
+                        # split into chunks
+                        chunks = [texts[j:j+BATCH_SIZE] for j in range(0, len(texts), BATCH_SIZE)]
+                        embeddings = []
+                        with concurrent.futures.ThreadPoolExecutor() as ex:
+                            for embs in ex.map(enc, chunks):
+                                embeddings.extend(embs)
+                    else:
+                        embeddings = self.text_model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True)
+
                     batch_df['embedding'] = [e.tolist() for e in embeddings]
                     batch_df['embedding_model'] = "all-MiniLM-L6-v2"
                     batch_df['embedding_dim'] = TEXT_EMBEDDING_DIM

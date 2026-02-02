@@ -109,15 +109,24 @@ class QueryResultCache:
         return f"{self._prefix}:{hasher.hexdigest()[:16]}"
     
     def get(self, query: str, params: Optional[Dict] = None) -> Optional[Any]:
-        """Get cached query result."""
+        """Get cached query result (with TTL validation)."""
         key = self._make_key(query, params)
         result = self._engine.get(key)
-        
+
         if result is not None:
+            # TTL validation (cache_ttl_seconds enforced at engine level, double-check here)
+            cached_at = result.get('cached_at') if isinstance(result, dict) else None
+            if cached_at and (time.time() - cached_at) > self._engine._config.cache_ttl_seconds:
+                try:
+                    self._engine.delete(key)
+                except Exception:
+                    pass
+                self._metrics.counter('query_cache_expired', labels={'prefix': self._prefix})
+                return None
             self._metrics.counter('query_cache_hits', labels={'prefix': self._prefix})
         else:
             self._metrics.counter('query_cache_misses', labels={'prefix': self._prefix})
-        
+
         return result
     
     def put(self, query: str, result: Any, params: Optional[Dict] = None) -> None:
