@@ -1,0 +1,53 @@
+{
+  "seeds": [
+    {
+      "id": "seed:genesis-lineage",
+      "title": "Lineage Start",
+      "path": "00_GENESIS/LINEAGE_START.md",
+      "tags": ["genesis", "ihsan", "covenant"],
+      "priority": 1
+    },
+    {
+      "id": "seed:node0-covenant",
+      "title": "Node0 Genesis Covenant",
+      "path": "NODE0_GENESIS_COVENANT.md",
+      "tags": ["genesis", "mission"],
+      "priority": 1
+    },
+    {
+      "id": "seed:architecture",
+      "title": "Data Lake Architecture",
+      "path": "ARCHITECTURE.md",
+      "tags": ["architecture", "pipeline"],
+      "priority": 1
+    },
+    {
+      "id": "seed:sape",
+      "title": "SAPE Implementation Blueprint",
+      "path": "SAPE_IMPLEMENTATION_BLUEPRINT.md",
+      "tags": ["sape", "snr", "gates"],
+      "priority": 1
+    },
+    {
+      "id": "seed:taxonomy",
+      "title": "Knowledge Taxonomy",
+      "path": "TAXONOMY.md",
+      "tags": ["taxonomy", "domains"],
+      "priority": 2
+    },
+    {
+      "id": "seed:ihsan",
+      "title": "Ihsan Constraints",
+      "path": "IHSAN_CONSTRAINTS.yaml",
+      "tags": ["ethics", "gates"],
+      "priority": 1
+    },
+    {
+      "id": "seed:hypergraph-vision",
+      "title": "Hypergraph RAG Vision",
+      "path": "HYPERGRAPH-RAG-VISION.md",
+      "tags": ["retrieval", "graph"],
+      "priority": 2
+    }
+  ]
+}
