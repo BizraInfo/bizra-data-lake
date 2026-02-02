@@ -1,0 +1,3061 @@
+[
+  {
+    "path": "accumulator.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "sys",
+      "threading",
+      "typing"
+    ]
+  },
+  {
+    "path": "accumulator_api.py",
+    "imports": [
+      "accumulator",
+      "datetime",
+      "fastapi",
+      "pydantic",
+      "typing"
+    ]
+  },
+  {
+    "path": "activate_peak.py",
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "logging",
+      "pathlib",
+      "peak_masterpiece",
+      "singularity_query_test",
+      "sys",
+      "time",
+      "tools.knowledge_base_validator"
+    ]
+  },
+  {
+    "path": "activate_urp.py",
+    "imports": [
+      "json",
+      "os",
+      "pathlib",
+      "psutil",
+      "torch"
+    ]
+  },
+  {
+    "path": "aere.py",
+    "imports": [
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "math",
+      "mmap",
+      "os",
+      "pathlib",
+      "struct",
+      "threading",
+      "time",
+      "typing",
+      "zlib"
+    ]
+  },
+  {
+    "path": "agentic_cleaner.py",
+    "imports": [
+      "ast",
+      "bizra_config",
+      "datetime",
+      "httpx",
+      "importlib.util",
+      "json",
+      "logging",
+      "os",
+      "pandas",
+      "pat_engine",
+      "pathlib",
+      "re",
+      "string",
+      "textwrap",
+      "tqdm",
+      "typing",
+      "unicodedata"
+    ]
+  },
+  {
+    "path": "agent_swarm.py",
+    "imports": [
+      "activate_urp",
+      "json",
+      "pathlib",
+      "time",
+      "uuid"
+    ]
+  },
+  {
+    "path": "apex_cognitive_engine.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "asyncio",
+      "bisect",
+      "collections",
+      "concurrent.futures",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "hashlib",
+      "heapq",
+      "io",
+      "json",
+      "logging",
+      "math",
+      "numpy",
+      "operator",
+      "os",
+      "pathlib",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "uuid",
+      "weakref"
+    ]
+  },
+  {
+    "path": "arte_engine.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "dataclasses",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "benchmark_suite.py",
+    "imports": [
+      "arte_engine",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "faiss",
+      "gc",
+      "json",
+      "networkx",
+      "numpy",
+      "pathlib",
+      "platform",
+      "psutil",
+      "pynvml",
+      "sentence_transformers",
+      "statistics",
+      "sys",
+      "time",
+      "torch",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_api.py",
+    "imports": [
+      "asyncio",
+      "bizra_config",
+      "bizra_runtime",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "fastapi",
+      "fastapi.middleware.cors",
+      "fastapi.responses",
+      "json",
+      "logging",
+      "pathlib",
+      "pydantic",
+      "sys",
+      "time",
+      "typing",
+      "uvicorn"
+    ]
+  },
+  {
+    "path": "bizra_command_center.py",
+    "imports": [
+      "arte_engine",
+      "asyncio",
+      "bizra_config",
+      "bizra_resilience",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "metrics_dashboard",
+      "networkx",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "platform",
+      "psutil",
+      "sentence_transformers",
+      "signal",
+      "sys",
+      "threading",
+      "time",
+      "torch",
+      "typing",
+      "validate_system"
+    ]
+  },
+  {
+    "path": "bizra_config.py",
+    "imports": [
+      "dotenv",
+      "os",
+      "pathlib",
+      "sys"
+    ]
+  },
+  {
+    "path": "bizra_errors.py",
+    "imports": [
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "logging",
+      "traceback",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_masterpiece.py",
+    "imports": [
+      "asyncio",
+      "bizra_config",
+      "bizra_orchestrator",
+      "datetime",
+      "logging",
+      "random",
+      "rich",
+      "rich.console",
+      "rich.layout",
+      "rich.live",
+      "rich.markdown",
+      "rich.panel",
+      "rich.progress",
+      "rich.syntax",
+      "rich.table",
+      "rich.tree",
+      "snr_optimizer",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_mcp.py",
+    "imports": [
+      "asyncio",
+      "ecosystem_bridge",
+      "fastmcp",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_nexus.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "argparse",
+      "asyncio",
+      "collections",
+      "concurrent.futures",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "hashlib",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "queue",
+      "sacred_wisdom_engine",
+      "statistics",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "warp_bridge",
+      "weakref"
+    ]
+  },
+  {
+    "path": "bizra_orchestrator.py",
+    "imports": [
+      "arte_engine",
+      "asyncio",
+      "bizra_config",
+      "dataclasses",
+      "discipline_synthesis",
+      "dual_agentic_bridge",
+      "enum",
+      "hypergraph_engine",
+      "json",
+      "kep_bridge",
+      "logging",
+      "multimodal_engine",
+      "numpy",
+      "pandas",
+      "pat_engine",
+      "pathlib",
+      "snr_optimizer",
+      "sovereign_bridge",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_prime.py",
+    "imports": [
+      "arte_engine",
+      "asyncio",
+      "bizra_config",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "local_llm_gateway",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "sovereign_bridge",
+      "sovereign_memory",
+      "typing",
+      "vector_engine"
+    ]
+  },
+  {
+    "path": "bizra_resilience.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "logging",
+      "random",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "bizra_runtime.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "bizra_config",
+      "bizra_orchestrator",
+      "bizra_resilience",
+      "collections",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "dual_agentic_bridge",
+      "enum",
+      "httpx",
+      "json",
+      "logging",
+      "pathlib",
+      "random",
+      "signal",
+      "sys",
+      "threading",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "blocktree.py",
+    "imports": [
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "build-hypergraph.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "datetime",
+      "hashlib",
+      "json",
+      "networkx",
+      "os",
+      "pandas",
+      "pathlib",
+      "re",
+      "tqdm"
+    ]
+  },
+  {
+    "path": "cognitive_awaken.py",
+    "imports": [
+      "bizra_config",
+      "json",
+      "networkx",
+      "pathlib",
+      "random"
+    ]
+  },
+  {
+    "path": "corpus_manager.py",
+    "imports": [
+      "bizra_config",
+      "datetime",
+      "hashlib",
+      "json",
+      "multimodal_engine",
+      "os",
+      "pandas",
+      "pathlib",
+      "tqdm",
+      "typing",
+      "unstructured.partition.auto"
+    ]
+  },
+  {
+    "path": "day2_gpu_bootstrap.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "huggingface_hub",
+      "json",
+      "llama_cpp",
+      "os",
+      "pathlib",
+      "subprocess",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "ddagi_orchestrator.py",
+    "imports": [
+      "activate_urp",
+      "agent_swarm",
+      "arte_engine",
+      "blocktree",
+      "cognitive_awaken",
+      "datetime",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "self_healing",
+      "sys"
+    ]
+  },
+  {
+    "path": "demo_a2a_swarm_3.py",
+    "imports": [
+      "asyncio",
+      "core.a2a.engine",
+      "core.a2a.schema",
+      "core.a2a.transport",
+      "sys"
+    ]
+  },
+  {
+    "path": "demo_a2a_swarm_5.py",
+    "imports": [
+      "asyncio",
+      "core.a2a.engine",
+      "core.a2a.schema",
+      "core.a2a.transport",
+      "sys"
+    ]
+  },
+  {
+    "path": "demo_federation_cluster.py",
+    "imports": [
+      "asyncio",
+      "core.federation.node",
+      "sys"
+    ]
+  },
+  {
+    "path": "demo_multimodal.py",
+    "imports": [
+      "asyncio",
+      "base64",
+      "bizra_config",
+      "bizra_orchestrator",
+      "multimodal_engine",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "demo_pipeline.py",
+    "imports": [
+      "asyncio",
+      "bizra_orchestrator"
+    ]
+  },
+  {
+    "path": "demo_vision_query.py",
+    "imports": [
+      "base64",
+      "httpx",
+      "json",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "discipline_synthesis.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "dataclasses",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "dual_agentic_bridge.py",
+    "imports": [
+      "asyncio",
+      "base64",
+      "bizra_config",
+      "bizra_resilience",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "httpx",
+      "json",
+      "os",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "ecosystem_bridge.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "asyncio",
+      "bizra_orchestrator",
+      "core.pci",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "hyper_loopback",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "peak_masterpiece",
+      "sovereign_apex",
+      "sovereign_bridge",
+      "time",
+      "typing",
+      "ultimate_engine"
+    ]
+  },
+  {
+    "path": "ecosystem_mcp_server.py",
+    "imports": [
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "ecosystem_bridge",
+      "http.server",
+      "json",
+      "logging",
+      "os",
+      "sys",
+      "time",
+      "typing",
+      "ultimate_engine"
+    ]
+  },
+  {
+    "path": "file_type_indexer.py",
+    "imports": [
+      "argparse",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "flywheel.py",
+    "imports": [
+      "accumulator",
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "edge_tts",
+      "enum",
+      "faster_whisper",
+      "hashlib",
+      "httpx",
+      "importlib.util",
+      "json",
+      "os",
+      "pathlib",
+      "queue",
+      "signal",
+      "sys",
+      "tempfile",
+      "threading",
+      "time",
+      "torch",
+      "typing"
+    ]
+  },
+  {
+    "path": "flywheel_api.py",
+    "imports": [
+      "asyncio",
+      "contextlib",
+      "dataclasses",
+      "fastapi",
+      "fastapi.responses",
+      "flywheel",
+      "os",
+      "pydantic",
+      "typing",
+      "uvicorn"
+    ]
+  },
+  {
+    "path": "generate-embeddings.py",
+    "imports": [
+      "bizra_config",
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "sentence_transformers",
+      "time",
+      "torch",
+      "tqdm"
+    ]
+  },
+  {
+    "path": "generate_golden_gems.py",
+    "imports": [
+      "collections",
+      "datetime",
+      "hashlib",
+      "json",
+      "pandas",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "genesis_identity.py",
+    "imports": [
+      "datetime",
+      "hashlib",
+      "json",
+      "pathlib",
+      "platform",
+      "subprocess",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "genesis_sync.py",
+    "imports": [
+      "datetime",
+      "hashlib",
+      "json",
+      "pathlib",
+      "shutil",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "hypergraph_engine.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "dataclasses",
+      "enum",
+      "faiss",
+      "hashlib",
+      "json",
+      "logging",
+      "networkx",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "sentence_transformers",
+      "torch",
+      "typing",
+      "warp_bridge"
+    ]
+  },
+  {
+    "path": "hyper_loopback.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "base64",
+      "collections",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "math",
+      "numpy",
+      "os",
+      "pathlib",
+      "pickle",
+      "re",
+      "sqlite3",
+      "struct",
+      "typing",
+      "zlib"
+    ]
+  },
+  {
+    "path": "kep_bridge.py",
+    "imports": [
+      "asyncio",
+      "bizra_config",
+      "dataclasses",
+      "discipline_synthesis",
+      "enum",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "langextract_engine.py",
+    "imports": [
+      "bizra_config",
+      "json",
+      "langextract",
+      "pandas",
+      "pathlib",
+      "tqdm"
+    ]
+  },
+  {
+    "path": "local_llm_gateway.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "json",
+      "re",
+      "time",
+      "typing",
+      "urllib.error",
+      "urllib.request"
+    ]
+  },
+  {
+    "path": "marketing_bridge.py",
+    "imports": [
+      "argparse",
+      "asyncio",
+      "bizra_config",
+      "bizra_orchestrator",
+      "dataclasses",
+      "enum",
+      "http.server",
+      "json",
+      "logging",
+      "pathlib",
+      "ssl",
+      "threading",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "mcp_gateway.py",
+    "imports": [
+      "contextlib",
+      "datetime",
+      "fastapi",
+      "fastapi.middleware.cors",
+      "hashlib",
+      "httpx",
+      "json",
+      "logging",
+      "os",
+      "pydantic",
+      "redis.asyncio",
+      "typing",
+      "uvicorn"
+    ]
+  },
+  {
+    "path": "mcp_lake_bridge.py",
+    "imports": [
+      "argparse",
+      "bizra_config",
+      "http.server",
+      "io",
+      "json",
+      "os",
+      "pathlib",
+      "platform",
+      "query_graph",
+      "ssl",
+      "subprocess",
+      "sys"
+    ]
+  },
+  {
+    "path": "metrics_dashboard.py",
+    "imports": [
+      "collections",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "os",
+      "pathlib",
+      "random",
+      "statistics",
+      "threading",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "mine_hidden_patterns.py",
+    "imports": [
+      "bizra_config",
+      "datetime",
+      "matplotlib.pyplot",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "re"
+    ]
+  },
+  {
+    "path": "multimodal_engine.py",
+    "imports": [
+      "PIL",
+      "anthropic",
+      "asyncio",
+      "base64",
+      "bizra_config",
+      "cv2",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "httpx",
+      "json",
+      "numpy",
+      "os",
+      "pathlib",
+      "pytesseract",
+      "subprocess",
+      "torch",
+      "transformers",
+      "typing",
+      "whisper"
+    ]
+  },
+  {
+    "path": "node0_indexer.py",
+    "imports": [
+      "datetime",
+      "hashlib",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "platform",
+      "subprocess",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "nucleus.py",
+    "imports": [
+      "accumulator",
+      "argparse",
+      "asyncio",
+      "bizra_prime",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "os",
+      "pathlib",
+      "signal",
+      "socket",
+      "subprocess",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "urllib.error",
+      "urllib.request"
+    ]
+  },
+  {
+    "path": "omega_blueprint.py",
+    "imports": [
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "parallel_ingest.py",
+    "imports": [
+      "collections",
+      "concurrent.futures",
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "random",
+      "re",
+      "sys",
+      "time",
+      "traceback",
+      "typing"
+    ]
+  },
+  {
+    "path": "pat_engine.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "base64",
+      "bizra_config",
+      "bizra_resilience",
+      "dataclasses",
+      "dual_agentic_bridge",
+      "enum",
+      "hashlib",
+      "httpx",
+      "json",
+      "logging",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "peak_masterpiece.py",
+    "imports": [
+      "arte_engine",
+      "asyncio",
+      "core.federation.node",
+      "logging",
+      "numpy",
+      "pathlib",
+      "random",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "peak_mcp_server.py",
+    "imports": [
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "http.server",
+      "io",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "peak_masterpiece",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "pinnacle_engine.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "golden_gems.algebraic_effects",
+      "golden_gems.colimit_interface",
+      "golden_gems.context_router",
+      "golden_gems.ihsan_circuit",
+      "golden_gems.temporal_memory",
+      "golden_gems.unified_stalk",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "poi_dashboard.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "datetime",
+      "json",
+      "pandas",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "query_graph.py",
+    "imports": [
+      "argparse",
+      "bizra_config",
+      "json",
+      "networkx",
+      "pandas",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "query_sovereign.py",
+    "imports": [
+      "bizra_config",
+      "pandas"
+    ]
+  },
+  {
+    "path": "quran_lake_ingest.py",
+    "imports": [
+      "bizra_config",
+      "json",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "time",
+      "tqdm",
+      "urllib.request",
+      "vector_engine"
+    ]
+  },
+  {
+    "path": "sacred_wisdom_engine.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "faiss",
+      "hashlib",
+      "json",
+      "logging",
+      "networkx",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "re",
+      "sentence_transformers",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "search_quran.py",
+    "imports": [
+      "bizra_config",
+      "numpy",
+      "pandas",
+      "vector_engine"
+    ]
+  },
+  {
+    "path": "self_healing.py",
+    "imports": [
+      "logging",
+      "os",
+      "pathlib",
+      "subprocess"
+    ]
+  },
+  {
+    "path": "semantic_gem_miner.py",
+    "imports": [
+      "collections",
+      "datetime",
+      "hashlib",
+      "json",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "show_hidden.py",
+    "imports": [
+      "sacred_wisdom_engine"
+    ]
+  },
+  {
+    "path": "singularity_query_test.py",
+    "imports": [
+      "datetime",
+      "heapq",
+      "json",
+      "numpy",
+      "pathlib",
+      "sentence_transformers",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "snr_optimizer.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "logging",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "snr_optimizer_advanced.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "dataclasses",
+      "enum",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "sovereign_actuator.py",
+    "imports": [
+      "bizra_config",
+      "bizra_prime",
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "sys",
+      "time",
+      "watchdog.events",
+      "watchdog.observers"
+    ]
+  },
+  {
+    "path": "sovereign_apex.py",
+    "imports": [
+      "__future__",
+      "collections",
+      "concurrent.futures",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "faiss",
+      "hashlib",
+      "json",
+      "logging",
+      "math",
+      "networkx",
+      "networkx.algorithms",
+      "numpy",
+      "os",
+      "pathlib",
+      "re",
+      "sentence_transformers",
+      "sys",
+      "threading",
+      "time",
+      "torch",
+      "typing"
+    ]
+  },
+  {
+    "path": "sovereign_brain.py",
+    "imports": [
+      "__future__",
+      "collections",
+      "concurrent.futures",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "sovereign_apex",
+      "sovereign_nexus",
+      "sys",
+      "threading",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "sovereign_bridge.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "asyncio",
+      "bizra_config",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "pathlib",
+      "sovereign_engine",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "sovereign_engine.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "argparse",
+      "asyncio",
+      "bisect",
+      "collections",
+      "concurrent.futures",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "hashlib",
+      "heapq",
+      "io",
+      "json",
+      "logging",
+      "math",
+      "mmap",
+      "os",
+      "pathlib",
+      "pickle",
+      "random",
+      "struct",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "uuid",
+      "weakref"
+    ]
+  },
+  {
+    "path": "sovereign_masterpiece.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "asyncio",
+      "collections",
+      "concurrent.futures",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "hashlib",
+      "heapq",
+      "json",
+      "logging",
+      "math",
+      "numpy",
+      "os",
+      "pathlib",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "uuid",
+      "weakref"
+    ]
+  },
+  {
+    "path": "sovereign_mcp_server.py",
+    "imports": [
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "http.server",
+      "io",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "sovereign_brain",
+      "ssl",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "sovereign_memory.py",
+    "imports": [
+      "bizra_config",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "json",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "sqlite3",
+      "typing"
+    ]
+  },
+  {
+    "path": "sovereign_nexus.py",
+    "imports": [
+      "__future__",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "math",
+      "os",
+      "pathlib",
+      "re",
+      "sys",
+      "threading",
+      "typing"
+    ]
+  },
+  {
+    "path": "test_a2a.py",
+    "imports": [
+      "asyncio",
+      "core.a2a.engine",
+      "core.a2a.schema",
+      "core.a2a.tasks",
+      "core.a2a.transport",
+      "sys"
+    ]
+  },
+  {
+    "path": "test_bizra_nexus.py",
+    "imports": [
+      "asyncio",
+      "bizra_nexus",
+      "concurrent.futures",
+      "dataclasses",
+      "os",
+      "pathlib",
+      "pytest",
+      "statistics",
+      "sys",
+      "threading",
+      "time",
+      "typing",
+      "unittest.mock"
+    ]
+  },
+  {
+    "path": "test_federation.py",
+    "imports": [
+      "core.federation.consensus",
+      "core.federation.gossip",
+      "core.federation.node",
+      "core.federation.propagation",
+      "hashlib",
+      "json",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "test_flywheel.py",
+    "imports": [
+      "asyncio",
+      "edge_tts",
+      "faster_whisper",
+      "flywheel",
+      "httpx",
+      "os",
+      "sys"
+    ]
+  },
+  {
+    "path": "test_flywheel_validation.py",
+    "imports": [
+      "asyncio",
+      "core.inference",
+      "core.inference.gateway",
+      "core.pci.epigenome",
+      "datetime",
+      "json",
+      "pathlib",
+      "sys",
+      "tempfile",
+      "time"
+    ]
+  },
+  {
+    "path": "test_full_system_integration.py",
+    "imports": [
+      "asyncio",
+      "ecosystem_bridge",
+      "hashlib",
+      "hyper_loopback",
+      "json",
+      "numpy",
+      "os",
+      "pathlib",
+      "peak_masterpiece",
+      "pytest",
+      "sys",
+      "time",
+      "typing",
+      "ultimate_engine"
+    ]
+  },
+  {
+    "path": "test_inference_integration.py",
+    "imports": [
+      "asyncio",
+      "core.inference.gateway",
+      "datetime",
+      "os",
+      "pathlib",
+      "sys",
+      "time"
+    ]
+  },
+  {
+    "path": "test_mcp_deploy.py",
+    "imports": [
+      "httpx",
+      "json",
+      "subprocess",
+      "threading",
+      "time",
+      "traceback"
+    ]
+  },
+  {
+    "path": "test_pci.py",
+    "imports": [
+      "core.pci",
+      "os",
+      "sys"
+    ]
+  },
+  {
+    "path": "test_peak_masterpiece.py",
+    "imports": [
+      "logging",
+      "peak_masterpiece",
+      "sys",
+      "time"
+    ]
+  },
+  {
+    "path": "test_snr_optimization.py",
+    "imports": [
+      "asyncio",
+      "bizra_config",
+      "bizra_orchestrator",
+      "logging",
+      "pathlib",
+      "snr_optimizer",
+      "time"
+    ]
+  },
+  {
+    "path": "test_ultimate_engine.py",
+    "imports": [
+      "asyncio",
+      "hashlib",
+      "json",
+      "numpy",
+      "pytest",
+      "typing",
+      "ultimate_engine"
+    ]
+  },
+  {
+    "path": "test_warp_integration.py",
+    "imports": [
+      "bizra_config",
+      "bizra_nexus",
+      "hypergraph_engine",
+      "pathlib",
+      "sys",
+      "time",
+      "warp_bridge"
+    ]
+  },
+  {
+    "path": "ultimate_engine.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "argparse",
+      "asyncio",
+      "collections",
+      "concurrent.futures",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "functools",
+      "hashlib",
+      "heapq",
+      "json",
+      "logging",
+      "math",
+      "numpy",
+      "os",
+      "pathlib",
+      "re",
+      "sys",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "unified_model_router.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "base64",
+      "dataclasses",
+      "enum",
+      "httpx",
+      "json",
+      "logging",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "unify_sovereign_domain.py",
+    "imports": [
+      "bizra_config",
+      "datetime",
+      "hashlib",
+      "mimetypes",
+      "os",
+      "pandas",
+      "pathlib",
+      "tqdm"
+    ]
+  },
+  {
+    "path": "validate_system.py",
+    "imports": [
+      "arte_engine",
+      "bizra_config",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "metrics_dashboard",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "self_healing",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "vector_engine.py",
+    "imports": [
+      "PIL",
+      "bizra_config",
+      "hashlib",
+      "json",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "sentence_transformers",
+      "torch",
+      "tqdm",
+      "transformers",
+      "typing"
+    ]
+  },
+  {
+    "path": "verify_falsification.py",
+    "imports": [
+      "collections",
+      "difflib",
+      "json",
+      "pandas",
+      "pathlib"
+    ]
+  },
+  {
+    "path": "verify_genesis_readiness.py",
+    "imports": [
+      "argparse",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "json",
+      "os",
+      "pathlib",
+      "re",
+      "subprocess",
+      "sys",
+      "typing",
+      "yaml"
+    ]
+  },
+  {
+    "path": "warp_bridge.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "bizra_config",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "sys",
+      "time",
+      "torch",
+      "typing",
+      "warp.engine.config",
+      "warp.indexer",
+      "warp.infra",
+      "warp.searcher"
+    ]
+  },
+  {
+    "path": "warp_retriever.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "enum",
+      "huggingface_hub",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "sentence_transformers",
+      "time",
+      "torch",
+      "transformers",
+      "typing"
+    ]
+  },
+  {
+    "path": "wisdom_ingestion.py",
+    "imports": [
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "json",
+      "logging",
+      "pathlib",
+      "re",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/living_ecosystem.py",
+    "imports": [
+      "asyncio",
+      "core.agentic.agent",
+      "core.agentic.orchestrator",
+      "core.autopoiesis.loop",
+      "core.integration.constants",
+      "core.living_memory.core",
+      "core.living_memory.healing",
+      "core.living_memory.proactive",
+      "core.pat.bridge",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "logging",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/__init__.py",
+    "imports": []
+  },
+  {
+    "path": "core/a2a/engine.py",
+    "imports": [
+      "asyncio",
+      "core.pci",
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "json",
+      "schema",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/a2a/schema.py",
+    "imports": [
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/a2a/tasks.py",
+    "imports": [
+      "asyncio",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "schema",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/a2a/transport.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "json",
+      "schema",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/a2a/__init__.py",
+    "imports": [
+      "engine",
+      "schema",
+      "tasks",
+      "transport"
+    ]
+  },
+  {
+    "path": "core/agentic/agent.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/agentic/orchestrator.py",
+    "imports": [
+      "asyncio",
+      "core.agentic.agent",
+      "core.integration.constants",
+      "core.living_memory.core",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/agentic/__init__.py",
+    "imports": [
+      "agent",
+      "optimizer",
+      "orchestrator",
+      "proactive"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/emergence.py",
+    "imports": [
+      "core.autopoiesis.genome",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "math",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/evolution.py",
+    "imports": [
+      "asyncio",
+      "core.autopoiesis",
+      "core.autopoiesis.fitness",
+      "core.autopoiesis.genome",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "random",
+      "statistics",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/fitness.py",
+    "imports": [
+      "core.autopoiesis",
+      "core.autopoiesis.genome",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "math",
+      "random",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/genome.py",
+    "imports": [
+      "copy",
+      "core.autopoiesis",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "random",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/loop.py",
+    "imports": [
+      "asyncio",
+      "core.autopoiesis",
+      "core.autopoiesis.emergence",
+      "core.autopoiesis.evolution",
+      "core.autopoiesis.fitness",
+      "core.autopoiesis.genome",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/autopoiesis/__init__.py",
+    "imports": [
+      "core.integration.constants",
+      "emergence",
+      "evolution",
+      "fitness",
+      "genome",
+      "loop"
+    ]
+  },
+  {
+    "path": "core/elite/pipeline.py",
+    "imports": [
+      "asyncio",
+      "core.elite.quality_gates",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/elite/quality_gates.py",
+    "imports": [
+      "asyncio",
+      "core.elite",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/elite/risk.py",
+    "imports": [
+      "asyncio",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/elite/sape.py",
+    "imports": [
+      "asyncio",
+      "core.elite",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/elite/__init__.py",
+    "imports": [
+      "ihsan",
+      "metrics",
+      "pipeline",
+      "quality_gates",
+      "risk",
+      "sape"
+    ]
+  },
+  {
+    "path": "core/federation/consensus.py",
+    "imports": [
+      "core.integration.constants",
+      "core.pci.crypto",
+      "dataclasses",
+      "logging",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/federation/gossip.py",
+    "imports": [
+      "asyncio",
+      "core.pci",
+      "core.pci.crypto",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "math",
+      "random",
+      "sys",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/federation/node.py",
+    "imports": [
+      "asyncio",
+      "consensus",
+      "core.pci",
+      "gossip",
+      "json",
+      "logging",
+      "propagation",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/federation/propagation.py",
+    "imports": [
+      "core.pci",
+      "core.pci.crypto",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "os",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/federation/protocol.py",
+    "imports": [
+      "core.pci",
+      "core.pci.gates",
+      "cryptography.hazmat.primitives",
+      "cryptography.hazmat.primitives.asymmetric",
+      "dataclasses",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/federation/__init__.py",
+    "imports": [
+      "consensus",
+      "gossip",
+      "node",
+      "propagation",
+      "protocol"
+    ]
+  },
+  {
+    "path": "core/iaas/deduplication.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "hashlib",
+      "logging",
+      "math",
+      "numpy",
+      "struct",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/filtering.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "logging",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/framework.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "logging",
+      "math",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/mixer.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "enum",
+      "logging",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/sanitization.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "hashlib",
+      "logging",
+      "re",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/selection.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "logging",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/snr_v2.py",
+    "imports": [
+      "collections",
+      "core.integration.constants",
+      "dataclasses",
+      "enum",
+      "logging",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/synthesis.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "enum",
+      "hashlib",
+      "logging",
+      "numpy",
+      "random",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/iaas/__init__.py",
+    "imports": [
+      "deduplication",
+      "filtering",
+      "framework",
+      "mixer",
+      "sanitization",
+      "selection",
+      "snr_v2",
+      "synthesis"
+    ]
+  },
+  {
+    "path": "core/inference/gateway.py",
+    "imports": [
+      "abc",
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "llama_cpp",
+      "lmstudio_backend",
+      "os",
+      "pathlib",
+      "threading",
+      "time",
+      "typing",
+      "urllib.error",
+      "urllib.request"
+    ]
+  },
+  {
+    "path": "core/inference/lmstudio_backend.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "enum",
+      "httpx",
+      "json",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/inference/selector.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/inference/unified.py",
+    "imports": [
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "gateway",
+      "hashlib",
+      "json",
+      "pathlib",
+      "selector",
+      "threading",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/inference/__init__.py",
+    "imports": [
+      "backends",
+      "gateway",
+      "lmstudio_backend",
+      "selector",
+      "unified"
+    ]
+  },
+  {
+    "path": "core/integration/bridge.py",
+    "imports": [
+      "asyncio",
+      "constants",
+      "core.a2a.engine",
+      "core.a2a.schema",
+      "core.a2a.transport",
+      "core.federation.node",
+      "core.federation.propagation",
+      "core.pci",
+      "core.pci.gates",
+      "dataclasses",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/integration/constants.py",
+    "imports": [
+      "pathlib",
+      "re",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/integration/__init__.py",
+    "imports": [
+      "bridge",
+      "constants"
+    ]
+  },
+  {
+    "path": "core/living_memory/core.py",
+    "imports": [
+      "asyncio",
+      "core.integration.constants",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "numpy",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/living_memory/healing.py",
+    "imports": [
+      "asyncio",
+      "core.integration.constants",
+      "core.living_memory.core",
+      "dataclasses",
+      "datetime",
+      "logging",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/living_memory/proactive.py",
+    "imports": [
+      "asyncio",
+      "core.living_memory.core",
+      "dataclasses",
+      "datetime",
+      "logging",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/living_memory/__init__.py",
+    "imports": [
+      "consolidation",
+      "core",
+      "graph",
+      "healing",
+      "proactive"
+    ]
+  },
+  {
+    "path": "core/pat/bridge.py",
+    "imports": [
+      "asyncio",
+      "core.integration.constants",
+      "core.living_memory.core",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "json",
+      "logging",
+      "typing",
+      "uuid",
+      "websockets"
+    ]
+  },
+  {
+    "path": "core/pat/__init__.py",
+    "imports": [
+      "bridge",
+      "channels"
+    ]
+  },
+  {
+    "path": "core/pci/crypto.py",
+    "imports": [
+      "base64",
+      "blake3",
+      "cryptography.exceptions",
+      "cryptography.hazmat.primitives",
+      "cryptography.hazmat.primitives.asymmetric",
+      "json",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/pci/envelope.py",
+    "imports": [
+      "crypto",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "reject_codes",
+      "secrets",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/pci/epigenome.py",
+    "imports": [
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "hmac",
+      "json",
+      "pathlib",
+      "threading",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/pci/gates.py",
+    "imports": [
+      "core.integration.constants",
+      "crypto",
+      "dataclasses",
+      "datetime",
+      "envelope",
+      "hmac",
+      "reject_codes",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/pci/reject_codes.py",
+    "imports": [
+      "enum"
+    ]
+  },
+  {
+    "path": "core/pci/types.py",
+    "imports": []
+  },
+  {
+    "path": "core/pci/__init__.py",
+    "imports": [
+      "crypto",
+      "envelope",
+      "gates",
+      "reject_codes",
+      "types"
+    ]
+  },
+  {
+    "path": "core/personaplex/engine.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "guardians",
+      "huggingface_hub",
+      "logging",
+      "moshi.models",
+      "moshi.models.lm",
+      "moshi.offline",
+      "numpy",
+      "pathlib",
+      "sentencepiece",
+      "subprocess",
+      "tempfile",
+      "time",
+      "typing",
+      "voices"
+    ]
+  },
+  {
+    "path": "core/personaplex/guardians.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "math",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/personaplex/voices.py",
+    "imports": [
+      "dataclasses",
+      "enum",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/personaplex/__init__.py",
+    "imports": [
+      "engine",
+      "guardians",
+      "voices"
+    ]
+  },
+  {
+    "path": "core/sdpo/__init__.py",
+    "imports": [
+      "agents",
+      "core.integration.constants",
+      "cosmos",
+      "discovery",
+      "optimization",
+      "training",
+      "validation"
+    ]
+  },
+  {
+    "path": "core/sovereign/api.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "fastapi",
+      "fastapi.middleware.cors",
+      "fastapi.responses",
+      "functools",
+      "json",
+      "logging",
+      "os",
+      "pydantic",
+      "runtime",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/autonomy.py",
+    "imports": [
+      "asyncio",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/bridge.py",
+    "imports": [
+      "__future__",
+      "abc",
+      "aiohttp",
+      "asyncio",
+      "core.a2a",
+      "core.federation",
+      "core.vault",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "os",
+      "pathlib",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/capability_card.py",
+    "imports": [
+      "core.integration.constants",
+      "cryptography.hazmat.primitives",
+      "cryptography.hazmat.primitives.asymmetric.ed25519",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "json",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/doctor.py",
+    "imports": [
+      "argparse",
+      "asyncio",
+      "core.integration.constants",
+      "dataclasses",
+      "enum",
+      "json",
+      "llama_cpp",
+      "pathlib",
+      "sys",
+      "torch",
+      "typing",
+      "urllib.error",
+      "urllib.request"
+    ]
+  },
+  {
+    "path": "core/sovereign/engine.py",
+    "imports": [
+      "__future__",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "graph_reasoner",
+      "guardian_council",
+      "json",
+      "logging",
+      "orchestrator",
+      "snr_maximizer",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/graph_reasoner.py",
+    "imports": [
+      "collections",
+      "core.integration.constants",
+      "dataclasses",
+      "enum",
+      "heapq",
+      "logging",
+      "math",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/guardian_council.py",
+    "imports": [
+      "__future__",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "hashlib",
+      "math",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/integration.py",
+    "imports": [
+      "asyncio",
+      "bizra_omega",
+      "blake3",
+      "capability_card",
+      "collections",
+      "core.federation.node",
+      "core.iaas.snr_v2",
+      "core.integration.constants",
+      "core.pci",
+      "core.pci.crypto",
+      "dataclasses",
+      "enum",
+      "hashlib",
+      "json",
+      "logging",
+      "math",
+      "model_license_gate",
+      "os",
+      "pathlib",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/launch.py",
+    "imports": [
+      "__future__",
+      "api",
+      "argparse",
+      "asyncio",
+      "bridge",
+      "datetime",
+      "logging",
+      "metrics",
+      "os",
+      "pathlib",
+      "runtime",
+      "signal",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/metrics.py",
+    "imports": [
+      "__future__",
+      "asyncio",
+      "autonomy",
+      "collections",
+      "dataclasses",
+      "datetime",
+      "logging",
+      "os",
+      "platform",
+      "psutil",
+      "subprocess",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/model_license_gate.py",
+    "imports": [
+      "capability_card",
+      "dataclasses",
+      "enum",
+      "logging",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/orchestrator.py",
+    "imports": [
+      "__future__",
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "heapq",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/runtime.py",
+    "imports": [
+      "__future__",
+      "argparse",
+      "asyncio",
+      "autonomy",
+      "contextlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "graph_reasoner",
+      "guardian_council",
+      "hashlib",
+      "json",
+      "logging",
+      "pathlib",
+      "signal",
+      "snr_maximizer",
+      "sys",
+      "time",
+      "typing",
+      "uuid"
+    ]
+  },
+  {
+    "path": "core/sovereign/rust_bridge.py",
+    "imports": [
+      "__future__",
+      "bizra",
+      "blake3",
+      "hashlib",
+      "logging",
+      "os",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/self_healing.py",
+    "imports": [
+      "asyncio",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "logging",
+      "re",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/snr_maximizer.py",
+    "imports": [
+      "collections",
+      "dataclasses",
+      "enum",
+      "logging",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/__init__.py",
+    "imports": [
+      "api",
+      "autonomy",
+      "bridge",
+      "capability_card",
+      "engine",
+      "graph_reasoner",
+      "guardian_council",
+      "integration",
+      "launch",
+      "logging",
+      "metrics",
+      "model_license_gate",
+      "numpy",
+      "orchestrator",
+      "runtime",
+      "snr_maximizer"
+    ]
+  },
+  {
+    "path": "core/sovereign/__main__.py",
+    "imports": [
+      "api",
+      "argparse",
+      "asyncio",
+      "doctor",
+      "json",
+      "runtime",
+      "sys",
+      "tests.test_integration",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/vault/vault.py",
+    "imports": [
+      "base64",
+      "cryptography.fernet",
+      "cryptography.hazmat.primitives",
+      "cryptography.hazmat.primitives.kdf.pbkdf2",
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "json",
+      "os",
+      "pathlib",
+      "secrets",
+      "shutil",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/vault/__init__.py",
+    "imports": [
+      "vault"
+    ]
+  },
+  {
+    "path": "core/inference/backends/base.py",
+    "imports": [
+      "abc",
+      "enum",
+      "pathlib",
+      "sys",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/inference/backends/llamacpp.py",
+    "imports": [
+      "base",
+      "gateway",
+      "llama_cpp",
+      "pathlib",
+      "threading",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/inference/backends/ollama.py",
+    "imports": [
+      "base",
+      "gateway",
+      "json",
+      "typing",
+      "urllib.error",
+      "urllib.request"
+    ]
+  },
+  {
+    "path": "core/inference/backends/__init__.py",
+    "imports": [
+      "base",
+      "llamacpp",
+      "ollama"
+    ]
+  },
+  {
+    "path": "core/sdpo/agents/pat_sdpo_learning.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "core.integration.constants",
+      "core.sdpo",
+      "core.sdpo.optimization",
+      "dataclasses",
+      "datetime",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/agents/__init__.py",
+    "imports": [
+      "pat_sdpo_learning"
+    ]
+  },
+  {
+    "path": "core/sdpo/cosmos/sdpo_sape_fusion.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "core.integration.constants",
+      "core.sdpo",
+      "core.sdpo.optimization",
+      "dataclasses",
+      "datetime",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/cosmos/__init__.py",
+    "imports": [
+      "sdpo_sape_fusion"
+    ]
+  },
+  {
+    "path": "core/sdpo/discovery/sdpo_test_time.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "core.integration.constants",
+      "core.sdpo",
+      "core.sdpo.optimization",
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "math",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/discovery/__init__.py",
+    "imports": [
+      "sdpo_test_time"
+    ]
+  },
+  {
+    "path": "core/sdpo/optimization/sdpo_advantage_calculator.py",
+    "imports": [
+      "abc",
+      "core.integration.constants",
+      "core.sdpo",
+      "dataclasses",
+      "math",
+      "numpy",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/optimization/__init__.py",
+    "imports": [
+      "sdpo_advantage_calculator"
+    ]
+  },
+  {
+    "path": "core/sdpo/training/bizra_sdpo_trainer.py",
+    "imports": [
+      "abc",
+      "asyncio",
+      "core.integration.constants",
+      "core.sdpo",
+      "core.sdpo.optimization",
+      "dataclasses",
+      "datetime",
+      "json",
+      "pathlib",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/training/__init__.py",
+    "imports": [
+      "bizra_sdpo_trainer"
+    ]
+  },
+  {
+    "path": "core/sdpo/validation/sdpo_ab_testing.py",
+    "imports": [
+      "core.integration.constants",
+      "core.sdpo",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "math",
+      "random",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sdpo/validation/__init__.py",
+    "imports": [
+      "sdpo_ab_testing"
+    ]
+  },
+  {
+    "path": "core/sovereign/tests/test_integration.py",
+    "imports": [
+      "asyncio",
+      "core.sovereign.api",
+      "core.sovereign.autonomy",
+      "core.sovereign.runtime",
+      "dataclasses",
+      "datetime",
+      "sys",
+      "time",
+      "typing"
+    ]
+  },
+  {
+    "path": "core/sovereign/tests/__init__.py",
+    "imports": [
+      "test_integration"
+    ]
+  }
+]
