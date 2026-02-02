@@ -24,6 +24,9 @@
     "bizra_resilience.py",
     "core/sovereign/*"
   ],
+  "docs/knowledge/uers_overview.md": [
+    "core/uers/*"
+  ],
   "pipelines": {
     "ingestion": ["DataLakeProcessor.ps1", "corpus_manager.py"],
     "embedding": ["vector_engine.py"],
