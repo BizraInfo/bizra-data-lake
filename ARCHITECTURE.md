@@ -1,4 +1,5 @@
 # BIZRA Data Lake Architecture v2.0
+**Doc Status:** PARTIAL (core pipeline verified; federation networking aspirational — see AUDIT_REPORT.md)
 ## Comprehensive Technical Documentation
 
 **Document:** BIZRA-ARCH-002

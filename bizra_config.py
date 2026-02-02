@@ -105,7 +105,7 @@ GPU_ENABLED = True
 
 # --- REASONING PARAMETERS ---
 SNR_THRESHOLD = 0.85     # Minimum acceptable signal quality
-IHSAN_CONSTRAINT = 0.95  # Target for Excellence (Exceeding expectations)
+IHSAN_CONSTRAINT = 0.99  # Target for Excellence (Exceeding expectations)
 ARTE_TENSION_LIMIT = 0.75
 
 # --- EXTRACTION CONFIG (LANGEXTRACT) ---

@@ -25,6 +25,8 @@
 
 ## The Purpose
 
+**Doc Status:** OPERATIONAL (verified pipeline + metrics; see AUDIT_REPORT.md)
+
 The BIZRA Data Lake is the **persistent memory** of the Genesis Node.
 
 While compute runs in WSL (`bizra-genesis`), knowledge lives here. Both are organs of the same organism.

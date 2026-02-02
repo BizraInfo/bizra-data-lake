@@ -1,0 +1,34 @@
+{
+  "README.md": [
+    "DataLakeProcessor.ps1",
+    "corpus_manager.py",
+    "vector_engine.py",
+    "hypergraph_engine.py"
+  ],
+  "ARCHITECTURE.md": [
+    "bizra_config.py",
+    "corpus_manager.py",
+    "vector_engine.py",
+    "arte_engine.py",
+    "hypergraph_engine.py",
+    "pat_engine.py",
+    "kep_bridge.py",
+    "warp_bridge.py"
+  ],
+  "IHSAN_CONSTRAINTS.yaml": [
+    "arte_engine.py",
+    "core/iaas/ingest_gates.py"
+  ],
+  "AUDIT_REPORT.md": [
+    "core/federation/*",
+    "bizra_resilience.py",
+    "core/sovereign/*"
+  ],
+  "pipelines": {
+    "ingestion": ["DataLakeProcessor.ps1", "corpus_manager.py"],
+    "embedding": ["vector_engine.py"],
+    "graph_index": ["hypergraph_engine.py"],
+    "reasoning": ["arte_engine.py"],
+    "orchestration": ["bizra_orchestrator.py", "bizra_nexus.py"]
+  }
+}
