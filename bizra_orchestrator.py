@@ -74,6 +74,13 @@ except ImportError:
     SOVEREIGN_BRIDGE_AVAILABLE = False
     SovereignBridge = None
 
+# Metrics
+try:
+    from metrics_dashboard import record_latency
+    METRICS_AVAILABLE = True
+except Exception:
+    METRICS_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -352,12 +359,18 @@ class BIZRAOrchestrator:
         reasoning_trace.append(f"Complexity: {query.complexity.value}")
 
         # Fast cache path (Sovereign Bridge)
+        cache_params = {
+            "complexity": query.complexity.value,
+            "snr_threshold": query.snr_threshold,
+            "max_tokens": query.max_tokens,
+        }
         if self.sovereign_bridge_enabled and self.sovereign_bridge:
             try:
-                cached = await self.sovereign_bridge.query_cache.get(query.text)
+                cached = self.sovereign_bridge.query_cache.get(query.text, cache_params)
                 if cached:
                     reasoning_trace.append("Cache hit: SovereignBridge query cache")
-                    return cached
+                    # cached may be wrapped
+                    return cached.get("result", cached)
             except Exception:
                 pass
 
@@ -414,6 +427,11 @@ class BIZRAOrchestrator:
                 }
                 for r in context.results[:3]
             ]
+            if METRICS_AVAILABLE:
+                try:
+                    record_latency(execution_time * 1000, "query_processing")
+                except Exception:
+                    pass
             return BIZRAResponse(
                 query=query.text,
                 answer="Low-signal result set. Provide a clearer query or add higher-quality sources.",
@@ -613,7 +631,14 @@ class BIZRAOrchestrator:
         # Cache response
         if self.sovereign_bridge_enabled and self.sovereign_bridge:
             try:
-                await self.sovereign_bridge.query_cache.set(query.text, response)
+                self.sovereign_bridge.query_cache.put(query.text, response, cache_params)
+            except Exception:
+                pass
+
+        # Record latency
+        if METRICS_AVAILABLE:
+            try:
+                record_latency(execution_time * 1000, "query_processing")
             except Exception:
                 pass
 
