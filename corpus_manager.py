@@ -15,7 +15,8 @@ from typing import Optional, Dict, Any
 from bizra_config import (
     PROCESSED_PATH, CORPUS_TABLE_PATH,
     VISION_ENABLED, AUDIO_ENABLED,
-    IMAGE_EXTENSIONS, AUDIO_EXTENSIONS
+    IMAGE_EXTENSIONS, AUDIO_EXTENSIONS,
+    LOG_DIR, INGEST_GATE_ENFORCE
 )
 from unstructured.partition.auto import partition
 
@@ -50,6 +51,7 @@ class CorpusManager:
         self.processed_dir = PROCESSED_PATH
         self.output_path = CORPUS_TABLE_PATH
         self.index_data = []
+        self.ingest_log_path = LOG_DIR / "ingest_gate.jsonl"
 
         # Multi-modal support
         self.multimodal_enabled = enable_multimodal and MULTIMODAL_AVAILABLE
@@ -67,7 +69,10 @@ class CorpusManager:
             print("   Multi-Modal Engine: Disabled")
 
         # Ingestion gate (optional)
-        self.ingest_gate = IngestGate(enforce=enforce_ingest_gate) if INGEST_GATE_AVAILABLE else None
+        if INGEST_GATE_AVAILABLE:
+            self.ingest_gate = IngestGate(enforce=(enforce_ingest_gate or INGEST_GATE_ENFORCE))
+        else:
+            self.ingest_gate = None
         if self.ingest_gate:
             mode = "ENFORCE" if self.ingest_gate.enforce else "SOFT"
             print(f"   Ingest Gate: Enabled ({mode})")
@@ -302,6 +307,15 @@ class CorpusManager:
                         md = {}
                     md["ingest_gate"] = verdict
                     meta["metadata_json"] = json.dumps(md)
+
+                    # Log verdicts
+                    try:
+                        self.ingest_log_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(self.ingest_log_path, "a", encoding="utf-8") as logf:
+                            logf.write(json.dumps({"file": meta.get("file_path"), **verdict}) + "\n")
+                    except Exception:
+                        pass
+
                     if self.ingest_gate.enforce and not verdict.get("passed", False):
                         gate_rejects += 1
                         continue

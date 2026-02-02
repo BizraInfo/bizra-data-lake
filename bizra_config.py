@@ -108,6 +108,9 @@ SNR_THRESHOLD = 0.85     # Minimum acceptable signal quality
 IHSAN_CONSTRAINT = 0.99  # Target for Excellence (Exceeding expectations)
 ARTE_TENSION_LIMIT = 0.75
 
+# --- INGESTION GATE ---
+INGEST_GATE_ENFORCE = os.getenv("BIZRA_INGEST_GATE_ENFORCE", "false").lower() in {"1","true","yes"}
+
 # --- EXTRACTION CONFIG (LANGEXTRACT) ---
 EXTRACTION_MODEL = "gemini-1.5-flash"
 EXTRACTION_PROMPT = """Extract core concepts, technical tools, and project decisions. 
