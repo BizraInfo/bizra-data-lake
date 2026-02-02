@@ -370,16 +370,66 @@ class BIZRAOrchestrator:
         retrieval_mode = self._select_retrieval_mode(query.complexity)
         reasoning_trace.append(f"Retrieval mode: {retrieval_mode.value}")
 
+        # Adaptive top‑k for performance
+        if query.complexity == QueryComplexity.SIMPLE:
+            k = 3
+        elif query.complexity == QueryComplexity.MODERATE:
+            k = 5
+        elif query.complexity == QueryComplexity.RESEARCH:
+            k = 12
+        else:
+            k = 10
+
         context = self.hypergraph.retrieve(
             query=query.text,
             mode=retrieval_mode,
-            k=10 if query.complexity in [QueryComplexity.COMPLEX, QueryComplexity.RESEARCH] else 5,
+            k=k,
             max_hops=3 if query.complexity == QueryComplexity.RESEARCH else 2,
             snr_threshold=query.snr_threshold,
             max_tokens=query.max_tokens
         )
 
         reasoning_trace.extend(context.reasoning_trace)
+
+        # Early exit: low SNR retrieval (avoid expensive stages)
+        if context.snr_score < query.snr_threshold:
+            reasoning_trace.append(f"Early exit: retrieval SNR {context.snr_score:.3f} below threshold {query.snr_threshold}")
+            execution_time = time.time() - start_time
+            sources = [
+                {
+                    "chunk_id": r.chunk_id,
+                    "doc_id": r.doc_id,
+                    "score": r.score,
+                    "text_preview": r.text[:200] + "..." if len(r.text) > 200 else r.text
+                }
+                for r in context.results[:3]
+            ]
+            return BIZRAResponse(
+                query=query.text,
+                answer="Low-signal result set. Provide a clearer query or add higher-quality sources.",
+                snr_score=context.snr_score,
+                ihsan_achieved=False,
+                sources=sources if query.require_sources else [],
+                reasoning_trace=reasoning_trace,
+                tension_analysis={"type": "low_signal", "symbolic_coverage": 0, "neural_coverage": 0},
+                execution_time=round(execution_time, 3),
+                query_trace={
+                    "snr": context.snr_score,
+                    "ihsan": False,
+                    "symbolic_coverage": 0,
+                    "neural_coverage": 0,
+                    "tension_type": "low_signal",
+                    "giants_protocol": {},
+                    "sources": sources if query.require_sources else []
+                },
+                metadata={
+                    "complexity": query.complexity.value,
+                    "retrieval_mode": retrieval_mode.value,
+                    "chunks_retrieved": len(context.results),
+                    "tokens_estimated": context.total_tokens_est,
+                    "early_exit": True
+                }
+            )
 
         # Step 3: ARTE Symbolic-Neural Resolution
         symbolic_facts = self._extract_symbolic_facts(context)
