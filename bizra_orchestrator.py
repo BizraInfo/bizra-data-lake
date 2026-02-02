@@ -124,6 +124,7 @@ class BIZRAResponse:
     reasoning_trace: List[str]
     tension_analysis: Dict
     execution_time: float
+    query_trace: Dict = field(default_factory=dict)  # Provenance + SNR + grounding
     # KEP fields
     synergies: List[Dict] = field(default_factory=list)
     compounds: List[Dict] = field(default_factory=list)
@@ -507,6 +508,16 @@ class BIZRAOrchestrator:
             except Exception as e:
                 logger.warning(f"Discipline coverage unavailable: {e}")
 
+        query_trace = {
+            "snr": final_snr,
+            "ihsan": ihsan_achieved,
+            "symbolic_coverage": arte_result['tension_analysis'].get('symbolic_coverage'),
+            "neural_coverage": arte_result['tension_analysis'].get('neural_coverage'),
+            "tension_type": arte_result['tension_analysis'].get('type'),
+            "giants_protocol": arte_result.get('giants_protocol', {}),
+            "sources": sources if query.require_sources else []
+        }
+
         return BIZRAResponse(
             query=query.text,
             answer=answer,
@@ -516,6 +527,7 @@ class BIZRAOrchestrator:
             reasoning_trace=reasoning_trace,
             tension_analysis=arte_result['tension_analysis'],
             execution_time=round(execution_time, 3),
+            query_trace=query_trace,
             synergies=synergies_data,
             compounds=compounds_data,
             learning_boost=learning_boost,

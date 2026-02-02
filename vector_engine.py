@@ -2,6 +2,7 @@
 # Context-aware chunking + Multi-Modal Embeddings
 # Engineering Excellence: Source-specific strategies + CLIP for vision
 
+import os
 import pandas as pd
 import torch
 import hashlib
@@ -15,7 +16,7 @@ from typing import Optional, List, Dict, Any, Union
 from bizra_config import (
     CORPUS_TABLE_PATH, CHUNKS_TABLE_PATH, BATCH_SIZE, MAX_SEQ_LENGTH,
     VISION_ENABLED, CLIP_MODEL, CLIP_EMBEDDING_DIM, TEXT_EMBEDDING_DIM,
-    IMAGE_EMBEDDINGS_PATH, IMAGE_EXTENSIONS
+    IMAGE_EMBEDDINGS_PATH, IMAGE_EXTENSIONS, INDEXED_PATH, CHECKPOINT_PATH
 )
 
 # Optional CLIP imports
@@ -239,17 +240,37 @@ class VectorEngine:
         if all_chunks:
             df_chunks = pd.DataFrame(all_chunks)
 
-            print(f"⚡ Generating text embeddings on {self.device}...")
-            texts = df_chunks['chunk_text'].tolist()
-            embeddings = self.text_model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True)
+            # Chunked indexing + checkpointing to avoid OOM/SIGKILL
+            save_every = int(os.getenv("BIZRA_TEXT_SAVE_EVERY", "0"))
+            parts_dir = INDEXED_PATH / "embeddings" / "text_chunks"
+            parts_dir.mkdir(parents=True, exist_ok=True)
+            if save_every and save_every > 0:
+                print(f"⚡ Generating text embeddings on {self.device} (chunked save every {save_every})...")
+                part = 0
+                for i in range(0, len(df_chunks), save_every):
+                    batch_df = df_chunks.iloc[i:i+save_every].copy()
+                    texts = batch_df['chunk_text'].tolist()
+                    embeddings = self.text_model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True)
+                    batch_df['embedding'] = [e.tolist() for e in embeddings]
+                    batch_df['embedding_model'] = "all-MiniLM-L6-v2"
+                    batch_df['embedding_dim'] = TEXT_EMBEDDING_DIM
+                    part_path = parts_dir / f"part-{part:05d}.parquet"
+                    batch_df.to_parquet(part_path, index=False)
+                    part += 1
+                    CHECKPOINT_PATH.write_text(json.dumps({"last_index": i, "part": part}), encoding="utf-8")
+                print(f"✅ Text Chunks saved (parts): {parts_dir}")
+            else:
+                print(f"⚡ Generating text embeddings on {self.device}...")
+                texts = df_chunks['chunk_text'].tolist()
+                embeddings = self.text_model.encode(texts, batch_size=BATCH_SIZE, show_progress_bar=True)
 
-            # Store as list of floats for Parquet compatibility
-            df_chunks['embedding'] = [e.tolist() for e in embeddings]
-            df_chunks['embedding_model'] = "all-MiniLM-L6-v2"
-            df_chunks['embedding_dim'] = TEXT_EMBEDDING_DIM
+                # Store as list of floats for Parquet compatibility
+                df_chunks['embedding'] = [e.tolist() for e in embeddings]
+                df_chunks['embedding_model'] = "all-MiniLM-L6-v2"
+                df_chunks['embedding_dim'] = TEXT_EMBEDDING_DIM
 
-            df_chunks.to_parquet(CHUNKS_TABLE_PATH, index=False)
-            print(f"✅ Text Chunks saved: {CHUNKS_TABLE_PATH} ({len(df_chunks)} chunks)")
+                df_chunks.to_parquet(CHUNKS_TABLE_PATH, index=False)
+                print(f"✅ Text Chunks saved: {CHUNKS_TABLE_PATH} ({len(df_chunks)} chunks)")
 
         # Process images with CLIP
         if include_images and self.enable_vision and image_docs:
