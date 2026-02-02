@@ -5,6 +5,7 @@
 ---
 
 ## 1) Canonical Entry Points (Read First)
+- `00_GENESIS/LINEAGE_START.md` — origin seed + covenantal lineage
 - `NODE0_GENESIS_COVENANT.md` — mission & covenant
 - `ARCHITECTURE.md` — system architecture v2.0
 - `HYPERGRAPH-RAG-VISION.md` — retrieval vision
