@@ -65,6 +65,7 @@
 2. Generate **Module Index** (top‑level imports, dependency graph)
 3. Create **Doc Cross‑Reference** (topics ↔ files)
 4. Attach **SNR + Ihsān gating** to all new ingestion pipelines
+5. Track execution in `OPERATIONS_QUEUE.md` + `INDEXING_PLAN.md`
 
 ---
 
