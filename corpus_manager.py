@@ -26,6 +26,13 @@ try:
 except ImportError:
     MULTIMODAL_AVAILABLE = False
 
+# Optional ingestion gate
+try:
+    from core.iaas.ingest_gates import IngestGate
+    INGEST_GATE_AVAILABLE = True
+except Exception:
+    INGEST_GATE_AVAILABLE = False
+
 class CorpusManager:
     """
     BIZRA Corpus Manager v2.0
@@ -38,7 +45,7 @@ class CorpusManager:
     - Audio: MP3, WAV, FLAC, etc. (Whisper transcription)
     """
 
-    def __init__(self, enable_multimodal: bool = True):
+    def __init__(self, enable_multimodal: bool = True, enforce_ingest_gate: bool = False):
         print("🏛️ Initializing BIZRA Corpus Manager v2.0")
         self.processed_dir = PROCESSED_PATH
         self.output_path = CORPUS_TABLE_PATH
@@ -58,6 +65,12 @@ class CorpusManager:
                 self.multimodal_enabled = False
         else:
             print("   Multi-Modal Engine: Disabled")
+
+        # Ingestion gate (optional)
+        self.ingest_gate = IngestGate(enforce=enforce_ingest_gate) if INGEST_GATE_AVAILABLE else None
+        if self.ingest_gate:
+            mode = "ENFORCE" if self.ingest_gate.enforce else "SOFT"
+            print(f"   Ingest Gate: Enabled ({mode})")
 
     def _is_image_file(self, path: Path) -> bool:
         """Check if file is a supported image format."""
@@ -275,10 +288,24 @@ class CorpusManager:
 
         # Track modality counts
         modality_counts = {"text": 0, "code": 0, "image": 0, "audio": 0}
+        gate_rejects = 0
 
         for f in tqdm(files, desc="Canonizing Corpus"):
             meta = self.get_file_metadata(f)
             if meta:
+                # Optional SNR + Ihsān gate
+                if self.ingest_gate:
+                    verdict = self.ingest_gate.evaluate(meta)
+                    try:
+                        md = json.loads(meta.get("metadata_json") or "{}")
+                    except Exception:
+                        md = {}
+                    md["ingest_gate"] = verdict
+                    meta["metadata_json"] = json.dumps(md)
+                    if self.ingest_gate.enforce and not verdict.get("passed", False):
+                        gate_rejects += 1
+                        continue
+
                 self.index_data.append(meta)
                 modality = meta.get("modality", "text")
                 modality_counts[modality] = modality_counts.get(modality, 0) + 1
@@ -289,6 +316,8 @@ class CorpusManager:
 
         print(f"\n✅ Corpus Table saved: {self.output_path}")
         print(f"   Total documents: {len(df)}")
+        if self.ingest_gate and self.ingest_gate.enforce:
+            print(f"   Gate rejects: {gate_rejects}")
         print(f"   By modality:")
         for modality, count in modality_counts.items():
             if count > 0:
