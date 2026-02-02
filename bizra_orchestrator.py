@@ -351,6 +351,16 @@ class BIZRAOrchestrator:
         reasoning_trace.append(f"Query: {query.text}")
         reasoning_trace.append(f"Complexity: {query.complexity.value}")
 
+        # Fast cache path (Sovereign Bridge)
+        if self.sovereign_bridge_enabled and self.sovereign_bridge:
+            try:
+                cached = await self.sovereign_bridge.query_cache.get(query.text)
+                if cached:
+                    reasoning_trace.append("Cache hit: SovereignBridge query cache")
+                    return cached
+            except Exception:
+                pass
+
         # Step 2: Multi-modal preprocessing
         if query.image_path and query.enable_vision and self.multimodal_enabled:
             image_analysis, similar_images = await self._process_image_query(
@@ -568,7 +578,7 @@ class BIZRAOrchestrator:
             "sources": sources if query.require_sources else []
         }
 
-        return BIZRAResponse(
+        response = BIZRAResponse(
             query=query.text,
             answer=answer,
             snr_score=final_snr,
@@ -599,6 +609,15 @@ class BIZRAOrchestrator:
                 "audio_used": "audio" in modalities_used
             }
         )
+
+        # Cache response
+        if self.sovereign_bridge_enabled and self.sovereign_bridge:
+            try:
+                await self.sovereign_bridge.query_cache.set(query.text, response)
+            except Exception:
+                pass
+
+        return response
 
     def _select_retrieval_mode(self, complexity: QueryComplexity) -> RetrievalMode:
         """Select retrieval mode based on query complexity."""

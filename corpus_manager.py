@@ -365,3 +365,58 @@ if __name__ == "__main__":
     stats = manager.get_stats()
     for key, value in stats.items():
         print(f"  {key}: {value}")
+
+
+    def build_corpus_parallel(self, workers: int = 4):
+        """Parallel corpus build (folder-level batching)."""
+        print(f"🔍 Parallel crawling with {workers} workers...")
+        files = [f for f in self.processed_dir.rglob('*') if f.is_file()]
+        if not files:
+            print("⚠️ No files to process.")
+            return
+
+        import concurrent.futures
+        modality_counts = {"text": 0, "code": 0, "image": 0, "audio": 0}
+        gate_rejects = 0
+
+        def process_file(f):
+            return self.get_file_metadata(f)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            for meta in ex.map(process_file, files):
+                if not meta:
+                    continue
+                if self.ingest_gate:
+                    verdict = self.ingest_gate.evaluate(meta)
+                    try:
+                        md = json.loads(meta.get("metadata_json") or "{}")
+                    except Exception:
+                        md = {}
+                    md["ingest_gate"] = verdict
+                    meta["metadata_json"] = json.dumps(md)
+                    try:
+                        self.ingest_log_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(self.ingest_log_path, "a", encoding="utf-8") as logf:
+                            logf.write(json.dumps({"file": meta.get("file_path"), **verdict}) + "\n")
+                    except Exception:
+                        pass
+                    if self.ingest_gate.enforce and not verdict.get("passed", False):
+                        gate_rejects += 1
+                        continue
+
+                self.index_data.append(meta)
+                modality = meta.get("modality", "text")
+                modality_counts[modality] = modality_counts.get(modality, 0) + 1
+
+        df = pd.DataFrame(self.index_data)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(self.output_path, index=False)
+
+        print(f"\n✅ Corpus Table saved: {self.output_path}")
+        print(f"   Total documents: {len(df)}")
+        if self.ingest_gate and self.ingest_gate.enforce:
+            print(f"   Gate rejects: {gate_rejects}")
+        print(f"   By modality:")
+        for modality, count in modality_counts.items():
+            if count > 0:
+                print(f"     - {modality}: {count}")
