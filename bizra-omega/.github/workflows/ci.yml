@@ -1,0 +1,140 @@
+# BIZRA Omega CI Pipeline
+# Runs on every push and pull request
+#
+# Genesis Hash: a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b
+
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # FATE Gate thresholds
+  BIZRA_IHSAN_THRESHOLD: 0.95
+  BIZRA_SNR_THRESHOLD: 0.85
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Build and Test
+  # ═══════════════════════════════════════════════════════════════════════════
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Build workspace
+        run: cargo build --workspace --release
+
+      - name: Run tests
+        run: cargo test --workspace
+
+      - name: Test Resource Pool Genesis
+        run: |
+          cargo test -p bizra-resourcepool --release
+          echo "Resource Pool: ✓ All tests passed"
+
+      - name: Test Telescript Bridge
+        run: |
+          cargo test -p bizra-telescript --release
+          echo "Telescript Bridge: ✓ All tests passed"
+
+      - name: Test Proof Space
+        run: |
+          cargo test -p bizra-proofspace --release
+          echo "Proof Space: ✓ All tests passed"
+
+      - name: Build Genesis binary
+        run: |
+          cargo build --release --bin node0-genesis
+          echo "Genesis binary: ✓ Built successfully"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Security Audit
+  # ═══════════════════════════════════════════════════════════════════════════
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Docker Build
+  # ═══════════════════════════════════════════════════════════════════════════
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: bizra:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Release (on tag)
+  # ═══════════════════════════════════════════════════════════════════════════
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, security, docker]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binaries
+        run: |
+          cargo build --release -p bizra-installer -p bizra-api
+          mkdir -p artifacts
+          cp target/release/bizra artifacts/
+          cp target/release/bizra-api artifacts/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/bizra
+            artifacts/bizra-api
+          generate_release_notes: true
