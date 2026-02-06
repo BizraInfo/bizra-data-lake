@@ -2,7 +2,39 @@
   "permissions": {
     "allow": [
       "Bash(mount:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "WebSearch",
+      "Bash(npx claude-flow sparc run memory-manager \"Organize BIZRA Genesis knowledge: MoMo personal history, architectural evolution, data lake metrics, bounty economy pipeline, and Standing on Giants attributions\")",
+      "Bash(chmod:*)",
+      "Bash(curl:*)",
+      "Bash(source:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/bizra-omega/target/release/bizra:*)",
+      "Bash(npx claude-flow:*)",
+      "Bash(claude-flow swarm:*)",
+      "Bash(claude-flow:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/bizra query:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/bizra voice:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/bizra task list)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/bizra:*)",
+      "Bash(grep:*)",
+      "Bash(export LM_STUDIO_API_KEY=\"sk-lm-GloWyrYZ:dPUtald1hxNPNYaeYZLI\")",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python:*)",
+      "Bash(./.venv/bin/python -m pip install:*)",
+      "Bash(rustc --version:*)",
+      "Bash(/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/pip install:*)",
+      "Bash(.venv-linux/bin/python:*)",
+      "Bash(.venv-linux/bin/pip install:*)",
+      "Bash(du:*)",
+      "Bash(xargs:*)",
+      "Bash(sort:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
