@@ -1,0 +1,30 @@
+[package]
+name = "bizra-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "BIZRA Core — Identity, PCI Protocol, Constitutional Governance"
+
+[features]
+default = []
+parallel = ["rayon"]
+rayon = []
+# Development mode: relaxed thresholds for local testing
+# WARNING: Never enable in production builds
+dev-mode = []
+
+[dependencies]
+ed25519-dalek.workspace = true
+blake3.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+rayon.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }

@@ -1,0 +1,64 @@
+[package]
+name = "bizra-tests"
+version.workspace = true
+edition.workspace = true
+description = "BIZRA End-to-End Integration Tests"
+publish = false
+
+[dependencies]
+bizra-core = { path = "../bizra-core", features = ["dev-mode"] }
+bizra-inference = { path = "../bizra-inference" }
+bizra-federation = { path = "../bizra-federation" }
+bizra-autopoiesis = { path = "../bizra-autopoiesis" }
+
+tokio = { workspace = true, features = ["full", "test-util"] }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+blake3 = "1.5"
+chrono = { version = "0.4", features = ["serde"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+uuid = { version = "1.7", features = ["v4"] }
+
+[dev-dependencies]
+# Property-based testing
+proptest = "1.4"
+proptest-derive = "0.4"
+
+# Mocking and test utilities
+mockall = "0.12"
+tempfile = "3.10"
+tokio-test = "0.4"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[test]]
+name = "e2e"
+path = "tests/e2e.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+[[test]]
+name = "got_properties"
+path = "tests/got_properties.rs"
+
+[[test]]
+name = "federation_security"
+path = "tests/federation_security.rs"
+
+[[test]]
+name = "inference_fallback"
+path = "tests/inference_fallback.rs"
+
+[[bin]]
+name = "bizra-bench"
+path = "benches/performance.rs"
+
+[[bench]]
+name = "perf"
+path = "benches/performance.rs"
+harness = false

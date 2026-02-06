@@ -1,0 +1,65 @@
+[package]
+name = "bizra-proofspace"
+version = "1.0.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "BIZRA Proof Space Validator - Life/death judgments for civilization-grade blocks"
+keywords = ["proof", "validation", "smt", "z3", "sovereignty"]
+categories = ["cryptography", "science"]
+
+[dependencies]
+# Cryptography - workspace inherited
+blake3.workspace = true
+ed25519-dalek = { workspace = true, features = ["serde", "rand_core"] }
+rand.workspace = true
+sha2 = "0.10"
+
+# Serialization - workspace inherited
+serde.workspace = true
+serde_json.workspace = true
+
+# RFC 8785 JCS Canonicalization
+json-canon = "0.1"
+
+# Async - workspace inherited
+tokio.workspace = true
+async-trait.workspace = true
+
+# Error handling - workspace inherited
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Time & Identity - workspace inherited
+chrono.workspace = true
+uuid.workspace = true
+
+# Logging - workspace inherited
+tracing.workspace = true
+
+# Regex for validation
+regex = "1.10"
+
+# Lazy initialization
+once_cell = "1.19"
+
+# Hex encoding
+hex = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[[bin]]
+name = "proofspace-validator"
+path = "src/main.rs"
+
+[features]
+default = []
+# Enable Z3 SMT solver integration
+z3 = []
+# Enable parallel validation
+parallel = ["rayon"]
+
+[dependencies.rayon]
+version = "1.8"
+optional = true

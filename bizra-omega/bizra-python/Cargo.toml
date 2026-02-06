@@ -1,0 +1,21 @@
+[package]
+name = "bizra-python"
+version = "1.0.0"
+edition = "2021"
+description = "BIZRA Python Bindings — PyO3 bridge to Rust core"
+
+[lib]
+name = "bizra"
+crate-type = ["cdylib"]
+
+[dependencies]
+bizra-core = { path = "../bizra-core" }
+bizra-inference = { path = "../bizra-inference" }
+bizra-autopoiesis = { path = "../bizra-autopoiesis" }
+bizra-federation = { path = "../bizra-federation" }
+
+pyo3 = { version = "0.20", features = ["extension-module"] }
+serde_json = "1.0"
+
+[build-dependencies]
+pyo3-build-config = "0.20"

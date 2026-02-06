@@ -1,0 +1,399 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Proactive System — Anticipate, Don't Just React
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# "The best assistant anticipates needs before you articulate them."
+#
+# This system makes the CLI proactive - suggesting actions, preparing context,
+# alerting to opportunities, and learning your patterns.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PROACTIVE MODES
+# ─────────────────────────────────────────────────────────────────────────────────
+modes:
+  # Silent mode - only critical alerts
+  silent:
+    suggestions: false
+    research: false
+    alerts: "critical_only"
+    briefings: false
+
+  # Minimal - alerts and scheduled briefings only
+  minimal:
+    suggestions: false
+    research: false
+    alerts: true
+    briefings: true
+
+  # Balanced - default mode
+  balanced:
+    suggestions: true
+    research: "on_topic"
+    alerts: true
+    briefings: true
+    learning: true
+
+  # Active - fully proactive
+  active:
+    suggestions: true
+    research: true
+    alerts: true
+    briefings: true
+    learning: true
+    predictive: true
+
+# Current mode
+current_mode: "balanced"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CONTEXTUAL AWARENESS
+# ─────────────────────────────────────────────────────────────────────────────────
+context:
+  # What the system tracks to understand your state
+  tracking:
+    - time_of_day
+    - day_of_week
+    - recent_tasks
+    - current_focus
+    - energy_level_estimate
+    - pending_deadlines
+    - calendar_upcoming
+
+  # Contextual adaptations
+  adaptations:
+    morning:
+      condition: "time.hour >= 6 && time.hour < 12"
+      behavior:
+        - briefing: true
+        - suggest_priorities: true
+        - tone: "energizing"
+
+    afternoon:
+      condition: "time.hour >= 12 && time.hour < 17"
+      behavior:
+        - deep_work_protection: true
+        - minimize_interrupts: true
+        - suggest_breaks: "hourly"
+
+    evening:
+      condition: "time.hour >= 17 && time.hour < 22"
+      behavior:
+        - wrap_up_reminders: true
+        - capture_learnings: true
+        - prepare_tomorrow: true
+
+    deep_work:
+      condition: "focus_mode == 'deep'"
+      behavior:
+        - minimal_suggestions: true
+        - batch_notifications: true
+        - guard_focus: true
+
+    transition:
+      condition: "between_tasks"
+      behavior:
+        - suggest_next: true
+        - quick_wins_first: true
+        - energy_check: true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# ANTICIPATION ENGINE
+# ─────────────────────────────────────────────────────────────────────────────────
+anticipation:
+  # Patterns the system learns
+  pattern_learning:
+    enabled: true
+    patterns:
+      - daily_routines
+      - task_preferences
+      - communication_style
+      - decision_patterns
+      - error_patterns
+
+  # Predictive actions
+  predictions:
+    # Suggest based on patterns
+    pattern_based:
+      - trigger: "similar_past_task"
+        action: "suggest_approach"
+        confidence_threshold: 0.8
+
+      - trigger: "recurring_time_activity"
+        action: "prepare_context"
+        look_ahead: "10min"
+
+      - trigger: "common_next_step"
+        action: "preload_resources"
+
+    # Suggest based on goals
+    goal_based:
+      - trigger: "goal_deadline_approaching"
+        action: "suggest_focus"
+        threshold_days: 7
+
+      - trigger: "goal_off_track"
+        action: "suggest_correction"
+        check_frequency: "daily"
+
+      - trigger: "goal_milestone_near"
+        action: "push_to_complete"
+        threshold_percent: 90
+
+    # Suggest based on context
+    context_based:
+      - trigger: "related_topic_mentioned"
+        action: "offer_related_info"
+        from: "memory"
+
+      - trigger: "external_event_relevant"
+        action: "alert_opportunity"
+        sources: ["news", "market", "tech"]
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SUGGESTION ENGINE
+# ─────────────────────────────────────────────────────────────────────────────────
+suggestions:
+  # When to suggest
+  triggers:
+    - condition: "idle > 3min"
+      action: "suggest_next_action"
+      priority: "low"
+
+    - condition: "task_completed"
+      action: "suggest_follow_up"
+      priority: "medium"
+
+    - condition: "error_occurred"
+      action: "suggest_fix"
+      priority: "high"
+
+    - condition: "decision_point"
+      action: "offer_analysis"
+      priority: "medium"
+
+  # How to suggest
+  presentation:
+    style: "subtle"  # subtle | prominent | inline
+    position: "status_bar"  # status_bar | popup | inline
+    dismiss_after: 30  # seconds, 0 = manual
+    max_pending: 3
+
+  # Suggestion types
+  types:
+    quick_win:
+      description: "Fast task that can be completed now"
+      priority_boost: 1.2
+      show_when: "between_tasks"
+
+    next_logical:
+      description: "Natural next step based on context"
+      priority_boost: 1.0
+      show_when: "always"
+
+    goal_aligned:
+      description: "Advances current goals"
+      priority_boost: 1.5
+      show_when: "goal_relevant"
+
+    learning_opportunity:
+      description: "Chance to learn something useful"
+      priority_boost: 0.8
+      show_when: "low_pressure"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# BRIEFINGS
+# ─────────────────────────────────────────────────────────────────────────────────
+briefings:
+  morning:
+    time: "08:00"
+    enabled: true
+    components:
+      - greeting: true
+      - overnight_alerts: true
+      - today_priorities: "top_3"
+      - calendar_preview: true
+      - weather: false  # Can enable if weather API added
+      - motivational: "occasional"  # occasional | always | never
+    delivery: "on_first_interaction"
+
+  evening:
+    time: "20:00"
+    enabled: true
+    components:
+      - day_summary: true
+      - learnings_captured: true
+      - tomorrow_preview: true
+      - gratitude_prompt: "occasional"
+    delivery: "push"
+
+  weekly:
+    day: "Friday"
+    time: "17:00"
+    enabled: true
+    components:
+      - week_accomplishments: true
+      - goal_progress: true
+      - metrics_summary: true
+      - retrospective_prompts: true
+      - next_week_preview: true
+    delivery: "push"
+
+  ad_hoc:
+    triggers:
+      - "major_milestone_reached"
+      - "critical_alert"
+      - "opportunity_detected"
+      - "pattern_change_detected"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# INTELLIGENT ALERTS
+# ─────────────────────────────────────────────────────────────────────────────────
+alerts:
+  # Alert categories
+  categories:
+    critical:
+      examples:
+        - "Security breach detected"
+        - "Service down"
+        - "Data integrity issue"
+      behavior: "interrupt_immediately"
+      sound: true
+
+    warning:
+      examples:
+        - "Deadline in 24h"
+        - "Resource running low"
+        - "Quality threshold approaching"
+      behavior: "prominent_notification"
+      batch: false
+
+    info:
+      examples:
+        - "Task completed by agent"
+        - "Background research done"
+        - "Pattern detected"
+      behavior: "subtle_notification"
+      batch: true
+      batch_interval: "15min"
+
+    opportunity:
+      examples:
+        - "Relevant news article"
+        - "Similar problem solved elsewhere"
+        - "Resource became available"
+      behavior: "suggest_later"
+      store_for: "24h"
+
+  # Smart batching
+  batching:
+    enabled: true
+    rules:
+      - during_deep_work: "batch_all_non_critical"
+      - outside_hours: "batch_all"
+      - high_frequency: "summarize"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# LEARNING & ADAPTATION
+# ─────────────────────────────────────────────────────────────────────────────────
+learning:
+  # What to learn
+  capture:
+    preferences:
+      - "communication_style"
+      - "decision_patterns"
+      - "tool_preferences"
+      - "schedule_patterns"
+
+    corrections:
+      - "when_suggestion_rejected"
+      - "when_output_edited"
+      - "when_approach_changed"
+
+    successes:
+      - "what_worked_well"
+      - "efficient_patterns"
+      - "good_decisions"
+
+  # How to apply learnings
+  application:
+    immediate:
+      - "adjust_suggestions"
+      - "modify_tone"
+      - "update_defaults"
+
+    gradual:
+      - "pattern_recognition"
+      - "workflow_optimization"
+      - "agent_selection"
+
+  # Feedback loops
+  feedback:
+    explicit:
+      - "thumbs_up_down"
+      - "rating_requests"
+      - "periodic_surveys"
+
+    implicit:
+      - "suggestion_acceptance_rate"
+      - "time_spent_on_outputs"
+      - "edit_frequency"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# THINK TANK MODE
+# ─────────────────────────────────────────────────────────────────────────────────
+think_tank:
+  description: |
+    In Think Tank mode, your PAT team operates as your personal board of advisors.
+    They proactively analyze situations, prepare briefings, and offer perspectives
+    without being asked.
+
+  enabled: true
+
+  behaviors:
+    # Strategic thinking
+    strategic:
+      trigger: "major_decision_pending"
+      action: "multi_perspective_analysis"
+      agents: ["strategist", "analyst", "guardian"]
+      output: "advisory_brief"
+
+    # Research support
+    research:
+      trigger: "new_topic_mentioned"
+      action: "background_research"
+      agent: "researcher"
+      depth: "summary"
+      delivery: "ready_when_needed"
+
+    # Quality oversight
+    quality:
+      trigger: "significant_output"
+      action: "quality_review"
+      agent: "reviewer"
+      silent_if_passes: true
+
+    # Risk monitoring
+    risk:
+      trigger: "continuous"
+      action: "risk_scan"
+      agent: "guardian"
+      alert_threshold: 0.7
+
+  # Collaboration patterns
+  collaboration:
+    debate:
+      description: "Agents argue different perspectives"
+      trigger: "complex_decision"
+      participants: 3
+
+    consensus:
+      description: "Agents reach agreement"
+      trigger: "important_conclusion"
+      quorum: 0.67
+
+    specialist:
+      description: "Route to most capable agent"
+      trigger: "domain_specific_task"
+      selection: "capability_match"

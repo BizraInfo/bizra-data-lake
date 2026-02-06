@@ -1,0 +1,48 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+bizra-tests/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Claude flow
+.claude-flow/
+.claude/
+
+# Misc
+*.log
+*.tmp
+.env
+.env.local
+
+# Keep .env.example for reference
+!.env.example
+
+# Sovereign state (generated at runtime)
+sovereign_state/
+
+# Benchmarks
+benches/
+benchmark/
+
+# K8s manifests (not needed in container)
+k8s/

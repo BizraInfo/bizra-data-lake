@@ -1,0 +1,326 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Slash Commands — Quick Actions at Your Fingertips
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Type /<command> in the CLI to execute. Tab completion available.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CORE COMMANDS
+# ─────────────────────────────────────────────────────────────────────────────────
+commands:
+  # ═══ Agent Commands ═══
+  agent:
+    description: "Manage PAT agents"
+    subcommands:
+      list:
+        description: "List all agents and their status"
+        shortcut: "/agents"
+        example: "/agent list"
+      switch:
+        description: "Switch active agent"
+        args: ["agent_name"]
+        shortcut: "/a"
+        example: "/agent switch guardian"
+      status:
+        description: "Show agent detailed status"
+        args: ["agent_name?"]
+        example: "/agent status developer"
+
+  # ═══ Task Commands ═══
+  task:
+    description: "Task management"
+    subcommands:
+      add:
+        description: "Add a new task"
+        args: ["title", "description?"]
+        shortcut: "/t"
+        example: "/task add 'Implement auth' -d 'Add OAuth2 support'"
+        assigns_to: "auto"  # Auto-routes to appropriate agent
+      list:
+        description: "List tasks"
+        args: ["filter?"]
+        example: "/task list pending"
+      done:
+        description: "Mark task complete"
+        args: ["task_id"]
+        example: "/task done 42"
+      delegate:
+        description: "Delegate task to agent"
+        args: ["task_id", "agent_name"]
+        example: "/task delegate 42 developer"
+
+  # ═══ Research Commands ═══
+  research:
+    description: "Research and discovery"
+    shortcut: "/r"
+    agent: "researcher"
+    subcommands:
+      deep:
+        description: "Deep research on topic"
+        args: ["topic"]
+        example: "/research deep 'quantum computing trends'"
+      quick:
+        description: "Quick fact lookup"
+        args: ["query"]
+        example: "/research quick 'Rust async runtime'"
+      paper:
+        description: "Find academic papers"
+        args: ["topic"]
+        example: "/research paper 'transformer architectures'"
+
+  # ═══ Code Commands ═══
+  code:
+    description: "Code operations"
+    shortcut: "/c"
+    agent: "developer"
+    subcommands:
+      implement:
+        description: "Implement a feature"
+        args: ["description"]
+        example: "/code implement 'Add rate limiting middleware'"
+      review:
+        description: "Review code"
+        args: ["file_or_pr"]
+        agent: "reviewer"
+        example: "/code review src/main.rs"
+      debug:
+        description: "Debug an issue"
+        args: ["description"]
+        example: "/code debug 'Memory leak in worker pool'"
+      explain:
+        description: "Explain code"
+        args: ["file_or_snippet"]
+        example: "/code explain src/consensus.rs:42-100"
+
+  # ═══ Analysis Commands ═══
+  analyze:
+    description: "Data analysis"
+    shortcut: "/an"
+    agent: "analyst"
+    subcommands:
+      data:
+        description: "Analyze dataset"
+        args: ["path_or_query"]
+        example: "/analyze data '04_GOLD/metrics.parquet'"
+      trend:
+        description: "Trend analysis"
+        args: ["topic"]
+        example: "/analyze trend 'user growth last 30 days'"
+      compare:
+        description: "Compare datasets/periods"
+        args: ["a", "b"]
+        example: "/analyze compare Q1 Q2"
+
+  # ═══ Strategy Commands ═══
+  strategy:
+    description: "Strategic planning"
+    shortcut: "/s"
+    agent: "strategist"
+    subcommands:
+      plan:
+        description: "Create a plan"
+        args: ["objective"]
+        example: "/strategy plan 'Launch v2.0'"
+      assess:
+        description: "Risk assessment"
+        args: ["scenario"]
+        example: "/strategy assess 'Enter new market'"
+      roadmap:
+        description: "Generate roadmap"
+        args: ["timeframe"]
+        example: "/strategy roadmap Q2-2026"
+
+  # ═══ Execute Commands ═══
+  exec:
+    description: "Execute actions"
+    shortcut: "/x"
+    agent: "executor"
+    requires_guardian: true
+    subcommands:
+      run:
+        description: "Run command/script"
+        args: ["command"]
+        example: "/exec run 'cargo test'"
+      deploy:
+        description: "Deploy to environment"
+        args: ["target"]
+        example: "/exec deploy staging"
+      automate:
+        description: "Create automation"
+        args: ["workflow"]
+        example: "/exec automate 'daily-backup'"
+
+  # ═══ Guardian Commands ═══
+  guardian:
+    description: "Ethics and safety"
+    shortcut: "/g"
+    agent: "guardian"
+    subcommands:
+      review:
+        description: "Review action for ethics"
+        args: ["action"]
+        example: "/guardian review 'delete all user data'"
+      status:
+        description: "FATE gates status"
+        example: "/guardian status"
+      alert:
+        description: "View security alerts"
+        args: ["severity?"]
+        example: "/guardian alert critical"
+
+  # ═══ Memory Commands ═══
+  memory:
+    description: "Knowledge and memory"
+    shortcut: "/m"
+    subcommands:
+      remember:
+        description: "Store for later"
+        args: ["content", "tags?"]
+        example: "/memory remember 'API key rotation monthly' -t security"
+      recall:
+        description: "Recall information"
+        args: ["query"]
+        example: "/memory recall 'security policies'"
+      forget:
+        description: "Remove memory"
+        args: ["query"]
+        example: "/memory forget 'old-api-endpoint'"
+
+  # ═══ Voice Commands ═══
+  voice:
+    description: "Voice interface"
+    shortcut: "/v"
+    subcommands:
+      on:
+        description: "Enable voice"
+        example: "/voice on"
+      off:
+        description: "Disable voice"
+        example: "/voice off"
+      agent:
+        description: "Set voice agent"
+        args: ["agent_name"]
+        example: "/voice agent guardian"
+
+  # ═══ Quick Actions ═══
+  quick:
+    description: "Quick single-purpose commands"
+    subcommands:
+      commit:
+        description: "Git commit with AI message"
+        shortcut: "/gc"
+        example: "/quick commit"
+        agent: "developer"
+      pr:
+        description: "Create pull request"
+        shortcut: "/pr"
+        example: "/quick pr"
+        agent: "developer"
+      summarize:
+        description: "Summarize content"
+        shortcut: "/sum"
+        args: ["content_or_url"]
+        example: "/quick summarize https://example.com/article"
+        agent: "researcher"
+      translate:
+        description: "Translate text"
+        shortcut: "/tr"
+        args: ["text", "target_lang?"]
+        example: "/quick translate 'Hello world' ar"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# COMMAND ALIASES
+# ─────────────────────────────────────────────────────────────────────────────────
+aliases:
+  # Single-letter shortcuts
+  "/a": "/agent switch"
+  "/t": "/task add"
+  "/r": "/research quick"
+  "/c": "/code implement"
+  "/x": "/exec run"
+  "/m": "/memory recall"
+  "/v": "/voice"
+  "/g": "/guardian status"
+
+  # Common workflows
+  "/morning": "/proactive morning-brief"
+  "/standup": "/proactive standup"
+  "/review": "/code review"
+  "/deploy": "/exec deploy"
+
+  # Personalized
+  "/think": "/strategy assess"
+  "/do": "/exec run"
+  "/learn": "/research deep"
+  "/remember": "/memory remember"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PROACTIVE COMMANDS (System-Initiated)
+# ─────────────────────────────────────────────────────────────────────────────────
+proactive:
+  morning-brief:
+    description: "Daily morning briefing"
+    schedule: "08:00"
+    agents: ["strategist", "analyst", "guardian"]
+    includes:
+      - overnight_alerts
+      - priority_tasks
+      - calendar_summary
+      - market_updates
+
+  standup:
+    description: "Daily standup summary"
+    schedule: "09:00"
+    agents: ["developer", "reviewer"]
+    includes:
+      - yesterday_completed
+      - today_planned
+      - blockers
+
+  weekly-review:
+    description: "Weekly review and planning"
+    schedule: "Friday 17:00"
+    agents: ["strategist", "analyst"]
+    includes:
+      - week_accomplishments
+      - metrics_summary
+      - next_week_priorities
+
+  health-check:
+    description: "System health check"
+    schedule: "*/15 * * * *"  # Every 15 minutes
+    agents: ["guardian"]
+    alerts_on:
+      - service_down
+      - high_latency
+      - security_event
+      - threshold_breach
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# COMMAND MODIFIERS
+# ─────────────────────────────────────────────────────────────────────────────────
+modifiers:
+  # Urgency
+  "--urgent": "Prioritize this task"
+  "--low": "Low priority"
+
+  # Output
+  "--json": "Output as JSON"
+  "--markdown": "Output as Markdown"
+  "--brief": "Concise output"
+  "--detailed": "Detailed output"
+
+  # Execution
+  "--dry-run": "Preview without executing"
+  "--force": "Skip confirmations"
+  "--async": "Run in background"
+
+  # Agent
+  "--agent": "Override default agent"
+  "--all-agents": "Consult all agents"
+
+  # Memory
+  "--remember": "Store result in memory"
+  "--context": "Include recent context"

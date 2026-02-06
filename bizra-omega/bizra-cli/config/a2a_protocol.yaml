@@ -1,0 +1,396 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA A2A (Agent-to-Agent) Protocol Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Defines how PAT agents communicate, collaborate, and coordinate tasks.
+# Based on Google's A2A protocol with BIZRA extensions.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PROTOCOL VERSION & METADATA
+# ─────────────────────────────────────────────────────────────────────────────────
+protocol:
+  version: "1.0.0"
+  name: "BIZRA-A2A"
+  description: "PAT Agent Communication Protocol"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# AGENT CARDS (Agent Capabilities Declaration)
+# ─────────────────────────────────────────────────────────────────────────────────
+agent_cards:
+  strategist:
+    name: "Strategist"
+    description: "Strategic planning and long-term thinking"
+    version: "1.0.0"
+    capabilities:
+      - "strategic_analysis"
+      - "market_research"
+      - "competitive_analysis"
+      - "risk_assessment"
+      - "goal_setting"
+      - "roadmap_creation"
+    input_modes:
+      - type: "text"
+        format: ["markdown", "json"]
+      - type: "data"
+        format: ["csv", "json"]
+    output_modes:
+      - type: "text"
+        format: ["markdown", "json"]
+      - type: "structured"
+        format: ["plan", "analysis"]
+    authentication:
+      type: "internal"
+      required_claims: ["pat_member"]
+
+  researcher:
+    name: "Researcher"
+    description: "Deep research and knowledge discovery"
+    version: "1.0.0"
+    capabilities:
+      - "web_research"
+      - "academic_search"
+      - "fact_verification"
+      - "literature_review"
+      - "trend_analysis"
+      - "knowledge_synthesis"
+    input_modes:
+      - type: "text"
+        format: ["query", "topic"]
+      - type: "reference"
+        format: ["url", "doi", "arxiv"]
+    output_modes:
+      - type: "text"
+        format: ["markdown", "summary"]
+      - type: "structured"
+        format: ["report", "bibliography"]
+
+  developer:
+    name: "Developer"
+    description: "Code implementation and technical solutions"
+    version: "1.0.0"
+    capabilities:
+      - "code_generation"
+      - "code_review"
+      - "debugging"
+      - "refactoring"
+      - "architecture_design"
+      - "testing"
+    input_modes:
+      - type: "text"
+        format: ["requirement", "spec"]
+      - type: "code"
+        format: ["rust", "python", "typescript", "any"]
+    output_modes:
+      - type: "code"
+        format: ["rust", "python", "typescript"]
+      - type: "text"
+        format: ["explanation", "review"]
+
+  analyst:
+    name: "Analyst"
+    description: "Data analysis and insights"
+    version: "1.0.0"
+    capabilities:
+      - "data_analysis"
+      - "statistical_modeling"
+      - "visualization"
+      - "pattern_detection"
+      - "anomaly_detection"
+      - "forecasting"
+    input_modes:
+      - type: "data"
+        format: ["csv", "json", "parquet"]
+      - type: "query"
+        format: ["sql", "natural"]
+    output_modes:
+      - type: "data"
+        format: ["json", "csv"]
+      - type: "visualization"
+        format: ["chart_spec", "dashboard"]
+
+  reviewer:
+    name: "Reviewer"
+    description: "Quality assurance and validation"
+    version: "1.0.0"
+    capabilities:
+      - "code_review"
+      - "security_audit"
+      - "compliance_check"
+      - "documentation_review"
+      - "test_coverage"
+      - "performance_review"
+    input_modes:
+      - type: "code"
+        format: ["any"]
+      - type: "artifact"
+        format: ["pr", "commit", "release"]
+    output_modes:
+      - type: "review"
+        format: ["findings", "recommendations"]
+      - type: "metrics"
+        format: ["scores", "coverage"]
+
+  executor:
+    name: "Executor"
+    description: "Task execution and automation"
+    version: "1.0.0"
+    capabilities:
+      - "task_execution"
+      - "automation"
+      - "deployment"
+      - "batch_processing"
+      - "scheduling"
+      - "monitoring"
+    input_modes:
+      - type: "task"
+        format: ["command", "workflow"]
+      - type: "plan"
+        format: ["steps", "dag"]
+    output_modes:
+      - type: "result"
+        format: ["status", "log"]
+      - type: "artifact"
+        format: ["file", "report"]
+
+  guardian:
+    name: "Guardian"
+    description: "Ethics, safety, and oversight"
+    version: "1.0.0"
+    capabilities:
+      - "ethical_review"
+      - "safety_check"
+      - "risk_monitoring"
+      - "compliance_validation"
+      - "anomaly_alert"
+      - "harm_prevention"
+    input_modes:
+      - type: "action"
+        format: ["proposed", "in_progress"]
+      - type: "context"
+        format: ["full_state"]
+    output_modes:
+      - type: "verdict"
+        format: ["approved", "blocked", "modified"]
+      - type: "alert"
+        format: ["warning", "critical"]
+    special_privileges:
+      - "veto_actions"
+      - "pause_execution"
+      - "request_human_review"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# TASK CARDS (Task Definition Templates)
+# ─────────────────────────────────────────────────────────────────────────────────
+task_cards:
+  research_task:
+    name: "Research Task"
+    description: "Investigate a topic and produce findings"
+    required_fields:
+      - topic
+      - depth  # summary, moderate, deep
+    optional_fields:
+      - constraints
+      - sources
+      - deadline
+    default_agent: "researcher"
+    backup_agents: ["analyst", "strategist"]
+
+  implementation_task:
+    name: "Implementation Task"
+    description: "Write code to implement a feature"
+    required_fields:
+      - requirement
+      - language
+    optional_fields:
+      - architecture
+      - tests_required
+      - performance_target
+    default_agent: "developer"
+    backup_agents: ["analyst"]
+    requires_review: true
+    reviewer_agent: "reviewer"
+
+  analysis_task:
+    name: "Analysis Task"
+    description: "Analyze data and extract insights"
+    required_fields:
+      - data_source
+      - question
+    optional_fields:
+      - visualization
+      - statistical_tests
+    default_agent: "analyst"
+    backup_agents: ["researcher"]
+
+  strategic_task:
+    name: "Strategic Task"
+    description: "Develop strategy or plan"
+    required_fields:
+      - objective
+      - context
+    optional_fields:
+      - constraints
+      - timeline
+      - resources
+    default_agent: "strategist"
+    backup_agents: ["researcher", "analyst"]
+    requires_guardian_review: true
+
+  review_task:
+    name: "Review Task"
+    description: "Review artifact for quality"
+    required_fields:
+      - artifact
+      - criteria
+    optional_fields:
+      - depth
+      - focus_areas
+    default_agent: "reviewer"
+    backup_agents: ["developer", "guardian"]
+
+  execution_task:
+    name: "Execution Task"
+    description: "Execute a planned action"
+    required_fields:
+      - action
+      - parameters
+    optional_fields:
+      - timeout
+      - retry_policy
+    default_agent: "executor"
+    requires_guardian_approval: true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# COMMUNICATION PATTERNS
+# ─────────────────────────────────────────────────────────────────────────────────
+patterns:
+  # Direct request-response
+  request_response:
+    description: "Simple agent-to-agent request"
+    flow: "sender -> receiver -> sender"
+    timeout: 30
+
+  # Multi-agent collaboration
+  collaboration:
+    description: "Multiple agents working together"
+    flow: "coordinator -> agents[] -> coordinator"
+    max_rounds: 10
+
+  # Pipeline processing
+  pipeline:
+    description: "Sequential agent processing"
+    flow: "input -> agent1 -> agent2 -> ... -> output"
+    pass_context: true
+
+  # Consensus
+  consensus:
+    description: "Agents must agree on outcome"
+    flow: "proposal -> voting -> resolution"
+    quorum: 0.67
+
+  # Guardian oversight
+  guardian_review:
+    description: "Guardian reviews before action"
+    flow: "proposal -> guardian -> [approve|modify|block]"
+    mandatory_for: ["high_risk", "irreversible", "financial"]
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# MESSAGE TYPES
+# ─────────────────────────────────────────────────────────────────────────────────
+messages:
+  task_request:
+    fields:
+      - task_id: "string"
+      - task_type: "string"
+      - payload: "object"
+      - priority: "enum[low, normal, high, critical]"
+      - deadline: "timestamp?"
+      - context: "object?"
+
+  task_response:
+    fields:
+      - task_id: "string"
+      - status: "enum[completed, failed, partial, delegated]"
+      - result: "object?"
+      - error: "string?"
+      - duration_ms: "number"
+
+  delegation:
+    fields:
+      - from_agent: "string"
+      - to_agent: "string"
+      - task_id: "string"
+      - reason: "string"
+
+  collaboration_invite:
+    fields:
+      - session_id: "string"
+      - topic: "string"
+      - participants: "string[]"
+      - mode: "enum[sync, async]"
+
+  guardian_review_request:
+    fields:
+      - action_id: "string"
+      - action_type: "string"
+      - proposed_action: "object"
+      - risk_assessment: "object"
+      - requestor: "string"
+
+  guardian_verdict:
+    fields:
+      - action_id: "string"
+      - verdict: "enum[approved, blocked, modified]"
+      - modifications: "object?"
+      - reason: "string"
+      - conditions: "string[]?"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# FATE GATE INTEGRATION
+# ─────────────────────────────────────────────────────────────────────────────────
+fate_integration:
+  # All actions must pass FATE gates
+  gates:
+    ihsan:
+      threshold: 0.95
+      check: "quality_score >= threshold"
+    adl:
+      threshold: 0.35
+      check: "gini_coefficient <= threshold"
+    harm:
+      threshold: 0.30
+      check: "harm_score <= threshold"
+    confidence:
+      threshold: 0.80
+      check: "confidence >= threshold"
+
+  # Actions that bypass gates (dangerous - log heavily)
+  bypass_allowed: false
+  bypass_log_level: "critical"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# ROUTING RULES
+# ─────────────────────────────────────────────────────────────────────────────────
+routing:
+  # Auto-route based on task characteristics
+  auto_route:
+    - pattern: "code|implement|build|fix|debug"
+      agent: "developer"
+    - pattern: "research|investigate|find|discover"
+      agent: "researcher"
+    - pattern: "analyze|data|metrics|trends"
+      agent: "analyst"
+    - pattern: "plan|strategy|roadmap|objective"
+      agent: "strategist"
+    - pattern: "review|audit|check|validate"
+      agent: "reviewer"
+    - pattern: "execute|run|deploy|automate"
+      agent: "executor"
+    - pattern: "ethical|safety|risk|harm"
+      agent: "guardian"
+
+  # Fallback chain
+  fallback_chain:
+    - "guardian"  # Guardian can route to appropriate agent

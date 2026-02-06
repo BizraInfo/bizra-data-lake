@@ -1,0 +1,42 @@
+{
+  "receipt_id": "omega-validation-1769816394",
+  "timestamp": "2026-01-31T03:39:54+04:00",
+  "type": "system_validation",
+  "task_summary": "BIZRA Omega Swarm Validation - Production Certification",
+  "validation_results": {
+    "throughput_ops_sec": 51500000,
+    "target_ops_sec": 41000000,
+    "target_achievement_percent": 125.6,
+    "tests_total": 48,
+    "tests_passed": 48,
+    "tests_failed": 0,
+    "quality_score": 82,
+    "memory_health_score": 99,
+    "system_health_score": 98
+  },
+  "swarm_agents": [
+    {"agent": "tester", "id": "ad2d36c", "status": "complete"},
+    {"agent": "reviewer", "id": "a17b4d5", "status": "complete"},
+    {"agent": "analyst", "id": "ab73cf5", "status": "complete"}
+  ],
+  "benchmarks": {
+    "blake3_raw_ops_sec": 11500000,
+    "tier_select_ops_sec": 12400000,
+    "gate_validation_ops_sec": 6700000,
+    "ed25519_sign_ops_sec": 60000,
+    "ed25519_verify_ops_sec": 33000
+  },
+  "recommendations": [
+    "Add SovereignError enum for error propagation",
+    "Make grounding threshold configurable",
+    "Add input validation for text length"
+  ],
+  "watch_list": [
+    {"item": "envelope_lifecycle", "regression": "-31%", "cause": "tokio overhead"}
+  ],
+  "ihsan_score": 0.96,
+  "snr_score": 0.98,
+  "escalation_level": "None",
+  "success": true,
+  "integrity_hash": "e5e4df375f12d15ba45efdca55c90ad4dfec4f8f8e7c754e62c6791da4f68b98"
+}

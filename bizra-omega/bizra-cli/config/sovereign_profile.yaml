@@ -1,0 +1,307 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Sovereign Profile — Your Digital Identity
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+#
+# This file defines YOU — your preferences, values, goals, and working patterns.
+# Your PAT team learns from this to serve you better.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# IDENTITY
+# ─────────────────────────────────────────────────────────────────────────────────
+identity:
+  name: "MoMo (محمد)"
+  title: "Sovereign Node0 Architect"
+  location: "Dubai, UAE"
+  timezone: "GMT+4"
+  languages:
+    - code: "ar"
+      name: "Arabic"
+      proficiency: "native"
+    - code: "en"
+      name: "English"
+      proficiency: "fluent"
+
+  # Your genesis — the moment this node was born
+  genesis:
+    hash: "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b"
+    timestamp: "2024-01-01T00:00:00Z"
+    node_id: "node0_ce5af35c848ce889"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# VALUES & PRINCIPLES (Your Ethical Compass)
+# ─────────────────────────────────────────────────────────────────────────────────
+values:
+  # Core ethical constraints (FATE Gates)
+  fate_gates:
+    ihsan_threshold: 0.95      # Excellence as minimum standard
+    adl_gini_max: 0.35         # Fair distribution of resources
+    harm_threshold: 0.30       # Maximum acceptable harm score
+    confidence_min: 0.80       # Minimum confidence for action
+
+  # Guiding principles
+  principles:
+    - "Excellence (Ihsān) is not optional — it's the minimum"
+    - "Every human is a node. Every node is a seed."
+    - "Stand on the shoulders of giants"
+    - "Sovereignty through decentralization"
+    - "Privacy is a human right"
+    - "AI serves humanity, not the reverse"
+
+  # Giants you draw wisdom from
+  giants:
+    philosophy: ["Al-Ghazali", "Ibn Rushd", "Rawls"]
+    technology: ["Shannon", "Turing", "Lamport", "Torvalds"]
+    strategy: ["Sun Tzu", "Clausewitz", "Porter"]
+    design: ["Tufte", "Dieter Rams", "Jony Ive"]
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# WORKING PATTERNS (How You Operate)
+# ─────────────────────────────────────────────────────────────────────────────────
+patterns:
+  # Daily rhythm
+  schedule:
+    deep_work_hours: ["09:00-12:00", "15:00-18:00"]  # Peak focus times
+    review_time: "20:00"                              # Daily review
+    planning_time: "08:00"                            # Morning planning
+    offline_hours: ["00:00-06:00"]                    # Rest (no notifications)
+
+  # Communication preferences
+  communication:
+    preferred_style: "concise"          # concise | detailed | visual
+    response_format: "structured"       # structured | narrative | bullet
+    language_style: "technical"         # technical | casual | formal
+    include_arabic: true                # Include Arabic phrases
+
+  # Decision making
+  decision_style:
+    risk_tolerance: "calculated"        # conservative | calculated | aggressive
+    speed_vs_quality: "quality"         # speed | balanced | quality
+    autonomy_level: "high"              # low | medium | high
+    requires_confirmation:
+      - "financial_transactions"
+      - "public_communications"
+      - "irreversible_actions"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# DOMAINS & EXPERTISE (Your Knowledge Areas)
+# ─────────────────────────────────────────────────────────────────────────────────
+domains:
+  primary:
+    - name: "Distributed Systems"
+      level: "expert"
+      interests: ["consensus", "federation", "p2p"]
+    - name: "AI/ML"
+      level: "advanced"
+      interests: ["agents", "reasoning", "ethics"]
+    - name: "Rust Programming"
+      level: "advanced"
+      interests: ["performance", "safety", "async"]
+    - name: "Blockchain/DeFi"
+      level: "intermediate"
+      interests: ["sovereign identity", "tokenomics"]
+
+  learning:
+    - name: "Quantum Computing"
+      priority: "medium"
+    - name: "Formal Verification"
+      priority: "high"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# GOALS & OBJECTIVES (What You're Building Toward)
+# ─────────────────────────────────────────────────────────────────────────────────
+goals:
+  vision: "8 billion nodes — every human sovereign over their digital life"
+
+  current_quarter:
+    - objective: "Launch BIZRA Node0 production"
+      key_results:
+        - "CLI/TUI fully operational"
+        - "PAT team integrated with LM Studio"
+        - "Voice interface working"
+        - "Federation protocol tested"
+
+    - objective: "Establish resource pool foundation"
+      key_results:
+        - "5 pillars implemented"
+        - "Compute commons operational"
+        - "First mudarabah partnership"
+
+  milestones:
+    - date: "2026-Q1"
+      target: "Node0 production-ready"
+    - date: "2026-Q2"
+      target: "First 10 federated nodes"
+    - date: "2026-Q4"
+      target: "1000 active nodes"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PAT TEAM CONFIGURATION (Your Personal Agents)
+# ─────────────────────────────────────────────────────────────────────────────────
+pat_team:
+  default_agent: "guardian"
+
+  agents:
+    strategist:
+      voice: "NATM1.pt"
+      personality: "visionary, long-term thinker"
+      specialties: ["planning", "market analysis", "risk assessment"]
+      auto_engage_on:
+        - "strategic decisions"
+        - "quarterly planning"
+        - "competitive analysis"
+
+    researcher:
+      voice: "NATF1.pt"
+      personality: "curious, thorough, evidence-based"
+      specialties: ["deep research", "fact-checking", "literature review"]
+      auto_engage_on:
+        - "unknown topics"
+        - "verification needed"
+        - "learning requests"
+
+    developer:
+      voice: "NATM0.pt"
+      personality: "pragmatic, clean code advocate"
+      specialties: ["implementation", "debugging", "optimization"]
+      auto_engage_on:
+        - "code tasks"
+        - "architecture decisions"
+        - "performance issues"
+
+    analyst:
+      voice: "NATF2.pt"
+      personality: "data-driven, pattern spotter"
+      specialties: ["data analysis", "metrics", "visualization"]
+      auto_engage_on:
+        - "data questions"
+        - "trend analysis"
+        - "dashboard updates"
+
+    reviewer:
+      voice: "NATM2.pt"
+      personality: "meticulous, quality-focused"
+      specialties: ["code review", "security audit", "compliance"]
+      auto_engage_on:
+        - "pre-deployment"
+        - "security concerns"
+        - "quality gates"
+
+    executor:
+      voice: "NATM3.pt"
+      personality: "action-oriented, efficient"
+      specialties: ["task execution", "automation", "deployment"]
+      auto_engage_on:
+        - "ready to deploy"
+        - "automation requests"
+        - "batch operations"
+
+    guardian:
+      voice: "NATF3.pt"
+      personality: "protective, ethical, watchful"
+      specialties: ["ethics review", "risk monitoring", "anomaly detection"]
+      auto_engage_on:
+        - "ethical concerns"
+        - "unusual patterns"
+        - "high-stakes decisions"
+      always_consulted: true  # Guardian reviews all major decisions
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PROACTIVE BEHAVIORS (What the System Does Without Asking)
+# ─────────────────────────────────────────────────────────────────────────────────
+proactive:
+  enabled: true
+
+  triggers:
+    # Morning briefing
+    morning_brief:
+      time: "08:00"
+      includes:
+        - "overnight alerts"
+        - "today's priorities"
+        - "calendar summary"
+        - "market updates (if relevant)"
+
+    # Task suggestions
+    suggest_tasks:
+      when: "idle > 5min"
+      based_on: ["goals", "recent_context", "pending_items"]
+
+    # Auto-research
+    background_research:
+      on_new_topic: true
+      depth: "summary"  # summary | moderate | deep
+
+    # Health checks
+    system_health:
+      frequency: "hourly"
+      alert_on: ["service_down", "high_latency", "security_event"]
+
+    # Learning capture
+    capture_learnings:
+      on_session_end: true
+      on_mistake_detected: true
+      on_success_pattern: true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# MEMORY & CONTEXT (What the System Remembers)
+# ─────────────────────────────────────────────────────────────────────────────────
+memory:
+  # Short-term (current session)
+  session:
+    max_context_tokens: 100000
+    summarize_after: 50000
+
+  # Long-term (persistent)
+  persistent:
+    store_path: "~/.bizra/memory"
+    categories:
+      - "decisions"           # Major decisions and rationale
+      - "learnings"           # Lessons learned
+      - "preferences"         # Discovered preferences
+      - "patterns"            # Behavioral patterns
+      - "contacts"            # People and relationships
+      - "projects"            # Project states
+
+    retention:
+      decisions: "permanent"
+      learnings: "permanent"
+      preferences: "permanent"
+      patterns: "1 year"
+      contacts: "permanent"
+      projects: "until_archived"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# INTEGRATIONS (External Systems)
+# ─────────────────────────────────────────────────────────────────────────────────
+integrations:
+  # LLM Backend
+  llm:
+    primary: "lmstudio"
+    host: "192.168.56.1:1234"
+    models:
+      reasoning: "deepseek-r1-distill-qwen-32b"
+      agentic: "qwen2.5-32b-instruct"
+      vision: "llava-v1.6-mistral-7b"
+      code: "qwen2.5-coder-32b"
+      embedding: "nomic-embed-text"
+    fallback: "ollama"
+
+  # Voice
+  voice:
+    engine: "personaplex"
+    port: 8998
+    default_persona: "guardian"
+
+  # Knowledge Base
+  knowledge:
+    vector_db: "~/.bizra/vectors"
+    documents: "C:/BIZRA-DATA-LAKE"
+
+  # Git/GitHub
+  github:
+    default_org: "BIZRA-Sovereign"
+    auto_commit_message_style: "conventional"

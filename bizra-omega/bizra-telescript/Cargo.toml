@@ -1,0 +1,53 @@
+[package]
+name = "bizra-telescript"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "TELESCRIPT-BIZRA BRIDGE: Mobile agent framework with sovereign ethics"
+keywords = ["agents", "mobile-code", "telescript", "sovereignty", "ihsan"]
+categories = ["network-programming", "cryptography"]
+
+[dependencies]
+# Cryptography - workspace inherited
+blake3.workspace = true
+ed25519-dalek.workspace = true
+rand.workspace = true
+
+# Serialization - workspace inherited
+serde.workspace = true
+serde_json.workspace = true
+
+# Async - workspace inherited
+tokio.workspace = true
+async-trait.workspace = true
+
+# Error handling - workspace inherited
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Time & Identity - workspace inherited
+chrono.workspace = true
+uuid.workspace = true
+
+# Logging - workspace inherited
+tracing.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = "0.5"
+
+[[bench]]
+name = "telescript_benchmark"
+harness = false
+
+[[bin]]
+name = "telescript-demo"
+path = "src/main.rs"
+
+[features]
+default = []
+# Enable full federation integration
+federation = []
+# Enable GPU-accelerated FATE gates
+cuda = []

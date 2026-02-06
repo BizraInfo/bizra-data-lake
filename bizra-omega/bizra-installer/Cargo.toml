@@ -1,0 +1,26 @@
+[package]
+name = "bizra-installer"
+version.workspace = true
+edition.workspace = true
+description = "BIZRA Universal Installer"
+
+[[bin]]
+name = "bizra"
+path = "src/main.rs"
+
+[dependencies]
+bizra-core = { path = "../bizra-core" }
+bizra-inference = { path = "../bizra-inference" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap = { version = "4.4", features = ["derive"] }
+dirs = "5"
+hex = "0.4"
+
+[dev-dependencies]
+tempfile = "3.9"

@@ -1,0 +1,77 @@
+[workspace]
+resolver = "2"
+members = [
+    "bizra-core",
+    "bizra-inference",
+    "bizra-autopoiesis",
+    "bizra-federation",
+    "bizra-installer",
+    "bizra-python",
+    "bizra-api",
+    "bizra-tests",
+    "bizra-hunter",
+    "bizra-telescript",
+    "bizra-proofspace",
+    "bizra-resourcepool",
+    "bizra-cli",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["BIZRA Sovereign <sovereign@bizra.node0>"]
+license = "MIT"
+
+[workspace.dependencies]
+# Cryptography (with batch verification for SIMD)
+ed25519-dalek = { version = "2.1", features = ["serde", "rand_core", "batch"] }
+blake3 = { version = "1.5", features = ["rayon"] }
+rand = "0.8"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+
+# Error Handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time & Identity
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Network
+reqwest = { version = "0.11", features = ["json"] }
+async-trait = "0.1"
+
+# SIMD acceleration
+rayon = "1.8"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
+opt-level = 3
+panic = "abort"
+
+[profile.release.build-override]
+opt-level = 3
+
+# Maximum optimization profile with AVX-512
+# Run with: RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
+[profile.omega]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+debug = false
+strip = true
+panic = "abort"

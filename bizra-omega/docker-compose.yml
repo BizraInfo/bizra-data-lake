@@ -1,0 +1,141 @@
+# BIZRA Sovereign Node — Docker Compose
+#
+# Start: docker-compose up -d
+# Stop:  docker-compose down
+# Logs:  docker-compose logs -f bizra-api
+#
+# GPU:   docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════
+  # BIZRA Sovereign API
+  # ═══════════════════════════════════════════════════════════════════════
+  bizra-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bizra:latest
+    container_name: bizra-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"      # REST API
+      - "7946:7946/udp"  # Gossip protocol
+    volumes:
+      - bizra-data:/home/bizra/.bizra
+      - sovereign-state:/home/bizra/.bizra/sovereign_state
+      - ./models:/home/bizra/models:ro
+    environment:
+      - RUST_LOG=bizra_api=info,bizra_inference=info,bizra_resourcepool=info,tower_http=debug
+      # LM Studio Primary (Windows host)
+      - LMSTUDIO_HOST=${LMSTUDIO_HOST:-host.docker.internal}
+      - LMSTUDIO_PORT=${LMSTUDIO_PORT:-1234}
+      # Ollama Fallback
+      - OLLAMA_HOST=http://ollama:11434
+      # FATE Gates
+      - BIZRA_IHSAN_THRESHOLD=0.95
+      - BIZRA_SNR_THRESHOLD=0.85
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - bizra-network
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # BIZRA Resource Pool Node
+  # ═══════════════════════════════════════════════════════════════════════
+  bizra-resourcepool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bizra:latest
+    container_name: bizra-resourcepool
+    restart: unless-stopped
+    entrypoint: ["resourcepool-node"]
+    ports:
+      - "8946:8946"      # Resource Pool P2P
+    volumes:
+      - bizra-data:/home/bizra/.bizra
+      - sovereign-state:/home/bizra/.bizra/sovereign_state
+    environment:
+      - RUST_LOG=bizra_resourcepool=info
+      - BIZRA_ZAKAT_RATE=0.025
+      - BIZRA_HARBERGER_TAX_RATE=0.07
+    env_file:
+      - .env
+    depends_on:
+      - bizra-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8946/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - bizra-network
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Ollama LLM Backend
+  # ═══════════════════════════════════════════════════════════════════════
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bizra-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bizra-network
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Model Loader (one-shot to pull default model)
+  # ═══════════════════════════════════════════════════════════════════════
+  model-loader:
+    image: curlimages/curl:latest
+    container_name: bizra-model-loader
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Pulling qwen2.5:7b model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"qwen2.5:7b\"}' &&
+        echo 'Model ready!'
+      "
+    networks:
+      - bizra-network
+    restart: "no"
+
+volumes:
+  bizra-data:
+    driver: local
+  ollama-data:
+    driver: local
+  sovereign-state:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BIZRA_SOVEREIGN_STATE_DIR:-./sovereign_state}
+
+networks:
+  bizra-network:
+    driver: bridge

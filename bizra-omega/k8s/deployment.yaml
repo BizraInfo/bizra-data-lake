@@ -1,0 +1,188 @@
+# BIZRA Sovereign Node — Kubernetes Deployment
+# Apply: kubectl apply -f k8s/
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: sovereign-node
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-config
+  namespace: bizra
+data:
+  RUST_LOG: "bizra_api=info,tower_http=debug"
+  API_PORT: "3001"
+  GOSSIP_PORT: "7946"
+  OLLAMA_HOST: "http://ollama:11434"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bizra-secrets
+  namespace: bizra
+type: Opaque
+stringData:
+  # Add secrets here (pulled from external secret manager in production)
+  NODE_SECRET: "REPLACE_WITH_SECRET_MANAGER_REFERENCE"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-api
+  namespace: bizra
+  labels:
+    app: bizra-api
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bizra-api
+  template:
+    metadata:
+      labels:
+        app: bizra-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: bizra-api
+          image: ghcr.io/bizra/bizra-omega:latest
+          ports:
+            - name: http
+              containerPort: 3001
+            - name: gossip
+              containerPort: 7946
+              protocol: UDP
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+          env:
+            - name: NODE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bizra-secrets
+                  key: NODE_SECRET
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: bizra-data
+              mountPath: /home/bizra/.bizra
+      volumes:
+        - name: bizra-data
+          persistentVolumeClaim:
+            claimName: bizra-data-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-api
+  namespace: bizra
+spec:
+  selector:
+    app: bizra-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+    - name: gossip
+      port: 7946
+      targetPort: 7946
+      protocol: UDP
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-ingress
+  namespace: bizra
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - api.bizra.node0
+      secretName: bizra-tls
+  rules:
+    - host: api.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-api
+                port:
+                  number: 80
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bizra-data-pvc
+  namespace: bizra
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bizra-api-hpa
+  namespace: bizra
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bizra-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

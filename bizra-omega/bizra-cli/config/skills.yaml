@@ -1,0 +1,385 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Skills System — Modular Capabilities
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Skills are self-contained capability modules that extend the CLI.
+# Each skill defines tools, prompts, and workflows for specific domains.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CORE SKILLS (Always Active)
+# ─────────────────────────────────────────────────────────────────────────────────
+core:
+  # Deep Research Skill
+  deep-research:
+    name: "Deep Research"
+    description: "Multi-source investigation with synthesis"
+    version: "1.0.0"
+    trigger: "/deep-research"
+    agent: "researcher"
+    workflow:
+      - step: "understand_query"
+        action: "parse_research_intent"
+      - step: "search_sources"
+        action: "parallel_search"
+        sources: ["web", "academic", "memory"]
+      - step: "synthesize"
+        action: "synthesize_findings"
+      - step: "quality_check"
+        action: "fate_gate_check"
+      - step: "output"
+        format: "structured_report"
+
+  # Implementation Skill
+  implement:
+    name: "Plan + Implement + Review"
+    description: "Full implementation workflow"
+    version: "1.0.0"
+    trigger: "/implement"
+    agents: ["developer", "reviewer", "guardian"]
+    workflow:
+      - step: "plan"
+        agent: "developer"
+        action: "create_implementation_plan"
+        output: "plan.md"
+      - step: "implement"
+        agent: "developer"
+        action: "write_code"
+        output: "code_changes"
+      - step: "review"
+        agent: "reviewer"
+        action: "code_review"
+        output: "review_findings"
+      - step: "guardian_check"
+        agent: "guardian"
+        action: "fate_gate_check"
+        gate_on: "review_findings"
+      - step: "finalize"
+        condition: "guardian_approved"
+        action: "apply_changes"
+
+  # Guardian Review Skill
+  guardian-review:
+    name: "Guardian Council Review"
+    description: "Multi-perspective ethical review"
+    version: "1.0.0"
+    trigger: "/guardian-review"
+    agent: "guardian"
+    workflow:
+      - step: "analyze"
+        action: "ethical_analysis"
+        perspectives: ["harm", "fairness", "privacy", "autonomy"]
+      - step: "fate_check"
+        action: "fate_gate_full_check"
+      - step: "verdict"
+        action: "render_verdict"
+        options: ["approved", "blocked", "modified"]
+
+  # Sovereign Query Skill
+  sovereign-query:
+    name: "Sovereign Query"
+    description: "Query with Graph-of-Thoughts reasoning"
+    version: "1.0.0"
+    trigger: "/sovereign-query"
+    workflow:
+      - step: "decompose"
+        action: "graph_of_thoughts_decompose"
+      - step: "parallel_reason"
+        action: "multi_agent_reason"
+        agents: ["researcher", "analyst", "strategist"]
+      - step: "synthesize"
+        action: "consensus_synthesis"
+      - step: "verify"
+        agent: "guardian"
+        action: "verify_output"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# DEVELOPMENT SKILLS
+# ─────────────────────────────────────────────────────────────────────────────────
+development:
+  # Git Commit Skill
+  commit:
+    name: "Smart Commit"
+    description: "AI-powered git commit"
+    version: "1.0.0"
+    trigger: "/commit"
+    agent: "developer"
+    workflow:
+      - step: "analyze"
+        action: "git_diff_analyze"
+      - step: "generate"
+        action: "commit_message_generate"
+        style: "conventional"
+      - step: "confirm"
+        action: "user_confirm"
+        skippable: true
+      - step: "execute"
+        action: "git_commit"
+
+  # PR Skill
+  pr:
+    name: "Pull Request"
+    description: "Create and manage PRs"
+    version: "1.0.0"
+    trigger: "/pr"
+    agents: ["developer", "reviewer"]
+    workflow:
+      - step: "analyze"
+        action: "branch_diff_analyze"
+      - step: "review"
+        agent: "reviewer"
+        action: "pre_pr_review"
+      - step: "generate"
+        action: "pr_description_generate"
+      - step: "create"
+        action: "gh_pr_create"
+
+  # Code Review Skill
+  review-code:
+    name: "Code Review"
+    description: "Comprehensive code review"
+    version: "1.0.0"
+    trigger: "/review-code"
+    agent: "reviewer"
+    workflow:
+      - step: "load"
+        action: "load_code_context"
+      - step: "analyze"
+        action: "multi_dimension_review"
+        dimensions: ["correctness", "security", "performance", "maintainability"]
+      - step: "report"
+        action: "generate_review_report"
+
+  # Debug Skill
+  debug:
+    name: "Debug Assistant"
+    description: "Interactive debugging"
+    version: "1.0.0"
+    trigger: "/debug"
+    agent: "developer"
+    workflow:
+      - step: "capture"
+        action: "capture_error_context"
+      - step: "analyze"
+        action: "root_cause_analysis"
+      - step: "hypothesize"
+        action: "generate_hypotheses"
+      - step: "test"
+        action: "test_hypotheses"
+      - step: "fix"
+        action: "generate_fix"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# ANALYSIS SKILLS
+# ─────────────────────────────────────────────────────────────────────────────────
+analysis:
+  # SNR Check Skill
+  snr-check:
+    name: "Signal-to-Noise Check"
+    description: "Evaluate content quality"
+    version: "1.0.0"
+    trigger: "/snr-check"
+    agent: "analyst"
+    workflow:
+      - step: "analyze"
+        action: "snr_calculate"
+        metrics: ["signal", "noise", "diversity", "grounding"]
+      - step: "report"
+        action: "snr_report"
+        threshold: 0.85
+
+  # Data Analysis Skill
+  analyze-data:
+    name: "Data Analysis"
+    description: "Comprehensive data analysis"
+    version: "1.0.0"
+    trigger: "/analyze"
+    agent: "analyst"
+    workflow:
+      - step: "load"
+        action: "load_data"
+      - step: "profile"
+        action: "data_profile"
+      - step: "analyze"
+        action: "statistical_analysis"
+      - step: "visualize"
+        action: "generate_visualizations"
+      - step: "report"
+        action: "generate_report"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# COLLABORATION SKILLS
+# ─────────────────────────────────────────────────────────────────────────────────
+collaboration:
+  # Swarm Skill
+  swarm:
+    name: "Agent Swarm"
+    description: "Multi-agent parallel processing"
+    version: "1.0.0"
+    trigger: "/swarm"
+    workflow:
+      - step: "decompose"
+        action: "task_decompose"
+      - step: "assign"
+        action: "agent_assign"
+        strategy: "capability_match"
+      - step: "execute"
+        action: "parallel_execute"
+        coordination: "coordinator"
+      - step: "synthesize"
+        action: "results_synthesize"
+      - step: "verify"
+        agent: "guardian"
+        action: "verify_combined_output"
+
+  # Consensus Skill
+  consensus:
+    name: "Multi-Agent Consensus"
+    description: "Reach agreement across agents"
+    version: "1.0.0"
+    trigger: "/consensus"
+    workflow:
+      - step: "propose"
+        action: "broadcast_proposal"
+      - step: "deliberate"
+        action: "agent_deliberation"
+        rounds: 3
+      - step: "vote"
+        action: "collect_votes"
+        quorum: 0.67
+      - step: "resolve"
+        action: "consensus_resolve"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# WORKFLOW SKILLS
+# ─────────────────────────────────────────────────────────────────────────────────
+workflows:
+  # Morning Brief Skill
+  morning-brief:
+    name: "Morning Briefing"
+    description: "Daily startup briefing"
+    version: "1.0.0"
+    trigger: "/morning"
+    schedule: "08:00"
+    agents: ["strategist", "analyst", "guardian"]
+    workflow:
+      - step: "gather"
+        action: "gather_overnight_info"
+        sources: ["alerts", "tasks", "calendar", "metrics"]
+      - step: "prioritize"
+        agent: "strategist"
+        action: "prioritize_day"
+      - step: "analyze"
+        agent: "analyst"
+        action: "quick_metrics_check"
+      - step: "check"
+        agent: "guardian"
+        action: "security_check"
+      - step: "present"
+        action: "generate_brief"
+        format: "morning_brief"
+
+  # Weekly Review Skill
+  weekly-review:
+    name: "Weekly Review"
+    description: "End of week review and planning"
+    version: "1.0.0"
+    trigger: "/weekly"
+    schedule: "Friday 17:00"
+    agents: ["strategist", "analyst"]
+    workflow:
+      - step: "gather"
+        action: "gather_week_data"
+      - step: "analyze"
+        agent: "analyst"
+        action: "weekly_metrics"
+      - step: "reflect"
+        agent: "strategist"
+        action: "strategic_reflection"
+      - step: "plan"
+        agent: "strategist"
+        action: "next_week_plan"
+      - step: "report"
+        action: "generate_weekly_report"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# LEARNING SKILLS
+# ─────────────────────────────────────────────────────────────────────────────────
+learning:
+  # Learn & Remember Skill
+  learn:
+    name: "Learn and Remember"
+    description: "Capture and retain learnings"
+    version: "1.0.0"
+    trigger: "/learn"
+    workflow:
+      - step: "extract"
+        action: "extract_learnings"
+      - step: "categorize"
+        action: "categorize_learning"
+      - step: "store"
+        action: "store_in_memory"
+        tags: ["learning"]
+      - step: "connect"
+        action: "connect_to_existing"
+
+  # Teach Skill
+  teach:
+    name: "Teach Topic"
+    description: "Generate learning content"
+    version: "1.0.0"
+    trigger: "/teach"
+    agent: "researcher"
+    workflow:
+      - step: "assess"
+        action: "assess_prior_knowledge"
+      - step: "plan"
+        action: "plan_curriculum"
+      - step: "generate"
+        action: "generate_lesson"
+        style: "interactive"
+      - step: "quiz"
+        action: "generate_quiz"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SKILL COMPOSITION
+# ─────────────────────────────────────────────────────────────────────────────────
+compositions:
+  # Full Feature Development
+  feature:
+    name: "Full Feature Development"
+    description: "Research → Design → Implement → Review → Deploy"
+    skills:
+      - "deep-research"
+      - "implement"
+      - "review-code"
+    workflow:
+      - step: "research"
+        skill: "deep-research"
+        input: "feature_requirements"
+      - step: "implement"
+        skill: "implement"
+        input: "research_output"
+      - step: "review"
+        skill: "review-code"
+        input: "implementation"
+      - step: "deploy"
+        condition: "review_passed"
+        action: "deploy_feature"
+
+  # Investigation
+  investigate:
+    name: "Deep Investigation"
+    description: "Research → Analyze → Conclude"
+    skills:
+      - "deep-research"
+      - "analyze-data"
+      - "consensus"
+    workflow:
+      - step: "research"
+        skill: "deep-research"
+      - step: "analyze"
+        skill: "analyze-data"
+      - step: "conclude"
+        skill: "consensus"

@@ -1,0 +1,185 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA MCP Server Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Model Context Protocol (MCP) servers extend CLI capabilities with external tools.
+# Each server provides specific capabilities that PAT agents can leverage.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CORE MCP SERVERS
+# ─────────────────────────────────────────────────────────────────────────────────
+
+servers:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Claude Flow — Multi-Agent Orchestration
+  # ─────────────────────────────────────────────────────────────────────────────
+  claude-flow:
+    command: "npx"
+    args: ["-y", "@anthropic/claude-flow"]
+    capabilities:
+      - "swarm_init"
+      - "agent_spawn"
+      - "task_orchestrate"
+      - "memory_usage"
+      - "coordination_sync"
+    auto_start: true
+    env:
+      CLAUDE_FLOW_MEMORY_PATH: "${HOME}/.bizra/flow-memory"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Filesystem — Secure File Operations
+  # ─────────────────────────────────────────────────────────────────────────────
+  filesystem:
+    command: "npx"
+    args: ["-y", "@anthropic/mcp-server-filesystem"]
+    capabilities:
+      - "read_file"
+      - "write_file"
+      - "list_directory"
+      - "search_files"
+    config:
+      allowed_paths:
+        - "C:/BIZRA-DATA-LAKE"
+        - "${HOME}/.bizra"
+      restricted_paths:
+        - "**/.env"
+        - "**/secrets/**"
+        - "**/credentials/**"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # GitHub — Repository Management
+  # ─────────────────────────────────────────────────────────────────────────────
+  github:
+    command: "npx"
+    args: ["-y", "@anthropic/mcp-server-github"]
+    capabilities:
+      - "create_repository"
+      - "create_pull_request"
+      - "create_issue"
+      - "search_repositories"
+      - "get_file_contents"
+    env:
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Memory — Persistent Knowledge Graph
+  # ─────────────────────────────────────────────────────────────────────────────
+  memory:
+    command: "npx"
+    args: ["-y", "@anthropic/mcp-server-memory"]
+    capabilities:
+      - "store_memory"
+      - "retrieve_memory"
+      - "search_memories"
+      - "create_relation"
+    config:
+      storage_path: "${HOME}/.bizra/memory-graph"
+      max_memories: 100000
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Brave Search — Web Intelligence
+  # ─────────────────────────────────────────────────────────────────────────────
+  brave-search:
+    command: "npx"
+    args: ["-y", "@anthropic/mcp-server-brave-search"]
+    capabilities:
+      - "web_search"
+      - "news_search"
+    env:
+      BRAVE_API_KEY: "${BRAVE_API_KEY}"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Postgres — Database Operations
+  # ─────────────────────────────────────────────────────────────────────────────
+  postgres:
+    command: "npx"
+    args: ["-y", "@anthropic/mcp-server-postgres"]
+    capabilities:
+      - "query"
+      - "describe_table"
+      - "list_tables"
+    env:
+      DATABASE_URL: "${BIZRA_DATABASE_URL}"
+    auto_start: false  # Start on demand
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# BIZRA CUSTOM MCP SERVERS
+# ─────────────────────────────────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # BIZRA Inference — LM Studio Bridge
+  # ─────────────────────────────────────────────────────────────────────────────
+  bizra-inference:
+    command: "cargo"
+    args: ["run", "-p", "bizra-inference", "--", "mcp-server"]
+    cwd: "${BIZRA_OMEGA_PATH}"
+    capabilities:
+      - "inference_chat"
+      - "inference_complete"
+      - "inference_embed"
+      - "model_list"
+      - "model_select"
+    config:
+      lmstudio_host: "192.168.56.1:1234"
+      ollama_fallback: "localhost:11434"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # BIZRA Federation — P2P Network
+  # ─────────────────────────────────────────────────────────────────────────────
+  bizra-federation:
+    command: "cargo"
+    args: ["run", "-p", "bizra-federation", "--", "mcp-server"]
+    cwd: "${BIZRA_OMEGA_PATH}"
+    capabilities:
+      - "node_status"
+      - "node_discover"
+      - "gossip_broadcast"
+      - "consensus_propose"
+    auto_start: false
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # BIZRA ResourcePool — Compute Commons
+  # ─────────────────────────────────────────────────────────────────────────────
+  bizra-resourcepool:
+    command: "cargo"
+    args: ["run", "-p", "bizra-resourcepool", "--", "mcp-server"]
+    cwd: "${BIZRA_OMEGA_PATH}"
+    capabilities:
+      - "pool_status"
+      - "compute_allocate"
+      - "zakat_calculate"
+      - "harberger_bid"
+    auto_start: false
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# MCP SERVER GROUPS (For Quick Activation)
+# ─────────────────────────────────────────────────────────────────────────────────
+
+groups:
+  minimal:
+    description: "Essential servers only"
+    servers: ["filesystem", "memory"]
+
+  development:
+    description: "Full dev environment"
+    servers: ["filesystem", "memory", "github", "bizra-inference"]
+
+  production:
+    description: "Production deployment"
+    servers: ["filesystem", "memory", "github", "bizra-inference", "bizra-federation", "bizra-resourcepool"]
+
+  research:
+    description: "Research and exploration"
+    servers: ["filesystem", "memory", "brave-search", "bizra-inference"]
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# DEFAULT CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────────
+
+defaults:
+  active_group: "development"
+  connection_timeout: 30
+  max_retries: 3
+  health_check_interval: 60

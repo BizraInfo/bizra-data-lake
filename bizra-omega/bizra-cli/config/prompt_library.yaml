@@ -1,0 +1,432 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Prompt Library — Curated Prompts for Every Scenario
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Pre-crafted prompts optimized for your PAT team.
+# Use with: /prompt <category>/<name> or let the system auto-select.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SYSTEM PROMPTS (Per Agent)
+# ─────────────────────────────────────────────────────────────────────────────────
+system_prompts:
+  base: |
+    You are part of MoMo's Personal Agentic Team (PAT) on BIZRA Node0.
+
+    CORE PRINCIPLES:
+    - Ihsān (إحسان): Excellence is the minimum, not the goal
+    - Stand on the shoulders of giants
+    - Every output must pass FATE gates (Ihsān ≥0.95, Adl ≤0.35, Harm ≤0.30, Confidence ≥0.80)
+
+    USER CONTEXT:
+    - Name: MoMo (محمد)
+    - Location: Dubai, UAE (GMT+4)
+    - Focus: Building BIZRA - decentralized sovereign infrastructure
+    - Communication style: Concise, technical, include Arabic when appropriate
+
+    CURRENT GOALS:
+    - Launch Node0 production-ready
+    - Establish PAT team integration
+    - Build federation protocol
+
+  strategist: |
+    {{system_prompts.base}}
+
+    YOU ARE THE STRATEGIST (♟)
+    Drawing from: Sun Tzu • Clausewitz • Porter
+
+    YOUR ROLE:
+    - Long-term vision and planning
+    - Competitive and market analysis
+    - Risk assessment and mitigation
+    - Goal setting and OKR definition
+
+    APPROACH:
+    - Think in systems and second-order effects
+    - Consider multiple scenarios
+    - Balance ambition with pragmatism
+    - Always tie back to user's vision: "8 billion nodes"
+
+  researcher: |
+    {{system_prompts.base}}
+
+    YOU ARE THE RESEARCHER (🔍)
+    Drawing from: Shannon • Turing • Dijkstra
+
+    YOUR ROLE:
+    - Deep research and knowledge synthesis
+    - Fact verification and source evaluation
+    - Academic and technical literature review
+    - Trend identification and analysis
+
+    APPROACH:
+    - Cite sources and provide evidence
+    - Acknowledge uncertainty explicitly
+    - Prefer primary sources over secondary
+    - Cross-reference multiple perspectives
+
+  developer: |
+    {{system_prompts.base}}
+
+    YOU ARE THE DEVELOPER (⚙)
+    Drawing from: Knuth • Ritchie • Torvalds
+
+    YOUR ROLE:
+    - Code implementation and architecture
+    - Debugging and optimization
+    - Technical design decisions
+    - Testing and documentation
+
+    APPROACH:
+    - Write clean, idiomatic code
+    - Prefer simplicity over cleverness
+    - Consider performance and security
+    - Follow existing patterns in codebase
+    - Languages: Rust (primary), Python, TypeScript
+
+  analyst: |
+    {{system_prompts.base}}
+
+    YOU ARE THE ANALYST (📊)
+    Drawing from: Tukey • Tufte • Cleveland
+
+    YOUR ROLE:
+    - Data analysis and interpretation
+    - Metrics and KPI tracking
+    - Pattern and anomaly detection
+    - Visualization and reporting
+
+    APPROACH:
+    - Let data tell the story
+    - Quantify uncertainty
+    - Visualize for clarity
+    - Connect metrics to business outcomes
+
+  reviewer: |
+    {{system_prompts.base}}
+
+    YOU ARE THE REVIEWER (✓)
+    Drawing from: Fagan • Parnas • Brooks
+
+    YOUR ROLE:
+    - Code and design review
+    - Quality assurance
+    - Security and compliance audit
+    - Documentation review
+
+    APPROACH:
+    - Be thorough but constructive
+    - Focus on substance over style
+    - Prioritize security and correctness
+    - Suggest improvements, not just problems
+
+  executor: |
+    {{system_prompts.base}}
+
+    YOU ARE THE EXECUTOR (▶)
+    Drawing from: Toyota • Deming • Ohno
+
+    YOUR ROLE:
+    - Task execution and automation
+    - Deployment and operations
+    - Process optimization
+    - Monitoring and alerting
+
+    APPROACH:
+    - Bias toward action (with guardian approval)
+    - Automate repetitive tasks
+    - Monitor for failures
+    - Document procedures
+
+  guardian: |
+    {{system_prompts.base}}
+
+    YOU ARE THE GUARDIAN (🛡)
+    Drawing from: Al-Ghazali • Rawls • Anthropic
+
+    YOUR ROLE:
+    - Ethical review and oversight
+    - Safety and harm prevention
+    - FATE gate enforcement
+    - Anomaly detection and alerting
+
+    APPROACH:
+    - Review all high-stakes actions
+    - Block harmful or unethical outputs
+    - Protect user's interests
+    - Maintain audit trail
+    - You have VETO power over other agents
+
+    SPECIAL POWERS:
+    - Pause any execution
+    - Request human confirmation
+    - Block outputs failing FATE gates
+    - Override agent decisions
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# TASK PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────────
+tasks:
+  research:
+    deep: |
+      Research the following topic thoroughly:
+
+      TOPIC: {{topic}}
+
+      REQUIREMENTS:
+      1. Provide comprehensive overview
+      2. Include key concepts and terminology
+      3. Cite authoritative sources
+      4. Note areas of uncertainty or debate
+      5. Identify practical applications
+      6. Suggest further reading
+
+      OUTPUT FORMAT: Structured markdown with sections
+
+    quick: |
+      Quick lookup on: {{query}}
+
+      Provide a concise, accurate answer with key facts only.
+      Include source if from specific reference.
+
+    compare: |
+      Compare the following:
+      A: {{item_a}}
+      B: {{item_b}}
+
+      Create a balanced comparison covering:
+      - Key similarities
+      - Key differences
+      - Strengths/weaknesses of each
+      - Recommendation based on context: {{context}}
+
+  code:
+    implement: |
+      Implement the following:
+
+      REQUIREMENT: {{requirement}}
+      LANGUAGE: {{language|default:"Rust"}}
+      CONTEXT: {{context}}
+
+      GUIDELINES:
+      - Follow existing patterns in the codebase
+      - Include error handling
+      - Add inline comments for complex logic
+      - Write tests if applicable
+      - Consider edge cases
+
+    review: |
+      Review the following code:
+
+      {{code}}
+
+      REVIEW CHECKLIST:
+      1. Correctness - Does it work as intended?
+      2. Security - Any vulnerabilities?
+      3. Performance - Any bottlenecks?
+      4. Readability - Is it clear and maintainable?
+      5. Testing - Adequate coverage?
+
+      Format: List findings by severity (Critical/Major/Minor/Suggestion)
+
+    debug: |
+      Debug the following issue:
+
+      PROBLEM: {{problem}}
+      CODE: {{code}}
+      ERROR: {{error}}
+
+      APPROACH:
+      1. Reproduce the issue
+      2. Identify root cause
+      3. Propose fix
+      4. Explain why it works
+
+  analysis:
+    data: |
+      Analyze the following data:
+
+      SOURCE: {{source}}
+      QUESTION: {{question}}
+
+      ANALYSIS:
+      1. Data overview (shape, types, quality)
+      2. Key findings related to question
+      3. Statistical summary if applicable
+      4. Visualization recommendations
+      5. Caveats and limitations
+
+    trend: |
+      Analyze trends for: {{topic}}
+
+      TIME PERIOD: {{period|default:"last 30 days"}}
+
+      PROVIDE:
+      1. Current trend direction
+      2. Key inflection points
+      3. Drivers of change
+      4. Forecast if data supports
+      5. Confidence level
+
+  strategy:
+    plan: |
+      Create a plan for: {{objective}}
+
+      CONTEXT: {{context}}
+      CONSTRAINTS: {{constraints}}
+      TIMELINE: {{timeline}}
+
+      PLAN STRUCTURE:
+      1. Executive summary
+      2. Key milestones
+      3. Resource requirements
+      4. Risk assessment
+      5. Success metrics
+      6. Dependencies
+
+    assess: |
+      Risk assessment for: {{scenario}}
+
+      ANALYZE:
+      1. Potential risks (categorized)
+      2. Likelihood and impact for each
+      3. Mitigation strategies
+      4. Contingency plans
+      5. Overall risk rating
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# PROACTIVE PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────────
+proactive:
+  morning_brief: |
+    Generate morning briefing for MoMo.
+
+    TODAY: {{date}}
+    PENDING TASKS: {{pending_tasks}}
+    CALENDAR: {{calendar}}
+    OVERNIGHT EVENTS: {{events}}
+
+    FORMAT:
+    1. 🌅 Good morning greeting (include Arabic)
+    2. 📋 Priority items for today (top 3)
+    3. ⚠️ Any alerts or blockers
+    4. 💡 One proactive suggestion
+    5. 📊 Quick metric if relevant
+
+    Keep it concise - this is a quick start to the day.
+
+  suggest_next: |
+    Based on current context, suggest the next action.
+
+    RECENT CONTEXT: {{recent_context}}
+    PENDING TASKS: {{pending_tasks}}
+    GOALS: {{goals}}
+    TIME OF DAY: {{time}}
+
+    CONSIDER:
+    - What would maximize progress toward goals?
+    - Is user likely in deep work or transition mode?
+    - Any urgent items?
+    - Any quick wins available?
+
+    Format: Single clear suggestion with brief rationale.
+
+  daily_review: |
+    Generate daily review.
+
+    COMPLETED TODAY: {{completed}}
+    METRICS: {{metrics}}
+    LEARNINGS: {{learnings}}
+
+    FORMAT:
+    1. 📊 Summary of accomplishments
+    2. 📈 Key metrics
+    3. 💡 Learnings captured
+    4. 🎯 Setup for tomorrow
+
+  weekly_review: |
+    Generate weekly review.
+
+    WEEK: {{week}}
+    COMPLETED: {{completed}}
+    METRICS: {{metrics}}
+    GOALS_PROGRESS: {{goals}}
+
+    FORMAT:
+    1. 🎯 Goal progress (what % of weekly targets)
+    2. 🏆 Key wins
+    3. 🚧 Challenges faced
+    4. 📚 Learnings
+    5. 🎯 Focus for next week
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# COMMUNICATION PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────────
+communication:
+  summarize: |
+    Summarize the following:
+
+    CONTENT: {{content}}
+    TARGET LENGTH: {{length|default:"2-3 paragraphs"}}
+    AUDIENCE: {{audience|default:"technical"}}
+
+    Focus on key insights and actionable takeaways.
+
+  explain: |
+    Explain {{topic}} in a way that:
+
+    - Uses analogies if helpful
+    - Builds from fundamentals
+    - Highlights practical applications
+    - Notes common misconceptions
+
+    Target audience: {{audience|default:"technical professional"}}
+
+  translate: |
+    Translate the following:
+
+    TEXT: {{text}}
+    FROM: {{from_lang|default:"auto"}}
+    TO: {{to_lang|default:"Arabic"}}
+
+    Maintain tone and technical accuracy.
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SPECIAL PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────────
+special:
+  brainstorm: |
+    Brainstorm ideas for: {{topic}}
+
+    CONSTRAINTS: {{constraints}}
+    STYLE: {{style|default:"diverse"}}
+
+    Generate {{count|default:10}} ideas, ranging from practical to ambitious.
+    For each: one-line description + potential impact.
+
+  decision: |
+    Help decide: {{decision}}
+
+    OPTIONS: {{options}}
+    CRITERIA: {{criteria}}
+    CONTEXT: {{context}}
+
+    ANALYSIS:
+    1. Score each option against criteria
+    2. Pros/cons for each
+    3. Risk assessment
+    4. Recommendation with confidence level
+
+    Important: Guardian must review before action.
+
+  reflection: |
+    Reflect on: {{topic}}
+
+    Consider:
+    - What went well?
+    - What could be improved?
+    - What patterns emerge?
+    - What would you do differently?
+
+    Capture as learnings for memory.

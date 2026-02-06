@@ -1,0 +1,290 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA Hooks — Event-Driven Automation
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Hooks execute automatically in response to events, enabling proactive behavior.
+# They embody the principle: "The best assistant anticipates, not just responds."
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SESSION HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+session:
+  on_start:
+    - name: "Load User Profile"
+      action: "load_config"
+      config: "sovereign_profile.yaml"
+
+    - name: "Initialize Memory"
+      action: "memory_init"
+      load_recent: 100
+
+    - name: "Check Pending Tasks"
+      action: "task_check"
+      notify_if_urgent: true
+
+    - name: "Morning Brief (if morning)"
+      condition: "time.hour >= 6 && time.hour <= 10"
+      action: "proactive_brief"
+      type: "morning"
+
+    - name: "System Health Check"
+      action: "health_check"
+      alert_on_failure: true
+
+  on_end:
+    - name: "Save Session Memory"
+      action: "memory_save"
+      include_learnings: true
+
+    - name: "Update Task Progress"
+      action: "task_sync"
+
+    - name: "Generate Session Summary"
+      action: "session_summarize"
+      store_in_memory: true
+
+    - name: "Check Incomplete Tasks"
+      action: "task_check_incomplete"
+      remind_tomorrow: true
+
+  on_idle:
+    threshold: 300  # 5 minutes
+    actions:
+      - name: "Suggest Next Action"
+        action: "proactive_suggest"
+        based_on: ["goals", "pending_tasks", "recent_context"]
+
+      - name: "Background Research"
+        condition: "has_recent_topic"
+        action: "background_research"
+        depth: "summary"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# MESSAGE HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+message:
+  pre_send:
+    - name: "FATE Gate Check"
+      action: "fate_validate"
+      on_fail: "block_with_reason"
+      gates: ["ihsan", "adl", "harm", "confidence"]
+
+    - name: "Guardian Review (High Stakes)"
+      condition: "is_high_stakes"
+      action: "guardian_review"
+      require_approval: true
+
+    - name: "Context Enhancement"
+      action: "enhance_context"
+      add: ["user_profile", "recent_memory", "current_goals"]
+
+  post_receive:
+    - name: "Learn From Response"
+      action: "learning_capture"
+      capture: ["preferences", "corrections", "new_info"]
+
+    - name: "Extract Action Items"
+      action: "extract_actions"
+      create_tasks: true
+
+    - name: "Update Memory"
+      condition: "contains_important_info"
+      action: "memory_update"
+
+    - name: "Detect Questions"
+      action: "detect_implicit_questions"
+      auto_research: true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# TASK HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+task:
+  on_create:
+    - name: "Auto-Route to Agent"
+      action: "task_route"
+      use_a2a: true
+
+    - name: "Estimate Complexity"
+      action: "task_estimate"
+      store_estimate: true
+
+    - name: "Check Dependencies"
+      action: "task_dependency_check"
+      warn_if_blocked: true
+
+  on_start:
+    - name: "Load Task Context"
+      action: "context_load"
+      include: ["related_files", "similar_tasks", "relevant_memory"]
+
+    - name: "Notify Assigned Agent"
+      action: "agent_notify"
+      message: "Task assigned: {task.title}"
+
+  on_complete:
+    - name: "Capture Learnings"
+      action: "learning_capture"
+      from: "task_completion"
+
+    - name: "Update Related Tasks"
+      action: "task_cascade"
+      unblock_dependents: true
+
+    - name: "Celebrate (if significant)"
+      condition: "task.complexity >= 'major'"
+      action: "celebrate"
+      style: "subtle"
+
+  on_blocked:
+    - name: "Analyze Blocker"
+      action: "blocker_analyze"
+
+    - name: "Suggest Alternatives"
+      action: "alternative_suggest"
+
+    - name: "Notify Guardian"
+      condition: "blocked_duration > 24h"
+      action: "guardian_alert"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# CODE HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+code:
+  on_edit:
+    - name: "Track Changes"
+      action: "change_track"
+      for_review: true
+
+    - name: "Check Quality"
+      action: "quality_check"
+      warn_on_degradation: true
+
+  on_commit:
+    - name: "Generate Commit Message"
+      action: "commit_message_generate"
+      style: "conventional"
+      include_context: true
+
+    - name: "Pre-Commit Checks"
+      action: "pre_commit"
+      checks: ["lint", "format", "test_affected"]
+
+    - name: "Security Scan"
+      action: "security_scan"
+      block_on_critical: true
+
+  on_pr:
+    - name: "Auto-Review"
+      action: "code_review"
+      agent: "reviewer"
+      thoroughness: "standard"
+
+    - name: "Update Task"
+      action: "task_link"
+      extract_from: "pr_description"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# ERROR HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+error:
+  on_occur:
+    - name: "Capture Context"
+      action: "error_context_capture"
+      include: ["stack_trace", "recent_actions", "system_state"]
+
+    - name: "Auto-Diagnose"
+      action: "error_diagnose"
+      agent: "developer"
+
+    - name: "Suggest Fix"
+      action: "fix_suggest"
+      auto_apply: false
+
+  on_repeated:
+    threshold: 3
+    actions:
+      - name: "Pattern Analysis"
+        action: "error_pattern_analyze"
+
+      - name: "Create Fix Task"
+        action: "task_create"
+        priority: "high"
+
+      - name: "Guardian Alert"
+        action: "guardian_alert"
+        severity: "warning"
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# SCHEDULE HOOKS
+# ─────────────────────────────────────────────────────────────────────────────────
+schedule:
+  # Daily
+  - cron: "0 8 * * *"
+    name: "Morning Brief"
+    action: "proactive_brief"
+    type: "morning"
+
+  - cron: "0 20 * * *"
+    name: "Daily Review"
+    action: "proactive_review"
+    type: "daily"
+
+  # Weekly
+  - cron: "0 17 * * 5"
+    name: "Weekly Review"
+    action: "proactive_review"
+    type: "weekly"
+
+  - cron: "0 9 * * 1"
+    name: "Week Planning"
+    action: "proactive_plan"
+    type: "weekly"
+
+  # Continuous
+  - cron: "*/15 * * * *"
+    name: "Health Check"
+    action: "health_check"
+    silent_if_ok: true
+
+  - cron: "*/5 * * * *"
+    name: "Goal Progress Check"
+    action: "goal_check"
+    alert_if_behind: true
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# GUARDIAN HOOKS (Safety Net)
+# ─────────────────────────────────────────────────────────────────────────────────
+guardian:
+  always_review:
+    - pattern: "delete|remove|destroy|drop"
+      action: "guardian_review"
+      require_confirmation: true
+
+    - pattern: "deploy|release|publish"
+      action: "guardian_review"
+      check_fate_gates: true
+
+    - pattern: "financial|payment|transfer"
+      action: "guardian_review"
+      require_human_approval: true
+
+    - pattern: "user_data|personal|pii"
+      action: "guardian_review"
+      privacy_check: true
+
+  alert_on:
+    - condition: "ihsan < 0.90"
+      severity: "warning"
+      message: "Quality below Ihsān threshold"
+
+    - condition: "harm > 0.20"
+      severity: "critical"
+      message: "Potential harm detected"
+      action: "pause_execution"
+
+    - condition: "unusual_pattern"
+      severity: "info"
+      message: "Unusual activity detected"
+      log_for_review: true

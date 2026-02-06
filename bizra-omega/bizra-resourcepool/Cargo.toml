@@ -1,0 +1,80 @@
+[package]
+name = "bizra-resourcepool"
+version = "1.0.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "BIZRA Resource Pool - Universal fabric where all nodes connect"
+keywords = ["resource-pool", "islamic-finance", "zakat", "harberger", "web4"]
+categories = ["cryptography", "network-programming", "finance"]
+
+[dependencies]
+# Sibling crates
+bizra-core = { path = "../bizra-core" }
+bizra-proofspace = { path = "../bizra-proofspace" }
+bizra-telescript = { path = "../bizra-telescript" }
+bizra-federation = { path = "../bizra-federation" }
+
+# Cryptography - workspace inherited
+blake3.workspace = true
+ed25519-dalek = { workspace = true, features = ["serde", "rand_core"] }
+rand.workspace = true
+sha2 = "0.10"
+
+# Serialization - workspace inherited
+serde.workspace = true
+serde_json.workspace = true
+
+# RFC 8785 JCS Canonicalization (same as proofspace)
+json-canon = "0.1"
+
+# Async - workspace inherited
+tokio.workspace = true
+async-trait.workspace = true
+
+# Error handling - workspace inherited
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Time & Identity - workspace inherited
+chrono.workspace = true
+uuid.workspace = true
+
+# Logging - workspace inherited
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Decimal arithmetic for financial calculations (no floating point errors)
+rust_decimal = { version = "1.34", features = ["serde", "serde-with-str"] }
+
+# Persistent storage
+sled = "0.34"
+
+# Hex encoding
+hex = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = "0.5"
+proptest = "1.4"
+
+[[bench]]
+name = "resourcepool_benchmark"
+harness = false
+
+[[bin]]
+name = "resourcepool-node"
+path = "src/main.rs"
+
+[[bin]]
+name = "node0-genesis"
+path = "src/bin/node0_genesis.rs"
+
+[features]
+default = []
+# Enable distributed consensus for pool operations
+consensus = []
+# Enable GPU resource tracking
+cuda = []
+# Enable full tracing
+full-tracing = []
