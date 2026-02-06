@@ -348,7 +348,10 @@ fn run_tui() -> Result<()> {
 fn run_app<B: ratatui::backend::Backend>(
     terminal: &mut ratatui::Terminal<B>,
     app: &mut app::App,
-) -> Result<()> {
+) -> Result<()>
+where
+    B::Error: Send + Sync + 'static,
+{
     use crossterm::event::{self, Event, KeyCode};
     use std::time::Duration;
 
