@@ -13,9 +13,12 @@ Dependencies:
 import asyncio
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional
+
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +34,9 @@ except ImportError:
     )
     httpx = None  # type: ignore
 
-# Constitutional thresholds
-IHSAN_THRESHOLD = 0.95
-SNR_THRESHOLD = 0.85
+# Constitutional thresholds (from single source of truth)
+IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
+SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
 
 
 class LMStudioEndpoint(Enum):
@@ -56,8 +59,8 @@ class LMStudioEndpoint(Enum):
 class LMStudioConfig:
     """Configuration for LM Studio backend."""
 
-    host: str = "192.168.56.1"  # Default from BIZRA config
-    port: int = 1234
+    host: str = field(default_factory=lambda: os.getenv("LMSTUDIO_HOST", "192.168.56.1"))
+    port: int = field(default_factory=lambda: int(os.getenv("LMSTUDIO_PORT", "1234")))
     api_key: Optional[str] = None
     timeout: float = 120.0
     use_native_api: bool = True  # Use /api/v1/* instead of OpenAI-compat

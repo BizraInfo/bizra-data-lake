@@ -364,7 +364,8 @@ pub fn estimate_memory_usage() {
 
 #[cfg(test)]
 mod tests {
-    
+    use super::*;
+    use std::time::Duration;
 
     #[test]
     fn test_run_benchmarks() {

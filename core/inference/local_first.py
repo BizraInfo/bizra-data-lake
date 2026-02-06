@@ -16,6 +16,7 @@ Standing on Giants:
 
 import asyncio
 import logging
+import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
@@ -45,11 +46,11 @@ class BackendStatus:
 class LocalFirstDetector:
     """Detects and selects best available local backend."""
 
-    # Configuration (per /mnt/c/BIZRA-DATA-LAKE/.bizra-kernel/core-context.json)
-    LM_STUDIO_HOST = "192.168.56.1"
-    LM_STUDIO_PORT = 1234
-    OLLAMA_HOST = "localhost"
-    OLLAMA_PORT = 11434
+    # Configuration (env vars override defaults)
+    LM_STUDIO_HOST = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+    LM_STUDIO_PORT = int(os.getenv("LMSTUDIO_PORT", "1234"))
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST_ADDR", "localhost")
+    OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 
     # Health check timeouts (ms)
     PROBE_TIMEOUT = 2.0  # 2s timeout per backend
