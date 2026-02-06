@@ -58,7 +58,7 @@ impl Widget for AgentCard<'_> {
             AgentStatus::Error => symbols::ERROR,
         };
 
-        let status_style = match self.state.status {
+        let _status_style = match self.state.status {
             AgentStatus::Idle => Theme::muted(),
             AgentStatus::Thinking => Theme::status_pending(),
             AgentStatus::Speaking => Theme::voice_active(),

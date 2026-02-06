@@ -150,7 +150,7 @@ impl Config {
     }
 
     /// Load configuration from specific paths
-    pub fn load_from(paths: ConfigPaths) -> Result<Self> {
+    pub fn load_from(_paths: ConfigPaths) -> Result<Self> {
         // For now, return defaults
         // In production, parse YAML files
         Ok(Self::default())
@@ -231,6 +231,8 @@ impl ProactiveSuggestion {
 
 /// Proactive engine for generating suggestions
 pub struct ProactiveEngine {
+    // TUI scaffolding -- config used when proactive suggestions reference user settings
+    #[allow(dead_code)]
     config: Config,
     last_suggestion_time: Option<chrono::DateTime<chrono::Local>>,
 }

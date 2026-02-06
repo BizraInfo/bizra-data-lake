@@ -93,7 +93,8 @@ impl MultiAxisEntropy {
 pub struct EntropyCalculator {
     /// Pre-allocated byte count buffer (256 entries)
     byte_counts: [u32; 256],
-    /// Pre-computed log2 lookup table
+    /// Pre-computed log2 lookup table (reserved for SIMD-accelerated path)
+    #[allow(dead_code)]
     log2_table: [f32; 256],
 }
 

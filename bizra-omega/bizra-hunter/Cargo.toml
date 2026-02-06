@@ -73,14 +73,4 @@ proptest = "1.4"
 name = "snr_pipeline"
 harness = false
 
-[profile.release]
-opt-level = 3
-lto = "fat"
-codegen-units = 1
-panic = "abort"
-strip = true
-
-[profile.release-with-debug]
-inherits = "release"
-debug = true
-strip = false
+# Profiles are defined in workspace root Cargo.toml

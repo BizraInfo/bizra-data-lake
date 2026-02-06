@@ -13,7 +13,11 @@ use clap::Parser;
 
 mod app;
 mod commands;
+// TUI scaffolding -- inference module used when direct Rust-to-LMStudio path replaces Python bridge
+#[allow(dead_code)]
 mod inference;
+// TUI scaffolding -- theme constants/functions used as UI views are fully wired
+#[allow(dead_code)]
 mod theme;
 mod widgets;
 
@@ -58,7 +62,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Create tokio runtime for async operations
-    let rt = tokio::runtime::Runtime::new()?;
+    let _rt = tokio::runtime::Runtime::new()?;
 
     match cli.command {
         None | Some(Commands::Tui) => {
@@ -770,7 +774,7 @@ fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::R
     f.render_widget(para, area);
 }
 
-fn render_treasury(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
+fn render_treasury(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
     use crate::theme::Theme;
     use ratatui::text::Span;
     use ratatui::widgets::{Block, Borders, Paragraph};
@@ -785,7 +789,7 @@ fn render_treasury(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout
     f.render_widget(para, area);
 }
 
-fn render_settings(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
+fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layout::Rect) {
     use crate::theme::Theme;
     use ratatui::text::{Line, Span};
     use ratatui::widgets::{Block, Borders, Paragraph};

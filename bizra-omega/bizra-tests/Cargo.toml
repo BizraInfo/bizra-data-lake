@@ -54,10 +54,6 @@ path = "tests/federation_security.rs"
 name = "inference_fallback"
 path = "tests/inference_fallback.rs"
 
-[[bin]]
-name = "bizra-bench"
-path = "benches/performance.rs"
-
 [[bench]]
 name = "perf"
 path = "benches/performance.rs"

@@ -771,9 +771,11 @@ pub struct ResourcePool {
     harberger_listings: Arc<RwLock<HashMap<Uuid, HarbergerListing>>>,
     /// Zakat fund
     zakat_fund: Arc<RwLock<u64>>,
-    /// Telescript engine reference
+    /// Telescript engine reference — used when telescript integration is fully wired
+    #[allow(dead_code)]
     telescript: Arc<RwLock<Option<bizra_telescript::TelescriptEngine>>>,
-    /// Pending registrations
+    /// Pending registrations — used when registration flow is fully wired
+    #[allow(dead_code)]
     pending_registrations: Arc<RwLock<HashMap<String, RegistrationRequest>>>,
 }
 
