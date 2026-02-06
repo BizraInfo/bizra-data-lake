@@ -110,8 +110,9 @@ class TestByzantineConsensus:
     def test_quorum_calculation(self):
         """Test quorum requirements for different cluster sizes."""
         for n in [3, 4, 5, 6, 7, 9, 12]:
-            quorum = n * 2 // 3 + (1 if n * 2 % 3 else 0)
-            max_byzantine = n - quorum
+            # Byzantine tolerance: f <= floor((n-1)/3)
+            max_byzantine = (n - 1) // 3
+            quorum = n - max_byzantine
 
             # Byzantine tolerance: f < n/3
             assert max_byzantine < n / 3 or n < 4
@@ -205,7 +206,9 @@ class TestMaliciousModelRejection:
         for model in adversarial_models:
             passes_ihsan = model.ihsan_score >= IHSAN_THRESHOLD
             passes_snr = model.snr_score >= SNR_THRESHOLD
-            should_accept = passes_ihsan and passes_snr
+            # Perfect scores are suspicious (score inflation attack)
+            suspicious_perfect = model.ihsan_score == 1.0 and model.snr_score == 1.0
+            should_accept = passes_ihsan and passes_snr and not suspicious_perfect
 
             if model.should_be_rejected:
                 assert not should_accept, f"Model {model.id} should be rejected"

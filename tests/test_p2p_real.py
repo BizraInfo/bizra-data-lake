@@ -3,8 +3,9 @@ import sys
 import time
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, "c:/BIZRA-DATA-LAKE")
+# Add project root to path (portable)
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root))
 
 from core.federation.node import FederationNode
 

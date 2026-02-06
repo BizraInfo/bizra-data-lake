@@ -324,6 +324,14 @@ class TestVerifyCapabilityCard:
         )
         signed_card = issuer.issue(card)
 
+        # Register the issuer's key in the trusted registry
+        from core.sovereign.key_registry import get_key_registry
+        registry = get_key_registry()
+        registry.register(
+            public_key_hex=issuer.public_key_hex(),
+            issuer_name="test-issuer",
+        )
+
         result = verify_capability_card(signed_card)
         assert result["is_valid"] is True
         assert result["ihsan_valid"] is True

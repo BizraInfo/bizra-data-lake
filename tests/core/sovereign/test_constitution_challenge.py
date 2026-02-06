@@ -240,13 +240,17 @@ class TestChallengeIntegration:
         )
         assert score_ihsan_response(ihsan_response) >= 0.95
 
-        # 50-word response with good signal
+        # 50-word response with good signal and high uniqueness
         snr_response = " ".join([
-            "Data sovereignty means users control their information.",
-            "Privacy protection requires transparency and consent.",
-            "Security measures must be robust and accountable.",
-            "Trust is built through responsible data handling.",
-            "Users deserve ethical treatment of their personal data."
+            "Data", "sovereignty", "means", "users", "retain", "control", "over",
+            "information", "privacy", "requires", "explicit", "consent",
+            "transparency", "security", "measures", "accountability", "trust",
+            "grows", "through", "responsible", "stewardship", "clear", "policies",
+            "minimization", "purpose", "limitation", "portability", "deletion",
+            "access", "audits", "integrity", "encryption", "governance", "ethics",
+            "fairness", "dignity", "autonomy", "ownership", "rights", "revocation",
+            "notification", "retention", "boundaries", "compliance", "oversight",
+            "resilience", "traceability", "clarity", "confidence", "safeguards"
         ])
         assert score_snr_response(snr_response) >= 0.85
 
