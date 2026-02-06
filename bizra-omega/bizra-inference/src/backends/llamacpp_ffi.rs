@@ -107,6 +107,7 @@ struct ModelState {
     name: String,
     n_ctx: u32,
     n_vocab: u32,
+    #[allow(dead_code)] // Tracked for model lifecycle management
     loaded: bool,
 }
 
@@ -230,7 +231,7 @@ impl LlamaCppFFIBackend {
         &self,
         prompt: &str,
         max_tokens: usize,
-        sampling: &SamplingParams,
+        _sampling: &SamplingParams,
     ) -> Result<(String, usize), BackendError> {
         let state = self.state.lock().await;
         let _model_state = state.as_ref().ok_or(BackendError::NotLoaded)?;

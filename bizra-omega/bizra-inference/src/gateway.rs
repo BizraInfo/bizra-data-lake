@@ -56,7 +56,9 @@ pub enum GatewayError {
 }
 
 pub struct InferenceGateway {
+    #[allow(dead_code)] // Used for PCI envelope signing in production
     identity: Arc<NodeIdentity>,
+    #[allow(dead_code)] // Used for constitutional gate checks in production
     constitution: Arc<Constitution>,
     selector: ModelSelector,
     backends: RwLock<Vec<(ModelTier, Arc<dyn Backend>)>>,

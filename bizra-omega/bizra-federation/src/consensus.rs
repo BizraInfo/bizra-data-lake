@@ -108,6 +108,7 @@ pub enum ConsensusState {
 }
 
 struct Round {
+    #[allow(dead_code)] // Stored for audit trail and round inspection
     proposal: Proposal,
     votes: HashMap<NodeId, SignedVote>,
     state: ConsensusState,

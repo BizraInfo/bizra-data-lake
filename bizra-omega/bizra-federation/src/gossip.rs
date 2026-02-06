@@ -208,6 +208,7 @@ pub enum FederationError {
 
 pub struct GossipProtocol {
     local_id: NodeId,
+    #[allow(dead_code)] // Needed for bind/listen when network layer is activated
     local_addr: SocketAddr,
     members: Arc<RwLock<HashMap<NodeId, Member>>>,
     incarnation: Arc<RwLock<u64>>,

@@ -13,7 +13,7 @@ use bizra_core::{
 };
 use bizra_federation::{
     consensus::ConsensusEngine,
-    gossip::{GossipMessage, GossipProtocol, Member},
+    gossip::{GossipMessage, GossipProtocol, Member, SignedGossipMessage},
 };
 use bizra_inference::{
     gateway::InferenceRequest,
@@ -296,21 +296,34 @@ async fn e2e_gossip_membership() {
     assert_eq!(alive.len(), 3);
     println!("✓ 3 members alive");
 
-    // 4. Handle join message
-    let new_member = Member::new(NodeId("peer_3".into()), "192.168.1.3:7946".parse().unwrap());
+    // 4. Handle signed join message (secure API)
+    let peer3_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    let peer3_id = NodeId("peer_3".into());
     gossip
-        .handle_message(GossipMessage::Join { member: new_member })
+        .register_peer_pubkey(peer3_id.clone(), peer3_key.verifying_key().to_bytes())
         .await;
+    let new_member = Member::new(peer3_id, "192.168.1.3:7946".parse().unwrap());
+    let join_msg = SignedGossipMessage::sign(
+        GossipMessage::Join { member: new_member },
+        &peer3_key,
+    );
+    gossip.handle_signed_message(join_msg).await.unwrap();
     assert_eq!(gossip.member_count().await, 4);
-    println!("✓ Handled join, total: 4");
+    println!("✓ Handled signed join, total: 4");
 
-    // 5. Handle leave message
+    // 5. Handle signed leave message
+    let peer1_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
     gossip
-        .handle_message(GossipMessage::Leave { node_id: peer1_id })
+        .register_peer_pubkey(peer1_id.clone(), peer1_key.verifying_key().to_bytes())
         .await;
+    let leave_msg = SignedGossipMessage::sign(
+        GossipMessage::Leave { node_id: peer1_id },
+        &peer1_key,
+    );
+    gossip.handle_signed_message(leave_msg).await.unwrap();
     let alive = gossip.alive_members().await;
     assert_eq!(alive.len(), 3); // peer_1 is now Left, not Alive
-    println!("✓ Handled leave, alive: 3");
+    println!("✓ Handled signed leave, alive: 3");
 }
 
 /// Test consensus voting

@@ -81,6 +81,7 @@ enum BackendState {
         model_info: LoadedModelInfo,
         // In real implementation: llama_model, llama_context
     },
+    #[allow(dead_code)] // Valid error state for model loading failures
     Error(String),
 }
 
@@ -270,7 +271,7 @@ impl Backend for LlamaCppBackend {
             request.max_tokens
         );
 
-        let prompt_tokens = full_prompt.len() / 4; // Rough estimate
+        let _prompt_tokens = full_prompt.len() / 4; // Rough estimate
         let completion_tokens = request.max_tokens.min(100);
 
         Ok(InferenceResponse {
