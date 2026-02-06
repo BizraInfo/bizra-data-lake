@@ -120,5 +120,27 @@ htmlcov/
 *.log
 *.tmp
 
+# ── Compiled Binaries ─────────────────────────────────────────
+bizra
+*.exe
+
+# ── Research Archive (large files) ────────────────────────────
+research_archive/
+
+# ── Local Claude Config ───────────────────────────────────────
+.claude/CLAUDE.local.md
+.claude/agents/
+.claude/commands/
+.claude/helpers/
+.claude/hooks/
+.claude/memory/
+.claude/rules/
+.claude/skills/
+.claude/statusline.*
+.mcp.json
+
 # ── Gemini ────────────────────────────────────────────────────
 .gemini/
+
+# ── Misc ──────────────────────────────────────────────────────
+C:/
