@@ -9,7 +9,7 @@ keywords = ["cli", "tui", "sovereign", "ai", "pat"]
 
 [dependencies]
 # TUI Framework
-ratatui = { version = "0.29", features = ["all-widgets"] }
+ratatui = { version = "0.30", features = ["all-widgets"] }
 crossterm = { version = "0.28", features = ["event-stream"] }
 
 # Async
