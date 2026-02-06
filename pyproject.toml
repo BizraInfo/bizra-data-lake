@@ -24,27 +24,215 @@ dependencies = [
     "aiofiles>=23.0.0",
     "python-multipart>=0.0.6",
     "tqdm>=4.65.0",
+    "blake3>=0.3.3",
+    "pynacl>=1.5.0",
 ]
+
+[project.scripts]
+bizra = "core.sovereign.__main__:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-xdist>=3.5.0",
+    "coverage[toml]>=7.3.0",
+    "diff-cover>=8.0.0",
     "black>=23.7.0",
     "isort>=5.12.0",
     "mypy>=1.5.0",
+    "ruff>=0.1.0",
+]
+full = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "sentence-transformers>=2.2.0",
+]
+minimal = [
+    "numpy>=1.24.0",
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
 ]
 
 [tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --ignore=evidence --ignore=00_INTAKE"
-testpaths = [
-    "tests",
-    "core",
-]
+# AUTHORITATIVE pytest config (pytest.ini should match or be removed)
+minversion = "7.0"
+addopts = "-v --tb=short --strict-markers --ignore=evidence --ignore=00_INTAKE --ignore=New\\ folder"
+testpaths = ["tests"]
 python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+timeout = 60
+timeout_method = "thread"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests (require external services)",
+    "requires_ollama: marks tests that require Ollama running locally",
+    "requires_gpu: marks tests that require GPU hardware (CUDA/ROCm)",
+    "requires_network: marks tests that require network access",
+]
+
+[tool.coverage.run]
+# Coverage.py run configuration
+source = ["core"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/conftest.py",
+    "*/_version.py",
+]
+
+[tool.coverage.paths]
+# Path mappings for combining coverage from different environments
+source = [
+    "core/",
+    "*/site-packages/core/",
+]
+
+[tool.coverage.report]
+# Coverage reporting configuration
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+# SAPE Elite Analysis: Raised from 80% to 95% (Ihsan threshold)
+fail_under = 95
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+# HTML report configuration
+directory = "htmlcov"
+title = "BIZRA Coverage Report"
+
+[tool.coverage.xml]
+# XML report configuration (for CI)
+output = "coverage.xml"
 
 [tool.black]
 line-length = 88
 target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["core", "tests"]
+
+[tool.mypy]
+# =============================================================================
+# MyPy Strict Mode Configuration
+# Target: Quality Score >= 95% (Ihsan Compliance)
+# =============================================================================
+python_version = "3.9"
+strict = true
+
+# Core strict settings (explicitly listed for clarity)
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+no_implicit_reexport = true
+strict_equality = true
+strict_concatenate = true
+
+# Error output settings
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# Namespace packages (for core.* imports)
+namespace_packages = true
+explicit_package_bases = true
+
+# Exclude patterns
+exclude = [
+    "^evidence/",
+    "^00_INTAKE/",
+    "^New folder/",
+    "^dist/",
+    "^build/",
+    "^\\.venv/",
+    "^venv/",
+]
+
+# =============================================================================
+# Per-Module Overrides
+# Gradual strictness for modules with external dependencies
+# =============================================================================
+
+[[tool.mypy.overrides]]
+# Core sovereign modules - STRICT (primary focus)
+module = [
+    "core.sovereign.*",
+    "core.pci.*",
+    "core.inference.*",
+]
+strict = true
+disallow_any_generics = true
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+# Integration modules - slightly relaxed for external libs
+module = [
+    "core.integration.*",
+    "core.federation.*",
+]
+strict = true
+disallow_any_generics = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+# Test modules - relaxed for test fixtures
+module = "tests.*"
+strict = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+# External packages without stubs
+module = [
+    "llama_cpp.*",
+    "sentence_transformers.*",
+    "transformers.*",
+    "faiss.*",
+    "blake3.*",
+    "nacl.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Optional dependencies that may not be installed
+module = [
+    "torch.*",
+    "numpy.*",
+    "pandas.*",
+    "networkx.*",
+    "sklearn.*",
+    "plotly.*",
+]
+ignore_missing_imports = true

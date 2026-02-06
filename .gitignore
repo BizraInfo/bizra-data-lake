@@ -1,4 +1,17 @@
-# Python
+# ═══════════════════════════════════════════════════════════════
+# BIZRA-DATA-LAKE .gitignore
+# ═══════════════════════════════════════════════════════════════
+
+# ── Secrets & Environment ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── Python ────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,55 +34,91 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
-# Virtual Environments
-venv/
-env/
-ENV/
-.env
-.venv
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Jupyter Notebooks
+# ── Virtual Environments ──────────────────────────────────────
+.venv/
+.venv-*/
+venv/
+env/
+ENV/
+
+# ── Jupyter ───────────────────────────────────────────────────
 .ipynb_checkpoints
 *-checkpoint.ipynb
 
-# Node.js
+# ── Node.js ───────────────────────────────────────────────────
 node_modules/
 npm-debug.log
 yarn-error.log
 yarn.lock
 package-lock.json
 
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
+# ── Rust Build Artifacts ──────────────────────────────────────
+native/target/
+bizra-omega/target/
+target/
 
-# VS Code
-.vscode/
-*.code-workspace
-
-# BIZRA Specific
-.gemini/
-__pycache__
-*.log
-*.tmp
-*.bak
-test_results/
-coverage/
-htmlcov/
-swp
-*~
-
-# External Links & Raw Data issues
-01_RAW/
+# ── Data Pipeline (large generated data) ──────────────────────
 00_INTAKE/
+01_RAW/
 02_PROCESSED/
 03_INDEXED/
 04_GOLD/
 99_QUARANTINE/
+
+# ── Large Binaries & Archives ─────────────────────────────────
 *.zip
+*.tgz
+*.tar.gz
+*.deb
+*.rpm
+*.dmg
+*.iso
+voices/
+voices.tgz
+dist.tgz
+cuda-keyring_*.deb
+
+# ── State & Checkpoints ──────────────────────────────────────
+sovereign_state/
+checkpoints/
+
+# ── Claude / AI Tooling ──────────────────────────────────────
+.claude-flow/
+.swarm/
+.claude/logs/
+.claude/state/
+
+# ── IDE & Editors ─────────────────────────────────────────────
+.vscode/
+*.code-workspace
+.idea/
+*.swp
+*~
+*.bak
+
+# ── OS Files ──────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
 nul
+
+# ── Test & Coverage ───────────────────────────────────────────
+test_results/
+coverage/
+htmlcov/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+*.tmp
+
+# ── Gemini ────────────────────────────────────────────────────
+.gemini/

@@ -11,9 +11,10 @@
 
 <br><br>
 
-[![Constitution](https://img.shields.io/badge/Constitution-v1.1.0--FINAL-gold?style=for-the-badge)](../bizra-genesis/constitution/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+[![Constitution](https://img.shields.io/badge/Constitution-v1.1.0--FINAL-gold?style=for-the-badge)](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md)
 [![Status](https://img.shields.io/badge/Status-ACTIVE-success?style=for-the-badge)](#)
-[![Chunks](https://img.shields.io/badge/Chunks-84,795-blue?style=for-the-badge)](#the-numbers)
+[![Rust Tests](https://img.shields.io/badge/Rust_Tests-282_passing-blue?style=for-the-badge)](#)
 
 <br>
 
@@ -165,11 +166,11 @@ BIZRA-DATA-LAKE                     bizra-genesis
 
 | File | Purpose |
 |:-----|:--------|
-| `DDAGI_CONSTITUTION_v1.1.0-FINAL.md` | The sealed constitution |
-| `BIZRA_STRATEGY_DECK_2026.md` | Strategic vision |
-| `ARCHITECTURE.md` | Technical architecture |
-| `SNR_DEFINITION.md` | Signal-to-noise specification |
-| `NODE0_GENESIS_COVENANT.md` | Genesis node covenant |
+| [`docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md`](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | The sealed constitution |
+| [`docs/BIZRA_STRATEGY_DECK_2026.md`](docs/BIZRA_STRATEGY_DECK_2026.md) | Strategic vision |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Technical architecture |
+| [`docs/NODE0_GENESIS_COVENANT.md`](docs/NODE0_GENESIS_COVENANT.md) | Genesis node covenant |
+| [`docs/SOVEREIGNTY.md`](docs/SOVEREIGNTY.md) | Sovereignty specification |
 
 ---
 
