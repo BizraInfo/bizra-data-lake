@@ -11,17 +11,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .runtime_types import (
+    LoopStatus,
     ReasoningResult,
     SNRResult,
     ValidationResult,
-    LoopStatus,
-    GraphReasonerProtocol,
-    SNROptimizerProtocol,
-    GuardianProtocol,
-    AutonomousLoopProtocol,
 )
 
 logger = logging.getLogger("sovereign.runtime.stubs")
@@ -31,21 +27,26 @@ logger = logging.getLogger("sovereign.runtime.stubs")
 # BASE STUB
 # =============================================================================
 
+
 @dataclass
 class ComponentStub:
     """Base class for component stubs."""
+
     name: str = "stub"
     is_stub: bool = True
     fallback_reason: str = "Component not available"
 
     def log_fallback(self, operation: str) -> None:
         """Log that a fallback is being used."""
-        logger.debug(f"{self.name}: Using fallback for {operation} ({self.fallback_reason})")
+        logger.debug(
+            f"{self.name}: Using fallback for {operation} ({self.fallback_reason})"
+        )
 
 
 # =============================================================================
 # GRAPH REASONER STUB
 # =============================================================================
+
 
 class GraphReasonerStub(ComponentStub):
     """Stub for GraphOfThoughts reasoner."""
@@ -73,6 +74,7 @@ class GraphReasonerStub(ComponentStub):
 # SNR OPTIMIZER STUB
 # =============================================================================
 
+
 class SNROptimizerStub(ComponentStub):
     """Stub for SNR maximizer."""
 
@@ -98,6 +100,7 @@ class SNROptimizerStub(ComponentStub):
 # =============================================================================
 # GUARDIAN STUB
 # =============================================================================
+
 
 class GuardianStub(ComponentStub):
     """Stub for Guardian Council validator."""
@@ -136,6 +139,7 @@ class GuardianStub(ComponentStub):
 # =============================================================================
 # AUTONOMOUS LOOP STUB
 # =============================================================================
+
 
 class AutonomousLoopStub(ComponentStub):
     """Stub for Autonomous OODA Loop."""
@@ -179,6 +183,7 @@ class AutonomousLoopStub(ComponentStub):
 # =============================================================================
 # STUB FACTORY
 # =============================================================================
+
 
 class StubFactory:
     """Factory for creating component stubs."""

@@ -17,18 +17,17 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from core.uers import UERS_GIANTS_MAPPING, ANALYTICAL_VECTORS
-from core.uers.entropy import EntropyCalculator, EntropyMeasurement, ManifoldState
-from core.uers.vectors import AnalyticalManifold, VectorType
-from core.uers.convergence import ConvergenceLoop, ConvergenceResult
-from core.uers.impact import ImpactOracle, ImpactType
-
 # Import SARE components
-from core.autonomous import SARE_VERSION, GIANTS_PROTOCOL, SNR_THRESHOLDS
-from core.autonomous.giants import GiantsProtocol, Giant
-from core.autonomous.nodes import ReasoningGraph, NodeType
-from core.autonomous.loop import SovereignLoop, LoopExecution
-from core.autonomous.engine import SovereignReasoningEngine, ReasoningResult
+from core.autonomous import SARE_VERSION
+from core.autonomous.engine import ReasoningResult, SovereignReasoningEngine
+from core.autonomous.giants import GiantsProtocol
+from core.autonomous.loop import LoopExecution
+from core.autonomous.nodes import ReasoningGraph
+from core.uers import UERS_GIANTS_MAPPING
+from core.uers.convergence import ConvergenceLoop, ConvergenceResult
+from core.uers.entropy import EntropyCalculator, EntropyMeasurement, ManifoldState
+from core.uers.impact import ImpactOracle, ImpactType
+from core.uers.vectors import VectorType
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class UnifiedReasoningResult:
     """Combined SARE + UERS result."""
+
     # SARE metrics
     sare_result: ReasoningResult
     snr_score: float
@@ -115,8 +115,7 @@ class SAREUERSBridge:
     def _vector_to_giants(self, vector: VectorType) -> List[str]:
         """Get all giants that contribute to a vector."""
         return [
-            giant for giant, vec in UERS_GIANTS_MAPPING.items()
-            if vec == vector.value
+            giant for giant, vec in UERS_GIANTS_MAPPING.items() if vec == vector.value
         ]
 
     # =========================================================================
@@ -139,10 +138,14 @@ class SAREUERSBridge:
             nodes=stats["total_nodes"],
             edges=len([n for n in graph._nodes.values() if n.children]),
             components=stats.get("root_nodes", 1),
-            max_depth=max(n.depth for n in graph._nodes.values()) if graph._nodes else 0,
+            max_depth=(
+                max(n.depth for n in graph._nodes.values()) if graph._nodes else 0
+            ),
         )
 
-    def loop_to_behavioral_entropy(self, execution: LoopExecution) -> EntropyMeasurement:
+    def loop_to_behavioral_entropy(
+        self, execution: LoopExecution
+    ) -> EntropyMeasurement:
         """Convert SARE loop execution to behavioral entropy."""
         events = [p.phase.value for p in execution.phases]
         return self._entropy_calc.trace_entropy(events)
@@ -223,16 +226,22 @@ class SAREUERSBridge:
 
         # Quality score (geometric mean of SNR and 1-entropy)
         import math
-        quality_score = math.sqrt(
-            sare_result.snr_score * (1 - singularity_distance)
-        )
+
+        quality_score = math.sqrt(sare_result.snr_score * (1 - singularity_distance))
 
         # Collect giants invoked
         giants_invoked = sare_result.giants_invoked or []
 
         # Collect resolved vectors
         vectors_resolved = [
-            v for v in ["surface", "structural", "behavioral", "hypothetical", "contextual"]
+            v
+            for v in [
+                "surface",
+                "structural",
+                "behavioral",
+                "hypothetical",
+                "contextual",
+            ]
             if manifold_state.__getattribute__(v).normalized < 0.3
         ]
 
@@ -297,19 +306,22 @@ class SAREUERSBridge:
 
             # Convert SARE reasoning to UERS hypotheses
             from core.uers.convergence import Hypothesis
+
             hypotheses = []
 
             suggestions = manifold.suggest_probes()
             for source, target, operation in suggestions:
-                hypotheses.append(Hypothesis(
-                    id=f"hyp_sare_{len(hypotheses)}",
-                    description=f"SARE-guided: {operation}",
-                    source_vector=source,
-                    target_vector=target,
-                    confidence=sare_result.snr_score,
-                    predicted_delta_e=sare_result.quality_score * 0.1,
-                    probe_operations=[operation],
-                ))
+                hypotheses.append(
+                    Hypothesis(
+                        id=f"hyp_sare_{len(hypotheses)}",
+                        description=f"SARE-guided: {operation}",
+                        source_vector=source,
+                        target_vector=target,
+                        confidence=sare_result.snr_score,
+                        predicted_delta_e=sare_result.quality_score * 0.1,
+                        probe_operations=[operation],
+                    )
+                )
 
             return hypotheses
 
@@ -386,9 +398,14 @@ class SAREUERSBridge:
 
         return {
             "total_results": len(self._unified_results),
-            "avg_quality_score": sum(r.quality_score for r in self._unified_results) / len(self._unified_results),
-            "avg_delta_e": sum(r.total_delta_e for r in self._unified_results) / len(self._unified_results),
-            "convergence_rate": sum(1 for r in self._unified_results if r.convergence_achieved) / len(self._unified_results),
+            "avg_quality_score": sum(r.quality_score for r in self._unified_results)
+            / len(self._unified_results),
+            "avg_delta_e": sum(r.total_delta_e for r in self._unified_results)
+            / len(self._unified_results),
+            "convergence_rate": sum(
+                1 for r in self._unified_results if r.convergence_achieved
+            )
+            / len(self._unified_results),
             "sare_stats": self._sare_engine.get_stats(),
             "convergence_stats": self._convergence.get_stats(),
             "oracle_stats": self._oracle.get_stats(),

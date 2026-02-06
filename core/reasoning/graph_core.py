@@ -44,21 +44,19 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Dict, List, Any
+from typing import Dict, List
 
-from core.integration.constants import UNIFIED_SNR_THRESHOLD, UNIFIED_IHSAN_THRESHOLD
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
-from .graph_types import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
-    EdgeType,
-    ReasoningStrategy,
-    ReasoningPath,
-)
 from .graph_operations import GraphOperationsMixin
-from .graph_search import GraphSearchMixin
 from .graph_reasoning import GraphReasoningMixin
+from .graph_search import GraphSearchMixin
+from .graph_types import (
+    ReasoningStrategy,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
+)
 
 logger = logging.getLogger(__name__)
 

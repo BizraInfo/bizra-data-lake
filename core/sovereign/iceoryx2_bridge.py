@@ -36,6 +36,7 @@ _iceoryx2_module = None
 try:
     # Attempt to import iceoryx2 Python bindings (FFI)
     import iceoryx2 as _iceoryx2_module  # type: ignore
+
     ICEORYX2_AVAILABLE = True
     logger.info("iceoryx2 zero-copy IPC available")
 except ImportError:
@@ -49,8 +50,10 @@ except ImportError:
 # ENUMS & DATA CLASSES
 # =============================================================================
 
+
 class PayloadType(Enum):
     """Message payload types for the IPC bridge."""
+
     INFERENCE_REQUEST = auto()
     INFERENCE_RESPONSE = auto()
     GATE_REQUEST = auto()
@@ -61,6 +64,7 @@ class PayloadType(Enum):
 
 class DeliveryStatus(Enum):
     """Result status for message delivery."""
+
     SUCCESS = auto()
     TIMEOUT = auto()
     BUFFER_FULL = auto()
@@ -76,6 +80,7 @@ class IceoryxMessage:
 
     Standing on Giants: iceoryx2 (Eclipse Foundation, 2024)
     """
+
     message_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     payload_type: PayloadType = PayloadType.INFERENCE_REQUEST
     payload_bytes: bytes = b""
@@ -91,6 +96,7 @@ class IceoryxMessage:
 @dataclass
 class DeliveryResult:
     """Result of a send operation."""
+
     status: DeliveryStatus
     message_id: str
     latency_ns: int = 0
@@ -104,6 +110,7 @@ class DeliveryResult:
 @dataclass
 class LatencyStats:
     """Latency statistics for the bridge."""
+
     message_count: int = 0
     total_latency_ns: int = 0
     min_latency_ns: int = 0
@@ -144,6 +151,7 @@ class LatencyStats:
 # ABSTRACT BASE CLASS
 # =============================================================================
 
+
 class IPCBridge(ABC):
     """
     Abstract base class for IPC bridges.
@@ -175,6 +183,7 @@ class IPCBridge(ABC):
 # =============================================================================
 # ICEORYX2 BRIDGE (Zero-Copy Implementation)
 # =============================================================================
+
 
 class Iceoryx2Bridge(IPCBridge):
     """
@@ -214,14 +223,18 @@ class Iceoryx2Bridge(IPCBridge):
             self._node = _iceoryx2_module.Node.new(self._service_name)
 
             # Create publisher for sending messages
-            self._publisher = self._node.publish_subscribe(
-                f"{self._service_name}/python_to_rust"
-            ).publisher_builder().create()
+            self._publisher = (
+                self._node.publish_subscribe(f"{self._service_name}/python_to_rust")
+                .publisher_builder()
+                .create()
+            )
 
             # Create subscriber for receiving messages
-            self._subscriber = self._node.publish_subscribe(
-                f"{self._service_name}/rust_to_python"
-            ).subscriber_builder().create()
+            self._subscriber = (
+                self._node.publish_subscribe(f"{self._service_name}/rust_to_python")
+                .subscriber_builder()
+                .create()
+            )
 
             self._connected = True
             logger.info(f"iceoryx2 bridge initialized: {self._service_name}")
@@ -241,7 +254,7 @@ class Iceoryx2Bridge(IPCBridge):
             return DeliveryResult(
                 status=DeliveryStatus.NOT_CONNECTED,
                 message_id=message.message_id,
-                error="Bridge not connected"
+                error="Bridge not connected",
             )
 
         start_ns = time.time_ns()
@@ -253,7 +266,7 @@ class Iceoryx2Bridge(IPCBridge):
                 return DeliveryResult(
                     status=DeliveryStatus.BUFFER_FULL,
                     message_id=message.message_id,
-                    error="Publisher buffer full"
+                    error="Publisher buffer full",
                 )
 
             # Write message data directly to shared memory
@@ -266,14 +279,12 @@ class Iceoryx2Bridge(IPCBridge):
             return DeliveryResult(
                 status=DeliveryStatus.SUCCESS,
                 message_id=message.message_id,
-                latency_ns=latency_ns
+                latency_ns=latency_ns,
             )
 
         except Exception as e:
             return DeliveryResult(
-                status=DeliveryStatus.ERROR,
-                message_id=message.message_id,
-                error=str(e)
+                status=DeliveryStatus.ERROR, message_id=message.message_id, error=str(e)
             )
 
     async def receive(self, timeout_ms: int = 100) -> Optional[IceoryxMessage]:
@@ -298,7 +309,7 @@ class Iceoryx2Bridge(IPCBridge):
                         payload_type=PayloadType.INFERENCE_RESPONSE,
                         payload_bytes=payload,
                         timestamp_ns=time.time_ns(),
-                        sender_id="rust_worker"
+                        sender_id="rust_worker",
                     )
             except Exception as e:
                 logger.debug(f"Receive error: {e}")
@@ -331,6 +342,7 @@ class Iceoryx2Bridge(IPCBridge):
 # =============================================================================
 # ASYNCIO FALLBACK BRIDGE
 # =============================================================================
+
 
 class AsyncFallbackBridge(IPCBridge):
     """
@@ -369,8 +381,7 @@ class AsyncFallbackBridge(IPCBridge):
         try:
             # Non-blocking put with timeout
             await asyncio.wait_for(
-                self._send_queue.put(message),
-                timeout=0.1  # 100ms timeout
+                self._send_queue.put(message), timeout=0.1  # 100ms timeout
             )
 
             latency_ns = time.time_ns() - start_ns
@@ -379,26 +390,24 @@ class AsyncFallbackBridge(IPCBridge):
             return DeliveryResult(
                 status=DeliveryStatus.SUCCESS,
                 message_id=message.message_id,
-                latency_ns=latency_ns
+                latency_ns=latency_ns,
             )
 
         except asyncio.TimeoutError:
             return DeliveryResult(
                 status=DeliveryStatus.TIMEOUT,
                 message_id=message.message_id,
-                error="Send queue timeout"
+                error="Send queue timeout",
             )
         except asyncio.QueueFull:
             return DeliveryResult(
                 status=DeliveryStatus.BUFFER_FULL,
                 message_id=message.message_id,
-                error="Send queue full"
+                error="Send queue full",
             )
         except Exception as e:
             return DeliveryResult(
-                status=DeliveryStatus.ERROR,
-                message_id=message.message_id,
-                error=str(e)
+                status=DeliveryStatus.ERROR, message_id=message.message_id, error=str(e)
             )
 
     async def receive(self, timeout_ms: int = 100) -> Optional[IceoryxMessage]:
@@ -409,8 +418,7 @@ class AsyncFallbackBridge(IPCBridge):
         """
         try:
             message = await asyncio.wait_for(
-                self._recv_queue.get(),
-                timeout=timeout_ms / 1000.0
+                self._recv_queue.get(), timeout=timeout_ms / 1000.0
             )
             return message
         except asyncio.TimeoutError:
@@ -453,9 +461,9 @@ class AsyncFallbackBridge(IPCBridge):
 # FACTORY FUNCTION
 # =============================================================================
 
+
 def create_ipc_bridge(
-    service_name: str = "bizra_sovereign",
-    force_fallback: bool = False
+    service_name: str = "bizra_sovereign", force_fallback: bool = False
 ) -> Union[Iceoryx2Bridge, AsyncFallbackBridge]:
     """
     Create the appropriate IPC bridge based on availability.
@@ -512,7 +520,6 @@ __all__ = [
 # =============================================================================
 
 if __name__ == "__main__":
-    import sys
 
     async def _test_bridge() -> None:
         """Test the IPC bridge functionality."""
@@ -535,9 +542,9 @@ if __name__ == "__main__":
         msg = IceoryxMessage(
             payload_type=PayloadType.INFERENCE_REQUEST,
             payload_bytes=b'{"prompt": "test", "model": "llama"}',
-            sender_id="test_worker"
+            sender_id="test_worker",
         )
-        print(f"Created message:")
+        print("Created message:")
         print(f"  ID: {msg.message_id}")
         print(f"  Type: {msg.payload_type.name}")
         print(f"  Size: {len(msg.payload_bytes)} bytes")
@@ -546,10 +553,12 @@ if __name__ == "__main__":
 
         # Test send
         result = await bridge.send(msg)
-        print(f"Send result:")
+        print("Send result:")
         print(f"  Status: {result.status.name}")
         print(f"  Success: {result.success}")
-        print(f"  Latency: {result.latency_ns} ns ({result.latency_ns / 1_000_000:.3f} ms)")
+        print(
+            f"  Latency: {result.latency_ns} ns ({result.latency_ns / 1_000_000:.3f} ms)"
+        )
         print()
 
         # Test stats
@@ -565,12 +574,12 @@ if __name__ == "__main__":
             test_msg = IceoryxMessage(
                 payload_type=PayloadType.HEARTBEAT,
                 payload_bytes=f"ping-{i}".encode(),
-                sender_id="benchmark"
+                sender_id="benchmark",
             )
             await bridge.send(test_msg)
 
         stats = bridge.get_latency_stats()
-        print(f"After 100 sends:")
+        print("After 100 sends:")
         print(f"  Message count: {stats['message_count']}")
         print(f"  Avg latency: {stats['avg_latency_ns'] / 1_000_000:.3f} ms")
         print(f"  P99 latency: {stats['p99_latency_ns'] / 1_000_000:.3f} ms")

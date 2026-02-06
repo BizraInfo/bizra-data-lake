@@ -2,9 +2,8 @@
 //!
 //! Non-interactive CLI command handlers.
 
-use clap::{Args, Subcommand};
 use anyhow::Result;
-
+use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum Commands {
@@ -135,11 +134,23 @@ pub fn exec_status() -> Result<()> {
         Ok(out) => {
             if let Ok(status) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
                 if status.get("status").and_then(|s| s.as_str()) == Some("connected") {
-                    let total = status.get("total_models").and_then(|n| n.as_i64()).unwrap_or(0);
-                    let loaded = status.get("loaded_models").and_then(|n| n.as_i64()).unwrap_or(0);
-                    let loaded_list = status.get("loaded_list")
+                    let total = status
+                        .get("total_models")
+                        .and_then(|n| n.as_i64())
+                        .unwrap_or(0);
+                    let loaded = status
+                        .get("loaded_models")
+                        .and_then(|n| n.as_i64())
+                        .unwrap_or(0);
+                    let loaded_list = status
+                        .get("loaded_list")
                         .and_then(|l| l.as_array())
-                        .map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        })
                         .unwrap_or_default();
 
                     print!("  LM Studio:    ✓ Connected ({} models", total);
@@ -202,13 +213,48 @@ pub fn exec_agent_list() -> Result<()> {
     println!();
 
     let agents = [
-        ("Strategist", "♟", "Strategy & Planning", "Sun Tzu • Clausewitz • Porter"),
-        ("Researcher", "🔍", "Knowledge & Discovery", "Shannon • Turing • Dijkstra"),
-        ("Developer", "⚙", "Code & Implementation", "Knuth • Ritchie • Torvalds"),
-        ("Analyst", "📊", "Data & Insights", "Tukey • Tufte • Cleveland"),
-        ("Reviewer", "✓", "Quality & Validation", "Fagan • Parnas • Brooks"),
-        ("Executor", "▶", "Action & Delivery", "Toyota • Deming • Ohno"),
-        ("Guardian", "🛡", "Ethics & Protection", "Al-Ghazali • Rawls • Anthropic"),
+        (
+            "Strategist",
+            "♟",
+            "Strategy & Planning",
+            "Sun Tzu • Clausewitz • Porter",
+        ),
+        (
+            "Researcher",
+            "🔍",
+            "Knowledge & Discovery",
+            "Shannon • Turing • Dijkstra",
+        ),
+        (
+            "Developer",
+            "⚙",
+            "Code & Implementation",
+            "Knuth • Ritchie • Torvalds",
+        ),
+        (
+            "Analyst",
+            "📊",
+            "Data & Insights",
+            "Tukey • Tufte • Cleveland",
+        ),
+        (
+            "Reviewer",
+            "✓",
+            "Quality & Validation",
+            "Fagan • Parnas • Brooks",
+        ),
+        (
+            "Executor",
+            "▶",
+            "Action & Delivery",
+            "Toyota • Deming • Ohno",
+        ),
+        (
+            "Guardian",
+            "🛡",
+            "Ethics & Protection",
+            "Al-Ghazali • Rawls • Anthropic",
+        ),
     ];
 
     for (name, icon, desc, giants) in agents {

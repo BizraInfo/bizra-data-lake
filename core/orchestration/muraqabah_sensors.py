@@ -32,7 +32,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from .event_bus import EventBus, EventPriority, get_event_bus
@@ -46,6 +46,7 @@ SNR_HIGH: float = 0.95
 
 class SensorDomain(str, Enum):
     """Sensor domains for the hub."""
+
     SYSTEM_HEALTH = "system_health"
     SNR_QUALITY = "snr_quality"
     AGENT_PERFORMANCE = "agent_performance"
@@ -55,6 +56,7 @@ class SensorDomain(str, Enum):
 @dataclass
 class SensorReading:
     """A reading from a Muraqabah sensor with SNR score."""
+
     sensor_id: str
     domain: SensorDomain
     metric_name: str
@@ -67,6 +69,7 @@ class SensorReading:
 @dataclass
 class SignificantChange:
     """A significant change detected by the sensor hub."""
+
     sensor_id: str
     domain: SensorDomain
     previous_value: float
@@ -123,6 +126,7 @@ class MuraqabahSensorHub:
         def cpu_sensor() -> Dict[str, float]:
             try:
                 import psutil
+
                 return {"cpu_usage": psutil.cpu_percent() / 100}
             except ImportError:
                 return {"cpu_usage": 0.5}
@@ -130,6 +134,7 @@ class MuraqabahSensorHub:
         def memory_sensor() -> Dict[str, float]:
             try:
                 import psutil
+
                 return {"memory_usage": psutil.virtual_memory().percent / 100}
             except ImportError:
                 return {"memory_usage": 0.5}
@@ -201,7 +206,7 @@ class MuraqabahSensorHub:
             cpu = metrics.get("cpu_usage", 0.5)
             mem = metrics.get("memory_usage", 0.5)
             lat_snr = metrics.get("latency_snr", 0.9)
-            return ((1 - cpu) * 0.3 + (1 - mem) * 0.3 + lat_snr * 0.4)
+            return (1 - cpu) * 0.3 + (1 - mem) * 0.3 + lat_snr * 0.4
 
         elif domain == SensorDomain.SNR_QUALITY:
             # Average of SNR metrics
@@ -211,9 +216,9 @@ class MuraqabahSensorHub:
         elif domain == SensorDomain.AGENT_PERFORMANCE:
             # Weighted average of performance metrics
             return (
-                metrics.get("completion_rate", 0.9) * 0.4 +
-                metrics.get("success_rate", 0.9) * 0.3 +
-                metrics.get("ihsan_score", 0.9) * 0.3
+                metrics.get("completion_rate", 0.9) * 0.4
+                + metrics.get("success_rate", 0.9) * 0.3
+                + metrics.get("ihsan_score", 0.9) * 0.3
             )
 
         elif domain == SensorDomain.CONSTITUTIONAL:
@@ -305,8 +310,7 @@ class MuraqabahSensorHub:
     async def _emit_change_event(self, change: SignificantChange) -> None:
         """Emit event for significant change."""
         priority = (
-            EventPriority.HIGH if change.delta_pct > 0.25
-            else EventPriority.NORMAL
+            EventPriority.HIGH if change.delta_pct > 0.25 else EventPriority.NORMAL
         )
 
         await self.event_bus.emit(
@@ -332,9 +336,7 @@ class MuraqabahSensorHub:
         """Get sensor hub statistics."""
         return {
             "snr_threshold": self.snr_threshold,
-            "sensors_by_domain": {
-                d.value: len(self._sensors[d]) for d in SensorDomain
-            },
+            "sensors_by_domain": {d.value: len(self._sensors[d]) for d in SensorDomain},
             "total_sensors": sum(len(s) for s in self._sensors.values()),
             "tracked_readings": len(self._last_readings),
         }

@@ -119,7 +119,10 @@ async fn test_replay_attack_old_message() {
     );
 
     protocol
-        .register_peer_pubkey(NodeId("peer".to_string()), peer_key.verifying_key().to_bytes())
+        .register_peer_pubkey(
+            NodeId("peer".to_string()),
+            peer_key.verifying_key().to_bytes(),
+        )
         .await;
 
     // Create message with old timestamp (6 minutes ago, beyond 5-minute window)
@@ -162,7 +165,10 @@ async fn test_replay_attack_future_message() {
     );
 
     protocol
-        .register_peer_pubkey(NodeId("peer".to_string()), peer_key.verifying_key().to_bytes())
+        .register_peer_pubkey(
+            NodeId("peer".to_string()),
+            peer_key.verifying_key().to_bytes(),
+        )
         .await;
 
     // Create message from the future (10 minutes ahead)
@@ -206,7 +212,10 @@ async fn test_node_id_spoofing_prevention() {
 
     // Register victim's public key
     protocol
-        .register_peer_pubkey(NodeId("victim".to_string()), victim_key.verifying_key().to_bytes())
+        .register_peer_pubkey(
+            NodeId("victim".to_string()),
+            victim_key.verifying_key().to_bytes(),
+        )
         .await;
 
     // Attacker creates message claiming to be victim
@@ -536,16 +545,16 @@ fn test_consensus_bft_quorum() {
 fn test_random_bytes_no_panic() {
     // Various malformed inputs
     let test_cases: Vec<Vec<u8>> = vec![
-        vec![],                            // Empty
-        vec![0],                           // Single byte
-        vec![1],                           // Version only
-        vec![1; 64],                       // Partial signature
-        vec![1; 97],                       // Partial pubkey
-        vec![1; 105],                      // Partial timestamp
-        vec![255; 200],                    // All 0xFF
-        vec![0; 200],                      // All 0x00
-        (0..=255).collect(),               // All byte values
-        vec![1, 2, 3, 4, 5, 6, 7, 8, 9],   // Short sequence
+        vec![],                          // Empty
+        vec![0],                         // Single byte
+        vec![1],                         // Version only
+        vec![1; 64],                     // Partial signature
+        vec![1; 97],                     // Partial pubkey
+        vec![1; 105],                    // Partial timestamp
+        vec![255; 200],                  // All 0xFF
+        vec![0; 200],                    // All 0x00
+        (0..=255).collect(),             // All byte values
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9], // Short sequence
     ];
 
     for bytes in test_cases {
@@ -621,7 +630,10 @@ async fn test_message_within_time_window() {
     );
 
     protocol
-        .register_peer_pubkey(NodeId("peer".to_string()), peer_key.verifying_key().to_bytes())
+        .register_peer_pubkey(
+            NodeId("peer".to_string()),
+            peer_key.verifying_key().to_bytes(),
+        )
         .await;
 
     // Message from 2 minutes ago (within 5-minute window)

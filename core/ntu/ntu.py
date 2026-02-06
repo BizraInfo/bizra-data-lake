@@ -24,12 +24,12 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import logging
 import math
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Deque, Dict, List, Optional, Tuple, Any
-import logging
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -38,9 +38,10 @@ logger = logging.getLogger(__name__)
 
 class ObservationType(IntEnum):
     """Observation categories for the 3-state Markov model."""
-    LOW = 0      # Low signal (entropy dominant)
-    MEDIUM = 1   # Medium signal (balanced)
-    HIGH = 2     # High signal (belief dominant)
+
+    LOW = 0  # Low signal (entropy dominant)
+    MEDIUM = 1  # Medium signal (balanced)
+    HIGH = 2  # High signal (belief dominant)
 
 
 @dataclass
@@ -51,6 +52,7 @@ class Observation:
     The value is normalized to [0, 1] representing signal strength.
     Metadata can carry context (source, timestamp, etc.).
     """
+
     value: float
     metadata: Optional[Dict[str, Any]] = None
 
@@ -77,12 +79,13 @@ class NTUConfig:
     Convex constraint: alpha + beta + gamma = 1.0
     This ensures convergence per convex optimization theory.
     """
+
     # Sliding window size (Takens embedding dimension)
     window_size: int = 5
 
     # Learning rate weights (must sum to 1.0)
-    alpha: float = 0.4   # Temporal decay weight
-    beta: float = 0.35   # Neural prior weight
+    alpha: float = 0.4  # Temporal decay weight
+    beta: float = 0.35  # Neural prior weight
     gamma: float = 0.25  # Symbolic coherence weight
 
     # Embedding dimensions for pretrained priors
@@ -119,9 +122,10 @@ class NTUState:
 
     This is a sufficient statistic for the temporal pattern.
     """
-    belief: float = 0.5       # Current certainty (Ihsan analog)
-    entropy: float = 1.0      # Current uncertainty (Shannon H)
-    potential: float = 0.5    # Future possibility
+
+    belief: float = 0.5  # Current certainty (Ihsan analog)
+    entropy: float = 1.0  # Current uncertainty (Shannon H)
+    potential: float = 0.5  # Future possibility
 
     # Iteration counter for convergence tracking
     iteration: int = 0
@@ -208,12 +212,11 @@ class NTU:
         - MEDIUM: Balanced (transition state)
         - HIGH: High belief, low entropy (certainty-dominant)
         """
-        dim = self.config.embedding_dim_low
 
         self.embeddings: Dict[ObservationType, np.ndarray] = {
-            ObservationType.LOW: np.array([0.1, 0.2, 0.7]),     # Entropy-heavy
+            ObservationType.LOW: np.array([0.1, 0.2, 0.7]),  # Entropy-heavy
             ObservationType.MEDIUM: np.array([0.4, 0.4, 0.2]),  # Balanced
-            ObservationType.HIGH: np.array([0.8, 0.1, 0.1]),    # Belief-heavy
+            ObservationType.HIGH: np.array([0.8, 0.1, 0.1]),  # Belief-heavy
         }
 
         # Normalize embeddings
@@ -235,11 +238,13 @@ class NTU:
         """
         # Row = current state, Col = next state
         # States: [LOW, MEDIUM, HIGH]
-        P = np.array([
-            [0.5, 0.4, 0.1],  # From LOW
-            [0.2, 0.4, 0.4],  # From MEDIUM
-            [0.05, 0.15, 0.8], # From HIGH (sticky)
-        ])
+        P = np.array(
+            [
+                [0.5, 0.4, 0.1],  # From LOW
+                [0.2, 0.4, 0.4],  # From MEDIUM
+                [0.05, 0.15, 0.8],  # From HIGH (sticky)
+            ]
+        )
 
         # Verify stochastic matrix (rows sum to 1)
         assert np.allclose(P.sum(axis=1), 1.0), "Transition matrix must be stochastic"
@@ -270,7 +275,9 @@ class NTU:
 
         return stationary
 
-    def observe(self, value: float, metadata: Optional[Dict[str, Any]] = None) -> NTUState:
+    def observe(
+        self, value: float, metadata: Optional[Dict[str, Any]] = None
+    ) -> NTUState:
         """
         Process a new observation and update state.
 
@@ -363,13 +370,12 @@ class NTU:
 
         # Current state as prior
         prior_belief = self.state.belief
-        prior_entropy = self.state.entropy
 
         # Compute posterior belief (convex combination)
         posterior_belief = (
-            α * temporal +           # Temporal consistency contribution
-            β * neural[0] +          # Neural prior contribution
-            γ * prior_belief         # Current belief (inertia)
+            α * temporal  # Temporal consistency contribution
+            + β * neural[0]  # Neural prior contribution
+            + γ * prior_belief  # Current belief (inertia)
         )
 
         # Compute entropy from memory (Shannon entropy)
@@ -442,7 +448,9 @@ class NTU:
         epsilon = epsilon or self.config.epsilon
         self.reset()
 
-        obs_cycle = iter(observations * (self.config.max_iterations // len(observations) + 1))
+        obs_cycle = iter(
+            observations * (self.config.max_iterations // len(observations) + 1)
+        )
 
         prev_belief = self.state.belief
         converged = False
@@ -484,9 +492,7 @@ class NTU:
             "memory_size": len(self.memory),
             "memory_values": [obs.value for obs in self.memory],
             "stationary_distribution": self.stationary_distribution.tolist(),
-            "embeddings": {
-                str(k.name): v.tolist() for k, v in self.embeddings.items()
-            },
+            "embeddings": {str(k.name): v.tolist() for k, v in self.embeddings.items()},
         }
 
 
@@ -544,7 +550,9 @@ class PatternDetector:
         self.patterns[name] = {"config": config}
         self._ntus[name] = NTU(config)
 
-        logger.info(f"Registered pattern '{name}': threshold={threshold}, window={window_size}")
+        logger.info(
+            f"Registered pattern '{name}': threshold={threshold}, window={window_size}"
+        )
 
     def detect(
         self,

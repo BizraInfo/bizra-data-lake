@@ -12,28 +12,30 @@ Standing on Giants: Event Sourcing + Snapshot Pattern + Write-Ahead Logging
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import sqlite3
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import hashlib
 
 logger = logging.getLogger(__name__)
 
 
 class StorageBackend(Enum):
     """Storage backend for checkpoints."""
-    FILE = auto()    # JSON files (default, human-readable)
+
+    FILE = auto()  # JSON files (default, human-readable)
     SQLITE = auto()  # SQLite database (ACID, faster queries)
 
 
 @dataclass
 class Checkpoint:
     """A point-in-time state snapshot."""
+
     id: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     state: Dict[str, Any] = field(default_factory=dict)
@@ -106,26 +108,29 @@ class SQLiteCheckpointStore:
         if not row:
             self._conn.execute(
                 "INSERT INTO schema_info (key, value) VALUES ('version', ?)",
-                (str(self.SCHEMA_VERSION),)
+                (str(self.SCHEMA_VERSION),),
             )
 
         self._conn.commit()
 
     def save(self, checkpoint: Checkpoint) -> None:
         """Save a checkpoint to SQLite."""
-        self._conn.execute("""
+        self._conn.execute(
+            """
             INSERT OR REPLACE INTO checkpoints
             (id, timestamp, state, version, checksum, source, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            checkpoint.id,
-            checkpoint.timestamp.isoformat(),
-            json.dumps(checkpoint.state, default=str),
-            checkpoint.version,
-            checkpoint.checksum,
-            checkpoint.source,
-            json.dumps(checkpoint.metadata, default=str),
-        ))
+        """,
+            (
+                checkpoint.id,
+                checkpoint.timestamp.isoformat(),
+                json.dumps(checkpoint.state, default=str),
+                checkpoint.version,
+                checkpoint.checksum,
+                checkpoint.source,
+                json.dumps(checkpoint.metadata, default=str),
+            ),
+        )
         self._conn.commit()
 
     def load(self, checkpoint_id: str) -> Optional[Checkpoint]:
@@ -147,8 +152,7 @@ class SQLiteCheckpointStore:
     def list_checkpoints(self, limit: int = 100) -> List[Checkpoint]:
         """List recent checkpoints."""
         cursor = self._conn.execute(
-            "SELECT * FROM checkpoints ORDER BY version DESC LIMIT ?",
-            (limit,)
+            "SELECT * FROM checkpoints ORDER BY version DESC LIMIT ?", (limit,)
         )
         return [self._row_to_checkpoint(row) for row in cursor.fetchall()]
 
@@ -159,11 +163,14 @@ class SQLiteCheckpointStore:
 
     def delete_old(self, keep_count: int) -> int:
         """Delete old checkpoints, keeping the most recent N."""
-        cursor = self._conn.execute("""
+        cursor = self._conn.execute(
+            """
             DELETE FROM checkpoints WHERE id NOT IN (
                 SELECT id FROM checkpoints ORDER BY version DESC LIMIT ?
             )
-        """, (keep_count,))
+        """,
+            (keep_count,),
+        )
         deleted = cursor.rowcount
         self._conn.commit()
         return deleted
@@ -265,7 +272,9 @@ class StateCheckpointer:
         # Rotate old checkpoints
         await self._rotate_checkpoints()
 
-        logger.info(f"Checkpoint created: {cp.id} (checksum: {cp.checksum}, backend: {self.backend.name})")
+        logger.info(
+            f"Checkpoint created: {cp.id} (checksum: {cp.checksum}, backend: {self.backend.name})"
+        )
         return cp
 
     async def _save_checkpoint(self, cp: Checkpoint) -> None:
@@ -318,19 +327,23 @@ class StateCheckpointer:
             checkpoints = sorted(self.checkpoint_dir.glob("cp-*.json"))
 
             if len(checkpoints) > self.max_checkpoints:
-                to_remove = checkpoints[:-self.max_checkpoints]
+                to_remove = checkpoints[: -self.max_checkpoints]
                 for cp_file in to_remove:
                     cp_file.unlink()
                     logger.debug(f"Rotated checkpoint: {cp_file.name}")
 
-    async def restore(self, checkpoint_id: Optional[str] = None) -> Optional[Checkpoint]:
+    async def restore(
+        self, checkpoint_id: Optional[str] = None
+    ) -> Optional[Checkpoint]:
         """Restore from a checkpoint. If no ID given, restore latest."""
         if self.backend == StorageBackend.SQLITE:
             return await self._restore_sqlite(checkpoint_id)
         else:
             return await self._restore_file(checkpoint_id)
 
-    async def _restore_sqlite(self, checkpoint_id: Optional[str] = None) -> Optional[Checkpoint]:
+    async def _restore_sqlite(
+        self, checkpoint_id: Optional[str] = None
+    ) -> Optional[Checkpoint]:
         """Restore from SQLite backend."""
         loop = asyncio.get_event_loop()
 
@@ -339,9 +352,7 @@ class StateCheckpointer:
                 None, self._sqlite_store.load, checkpoint_id
             )
         else:
-            cp = await loop.run_in_executor(
-                None, self._sqlite_store.load_latest
-            )
+            cp = await loop.run_in_executor(None, self._sqlite_store.load_latest)
 
         if not cp:
             logger.warning("No checkpoints found in SQLite")
@@ -358,7 +369,9 @@ class StateCheckpointer:
         logger.info(f"Restored checkpoint: {cp.id} (SQLite)")
         return cp
 
-    async def _restore_file(self, checkpoint_id: Optional[str] = None) -> Optional[Checkpoint]:
+    async def _restore_file(
+        self, checkpoint_id: Optional[str] = None
+    ) -> Optional[Checkpoint]:
         """Restore from file backend."""
         if checkpoint_id:
             filename = self.checkpoint_dir / f"{checkpoint_id}.json"
@@ -455,7 +468,9 @@ class StateCheckpointer:
         return {
             "checkpoint_count": checkpoint_count,
             "current_version": self._current_version,
-            "latest_id": self._latest_checkpoint.id if self._latest_checkpoint else None,
+            "latest_id": (
+                self._latest_checkpoint.id if self._latest_checkpoint else None
+            ),
             "auto_interval": self.auto_interval,
             "running": self._running,
             "backend": self.backend.name,

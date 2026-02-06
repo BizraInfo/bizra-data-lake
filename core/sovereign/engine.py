@@ -21,70 +21,66 @@ Sovereign Engine — The Unified Autonomous Reasoning System
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Optional
-from datetime import datetime
+
 import asyncio
 import json
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum, auto
+from typing import Any, Optional
 
 from .graph_reasoner import (
     GraphOfThoughts,
-    ThoughtNode,
-    ThoughtEdge,
     ReasoningStrategy,
 )
-from .snr_maximizer import (
-    SNRMaximizer,
-    SignalAmplifier,
-    NoiseFilter,
-    SNRAnalysis,
-)
 from .guardian_council import (
-    GuardianCouncil,
-    CouncilVerdict,
     ConsensusMode,
-    Proposal,
+    CouncilVerdict,
+    GuardianCouncil,
     IhsanVector,
+    Proposal,
 )
 from .orchestrator import (
-    SovereignOrchestrator,
-    TaskDecomposer,
-    AgentRouter,
-    TaskNode,
-    TaskComplexity,
     RoutingStrategy,
+    SovereignOrchestrator,
+    TaskComplexity,
 )
-
+from .snr_maximizer import (
+    SNRAnalysis,
+    SNRMaximizer,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class EngineMode(Enum):
     """Operating modes for the Sovereign Engine."""
-    AUTONOMOUS = auto()     # Full autonomy within Ihsān bounds
-    SUPERVISED = auto()     # Human-in-the-loop for key decisions
+
+    AUTONOMOUS = auto()  # Full autonomy within Ihsān bounds
+    SUPERVISED = auto()  # Human-in-the-loop for key decisions
     COLLABORATIVE = auto()  # Working alongside human operators
-    RESTRICTED = auto()     # Limited capabilities for safety
-    DIAGNOSTIC = auto()     # Debug mode with full logging
+    RESTRICTED = auto()  # Limited capabilities for safety
+    DIAGNOSTIC = auto()  # Debug mode with full logging
 
 
 class ResponseType(Enum):
     """Types of responses the engine can generate."""
-    ANSWER = auto()         # Direct answer to a question
-    ANALYSIS = auto()       # Detailed analysis with evidence
-    SYNTHESIS = auto()      # Combined insights from multiple sources
-    RECOMMENDATION = auto() # Actionable recommendations
-    CREATIVE = auto()       # Novel content generation
-    CODE = auto()           # Code or technical artifact
-    PLAN = auto()           # Strategic plan or roadmap
+
+    ANSWER = auto()  # Direct answer to a question
+    ANALYSIS = auto()  # Detailed analysis with evidence
+    SYNTHESIS = auto()  # Combined insights from multiple sources
+    RECOMMENDATION = auto()  # Actionable recommendations
+    CREATIVE = auto()  # Novel content generation
+    CODE = auto()  # Code or technical artifact
+    PLAN = auto()  # Strategic plan or roadmap
     CLARIFICATION = auto()  # Request for more information
 
 
 @dataclass
 class SovereignConfig:
     """Configuration for the Sovereign Engine."""
+
     # Core settings
     mode: EngineMode = EngineMode.AUTONOMOUS
     snr_threshold: float = 0.95
@@ -117,6 +113,7 @@ class SovereignConfig:
 @dataclass
 class SovereignResponse:
     """Response from the Sovereign Engine."""
+
     # Core response
     id: str
     query: str
@@ -228,9 +225,7 @@ class SovereignEngine:
         self._response_counter = 0
         self._cache: dict[str, SovereignResponse] = {}
 
-        logger.info(
-            f"SovereignEngine v{self.VERSION} ({self.CODENAME}) initialized"
-        )
+        logger.info(f"SovereignEngine v{self.VERSION} ({self.CODENAME}) initialized")
 
     async def initialize(self):
         """Initialize all engine components."""
@@ -249,6 +244,7 @@ class SovereignEngine:
     async def _warmup_graph_reasoner(self):
         """Warm up the graph reasoner with a simple query."""
         from .graph_reasoner import ThoughtType
+
         self.graph_reasoner.add_thought(
             content="System warmup thought",
             thought_type=ThoughtType.QUESTION,
@@ -272,17 +268,31 @@ class SovereignEngine:
         query_lower = query.lower()
 
         # Detect response type
-        if any(word in query_lower for word in ["code", "implement", "write", "function", "class"]):
+        if any(
+            word in query_lower
+            for word in ["code", "implement", "write", "function", "class"]
+        ):
             response_type = ResponseType.CODE
-        elif any(word in query_lower for word in ["analyze", "examine", "evaluate", "assess"]):
+        elif any(
+            word in query_lower for word in ["analyze", "examine", "evaluate", "assess"]
+        ):
             response_type = ResponseType.ANALYSIS
-        elif any(word in query_lower for word in ["recommend", "suggest", "advise", "should"]):
+        elif any(
+            word in query_lower for word in ["recommend", "suggest", "advise", "should"]
+        ):
             response_type = ResponseType.RECOMMENDATION
-        elif any(word in query_lower for word in ["plan", "strategy", "roadmap", "steps"]):
+        elif any(
+            word in query_lower for word in ["plan", "strategy", "roadmap", "steps"]
+        ):
             response_type = ResponseType.PLAN
-        elif any(word in query_lower for word in ["create", "generate", "compose", "design"]):
+        elif any(
+            word in query_lower for word in ["create", "generate", "compose", "design"]
+        ):
             response_type = ResponseType.CREATIVE
-        elif any(word in query_lower for word in ["combine", "synthesize", "integrate", "merge"]):
+        elif any(
+            word in query_lower
+            for word in ["combine", "synthesize", "integrate", "merge"]
+        ):
             response_type = ResponseType.SYNTHESIS
         else:
             response_type = ResponseType.ANSWER
@@ -290,16 +300,24 @@ class SovereignEngine:
         # Detect complexity
         word_count = len(query.split())
         has_multiple_questions = query.count("?") > 1
-        has_conditionals = any(word in query_lower for word in ["if", "unless", "when", "while"])
-        requires_research = any(word in query_lower for word in ["research", "investigate", "explore", "study"])
-        is_technical = any(word in query_lower for word in ["architecture", "system", "infrastructure", "protocol"])
+        has_conditionals = any(
+            word in query_lower for word in ["if", "unless", "when", "while"]
+        )
+        requires_research = any(
+            word in query_lower
+            for word in ["research", "investigate", "explore", "study"]
+        )
+        is_technical = any(
+            word in query_lower
+            for word in ["architecture", "system", "infrastructure", "protocol"]
+        )
 
         complexity_score = (
-            (word_count > 50) +
-            has_multiple_questions * 2 +
-            has_conditionals +
-            requires_research * 2 +
-            is_technical
+            (word_count > 50)
+            + has_multiple_questions * 2
+            + has_conditionals
+            + requires_research * 2
+            + is_technical
         )
 
         if complexity_score >= 5:
@@ -345,7 +363,9 @@ class SovereignEngine:
 
         # Stage 1: Query Classification
         complexity, response_type = self._classify_query(query)
-        logger.debug(f"Query classified as {complexity.name}, expecting {response_type.name}")
+        logger.debug(
+            f"Query classified as {complexity.name}, expecting {response_type.name}"
+        )
 
         # Stage 2: Cache Check
         if self.config.cache_enabled:
@@ -381,9 +401,10 @@ class SovereignEngine:
         # Stage 5: Guardian Council Review
         council_verdict = None
         should_consult_council = (
-            require_council if require_council is not None
-            else self.config.require_council_approval and
-                 complexity.value >= TaskComplexity.MODERATE.value
+            require_council
+            if require_council is not None
+            else self.config.require_council_approval
+            and complexity.value >= TaskComplexity.MODERATE.value
         )
 
         if self.config.enable_guardian_council and should_consult_council:
@@ -433,7 +454,8 @@ class SovereignEngine:
             evidence=[],
             council_verdict=council_verdict,
             guardians_consulted=[
-                v.guardian.name for v in (council_verdict.votes if council_verdict else [])
+                v.guardian.name
+                for v in (council_verdict.votes if council_verdict else [])
             ],
             processing_time_ms=processing_time_ms,
             standing_on_giants=self.STANDING_ON_GIANTS,
@@ -458,7 +480,7 @@ class SovereignEngine:
         context: dict[str, Any],
     ) -> dict[str, Any]:
         """Execute Graph-of-Thoughts reasoning."""
-        from .graph_reasoner import ThoughtType, EdgeType
+        from .graph_reasoner import EdgeType, ThoughtType
 
         # Create root thought using the correct API
         root = self.graph_reasoner.add_thought(
@@ -554,7 +576,8 @@ class SovereignEngine:
                 correctness=0.9,  # Placeholder
                 safety=0.95,
                 beneficence=0.88,
-                transparency=len(reasoning_path) / 10,  # More reasoning = more transparent
+                transparency=len(reasoning_path)
+                / 10,  # More reasoning = more transparent
                 sustainability=0.85,
             )
         else:
@@ -596,8 +619,7 @@ class SovereignEngine:
         contexts = contexts or [{}] * len(queries)
 
         tasks = [
-            self.process(query, context)
-            for query, context in zip(queries, contexts)
+            self.process(query, context) for query, context in zip(queries, contexts)
         ]
 
         return await asyncio.gather(*tasks)

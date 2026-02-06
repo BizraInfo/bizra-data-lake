@@ -18,13 +18,12 @@ import json
 import logging
 import os
 import time
-import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 logger = logging.getLogger("PROPAGATION")
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Set, Callable, Any, Tuple
+from typing import Callable, Dict, List
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -297,8 +296,7 @@ class PatternStore:
 
         # Sort by impact score (lowest first) and evict excess
         sorted_patterns = sorted(
-            cache.items(),
-            key=lambda x: x[1].compute_impact_score()
+            cache.items(), key=lambda x: x[1].compute_impact_score()
         )
         excess = len(cache) - MAX_PATTERNS_CACHE
         for pattern_id, _ in sorted_patterns[:excess]:
@@ -362,6 +360,7 @@ class PropagationEngine:
         if self._pci_gatekeeper is None:
             try:
                 from core.pci import PCIGateKeeper
+
                 # Disable policy enforcement for pattern propagation
                 # Patterns are self-validating via Ed25519 signature
                 self._pci_gatekeeper = PCIGateKeeper(policy_enforcement=False)
@@ -392,10 +391,12 @@ class PropagationEngine:
             # Create PCI-enveloped propagation message
             envelope_data = self._create_pci_envelope(pattern)
 
-            msg = json.dumps({
-                "type": "PATTERN_PROPAGATE",
-                "envelope": envelope_data,
-            }).encode("utf-8")
+            msg = json.dumps(
+                {
+                    "type": "PATTERN_PROPAGATE",
+                    "envelope": envelope_data,
+                }
+            ).encode("utf-8")
 
             self.broadcast(msg)
             count += 1
@@ -430,13 +431,12 @@ class PropagationEngine:
 
                 builder = EnvelopeBuilder()
                 envelope = (
-                    builder
-                    .with_sender("PAT", self._node_id, self._public_key)
+                    builder.with_sender("PAT", self._node_id, self._public_key)
                     .with_payload(
                         "pattern/propagate",
                         pattern.to_dict(),
                         pattern_hash,  # Pattern's own hash as policy
-                        "federation"
+                        "federation",
                     )
                     .with_metadata(pattern.ihsan_score, pattern_snr)
                     .build()
@@ -445,7 +445,9 @@ class PropagationEngine:
                 return envelope.to_dict()
             else:
                 # Fallback: unsigned envelope (log warning)
-                logger.warning(f"No signing keys available for pattern {pattern.pattern_id}")
+                logger.warning(
+                    f"No signing keys available for pattern {pattern.pattern_id}"
+                )
                 return {"pattern": pattern.to_dict(), "signed": False}
 
         except ImportError:
@@ -490,7 +492,7 @@ class PropagationEngine:
                     extra={
                         "has_signature": bool(signature),
                         "has_public_key": bool(public_key),
-                    }
+                    },
                 )
                 return False
 
@@ -510,19 +512,23 @@ class PropagationEngine:
                             "reject_code": str(result.reject_code),
                             "details": result.details,
                             "gate_passed": result.gate_passed,
-                        }
+                        },
                     )
                     return False
 
                 logger.debug(
                     f"PCI envelope verified: {result.gate_passed}",
-                    extra={"gate_passed": result.gate_passed}
+                    extra={"gate_passed": result.gate_passed},
                 )
                 return True
 
             else:
                 # Fallback: manual signature verification
-                from core.pci.crypto import verify_signature, domain_separated_digest, canonical_json
+                from core.pci.crypto import (
+                    canonical_json,
+                    domain_separated_digest,
+                    verify_signature,
+                )
 
                 # Reconstruct signable content (excluding signature)
                 signable = {
@@ -559,7 +565,7 @@ class PropagationEngine:
         except Exception as e:
             logger.error(
                 f"Envelope verification error: {e}",
-                extra={"error_type": type(e).__name__}
+                extra={"error_type": type(e).__name__},
             )
             return False
 
@@ -576,8 +582,8 @@ class PropagationEngine:
                 # Verify PCI envelope
                 if not self._verify_pci_envelope(envelope_data):
                     logger.error(
-                        f"Pattern rejected: invalid PCI signature",
-                        extra={"envelope_id": envelope_data.get("id", "unknown")}
+                        "Pattern rejected: invalid PCI signature",
+                        extra={"envelope_id": envelope_data.get("id", "unknown")},
                     )
                     return False
 
@@ -589,12 +595,16 @@ class PropagationEngine:
                     # Fallback paths
                     pattern_data = payload.get("content", {})
                 if not pattern_data:
-                    pattern_data = envelope_data.get("pattern", data.get("pattern", data))
+                    pattern_data = envelope_data.get(
+                        "pattern", data.get("pattern", data)
+                    )
             else:
                 # Legacy format without envelope
                 pattern_data = data.get("pattern", data)
                 if os.getenv("BIZRA_ALLOW_LEGACY_UNSIGNED_PATTERNS", "0") == "1":
-                    logger.warning("Received unsigned pattern (legacy format) - allowed by env")
+                    logger.warning(
+                        "Received unsigned pattern (legacy format) - allowed by env"
+                    )
                 else:
                     logger.error(
                         "Rejecting unsigned pattern (legacy format). "
@@ -611,7 +621,7 @@ class PropagationEngine:
                 extra={
                     "pattern_id": data.get("pattern", {}).get("pattern_id", "unknown"),
                     "error_type": type(e).__name__,
-                }
+                },
             )
             return False
 

@@ -177,11 +177,11 @@ impl SATRole {
     /// Get the minimum stake required for this SAT role
     pub fn minimum_stake(&self) -> u64 {
         match self {
-            Self::Validator => 1000,  // High stake for validation
-            Self::Oracle => 500,      // Medium stake for oracle
-            Self::Mediator => 750,    // Medium-high for mediation
-            Self::Archivist => 250,   // Lower stake for storage
-            Self::Sentinel => 500,    // Medium stake for security
+            Self::Validator => 1000, // High stake for validation
+            Self::Oracle => 500,     // Medium stake for oracle
+            Self::Mediator => 750,   // Medium-high for mediation
+            Self::Archivist => 250,  // Lower stake for storage
+            Self::Sentinel => 500,   // Medium stake for security
         }
     }
 }

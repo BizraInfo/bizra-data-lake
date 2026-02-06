@@ -36,14 +36,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
-import time
+import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum, auto
-from typing import Dict, List, Optional, Set, Tuple, Any, Callable, Deque
-import uuid
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Callable, Deque, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +84,10 @@ MEMORY_SCALE_DOWN_THRESHOLD = 0.50
 # ENUMS
 # =============================================================================
 
+
 class AgentStatus(str, Enum):
     """Status of deployed agents."""
+
     PENDING = "pending"
     STARTING = "starting"
     RUNNING = "running"
@@ -100,6 +100,7 @@ class AgentStatus(str, Enum):
 
 class ScalingAction(str, Enum):
     """Types of scaling actions."""
+
     NONE = "none"
     SCALE_UP = "scale_up"
     SCALE_DOWN = "scale_down"
@@ -108,6 +109,7 @@ class ScalingAction(str, Enum):
 
 class HealthStatus(str, Enum):
     """Health check results."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -116,9 +118,10 @@ class HealthStatus(str, Enum):
 
 class SwarmTopology(str, Enum):
     """Swarm network topologies."""
-    STAR = "star"      # Central coordinator
-    MESH = "mesh"      # All-to-all
-    RING = "ring"      # Circular
+
+    STAR = "star"  # Central coordinator
+    MESH = "mesh"  # All-to-all
+    RING = "ring"  # Circular
     HIERARCHY = "hierarchy"  # Tree structure
 
 
@@ -126,9 +129,11 @@ class SwarmTopology(str, Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class AgentConfig:
     """Configuration for deploying an agent."""
+
     agent_type: str
     name: str
     capabilities: Set[str] = field(default_factory=set)
@@ -153,6 +158,7 @@ class AgentConfig:
 @dataclass
 class AgentInstance:
     """A deployed agent instance."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     config: AgentConfig = field(default_factory=AgentConfig)
     status: AgentStatus = AgentStatus.PENDING
@@ -180,7 +186,10 @@ class AgentInstance:
 
     @property
     def is_healthy(self) -> bool:
-        return self.status == AgentStatus.RUNNING and self.health_status == HealthStatus.HEALTHY
+        return (
+            self.status == AgentStatus.RUNNING
+            and self.health_status == HealthStatus.HEALTHY
+        )
 
     @property
     def is_running(self) -> bool:
@@ -194,6 +203,7 @@ class AgentInstance:
 @dataclass
 class SwarmConfig:
     """Configuration for an agent swarm."""
+
     name: str
     agent_config: AgentConfig
     topology: SwarmTopology = SwarmTopology.MESH
@@ -216,8 +226,13 @@ class SwarmConfig:
 @dataclass
 class Swarm:
     """A swarm of deployed agents."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
-    config: SwarmConfig = field(default_factory=lambda: SwarmConfig(name="default", agent_config=AgentConfig(agent_type="default", name="agent")))
+    config: SwarmConfig = field(
+        default_factory=lambda: SwarmConfig(
+            name="default", agent_config=AgentConfig(agent_type="default", name="agent")
+        )
+    )
     agents: Dict[str, AgentInstance] = field(default_factory=dict)
 
     # State
@@ -243,6 +258,7 @@ class Swarm:
 @dataclass
 class ScalingDecision:
     """A scaling decision with reasoning."""
+
     action: ScalingAction
     target_count: int
     current_count: int
@@ -254,6 +270,7 @@ class ScalingDecision:
 @dataclass
 class HealthReport:
     """Health report for a swarm."""
+
     swarm_id: str
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     overall_health: HealthStatus = HealthStatus.UNKNOWN
@@ -266,6 +283,7 @@ class HealthReport:
 # =============================================================================
 # HEALTH MONITOR
 # =============================================================================
+
 
 class HealthMonitor:
     """
@@ -344,7 +362,9 @@ class HealthMonitor:
             report.overall_health = HealthStatus.HEALTHY
         elif report.availability >= 0.9:
             report.overall_health = HealthStatus.DEGRADED
-            issues.append(f"Availability {report.availability:.2%} below target {AVAILABILITY_TARGET:.2%}")
+            issues.append(
+                f"Availability {report.availability:.2%} below target {AVAILABILITY_TARGET:.2%}"
+            )
         else:
             report.overall_health = HealthStatus.UNHEALTHY
             issues.append(f"Critical: Availability {report.availability:.2%}")
@@ -352,7 +372,9 @@ class HealthMonitor:
 
         # Check fault tolerance (Byzantine: 3f+1)
         if swarm.healthy_count < MIN_AGENTS_FAULT_TOLERANT:
-            issues.append(f"Below fault tolerance threshold ({swarm.healthy_count}/{MIN_AGENTS_FAULT_TOLERANT})")
+            issues.append(
+                f"Below fault tolerance threshold ({swarm.healthy_count}/{MIN_AGENTS_FAULT_TOLERANT})"
+            )
             recommendations.append("Scale up to maintain fault tolerance")
 
         report.issues = issues
@@ -364,6 +386,7 @@ class HealthMonitor:
 # =============================================================================
 # SCALING MANAGER
 # =============================================================================
+
 
 class ScalingManager:
     """
@@ -388,8 +411,12 @@ class ScalingManager:
 
         # Calculate average resource usage
         if swarm.agents:
-            avg_cpu = sum(a.cpu_usage for a in swarm.agents.values()) / len(swarm.agents)
-            avg_memory = sum(a.memory_usage for a in swarm.agents.values()) / len(swarm.agents)
+            avg_cpu = sum(a.cpu_usage for a in swarm.agents.values()) / len(
+                swarm.agents
+            )
+            avg_memory = sum(a.memory_usage for a in swarm.agents.values()) / len(
+                swarm.agents
+            )
         else:
             avg_cpu = 0.0
             avg_memory = 0.0
@@ -399,7 +426,7 @@ class ScalingManager:
             "avg_memory": avg_memory,
             "current_count": current,
             "healthy_count": healthy,
-            "availability": swarm.availability
+            "availability": swarm.availability,
         }
 
         # Check if we need to scale up
@@ -410,7 +437,7 @@ class ScalingManager:
                 target_count=target,
                 current_count=current,
                 reason=f"Resource pressure (CPU: {avg_cpu:.1%}, Memory: {avg_memory:.1%}) or low availability",
-                metrics=metrics
+                metrics=metrics,
             )
 
         # Check if we can scale down
@@ -422,18 +449,22 @@ class ScalingManager:
                     target_count=target,
                     current_count=current,
                     reason=f"Low resource usage (CPU: {avg_cpu:.1%}, Memory: {avg_memory:.1%})",
-                    metrics=metrics
+                    metrics=metrics,
                 )
 
         # Check if we need to replace unhealthy agents
-        unhealthy_agents = [a for a in swarm.agents.values() if a.health_status == HealthStatus.UNHEALTHY]
+        unhealthy_agents = [
+            a
+            for a in swarm.agents.values()
+            if a.health_status == HealthStatus.UNHEALTHY
+        ]
         if unhealthy_agents:
             return ScalingDecision(
                 action=ScalingAction.REPLACE,
                 target_count=current,
                 current_count=current,
                 reason=f"Replacing {len(unhealthy_agents)} unhealthy agents",
-                metrics=metrics
+                metrics=metrics,
             )
 
         return ScalingDecision(
@@ -441,10 +472,12 @@ class ScalingManager:
             target_count=current,
             current_count=current,
             reason="No scaling needed",
-            metrics=metrics
+            metrics=metrics,
         )
 
-    def _should_scale_up(self, swarm: Swarm, avg_cpu: float, avg_memory: float, healthy: int) -> bool:
+    def _should_scale_up(
+        self, swarm: Swarm, avg_cpu: float, avg_memory: float, healthy: int
+    ) -> bool:
         """Determine if scale-up is needed."""
         config = swarm.config
 
@@ -469,7 +502,9 @@ class ScalingManager:
 
         return False
 
-    def _should_scale_down(self, swarm: Swarm, avg_cpu: float, avg_memory: float) -> bool:
+    def _should_scale_down(
+        self, swarm: Swarm, avg_cpu: float, avg_memory: float
+    ) -> bool:
         """Determine if scale-down is possible."""
         config = swarm.config
 
@@ -484,7 +519,10 @@ class ScalingManager:
             return False
 
         # Only scale down if resources are low
-        if avg_cpu <= config.scale_down_threshold and avg_memory <= MEMORY_SCALE_DOWN_THRESHOLD:
+        if (
+            avg_cpu <= config.scale_down_threshold
+            and avg_memory <= MEMORY_SCALE_DOWN_THRESHOLD
+        ):
             return True
 
         return False
@@ -502,6 +540,7 @@ class ScalingManager:
 # =============================================================================
 # SWARM ORCHESTRATOR (UNIFIED)
 # =============================================================================
+
 
 class SwarmOrchestrator:
     """
@@ -562,7 +601,7 @@ class SwarmOrchestrator:
             agent = AgentInstance(
                 config=swarm.config.agent_config,
                 status=AgentStatus.PENDING,
-                port=8000 + len(swarm.agents)
+                port=8000 + len(swarm.agents),
             )
         else:
             agent = self._agent_factory(swarm.config.agent_config)
@@ -617,9 +656,8 @@ class SwarmOrchestrator:
         else:
             # Scale down - remove least healthy agents first
             agents_to_remove = sorted(
-                swarm.agents.values(),
-                key=lambda a: (a.is_healthy, a.tasks_completed)
-            )[:current - target_count]
+                swarm.agents.values(), key=lambda a: (a.is_healthy, a.tasks_completed)
+            )[: current - target_count]
 
             for agent in agents_to_remove:
                 await self._terminate_agent(swarm, agent.id)
@@ -685,7 +723,9 @@ class SwarmOrchestrator:
                         decision = self.scaling_manager.decide_scaling(swarm)
 
                         if decision.action != ScalingAction.NONE:
-                            logger.info(f"Scaling decision for {swarm.id}: {decision.action.value} - {decision.reason}")
+                            logger.info(
+                                f"Scaling decision for {swarm.id}: {decision.action.value} - {decision.reason}"
+                            )
 
                             if decision.action == ScalingAction.SCALE_UP:
                                 await self.scale_swarm(swarm.id, decision.target_count)
@@ -744,7 +784,7 @@ class SwarmOrchestrator:
                     "endpoint": a.endpoint,
                 }
                 for a in swarm.agents.values()
-            ]
+            ],
         }
 
     def get_all_swarms(self) -> List[Dict[str, Any]]:

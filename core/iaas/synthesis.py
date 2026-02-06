@@ -17,21 +17,18 @@ BIZRA Integration:
 - FATE alignment: Generated content respects ethical constraints
 """
 
-import hashlib
-import random
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable, Tuple, Set
-from collections import defaultdict
-from enum import Enum
 import logging
-
-import numpy as np
+import random
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class SynthesisStrategy(Enum):
     """Data synthesis strategies from DATA4LLM."""
+
     REPHRASING = "rephrasing"  # Multi-style corpus generation
     INSTRUCTION = "instruction"  # Interleave with QA pairs
     DOMAIN = "domain"  # Domain-specific generation
@@ -43,6 +40,7 @@ class SynthesisStrategy(Enum):
 @dataclass
 class SynthesisResult:
     """Result of data synthesis operation."""
+
     original_count: int
     synthesized_count: int
     total_count: int
@@ -98,13 +96,13 @@ class RephrasingSynthesizer:
             # Formalize: add structure words
             if not text.startswith(("It ", "This ", "The ")):
                 text = "It should be noted that " + text.lower()
-            return text.rstrip('.') + " in accordance with established practices."
+            return text.rstrip(".") + " in accordance with established practices."
 
         elif style == "academic":
             # Academic: add hedging and citations
             if not text.startswith(("Research ", "Studies ", "According ")):
                 text = "Research suggests that " + text.lower()
-            return text.rstrip('.') + " (Smith et al., 2024)."
+            return text.rstrip(".") + " (Smith et al., 2024)."
 
         elif style == "conversational":
             # Conversational: add discourse markers
@@ -130,12 +128,14 @@ class RephrasingSynthesizer:
 
         for text in texts:
             # Keep original
-            samples.append({
-                "text": text,
-                "source": "original",
-                "strategy": "rephrasing",
-                "quality_score": 1.0,
-            })
+            samples.append(
+                {
+                    "text": text,
+                    "source": "original",
+                    "strategy": "rephrasing",
+                    "quality_score": 1.0,
+                }
+            )
 
             # Generate rephrased versions
             for style in self.styles:
@@ -144,12 +144,14 @@ class RephrasingSynthesizer:
                 else:
                     rephrased = self._heuristic_rephrase(text, style)
 
-                samples.append({
-                    "text": rephrased,
-                    "source": f"rephrased_{style}",
-                    "strategy": "rephrasing",
-                    "quality_score": 0.9,  # Slightly lower than original
-                })
+                samples.append(
+                    {
+                        "text": rephrased,
+                        "source": f"rephrased_{style}",
+                        "strategy": "rephrasing",
+                        "quality_score": 0.9,  # Slightly lower than original
+                    }
+                )
 
         return SynthesisResult(
             original_count=len(texts),
@@ -194,7 +196,7 @@ class InstructionSynthesizer:
             return text
 
         # Use first noun phrase as topic (simplified)
-        topic_words = words[:min(5, len(words))]
+        topic_words = words[: min(5, len(words))]
         return " ".join(topic_words)
 
     def _generate_qa(self, text: str) -> List[Tuple[str, str]]:
@@ -202,7 +204,9 @@ class InstructionSynthesizer:
         topic = self._extract_topic(text)
         qa_pairs = []
 
-        for template in random.sample(self.QUESTION_TEMPLATES, min(self.qa_per_text, len(self.QUESTION_TEMPLATES))):
+        for template in random.sample(
+            self.QUESTION_TEMPLATES, min(self.qa_per_text, len(self.QUESTION_TEMPLATES))
+        ):
             question = template.format(topic=topic)
             # Answer is based on the original text
             answer = f"Based on the given context: {text}"
@@ -226,14 +230,16 @@ class InstructionSynthesizer:
                 qa_pairs = self._generate_qa(text)
 
             for question, answer in qa_pairs:
-                samples.append({
-                    "text": f"### Instruction:\n{question}\n\n### Response:\n{answer}",
-                    "source": "instruction_synthesis",
-                    "strategy": "instruction",
-                    "quality_score": 0.85,
-                    "instruction": question,
-                    "response": answer,
-                })
+                samples.append(
+                    {
+                        "text": f"### Instruction:\n{question}\n\n### Response:\n{answer}",
+                        "source": "instruction_synthesis",
+                        "strategy": "instruction",
+                        "quality_score": 0.85,
+                        "instruction": question,
+                        "response": answer,
+                    }
+                )
 
         return SynthesisResult(
             original_count=len(texts),
@@ -294,7 +300,7 @@ class ReasoningSynthesizer:
 
         # Step 3: Explore (derive conclusion)
         steps.append(self.REASONING_MARKERS[3])
-        steps.append(f"Analyzing these elements together...")
+        steps.append("Analyzing these elements together...")
         steps.append(self.REASONING_MARKERS[4])
 
         return "\n".join(steps)
@@ -313,13 +319,15 @@ class ReasoningSynthesizer:
             else:
                 reasoning = self._generate_reasoning_chain(problem)
 
-            samples.append({
-                "text": reasoning,
-                "source": "reasoning_synthesis",
-                "strategy": "reasoning",
-                "quality_score": 0.9,
-                "problem": problem,
-            })
+            samples.append(
+                {
+                    "text": reasoning,
+                    "source": "reasoning_synthesis",
+                    "strategy": "reasoning",
+                    "quality_score": 0.9,
+                    "problem": problem,
+                }
+            )
 
         return SynthesisResult(
             original_count=len(problems),
@@ -367,12 +375,14 @@ class AgenticSynthesizer:
         trajectory = []
 
         # Initial thought
-        trajectory.append({
-            "turn": 0,
-            "thought": f"I need to accomplish: {task}",
-            "action": None,
-            "observation": None,
-        })
+        trajectory.append(
+            {
+                "turn": 0,
+                "thought": f"I need to accomplish: {task}",
+                "action": None,
+                "observation": None,
+            }
+        )
 
         # Generate tool use turns
         available_tools = list(self.tools.keys())
@@ -380,23 +390,27 @@ class AgenticSynthesizer:
             tool = available_tools[i - 1] if i <= len(available_tools) else "search"
             tool_info = self.tools.get(tool, self.tools["search"])
 
-            trajectory.append({
-                "turn": i,
-                "thought": f"I should use {tool} to help with this task.",
-                "action": {
-                    "tool": tool,
-                    "input": {p: f"<{p}_value>" for p in tool_info["params"]}
-                },
-                "observation": f"Tool {tool} returned: [simulated result]",
-            })
+            trajectory.append(
+                {
+                    "turn": i,
+                    "thought": f"I should use {tool} to help with this task.",
+                    "action": {
+                        "tool": tool,
+                        "input": {p: f"<{p}_value>" for p in tool_info["params"]},
+                    },
+                    "observation": f"Tool {tool} returned: [simulated result]",
+                }
+            )
 
         # Final thought
-        trajectory.append({
-            "turn": len(trajectory),
-            "thought": "Based on the information gathered, I can now complete the task.",
-            "action": "final_answer",
-            "observation": f"Task completed: {task}",
-        })
+        trajectory.append(
+            {
+                "turn": len(trajectory),
+                "thought": "Based on the information gathered, I can now complete the task.",
+                "action": "final_answer",
+                "observation": f"Task completed: {task}",
+            }
+        )
 
         return trajectory
 
@@ -419,20 +433,22 @@ class AgenticSynthesizer:
             for step in trajectory:
                 formatted.append(f"[Turn {step['turn']}]")
                 formatted.append(f"Thought: {step['thought']}")
-                if step.get('action'):
+                if step.get("action"):
                     formatted.append(f"Action: {step['action']}")
-                if step.get('observation'):
+                if step.get("observation"):
                     formatted.append(f"Observation: {step['observation']}")
                 formatted.append("")
 
-            samples.append({
-                "text": "\n".join(formatted),
-                "source": "agentic_synthesis",
-                "strategy": "agentic",
-                "quality_score": 0.85,
-                "task": task,
-                "trajectory": trajectory,
-            })
+            samples.append(
+                {
+                    "text": "\n".join(formatted),
+                    "source": "agentic_synthesis",
+                    "strategy": "agentic",
+                    "quality_score": 0.85,
+                    "task": task,
+                    "trajectory": trajectory,
+                }
+            )
 
         return SynthesisResult(
             original_count=len(tasks),
@@ -474,7 +490,9 @@ class DomainSynthesizer:
         content = []
         content.append(f"## {topic.title()} in {self.domain.title()}")
         content.append("")
-        content.append(f"This section covers {topic} within the context of {self.domain}.")
+        content.append(
+            f"This section covers {topic} within the context of {self.domain}."
+        )
         content.append("")
         content.append("### Key Points")
         content.append(f"1. Understanding {topic} fundamentals")
@@ -500,14 +518,16 @@ class DomainSynthesizer:
             else:
                 content = self._generate_syllabus_content(topic)
 
-            samples.append({
-                "text": content,
-                "source": f"domain_{self.domain}",
-                "strategy": "domain",
-                "quality_score": 0.9,
-                "domain": self.domain,
-                "topic": topic,
-            })
+            samples.append(
+                {
+                    "text": content,
+                    "source": f"domain_{self.domain}",
+                    "strategy": "domain",
+                    "quality_score": 0.9,
+                    "domain": self.domain,
+                    "topic": topic,
+                }
+            )
 
         return SynthesisResult(
             original_count=len(seed_texts) if seed_texts else 0,

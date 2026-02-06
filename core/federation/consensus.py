@@ -11,20 +11,21 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import time
-import uuid
 import logging
 import threading
+import time
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Set, Optional, Any, Callable, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set
+
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.pci.crypto import (
+    canonical_json,
     domain_separated_digest,
     sign_message,
     verify_signature,
-    canonical_json,
 )
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 logger = logging.getLogger("CONSENSUS")
 
@@ -32,6 +33,7 @@ logger = logging.getLogger("CONSENSUS")
 # =============================================================================
 # PBFT PHASE STATE MACHINE (GAP-C3 Resolution)
 # =============================================================================
+
 
 class ConsensusPhase(Enum):
     """
@@ -44,6 +46,7 @@ class ConsensusPhase(Enum):
     COMMIT: Replicas signal readiness to commit after 2f+1 prepares
     COMMITTED: Final state after 2f+1 commits
     """
+
     PRE_PREPARE = auto()
     PREPARE = auto()
     COMMIT = auto()
@@ -58,11 +61,12 @@ class ConsensusState:
 
     Implements the PBFT state machine with prepare and commit certificates.
     """
+
     phase: ConsensusPhase = ConsensusPhase.PRE_PREPARE
     prepare_count: int = 0
     commit_count: int = 0
     prepare_signatures: Dict[str, str] = field(default_factory=dict)  # peer_id -> sig
-    commit_signatures: Dict[str, str] = field(default_factory=dict)   # peer_id -> sig
+    commit_signatures: Dict[str, str] = field(default_factory=dict)  # peer_id -> sig
     view_number: int = 0
     sequence_number: int = 0
     timeout_ms: int = 5000  # 5 second default timeout
@@ -73,6 +77,7 @@ class ConsensusState:
 # VIEW-CHANGE PROTOCOL (GAP-C3 Resolution)
 # =============================================================================
 
+
 @dataclass
 class ViewChangeRequest:
     """
@@ -80,11 +85,14 @@ class ViewChangeRequest:
 
     Per PBFT: View change occurs when replicas detect leader unresponsiveness.
     """
+
     view_number: int
     requester_id: str
     signature: str
     public_key: str
-    prepared_proposals: List[str] = field(default_factory=list)  # Proposals in PREPARE/COMMIT
+    prepared_proposals: List[str] = field(
+        default_factory=list
+    )  # Proposals in PREPARE/COMMIT
     timestamp: float = field(default_factory=time.time)
 
 
@@ -93,6 +101,7 @@ class NewViewMessage:
     """
     Leader's response to view-change containing state for new view.
     """
+
     new_view_number: int
     leader_id: str
     view_change_proofs: List[ViewChangeRequest] = field(default_factory=list)
@@ -107,6 +116,7 @@ class Proposal:
 
     The leader creates this and broadcasts to all replicas.
     """
+
     proposal_id: str
     proposer_id: str
     pattern_data: Dict[str, Any]
@@ -122,6 +132,7 @@ class Vote:
 
     Contains the voter's signature over the proposal digest.
     """
+
     proposal_id: str
     voter_id: str
     signature: str
@@ -136,6 +147,7 @@ class PrepareMessage:
     """
     PBFT PREPARE message - replica acknowledges receipt of pre-prepare.
     """
+
     proposal_id: str
     replica_id: str
     view_number: int
@@ -149,6 +161,7 @@ class CommitMessage:
     """
     PBFT COMMIT message - replica signals readiness to commit.
     """
+
     proposal_id: str
     replica_id: str
     view_number: int
@@ -213,8 +226,12 @@ class ConsensusEngine:
         # Callbacks
         self.on_commit_broadcast: Optional[Callable[[Dict], None]] = None
         self.on_prepare_broadcast: Optional[Callable[[PrepareMessage], None]] = None
-        self.on_commit_message_broadcast: Optional[Callable[[CommitMessage], None]] = None
-        self.on_view_change_broadcast: Optional[Callable[[ViewChangeRequest], None]] = None
+        self.on_commit_message_broadcast: Optional[Callable[[CommitMessage], None]] = (
+            None
+        )
+        self.on_view_change_broadcast: Optional[Callable[[ViewChangeRequest], None]] = (
+            None
+        )
         self.on_new_view_broadcast: Optional[Callable[[NewViewMessage], None]] = None
 
     # =========================================================================
@@ -224,7 +241,7 @@ class ConsensusEngine:
     def set_leader(self, leader_id: str) -> None:
         """Set the current leader. Leader is determined by view_number % len(peers)."""
         self._leader_id = leader_id
-        self._is_leader = (leader_id == self.node_id)
+        self._is_leader = leader_id == self.node_id
         logger.info(f"👑 Leader set to: {leader_id} (self={self._is_leader})")
 
     def get_leader_for_view(self, view_number: int) -> str:
@@ -282,14 +299,18 @@ class ConsensusEngine:
         self.active_proposals[proposal_id] = proposal
         self.votes[proposal_id] = []
 
-        logger.info(f"🗳️ PRE-PREPARE initiated: {proposal_id} (v={self._current_view}, s={self._sequence_counter})")
+        logger.info(
+            f"🗳️ PRE-PREPARE initiated: {proposal_id} (v={self._current_view}, s={self._sequence_counter})"
+        )
         return proposal
 
     # =========================================================================
     # PBFT PHASE 2: PREPARE (Replicas acknowledge receipt)
     # =========================================================================
 
-    def send_prepare(self, proposal: Proposal, ihsan_score: float) -> Optional[PrepareMessage]:
+    def send_prepare(
+        self, proposal: Proposal, ihsan_score: float
+    ) -> Optional[PrepareMessage]:
         """
         Replica sends PREPARE message after receiving pre-prepare.
 
@@ -299,11 +320,15 @@ class ConsensusEngine:
         3. Haven't already sent PREPARE for this proposal
         """
         if ihsan_score < UNIFIED_IHSAN_THRESHOLD:
-            logger.warning(f"❌ Rejecting {proposal.proposal_id}: Ihsān {ihsan_score} < {UNIFIED_IHSAN_THRESHOLD}")
+            logger.warning(
+                f"❌ Rejecting {proposal.proposal_id}: Ihsān {ihsan_score} < {UNIFIED_IHSAN_THRESHOLD}"
+            )
             return None
 
         if proposal.view_number != self._current_view:
-            logger.warning(f"⚠️ View mismatch: proposal v={proposal.view_number}, current v={self._current_view}")
+            logger.warning(
+                f"⚠️ View mismatch: proposal v={proposal.view_number}, current v={self._current_view}"
+            )
             return None
 
         # Create digest and sign
@@ -354,7 +379,9 @@ class ConsensusEngine:
 
         # Verify view number
         if prepare.view_number != self._current_view:
-            logger.error(f"⚠️ PREPARE view mismatch: {prepare.view_number} != {self._current_view}")
+            logger.error(
+                f"⚠️ PREPARE view mismatch: {prepare.view_number} != {self._current_view}"
+            )
             return False
 
         # Verify signature
@@ -379,12 +406,16 @@ class ConsensusEngine:
         state.prepare_count += 1
 
         quorum = self.get_quorum_size(node_count)
-        logger.info(f"📈 PREPARE received for {prepare.proposal_id} ({state.prepare_count}/{quorum})")
+        logger.info(
+            f"📈 PREPARE received for {prepare.proposal_id} ({state.prepare_count}/{quorum})"
+        )
 
         # Check if we have quorum for PREPARE phase
         if state.prepare_count >= quorum and state.phase == ConsensusPhase.PRE_PREPARE:
             state.phase = ConsensusPhase.PREPARE
-            logger.info(f"✅ PREPARE quorum reached for {prepare.proposal_id}, transitioning to COMMIT phase")
+            logger.info(
+                f"✅ PREPARE quorum reached for {prepare.proposal_id}, transitioning to COMMIT phase"
+            )
             return True
 
         return False
@@ -448,7 +479,9 @@ class ConsensusEngine:
 
         # Verify view number
         if commit.view_number != self._current_view:
-            logger.error(f"⚠️ COMMIT view mismatch: {commit.view_number} != {self._current_view}")
+            logger.error(
+                f"⚠️ COMMIT view mismatch: {commit.view_number} != {self._current_view}"
+            )
             return False
 
         # Verify signature (commit signature includes ":commit" suffix)
@@ -460,8 +493,12 @@ class ConsensusEngine:
             logger.error(f"⚠️ COMMIT digest mismatch from {commit.replica_id}")
             return False
 
-        expected_commit_digest = domain_separated_digest((expected_digest + ":commit").encode())
-        if not verify_signature(expected_commit_digest, commit.signature, registered_key):
+        expected_commit_digest = domain_separated_digest(
+            (expected_digest + ":commit").encode()
+        )
+        if not verify_signature(
+            expected_commit_digest, commit.signature, registered_key
+        ):
             logger.error(f"⚠️ Invalid COMMIT signature from {commit.replica_id}")
             return False
 
@@ -474,7 +511,9 @@ class ConsensusEngine:
         state.commit_count += 1
 
         quorum = self.get_quorum_size(node_count)
-        logger.info(f"📈 COMMIT received for {commit.proposal_id} ({state.commit_count}/{quorum})")
+        logger.info(
+            f"📈 COMMIT received for {commit.proposal_id} ({state.commit_count}/{quorum})"
+        )
 
         # Check if we have quorum for COMMIT phase
         if state.commit_count >= quorum and state.phase == ConsensusPhase.PREPARE:
@@ -522,13 +561,16 @@ class ConsensusEngine:
 
         # Gather proposals in PREPARE/COMMIT phases (not yet committed)
         prepared_proposals = [
-            pid for pid, state in self._consensus_state.items()
+            pid
+            for pid, state in self._consensus_state.items()
             if state.phase in (ConsensusPhase.PREPARE, ConsensusPhase.COMMIT)
             and pid not in self.committed_patterns
         ]
 
         # Sign the view-change request (hash the data to get hex digest)
-        view_change_data = f"VIEW-CHANGE:{new_view}:{self.node_id}:{','.join(prepared_proposals)}"
+        view_change_data = (
+            f"VIEW-CHANGE:{new_view}:{self.node_id}:{','.join(prepared_proposals)}"
+        )
         view_change_digest = domain_separated_digest(view_change_data.encode())
         signature = sign_message(view_change_digest, self.private_key)
 
@@ -560,7 +602,9 @@ class ConsensusEngine:
         """
         # Verify signature
         if request.requester_id not in self._peer_keys:
-            logger.error(f"⚠️ VIEW-CHANGE from unregistered peer: {request.requester_id}")
+            logger.error(
+                f"⚠️ VIEW-CHANGE from unregistered peer: {request.requester_id}"
+            )
             return False
 
         registered_key = self._peer_keys[request.requester_id]
@@ -568,7 +612,9 @@ class ConsensusEngine:
         view_change_digest = domain_separated_digest(view_change_data.encode())
 
         if not verify_signature(view_change_digest, request.signature, registered_key):
-            logger.error(f"⚠️ Invalid VIEW-CHANGE signature from {request.requester_id}")
+            logger.error(
+                f"⚠️ Invalid VIEW-CHANGE signature from {request.requester_id}"
+            )
             return False
 
         # Track request
@@ -576,14 +622,19 @@ class ConsensusEngine:
             self._view_change_requests[request.view_number] = []
 
         # Check for duplicate
-        if any(r.requester_id == request.requester_id for r in self._view_change_requests[request.view_number]):
+        if any(
+            r.requester_id == request.requester_id
+            for r in self._view_change_requests[request.view_number]
+        ):
             return False
 
         self._view_change_requests[request.view_number].append(request)
 
         quorum = self.get_quorum_size(node_count)
         count = len(self._view_change_requests[request.view_number])
-        logger.info(f"📈 VIEW-CHANGE received for v={request.view_number} ({count}/{quorum})")
+        logger.info(
+            f"📈 VIEW-CHANGE received for v={request.view_number} ({count}/{quorum})"
+        )
 
         # Check if we have quorum
         if count >= quorum:
@@ -605,7 +656,9 @@ class ConsensusEngine:
         new_leader = self.get_leader_for_view(new_view)
         self.set_leader(new_leader)
 
-        logger.info(f"🔄 VIEW-CHANGE executed: v={old_view} → v={new_view}, new leader={new_leader}")
+        logger.info(
+            f"🔄 VIEW-CHANGE executed: v={old_view} → v={new_view}, new leader={new_leader}"
+        )
 
         # If we're the new leader, broadcast NEW-VIEW message
         if self._is_leader:
@@ -668,12 +721,17 @@ class ConsensusEngine:
 
         with self._timeout_lock:
             for pid, state in self._consensus_state.items():
-                if state.phase not in (ConsensusPhase.COMMITTED, ConsensusPhase.ABORTED):
+                if state.phase not in (
+                    ConsensusPhase.COMMITTED,
+                    ConsensusPhase.ABORTED,
+                ):
                     elapsed = now - state.started_at
                     if elapsed > timeout_sec:
                         timed_out.append(pid)
                         state.phase = ConsensusPhase.ABORTED
-                        logger.warning(f"⏰ Proposal {pid} timed out after {elapsed:.1f}s")
+                        logger.warning(
+                            f"⏰ Proposal {pid} timed out after {elapsed:.1f}s"
+                        )
 
         return timed_out
 
@@ -700,17 +758,23 @@ class ConsensusEngine:
         if len(peer_id) > 256:
             raise ValueError(f"peer_id too long: {len(peer_id)} > 256")
         # Prevent injection attacks in peer_id
-        if any(c in peer_id for c in ['\n', '\r', '\0', ':']):
+        if any(c in peer_id for c in ["\n", "\r", "\0", ":"]):
             raise ValueError(f"peer_id contains invalid characters: {peer_id!r}")
 
         # Validate public key format (Ed25519 hex = 64 chars or base64)
         if not public_key or not isinstance(public_key, str):
-            raise ValueError(f"Invalid public key for peer {peer_id}: key is empty or not string")
+            raise ValueError(
+                f"Invalid public key for peer {peer_id}: key is empty or not string"
+            )
         # Ed25519 public key is 32 bytes = 64 hex chars or ~44 base64 chars
         if len(public_key) < 44:
-            raise ValueError(f"Invalid public key for peer {peer_id}: key too short ({len(public_key)} chars)")
+            raise ValueError(
+                f"Invalid public key for peer {peer_id}: key too short ({len(public_key)} chars)"
+            )
         if len(public_key) > 128:
-            raise ValueError(f"Invalid public key for peer {peer_id}: key too long ({len(public_key)} chars)")
+            raise ValueError(
+                f"Invalid public key for peer {peer_id}: key too long ({len(public_key)} chars)"
+            )
 
         # Check for duplicate registration with different key (potential attack)
         if peer_id in self._peer_keys and self._peer_keys[peer_id] != public_key:
@@ -806,7 +870,7 @@ class ConsensusEngine:
             return False
 
         proposal = self.active_proposals[vote.proposal_id]
-        state = self._consensus_state.get(vote.proposal_id)
+        self._consensus_state.get(vote.proposal_id)
 
         # SECURITY: Verify voter_id is registered and public_key matches
         if vote.voter_id not in self._peer_keys:
@@ -837,7 +901,7 @@ class ConsensusEngine:
         self._seen_vote_ids.add(vote_id)
         if len(self._seen_vote_ids) > self._max_seen_ids:
             # Evict oldest 10%
-            to_keep = list(self._seen_vote_ids)[-int(self._max_seen_ids * 0.9):]
+            to_keep = list(self._seen_vote_ids)[-int(self._max_seen_ids * 0.9) :]
             self._seen_vote_ids = set(to_keep)
 
         self.votes[vote.proposal_id].append(vote)

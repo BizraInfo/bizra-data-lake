@@ -16,10 +16,9 @@ import math
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 from core.uers import (
-    ANALYTICAL_VECTORS,
     SHANNON_ENTROPY_THRESHOLDS,
     STRUCTURAL_ENTROPY_METRICS,
 )
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EntropyMeasurement:
     """A single entropy measurement in one vector."""
+
     vector: str
     value: float
     normalized: float  # 0-1 scale
@@ -60,6 +60,7 @@ class EntropyMeasurement:
 @dataclass
 class ManifoldState:
     """Complete entropy state across all 5 vectors."""
+
     surface: EntropyMeasurement
     structural: EntropyMeasurement
     behavioral: EntropyMeasurement
@@ -70,11 +71,11 @@ class ManifoldState:
     def total_entropy(self) -> float:
         """Sum of all vector entropies."""
         return (
-            self.surface.normalized +
-            self.structural.normalized +
-            self.behavioral.normalized +
-            self.hypothetical.normalized +
-            self.contextual.normalized
+            self.surface.normalized
+            + self.structural.normalized
+            + self.behavioral.normalized
+            + self.hypothetical.normalized
+            + self.contextual.normalized
         )
 
     @property
@@ -230,11 +231,7 @@ class EntropyCalculator:
         depth_factor = min(max_depth / 20, 1.0)
 
         # Combined structural entropy
-        structural = (
-            0.4 * edge_density +
-            0.3 * fragmentation +
-            0.3 * depth_factor
-        )
+        structural = 0.4 * edge_density + 0.3 * fragmentation + 0.3 * depth_factor
 
         # Raw value (estimated bits needed to describe structure)
         if nodes > 1:
@@ -274,7 +271,7 @@ class EntropyCalculator:
                 normalized=0.0,
             )
 
-        total_edges = branch_edges + call_edges
+        branch_edges + call_edges
 
         # Branching complexity
         avg_branches = branch_edges / basic_blocks
@@ -288,11 +285,7 @@ class EntropyCalculator:
         loop_factor = min(loop_count / basic_blocks, 1.0) if basic_blocks > 0 else 0
 
         # Combined
-        entropy = (
-            0.4 * branch_entropy +
-            0.3 * call_entropy +
-            0.3 * loop_factor
-        )
+        entropy = 0.4 * branch_entropy + 0.3 * call_entropy + 0.3 * loop_factor
 
         return EntropyMeasurement(
             vector="structural",
@@ -371,7 +364,7 @@ class EntropyCalculator:
             )
 
         # Bigram entropy (captures sequence patterns)
-        bigrams = [(api_calls[i], api_calls[i+1]) for i in range(len(api_calls) - 1)]
+        bigrams = [(api_calls[i], api_calls[i + 1]) for i in range(len(api_calls) - 1)]
 
         if not bigrams:
             return self.trace_entropy(api_calls)
@@ -437,7 +430,11 @@ class EntropyCalculator:
 
         return EntropyMeasurement(
             vector="hypothetical",
-            value=math.log2(total_paths - explored_paths + 1) if total_paths > explored_paths else 0,
+            value=(
+                math.log2(total_paths - explored_paths + 1)
+                if total_paths > explored_paths
+                else 0
+            ),
             normalized=min(entropy, 1.0),
             metadata={
                 "explored": explored_paths,
@@ -477,7 +474,11 @@ class EntropyCalculator:
 
         return EntropyMeasurement(
             vector="hypothetical",
-            value=math.log2(variable_count) * (1 - constraint_ratio) if variable_count > 1 else 0,
+            value=(
+                math.log2(variable_count) * (1 - constraint_ratio)
+                if variable_count > 1
+                else 0
+            ),
             normalized=entropy,
             metadata={
                 "constraints": constraint_count,
@@ -510,7 +511,7 @@ class EntropyCalculator:
 
         # Text structure metrics
         words = text.split()
-        sentences = text.split('.')
+        sentences = text.split(".")
 
         # Vocabulary diversity (high diversity = more nuanced = harder to parse)
         if words:
@@ -527,10 +528,10 @@ class EntropyCalculator:
         alignment_factor = 1.0 - alignment_score
 
         entropy = (
-            0.2 * vocab_diversity +
-            0.1 * structure_factor +
-            0.4 * intent_factor +
-            0.3 * alignment_factor
+            0.2 * vocab_diversity
+            + 0.1 * structure_factor
+            + 0.4 * intent_factor
+            + 0.3 * alignment_factor
         )
 
         return EntropyMeasurement(

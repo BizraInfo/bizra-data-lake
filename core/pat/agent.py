@@ -79,20 +79,10 @@ Economic Model:
 """
 
 import secrets
-import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set
 from enum import Enum
-
-# Import crypto primitives from PCI module
-from core.pci.crypto import (
-    generate_keypair,
-    sign_message,
-    verify_signature,
-    canonical_json,
-    domain_separated_digest,
-)
+from typing import Any, Dict, List, Optional
 
 # Import constants
 from core.integration.constants import (
@@ -100,31 +90,43 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
+# Import crypto primitives from PCI module
+from core.pci.crypto import (
+    canonical_json,
+    domain_separated_digest,
+    generate_keypair,
+    sign_message,
+    verify_signature,
+)
+
 
 class AgentType(str, Enum):
     """PAT Agent type classification."""
-    WORKER = "worker"           # General task execution
-    RESEARCHER = "researcher"   # Information gathering
-    GUARDIAN = "guardian"       # Security and validation
-    SYNTHESIZER = "synthesizer" # Data integration
-    VALIDATOR = "validator"     # Proof verification
-    COORDINATOR = "coordinator" # Multi-agent orchestration
-    EXECUTOR = "executor"       # External system interaction
+
+    WORKER = "worker"  # General task execution
+    RESEARCHER = "researcher"  # Information gathering
+    GUARDIAN = "guardian"  # Security and validation
+    SYNTHESIZER = "synthesizer"  # Data integration
+    VALIDATOR = "validator"  # Proof verification
+    COORDINATOR = "coordinator"  # Multi-agent orchestration
+    EXECUTOR = "executor"  # External system interaction
 
 
 class AgentStatus(str, Enum):
     """Agent operational status."""
-    DORMANT = "dormant"       # Created but not activated
-    ACTIVE = "active"         # Running and accepting tasks
-    BUSY = "busy"             # Currently processing a task
-    SUSPENDED = "suspended"   # Temporarily disabled
-    RETIRED = "retired"       # Permanently decommissioned
+
+    DORMANT = "dormant"  # Created but not activated
+    ACTIVE = "active"  # Running and accepting tasks
+    BUSY = "busy"  # Currently processing a task
+    SUSPENDED = "suspended"  # Temporarily disabled
+    RETIRED = "retired"  # Permanently decommissioned
 
 
 class OwnershipType(str, Enum):
     """Agent ownership classification."""
-    USER = "user"             # Owned by a human user
-    SYSTEM = "system"         # Owned by system treasury
+
+    USER = "user"  # Owned by a human user
+    SYSTEM = "system"  # Owned by system treasury
 
 
 # Default capabilities per agent type
@@ -182,7 +184,7 @@ AGENT_DOMAIN_PREFIX = "bizra-agent-v1:"
 
 def _datetime_now_iso() -> str:
     """Get current UTC time in ISO 8601 format."""
-    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _generate_agent_id(owner_id: str, agent_type: AgentType, index: int) -> str:
@@ -225,6 +227,7 @@ class AgentCapability:
 
     Capabilities follow a namespace.action format.
     """
+
     name: str
     enabled: bool = True
     constraints: Dict[str, Any] = field(default_factory=dict)
@@ -233,7 +236,7 @@ class AgentCapability:
         return asdict(self)
 
     @classmethod
-    def from_string(cls, capability: str) -> 'AgentCapability':
+    def from_string(cls, capability: str) -> "AgentCapability":
         """Create capability from string name."""
         return cls(name=capability)
 
@@ -313,7 +316,9 @@ class PATAgent:
     status: AgentStatus = AgentStatus.DORMANT
     ownership_type: OwnershipType = OwnershipType.USER
     public_key: str = ""
-    private_key_hash: str = ""  # Hash of private key for verification (not the key itself)
+    private_key_hash: str = (
+        ""  # Hash of private key for verification (not the key itself)
+    )
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD
     snr_threshold: float = UNIFIED_SNR_THRESHOLD
     version: str = "1.0.0"
@@ -330,7 +335,9 @@ class PATAgent:
             raise ValueError(f"Invalid agent_id format: {self.agent_id}")
 
         # Validate owner_id format (can be BIZRA- for users or SYSTEM for treasury)
-        if not (self.owner_id.startswith("BIZRA-") or self.owner_id == "SYSTEM-TREASURY"):
+        if not (
+            self.owner_id.startswith("BIZRA-") or self.owner_id == "SYSTEM-TREASURY"
+        ):
             raise ValueError(f"Invalid owner_id format: {self.owner_id}")
 
         # Validate thresholds
@@ -409,18 +416,28 @@ class PATAgent:
             "version": self.version,
             "agent_id": self.agent_id,
             "owner_id": self.owner_id,
-            "agent_type": self.agent_type.value if isinstance(self.agent_type, AgentType) else self.agent_type,
+            "agent_type": (
+                self.agent_type.value
+                if isinstance(self.agent_type, AgentType)
+                else self.agent_type
+            ),
             "capabilities": sorted(self.capabilities),
             "creation_block": self.creation_block,
             "creation_timestamp": self.creation_timestamp,
-            "ownership_type": self.ownership_type.value if isinstance(self.ownership_type, OwnershipType) else self.ownership_type,
+            "ownership_type": (
+                self.ownership_type.value
+                if isinstance(self.ownership_type, OwnershipType)
+                else self.ownership_type
+            ),
             "public_key": self.public_key,
             "ihsan_threshold": self.ihsan_threshold,
             "snr_threshold": self.snr_threshold,
         }
         return domain_separated_digest(canonical_json(signable_data))
 
-    def sign_as_minter(self, minter_private_key: str, minter_public_key: str) -> 'PATAgent':
+    def sign_as_minter(
+        self, minter_private_key: str, minter_public_key: str
+    ) -> "PATAgent":
         """
         Sign the agent as the system minter.
 
@@ -446,23 +463,33 @@ class PATAgent:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         d = asdict(self)
-        d['agent_type'] = self.agent_type.value if isinstance(self.agent_type, AgentType) else self.agent_type
-        d['status'] = self.status.value if isinstance(self.status, AgentStatus) else self.status
-        d['ownership_type'] = self.ownership_type.value if isinstance(self.ownership_type, OwnershipType) else self.ownership_type
+        d["agent_type"] = (
+            self.agent_type.value
+            if isinstance(self.agent_type, AgentType)
+            else self.agent_type
+        )
+        d["status"] = (
+            self.status.value if isinstance(self.status, AgentStatus) else self.status
+        )
+        d["ownership_type"] = (
+            self.ownership_type.value
+            if isinstance(self.ownership_type, OwnershipType)
+            else self.ownership_type
+        )
         return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'PATAgent':
+    def from_dict(cls, data: Dict[str, Any]) -> "PATAgent":
         """Reconstruct from dictionary."""
         data = data.copy()
 
         # Handle enum conversion
-        if 'agent_type' in data:
-            data['agent_type'] = AgentType(data['agent_type'])
-        if 'status' in data:
-            data['status'] = AgentStatus(data['status'])
-        if 'ownership_type' in data:
-            data['ownership_type'] = OwnershipType(data['ownership_type'])
+        if "agent_type" in data:
+            data["agent_type"] = AgentType(data["agent_type"])
+        if "status" in data:
+            data["status"] = AgentStatus(data["status"])
+        if "ownership_type" in data:
+            data["ownership_type"] = OwnershipType(data["ownership_type"])
 
         return cls(**data)
 
@@ -475,7 +502,7 @@ class PATAgent:
         creation_block: int = 0,
         ownership_type: OwnershipType = OwnershipType.USER,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> 'PATAgent':
+    ) -> "PATAgent":
         """
         Factory method to create a new PAT agent.
 
@@ -495,6 +522,7 @@ class PATAgent:
 
         # Hash the private key for verification (don't store the actual key)
         import blake3
+
         private_key_hash = blake3.blake3(bytes.fromhex(private_key)).hexdigest()[:32]
 
         agent_id = _generate_agent_id(owner_id, agent_type, index)
@@ -516,20 +544,20 @@ class PATAgent:
 
 # Pre-defined agent configurations for onboarding
 USER_AGENT_ALLOCATION = [
-    AgentType.WORKER,       # 1. General task execution
-    AgentType.WORKER,       # 2. Additional worker capacity
-    AgentType.RESEARCHER,   # 3. Information gathering
-    AgentType.GUARDIAN,     # 4. Security monitoring
+    AgentType.WORKER,  # 1. General task execution
+    AgentType.WORKER,  # 2. Additional worker capacity
+    AgentType.RESEARCHER,  # 3. Information gathering
+    AgentType.GUARDIAN,  # 4. Security monitoring
     AgentType.SYNTHESIZER,  # 5. Data integration
-    AgentType.VALIDATOR,    # 6. Quality assurance
+    AgentType.VALIDATOR,  # 6. Quality assurance
     AgentType.COORDINATOR,  # 7. Orchestration
 ]
 
 SYSTEM_AGENT_ALLOCATION = [
-    AgentType.VALIDATOR,    # 1. Network validation
-    AgentType.GUARDIAN,     # 2. Security oversight
+    AgentType.VALIDATOR,  # 1. Network validation
+    AgentType.GUARDIAN,  # 2. Security oversight
     AgentType.COORDINATOR,  # 3. Cross-node coordination
-    AgentType.EXECUTOR,     # 4. External integration
+    AgentType.EXECUTOR,  # 4. External integration
     AgentType.SYNTHESIZER,  # 5. Global pattern detection
 ]
 
@@ -716,7 +744,11 @@ class SATAgent:
             "version": self.version,
             "agent_id": self.agent_id,
             "owner_id": self.owner_id,
-            "agent_type": self.agent_type.value if isinstance(self.agent_type, AgentType) else self.agent_type,
+            "agent_type": (
+                self.agent_type.value
+                if isinstance(self.agent_type, AgentType)
+                else self.agent_type
+            ),
             "capabilities": sorted(self.capabilities),
             "creation_block": self.creation_block,
             "creation_timestamp": self.creation_timestamp,
@@ -729,7 +761,9 @@ class SATAgent:
         }
         return domain_separated_digest(canonical_json(signable_data))
 
-    def sign_as_minter(self, minter_private_key: str, minter_public_key: str) -> 'SATAgent':
+    def sign_as_minter(
+        self, minter_private_key: str, minter_public_key: str
+    ) -> "SATAgent":
         """Sign the agent as the system minter."""
         digest = self.compute_digest()
         self.minter_signature = sign_message(digest, minter_private_key)
@@ -746,25 +780,31 @@ class SATAgent:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         d = asdict(self)
-        d['agent_type'] = self.agent_type.value if isinstance(self.agent_type, AgentType) else self.agent_type
-        d['status'] = self.status.value if isinstance(self.status, AgentStatus) else self.status
-        d['ownership_type'] = self.ownership_type.value
+        d["agent_type"] = (
+            self.agent_type.value
+            if isinstance(self.agent_type, AgentType)
+            else self.agent_type
+        )
+        d["status"] = (
+            self.status.value if isinstance(self.status, AgentStatus) else self.status
+        )
+        d["ownership_type"] = self.ownership_type.value
         return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'SATAgent':
+    def from_dict(cls, data: Dict[str, Any]) -> "SATAgent":
         """Reconstruct from dictionary."""
         data = data.copy()
 
         # Handle enum conversion
-        if 'agent_type' in data:
-            data['agent_type'] = AgentType(data['agent_type'])
-        if 'status' in data:
-            data['status'] = AgentStatus(data['status'])
+        if "agent_type" in data:
+            data["agent_type"] = AgentType(data["agent_type"])
+        if "status" in data:
+            data["status"] = AgentStatus(data["status"])
 
         # Remove fixed fields that shouldn't be in init
-        data.pop('owner_id', None)
-        data.pop('ownership_type', None)
+        data.pop("owner_id", None)
+        data.pop("ownership_type", None)
 
         return cls(**data)
 
@@ -778,7 +818,7 @@ class SATAgent:
         task_pool: str = "general",
         federation_assignment: str = "node0",
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> 'SATAgent':
+    ) -> "SATAgent":
         """
         Factory method to create a new SAT agent.
 
@@ -799,6 +839,7 @@ class SATAgent:
 
         # Hash the private key for verification
         import blake3
+
         private_key_hash = blake3.blake3(bytes.fromhex(private_key)).hexdigest()[:32]
 
         agent_id = _generate_sat_agent_id(agent_type, index)

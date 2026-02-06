@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use crate::config::HunterConfig;
 use crate::entropy::EntropyCalculator;
-use crate::pipeline::{SNRPipeline, PipelineStats};
+use crate::pipeline::{PipelineStats, SNRPipeline};
 
 #[derive(Debug, Clone)]
 pub struct HunterResult {
@@ -21,7 +21,9 @@ impl From<&PipelineStats> for HunterResult {
             lane1_processed: s.lane1_processed.load(std::sync::atomic::Ordering::Relaxed),
             lane1_filtered: s.lane1_filtered.load(std::sync::atomic::Ordering::Relaxed),
             lane2_submitted: s.lane2_submitted.load(std::sync::atomic::Ordering::Relaxed),
-            duplicates_filtered: s.duplicates_filtered.load(std::sync::atomic::Ordering::Relaxed),
+            duplicates_filtered: s
+                .duplicates_filtered
+                .load(std::sync::atomic::Ordering::Relaxed),
             cascade_blocked: s.cascade_blocked.load(std::sync::atomic::Ordering::Relaxed),
         }
     }
@@ -36,7 +38,8 @@ pub struct Hunter<const N: usize> {
 
 impl<const N: usize> Hunter<N> {
     pub fn new(config: HunterConfig) -> Self {
-        let pipeline = SNRPipeline::<N>::new().with_snr_config(config.snr_threshold, config.min_axes);
+        let pipeline =
+            SNRPipeline::<N>::new().with_snr_config(config.snr_threshold, config.min_axes);
         let entropy = EntropyCalculator::new();
         Self {
             config,
@@ -48,10 +51,19 @@ impl<const N: usize> Hunter<N> {
 
     /// Health check: pipeline gates open + recent tick
     pub fn health_check(&self) -> bool {
-        let gate_ok = self.pipeline.cascade.is_open(crate::cascade::GateType::Technical)
-            && self.pipeline.cascade.is_open(crate::cascade::GateType::Ethics)
-            && self.pipeline.cascade.is_open(crate::cascade::GateType::Legal);
-        gate_ok
+        
+        self
+            .pipeline
+            .cascade
+            .is_open(crate::cascade::GateType::Technical)
+            && self
+                .pipeline
+                .cascade
+                .is_open(crate::cascade::GateType::Ethics)
+            && self
+                .pipeline
+                .cascade
+                .is_open(crate::cascade::GateType::Legal)
     }
 
     /// Run a lightweight loop (no external input). Returns stats snapshot.

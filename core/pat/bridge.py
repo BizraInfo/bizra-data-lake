@@ -13,11 +13,11 @@ Standing on Giants: OpenClaw + A2A Protocol + Constitutional AI
 import asyncio
 import json
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
-import uuid
+from typing import Any, Callable, Dict, List, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class MessageType(str, Enum):
     """PAT message types."""
+
     TEXT = "text"
     COMMAND = "command"
     TOOL_CALL = "tool_call"
@@ -39,6 +40,7 @@ class MessageType(str, Enum):
 
 class ChannelType(str, Enum):
     """Supported communication channels."""
+
     WHATSAPP = "whatsapp"
     TELEGRAM = "telegram"
     SLACK = "slack"
@@ -52,6 +54,7 @@ class ChannelType(str, Enum):
 @dataclass
 class PATMessage:
     """A message in the PAT system."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     channel: ChannelType = ChannelType.INTERNAL
     sender: str = "user"
@@ -106,6 +109,7 @@ class PATMessage:
 @dataclass
 class PATSession:
     """A conversation session with a channel."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     channel: ChannelType = ChannelType.INTERNAL
     user_id: str = ""
@@ -184,7 +188,9 @@ class PATBridge:
             try:
                 import websockets
             except ImportError:
-                logger.warning("websockets not installed, PAT bridge running in simulation mode")
+                logger.warning(
+                    "websockets not installed, PAT bridge running in simulation mode"
+                )
                 self._connected = False
                 return False
 

@@ -11,12 +11,12 @@ Standing on Giants:
  different data sources in a training corpus to optimize performance."
 """
 
-import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
-from enum import Enum
-from collections import defaultdict
 import logging
+import math
+from collections import defaultdict
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -25,18 +25,20 @@ logger = logging.getLogger(__name__)
 
 class MixingStrategy(Enum):
     """Data mixing strategies from DATA4LLM."""
-    UNIFORM = "uniform"                    # Equal proportions
-    PROPORTIONAL = "proportional"          # Match source distribution
-    TEMPERATURE = "temperature"            # Softmax with temperature
-    DOREMI = "doremi"                      # Domain Reweighting with Minimax
-    DRO = "dro"                            # Distributionally Robust Optimization
-    INVERSE_PERPLEXITY = "inverse_ppl"     # Weight by inverse perplexity
-    SKILL_BALANCED = "skill_balanced"      # Balance by skill requirements
+
+    UNIFORM = "uniform"  # Equal proportions
+    PROPORTIONAL = "proportional"  # Match source distribution
+    TEMPERATURE = "temperature"  # Softmax with temperature
+    DOREMI = "doremi"  # Domain Reweighting with Minimax
+    DRO = "dro"  # Distributionally Robust Optimization
+    INVERSE_PERPLEXITY = "inverse_ppl"  # Weight by inverse perplexity
+    SKILL_BALANCED = "skill_balanced"  # Balance by skill requirements
 
 
 @dataclass
 class DomainStats:
     """Statistics for a single domain."""
+
     name: str
     count: int
     total_tokens: int
@@ -53,6 +55,7 @@ class DomainStats:
 @dataclass
 class MixingResult:
     """Result of mixing operation."""
+
     original_distribution: Dict[str, float]
     target_distribution: Dict[str, float]
     sample_indices: Dict[str, List[int]]  # Domain -> sampled indices
@@ -161,9 +164,7 @@ class DomainMixer:
         Temperature = 1: Natural distribution
         Temperature > 1: Smoother distribution (more uniform)
         """
-        log_counts = np.array([
-            math.log(max(s.count, 1)) for s in stats.values()
-        ])
+        log_counts = np.array([math.log(max(s.count, 1)) for s in stats.values()])
 
         # Apply temperature
         scaled = log_counts / self.temperature
@@ -183,9 +184,7 @@ class DomainMixer:
 
         Lower perplexity = higher quality = higher weight.
         """
-        inv_ppls = np.array([
-            1.0 / max(s.mean_perplexity, 1.0) for s in stats.values()
-        ])
+        inv_ppls = np.array([1.0 / max(s.mean_perplexity, 1.0) for s in stats.values()])
 
         # Normalize
         probs = inv_ppls / np.sum(inv_ppls)
@@ -303,7 +302,9 @@ class DomainMixer:
                 if available:
                     sampled = list(available)
                     if n_samples > len(available):
-                        extra = np.random.choice(available, n_samples - len(available), replace=True).tolist()
+                        extra = np.random.choice(
+                            available, n_samples - len(available), replace=True
+                        ).tolist()
                         sampled.extend(extra)
                 else:
                     sampled = []
@@ -422,7 +423,7 @@ class DistributionallyRobustOptimizer:
 
         # Initialize weights
         if initial_weights:
-            weights = np.array([initial_weights.get(d, 1.0/n_domains) for d in stats])
+            weights = np.array([initial_weights.get(d, 1.0 / n_domains) for d in stats])
         else:
             weights = np.ones(n_domains) / n_domains
 
@@ -453,7 +454,7 @@ class DistributionallyRobustOptimizer:
         # Convert to dict
         optimized = {domain: float(w) for domain, w in zip(domains, weights)}
 
-        logger.info(f"DRO optimization complete:")
+        logger.info("DRO optimization complete:")
         for domain, w in sorted(optimized.items(), key=lambda x: -x[1]):
             original = stats[domain].source_weight
             logger.info(f"  {domain}: {original:.2%} -> {w:.2%}")

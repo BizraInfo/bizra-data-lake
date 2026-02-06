@@ -13,33 +13,30 @@ Also handles:
 - Cross-platform reputation aggregation
 """
 
-import asyncio
-import hashlib
-import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from core.proof_engine.canonical import blake3_digest, canonical_bytes
-from core.proof_engine.receipt import SovereignSigner
 from core.bounty.impact_proof import ImpactProof, Severity
-from core.bounty.oracle import BountyCalculation, BountyPayout
+from core.proof_engine.receipt import SovereignSigner
 
 
 class Platform(Enum):
     """Supported bounty platforms."""
+
     IMMUNEFI = "immunefi"
     HACKERONE = "hackerone"
     BUGCROWD = "bugcrowd"
     DIRECT = "direct"  # Direct protocol submission
-    BIZRA = "bizra"    # BIZRA native (smart contract)
+    BIZRA = "bizra"  # BIZRA native (smart contract)
 
 
 class SubmissionStatus(Enum):
     """Submission status."""
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     TRIAGED = "triaged"
@@ -52,6 +49,7 @@ class SubmissionStatus(Enum):
 @dataclass
 class PlatformCredentials:
     """Credentials for a bounty platform."""
+
     platform: Platform
     api_key: str
     api_secret: Optional[str] = None
@@ -65,6 +63,7 @@ class PlatformCredentials:
 @dataclass
 class BountySubmission:
     """A submission to a bounty platform."""
+
     submission_id: str
     platform: Platform
     proof: ImpactProof
@@ -100,7 +99,9 @@ class BountySubmission:
             "actual_payout": self.actual_payout,
             "payout_currency": self.payout_currency,
             "payout_tx_hash": self.payout_tx_hash,
-            "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
+            "submitted_at": (
+                self.submitted_at.isoformat() if self.submitted_at else None
+            ),
             "triaged_at": self.triaged_at.isoformat() if self.triaged_at else None,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
             "created_at": self.created_at.isoformat(),
@@ -185,7 +186,7 @@ class ImmunefiAdapter(PlatformAdapter):
 
     async def submit(self, proof: ImpactProof) -> BountySubmission:
         """Submit to Immunefi."""
-        report = self.format_report(proof)
+        self.format_report(proof)
 
         # In production, this would call the Immunefi API
         # For now, simulate submission
@@ -402,7 +403,7 @@ class BountyBridge:
             try:
                 submission = await self.submit(proof, platform)
                 submissions.append(submission)
-            except Exception as e:
+            except Exception:
                 # Log error but continue with other platforms
                 pass
 

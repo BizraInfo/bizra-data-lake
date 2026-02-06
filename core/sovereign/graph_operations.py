@@ -14,17 +14,13 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple
 
-from core.integration.constants import UNIFIED_SNR_THRESHOLD, UNIFIED_IHSAN_THRESHOLD
-
 from .graph_types import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
     EdgeType,
-    ReasoningStrategy,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
 )
 
 logger = logging.getLogger(__name__)
@@ -235,14 +231,16 @@ class GraphOperationsMixin:
 
         # Support factor (more supporting edges = higher score)
         support_count = sum(
-            1 for e in self.edges
+            1
+            for e in self.edges
             if e.target_id == node.id and e.edge_type == EdgeType.SUPPORTS
         )
         support_factor = 1.0 + 0.1 * support_count
 
         # Refutation penalty
         refute_count = sum(
-            1 for e in self.edges
+            1
+            for e in self.edges
             if e.target_id == node.id and e.edge_type == EdgeType.REFUTES
         )
         refute_factor = 1.0 / (1.0 + 0.2 * refute_count)
@@ -258,7 +256,8 @@ class GraphOperationsMixin:
         pruned = 0
 
         nodes_to_remove = [
-            node_id for node_id, node in self.nodes.items()
+            node_id
+            for node_id, node in self.nodes.items()
             if node.snr_score < threshold and node.thought_type != ThoughtType.QUESTION
         ]
 
@@ -280,7 +279,8 @@ class GraphOperationsMixin:
 
         # Remove orphaned edges
         self.edges = [
-            e for e in self.edges
+            e
+            for e in self.edges
             if e.source_id in self.nodes and e.target_id in self.nodes
         ]
 

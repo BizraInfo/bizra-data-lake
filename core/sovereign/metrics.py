@@ -28,13 +28,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
-import platform
-import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 logger = logging.getLogger("sovereign.metrics")
 
@@ -43,9 +40,11 @@ logger = logging.getLogger("sovereign.metrics")
 # METRIC TYPES
 # =============================================================================
 
+
 @dataclass
 class MetricPoint:
     """A single metric data point."""
+
     name: str
     value: float
     timestamp: datetime = field(default_factory=datetime.now)
@@ -64,18 +63,21 @@ class MetricPoint:
 @dataclass
 class MetricSeries:
     """Time series of metrics."""
+
     name: str
     points: Deque[MetricPoint] = field(default_factory=lambda: deque(maxlen=1000))
     unit: str = ""
 
     def add(self, value: float, labels: Dict[str, str] = None) -> None:
         """Add a data point."""
-        self.points.append(MetricPoint(
-            name=self.name,
-            value=value,
-            labels=labels or {},
-            unit=self.unit,
-        ))
+        self.points.append(
+            MetricPoint(
+                name=self.name,
+                value=value,
+                labels=labels or {},
+                unit=self.unit,
+            )
+        )
 
     def latest(self) -> Optional[float]:
         """Get latest value."""
@@ -95,8 +97,12 @@ class MetricSeries:
         recent = list(self.points)[-window:]
         if len(recent) < 2:
             return "stable"
-        first_half = sum(p.value for p in recent[:len(recent)//2]) / (len(recent)//2)
-        second_half = sum(p.value for p in recent[len(recent)//2:]) / (len(recent) - len(recent)//2)
+        first_half = sum(p.value for p in recent[: len(recent) // 2]) / (
+            len(recent) // 2
+        )
+        second_half = sum(p.value for p in recent[len(recent) // 2 :]) / (
+            len(recent) - len(recent) // 2
+        )
         diff = second_half - first_half
         if diff > 0.05 * first_half:
             return "increasing"
@@ -108,6 +114,7 @@ class MetricSeries:
 @dataclass
 class SystemSnapshot:
     """Complete system state snapshot."""
+
     timestamp: datetime = field(default_factory=datetime.now)
 
     # Resource metrics
@@ -142,9 +149,9 @@ class SystemSnapshot:
         """Calculate overall resource pressure (0-1)."""
         weights = {"cpu": 0.3, "memory": 0.4, "gpu": 0.3}
         pressure = (
-            weights["cpu"] * self.cpu_percent / 100 +
-            weights["memory"] * self.memory_percent / 100 +
-            weights["gpu"] * self.gpu_percent / 100
+            weights["cpu"] * self.cpu_percent / 100
+            + weights["memory"] * self.memory_percent / 100
+            + weights["gpu"] * self.gpu_percent / 100
         )
         return min(1.0, pressure)
 
@@ -194,6 +201,7 @@ class SystemSnapshot:
 # =============================================================================
 # METRICS COLLECTOR
 # =============================================================================
+
 
 class MetricsCollector:
     """
@@ -258,10 +266,7 @@ class MetricsCollector:
                 pass
         logger.info("Metrics collector stopped")
 
-    def register_collector(
-        self,
-        collector: Callable[[], Dict[str, float]]
-    ) -> None:
+    def register_collector(self, collector: Callable[[], Dict[str, float]]) -> None:
         """Register an external metrics collector."""
         self._collectors.append(collector)
 
@@ -303,8 +308,12 @@ class MetricsCollector:
         await self._collect_gpu(snapshot)
 
         # Apply external metrics
-        snapshot.inference_latency_ms = self._external_metrics.get("inference_latency_ms", 0)
-        snapshot.inference_throughput = self._external_metrics.get("inference_throughput", 0)
+        snapshot.inference_latency_ms = self._external_metrics.get(
+            "inference_latency_ms", 0
+        )
+        snapshot.inference_throughput = self._external_metrics.get(
+            "inference_throughput", 0
+        )
         snapshot.snr_score = self._external_metrics.get("snr_score", 0.9)
         snapshot.ihsan_score = self._external_metrics.get("ihsan_score", 0.9)
         snapshot.error_rate = self._external_metrics.get("error_rate", 0)
@@ -350,11 +359,12 @@ class MetricsCollector:
         """Collect GPU metrics (NVIDIA)."""
         try:
             import subprocess
+
             result = subprocess.run(
                 [
                     "nvidia-smi",
                     "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu",
-                    "--format=csv,noheader,nounits"
+                    "--format=csv,noheader,nounits",
                 ],
                 capture_output=True,
                 text=True,
@@ -369,7 +379,8 @@ class MetricsCollector:
                     total_mb = float(parts[2].strip())
                     snapshot.gpu_memory_percent = (
                         snapshot.gpu_memory_used_mb / total_mb * 100
-                        if total_mb > 0 else 0
+                        if total_mb > 0
+                        else 0
                     )
                     snapshot.gpu_temperature = float(parts[3].strip())
 
@@ -439,6 +450,7 @@ class MetricsCollector:
 # AUTONOMY INTEGRATION
 # =============================================================================
 
+
 def create_autonomy_observer(collector: MetricsCollector):
     """
     Create an observer function for AutonomousLoop.
@@ -451,6 +463,7 @@ def create_autonomy_observer(collector: MetricsCollector):
         loop = AutonomousLoop()
         loop.register_observer(create_autonomy_observer(collector))
     """
+
     async def observer(metrics) -> None:
         """Update autonomy metrics from system snapshot."""
         snapshot = await collector.snapshot()
@@ -481,55 +494,63 @@ def create_autonomy_analyzer(collector: MetricsCollector):
 
         # High memory pressure
         if snapshot.memory_percent > 85:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.CORRECTIVE,
-                action="reduce_memory",
-                parameters={"current": snapshot.memory_percent},
-                expected_impact=0.2,
-                risk_score=0.3,
-                confidence=0.85,
-                rationale=f"Memory at {snapshot.memory_percent:.1f}%",
-                rollback_plan="restore_cache",
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.CORRECTIVE,
+                    action="reduce_memory",
+                    parameters={"current": snapshot.memory_percent},
+                    expected_impact=0.2,
+                    risk_score=0.3,
+                    confidence=0.85,
+                    rationale=f"Memory at {snapshot.memory_percent:.1f}%",
+                    rollback_plan="restore_cache",
+                )
+            )
 
         # High GPU temperature
         if snapshot.gpu_temperature > 80:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.PREVENTIVE,
-                action="throttle_inference",
-                parameters={"temperature": snapshot.gpu_temperature},
-                expected_impact=0.15,
-                risk_score=0.2,
-                confidence=0.9,
-                rationale=f"GPU at {snapshot.gpu_temperature}°C",
-                rollback_plan="restore_inference_rate",
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.PREVENTIVE,
+                    action="throttle_inference",
+                    parameters={"temperature": snapshot.gpu_temperature},
+                    expected_impact=0.15,
+                    risk_score=0.2,
+                    confidence=0.9,
+                    rationale=f"GPU at {snapshot.gpu_temperature}°C",
+                    rollback_plan="restore_inference_rate",
+                )
+            )
 
         # High inference latency
         if snapshot.inference_latency_ms > 3000:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.ADAPTIVE,
-                action="switch_inference_tier",
-                parameters={"current_latency": snapshot.inference_latency_ms},
-                expected_impact=0.3,
-                risk_score=0.25,
-                confidence=0.8,
-                rationale=f"Latency at {snapshot.inference_latency_ms:.0f}ms",
-                rollback_plan="revert_tier",
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.ADAPTIVE,
+                    action="switch_inference_tier",
+                    parameters={"current_latency": snapshot.inference_latency_ms},
+                    expected_impact=0.3,
+                    risk_score=0.25,
+                    confidence=0.8,
+                    rationale=f"Latency at {snapshot.inference_latency_ms:.0f}ms",
+                    rollback_plan="revert_tier",
+                )
+            )
 
         # SNR degradation
         if snapshot.snr_score < 0.85:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.CORRECTIVE,
-                action="boost_snr",
-                parameters={"current_snr": snapshot.snr_score},
-                expected_impact=0.25,
-                risk_score=0.15,
-                confidence=0.85,
-                rationale=f"SNR at {snapshot.snr_score:.3f}",
-                rollback_plan="revert_snr_config",
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.CORRECTIVE,
+                    action="boost_snr",
+                    parameters={"current_snr": snapshot.snr_score},
+                    expected_impact=0.25,
+                    risk_score=0.15,
+                    confidence=0.85,
+                    rationale=f"SNR at {snapshot.snr_score:.3f}",
+                    rollback_plan="revert_snr_config",
+                )
+            )
 
         return candidates
 
@@ -539,6 +560,7 @@ def create_autonomy_analyzer(collector: MetricsCollector):
 # =============================================================================
 # FACTORY
 # =============================================================================
+
 
 async def create_metrics_collector(
     collection_interval: float = 1.0,

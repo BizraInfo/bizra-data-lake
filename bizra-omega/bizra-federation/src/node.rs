@@ -1,12 +1,12 @@
 //! Federation Node
 
+use crate::consensus::ConsensusEngine;
+use crate::gossip::GossipProtocol;
+use bizra_core::{Constitution, NodeId, NodeIdentity};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use bizra_core::{NodeIdentity, NodeId, Constitution};
-use crate::gossip::GossipProtocol;
-use crate::consensus::ConsensusEngine;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeConfig {
@@ -37,8 +37,13 @@ pub struct FederationNode {
 
 impl FederationNode {
     pub fn new(config: NodeConfig, identity: NodeIdentity, _constitution: Constitution) -> Self {
-        let gossip = GossipProtocol::new(identity.node_id().clone(), config.gossip_addr, identity.signing_key().clone());
-        let consensus = ConsensusEngine::new(NodeIdentity::from_secret_bytes(&identity.secret_bytes()));
+        let gossip = GossipProtocol::new(
+            identity.node_id().clone(),
+            config.gossip_addr,
+            identity.signing_key().clone(),
+        );
+        let consensus =
+            ConsensusEngine::new(NodeIdentity::from_secret_bytes(&identity.secret_bytes()));
         Self {
             identity: Arc::new(identity),
             config,
@@ -48,11 +53,17 @@ impl FederationNode {
         }
     }
 
-    pub fn node_id(&self) -> &NodeId { self.identity.node_id() }
-    pub fn name(&self) -> &str { &self.config.name }
+    pub fn node_id(&self) -> &NodeId {
+        self.identity.node_id()
+    }
+    pub fn name(&self) -> &str {
+        &self.config.name
+    }
 
     pub async fn start(&self) -> Result<(), NodeError> {
-        if *self.running.read().await { return Err(NodeError::AlreadyRunning); }
+        if *self.running.read().await {
+            return Err(NodeError::AlreadyRunning);
+        }
         for seed in &self.config.seeds {
             let seed_id = NodeId(format!("seed_{}", seed.port()));
             self.gossip.write().await.add_seed(seed_id, *seed).await;
@@ -63,16 +74,35 @@ impl FederationNode {
     }
 
     pub async fn stop(&self) -> Result<(), NodeError> {
-        if !*self.running.read().await { return Err(NodeError::NotRunning); }
+        if !*self.running.read().await {
+            return Err(NodeError::NotRunning);
+        }
         *self.running.write().await = false;
         Ok(())
     }
 
-    pub async fn is_running(&self) -> bool { *self.running.read().await }
-    pub async fn peer_count(&self) -> usize { self.gossip.read().await.member_count().await.saturating_sub(1) }
+    pub async fn is_running(&self) -> bool {
+        *self.running.read().await
+    }
+    pub async fn peer_count(&self) -> usize {
+        self.gossip
+            .read()
+            .await
+            .member_count()
+            .await
+            .saturating_sub(1)
+    }
 
-    pub async fn propose_pattern(&self, pattern: serde_json::Value, ihsan: f64) -> Result<String, NodeError> {
-        let proposal = self.consensus.write().await.propose(pattern, ihsan)
+    pub async fn propose_pattern(
+        &self,
+        pattern: serde_json::Value,
+        ihsan: f64,
+    ) -> Result<String, NodeError> {
+        let proposal = self
+            .consensus
+            .write()
+            .await
+            .propose(pattern, ihsan)
             .map_err(NodeError::Consensus)?;
         Ok(proposal.id)
     }

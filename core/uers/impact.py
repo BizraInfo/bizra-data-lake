@@ -14,21 +14,20 @@ the Proof-of-Impact (PoI) consensus mechanism:
 
 import hashlib
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from core.uers import PROOF_OF_IMPACT
-from core.uers.entropy import EntropyCalculator, ManifoldState
 from core.uers.convergence import ConvergenceResult
+from core.uers.entropy import EntropyCalculator, ManifoldState
 
 logger = logging.getLogger(__name__)
 
 
 class ImpactType(str, Enum):
     """Types of impactful actions."""
+
     INFORMATION_ORGANIZATION = "information_organization"
     TRUTH_VERIFICATION = "truth_verification"
     PROBLEM_SOLVING = "problem_solving"
@@ -38,6 +37,7 @@ class ImpactType(str, Enum):
 
 class ViolationType(str, Enum):
     """Types of ethical violations."""
+
     BIAS_INTRODUCTION = "bias_introduction"
     HARM_POTENTIAL = "harm_potential"
     DECEPTION = "deception"
@@ -48,6 +48,7 @@ class ViolationType(str, Enum):
 @dataclass
 class ImpactClaim:
     """A claim of impactful work submitted to the Oracle."""
+
     id: str
     agent_id: str
     impact_type: ImpactType
@@ -70,6 +71,7 @@ class ImpactClaim:
 @dataclass
 class ImpactVerdict:
     """Oracle's verdict on an impact claim."""
+
     claim_id: str
     verified: bool
     actual_delta_e: float
@@ -113,6 +115,7 @@ class ThirdFact:
     Third Facts are immutable records of verified understanding
     that form the Generational Ledger of knowledge.
     """
+
     id: str
     content: str
     source_claim_id: str
@@ -195,7 +198,9 @@ class ImpactOracle:
         )
 
         self._claims.append(claim)
-        logger.info(f"Claim submitted: {claim.id} by {agent_id}, ΔE={claimed_delta_e:.4f}")
+        logger.info(
+            f"Claim submitted: {claim.id} by {agent_id}, ΔE={claimed_delta_e:.4f}"
+        )
 
         return claim
 
@@ -252,8 +257,10 @@ class ImpactOracle:
 
         # Determine verification status
         verified = (
-            actual_delta_e >= self.minimum_delta_e and
-            abs(actual_delta_e - claim.claimed_delta_e) / max(claim.claimed_delta_e, 0.001) < 0.5
+            actual_delta_e >= self.minimum_delta_e
+            and abs(actual_delta_e - claim.claimed_delta_e)
+            / max(claim.claimed_delta_e, 0.001)
+            < 0.5
         )
 
         # Calculate confidence
@@ -331,7 +338,7 @@ class ImpactOracle:
     ) -> str:
         """Generate reasoning for the verdict."""
         if not verified:
-            return f"Claim not verified: insufficient entropy reduction or evidence mismatch."
+            return "Claim not verified: insufficient entropy reduction or evidence mismatch."
 
         if violations:
             return f"Claim verified but rejected due to violations: {[v.value for v in violations]}"
@@ -355,7 +362,9 @@ class ImpactOracle:
         Third Facts are immutable records anchored to the ledger.
         """
         if not verdict.is_rewarded:
-            logger.warning(f"Cannot crystallize: verdict {verdict.claim_id} not rewarded")
+            logger.warning(
+                f"Cannot crystallize: verdict {verdict.claim_id} not rewarded"
+            )
             return None
 
         # Generate fact hash
@@ -441,8 +450,7 @@ class ImpactOracle:
         """Get total rewards for a specific agent."""
         agent_claims = [c for c in self._claims if c.agent_id == agent_id]
         agent_verdicts = [
-            v for v in self._verdicts
-            if any(c.id == v.claim_id for c in agent_claims)
+            v for v in self._verdicts if any(c.id == v.claim_id for c in agent_claims)
         ]
 
         total_rewards = sum(v.reward_tokens for v in agent_verdicts)

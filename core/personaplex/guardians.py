@@ -15,12 +15,13 @@ Per DDAGI Constitution Article 3:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 from enum import Enum
+from typing import Dict, List, Optional
 
 
 class GuardianRole(Enum):
     """Roles a Guardian can fulfill in the BIZRA ecosystem."""
+
     ARCHITECT = "architect"
     SECURITY = "security"
     ETHICS = "ethics"
@@ -46,6 +47,7 @@ class IhsanVector:
     Per DDAGI Constitution Article 7:
     Composite Ihsān score must be >= 0.95 for production use.
     """
+
     correctness: float = 0.85
     safety: float = 0.90
     beneficence: float = 0.85
@@ -56,17 +58,18 @@ class IhsanVector:
     def composite(self) -> float:
         """Compute composite Ihsān score (arithmetic mean)."""
         return (
-            self.correctness +
-            self.safety +
-            self.beneficence +
-            self.transparency +
-            self.sustainability
+            self.correctness
+            + self.safety
+            + self.beneficence
+            + self.transparency
+            + self.sustainability
         ) / 5
 
     @property
     def geometric_mean(self) -> float:
         """Compute geometric mean (penalizes low scores more heavily)."""
         import math
+
         values = [
             max(self.correctness, 1e-10),
             max(self.safety, 1e-10),
@@ -124,6 +127,7 @@ class Guardian:
     where each Guardian contributes specialized expertise while maintaining
     individual ethical constraints.
     """
+
     name: str
     role: GuardianRole
     domain: str
@@ -190,7 +194,12 @@ BIZRA_GUARDIANS: Dict[str, Guardian] = {
         text_prompt="""You analyze architecture decisions and suggest improvements.
 You prioritize maintainability, scalability, and clarity in all recommendations.
 When reviewing designs, consider both immediate needs and long-term evolution.""",
-        expertise=["system design", "scalability", "integration patterns", "microservices"],
+        expertise=[
+            "system design",
+            "scalability",
+            "integration patterns",
+            "microservices",
+        ],
         ihsan_constraints=IhsanVector(
             correctness=0.90,
             safety=0.85,
@@ -199,7 +208,6 @@ When reviewing designs, consider both immediate needs and long-term evolution.""
             sustainability=0.90,
         ),
     ),
-
     "security": Guardian(
         name="Security",
         role=GuardianRole.SECURITY,
@@ -208,7 +216,12 @@ When reviewing designs, consider both immediate needs and long-term evolution.""
         text_prompt="""You identify security risks and recommend mitigations.
 You apply defense-in-depth principles and assume breach mentality.
 Security score must exceed 0.95 before approving any external interface.""",
-        expertise=["threat modeling", "vulnerability analysis", "encryption", "access control"],
+        expertise=[
+            "threat modeling",
+            "vulnerability analysis",
+            "encryption",
+            "access control",
+        ],
         ihsan_constraints=IhsanVector(
             correctness=0.90,
             safety=0.98,  # Highest safety requirement
@@ -217,7 +230,6 @@ Security score must exceed 0.95 before approving any external interface.""",
             sustainability=0.85,
         ),
     ),
-
     "ethics": Guardian(
         name="Ethics",
         role=GuardianRole.ETHICS,
@@ -236,7 +248,6 @@ You are the final arbiter of ethical compliance.""",
             sustainability=0.95,
         ),
     ),
-
     "reasoning": Guardian(
         name="Reasoning",
         role=GuardianRole.REASONING,
@@ -254,7 +265,6 @@ Correctness score must exceed 0.9 for any conclusion.""",
             sustainability=0.80,
         ),
     ),
-
     "knowledge": Guardian(
         name="Knowledge",
         role=GuardianRole.KNOWLEDGE,
@@ -272,7 +282,6 @@ You maintain the House of Wisdom - BIZRA's persistent memory.""",
             sustainability=0.80,
         ),
     ),
-
     "creative": Guardian(
         name="Creative",
         role=GuardianRole.CREATIVE,
@@ -290,7 +299,6 @@ Sustainability must always be considered in creative proposals.""",
             sustainability=0.90,
         ),
     ),
-
     "integration": Guardian(
         name="Integration",
         role=GuardianRole.INTEGRATION,
@@ -308,7 +316,6 @@ All interfaces must be documented and versioned.""",
             sustainability=0.85,
         ),
     ),
-
     "nucleus": Guardian(
         name="Nucleus",
         role=GuardianRole.NUCLEUS,

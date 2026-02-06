@@ -38,17 +38,15 @@ Complexity: O(1) - Single matrix multiply + bias addition
 
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
-from enum import IntEnum
-from typing import Dict, List, Optional, Tuple, Any, Union
 import logging
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    CONFIDENCE_MINIMUM,
 )
 from core.ntu import NTUState
 
@@ -62,14 +60,15 @@ class IhsanDimension(IntEnum):
     Each dimension represents a fundamental ethical quality from Islamic tradition.
     The ordering is significant for the projection matrix design.
     """
-    TRUTHFULNESS = 0      # sidq (صدق)
-    TRUSTWORTHINESS = 1   # amanah (أمانة)
-    JUSTICE = 2           # adl (عدل)
-    EXCELLENCE = 3        # ihsan (إحسان)
-    WISDOM = 4            # hikmah (حكمة)
-    COMPASSION = 5        # rahmah (رحمة)
-    PATIENCE = 6          # sabr (صبر)
-    GRATITUDE = 7         # shukr (شكر)
+
+    TRUTHFULNESS = 0  # sidq (صدق)
+    TRUSTWORTHINESS = 1  # amanah (أمانة)
+    JUSTICE = 2  # adl (عدل)
+    EXCELLENCE = 3  # ihsan (إحسان)
+    WISDOM = 4  # hikmah (حكمة)
+    COMPASSION = 5  # rahmah (رحمة)
+    PATIENCE = 6  # sabr (صبر)
+    GRATITUDE = 7  # shukr (شكر)
 
 
 # Arabic names for documentation and display
@@ -93,6 +92,7 @@ class IhsanVector:
     Each dimension is in [0, 1] representing the degree of ethical alignment.
     The vector is frozen to ensure constitutional immutability.
     """
+
     truthfulness: float = 0.5
     trustworthiness: float = 0.5
     justice: float = 0.5
@@ -127,16 +127,19 @@ class IhsanVector:
     @property
     def as_array(self) -> np.ndarray:
         """Convert to numpy array for matrix operations."""
-        return np.array([
-            self.truthfulness,
-            self.trustworthiness,
-            self.justice,
-            self.excellence,
-            self.wisdom,
-            self.compassion,
-            self.patience,
-            self.gratitude,
-        ], dtype=np.float64)
+        return np.array(
+            [
+                self.truthfulness,
+                self.trustworthiness,
+                self.justice,
+                self.excellence,
+                self.wisdom,
+                self.compassion,
+                self.patience,
+                self.gratitude,
+            ],
+            dtype=np.float64,
+        )
 
     @property
     def min_dimension(self) -> Tuple[IhsanDimension, float]:
@@ -228,8 +231,9 @@ class ProjectorConfig:
     - Entropy: Inversely related to wisdom, patience (knowledge reduces uncertainty)
     - Potential: Dominated by justice (action bias), compassion (positive action)
     """
+
     # Constitutional invariant thresholds
-    doubt_threshold: float = 0.5          # Below this triggers doubt
+    doubt_threshold: float = 0.5  # Below this triggers doubt
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD  # 0.95
 
     # Output clamping
@@ -273,14 +277,17 @@ class IhsanProjector:
     # - Entropy row: Negative for wisdom (-0.25), patience (-0.15) - these reduce uncertainty
     # - Potential row: Justice (0.30), Compassion (0.20) - action-oriented virtues
 
-    DEFAULT_WEIGHT_MATRIX = np.array([
-        # belief weights:    sidq   aman   adl    ihsn   hikm   rahm   sabr   shukr
-        [                    0.20,  0.15,  0.08,  0.25,  0.12,  0.08,  0.06,  0.06],
-        # entropy weights (negated - high wisdom/patience = low entropy):
-        [                    0.05,  0.05,  0.10,  0.05, -0.30,  0.15, -0.25,  0.15],
-        # potential weights:
-        [                    0.05,  0.10,  0.30,  0.15,  0.10,  0.20,  0.05,  0.05],
-    ], dtype=np.float64)
+    DEFAULT_WEIGHT_MATRIX = np.array(
+        [
+            # belief weights:    sidq   aman   adl    ihsn   hikm   rahm   sabr   shukr
+            [0.20, 0.15, 0.08, 0.25, 0.12, 0.08, 0.06, 0.06],
+            # entropy weights (negated - high wisdom/patience = low entropy):
+            [0.05, 0.05, 0.10, 0.05, -0.30, 0.15, -0.25, 0.15],
+            # potential weights:
+            [0.05, 0.10, 0.30, 0.15, 0.10, 0.20, 0.05, 0.05],
+        ],
+        dtype=np.float64,
+    )
 
     # Bias vector b in R^3
     # Small positive bias for belief (optimistic prior)
@@ -305,7 +312,11 @@ class IhsanProjector:
         self.config = config or ProjectorConfig()
 
         # Initialize projection parameters
-        self._W = weight_matrix if weight_matrix is not None else self.DEFAULT_WEIGHT_MATRIX.copy()
+        self._W = (
+            weight_matrix
+            if weight_matrix is not None
+            else self.DEFAULT_WEIGHT_MATRIX.copy()
+        )
         self._b = bias if bias is not None else self.DEFAULT_BIAS.copy()
 
         # Validate dimensions
@@ -443,11 +454,13 @@ class IhsanProjector:
         prior = prior or IhsanVector.neutral()
 
         # Target NTU values (remap potential back to [-1, 1])
-        target = np.array([
-            ntu.belief,
-            ntu.entropy,
-            ntu.potential * 2.0 - 1.0,  # [0,1] -> [-1,1]
-        ])
+        target = np.array(
+            [
+                ntu.belief,
+                ntu.entropy,
+                ntu.potential * 2.0 - 1.0,  # [0,1] -> [-1,1]
+            ]
+        )
 
         # Subtract bias
         target = target - self._b
@@ -540,10 +553,12 @@ class IhsanProjector:
 
         # Prepare training data
         X = np.array([ex[0].as_array for ex in examples])  # (n, 8)
-        Y = np.array([
-            [ex[1].belief, ex[1].entropy, ex[1].potential * 2.0 - 1.0]
-            for ex in examples
-        ])  # (n, 3)
+        Y = np.array(
+            [
+                [ex[1].belief, ex[1].entropy, ex[1].potential * 2.0 - 1.0]
+                for ex in examples
+            ]
+        )  # (n, 3)
 
         n = len(examples)
 
@@ -553,7 +568,7 @@ class IhsanProjector:
 
             # Loss
             errors = predictions - Y  # (n, 3)
-            mse = float(np.mean(errors ** 2))
+            float(np.mean(errors**2))
 
             # Gradients
             grad_W = (2.0 / n) * (errors.T @ X)  # (3, 8)

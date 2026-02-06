@@ -17,32 +17,32 @@ Genesis Strict Synthesis v2.2.2
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Callable
-import asyncio
 from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
 from core.sdpo import (
-    SAPE_WISDOM_SNR,
-    SAPE_KNOWLEDGE_SNR,
-    SAPE_INFORMATION_SNR,
     SAPE_DATA_SNR,
+    SAPE_INFORMATION_SNR,
+    SAPE_KNOWLEDGE_SNR,
+    SAPE_WISDOM_SNR,
     SDPO_FEEDBACK_CONFIDENCE_THRESHOLD,
 )
 from core.sdpo.optimization import (
+    BIZRAFeedbackGenerator,
     SDPOAdvantage,
     SDPOAdvantageCalculator,
     SDPOFeedback,
-    BIZRAFeedbackGenerator,
 )
 
 
 @dataclass
 class SAPELayerOutput:
     """Output from a SAPE processing layer."""
+
     layer: str  # "data", "information", "knowledge", "wisdom"
     content: Any
     snr_score: float
@@ -62,6 +62,7 @@ class SAPELayerOutput:
 @dataclass
 class SDPO_SAPE_Result:
     """Result from SAPE-SDPO fusion processing."""
+
     output: Any
     layer_outputs: List[SAPELayerOutput]
     sdpo_advantage: Optional[SDPOAdvantage]
@@ -74,7 +75,9 @@ class SDPO_SAPE_Result:
         return {
             "output": self.output,
             "layer_outputs": [lo.to_dict() for lo in self.layer_outputs],
-            "sdpo_advantage": self.sdpo_advantage.to_dict() if self.sdpo_advantage else None,
+            "sdpo_advantage": (
+                self.sdpo_advantage.to_dict() if self.sdpo_advantage else None
+            ),
             "feedback_applied": self.feedback_applied,
             "total_snr": self.total_snr,
             "ihsan_score": self.ihsan_score,
@@ -299,8 +302,8 @@ class SAPE_SDPO_Fusion:
         layer_outputs.append(knowledge_output)
 
         # Layer 4: Wisdom application with SDPO enhancement
-        wisdom_output, sdpo_advantage, feedback_applied = await self._apply_wisdom_with_sdpo(
-            knowledge_output, input_text
+        wisdom_output, sdpo_advantage, feedback_applied = (
+            await self._apply_wisdom_with_sdpo(knowledge_output, input_text)
         )
         layer_outputs.append(wisdom_output)
 
@@ -349,7 +352,10 @@ class SAPE_SDPO_Fusion:
             feedback = cached_feedback
 
         # Only apply SDPO correction if we have LLM callback
-        if self.llm_callback and feedback.confidence >= SDPO_FEEDBACK_CONFIDENCE_THRESHOLD:
+        if (
+            self.llm_callback
+            and feedback.confidence >= SDPO_FEEDBACK_CONFIDENCE_THRESHOLD
+        ):
             corrected_wisdom = await self._apply_sdpo_correction(
                 base_wisdom, feedback, original_input
             )
@@ -359,7 +365,9 @@ class SAPE_SDPO_Fusion:
                 question=original_input,
                 failed_attempt=str(base_wisdom.content.get("wisdom_output", "")),
                 feedback=feedback.text,
-                corrected_attempt=str(corrected_wisdom.content.get("wisdom_output", "")),
+                corrected_attempt=str(
+                    corrected_wisdom.content.get("wisdom_output", "")
+                ),
             )
 
             # Store in implicit PRM
@@ -422,8 +430,7 @@ Please provide a corrected, improved response:"""
         # Weighted geometric mean (wisdom layer weighted highest)
         weights = {"data": 0.1, "information": 0.2, "knowledge": 0.3, "wisdom": 0.4}
         weighted_sum = sum(
-            weights.get(layer.layer, 0.1) * layer.snr_score
-            for layer in layers
+            weights.get(layer.layer, 0.1) * layer.snr_score for layer in layers
         )
         return weighted_sum
 

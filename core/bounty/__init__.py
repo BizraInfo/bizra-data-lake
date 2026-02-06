@@ -47,11 +47,11 @@ VULN_CATEGORIES = [
 
 # UERS Vector Mapping for Security Analysis
 SECURITY_VECTORS = {
-    "surface": "bytecode_entropy",      # Static analysis
-    "structural": "cfg_patterns",        # Control flow
-    "behavioral": "state_transitions",   # Dynamic analysis
-    "hypothetical": "symbolic_execution", # Formal verification
-    "contextual": "spec_vs_implementation", # Semantic gaps
+    "surface": "bytecode_entropy",  # Static analysis
+    "structural": "cfg_patterns",  # Control flow
+    "behavioral": "state_transitions",  # Dynamic analysis
+    "hypothetical": "symbolic_execution",  # Formal verification
+    "contextual": "spec_vs_implementation",  # Semantic gaps
 }
 
 # Agent Roles
@@ -73,24 +73,28 @@ BOUNTY_IHSAN_THRESHOLD = 0.95
 
 # Lazy imports
 if TYPE_CHECKING:
-    from .impact_proof import ImpactProof, ImpactProofBuilder
-    from .oracle import BountyOracle, BountyCalculation
-    from .hunter import HunterAgent, HunterSwarm
     from .bridge import BountyBridge, PlatformAdapter
+    from .hunter import HunterAgent, HunterSwarm
+    from .impact_proof import ImpactProof, ImpactProofBuilder
+    from .oracle import BountyCalculation, BountyOracle
 
 
 def __getattr__(name: str):
     if name == "ImpactProof":
         from .impact_proof import ImpactProof
+
         return ImpactProof
     elif name == "BountyOracle":
         from .oracle import BountyOracle
+
         return BountyOracle
     elif name == "HunterAgent":
         from .hunter import HunterAgent
+
         return HunterAgent
     elif name == "BountyBridge":
         from .bridge import BountyBridge
+
         return BountyBridge
     raise AttributeError(f"module 'core.bounty' has no attribute '{name}'")
 

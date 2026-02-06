@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
-use super::{Backend, BackendConfig, BackendError};
+use super::{Backend, BackendError};
 use crate::gateway::{InferenceRequest, InferenceResponse};
 use crate::selector::ModelTier;
 
@@ -269,7 +269,8 @@ impl LMStudioBackend {
     pub async fn refresh_models(&self) -> Result<Vec<LMStudioModel>, BackendError> {
         let url = format!("{}/models", self.base_url());
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .send()
             .await
@@ -287,16 +288,20 @@ impl LMStudioBackend {
             .await
             .map_err(|e| BackendError::Generation(e.to_string()))?;
 
-        let models: Vec<LMStudioModel> = models_response.data.iter().map(|m| {
-            let capabilities = Self::infer_capabilities(&m.id);
-            LMStudioModel {
-                id: m.id.clone(),
-                name: m.id.clone(),
-                capabilities,
-                context_length: Self::infer_context_length(&m.id),
-                is_loaded: true,
-            }
-        }).collect();
+        let models: Vec<LMStudioModel> = models_response
+            .data
+            .iter()
+            .map(|m| {
+                let capabilities = Self::infer_capabilities(&m.id);
+                LMStudioModel {
+                    id: m.id.clone(),
+                    name: m.id.clone(),
+                    capabilities,
+                    context_length: Self::infer_context_length(&m.id),
+                    is_loaded: true,
+                }
+            })
+            .collect();
 
         *self.loaded_models.write().await = models.clone();
         info!("Refreshed {} models from LM Studio", models.len());
@@ -312,13 +317,18 @@ impl LMStudioBackend {
         if id_lower.contains("deepseek") || id_lower.contains("r1") {
             caps.push(ModelCapability::Reasoning);
         }
-        if id_lower.contains("coder") || id_lower.contains("codellama") || id_lower.contains("starcoder") {
+        if id_lower.contains("coder")
+            || id_lower.contains("codellama")
+            || id_lower.contains("starcoder")
+        {
             caps.push(ModelCapability::Code);
         }
-        if id_lower.contains("llava") || id_lower.contains("qwen-vl") || id_lower.contains("vision") {
+        if id_lower.contains("llava") || id_lower.contains("qwen-vl") || id_lower.contains("vision")
+        {
             caps.push(ModelCapability::Vision);
         }
-        if id_lower.contains("whisper") || id_lower.contains("moshi") || id_lower.contains("voice") {
+        if id_lower.contains("whisper") || id_lower.contains("moshi") || id_lower.contains("voice")
+        {
             caps.push(ModelCapability::Voice);
         }
         if id_lower.contains("instruct") || id_lower.contains("chat") {
@@ -371,12 +381,16 @@ impl LMStudioBackend {
     }
 
     /// Chat completion (standard)
-    pub async fn chat(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse, BackendError> {
+    pub async fn chat(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<ChatCompletionResponse, BackendError> {
         let url = format!("{}/chat/completions", self.base_url());
 
         debug!("LM Studio chat request: model={}", request.model);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .json(&request)
             .send()
@@ -387,7 +401,10 @@ impl LMStudioBackend {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             error!("LM Studio error {}: {}", status, body);
-            return Err(BackendError::Generation(format!("HTTP {}: {}", status, body)));
+            return Err(BackendError::Generation(format!(
+                "HTTP {}: {}",
+                status, body
+            )));
         }
 
         response
@@ -433,7 +450,9 @@ impl LMStudioBackend {
         };
 
         let response = self.chat(request).await?;
-        Ok(response.choices.first()
+        Ok(response
+            .choices
+            .first()
             .and_then(|c| c.message.content.clone())
             .unwrap_or_default())
     }
@@ -499,7 +518,9 @@ impl LMStudioBackend {
         };
 
         let response = self.chat(request).await?;
-        Ok(response.choices.first()
+        Ok(response
+            .choices
+            .first()
             .and_then(|c| c.message.content.clone())
             .unwrap_or_default())
     }
@@ -525,7 +546,8 @@ impl LMStudioBackend {
             embedding: Vec<f32>,
         }
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .json(&EmbedRequest {
                 model,
@@ -547,7 +569,9 @@ impl LMStudioBackend {
             .await
             .map_err(|e| BackendError::Generation(e.to_string()))?;
 
-        embed_response.data.first()
+        embed_response
+            .data
+            .first()
             .map(|d| d.embedding.clone())
             .ok_or(BackendError::Generation("No embedding returned".into()))
     }
@@ -559,11 +583,16 @@ impl Backend for LMStudioBackend {
         "lmstudio"
     }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         // Determine capability from request
         let capability = if request.prompt.contains("[VISION]") {
             ModelCapability::Vision
-        } else if request.prompt.contains("[REASON]") || request.complexity == crate::selector::TaskComplexity::Expert {
+        } else if request.prompt.contains("[REASON]")
+            || request.complexity == crate::selector::TaskComplexity::Expert
+        {
             ModelCapability::Reasoning
         } else if request.prompt.contains("[CODE]") {
             ModelCapability::Code
@@ -603,11 +632,14 @@ impl Backend for LMStudioBackend {
 
         let response = self.chat(chat_request).await?;
 
-        let text = response.choices.first()
+        let text = response
+            .choices
+            .first()
             .and_then(|c| c.message.content.clone())
             .unwrap_or_default();
 
-        let completion_tokens = response.usage
+        let completion_tokens = response
+            .usage
             .map(|u| u.completion_tokens)
             .unwrap_or(text.split_whitespace().count());
 
@@ -617,7 +649,7 @@ impl Backend for LMStudioBackend {
             model,
             tier: request.preferred_tier.unwrap_or(ModelTier::Local),
             completion_tokens,
-            duration_ms: 0, // Set by gateway
+            duration_ms: 0,         // Set by gateway
             tokens_per_second: 0.0, // Set by gateway
         })
     }
@@ -642,8 +674,9 @@ mod tests {
     fn test_capability_inference() {
         assert!(LMStudioBackend::infer_capabilities("deepseek-r1-32b")
             .contains(&ModelCapability::Reasoning));
-        assert!(LMStudioBackend::infer_capabilities("llava-1.5-7b")
-            .contains(&ModelCapability::Vision));
+        assert!(
+            LMStudioBackend::infer_capabilities("llava-1.5-7b").contains(&ModelCapability::Vision)
+        );
         assert!(LMStudioBackend::infer_capabilities("qwen2.5-coder-7b")
             .contains(&ModelCapability::Code));
         assert!(LMStudioBackend::infer_capabilities("whisper-large-v3")

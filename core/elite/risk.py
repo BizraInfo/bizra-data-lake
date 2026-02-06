@@ -10,13 +10,12 @@ Implements PMBOK Risk Management with Ihsān principles:
 Standing on Giants: PMBOK + FAIR + Constitutional AI
 """
 
-import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
+from typing import Any, Dict, List, Optional, Set
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -27,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class RiskCategory(str, Enum):
     """Risk categories aligned with PMBOK."""
+
     TECHNICAL = "technical"
     SECURITY = "security"
     PERFORMANCE = "performance"
@@ -38,6 +38,7 @@ class RiskCategory(str, Enum):
 
 class RiskSeverity(str, Enum):
     """Risk severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -47,6 +48,7 @@ class RiskSeverity(str, Enum):
 
 class RiskStatus(str, Enum):
     """Risk status."""
+
     IDENTIFIED = "identified"
     ASSESSED = "assessed"
     MITIGATING = "mitigating"
@@ -57,16 +59,18 @@ class RiskStatus(str, Enum):
 
 class MitigationStrategy(str, Enum):
     """Risk mitigation strategies (PMBOK)."""
-    AVOID = "avoid"        # Eliminate the threat
+
+    AVOID = "avoid"  # Eliminate the threat
     TRANSFER = "transfer"  # Shift to third party
     MITIGATE = "mitigate"  # Reduce probability/impact
-    ACCEPT = "accept"      # Acknowledge and monitor
+    ACCEPT = "accept"  # Acknowledge and monitor
     ESCALATE = "escalate"  # Push to higher authority
 
 
 @dataclass
 class Risk:
     """A risk entry."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     name: str = ""
     description: str = ""
@@ -76,7 +80,7 @@ class Risk:
 
     # Quantitative assessment
     probability: float = 0.5  # 0-1
-    impact: float = 0.5       # 0-1
+    impact: float = 0.5  # 0-1
 
     # Cascading relationships
     triggers: Set[str] = field(default_factory=set)  # Risks that can trigger this
@@ -131,6 +135,7 @@ class Risk:
 @dataclass
 class CascadeAnalysis:
     """Result of cascading risk analysis."""
+
     source_risk: str
     affected_risks: List[str]
     total_impact: float
@@ -249,8 +254,14 @@ class RiskManager:
     def _define_cascades(self) -> None:
         """Define risk cascade relationships."""
         cascades = {
-            "SEC-001": ["SEC-002", "INT-001"],  # Key compromise → Ihsān bypass, consensus failure
-            "SEC-002": ["PERF-001", "OPS-001"],  # Ihsān bypass → SNR degrade, self-healing fail
+            "SEC-001": [
+                "SEC-002",
+                "INT-001",
+            ],  # Key compromise → Ihsān bypass, consensus failure
+            "SEC-002": [
+                "PERF-001",
+                "OPS-001",
+            ],  # Ihsān bypass → SNR degrade, self-healing fail
             "PERF-001": ["TECH-001"],  # SNR degrade → memory corruption
             "INT-001": ["OPS-001"],  # Consensus fail → self-healing fail
         }
@@ -365,7 +376,8 @@ class RiskManager:
     def get_constitutional_risks(self) -> List[Risk]:
         """Get all constitutional-level risks."""
         return [
-            r for r in self._risks.values()
+            r
+            for r in self._risks.values()
             if r.severity == RiskSeverity.CONSTITUTIONAL
             or r.category == RiskCategory.CONSTITUTIONAL
         ]

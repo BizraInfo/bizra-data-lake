@@ -7,14 +7,13 @@
 use async_trait::async_trait;
 use bizra_core::{Constitution, NodeIdentity};
 use bizra_inference::{
-    backends::{Backend, BackendConfig, BackendError},
+    backends::{Backend, BackendError},
     gateway::{GatewayError, InferenceGateway, InferenceRequest, InferenceResponse},
     selector::{ModelSelector, ModelTier, TaskComplexity},
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 
 // ============================================================================
 // MOCK BACKENDS
@@ -47,7 +46,10 @@ impl Backend for MockSuccessBackend {
         &self.name
     }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         tokio::time::sleep(Duration::from_millis(self.delay_ms)).await;
 
@@ -94,7 +96,10 @@ impl Backend for MockFailingBackend {
         &self.name
     }
 
-    async fn generate(&self, _request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        _request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         Err(BackendError::Generation(self.error_message.clone()))
     }
@@ -129,7 +134,10 @@ impl Backend for MockTimeoutBackend {
         &self.name
     }
 
-    async fn generate(&self, _request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        _request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         // Sleep for a very long time to trigger timeout
         tokio::time::sleep(Duration::from_secs(3600)).await;
@@ -170,7 +178,10 @@ impl Backend for MockRetryBackend {
         &self.name
     }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         let failures = self.fail_count.fetch_add(1, Ordering::SeqCst);
 
@@ -585,10 +596,7 @@ fn test_complexity_estimation_boundaries() {
     assert_eq!(simple, TaskComplexity::Simple);
 
     // Medium prompt with code indicators
-    let medium = TaskComplexity::estimate(
-        "Write a function: ```python\ndef foo(): pass```",
-        200,
-    );
+    let medium = TaskComplexity::estimate("Write a function: ```python\ndef foo(): pass```", 200);
     assert!(matches!(
         medium,
         TaskComplexity::Medium | TaskComplexity::Complex

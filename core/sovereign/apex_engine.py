@@ -58,15 +58,14 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
     IHSAN_WEIGHTS,
     SNR_THRESHOLD_T0_ELITE,
-    SNR_THRESHOLD_T1_HIGH,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,6 +78,7 @@ logger = logging.getLogger(__name__)
 
 class ProcessingStage(str, Enum):
     """Stages of the Apex processing pipeline."""
+
     INTAKE = "intake"
     SNR_FILTER = "snr_filter"
     GOT_EXPLORATION = "got_exploration"
@@ -90,6 +90,7 @@ class ProcessingStage(str, Enum):
 
 class BackendType(str, Enum):
     """Supported local inference backends."""
+
     LMSTUDIO = "lmstudio"
     OLLAMA = "ollama"
     LLAMACPP = "llamacpp"
@@ -106,6 +107,7 @@ class LocalModelConfig:
     2. Complete data sovereignty
     3. Minimal latency for real-time processing
     """
+
     host: str = "192.168.56.1"
     port: int = 1234
     timeout_ms: int = 120000
@@ -133,10 +135,11 @@ class ApexConfig:
     This is the constitutional configuration — all thresholds are
     derived from the unified constants but can be tuned for specific deployments.
     """
+
     # Constitutional Thresholds (from integration.constants)
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD  # 0.95
-    snr_floor: float = UNIFIED_SNR_THRESHOLD          # 0.85
-    snr_elite: float = SNR_THRESHOLD_T0_ELITE         # 0.98
+    snr_floor: float = UNIFIED_SNR_THRESHOLD  # 0.85
+    snr_elite: float = SNR_THRESHOLD_T0_ELITE  # 0.98
 
     # Local-First Configuration
     model_config: LocalModelConfig = field(default_factory=LocalModelConfig)
@@ -181,6 +184,7 @@ class GiantsAttribution:
     Every result from the Apex Engine includes explicit attribution
     to the foundational works that enable it.
     """
+
     name: str
     year: int
     contribution: str
@@ -196,55 +200,55 @@ GIANTS_REGISTRY: Dict[str, GiantsAttribution] = {
         name="Claude Shannon",
         year=1948,
         contribution="Information Theory & SNR",
-        component="snr_maximizer"
+        component="snr_maximizer",
     ),
     "demoura": GiantsAttribution(
         name="Leonardo de Moura & Nikolaj Bjørner",
         year=2008,
         contribution="Z3 SMT Solver",
-        component="fate_gate"
+        component="fate_gate",
     ),
     "jaynes": GiantsAttribution(
         name="Julian Jaynes",
         year=1976,
         contribution="Bicameral Mind",
-        component="bicameral_engine"
+        component="bicameral_engine",
     ),
     "besta": GiantsAttribution(
         name="Maciej Besta et al.",
         year=2024,
         contribution="Graph of Thoughts",
-        component="got_reasoning"
+        component="got_reasoning",
     ),
     "maturana": GiantsAttribution(
         name="Humberto Maturana & Francisco Varela",
         year=1972,
         contribution="Autopoiesis",
-        component="autopoietic_loop"
+        component="autopoietic_loop",
     ),
     "karpathy": GiantsAttribution(
         name="Andrej Karpathy",
         year=2024,
         contribution="Generate-Verify Loops",
-        component="bicameral_engine"
+        component="bicameral_engine",
     ),
     "deepseek": GiantsAttribution(
         name="DeepSeek",
         year=2025,
         contribution="R1 Reasoning Patterns",
-        component="local_inference"
+        component="local_inference",
     ),
     "alghazali": GiantsAttribution(
         name="Abu Hamid Al-Ghazali",
         year=1095,
         contribution="Ihsan (Excellence) Ethics",
-        component="constitutional_ai"
+        component="constitutional_ai",
     ),
     "anthropic": GiantsAttribution(
         name="Anthropic",
         year=2022,
         contribution="Constitutional AI",
-        component="constitutional_ai"
+        component="constitutional_ai",
     ),
 }
 
@@ -252,6 +256,7 @@ GIANTS_REGISTRY: Dict[str, GiantsAttribution] = {
 @dataclass
 class StageMetrics:
     """Metrics for a single processing stage."""
+
     stage: ProcessingStage
     duration_ms: float
     input_snr: float
@@ -267,6 +272,7 @@ class ParallelExecutionMetrics:
 
     Tracks the performance benefits from parallelizing independent stages.
     """
+
     # Parallel batch 1: SNR_FILTER + GOT_EXPLORATION
     parallel_batch_1_wall_time_ms: float = 0.0
     parallel_batch_1_sequential_time_ms: float = 0.0
@@ -290,6 +296,7 @@ class ApexResult:
     Contains the final answer along with full audit trail of
     all processing stages, metrics, and Giants attribution.
     """
+
     # Core result
     answer: str
     ihsan_score: float
@@ -391,6 +398,7 @@ class ApexResult:
 @dataclass
 class EvolutionResult:
     """Result from an autopoietic evolution cycle."""
+
     cycle_number: int
     fitness_before: float
     fitness_after: float
@@ -508,6 +516,7 @@ class ApexSovereignEngine:
         if self._snr_maximizer is None:
             try:
                 from core.sovereign.snr_maximizer import SNRMaximizer
+
                 self._snr_maximizer = SNRMaximizer(
                     ihsan_threshold=self.config.ihsan_threshold,
                     auto_filter=True,
@@ -527,6 +536,7 @@ class ApexSovereignEngine:
         if self._got_engine is None:
             try:
                 from core.sovereign.graph_core import GraphOfThoughts
+
                 self._got_engine = GraphOfThoughts(
                     max_depth=self.config.got_max_depth,
                     beam_width=self.config.got_beam_width,
@@ -545,6 +555,7 @@ class ApexSovereignEngine:
         if self._bicameral_engine is None:
             try:
                 from core.sovereign.bicameral_engine import BicameralReasoningEngine
+
                 self._bicameral_engine = BicameralReasoningEngine(
                     consensus_threshold=self.config.bicameral_consensus_threshold
                 )
@@ -560,6 +571,7 @@ class ApexSovereignEngine:
         if self._constitutional_gate is None:
             try:
                 from core.sovereign.constitutional_gate import ConstitutionalGate
+
                 self._constitutional_gate = ConstitutionalGate()
                 logger.debug("ConstitutionalGate initialized (lazy)")
             except ImportError:
@@ -575,8 +587,8 @@ class ApexSovereignEngine:
         if self._autopoietic_loop is None:
             try:
                 from core.autopoiesis.loop_engine import (
-                    AutopoieticLoop,
                     ActivationGuardrails,
+                    AutopoieticLoop,
                 )
 
                 guardrails = ActivationGuardrails(
@@ -592,6 +604,7 @@ class ApexSovereignEngine:
                 if self.config.enable_fate_gate:
                     try:
                         from core.sovereign.z3_fate_gate import Z3FATEGate
+
                         fate_gate = Z3FATEGate()
                     except ImportError:
                         logger.warning("Z3FATEGate not available for autopoiesis")
@@ -614,7 +627,11 @@ class ApexSovereignEngine:
         """Get Multi-Model Manager for local inference."""
         if self._multi_model_manager is None:
             try:
-                from core.inference.multi_model_manager import MultiModelManager, MultiModelConfig
+                from core.inference.multi_model_manager import (
+                    MultiModelConfig,
+                    MultiModelManager,
+                )
+
                 mm_config = MultiModelConfig(
                     host=self.config.model_config.host,
                     port=self.config.model_config.port,
@@ -631,7 +648,10 @@ class ApexSovereignEngine:
         """Get Proactive Sovereign Entity (24/7 proactive mode)."""
         if self._proactive_entity is None:
             try:
-                from core.sovereign.proactive_integration import ProactiveSovereignEntity
+                from core.sovereign.proactive_integration import (
+                    ProactiveSovereignEntity,
+                )
+
                 self._proactive_entity = ProactiveSovereignEntity()
                 logger.debug("ProactiveSovereignEntity initialized (lazy)")
             except ImportError:
@@ -659,7 +679,7 @@ class ApexSovereignEngine:
 
         try:
             # Initialize multi-model manager for local inference
-            if hasattr(self.multi_model_manager, 'initialize'):
+            if hasattr(self.multi_model_manager, "initialize"):
                 await self.multi_model_manager.initialize()
 
             # Touch other components to trigger lazy initialization
@@ -724,7 +744,7 @@ class ApexSovereignEngine:
             self._proactive_entity.stop()
 
         # Close multi-model manager
-        if self._multi_model_manager and hasattr(self._multi_model_manager, 'close'):
+        if self._multi_model_manager and hasattr(self._multi_model_manager, "close"):
             await self._multi_model_manager.close()
 
         logger.info("ApexSovereignEngine shutdown complete")
@@ -841,11 +861,11 @@ class ApexSovereignEngine:
             # Create parallel tasks
             snr_task = asyncio.create_task(
                 self._stage_snr_filter(processed_query, context, initial_snr),
-                name=f"{request_id}_snr_filter"
+                name=f"{request_id}_snr_filter",
             )
             got_task = asyncio.create_task(
                 self._stage_got_exploration(processed_query, context, initial_snr),
-                name=f"{request_id}_got_exploration"
+                name=f"{request_id}_got_exploration",
             )
             active_tasks.extend([snr_task, got_task])
 
@@ -863,16 +883,19 @@ class ApexSovereignEngine:
 
             # Record parallel metrics for batch 1
             parallel_metrics.parallel_batch_1_wall_time_ms = batch_1_wall_time
-            parallel_metrics.parallel_batch_1_sequential_time_ms = batch_1_sequential_time
+            parallel_metrics.parallel_batch_1_sequential_time_ms = (
+                batch_1_sequential_time
+            )
             parallel_metrics.parallel_batch_1_speedup = (
                 batch_1_sequential_time / batch_1_wall_time
-                if batch_1_wall_time > 0 else 1.0
+                if batch_1_wall_time > 0
+                else 1.0
             )
 
             stages.append(snr_stage)
             stages.append(got_stage)
 
-            snr_result = snr_stage.details.get("result", {})
+            snr_stage.details.get("result", {})
             got_result = got_stage.details.get("result", {})
 
             if not snr_stage.passed:
@@ -916,15 +939,15 @@ class ApexSovereignEngine:
                 self._stage_fate_gate(
                     bicameral_result.get("answer", ""),
                     processed_query,
-                    bicameral_result.get("consensus_score", 0.0)
+                    bicameral_result.get("consensus_score", 0.0),
                 ),
-                name=f"{request_id}_fate_gate"
+                name=f"{request_id}_fate_gate",
             )
             autopoiesis_task = asyncio.create_task(
                 self._stage_autopoiesis(
                     processed_query, bicameral_result, got_result, {}
                 ),
-                name=f"{request_id}_autopoiesis"
+                name=f"{request_id}_autopoiesis",
             )
             active_tasks.extend([fate_task, autopoiesis_task])
 
@@ -937,14 +960,19 @@ class ApexSovereignEngine:
                 active_tasks.clear()
 
             batch_2_wall_time = (time.perf_counter() - batch_2_start) * 1000
-            batch_2_sequential_time = fate_stage.duration_ms + autopoiesis_stage.duration_ms
+            batch_2_sequential_time = (
+                fate_stage.duration_ms + autopoiesis_stage.duration_ms
+            )
 
             # Record parallel metrics for batch 2
             parallel_metrics.parallel_batch_2_wall_time_ms = batch_2_wall_time
-            parallel_metrics.parallel_batch_2_sequential_time_ms = batch_2_sequential_time
+            parallel_metrics.parallel_batch_2_sequential_time_ms = (
+                batch_2_sequential_time
+            )
             parallel_metrics.parallel_batch_2_speedup = (
                 batch_2_sequential_time / batch_2_wall_time
-                if batch_2_wall_time > 0 else 1.0
+                if batch_2_wall_time > 0
+                else 1.0
             )
 
             stages.append(fate_stage)
@@ -974,9 +1002,8 @@ class ApexSovereignEngine:
             giants_cited.append(GIANTS_REGISTRY["anthropic"])
 
             # Calculate overall parallel metrics
-            total_parallel_savings = (
-                (batch_1_sequential_time - batch_1_wall_time) +
-                (batch_2_sequential_time - batch_2_wall_time)
+            total_parallel_savings = (batch_1_sequential_time - batch_1_wall_time) + (
+                batch_2_sequential_time - batch_2_wall_time
             )
             parallel_metrics.total_parallel_savings_ms = max(0, total_parallel_savings)
 
@@ -984,20 +1011,24 @@ class ApexSovereignEngine:
             hypothetical_sequential = sum(s.duration_ms for s in stages)
             parallel_metrics.effective_parallelization_ratio = (
                 (hypothetical_sequential - total_duration) / hypothetical_sequential
-                if hypothetical_sequential > 0 else 0.0
+                if hypothetical_sequential > 0
+                else 0.0
             )
 
-            final_answer = bicameral_result.get("answer", got_result.get("conclusion", ""))
-            final_snr = bicameral_result.get(
-                "consensus_score",
-                got_result.get("snr_score", snr_stage.output_snr)
+            final_answer = bicameral_result.get(
+                "answer", got_result.get("conclusion", "")
             )
-            final_ihsan = self._compute_ihsan_score(final_snr, fate_result.get("passed", False))
+            final_snr = bicameral_result.get(
+                "consensus_score", got_result.get("snr_score", snr_stage.output_snr)
+            )
+            final_ihsan = self._compute_ihsan_score(
+                final_snr, fate_result.get("passed", False)
+            )
 
             # Check thresholds
             passes_thresholds = (
-                final_snr >= self.config.snr_floor and
-                final_ihsan >= self.config.ihsan_threshold
+                final_snr >= self.config.snr_floor
+                and final_ihsan >= self.config.ihsan_threshold
             )
 
             # Update metrics
@@ -1106,7 +1137,7 @@ class ApexSovereignEngine:
                 "query_length": len(query),
                 "context_keys": list(context.keys()),
                 "processed_query": processed_query,
-            }
+            },
         )
 
     async def _stage_snr_filter(
@@ -1135,7 +1166,7 @@ class ApexSovereignEngine:
             details={
                 "components": snr_result.get("components", {}),
                 "result": snr_result,
-            }
+            },
         )
 
     async def _stage_got_exploration(
@@ -1164,7 +1195,7 @@ class ApexSovereignEngine:
                 "explored_nodes": got_result.get("explored_nodes", 0),
                 "depth_reached": got_result.get("depth_reached", 0),
                 "result": got_result,
-            }
+            },
         )
 
     async def _stage_bicameral_reasoning(
@@ -1182,19 +1213,22 @@ class ApexSovereignEngine:
         """
         stage_start = time.perf_counter()
 
-        bicameral_result = await self._bicameral_reason(processed_query, context, got_result)
+        bicameral_result = await self._bicameral_reason(
+            processed_query, context, got_result
+        )
 
         return StageMetrics(
             stage=ProcessingStage.BICAMERAL_REASONING,
             duration_ms=(time.perf_counter() - stage_start) * 1000,
             input_snr=got_result.get("snr_score", input_snr),
             output_snr=bicameral_result.get("consensus_score", 0.0),
-            passed=bicameral_result.get("consensus_score", 0.0) >= self.config.bicameral_consensus_threshold,
+            passed=bicameral_result.get("consensus_score", 0.0)
+            >= self.config.bicameral_consensus_threshold,
             details={
                 "candidates": bicameral_result.get("candidates_generated", 0),
                 "verified": bicameral_result.get("candidates_verified", 0),
                 "result": bicameral_result,
-            }
+            },
         )
 
     async def _stage_fate_gate(
@@ -1225,7 +1259,7 @@ class ApexSovereignEngine:
             details={
                 "status": fate_result.get("status", "UNKNOWN"),
                 "result": fate_result,
-            }
+            },
         )
 
     async def _stage_autopoiesis(
@@ -1258,7 +1292,7 @@ class ApexSovereignEngine:
             details={
                 "patterns_learned": patterns_snapshot,
                 "enabled": self.config.enable_autopoiesis,
-            }
+            },
         )
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -1284,10 +1318,16 @@ class ApexSovereignEngine:
         # Factors: unique word ratio, length, question markers
         unique_ratio = len(set(words)) / len(words)
         length_factor = min(1.0, len(words) / 50)
-        question_markers = sum(1 for w in words if w.lower() in ["what", "how", "why", "when", "where", "which"])
+        question_markers = sum(
+            1
+            for w in words
+            if w.lower() in ["what", "how", "why", "when", "where", "which"]
+        )
         question_factor = min(0.3, question_markers * 0.1)
 
-        return min(1.0, unique_ratio * 0.4 + length_factor * 0.3 + question_factor + 0.3)
+        return min(
+            1.0, unique_ratio * 0.4 + length_factor * 0.3 + question_factor + 0.3
+        )
 
     async def _apply_snr_filter(
         self,
@@ -1296,12 +1336,20 @@ class ApexSovereignEngine:
     ) -> Dict[str, Any]:
         """Apply SNR maximization filter (Shannon 1948)."""
         try:
-            if hasattr(self.snr_maximizer, 'analyze'):
-                analysis = self.snr_maximizer.analyze(query, context.get("query_context", ""))
+            if hasattr(self.snr_maximizer, "analyze"):
+                analysis = self.snr_maximizer.analyze(
+                    query, context.get("query_context", "")
+                )
                 return {
-                    "snr_score": analysis.snr_linear if hasattr(analysis, 'snr_linear') else analysis.get("snr_linear", 0.85),
-                    "passed": getattr(analysis, 'ihsan_achieved', True),
-                    "components": analysis.to_dict() if hasattr(analysis, 'to_dict') else {},
+                    "snr_score": (
+                        analysis.snr_linear
+                        if hasattr(analysis, "snr_linear")
+                        else analysis.get("snr_linear", 0.85)
+                    ),
+                    "passed": getattr(analysis, "ihsan_achieved", True),
+                    "components": (
+                        analysis.to_dict() if hasattr(analysis, "to_dict") else {}
+                    ),
                 }
             else:
                 # Fallback
@@ -1322,7 +1370,7 @@ class ApexSovereignEngine:
     ) -> Dict[str, Any]:
         """Explore multiple reasoning paths with Graph-of-Thoughts (Besta 2024)."""
         try:
-            if hasattr(self.got_engine, 'reason'):
+            if hasattr(self.got_engine, "reason"):
                 result = await self.got_engine.reason(
                     query=query,
                     context=context,
@@ -1333,7 +1381,9 @@ class ApexSovereignEngine:
                     "snr_score": result.get("snr_score", input_snr),
                     "ihsan_score": result.get("ihsan_score", 0.0),
                     "passes_threshold": result.get("passes_threshold", False),
-                    "explored_nodes": result.get("graph_stats", {}).get("nodes_created", 0),
+                    "explored_nodes": result.get("graph_stats", {}).get(
+                        "nodes_created", 0
+                    ),
                     "depth_reached": result.get("depth_reached", 0),
                     "best_path": result.get("thoughts", []),
                 }
@@ -1367,7 +1417,7 @@ class ApexSovereignEngine:
     ) -> Dict[str, Any]:
         """Apply bicameral reasoning: generate-verify loop (Jaynes 1976 + Karpathy 2024)."""
         try:
-            if hasattr(self.bicameral_engine, 'reason'):
+            if hasattr(self.bicameral_engine, "reason"):
                 reasoning_context = {
                     "num_candidates": self.config.bicameral_num_candidates,
                     "criteria": context.get("criteria", {"correctness": True}),
@@ -1377,11 +1427,31 @@ class ApexSovereignEngine:
                 result = await self.bicameral_engine.reason(query, reasoning_context)
 
                 return {
-                    "answer": result.final_answer if hasattr(result, 'final_answer') else result.get("final_answer", ""),
-                    "consensus_score": result.consensus_score if hasattr(result, 'consensus_score') else result.get("consensus_score", 0.0),
-                    "candidates_generated": result.candidates_generated if hasattr(result, 'candidates_generated') else result.get("candidates_generated", 0),
-                    "candidates_verified": result.candidates_verified if hasattr(result, 'candidates_verified') else result.get("candidates_verified", 0),
-                    "reasoning_path": result.reasoning_path if hasattr(result, 'reasoning_path') else result.get("reasoning_path", []),
+                    "answer": (
+                        result.final_answer
+                        if hasattr(result, "final_answer")
+                        else result.get("final_answer", "")
+                    ),
+                    "consensus_score": (
+                        result.consensus_score
+                        if hasattr(result, "consensus_score")
+                        else result.get("consensus_score", 0.0)
+                    ),
+                    "candidates_generated": (
+                        result.candidates_generated
+                        if hasattr(result, "candidates_generated")
+                        else result.get("candidates_generated", 0)
+                    ),
+                    "candidates_verified": (
+                        result.candidates_verified
+                        if hasattr(result, "candidates_verified")
+                        else result.get("candidates_verified", 0)
+                    ),
+                    "reasoning_path": (
+                        result.reasoning_path
+                        if hasattr(result, "reasoning_path")
+                        else result.get("reasoning_path", [])
+                    ),
                 }
             else:
                 # Fallback: use GoT conclusion directly
@@ -1409,16 +1479,28 @@ class ApexSovereignEngine:
     ) -> Dict[str, Any]:
         """Verify through FATE Gate with Z3 constitutional constraints (de Moura 2008)."""
         try:
-            if hasattr(self.constitutional_gate, 'admit'):
+            if hasattr(self.constitutional_gate, "admit"):
                 result = await self.constitutional_gate.admit(
                     candidate=candidate,
                     query=query,
                 )
                 return {
-                    "status": result.status.value if hasattr(result.status, 'value') else str(result.status),
-                    "passed": result.status.value in ("RUNTIME", "MUSEUM") if hasattr(result.status, 'value') else True,
-                    "score": result.score if hasattr(result, 'score') else 0.0,
-                    "certificate": result.evidence.get("certificate_hash") if hasattr(result, 'evidence') else None,
+                    "status": (
+                        result.status.value
+                        if hasattr(result.status, "value")
+                        else str(result.status)
+                    ),
+                    "passed": (
+                        result.status.value in ("RUNTIME", "MUSEUM")
+                        if hasattr(result.status, "value")
+                        else True
+                    ),
+                    "score": result.score if hasattr(result, "score") else 0.0,
+                    "certificate": (
+                        result.evidence.get("certificate_hash")
+                        if hasattr(result, "evidence")
+                        else None
+                    ),
                 }
             else:
                 # Fallback: simple hash-based verification
@@ -1431,7 +1513,12 @@ class ApexSovereignEngine:
                 }
         except Exception as e:
             logger.warning(f"FATE Gate error: {e}")
-            return {"status": "ERROR", "passed": False, "score": 0.0, "certificate": None}
+            return {
+                "status": "ERROR",
+                "passed": False,
+                "score": 0.0,
+                "certificate": None,
+            }
 
     async def _learn_from_processing(
         self,
@@ -1453,9 +1540,7 @@ class ApexSovereignEngine:
             if len(self._pattern_memory) > 1000:
                 # Keep top 500 by score
                 sorted_patterns = sorted(
-                    self._pattern_memory.items(),
-                    key=lambda x: x[1],
-                    reverse=True
+                    self._pattern_memory.items(), key=lambda x: x[1], reverse=True
                 )
                 self._pattern_memory = dict(sorted_patterns[:500])
 
@@ -1487,13 +1572,16 @@ class ApexSovereignEngine:
 
         # Other dimensions at baseline
         other_score = 0.85 * (
-            IHSAN_WEIGHTS.get("user_benefit", 0.14) +
-            IHSAN_WEIGHTS.get("anti_centralization", 0.08) +
-            IHSAN_WEIGHTS.get("robustness", 0.06) +
-            IHSAN_WEIGHTS.get("adl_fairness", 0.04)
+            IHSAN_WEIGHTS.get("user_benefit", 0.14)
+            + IHSAN_WEIGHTS.get("anti_centralization", 0.08)
+            + IHSAN_WEIGHTS.get("robustness", 0.06)
+            + IHSAN_WEIGHTS.get("adl_fairness", 0.04)
         )
 
-        return min(1.0, base_score + safety_score + efficiency_score + audit_score + other_score)
+        return min(
+            1.0,
+            base_score + safety_score + efficiency_score + audit_score + other_score,
+        )
 
     def _update_running_averages(self, snr: float, ihsan: float) -> None:
         """Update running average metrics."""
@@ -1503,11 +1591,11 @@ class ApexSovereignEngine:
             self._metrics["ihsan_average"] = ihsan
         else:
             self._metrics["snr_average"] = (
-                (self._metrics["snr_average"] * (n - 1) + snr) / n
-            )
+                self._metrics["snr_average"] * (n - 1) + snr
+            ) / n
             self._metrics["ihsan_average"] = (
-                (self._metrics["ihsan_average"] * (n - 1) + ihsan) / n
-            )
+                self._metrics["ihsan_average"] * (n - 1) + ihsan
+            ) / n
 
     # ═══════════════════════════════════════════════════════════════════════════
     # EVOLUTION / AUTOPOIESIS
@@ -1534,7 +1622,7 @@ class ApexSovereignEngine:
         current_fitness = self._compute_fitness()
 
         try:
-            if hasattr(self.autopoietic_loop, 'get_best_genome'):
+            if hasattr(self.autopoietic_loop, "get_best_genome"):
                 # Real autopoiesis available
                 best = self.autopoietic_loop.get_best_genome()
                 if best:
@@ -1592,14 +1680,18 @@ class ApexSovereignEngine:
         if self._metrics["total_requests"] == 0:
             return 0.5
 
-        success_rate = self._metrics["successful_requests"] / self._metrics["total_requests"]
-        ihsan_rate = self._metrics["ihsan_passes"] / max(1, self._metrics["total_requests"])
+        success_rate = (
+            self._metrics["successful_requests"] / self._metrics["total_requests"]
+        )
+        ihsan_rate = self._metrics["ihsan_passes"] / max(
+            1, self._metrics["total_requests"]
+        )
 
         return (
-            success_rate * 0.3 +
-            ihsan_rate * 0.3 +
-            self._metrics["snr_average"] * 0.2 +
-            self._metrics["ihsan_average"] * 0.2
+            success_rate * 0.3
+            + ihsan_rate * 0.3
+            + self._metrics["snr_average"] * 0.2
+            + self._metrics["ihsan_average"] * 0.2
         )
 
     def _self_tune(self) -> Tuple[float, float, List[str], int]:
@@ -1649,7 +1741,8 @@ class ApexSovereignEngine:
                 "total_requests": self._metrics["total_requests"],
                 "successful_requests": self._metrics["successful_requests"],
                 "success_rate": (
-                    self._metrics["successful_requests"] / max(1, self._metrics["total_requests"])
+                    self._metrics["successful_requests"]
+                    / max(1, self._metrics["total_requests"])
                 ),
                 "ihsan_passes": self._metrics["ihsan_passes"],
                 "ihsan_fails": self._metrics["ihsan_fails"],
@@ -1668,15 +1761,14 @@ class ApexSovereignEngine:
                 "multi_model_manager": self._multi_model_manager is not None,
             },
             "fitness": self._compute_fitness(),
-            "standing_on_giants": [
-                str(g) for g in GIANTS_REGISTRY.values()
-            ],
+            "standing_on_giants": [str(g) for g in GIANTS_REGISTRY.values()],
         }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FALLBACK IMPLEMENTATIONS
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class _FallbackSNRMaximizer:
     """Fallback SNR implementation when main module unavailable."""
@@ -1698,7 +1790,9 @@ class _FallbackSNRMaximizer:
 class _FallbackGoTEngine:
     """Fallback GoT implementation."""
 
-    async def reason(self, query: str, context: Dict, max_depth: int = 3) -> Dict[str, Any]:
+    async def reason(
+        self, query: str, context: Dict, max_depth: int = 3
+    ) -> Dict[str, Any]:
         return {
             "conclusion": f"Analysis of: {query[:100]}",
             "snr_score": 0.88,
@@ -1706,7 +1800,11 @@ class _FallbackGoTEngine:
             "passes_threshold": True,
             "graph_stats": {"nodes_created": 3},
             "depth_reached": min(2, max_depth),
-            "thoughts": ["Hypothesis generated", "Evidence evaluated", "Conclusion formed"],
+            "thoughts": [
+                "Hypothesis generated",
+                "Evidence evaluated",
+                "Conclusion formed",
+            ],
         }
 
 
@@ -1715,7 +1813,9 @@ class _FallbackBicameralEngine:
 
     async def reason(self, problem: str, context: Dict) -> Dict[str, Any]:
         return {
-            "final_answer": context.get("got_conclusion", f"Processed: {problem[:100]}"),
+            "final_answer": context.get(
+                "got_conclusion", f"Processed: {problem[:100]}"
+            ),
             "consensus_score": 0.90,
             "candidates_generated": 1,
             "candidates_verified": 1,
@@ -1743,7 +1843,9 @@ class _FallbackConstitutionalGate:
         return FakeResult(
             status=FakeStatus(),
             score=0.88,
-            evidence={"certificate_hash": hashlib.sha256(candidate.encode()).hexdigest()[:16]}
+            evidence={
+                "certificate_hash": hashlib.sha256(candidate.encode()).hexdigest()[:16]
+            },
         )
 
 
@@ -1840,14 +1942,16 @@ async def _test_apex_engine():
     await engine.initialize()
 
     status = engine.status()
-    print(f"\n[STATUS]")
+    print("\n[STATUS]")
     print(f"  Version: {status['version']}")
     print(f"  Ihsan Threshold: {status['config']['ihsan_threshold']}")
     print(f"  SNR Floor: {status['config']['snr_floor']}")
-    print(f"  Components: {sum(status['components'].values())}/{len(status['components'])}")
+    print(
+        f"  Components: {sum(status['components'].values())}/{len(status['components'])}"
+    )
 
-    print(f"\n[GIANTS WE STAND UPON]")
-    for giant in status['standing_on_giants'][:5]:
+    print("\n[GIANTS WE STAND UPON]")
+    for giant in status["standing_on_giants"][:5]:
         print(f"  - {giant}")
     print("  ...")
 
@@ -1857,48 +1961,68 @@ async def _test_apex_engine():
         context={
             "domain": "distributed_systems",
             "constraints": ["latency < 100ms", "nodes >= 100"],
-        }
+        },
     )
 
-    print(f"\n[RESULT]")
+    print("\n[RESULT]")
     print(f"  Answer: {result.answer[:100]}...")
     print(f"  Ihsan Score: {result.ihsan_score:.3f}")
     print(f"  SNR Score: {result.snr_score:.3f}")
     print(f"  Passed Thresholds: {result.passed_thresholds}")
     print(f"  Duration: {result.total_duration_ms:.1f}ms")
 
-    print(f"\n[PIPELINE STAGES]")
+    print("\n[PIPELINE STAGES]")
     for stage in result.stages:
         status_icon = "+" if stage.passed else "X"
-        print(f"  [{status_icon}] {stage.stage.value}: {stage.duration_ms:.1f}ms (SNR: {stage.output_snr:.3f})")
+        print(
+            f"  [{status_icon}] {stage.stage.value}: {stage.duration_ms:.1f}ms (SNR: {stage.output_snr:.3f})"
+        )
 
     # Display parallelization metrics
     if result.parallel_metrics:
         pm = result.parallel_metrics
-        print(f"\n[PARALLEL EXECUTION METRICS — Standing on Amdahl (1967)]")
-        print(f"  ┌─────────────────────────────────────────────────────────┐")
-        print(f"  │  BATCH 1: SNR_FILTER + GOT_EXPLORATION (parallel)       │")
-        print(f"  │    Wall time:       {pm.parallel_batch_1_wall_time_ms:8.1f}ms                    │")
-        print(f"  │    Sequential time: {pm.parallel_batch_1_sequential_time_ms:8.1f}ms                    │")
-        print(f"  │    Speedup:         {pm.parallel_batch_1_speedup:8.2f}x                     │")
-        print(f"  ├─────────────────────────────────────────────────────────┤")
-        print(f"  │  BATCH 2: FATE_GATE + AUTOPOIESIS (parallel)            │")
-        print(f"  │    Wall time:       {pm.parallel_batch_2_wall_time_ms:8.1f}ms                    │")
-        print(f"  │    Sequential time: {pm.parallel_batch_2_sequential_time_ms:8.1f}ms                    │")
-        print(f"  │    Speedup:         {pm.parallel_batch_2_speedup:8.2f}x                     │")
-        print(f"  ├─────────────────────────────────────────────────────────┤")
-        print(f"  │  TOTAL PARALLEL SAVINGS: {pm.total_parallel_savings_ms:8.1f}ms               │")
-        print(f"  │  Parallelization Ratio:  {pm.effective_parallelization_ratio*100:8.1f}%               │")
-        print(f"  └─────────────────────────────────────────────────────────┘")
+        print("\n[PARALLEL EXECUTION METRICS — Standing on Amdahl (1967)]")
+        print("  ┌─────────────────────────────────────────────────────────┐")
+        print("  │  BATCH 1: SNR_FILTER + GOT_EXPLORATION (parallel)       │")
+        print(
+            f"  │    Wall time:       {pm.parallel_batch_1_wall_time_ms:8.1f}ms                    │"
+        )
+        print(
+            f"  │    Sequential time: {pm.parallel_batch_1_sequential_time_ms:8.1f}ms                    │"
+        )
+        print(
+            f"  │    Speedup:         {pm.parallel_batch_1_speedup:8.2f}x                     │"
+        )
+        print("  ├─────────────────────────────────────────────────────────┤")
+        print("  │  BATCH 2: FATE_GATE + AUTOPOIESIS (parallel)            │")
+        print(
+            f"  │    Wall time:       {pm.parallel_batch_2_wall_time_ms:8.1f}ms                    │"
+        )
+        print(
+            f"  │    Sequential time: {pm.parallel_batch_2_sequential_time_ms:8.1f}ms                    │"
+        )
+        print(
+            f"  │    Speedup:         {pm.parallel_batch_2_speedup:8.2f}x                     │"
+        )
+        print("  ├─────────────────────────────────────────────────────────┤")
+        print(
+            f"  │  TOTAL PARALLEL SAVINGS: {pm.total_parallel_savings_ms:8.1f}ms               │"
+        )
+        print(
+            f"  │  Parallelization Ratio:  {pm.effective_parallelization_ratio*100:8.1f}%               │"
+        )
+        print("  └─────────────────────────────────────────────────────────┘")
 
-    print(f"\n[GIANTS CITED]")
+    print("\n[GIANTS CITED]")
     for giant in result.giants_cited[:5]:
         print(f"  - {giant}")
 
     print("\n[EVOLUTION TEST]")
     evo_result = await engine.evolve()
     print(f"  Cycle: {evo_result.cycle_number}")
-    print(f"  Fitness: {evo_result.fitness_before:.3f} -> {evo_result.fitness_after:.3f}")
+    print(
+        f"  Fitness: {evo_result.fitness_before:.3f} -> {evo_result.fitness_after:.3f}"
+    )
     print(f"  Improvement: {evo_result.improvement:+.3f}")
     print(f"  Ihsan Compliant: {evo_result.ihsan_compliant}")
 
@@ -1911,6 +2035,7 @@ async def _test_apex_engine():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(_test_apex_engine())
 
 

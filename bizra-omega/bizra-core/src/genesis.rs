@@ -109,12 +109,14 @@ pub type GenesisResult<T> = Result<T, GenesisError>;
 /// Execution environment for the genesis receipt
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ExecutionContext {
     /// Development mode: relaxed thresholds, verbose logging
     Development,
     /// Staging mode: production-like with additional monitoring
     Staging,
     /// Production mode: full constraints enforced
+    #[default]
     Production,
     /// Critical mode: enhanced security for high-value operations
     Critical,
@@ -147,11 +149,6 @@ impl ExecutionContext {
     }
 }
 
-impl Default for ExecutionContext {
-    fn default() -> Self {
-        ExecutionContext::Production
-    }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Cryptographic Manifest
@@ -462,8 +459,7 @@ impl GenesisReceipt {
         if !self.seal_pqc.is_empty() {
             const DILITHIUM5_SIG_MIN: usize = 4500;
             const DILITHIUM5_SIG_MAX: usize = 4700;
-            if self.seal_pqc.len() < DILITHIUM5_SIG_MIN
-                || self.seal_pqc.len() > DILITHIUM5_SIG_MAX
+            if self.seal_pqc.len() < DILITHIUM5_SIG_MIN || self.seal_pqc.len() > DILITHIUM5_SIG_MAX
             {
                 return Err(GenesisError::InvalidPQCSignature);
             }
@@ -986,11 +982,13 @@ mod tests {
     }
 
     fn create_test_receipt() -> GenesisReceipt {
-        let validators: Vec<[u8; 32]> = (0..6).map(|i| {
-            let mut v = [0u8; 32];
-            v[0] = (i + 1) as u8;
-            v
-        }).collect();
+        let validators: Vec<[u8; 32]> = (0..6)
+            .map(|i| {
+                let mut v = [0u8; 32];
+                v[0] = (i + 1) as u8;
+                v
+            })
+            .collect();
 
         // BFT requires > 2/3 quorum: for 6 validators, need at least 5 (6*2/3=4, need >4)
         GenesisReceipt::builder()
@@ -1106,7 +1104,10 @@ mod tests {
             .sat_validators(validators)
             .build_unsigned();
 
-        assert!(matches!(result, Err(GenesisError::IhsanBelowMinimum { .. })));
+        assert!(matches!(
+            result,
+            Err(GenesisError::IhsanBelowMinimum { .. })
+        ));
     }
 
     #[test]
@@ -1178,7 +1179,10 @@ mod tests {
             .sat_validators(validators)
             .build_unsigned();
 
-        assert!(matches!(result, Err(GenesisError::InsufficientValidators { .. })));
+        assert!(matches!(
+            result,
+            Err(GenesisError::InsufficientValidators { .. })
+        ));
     }
 
     #[test]
@@ -1197,7 +1201,10 @@ mod tests {
             .sat_validators(validators)
             .build_unsigned();
 
-        assert!(matches!(result, Err(GenesisError::QuorumExceedsValidators { .. })));
+        assert!(matches!(
+            result,
+            Err(GenesisError::QuorumExceedsValidators { .. })
+        ));
     }
 
     #[test]
@@ -1238,6 +1245,9 @@ mod tests {
             .sat_validators(validators)
             .build_unsigned();
 
-        assert!(matches!(result, Err(GenesisError::QuorumTooLowForBFT { .. })));
+        assert!(matches!(
+            result,
+            Err(GenesisError::QuorumTooLowForBFT { .. })
+        ));
     }
 }

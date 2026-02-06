@@ -6,6 +6,7 @@ Standing on Giants: Z3 SMT Solver (de Moura & Bjorner, 2008)
 Uses Z3 theorem prover to formally verify agent actions satisfy
 constitutional constraints BEFORE execution.
 """
+
 from __future__ import annotations
 
 import logging
@@ -14,7 +15,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 try:
-    from z3 import Solver, Real, Bool, Or, Implies, sat
+    from z3 import Bool, Implies, Or, Real, Solver, sat
+
     Z3_AVAILABLE = True
 except ImportError:
     Z3_AVAILABLE = False
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Z3Constraint:
     """A Z3 constraint: constraint_id, expression (Z3 formula), description."""
+
     constraint_id: str
     expression: Any  # z3.BoolRef
     description: str
@@ -36,6 +39,7 @@ class Z3Constraint:
 @dataclass
 class Z3Proof:
     """Z3 proof result: proof_id, constraints_checked, satisfiable, model, generation_time_ms."""
+
     proof_id: str
     constraints_checked: List[str]
     satisfiable: bool
@@ -68,16 +72,26 @@ class Z3FATEGate:
         self._autonomy_limit = Real("autonomy_limit")
 
         # Default constraints
-        self.add_constraint("ihsan_threshold", self._ihsan >= UNIFIED_IHSAN_THRESHOLD,
-                           f"ihsan >= {UNIFIED_IHSAN_THRESHOLD}")
-        self.add_constraint("snr_floor", self._snr >= UNIFIED_SNR_THRESHOLD,
-                           f"snr >= {UNIFIED_SNR_THRESHOLD}")
-        self.add_constraint("reversibility",
-                           Implies(self._risk_level > 0.7,
-                                   Or(self._reversible, self._human_approved)),
-                           "high_risk => reversible OR human_approved")
-        self.add_constraint("resource_bounds", self._cost <= self._autonomy_limit,
-                           "cost <= autonomy_limit")
+        self.add_constraint(
+            "ihsan_threshold",
+            self._ihsan >= UNIFIED_IHSAN_THRESHOLD,
+            f"ihsan >= {UNIFIED_IHSAN_THRESHOLD}",
+        )
+        self.add_constraint(
+            "snr_floor",
+            self._snr >= UNIFIED_SNR_THRESHOLD,
+            f"snr >= {UNIFIED_SNR_THRESHOLD}",
+        )
+        self.add_constraint(
+            "reversibility",
+            Implies(self._risk_level > 0.7, Or(self._reversible, self._human_approved)),
+            "high_risk => reversible OR human_approved",
+        )
+        self.add_constraint(
+            "resource_bounds",
+            self._cost <= self._autonomy_limit,
+            "cost <= autonomy_limit",
+        )
 
     def add_constraint(self, name: str, z3_expr: Any, description: str = "") -> None:
         """Register a constitutional constraint."""
@@ -95,15 +109,20 @@ class Z3FATEGate:
 
         # Bind concrete values
         bindings = [
-            ("ihsan", self._ihsan), ("snr", self._snr),
-            ("risk_level", self._risk_level), ("cost", self._cost),
+            ("ihsan", self._ihsan),
+            ("snr", self._snr),
+            ("risk_level", self._risk_level),
+            ("cost", self._cost),
             ("autonomy_limit", self._autonomy_limit),
         ]
         for key, var in bindings:
             if key in action_context:
                 solver.add(var == action_context[key])
 
-        for key, var in [("reversible", self._reversible), ("human_approved", self._human_approved)]:
+        for key, var in [
+            ("reversible", self._reversible),
+            ("human_approved", self._human_approved),
+        ]:
             solver.add(var == action_context.get(key, False))
 
         result = solver.check()
@@ -111,11 +130,22 @@ class Z3FATEGate:
 
         if result == sat:
             model = solver.model()
-            return Z3Proof(proof_id, list(self._constraints.keys()), True,
-                          {d.name(): str(model[d]) for d in model.decls()}, elapsed_ms)
+            return Z3Proof(
+                proof_id,
+                list(self._constraints.keys()),
+                True,
+                {d.name(): str(model[d]) for d in model.decls()},
+                elapsed_ms,
+            )
 
-        return Z3Proof(proof_id, list(self._constraints.keys()), False,
-                      None, elapsed_ms, self._find_counterexample(action_context))
+        return Z3Proof(
+            proof_id,
+            list(self._constraints.keys()),
+            False,
+            None,
+            elapsed_ms,
+            self._find_counterexample(action_context),
+        )
 
     def _find_counterexample(self, ctx: Dict[str, Any]) -> str:
         """Identify which constraint failed."""
@@ -124,7 +154,11 @@ class Z3FATEGate:
             failed.append(f"ihsan {ctx.get('ihsan'):.3f} < {UNIFIED_IHSAN_THRESHOLD}")
         if ctx.get("snr", 0) < UNIFIED_SNR_THRESHOLD:
             failed.append(f"snr {ctx.get('snr'):.3f} < {UNIFIED_SNR_THRESHOLD}")
-        if ctx.get("risk_level", 0) > 0.7 and not ctx.get("reversible") and not ctx.get("human_approved"):
+        if (
+            ctx.get("risk_level", 0) > 0.7
+            and not ctx.get("reversible")
+            and not ctx.get("human_approved")
+        ):
             failed.append("high_risk without reversible/approved")
         if ctx.get("cost", 0) > ctx.get("autonomy_limit", 0):
             failed.append(f"cost {ctx.get('cost')} > limit {ctx.get('autonomy_limit')}")

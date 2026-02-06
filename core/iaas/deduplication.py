@@ -12,12 +12,12 @@ Standing on Giants:
 """
 
 import hashlib
+import logging
 import math
 import struct
 from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Set, Callable
-import logging
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DeduplicationResult:
     """Result of deduplication operation."""
+
     original_count: int
     deduplicated_count: int
     removed_indices: Set[int]
@@ -73,15 +74,22 @@ class MinHashDeduplicator:
         # Generate random hash function parameters
         self._max_hash = (1 << 32) - 1
         np.random.seed(42)  # Reproducibility
-        self._a = np.random.randint(1, self._max_hash, size=num_permutations, dtype=np.uint64)
-        self._b = np.random.randint(0, self._max_hash, size=num_permutations, dtype=np.uint64)
+        self._a = np.random.randint(
+            1, self._max_hash, size=num_permutations, dtype=np.uint64
+        )
+        self._b = np.random.randint(
+            0, self._max_hash, size=num_permutations, dtype=np.uint64
+        )
 
     def _shingle(self, text: str) -> Set[str]:
         """Convert text to character n-grams (shingles)."""
         text = text.lower().strip()
         if len(text) < self.ngram_size:
             return {text}
-        return {text[i:i + self.ngram_size] for i in range(len(text) - self.ngram_size + 1)}
+        return {
+            text[i : i + self.ngram_size]
+            for i in range(len(text) - self.ngram_size + 1)
+        }
 
     def _minhash_signature(self, shingles: Set[str]) -> np.ndarray:
         """Compute MinHash signature for a shingle set."""
@@ -140,7 +148,9 @@ class MinHashDeduplicator:
             if len(indices) > 1:
                 for i in range(len(indices)):
                     for j in range(i + 1, len(indices)):
-                        candidate_pairs.add((min(indices[i], indices[j]), max(indices[i], indices[j])))
+                        candidate_pairs.add(
+                            (min(indices[i], indices[j]), max(indices[i], indices[j]))
+                        )
 
         # Step 4: Verify candidates and build duplicate groups
         logger.info(f"Verifying {len(candidate_pairs)} candidate pairs...")
@@ -172,7 +182,9 @@ class MinHashDeduplicator:
 
         duplicate_groups = [sorted(g) for g in groups.values() if len(g) > 1]
 
-        logger.info(f"MinHash deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)")
+        logger.info(
+            f"MinHash deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)"
+        )
 
         return DeduplicationResult(
             original_count=n,
@@ -223,7 +235,7 @@ class SimHashDeduplicator:
         """Hash a token to fingerprint_bits integer."""
         h = hashlib.md5(token.encode()).digest()
         # Take first 8 bytes for 64-bit fingerprint
-        return struct.unpack('<Q', h[:8])[0] & ((1 << self.fingerprint_bits) - 1)
+        return struct.unpack("<Q", h[:8])[0] & ((1 << self.fingerprint_bits) - 1)
 
     def _compute_fingerprint(self, text: str) -> int:
         """Compute SimHash fingerprint for text."""
@@ -246,14 +258,14 @@ class SimHashDeduplicator:
         fingerprint = 0
         for i in range(self.fingerprint_bits):
             if v[i] > 0:
-                fingerprint |= (1 << i)
+                fingerprint |= 1 << i
 
         return fingerprint
 
     def _hamming_distance(self, fp1: int, fp2: int) -> int:
         """Compute Hamming distance between two fingerprints."""
         xor = fp1 ^ fp2
-        return bin(xor).count('1')
+        return bin(xor).count("1")
 
     def deduplicate(self, texts: List[str]) -> DeduplicationResult:
         """
@@ -263,7 +275,9 @@ class SimHashDeduplicator:
         """
         n = len(texts)
         if n == 0:
-            return DeduplicationResult(0, 0, set(), [], "simhash", self.hamming_threshold)
+            return DeduplicationResult(
+                0, 0, set(), [], "simhash", self.hamming_threshold
+            )
 
         # Step 1: Compute fingerprints
         logger.info(f"Computing SimHash fingerprints for {n} documents...")
@@ -286,7 +300,10 @@ class SimHashDeduplicator:
         logger.info("Finding near-duplicates via Hamming distance...")
         for i in range(n):
             for j in range(i + 1, n):
-                if self._hamming_distance(fingerprints[i], fingerprints[j]) <= self.hamming_threshold:
+                if (
+                    self._hamming_distance(fingerprints[i], fingerprints[j])
+                    <= self.hamming_threshold
+                ):
                     union(i, j)
 
         # Step 3: Build groups
@@ -298,7 +315,9 @@ class SimHashDeduplicator:
         remove_indices = set(range(n)) - keep_indices
         duplicate_groups = [sorted(g) for g in groups.values() if len(g) > 1]
 
-        logger.info(f"SimHash deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)")
+        logger.info(
+            f"SimHash deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)"
+        )
 
         return DeduplicationResult(
             original_count=n,
@@ -353,7 +372,9 @@ class SemanticDeduplicator:
         """
         n = len(texts)
         if n == 0:
-            return DeduplicationResult(0, 0, set(), [], "semantic", self.similarity_threshold)
+            return DeduplicationResult(
+                0, 0, set(), [], "semantic", self.similarity_threshold
+            )
 
         # Get embeddings
         if embeddings is None:
@@ -407,7 +428,9 @@ class SemanticDeduplicator:
         remove_indices = set(range(n)) - keep_indices
         duplicate_groups = [sorted(g) for g in groups.values() if len(g) > 1]
 
-        logger.info(f"Semantic deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)")
+        logger.info(
+            f"Semantic deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)"
+        )
 
         return DeduplicationResult(
             original_count=n,
@@ -448,7 +471,10 @@ class SoftDeDupReweighter:
         words = text.split()
         if len(words) < self.ngram_size:
             return [text]
-        return [' '.join(words[i:i + self.ngram_size]) for i in range(len(words) - self.ngram_size + 1)]
+        return [
+            " ".join(words[i : i + self.ngram_size])
+            for i in range(len(words) - self.ngram_size + 1)
+        ]
 
     def compute_weights(self, texts: List[str]) -> np.ndarray:
         """
@@ -494,7 +520,9 @@ class SoftDeDupReweighter:
         normalized = commonness / max_commonness
         weights = 1.0 / (1.0 + np.exp(self.temperature * (normalized - 0.5)))
 
-        logger.info(f"SoftDeDup weights: min={weights.min():.3f}, max={weights.max():.3f}, mean={weights.mean():.3f}")
+        logger.info(
+            f"SoftDeDup weights: min={weights.min():.3f}, max={weights.max():.3f}, mean={weights.mean():.3f}"
+        )
 
         return weights
 
@@ -535,12 +563,21 @@ class DeduplicationEngine:
         self.enable_semantic = enable_semantic
         self.enable_softdedup = enable_softdedup
 
-        self.minhash = MinHashDeduplicator(threshold=minhash_threshold) if enable_minhash else None
-        self.simhash = SimHashDeduplicator(hamming_threshold=simhash_threshold) if enable_simhash else None
-        self.semantic = SemanticDeduplicator(
-            similarity_threshold=semantic_threshold,
-            embedding_fn=embedding_fn
-        ) if enable_semantic else None
+        self.minhash = (
+            MinHashDeduplicator(threshold=minhash_threshold) if enable_minhash else None
+        )
+        self.simhash = (
+            SimHashDeduplicator(hamming_threshold=simhash_threshold)
+            if enable_simhash
+            else None
+        )
+        self.semantic = (
+            SemanticDeduplicator(
+                similarity_threshold=semantic_threshold, embedding_fn=embedding_fn
+            )
+            if enable_semantic
+            else None
+        )
         self.softdedup = SoftDeDupReweighter() if enable_softdedup else None
 
     def _exact_dedup(self, texts: List[str]) -> DeduplicationResult:
@@ -560,7 +597,9 @@ class DeduplicationEngine:
         remove_indices = set(range(n)) - keep_indices
         groups = [sorted(g) for g in duplicate_groups.values() if len(g) > 1]
 
-        logger.info(f"Exact deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)")
+        logger.info(
+            f"Exact deduplication: {n} -> {len(keep_indices)} ({len(remove_indices)} removed)"
+        )
 
         return DeduplicationResult(
             original_count=n,
@@ -594,9 +633,13 @@ class DeduplicationEngine:
             result = self._exact_dedup(current_texts)
             results["exact"] = result
 
-            keep_mask = [i not in result.removed_indices for i in range(len(current_texts))]
+            keep_mask = [
+                i not in result.removed_indices for i in range(len(current_texts))
+            ]
             current_texts = [t for t, keep in zip(current_texts, keep_mask) if keep]
-            current_indices = [idx for idx, keep in zip(current_indices, keep_mask) if keep]
+            current_indices = [
+                idx for idx, keep in zip(current_indices, keep_mask) if keep
+            ]
             if current_embeddings is not None:
                 current_embeddings = current_embeddings[keep_mask]
 
@@ -605,9 +648,13 @@ class DeduplicationEngine:
             result = self.minhash.deduplicate(current_texts)
             results["minhash"] = result
 
-            keep_mask = [i not in result.removed_indices for i in range(len(current_texts))]
+            keep_mask = [
+                i not in result.removed_indices for i in range(len(current_texts))
+            ]
             current_texts = [t for t, keep in zip(current_texts, keep_mask) if keep]
-            current_indices = [idx for idx, keep in zip(current_indices, keep_mask) if keep]
+            current_indices = [
+                idx for idx, keep in zip(current_indices, keep_mask) if keep
+            ]
             if current_embeddings is not None:
                 current_embeddings = current_embeddings[keep_mask]
 
@@ -616,9 +663,13 @@ class DeduplicationEngine:
             result = self.simhash.deduplicate(current_texts)
             results["simhash"] = result
 
-            keep_mask = [i not in result.removed_indices for i in range(len(current_texts))]
+            keep_mask = [
+                i not in result.removed_indices for i in range(len(current_texts))
+            ]
             current_texts = [t for t, keep in zip(current_texts, keep_mask) if keep]
-            current_indices = [idx for idx, keep in zip(current_indices, keep_mask) if keep]
+            current_indices = [
+                idx for idx, keep in zip(current_indices, keep_mask) if keep
+            ]
             if current_embeddings is not None:
                 current_embeddings = current_embeddings[keep_mask]
 
@@ -627,9 +678,13 @@ class DeduplicationEngine:
             result = self.semantic.deduplicate(current_texts, current_embeddings)
             results["semantic"] = result
 
-            keep_mask = [i not in result.removed_indices for i in range(len(current_texts))]
+            keep_mask = [
+                i not in result.removed_indices for i in range(len(current_texts))
+            ]
             current_texts = [t for t, keep in zip(current_texts, keep_mask) if keep]
-            current_indices = [idx for idx, keep in zip(current_indices, keep_mask) if keep]
+            current_indices = [
+                idx for idx, keep in zip(current_indices, keep_mask) if keep
+            ]
             if current_embeddings is not None:
                 current_embeddings = current_embeddings[keep_mask]
 
@@ -639,7 +694,9 @@ class DeduplicationEngine:
         else:
             weights = np.ones(len(current_texts))
 
-        logger.info(f"Full deduplication pipeline: {len(texts)} -> {len(current_texts)}")
+        logger.info(
+            f"Full deduplication pipeline: {len(texts)} -> {len(current_texts)}"
+        )
         logger.info(f"  Reduction rate: {1 - len(current_texts)/len(texts):.2%}")
 
         return current_texts, weights, results

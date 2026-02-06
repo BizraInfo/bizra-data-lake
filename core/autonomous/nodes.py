@@ -11,33 +11,34 @@ Standing on Giants: Besta (GoT) + Shannon (SNR) + Anthropic (Constitutional)
 """
 
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
-import heapq
 
-from core.autonomous import SNR_THRESHOLDS, CONSTITUTIONAL_CONSTRAINTS
+from core.autonomous import CONSTITUTIONAL_CONSTRAINTS, SNR_THRESHOLDS
 
 logger = logging.getLogger(__name__)
 
 
 class NodeType(str, Enum):
     """Types of reasoning nodes in the graph."""
-    OBSERVATION = "observation"     # Raw input processing
-    ORIENTATION = "orientation"     # Context establishment
-    ANALYSIS = "analysis"           # Pattern extraction
-    HYPOTHESIS = "hypothesis"       # Conjecture formation
-    SYNTHESIS = "synthesis"         # Integration of multiple paths
-    CONCLUSION = "conclusion"       # Final inference
-    BACKTRACK = "backtrack"         # Reasoning reversal
-    REFINEMENT = "refinement"       # Iterative improvement
-    META = "meta"                   # Meta-cognitive reflection
+
+    OBSERVATION = "observation"  # Raw input processing
+    ORIENTATION = "orientation"  # Context establishment
+    ANALYSIS = "analysis"  # Pattern extraction
+    HYPOTHESIS = "hypothesis"  # Conjecture formation
+    SYNTHESIS = "synthesis"  # Integration of multiple paths
+    CONCLUSION = "conclusion"  # Final inference
+    BACKTRACK = "backtrack"  # Reasoning reversal
+    REFINEMENT = "refinement"  # Iterative improvement
+    META = "meta"  # Meta-cognitive reflection
 
 
 class NodeState(str, Enum):
     """State of a reasoning node."""
+
     PENDING = "pending"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -84,6 +85,7 @@ class ReasoningNode:
     def quality_score(self) -> float:
         """Combined quality score (geometric mean of SNR and Ihsān)."""
         import math
+
         if self.snr_score <= 0 or self.ihsan_score <= 0:
             return 0.0
         return math.sqrt(self.snr_score * self.ihsan_score)
@@ -94,9 +96,9 @@ class ReasoningNode:
         min_snr = SNR_THRESHOLDS.get(self.node_type.value, 0.85)
         min_ihsan = CONSTITUTIONAL_CONSTRAINTS["ihsan_threshold"]
         return (
-            self.snr_score >= min_snr and
-            self.ihsan_score >= min_ihsan and
-            self.state not in (NodeState.PRUNED, NodeState.BACKTRACKED)
+            self.snr_score >= min_snr
+            and self.ihsan_score >= min_ihsan
+            and self.state not in (NodeState.PRUNED, NodeState.BACKTRACKED)
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -121,6 +123,7 @@ class ReasoningNode:
 @dataclass
 class ReasoningPath:
     """A complete path through the reasoning graph."""
+
     nodes: List[str]
     total_snr: float = 0.0
     total_ihsan: float = 0.0
@@ -131,6 +134,7 @@ class ReasoningPath:
     def average_quality(self) -> float:
         """Average quality score across path."""
         import math
+
         if self.total_snr <= 0 or self.total_ihsan <= 0:
             return 0.0
         return math.sqrt(self.total_snr * self.total_ihsan)
@@ -187,7 +191,7 @@ class ReasoningGraph:
 
         unique_ratio = len(set(words)) / len(words)
         avg_word_len = sum(len(w) for w in words) / len(words)
-        structure = min(text.count('.') / max(len(words) / 10, 1), 1.0)
+        structure = min(text.count(".") / max(len(words) / 10, 1), 1.0)
 
         return 0.4 * unique_ratio + 0.3 * min(avg_word_len / 8, 1.0) + 0.3 * structure
 
@@ -203,9 +207,9 @@ class ReasoningGraph:
         is_balanced = 10 <= len(words) <= 500
 
         return (
-            0.4 * float(has_structure) +
-            0.3 * float(has_clarity) +
-            0.3 * float(is_balanced)
+            0.4 * float(has_structure)
+            + 0.3 * float(has_clarity)
+            + 0.3 * float(is_balanced)
         )
 
     # =========================================================================
@@ -229,7 +233,9 @@ class ReasoningGraph:
         # Determine depth
         depth = 0
         if parent_ids:
-            depths = [self._nodes[pid].depth for pid in parent_ids if pid in self._nodes]
+            depths = [
+                self._nodes[pid].depth for pid in parent_ids if pid in self._nodes
+            ]
             depth = max(depths) + 1 if depths else 0
 
         node = ReasoningNode(
@@ -326,7 +332,9 @@ class ReasoningGraph:
         node.state = NodeState.BACKTRACKED
 
         # Create backtrack node
-        backtrack_content = f"BACKTRACK: {reason}. Reconsidering: {node.content[:50]}..."
+        backtrack_content = (
+            f"BACKTRACK: {reason}. Reconsidering: {node.content[:50]}..."
+        )
         backtrack_node = self.add_node(
             content=backtrack_content,
             node_type=NodeType.BACKTRACK,
@@ -350,7 +358,10 @@ class ReasoningGraph:
             return True, f"SNR {node.snr_score:.3f} < threshold {threshold:.3f}"
 
         if node.ihsan_score < self._constitutional["ihsan_threshold"]:
-            return True, f"Ihsān {node.ihsan_score:.3f} < threshold {self._constitutional['ihsan_threshold']:.3f}"
+            return (
+                True,
+                f"Ihsān {node.ihsan_score:.3f} < threshold {self._constitutional['ihsan_threshold']:.3f}",
+            )
 
         return False, ""
 
@@ -398,7 +409,9 @@ class ReasoningGraph:
         # Apply synthesis bonus
         synthesis_node.snr_score = min(avg_snr * (1 + synthesis_bonus), 1.0)
         synthesis_node.ihsan_score = min(avg_ihsan * (1 + synthesis_bonus), 1.0)
-        synthesis_node.confidence = min(synthesis_node.snr_score, synthesis_node.ihsan_score)
+        synthesis_node.confidence = min(
+            synthesis_node.snr_score, synthesis_node.ihsan_score
+        )
 
         return synthesis_node
 
@@ -445,7 +458,9 @@ class ReasoningGraph:
         new_nodes = current_nodes + [node_id]
         new_snr = current_snr + node.snr_score
         new_ihsan = current_ihsan + node.ihsan_score
-        new_backtrack = backtrack_count + (1 if node.node_type == NodeType.BACKTRACK else 0)
+        new_backtrack = backtrack_count + (
+            1 if node.node_type == NodeType.BACKTRACK else 0
+        )
 
         if not node.children:
             return ReasoningPath(
@@ -507,16 +522,20 @@ class ReasoningGraph:
         new_nodes = current_nodes + [node_id]
         new_snr = current_snr + node.snr_score
         new_ihsan = current_ihsan + node.ihsan_score
-        new_backtrack = backtrack_count + (1 if node.node_type == NodeType.BACKTRACK else 0)
+        new_backtrack = backtrack_count + (
+            1 if node.node_type == NodeType.BACKTRACK else 0
+        )
 
         if not node.children:
-            paths.append(ReasoningPath(
-                nodes=new_nodes,
-                total_snr=new_snr / len(new_nodes),
-                total_ihsan=new_ihsan / len(new_nodes),
-                backtrack_count=new_backtrack,
-                depth=len(new_nodes),
-            ))
+            paths.append(
+                ReasoningPath(
+                    nodes=new_nodes,
+                    total_snr=new_snr / len(new_nodes),
+                    total_ihsan=new_ihsan / len(new_nodes),
+                    backtrack_count=new_backtrack,
+                    depth=len(new_nodes),
+                )
+            )
             return
 
         for child_id in node.children:
@@ -567,7 +586,9 @@ class ReasoningGraph:
             "by_state": by_state,
             "avg_snr": avg_snr,
             "avg_ihsan": avg_ihsan,
-            "avg_quality": (avg_snr * avg_ihsan) ** 0.5 if avg_snr > 0 and avg_ihsan > 0 else 0,
+            "avg_quality": (
+                (avg_snr * avg_ihsan) ** 0.5 if avg_snr > 0 and avg_ihsan > 0 else 0
+            ),
         }
 
     def get_layer_nodes(self, node_type: NodeType) -> List[ReasoningNode]:

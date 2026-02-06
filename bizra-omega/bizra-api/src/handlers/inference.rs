@@ -4,9 +4,9 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use bizra_inference::selector::{ModelTier, TaskComplexity, ModelSelector};
+use crate::{error::ApiError, state::AppState};
 use bizra_inference::gateway::InferenceRequest;
-use crate::{state::AppState, error::ApiError};
+use bizra_inference::selector::{ModelSelector, ModelTier, TaskComplexity};
 
 #[derive(Deserialize)]
 pub struct GenerateApiRequest {
@@ -21,8 +21,12 @@ pub struct GenerateApiRequest {
     pub tier: Option<String>,
 }
 
-fn default_max_tokens() -> usize { 512 }
-fn default_temperature() -> f32 { 0.7 }
+fn default_max_tokens() -> usize {
+    512
+}
+fn default_temperature() -> f32 {
+    0.7
+}
 
 #[derive(Serialize)]
 pub struct GenerateResponse {
@@ -65,7 +69,9 @@ pub async fn generate(
             preferred_tier,
         };
 
-        let response = gateway.infer(request).await
+        let response = gateway
+            .infer(request)
+            .await
             .map_err(|e| ApiError::InferenceError(e.to_string()))?;
 
         return Ok(Json(GenerateResponse {
@@ -180,9 +186,7 @@ pub struct SelectTierResponse {
 }
 
 /// Select optimal tier for a task
-pub async fn select_tier(
-    Json(req): Json<SelectTierRequest>,
-) -> Json<SelectTierResponse> {
+pub async fn select_tier(Json(req): Json<SelectTierRequest>) -> Json<SelectTierResponse> {
     let selector = ModelSelector::default();
     let complexity = TaskComplexity::estimate(&req.prompt, req.max_tokens);
     let tier = selector.select_tier(&complexity);

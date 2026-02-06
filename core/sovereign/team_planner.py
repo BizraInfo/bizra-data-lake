@@ -7,19 +7,19 @@ coordinates allocation across the dual-agentic team (PAT + SAT).
 Standing on Giants: HTN Planning + Game Theory + Load Balancing
 """
 
-import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set
-import uuid
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class AgentRole(str, Enum):
     """Roles in the dual-agentic team."""
+
     # PAT - Primary Action Team (7 agents)
     MASTER_REASONER = "master_reasoner"
     DATA_ANALYZER = "data_analyzer"
@@ -39,16 +39,18 @@ class AgentRole(str, Enum):
 
 class TaskComplexity(Enum):
     """Task complexity levels."""
-    TRIVIAL = auto()    # Single agent, immediate
-    SIMPLE = auto()     # Single agent, some work
-    MODERATE = auto()   # 2-3 agents, coordination
-    COMPLEX = auto()    # Full team, orchestration
-    CRITICAL = auto()   # All hands, veto-enabled
+
+    TRIVIAL = auto()  # Single agent, immediate
+    SIMPLE = auto()  # Single agent, some work
+    MODERATE = auto()  # 2-3 agents, coordination
+    COMPLEX = auto()  # Full team, orchestration
+    CRITICAL = auto()  # All hands, veto-enabled
 
 
 @dataclass
 class TeamTask:
     """A task allocated to team agents."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     name: str = ""
     description: str = ""
@@ -64,6 +66,7 @@ class TeamTask:
 @dataclass
 class Goal:
     """A high-level goal to be decomposed."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     description: str = ""
     success_criteria: List[str] = field(default_factory=list)
@@ -75,6 +78,7 @@ class Goal:
 @dataclass
 class TaskAllocation:
     """Result of task allocation to agents."""
+
     task_id: str = ""
     role: AgentRole = AgentRole.MASTER_REASONER
     estimated_effort: float = 1.0  # Relative effort units
@@ -96,16 +100,41 @@ class TeamPlanner:
     ROLE_CAPABILITIES = {
         AgentRole.MASTER_REASONER: {"reasoning", "planning", "synthesis", "strategy"},
         AgentRole.DATA_ANALYZER: {"data", "analysis", "patterns", "statistics"},
-        AgentRole.EXECUTION_PLANNER: {"workflow", "execution", "scheduling", "resources"},
+        AgentRole.EXECUTION_PLANNER: {
+            "workflow",
+            "execution",
+            "scheduling",
+            "resources",
+        },
         AgentRole.ETHICS_GUARDIAN: {"ethics", "safety", "compliance", "validation"},
         AgentRole.COMMUNICATOR: {"output", "formatting", "explanation", "translation"},
         AgentRole.MEMORY_ARCHITECT: {"memory", "knowledge", "retrieval", "indexing"},
         AgentRole.FUSION: {"integration", "synthesis", "merging", "consensus"},
-        AgentRole.SECURITY_GUARDIAN: {"security", "access", "authentication", "encryption"},
+        AgentRole.SECURITY_GUARDIAN: {
+            "security",
+            "access",
+            "authentication",
+            "encryption",
+        },
         AgentRole.ETHICS_VALIDATOR: {"ethics", "fairness", "bias", "harm"},
-        AgentRole.PERFORMANCE_MONITOR: {"performance", "latency", "throughput", "metrics"},
-        AgentRole.CONSISTENCY_CHECKER: {"consistency", "validation", "verification", "integrity"},
-        AgentRole.RESOURCE_OPTIMIZER: {"optimization", "efficiency", "allocation", "scaling"},
+        AgentRole.PERFORMANCE_MONITOR: {
+            "performance",
+            "latency",
+            "throughput",
+            "metrics",
+        },
+        AgentRole.CONSISTENCY_CHECKER: {
+            "consistency",
+            "validation",
+            "verification",
+            "integrity",
+        },
+        AgentRole.RESOURCE_OPTIMIZER: {
+            "optimization",
+            "efficiency",
+            "allocation",
+            "scaling",
+        },
     }
 
     def __init__(self, ihsan_threshold: float = 0.95):
@@ -129,31 +158,35 @@ class TeamPlanner:
 
         if complexity == TaskComplexity.TRIVIAL:
             # Single task
-            tasks.append(TeamTask(
-                name=f"Execute: {goal.description[:50]}",
-                description=goal.description,
-                complexity=complexity,
-                priority=goal.priority,
-                deadline=goal.deadline,
-            ))
+            tasks.append(
+                TeamTask(
+                    name=f"Execute: {goal.description[:50]}",
+                    description=goal.description,
+                    complexity=complexity,
+                    priority=goal.priority,
+                    deadline=goal.deadline,
+                )
+            )
 
         elif complexity == TaskComplexity.SIMPLE:
             # Analysis + Execution
-            tasks.extend([
-                TeamTask(
-                    name=f"Analyze: {goal.description[:30]}",
-                    description=f"Analyze requirements for: {goal.description}",
-                    complexity=TaskComplexity.TRIVIAL,
-                    priority=goal.priority,
-                ),
-                TeamTask(
-                    name=f"Execute: {goal.description[:30]}",
-                    description=f"Execute plan for: {goal.description}",
-                    complexity=TaskComplexity.SIMPLE,
-                    priority=goal.priority,
-                    deadline=goal.deadline,
-                ),
-            ])
+            tasks.extend(
+                [
+                    TeamTask(
+                        name=f"Analyze: {goal.description[:30]}",
+                        description=f"Analyze requirements for: {goal.description}",
+                        complexity=TaskComplexity.TRIVIAL,
+                        priority=goal.priority,
+                    ),
+                    TeamTask(
+                        name=f"Execute: {goal.description[:30]}",
+                        description=f"Execute plan for: {goal.description}",
+                        complexity=TaskComplexity.SIMPLE,
+                        priority=goal.priority,
+                        deadline=goal.deadline,
+                    ),
+                ]
+            )
             # Set dependency
             tasks[1].dependencies.add(tasks[0].id)
 
@@ -168,8 +201,8 @@ class TeamPlanner:
             tasks.append(plan_task)
 
             validate_task = TeamTask(
-                name=f"Validate plan",
-                description=f"Validate plan against constraints and ethics",
+                name="Validate plan",
+                description="Validate plan against constraints and ethics",
                 complexity=TaskComplexity.SIMPLE,
                 priority=goal.priority,
                 dependencies={plan_task.id},
@@ -187,8 +220,8 @@ class TeamPlanner:
             tasks.append(execute_task)
 
             review_task = TeamTask(
-                name=f"Review execution",
-                description=f"Review results and validate success criteria",
+                name="Review execution",
+                description="Review results and validate success criteria",
                 complexity=TaskComplexity.SIMPLE,
                 priority=goal.priority,
                 dependencies={execute_task.id},
@@ -199,7 +232,7 @@ class TeamPlanner:
             # All of the above plus security and consensus
             # Add security pre-check
             security_task = TeamTask(
-                name=f"Security assessment",
+                name="Security assessment",
                 description=f"Assess security implications for: {goal.description}",
                 complexity=TaskComplexity.MODERATE,
                 priority=goal.priority * 1.2,  # Higher priority
@@ -207,12 +240,17 @@ class TeamPlanner:
             tasks.append(security_task)
 
             # Standard decomposition with security dependency
-            for task in await self.decompose_goal(Goal(
-                description=goal.description,
-                priority=goal.priority,
-                deadline=goal.deadline,
-                constraints={**goal.constraints, "_complexity_override": TaskComplexity.COMPLEX},
-            )):
+            for task in await self.decompose_goal(
+                Goal(
+                    description=goal.description,
+                    priority=goal.priority,
+                    deadline=goal.deadline,
+                    constraints={
+                        **goal.constraints,
+                        "_complexity_override": TaskComplexity.COMPLEX,
+                    },
+                )
+            ):
                 task.dependencies.add(security_task.id)
                 tasks.append(task)
 
@@ -270,7 +308,7 @@ class TeamPlanner:
 
         # Apply load balancing
         selected_roles = []
-        for role, score in matched_roles[:role_count * 2]:  # Consider more candidates
+        for role, score in matched_roles[: role_count * 2]:  # Consider more candidates
             if len(selected_roles) >= role_count:
                 break
             # Prefer less loaded agents
@@ -293,17 +331,21 @@ class TeamPlanner:
 
         # Default to master reasoner if no match
         if not allocations:
-            allocations.append(TaskAllocation(
-                task_id=task.id,
-                role=AgentRole.MASTER_REASONER,
-                confidence=0.7,
-            ))
+            allocations.append(
+                TaskAllocation(
+                    task_id=task.id,
+                    role=AgentRole.MASTER_REASONER,
+                    confidence=0.7,
+                )
+            )
 
         task.assigned_roles = {a.role for a in allocations}
         self._active_tasks[task.id] = task
         self._allocations[task.id] = allocations
 
-        logger.debug(f"Allocated task {task.id} to {[a.role.value for a in allocations]}")
+        logger.debug(
+            f"Allocated task {task.id} to {[a.role.value for a in allocations]}"
+        )
         return allocations
 
     def complete_task(self, task_id: str) -> None:
@@ -311,7 +353,9 @@ class TeamPlanner:
         if task_id in self._allocations:
             for allocation in self._allocations[task_id]:
                 self._agent_loads[allocation.role] -= allocation.estimated_effort
-                self._agent_loads[allocation.role] = max(0, self._agent_loads[allocation.role])
+                self._agent_loads[allocation.role] = max(
+                    0, self._agent_loads[allocation.role]
+                )
 
         self._completed_tasks.add(task_id)
         if task_id in self._active_tasks:

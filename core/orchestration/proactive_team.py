@@ -13,12 +13,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
-from .event_bus import EventBus, Event, EventPriority, get_event_bus
-from .team_planner import TeamPlanner, Goal, TeamTask
-from core.bridges.dual_agentic_bridge import DualAgenticBridge, ConsensusResult
-from core.reasoning.collective_intelligence import CollectiveIntelligence, AgentContribution
-from .proactive_scheduler import ProactiveScheduler, ScheduleType, JobPriority
+from core.bridges.dual_agentic_bridge import ConsensusResult, DualAgenticBridge
+from core.reasoning.collective_intelligence import (
+    CollectiveIntelligence,
+)
+
+from .event_bus import Event, EventBus, EventPriority, get_event_bus
 from .predictive_monitor import PredictiveMonitor, TrendDirection
+from .proactive_scheduler import JobPriority, ProactiveScheduler, ScheduleType
+from .team_planner import Goal, TeamPlanner, TeamTask
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ProactiveCycleResult:
     """Result of one proactive team cycle."""
+
     cycle_number: int = 0
     opportunities_detected: int = 0
     tasks_created: int = 0
@@ -92,7 +96,9 @@ class ProactiveTeam:
 
     async def _process_opportunity(self, opportunity: Dict[str, Any]) -> None:
         """Process a detected opportunity."""
-        logger.info(f"Processing opportunity: {opportunity.get('description', 'unknown')}")
+        logger.info(
+            f"Processing opportunity: {opportunity.get('description', 'unknown')}"
+        )
 
         # Create goal from opportunity
         goal = Goal(
@@ -112,7 +118,10 @@ class ProactiveTeam:
             outcome = await self.bridge.propose_and_validate(
                 task=task,
                 action_type="execute_proactive_task",
-                parameters={"task": task.name, "allocations": [a.role.value for a in allocations]},
+                parameters={
+                    "task": task.name,
+                    "allocations": [a.role.value for a in allocations],
+                },
                 ihsan_estimate=0.95,
             )
 
@@ -196,7 +205,9 @@ class ProactiveTeam:
         result.synergy_score = ci_stats["average_synergy"]
 
         # Calculate duration
-        result.duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+        result.duration_ms = (
+            datetime.now(timezone.utc) - start_time
+        ).total_seconds() * 1000
 
         self._cycle_results.append(result)
         return result
@@ -212,25 +223,29 @@ class ProactiveTeam:
             # Optimization opportunities
             if analysis.direction == TrendDirection.RISING:
                 if name in ("memory_usage", "cpu_usage", "latency_ms"):
-                    opportunities.append({
-                        "type": "optimization",
-                        "description": f"Optimize {name} - trending up",
-                        "metric": name,
-                        "priority": 0.7,
-                        "criteria": [f"Reduce {name} trend"],
-                    })
+                    opportunities.append(
+                        {
+                            "type": "optimization",
+                            "description": f"Optimize {name} - trending up",
+                            "metric": name,
+                            "priority": 0.7,
+                            "criteria": [f"Reduce {name} trend"],
+                        }
+                    )
 
             # Improvement opportunities
             if analysis.direction == TrendDirection.STABLE:
                 if name in ("snr_score", "ihsan_score") and analysis.forecast_1h:
                     if analysis.forecast_1h < 0.98:
-                        opportunities.append({
-                            "type": "improvement",
-                            "description": f"Improve {name} from stable baseline",
-                            "metric": name,
-                            "priority": 0.5,
-                            "criteria": [f"Increase {name} above 0.98"],
-                        })
+                        opportunities.append(
+                            {
+                                "type": "improvement",
+                                "description": f"Improve {name} from stable baseline",
+                                "metric": name,
+                                "priority": 0.5,
+                                "criteria": [f"Increase {name} above 0.98"],
+                            }
+                        )
 
         return opportunities
 
@@ -240,10 +255,10 @@ class ProactiveTeam:
         logger.info("Proactive team started")
 
         # Start event bus
-        event_bus_task = asyncio.create_task(self.event_bus.start())
+        asyncio.create_task(self.event_bus.start())
 
         # Start scheduler
-        scheduler_task = asyncio.create_task(self.scheduler.start())
+        asyncio.create_task(self.scheduler.start())
 
         # Main proactive loop
         while self._running:

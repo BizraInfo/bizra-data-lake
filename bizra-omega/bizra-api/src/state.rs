@@ -3,9 +3,9 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use bizra_core::{NodeIdentity, Constitution};
+use bizra_core::{Constitution, NodeIdentity};
+use bizra_federation::{ConsensusEngine, GossipProtocol};
 use bizra_inference::gateway::InferenceGateway;
-use bizra_federation::{GossipProtocol, ConsensusEngine};
 
 /// Global application state
 pub struct AppState {
@@ -76,12 +76,14 @@ impl AppState {
 
     /// Increment request counter
     pub fn increment_requests(&self) {
-        self.request_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.request_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Get request count
     pub fn get_request_count(&self) -> u64 {
-        self.request_count.load(std::sync::atomic::Ordering::Relaxed)
+        self.request_count
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 

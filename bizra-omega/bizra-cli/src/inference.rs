@@ -4,10 +4,10 @@
 //! Supports both native `/api/v1/chat` and OpenAI-compatible endpoints.
 
 use anyhow::{anyhow, Result};
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
-use std::env;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use serde::{Deserialize, Serialize};
+use std::env;
+use std::time::Duration;
 
 /// LM Studio configuration
 #[derive(Debug, Clone)]
@@ -131,6 +131,12 @@ pub struct ModelsResponse {
     pub data: Vec<ModelInfo>,
 }
 
+impl Default for LMStudio {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LMStudio {
     /// Create new LM Studio client with default config
     pub fn new() -> Self {
@@ -170,7 +176,9 @@ impl LMStudio {
     pub async fn list_models(&self) -> Result<Vec<ModelInfo>> {
         let url = format!("{}/api/v1/models", self.config.base_url());
 
-        let resp = self.client.get(&url)
+        let resp = self
+            .client
+            .get(&url)
             .send()
             .await
             .map_err(|e| anyhow!("Failed to connect to LM Studio: {}", e))?;
@@ -179,7 +187,9 @@ impl LMStudio {
             return Err(anyhow!("LM Studio returned error: {}", resp.status()));
         }
 
-        let models: ModelsResponse = resp.json().await
+        let models: ModelsResponse = resp
+            .json()
+            .await
             .map_err(|e| anyhow!("Failed to parse models response: {}", e))?;
 
         Ok(models.data)
@@ -209,7 +219,9 @@ impl LMStudio {
             stream: false,
         };
 
-        let resp = self.client.post(&url)
+        let resp = self
+            .client
+            .post(&url)
             .json(&request)
             .send()
             .await
@@ -221,7 +233,9 @@ impl LMStudio {
             return Err(anyhow!("LM Studio error {}: {}", status, body));
         }
 
-        let response: V1ChatResponse = resp.json().await
+        let response: V1ChatResponse = resp
+            .json()
+            .await
             .map_err(|e| anyhow!("Failed to parse chat response: {}", e))?;
 
         Ok(response)
@@ -245,7 +259,9 @@ impl LMStudio {
             stream: false,
         };
 
-        let resp = self.client.post(&url)
+        let resp = self
+            .client
+            .post(&url)
             .json(&request)
             .send()
             .await
@@ -257,7 +273,9 @@ impl LMStudio {
             return Err(anyhow!("LM Studio error {}: {}", status, body));
         }
 
-        let response: OpenAIChatResponse = resp.json().await
+        let response: OpenAIChatResponse = resp
+            .json()
+            .await
             .map_err(|e| anyhow!("Failed to parse chat response: {}", e))?;
 
         Ok(response)
@@ -271,11 +289,18 @@ impl LMStudio {
         }];
 
         // Try v1 API first, fall back to OpenAI-compatible
-        match self.chat_v1(messages.clone(), None, Some(0.7), Some(2048)).await {
+        match self
+            .chat_v1(messages.clone(), None, Some(0.7), Some(2048))
+            .await
+        {
             Ok(resp) => Ok(resp.message.content),
             Err(_) => {
-                let resp = self.chat_openai(messages, None, Some(0.7), Some(2048)).await?;
-                Ok(resp.choices.first()
+                let resp = self
+                    .chat_openai(messages, None, Some(0.7), Some(2048))
+                    .await?;
+                Ok(resp
+                    .choices
+                    .first()
                     .map(|c| c.message.content.clone())
                     .unwrap_or_default())
             }
@@ -283,7 +308,11 @@ impl LMStudio {
     }
 
     /// Chat with system prompt (for PAT agents)
-    pub async fn chat_with_system(&self, system_prompt: &str, user_message: &str) -> Result<String> {
+    pub async fn chat_with_system(
+        &self,
+        system_prompt: &str,
+        user_message: &str,
+    ) -> Result<String> {
         let messages = vec![
             ChatMessage {
                 role: "system".to_string(),
@@ -295,11 +324,18 @@ impl LMStudio {
             },
         ];
 
-        match self.chat_v1(messages.clone(), None, Some(0.7), Some(2048)).await {
+        match self
+            .chat_v1(messages.clone(), None, Some(0.7), Some(2048))
+            .await
+        {
             Ok(resp) => Ok(resp.message.content),
             Err(_) => {
-                let resp = self.chat_openai(messages, None, Some(0.7), Some(2048)).await?;
-                Ok(resp.choices.first()
+                let resp = self
+                    .chat_openai(messages, None, Some(0.7), Some(2048))
+                    .await?;
+                Ok(resp
+                    .choices
+                    .first()
                     .map(|c| c.message.content.clone())
                     .unwrap_or_default())
             }
@@ -314,44 +350,51 @@ pub fn get_agent_system_prompt(agent: &str) -> String {
 Your role is strategic planning and long-term thinking.
 Standing on the shoulders of: Sun Tzu, Clausewitz, Michael Porter.
 Focus on objectives, competitive advantage, and strategic positioning.
-Be concise but thorough. Think in terms of goals, resources, and outcomes."#.to_string(),
+Be concise but thorough. Think in terms of goals, resources, and outcomes."#
+            .to_string(),
 
         "researcher" => r#"You are the Researcher of a Personal Agentic Team (PAT).
 Your role is knowledge discovery and synthesis.
 Standing on the shoulders of: Claude Shannon, Alan Turing, Edsger Dijkstra.
 Focus on finding accurate information, synthesizing knowledge, and providing insights.
-Be thorough in research but clear in presentation."#.to_string(),
+Be thorough in research but clear in presentation."#
+            .to_string(),
 
         "developer" => r#"You are the Developer of a Personal Agentic Team (PAT).
 Your role is code implementation and technical solutions.
 Standing on the shoulders of: Donald Knuth, Dennis Ritchie, Linus Torvalds.
 Focus on clean code, efficient algorithms, and robust implementation.
-Be precise, practical, and security-conscious."#.to_string(),
+Be precise, practical, and security-conscious."#
+            .to_string(),
 
         "analyst" => r#"You are the Analyst of a Personal Agentic Team (PAT).
 Your role is data analysis and insight extraction.
 Standing on the shoulders of: John Tukey, Edward Tufte, William Cleveland.
 Focus on patterns, trends, and data-driven insights.
-Be quantitative, visual, and clear in presenting findings."#.to_string(),
+Be quantitative, visual, and clear in presenting findings."#
+            .to_string(),
 
         "reviewer" => r#"You are the Reviewer of a Personal Agentic Team (PAT).
 Your role is quality validation and constructive feedback.
 Standing on the shoulders of: Michael Fagan, David Parnas, Fred Brooks.
 Focus on correctness, completeness, and improvement opportunities.
-Be thorough but constructive. Identify issues and suggest solutions."#.to_string(),
+Be thorough but constructive. Identify issues and suggest solutions."#
+            .to_string(),
 
         "executor" => r#"You are the Executor of a Personal Agentic Team (PAT).
 Your role is task execution and delivery.
 Standing on the shoulders of: Toyota Production System, W. Edwards Deming, Taiichi Ohno.
 Focus on efficient execution, continuous improvement, and delivering results.
-Be action-oriented, efficient, and results-focused."#.to_string(),
+Be action-oriented, efficient, and results-focused."#
+            .to_string(),
 
         "guardian" | _ => r#"You are the Guardian of a Personal Agentic Team (PAT).
 Your role is ethical oversight and protective guidance.
 Standing on the shoulders of: Al-Ghazali, John Rawls, Anthropic.
 Focus on beneficial outcomes, ethical considerations, and harm prevention.
 Apply the FATE gates: Ihsān (excellence ≥0.95), Adl (fairness), Harm (≤0.30), Confidence (≥0.80).
-Be wise, protective, and guide toward beneficial outcomes."#.to_string(),
+Be wise, protective, and guide toward beneficial outcomes."#
+            .to_string(),
     }
 }
 

@@ -11,8 +11,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from multimodal import (
-    get_multimodal_router,
     ModelCapability,
+    get_multimodal_router,
 )
 
 
@@ -54,10 +54,10 @@ def main():
     decision_image = router.route(ambiguous_task, explicit_type="image")
 
     print(f"\n  Ambiguous task: '{ambiguous_task}'")
-    print(f"\n  Default routing (text detection):")
+    print("\n  Default routing (text detection):")
     print(f"    -> {decision_text.model.name}")
     print(f"    -> {decision_text.reason}")
-    print(f"\n  With explicit_type='image':")
+    print("\n  With explicit_type='image':")
     print(f"    -> {decision_image.model.name}")
     print(f"    -> {decision_image.reason}")
 
@@ -94,13 +94,13 @@ def main():
 
     decision = router.select_model(ModelCapability.REASONING)
 
-    print(f"\n  Reasoning model selection:")
+    print("\n  Reasoning model selection:")
     print(f"    Model: {decision.model.name}")
     print(f"    Confidence: {decision.confidence:.0%}")
     print(f"    Reason: {decision.reason}")
 
     if decision.alternatives:
-        print(f"\n  Fallback alternatives:")
+        print("\n  Fallback alternatives:")
         for i, alt in enumerate(decision.alternatives, 1):
             print(f"      {i}. {alt.name} ({alt.params_b}B)")
 
@@ -111,10 +111,10 @@ def main():
     vision_models = sorted(
         router.list_by_capability(ModelCapability.VISION),
         key=lambda m: m.speed_tok_per_sec,
-        reverse=True
+        reverse=True,
     )
 
-    print(f"\n  Vision models by speed (for real-time processing):")
+    print("\n  Vision models by speed (for real-time processing):")
     for model in vision_models:
         print(f"    {model.name:20} {model.speed_tok_per_sec:5.0f} tok/s")
 
@@ -128,10 +128,10 @@ def main():
     reasoning_models = sorted(
         router.list_by_capability(ModelCapability.REASONING),
         key=lambda m: m.params_b,
-        reverse=True
+        reverse=True,
     )
 
-    print(f"\n  Reasoning models by size (for maximum accuracy):")
+    print("\n  Reasoning models by size (for maximum accuracy):")
     for model in reasoning_models:
         print(f"    {model.name:20} {model.params_b:6.1f}B")
 

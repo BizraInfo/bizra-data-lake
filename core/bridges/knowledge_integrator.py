@@ -16,13 +16,13 @@ Standing on Giants: Shannon + Lamport + Al-Ghazali + Anthropic
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
-import hashlib
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +33,11 @@ DATA_LAKE_ROOT = Path(__file__).parent.parent.parent
 @dataclass
 class KnowledgeSource:
     """A discoverable knowledge source."""
+
     name: str = ""
     path: str = ""
     source_type: str = ""  # parquet, json, jsonl, npy, md, py
-    category: str = ""     # memory, embedding, graph, session, module
+    category: str = ""  # memory, embedding, graph, session, module
     size_bytes: int = 0
     snr_score: float = 0.0
     ihsan_score: float = 0.0
@@ -48,6 +49,7 @@ class KnowledgeSource:
 @dataclass
 class KnowledgeQuery:
     """A query to the knowledge base."""
+
     query: str = ""
     context: Dict[str, Any] = field(default_factory=dict)
     max_results: int = 10
@@ -59,6 +61,7 @@ class KnowledgeQuery:
 @dataclass
 class KnowledgeResult:
     """Result from knowledge retrieval."""
+
     query_id: str = ""
     results: List[Dict[str, Any]] = field(default_factory=list)
     sources_consulted: List[str] = field(default_factory=list)
@@ -136,7 +139,6 @@ class KnowledgeIntegrator:
             ihsan_score=0.95,
             priority="CRITICAL",
         ),
-
         # HIGH - Session and agent context
         KnowledgeSource(
             name="Session State",
@@ -201,7 +203,6 @@ class KnowledgeIntegrator:
             ihsan_score=0.91,
             priority="HIGH",
         ),
-
         # MEDIUM - Patterns and analysis
         KnowledgeSource(
             name="Golden Gems",
@@ -346,7 +347,10 @@ class KnowledgeIntegrator:
 
         elif source.source_type in ("npy", "parquet"):
             # Large binary files - load on demand
-            self._loaded_data[source.name] = {"type": source.source_type, "path": str(full_path)}
+            self._loaded_data[source.name] = {
+                "type": source.source_type,
+                "path": str(full_path),
+            }
 
         source.loaded = True
         source.last_accessed = datetime.now(timezone.utc)
@@ -395,7 +399,9 @@ class KnowledgeIntegrator:
         start_time = datetime.now(timezone.utc)
 
         # Check cache
-        cache_key = hashlib.md5(f"{query.query}:{query.categories}".encode()).hexdigest()
+        cache_key = hashlib.md5(
+            f"{query.query}:{query.categories}".encode()
+        ).hexdigest()
         if self.cache_enabled and cache_key in self._cache:
             self._cache_hits += 1
             cached = self._cache[cache_key]
@@ -426,7 +432,7 @@ class KnowledgeIntegrator:
                 await self._load_source(source)
 
             matches = self._search_source(query.query, source)
-            result.results.extend(matches[:query.max_results])
+            result.results.extend(matches[: query.max_results])
             result.sources_consulted.append(source.name)
 
         # Calculate aggregate SNR
@@ -435,7 +441,9 @@ class KnowledgeIntegrator:
                 r.get("snr_score", 0.8) for r in result.results
             ) / len(result.results)
 
-        result.latency_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+        result.latency_ms = (
+            datetime.now(timezone.utc) - start_time
+        ).total_seconds() * 1000
         self._total_latency_ms += result.latency_ms
 
         # Cache result
@@ -464,24 +472,28 @@ class KnowledgeIntegrator:
             for key, value in data.items():
                 text = f"{key} {json.dumps(value, default=str)}".lower()
                 if any(term in text for term in query_terms):
-                    matches.append({
-                        "source": source.name,
-                        "key": key,
-                        "value": value,
-                        "snr_score": source.snr_score,
-                    })
+                    matches.append(
+                        {
+                            "source": source.name,
+                            "key": key,
+                            "value": value,
+                            "snr_score": source.snr_score,
+                        }
+                    )
 
         elif isinstance(data, list):
             # Search list items
             for i, item in enumerate(data[:100]):  # Limit to first 100
                 text = json.dumps(item, default=str).lower()
                 if any(term in text for term in query_terms):
-                    matches.append({
-                        "source": source.name,
-                        "index": i,
-                        "value": item,
-                        "snr_score": source.snr_score,
-                    })
+                    matches.append(
+                        {
+                            "source": source.name,
+                            "index": i,
+                            "value": item,
+                            "snr_score": source.snr_score,
+                        }
+                    )
 
         return matches
 
@@ -514,7 +526,8 @@ class KnowledgeIntegrator:
         return {
             "sources_discovered": len(self._sources),
             "sources_loaded": sum(1 for s in self._sources.values() if s.loaded),
-            "total_size_mb": sum(s.size_bytes for s in self._sources.values()) / (1024 * 1024),
+            "total_size_mb": sum(s.size_bytes for s in self._sources.values())
+            / (1024 * 1024),
             "query_count": self._query_count,
             "cache_hits": self._cache_hits,
             "cache_hit_rate": self._cache_hits / max(self._query_count, 1),

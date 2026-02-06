@@ -26,17 +26,17 @@ Migrated: 2026-02-05 | Files now in dedicated orchestration package
 # PHASE 1: Safe imports (no cross-package dependencies)
 # --------------------------------------------------------------------------
 from .event_bus import (
-    EventBus,
     Event,
+    EventBus,
     EventPriority,
 )
-from .team_planner import TeamPlanner
-from .proactive_scheduler import ProactiveScheduler
 from .muraqabah_engine import (
     MuraqabahEngine,
 )
 from .muraqabah_sensors import MuraqabahSensorHub
 from .predictive_monitor import PredictiveMonitor
+from .proactive_scheduler import ProactiveScheduler
+from .team_planner import TeamPlanner
 
 # --------------------------------------------------------------------------
 # PHASE 2: Lazy imports for modules with cross-package dependencies.
@@ -58,6 +58,7 @@ def __getattr__(name: str):
     if name in _LAZY_MODULES:
         module_path, attr_name = _LAZY_MODULES[name]
         import importlib
+
         mod = importlib.import_module(module_path, __name__)
         value = getattr(mod, attr_name)
         globals()[name] = value  # Cache for subsequent access

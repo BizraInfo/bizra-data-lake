@@ -19,22 +19,22 @@ use sha2::{Digest, Sha256};
 
 /// The 7 PAT roles - MoMo's personal mastermind team
 pub const PAT_ROLES: [&str; 7] = [
-    "Strategist",   // Vision and planning
-    "Researcher",   // Knowledge gathering
-    "Developer",    // Implementation
-    "Analyst",      // Pattern recognition
-    "Reviewer",     // Quality assurance
-    "Executor",     // Task completion
-    "Guardian",     // Ethics and protection
+    "Strategist", // Vision and planning
+    "Researcher", // Knowledge gathering
+    "Developer",  // Implementation
+    "Analyst",    // Pattern recognition
+    "Reviewer",   // Quality assurance
+    "Executor",   // Task completion
+    "Guardian",   // Ethics and protection
 ];
 
 /// The 5 SAT roles - Protocol army serving all nodes
 pub const SAT_ROLES: [&str; 5] = [
-    "Validator",  // Block validation, proof verification
-    "Oracle",     // External data, truth anchoring
-    "Mediator",   // Dispute resolution, consensus
-    "Archivist",  // Knowledge preservation, indexing
-    "Sentinel",   // Security monitoring, threat detection
+    "Validator", // Block validation, proof verification
+    "Oracle",    // External data, truth anchoring
+    "Mediator",  // Dispute resolution, consensus
+    "Archivist", // Knowledge preservation, indexing
+    "Sentinel",  // Security monitoring, threat detection
 ];
 
 /// Standing on Giants - mandatory foundations
@@ -199,33 +199,58 @@ impl GenesisEngine {
         // Step 1: Mint Node0 Identity
         println!("▸ Step 1: Minting Node0 Identity...");
         let identity = self.mint_identity(name, location);
-        println!("  ✓ Identity: {} ({})", identity.name, &identity.node_id[..16]);
+        println!(
+            "  ✓ Identity: {} ({})",
+            identity.name,
+            &identity.node_id[..16]
+        );
         println!("  ✓ Public Key: {}...", &identity.public_key[..32]);
         println!();
 
         // Step 2: Register Hardware Contribution
         println!("▸ Step 2: Registering Hardware Contribution...");
         println!("  CPU: {} ({} cores)", hardware.cpu, hardware.cpu_cores);
-        println!("  GPU: {} ({} GB VRAM)", hardware.gpu, hardware.gpu_vram / (1024 * 1024 * 1024));
+        println!(
+            "  GPU: {} ({} GB VRAM)",
+            hardware.gpu,
+            hardware.gpu_vram / (1024 * 1024 * 1024)
+        );
         println!("  RAM: {} GB", hardware.ram / (1024 * 1024 * 1024));
         println!("  Storage: {} GB", hardware.storage / (1024 * 1024 * 1024));
-        println!("  ✓ Estimated {} compute units/day", hardware.compute_units_per_day);
+        println!(
+            "  ✓ Estimated {} compute units/day",
+            hardware.compute_units_per_day
+        );
         println!();
 
         // Step 3: Register Knowledge Contribution
         println!("▸ Step 3: Registering Knowledge Contribution...");
         println!("  Conversations: {}", knowledge.conversations);
         println!("  Messages: {}", knowledge.messages);
-        println!("  Data Size: {} GB", knowledge.data_size / (1024 * 1024 * 1024));
-        println!("  Date Range: {} to {}", knowledge.date_range.0, knowledge.date_range.1);
-        println!("  ✓ Knowledge hash: {}...", hex::encode(&knowledge.knowledge_hash[..8]));
+        println!(
+            "  Data Size: {} GB",
+            knowledge.data_size / (1024 * 1024 * 1024)
+        );
+        println!(
+            "  Date Range: {} to {}",
+            knowledge.date_range.0, knowledge.date_range.1
+        );
+        println!(
+            "  ✓ Knowledge hash: {}...",
+            hex::encode(&knowledge.knowledge_hash[..8])
+        );
         println!();
 
         // Step 4: Mint 7 PAT (Personal Agentic Team)
         println!("▸ Step 4: Minting Personal Agentic Team (7 PAT)...");
         let pat_team = self.mint_pat(&identity.node_id);
         for agent in &pat_team.agents {
-            println!("  ✓ {} - {} ({}...)", agent.role, agent.agent_id, &agent.public_key[..16]);
+            println!(
+                "  ✓ {} - {} ({}...)",
+                agent.role,
+                agent.agent_id,
+                &agent.public_key[..16]
+            );
         }
         println!();
 
@@ -233,17 +258,27 @@ impl GenesisEngine {
         println!("▸ Step 5: Minting Shared Agentic Team (5 SAT - Protocol Army)...");
         let sat_team = self.mint_sat();
         for agent in &sat_team.agents {
-            println!("  ✓ {} - {} ({}...)", agent.role, agent.agent_id, &agent.public_key[..16]);
+            println!(
+                "  ✓ {} - {} ({}...)",
+                agent.role,
+                agent.agent_id,
+                &agent.public_key[..16]
+            );
         }
-        println!("  Governance: Quorum {:.0}%, Voting {} hours",
-                 sat_team.governance.quorum * 100.0,
-                 sat_team.governance.voting_period_hours);
+        println!(
+            "  Governance: Quorum {:.0}%, Voting {} hours",
+            sat_team.governance.quorum * 100.0,
+            sat_team.governance.voting_period_hours
+        );
         println!();
 
         // Step 6: Create Partnership Agreement
         println!("▸ Step 6: Creating Partnership Agreement...");
         let partnership_hash = self.create_partnership_hash(&identity, &hardware, &knowledge);
-        println!("  ✓ Partnership hash: {}", hex::encode(&partnership_hash[..16]));
+        println!(
+            "  ✓ Partnership hash: {}",
+            hex::encode(&partnership_hash[..16])
+        );
         println!("  Agreement: Hardware + Knowledge → Shared with Resource Pool");
         println!("  Terms: Musharakah (partnership), profit/loss shared proportionally");
         println!();
@@ -258,7 +293,7 @@ impl GenesisEngine {
             &sat_team,
             &partnership_hash,
         );
-        println!("  ✓ GENESIS HASH: {}", hex::encode(&genesis_hash));
+        println!("  ✓ GENESIS HASH: {}", hex::encode(genesis_hash));
         println!();
 
         // Standing on Giants
@@ -334,23 +369,23 @@ impl GenesisEngine {
         let mut agents = Vec::with_capacity(7);
 
         let pat_capabilities = [
-            vec!["plan", "analyze", "decide"],           // Strategist
-            vec!["search", "synthesize", "cite"],        // Researcher
-            vec!["code", "test", "deploy"],              // Developer
-            vec!["pattern", "measure", "predict"],       // Analyst
-            vec!["validate", "critique", "improve"],     // Reviewer
-            vec!["execute", "monitor", "report"],        // Executor
-            vec!["protect", "audit", "enforce"],         // Guardian
+            vec!["plan", "analyze", "decide"],       // Strategist
+            vec!["search", "synthesize", "cite"],    // Researcher
+            vec!["code", "test", "deploy"],          // Developer
+            vec!["pattern", "measure", "predict"],   // Analyst
+            vec!["validate", "critique", "improve"], // Reviewer
+            vec!["execute", "monitor", "report"],    // Executor
+            vec!["protect", "audit", "enforce"],     // Guardian
         ];
 
         let pat_giants = [
-            vec!["Sun Tzu", "Clausewitz", "Porter"],     // Strategist
-            vec!["Shannon", "Besta", "Hinton"],          // Researcher
-            vec!["Knuth", "Dijkstra", "Thompson"],       // Developer
-            vec!["Tukey", "Fisher", "Bayes"],            // Analyst
-            vec!["Hoare", "Dijkstra", "Meyer"],          // Reviewer
-            vec!["Deming", "Taylor", "Ohno"],            // Executor
-            vec!["Al-Ghazali", "Rawls", "Anthropic"],    // Guardian
+            vec!["Sun Tzu", "Clausewitz", "Porter"],  // Strategist
+            vec!["Shannon", "Besta", "Hinton"],       // Researcher
+            vec!["Knuth", "Dijkstra", "Thompson"],    // Developer
+            vec!["Tukey", "Fisher", "Bayes"],         // Analyst
+            vec!["Hoare", "Dijkstra", "Meyer"],       // Reviewer
+            vec!["Deming", "Taylor", "Ohno"],         // Executor
+            vec!["Al-Ghazali", "Rawls", "Anthropic"], // Guardian
         ];
 
         for (i, role) in PAT_ROLES.iter().enumerate() {
@@ -378,7 +413,7 @@ impl GenesisEngine {
         let mut hasher = Sha256::new();
         hasher.update(owner_node.as_bytes());
         for agent in &agents {
-            hasher.update(&agent.agent_hash);
+            hasher.update(agent.agent_hash);
         }
         let team_hash: [u8; 32] = hasher.finalize().into();
 
@@ -394,19 +429,19 @@ impl GenesisEngine {
         let mut agents = Vec::with_capacity(5);
 
         let sat_capabilities = [
-            vec!["verify", "attest", "reject"],          // Validator
-            vec!["fetch", "anchor", "timestamp"],        // Oracle
-            vec!["arbitrate", "negotiate", "resolve"],   // Mediator
-            vec!["index", "preserve", "retrieve"],       // Archivist
-            vec!["detect", "alert", "defend"],           // Sentinel
+            vec!["verify", "attest", "reject"],        // Validator
+            vec!["fetch", "anchor", "timestamp"],      // Oracle
+            vec!["arbitrate", "negotiate", "resolve"], // Mediator
+            vec!["index", "preserve", "retrieve"],     // Archivist
+            vec!["detect", "alert", "defend"],         // Sentinel
         ];
 
         let sat_giants = [
-            vec!["Lamport", "Nakamoto", "Buterin"],      // Validator
-            vec!["Shannon", "Wolfram", "Oracles"],       // Oracle
-            vec!["Nash", "Schelling", "Ostrom"],         // Mediator
-            vec!["Shannon", "Huffman", "Berners-Lee"],   // Archivist
-            vec!["Schneier", "Anderson", "Diffie"],      // Sentinel
+            vec!["Lamport", "Nakamoto", "Buterin"],    // Validator
+            vec!["Shannon", "Wolfram", "Oracles"],     // Oracle
+            vec!["Nash", "Schelling", "Ostrom"],       // Mediator
+            vec!["Shannon", "Huffman", "Berners-Lee"], // Archivist
+            vec!["Schneier", "Anderson", "Diffie"],    // Sentinel
         ];
 
         for (i, role) in SAT_ROLES.iter().enumerate() {
@@ -434,16 +469,16 @@ impl GenesisEngine {
         let mut hasher = Sha256::new();
         hasher.update(b"BIZRA_SAT_GENESIS");
         for agent in &agents {
-            hasher.update(&agent.agent_hash);
+            hasher.update(agent.agent_hash);
         }
         let team_hash: [u8; 32] = hasher.finalize().into();
 
         SharedAgentTeam {
             agents,
             governance: SATGovernance {
-                quorum: 0.67,                    // 2/3 majority
-                voting_period_hours: 72,         // 3 days
-                upgrade_threshold: 0.80,         // 80% for upgrades
+                quorum: 0.67,            // 2/3 majority
+                voting_period_hours: 72, // 3 days
+                upgrade_threshold: 0.80, // 80% for upgrades
             },
             team_hash,
         }
@@ -458,9 +493,9 @@ impl GenesisEngine {
     ) -> [u8; 32] {
         let mut hasher = Sha256::new();
         hasher.update(b"BIZRA_PARTNERSHIP_V1:");
-        hasher.update(&identity.identity_hash);
-        hasher.update(&hardware.compute_units_per_day.to_le_bytes());
-        hasher.update(&knowledge.knowledge_hash);
+        hasher.update(identity.identity_hash);
+        hasher.update(hardware.compute_units_per_day.to_le_bytes());
+        hasher.update(knowledge.knowledge_hash);
         hasher.update(b":MUSHARAKAH"); // Partnership model
         hasher.finalize().into()
     }
@@ -477,11 +512,11 @@ impl GenesisEngine {
     ) -> [u8; 32] {
         let mut hasher = Sha256::new();
         hasher.update(b"BIZRA_GENESIS_BLOCK_V1:");
-        hasher.update(&identity.identity_hash);
-        hasher.update(&hardware.compute_units_per_day.to_le_bytes());
-        hasher.update(&knowledge.knowledge_hash);
-        hasher.update(&pat_team.team_hash);
-        hasher.update(&sat_team.team_hash);
+        hasher.update(identity.identity_hash);
+        hasher.update(hardware.compute_units_per_day.to_le_bytes());
+        hasher.update(knowledge.knowledge_hash);
+        hasher.update(pat_team.team_hash);
+        hasher.update(sat_team.team_hash);
         hasher.update(partnership_hash);
         hasher.update(b":NODE0");
         hasher.finalize().into()
@@ -507,10 +542,10 @@ mod tests {
             cpu: "Intel i9-14900HX".to_string(),
             cpu_cores: 24,
             gpu: "NVIDIA RTX 4090".to_string(),
-            gpu_vram: 16 * 1024 * 1024 * 1024, // 16 GB
-            ram: 128 * 1024 * 1024 * 1024,     // 128 GB
+            gpu_vram: 16 * 1024 * 1024 * 1024,      // 16 GB
+            ram: 128 * 1024 * 1024 * 1024,          // 128 GB
             storage: 4 * 1024 * 1024 * 1024 * 1024, // 4 TB
-            network_bps: 1000 * 1024 * 1024,   // 1 Gbps
+            network_bps: 1000 * 1024 * 1024,        // 1 Gbps
             compute_units_per_day: 100_000,
         }
     }
@@ -575,12 +610,8 @@ mod tests {
     #[test]
     fn test_full_genesis() {
         let mut engine = GenesisEngine::new();
-        let genesis = engine.execute_genesis(
-            "MoMo",
-            "Dubai, UAE",
-            test_hardware(),
-            test_knowledge(),
-        );
+        let genesis =
+            engine.execute_genesis("MoMo", "Dubai, UAE", test_hardware(), test_knowledge());
 
         assert_eq!(genesis.pat_team.agents.len(), 7);
         assert_eq!(genesis.sat_team.agents.len(), 5);

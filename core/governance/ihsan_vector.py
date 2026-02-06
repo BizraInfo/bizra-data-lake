@@ -82,6 +82,7 @@ ANTI_CENTRALIZATION_GINI_THRESHOLD: float = 0.35
 # EXECUTION CONTEXT
 # =============================================================================
 
+
 class ExecutionContext(str, Enum):
     """
     Execution environment determining verification strictness.
@@ -92,6 +93,7 @@ class ExecutionContext(str, Enum):
     - Production: Strict constraints for live operations
     - Critical: Maximum constraints for high-stakes decisions
     """
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -111,6 +113,7 @@ CONTEXT_THRESHOLDS: Dict[ExecutionContext, Tuple[float, int, bool]] = {
 # DIMENSION ID ENUM
 # =============================================================================
 
+
 class DimensionId(IntEnum):
     """
     8-dimensional Ihsan canonical ordering.
@@ -118,6 +121,7 @@ class DimensionId(IntEnum):
     The ordering reflects priority - correctness and safety lead
     because they are non-negotiable prerequisites for excellence.
     """
+
     CORRECTNESS = 0
     SAFETY = 1
     USER_BENEFIT = 2
@@ -142,6 +146,7 @@ class DimensionId(IntEnum):
 # IHSAN DIMENSION DATACLASS
 # =============================================================================
 
+
 @dataclass
 class IhsanDimension:
     """
@@ -157,6 +162,7 @@ class IhsanDimension:
     Verification is independent of score - a high score without verification
     is worth less than a moderate score with proof.
     """
+
     id: DimensionId
     weight: float
     score: float = 0.0
@@ -194,7 +200,7 @@ class IhsanDimension:
 
         Returns a new IhsanDimension instance (immutability pattern).
         """
-        ts = timestamp or datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        ts = timestamp or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         return IhsanDimension(
             id=self.id,
             weight=self.weight,
@@ -236,6 +242,7 @@ class IhsanDimension:
 # IHSAN VECTOR CLASS
 # =============================================================================
 
+
 @dataclass
 class IhsanVector:
     """
@@ -266,6 +273,7 @@ class IhsanVector:
         # Generate receipt
         receipt = vec.to_receipt()
     """
+
     dimensions: Dict[DimensionId, IhsanDimension] = field(default_factory=dict)
     created_at: str = ""
     context: Optional[ExecutionContext] = None
@@ -273,7 +281,9 @@ class IhsanVector:
     def __post_init__(self) -> None:
         """Initialize default dimensions if not provided."""
         if not self.created_at:
-            self.created_at = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            self.created_at = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
 
         # Ensure all 8 dimensions exist
         for dim_id in DimensionId:
@@ -517,7 +527,9 @@ class IhsanVector:
         new_dims[dim_id] = self.dimensions[dim_id].mark_verified(proof)
         return IhsanVector(dimensions=new_dims, context=self.context)
 
-    def verify_all(self, proofs: Optional[Dict[DimensionId, str]] = None) -> "IhsanVector":
+    def verify_all(
+        self, proofs: Optional[Dict[DimensionId, str]] = None
+    ) -> "IhsanVector":
         """
         Mark all dimensions as verified (returns new vector).
 
@@ -544,8 +556,7 @@ class IhsanVector:
             "verified_score": round(self.calculate_verified_score(), 6),
             "verified_count": self.verified_count,
             "dimensions": {
-                d.id.name.lower(): d.to_dict()
-                for d in self.dimensions.values()
+                d.id.name.lower(): d.to_dict() for d in self.dimensions.values()
             },
         }
 
@@ -576,20 +587,21 @@ class IhsanVector:
         - Timestamp
         """
         receipt_data = self.to_dict()
-        receipt_json = json.dumps(receipt_data, sort_keys=True, separators=(',', ':'))
+        receipt_json = json.dumps(receipt_data, sort_keys=True, separators=(",", ":"))
         receipt_hash = hashlib.sha256(receipt_json.encode()).hexdigest()
 
         return IhsanReceipt(
             vector=self,
             receipt_hash=receipt_hash,
             receipt_json=receipt_json,
-            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
 
 
 # =============================================================================
 # THRESHOLD RESULT
 # =============================================================================
+
 
 @dataclass
 class ThresholdResult:
@@ -598,6 +610,7 @@ class ThresholdResult:
 
     Provides detailed breakdown of pass/fail criteria.
     """
+
     passed: bool
     context: ExecutionContext
     aggregate_score: float
@@ -629,6 +642,7 @@ class ThresholdResult:
 # IHSAN RECEIPT
 # =============================================================================
 
+
 @dataclass
 class IhsanReceipt:
     """
@@ -637,6 +651,7 @@ class IhsanReceipt:
     Provides tamper-evident record of vector state at a point in time.
     Use this for audit trails and compliance verification.
     """
+
     vector: IhsanVector
     receipt_hash: str
     receipt_json: str
@@ -660,7 +675,7 @@ class IhsanReceipt:
     def from_dict(cls, data: Dict[str, Any]) -> "IhsanReceipt":
         """Reconstruct receipt from serialized form."""
         vector = IhsanVector.from_dict(data["vector"])
-        receipt_json = json.dumps(data["vector"], sort_keys=True, separators=(',', ':'))
+        receipt_json = json.dumps(data["vector"], sort_keys=True, separators=(",", ":"))
         return cls(
             vector=vector,
             receipt_hash=data["receipt_hash"],
@@ -672,6 +687,7 @@ class IhsanReceipt:
 # =============================================================================
 # VERIFICATION FUNCTIONS
 # =============================================================================
+
 
 def create_verifier(
     verify_func: Callable[[IhsanDimension], Tuple[bool, Optional[str]]],
@@ -685,6 +701,7 @@ def create_verifier(
     Returns:
         Function that verifies a dimension in a vector
     """
+
     def verifier(vector: IhsanVector, dim_id: DimensionId) -> IhsanVector:
         dim = vector.get_dimension(dim_id)
         passed, proof = verify_func(dim)
@@ -698,6 +715,7 @@ def create_verifier(
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 def quick_ihsan(
     correctness: float,
@@ -726,14 +744,14 @@ def quick_ihsan(
         Weighted Ihsan score in [0, 1]
     """
     return (
-        correctness * 0.22 +
-        safety * 0.22 +
-        user_benefit * 0.14 +
-        efficiency * 0.12 +
-        auditability * 0.12 +
-        anti_centralization * 0.08 +
-        robustness * 0.06 +
-        fairness * 0.04
+        correctness * 0.22
+        + safety * 0.22
+        + user_benefit * 0.14
+        + efficiency * 0.12
+        + auditability * 0.12
+        + anti_centralization * 0.08
+        + robustness * 0.06
+        + fairness * 0.04
     )
 
 
@@ -753,8 +771,14 @@ def passes_production(
     Note: This does not check verification state.
     """
     score = quick_ihsan(
-        correctness, safety, user_benefit, efficiency,
-        auditability, anti_centralization, robustness, fairness
+        correctness,
+        safety,
+        user_benefit,
+        efficiency,
+        auditability,
+        anti_centralization,
+        robustness,
+        fairness,
     )
     return score >= 0.95
 

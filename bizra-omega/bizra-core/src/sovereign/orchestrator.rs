@@ -6,10 +6,10 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::{NodeIdentity, Constitution, IHSAN_THRESHOLD, SNR_THRESHOLD};
-use crate::pci::gates::GateContext;
-use super::graph_of_thoughts::{ThoughtGraph, ThoughtNode, ReasoningPath};
+use super::graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode};
 use super::snr_engine::{SNREngine, SignalMetrics};
+use crate::pci::gates::GateContext;
+use crate::{Constitution, NodeIdentity, IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 /// Orchestrator configuration
 #[derive(Clone, Debug)]
@@ -94,7 +94,8 @@ impl SovereignOrchestrator {
         let start = std::time::Instant::now();
 
         // Increment operation counter
-        self.operation_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.operation_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
         // Build reasoning path if GoT enabled
         let reasoning = if self.config.enable_got {
@@ -129,10 +130,7 @@ impl SovereignOrchestrator {
         let mut path = self.thought_graph.create_path("validate_content");
 
         // Schema validation thought
-        path.add_thought(ThoughtNode::new(
-            "schema_check",
-            "Validate JSON structure",
-        ));
+        path.add_thought(ThoughtNode::new("schema_check", "Validate JSON structure"));
 
         let schema_valid = serde_json::from_slice::<serde_json::Value>(&ctx.content).is_ok();
         path.record_result("schema_check", schema_valid);
@@ -147,7 +145,8 @@ impl SovereignOrchestrator {
             "Verify signal-to-noise ratio",
         ));
 
-        let snr_valid = ctx.snr_score
+        let snr_valid = ctx
+            .snr_score
             .map(|s| self.constitution.check_snr(s))
             .unwrap_or(true);
         path.record_result("snr_check", snr_valid);
@@ -162,7 +161,8 @@ impl SovereignOrchestrator {
             "Verify excellence threshold",
         ));
 
-        let ihsan_valid = ctx.ihsan_score
+        let ihsan_valid = ctx
+            .ihsan_score
             .map(|i| self.constitution.check_ihsan(i))
             .unwrap_or(true);
         path.record_result("ihsan_check", ihsan_valid);
@@ -173,7 +173,9 @@ impl SovereignOrchestrator {
     /// Get current operation statistics
     pub fn stats(&self) -> OrchestratorStats {
         OrchestratorStats {
-            total_operations: self.operation_count.load(std::sync::atomic::Ordering::Relaxed),
+            total_operations: self
+                .operation_count
+                .load(std::sync::atomic::Ordering::Relaxed),
             config: self.config.clone(),
             snr_floor: self.config.snr_floor,
             ihsan_target: self.config.ihsan_target,
@@ -198,9 +200,7 @@ mod tests {
     async fn test_orchestrator_execute() {
         let orch = SovereignOrchestrator::new(OrchestratorConfig::default());
 
-        let result = orch.execute(|| {
-            2 + 2
-        }).await;
+        let result = orch.execute(|| 2 + 2).await;
 
         assert_eq!(result.value, 4);
         assert!(result.latency_us < 1_000_000); // < 1 second

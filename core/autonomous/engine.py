@@ -14,28 +14,23 @@ of giants to achieve state-of-the-art autonomous reasoning.
 "La hawla wa la quwwata illa billah"
 """
 
-import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
-import time
-import hashlib
 
 from core.autonomous import (
-    SARE_VERSION,
-    GIANTS_PROTOCOL,
-    SNR_THRESHOLDS,
     CONSTITUTIONAL_CONSTRAINTS,
+    GIANTS_PROTOCOL,
+    SARE_VERSION,
+    SNR_THRESHOLDS,
 )
+from core.autonomous.giants import Giant, GiantsProtocol, ProvenanceRecord
+from core.autonomous.loop import LoopExecution, SovereignLoop
 from core.autonomous.nodes import (
-    ReasoningGraph,
-    ReasoningNode,
     ReasoningPath,
-    NodeType,
 )
-from core.autonomous.giants import GiantsProtocol, Giant, ProvenanceRecord
-from core.autonomous.loop import SovereignLoop, LoopExecution, LoopState
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +38,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ReasoningResult:
     """Complete result of autonomous reasoning."""
+
     query: str
     response: str
     confidence: float
@@ -70,6 +66,7 @@ class ReasoningResult:
     def quality_score(self) -> float:
         """Combined quality score."""
         import math
+
         if self.snr_score <= 0 or self.ihsan_score <= 0:
             return 0.0
         return math.sqrt(self.snr_score * self.ihsan_score)
@@ -78,8 +75,8 @@ class ReasoningResult:
     def is_constitutional(self) -> bool:
         """Check if result meets constitutional thresholds."""
         return (
-            self.ihsan_score >= CONSTITUTIONAL_CONSTRAINTS["ihsan_threshold"] and
-            self.snr_score >= SNR_THRESHOLDS["action"]
+            self.ihsan_score >= CONSTITUTIONAL_CONSTRAINTS["ihsan_threshold"]
+            and self.snr_score >= SNR_THRESHOLDS["action"]
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -215,14 +212,19 @@ class SovereignReasoningEngine:
         graph_stats = graph.get_stats() if graph else {}
 
         # Collect giants and techniques
-        giants_invoked = list(set([
-            p.node_id.split("_")[0] if p.node_id else ""
-            for p in execution.phases
-        ]))
-        techniques_used = list(set([
-            p.metadata.get("technique", "") if p.metadata else ""
-            for p in execution.phases
-        ]))
+        giants_invoked = list(
+            set(
+                [p.node_id.split("_")[0] if p.node_id else "" for p in execution.phases]
+            )
+        )
+        techniques_used = list(
+            set(
+                [
+                    p.metadata.get("technique", "") if p.metadata else ""
+                    for p in execution.phases
+                ]
+            )
+        )
 
         duration = (time.time() - start_time) * 1000
         self._total_duration_ms += duration
@@ -320,7 +322,9 @@ class SovereignReasoningEngine:
         }
 
         sources_text = "\n\n---\n\n".join(sources[:10])  # Limit sources
-        augmented_query = f"Synthesize these sources into a coherent understanding:\n\n{sources_text}"
+        augmented_query = (
+            f"Synthesize these sources into a coherent understanding:\n\n{sources_text}"
+        )
 
         return await self.reason(augmented_query, context)
 
@@ -367,7 +371,9 @@ class SovereignReasoningEngine:
             "output_type": output_type,
         }
 
-        augmented_query = f"Create {output_type} based on this specification:\n\n{specification}"
+        augmented_query = (
+            f"Create {output_type} based on this specification:\n\n{specification}"
+        )
 
         return await self.reason(augmented_query, context)
 
@@ -394,7 +400,9 @@ class SovereignReasoningEngine:
             (result, inheritance_record)
         """
         giant_enum = Giant(giant)
-        result, inheritance = self._giants.invoke(giant_enum, technique, *args, **kwargs)
+        result, inheritance = self._giants.invoke(
+            giant_enum, technique, *args, **kwargs
+        )
         return result, inheritance.to_dict()
 
     def get_giant_info(self, giant: str) -> Dict[str, Any]:
@@ -439,10 +447,12 @@ class SovereignReasoningEngine:
             "avg_duration_ms": self._total_duration_ms / self._total_queries,
             "avg_snr": sum(r.snr_score for r in self._results) / len(self._results),
             "avg_ihsan": sum(r.ihsan_score for r in self._results) / len(self._results),
-            "avg_quality": sum(r.quality_score for r in self._results) / len(self._results),
+            "avg_quality": sum(r.quality_score for r in self._results)
+            / len(self._results),
             "constitutional_compliance": sum(
                 1 for r in self._results if r.is_constitutional
-            ) / len(self._results),
+            )
+            / len(self._results),
             "loop_stats": self._loop.get_stats(),
             "constitutional_thresholds": self._constitutional,
         }
@@ -464,7 +474,11 @@ class SovereignReasoningEngine:
         compliance = sum(1 for r in recent if r.is_constitutional) / len(recent)
 
         return {
-            "status": "compliant" if compliance >= 0.9 else "warning" if compliance >= 0.7 else "critical",
+            "status": (
+                "compliant"
+                if compliance >= 0.9
+                else "warning" if compliance >= 0.7 else "critical"
+            ),
             "compliance": compliance,
             "recent_results": len(recent),
             "constitutional_count": sum(1 for r in recent if r.is_constitutional),
@@ -498,6 +512,7 @@ class SovereignReasoningEngine:
 # =============================================================================
 # FACTORY FUNCTION
 # =============================================================================
+
 
 def create_sovereign_engine(
     llm_fn: Optional[Callable[[str], str]] = None,

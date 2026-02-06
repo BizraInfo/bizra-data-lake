@@ -6,18 +6,18 @@
 //! Run with: cargo test -p bizra-tests --test e2e
 
 use bizra_core::{
-    NodeIdentity, Constitution, PCIEnvelope, NodeId,
-    domain_separated_digest, IHSAN_THRESHOLD, SNR_THRESHOLD,
+    domain_separated_digest,
     pci::gates::{default_gate_chain, GateChain, GateContext},
     pci::RejectCode,
+    Constitution, NodeId, NodeIdentity, PCIEnvelope, IHSAN_THRESHOLD, SNR_THRESHOLD,
+};
+use bizra_federation::{
+    consensus::ConsensusEngine,
+    gossip::{GossipMessage, GossipProtocol, Member},
 };
 use bizra_inference::{
     gateway::InferenceRequest,
     selector::{ModelSelector, ModelTier, TaskComplexity},
-};
-use bizra_federation::{
-    gossip::{GossipProtocol, Member, GossipMessage},
-    consensus::ConsensusEngine,
 };
 
 /// Test complete identity lifecycle
@@ -35,11 +35,19 @@ fn e2e_identity_lifecycle() {
     println!("✓ Signed message: {}...", &signature[..16]);
 
     // 3. Verify signature
-    assert!(NodeIdentity::verify(message, &signature, identity.verifying_key()));
+    assert!(NodeIdentity::verify(
+        message,
+        &signature,
+        identity.verifying_key()
+    ));
     println!("✓ Signature verified");
 
     // 4. Tampered message fails
-    assert!(!NodeIdentity::verify(b"tampered", &signature, identity.verifying_key()));
+    assert!(!NodeIdentity::verify(
+        b"tampered",
+        &signature,
+        identity.verifying_key()
+    ));
     println!("✓ Tampered message rejected");
 
     // 5. Persist and restore
@@ -73,9 +81,8 @@ fn e2e_pci_envelope_flow() {
     println!("✓ Envelope verified");
 
     // 3. Check content hash
-    let expected_hash = domain_separated_digest(
-        serde_json::to_string(&payload).unwrap().as_bytes()
-    );
+    let expected_hash =
+        domain_separated_digest(serde_json::to_string(&payload).unwrap().as_bytes());
     assert_eq!(envelope.content_hash, expected_hash);
     println!("✓ Content hash matches");
 
@@ -170,10 +177,13 @@ fn e2e_model_tier_selection() {
     // 2. Medium or Simple task → Edge tier
     let medium = TaskComplexity::estimate(
         "Write a function to calculate fibonacci numbers up to n",
-        200
+        200,
     );
     // Complexity depends on word count and max_tokens
-    assert!(matches!(medium, TaskComplexity::Simple | TaskComplexity::Medium));
+    assert!(matches!(
+        medium,
+        TaskComplexity::Simple | TaskComplexity::Medium
+    ));
     assert_eq!(selector.select_tier(&medium), ModelTier::Edge);
     println!("✓ Medium/Simple task → Edge tier");
 
@@ -181,7 +191,7 @@ fn e2e_model_tier_selection() {
     let complex = TaskComplexity::estimate(
         "Explain the mathematical foundations of quantum computing and \
          how Shor's algorithm works, including the quantum Fourier transform",
-        1000
+        1000,
     );
     assert_eq!(complex, TaskComplexity::Complex);
     assert_eq!(selector.select_tier(&complex), ModelTier::Local);
@@ -190,7 +200,7 @@ fn e2e_model_tier_selection() {
     // 4. Expert task → Pool tier
     let expert = TaskComplexity::estimate(
         &("Explain ".repeat(100) + "```python\ndef complex_algo(): pass```"),
-        3000
+        3000,
     );
     assert_eq!(expert, TaskComplexity::Expert);
     assert_eq!(selector.select_tier(&expert), ModelTier::Pool);
@@ -205,7 +215,10 @@ fn e2e_constitution_thresholds() {
     // 1. Verify default thresholds
     assert!((IHSAN_THRESHOLD - 0.95).abs() < 0.001);
     assert!((SNR_THRESHOLD - 0.85).abs() < 0.001);
-    println!("✓ Default thresholds: Ihsan={}, SNR={}", IHSAN_THRESHOLD, SNR_THRESHOLD);
+    println!(
+        "✓ Default thresholds: Ihsan={}, SNR={}",
+        IHSAN_THRESHOLD, SNR_THRESHOLD
+    );
 
     // 2. Ihsan checks
     assert!(constitution.check_ihsan(0.95));
@@ -285,12 +298,16 @@ async fn e2e_gossip_membership() {
 
     // 4. Handle join message
     let new_member = Member::new(NodeId("peer_3".into()), "192.168.1.3:7946".parse().unwrap());
-    gossip.handle_message(GossipMessage::Join { member: new_member }).await;
+    gossip
+        .handle_message(GossipMessage::Join { member: new_member })
+        .await;
     assert_eq!(gossip.member_count().await, 4);
     println!("✓ Handled join, total: 4");
 
     // 5. Handle leave message
-    gossip.handle_message(GossipMessage::Leave { node_id: peer1_id }).await;
+    gossip
+        .handle_message(GossipMessage::Leave { node_id: peer1_id })
+        .await;
     let alive = gossip.alive_members().await;
     assert_eq!(alive.len(), 3); // peer_1 is now Left, not Alive
     println!("✓ Handled leave, alive: 3");
@@ -313,7 +330,9 @@ fn e2e_consensus_voting() {
     println!("✓ Proposal submitted: {}", proposal.id);
 
     // 2. Self-vote
-    let vote = engine.vote(&proposal.id, true, 0.96).expect("Failed to vote");
+    let vote = engine
+        .vote(&proposal.id, true, 0.96)
+        .expect("Failed to vote");
     let consensus = engine.receive_vote(vote).expect("Failed to receive vote");
     assert!(!consensus); // Need more votes
     println!("✓ Self-vote received, no consensus yet");
@@ -367,8 +386,8 @@ fn e2e_full_pci_gate_flow() {
         "snr": 0.92
     });
 
-    let envelope = PCIEnvelope::create(&identity, payload, 3600, vec![])
-        .expect("Failed to create envelope");
+    let envelope =
+        PCIEnvelope::create(&identity, payload, 3600, vec![]).expect("Failed to create envelope");
 
     // 2. Verify envelope signature
     assert!(envelope.verify().is_ok());
@@ -423,9 +442,21 @@ fn benchmark_identity_ops() {
     let hash_elapsed = start.elapsed();
 
     println!("\n📊 Performance Benchmarks:");
-    println!("   100 signatures: {:?} ({:.0}/sec)", sign_elapsed, 100.0 / sign_elapsed.as_secs_f64());
-    println!("   100 verifies:   {:?} ({:.0}/sec)", verify_elapsed, 100.0 / verify_elapsed.as_secs_f64());
-    println!("   1000 hashes:    {:?} ({:.0}/sec)", hash_elapsed, 1000.0 / hash_elapsed.as_secs_f64());
+    println!(
+        "   100 signatures: {:?} ({:.0}/sec)",
+        sign_elapsed,
+        100.0 / sign_elapsed.as_secs_f64()
+    );
+    println!(
+        "   100 verifies:   {:?} ({:.0}/sec)",
+        verify_elapsed,
+        100.0 / verify_elapsed.as_secs_f64()
+    );
+    println!(
+        "   1000 hashes:    {:?} ({:.0}/sec)",
+        hash_elapsed,
+        1000.0 / hash_elapsed.as_secs_f64()
+    );
 
     // Assert reasonable performance
     assert!(sign_elapsed.as_millis() < 5000); // < 5s for 100 sigs

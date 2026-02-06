@@ -616,10 +616,11 @@ pub fn jcs_canonicalize<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     })?;
 
     // Use json-canon for RFC 8785 canonicalization
-    let canonical =
-        json_canon::to_string(&json_value).map_err(|e| ValidationError::CanonicalizationFailed {
+    let canonical = json_canon::to_string(&json_value).map_err(|e| {
+        ValidationError::CanonicalizationFailed {
             reason: e.to_string(),
-        })?;
+        }
+    })?;
 
     Ok(canonical.into_bytes())
 }
@@ -989,7 +990,7 @@ impl ProofSpaceValidator {
         // Validate human override consistency
         if env.human_override_conditions.can_override {
             if let Some(level) = env.human_override_conditions.required_authority_level {
-                if level < 1 || level > 10 {
+                if !(1..=10).contains(&level) {
                     errors.push(ValidationError::ValueOutOfRange {
                         field: "human_override_conditions.required_authority_level".to_string(),
                         actual: level as f64,
@@ -1051,30 +1052,26 @@ impl ProofSpaceValidator {
             }
         })?;
 
-        let sig_bytes =
-            hex::decode(&block.signatures.creator_signature).map_err(|_| {
-                ValidationError::InvalidSignatureFormat {
-                    field: "creator_signature".to_string(),
-                }
-            })?;
+        let sig_bytes = hex::decode(&block.signatures.creator_signature).map_err(|_| {
+            ValidationError::InvalidSignatureFormat {
+                field: "creator_signature".to_string(),
+            }
+        })?;
 
-        let verifying_key =
-            VerifyingKey::from_bytes(&pk_bytes.try_into().map_err(|_| {
-                ValidationError::CryptoError {
-                    reason: "Invalid public key length".to_string(),
-                }
-            })?)
-            .map_err(|e| ValidationError::CryptoError {
-                reason: format!("Invalid public key: {}", e),
-            })?;
+        let verifying_key = VerifyingKey::from_bytes(&pk_bytes.try_into().map_err(|_| {
+            ValidationError::CryptoError {
+                reason: "Invalid public key length".to_string(),
+            }
+        })?)
+        .map_err(|e| ValidationError::CryptoError {
+            reason: format!("Invalid public key: {}", e),
+        })?;
 
-        let signature = Signature::from_bytes(
-            &sig_bytes
-                .try_into()
-                .map_err(|_| ValidationError::CryptoError {
-                    reason: "Invalid signature length".to_string(),
-                })?,
-        );
+        let signature = Signature::from_bytes(&sig_bytes.try_into().map_err(|_| {
+            ValidationError::CryptoError {
+                reason: "Invalid signature length".to_string(),
+            }
+        })?);
 
         // Sign the hash of the block_id (which is already SHA-256 of UnsignedBlock)
         let hash_bytes = hex::decode(block_id).map_err(|_| ValidationError::CryptoError {
@@ -1088,43 +1085,41 @@ impl ProofSpaceValidator {
 
     /// Verify a verifier signature
     fn verify_verifier_signature(&self, vs: &VerifierSignature, block_id: &str) -> Result<()> {
-        let pk_bytes =
-            hex::decode(&vs.verifier_node).map_err(|_| ValidationError::InvalidPublicKeyFormat {
+        let pk_bytes = hex::decode(&vs.verifier_node).map_err(|_| {
+            ValidationError::InvalidPublicKeyFormat {
                 field: "verifier_node".to_string(),
-            })?;
+            }
+        })?;
 
         let sig_bytes =
             hex::decode(&vs.signature).map_err(|_| ValidationError::InvalidSignatureFormat {
                 field: "verifier_signature".to_string(),
             })?;
 
-        let verifying_key =
-            VerifyingKey::from_bytes(&pk_bytes.try_into().map_err(|_| {
-                ValidationError::CryptoError {
-                    reason: "Invalid public key length".to_string(),
-                }
-            })?)
-            .map_err(|e| ValidationError::CryptoError {
-                reason: format!("Invalid verifier public key: {}", e),
-            })?;
+        let verifying_key = VerifyingKey::from_bytes(&pk_bytes.try_into().map_err(|_| {
+            ValidationError::CryptoError {
+                reason: "Invalid public key length".to_string(),
+            }
+        })?)
+        .map_err(|e| ValidationError::CryptoError {
+            reason: format!("Invalid verifier public key: {}", e),
+        })?;
 
-        let signature = Signature::from_bytes(
-            &sig_bytes
-                .try_into()
-                .map_err(|_| ValidationError::CryptoError {
-                    reason: "Invalid signature length".to_string(),
-                })?,
-        );
+        let signature = Signature::from_bytes(&sig_bytes.try_into().map_err(|_| {
+            ValidationError::CryptoError {
+                reason: "Invalid signature length".to_string(),
+            }
+        })?);
 
         let hash_bytes = hex::decode(block_id).map_err(|_| ValidationError::CryptoError {
             reason: "Invalid block_id hex".to_string(),
         })?;
 
-        verifying_key
-            .verify(&hash_bytes, &signature)
-            .map_err(|_| ValidationError::InvalidVerifierSignature {
+        verifying_key.verify(&hash_bytes, &signature).map_err(|_| {
+            ValidationError::InvalidVerifierSignature {
                 verifier: vs.verifier_node.clone(),
-            })
+            }
+        })
     }
 
     /// Compute FATE scores from block content

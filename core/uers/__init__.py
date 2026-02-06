@@ -127,24 +127,28 @@ UERS_GIANTS_MAPPING = {
 
 # Lazy imports
 if TYPE_CHECKING:
-    from .vectors import AnalyticalManifold
     from .convergence import ConvergenceLoop
     from .entropy import EntropyCalculator
     from .impact import ImpactOracle
+    from .vectors import AnalyticalManifold
 
 
 def __getattr__(name: str):
     if name == "AnalyticalManifold":
         from .vectors import AnalyticalManifold
+
         return AnalyticalManifold
     elif name == "ConvergenceLoop":
         from .convergence import ConvergenceLoop
+
         return ConvergenceLoop
     elif name == "EntropyCalculator":
         from .entropy import EntropyCalculator
+
         return EntropyCalculator
     elif name == "ImpactOracle":
         from .impact import ImpactOracle
+
         return ImpactOracle
     raise AttributeError(f"module 'core.uers' has no attribute '{name}'")
 

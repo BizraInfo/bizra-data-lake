@@ -11,6 +11,6 @@ from .ollama import OllamaBackend
 
 __all__ = [
     "InferenceBackendBase",
-    "LlamaCppBackend", 
+    "LlamaCppBackend",
     "OllamaBackend",
 ]

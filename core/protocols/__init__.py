@@ -15,22 +15,22 @@
 Created: 2026-02-05 | SAPE Elite Analysis Implementation
 """
 
-from .inference_backend import (
-    InferenceBackend,
-    InferenceRequest,
-    InferenceResponse,
-    BackendCapability,
-)
 from .bridge import (
-    BridgeProtocol,
-    BridgeHealth,
     BridgeDirection,
+    BridgeHealth,
+    BridgeProtocol,
 )
 from .gate_chain import (
     Gate,
     GateChain,
     GateResult,
     GateStatus,
+)
+from .inference_backend import (
+    BackendCapability,
+    InferenceBackend,
+    InferenceRequest,
+    InferenceResponse,
 )
 
 __all__ = [

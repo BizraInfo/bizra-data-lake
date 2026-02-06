@@ -5,19 +5,19 @@
 //! Run: cargo run -p bizra-api --release
 //! Or:  ./target/release/bizra-api
 
-use std::sync::Arc;
-use std::net::SocketAddr;
 use ed25519_dalek::SigningKey;
+use std::net::SocketAddr;
+use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use bizra_core::{NodeIdentity, Constitution};
+use bizra_api::{serve, AppState, ServerConfig};
+use bizra_core::{Constitution, NodeIdentity};
+use bizra_federation::{ConsensusEngine, GossipProtocol};
 use bizra_inference::{
-    InferenceGateway,
-    backends::{BackendConfig, ollama::OllamaBackend},
+    backends::{ollama::OllamaBackend, BackendConfig},
     selector::ModelTier,
+    InferenceGateway,
 };
-use bizra_federation::{GossipProtocol, ConsensusEngine};
-use bizra_api::{AppState, ServerConfig, serve};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,13 +32,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse command line args
     let args: Vec<String> = std::env::args().collect();
-    let port = args.iter()
+    let port = args
+        .iter()
         .position(|a| a == "--port" || a == "-p")
         .and_then(|i| args.get(i + 1))
         .and_then(|p| p.parse().ok())
         .unwrap_or(3001);
 
-    let host = args.iter()
+    let host = args
+        .iter()
         .position(|a| a == "--host")
         .and_then(|i| args.get(i + 1))
         .map(|s| s.as_str())
@@ -66,7 +68,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Register Ollama backend if available
     if check_ollama_available().await {
-        let model = detect_ollama_model().await.unwrap_or_else(|| "qwen2.5:7b".into());
+        let model = detect_ollama_model()
+            .await
+            .unwrap_or_else(|| "qwen2.5:7b".into());
         let ollama_config = BackendConfig {
             name: "ollama-local".into(),
             model: model.clone(),
@@ -74,7 +78,9 @@ async fn main() -> anyhow::Result<()> {
             gpu_layers: -1,
         };
         let ollama = Arc::new(OllamaBackend::new(ollama_config, None));
-        gateway.register_backend(ModelTier::Local, ollama.clone()).await;
+        gateway
+            .register_backend(ModelTier::Local, ollama.clone())
+            .await;
         gateway.register_backend(ModelTier::Edge, ollama).await;
         tracing::info!(model = %model, "Ollama backend registered");
     } else {
@@ -95,10 +101,14 @@ async fn main() -> anyhow::Result<()> {
     // Build application state
     let state = Arc::new(
         AppState::new(constitution)
-            .with_identity(identity).await
-            .with_gateway(gateway).await
-            .with_gossip(gossip).await
-            .with_consensus(consensus).await
+            .with_identity(identity)
+            .await
+            .with_gateway(gateway)
+            .await
+            .with_gossip(gossip)
+            .await
+            .with_consensus(consensus)
+            .await,
     );
 
     // Server configuration
@@ -112,7 +122,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Print startup info
     println!("\n   ┌─────────────────────────────────────────────────────────────┐");
-    println!("   │  BIZRA Sovereign API Server v{}                        │", env!("CARGO_PKG_VERSION"));
+    println!(
+        "   │  BIZRA Sovereign API Server v{}                        │",
+        env!("CARGO_PKG_VERSION")
+    );
     println!("   ├─────────────────────────────────────────────────────────────┤");
     println!("   │  Endpoints:                                                 │");
     println!("   │    GET  /api/v1/health          Health check                │");
@@ -132,7 +145,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn print_banner() {
-    println!(r#"
+    println!(
+        r#"
    ╔══════════════════════════════════════════════════════════════════════╗
    ║   ██████╗ ██╗███████╗██████╗  █████╗                                 ║
    ║   ██╔══██╗██║╚══███╔╝██╔══██╗██╔══██╗                                ║
@@ -143,7 +157,8 @@ fn print_banner() {
    ║                                                                      ║
    ║   Sovereign API Gateway — Every human is a node, every node is a seed║
    ╚══════════════════════════════════════════════════════════════════════╝
-    "#);
+    "#
+    );
 }
 
 fn load_or_create_identity_bytes() -> anyhow::Result<[u8; 32]> {
@@ -154,14 +169,15 @@ fn load_or_create_identity_bytes() -> anyhow::Result<[u8; 32]> {
     if identity_file.exists() {
         let hex_key = std::fs::read_to_string(&identity_file)?;
         let secret = hex::decode(hex_key.trim())?;
-        let secret_array: [u8; 32] = secret.try_into()
+        let secret_array: [u8; 32] = secret
+            .try_into()
             .map_err(|_| anyhow::anyhow!("Invalid key length"))?;
         Ok(secret_array)
     } else {
         std::fs::create_dir_all(&identity_dir)?;
         let identity = NodeIdentity::generate();
         let secret_bytes = identity.secret_bytes();
-        std::fs::write(&identity_file, hex::encode(&secret_bytes))?;
+        std::fs::write(&identity_file, hex::encode(secret_bytes))?;
         tracing::info!(path = %identity_file.display(), "New identity created");
         Ok(secret_bytes)
     }
@@ -169,8 +185,7 @@ fn load_or_create_identity_bytes() -> anyhow::Result<[u8; 32]> {
 
 async fn check_ollama_available() -> bool {
     let client = reqwest::Client::new();
-    let base_url = std::env::var("OLLAMA_HOST")
-        .unwrap_or_else(|_| "http://localhost:11434".into());
+    let base_url = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
 
     match client.get(format!("{}/api/tags", base_url)).send().await {
         Ok(resp) => resp.status().is_success(),
@@ -180,8 +195,7 @@ async fn check_ollama_available() -> bool {
 
 async fn detect_ollama_model() -> Option<String> {
     let client = reqwest::Client::new();
-    let base_url = std::env::var("OLLAMA_HOST")
-        .unwrap_or_else(|_| "http://localhost:11434".into());
+    let base_url = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
 
     #[derive(serde::Deserialize)]
     struct TagsResponse {
@@ -193,7 +207,8 @@ async fn detect_ollama_model() -> Option<String> {
         name: String,
     }
 
-    let resp = client.get(format!("{}/api/tags", base_url))
+    let resp = client
+        .get(format!("{}/api/tags", base_url))
         .send()
         .await
         .ok()?;
@@ -204,7 +219,11 @@ async fn detect_ollama_model() -> Option<String> {
     let preferred = ["qwen", "llama", "mistral", "phi"];
 
     for pref in preferred {
-        if let Some(model) = tags.models.iter().find(|m| m.name.to_lowercase().contains(pref)) {
+        if let Some(model) = tags
+            .models
+            .iter()
+            .find(|m| m.name.to_lowercase().contains(pref))
+        {
             return Some(model.name.clone());
         }
     }

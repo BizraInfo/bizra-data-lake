@@ -20,17 +20,20 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from .autonomy_matrix import AutonomyLevel, AutonomyMatrix, ActionContext
-from .event_bus import EventBus, EventPriority, get_event_bus
-from .proactive_scheduler import ProactiveScheduler, ScheduledJob, ScheduleType, JobPriority
+from .autonomy_matrix import ActionContext, AutonomyLevel, AutonomyMatrix
+from .event_bus import EventPriority, get_event_bus
+from .proactive_scheduler import (
+    ProactiveScheduler,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class AgentState(str, Enum):
     """Background agent execution states."""
+
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
@@ -40,6 +43,7 @@ class AgentState(str, Enum):
 
 class ActionType(str, Enum):
     """Types of proactive actions."""
+
     CALENDAR_OPTIMIZE = "calendar_optimize"
     EMAIL_TRIAGE = "email_triage"
     FILE_ORGANIZE = "file_organize"
@@ -52,6 +56,7 @@ class ActionType(str, Enum):
 
 class ApprovalStatus(str, Enum):
     """Action approval status."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -61,6 +66,7 @@ class ApprovalStatus(str, Enum):
 
 class ExecutionStatus(str, Enum):
     """Action execution status."""
+
     PLANNED = "planned"
     EXECUTING = "executing"
     SUCCESS = "success"
@@ -70,6 +76,7 @@ class ExecutionStatus(str, Enum):
 
 class Reversibility(str, Enum):
     """How easily an action can be undone."""
+
     INSTANT = "instant"
     WITHIN_HOUR = "within_hour"
     WITHIN_DAY = "within_day"
@@ -81,6 +88,7 @@ class Reversibility(str, Enum):
 @dataclass
 class ProactiveOpportunity:
     """An identified opportunity for proactive action."""
+
     opportunity_type: str
     description: str
     priority: int = 0  # Higher = more important
@@ -93,6 +101,7 @@ class ProactiveOpportunity:
 @dataclass
 class ProactiveAction:
     """A planned proactive action with constitutional validation."""
+
     agent_id: str
     action_type: ActionType
     autonomy_level: AutonomyLevel
@@ -112,20 +121,22 @@ class ProactiveAction:
     def to_dict(self) -> Dict:
         """Convert action to dictionary."""
         return {
-            'agent_id': self.agent_id,
-            'action_type': self.action_type.value,
-            'autonomy_level': self.autonomy_level.value,
-            'description': self.description,
-            'rationale': self.rationale,
-            'ihsan_score': self.ihsan_score,
-            'financial_impact': self.financial_impact,
-            'reversibility': self.reversibility.value,
-            'timestamp': self.timestamp.isoformat(),
-            'requires_approval': self.requires_approval,
-            'approval_status': self.approval_status.value if self.approval_status else None,
-            'execution_status': self.execution_status.value,
-            'outcome_value': self.outcome_value,
-            'priority': self.priority,
+            "agent_id": self.agent_id,
+            "action_type": self.action_type.value,
+            "autonomy_level": self.autonomy_level.value,
+            "description": self.description,
+            "rationale": self.rationale,
+            "ihsan_score": self.ihsan_score,
+            "financial_impact": self.financial_impact,
+            "reversibility": self.reversibility.value,
+            "timestamp": self.timestamp.isoformat(),
+            "requires_approval": self.requires_approval,
+            "approval_status": (
+                self.approval_status.value if self.approval_status else None
+            ),
+            "execution_status": self.execution_status.value,
+            "outcome_value": self.outcome_value,
+            "priority": self.priority,
         }
 
     def constitutional_check(self, autonomy_matrix: AutonomyMatrix) -> bool:
@@ -136,7 +147,8 @@ class ProactiveAction:
             risk_score=1.0 - self.ihsan_score,
             cost_estimate=self.financial_impact,
             ihsan_score=self.ihsan_score,
-            is_reversible=self.reversibility in [Reversibility.INSTANT, Reversibility.WITHIN_HOUR],
+            is_reversible=self.reversibility
+            in [Reversibility.INSTANT, Reversibility.WITHIN_HOUR],
         )
 
         decision = autonomy_matrix.determine_autonomy(context)
@@ -203,7 +215,9 @@ class BackgroundAgent(ABC):
         return elapsed >= self.run_interval
 
     @abstractmethod
-    async def identify_opportunities(self, context: Dict[str, Any]) -> List[ProactiveOpportunity]:
+    async def identify_opportunities(
+        self, context: Dict[str, Any]
+    ) -> List[ProactiveOpportunity]:
         """
         Identify proactive opportunities in the agent's domain.
 
@@ -262,30 +276,30 @@ class BackgroundAgent(ABC):
 
         # Update average Ihsan
         self.avg_ihsan_score = (
-            (self.avg_ihsan_score * (self.actions_taken - 1) + action.ihsan_score)
-            / self.actions_taken
-        )
+            self.avg_ihsan_score * (self.actions_taken - 1) + action.ihsan_score
+        ) / self.actions_taken
 
     def stats(self) -> Dict[str, Any]:
         """Get agent statistics."""
         return {
-            'agent_id': self.agent_id,
-            'name': self.name,
-            'state': self.state.value,
-            'last_run': self.last_run.isoformat() if self.last_run else None,
-            'actions_taken': self.actions_taken,
-            'actions_approved': self.actions_approved,
-            'actions_rejected': self.actions_rejected,
-            'total_value_created': self.total_value_created,
-            'avg_ihsan_score': self.avg_ihsan_score,
-            'run_interval': self.run_interval,
-            'autonomy_level': self.autonomy_level.name,
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "state": self.state.value,
+            "last_run": self.last_run.isoformat() if self.last_run else None,
+            "actions_taken": self.actions_taken,
+            "actions_approved": self.actions_approved,
+            "actions_rejected": self.actions_rejected,
+            "total_value_created": self.total_value_created,
+            "avg_ihsan_score": self.avg_ihsan_score,
+            "run_interval": self.run_interval,
+            "autonomy_level": self.autonomy_level.name,
         }
 
 
 # =============================================================================
 # DOMAIN-SPECIFIC AGENT IMPLEMENTATIONS
 # =============================================================================
+
 
 class CalendarOptimizer(BackgroundAgent):
     """
@@ -310,52 +324,58 @@ class CalendarOptimizer(BackgroundAgent):
 
         # Default preferences
         self.user_preferences = {
-            'focus_hours': {'start': 9, 'end': 11},
-            'meeting_days': ['Tuesday', 'Thursday'],
-            'break_interval_minutes': 90,
-            'auto_block_focus': True,
+            "focus_hours": {"start": 9, "end": 11},
+            "meeting_days": ["Tuesday", "Thursday"],
+            "break_interval_minutes": 90,
+            "auto_block_focus": True,
         }
 
-    async def identify_opportunities(self, context: Dict[str, Any]) -> List[ProactiveOpportunity]:
+    async def identify_opportunities(
+        self, context: Dict[str, Any]
+    ) -> List[ProactiveOpportunity]:
         """Identify calendar optimization opportunities."""
         opportunities = []
 
-        calendar_data = context.get('calendar', {})
-        events = calendar_data.get('events', [])
-        current_time = context.get('current_time', datetime.now(timezone.utc))
+        calendar_data = context.get("calendar", {})
+        events = calendar_data.get("events", [])
+        current_time = context.get("current_time", datetime.now(timezone.utc))
 
         # 1. Check for missing focus time
         has_focus = any(
-            e.get('summary', '').lower() == 'focus time'
+            e.get("summary", "").lower() == "focus time"
             for e in events
-            if e.get('start', datetime.max) > current_time
+            if e.get("start", datetime.max) > current_time
         )
 
-        if not has_focus and self.user_preferences.get('auto_block_focus'):
-            opportunities.append(ProactiveOpportunity(
-                opportunity_type='missing_focus_time',
-                description='No focus time scheduled',
-                priority=3,
-                potential_value=2.0,
-                urgency=0.6,
-            ))
+        if not has_focus and self.user_preferences.get("auto_block_focus"):
+            opportunities.append(
+                ProactiveOpportunity(
+                    opportunity_type="missing_focus_time",
+                    description="No focus time scheduled",
+                    priority=3,
+                    potential_value=2.0,
+                    urgency=0.6,
+                )
+            )
 
         # 2. Check for back-to-back meetings
-        sorted_events = sorted(events, key=lambda x: x.get('start', datetime.min))
+        sorted_events = sorted(events, key=lambda x: x.get("start", datetime.min))
         for i in range(len(sorted_events) - 1):
-            current_end = sorted_events[i].get('end')
-            next_start = sorted_events[i + 1].get('start')
+            current_end = sorted_events[i].get("end")
+            next_start = sorted_events[i + 1].get("start")
 
             if current_end and next_start:
                 gap_minutes = (next_start - current_end).total_seconds() / 60
                 if 0 < gap_minutes < 15:  # Less than 15 min break
-                    opportunities.append(ProactiveOpportunity(
-                        opportunity_type='needs_break',
-                        description=f'Back-to-back events, {gap_minutes:.0f}min gap',
-                        priority=1,
-                        potential_value=0.1,
-                        urgency=0.3,
-                    ))
+                    opportunities.append(
+                        ProactiveOpportunity(
+                            opportunity_type="needs_break",
+                            description=f"Back-to-back events, {gap_minutes:.0f}min gap",
+                            priority=1,
+                            potential_value=0.1,
+                            urgency=0.3,
+                        )
+                    )
 
         return opportunities
 
@@ -367,7 +387,7 @@ class CalendarOptimizer(BackgroundAgent):
         """Plan a calendar optimization action."""
         opp_type = opportunity.opportunity_type
 
-        if opp_type == 'missing_focus_time':
+        if opp_type == "missing_focus_time":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -380,7 +400,7 @@ class CalendarOptimizer(BackgroundAgent):
                 priority=opportunity.priority,
             )
 
-        elif opp_type == 'needs_break':
+        elif opp_type == "needs_break":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -443,51 +463,70 @@ class EmailTriage(BackgroundAgent):
             ihsan_threshold=0.95,
         )
 
-        self.priority_keywords = ['urgent', 'asap', 'important', 'action required', 'deadline']
-        self.low_priority_keywords = ['newsletter', 'promotion', 'notification', 'unsubscribe']
+        self.priority_keywords = [
+            "urgent",
+            "asap",
+            "important",
+            "action required",
+            "deadline",
+        ]
+        self.low_priority_keywords = [
+            "newsletter",
+            "promotion",
+            "notification",
+            "unsubscribe",
+        ]
 
-    async def identify_opportunities(self, context: Dict[str, Any]) -> List[ProactiveOpportunity]:
+    async def identify_opportunities(
+        self, context: Dict[str, Any]
+    ) -> List[ProactiveOpportunity]:
         """Identify email triage opportunities."""
         opportunities = []
 
-        email_data = context.get('email', {})
-        unread_count = email_data.get('unread_count', 0)
-        recent_emails = email_data.get('recent_emails', [])
+        email_data = context.get("email", {})
+        unread_count = email_data.get("unread_count", 0)
+        recent_emails = email_data.get("recent_emails", [])
 
         # Check for urgent emails
         for email in recent_emails:
-            subject = email.get('subject', '').lower()
-            sender = email.get('from', '')
+            subject = email.get("subject", "").lower()
+            sender = email.get("from", "")
 
             if any(kw in subject for kw in self.priority_keywords):
-                opportunities.append(ProactiveOpportunity(
-                    opportunity_type='urgent_email',
-                    description=f'Urgent email from {sender[:20]}',
-                    priority=4,
-                    potential_value=5.0,
-                    urgency=0.9,
-                    context={'email_id': email.get('id')},
-                ))
+                opportunities.append(
+                    ProactiveOpportunity(
+                        opportunity_type="urgent_email",
+                        description=f"Urgent email from {sender[:20]}",
+                        priority=4,
+                        potential_value=5.0,
+                        urgency=0.9,
+                        context={"email_id": email.get("id")},
+                    )
+                )
 
             elif any(kw in subject for kw in self.low_priority_keywords):
-                opportunities.append(ProactiveOpportunity(
-                    opportunity_type='low_priority_email',
-                    description=f'Low priority: {subject[:30]}...',
-                    priority=1,
-                    potential_value=0.1,
-                    urgency=0.2,
-                    context={'email_id': email.get('id')},
-                ))
+                opportunities.append(
+                    ProactiveOpportunity(
+                        opportunity_type="low_priority_email",
+                        description=f"Low priority: {subject[:30]}...",
+                        priority=1,
+                        potential_value=0.1,
+                        urgency=0.2,
+                        context={"email_id": email.get("id")},
+                    )
+                )
 
         # Check for email overload
         if unread_count > 20:
-            opportunities.append(ProactiveOpportunity(
-                opportunity_type='email_overload',
-                description=f'High volume: {unread_count} unread emails',
-                priority=3,
-                potential_value=10.0,
-                urgency=0.7,
-            ))
+            opportunities.append(
+                ProactiveOpportunity(
+                    opportunity_type="email_overload",
+                    description=f"High volume: {unread_count} unread emails",
+                    priority=3,
+                    potential_value=10.0,
+                    urgency=0.7,
+                )
+            )
 
         return opportunities
 
@@ -499,7 +538,7 @@ class EmailTriage(BackgroundAgent):
         """Plan an email triage action."""
         opp_type = opportunity.opportunity_type
 
-        if opp_type == 'urgent_email':
+        if opp_type == "urgent_email":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -513,7 +552,7 @@ class EmailTriage(BackgroundAgent):
                 context_snapshot=opportunity.context,
             )
 
-        elif opp_type == 'low_priority_email':
+        elif opp_type == "low_priority_email":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -527,7 +566,7 @@ class EmailTriage(BackgroundAgent):
                 context_snapshot=opportunity.context,
             )
 
-        elif opp_type == 'email_overload':
+        elif opp_type == "email_overload":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -590,41 +629,47 @@ class FileOrganizer(BackgroundAgent):
         )
 
         self.file_categories = {
-            'documents': ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt'],
-            'spreadsheets': ['.xls', '.xlsx', '.csv', '.ods'],
-            'presentations': ['.ppt', '.pptx', '.key', '.odp'],
-            'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
-            'code': ['.py', '.js', '.ts', '.java', '.cpp', '.rs', '.go'],
-            'archives': ['.zip', '.tar', '.gz', '.rar', '.7z'],
+            "documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt"],
+            "spreadsheets": [".xls", ".xlsx", ".csv", ".ods"],
+            "presentations": [".ppt", ".pptx", ".key", ".odp"],
+            "images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"],
+            "code": [".py", ".js", ".ts", ".java", ".cpp", ".rs", ".go"],
+            "archives": [".zip", ".tar", ".gz", ".rar", ".7z"],
         }
 
-    async def identify_opportunities(self, context: Dict[str, Any]) -> List[ProactiveOpportunity]:
+    async def identify_opportunities(
+        self, context: Dict[str, Any]
+    ) -> List[ProactiveOpportunity]:
         """Identify file organization opportunities."""
         opportunities = []
 
-        file_data = context.get('files', {})
-        downloads = file_data.get('downloads_folder', [])
-        desktop = file_data.get('desktop_files', [])
+        file_data = context.get("files", {})
+        downloads = file_data.get("downloads_folder", [])
+        desktop = file_data.get("desktop_files", [])
 
         # Check downloads folder
         if len(downloads) > 10:
-            opportunities.append(ProactiveOpportunity(
-                opportunity_type='organize_downloads',
-                description=f'Organize {len(downloads)} files in Downloads',
-                priority=2,
-                potential_value=5.0,
-                urgency=0.4,
-            ))
+            opportunities.append(
+                ProactiveOpportunity(
+                    opportunity_type="organize_downloads",
+                    description=f"Organize {len(downloads)} files in Downloads",
+                    priority=2,
+                    potential_value=5.0,
+                    urgency=0.4,
+                )
+            )
 
         # Check desktop
         if len(desktop) > 15:
-            opportunities.append(ProactiveOpportunity(
-                opportunity_type='clean_desktop',
-                description=f'Organize {len(desktop)} files on Desktop',
-                priority=1,
-                potential_value=3.0,
-                urgency=0.3,
-            ))
+            opportunities.append(
+                ProactiveOpportunity(
+                    opportunity_type="clean_desktop",
+                    description=f"Organize {len(desktop)} files on Desktop",
+                    priority=1,
+                    potential_value=3.0,
+                    urgency=0.3,
+                )
+            )
 
         # Check for duplicates (simplified)
         all_files = downloads + desktop
@@ -632,20 +677,22 @@ class FileOrganizer(BackgroundAgent):
         duplicates = []
 
         for f in all_files:
-            name = f.get('name', '')
+            name = f.get("name", "")
             h = hashlib.md5(name.encode()).hexdigest()[:8]
             if h in seen_hashes:
                 duplicates.append(f)
             seen_hashes[h] = f
 
         if duplicates:
-            opportunities.append(ProactiveOpportunity(
-                opportunity_type='remove_duplicates',
-                description=f'Found {len(duplicates)} potential duplicates',
-                priority=3,
-                potential_value=2.0,
-                urgency=0.5,
-            ))
+            opportunities.append(
+                ProactiveOpportunity(
+                    opportunity_type="remove_duplicates",
+                    description=f"Found {len(duplicates)} potential duplicates",
+                    priority=3,
+                    potential_value=2.0,
+                    urgency=0.5,
+                )
+            )
 
         return opportunities
 
@@ -657,7 +704,7 @@ class FileOrganizer(BackgroundAgent):
         """Plan a file organization action."""
         opp_type = opportunity.opportunity_type
 
-        if opp_type == 'organize_downloads':
+        if opp_type == "organize_downloads":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -670,7 +717,7 @@ class FileOrganizer(BackgroundAgent):
                 priority=opportunity.priority,
             )
 
-        elif opp_type == 'clean_desktop':
+        elif opp_type == "clean_desktop":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -683,7 +730,7 @@ class FileOrganizer(BackgroundAgent):
                 priority=opportunity.priority,
             )
 
-        elif opp_type == 'remove_duplicates':
+        elif opp_type == "remove_duplicates":
             return ProactiveAction(
                 agent_id=self.agent_id,
                 action_type=self.action_type,
@@ -727,6 +774,7 @@ class FileOrganizer(BackgroundAgent):
 # =============================================================================
 # AGENT REGISTRY AND MANAGER
 # =============================================================================
+
 
 class BackgroundAgentRegistry:
     """
@@ -818,10 +866,12 @@ class BackgroundAgentRegistry:
     def stats(self) -> Dict[str, Any]:
         """Get registry statistics."""
         return {
-            'registered_agents': len(self._agents),
-            'agents': self.list_agents(),
-            'total_actions': sum(a.actions_taken for a in self._agents.values()),
-            'total_value_created': sum(a.total_value_created for a in self._agents.values()),
+            "registered_agents": len(self._agents),
+            "agents": self.list_agents(),
+            "total_actions": sum(a.actions_taken for a in self._agents.values()),
+            "total_value_created": sum(
+                a.total_value_created for a in self._agents.values()
+            ),
         }
 
 

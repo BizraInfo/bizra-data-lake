@@ -55,60 +55,40 @@ Genesis Strict Synthesis v2.2.2
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import logging
 import math
-import random
 import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum, auto
-from heapq import heappush, heappop, nlargest
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
-    Set,
     Tuple,
-    TypeVar,
-    Union,
-)
-
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    CONFIDENCE_HIGH,
-    CONFIDENCE_MEDIUM,
-    CONFIDENCE_LOW,
 )
 
 # Import from local autopoiesis modules
 from core.autopoiesis.hypothesis_generator import (
     Hypothesis,
     HypothesisCategory,
-    HypothesisStatus,
+    HypothesisGenerator,
     RiskLevel,
     SystemObservation,
-    HypothesisGenerator,
+)
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 # Import GoT components from sovereign runtime engines
 from core.sovereign.runtime_engines.got_bridge import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
-    ThoughtStatus,
-    ThoughtGraph,
-    GoTResult,
-    GoTBridge,
-    MAX_DEPTH,
     MAX_BRANCHES,
-    PRUNE_THRESHOLD,
+    GoTBridge,
+    ThoughtNode,
+    ThoughtStatus,
+    ThoughtType,
 )
 
 logger = logging.getLogger(__name__)
@@ -266,7 +246,9 @@ class HypothesisThoughtNode(ThoughtNode):
         """
         # Signal components
         signal_strength = self.confidence * self.relevance
-        diversity = 1.0 - abs(0.5 - len(self.causal_children) / 10) * 2  # Penalize extremes
+        diversity = (
+            1.0 - abs(0.5 - len(self.causal_children) / 10) * 2
+        )  # Penalize extremes
         grounding = self.coherence
         balance = 1.0 - abs(self.ihsan_impact)  # Penalize extreme impacts
 
@@ -399,7 +381,7 @@ class GoTHypothesisExplorer:
                 explored_paths.append(path)
 
         # Step 3: AGGREGATE similar hypotheses (detect convergence)
-        aggregated_nodes = self._aggregate_convergent_hypotheses(explored_paths)
+        self._aggregate_convergent_hypotheses(explored_paths)
 
         # Step 4: REFINE promising paths
         refined_hypotheses = await self._refine_promising_paths(
@@ -729,13 +711,19 @@ class GoTHypothesisExplorer:
     ) -> float:
         """Calculate similarity between two hypothesis nodes."""
         # Category match
-        category_match = 1.0 if node1.hypothesis_category == node2.hypothesis_category else 0.0
+        category_match = (
+            1.0 if node1.hypothesis_category == node2.hypothesis_category else 0.0
+        )
 
         # Risk level similarity
-        risk_similarity = 1.0 - abs(
-            (node1.risk_level.value if node1.risk_level else 0)
-            - (node2.risk_level.value if node2.risk_level else 0)
-        ) / 4
+        risk_similarity = (
+            1.0
+            - abs(
+                (node1.risk_level.value if node1.risk_level else 0)
+                - (node2.risk_level.value if node2.risk_level else 0)
+            )
+            / 4
+        )
 
         # Ihsan impact similarity
         ihsan_similarity = 1.0 - abs(node1.ihsan_impact - node2.ihsan_impact)
@@ -766,7 +754,13 @@ class GoTHypothesisExplorer:
             coherence=(node1.coherence + node2.coherence) / 2,
             relevance=(node1.relevance + node2.relevance) / 2,
             hypothesis_category=node1.hypothesis_category,
-            risk_level=node1.risk_level if node1.risk_level and node1.risk_level.value <= (node2.risk_level.value if node2.risk_level else 3) else node2.risk_level,
+            risk_level=(
+                node1.risk_level
+                if node1.risk_level
+                and node1.risk_level.value
+                <= (node2.risk_level.value if node2.risk_level else 3)
+                else node2.risk_level
+            ),
             ihsan_impact=(node1.ihsan_impact + node2.ihsan_impact) / 2,
             causal_parents=[node1.id, node2.id],
         )
@@ -920,9 +914,7 @@ class GoTHypothesisExplorer:
                 pruned.append(exp_hyp)
             else:
                 self._total_paths_pruned += 1
-                logger.debug(
-                    f"Pruned hypothesis {exp_hyp.hypothesis.id}: EV={ev:.3f}"
-                )
+                logger.debug(f"Pruned hypothesis {exp_hyp.hypothesis.id}: EV={ev:.3f}")
 
         return pruned
 
@@ -1051,7 +1043,9 @@ class GoTHypothesisExplorer:
         """Simulate from node to estimate reward."""
         # Simple simulation: estimate based on current node quality
         snr = node.hypothesis_node.calculate_snr()
-        ihsan = node.hypothesis_node.metadata.get("ihsan_score", UNIFIED_IHSAN_THRESHOLD)
+        ihsan = node.hypothesis_node.metadata.get(
+            "ihsan_score", UNIFIED_IHSAN_THRESHOLD
+        )
 
         # Reward = SNR * Ihsan * depth_bonus
         depth_bonus = 1.0 + (node.hypothesis_node.depth * 0.1)
@@ -1177,12 +1171,11 @@ class GoTHypothesisExplorer:
         lines = ["GoT Hypothesis Exploration:", ""]
 
         # Find root nodes (no parents)
-        roots = [
-            n for n in self._exploration_graph.values()
-            if not n.parent_ids
-        ]
+        roots = [n for n in self._exploration_graph.values() if not n.parent_ids]
 
-        def render_node(node: HypothesisThoughtNode, prefix: str = "", is_last: bool = True):
+        def render_node(
+            node: HypothesisThoughtNode, prefix: str = "", is_last: bool = True
+        ):
             connector = "`-- " if is_last else "|-- "
             status_icon = {
                 ThoughtStatus.ACTIVE: "o",
@@ -1192,9 +1185,7 @@ class GoTHypothesisExplorer:
             }.get(node.status, "?")
 
             content_preview = (
-                node.content[:35] + "..."
-                if len(node.content) > 35
-                else node.content
+                node.content[:35] + "..." if len(node.content) > 35 else node.content
             )
             snr = node.snr_contribution
             ihsan = node.metadata.get("ihsan_score", 0)

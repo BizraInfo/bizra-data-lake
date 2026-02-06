@@ -17,9 +17,7 @@ pub struct SystemStatus {
     pub constitution_version: String,
 }
 
-pub async fn system_status(
-    State(state): State<Arc<AppState>>,
-) -> Json<SystemStatus> {
+pub async fn system_status(State(state): State<Arc<AppState>>) -> Json<SystemStatus> {
     let identity = state.identity.read().await;
     let inference = state.inference.read().await;
     let federation = state.gossip.read().await;

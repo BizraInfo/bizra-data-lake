@@ -5,17 +5,17 @@ Sovereignty Pillar: DATA SOVEREIGNTY
 """
 
 from .vault import (
+    VAULT_VERSION,
     SovereignVault,
     VaultEntry,
-    get_vault,
     derive_key,
     generate_salt,
-    VAULT_VERSION,
+    get_vault,
 )
 
 __all__ = [
     "SovereignVault",
-    "VaultEntry", 
+    "VaultEntry",
     "get_vault",
     "derive_key",
     "generate_salt",

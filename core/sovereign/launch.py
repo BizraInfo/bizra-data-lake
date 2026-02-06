@@ -34,12 +34,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import os
 import signal
-import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Configure logging
 logging.basicConfig(
@@ -121,7 +118,7 @@ class SovereignLauncher:
 
         # 1. Initialize Runtime
         logger.info("[1/5] Initializing Runtime...")
-        from .runtime import SovereignRuntime, RuntimeConfig, RuntimeMode
+        from .runtime import RuntimeConfig, SovereignRuntime
 
         config = RuntimeConfig(
             node_id=self.node_id,
@@ -195,7 +192,7 @@ class SovereignLauncher:
 
     async def _wire_autonomy(self) -> None:
         """Wire AutonomousLoop with real observers and analyzers."""
-        from .metrics import create_autonomy_observer, create_autonomy_analyzer
+        from .metrics import create_autonomy_analyzer, create_autonomy_observer
 
         # Get autonomy loop from runtime
         autonomy = self.runtime._autonomous_loop
@@ -218,26 +215,26 @@ class SovereignLauncher:
 
         async def reduce_memory(decision) -> bool:
             """Clear caches to reduce memory."""
-            logger.info(f"Executing: reduce_memory")
+            logger.info("Executing: reduce_memory")
             if self.runtime:
                 self.runtime._cache.clear()
             return True
 
         async def throttle_inference(decision) -> bool:
             """Reduce inference rate for cooling."""
-            logger.info(f"Executing: throttle_inference")
+            logger.info("Executing: throttle_inference")
             # Would adjust inference rate limits
             return True
 
         async def switch_inference_tier(decision) -> bool:
             """Switch to a different inference tier."""
-            logger.info(f"Executing: switch_inference_tier")
+            logger.info("Executing: switch_inference_tier")
             # Would trigger tier switch in bridge
             return True
 
         async def boost_snr(decision) -> bool:
             """Boost SNR through optimization."""
-            logger.info(f"Executing: boost_snr")
+            logger.info("Executing: boost_snr")
             # Would trigger SNR optimization
             return True
 
@@ -251,10 +248,7 @@ class SovereignLauncher:
         try:
             loop = asyncio.get_running_loop()
             for sig in (signal.SIGTERM, signal.SIGINT):
-                loop.add_signal_handler(
-                    sig,
-                    lambda: asyncio.create_task(self.stop())
-                )
+                loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
         except (NotImplementedError, RuntimeError):
             pass
 
@@ -326,6 +320,7 @@ class SovereignLauncher:
 # CLI
 # =============================================================================
 
+
 async def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -337,52 +332,23 @@ Examples:
   python -m core.sovereign.launch --no-api           # Without API
   python -m core.sovereign.launch --port 9000        # Custom port
   python -m core.sovereign.launch --no-autonomy      # Manual mode
-        """
+        """,
     )
 
     parser.add_argument(
-        "--node-id",
-        default="",
-        help="Node identifier (auto-generated if empty)"
+        "--node-id", default="", help="Node identifier (auto-generated if empty)"
     )
     parser.add_argument(
-        "--state-dir",
-        default="./sovereign_state",
-        help="State directory path"
+        "--state-dir", default="./sovereign_state", help="State directory path"
     )
+    parser.add_argument("--port", type=int, default=8080, help="API server port")
+    parser.add_argument("--no-api", action="store_true", help="Disable API server")
     parser.add_argument(
-        "--port",
-        type=int,
-        default=8080,
-        help="API server port"
+        "--no-autonomy", action="store_true", help="Disable autonomous loop"
     )
-    parser.add_argument(
-        "--no-api",
-        action="store_true",
-        help="Disable API server"
-    )
-    parser.add_argument(
-        "--no-autonomy",
-        action="store_true",
-        help="Disable autonomous loop"
-    )
-    parser.add_argument(
-        "--snr",
-        type=float,
-        default=0.95,
-        help="SNR threshold"
-    )
-    parser.add_argument(
-        "--ihsan",
-        type=float,
-        default=0.95,
-        help="Ihsān threshold"
-    )
-    parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress banner"
-    )
+    parser.add_argument("--snr", type=float, default=0.95, help="SNR threshold")
+    parser.add_argument("--ihsan", type=float, default=0.95, help="Ihsān threshold")
+    parser.add_argument("--quiet", action="store_true", help="Suppress banner")
 
     args = parser.parse_args()
 

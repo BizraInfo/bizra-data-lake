@@ -14,12 +14,12 @@ Enables:
 Standing on Giants: RAG + Multi-Agent Systems + Knowledge Graphs
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
+from .event_bus import EventBus, EventPriority, get_event_bus
 from .knowledge_integrator import (
     KnowledgeIntegrator,
     KnowledgeQuery,
@@ -27,7 +27,6 @@ from .knowledge_integrator import (
     create_knowledge_integrator,
 )
 from .team_planner import AgentRole
-from .event_bus import EventBus, EventPriority, get_event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentKnowledgeContext:
     """Knowledge context for a specific agent."""
+
     agent_role: AgentRole = AgentRole.MASTER_REASONER
     accessible_categories: Set[str] = field(default_factory=set)
     preloaded_knowledge: Dict[str, Any] = field(default_factory=dict)
@@ -46,7 +46,14 @@ class AgentKnowledgeContext:
 ROLE_KNOWLEDGE_ACCESS = {
     # PAT Agents
     AgentRole.MASTER_REASONER: {
-        "categories": {"memory", "graph", "session", "foundation", "integration", "insights"},
+        "categories": {
+            "memory",
+            "graph",
+            "session",
+            "foundation",
+            "integration",
+            "insights",
+        },
         "priority_access": True,
         "can_write": True,
     },
@@ -80,7 +87,6 @@ ROLE_KNOWLEDGE_ACCESS = {
         "priority_access": True,
         "can_write": True,
     },
-
     # SAT Validators
     AgentRole.SECURITY_GUARDIAN: {
         "categories": {"session", "integration", "identity"},
@@ -113,6 +119,7 @@ ROLE_KNOWLEDGE_ACCESS = {
 @dataclass
 class KnowledgeInjection:
     """Knowledge to inject into agent context."""
+
     agent_role: AgentRole = AgentRole.MASTER_REASONER
     knowledge_type: str = "context"  # context, reference, constraint
     content: Dict[str, Any] = field(default_factory=dict)
@@ -312,8 +319,9 @@ class SwarmKnowledgeBridge:
         # Check target can receive this category
         # (simplified - in production would check category)
 
-        to_ctx.preloaded_knowledge[f"shared:{from_role.value}:{knowledge_key}"] = \
+        to_ctx.preloaded_knowledge[f"shared:{from_role.value}:{knowledge_key}"] = (
             from_ctx.preloaded_knowledge[knowledge_key]
+        )
 
         self._cross_agent_shares += 1
 

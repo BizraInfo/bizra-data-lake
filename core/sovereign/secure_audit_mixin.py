@@ -27,7 +27,7 @@ Genesis Strict Synthesis v2.2.2
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -145,9 +145,7 @@ class SecureAuditMixin:
 
             entry = self._secure_audit_log.append(content, timestamp_ns)
 
-            logger.debug(
-                f"Secure audit: {operation} (seq={entry.sequence})"
-            )
+            logger.debug(f"Secure audit: {operation} (seq={entry.sequence})")
             return entry
 
         except Exception as e:
@@ -225,17 +223,24 @@ class SecureAuditMixin:
                 if entry_time > end_time:
                     continue
 
-            results.append({
-                "sequence": entry.sequence,
-                "timestamp": entry.timestamp_datetime.isoformat(),
-                "operation": entry.content.get("operation"),
-                "details": entry.content.get("details", {}),
-                "content_hash": entry.content_hash[:16] + "...",
-                "verified": entry.verify(
-                    self._secure_audit_key_manager.get_signing_key(),
-                    None if entry.sequence == 0 else self._secure_audit_log.get_entry(entry.sequence - 1),
-                ) == VerificationStatus.VALID,
-            })
+            results.append(
+                {
+                    "sequence": entry.sequence,
+                    "timestamp": entry.timestamp_datetime.isoformat(),
+                    "operation": entry.content.get("operation"),
+                    "details": entry.content.get("details", {}),
+                    "content_hash": entry.content_hash[:16] + "...",
+                    "verified": entry.verify(
+                        self._secure_audit_key_manager.get_signing_key(),
+                        (
+                            None
+                            if entry.sequence == 0
+                            else self._secure_audit_log.get_entry(entry.sequence - 1)
+                        ),
+                    )
+                    == VerificationStatus.VALID,
+                }
+            )
 
             if len(results) >= limit:
                 break
@@ -267,11 +272,14 @@ class SecureAuditMixin:
         )
 
         # Log the rotation event itself
-        self.secure_log("key_rotation", {
-            "old_key_id": event.old_key_id,
-            "new_key_id": event.new_key_id,
-            "reason": reason,
-        })
+        self.secure_log(
+            "key_rotation",
+            {
+                "old_key_id": event.old_key_id,
+                "new_key_id": event.new_key_id,
+                "reason": reason,
+            },
+        )
 
         return event.to_dict()
 
@@ -313,7 +321,9 @@ class SecureAuditMixin:
             "enabled": True,
             "entry_count": len(log),
             "last_sequence": last_entry.sequence if last_entry else None,
-            "last_timestamp": last_entry.timestamp_datetime.isoformat() if last_entry else None,
+            "last_timestamp": (
+                last_entry.timestamp_datetime.isoformat() if last_entry else None
+            ),
             "current_key_id": key_manager.key_id if key_manager else None,
             "key_rotation_count": rotation_count,
             "chain_hash": log.last_hash[:16] + "..." if log.last_hash else None,
@@ -341,12 +351,15 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         duration_seconds: float,
     ) -> Optional[TamperEvidentEntry]:
         """Log deployment start with secure audit."""
-        return self.secure_log("deploy_shadow_start", {
-            "deployment_id": deployment_id,
-            "hypothesis_id": hypothesis_id,
-            "hypothesis_name": hypothesis_name,
-            "duration_seconds": duration_seconds,
-        })
+        return self.secure_log(
+            "deploy_shadow_start",
+            {
+                "deployment_id": deployment_id,
+                "hypothesis_id": hypothesis_id,
+                "hypothesis_name": hypothesis_name,
+                "duration_seconds": duration_seconds,
+            },
+        )
 
     def audit_deployment_success(
         self,
@@ -354,10 +367,13 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         hypothesis_id: str,
     ) -> Optional[TamperEvidentEntry]:
         """Log successful deployment initialization."""
-        return self.secure_log("deploy_shadow_success", {
-            "deployment_id": deployment_id,
-            "hypothesis_id": hypothesis_id,
-        })
+        return self.secure_log(
+            "deploy_shadow_success",
+            {
+                "deployment_id": deployment_id,
+                "hypothesis_id": hypothesis_id,
+            },
+        )
 
     def audit_deployment_failed(
         self,
@@ -366,11 +382,14 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         reason: str,
     ) -> Optional[TamperEvidentEntry]:
         """Log deployment failure."""
-        return self.secure_log("deploy_shadow_failed", {
-            "deployment_id": deployment_id,
-            "hypothesis_id": hypothesis_id,
-            "reason": reason,
-        })
+        return self.secure_log(
+            "deploy_shadow_failed",
+            {
+                "deployment_id": deployment_id,
+                "hypothesis_id": hypothesis_id,
+                "reason": reason,
+            },
+        )
 
     def audit_kill_switch(
         self,
@@ -379,11 +398,14 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         ihsan_score: float,
     ) -> Optional[TamperEvidentEntry]:
         """Log kill switch activation."""
-        return self.secure_log("kill_switch_triggered", {
-            "deployment_id": deployment_id,
-            "reason": reason,
-            "ihsan_score": ihsan_score,
-        })
+        return self.secure_log(
+            "kill_switch_triggered",
+            {
+                "deployment_id": deployment_id,
+                "reason": reason,
+                "ihsan_score": ihsan_score,
+            },
+        )
 
     def audit_evaluation(
         self,
@@ -394,13 +416,16 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         improvement_detected: bool,
     ) -> Optional[TamperEvidentEntry]:
         """Log deployment evaluation result."""
-        return self.secure_log("evaluate_complete", {
-            "deployment_id": deployment_id,
-            "verdict": verdict,
-            "comparisons": comparison_count,
-            "regression": regression_detected,
-            "improvement": improvement_detected,
-        })
+        return self.secure_log(
+            "evaluate_complete",
+            {
+                "deployment_id": deployment_id,
+                "verdict": verdict,
+                "comparisons": comparison_count,
+                "regression": regression_detected,
+                "improvement": improvement_detected,
+            },
+        )
 
     def audit_promotion(
         self,
@@ -409,11 +434,14 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         changes: Dict[str, Any],
     ) -> Optional[TamperEvidentEntry]:
         """Log successful promotion to production."""
-        return self.secure_log("promote_success", {
-            "deployment_id": deployment_id,
-            "hypothesis_id": hypothesis_id,
-            "changes": changes,
-        })
+        return self.secure_log(
+            "promote_success",
+            {
+                "deployment_id": deployment_id,
+                "hypothesis_id": hypothesis_id,
+                "changes": changes,
+            },
+        )
 
     def audit_rollback(
         self,
@@ -422,11 +450,14 @@ class SecureAuditedShadowDeployerMixin(SecureAuditMixin):
         verdict: str,
     ) -> Optional[TamperEvidentEntry]:
         """Log rollback/rejection."""
-        return self.secure_log("rollback", {
-            "deployment_id": deployment_id,
-            "reason": reason,
-            "verdict": verdict,
-        })
+        return self.secure_log(
+            "rollback",
+            {
+                "deployment_id": deployment_id,
+                "reason": reason,
+                "verdict": verdict,
+            },
+        )
 
 
 # =============================================================================

@@ -19,22 +19,22 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from .treasury_persistence import TreasuryPersistence
 from .treasury_types import (
-    TreasuryState,
-    TreasuryMode,
-    TransitionEvent,
-    TransitionTrigger,
-    TreasuryEvent,
-    EthicsAssessment,
+    COMPUTE_MULTIPLIERS,
+    DEFAULT_BURN_RATE,
+    EMERGENCY_TREASURY_UNLOCK_PERCENT,
     ETHICS_THRESHOLD_HIBERNATION,
     ETHICS_THRESHOLD_RECOVERY,
     RESERVES_THRESHOLD_EMERGENCY,
     RESERVES_THRESHOLD_HIBERNATION,
-    EMERGENCY_TREASURY_UNLOCK_PERCENT,
-    DEFAULT_BURN_RATE,
-    COMPUTE_MULTIPLIERS,
+    EthicsAssessment,
+    TransitionEvent,
+    TransitionTrigger,
+    TreasuryEvent,
+    TreasuryMode,
+    TreasuryState,
 )
-from .treasury_persistence import TreasuryPersistence
 
 logger = logging.getLogger(__name__)
 
@@ -159,11 +159,11 @@ class TreasuryController:
             ihsan = 0.80
 
         overall_score = (
-            weights["transparency"] * transparency +
-            weights["fairness"] * fairness +
-            weights["sustainability"] * sustainability +
-            weights["compliance"] * compliance +
-            weights["ihsan_alignment"] * ihsan
+            weights["transparency"] * transparency
+            + weights["fairness"] * fairness
+            + weights["sustainability"] * sustainability
+            + weights["compliance"] * compliance
+            + weights["ihsan_alignment"] * ihsan
         )
 
         assessment = EthicsAssessment(
@@ -181,18 +181,27 @@ class TreasuryController:
         self._state.ethical_score = overall_score
         self._persistence.save_state(self._state)
 
-        self._emit_event(TreasuryEvent.ETHICS_SCORE_UPDATE, {
-            "score": overall_score,
-            "assessment": assessment.to_dict(),
-        })
+        self._emit_event(
+            TreasuryEvent.ETHICS_SCORE_UPDATE,
+            {
+                "score": overall_score,
+                "assessment": assessment.to_dict(),
+            },
+        )
 
         logger.info(f"Market ethics score: {overall_score:.3f}")
         return overall_score
 
     def _assess_transparency(self, market_data: Dict) -> float:
         """Assess market transparency."""
-        indicators = ["price_discovery_quality", "information_availability", "disclosure_completeness"]
-        scores = [market_data.get(ind, 0.75) for ind in indicators if ind in market_data]
+        indicators = [
+            "price_discovery_quality",
+            "information_availability",
+            "disclosure_completeness",
+        ]
+        scores = [
+            market_data.get(ind, 0.75) for ind in indicators if ind in market_data
+        ]
         return sum(scores) / len(scores) if scores else 0.75
 
     def _assess_fairness(self, market_data: Dict) -> float:
@@ -248,11 +257,14 @@ class TreasuryController:
             if burn_rate > 0:
                 self._state.reserves_days = self._state.total_reserves_seed / burn_rate
             self._persistence.save_state(self._state)
-            self._emit_event(TreasuryEvent.BURN_RATE_UPDATE, {
-                "burn_rate": burn_rate,
-                "mode": mode.value,
-                "reserves_days": self._state.reserves_days,
-            })
+            self._emit_event(
+                TreasuryEvent.BURN_RATE_UPDATE,
+                {
+                    "burn_rate": burn_rate,
+                    "mode": mode.value,
+                    "reserves_days": self._state.reserves_days,
+                },
+            )
 
         return burn_rate
 
@@ -287,7 +299,10 @@ class TreasuryController:
             ethical_score_at_transition=self._state.ethical_score,
             reserves_days_at_transition=self._state.reserves_days,
             reason=reason,
-            metadata={"forced": force, "burn_rate_before": self._state.burn_rate_seed_per_day},
+            metadata={
+                "forced": force,
+                "burn_rate_before": self._state.burn_rate_seed_per_day,
+            },
         )
 
         # Execute mode-specific protocols
@@ -306,49 +321,64 @@ class TreasuryController:
         self._persistence.save_state(self._state)
         self._persistence.record_transition(event)
 
-        self._emit_event(TreasuryEvent.MODE_TRANSITION, {
-            "from_mode": old_mode.value,
-            "to_mode": new_mode.value,
-            "reason": reason,
-            "trigger": trigger.value,
-            "event": event.to_dict(),
-        })
+        self._emit_event(
+            TreasuryEvent.MODE_TRANSITION,
+            {
+                "from_mode": old_mode.value,
+                "to_mode": new_mode.value,
+                "reason": reason,
+                "trigger": trigger.value,
+                "event": event.to_dict(),
+            },
+        )
 
-        self._broadcast_to_federation({
-            "type": "TREASURY_MODE_TRANSITION",
-            "from_mode": old_mode.value,
-            "to_mode": new_mode.value,
-            "timestamp": datetime.utcnow().isoformat(),
-            "reason": reason,
-        })
+        self._broadcast_to_federation(
+            {
+                "type": "TREASURY_MODE_TRANSITION",
+                "from_mode": old_mode.value,
+                "to_mode": new_mode.value,
+                "timestamp": datetime.utcnow().isoformat(),
+                "reason": reason,
+            }
+        )
 
         logger.info(f"Treasury mode transition: {old_mode.value} -> {new_mode.value}")
         return True, f"Transitioned from {old_mode.value} to {new_mode.value}"
 
     def _execute_emergency_protocol(self) -> None:
         """Execute emergency mode protocol."""
-        unlock_amount = self._state.locked_treasury_seed * EMERGENCY_TREASURY_UNLOCK_PERCENT
+        unlock_amount = (
+            self._state.locked_treasury_seed * EMERGENCY_TREASURY_UNLOCK_PERCENT
+        )
         self._state.locked_treasury_seed -= unlock_amount
         self._state.unlocked_treasury_seed += unlock_amount
 
-        self._emit_event(TreasuryEvent.TREASURY_UNLOCK, {
-            "amount": unlock_amount,
-            "reason": "Emergency protocol activation",
-            "remaining_locked": self._state.locked_treasury_seed,
-        })
+        self._emit_event(
+            TreasuryEvent.TREASURY_UNLOCK,
+            {
+                "amount": unlock_amount,
+                "reason": "Emergency protocol activation",
+                "remaining_locked": self._state.locked_treasury_seed,
+            },
+        )
 
-        self._emit_event(TreasuryEvent.COMMUNITY_APPEAL, {
-            "message": "Emergency mode activated. Community support requested.",
-            "reserves_days": self._state.reserves_days,
-            "unlocked_amount": unlock_amount,
-        })
+        self._emit_event(
+            TreasuryEvent.COMMUNITY_APPEAL,
+            {
+                "message": "Emergency mode activated. Community support requested.",
+                "reserves_days": self._state.reserves_days,
+                "unlocked_amount": unlock_amount,
+            },
+        )
 
-        self._broadcast_to_federation({
-            "type": "TREASURY_EMERGENCY_APPEAL",
-            "timestamp": datetime.utcnow().isoformat(),
-            "reserves_days": self._state.reserves_days,
-            "appeal": "Community funding requested for node survival",
-        })
+        self._broadcast_to_federation(
+            {
+                "type": "TREASURY_EMERGENCY_APPEAL",
+                "timestamp": datetime.utcnow().isoformat(),
+                "reserves_days": self._state.reserves_days,
+                "appeal": "Community funding requested for node survival",
+            }
+        )
 
         logger.warning(f"Emergency protocol: Unlocked {unlock_amount:.2f} SEED")
 
@@ -358,11 +388,14 @@ class TreasuryController:
 
     def _execute_recovery_protocol(self) -> None:
         """Execute recovery to ethical mode."""
-        self._emit_event(TreasuryEvent.RECOVERY_INITIATED, {
-            "from_mode": self._state.mode.value,
-            "ethical_score": self._state.ethical_score,
-            "reserves_days": self._state.reserves_days,
-        })
+        self._emit_event(
+            TreasuryEvent.RECOVERY_INITIATED,
+            {
+                "from_mode": self._state.mode.value,
+                "ethical_score": self._state.ethical_score,
+                "reserves_days": self._state.reserves_days,
+            },
+        )
         logger.info("Recovery protocol: Restoring full operations")
 
     # -------------------------------------------------------------------------
@@ -388,8 +421,8 @@ class TreasuryController:
 
         if self._state.mode == TreasuryMode.HIBERNATION:
             return (
-                self._state.ethical_score >= ETHICS_THRESHOLD_RECOVERY and
-                self._state.reserves_days >= RESERVES_THRESHOLD_HIBERNATION
+                self._state.ethical_score >= ETHICS_THRESHOLD_RECOVERY
+                and self._state.reserves_days >= RESERVES_THRESHOLD_HIBERNATION
             )
 
         return False
@@ -455,12 +488,15 @@ class TreasuryController:
 
         self._persistence.save_state(self._state)
 
-        self._emit_event(TreasuryEvent.RESERVES_UPDATE, {
-            "amount": amount,
-            "new_total": self._state.total_reserves_seed,
-            "reserves_days": self._state.reserves_days,
-            "reason": reason,
-        })
+        self._emit_event(
+            TreasuryEvent.RESERVES_UPDATE,
+            {
+                "amount": amount,
+                "new_total": self._state.total_reserves_seed,
+                "reserves_days": self._state.reserves_days,
+                "reason": reason,
+            },
+        )
 
         logger.info(f"Reserves updated: {amount:+.2f} SEED ({reason})")
 
@@ -468,7 +504,9 @@ class TreasuryController:
     # EVENT SYSTEM
     # -------------------------------------------------------------------------
 
-    def on_event(self, event_type: TreasuryEvent, handler: Callable[[Dict], None]) -> None:
+    def on_event(
+        self, event_type: TreasuryEvent, handler: Callable[[Dict], None]
+    ) -> None:
         """Register an event handler."""
         self._event_handlers[event_type].append(handler)
 
@@ -525,12 +563,16 @@ class TreasuryController:
         }
 
         if self._state.reserves_days < RESERVES_THRESHOLD_HIBERNATION:
-            health["warnings"].append(f"Low reserves: {self._state.reserves_days:.1f} days")
+            health["warnings"].append(
+                f"Low reserves: {self._state.reserves_days:.1f} days"
+            )
             if self._state.reserves_days < RESERVES_THRESHOLD_EMERGENCY:
                 health["healthy"] = False
 
         if self._state.ethical_score < ETHICS_THRESHOLD_RECOVERY:
-            health["warnings"].append(f"Low ethics score: {self._state.ethical_score:.3f}")
+            health["warnings"].append(
+                f"Low ethics score: {self._state.ethical_score:.3f}"
+            )
             if self._state.ethical_score < ETHICS_THRESHOLD_HIBERNATION:
                 health["healthy"] = False
 

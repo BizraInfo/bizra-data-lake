@@ -9,9 +9,9 @@ use rand::rngs::OsRng;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::identity::{hex_encode, NodeId, NodeIdentity};
 use super::types::*;
 use super::AGENT_MINT_IHSAN_THRESHOLD;
+use crate::identity::{hex_encode, NodeId, NodeIdentity};
 
 // =============================================================================
 // ERROR TYPES
@@ -98,10 +98,7 @@ impl AgentMintingEngine {
     // =========================================================================
 
     /// Mint a complete PAT (7 agents)
-    pub fn mint_pat(
-        &self,
-        owner_identity: &NodeIdentity,
-    ) -> MintingResult<PersonalAgentTeam> {
+    pub fn mint_pat(&self, owner_identity: &NodeIdentity) -> MintingResult<PersonalAgentTeam> {
         let owner_node_id = owner_identity.node_id().clone();
         let owner_public_key = owner_identity.public_key_bytes();
 
@@ -125,7 +122,8 @@ impl AgentMintingEngine {
         let authority_chain_hash = *hasher.finalize().as_bytes();
 
         // Calculate team Ihsan
-        let team_ihsan_score = agents.values().map(|a| a.ihsan_score).sum::<f64>() / agents.len() as f64;
+        let team_ihsan_score =
+            agents.values().map(|a| a.ihsan_score).sum::<f64>() / agents.len() as f64;
 
         Ok(PersonalAgentTeam {
             id: Uuid::new_v4(),
@@ -190,62 +188,48 @@ impl AgentMintingEngine {
     /// Get role-specific intellectual foundations for PAT agents
     fn get_pat_role_foundations(&self, role: PATRole) -> Vec<IntellectualFoundation> {
         match role {
-            PATRole::Strategist => vec![
-                IntellectualFoundation {
-                    giant_name: "Herbert Simon".to_string(),
-                    contribution: "Bounded Rationality — Satisficing in complex decisions".to_string(),
-                    citation: Some("Models of Bounded Rationality, 1982".to_string()),
-                    usage_in_agent: "Strategic decision making".to_string(),
-                },
-            ],
-            PATRole::Researcher => vec![
-                IntellectualFoundation {
-                    giant_name: "Vannevar Bush".to_string(),
-                    contribution: "Memex — Knowledge organization and retrieval".to_string(),
-                    citation: Some("As We May Think, 1945".to_string()),
-                    usage_in_agent: "Knowledge synthesis".to_string(),
-                },
-            ],
-            PATRole::Developer => vec![
-                IntellectualFoundation {
-                    giant_name: "Donald Knuth".to_string(),
-                    contribution: "Literate Programming — Code as literature".to_string(),
-                    citation: Some("The Art of Computer Programming, 1968".to_string()),
-                    usage_in_agent: "Code implementation".to_string(),
-                },
-            ],
-            PATRole::Analyst => vec![
-                IntellectualFoundation {
-                    giant_name: "John Tukey".to_string(),
-                    contribution: "Exploratory Data Analysis — Pattern discovery".to_string(),
-                    citation: Some("Exploratory Data Analysis, 1977".to_string()),
-                    usage_in_agent: "Data analysis".to_string(),
-                },
-            ],
-            PATRole::Reviewer => vec![
-                IntellectualFoundation {
-                    giant_name: "Edsger Dijkstra".to_string(),
-                    contribution: "Structured Programming — Correctness by construction".to_string(),
-                    citation: Some("Go To Statement Considered Harmful, 1968".to_string()),
-                    usage_in_agent: "Code review".to_string(),
-                },
-            ],
-            PATRole::Executor => vec![
-                IntellectualFoundation {
-                    giant_name: "Alan Turing".to_string(),
-                    contribution: "Universal Computation — Executable procedures".to_string(),
-                    citation: Some("On Computable Numbers, 1936".to_string()),
-                    usage_in_agent: "Task execution".to_string(),
-                },
-            ],
-            PATRole::Guardian => vec![
-                IntellectualFoundation {
-                    giant_name: "Abu Hamid al-Ghazali".to_string(),
-                    contribution: "Maqasid al-Shariah — Purpose-driven ethics".to_string(),
-                    citation: Some("Al-Mustasfa, 1095".to_string()),
-                    usage_in_agent: "Ethics enforcement".to_string(),
-                },
-            ],
+            PATRole::Strategist => vec![IntellectualFoundation {
+                giant_name: "Herbert Simon".to_string(),
+                contribution: "Bounded Rationality — Satisficing in complex decisions".to_string(),
+                citation: Some("Models of Bounded Rationality, 1982".to_string()),
+                usage_in_agent: "Strategic decision making".to_string(),
+            }],
+            PATRole::Researcher => vec![IntellectualFoundation {
+                giant_name: "Vannevar Bush".to_string(),
+                contribution: "Memex — Knowledge organization and retrieval".to_string(),
+                citation: Some("As We May Think, 1945".to_string()),
+                usage_in_agent: "Knowledge synthesis".to_string(),
+            }],
+            PATRole::Developer => vec![IntellectualFoundation {
+                giant_name: "Donald Knuth".to_string(),
+                contribution: "Literate Programming — Code as literature".to_string(),
+                citation: Some("The Art of Computer Programming, 1968".to_string()),
+                usage_in_agent: "Code implementation".to_string(),
+            }],
+            PATRole::Analyst => vec![IntellectualFoundation {
+                giant_name: "John Tukey".to_string(),
+                contribution: "Exploratory Data Analysis — Pattern discovery".to_string(),
+                citation: Some("Exploratory Data Analysis, 1977".to_string()),
+                usage_in_agent: "Data analysis".to_string(),
+            }],
+            PATRole::Reviewer => vec![IntellectualFoundation {
+                giant_name: "Edsger Dijkstra".to_string(),
+                contribution: "Structured Programming — Correctness by construction".to_string(),
+                citation: Some("Go To Statement Considered Harmful, 1968".to_string()),
+                usage_in_agent: "Code review".to_string(),
+            }],
+            PATRole::Executor => vec![IntellectualFoundation {
+                giant_name: "Alan Turing".to_string(),
+                contribution: "Universal Computation — Executable procedures".to_string(),
+                citation: Some("On Computable Numbers, 1936".to_string()),
+                usage_in_agent: "Task execution".to_string(),
+            }],
+            PATRole::Guardian => vec![IntellectualFoundation {
+                giant_name: "Abu Hamid al-Ghazali".to_string(),
+                contribution: "Maqasid al-Shariah — Purpose-driven ethics".to_string(),
+                citation: Some("Al-Mustasfa, 1095".to_string()),
+                usage_in_agent: "Ethics enforcement".to_string(),
+            }],
         }
     }
 
@@ -297,7 +281,8 @@ impl AgentMintingEngine {
         let governance_hash = *hasher.finalize().as_bytes();
 
         // Calculate team Ihsan
-        let team_ihsan_score = agents.values().map(|a| a.ihsan_score).sum::<f64>() / agents.len() as f64;
+        let team_ihsan_score =
+            agents.values().map(|a| a.ihsan_score).sum::<f64>() / agents.len() as f64;
 
         Ok(SharedAgentTeam {
             id: Uuid::new_v4(),
@@ -375,46 +360,36 @@ impl AgentMintingEngine {
     /// Get role-specific intellectual foundations for SAT agents
     fn get_sat_role_foundations(&self, role: SATRole) -> Vec<IntellectualFoundation> {
         match role {
-            SATRole::Validator => vec![
-                IntellectualFoundation {
-                    giant_name: "Satoshi Nakamoto".to_string(),
-                    contribution: "Proof-of-Work — Trustless validation".to_string(),
-                    citation: Some("Bitcoin: A Peer-to-Peer Electronic Cash System, 2008".to_string()),
-                    usage_in_agent: "Transaction validation".to_string(),
-                },
-            ],
-            SATRole::Oracle => vec![
-                IntellectualFoundation {
-                    giant_name: "Sergey Nazarov".to_string(),
-                    contribution: "Decentralized Oracles — External data integrity".to_string(),
-                    citation: Some("Chainlink Whitepaper, 2017".to_string()),
-                    usage_in_agent: "Data verification".to_string(),
-                },
-            ],
-            SATRole::Mediator => vec![
-                IntellectualFoundation {
-                    giant_name: "Roger Fisher".to_string(),
-                    contribution: "Principled Negotiation — Interest-based mediation".to_string(),
-                    citation: Some("Getting to Yes, 1981".to_string()),
-                    usage_in_agent: "Dispute resolution".to_string(),
-                },
-            ],
-            SATRole::Archivist => vec![
-                IntellectualFoundation {
-                    giant_name: "Tim Berners-Lee".to_string(),
-                    contribution: "World Wide Web — Universal information access".to_string(),
-                    citation: Some("Information Management: A Proposal, 1989".to_string()),
-                    usage_in_agent: "Knowledge preservation".to_string(),
-                },
-            ],
-            SATRole::Sentinel => vec![
-                IntellectualFoundation {
-                    giant_name: "Dorothy Denning".to_string(),
-                    contribution: "Intrusion Detection — Anomaly-based security".to_string(),
-                    citation: Some("An Intrusion-Detection Model, 1987".to_string()),
-                    usage_in_agent: "Threat detection".to_string(),
-                },
-            ],
+            SATRole::Validator => vec![IntellectualFoundation {
+                giant_name: "Satoshi Nakamoto".to_string(),
+                contribution: "Proof-of-Work — Trustless validation".to_string(),
+                citation: Some("Bitcoin: A Peer-to-Peer Electronic Cash System, 2008".to_string()),
+                usage_in_agent: "Transaction validation".to_string(),
+            }],
+            SATRole::Oracle => vec![IntellectualFoundation {
+                giant_name: "Sergey Nazarov".to_string(),
+                contribution: "Decentralized Oracles — External data integrity".to_string(),
+                citation: Some("Chainlink Whitepaper, 2017".to_string()),
+                usage_in_agent: "Data verification".to_string(),
+            }],
+            SATRole::Mediator => vec![IntellectualFoundation {
+                giant_name: "Roger Fisher".to_string(),
+                contribution: "Principled Negotiation — Interest-based mediation".to_string(),
+                citation: Some("Getting to Yes, 1981".to_string()),
+                usage_in_agent: "Dispute resolution".to_string(),
+            }],
+            SATRole::Archivist => vec![IntellectualFoundation {
+                giant_name: "Tim Berners-Lee".to_string(),
+                contribution: "World Wide Web — Universal information access".to_string(),
+                citation: Some("Information Management: A Proposal, 1989".to_string()),
+                usage_in_agent: "Knowledge preservation".to_string(),
+            }],
+            SATRole::Sentinel => vec![IntellectualFoundation {
+                giant_name: "Dorothy Denning".to_string(),
+                contribution: "Intrusion Detection — Anomaly-based security".to_string(),
+                citation: Some("An Intrusion-Detection Model, 1987".to_string()),
+                usage_in_agent: "Threat detection".to_string(),
+            }],
         }
     }
 
@@ -470,13 +445,13 @@ impl AgentMintingEngine {
                 name: "Genesis".to_string(),
                 public_key: self.genesis_public_key,
                 depth: 0,
-                link_hash: blake3::hash(b"genesis").as_bytes().clone(),
+                link_hash: *blake3::hash(b"genesis").as_bytes(),
             },
             AuthorityLink {
                 name: parent_node_id.0.clone(),
                 public_key: parent_public_key,
                 depth: 1,
-                link_hash: blake3::hash(&parent_public_key).as_bytes().clone(),
+                link_hash: *blake3::hash(&parent_public_key).as_bytes(),
             },
         ];
 
@@ -541,7 +516,9 @@ mod tests {
         let identity = test_identity();
         let engine = AgentMintingEngine::new(identity.public_key_bytes());
 
-        let agent = engine.mint_pat_agent(&identity, PATRole::Strategist).unwrap();
+        let agent = engine
+            .mint_pat_agent(&identity, PATRole::Strategist)
+            .unwrap();
 
         assert_eq!(agent.state, AgentState::Active);
         assert!(agent.ihsan_score >= 0.95);
@@ -570,7 +547,9 @@ mod tests {
         let identity = test_identity();
         let engine = AgentMintingEngine::new(identity.public_key_bytes());
 
-        let agent = engine.mint_sat_agent(&identity, SATRole::Validator, 1000).unwrap();
+        let agent = engine
+            .mint_sat_agent(&identity, SATRole::Validator, 1000)
+            .unwrap();
 
         assert_eq!(agent.state, AgentState::Active);
         assert_eq!(agent.stake, 1000);
@@ -584,7 +563,10 @@ mod tests {
 
         let result = engine.mint_sat_agent(&identity, SATRole::Validator, 100);
 
-        assert!(matches!(result, Err(MintingError::InsufficientStake { .. })));
+        assert!(matches!(
+            result,
+            Err(MintingError::InsufficientStake { .. })
+        ));
     }
 
     #[test]

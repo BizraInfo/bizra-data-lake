@@ -91,38 +91,33 @@ Security Model:
     - Nonces prevent replay attacks
 """
 
-import secrets
 import logging
-from dataclasses import dataclass, field, asdict
+import secrets
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.pci.crypto import generate_keypair, canonical_json, domain_separated_digest
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.pci.crypto import canonical_json, domain_separated_digest, generate_keypair
 
-from .identity_card import (
-    IdentityCard,
-    IdentityStatus,
-    SovereigntyTier,
-    generate_identity_keypair,
-)
 from .agent import (
+    SYSTEM_AGENT_ALLOCATION,
+    USER_AGENT_ALLOCATION,
+    AgentType,
+    OwnershipType,
     PATAgent,
     SATAgent,
-    AgentType,
-    AgentStatus,
-    OwnershipType,
-    USER_AGENT_ALLOCATION,
-    SYSTEM_AGENT_ALLOCATION,
 )
-
+from .identity_card import (
+    IdentityCard,
+    generate_identity_keypair,
+)
 
 logger = logging.getLogger(__name__)
 
 
 # Economic constants
-PAT_AGENT_COUNT = 7       # PAT agents minted for user
-SAT_AGENT_COUNT = 5       # SAT agents minted for system treasury
+PAT_AGENT_COUNT = 7  # PAT agents minted for user
+SAT_AGENT_COUNT = 5  # SAT agents minted for system treasury
 TOTAL_AGENTS_PER_USER = PAT_AGENT_COUNT + SAT_AGENT_COUNT  # 12
 
 # Backward compatibility aliases
@@ -200,7 +195,7 @@ def is_genesis_block(block_number: int) -> bool:
 
 def _datetime_now_iso() -> str:
     """Get current UTC time in ISO 8601 format."""
-    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @dataclass
@@ -220,7 +215,7 @@ class MinterState:
     created_at: str = field(default_factory=_datetime_now_iso)
 
     @classmethod
-    def create(cls) -> 'MinterState':
+    def create(cls) -> "MinterState":
         """Create a new minter with fresh keypair."""
         private_key, public_key = generate_keypair()
         return cls(
@@ -295,7 +290,9 @@ class OnboardingResult:
         """Convert to dictionary for serialization."""
         return {
             "success": self.success,
-            "identity_card": self.identity_card.to_dict() if self.identity_card else None,
+            "identity_card": (
+                self.identity_card.to_dict() if self.identity_card else None
+            ),
             "pat_agents": [a.to_dict() for a in self.pat_agents],
             "sat_agents": [a.to_dict() for a in self.sat_agents],
             "block_number": self.block_number,
@@ -306,8 +303,12 @@ class OnboardingResult:
                 "total_agents": self.total_agents_minted,
                 "pat_agents": self.pat_agent_count,
                 "sat_agents": self.sat_agent_count,
-                "pat_percentage": round(self.pat_agent_count / max(1, self.total_agents_minted) * 100, 1),
-                "sat_percentage": round(self.sat_agent_count / max(1, self.total_agents_minted) * 100, 1),
+                "pat_percentage": round(
+                    self.pat_agent_count / max(1, self.total_agents_minted) * 100, 1
+                ),
+                "sat_percentage": round(
+                    self.sat_agent_count / max(1, self.total_agents_minted) * 100, 1
+                ),
             },
         }
 
@@ -315,7 +316,9 @@ class OnboardingResult:
         """Compute digest of the onboarding result."""
         signable = {
             "success": self.success,
-            "identity_card_digest": self.identity_card.compute_digest() if self.identity_card else "",
+            "identity_card_digest": (
+                self.identity_card.compute_digest() if self.identity_card else ""
+            ),
             "pat_agent_digests": [a.compute_digest() for a in self.pat_agents],
             "sat_agent_digests": [a.compute_digest() for a in self.sat_agents],
             "block_number": self.block_number,
@@ -398,12 +401,12 @@ class IdentityMinter:
         self._state = state
 
     @classmethod
-    def create(cls) -> 'IdentityMinter':
+    def create(cls) -> "IdentityMinter":
         """Create a new minter instance."""
         return cls(MinterState.create())
 
     @classmethod
-    def from_state(cls, state: MinterState) -> 'IdentityMinter':
+    def from_state(cls, state: MinterState) -> "IdentityMinter":
         """Create minter from existing state."""
         return cls(state)
 
@@ -705,6 +708,7 @@ class IdentityMinter:
 
 # Convenience functions for simple usage
 
+
 def mint_identity_card(user_public_key: str) -> Tuple[IdentityCard, MinterState]:
     """
     Mint a single identity card.
@@ -720,7 +724,9 @@ def mint_identity_card(user_public_key: str) -> Tuple[IdentityCard, MinterState]
     return card, minter._state
 
 
-def mint_pat_agents(owner_id: str, count: int = PAT_AGENT_COUNT) -> Tuple[List[PATAgent], MinterState]:
+def mint_pat_agents(
+    owner_id: str, count: int = PAT_AGENT_COUNT
+) -> Tuple[List[PATAgent], MinterState]:
     """
     Mint PAT (Personal Autonomous Task) agents for a user.
 
@@ -765,7 +771,9 @@ def mint_sat_agents(
     for i in range(count):
         agent_types.append(SYSTEM_AGENT_ALLOCATION[i % len(SYSTEM_AGENT_ALLOCATION)])
 
-    agents = minter.mint_sat_agents(contribution_source, agent_types, task_pool=task_pool)
+    agents = minter.mint_sat_agents(
+        contribution_source, agent_types, task_pool=task_pool
+    )
     return agents, minter._state
 
 

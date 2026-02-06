@@ -34,21 +34,20 @@ Noise Classification (Shannon-inspired):
 Ihsan Gate: SNR >= 0.95 required for production use.
 """
 
-import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
-from enum import Enum
 import logging
-from collections import Counter
+import math
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,7 +58,7 @@ SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
 
 # Elite thresholds for high-quality operations
 SNR_ELITE = SNR_THRESHOLD_T0_ELITE  # 0.98
-SNR_HIGH = SNR_THRESHOLD_T1_HIGH    # 0.95
+SNR_HIGH = SNR_THRESHOLD_T1_HIGH  # 0.95
 
 
 class NoiseType(Enum):
@@ -74,10 +73,11 @@ class NoiseType(Enum):
     - AMBIGUITY: Vague information with high entropy but low signal
     - IRRELEVANCE: Off-topic information (wrong channel)
     """
-    REDUNDANCY = "redundancy"       # Low entropy due to repetition
-    INCONSISTENCY = "inconsistency" # Contradictory statements
-    AMBIGUITY = "ambiguity"         # High entropy, low signal
-    IRRELEVANCE = "irrelevance"     # Off-topic content
+
+    REDUNDANCY = "redundancy"  # Low entropy due to repetition
+    INCONSISTENCY = "inconsistency"  # Contradictory statements
+    AMBIGUITY = "ambiguity"  # High entropy, low signal
+    IRRELEVANCE = "irrelevance"  # Off-topic content
 
 
 @dataclass
@@ -90,10 +90,11 @@ class NoiseAnalysis:
 
     However, for LLM quality, we must classify noise semantically.
     """
-    redundancy_score: float = 0.0     # [0,1] — higher = more redundant
+
+    redundancy_score: float = 0.0  # [0,1] — higher = more redundant
     inconsistency_score: float = 0.0  # [0,1] — higher = more contradictory
-    ambiguity_score: float = 0.0      # [0,1] — higher = more vague
-    irrelevance_score: float = 0.0    # [0,1] — higher = more off-topic
+    ambiguity_score: float = 0.0  # [0,1] — higher = more vague
+    irrelevance_score: float = 0.0  # [0,1] — higher = more off-topic
 
     @property
     def total_noise(self) -> float:
@@ -113,10 +114,10 @@ class NoiseAnalysis:
             "irrelevance": 0.15,
         }
         return (
-            weights["inconsistency"] * self.inconsistency_score +
-            weights["redundancy"] * self.redundancy_score +
-            weights["ambiguity"] * self.ambiguity_score +
-            weights["irrelevance"] * self.irrelevance_score
+            weights["inconsistency"] * self.inconsistency_score
+            + weights["redundancy"] * self.redundancy_score
+            + weights["ambiguity"] * self.ambiguity_score
+            + weights["irrelevance"] * self.irrelevance_score
         )
 
     @property
@@ -143,20 +144,21 @@ class SNRComponentsV2:
     "Information is the resolution of uncertainty."
     Each component measures a different aspect of information quality.
     """
-    signal_strength: float = 0.0      # Relevance to query
-    diversity: float = 0.0            # Information diversity (Shannon entropy)
-    grounding: float = 0.0            # Factual backing
-    iaas_score: float = 0.0           # Data quality score
+
+    signal_strength: float = 0.0  # Relevance to query
+    diversity: float = 0.0  # Information diversity (Shannon entropy)
+    grounding: float = 0.0  # Factual backing
+    iaas_score: float = 0.0  # Data quality score
 
     # Sub-components for transparency
-    semantic_relevance: float = 0.0   # Embedding similarity
-    lexical_overlap: float = 0.0      # Keyword match
-    redundancy: float = 0.0           # Pairwise similarity (lower = better)
-    entropy: float = 0.0              # Shannon entropy (normalized bits)
-    entropy_bits: float = 0.0         # Raw Shannon entropy in bits
-    max_entropy_bits: float = 0.0     # Maximum possible entropy
-    symbolic_coverage: float = 0.0    # Symbolic knowledge coverage
-    neural_confidence: float = 0.0    # Neural model confidence
+    semantic_relevance: float = 0.0  # Embedding similarity
+    lexical_overlap: float = 0.0  # Keyword match
+    redundancy: float = 0.0  # Pairwise similarity (lower = better)
+    entropy: float = 0.0  # Shannon entropy (normalized bits)
+    entropy_bits: float = 0.0  # Raw Shannon entropy in bits
+    max_entropy_bits: float = 0.0  # Maximum possible entropy
+    symbolic_coverage: float = 0.0  # Symbolic knowledge coverage
+    neural_confidence: float = 0.0  # Neural model confidence
 
     # Noise analysis (Shannon-inspired)
     noise_analysis: Optional[NoiseAnalysis] = None
@@ -444,20 +446,60 @@ class SNRCalculatorV2:
     """
 
     # Ambiguity indicators (words that reduce precision)
-    AMBIGUITY_MARKERS = frozenset([
-        "maybe", "perhaps", "possibly", "might", "could", "somewhat",
-        "probably", "likely", "unlikely", "roughly", "approximately",
-        "sort of", "kind of", "more or less", "etc", "thing", "stuff",
-        "various", "several", "many", "some", "certain", "particular",
-    ])
+    AMBIGUITY_MARKERS = frozenset(
+        [
+            "maybe",
+            "perhaps",
+            "possibly",
+            "might",
+            "could",
+            "somewhat",
+            "probably",
+            "likely",
+            "unlikely",
+            "roughly",
+            "approximately",
+            "sort of",
+            "kind of",
+            "more or less",
+            "etc",
+            "thing",
+            "stuff",
+            "various",
+            "several",
+            "many",
+            "some",
+            "certain",
+            "particular",
+        ]
+    )
 
     # Grounding indicators (words that increase factual basis)
-    GROUNDING_MARKERS = frozenset([
-        "according", "cited", "research", "study", "evidence", "data",
-        "measured", "calculated", "proven", "documented", "verified",
-        "specifically", "precisely", "exactly", "defined", "known",
-        "fact", "source", "reference", "per", "based",
-    ])
+    GROUNDING_MARKERS = frozenset(
+        [
+            "according",
+            "cited",
+            "research",
+            "study",
+            "evidence",
+            "data",
+            "measured",
+            "calculated",
+            "proven",
+            "documented",
+            "verified",
+            "specifically",
+            "precisely",
+            "exactly",
+            "defined",
+            "known",
+            "fact",
+            "source",
+            "reference",
+            "per",
+            "based",
+        ]
+    )
 
     def __init__(
         self,
@@ -518,15 +560,13 @@ class SNRCalculatorV2:
         semantic_relevance = np.mean(semantic_scores) if semantic_scores else 0.5
 
         # Lexical overlap
-        lexical_scores = [
-            self._compute_lexical_overlap(query, text) for text in texts
-        ]
+        lexical_scores = [self._compute_lexical_overlap(query, text) for text in texts]
         lexical_overlap = np.mean(lexical_scores) if lexical_scores else 0.0
 
         # Combined signal strength
         signal = (
-            self.semantic_weight * semantic_relevance +
-            self.lexical_weight * lexical_overlap
+            self.semantic_weight * semantic_relevance
+            + self.lexical_weight * lexical_overlap
         )
 
         return float(signal), float(semantic_relevance), float(lexical_overlap)
@@ -576,10 +616,9 @@ class SNRCalculatorV2:
         normalized_entropy = entropy / max(max_entropy, 1.0)
 
         # Diversity = balance of entropy and anti-redundancy
-        diversity = (
-            self.diversity_alpha * normalized_entropy +
-            (1 - self.diversity_alpha) * (1 - redundancy)
-        )
+        diversity = self.diversity_alpha * normalized_entropy + (
+            1 - self.diversity_alpha
+        ) * (1 - redundancy)
 
         return float(diversity), float(normalized_entropy), float(redundancy)
 
@@ -598,12 +637,22 @@ class SNRCalculatorV2:
         symbolic_coverage = 0.5  # Default
         if symbolic_sources:
             # Count structured sources (databases, knowledge graphs, etc.)
-            structured_keywords = ['database', 'kg', 'ontology', 'fact', 'verified', 'citation']
+            structured_keywords = [
+                "database",
+                "kg",
+                "ontology",
+                "fact",
+                "verified",
+                "citation",
+            ]
             grounded = sum(
-                1 for s in symbolic_sources
+                1
+                for s in symbolic_sources
                 if any(kw in s.lower() for kw in structured_keywords)
             )
-            symbolic_coverage = grounded / len(symbolic_sources) if symbolic_sources else 0.0
+            symbolic_coverage = (
+                grounded / len(symbolic_sources) if symbolic_sources else 0.0
+            )
 
         # Neural confidence (model's confidence in the responses)
         neural_confidence = 0.7  # Default
@@ -612,8 +661,8 @@ class SNRCalculatorV2:
 
         # Combined grounding
         grounding = (
-            self.grounding_symbolic_weight * symbolic_coverage +
-            (1 - self.grounding_symbolic_weight) * neural_confidence
+            self.grounding_symbolic_weight * symbolic_coverage
+            + (1 - self.grounding_symbolic_weight) * neural_confidence
         )
 
         return float(grounding), float(symbolic_coverage), float(neural_confidence)
@@ -674,10 +723,10 @@ class SNRCalculatorV2:
 
         # IaaS dimensions
         if iaas_dimensions:
-            components.inclusiveness = iaas_dimensions.get('inclusiveness', 0.8)
-            components.abundance = iaas_dimensions.get('abundance', 0.8)
-            components.articulation = iaas_dimensions.get('articulation', 0.8)
-            components.sanitization = iaas_dimensions.get('sanitization', 0.8)
+            components.inclusiveness = iaas_dimensions.get("inclusiveness", 0.8)
+            components.abundance = iaas_dimensions.get("abundance", 0.8)
+            components.articulation = iaas_dimensions.get("articulation", 0.8)
+            components.sanitization = iaas_dimensions.get("sanitization", 0.8)
         else:
             # Default to equal contribution
             components.inclusiveness = iaas_score
@@ -731,12 +780,14 @@ class SNRCalculatorV2:
         components = SNRComponentsV2()
 
         # Signal Strength (lexical only)
-        lexical_scores = [
-            self._compute_lexical_overlap(query, text) for text in texts
-        ]
-        components.lexical_overlap = float(np.mean(lexical_scores)) if lexical_scores else 0.3
+        lexical_scores = [self._compute_lexical_overlap(query, text) for text in texts]
+        components.lexical_overlap = (
+            float(np.mean(lexical_scores)) if lexical_scores else 0.3
+        )
         components.semantic_relevance = 0.5  # Default without embeddings
-        components.signal_strength = 0.4 * components.semantic_relevance + 0.6 * components.lexical_overlap
+        components.signal_strength = (
+            0.4 * components.semantic_relevance + 0.6 * components.lexical_overlap
+        )
 
         # Diversity (word-based entropy)
         diversity, entropy, redundancy = self._compute_diversity(texts, None)
@@ -748,8 +799,12 @@ class SNRCalculatorV2:
         # Estimate based on specificity indicators in text
         all_text = " ".join(texts)
         words = all_text.split()
-        specific_count = sum(1 for w in words if any(c.isdigit() for c in w) or len(w) > 8)
-        heuristic_grounding = min(1.0, 0.5 + 0.5 * (specific_count / max(len(words), 1)))
+        specific_count = sum(
+            1 for w in words if any(c.isdigit() for c in w) or len(w) > 8
+        )
+        heuristic_grounding = min(
+            1.0, 0.5 + 0.5 * (specific_count / max(len(words), 1))
+        )
         components.grounding = heuristic_grounding
         components.symbolic_coverage = 0.5
         components.neural_confidence = 0.7
@@ -797,10 +852,10 @@ def demonstrate_snr_v2():
         text_embeddings=text_embeddings,
         iaas_score=0.92,
         iaas_dimensions={
-            'inclusiveness': 0.95,
-            'abundance': 0.88,
-            'articulation': 0.94,
-            'sanitization': 0.91,
+            "inclusiveness": 0.95,
+            "abundance": 0.88,
+            "articulation": 0.94,
+            "sanitization": 0.91,
         },
     )
 
@@ -809,7 +864,7 @@ def demonstrate_snr_v2():
     print("=" * 60)
     print(f"\nFinal SNR: {components.snr:.4f}")
     print(f"Ihsān Achieved: {components.ihsan_achieved}")
-    print(f"\nComponents:")
+    print("\nComponents:")
     print(f"  Signal Strength: {components.signal_strength:.3f}")
     print(f"    - Semantic Relevance: {components.semantic_relevance:.3f}")
     print(f"    - Lexical Overlap: {components.lexical_overlap:.3f}")

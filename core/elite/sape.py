@@ -14,33 +14,34 @@ DATA → INFORMATION → KNOWLEDGE → WISDOM
 0.90      0.95          0.99       0.999  (SNR targets)
 """
 
-import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
 
+from core.elite import SNR_TARGETS
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-from core.elite import SNR_TARGETS, SAPE_LAYERS
 
 logger = logging.getLogger(__name__)
 
 
 class SAPELayer(str, Enum):
     """SAPE abstraction layers."""
-    DATA = "data"            # Raw signal (SNR ≥ 0.90)
+
+    DATA = "data"  # Raw signal (SNR ≥ 0.90)
     INFORMATION = "information"  # Contextualized (SNR ≥ 0.95)
-    KNOWLEDGE = "knowledge"      # Integrated (SNR ≥ 0.99)
-    WISDOM = "wisdom"           # Applied (SNR ≥ 0.999)
+    KNOWLEDGE = "knowledge"  # Integrated (SNR ≥ 0.99)
+    WISDOM = "wisdom"  # Applied (SNR ≥ 0.999)
 
 
 class ThoughtNodeType(str, Enum):
     """Types of nodes in Graph-of-Thoughts."""
+
     OBSERVATION = "observation"
     ANALYSIS = "analysis"
     SYNTHESIS = "synthesis"
@@ -53,6 +54,7 @@ class ThoughtNodeType(str, Enum):
 @dataclass
 class ThoughtNode:
     """A node in the Graph-of-Thoughts."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     content: str = ""
     node_type: ThoughtNodeType = ThoughtNodeType.OBSERVATION
@@ -87,6 +89,7 @@ class ThoughtNode:
 @dataclass
 class SAPEResult:
     """Result of SAPE optimization."""
+
     input_content: str
     output_content: str
     layers_traversed: List[SAPELayer]
@@ -259,9 +262,7 @@ class GraphOfThoughts:
         best_score = new_score
 
         for child_id in node.children:
-            child_path, child_score = self._dfs_best_path(
-                child_id, new_path, new_score
-            )
+            child_path, child_score = self._dfs_best_path(child_id, new_path, new_score)
             if child_score > best_score:
                 best_path = child_path
                 best_score = child_score
@@ -287,7 +288,8 @@ class GraphOfThoughts:
             "backtrack_count": self._backtrack_count,
             "by_layer": by_layer,
             "by_type": by_type,
-            "avg_snr": sum(n.snr_score for n in self._nodes.values()) / max(len(self._nodes), 1),
+            "avg_snr": sum(n.snr_score for n in self._nodes.values())
+            / max(len(self._nodes), 1),
         }
 
 
@@ -323,7 +325,7 @@ class SAPEOptimizer:
         # Heuristic SNR based on text characteristics
         unique_ratio = len(set(words)) / len(words)
         avg_word_len = sum(len(w) for w in words) / len(words)
-        structure = min(text.count('.') / max(len(words) / 10, 1), 1.0)
+        structure = min(text.count(".") / max(len(words) / 10, 1), 1.0)
 
         snr = 0.4 * unique_ratio + 0.3 * min(avg_word_len / 8, 1.0) + 0.3 * structure
 
@@ -342,9 +344,9 @@ class SAPEOptimizer:
         is_balanced = 10 <= len(words) <= 500
 
         score = (
-            0.4 * float(has_structure) +
-            0.3 * float(has_clarity) +
-            0.3 * float(is_balanced)
+            0.4 * float(has_structure)
+            + 0.3 * float(has_clarity)
+            + 0.3 * float(is_balanced)
         )
 
         return min(score, 1.0)
@@ -410,6 +412,7 @@ class SAPEOptimizer:
         Elevates content through abstraction layers, maximizing SNR.
         """
         import time
+
         start = time.time()
 
         graph = GraphOfThoughts(snr_threshold=self.snr_targets["data"])
@@ -418,15 +421,18 @@ class SAPEOptimizer:
 
         # Start with DATA layer
         current_content = input_content
-        current_layer = SAPELayer.DATA
         parent_ids: Set[str] = set()
 
         # Progress through layers
-        layer_order = [SAPELayer.DATA, SAPELayer.INFORMATION, SAPELayer.KNOWLEDGE, SAPELayer.WISDOM]
+        layer_order = [
+            SAPELayer.DATA,
+            SAPELayer.INFORMATION,
+            SAPELayer.KNOWLEDGE,
+            SAPELayer.WISDOM,
+        ]
         target_idx = layer_order.index(target_layer)
 
-        for i, layer in enumerate(layer_order[:target_idx + 1]):
-            current_layer = layer
+        for i, layer in enumerate(layer_order[: target_idx + 1]):
             layers_traversed.append(layer)
 
             current_content, node = await self._elevate_layer(
@@ -497,21 +503,25 @@ Create a more abstract, integrated perspective."""
         # Extract patterns from SNR progression
         for layer, snr in result.snr_progression.items():
             if snr >= self.snr_targets.get(layer, 0.85):
-                patterns.append({
-                    "layer": layer,
-                    "snr": snr,
-                    "pattern_type": "snr_threshold_met",
-                    "description": f"Content meets {layer} layer SNR target",
-                })
+                patterns.append(
+                    {
+                        "layer": layer,
+                        "snr": snr,
+                        "pattern_type": "snr_threshold_met",
+                        "description": f"Content meets {layer} layer SNR target",
+                    }
+                )
 
         # Check for backtrack patterns (indicate complexity)
         if result.backtrack_count > 0:
-            patterns.append({
-                "layer": "meta",
-                "pattern_type": "complexity_indicator",
-                "backtrack_count": result.backtrack_count,
-                "description": "Content required reasoning backtracking",
-            })
+            patterns.append(
+                {
+                    "layer": "meta",
+                    "pattern_type": "complexity_indicator",
+                    "backtrack_count": result.backtrack_count,
+                    "description": "Content required reasoning backtracking",
+                }
+            )
 
         return patterns
 

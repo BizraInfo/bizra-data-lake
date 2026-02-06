@@ -21,21 +21,23 @@ Created: 2026-02-05 | SAPE Elite Analysis Implementation
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import TypeVar, Generic, Optional, Dict, Any
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum, auto
+from typing import Generic, Optional, TypeVar
 
 
 class BridgeDirection(Enum):
     """Direction of data flow through the bridge."""
+
     UNIDIRECTIONAL = auto()  # One-way translation
-    BIDIRECTIONAL = auto()   # Two-way translation
-    BROADCAST = auto()       # One-to-many
+    BIDIRECTIONAL = auto()  # Two-way translation
+    BROADCAST = auto()  # One-to-many
 
 
 class BridgeHealth(Enum):
     """Health status of a bridge connection."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -45,6 +47,7 @@ class BridgeHealth(Enum):
 @dataclass
 class BridgeMetrics:
     """Performance metrics for a bridge."""
+
     messages_sent: int = 0
     messages_received: int = 0
     errors: int = 0
@@ -60,9 +63,7 @@ class BridgeMetrics:
 
         # Rolling average for latency
         total = self.messages_sent + self.messages_received
-        self.avg_latency_ms = (
-            (self.avg_latency_ms * (total - 1) + latency_ms) / total
-        )
+        self.avg_latency_ms = (self.avg_latency_ms * (total - 1) + latency_ms) / total
         self.last_activity = datetime.utcnow()
 
     def record_error(self):
@@ -72,8 +73,8 @@ class BridgeMetrics:
 
 
 # Generic type variables for bridge input/output
-TInput = TypeVar('TInput')
-TOutput = TypeVar('TOutput')
+TInput = TypeVar("TInput")
+TOutput = TypeVar("TOutput")
 
 
 class BridgeProtocol(ABC, Generic[TInput, TOutput]):

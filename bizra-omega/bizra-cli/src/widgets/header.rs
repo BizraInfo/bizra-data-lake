@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::app::ActiveView;
-use crate::theme::{colors, symbols, Theme};
+use crate::theme::{colors, Theme};
 
 /// ASCII art logo for BIZRA (compact, single line with style)
 const LOGO_COMPACT: &str = "◈ BIZRA";
@@ -64,16 +64,10 @@ impl Widget for Header<'_> {
         );
 
         // Version badge
-        let version = Span::styled(
-            " v1.0 ",
-            Style::default().fg(colors::MUTED),
-        );
+        let version = Span::styled(" v1.0 ", Style::default().fg(colors::MUTED));
 
         // Node name with diamond separator
-        let node = Span::styled(
-            format!(" {} ", self.node_name),
-            Theme::subtitle(),
-        );
+        let node = Span::styled(format!(" {} ", self.node_name), Theme::subtitle());
 
         // Navigation tabs with improved styling
         let mut tabs = Vec::new();
@@ -86,7 +80,7 @@ impl Widget for Header<'_> {
                         .fg(colors::GOLD)
                         .bg(colors::TWILIGHT)
                         .add_modifier(Modifier::BOLD),
-                    "►"
+                    "►",
                 )
             } else {
                 (Theme::unselected(), " ")
@@ -101,25 +95,23 @@ impl Widget for Header<'_> {
         let lm_indicator = if self.lmstudio_connected {
             Span::styled(
                 " ● LM Studio ",
-                Style::default().fg(colors::EMERALD).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors::EMERALD)
+                    .add_modifier(Modifier::BOLD),
             )
         } else {
-            Span::styled(
-                " ○ LM Studio ",
-                Theme::muted(),
-            )
+            Span::styled(" ○ LM Studio ", Theme::muted())
         };
 
         let voice_indicator = if self.voice_active {
             Span::styled(
                 "◉ Voice ",
-                Style::default().fg(colors::VOICE_ACTIVE).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(colors::VOICE_ACTIVE)
+                    .add_modifier(Modifier::BOLD),
             )
         } else {
-            Span::styled(
-                "○ Voice ",
-                Theme::muted(),
-            )
+            Span::styled("○ Voice ", Theme::muted())
         };
 
         // Build the line

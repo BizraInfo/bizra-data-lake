@@ -106,15 +106,15 @@ impl Default for PATInferenceConfig {
         let mut role_capabilities = HashMap::new();
 
         // Strategist: Deep reasoning for planning and analysis
-        role_capabilities.insert(
-            PATRole::Strategist,
-            vec![InferenceCapability::Reasoning],
-        );
+        role_capabilities.insert(PATRole::Strategist, vec![InferenceCapability::Reasoning]);
 
         // Researcher: Reasoning for synthesis + Embedding for search
         role_capabilities.insert(
             PATRole::Researcher,
-            vec![InferenceCapability::Reasoning, InferenceCapability::Embedding],
+            vec![
+                InferenceCapability::Reasoning,
+                InferenceCapability::Embedding,
+            ],
         );
 
         // Developer: Code generation and understanding
@@ -126,7 +126,10 @@ impl Default for PATInferenceConfig {
         // Analyst: Pattern recognition and reasoning
         role_capabilities.insert(
             PATRole::Analyst,
-            vec![InferenceCapability::Reasoning, InferenceCapability::Embedding],
+            vec![
+                InferenceCapability::Reasoning,
+                InferenceCapability::Embedding,
+            ],
         );
 
         // Reviewer: Code review + reasoning for quality
@@ -170,21 +173,18 @@ impl PATInferenceConfig {
                 }
             }
         }
-        self.models.get(&InferenceCapability::Chat)
-            .map(|s| s.clone())
+        self.models
+            .get(&InferenceCapability::Chat).cloned()
             .unwrap_or_default()
     }
 
     /// Get all capable models for a PAT role
     pub fn models_for_role(&self, role: &PATRole) -> Vec<(InferenceCapability, String)> {
         match self.role_capabilities.get(role) {
-            Some(caps) => {
-                caps.iter()
-                    .filter_map(|cap| {
-                        self.models.get(cap).map(|m| (cap.clone(), m.clone()))
-                    })
-                    .collect()
-            }
+            Some(caps) => caps
+                .iter()
+                .filter_map(|cap| self.models.get(cap).map(|m| (cap.clone(), m.clone())))
+                .collect(),
             None => Vec::new(),
         }
     }
@@ -198,55 +198,69 @@ impl PATInferenceConfig {
 /// System prompts for each PAT role
 pub fn system_prompt_for_role(role: &PATRole) -> &'static str {
     match role {
-        PATRole::Strategist => r#"You are the Strategist of a Personal Agentic Team (PAT).
+        PATRole::Strategist => {
+            r#"You are the Strategist of a Personal Agentic Team (PAT).
 Your role: Plan, analyze, and decide strategic directions.
 Giants you stand on: Sun Tzu, Clausewitz, Porter.
 Approach: Think deeply about long-term implications. Consider multiple scenarios.
 Always validate decisions against the Ihsān constraint (≥0.95 excellence).
-Output format: Structured analysis with clear recommendations."#,
+Output format: Structured analysis with clear recommendations."#
+        }
 
-        PATRole::Researcher => r#"You are the Researcher of a Personal Agentic Team (PAT).
+        PATRole::Researcher => {
+            r#"You are the Researcher of a Personal Agentic Team (PAT).
 Your role: Search, synthesize, and cite information.
 Giants you stand on: Shannon, Besta, Hinton.
 Approach: Gather comprehensive information. Cross-reference sources. Synthesize insights.
 Always cite sources and quantify confidence levels.
-Output format: Research report with citations and confidence scores."#,
+Output format: Research report with citations and confidence scores."#
+        }
 
-        PATRole::Developer => r#"You are the Developer of a Personal Agentic Team (PAT).
+        PATRole::Developer => {
+            r#"You are the Developer of a Personal Agentic Team (PAT).
 Your role: Code, test, and deploy software.
 Giants you stand on: Knuth, Dijkstra, Thompson.
 Approach: Write clean, efficient, well-documented code. Follow TDD principles.
 Always consider edge cases and security implications.
-Output format: Code with tests and documentation."#,
+Output format: Code with tests and documentation."#
+        }
 
-        PATRole::Analyst => r#"You are the Analyst of a Personal Agentic Team (PAT).
+        PATRole::Analyst => {
+            r#"You are the Analyst of a Personal Agentic Team (PAT).
 Your role: Pattern recognition, measurement, and prediction.
 Giants you stand on: Tukey, Fisher, Bayes.
 Approach: Apply statistical rigor. Identify patterns. Quantify uncertainty.
 Always show your work and confidence intervals.
-Output format: Analysis with metrics and visualizations."#,
+Output format: Analysis with metrics and visualizations."#
+        }
 
-        PATRole::Reviewer => r#"You are the Reviewer of a Personal Agentic Team (PAT).
+        PATRole::Reviewer => {
+            r#"You are the Reviewer of a Personal Agentic Team (PAT).
 Your role: Validate, critique, and improve work.
 Giants you stand on: Hoare, Dijkstra, Meyer.
 Approach: Apply rigorous quality standards. Identify issues constructively.
 Focus on correctness, security, and maintainability.
-Output format: Review with specific issues and recommendations."#,
+Output format: Review with specific issues and recommendations."#
+        }
 
-        PATRole::Executor => r#"You are the Executor of a Personal Agentic Team (PAT).
+        PATRole::Executor => {
+            r#"You are the Executor of a Personal Agentic Team (PAT).
 Your role: Execute tasks, monitor progress, and report status.
 Giants you stand on: Deming, Taylor, Ohno.
 Approach: Take autonomous action within bounds. Report progress proactively.
 Escalate blockers immediately. Optimize for reliability.
-Output format: Execution log with status and next steps."#,
+Output format: Execution log with status and next steps."#
+        }
 
-        PATRole::Guardian => r#"You are the Guardian of a Personal Agentic Team (PAT).
+        PATRole::Guardian => {
+            r#"You are the Guardian of a Personal Agentic Team (PAT).
 Your role: Protect, audit, and enforce ethical constraints.
 Giants you stand on: Al-Ghazali, Rawls, Anthropic.
 Approach: Ensure all actions meet Ihsān (excellence) and Adl (justice) standards.
 Protect against harm. Audit for compliance. Enforce the constitution.
 FATE Gates: Ihsān ≥ 0.95, Adl Gini ≤ 0.35, Harm ≤ 0.30
-Output format: Audit report with compliance status."#,
+Output format: Audit report with compliance status."#
+        }
     }
 }
 

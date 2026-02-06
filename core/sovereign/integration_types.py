@@ -16,21 +16,23 @@ from typing import Any, Dict, List, Optional
 
 from .capability_card import ModelTier, TaskType
 
-
 # =============================================================================
 # ENUMS
 # =============================================================================
 
+
 class AdmissionStatus(Enum):
     """Strict Synthesis admission statuses."""
-    RUNTIME = "RUNTIME"    # Z3-proven, Ihsan = 1.0, executed
-    MUSEUM = "MUSEUM"      # SNR-v2 scored, awaiting Z3 proof, archived
-    SANDBOX = "SANDBOX"    # Simulation only, no PCI signing
+
+    RUNTIME = "RUNTIME"  # Z3-proven, Ihsan = 1.0, executed
+    MUSEUM = "MUSEUM"  # SNR-v2 scored, awaiting Z3 proof, archived
+    SANDBOX = "SANDBOX"  # Simulation only, no PCI signing
     REJECTED = "REJECTED"  # Below quality threshold
 
 
 class NetworkMode(Enum):
     """Network operation modes."""
+
     OFFLINE = "offline"
     LOCAL_ONLY = "local"
     FEDERATED = "federated"
@@ -41,9 +43,11 @@ class NetworkMode(Enum):
 # DATA CLASSES - Z3 Certificates
 # =============================================================================
 
+
 @dataclass
 class Z3Certificate:
     """Z3 formal verification certificate."""
+
     hash: str
     valid: bool
     proof_type: str = "z3-smt2"
@@ -53,6 +57,7 @@ class Z3Certificate:
 @dataclass
 class AdmissionResult:
     """Result of Constitutional Gate admission check."""
+
     status: AdmissionStatus
     score: float
     evidence: Dict[str, Any] = field(default_factory=dict)
@@ -63,9 +68,11 @@ class AdmissionResult:
 # DATA CLASSES - Configuration
 # =============================================================================
 
+
 @dataclass
 class SovereignConfig:
     """Configuration for the Sovereign Runtime."""
+
     # Network
     network_mode: NetworkMode = NetworkMode.HYBRID
     discovery_timeout_ms: int = 5000
@@ -103,8 +110,14 @@ class SovereignConfig:
         return cls(
             network_mode=NetworkMode(os.getenv("BIZRA_NETWORK_MODE", "hybrid").lower()),
             discovery_timeout_ms=int(os.getenv("BIZRA_DISCOVERY_TIMEOUT_MS", "5000")),
-            bootstrap_nodes=os.getenv("BIZRA_BOOTSTRAP_NODES", "").split(",") if os.getenv("BIZRA_BOOTSTRAP_NODES") else [],
-            model_store_path=Path(os.path.expanduser(os.getenv("BIZRA_MODEL_STORE", "~/.bizra/models"))),
+            bootstrap_nodes=(
+                os.getenv("BIZRA_BOOTSTRAP_NODES", "").split(",")
+                if os.getenv("BIZRA_BOOTSTRAP_NODES")
+                else []
+            ),
+            model_store_path=Path(
+                os.path.expanduser(os.getenv("BIZRA_MODEL_STORE", "~/.bizra/models"))
+            ),
             default_model=os.getenv("BIZRA_DEFAULT_MODEL"),
             sandbox_enabled=os.getenv("BIZRA_SANDBOX", "1") == "1",
             gpu_layers=int(os.getenv("BIZRA_GPU_LAYERS", "-1")),
@@ -112,7 +125,11 @@ class SovereignConfig:
             pool_min_peers=int(os.getenv("BIZRA_POOL_MIN_PEERS", "1")),
             pool_quorum=float(os.getenv("BIZRA_POOL_QUORUM", "0.67")),
             pool_timeout_ms=int(os.getenv("BIZRA_POOL_TIMEOUT_MS", "60000")),
-            keypair_path=Path(os.path.expanduser(os.getenv("BIZRA_KEYPAIR_PATH", "~/.bizra/keypair.json"))),
+            keypair_path=Path(
+                os.path.expanduser(
+                    os.getenv("BIZRA_KEYPAIR_PATH", "~/.bizra/keypair.json")
+                )
+            ),
             post_quantum=os.getenv("BIZRA_POST_QUANTUM", "false").lower() == "true",
         )
 
@@ -121,9 +138,11 @@ class SovereignConfig:
 # DATA CLASSES - Inference
 # =============================================================================
 
+
 @dataclass
 class InferenceRequest:
     """Request for inference."""
+
     prompt: str
     model_id: Optional[str] = None
     task_type: TaskType = TaskType.CHAT
@@ -134,6 +153,7 @@ class InferenceRequest:
 @dataclass
 class InferenceResult:
     """Result from inference."""
+
     content: str
     model_id: str
     tier: ModelTier

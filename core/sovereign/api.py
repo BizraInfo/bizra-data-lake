@@ -32,13 +32,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger("sovereign.api")
 
@@ -46,9 +44,11 @@ logger = logging.getLogger("sovereign.api")
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 @dataclass
 class QueryRequest:
     """API query request model."""
+
     query: str
     context: Dict[str, Any] = field(default_factory=dict)
     options: Dict[str, Any] = field(default_factory=dict)
@@ -77,6 +77,7 @@ class QueryRequest:
 @dataclass
 class QueryResponse:
     """API query response model."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     success: bool = False
     answer: str = ""
@@ -126,6 +127,7 @@ class QueryResponse:
 @dataclass
 class HealthResponse:
     """Health check response."""
+
     status: str = "healthy"
     version: str = "1.0.0"
     uptime_seconds: float = 0.0
@@ -138,6 +140,7 @@ class HealthResponse:
 @dataclass
 class MetricsResponse:
     """Prometheus-compatible metrics."""
+
     metrics: List[str] = field(default_factory=list)
 
     def to_prometheus(self) -> str:
@@ -148,14 +151,11 @@ class MetricsResponse:
 # RATE LIMITER
 # =============================================================================
 
+
 class RateLimiter:
     """Token bucket rate limiter."""
 
-    def __init__(
-        self,
-        requests_per_minute: int = 100,
-        burst_size: int = 10
-    ):
+    def __init__(self, requests_per_minute: int = 100, burst_size: int = 10):
         self.rate = requests_per_minute / 60.0  # tokens per second
         self.burst = burst_size
         self.buckets: Dict[str, Dict[str, float]] = {}
@@ -188,6 +188,7 @@ class RateLimiter:
 # =============================================================================
 # API SERVER (Pure asyncio, no external dependencies)
 # =============================================================================
+
 
 class SovereignAPIServer:
     """
@@ -410,15 +411,17 @@ class SovereignAPIServer:
             logger.error(f"Query error: {e}")
             return self._json_response({"error": str(e)}, 500)
 
-    def _json_response(
-        self,
-        data: Dict[str, Any],
-        status: int = 200
-    ) -> str:
+    def _json_response(self, data: Dict[str, Any], status: int = 200) -> str:
         """Build JSON HTTP response."""
         body = json.dumps(data)
-        status_text = {200: "OK", 400: "Bad Request", 401: "Unauthorized",
-                       404: "Not Found", 429: "Too Many Requests", 500: "Internal Server Error"}
+        status_text = {
+            200: "OK",
+            400: "Bad Request",
+            401: "Unauthorized",
+            404: "Not Found",
+            429: "Too Many Requests",
+            500: "Internal Server Error",
+        }
 
         return (
             f"HTTP/1.1 {status} {status_text.get(status, 'Unknown')}\r\n"
@@ -430,10 +433,7 @@ class SovereignAPIServer:
         )
 
     def _text_response(
-        self,
-        text: str,
-        status: int = 200,
-        content_type: str = "text/plain"
+        self, text: str, status: int = 200, content_type: str = "text/plain"
     ) -> str:
         """Build text HTTP response."""
         return (
@@ -449,6 +449,7 @@ class SovereignAPIServer:
 # FASTAPI INTEGRATION (Optional, for production)
 # =============================================================================
 
+
 def create_fastapi_app(runtime: Any) -> Any:
     """
     Create FastAPI application for production deployment.
@@ -463,7 +464,7 @@ def create_fastapi_app(runtime: Any) -> Any:
         # Run with: uvicorn module:app --host 0.0.0.0 --port 8080
     """
     try:
-        from fastapi import FastAPI, HTTPException, Header, Request
+        from fastapi import FastAPI, Header, HTTPException, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse, PlainTextResponse
         from pydantic import BaseModel
@@ -548,6 +549,7 @@ def create_fastapi_app(runtime: Any) -> Any:
 # CLI SERVER
 # =============================================================================
 
+
 async def serve(
     host: str = "0.0.0.0",
     port: int = 8080,
@@ -559,7 +561,7 @@ async def serve(
     Usage:
         python -m core.sovereign.api --port 8080
     """
-    from .runtime import SovereignRuntime, RuntimeConfig
+    from .runtime import RuntimeConfig, SovereignRuntime
 
     config = RuntimeConfig(autonomous_enabled=True)
 

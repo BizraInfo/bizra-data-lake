@@ -9,7 +9,7 @@
 //!   bizra query "?"  - Query the knowledge base
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
 mod app;
 mod commands;
@@ -17,7 +17,7 @@ mod inference;
 mod theme;
 mod widgets;
 
-use commands::{Commands, AgentCommands, TaskCommands};
+use commands::{AgentCommands, Commands, TaskCommands};
 
 #[derive(Parser)]
 #[command(name = "bizra")]
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("bizra_cli=info".parse()?)
+                .add_directive("bizra_cli=info".parse()?),
         )
         .init();
 
@@ -65,43 +65,35 @@ fn main() -> Result<()> {
             // Start TUI
             run_tui()
         }
-        Some(Commands::Status) => {
-            commands::exec_status()
-        }
-        Some(Commands::Info) => {
-            commands::exec_info()
-        }
-        Some(Commands::Agent(cmd)) => {
-            match cmd {
-                AgentCommands::List => commands::exec_agent_list(),
-                AgentCommands::Show { name } => {
-                    println!("Agent: {}", name);
-                    Ok(())
-                }
-                AgentCommands::Chat { agent, message } => {
-                    exec_agent_chat(&agent, message.as_deref())
-                }
+        Some(Commands::Status) => commands::exec_status(),
+        Some(Commands::Info) => commands::exec_info(),
+        Some(Commands::Agent(cmd)) => match cmd {
+            AgentCommands::List => commands::exec_agent_list(),
+            AgentCommands::Show { name } => {
+                println!("Agent: {}", name);
+                Ok(())
             }
-        }
-        Some(Commands::Query { text, agent }) => {
-            exec_query(&text, &agent)
-        }
-        Some(Commands::Task(cmd)) => {
-            match cmd {
-                TaskCommands::List { status } => {
-                    println!("Tasks (filter: {:?})", status);
-                    Ok(())
-                }
-                TaskCommands::Add { title, description, agent } => {
-                    println!("Add task: {} ({:?}, {:?})", title, description, agent);
-                    Ok(())
-                }
-                TaskCommands::Complete { id } => {
-                    println!("Complete task: {}", id);
-                    Ok(())
-                }
+            AgentCommands::Chat { agent, message } => exec_agent_chat(&agent, message.as_deref()),
+        },
+        Some(Commands::Query { text, agent }) => exec_query(&text, &agent),
+        Some(Commands::Task(cmd)) => match cmd {
+            TaskCommands::List { status } => {
+                println!("Tasks (filter: {:?})", status);
+                Ok(())
             }
-        }
+            TaskCommands::Add {
+                title,
+                description,
+                agent,
+            } => {
+                println!("Add task: {} ({:?}, {:?})", title, description, agent);
+                Ok(())
+            }
+            TaskCommands::Complete { id } => {
+                println!("Complete task: {}", id);
+                Ok(())
+            }
+        },
         Some(Commands::Voice { agent }) => {
             println!("Voice mode with agent: {}", agent);
             println!("Note: Voice requires PersonaPlex server running at https://localhost:8998");
@@ -203,7 +195,10 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
     };
 
     println!("╔════════════════════════════════════════════════════════════════════════════╗");
-    println!("║  {} {} Chat {:>56}║", agent_display.0, agent_display.1, "");
+    println!(
+        "║  {} {} Chat {:>56}║",
+        agent_display.0, agent_display.1, ""
+    );
     println!("╚════════════════════════════════════════════════════════════════════════════╝");
     println!();
 
@@ -289,16 +284,13 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
 }
 
 fn run_tui() -> Result<()> {
-    use std::io;
     use crossterm::{
-        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
+        event::{DisableMouseCapture, EnableMouseCapture},
         execute,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     };
-    use ratatui::{
-        backend::CrosstermBackend,
-        Terminal,
-    };
+    use ratatui::{backend::CrosstermBackend, Terminal};
+    use std::io;
 
     // Setup terminal
     enable_raw_mode()?;
@@ -311,7 +303,9 @@ fn run_tui() -> Result<()> {
     let mut app = app::App::new();
 
     // Welcome message with clean ASCII art
-    app.add_message("system", r#"
+    app.add_message(
+        "system",
+        r#"
     ╔═══════════════════════════════════════════════════════════╗
     ║   ____  ___ ____  ____      _                             ║
     ║  | __ )|_ _|__  /|  _ \    / \                            ║
@@ -324,7 +318,9 @@ fn run_tui() -> Result<()> {
     ║                                                           ║
     ║  Press [i] to type, /help for commands                    ║
     ╚═══════════════════════════════════════════════════════════╝
-"#, None);
+"#,
+        None,
+    );
 
     // Main loop
     let res = run_app(&mut terminal, &mut app);
@@ -359,39 +355,37 @@ fn run_app<B: ratatui::backend::Backend>(
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match app.input_mode {
-                    app::InputMode::Normal => {
-                        match key.code {
-                            KeyCode::Char('q') => {
-                                app.should_quit = true;
-                            }
-                            KeyCode::Char('i') => {
-                                app.input_mode = app::InputMode::Editing;
-                            }
-                            KeyCode::Char('/') => {
-                                app.input_mode = app::InputMode::Command;
-                                app.input = "/".to_string();
-                            }
-                            KeyCode::Tab => {
-                                app.next_view();
-                            }
-                            KeyCode::BackTab => {
-                                app.prev_view();
-                            }
-                            KeyCode::Char('j') | KeyCode::Down => {
-                                app.next_agent();
-                            }
-                            KeyCode::Char('k') | KeyCode::Up => {
-                                app.prev_agent();
-                            }
-                            KeyCode::Char('1') => app.active_view = app::ActiveView::Dashboard,
-                            KeyCode::Char('2') => app.active_view = app::ActiveView::Agents,
-                            KeyCode::Char('3') => app.active_view = app::ActiveView::Chat,
-                            KeyCode::Char('4') => app.active_view = app::ActiveView::Tasks,
-                            KeyCode::Char('5') => app.active_view = app::ActiveView::Treasury,
-                            KeyCode::Char('6') => app.active_view = app::ActiveView::Settings,
-                            _ => {}
+                    app::InputMode::Normal => match key.code {
+                        KeyCode::Char('q') => {
+                            app.should_quit = true;
                         }
-                    }
+                        KeyCode::Char('i') => {
+                            app.input_mode = app::InputMode::Editing;
+                        }
+                        KeyCode::Char('/') => {
+                            app.input_mode = app::InputMode::Command;
+                            app.input = "/".to_string();
+                        }
+                        KeyCode::Tab => {
+                            app.next_view();
+                        }
+                        KeyCode::BackTab => {
+                            app.prev_view();
+                        }
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            app.next_agent();
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            app.prev_agent();
+                        }
+                        KeyCode::Char('1') => app.active_view = app::ActiveView::Dashboard,
+                        KeyCode::Char('2') => app.active_view = app::ActiveView::Agents,
+                        KeyCode::Char('3') => app.active_view = app::ActiveView::Chat,
+                        KeyCode::Char('4') => app.active_view = app::ActiveView::Tasks,
+                        KeyCode::Char('5') => app.active_view = app::ActiveView::Treasury,
+                        KeyCode::Char('6') => app.active_view = app::ActiveView::Settings,
+                        _ => {}
+                    },
                     app::InputMode::Editing | app::InputMode::Command => {
                         match key.code {
                             KeyCode::Esc => {
@@ -413,10 +407,11 @@ fn run_app<B: ratatui::backend::Backend>(
                             KeyCode::Up => {
                                 // History navigation
                                 if !app.command_history.is_empty() {
-                                    let idx = app.history_index.map_or(
-                                        app.command_history.len() - 1,
-                                        |i| i.saturating_sub(1)
-                                    );
+                                    let idx = app
+                                        .history_index
+                                        .map_or(app.command_history.len() - 1, |i| {
+                                            i.saturating_sub(1)
+                                        });
                                     app.history_index = Some(idx);
                                     app.input = app.command_history[idx].clone();
                                 }
@@ -449,14 +444,13 @@ fn run_app<B: ratatui::backend::Backend>(
 }
 
 fn ui(f: &mut ratatui::Frame, app: &app::App) {
+    use crate::theme::Theme;
+    use crate::widgets::{Header, StatusBar};
     use ratatui::{
         layout::{Constraint, Direction, Layout, Rect},
-        style::{Color, Modifier, Style},
-        text::{Line, Span, Text},
-        widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+        text::Span,
+        widgets::{Block, Borders, Clear, Paragraph},
     };
-    use crate::theme::{colors, symbols, Theme, borders};
-    use crate::widgets::{Header, StatusBar, AgentCard, FateGauge};
 
     let size = f.size();
 
@@ -464,9 +458,9 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(2),  // Header
-            Constraint::Min(10),    // Content
-            Constraint::Length(2),  // Status bar
+            Constraint::Length(2), // Header
+            Constraint::Min(10),   // Content
+            Constraint::Length(2), // Status bar
         ])
         .split(size);
 
@@ -503,7 +497,11 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
 
         let input_block = Block::default()
             .title(Span::styled(
-                if app.input_mode == app::InputMode::Command { " Command " } else { " Message " },
+                if app.input_mode == app::InputMode::Command {
+                    " Command "
+                } else {
+                    " Message "
+                },
                 Theme::highlight(),
             ))
             .borders(Borders::ALL)
@@ -518,17 +516,14 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
         f.render_widget(input, input_area);
 
         // Cursor position
-        f.set_cursor(
-            input_area.x + app.input.len() as u16 + 1,
-            input_area.y + 1,
-        );
+        f.set_cursor(input_area.x + app.input.len() as u16 + 1, input_area.y + 1);
     }
 }
 
 fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::layout::{Constraint, Direction, Layout};
-    use crate::widgets::{AgentCard, FateGauge};
     use crate::theme::Theme;
+    use crate::widgets::{AgentCard, FateGauge};
+    use ratatui::layout::{Constraint, Direction, Layout};
 
     // Split into left (agents) and right (FATE + info)
     let chunks = Layout::default()
@@ -578,8 +573,8 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
     f.render_widget(fate, right_chunks[0]);
 
     // Node info
-    use ratatui::widgets::{Block, Borders, Paragraph};
     use ratatui::text::{Line, Span};
+    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let info_block = Block::default()
         .title(Span::styled(" Node Info ", Theme::title()))
@@ -608,8 +603,8 @@ fn render_dashboard(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layou
 }
 
 fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::layout::{Constraint, Direction, Layout};
     use crate::widgets::AgentCard;
+    use ratatui::layout::{Constraint, Direction, Layout};
 
     // Full agent cards in a grid
     let rows = Layout::default()
@@ -626,7 +621,11 @@ fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::
     // Row 1: 3 agents
     let row1_cols = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Ratio(1, 3), Constraint::Ratio(1, 3), Constraint::Ratio(1, 3)])
+        .constraints([
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+        ])
         .split(rows[0]);
 
     for (i, col) in row1_cols.iter().enumerate() {
@@ -642,7 +641,11 @@ fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::
     // Row 2: 3 agents
     let row2_cols = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Ratio(1, 3), Constraint::Ratio(1, 3), Constraint::Ratio(1, 3)])
+        .constraints([
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+        ])
         .split(rows[1]);
 
     for (i, col) in row2_cols.iter().enumerate() {
@@ -660,7 +663,11 @@ fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::
     if roles.len() > 6 {
         let row3_cols = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Ratio(1, 3), Constraint::Ratio(1, 3), Constraint::Ratio(1, 3)])
+            .constraints([
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+            ])
             .split(rows[2]);
 
         if let Some(state) = app.agents.get(&roles[6]) {
@@ -672,9 +679,9 @@ fn render_agents(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::
 }
 
 fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-    use ratatui::text::{Line, Span};
     use crate::theme::Theme;
+    use ratatui::text::{Line, Span};
+    use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
     let agent_name = app.selected_agent.map(|a| a.name()).unwrap_or("Guardian");
     let title = format!(" Chat with {} ", agent_name);
@@ -717,7 +724,10 @@ fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Re
                     Span::styled(line, Theme::text()),
                 ]));
             } else {
-                all_lines.push(Line::from(Span::styled(format!("      {}", line), Theme::text())));
+                all_lines.push(Line::from(Span::styled(
+                    format!("      {}", line),
+                    Theme::text(),
+                )));
             }
         }
         all_lines.push(Line::from("")); // Blank line between messages
@@ -740,9 +750,9 @@ fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Re
 }
 
 fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::widgets::{Block, Borders, Paragraph};
-    use ratatui::text::Span;
     use crate::theme::Theme;
+    use ratatui::text::Span;
+    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Tasks ", Theme::title()))
@@ -761,9 +771,9 @@ fn render_tasks(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::R
 }
 
 fn render_treasury(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::widgets::{Block, Borders, Paragraph};
-    use ratatui::text::Span;
     use crate::theme::Theme;
+    use ratatui::text::Span;
+    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Treasury ", Theme::title()))
@@ -776,9 +786,9 @@ fn render_treasury(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout
 }
 
 fn render_settings(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Rect) {
-    use ratatui::widgets::{Block, Borders, Paragraph};
-    use ratatui::text::{Line, Span};
     use crate::theme::Theme;
+    use ratatui::text::{Line, Span};
+    use ratatui::widgets::{Block, Borders, Paragraph};
 
     let block = Block::default()
         .title(Span::styled(" Settings ", Theme::title()))

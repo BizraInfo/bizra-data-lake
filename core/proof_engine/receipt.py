@@ -19,16 +19,17 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 from core.proof_engine.canonical import (
-    canonical_bytes,
-    blake3_digest,
-    CanonQuery,
     CanonPolicy,
+    CanonQuery,
+    blake3_digest,
+    canonical_bytes,
 )
 from core.proof_engine.snr import SNRTrace
 
 
 class ReceiptStatus(Enum):
     """Receipt status codes."""
+
     ACCEPTED = "accepted"
     REJECTED = "rejected"
     AMBER_RESTRICTED = "amber_restricted"
@@ -64,11 +65,13 @@ class SimpleSigner:
     def sign(self, msg: bytes) -> bytes:
         """Sign with HMAC-SHA256."""
         import hmac
+
         return hmac.new(self.secret, msg, hashlib.sha256).digest()
 
     def verify(self, msg: bytes, signature: bytes) -> bool:
         """Verify HMAC signature."""
         import hmac as hmac_module
+
         expected = self.sign(msg)
         return hmac_module.compare_digest(expected, signature)
 
@@ -80,6 +83,7 @@ class SimpleSigner:
 @dataclass
 class Metrics:
     """Execution metrics for receipt."""
+
     p99_us: int = 0  # p99 latency in microseconds
     allocs: int = 0  # Allocation count
     cpu_cycles: int = 0  # CPU cycles (if available)
@@ -103,6 +107,7 @@ class Receipt:
 
     The proof of what happened during query processing.
     """
+
     # Identity
     receipt_id: str
 
@@ -327,6 +332,7 @@ class ReceiptVerifier:
         # Verify SNR trace if present
         if receipt.snr_trace:
             from core.proof_engine.snr import SNREngine
+
             engine = SNREngine()
             if not engine.verify_trace(receipt.snr_trace):
                 self._failed.append(receipt.receipt_id)

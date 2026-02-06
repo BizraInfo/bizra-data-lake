@@ -26,25 +26,24 @@ from __future__ import annotations
 
 import logging
 
+# Main class (composed from mixins)
+from .graph_core import GraphOfThoughts
+
+# Types, enums, data classes
+from .graph_types import (  # Enums; Data classes
+    EdgeType,
+    ReasoningPath,
+    ReasoningResult,
+    ReasoningStrategy,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
+)
+
 # =============================================================================
 # PUBLIC API - Re-export from modular components
 # =============================================================================
 
-# Types, enums, data classes
-from .graph_types import (
-    # Enums
-    ThoughtType,
-    EdgeType,
-    ReasoningStrategy,
-    # Data classes
-    ThoughtNode,
-    ThoughtEdge,
-    ReasoningPath,
-    ReasoningResult,
-)
-
-# Main class (composed from mixins)
-from .graph_core import GraphOfThoughts
 
 logger = logging.getLogger(__name__)
 

@@ -16,23 +16,24 @@ Standing on Giants: Rich (Python terminal formatting)
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 # Check for rich library availability
 try:
     from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
     from rich.layout import Layout
     from rich.live import Live
+    from rich.panel import Panel
     from rich.progress import Progress, SpinnerColumn, TextColumn
-    from rich.text import Text
     from rich.style import Style
+    from rich.table import Table
+    from rich.text import Text
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -51,6 +52,7 @@ except ImportError:
 
 class DashboardMode(str, Enum):
     """Dashboard display modes."""
+
     OVERVIEW = "overview"
     APPROVALS = "approvals"
     AGENTS = "agents"
@@ -62,6 +64,7 @@ class DashboardMode(str, Enum):
 @dataclass
 class DashboardConfig:
     """Configuration for the dashboard."""
+
     refresh_rate: float = 2.0  # seconds
     max_approval_display: int = 10
     show_knowledge_stats: bool = True
@@ -124,14 +127,20 @@ class ProactiveDashboard:
             return None
 
         header_text = Text()
-        header_text.append("╔══════════════════════════════════════════════════════════════════════════════╗\n", style="bold cyan")
+        header_text.append(
+            "╔══════════════════════════════════════════════════════════════════════════════╗\n",
+            style="bold cyan",
+        )
         header_text.append("║              ", style="bold cyan")
         header_text.append("BIZRA PROACTIVE SOVEREIGN ENTITY", style="bold white")
         header_text.append("                          ║\n", style="bold cyan")
         header_text.append("║              ", style="bold cyan")
         header_text.append("24/7 Autonomous AI Partner", style="dim white")
         header_text.append("                                  ║\n", style="bold cyan")
-        header_text.append("╚══════════════════════════════════════════════════════════════════════════════╝", style="bold cyan")
+        header_text.append(
+            "╚══════════════════════════════════════════════════════════════════════════════╝",
+            style="bold cyan",
+        )
 
         return Panel(header_text, border_style="cyan")
 
@@ -150,7 +159,7 @@ class ProactiveDashboard:
         table.add_row(
             "Running",
             "✅ Active" if running else "🔴 Stopped",
-            "HEALTHY" if running else "OFFLINE"
+            "HEALTHY" if running else "OFFLINE",
         )
 
         # Mode
@@ -186,14 +195,21 @@ class ProactiveDashboard:
         autonomy = stats.get("autonomy", {})
         decisions = autonomy.get("decisions_by_level", {})
 
-        levels = ["OBSERVER", "SUGGESTER", "AUTOLOW", "AUTOMEDIUM", "AUTOHIGH", "SOVEREIGN"]
+        levels = [
+            "OBSERVER",
+            "SUGGESTER",
+            "AUTOLOW",
+            "AUTOMEDIUM",
+            "AUTOHIGH",
+            "SOVEREIGN",
+        ]
         for level in levels:
             count = decisions.get(level, 0)
             table.add_row(
                 level,
                 str(count),
                 "0",  # Would need override tracking
-                "0.95+" if level in ["AUTOHIGH", "SOVEREIGN"] else "0.90+"
+                "0.95+" if level in ["AUTOHIGH", "SOVEREIGN"] else "0.90+",
             )
 
         return table
@@ -277,11 +293,7 @@ class ProactiveDashboard:
         else:
             for i in range(min(queued, 5)):
                 table.add_row(
-                    str(i + 1),
-                    f"Proactive Goal #{i + 1}",
-                    "HIGH",
-                    "0.96",
-                    "$5.00"
+                    str(i + 1), f"Proactive Goal #{i + 1}", "HIGH", "0.96", "$5.00"
                 )
 
         return table
@@ -330,19 +342,16 @@ class ProactiveDashboard:
 
         # Create layout
         layout = Layout()
-        layout.split_column(
-            Layout(name="top", ratio=2),
-            Layout(name="bottom", ratio=1)
-        )
+        layout.split_column(Layout(name="top", ratio=2), Layout(name="bottom", ratio=1))
 
         layout["top"].split_row(
             Layout(self._create_status_table(stats), name="status"),
-            Layout(self._create_autonomy_table(stats), name="autonomy")
+            Layout(self._create_autonomy_table(stats), name="autonomy"),
         )
 
         layout["bottom"].split_row(
             Layout(self._create_agent_table(stats), name="agents"),
-            Layout(self._create_knowledge_table(stats), name="knowledge")
+            Layout(self._create_knowledge_table(stats), name="knowledge"),
         )
 
         self._console.print(layout)
@@ -389,7 +398,9 @@ class ProactiveDashboard:
         self._console.print()
         self._console.print(self._create_approval_queue(stats))
         self._console.print()
-        self._console.print("[dim]y=approve, n=reject, Y=approve all, N=reject all, o=overview[/dim]")
+        self._console.print(
+            "[dim]y=approve, n=reject, Y=approve all, N=reject all, o=overview[/dim]"
+        )
 
     def render_agents(self) -> None:
         """Render the agents mode."""
@@ -455,8 +466,20 @@ class ProactiveDashboard:
             ("SUGGESTER", "Suggest but never act", "None", "$0", "0.85"),
             ("AUTOLOW", "Low-risk, notify after", "Blanket", "$1", "0.95"),
             ("AUTOMEDIUM", "Medium-risk, notify before", "Category", "$100", "0.97"),
-            ("AUTOHIGH", "High-risk, require pre-approval", "Explicit", "Unlimited", "0.99"),
-            ("SOVEREIGN", "Full agency (emergencies)", "Emergency", "Unlimited", "1.00"),
+            (
+                "AUTOHIGH",
+                "High-risk, require pre-approval",
+                "Explicit",
+                "Unlimited",
+                "0.99",
+            ),
+            (
+                "SOVEREIGN",
+                "Full agency (emergencies)",
+                "Emergency",
+                "Unlimited",
+                "1.00",
+            ),
         ]
 
         for level, desc, approval, cost, ihsan in levels:
@@ -481,7 +504,9 @@ class ProactiveDashboard:
         self._console.print()
 
         # Knowledge sources
-        table = Table(title="📚 Knowledge Sources (BIZRA Data Lake)", border_style="yellow")
+        table = Table(
+            title="📚 Knowledge Sources (BIZRA Data Lake)", border_style="yellow"
+        )
         table.add_column("Source", style="cyan")
         table.add_column("Category", style="green")
         table.add_column("Priority", style="yellow")
@@ -508,7 +533,9 @@ class ProactiveDashboard:
     def render_help(self) -> None:
         """Render the help mode."""
         if not RICH_AVAILABLE:
-            print("Help: o=overview, a=approvals, g=agents, u=autonomy, k=knowledge, q=quit")
+            print(
+                "Help: o=overview, a=approvals, g=agents, u=autonomy, k=knowledge, q=quit"
+            )
             return
 
         self._console.clear()
@@ -540,24 +567,24 @@ class ProactiveDashboard:
         """
         key = key.lower()
 
-        if key == 'q':
+        if key == "q":
             return False
-        elif key == 'o':
+        elif key == "o":
             self._current_mode = DashboardMode.OVERVIEW
-        elif key == 'a':
+        elif key == "a":
             self._current_mode = DashboardMode.APPROVALS
-        elif key == 'g':
+        elif key == "g":
             self._current_mode = DashboardMode.AGENTS
-        elif key == 'u':
+        elif key == "u":
             self._current_mode = DashboardMode.AUTONOMY
-        elif key == 'k':
+        elif key == "k":
             self._current_mode = DashboardMode.KNOWLEDGE
-        elif key == 'h':
+        elif key == "h":
             self._current_mode = DashboardMode.HELP
-        elif key == 'y' and self._current_mode == DashboardMode.APPROVALS:
+        elif key == "y" and self._current_mode == DashboardMode.APPROVALS:
             if self._approval_callback:
                 self._approval_callback()
-        elif key == 'n' and self._current_mode == DashboardMode.APPROVALS:
+        elif key == "n" and self._current_mode == DashboardMode.APPROVALS:
             if self._rejection_callback:
                 self._rejection_callback()
 
@@ -615,7 +642,6 @@ def create_dashboard(
 # CLI entry point
 async def main():
     """CLI entry point for standalone dashboard."""
-    import sys
 
     print("╔══════════════════════════════════════════════════════════════╗")
     print("║        BIZRA PROACTIVE DASHBOARD - Standalone Mode           ║")

@@ -6,9 +6,8 @@
 //! using property-based testing with proptest.
 
 use bizra_core::sovereign::graph_of_thoughts::{
-    AggregateResult, GraphStats, ReasoningPath, ThoughtGraph, ThoughtNode, ThoughtType,
+    ReasoningPath, ThoughtGraph, ThoughtNode, ThoughtType,
 };
-use std::collections::HashSet;
 
 // ============================================================================
 // PROPERTY: Graph Structure Invariants
@@ -36,7 +35,12 @@ fn prop_single_parent_invariant() {
         &root
     );
     assert_eq!(
-        graph.get_thought(&evidence).unwrap().parent.as_ref().unwrap(),
+        graph
+            .get_thought(&evidence)
+            .unwrap()
+            .parent
+            .as_ref()
+            .unwrap(),
         &h1
     );
 }
@@ -139,11 +143,8 @@ fn prop_backtrack_excludes_terminal() {
     let root = graph.create_thought("Root", None);
 
     // Add a conclusion with high SNR
-    let conclusion = graph.create_thought_with_type(
-        "Final Answer",
-        Some(&root),
-        ThoughtType::Conclusion,
-    );
+    let conclusion =
+        graph.create_thought_with_type("Final Answer", Some(&root), ThoughtType::Conclusion);
     if let Some(node) = graph.get_thought_mut(&conclusion) {
         node.set_snr(0.99);
     }

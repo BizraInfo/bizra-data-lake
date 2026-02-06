@@ -4,7 +4,7 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::{state::AppState, error::ApiError};
+use crate::{error::ApiError, state::AppState};
 
 #[derive(Serialize)]
 pub struct FederationStatus {
@@ -17,9 +17,7 @@ pub struct FederationStatus {
 }
 
 /// Get federation status
-pub async fn status(
-    State(state): State<Arc<AppState>>,
-) -> Json<FederationStatus> {
+pub async fn status(State(state): State<Arc<AppState>>) -> Json<FederationStatus> {
     let federation = state.gossip.read().await;
     let identity = state.identity.read().await;
 
@@ -60,9 +58,7 @@ pub struct ListPeersResponse {
 }
 
 /// List federation peers
-pub async fn list_peers(
-    State(state): State<Arc<AppState>>,
-) -> Json<ListPeersResponse> {
+pub async fn list_peers(State(state): State<Arc<AppState>>) -> Json<ListPeersResponse> {
     let federation = state.gossip.read().await;
 
     if let Some(_fed) = federation.as_ref() {
@@ -101,19 +97,24 @@ pub async fn propose(
     }
 
     // Validate confidence meets Ihsan threshold
-    if req.confidence < bizra_core::IHSAN_THRESHOLD as f64 {
-        return Err(ApiError::ConstitutionViolation(
-            format!("Confidence {} below Ihsan threshold {}", req.confidence, bizra_core::IHSAN_THRESHOLD)
-        ));
+    if req.confidence < bizra_core::IHSAN_THRESHOLD {
+        return Err(ApiError::ConstitutionViolation(format!(
+            "Confidence {} below Ihsan threshold {}",
+            req.confidence,
+            bizra_core::IHSAN_THRESHOLD
+        )));
     }
 
     // In real implementation, submit to consensus engine
-    let proposal_id = format!("prop_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
+    let proposal_id = format!(
+        "prop_{}",
+        uuid::Uuid::new_v4().to_string().split('-').next().unwrap()
+    );
 
     Ok(Json(ProposeResponse {
         proposal_id,
         status: "submitted".into(),
-        quorum_needed: 3, // Example: 2f+1 with f=1
+        quorum_needed: 3,  // Example: 2f+1 with f=1
         votes_received: 1, // Self-vote
     }))
 }

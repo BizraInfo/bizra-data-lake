@@ -16,12 +16,12 @@ from pathlib import Path
 from typing import List, Optional
 
 from .treasury_types import (
-    TreasuryState,
-    TreasuryMode,
+    DEFAULT_BURN_RATE,
+    EthicsAssessment,
     TransitionEvent,
     TransitionTrigger,
-    EthicsAssessment,
-    DEFAULT_BURN_RATE,
+    TreasuryMode,
+    TreasuryState,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,24 +102,27 @@ class TreasuryPersistence:
         """Save current treasury state."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO treasury_state
                 (id, mode, reserves_days, ethical_score, last_transition,
                  transition_reason, burn_rate_seed_per_day, total_reserves_seed,
                  locked_treasury_seed, unlocked_treasury_seed, updated_at)
                 VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                state.mode.value,
-                state.reserves_days,
-                state.ethical_score,
-                state.last_transition.isoformat(),
-                state.transition_reason,
-                state.burn_rate_seed_per_day,
-                state.total_reserves_seed,
-                state.locked_treasury_seed,
-                state.unlocked_treasury_seed,
-                datetime.utcnow().isoformat(),
-            ))
+            """,
+                (
+                    state.mode.value,
+                    state.reserves_days,
+                    state.ethical_score,
+                    state.last_transition.isoformat(),
+                    state.transition_reason,
+                    state.burn_rate_seed_per_day,
+                    state.total_reserves_seed,
+                    state.locked_treasury_seed,
+                    state.unlocked_treasury_seed,
+                    datetime.utcnow().isoformat(),
+                ),
+            )
             conn.commit()
 
     def load_state(self) -> Optional[TreasuryState]:
@@ -152,74 +155,85 @@ class TreasuryPersistence:
         """Record a transition event."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO treasury_transitions
                 (event_id, timestamp, from_mode, to_mode, trigger,
                  ethical_score_at_transition, reserves_days_at_transition,
                  reason, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                event.event_id,
-                event.timestamp.isoformat(),
-                event.from_mode.value,
-                event.to_mode.value,
-                event.trigger.value,
-                event.ethical_score_at_transition,
-                event.reserves_days_at_transition,
-                event.reason,
-                json.dumps(event.metadata),
-            ))
+            """,
+                (
+                    event.event_id,
+                    event.timestamp.isoformat(),
+                    event.from_mode.value,
+                    event.to_mode.value,
+                    event.trigger.value,
+                    event.ethical_score_at_transition,
+                    event.reserves_days_at_transition,
+                    event.reason,
+                    json.dumps(event.metadata),
+                ),
+            )
             conn.commit()
 
     def record_ethics_assessment(self, assessment: EthicsAssessment) -> None:
         """Record an ethics assessment."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO treasury_ethics_assessments
                 (timestamp, overall_score, transparency_score, fairness_score,
                  sustainability_score, compliance_score, ihsan_alignment,
                  confidence, data_sources)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                assessment.assessment_timestamp.isoformat(),
-                assessment.overall_score,
-                assessment.transparency_score,
-                assessment.fairness_score,
-                assessment.sustainability_score,
-                assessment.compliance_score,
-                assessment.ihsan_alignment,
-                assessment.confidence,
-                json.dumps(assessment.data_sources),
-            ))
+            """,
+                (
+                    assessment.assessment_timestamp.isoformat(),
+                    assessment.overall_score,
+                    assessment.transparency_score,
+                    assessment.fairness_score,
+                    assessment.sustainability_score,
+                    assessment.compliance_score,
+                    assessment.ihsan_alignment,
+                    assessment.confidence,
+                    json.dumps(assessment.data_sources),
+                ),
+            )
             conn.commit()
 
     def get_transition_history(self, limit: int = 100) -> List[TransitionEvent]:
         """Get recent transition history."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT event_id, timestamp, from_mode, to_mode, trigger,
                        ethical_score_at_transition, reserves_days_at_transition,
                        reason, metadata
                 FROM treasury_transitions
                 ORDER BY timestamp DESC
                 LIMIT ?
-            """, (limit,))
+            """,
+                (limit,),
+            )
 
             events = []
             for row in cursor.fetchall():
-                events.append(TransitionEvent(
-                    event_id=row[0],
-                    timestamp=datetime.fromisoformat(row[1]),
-                    from_mode=TreasuryMode(row[2]),
-                    to_mode=TreasuryMode(row[3]),
-                    trigger=TransitionTrigger(row[4]),
-                    ethical_score_at_transition=row[5] or 0.0,
-                    reserves_days_at_transition=row[6] or 0.0,
-                    reason=row[7] or "",
-                    metadata=json.loads(row[8]) if row[8] else {},
-                ))
+                events.append(
+                    TransitionEvent(
+                        event_id=row[0],
+                        timestamp=datetime.fromisoformat(row[1]),
+                        from_mode=TreasuryMode(row[2]),
+                        to_mode=TreasuryMode(row[3]),
+                        trigger=TransitionTrigger(row[4]),
+                        ethical_score_at_transition=row[5] or 0.0,
+                        reserves_days_at_transition=row[6] or 0.0,
+                        reason=row[7] or "",
+                        metadata=json.loads(row[8]) if row[8] else {},
+                    )
+                )
             return events
 
 

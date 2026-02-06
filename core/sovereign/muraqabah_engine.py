@@ -9,29 +9,31 @@ Standing on Giants: Al-Ghazali (1058-1111) + Observability Patterns + Event-Driv
 
 import asyncio
 import logging
+import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional, Set
-import uuid
+from typing import Any, Callable, Deque, Dict, List, Optional
 
-from .event_bus import EventBus, Event, EventPriority, get_event_bus
+from .event_bus import EventBus, EventPriority, get_event_bus
 
 logger = logging.getLogger(__name__)
 
 
 class MonitorDomain(str, Enum):
     """Domains monitored by Muraqabah."""
-    FINANCIAL = "financial"       # Cash flow, portfolio, market signals
-    HEALTH = "health"             # System health, mental indicators
-    SOCIAL = "social"             # Relationships, network, conflicts
-    COGNITIVE = "cognitive"       # Skills, learning, creativity
+
+    FINANCIAL = "financial"  # Cash flow, portfolio, market signals
+    HEALTH = "health"  # System health, mental indicators
+    SOCIAL = "social"  # Relationships, network, conflicts
+    COGNITIVE = "cognitive"  # Skills, learning, creativity
     ENVIRONMENTAL = "environmental"  # Energy, maintenance, security
 
 
 class SensorState(Enum):
     """State of a sensor."""
+
     ACTIVE = auto()
     INACTIVE = auto()
     ERROR = auto()
@@ -41,6 +43,7 @@ class SensorState(Enum):
 @dataclass
 class SensorReading:
     """A reading from a Muraqabah sensor."""
+
     sensor_id: str = ""
     domain: MonitorDomain = MonitorDomain.ENVIRONMENTAL
     metric_name: str = ""
@@ -54,11 +57,12 @@ class SensorReading:
 @dataclass
 class Opportunity:
     """A detected opportunity from Muraqabah analysis."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     domain: MonitorDomain = MonitorDomain.ENVIRONMENTAL
     description: str = ""
     estimated_value: float = 0.0  # Relative value 0-1
-    urgency: float = 0.5          # 0=low, 1=urgent
+    urgency: float = 0.5  # 0=low, 1=urgent
     confidence: float = 0.9
     action_required: str = ""
     expires_at: Optional[datetime] = None
@@ -87,10 +91,10 @@ class MuraqabahEngine:
 
     # Default scan intervals per domain (seconds)
     DEFAULT_INTERVALS = {
-        MonitorDomain.FINANCIAL: 300,      # 5 minutes
-        MonitorDomain.HEALTH: 60,          # 1 minute
-        MonitorDomain.SOCIAL: 600,         # 10 minutes
-        MonitorDomain.COGNITIVE: 300,      # 5 minutes
+        MonitorDomain.FINANCIAL: 300,  # 5 minutes
+        MonitorDomain.HEALTH: 60,  # 1 minute
+        MonitorDomain.SOCIAL: 600,  # 10 minutes
+        MonitorDomain.COGNITIVE: 300,  # 5 minutes
         MonitorDomain.ENVIRONMENTAL: 120,  # 2 minutes
     }
 
@@ -140,10 +144,11 @@ class MuraqabahEngine:
             """Monitor system resource health (CPU, memory, disk)."""
             try:
                 import psutil
+
                 return {
                     "cpu_usage": psutil.cpu_percent() / 100,
                     "memory_usage": psutil.virtual_memory().percent / 100,
-                    "disk_usage": psutil.disk_usage('/').percent / 100,
+                    "disk_usage": psutil.disk_usage("/").percent / 100,
                 }
             except ImportError:
                 return {"cpu_usage": 0.5, "memory_usage": 0.5, "disk_usage": 0.5}
@@ -152,6 +157,7 @@ class MuraqabahEngine:
             """Monitor current process resource usage."""
             try:
                 import psutil
+
                 proc = psutil.Process()
                 return {
                     "process_memory_mb": proc.memory_info().rss / (1024 * 1024),
@@ -165,6 +171,7 @@ class MuraqabahEngine:
             """Monitor network I/O statistics."""
             try:
                 import psutil
+
                 net = psutil.net_io_counters()
                 return {
                     "bytes_sent_mb": net.bytes_sent / (1024 * 1024),
@@ -173,12 +180,18 @@ class MuraqabahEngine:
                     "packets_recv": net.packets_recv,
                 }
             except ImportError:
-                return {"bytes_sent_mb": 0, "bytes_recv_mb": 0, "packets_sent": 0, "packets_recv": 0}
+                return {
+                    "bytes_sent_mb": 0,
+                    "bytes_recv_mb": 0,
+                    "packets_sent": 0,
+                    "packets_recv": 0,
+                }
 
         def disk_io_sensor() -> Dict[str, Any]:
             """Monitor disk I/O statistics."""
             try:
                 import psutil
+
                 disk = psutil.disk_io_counters()
                 return {
                     "read_mb": disk.read_bytes / (1024 * 1024) if disk else 0,
@@ -196,9 +209,10 @@ class MuraqabahEngine:
         def latency_sensor() -> Dict[str, Any]:
             """Monitor system response latency."""
             import time
+
             # Measure simple operation latency
             start = time.perf_counter()
-            _ = [i ** 2 for i in range(100)]
+            _ = [i**2 for i in range(100)]
             end = time.perf_counter()
             measured_latency = (end - start) * 1000  # ms
 
@@ -220,8 +234,10 @@ class MuraqabahEngine:
             """Monitor system uptime."""
             try:
                 import psutil
+
                 boot_time = psutil.boot_time()
                 import time
+
                 uptime_hours = (time.time() - boot_time) / 3600
                 return {
                     "uptime_hours": uptime_hours,
@@ -269,18 +285,23 @@ class MuraqabahEngine:
             """Monitor computational resource costs."""
             try:
                 import psutil
+
                 # Estimate cost based on resource usage
                 cpu = psutil.cpu_percent() / 100
                 mem = psutil.virtual_memory().percent / 100
                 # Simplified cost model
-                hourly_cost_estimate = (cpu * 0.1 + mem * 0.05)  # Arbitrary units
+                hourly_cost_estimate = cpu * 0.1 + mem * 0.05  # Arbitrary units
                 return {
                     "hourly_cost_estimate": hourly_cost_estimate,
                     "cpu_cost_factor": cpu * 0.1,
                     "memory_cost_factor": mem * 0.05,
                 }
             except ImportError:
-                return {"hourly_cost_estimate": 0.05, "cpu_cost_factor": 0.03, "memory_cost_factor": 0.02}
+                return {
+                    "hourly_cost_estimate": 0.05,
+                    "cpu_cost_factor": 0.03,
+                    "memory_cost_factor": 0.02,
+                }
 
         def efficiency_sensor() -> Dict[str, Any]:
             """Monitor system efficiency metrics."""
@@ -305,12 +326,14 @@ class MuraqabahEngine:
         def connectivity_sensor() -> Dict[str, Any]:
             """Monitor network connectivity status."""
             import socket
+
             connected = False
             latency = 0.0
             try:
                 socket.create_connection(("8.8.8.8", 53), timeout=3)
                 connected = True
                 import time
+
                 start = time.perf_counter()
                 socket.create_connection(("8.8.8.8", 53), timeout=3).close()
                 latency = (time.perf_counter() - start) * 1000
@@ -349,22 +372,18 @@ class MuraqabahEngine:
             (MonitorDomain.ENVIRONMENTAL, "process", process_sensor),
             (MonitorDomain.ENVIRONMENTAL, "network_io", network_io_sensor),
             (MonitorDomain.ENVIRONMENTAL, "disk_io", disk_io_sensor),
-
             # Health (3 sensors)
             (MonitorDomain.HEALTH, "latency", latency_sensor),
             (MonitorDomain.HEALTH, "error_rate", error_rate_sensor),
             (MonitorDomain.HEALTH, "uptime", uptime_sensor),
-
             # Cognitive (3 sensors)
             (MonitorDomain.COGNITIVE, "task_queue", task_queue_sensor),
             (MonitorDomain.COGNITIVE, "learning", learning_progress_sensor),
             (MonitorDomain.COGNITIVE, "inference_quality", inference_quality_sensor),
-
             # Financial (3 sensors)
             (MonitorDomain.FINANCIAL, "compute_cost", compute_cost_sensor),
             (MonitorDomain.FINANCIAL, "efficiency", efficiency_sensor),
             (MonitorDomain.FINANCIAL, "budget", budget_sensor),
-
             # Social (3 sensors)
             (MonitorDomain.SOCIAL, "connectivity", connectivity_sensor),
             (MonitorDomain.SOCIAL, "federation", federation_sensor),
@@ -377,7 +396,9 @@ class MuraqabahEngine:
             except Exception as e:
                 logger.warning(f"Could not register sensor {domain.value}:{name}: {e}")
 
-        logger.info(f"Registered {len(sensor_registrations)} default sensors across {len(MonitorDomain)} domains")
+        logger.info(
+            f"Registered {len(sensor_registrations)} default sensors across {len(MonitorDomain)} domains"
+        )
 
     def register_sensor(
         self,
@@ -716,7 +737,11 @@ class MuraqabahEngine:
                             "urgency": opp.urgency,
                             "value": opp.estimated_value,
                         },
-                        priority=EventPriority.HIGH if opp.urgency > 0.7 else EventPriority.NORMAL,
+                        priority=(
+                            EventPriority.HIGH
+                            if opp.urgency > 0.7
+                            else EventPriority.NORMAL
+                        ),
                     )
 
                     # Call handlers
@@ -747,8 +772,7 @@ class MuraqabahEngine:
                 await asyncio.sleep(self._intervals[domain])
 
         tasks = [
-            asyncio.create_task(domain_scanner(domain))
-            for domain in MonitorDomain
+            asyncio.create_task(domain_scanner(domain)) for domain in MonitorDomain
         ]
 
         try:
@@ -777,16 +801,13 @@ class MuraqabahEngine:
             "scan_count": self._scan_count,
             "total_opportunities": self._opportunity_count,
             "active_sensors": sum(
-                1 for s in self._sensor_states.values()
-                if s == SensorState.ACTIVE
+                1 for s in self._sensor_states.values() if s == SensorState.ACTIVE
             ),
             "sensors_by_domain": {
-                d.value: len(self._sensors[d])
-                for d in MonitorDomain
+                d.value: len(self._sensors[d]) for d in MonitorDomain
             },
             "readings_by_domain": {
-                d.value: len(self._readings[d])
-                for d in MonitorDomain
+                d.value: len(self._readings[d]) for d in MonitorDomain
             },
         }
 

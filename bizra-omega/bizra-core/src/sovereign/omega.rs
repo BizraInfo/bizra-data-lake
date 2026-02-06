@@ -44,16 +44,16 @@
 //! 4. **Bernstein's Security**: Fail-secure by default
 //! 5. **Torvalds' Composability**: Unix philosophy
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::Instant;
 use tokio::sync::RwLock;
 
-use crate::{NodeIdentity, Constitution, IHSAN_THRESHOLD, SNR_THRESHOLD};
 use super::error::{SovereignError, SovereignResult};
-use super::snr_engine::{SNREngine, SNRConfig, SignalMetrics};
-use super::graph_of_thoughts::{ThoughtGraph, ThoughtNode, ReasoningPath};
 use super::giants::GiantRegistry;
+use super::graph_of_thoughts::{ReasoningPath, ThoughtGraph, ThoughtNode};
+use super::snr_engine::{SNRConfig, SNREngine, SignalMetrics};
+use crate::{Constitution, NodeIdentity, IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 /// Omega Engine configuration
 #[derive(Clone, Debug)]
@@ -118,7 +118,7 @@ impl OmegaConfig {
         Self {
             enable_telemetry: false,
             circuit_breaker_threshold: 10,
-            snr_floor: 0.70, // More lenient for development (GUARDED)
+            snr_floor: 0.70,    // More lenient for development (GUARDED)
             ihsan_target: 0.75, // Lower Ihsān requirement for development (GUARDED)
             ..Default::default()
         }
@@ -269,7 +269,7 @@ impl OmegaEngine {
     /// Create new Omega Engine with configuration
     pub fn new(config: OmegaConfig) -> Self {
         let snr_engine = SNREngine::with_config(config.snr_config.clone());
-        
+
         Self {
             config,
             identity: Arc::new(RwLock::new(None)),
@@ -331,7 +331,7 @@ impl OmegaEngine {
     /// Record operation failure for circuit breaker
     async fn record_failure(&self) {
         let failures = self.circuit_failures.fetch_add(1, Ordering::Relaxed) + 1;
-        
+
         if failures >= self.config.circuit_breaker_threshold as u64 {
             self.circuit_open.store(true, Ordering::Relaxed);
             *self.circuit_trip_time.write().await = Some(Instant::now());
@@ -370,7 +370,7 @@ impl OmegaEngine {
 
         let start = Instant::now();
         let op_id = self.generate_op_id();
-        
+
         // Track active operations
         self.active_ops.fetch_add(1, Ordering::Relaxed);
 
@@ -392,8 +392,9 @@ impl OmegaEngine {
 
         // Record metrics
         let latency_us = start.elapsed().as_micros() as u64;
-        self.total_latency_us.fetch_add(latency_us, Ordering::Relaxed);
-        
+        self.total_latency_us
+            .fetch_add(latency_us, Ordering::Relaxed);
+
         // Update max latency
         let mut current_max = self.max_latency_us.load(Ordering::Relaxed);
         while latency_us > current_max {
@@ -469,16 +470,22 @@ impl OmegaEngine {
     }
 
     /// Validate content through the full reasoning chain
-    pub async fn validate_with_reasoning(&self, content: &str) -> SovereignResult<(SignalMetrics, ReasoningPath)> {
+    pub async fn validate_with_reasoning(
+        &self,
+        content: &str,
+    ) -> SovereignResult<(SignalMetrics, ReasoningPath)> {
         let graph = self.thought_graph.write().await;
         let mut path = graph.create_path("validate_content");
 
         // Schema validation thought
-        path.add_thought(ThoughtNode::new("schema_check", "Validate content structure"));
-        
+        path.add_thought(ThoughtNode::new(
+            "schema_check",
+            "Validate content structure",
+        ));
+
         // Try to parse as JSON if applicable
-        let schema_valid = serde_json::from_str::<serde_json::Value>(content).is_ok()
-            || !content.starts_with('{'); // Non-JSON is valid too
+        let schema_valid =
+            serde_json::from_str::<serde_json::Value>(content).is_ok() || !content.starts_with('{'); // Non-JSON is valid too
         path.record_result("schema_check", schema_valid);
 
         if !schema_valid {
@@ -488,8 +495,11 @@ impl OmegaEngine {
         }
 
         // SNR validation thought
-        path.add_thought(ThoughtNode::new("snr_check", "Analyze signal-to-noise ratio"));
-        
+        path.add_thought(ThoughtNode::new(
+            "snr_check",
+            "Analyze signal-to-noise ratio",
+        ));
+
         let metrics = self.snr_engine.analyze_text(content)?;
         let snr_valid = metrics.compute_snr() >= self.config.snr_floor;
         path.record_result("snr_check", snr_valid);
@@ -502,8 +512,11 @@ impl OmegaEngine {
         }
 
         // Ihsān validation thought
-        path.add_thought(ThoughtNode::new("ihsan_check", "Verify excellence threshold"));
-        
+        path.add_thought(ThoughtNode::new(
+            "ihsan_check",
+            "Verify excellence threshold",
+        ));
+
         let ihsan_valid = metrics.compute_snr() >= self.config.ihsan_target;
         path.record_result("ihsan_check", ihsan_valid);
 
@@ -522,12 +535,8 @@ impl OmegaEngine {
         let total = self.operation_count.load(Ordering::Relaxed);
         let successful = self.success_count.load(Ordering::Relaxed);
         let total_latency = self.total_latency_us.load(Ordering::Relaxed);
-        
-        let avg_latency = if total > 0 {
-            total_latency / total
-        } else {
-            0
-        };
+
+        let avg_latency = if total > 0 { total_latency / total } else { 0 };
 
         let snr_acc = *self.snr_accumulator.read().await;
         let avg_snr = if total > 0 {
@@ -616,9 +625,9 @@ mod tests {
     #[tokio::test]
     async fn test_omega_execute() {
         let engine = OmegaEngine::new(OmegaConfig::default());
-        
+
         let result = engine.execute(|| 42).await.unwrap();
-        
+
         assert_eq!(result.value, 42);
         assert!(result.latency_us < 1_000_000);
         assert!(!result.operation_id.is_empty());
@@ -627,7 +636,7 @@ mod tests {
     #[tokio::test]
     async fn test_omega_metrics() {
         let engine = OmegaEngine::new(OmegaConfig::default());
-        
+
         // Execute some operations
         for _ in 0..10 {
             engine.execute(|| 1 + 1).await.unwrap();
@@ -642,7 +651,7 @@ mod tests {
     #[tokio::test]
     async fn test_circuit_breaker_closed() {
         let engine = OmegaEngine::new(OmegaConfig::default());
-        
+
         // Should be closed by default
         let result = engine.check_circuit().await;
         assert!(result.is_ok());
@@ -651,13 +660,13 @@ mod tests {
     #[tokio::test]
     async fn test_validate_with_reasoning() {
         let engine = OmegaEngine::new(OmegaConfig::development());
-        
+
         let content = "The quantum algorithm implementation demonstrates \
                        significant performance improvements according to research data.";
-        
+
         let result = engine.validate_with_reasoning(content).await;
         assert!(result.is_ok());
-        
+
         let (metrics, path) = result.unwrap();
         assert!(metrics.compute_snr() > 0.5);
         assert!(!path.thoughts.is_empty());
@@ -666,7 +675,7 @@ mod tests {
     #[tokio::test]
     async fn test_health_check() {
         let engine = OmegaEngine::new(OmegaConfig::default());
-        
+
         let health = engine.health_check().await;
         assert!(health.is_ok());
     }
@@ -675,11 +684,11 @@ mod tests {
     fn test_config_presets() {
         let prod = OmegaConfig::production();
         assert!(prod.enable_telemetry);
-        
+
         let dev = OmegaConfig::development();
         assert!(!dev.enable_telemetry);
         assert!(dev.snr_floor < prod.snr_floor);
-        
+
         let edge = OmegaConfig::edge();
         assert!(!edge.enable_got);
     }
@@ -687,7 +696,7 @@ mod tests {
     #[tokio::test]
     async fn test_giants_attribution() {
         let engine = OmegaEngine::new(OmegaConfig::default());
-        
+
         let attribution = engine.print_attribution();
         assert!(attribution.contains("Shannon"));
         assert!(attribution.contains("Lamport"));

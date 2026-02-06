@@ -1,12 +1,6 @@
 //! Rate Limiting Middleware
 
-use axum::{
-    body::Body,
-    extract::State,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
 use std::sync::Arc;
 
 use crate::state::AppState;

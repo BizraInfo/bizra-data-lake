@@ -70,26 +70,26 @@ GIANTS_PROTOCOL = {
 
 # SNR Thresholds by Reasoning Layer
 SNR_THRESHOLDS = {
-    "minimum": 0.85,       # Absolute minimum
-    "observation": 0.90,   # Raw data intake
-    "orientation": 0.92,   # Context establishment
-    "reasoning": 0.95,     # Core inference
-    "synthesis": 0.98,     # Integration
-    "action": 0.95,        # Output generation (matches Ihsān production floor)
-    "reflection": 0.98,    # Meta-cognition
-    "ihsan": 0.99,         # Ihsān aspiration ceiling
+    "minimum": 0.85,  # Absolute minimum
+    "observation": 0.90,  # Raw data intake
+    "orientation": 0.92,  # Context establishment
+    "reasoning": 0.95,  # Core inference
+    "synthesis": 0.98,  # Integration
+    "action": 0.95,  # Output generation (matches Ihsān production floor)
+    "reflection": 0.98,  # Meta-cognition
+    "ihsan": 0.99,  # Ihsān aspiration ceiling
 }
 
 # Ihsān Dimensions — Excellence Scoring (weights sum to 1.0)
 IHSAN_DIMENSIONS = {
-    "correctness": 0.22,         # Accuracy of output
-    "safety": 0.22,              # Harmlessness guarantee
-    "user_benefit": 0.14,        # Value to end user
-    "efficiency": 0.12,          # Resource utilization
-    "auditability": 0.12,        # Traceability of reasoning
-    "anti_centralization": 0.08, # Decentralization principle
-    "robustness": 0.06,          # Fault tolerance
-    "adl_justice": 0.04,         # Fair distribution
+    "correctness": 0.22,  # Accuracy of output
+    "safety": 0.22,  # Harmlessness guarantee
+    "user_benefit": 0.14,  # Value to end user
+    "efficiency": 0.12,  # Resource utilization
+    "auditability": 0.12,  # Traceability of reasoning
+    "anti_centralization": 0.08,  # Decentralization principle
+    "robustness": 0.06,  # Fault tolerance
+    "adl_justice": 0.04,  # Fair distribution
 }
 
 # Reasoning Node Types
@@ -106,13 +106,13 @@ NODE_TYPES = [
 
 # Constitutional Constraints (Immutable)
 CONSTITUTIONAL_CONSTRAINTS = {
-    "ihsan_threshold": 0.95,      # Minimum excellence score
-    "safety_floor": 0.99,          # Safety never below this
-    "max_backtrack_depth": 7,      # Limit reasoning loops
-    "max_backtrack": 5,            # Max backtrack attempts
-    "max_loops": 3,                # Max reasoning iterations
-    "require_provenance": True,    # All outputs must be traceable
-    "fail_closed": True,           # On uncertainty, refuse
+    "ihsan_threshold": 0.95,  # Minimum excellence score
+    "safety_floor": 0.99,  # Safety never below this
+    "max_backtrack_depth": 7,  # Limit reasoning loops
+    "max_backtrack": 5,  # Max backtrack attempts
+    "max_loops": 3,  # Max reasoning iterations
+    "require_provenance": True,  # All outputs must be traceable
+    "fail_closed": True,  # On uncertainty, refuse
 }
 
 # Lazy imports for performance
@@ -120,24 +120,29 @@ if TYPE_CHECKING:
     from .engine import SovereignReasoningEngine
     from .giants import GiantsProtocol
     from .loop import SovereignLoop
-    from .nodes import ReasoningNode, ReasoningGraph
+    from .nodes import ReasoningGraph, ReasoningNode
 
 
 def __getattr__(name: str):
     if name == "SovereignReasoningEngine":
         from .engine import SovereignReasoningEngine
+
         return SovereignReasoningEngine
     elif name == "GiantsProtocol":
         from .giants import GiantsProtocol
+
         return GiantsProtocol
     elif name == "SovereignLoop":
         from .loop import SovereignLoop
+
         return SovereignLoop
     elif name == "ReasoningNode":
         from .nodes import ReasoningNode
+
         return ReasoningNode
     elif name == "ReasoningGraph":
         from .nodes import ReasoningGraph
+
         return ReasoningGraph
     raise AttributeError(f"module 'core.autonomous' has no attribute '{name}'")
 

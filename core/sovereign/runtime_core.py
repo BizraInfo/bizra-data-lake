@@ -15,9 +15,7 @@ import signal
 import time
 from collections import deque
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import (
     Any,
     AsyncIterator,
@@ -27,27 +25,19 @@ from typing import (
     Optional,
 )
 
+from .runtime_stubs import (
+    StubFactory,
+)
 from .runtime_types import (
+    AutonomousLoopProtocol,
+    GraphReasonerProtocol,
+    GuardianProtocol,
+    HealthStatus,
     RuntimeConfig,
     RuntimeMetrics,
-    RuntimeMode,
-    HealthStatus,
+    SNROptimizerProtocol,
     SovereignQuery,
     SovereignResult,
-    ReasoningResult,
-    SNRResult,
-    ValidationResult,
-    GraphReasonerProtocol,
-    SNROptimizerProtocol,
-    GuardianProtocol,
-    AutonomousLoopProtocol,
-)
-from .runtime_stubs import (
-    GraphReasonerStub,
-    SNROptimizerStub,
-    GuardianStub,
-    AutonomousLoopStub,
-    StubFactory,
 )
 
 logger = logging.getLogger("sovereign.runtime")
@@ -89,7 +79,7 @@ class SovereignRuntime:
 
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
-        self._omega: Optional[object] = None    # OmegaEngine
+        self._omega: Optional[object] = None  # OmegaEngine
 
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
@@ -104,8 +94,7 @@ class SovereignRuntime:
     @classmethod
     @asynccontextmanager
     async def create(
-        cls,
-        config: Optional[RuntimeConfig] = None
+        cls, config: Optional[RuntimeConfig] = None
     ) -> AsyncIterator["SovereignRuntime"]:
         """Create and manage runtime lifecycle."""
         runtime = cls(config)
@@ -147,6 +136,7 @@ class SovereignRuntime:
         # Try full GraphOfThoughts
         try:
             from .graph_reasoner import GraphOfThoughts
+
             self._graph_reasoner = GraphOfThoughts()
             self.logger.info("✓ GraphOfThoughts loaded (full)")
         except ImportError:
@@ -156,7 +146,10 @@ class SovereignRuntime:
         # Try full SNRMaximizer
         try:
             from .snr_maximizer import SNRMaximizer
-            self._snr_optimizer = SNRMaximizer(ihsan_threshold=self.config.snr_threshold)
+
+            self._snr_optimizer = SNRMaximizer(
+                ihsan_threshold=self.config.snr_threshold
+            )
             self.logger.info("✓ SNRMaximizer loaded (full)")
         except ImportError:
             self._snr_optimizer = StubFactory.create_snr_optimizer("Import failed")
@@ -165,6 +158,7 @@ class SovereignRuntime:
         # Try full GuardianCouncil
         try:
             from .guardian_council import GuardianCouncil
+
             self._guardian_council = GuardianCouncil()
             self.logger.info("✓ GuardianCouncil loaded (full)")
         except ImportError:
@@ -174,6 +168,7 @@ class SovereignRuntime:
         # Try full AutonomousLoop
         try:
             from .autonomy import AutonomousLoop, DecisionGate
+
             gate = DecisionGate(ihsan_threshold=self.config.ihsan_threshold)
             self._autonomous_loop = AutonomousLoop(
                 decision_gate=gate,
@@ -194,6 +189,7 @@ class SovereignRuntime:
         # InferenceGateway - Real LLM backends
         try:
             from core.inference.gateway import InferenceGateway
+
             self._gateway = InferenceGateway()
             self.logger.info("✓ InferenceGateway loaded")
         except ImportError as e:
@@ -203,6 +199,7 @@ class SovereignRuntime:
         # OmegaEngine - Constitutional enforcement
         try:
             from .omega_engine import OmegaEngine
+
             self._omega = OmegaEngine()
             self.logger.info("✓ OmegaEngine loaded (Constitutional Core)")
         except ImportError as e:
@@ -221,8 +218,7 @@ class SovereignRuntime:
             loop = asyncio.get_running_loop()
             for sig in (signal.SIGTERM, signal.SIGINT):
                 loop.add_signal_handler(
-                    sig,
-                    lambda: asyncio.create_task(self.shutdown())
+                    sig, lambda: asyncio.create_task(self.shutdown())
                 )
         except (NotImplementedError, RuntimeError):
             pass  # Windows doesn't support add_signal_handler
@@ -253,10 +249,7 @@ class SovereignRuntime:
     # -------------------------------------------------------------------------
 
     async def query(
-        self,
-        content: str,
-        context: Optional[Dict[str, Any]] = None,
-        **options
+        self, content: str, context: Optional[Dict[str, Any]] = None, **options
     ) -> SovereignResult:
         """Process a query through the full sovereign pipeline."""
         if not self._initialized:
@@ -311,9 +304,7 @@ class SovereignRuntime:
             )
 
     async def _process_query(
-        self,
-        query: SovereignQuery,
-        start_time: float
+        self, query: SovereignQuery, start_time: float
     ) -> SovereignResult:
         """Internal query processing pipeline."""
         result = SovereignResult(query_id=query.id)
@@ -323,7 +314,9 @@ class SovereignRuntime:
         compute_tier = await self._select_compute_tier(query)
 
         # STAGE 1: Execute reasoning (GoT)
-        reasoning_path, confidence, thought_prompt = await self._execute_reasoning_stage(query)
+        reasoning_path, confidence, thought_prompt = (
+            await self._execute_reasoning_stage(query)
+        )
         result.thoughts = reasoning_path
         result.reasoning_depth = len(reasoning_path)
 
@@ -334,7 +327,7 @@ class SovereignRuntime:
         result.response = answer
 
         # Update reasoning metrics
-        reasoning_time_ms = (time.perf_counter() - reasoning_start) * 1000
+        (time.perf_counter() - reasoning_start) * 1000
         self.metrics.update_reasoning_stats(result.reasoning_depth)
 
         # STAGE 3: Optimize SNR
@@ -366,14 +359,13 @@ class SovereignRuntime:
         if not self._omega:
             return None
 
-        mode = getattr(self._omega, 'get_operational_mode', lambda: None)()
+        mode = getattr(self._omega, "get_operational_mode", lambda: None)()
         if mode is None:
             return None
         return self._mode_to_tier(mode)
 
     async def _execute_reasoning_stage(
-        self,
-        query: SovereignQuery
+        self, query: SovereignQuery
     ) -> tuple[List[str], float, str]:
         """STAGE 1: Graph-of-Thoughts exploration."""
         thought_prompt: str = query.text
@@ -396,23 +388,20 @@ class SovereignRuntime:
         return reasoning_path, confidence, thought_prompt
 
     async def _perform_llm_inference(
-        self,
-        thought_prompt: str,
-        compute_tier: Optional[object],
-        query: SovereignQuery
+        self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
     ) -> tuple[str, str]:
         """STAGE 2: LLM inference via gateway."""
         if self._gateway:
             try:
-                infer_method = getattr(self._gateway, 'infer', None)
+                infer_method = getattr(self._gateway, "infer", None)
                 if infer_method is not None:
                     inference_result = await infer_method(
                         thought_prompt,
                         tier=compute_tier,
                         max_tokens=1024,
                     )
-                    answer = getattr(inference_result, 'content', str(inference_result))
-                    model_used = getattr(inference_result, 'model', 'unknown')
+                    answer = getattr(inference_result, "content", str(inference_result))
+                    model_used = getattr(inference_result, "model", "unknown")
                     return answer, model_used
             except Exception as e:
                 self.logger.warning(f"Gateway inference failed: {e}, using stub")
@@ -436,7 +425,7 @@ class SovereignRuntime:
         content: str,
         context: Dict[str, Any],
         query: SovereignQuery,
-        snr_score: float
+        snr_score: float,
     ) -> tuple[float, str]:
         """STAGE 4: Constitutional validation."""
         ihsan_score = snr_score
@@ -445,7 +434,7 @@ class SovereignRuntime:
         if self._omega:
             try:
                 ihsan_vector = self._extract_ihsan_from_response(content, context)
-                evaluate_ihsan = getattr(self._omega, 'evaluate_ihsan', None)
+                evaluate_ihsan = getattr(self._omega, "evaluate_ihsan", None)
                 if evaluate_ihsan is not None and ihsan_vector is not None:
                     result = evaluate_ihsan(ihsan_vector)
                     if isinstance(result, tuple) and len(result) >= 2:
@@ -483,6 +472,7 @@ class SovereignRuntime:
     def _cache_key(self, query: SovereignQuery) -> str:
         """Generate cache key for a query."""
         import hashlib
+
         content = f"{query.text}:{query.require_reasoning}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
@@ -497,8 +487,10 @@ class SovereignRuntime:
     def _mode_to_tier(self, mode: object) -> Optional[object]:
         """Map TreasuryMode to ComputeTier."""
         try:
-            from .omega_engine import TreasuryMode
             from core.inference.gateway import ComputeTier
+
+            from .omega_engine import TreasuryMode
+
             mapping = {
                 TreasuryMode.ETHICAL: ComputeTier.LOCAL,
                 TreasuryMode.HIBERNATION: ComputeTier.EDGE,
@@ -509,18 +501,17 @@ class SovereignRuntime:
             return None
 
     def _extract_ihsan_from_response(
-        self,
-        content: str,
-        context: Dict[str, Any]
+        self, content: str, context: Dict[str, Any]
     ) -> Optional[object]:
         """Extract Ihsan vector from response content."""
         try:
             from .omega_engine import ihsan_from_scores
 
             word_count = len(content.split())
-            has_harmful = any(w in content.lower() for w in [
-                "kill", "harm", "destroy", "attack", "illegal"
-            ])
+            has_harmful = any(
+                w in content.lower()
+                for w in ["kill", "harm", "destroy", "attack", "illegal"]
+            )
 
             correctness = min(0.98, 0.85 + (word_count / 1000) * 0.1)
             safety = 0.50 if has_harmful else 0.98
@@ -567,7 +558,8 @@ class SovereignRuntime:
         """Get comprehensive runtime status."""
         loop_status = (
             self._autonomous_loop.status()
-            if self._autonomous_loop else {"running": False}
+            if self._autonomous_loop
+            else {"running": False}
         )
 
         omega_status = {"version": "2.2.3"}
@@ -621,10 +613,14 @@ class SovereignRuntime:
 
     def _calculate_health(self) -> float:
         """Calculate overall system health score."""
-        snr_factor = min(1.0, self.metrics.current_snr_score / self.config.snr_threshold)
-        ihsan_factor = min(1.0, self.metrics.current_ihsan_score / self.config.ihsan_threshold)
-        success_factor = (
-            self.metrics.queries_succeeded / max(1, self.metrics.queries_processed)
+        snr_factor = min(
+            1.0, self.metrics.current_snr_score / self.config.snr_threshold
+        )
+        ihsan_factor = min(
+            1.0, self.metrics.current_ihsan_score / self.config.ihsan_threshold
+        )
+        success_factor = self.metrics.queries_succeeded / max(
+            1, self.metrics.queries_processed
         )
         return (snr_factor + ihsan_factor + success_factor) / 3
 
@@ -641,6 +637,7 @@ class SovereignRuntime:
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
 
             import json
+
             state = {
                 "metrics": self.metrics.to_dict(),
                 "config": {

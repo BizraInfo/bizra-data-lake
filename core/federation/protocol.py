@@ -5,22 +5,24 @@ Allows nodes to share SAPE-elevated patterns with Proof-of-Impact.
 
 import uuid
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Dict, List
 
-from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from core.pci import PCIEnvelope, EnvelopeBuilder
-from core.pci.gates import PCIGateKeeper, DEFAULT_CONSTITUTION_HASH
+from core.pci import EnvelopeBuilder, PCIEnvelope
+from core.pci.gates import DEFAULT_CONSTITUTION_HASH, PCIGateKeeper
+
 
 @dataclass
 class PatternImpact:
     """Proof of a pattern's value."""
+
     success_count: int
     total_uses: int
     average_snr_boost: float
     ihsan_score: float
-    
+
     @property
     def impact_score(self) -> float:
         """Calculate impact score 0.0-1.0."""
@@ -28,19 +30,23 @@ class PatternImpact:
         rate = self.success_count / max(1, self.total_uses)
         return min(1.0, rate * self.ihsan_score * (1.0 + self.average_snr_boost))
 
+
 @dataclass
 class FederatedPattern:
     """A pattern shared across the network."""
+
     pattern_id: str
     source_node_id: str
-    pattern_logic: str # JSON or DSL
+    pattern_logic: str  # JSON or DSL
     impact_proof: PatternImpact
-    signatures: List[str] = field(default_factory=list) # Validator signatures
+    signatures: List[str] = field(default_factory=list)  # Validator signatures
+
 
 class FederationProtocol:
     """
     Manages the exchange of trusted patterns.
     """
+
     def __init__(self, node_id: str, private_key: str):
         self.node_id = node_id
         self.private_key = private_key
@@ -58,21 +64,21 @@ class FederationProtocol:
             public_key = private_key.public_key()
             return public_key.public_bytes(
                 encoding=serialization.Encoding.Raw,
-                format=serialization.PublicFormat.Raw
+                format=serialization.PublicFormat.Raw,
             ).hex()
-        except (ValueError, TypeError, AttributeError) as e:
+        except (ValueError, TypeError, AttributeError):
             # Key derivation failed - return empty (validation will catch this)
             return ""
-        
+
     def create_pattern_proposal(self, logic: str, impact: PatternImpact) -> PCIEnvelope:
         """Wrap a pattern in a PCI Envelope for federation."""
         pattern = FederatedPattern(
             pattern_id=str(uuid.uuid4()),
             source_node_id=self.node_id,
             pattern_logic=logic,
-            impact_proof=impact
+            impact_proof=impact,
         )
-        
+
         # Build PCI Envelope
         builder = EnvelopeBuilder()
         builder.with_sender("PAT", self.node_id, self.public_key)
@@ -80,19 +86,19 @@ class FederationProtocol:
             action="FEDERATE_PATTERN",
             data=self._serialize_pattern(pattern),
             policy_hash=DEFAULT_CONSTITUTION_HASH,
-            state_hash="current_state"
+            state_hash="current_state",
         )
         # Ihsan score must meet threshold
         builder.with_metadata(
             ihsan=impact.ihsan_score,
-            snr=impact.average_snr_boost # Use boost as SNR proxy
+            snr=impact.average_snr_boost,  # Use boost as SNR proxy
         )
-        
+
         envelope = builder.build()
         envelope.sign(self.private_key)
-        
+
         return envelope
-    
+
     def receive_proposal(self, envelope: PCIEnvelope) -> bool:
         """
         Receive and validate a pattern proposal from the network.
@@ -105,8 +111,7 @@ class FederationProtocol:
             return False
 
         # 2. Extract pattern
-        data = envelope.payload.data
-             
+
         # 3. Store
         print(f"Accepted pattern from {envelope.sender.agent_id}")
         return True
@@ -115,7 +120,5 @@ class FederationProtocol:
         return {
             "id": pattern.pattern_id,
             "logic": pattern.pattern_logic,
-            "impact": {
-                "score": pattern.impact_proof.impact_score
-            }
+            "impact": {"score": pattern.impact_proof.impact_score},
         }

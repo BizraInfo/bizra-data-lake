@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from core.uers import ANALYTICAL_VECTORS
 from core.uers.entropy import EntropyCalculator, EntropyMeasurement, ManifoldState
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class VectorType(str, Enum):
     """The 5 analytical vectors."""
+
     SURFACE = "surface"
     STRUCTURAL = "structural"
     BEHAVIORAL = "behavioral"
@@ -34,6 +35,7 @@ class VectorType(str, Enum):
 
 class ProbeResult(str, Enum):
     """Result of a cross-vector probe."""
+
     SUCCESS = "success"  # Information gained
     FAILURE = "failure"  # No information gained
     BLOCKED = "blocked"  # Probe blocked (e.g., anti-debug)
@@ -43,6 +45,7 @@ class ProbeResult(str, Enum):
 @dataclass
 class VectorState:
     """State of a single analytical vector."""
+
     vector_type: VectorType
     entropy: EntropyMeasurement
     artifacts: Dict[str, Any] = field(default_factory=dict)
@@ -73,6 +76,7 @@ class VectorState:
 @dataclass
 class Probe:
     """A cross-dimensional probe operation."""
+
     id: str
     source_vector: VectorType
     target_vector: VectorType
@@ -243,7 +247,8 @@ class AnalyticalManifold:
         state = VectorState(
             vector_type=VectorType.HYPOTHETICAL,
             entropy=entropy,
-            artifacts=constraints or {
+            artifacts=constraints
+            or {
                 "explored": explored_paths,
                 "total": total_paths,
                 "feasible": feasible_paths,
@@ -270,7 +275,8 @@ class AnalyticalManifold:
         state = VectorState(
             vector_type=VectorType.CONTEXTUAL,
             entropy=entropy,
-            artifacts=context or {
+            artifacts=context
+            or {
                 "intent": intent_score,
                 "alignment": alignment_score,
             },
@@ -425,8 +431,7 @@ class AnalyticalManifold:
             "entropy_vector": self.get_entropy_vector(),
             "is_converged": self.is_converged(),
             "vectors": {
-                v.vector_type.value: v.to_dict()
-                for v in self._vectors.values()
+                v.vector_type.value: v.to_dict() for v in self._vectors.values()
             },
             "probe_count": len(self._probes),
             "successful_probes": sum(

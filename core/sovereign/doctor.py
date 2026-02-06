@@ -16,18 +16,19 @@ Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
 """
 
 import asyncio
+import json
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-import urllib.request
-import urllib.error
-import json
+from typing import Any, Dict, List
 
 
 class CheckStatus(str, Enum):
     """Status of a health check."""
+
     OK = "✅"
     WARN = "⚠️"
     FAIL = "❌"
@@ -37,6 +38,7 @@ class CheckStatus(str, Enum):
 @dataclass
 class CheckResult:
     """Result of a single health check."""
+
     name: str
     status: CheckStatus
     message: str
@@ -46,6 +48,7 @@ class CheckResult:
 @dataclass
 class DoctorReport:
     """Complete doctor report."""
+
     checks: List[CheckResult] = field(default_factory=list)
 
     def add(self, result: CheckResult) -> None:
@@ -104,19 +107,23 @@ class BizraDoctor:
         version_str = f"{version.major}.{version.minor}.{version.micro}"
 
         if version.major >= 3 and version.minor >= 9:
-            self.report.add(CheckResult(
-                name="Python Version",
-                status=CheckStatus.OK,
-                message=f"Python {version_str}",
-                details={"version": version_str, "required": ">=3.9"}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Python Version",
+                    status=CheckStatus.OK,
+                    message=f"Python {version_str}",
+                    details={"version": version_str, "required": ">=3.9"},
+                )
+            )
         else:
-            self.report.add(CheckResult(
-                name="Python Version",
-                status=CheckStatus.FAIL,
-                message=f"Python {version_str} (requires >=3.9)",
-                details={"version": version_str, "required": ">=3.9"}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Python Version",
+                    status=CheckStatus.FAIL,
+                    message=f"Python {version_str} (requires >=3.9)",
+                    details={"version": version_str, "required": ">=3.9"},
+                )
+            )
 
     async def check_dependencies(self) -> None:
         """Check required Python packages."""
@@ -142,19 +149,23 @@ class BizraDoctor:
                 missing.append(name)
 
         if not missing:
-            self.report.add(CheckResult(
-                name="Core Dependencies",
-                status=CheckStatus.OK,
-                message=f"All core packages installed ({len(available)} packages)",
-                details={"available": available}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Core Dependencies",
+                    status=CheckStatus.OK,
+                    message=f"All core packages installed ({len(available)} packages)",
+                    details={"available": available},
+                )
+            )
         else:
-            self.report.add(CheckResult(
-                name="Core Dependencies",
-                status=CheckStatus.FAIL,
-                message=f"Missing: {', '.join(missing)}",
-                details={"missing": missing, "available": available}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Core Dependencies",
+                    status=CheckStatus.FAIL,
+                    message=f"Missing: {', '.join(missing)}",
+                    details={"missing": missing, "available": available},
+                )
+            )
 
         # Check optional
         opt_available = []
@@ -167,19 +178,23 @@ class BizraDoctor:
                 opt_missing.append(name)
 
         if opt_missing:
-            self.report.add(CheckResult(
-                name="Optional Dependencies",
-                status=CheckStatus.WARN,
-                message=f"Optional packages missing: {', '.join(opt_missing)}",
-                details={"available": opt_available, "missing": opt_missing}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Optional Dependencies",
+                    status=CheckStatus.WARN,
+                    message=f"Optional packages missing: {', '.join(opt_missing)}",
+                    details={"available": opt_available, "missing": opt_missing},
+                )
+            )
         else:
-            self.report.add(CheckResult(
-                name="Optional Dependencies",
-                status=CheckStatus.OK,
-                message=f"All optional packages installed",
-                details={"available": opt_available}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Optional Dependencies",
+                    status=CheckStatus.OK,
+                    message="All optional packages installed",
+                    details={"available": opt_available},
+                )
+            )
 
     async def check_lmstudio(self) -> None:
         """Check LM Studio availability."""
@@ -192,26 +207,32 @@ class BizraDoctor:
                 models = data.get("data", [])
                 model_ids = [m.get("id", "unknown") for m in models[:3]]
 
-                self.report.add(CheckResult(
-                    name="LM Studio",
-                    status=CheckStatus.OK,
-                    message=f"Connected at 192.168.56.1:1234 ({len(models)} models)",
-                    details={"url": url, "models": model_ids, "count": len(models)}
-                ))
+                self.report.add(
+                    CheckResult(
+                        name="LM Studio",
+                        status=CheckStatus.OK,
+                        message=f"Connected at 192.168.56.1:1234 ({len(models)} models)",
+                        details={"url": url, "models": model_ids, "count": len(models)},
+                    )
+                )
         except urllib.error.URLError as e:
-            self.report.add(CheckResult(
-                name="LM Studio",
-                status=CheckStatus.WARN,
-                message="Not running (optional, use Ollama fallback)",
-                details={"url": url, "error": str(e)}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="LM Studio",
+                    status=CheckStatus.WARN,
+                    message="Not running (optional, use Ollama fallback)",
+                    details={"url": url, "error": str(e)},
+                )
+            )
         except Exception as e:
-            self.report.add(CheckResult(
-                name="LM Studio",
-                status=CheckStatus.WARN,
-                message=f"Connection error: {e}",
-                details={"url": url, "error": str(e)}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="LM Studio",
+                    status=CheckStatus.WARN,
+                    message=f"Connection error: {e}",
+                    details={"url": url, "error": str(e)},
+                )
+            )
 
     async def check_ollama(self) -> None:
         """Check Ollama availability."""
@@ -224,72 +245,94 @@ class BizraDoctor:
                 models = data.get("models", [])
                 model_names = [m.get("name", "unknown") for m in models[:3]]
 
-                self.report.add(CheckResult(
-                    name="Ollama",
-                    status=CheckStatus.OK,
-                    message=f"Connected at localhost:11434 ({len(models)} models)",
-                    details={"url": url, "models": model_names, "count": len(models)}
-                ))
+                self.report.add(
+                    CheckResult(
+                        name="Ollama",
+                        status=CheckStatus.OK,
+                        message=f"Connected at localhost:11434 ({len(models)} models)",
+                        details={
+                            "url": url,
+                            "models": model_names,
+                            "count": len(models),
+                        },
+                    )
+                )
         except urllib.error.URLError:
-            self.report.add(CheckResult(
-                name="Ollama",
-                status=CheckStatus.WARN,
-                message="Not running (install: curl -fsSL https://ollama.com/install.sh | sh)",
-                details={"url": url}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Ollama",
+                    status=CheckStatus.WARN,
+                    message="Not running (install: curl -fsSL https://ollama.com/install.sh | sh)",
+                    details={"url": url},
+                )
+            )
         except Exception as e:
-            self.report.add(CheckResult(
-                name="Ollama",
-                status=CheckStatus.WARN,
-                message=f"Connection error: {e}",
-                details={"url": url, "error": str(e)}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Ollama",
+                    status=CheckStatus.WARN,
+                    message=f"Connection error: {e}",
+                    details={"url": url, "error": str(e)},
+                )
+            )
 
     async def check_llamacpp(self) -> None:
         """Check llama-cpp-python availability."""
         try:
             import llama_cpp
-            self.report.add(CheckResult(
-                name="llama.cpp",
-                status=CheckStatus.OK,
-                message="llama-cpp-python installed (offline inference ready)",
-                details={"module": "llama_cpp"}
-            ))
+
+            self.report.add(
+                CheckResult(
+                    name="llama.cpp",
+                    status=CheckStatus.OK,
+                    message="llama-cpp-python installed (offline inference ready)",
+                    details={"module": "llama_cpp"},
+                )
+            )
         except ImportError:
-            self.report.add(CheckResult(
-                name="llama.cpp",
-                status=CheckStatus.SKIP,
-                message="Not installed (optional, for offline inference)",
-                details={"install": "pip install llama-cpp-python"}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="llama.cpp",
+                    status=CheckStatus.SKIP,
+                    message="Not installed (optional, for offline inference)",
+                    details={"install": "pip install llama-cpp-python"},
+                )
+            )
 
     async def check_gpu(self) -> None:
         """Check GPU availability."""
         try:
             import torch
+
             if torch.cuda.is_available():
                 gpu_name = torch.cuda.get_device_name(0)
                 vram = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-                self.report.add(CheckResult(
-                    name="GPU",
-                    status=CheckStatus.OK,
-                    message=f"{gpu_name} ({vram:.1f} GB VRAM)",
-                    details={"name": gpu_name, "vram_gb": vram, "cuda": True}
-                ))
+                self.report.add(
+                    CheckResult(
+                        name="GPU",
+                        status=CheckStatus.OK,
+                        message=f"{gpu_name} ({vram:.1f} GB VRAM)",
+                        details={"name": gpu_name, "vram_gb": vram, "cuda": True},
+                    )
+                )
             else:
-                self.report.add(CheckResult(
-                    name="GPU",
-                    status=CheckStatus.WARN,
-                    message="CUDA not available (using CPU inference)",
-                    details={"cuda": False}
-                ))
+                self.report.add(
+                    CheckResult(
+                        name="GPU",
+                        status=CheckStatus.WARN,
+                        message="CUDA not available (using CPU inference)",
+                        details={"cuda": False},
+                    )
+                )
         except ImportError:
-            self.report.add(CheckResult(
-                name="GPU",
-                status=CheckStatus.SKIP,
-                message="PyTorch not installed (GPU check skipped)",
-                details={"torch": False}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="GPU",
+                    status=CheckStatus.SKIP,
+                    message="PyTorch not installed (GPU check skipped)",
+                    details={"torch": False},
+                )
+            )
 
     async def check_filesystem(self) -> None:
         """Check filesystem permissions."""
@@ -312,19 +355,23 @@ class BizraDoctor:
                 not_writable.append(str(path))
 
         if not not_writable:
-            self.report.add(CheckResult(
-                name="Filesystem",
-                status=CheckStatus.OK,
-                message="Write permissions verified",
-                details={"writable": writable}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Filesystem",
+                    status=CheckStatus.OK,
+                    message="Write permissions verified",
+                    details={"writable": writable},
+                )
+            )
         else:
-            self.report.add(CheckResult(
-                name="Filesystem",
-                status=CheckStatus.WARN,
-                message=f"Cannot write to: {', '.join(not_writable)}",
-                details={"writable": writable, "not_writable": not_writable}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Filesystem",
+                    status=CheckStatus.WARN,
+                    message=f"Cannot write to: {', '.join(not_writable)}",
+                    details={"writable": writable, "not_writable": not_writable},
+                )
+            )
 
     async def check_constants(self) -> None:
         """Check that constants are properly configured."""
@@ -333,22 +380,27 @@ class BizraDoctor:
                 UNIFIED_IHSAN_THRESHOLD,
                 UNIFIED_SNR_THRESHOLD,
             )
-            self.report.add(CheckResult(
-                name="Constants",
-                status=CheckStatus.OK,
-                message=f"Ihsān={UNIFIED_IHSAN_THRESHOLD}, SNR={UNIFIED_SNR_THRESHOLD}",
-                details={
-                    "ihsan_threshold": UNIFIED_IHSAN_THRESHOLD,
-                    "snr_threshold": UNIFIED_SNR_THRESHOLD,
-                }
-            ))
+
+            self.report.add(
+                CheckResult(
+                    name="Constants",
+                    status=CheckStatus.OK,
+                    message=f"Ihsān={UNIFIED_IHSAN_THRESHOLD}, SNR={UNIFIED_SNR_THRESHOLD}",
+                    details={
+                        "ihsan_threshold": UNIFIED_IHSAN_THRESHOLD,
+                        "snr_threshold": UNIFIED_SNR_THRESHOLD,
+                    },
+                )
+            )
         except ImportError as e:
-            self.report.add(CheckResult(
-                name="Constants",
-                status=CheckStatus.FAIL,
-                message=f"Cannot import constants: {e}",
-                details={"error": str(e)}
-            ))
+            self.report.add(
+                CheckResult(
+                    name="Constants",
+                    status=CheckStatus.FAIL,
+                    message=f"Cannot import constants: {e}",
+                    details={"error": str(e)},
+                )
+            )
 
 
 def print_report(report: DoctorReport, verbose: bool = False) -> None:
@@ -367,7 +419,9 @@ def print_report(report: DoctorReport, verbose: bool = False) -> None:
 
     print()
     print("─" * 60)
-    print(f"  Summary: {report.ok_count} OK, {report.warn_count} warnings, {report.fail_count} failures")
+    print(
+        f"  Summary: {report.ok_count} OK, {report.warn_count} warnings, {report.fail_count} failures"
+    )
     print()
 
     if report.healthy:
@@ -385,6 +439,7 @@ async def run_doctor(verbose: bool = False, json_output: bool = False) -> int:
 
     if json_output:
         import json
+
         output = {
             "healthy": report.healthy,
             "summary": {
@@ -400,7 +455,7 @@ async def run_doctor(verbose: bool = False, json_output: bool = False) -> int:
                     "details": c.details,
                 }
                 for c in report.checks
-            ]
+            ],
         }
         print(json.dumps(output, indent=2))
     else:
@@ -411,6 +466,7 @@ async def run_doctor(verbose: bool = False, json_output: bool = False) -> int:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="BIZRA Sovereign Doctor")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--json", action="store_true", help="JSON output")

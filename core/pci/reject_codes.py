@@ -14,6 +14,7 @@ Code Ranges:
 
 from enum import IntEnum
 
+
 class RejectCode(IntEnum):
     # ═══════════════════════════════════════════════════════════════════════════
     # CORE PCI GATES (0-19)
@@ -39,11 +40,11 @@ class RejectCode(IntEnum):
     # ADL (JUSTICE) INVARIANT CODES (100-199)
     # Standing on Giants: Gini (1912), Harberger (1962), Rawls (1971)
     # ═══════════════════════════════════════════════════════════════════════════
-    REJECT_ADL_GINI_EXCEEDED = 100      # Post-tx Gini > threshold (0.40)
-    REJECT_ADL_CONSERVATION = 101       # Total value changed (conservation law)
-    REJECT_ADL_NEGATIVE_HOLDING = 102   # Would create negative balance
-    REJECT_ADL_INVALID_TX = 103         # Malformed transaction
-    REJECT_ADL_DUST_AMOUNT = 104        # Amount below minimum holding
+    REJECT_ADL_GINI_EXCEEDED = 100  # Post-tx Gini > threshold (0.40)
+    REJECT_ADL_CONSERVATION = 101  # Total value changed (conservation law)
+    REJECT_ADL_NEGATIVE_HOLDING = 102  # Would create negative balance
+    REJECT_ADL_INVALID_TX = 103  # Malformed transaction
+    REJECT_ADL_DUST_AMOUNT = 104  # Amount below minimum holding
 
     # ═══════════════════════════════════════════════════════════════════════════
     # INTERNAL (99)

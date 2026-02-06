@@ -17,14 +17,15 @@ import hashlib
 import json
 import logging
 import os
-import blake3
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import blake3
+
 try:
     from core.integration.constants import (
-        UNIFIED_SNR_THRESHOLD,
         PILLAR_3_SANDBOX_SNR_FLOOR,
+        UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
     UNIFIED_SNR_THRESHOLD = 0.85
@@ -33,8 +34,8 @@ except ImportError:
 from core.pci.crypto import canonical_json, verify_signature
 
 from .integration_types import (
-    AdmissionStatus,
     AdmissionResult,
+    AdmissionStatus,
     Z3Certificate,
 )
 
@@ -62,18 +63,23 @@ class ConstitutionalGate:
             z3_certificates_path: Path to Z3 proof certificates
             museum_path: Path to Museum archive for unproven code
         """
-        self.z3_certificates_path = z3_certificates_path or Path.home() / ".bizra" / "proofs"
+        self.z3_certificates_path = (
+            z3_certificates_path or Path.home() / ".bizra" / "proofs"
+        )
         self.museum_path = museum_path or Path.home() / ".bizra" / "museum"
         self.museum_queue: List[Tuple[str, float]] = []
         self.runtime_agents: List[str] = []
         self._z3_cache: Dict[str, Z3Certificate] = {}
         self._trusted_z3_pubkey = self._load_trusted_z3_pubkey()
         self._allow_unsigned_z3 = os.getenv("BIZRA_Z3_CERT_ALLOW_UNSIGNED", "0") == "1"
-        self._allow_self_signed_z3 = os.getenv("BIZRA_Z3_CERT_ALLOW_SELF_SIGNED", "0") == "1"
+        self._allow_self_signed_z3 = (
+            os.getenv("BIZRA_Z3_CERT_ALLOW_SELF_SIGNED", "0") == "1"
+        )
 
         # Try to import SNR v2 calculator
         try:
             from core.iaas.snr_v2 import SNRCalculatorV2
+
             self.calculator = SNRCalculatorV2()
         except ImportError:
             self.calculator = None
@@ -175,7 +181,9 @@ class ConstitutionalGate:
         if env_pubkey:
             return env_pubkey
 
-        keypair_path = Path(os.path.expanduser(os.getenv("BIZRA_KEYPAIR_PATH", "~/.bizra/keypair.json")))
+        keypair_path = Path(
+            os.path.expanduser(os.getenv("BIZRA_KEYPAIR_PATH", "~/.bizra/keypair.json"))
+        )
         if keypair_path.exists():
             try:
                 with open(keypair_path) as f:
@@ -186,7 +194,9 @@ class ConstitutionalGate:
 
         return ""
 
-    def _z3_signable_dict(self, data: Dict[str, Any], candidate_id: str) -> Dict[str, Any]:
+    def _z3_signable_dict(
+        self, data: Dict[str, Any], candidate_id: str
+    ) -> Dict[str, Any]:
         """Build canonical signable fields for Z3 certificate."""
         return {
             "hash": data.get("hash", candidate_id),
@@ -203,14 +213,18 @@ class ConstitutionalGate:
         hasher.update(canonical)
         return hasher.hexdigest()
 
-    def _verify_z3_certificate_signature(self, data: Dict[str, Any], candidate_id: str) -> bool:
+    def _verify_z3_certificate_signature(
+        self, data: Dict[str, Any], candidate_id: str
+    ) -> bool:
         """Verify signed Z3 certificate metadata."""
         signature = data.get("signature", "").strip()
         cert_pubkey = data.get("public_key", "").strip()
 
         if not signature:
             if self._allow_unsigned_z3:
-                logger.warning("Unsigned Z3 certificate accepted (BIZRA_Z3_CERT_ALLOW_UNSIGNED=1)")
+                logger.warning(
+                    "Unsigned Z3 certificate accepted (BIZRA_Z3_CERT_ALLOW_UNSIGNED=1)"
+                )
                 return True
             logger.warning("Unsigned Z3 certificate rejected")
             return False
@@ -228,7 +242,9 @@ class ConstitutionalGate:
                 )
                 return False
             if not cert_pubkey:
-                logger.warning("Z3 certificate rejected: missing public_key for self-signed verification")
+                logger.warning(
+                    "Z3 certificate rejected: missing public_key for self-signed verification"
+                )
                 return False
             pubkey = cert_pubkey
 
@@ -268,6 +284,7 @@ class ConstitutionalGate:
         # Try Rust FFI for Z3 verification (when available)
         try:
             from bizra_omega import z3_verify
+
             result = z3_verify.get_certificate(candidate_id)
             if result:
                 cert = Z3Certificate(
@@ -314,12 +331,19 @@ class ConstitutionalGate:
             entry_path = self.museum_path / f"{candidate_id}.json"
             try:
                 with open(entry_path, "w") as f:
-                    json.dump({
-                        "id": candidate_id,
-                        "content_hash": self._compute_hash(candidate),
-                        "status": "pending_proof",
-                        "queued_at": asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0,
-                    }, f)
+                    json.dump(
+                        {
+                            "id": candidate_id,
+                            "content_hash": self._compute_hash(candidate),
+                            "status": "pending_proof",
+                            "queued_at": (
+                                asyncio.get_event_loop().time()
+                                if asyncio.get_event_loop().is_running()
+                                else 0
+                            ),
+                        },
+                        f,
+                    )
                 logger.info(f"Queued {candidate_id} for background Z3 proofing")
             except Exception as e:
                 logger.warning(f"Failed to queue for proofing: {e}")
@@ -343,7 +367,9 @@ class ConstitutionalGate:
                     logger.info(f"Promoted {candidate_id} from Museum to Runtime")
                     return True
                 else:
-                    logger.warning(f"Cannot promote {candidate_id}: no valid Z3 certificate")
+                    logger.warning(
+                        f"Cannot promote {candidate_id}: no valid Z3 certificate"
+                    )
                     return False
         return False
 

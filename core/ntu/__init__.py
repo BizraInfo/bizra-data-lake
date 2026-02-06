@@ -25,18 +25,18 @@
 """
 
 try:
-    from .ntu import (
-        NTU,
-        Observation,
-        NTUConfig,
-        PatternDetector,
-        NTUState,
-        minimal_ntu_detect,
-    )
     from .bridge import (
         NTUBridge,
-        NTUSNRAdapter,
         NTUMemoryAdapter,
+        NTUSNRAdapter,
+    )
+    from .ntu import (
+        NTU,
+        NTUConfig,
+        NTUState,
+        Observation,
+        PatternDetector,
+        minimal_ntu_detect,
     )
 
     __all__ = [
@@ -60,8 +60,10 @@ except ImportError:
 
     class NTU:  # type: ignore[no-redef]
         """Stub: install numpy to enable NTU pattern detection."""
+
         def __init__(self, *a: object, **kw: object) -> None:
             raise ImportError("NTU requires numpy: pip install numpy")
+
 
 __version__ = "1.0.0"
 __author__ = "BIZRA Node0 + SPARC Integration"

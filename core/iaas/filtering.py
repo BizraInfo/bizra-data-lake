@@ -11,11 +11,11 @@ Standing on Giants:
  reducing computational overhead while maintaining performance."
 """
 
-import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable, Tuple
-from collections import defaultdict
 import logging
+import math
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FilterResult:
     """Result of filtering operation."""
+
     original_count: int
     filtered_count: int
     removed_indices: List[int]
@@ -67,18 +68,18 @@ class PerplexityFilter:
         Uses vocabulary diversity and sentence structure as proxies.
         """
         if not text.strip():
-            return float('inf')
+            return float("inf")
 
         words = text.lower().split()
         if len(words) < 3:
-            return float('inf')
+            return float("inf")
 
         # Vocabulary diversity (type-token ratio)
         unique_words = len(set(words))
         ttr = unique_words / len(words)
 
         # Sentence structure (punctuation density)
-        punctuation = sum(1 for c in text if c in '.!?;:')
+        punctuation = sum(1 for c in text if c in ".!?;:")
         punct_density = punctuation / len(words) if words else 0
 
         # Heuristic perplexity estimate
@@ -107,7 +108,9 @@ class PerplexityFilter:
         perplexities = self.compute_perplexity(texts)
 
         # Filter by bounds
-        keep_mask = (perplexities >= self.min_perplexity) & (perplexities <= self.max_perplexity)
+        keep_mask = (perplexities >= self.min_perplexity) & (
+            perplexities <= self.max_perplexity
+        )
         removed_indices = [i for i, keep in enumerate(keep_mask) if not keep]
 
         # Quality score: inverse perplexity (normalized)
@@ -116,10 +119,14 @@ class PerplexityFilter:
             if keep_mask[i]:
                 # Higher score for medium perplexity
                 optimal_ppl = (self.min_perplexity + self.max_perplexity) / 2
-                distance_from_optimal = abs(ppl - optimal_ppl) / (self.max_perplexity - self.min_perplexity)
+                distance_from_optimal = abs(ppl - optimal_ppl) / (
+                    self.max_perplexity - self.min_perplexity
+                )
                 scores[i] = max(0, 1 - distance_from_optimal)
 
-        logger.info(f"Perplexity filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)")
+        logger.info(
+            f"Perplexity filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)"
+        )
 
         return FilterResult(
             original_count=n,
@@ -195,10 +202,12 @@ class InstructionFollowingDifficultyFilter:
                 ifds.append(ifd)
             return np.array(ifds)
 
-        return np.array([
-            self._estimate_ifd(inst, resp)
-            for inst, resp in zip(instructions, responses)
-        ])
+        return np.array(
+            [
+                self._estimate_ifd(inst, resp)
+                for inst, resp in zip(instructions, responses)
+            ]
+        )
 
     def filter(
         self,
@@ -219,7 +228,9 @@ class InstructionFollowingDifficultyFilter:
 
         scores = {i: float(ifd_scores[i]) for i in range(n) if keep_mask[i]}
 
-        logger.info(f"IFD filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)")
+        logger.info(
+            f"IFD filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)"
+        )
 
         return FilterResult(
             original_count=n,
@@ -275,7 +286,7 @@ class ClusterComplexityFilter:
             distances = np.zeros((n, n_clusters))
             for k in range(n_clusters):
                 diff = embeddings - centroids[k]
-                distances[:, k] = np.sum(diff ** 2, axis=1)
+                distances[:, k] = np.sum(diff**2, axis=1)
 
             new_labels = np.argmin(distances, axis=1)
 
@@ -311,13 +322,17 @@ class ClusterComplexityFilter:
                 continue
 
             # Intra-cluster distance (average distance to centroid)
-            intra_distances = np.sqrt(np.sum((cluster_points - centroids[k]) ** 2, axis=1))
+            intra_distances = np.sqrt(
+                np.sum((cluster_points - centroids[k]) ** 2, axis=1)
+            )
             avg_intra = np.mean(intra_distances)
 
             # Inter-cluster distance (distance to other centroids)
             other_centroids = np.array([c for i, c in enumerate(centroids) if i != k])
             if len(other_centroids) > 0:
-                inter_distances = np.sqrt(np.sum((centroids[k] - other_centroids) ** 2, axis=1))
+                inter_distances = np.sqrt(
+                    np.sum((centroids[k] - other_centroids) ** 2, axis=1)
+                )
                 avg_inter = np.mean(inter_distances)
             else:
                 avg_inter = 1.0
@@ -345,7 +360,9 @@ class ClusterComplexityFilter:
         """
         n = len(texts)
         if n == 0:
-            return FilterResult(0, 0, [], {}, "cluster_complexity", self.min_cluster_complexity)
+            return FilterResult(
+                0, 0, [], {}, "cluster_complexity", self.min_cluster_complexity
+            )
 
         logger.info(f"Clustering {n} documents into {self.n_clusters} clusters...")
         labels, centroids = self._simple_kmeans(embeddings, min(self.n_clusters, n))
@@ -357,12 +374,16 @@ class ClusterComplexityFilter:
         sample_scores = {i: complexities.get(labels[i], 0.0) for i in range(n)}
 
         # Filter low-complexity samples
-        keep_mask = np.array([sample_scores[i] >= self.min_cluster_complexity for i in range(n)])
+        keep_mask = np.array(
+            [sample_scores[i] >= self.min_cluster_complexity for i in range(n)]
+        )
         removed_indices = [i for i, keep in enumerate(keep_mask) if not keep]
 
         scores = {i: sample_scores[i] for i in range(n) if keep_mask[i]}
 
-        logger.info(f"Cluster complexity filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)")
+        logger.info(
+            f"Cluster complexity filter: {n} -> {sum(keep_mask)} ({len(removed_indices)} removed)"
+        )
 
         return FilterResult(
             original_count=n,
@@ -400,19 +421,31 @@ class QualityFilter:
         self.enable_ifd = enable_ifd
         self.enable_cluster = enable_cluster
 
-        self.perplexity_filter = PerplexityFilter(
-            min_perplexity=perplexity_bounds[0],
-            max_perplexity=perplexity_bounds[1],
-            perplexity_fn=perplexity_fn,
-        ) if enable_perplexity else None
+        self.perplexity_filter = (
+            PerplexityFilter(
+                min_perplexity=perplexity_bounds[0],
+                max_perplexity=perplexity_bounds[1],
+                perplexity_fn=perplexity_fn,
+            )
+            if enable_perplexity
+            else None
+        )
 
-        self.ifd_filter = InstructionFollowingDifficultyFilter(
-            min_ifd=min_ifd,
-        ) if enable_ifd else None
+        self.ifd_filter = (
+            InstructionFollowingDifficultyFilter(
+                min_ifd=min_ifd,
+            )
+            if enable_ifd
+            else None
+        )
 
-        self.cluster_filter = ClusterComplexityFilter(
-            min_cluster_complexity=min_cluster_complexity,
-        ) if enable_cluster else None
+        self.cluster_filter = (
+            ClusterComplexityFilter(
+                min_cluster_complexity=min_cluster_complexity,
+            )
+            if enable_cluster
+            else None
+        )
 
     def filter(
         self,
@@ -438,7 +471,7 @@ class QualityFilter:
         if self.enable_perplexity and self.perplexity_filter:
             result = self.perplexity_filter.filter(texts)
             results["perplexity"] = result
-            keep_set &= (set(range(n)) - set(result.removed_indices))
+            keep_set &= set(range(n)) - set(result.removed_indices)
             for idx, score in result.scores.items():
                 all_scores[idx].append(score)
 
@@ -446,7 +479,7 @@ class QualityFilter:
         if self.enable_ifd and self.ifd_filter and instructions and responses:
             result = self.ifd_filter.filter(instructions, responses)
             results["ifd"] = result
-            keep_set &= (set(range(n)) - set(result.removed_indices))
+            keep_set &= set(range(n)) - set(result.removed_indices)
             for idx, score in result.scores.items():
                 all_scores[idx].append(score)
 
@@ -454,7 +487,7 @@ class QualityFilter:
         if self.enable_cluster and self.cluster_filter and embeddings is not None:
             result = self.cluster_filter.filter(texts, embeddings)
             results["cluster_complexity"] = result
-            keep_set &= (set(range(n)) - set(result.removed_indices))
+            keep_set &= set(range(n)) - set(result.removed_indices)
             for idx, score in result.scores.items():
                 all_scores[idx].append(score)
 
@@ -463,7 +496,9 @@ class QualityFilter:
         for idx in keep_set:
             scores_list = all_scores.get(idx, [1.0])
             if scores_list:
-                final_scores[idx] = math.exp(sum(math.log(max(s, 1e-10)) for s in scores_list) / len(scores_list))
+                final_scores[idx] = math.exp(
+                    sum(math.log(max(s, 1e-10)) for s in scores_list) / len(scores_list)
+                )
             else:
                 final_scores[idx] = 1.0
 

@@ -25,24 +25,19 @@ Created: 2026-02-04 | BIZRA Apex Integration v1.0
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from core.apex import (
-    SocialGraph,
-    RelationshipType,
-    InteractionType,
     Relationship,
+    RelationshipType,
+    SocialGraph,
 )
 from core.sovereign.dual_agentic_bridge import (
     DualAgenticBridge,
-    ActionProposal,
-    ConsensusOutcome,
 )
-from core.sovereign.team_planner import AgentRole, TeamTask
+from core.sovereign.team_planner import AgentRole
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +53,7 @@ class NoCapableAgentError(Exception):
 @dataclass
 class ScoredAgent:
     """An agent with trust and capability scores."""
+
     agent_id: str
     role: AgentRole
     capability_score: float
@@ -69,6 +65,7 @@ class ScoredAgent:
 @dataclass
 class CollaborationMatch:
     """A matched pair of agents for collaboration."""
+
     agent_a: str
     agent_b: str
     synergy_score: float
@@ -180,7 +177,9 @@ class SociallyAwareBridge(DualAgenticBridge):
             return 1.0  # No requirements = full match
 
         overlap = agent_caps & required_capabilities
-        return len(overlap) / len(required_capabilities) if required_capabilities else 0.0
+        return (
+            len(overlap) / len(required_capabilities) if required_capabilities else 0.0
+        )
 
     def _filter_by_capability(
         self,
@@ -232,15 +231,18 @@ class SociallyAwareBridge(DualAgenticBridge):
 
             # Skip agents below trust threshold
             if trust < self.min_trust_threshold:
-                logger.debug(f"Skipping {agent_id}: trust {trust:.2f} < {self.min_trust_threshold}")
+                logger.debug(
+                    f"Skipping {agent_id}: trust {trust:.2f} < {self.min_trust_threshold}"
+                )
                 continue
 
-            capability_score = self._calculate_capability_match(role, required_capabilities)
+            capability_score = self._calculate_capability_match(
+                role, required_capabilities
+            )
 
             # Combined score with trust weighting
             combined_score = (
-                capability_score * (1 - self.trust_weight) +
-                trust * self.trust_weight
+                capability_score * (1 - self.trust_weight) + trust * self.trust_weight
             )
 
             # Granovetter weak ties bonus: slightly prefer less-used agents
@@ -249,14 +251,16 @@ class SociallyAwareBridge(DualAgenticBridge):
                 if rel and rel.trust_score < 0.7:
                     combined_score *= 1.05  # 5% bonus for weak ties
 
-            scored_agents.append(ScoredAgent(
-                agent_id=agent_id,
-                role=role,
-                capability_score=capability_score,
-                trust_score=trust,
-                combined_score=combined_score,
-                capabilities=self.ROLE_CAPABILITIES.get(role, set()),
-            ))
+            scored_agents.append(
+                ScoredAgent(
+                    agent_id=agent_id,
+                    role=role,
+                    capability_score=capability_score,
+                    trust_score=trust,
+                    combined_score=combined_score,
+                    capabilities=self.ROLE_CAPABILITIES.get(role, set()),
+                )
+            )
 
         if not scored_agents:
             raise NoCapableAgentError(required_capabilities)
@@ -297,7 +301,7 @@ class SociallyAwareBridge(DualAgenticBridge):
 
         # Check each pair
         for i, role_a in enumerate(pat_agents):
-            for role_b in pat_agents[i + 1:]:
+            for role_b in pat_agents[i + 1 :]:
                 agent_a = f"pat:{role_a.value}"
                 agent_b = f"pat:{role_b.value}"
 
@@ -308,7 +312,9 @@ class SociallyAwareBridge(DualAgenticBridge):
 
                 # Coverage of task requirements
                 if task_capabilities:
-                    coverage = len(combined_caps & task_capabilities) / len(task_capabilities)
+                    coverage = len(combined_caps & task_capabilities) / len(
+                        task_capabilities
+                    )
                 else:
                     coverage = 1.0
 
@@ -318,16 +324,22 @@ class SociallyAwareBridge(DualAgenticBridge):
                 trust_factor = (trust_a + trust_b) / 2
 
                 # Synergy = coverage * trust * complementarity
-                complementarity = 1 - (len(caps_a & caps_b) / len(caps_a | caps_b)) if caps_a | caps_b else 0
+                complementarity = (
+                    1 - (len(caps_a & caps_b) / len(caps_a | caps_b))
+                    if caps_a | caps_b
+                    else 0
+                )
                 synergy = coverage * trust_factor * (0.7 + 0.3 * complementarity)
 
                 if synergy >= min_synergy:
-                    matches.append(CollaborationMatch(
-                        agent_a=agent_a,
-                        agent_b=agent_b,
-                        synergy_score=synergy,
-                        recommended_task_types=combined_caps & task_capabilities,
-                    ))
+                    matches.append(
+                        CollaborationMatch(
+                            agent_a=agent_a,
+                            agent_b=agent_b,
+                            synergy_score=synergy,
+                            recommended_task_types=combined_caps & task_capabilities,
+                        )
+                    )
 
         # Sort by synergy descending
         matches.sort(key=lambda x: x.synergy_score, reverse=True)
@@ -375,7 +387,7 @@ class SociallyAwareBridge(DualAgenticBridge):
             rel.reliability_score = max(0.0, rel.reliability_score - 0.05)
 
         # Update interaction count
-        rel.interaction_count = getattr(rel, 'interaction_count', 0) + 1
+        rel.interaction_count = getattr(rel, "interaction_count", 0) + 1
 
         logger.info(
             f"Trust update for {agent_id}: {old_trust:.3f} → {rel.trust_score:.3f} "
@@ -400,15 +412,19 @@ class SociallyAwareBridge(DualAgenticBridge):
             for agent_id, rel in self.social_graph._relationships.items():
                 # Simple propagation: weighted average of neighbors
                 neighbors = [
-                    r for r in self.social_graph._relationships.values()
+                    r
+                    for r in self.social_graph._relationships.values()
                     if r.peer_id != agent_id
                 ]
 
                 if neighbors:
-                    avg_neighbor_trust = sum(n.trust_score for n in neighbors) / len(neighbors)
+                    avg_neighbor_trust = sum(n.trust_score for n in neighbors) / len(
+                        neighbors
+                    )
                     new_scores[agent_id] = (
-                        (1 - damping) * 0.5 +  # Base trust
-                        damping * (rel.trust_score * 0.7 + avg_neighbor_trust * 0.3)
+                        1 - damping
+                    ) * 0.5 + damping * (  # Base trust
+                        rel.trust_score * 0.7 + avg_neighbor_trust * 0.3
                     )
                 else:
                     new_scores[agent_id] = rel.trust_score

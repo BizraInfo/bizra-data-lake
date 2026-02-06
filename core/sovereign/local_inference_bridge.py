@@ -23,7 +23,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from core.inference.response_utils import strip_think_tokens
 
@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class InferenceRequest:
     """Request for local model inference."""
+
     prompt: str
     purpose: str = "reasoning"  # reasoning, general, vision, agentic, nano
     system_prompt: Optional[str] = None
@@ -45,6 +46,7 @@ class InferenceRequest:
 @dataclass
 class InferenceResponse:
     """Response from local model inference."""
+
     content: str
     model_id: str
     model_name: str
@@ -122,9 +124,9 @@ class LocalInferenceBridge:
 
         try:
             from core.inference.multi_model_manager import (
-                MultiModelManager,
-                MultiModelConfig,
                 ModelPurpose,
+                MultiModelConfig,
+                MultiModelManager,
             )
 
             config = MultiModelConfig(
@@ -166,6 +168,7 @@ class LocalInferenceBridge:
             InferenceResponse with model output
         """
         import time
+
         start = time.perf_counter()
 
         if not self._initialized:
@@ -178,7 +181,7 @@ class LocalInferenceBridge:
                 model_name="Fallback",
                 purpose=request.purpose,
                 success=False,
-                error="Manager not initialized"
+                error="Manager not initialized",
             )
 
         try:
@@ -208,7 +211,7 @@ class LocalInferenceBridge:
                     purpose=request.purpose,
                     latency_ms=latency,
                     success=False,
-                    error=result["error"]
+                    error=result["error"],
                 )
 
             # Get content (already cleaned by MultiModelManager, but ensure safety)
@@ -236,7 +239,7 @@ class LocalInferenceBridge:
                 purpose=request.purpose,
                 latency_ms=latency,
                 success=False,
-                error=str(e)
+                error=str(e),
             )
 
     async def bicameral_reason(
@@ -282,24 +285,28 @@ Generate a thorough, step-by-step analysis and solution.
 Show your reasoning process clearly."""
 
         for i in range(num_candidates):
-            response = await self.infer(InferenceRequest(
-                prompt=generate_prompt,
-                purpose="reasoning",
-                system_prompt=system_prompt,
-                temperature=0.3 + (i * 0.1),  # Slightly vary temperature
-                max_tokens=2048,
-            ))
+            response = await self.infer(
+                InferenceRequest(
+                    prompt=generate_prompt,
+                    purpose="reasoning",
+                    system_prompt=system_prompt,
+                    temperature=0.3 + (i * 0.1),  # Slightly vary temperature
+                    max_tokens=2048,
+                )
+            )
 
             if response.success and response.content:
                 # Ensure think tokens are stripped (defense in depth)
                 cleaned_content = strip_think_tokens(response.content)
                 if cleaned_content:  # Only add if content remains after stripping
-                    candidates.append({
-                        "id": i,
-                        "content": cleaned_content,
-                        "model": response.model_name,
-                        "latency_ms": response.latency_ms,
-                    })
+                    candidates.append(
+                        {
+                            "id": i,
+                            "content": cleaned_content,
+                            "model": response.model_name,
+                            "latency_ms": response.latency_ms,
+                        }
+                    )
 
         if not candidates:
             return {
@@ -307,7 +314,7 @@ Show your reasoning process clearly."""
                 "candidates_generated": 0,
                 "candidates_verified": 0,
                 "consensus_score": 0.0,
-                "error": "No candidates generated"
+                "error": "No candidates generated",
             }
 
         # Phase 2: Warm Surface verifies (faster model)
@@ -328,22 +335,25 @@ Rate the solution on a scale of 0.0 to 1.0 based on:
 
 Respond with ONLY a number between 0.0 and 1.0."""
 
-            response = await self.infer(InferenceRequest(
-                prompt=verify_prompt,
-                purpose="nano",  # Fast verification
-                temperature=0.1,
-                max_tokens=10,
-            ))
+            response = await self.infer(
+                InferenceRequest(
+                    prompt=verify_prompt,
+                    purpose="nano",  # Fast verification
+                    temperature=0.1,
+                    max_tokens=10,
+                )
+            )
 
             # Parse score
             try:
                 score_text = response.content.strip()
                 # Extract first number found
                 import re
-                match = re.search(r'(\d+\.?\d*)', score_text)
+
+                match = re.search(r"(\d+\.?\d*)", score_text)
                 score = float(match.group(1)) if match else 0.5
                 score = min(1.0, max(0.0, score))
-            except (ValueError, TypeError, AttributeError) as e:
+            except (ValueError, TypeError, AttributeError):
                 # Score extraction failed - use neutral default
                 # ValueError: float() conversion failed
                 # TypeError: invalid operand types
@@ -407,34 +417,37 @@ Respond with ONLY a number between 0.0 and 1.0."""
 Generate the next logical step in the reasoning.
 Be specific and build on the previous step."""
 
-                response = await self.infer(InferenceRequest(
-                    prompt=prompt,
-                    purpose="reasoning",
-                    temperature=0.4,
-                    max_tokens=512,
-                ))
+                response = await self.infer(
+                    InferenceRequest(
+                        prompt=prompt,
+                        purpose="reasoning",
+                        temperature=0.4,
+                        max_tokens=512,
+                    )
+                )
 
                 if response.success:
                     # Simple heuristic score
                     score = thought["score"] * 0.9 + 0.1
-                    next_thoughts.append({
-                        "depth": depth + 1,
-                        "content": response.content,
-                        "parent": thought["content"][:100],
-                        "score": score,
-                    })
+                    next_thoughts.append(
+                        {
+                            "depth": depth + 1,
+                            "content": response.content,
+                            "parent": thought["content"][:100],
+                            "score": score,
+                        }
+                    )
 
             thoughts.extend(next_thoughts)
             current_thoughts = sorted(
-                next_thoughts,
-                key=lambda x: x["score"],
-                reverse=True
+                next_thoughts, key=lambda x: x["score"], reverse=True
             )[:beam_width]
 
         # Build best path
-        best_path = [t["content"][:200] for t in sorted(
-            thoughts, key=lambda x: x["score"], reverse=True
-        )[:3]]
+        best_path = [
+            t["content"][:200]
+            for t in sorted(thoughts, key=lambda x: x["score"], reverse=True)[:3]
+        ]
 
         # Generate conclusion
         if best_path:
@@ -444,12 +457,14 @@ Be specific and build on the previous step."""
 
 Provide a concise conclusion."""
 
-            response = await self.infer(InferenceRequest(
-                prompt=conclusion_prompt,
-                purpose="reasoning",
-                temperature=0.2,
-                max_tokens=512,
-            ))
+            response = await self.infer(
+                InferenceRequest(
+                    prompt=conclusion_prompt,
+                    purpose="reasoning",
+                    temperature=0.2,
+                    max_tokens=512,
+                )
+            )
 
             conclusion = response.content if response.success else best_path[-1]
         else:
@@ -493,23 +508,18 @@ async def get_inference_bridge() -> LocalInferenceBridge:
     return _bridge_instance
 
 
-async def quick_infer(
-    prompt: str,
-    purpose: str = "reasoning",
-    **kwargs
-) -> str:
+async def quick_infer(prompt: str, purpose: str = "reasoning", **kwargs) -> str:
     """Quick inference with automatic bridge management."""
     bridge = await get_inference_bridge()
-    response = await bridge.infer(InferenceRequest(
-        prompt=prompt,
-        purpose=purpose,
-        **kwargs
-    ))
+    response = await bridge.infer(
+        InferenceRequest(prompt=prompt, purpose=purpose, **kwargs)
+    )
     return response.content if response.success else f"[Error: {response.error}]"
 
 
 # CLI test
 if __name__ == "__main__":
+
     async def test():
         print("=" * 60)
         print("    LOCAL INFERENCE BRIDGE TEST")
@@ -521,12 +531,14 @@ if __name__ == "__main__":
 
             # Test single inference
             print("\n[Single Inference Test]")
-            response = await bridge.infer(InferenceRequest(
-                prompt="What is 2 + 2? Respond with just the number.",
-                purpose="nano",
-                temperature=0.1,
-                max_tokens=10,
-            ))
+            response = await bridge.infer(
+                InferenceRequest(
+                    prompt="What is 2 + 2? Respond with just the number.",
+                    purpose="nano",
+                    temperature=0.1,
+                    max_tokens=10,
+                )
+            )
             print(f"  Response: {response.content}")
             print(f"  Model: {response.model_name}")
             print(f"  Latency: {response.latency_ms:.1f}ms")
@@ -546,6 +558,7 @@ if __name__ == "__main__":
             print("Failed to initialize bridge")
 
     import asyncio
+
     asyncio.run(test())
 
 

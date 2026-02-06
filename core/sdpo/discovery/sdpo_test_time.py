@@ -11,33 +11,27 @@ Standing on Giants: Shannon + SDPO Paper + Exploration-Exploitation
 Genesis Strict Synthesis v2.2.2
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from datetime import datetime, timezone
-import asyncio
 import hashlib
-import math
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-from core.sdpo import (
-    SDPO_MAX_ITERATIONS,
-    SDPO_ADVANTAGE_THRESHOLD,
-)
 from core.sdpo.optimization import (
+    BIZRAFeedbackGenerator,
     SDPOAdvantage,
     SDPOAdvantageCalculator,
     SDPOFeedback,
-    BIZRAFeedbackGenerator,
 )
 
 
 @dataclass
 class DiscoveryConfig:
     """Configuration for test-time discovery."""
+
     max_exploration_depth: int = 5
     novelty_threshold: float = 0.3  # Min novelty to keep solution
     diversity_weight: float = 0.4  # Weight for diversity in selection
@@ -50,6 +44,7 @@ class DiscoveryConfig:
 @dataclass
 class ExplorationPath:
     """A single exploration path in solution space."""
+
     id: str
     depth: int
     solution: str
@@ -64,7 +59,11 @@ class ExplorationPath:
         return {
             "id": self.id,
             "depth": self.depth,
-            "solution_preview": self.solution[:200] + "..." if len(self.solution) > 200 else self.solution,
+            "solution_preview": (
+                self.solution[:200] + "..."
+                if len(self.solution) > 200
+                else self.solution
+            ),
             "parent_id": self.parent_id,
             "novelty_score": self.novelty_score,
             "quality_score": self.quality_score,
@@ -77,6 +76,7 @@ class ExplorationPath:
 @dataclass
 class DiscoveryResult:
     """Result from test-time discovery."""
+
     query: str
     best_solution: str
     all_paths: List[ExplorationPath]
@@ -88,7 +88,9 @@ class DiscoveryResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "query_preview": self.query[:100] + "..." if len(self.query) > 100 else self.query,
+            "query_preview": (
+                self.query[:100] + "..." if len(self.query) > 100 else self.query
+            ),
             "best_solution_preview": self.best_solution[:200] + "...",
             "total_explorations": self.total_explorations,
             "novel_discoveries": self.novel_discoveries,
@@ -262,8 +264,12 @@ class SDPOTestTimeDiscovery:
             all_paths=sorted(paths, key=lambda p: p.quality_score, reverse=True),
             total_explorations=len(paths),
             novel_discoveries=novel_count,
-            average_novelty=sum(p.novelty_score for p in paths) / len(paths) if paths else 0,
-            average_quality=sum(p.quality_score for p in paths) / len(paths) if paths else 0,
+            average_novelty=(
+                sum(p.novelty_score for p in paths) / len(paths) if paths else 0
+            ),
+            average_quality=(
+                sum(p.quality_score for p in paths) / len(paths) if paths else 0
+            ),
             discovery_time_ms=elapsed_ms,
         )
 
@@ -395,9 +401,7 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
         feedback_applied: bool = False,
     ) -> ExplorationPath:
         """Create a new exploration path."""
-        path_id = hashlib.md5(
-            f"{solution}{parent_id}{depth}".encode()
-        ).hexdigest()[:12]
+        path_id = hashlib.md5(f"{solution}{parent_id}{depth}".encode()).hexdigest()[:12]
 
         novelty = self.novelty_scorer.score_novelty(solution)
         quality = self._estimate_quality(solution)
@@ -428,8 +432,8 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
             explore_score = path.novelty_score
 
             combined = (
-                self.config.exploitation_ratio * exploit_score +
-                (1 - self.config.exploitation_ratio) * explore_score
+                self.config.exploitation_ratio * exploit_score
+                + (1 - self.config.exploitation_ratio) * explore_score
             )
             scores.append((path, combined))
 
@@ -440,7 +444,9 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
         n_select = max(1, self.config.max_solutions_per_query // 2)
         return [path for path, _ in scores[:n_select]]
 
-    def _select_best_path(self, paths: List[ExplorationPath]) -> Optional[ExplorationPath]:
+    def _select_best_path(
+        self, paths: List[ExplorationPath]
+    ) -> Optional[ExplorationPath]:
         """Select the best overall path."""
         if not paths:
             return None
@@ -462,7 +468,7 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
 
         scored.sort(key=lambda x: x[1], reverse=True)
 
-        return [path for path, _ in scored[:self.config.max_solutions_per_query]]
+        return [path for path, _ in scored[: self.config.max_solutions_per_query]]
 
     def _check_quality(self, solution: str) -> Dict[str, Any]:
         """Check solution quality."""
@@ -485,7 +491,9 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
 
         # Specificity heuristic (presence of specific terms)
         specific_terms = ["because", "therefore", "specifically", "example", "step"]
-        specificity = sum(1 for t in specific_terms if t in solution.lower()) / len(specific_terms)
+        specificity = sum(1 for t in specific_terms if t in solution.lower()) / len(
+            specific_terms
+        )
 
         return 0.4 * length_score + 0.3 * coherence_score + 0.3 * specificity
 

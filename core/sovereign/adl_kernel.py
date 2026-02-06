@@ -31,16 +31,14 @@ Complexity Analysis:
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 import math
 import threading
-from bisect import bisect_left, insort
+from bisect import bisect_left
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, IntEnum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from enum import IntEnum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +57,7 @@ ADL_GINI_ALERT_THRESHOLD: float = 0.30
 
 # Causal Drag (Omega) parameters
 OMEGA_DEFAULT: float = 0.01  # Default 1% drag
-OMEGA_MAX: float = 0.05      # Maximum 5% drag
+OMEGA_MAX: float = 0.05  # Maximum 5% drag
 OMEGA_STEEPNESS: float = 10.0  # Exponential steepness factor
 
 # Harberger Tax parameters
@@ -80,8 +78,10 @@ UBC_POOL_ID: str = "__UBC_POOL__"
 # REJECTION CODES
 # =============================================================================
 
+
 class AdlRejectCode(IntEnum):
     """Rejection codes for Adl kernel violations."""
+
     SUCCESS = 0
 
     # Gini violations (100-109)
@@ -110,6 +110,7 @@ class AdlRejectCode(IntEnum):
 # DATA STRUCTURES
 # =============================================================================
 
+
 @dataclass
 class AdlInvariant:
     """
@@ -124,6 +125,7 @@ class AdlInvariant:
     This dataclass holds the constitutional parameters for the ADL kernel.
     All values have sensible defaults aligned with DDAGI specification.
     """
+
     gini_threshold: float = ADL_GINI_THRESHOLD
     gini_alert_threshold: float = ADL_GINI_ALERT_THRESHOLD
     omega_default: float = OMEGA_DEFAULT
@@ -135,22 +137,25 @@ class AdlInvariant:
     def __post_init__(self) -> None:
         """Validate parameters are within acceptable ranges."""
         if not 0.0 < self.gini_threshold <= 1.0:
-            raise ValueError(f"gini_threshold must be in (0, 1], got {self.gini_threshold}")
+            raise ValueError(
+                f"gini_threshold must be in (0, 1], got {self.gini_threshold}"
+            )
         if not 0.0 < self.gini_alert_threshold <= self.gini_threshold:
-            raise ValueError(f"gini_alert_threshold must be in (0, gini_threshold]")
+            raise ValueError("gini_alert_threshold must be in (0, gini_threshold]")
         if not 0.0 <= self.omega_default <= self.omega_max:
-            raise ValueError(f"omega_default must be in [0, omega_max]")
+            raise ValueError("omega_default must be in [0, omega_max]")
         if not 0.0 < self.omega_max <= 1.0:
-            raise ValueError(f"omega_max must be in (0, 1]")
+            raise ValueError("omega_max must be in (0, 1]")
         if not 0.0 < self.bias_epsilon <= 1.0:
-            raise ValueError(f"bias_epsilon must be in (0, 1]")
+            raise ValueError("bias_epsilon must be in (0, 1]")
         if not 0.0 <= self.harberger_rate <= 1.0:
-            raise ValueError(f"harberger_rate must be in [0, 1]")
+            raise ValueError("harberger_rate must be in [0, 1]")
 
 
 @dataclass
 class GiniResult:
     """Result of Gini coefficient calculation with detailed breakdown."""
+
     gini: float
     n_participants: int
     total_value: float
@@ -170,6 +175,7 @@ class GiniResult:
 @dataclass
 class CausalDragResult:
     """Result of causal drag computation."""
+
     omega: float  # The computed drag coefficient
     base_omega: float  # Default omega before adjustment
     adjustment_factor: float  # Multiplier applied
@@ -184,6 +190,7 @@ class CausalDragResult:
 @dataclass
 class HarbergerTaxResult:
     """Result of Harberger tax calculation."""
+
     tax_amount: float
     self_assessed_value: float
     tax_rate: float
@@ -196,6 +203,7 @@ class HarbergerTaxResult:
 @dataclass
 class BiasParityResult:
     """Result of bias parity check using KL divergence."""
+
     kl_divergence: float
     passes_threshold: bool
     epsilon: float
@@ -218,6 +226,7 @@ class AdlValidationResult:
     3. Harberger tax assessment
     4. Bias parity verification
     """
+
     passed: bool
     reject_code: AdlRejectCode
     message: str
@@ -234,7 +243,9 @@ class AdlValidationResult:
 
     def __post_init__(self) -> None:
         if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            self.timestamp = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize for PCI envelope and audit logging."""
@@ -247,13 +258,16 @@ class AdlValidationResult:
             "ihsan_adl_score": round(self.ihsan_adl_score, 6),
             "gini": self.gini_result.gini if self.gini_result else None,
             "omega": self.drag_result.omega if self.drag_result else None,
-            "kl_divergence": self.bias_result.kl_divergence if self.bias_result else None,
+            "kl_divergence": (
+                self.bias_result.kl_divergence if self.bias_result else None
+            ),
         }
 
 
 # =============================================================================
 # GINI COEFFICIENT CALCULATOR
 # =============================================================================
+
 
 def calculate_gini(distribution: List[float]) -> float:
     """
@@ -422,7 +436,7 @@ def calculate_gini_detailed(
     bottom_40_count = int(n * 0.4)
     bottom_40_sum = sum(sorted_values[:bottom_40_count]) if bottom_40_count > 0 else 0.0
     top_10_sum = sum(sorted_values[-top_10_count:])
-    palma_ratio = top_10_sum / bottom_40_sum if bottom_40_sum > 0 else float('inf')
+    palma_ratio = top_10_sum / bottom_40_sum if bottom_40_sum > 0 else float("inf")
 
     return GiniResult(
         gini=gini,
@@ -434,7 +448,7 @@ def calculate_gini_detailed(
         max_value=sorted_values[-1],
         top_10_pct_share=top_10_share,
         bottom_50_pct_share=bottom_50_share,
-        palma_ratio=palma_ratio if palma_ratio != float('inf') else -1.0,
+        palma_ratio=palma_ratio if palma_ratio != float("inf") else -1.0,
         passes_threshold=gini <= threshold,
         alert_triggered=gini > alert_threshold,
         threshold=threshold,
@@ -445,6 +459,7 @@ def calculate_gini_detailed(
 # =============================================================================
 # INCREMENTAL GINI CALCULATOR (P0-3 OPTIMIZATION)
 # =============================================================================
+
 
 @dataclass
 class IncrementalGini:
@@ -483,6 +498,7 @@ class IncrementalGini:
 
     For n=10,000 nodes, this provides ~10x speedup over full recalculation.
     """
+
     _sorted_values: List[float] = field(default_factory=list)
     _total: float = 0.0
     _weighted_sum: float = 0.0
@@ -559,7 +575,7 @@ class IncrementalGini:
 
         # Update weighted sum for all elements that shift left
         # Elements at indices > pos get their weight decreased by 1
-        shift_adjustment = sum(self._sorted_values[pos + 1:])
+        shift_adjustment = sum(self._sorted_values[pos + 1 :])
         self._weighted_sum -= shift_adjustment
 
         # Remove the value - O(n) for list shifting
@@ -603,7 +619,9 @@ class IncrementalGini:
             return 0.0
 
         # Gini formula: G = (2 * weighted_sum) / (n * total) - (n + 1) / n
-        gini = (2.0 * self._weighted_sum) / (self._n * self._total) - (self._n + 1) / self._n
+        gini = (2.0 * self._weighted_sum) / (self._n * self._total) - (
+            self._n + 1
+        ) / self._n
 
         # Clamp to [0, 1] for floating-point safety
         return max(0.0, min(1.0, gini))
@@ -646,9 +664,7 @@ class IncrementalGini:
         self._total = sum(self._sorted_values)
 
         # Calculate weighted sum in single pass - O(n)
-        self._weighted_sum = sum(
-            (i + 1) * x for i, x in enumerate(self._sorted_values)
-        )
+        self._weighted_sum = sum((i + 1) * x for i, x in enumerate(self._sorted_values))
 
         return self.gini
 
@@ -732,7 +748,8 @@ class NetworkGiniTracker:
         with self._lock:
             # Filter out UBC pool
             filtered = {
-                k: v for k, v in holdings.items()
+                k: v
+                for k, v in holdings.items()
                 if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
             }
 
@@ -954,6 +971,7 @@ class NetworkGiniTracker:
 # CAUSAL DRAG (OMEGA) CALCULATOR
 # =============================================================================
 
+
 def compute_causal_drag(
     node_power: float,
     network_gini: float,
@@ -1013,7 +1031,9 @@ def compute_causal_drag(
         # Exponential ramp-up as we approach threshold
         exponent = steepness * (gini_ratio - 0.8) * power_factor
         exponent = max(0.0, min(5.0, exponent))  # Clamp for stability
-        adjustment_factor = gini_ratio * power_factor * (1.0 + math.exp(exponent) - 1.0) / 2.0
+        adjustment_factor = (
+            gini_ratio * power_factor * (1.0 + math.exp(exponent) - 1.0) / 2.0
+        )
     else:
         # Linear scaling below 80% of threshold
         adjustment_factor = gini_ratio * power_factor
@@ -1054,6 +1074,7 @@ def compute_causal_drag(
 # =============================================================================
 # HARBERGER TAX CALCULATOR
 # =============================================================================
+
 
 def harberger_tax(
     self_assessed_value: float,
@@ -1136,8 +1157,7 @@ def apply_harberger_redistribution(
     """
     # Filter active participants
     participants = {
-        k: v for k, v in holdings.items()
-        if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
+        k: v for k, v in holdings.items() if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
     }
 
     if not participants:
@@ -1170,6 +1190,7 @@ def apply_harberger_redistribution(
 # =============================================================================
 # BIAS PARITY CHECKER (KL DIVERGENCE)
 # =============================================================================
+
 
 def check_bias_parity(
     output_dist: List[float],
@@ -1228,7 +1249,7 @@ def check_bias_parity(
         raise ValueError("Distribution sums must be positive")
 
     p = [x / output_sum for x in output_dist]  # Output (normalized)
-    q = [x / ideal_sum for x in ideal_dist]    # Ideal (normalized)
+    q = [x / ideal_sum for x in ideal_dist]  # Ideal (normalized)
 
     # Calculate KL divergence with numerical stability
     # D_KL(P || Q) = sum(p_i * log(p_i / q_i))
@@ -1291,6 +1312,7 @@ def create_uniform_distribution(n: int) -> List[float]:
 # =============================================================================
 # ADL ENFORCER - UNIFIED VALIDATION
 # =============================================================================
+
 
 class AdlEnforcer:
     """
@@ -1388,7 +1410,8 @@ class AdlEnforcer:
         # 1. Gini Coefficient Check
         if check_gini:
             distribution = [
-                v for k, v in holdings.items()
+                v
+                for k, v in holdings.items()
                 if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
             ]
             gini_result = calculate_gini_detailed(
@@ -1412,7 +1435,11 @@ class AdlEnforcer:
 
         # 2. Causal Drag Computation
         if check_drag and transaction_amount > 0:
-            network_gini = gini_result.gini if gini_result else calculate_gini_from_holdings(holdings)
+            network_gini = (
+                gini_result.gini
+                if gini_result
+                else calculate_gini_from_holdings(holdings)
+            )
             drag_result = compute_causal_drag(
                 node_power=node_power,
                 network_gini=network_gini,
@@ -1453,7 +1480,9 @@ class AdlEnforcer:
         if gini_result:
             # Higher score for lower Gini
             # At Gini=0, score=1.0; at Gini=threshold, score=0.0
-            ihsan_score = max(0.0, 1.0 - (gini_result.gini / self.config.gini_threshold))
+            ihsan_score = max(
+                0.0, 1.0 - (gini_result.gini / self.config.gini_threshold)
+            )
 
         # Compose final message
         if not messages:
@@ -1522,7 +1551,9 @@ class AdlEnforcer:
         post_holdings[recipient] = post_holdings.get(recipient, 0.0) + amount
 
         # Calculate node power (relative to total)
-        total = sum(v for k, v in holdings.items() if k != UBC_POOL_ID and v >= MINIMUM_HOLDING)
+        total = sum(
+            v for k, v in holdings.items() if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
+        )
         node_power = sender_balance / total if total > 0 else 0.0
 
         # Validate post-transaction state
@@ -1680,7 +1711,6 @@ class AdlEnforcer:
         )
 
         # Get current Gini for comparison
-        pre_gini = self._gini_tracker.gini
 
         if not passes:
             self._rejection_count += 1
@@ -1695,7 +1725,8 @@ class AdlEnforcer:
                     gini=simulated_gini,
                     n_participants=self._gini_tracker.node_count,
                     total_value=self._gini_tracker.total_holdings,
-                    mean_value=self._gini_tracker.total_holdings / max(1, self._gini_tracker.node_count),
+                    mean_value=self._gini_tracker.total_holdings
+                    / max(1, self._gini_tracker.node_count),
                     median_value=0.0,  # Not available in incremental mode
                     min_value=0.0,
                     max_value=0.0,
@@ -1728,7 +1759,8 @@ class AdlEnforcer:
                 gini=post_gini,
                 n_participants=self._gini_tracker.node_count,
                 total_value=self._gini_tracker.total_holdings,
-                mean_value=self._gini_tracker.total_holdings / max(1, self._gini_tracker.node_count),
+                mean_value=self._gini_tracker.total_holdings
+                / max(1, self._gini_tracker.node_count),
                 median_value=0.0,
                 min_value=0.0,
                 max_value=0.0,
@@ -1769,6 +1801,7 @@ class AdlEnforcer:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 def quick_adl_check(
     holdings: Dict[str, float],

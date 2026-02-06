@@ -40,45 +40,41 @@ except ImportError:
 # PUBLIC API - Re-export from modular components
 # =============================================================================
 
-# Types, enums, data classes
-from .integration_types import (
-    # Enums
-    AdmissionStatus,
-    NetworkMode,
-    # Z3 Certificates
-    Z3Certificate,
-    AdmissionResult,
-    # Configuration
-    SovereignConfig,
-    # Inference
-    InferenceRequest,
-    InferenceResult,
+# Capability Cards (re-export)
+from .capability_card import (
+    CapabilityCard,
+    CardIssuer,
+    ModelTier,
+    TaskType,
+    create_capability_card,
+    verify_capability_card,
 )
 
 # Constitutional Gate
 from .constitutional_gate import (
-    ConstitutionalGate,
     Z3_CERT_DOMAIN_PREFIX,
+    ConstitutionalGate,
 )
 
 # Sovereign Runtime
 from .integration_runtime import SovereignRuntime
 
-# Capability Cards (re-export)
-from .capability_card import (
-    CapabilityCard,
-    ModelTier,
-    TaskType,
-    CardIssuer,
-    create_capability_card,
-    verify_capability_card,
+# Types, enums, data classes
+from .integration_types import (  # Enums; Z3 Certificates; Configuration; Inference
+    AdmissionResult,
+    AdmissionStatus,
+    InferenceRequest,
+    InferenceResult,
+    NetworkMode,
+    SovereignConfig,
+    Z3Certificate,
 )
 
 # Model License Gate (re-export)
 from .model_license_gate import (
-    ModelLicenseGate,
-    InMemoryRegistry,
     GateChain,
+    InMemoryRegistry,
+    ModelLicenseGate,
     create_gate_chain,
 )
 
@@ -92,6 +88,7 @@ SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
 # =============================================================================
 # FACTORY FUNCTIONS
 # =============================================================================
+
 
 async def create_sovereign_runtime(
     config: Optional[SovereignConfig] = None,

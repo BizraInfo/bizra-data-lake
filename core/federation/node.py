@@ -14,15 +14,15 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import logging
 import asyncio
 import json
+import logging
 import uuid
-from typing import Dict, List, Optional, Callable, Any
+from typing import Callable, Dict, List, Optional
 
-from .gossip import GossipEngine, MessageType
-from .propagation import PatternStore, PropagationEngine, ElevatedPattern, PatternStatus
 from .consensus import ConsensusEngine, Proposal, Vote
+from .gossip import GossipEngine
+from .propagation import ElevatedPattern, PatternStatus, PatternStore, PropagationEngine
 
 logger = logging.getLogger("FEDERATION")
 
@@ -68,6 +68,7 @@ class FederationNode:
         # Generate keypair if not provided (SEC-016/017 compliance)
         if not public_key or not private_key or len(public_key) < 64:
             from core.pci import generate_keypair
+
             private_key, public_key = generate_keypair()
             print(f"[FederationNode] Generated Ed25519 keypair for {self.node_id}")
 
@@ -123,6 +124,7 @@ class FederationNode:
 
     def _setup_consensus_callbacks(self):
         """Setup callbacks for consensus engine to broadcast commits."""
+
         def on_commit(payload: Dict):
             """Broadcast commit certificate to network."""
             self._broadcast_consensus_msg("COMMIT", payload)
@@ -210,7 +212,9 @@ class FederationNode:
         # Use propagation engine to validate and store network pattern
         success = self.propagation.receive_pattern(payload)
         if success:
-            logger.info(f"📥 Received pattern from network: {payload.get('pattern_id', 'unknown')}")
+            logger.info(
+                f"📥 Received pattern from network: {payload.get('pattern_id', 'unknown')}"
+            )
 
     def _handle_propose(self, payload: Dict):
         """Handle incoming BFT proposal."""
@@ -236,9 +240,9 @@ class FederationNode:
         """Handle incoming BFT commit certificate."""
         pattern_id = payload.get("proposal_id")
         if pattern_id in self.consensus.active_proposals:
-            self.pattern_store.network_patterns[
-                pattern_id
-            ].status = PatternStatus.VALIDATED
+            self.pattern_store.network_patterns[pattern_id].status = (
+                PatternStatus.VALIDATED
+            )
             logger.info(f"✅ Pattern {pattern_id} validated by Global Consensus")
 
     def _broadcast_consensus_msg(self, msg_type: str, data: Dict):

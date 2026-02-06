@@ -66,8 +66,8 @@ def print_banner():
 
 async def run_repl():
     """Run interactive REPL mode."""
-    from .runtime import SovereignRuntime, RuntimeConfig
-    from ..inference.local_first import get_local_first_backend, LocalBackend
+    from ..inference.local_first import LocalBackend, get_local_first_backend
+    from .runtime import RuntimeConfig, SovereignRuntime
 
     print_banner()
 
@@ -75,7 +75,9 @@ async def run_repl():
     best_backend = await get_local_first_backend()
     if best_backend == LocalBackend.NONE:
         print("WARNING: No local inference backends detected.")
-        print("Configure LM Studio (192.168.56.1:1234), Ollama (localhost:11434), or llama.cpp")
+        print(
+            "Configure LM Studio (192.168.56.1:1234), Ollama (localhost:11434), or llama.cpp"
+        )
     else:
         print(f"Local-first mode: Using {best_backend.value}")
 
@@ -112,14 +114,18 @@ Or type any query to get a sovereign response.
                 if query.lower() == "status":
                     status = runtime.status()
                     print(f"\nNode: {status['identity']['node_name']}")
-                    print(f"Health: {status['health']['status']} ({status['health']['score']})")
+                    print(
+                        f"Health: {status['health']['status']} ({status['health']['score']})"
+                    )
                     print(f"SNR: {status['health']['snr']}")
                     print(f"Ihsān: {status['health']['ihsan']}")
                     continue
 
                 if query.lower() == "metrics":
                     metrics = runtime.metrics.to_dict()
-                    print(f"\nQueries: {metrics['queries']['total']} (success: {metrics['queries']['success_rate']})")
+                    print(
+                        f"\nQueries: {metrics['queries']['total']} (success: {metrics['queries']['success_rate']})"
+                    )
                     print(f"Avg Time: {metrics['timing']['avg_query_ms']}ms")
                     print(f"Cache Hit Rate: {metrics['cache']['hit_rate']}")
                     continue
@@ -136,8 +142,12 @@ Or type any query to get a sovereign response.
                 if result.success:
                     print(f"Answer: {result.answer}")
                     print(f"{'─' * 60}")
-                    print(f"Confidence: {result.confidence:.1%} | SNR: {result.snr_score:.3f} | Ihsān: {result.ihsan_score:.3f}")
-                    print(f"Time: {result.total_time_ms:.1f}ms | Verdict: {result.guardian_verdict}")
+                    print(
+                        f"Confidence: {result.confidence:.1%} | SNR: {result.snr_score:.3f} | Ihsān: {result.ihsan_score:.3f}"
+                    )
+                    print(
+                        f"Time: {result.total_time_ms:.1f}ms | Verdict: {result.guardian_verdict}"
+                    )
                 else:
                     print(f"Error: {result.error}")
 
@@ -149,7 +159,7 @@ Or type any query to get a sovereign response.
 
 async def run_query(query: str, json_output: bool = False):
     """Run a single query."""
-    from .runtime import SovereignRuntime, RuntimeConfig
+    from .runtime import RuntimeConfig, SovereignRuntime
 
     config = RuntimeConfig(autonomous_enabled=False)
 
@@ -158,15 +168,21 @@ async def run_query(query: str, json_output: bool = False):
 
         if json_output:
             import json
-            print(json.dumps({
-                "success": result.success,
-                "answer": result.answer,
-                "confidence": result.confidence,
-                "snr": result.snr_score,
-                "ihsan": result.ihsan_score,
-                "time_ms": result.total_time_ms,
-                "verdict": result.guardian_verdict,
-            }, indent=2))
+
+            print(
+                json.dumps(
+                    {
+                        "success": result.success,
+                        "answer": result.answer,
+                        "confidence": result.confidence,
+                        "snr": result.snr_score,
+                        "ihsan": result.ihsan_score,
+                        "time_ms": result.total_time_ms,
+                        "verdict": result.guardian_verdict,
+                    },
+                    indent=2,
+                )
+            )
         else:
             if result.success:
                 print(f"\nAnswer: {result.answer}")
@@ -182,13 +198,14 @@ async def run_query(query: str, json_output: bool = False):
 async def run_server(host: str, port: int, api_keys: Optional[list] = None):
     """Run API server."""
     from .api import serve
+
     await serve(host, port, api_keys)
 
 
 async def run_status(json_output: bool = False):
     """Show system status."""
-    from .runtime import SovereignRuntime, RuntimeConfig
     from ..inference.local_first import LocalFirstDetector
+    from .runtime import RuntimeConfig, SovereignRuntime
 
     config = RuntimeConfig(autonomous_enabled=False)
 
@@ -198,13 +215,15 @@ async def run_status(json_output: bool = False):
 
         if json_output:
             import json
-            status['backends'] = [
+
+            status["backends"] = [
                 {
-                    'name': b.backend.value,
-                    'available': b.available,
-                    'latency_ms': b.latency_ms,
-                    'reason': b.reason
-                } for b in backends
+                    "name": b.backend.value,
+                    "available": b.available,
+                    "latency_ms": b.latency_ms,
+                    "reason": b.reason,
+                }
+                for b in backends
             ]
             print(json.dumps(status, indent=2))
         else:
@@ -224,19 +243,23 @@ async def run_status(json_output: bool = False):
             print("Local Backends (Zero-Token Operation):")
             for b in backends:
                 status_str = "READY" if b.available else "offline"
-                print(f"  {b.backend.value:12s} {status_str:8s} {b.latency_ms:6.1f}ms  {b.reason}")
+                print(
+                    f"  {b.backend.value:12s} {status_str:8s} {b.latency_ms:6.1f}ms  {b.reason}"
+                )
             print("=" * 60)
 
 
 def run_tests():
     """Run integration tests."""
     from .tests.test_integration import run_all_tests
+
     sys.exit(run_all_tests())
 
 
 async def run_doctor(verbose: bool = False, json_output: bool = False):
     """Run system health check."""
     from .doctor import run_doctor as doctor_check
+
     sys.exit(await doctor_check(verbose, json_output))
 
 
@@ -252,7 +275,7 @@ Examples:
   python -m core.sovereign serve --port 8080        # Start API server
   python -m core.sovereign status                   # Check status
   python -m core.sovereign test                     # Run tests
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -277,7 +300,9 @@ Examples:
 
     # Doctor command
     doctor_parser = subparsers.add_parser("doctor", help="Run system health check")
-    doctor_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    doctor_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Verbose output"
+    )
     doctor_parser.add_argument("--json", action="store_true", help="JSON output")
 
     # Version command
@@ -285,12 +310,14 @@ Examples:
 
     # Global flags
     parser.add_argument("--version", "-V", action="store_true", help="Show version")
-    parser.add_argument("--quiet", "-q", action="store_true", help="Quiet mode (no banner)")
+    parser.add_argument(
+        "--quiet", "-q", action="store_true", help="Quiet mode (no banner)"
+    )
 
     args = parser.parse_args()
 
     # Handle global version flag
-    if getattr(args, 'version', False):
+    if getattr(args, "version", False):
         print("BIZRA Sovereign Engine v1.0.0")
         print("Codename: Genesis")
         print("Standing on Giants: Shannon • Lamport • Vaswani • Anthropic")
@@ -313,7 +340,7 @@ Examples:
         print("Standing on Giants: Shannon • Lamport • Vaswani • Anthropic")
     else:
         # Default: interactive REPL
-        if not getattr(args, 'quiet', False):
+        if not getattr(args, "quiet", False):
             asyncio.run(run_repl())
         else:
             print("Error: --quiet requires a command")

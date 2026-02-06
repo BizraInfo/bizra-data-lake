@@ -36,16 +36,14 @@ Created: 2026-02-04 | BIZRA Apex System v1.0
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import math
-import time
+import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum, auto
-from typing import Dict, List, Optional, Set, Tuple, Any, Deque
-import uuid
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +78,10 @@ EFFICIENCY_DECAY_HOURS = 24
 # ENUMS
 # =============================================================================
 
+
 class MarketCondition(str, Enum):
     """Market regime classification."""
+
     TRENDING_UP = "trending_up"
     TRENDING_DOWN = "trending_down"
     RANGING = "ranging"
@@ -91,6 +91,7 @@ class MarketCondition(str, Enum):
 
 class SignalType(str, Enum):
     """Types of trading signals."""
+
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
@@ -99,14 +100,16 @@ class SignalType(str, Enum):
 
 class SignalStrength(str, Enum):
     """Signal confidence levels."""
-    WEAK = "weak"        # SNR 0.6-0.7
+
+    WEAK = "weak"  # SNR 0.6-0.7
     MODERATE = "moderate"  # SNR 0.7-0.85
-    STRONG = "strong"    # SNR 0.85-0.95
+    STRONG = "strong"  # SNR 0.85-0.95
     EXTREME = "extreme"  # SNR >0.95
 
 
 class PositionStatus(str, Enum):
     """Status of trading positions."""
+
     PENDING = "pending"
     OPEN = "open"
     CLOSING = "closing"
@@ -118,9 +121,11 @@ class PositionStatus(str, Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class MarketData:
     """Point-in-time market data."""
+
     symbol: str
     price: float
     volume: float
@@ -145,6 +150,7 @@ class MarketData:
 @dataclass
 class MarketAnalysis:
     """Analysis of market conditions."""
+
     symbol: str
     condition: MarketCondition
     volatility: float  # Standard deviation of returns
@@ -169,6 +175,7 @@ class TradingSignal:
     - Noise = uncertainty, conflicting indicators
     - SNR = Signal / (Signal + Noise)
     """
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     symbol: str = ""
     signal_type: SignalType = SignalType.HOLD
@@ -182,7 +189,9 @@ class TradingSignal:
 
     # Timing
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    expiry: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=30))
+    expiry: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=30)
+    )
 
     # Context
     reasoning: List[str] = field(default_factory=list)
@@ -199,9 +208,9 @@ class TradingSignal:
     def is_actionable(self) -> bool:
         """Signal is actionable if SNR and Sharpe meet thresholds."""
         return (
-            self.snr_score >= SNR_THRESHOLD and
-            self.sharpe_ratio >= MIN_SHARPE_RATIO and
-            datetime.now(timezone.utc) < self.expiry
+            self.snr_score >= SNR_THRESHOLD
+            and self.sharpe_ratio >= MIN_SHARPE_RATIO
+            and datetime.now(timezone.utc) < self.expiry
         )
 
     @property
@@ -214,6 +223,7 @@ class TradingSignal:
 @dataclass
 class ArbitrageOpportunity:
     """Detected arbitrage opportunity."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     symbol: str = ""
     market_a: str = ""
@@ -233,6 +243,7 @@ class ArbitrageOpportunity:
 @dataclass
 class Position:
     """A trading position."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     symbol: str = ""
     side: str = "long"  # "long" or "short"
@@ -278,6 +289,7 @@ class Position:
 # MARKET ANALYZER
 # =============================================================================
 
+
 class MarketAnalyzer:
     """
     Analyzes market conditions for trading opportunities.
@@ -310,15 +322,17 @@ class MarketAnalyzer:
                 volatility=0.0,
                 trend_strength=0.0,
                 volume_profile="unknown",
-                efficiency_score=1.0
+                efficiency_score=1.0,
             )
 
         prices = [d.price for d in history]
         volumes = [d.volume for d in history]
 
         # Calculate returns
-        returns = [(prices[i] - prices[i-1]) / prices[i-1] if prices[i-1] > 0 else 0
-                   for i in range(1, len(prices))]
+        returns = [
+            (prices[i] - prices[i - 1]) / prices[i - 1] if prices[i - 1] > 0 else 0
+            for i in range(1, len(prices))
+        ]
 
         # Volatility (standard deviation of returns)
         if returns:
@@ -332,13 +346,19 @@ class MarketAnalyzer:
         if len(prices) >= 20:
             recent_avg = sum(prices[-10:]) / 10
             older_avg = sum(prices[-20:-10]) / 10
-            trend_strength = abs(recent_avg - older_avg) / older_avg if older_avg > 0 else 0
+            trend_strength = (
+                abs(recent_avg - older_avg) / older_avg if older_avg > 0 else 0
+            )
         else:
             trend_strength = 0.0
 
         # Market condition classification
         if trend_strength > 0.05:
-            condition = MarketCondition.TRENDING_UP if prices[-1] > prices[-10] else MarketCondition.TRENDING_DOWN
+            condition = (
+                MarketCondition.TRENDING_UP
+                if prices[-1] > prices[-10]
+                else MarketCondition.TRENDING_DOWN
+            )
         elif volatility > 0.03:
             condition = MarketCondition.VOLATILE
         else:
@@ -358,8 +378,8 @@ class MarketAnalyzer:
         # Market efficiency (variance ratio test approximation)
         if len(returns) >= 20:
             # Compare short-term vs long-term variance
-            short_var = sum(r ** 2 for r in returns[-10:]) / 10
-            long_var = sum(r ** 2 for r in returns) / len(returns)
+            short_var = sum(r**2 for r in returns[-10:]) / 10
+            long_var = sum(r**2 for r in returns) / len(returns)
             efficiency_score = min(1.0, short_var / long_var if long_var > 0 else 1.0)
         else:
             efficiency_score = 0.8
@@ -370,7 +390,7 @@ class MarketAnalyzer:
             volatility=volatility,
             trend_strength=trend_strength,
             volume_profile=volume_profile,
-            efficiency_score=efficiency_score
+            efficiency_score=efficiency_score,
         )
 
         self._analysis_cache[symbol] = analysis
@@ -380,6 +400,7 @@ class MarketAnalyzer:
 # =============================================================================
 # SIGNAL GENERATOR
 # =============================================================================
+
 
 class SignalGenerator:
     """
@@ -396,10 +417,7 @@ class SignalGenerator:
         self._signals: Dict[str, List[TradingSignal]] = {}
 
     def generate_signals(
-        self,
-        symbol: str,
-        analysis: MarketAnalysis,
-        price_history: List[float]
+        self, symbol: str, analysis: MarketAnalysis, price_history: List[float]
     ) -> List[TradingSignal]:
         """Generate trading signals for symbol."""
         signals = []
@@ -417,9 +435,12 @@ class SignalGenerator:
         mr_signal, mr_confidence = self._mean_reversion_signal(price_history, analysis)
 
         # Combine signals with regime filter
-        if analysis.condition in [MarketCondition.TRENDING_UP, MarketCondition.TRENDING_DOWN]:
+        if analysis.condition in [
+            MarketCondition.TRENDING_UP,
+            MarketCondition.TRENDING_DOWN,
+        ]:
             # Trend-following signals
-            combined_signal = (ma_signal * 0.5 + mom_signal * 0.5)
+            combined_signal = ma_signal * 0.5 + mom_signal * 0.5
             combined_confidence = (ma_confidence + mom_confidence) / 2
         elif analysis.condition == MarketCondition.RANGING:
             # Mean reversion signals
@@ -428,12 +449,18 @@ class SignalGenerator:
         else:
             # Uncertain regime - reduce confidence
             combined_signal = ma_signal * 0.3 + mom_signal * 0.3 + mr_signal * 0.4
-            combined_confidence = (ma_confidence + mom_confidence + mr_confidence) / 3 * 0.7
+            combined_confidence = (
+                (ma_confidence + mom_confidence + mr_confidence) / 3 * 0.7
+            )
 
         # Calculate SNR
         signal_strength = abs(combined_signal)
         noise = 1.0 - combined_confidence
-        snr = signal_strength / (signal_strength + noise) if signal_strength + noise > 0 else 0
+        snr = (
+            signal_strength / (signal_strength + noise)
+            if signal_strength + noise > 0
+            else 0
+        )
 
         # Determine signal type
         if combined_signal > 0.3:
@@ -454,7 +481,9 @@ class SignalGenerator:
             strength = SignalStrength.WEAK
 
         # Expected return and risk
-        expected_return = combined_signal * analysis.trend_strength * 0.1  # Conservative estimate
+        expected_return = (
+            combined_signal * analysis.trend_strength * 0.1
+        )  # Conservative estimate
         expected_risk = analysis.volatility
 
         signal = TradingSignal(
@@ -469,9 +498,9 @@ class SignalGenerator:
                 f"MA signal: {ma_signal:.3f}",
                 f"Momentum: {mom_signal:.3f}",
                 f"Mean reversion: {mr_signal:.3f}",
-                f"Market condition: {analysis.condition.value}"
+                f"Market condition: {analysis.condition.value}",
             ],
-            indicators_used=["MA", "Momentum", "MeanReversion"]
+            indicators_used=["MA", "Momentum", "MeanReversion"],
         )
 
         signals.append(signal)
@@ -522,7 +551,9 @@ class SignalGenerator:
 
         return (momentum * 5, confidence)
 
-    def _mean_reversion_signal(self, prices: List[float], analysis: MarketAnalysis) -> Tuple[float, float]:
+    def _mean_reversion_signal(
+        self, prices: List[float], analysis: MarketAnalysis
+    ) -> Tuple[float, float]:
         """Mean reversion signal for ranging markets."""
         if len(prices) < 20 or analysis.condition != MarketCondition.RANGING:
             return (0.0, 0.3)
@@ -553,6 +584,7 @@ class SignalGenerator:
 # ARBITRAGE DETECTOR
 # =============================================================================
 
+
 class ArbitrageDetector:
     """
     Detects arbitrage opportunities across markets.
@@ -565,7 +597,9 @@ class ArbitrageDetector:
 
     def __init__(self, min_profit: float = ARBITRAGE_MIN_PROFIT):
         self.min_profit = min_profit
-        self._market_prices: Dict[str, Dict[str, float]] = {}  # symbol -> market -> price
+        self._market_prices: Dict[str, Dict[str, float]] = (
+            {}
+        )  # symbol -> market -> price
 
     def update_price(self, symbol: str, market: str, price: float):
         """Update price for symbol on market."""
@@ -603,7 +637,7 @@ class ArbitrageDetector:
                     price_b=max_price,
                     spread_pct=spread_pct,
                     estimated_profit=spread_pct - execution_risk * 0.1,
-                    execution_risk=execution_risk
+                    execution_risk=execution_risk,
                 )
 
                 if opp.is_profitable:
@@ -615,6 +649,7 @@ class ArbitrageDetector:
 # =============================================================================
 # OPPORTUNITY ENGINE (UNIFIED)
 # =============================================================================
+
 
 class OpportunityEngine:
     """
@@ -631,11 +666,7 @@ class OpportunityEngine:
     - Adapts to market regime (Lo's AMH)
     """
 
-    def __init__(
-        self,
-        snr_threshold: float = SNR_THRESHOLD,
-        max_positions: int = 10
-    ):
+    def __init__(self, snr_threshold: float = SNR_THRESHOLD, max_positions: int = 10):
         self.snr_threshold = snr_threshold
         self.max_positions = max_positions
 
@@ -678,7 +709,7 @@ class OpportunityEngine:
             "analysis": analysis,
             "signals": actionable_signals,
             "arbitrage": actionable_arbitrage,
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(timezone.utc),
         }
 
     def open_position(
@@ -688,7 +719,7 @@ class OpportunityEngine:
         size: float,
         price: float,
         stop_loss: Optional[float] = None,
-        take_profit: Optional[float] = None
+        take_profit: Optional[float] = None,
     ) -> Optional[Position]:
         """Open a new position."""
         if len(self._positions) >= self.max_positions:
@@ -704,7 +735,7 @@ class OpportunityEngine:
             status=PositionStatus.OPEN,
             stop_loss=stop_loss,
             take_profit=take_profit,
-            opened_at=datetime.now(timezone.utc)
+            opened_at=datetime.now(timezone.utc),
         )
 
         self._positions[position.id] = position
@@ -727,20 +758,26 @@ class OpportunityEngine:
             self._winning_trades += 1
         self._total_pnl += position.realized_pnl
 
-        logger.info(f"Closed position {position_id} with P&L: {position.realized_pnl:.2f}")
+        logger.info(
+            f"Closed position {position_id} with P&L: {position.realized_pnl:.2f}"
+        )
         return position
 
     def get_performance_stats(self) -> Dict[str, Any]:
         """Get trading performance statistics."""
-        win_rate = self._winning_trades / self._total_trades if self._total_trades > 0 else 0
+        win_rate = (
+            self._winning_trades / self._total_trades if self._total_trades > 0 else 0
+        )
 
         return {
             "total_trades": self._total_trades,
             "winning_trades": self._winning_trades,
             "win_rate": win_rate,
             "total_pnl": self._total_pnl,
-            "open_positions": len([p for p in self._positions.values() if p.status == PositionStatus.OPEN]),
-            "max_positions": self.max_positions
+            "open_positions": len(
+                [p for p in self._positions.values() if p.status == PositionStatus.OPEN]
+            ),
+            "max_positions": self.max_positions,
         }
 
 

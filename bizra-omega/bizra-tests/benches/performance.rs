@@ -17,10 +17,10 @@ fn main() {
     estimate_memory_usage();
 }
 use bizra_core::{
-    NodeIdentity, Constitution, PCIEnvelope,
     domain_separated_digest,
     pci::gates::{default_gate_chain, GateContext},
-    simd::{validate_gates_batch, blake3_parallel},
+    simd::{blake3_parallel, validate_gates_batch},
+    Constitution, NodeIdentity, PCIEnvelope,
 };
 use bizra_inference::selector::{ModelSelector, TaskComplexity};
 
@@ -324,8 +324,14 @@ fn bench_simd() -> Vec<BenchResult> {
 
     // Parallel hashing
     let messages: Vec<&[u8]> = vec![
-        b"message_1", b"message_2", b"message_3", b"message_4",
-        b"message_5", b"message_6", b"message_7", b"message_8",
+        b"message_1",
+        b"message_2",
+        b"message_3",
+        b"message_4",
+        b"message_5",
+        b"message_6",
+        b"message_7",
+        b"message_8",
     ];
 
     let r = bench("parallel_hash_8x", 10000, || {
@@ -358,7 +364,7 @@ pub fn estimate_memory_usage() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn test_run_benchmarks() {
@@ -368,8 +374,12 @@ mod tests {
         // Verify performance thresholds
         for r in &results {
             // All operations should complete in reasonable time
-            assert!(r.avg_time < Duration::from_secs(1),
-                "{} too slow: {:?}", r.name, r.avg_time);
+            assert!(
+                r.avg_time < Duration::from_secs(1),
+                "{} too slow: {:?}",
+                r.name,
+                r.avg_time
+            );
         }
 
         estimate_memory_usage();

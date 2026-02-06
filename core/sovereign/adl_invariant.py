@@ -32,15 +32,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from enum import Enum, IntEnum
-from typing import Dict, List, Optional, Tuple, Any, Union
 from datetime import datetime, timezone
+from enum import IntEnum
+from typing import Any, Dict, Optional
 
 # Import unified thresholds from authoritative source
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    IHSAN_WEIGHTS,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +66,10 @@ UBC_POOL_ID: str = "__UBC_POOL__"
 # REJECTION CODES
 # =============================================================================
 
+
 class AdlRejectCode(IntEnum):
     """Rejection codes specific to Adl invariant violations."""
+
     SUCCESS = 0
     REJECT_GINI_EXCEEDED = 100  # Post-tx Gini would exceed threshold
     REJECT_CONSERVATION_VIOLATED = 101  # Total value changed
@@ -84,6 +82,7 @@ class AdlRejectCode(IntEnum):
 # DATA STRUCTURES
 # =============================================================================
 
+
 @dataclass
 class Transaction:
     """
@@ -92,6 +91,7 @@ class Transaction:
     Standing on Giants - Lamport:
     All transactions must be atomic and verifiable.
     """
+
     tx_id: str
     sender: str
     recipient: str
@@ -101,7 +101,9 @@ class Transaction:
 
     def __post_init__(self):
         if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            self.timestamp = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
         if self.amount < 0:
             raise ValueError("Transaction amount cannot be negative")
 
@@ -114,6 +116,7 @@ class AdlValidationResult:
     Contains detailed information about why a transaction was accepted or rejected,
     enabling transparent auditability of economic governance decisions.
     """
+
     passed: bool
     reject_code: AdlRejectCode
     message: str
@@ -146,6 +149,7 @@ class RedistributionResult:
     Tracks the flow of value from holdings to the UBC pool
     and the equal distribution to all participants.
     """
+
     success: bool
     pre_gini: float
     post_gini: float
@@ -159,6 +163,7 @@ class RedistributionResult:
 # =============================================================================
 # GINI COEFFICIENT CALCULATOR
 # =============================================================================
+
 
 def calculate_gini(holdings: Dict[str, float]) -> float:
     """
@@ -245,8 +250,7 @@ def calculate_gini_components(holdings: Dict[str, float]) -> Dict[str, Any]:
         Dictionary with gini coefficient and component details
     """
     values = [
-        v for k, v in holdings.items()
-        if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
+        v for k, v in holdings.items() if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
     ]
 
     if len(values) <= 1:
@@ -273,7 +277,11 @@ def calculate_gini_components(holdings: Dict[str, float]) -> Dict[str, Any]:
 
     # Additional metrics for transparency
     median_idx = n // 2
-    median = (sorted_values[median_idx] + sorted_values[median_idx - 1]) / 2 if n % 2 == 0 else sorted_values[median_idx]
+    median = (
+        (sorted_values[median_idx] + sorted_values[median_idx - 1]) / 2
+        if n % 2 == 0
+        else sorted_values[median_idx]
+    )
 
     # Top 10% share
     top_10_count = max(1, n // 10)
@@ -299,6 +307,7 @@ def calculate_gini_components(holdings: Dict[str, float]) -> Dict[str, Any]:
 # =============================================================================
 # ADL INVARIANT VALIDATOR
 # =============================================================================
+
 
 class AdlInvariant:
     """
@@ -510,7 +519,8 @@ class AdlInvariant:
 
         # Get active participants (excluding UBC pool)
         participants = {
-            k: v for k, v in holdings.items()
+            k: v
+            for k, v in holdings.items()
             if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
         }
 
@@ -561,7 +571,8 @@ class AdlInvariant:
         post_gini = calculate_gini(new_holdings)
 
         participants = {
-            k: v for k, v in holdings.items()
+            k: v
+            for k, v in holdings.items()
             if k != UBC_POOL_ID and v >= MINIMUM_HOLDING
         }
 
@@ -594,6 +605,7 @@ class AdlInvariant:
 # =============================================================================
 # ADL GATE - PCI INTEGRATION
 # =============================================================================
+
 
 class AdlGate:
     """
@@ -698,6 +710,7 @@ class AdlGate:
 # EXTENDED PCI GATEKEEPER WITH ADL
 # =============================================================================
 
+
 def create_adl_extended_gatekeeper(
     base_gatekeeper: Any,
     holdings_provider: callable,
@@ -732,8 +745,8 @@ def create_adl_extended_gatekeeper(
             return base_result
 
         # Check if this is a transaction envelope
-        action = getattr(envelope.payload, 'action', '')
-        if action in ('transfer', 'transaction', 'value_transfer'):
+        action = getattr(envelope.payload, "action", "")
+        if action in ("transfer", "transaction", "value_transfer"):
             # Run Adl gate
             adl_result = adl_gate.check(envelope)
             if not adl_result.passed:
@@ -761,6 +774,7 @@ def create_adl_extended_gatekeeper(
 # UTILITY FUNCTIONS
 # =============================================================================
 
+
 def assert_adl_invariant(
     post_state: Dict[str, float],
     pre_state: Optional[Dict[str, float]] = None,
@@ -777,16 +791,14 @@ def assert_adl_invariant(
         threshold: Gini threshold (default 0.40)
     """
     gini = calculate_gini(post_state)
-    assert gini <= threshold, (
-        f"Adl violation: Gini {gini:.4f} > threshold {threshold}"
-    )
+    assert gini <= threshold, f"Adl violation: Gini {gini:.4f} > threshold {threshold}"
 
     if pre_state is not None:
         pre_total = sum(v for k, v in pre_state.items() if k != UBC_POOL_ID)
         post_total = sum(v for k, v in post_state.items() if k != UBC_POOL_ID)
-        assert abs(pre_total - post_total) < 1e-9, (
-            f"Conservation violated: pre={pre_total}, post={post_total}"
-        )
+        assert (
+            abs(pre_total - post_total) < 1e-9
+        ), f"Conservation violated: pre={pre_total}, post={post_total}"
 
 
 def simulate_transaction_impact(
@@ -828,8 +840,10 @@ def simulate_transaction_impact(
         "post": post_components,
         "delta": {
             "gini": post_gini - pre_gini,
-            "top_10_pct_share": post_components["top_10_pct_share"] - pre_components["top_10_pct_share"],
-            "bottom_50_pct_share": post_components["bottom_50_pct_share"] - pre_components["bottom_50_pct_share"],
+            "top_10_pct_share": post_components["top_10_pct_share"]
+            - pre_components["top_10_pct_share"],
+            "bottom_50_pct_share": post_components["bottom_50_pct_share"]
+            - pre_components["bottom_50_pct_share"],
         },
         "would_pass": post_gini <= threshold,
         "headroom": threshold - post_gini,

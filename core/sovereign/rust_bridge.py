@@ -26,7 +26,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional
 
 logger = logging.getLogger("SOVEREIGN.RUST_BRIDGE")
 
@@ -35,17 +35,18 @@ _RUST_AVAILABLE = False
 _rust_bizra = None
 
 try:
-    import sys
     # Add bizra-omega build path if not installed
     import os
+    import sys
+
     build_path = os.path.join(
-        os.path.dirname(__file__),
-        "..", "..", "bizra-omega", "target", "release"
+        os.path.dirname(__file__), "..", "..", "bizra-omega", "target", "release"
     )
     if os.path.exists(build_path):
         sys.path.insert(0, build_path)
 
     import bizra as _rust_bizra
+
     _RUST_AVAILABLE = True
     logger.info("🦀 Rust bizra-omega bindings loaded (10-100x perf boost)")
 except ImportError as e:
@@ -74,7 +75,9 @@ class RustNodeIdentity:
 
     def __init__(self):
         if not _RUST_AVAILABLE:
-            raise RuntimeError("Rust bindings not available. Install with: pip install bizra")
+            raise RuntimeError(
+                "Rust bindings not available. Install with: pip install bizra"
+            )
         self._inner = _rust_bizra.NodeIdentity()
 
     @property
@@ -141,10 +144,12 @@ def domain_digest(message: bytes) -> str:
 
     # Python fallback
     import hashlib
+
     # Note: This uses blake2b as fallback since blake3 may not be installed
     prefixed = b"bizra-pci-v1:" + message
     try:
         import blake3
+
         return blake3.blake3(prefixed).hexdigest()
     except ImportError:
         return hashlib.blake2b(prefixed).hexdigest()

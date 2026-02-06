@@ -7,11 +7,11 @@
 mod hardware_detect;
 mod model_cache;
 
-use clap::{Parser, Subcommand, Args};
-use std::path::PathBuf;
-use std::fs;
+use clap::{Args, Parser, Subcommand};
 use hardware_detect::detect_hardware;
 use model_cache::ModelSpec;
+use std::fs;
+use std::path::PathBuf;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_DATA_DIR: &str = ".bizra";
@@ -268,9 +268,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Setup logging
     let filter = if cli.verbose { "debug" } else { "info" };
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     // Expand home directory
     let data_dir = expand_home(&cli.data_dir);
@@ -303,7 +301,8 @@ fn expand_home(path: &PathBuf) -> PathBuf {
 }
 
 async fn cmd_init(data_dir: &PathBuf, force: bool) -> anyhow::Result<()> {
-    println!(r#"
+    println!(
+        r#"
     ╔══════════════════════════════════════════════════════════════╗
     ║   ██████╗ ██╗███████╗██████╗  █████╗                         ║
     ║   ██╔══██╗██║╚══███╔╝██╔══██╗██╔══██╗                        ║
@@ -312,14 +311,18 @@ async fn cmd_init(data_dir: &PathBuf, force: bool) -> anyhow::Result<()> {
     ║   ██████╔╝██║███████╗██║  ██║██║  ██║                        ║
     ║   ╚═════╝ ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝                        ║
     ╚══════════════════════════════════════════════════════════════╝
-    "#);
+    "#
+    );
 
     println!("    Initializing BIZRA Sovereign Node v{}\n", VERSION);
 
     let identity_file = data_dir.join("identity.key");
 
     if identity_file.exists() && !force {
-        println!("    ⚠️  Identity already exists at {}", identity_file.display());
+        println!(
+            "    ⚠️  Identity already exists at {}",
+            identity_file.display()
+        );
         println!("    Use --force to reinitialize (WILL LOSE CURRENT IDENTITY)");
         return Ok(());
     }
@@ -342,7 +345,8 @@ async fn cmd_init(data_dir: &PathBuf, force: bool) -> anyhow::Result<()> {
     fs::write(&identity_file, hex::encode(secret))?;
 
     // Create config
-    let config = format!(r#"# BIZRA Node Configuration
+    let config = format!(
+        r#"# BIZRA Node Configuration
 version: "{}"
 node_id: "{}"
 data_dir: "{}"
@@ -362,7 +366,13 @@ inference:
 constitution:
   ihsan_threshold: 0.95
   snr_threshold: 0.85
-"#, VERSION, identity.node_id().0, data_dir.display(), DEFAULT_API_PORT, DEFAULT_GOSSIP_PORT);
+"#,
+        VERSION,
+        identity.node_id().0,
+        data_dir.display(),
+        DEFAULT_API_PORT,
+        DEFAULT_GOSSIP_PORT
+    );
 
     fs::write(data_dir.join("config.yaml"), config)?;
 
@@ -415,7 +425,10 @@ async fn cmd_join(_data_dir: &PathBuf, seed: &str, port: u16) -> anyhow::Result<
 
     // In production: initialize gossip protocol
     println!("\n   [Federation join not yet implemented]");
-    println!("   Would connect to {} and start gossip on port {}", seed, port);
+    println!(
+        "   Would connect to {} and start gossip on port {}",
+        seed, port
+    );
 
     Ok(())
 }
@@ -437,7 +450,9 @@ async fn cmd_status(data_dir: &PathBuf, detailed: bool) -> anyhow::Result<()> {
         // Load and show identity
         let hex_key = fs::read_to_string(&identity_file)?;
         let secret = hex::decode(hex_key.trim())?;
-        let secret_array: [u8; 32] = secret.try_into().map_err(|_| anyhow::anyhow!("Invalid key"))?;
+        let secret_array: [u8; 32] = secret
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid key"))?;
 
         use bizra_core::NodeIdentity;
         let identity = NodeIdentity::from_secret_bytes(&secret_array);
@@ -471,7 +486,10 @@ async fn cmd_detect() -> anyhow::Result<()> {
 
     println!("   CPU Cores:  {}", profile.cpu_cores);
     println!("   RAM:        {:.1} GB", profile.ram_gb);
-    println!("   GPU:        {}", profile.gpu_name.as_deref().unwrap_or("None detected"));
+    println!(
+        "   GPU:        {}",
+        profile.gpu_name.as_deref().unwrap_or("None detected")
+    );
     println!("   VRAM:       {:.1} GB", profile.vram_gb);
 
     println!("\n   Recommended Configuration:");
@@ -485,10 +503,16 @@ async fn cmd_models(action: ModelCommands) -> anyhow::Result<()> {
     match action {
         ModelCommands::List => {
             println!("📋 Available Models\n");
-            println!("   {:20} {:10} {:8} {}", "NAME", "TIER", "SIZE", "DESCRIPTION");
+            println!(
+                "   {:20} {:10} {:8} DESCRIPTION",
+                "NAME", "TIER", "SIZE"
+            );
             println!("   {}", "-".repeat(60));
             for m in ModelSpec::available() {
-                println!("   {:20} {:10} {:6.1} GB {}", m.name, m.tier, m.size_gb, m.desc);
+                println!(
+                    "   {:20} {:10} {:6.1} GB {}",
+                    m.name, m.tier, m.size_gb, m.desc
+                );
             }
         }
         ModelCommands::Download { name } => {
@@ -511,7 +535,10 @@ async fn cmd_inference(_data_dir: &PathBuf, args: InferenceArgs) -> anyhow::Resu
     println!("   Tier:        {}", args.tier);
     println!("   Max Tokens:  {}", args.max_tokens);
     println!("   Temperature: {}", args.temperature);
-    println!("   Prompt:      {}...", &args.prompt[..args.prompt.len().min(50)]);
+    println!(
+        "   Prompt:      {}...",
+        &args.prompt[..args.prompt.len().min(50)]
+    );
 
     if let Some(sys) = &args.system {
         println!("   System:      {}...", &sys[..sys.len().min(30)]);
@@ -560,7 +587,9 @@ async fn cmd_identity(data_dir: &PathBuf, action: IdentityCommands) -> anyhow::R
 
             let hex_key = fs::read_to_string(&identity_file)?;
             let secret = hex::decode(hex_key.trim())?;
-            let secret_array: [u8; 32] = secret.try_into().map_err(|_| anyhow::anyhow!("Invalid key"))?;
+            let secret_array: [u8; 32] = secret
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("Invalid key"))?;
             let identity = NodeIdentity::from_secret_bytes(&secret_array);
 
             println!("🔑 Current Identity\n");
@@ -599,18 +628,20 @@ async fn cmd_identity(data_dir: &PathBuf, action: IdentityCommands) -> anyhow::R
             let identity_file = data_dir.join("identity.key");
             let hex_key = fs::read_to_string(&identity_file)?;
             let secret = hex::decode(hex_key.trim())?;
-            let secret_array: [u8; 32] = secret.try_into().map_err(|_| anyhow::anyhow!("Invalid key"))?;
+            let secret_array: [u8; 32] = secret
+                .try_into()
+                .map_err(|_| anyhow::anyhow!("Invalid key"))?;
             let identity = NodeIdentity::from_secret_bytes(&secret_array);
 
             let signature = identity.sign(message.as_bytes());
             println!("{}", signature);
         }
-        IdentityCommands::Verify { message, signature, public_key } => {
-            let valid = NodeIdentity::verify_with_hex(
-                message.as_bytes(),
-                &signature,
-                &public_key,
-            );
+        IdentityCommands::Verify {
+            message,
+            signature,
+            public_key,
+        } => {
+            let valid = NodeIdentity::verify_with_hex(message.as_bytes(), &signature, &public_key);
             if valid {
                 println!("✓ Signature valid");
             } else {
@@ -639,7 +670,11 @@ async fn cmd_pci(_data_dir: &PathBuf, action: PCICommands) -> anyhow::Result<()>
             }
             println!("\n   [Verification not yet implemented]");
         }
-        PCICommands::Gates { content, snr, ihsan } => {
+        PCICommands::Gates {
+            content,
+            snr,
+            ihsan,
+        } => {
             println!("🚧 Checking Gates\n");
             println!("   Content: {}...", &content[..content.len().min(50)]);
             if let Some(s) = snr {
@@ -658,8 +693,14 @@ async fn cmd_constitution(thresholds: bool) -> anyhow::Result<()> {
     println!("📜 BIZRA Constitution\n");
 
     println!("   Version: 1.0");
-    println!("   Ihsan Threshold:  {} (Excellence)", bizra_core::IHSAN_THRESHOLD);
-    println!("   SNR Threshold:    {} (Signal Quality)", bizra_core::SNR_THRESHOLD);
+    println!(
+        "   Ihsan Threshold:  {} (Excellence)",
+        bizra_core::IHSAN_THRESHOLD
+    );
+    println!(
+        "   SNR Threshold:    {} (Signal Quality)",
+        bizra_core::SNR_THRESHOLD
+    );
 
     if thresholds {
         println!("\n   Rules:");

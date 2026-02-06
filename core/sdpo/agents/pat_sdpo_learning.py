@@ -11,11 +11,9 @@ Standing on Giants: Shannon + Anthropic + SDPO Paper
 Genesis Strict Synthesis v2.2.2
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
-import asyncio
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -23,20 +21,21 @@ from core.integration.constants import (
 )
 from core.sdpo import (
     SDPO_COMPRESSION_TARGET,
-    SDPO_MAX_ITERATIONS,
     SDPO_FEEDBACK_CONFIDENCE_THRESHOLD,
+    SDPO_MAX_ITERATIONS,
 )
 from core.sdpo.optimization import (
+    BIZRAFeedbackGenerator,
     SDPOAdvantage,
     SDPOAdvantageCalculator,
     SDPOFeedback,
-    BIZRAFeedbackGenerator,
 )
 
 
 @dataclass
 class PAT_SDPO_Config:
     """Configuration for PAT-SDPO learning."""
+
     compression_target: float = SDPO_COMPRESSION_TARGET
     max_iterations: int = SDPO_MAX_ITERATIONS
     feedback_threshold: float = SDPO_FEEDBACK_CONFIDENCE_THRESHOLD
@@ -49,6 +48,7 @@ class PAT_SDPO_Config:
 @dataclass
 class PAT_SDPO_State:
     """State tracking for PAT-SDPO learner."""
+
     total_interactions: int = 0
     successful_compressions: int = 0
     learning_cycles: int = 0
@@ -72,6 +72,7 @@ class PAT_SDPO_State:
 @dataclass
 class SelfTeachingCycle:
     """Result from a single self-teaching cycle."""
+
     original_context: str
     compressed_context: str
     compression_ratio: float
@@ -173,7 +174,10 @@ class ContextCompressionEngine:
                 # Generate feedback and try self-teaching
                 feedback = self.feedback_generator.generate_feedback(quality_check)
 
-                if self.llm_callback and feedback.confidence >= self.config.feedback_threshold:
+                if (
+                    self.llm_callback
+                    and feedback.confidence >= self.config.feedback_threshold
+                ):
                     # Apply SDPO correction
                     corrected = await self._apply_sdpo_correction(
                         compressed, feedback, context
@@ -251,14 +255,16 @@ class ContextCompressionEngine:
         # Keep sentences containing preserve patterns
         kept = []
         for sentence in sentences:
-            if any(pattern.lower() in sentence.lower() for pattern in preserve_patterns):
+            if any(
+                pattern.lower() in sentence.lower() for pattern in preserve_patterns
+            ):
                 kept.append(sentence)
             elif len(sentence) > 50:  # Keep substantial sentences
                 kept.append(sentence)
 
         # Keep at least half
         if len(kept) < len(sentences) // 2:
-            kept = sentences[:len(sentences) // 2]
+            kept = sentences[: len(sentences) // 2]
 
         compressed = ". ".join(kept)
         quality = len(kept) / len(sentences) if sentences else 1.0
@@ -412,8 +418,8 @@ class PAT_SDPO_Learner:
         # Update running average
         n = self.state.total_interactions
         self.state.average_compression_ratio = (
-            (self.state.average_compression_ratio * (n - 1) + ratio) / n
-        )
+            self.state.average_compression_ratio * (n - 1) + ratio
+        ) / n
 
         self.state.last_update = datetime.now(timezone.utc)
 
@@ -450,7 +456,9 @@ class PAT_SDPO_Learner:
 
         # Trim history
         if len(self._interaction_history) > self.config.memory_window:
-            self._interaction_history = self._interaction_history[-self.config.memory_window:]
+            self._interaction_history = self._interaction_history[
+                -self.config.memory_window :
+            ]
 
         # If we have feedback and it's actionable, learn
         if feedback and quality_score and quality_score < self.config.ihsan_threshold:
@@ -460,7 +468,7 @@ class PAT_SDPO_Learner:
                 "snr": quality_score,
             }
 
-            sdpo_feedback = self.feedback_generator.generate_feedback(quality_check)
+            self.feedback_generator.generate_feedback(quality_check)
 
             # Calculate advantage (heuristic since we don't have corrected response)
             advantage = await self.advantage_calculator.calculate_advantages(
@@ -500,7 +508,8 @@ class PAT_SDPO_Learner:
     def get_successful_patterns(self, threshold: float = 0.8) -> List[str]:
         """Get patterns with high success rate."""
         return [
-            pattern for pattern, rate in self._pattern_library.items()
+            pattern
+            for pattern, rate in self._pattern_library.items()
             if rate >= threshold
         ]
 
@@ -518,7 +527,8 @@ class PAT_SDPO_Learner:
             return {"total_interactions": 0}
 
         quality_scores = [
-            i["quality_score"] for i in self._interaction_history
+            i["quality_score"]
+            for i in self._interaction_history
             if i.get("quality_score") is not None
         ]
 
@@ -526,10 +536,13 @@ class PAT_SDPO_Learner:
             "total_interactions": len(self._interaction_history),
             "learning_cycles": self.state.learning_cycles,
             "accumulated_advantage": self.state.accumulated_advantage,
-            "average_quality": sum(quality_scores) / len(quality_scores) if quality_scores else 0,
+            "average_quality": (
+                sum(quality_scores) / len(quality_scores) if quality_scores else 0
+            ),
             "compression_success_rate": (
                 self.state.successful_compressions / self.state.total_interactions
-                if self.state.total_interactions > 0 else 0
+                if self.state.total_interactions > 0
+                else 0
             ),
             "average_compression_ratio": self.state.average_compression_ratio,
         }

@@ -3,15 +3,12 @@
 //! Exposes Rust bizra-core to Python for 10-100x performance boost.
 //! Giants: PyO3 team, Rust-Python interop pioneers
 
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::exceptions::{PyValueError, PyRuntimeError};
 
 use bizra_core::{
-    NodeIdentity as RustNodeIdentity,
-    NodeId as RustNodeId,
-    Constitution as RustConstitution,
-    PCIEnvelope as RustPCIEnvelope,
-    domain_separated_digest as rust_domain_digest,
+    domain_separated_digest as rust_domain_digest, Constitution as RustConstitution,
+    NodeId as RustNodeId, NodeIdentity as RustNodeIdentity, PCIEnvelope as RustPCIEnvelope,
     IHSAN_THRESHOLD, SNR_THRESHOLD,
 };
 
@@ -29,7 +26,9 @@ impl PyNodeId {
         if id.len() != 32 {
             return Err(PyValueError::new_err("NodeId must be 32 hex characters"));
         }
-        Ok(Self { inner: RustNodeId(id) })
+        Ok(Self {
+            inner: RustNodeId(id),
+        })
     }
 
     fn __str__(&self) -> String {
@@ -57,7 +56,9 @@ impl PyNodeIdentity {
     /// Generate a new random identity
     #[new]
     fn new() -> Self {
-        Self { inner: RustNodeIdentity::generate() }
+        Self {
+            inner: RustNodeIdentity::generate(),
+        }
     }
 
     /// Create from secret bytes (32 bytes)
@@ -68,13 +69,17 @@ impl PyNodeIdentity {
         }
         let mut arr = [0u8; 32];
         arr.copy_from_slice(secret);
-        Ok(Self { inner: RustNodeIdentity::from_secret_bytes(&arr) })
+        Ok(Self {
+            inner: RustNodeIdentity::from_secret_bytes(&arr),
+        })
     }
 
     /// Get the node ID
     #[getter]
     fn node_id(&self) -> PyNodeId {
-        PyNodeId { inner: self.inner.node_id().clone() }
+        PyNodeId {
+            inner: self.inner.node_id().clone(),
+        }
     }
 
     /// Get public key as hex string
@@ -116,7 +121,9 @@ impl PyConstitution {
     /// Create default constitution
     #[new]
     fn new() -> Self {
-        Self { inner: RustConstitution::default() }
+        Self {
+            inner: RustConstitution::default(),
+        }
     }
 
     /// Check if score meets Ihsan threshold
@@ -148,8 +155,10 @@ impl PyConstitution {
     }
 
     fn __repr__(&self) -> String {
-        format!("Constitution(version='{}', ihsan={}, snr={})",
-            self.inner.version, self.inner.ihsan.minimum, self.inner.snr_threshold)
+        format!(
+            "Constitution(version='{}', ihsan={}, snr={})",
+            self.inner.version, self.inner.ihsan.minimum, self.inner.snr_threshold
+        )
     }
 }
 
@@ -171,7 +180,7 @@ impl PyPCIEnvelope {
     #[staticmethod]
     fn create(
         identity: &PyNodeIdentity,
-        payload: &str,  // JSON string
+        payload: &str, // JSON string
         ttl: u64,
         provenance: Vec<String>,
     ) -> PyResult<Self> {
@@ -184,7 +193,9 @@ impl PyPCIEnvelope {
 
         Ok(Self {
             id: envelope.id,
-            sender: PyNodeId { inner: envelope.sender },
+            sender: PyNodeId {
+                inner: envelope.sender,
+            },
             content_hash: envelope.content_hash,
             signature: envelope.signature,
             public_key: envelope.public_key,
@@ -194,28 +205,46 @@ impl PyPCIEnvelope {
     }
 
     #[getter]
-    fn id(&self) -> String { self.id.clone() }
+    fn id(&self) -> String {
+        self.id.clone()
+    }
 
     #[getter]
-    fn sender(&self) -> PyNodeId { self.sender.clone() }
+    fn sender(&self) -> PyNodeId {
+        self.sender.clone()
+    }
 
     #[getter]
-    fn content_hash(&self) -> String { self.content_hash.clone() }
+    fn content_hash(&self) -> String {
+        self.content_hash.clone()
+    }
 
     #[getter]
-    fn signature(&self) -> String { self.signature.clone() }
+    fn signature(&self) -> String {
+        self.signature.clone()
+    }
 
     #[getter]
-    fn public_key(&self) -> String { self.public_key.clone() }
+    fn public_key(&self) -> String {
+        self.public_key.clone()
+    }
 
     #[getter]
-    fn payload(&self) -> String { self.payload_json.clone() }
+    fn payload(&self) -> String {
+        self.payload_json.clone()
+    }
 
     #[getter]
-    fn ttl(&self) -> u64 { self.ttl }
+    fn ttl(&self) -> u64 {
+        self.ttl
+    }
 
     fn __repr__(&self) -> String {
-        format!("PCIEnvelope(id='{}', sender={})", self.id, self.sender.__str__())
+        format!(
+            "PCIEnvelope(id='{}', sender={})",
+            self.id,
+            self.sender.__str__()
+        )
     }
 }
 
@@ -252,12 +281,14 @@ impl PyTaskComplexity {
         use bizra_inference::selector::TaskComplexity;
         let complexity = TaskComplexity::estimate(prompt, max_tokens);
         Self {
-            level: format!("{:?}", complexity)
+            level: format!("{:?}", complexity),
         }
     }
 
     #[getter]
-    fn level(&self) -> String { self.level.clone() }
+    fn level(&self) -> String {
+        self.level.clone()
+    }
 
     fn __repr__(&self) -> String {
         format!("TaskComplexity(level='{}')", self.level)
@@ -276,13 +307,19 @@ impl PyModelTier {
     #[new]
     fn new(tier: &str) -> PyResult<Self> {
         match tier.to_lowercase().as_str() {
-            "edge" | "local" | "pool" => Ok(Self { tier: tier.to_lowercase() }),
-            _ => Err(PyValueError::new_err("Tier must be 'edge', 'local', or 'pool'"))
+            "edge" | "local" | "pool" => Ok(Self {
+                tier: tier.to_lowercase(),
+            }),
+            _ => Err(PyValueError::new_err(
+                "Tier must be 'edge', 'local', or 'pool'",
+            )),
         }
     }
 
     #[getter]
-    fn name(&self) -> String { self.tier.clone() }
+    fn name(&self) -> String {
+        self.tier.clone()
+    }
 
     fn __repr__(&self) -> String {
         format!("ModelTier('{}')", self.tier)
@@ -296,7 +333,9 @@ pub struct PyModelSelector;
 #[pymethods]
 impl PyModelSelector {
     #[new]
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 
     /// Select tier based on complexity
     fn select_tier(&self, complexity: &PyTaskComplexity) -> PyModelTier {
@@ -317,7 +356,9 @@ pub struct PyGateChain;
 #[pymethods]
 impl PyGateChain {
     #[new]
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 
     /// Verify content through gate chain
     fn verify(
@@ -342,9 +383,10 @@ impl PyGateChain {
 
         let results = chain.verify(&ctx);
 
-        Ok(results.iter().map(|r| {
-            (r.gate.clone(), r.passed, format!("{:?}", r.code))
-        }).collect())
+        Ok(results
+            .iter()
+            .map(|r| (r.gate.clone(), r.passed, format!("{:?}", r.code)))
+            .collect())
     }
 
     /// Check if all gates passed

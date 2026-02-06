@@ -5,8 +5,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 
-use bizra_core::{PCIEnvelope, pci::gates::{default_gate_chain, GateChain, GateContext}};
-use crate::{state::AppState, error::ApiError};
+use crate::{error::ApiError, state::AppState};
+use bizra_core::{
+    pci::gates::{default_gate_chain, GateChain, GateContext},
+    PCIEnvelope,
+};
 
 #[derive(Deserialize)]
 pub struct CreateEnvelopeRequest {
@@ -17,7 +20,9 @@ pub struct CreateEnvelopeRequest {
     pub provenance: Vec<String>,
 }
 
-fn default_ttl() -> u64 { 3600 }
+fn default_ttl() -> u64 {
+    3600
+}
 
 #[derive(Serialize)]
 pub struct EnvelopeResponse {
@@ -128,7 +133,11 @@ pub async fn check_gates(
         .map(|r| GateResultResponse {
             gate: r.gate,
             passed: r.passed,
-            code: if r.passed { None } else { Some(format!("{:?}", r.code)) },
+            code: if r.passed {
+                None
+            } else {
+                Some(format!("{:?}", r.code))
+            },
             duration_us: r.duration.as_micros() as u64,
         })
         .collect();

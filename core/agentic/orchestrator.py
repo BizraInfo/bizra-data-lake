@@ -12,30 +12,30 @@ Standing on Giants: Swarm Intelligence + Autopoiesis + BFT Consensus
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
+from typing import Any, Callable, Dict, List, Optional
 
 from core.agentic.agent import (
-    AutonomousAgent,
-    AgentTask,
     AgentState,
+    AgentTask,
+    AutonomousAgent,
+    SimpleAgent,
     TaskPriority,
     TaskStatus,
-    SimpleAgent,
 )
-from core.living_memory.core import LivingMemoryCore, MemoryType
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
+from core.living_memory.core import LivingMemoryCore, MemoryType
 
 logger = logging.getLogger(__name__)
 
 
 class OrchestratorState(str, Enum):
     """State of the orchestrator."""
+
     INITIALIZING = "initializing"
     RUNNING = "running"
     PAUSED = "paused"
@@ -47,6 +47,7 @@ class OrchestratorState(str, Enum):
 @dataclass
 class AgentHealth:
     """Health metrics for an agent."""
+
     agent_id: str
     is_alive: bool = True
     last_heartbeat: Optional[datetime] = None
@@ -59,6 +60,7 @@ class AgentHealth:
 @dataclass
 class OrchestratorStats:
     """Statistics for the orchestrator."""
+
     active_agents: int = 0
     total_agents: int = 0
     pending_tasks: int = 0
@@ -149,9 +151,7 @@ class AgentOrchestrator:
         )
 
         # Start agent background task
-        self._agent_tasks[agent.id] = asyncio.create_task(
-            self._run_agent(agent)
-        )
+        self._agent_tasks[agent.id] = asyncio.create_task(self._run_agent(agent))
 
         logger.info(f"Registered agent: {agent.name} ({agent.id})")
         return True
@@ -216,7 +216,10 @@ class AgentOrchestrator:
         """Get next task for an agent."""
         # Find unassigned task
         for task in self._global_task_queue:
-            if task.id not in self._task_assignments and task.status == TaskStatus.PENDING:
+            if (
+                task.id not in self._task_assignments
+                and task.status == TaskStatus.PENDING
+            ):
                 self._task_assignments[task.id] = agent_id
                 self._global_task_queue.remove(task)
                 return task
@@ -281,10 +284,12 @@ class AgentOrchestrator:
         )
 
         self._global_task_queue.append(task)
-        self._global_task_queue.sort(key=lambda t: (
-            -list(TaskPriority).index(t.priority),
-            t.created_at,
-        ))
+        self._global_task_queue.sort(
+            key=lambda t: (
+                -list(TaskPriority).index(t.priority),
+                t.created_at,
+            )
+        )
 
         logger.debug(f"Task submitted: {name} (priority={priority.value})")
         return task
@@ -399,18 +404,16 @@ class AgentOrchestrator:
         stats = OrchestratorStats()
 
         stats.total_agents = len(self._agents)
-        stats.active_agents = sum(
-            1 for h in self._agent_health.values() if h.is_alive
-        )
+        stats.active_agents = sum(1 for h in self._agent_health.values() if h.is_alive)
         stats.pending_tasks = len(self._global_task_queue)
         stats.running_tasks = len(self._task_assignments)
         stats.completed_tasks = sum(
-            1 for t in self._completed_tasks.values()
+            1
+            for t in self._completed_tasks.values()
             if t.status == TaskStatus.COMPLETED
         )
         stats.failed_tasks = sum(
-            1 for t in self._completed_tasks.values()
-            if t.status == TaskStatus.FAILED
+            1 for t in self._completed_tasks.values() if t.status == TaskStatus.FAILED
         )
         stats.healing_events = self._healing_count
 
@@ -426,7 +429,9 @@ class AgentOrchestrator:
         return [
             {
                 **agent.get_status(),
-                "health": self._agent_health.get(agent_id, AgentHealth(agent_id)).is_alive,
+                "health": self._agent_health.get(
+                    agent_id, AgentHealth(agent_id)
+                ).is_alive,
             }
             for agent_id, agent in self._agents.items()
         ]

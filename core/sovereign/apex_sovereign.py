@@ -45,28 +45,27 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from enum import Enum
 from statistics import mean
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from core.apex import ApexSystem
-from core.sovereign.social_integration import SociallyAwareBridge, ScoredAgent
+from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.market_integration import (
+    SNR_FLOOR,
     MarketAwareMuraqabah,
     MarketGoal,
     MarketSensorReading,
-    SNR_FLOOR,
 )
+from core.sovereign.social_integration import ScoredAgent, SociallyAwareBridge
 from core.sovereign.swarm_integration import HybridSwarmOrchestrator
-from core.sovereign.autonomy_matrix import AutonomyLevel
 
 # Lazy imports for runtime_engines to avoid circular dependencies
 if TYPE_CHECKING:
     from core.sovereign.runtime_engines import (
-        SNRMaximizer,
-        GoTBridge,
-        GoTResult,
         GiantsRegistry,
+        GoTBridge,
+        SNRMaximizer,
     )
 
 logger = logging.getLogger(__name__)
@@ -79,20 +78,22 @@ IHSAN_THRESHOLD: float = 0.95
 
 class ApexOODAState(str, Enum):
     """Extended OODA states for Apex integration."""
-    OBSERVE = "observe"        # Collect all sensor data
-    PREDICT = "predict"        # Forecast trends (market)
+
+    OBSERVE = "observe"  # Collect all sensor data
+    PREDICT = "predict"  # Forecast trends (market)
     COORDINATE = "coordinate"  # Team planning (social)
-    ANALYZE = "analyze"        # PAT analysis
-    DECIDE = "decide"          # Autonomy-based decision
-    ACT = "act"                # Execute via swarm
-    LEARN = "learn"            # Update models
-    REFLECT = "reflect"        # Metrics and improvement
-    SLEEP = "sleep"            # Low-power monitoring
+    ANALYZE = "analyze"  # PAT analysis
+    DECIDE = "decide"  # Autonomy-based decision
+    ACT = "act"  # Execute via swarm
+    LEARN = "learn"  # Update models
+    REFLECT = "reflect"  # Metrics and improvement
+    SLEEP = "sleep"  # Low-power monitoring
 
 
 @dataclass
 class Observation:
     """Combined observations from all sensors."""
+
     market_readings: List[MarketSensorReading] = field(default_factory=list)
     swarm_health: Dict[str, Any] = field(default_factory=dict)
     social_metrics: Dict[str, Any] = field(default_factory=dict)
@@ -102,6 +103,7 @@ class Observation:
 @dataclass
 class Prediction:
     """Predictions based on observations."""
+
     market_trends: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     workload_forecast: Optional[Dict[str, Any]] = None
     scaling_recommendation: Optional[str] = None
@@ -114,6 +116,7 @@ class Prediction:
 @dataclass
 class TeamPlan:
     """Coordination plan for the team."""
+
     task_assignments: List[Dict[str, Any]] = field(default_factory=list)
     collaborations: List[Dict[str, Any]] = field(default_factory=list)
     selected_agents: List[ScoredAgent] = field(default_factory=list)
@@ -122,6 +125,7 @@ class TeamPlan:
 @dataclass
 class Decision:
     """A decision with constitutional compliance."""
+
     goal: MarketGoal
     ihsan_score: float
     autonomy_level: AutonomyLevel
@@ -133,6 +137,7 @@ class Decision:
 @dataclass
 class Outcome:
     """Result of executing a decision."""
+
     decision: Decision
     success: bool
     value: float = 0.0
@@ -248,6 +253,7 @@ class ApexSovereignEntity:
         """
         if self._snr_maximizer is None:
             from core.sovereign.runtime_engines import SNRMaximizer
+
             self._snr_maximizer = SNRMaximizer(
                 snr_floor=self.snr_floor,
                 adaptive=True,
@@ -264,6 +270,7 @@ class ApexSovereignEntity:
         """
         if self._got_bridge is None:
             from core.sovereign.runtime_engines import GoTBridge
+
             self._got_bridge = GoTBridge(use_rust=True)
             logger.debug("GoTBridge initialized (lazy)")
         return self._got_bridge
@@ -277,24 +284,28 @@ class ApexSovereignEntity:
         """
         if self._giants_registry is None:
             from core.sovereign.runtime_engines import get_giants_registry
+
             self._giants_registry = get_giants_registry()
             logger.debug("GiantsRegistry initialized (lazy)")
         return self._giants_registry
 
-    def get_giants_attribution(self, method_name: str = "ApexSovereignEntity") -> List[str]:
+    def get_giants_attribution(
+        self, method_name: str = "ApexSovereignEntity"
+    ) -> List[str]:
         """
         Get Giants attribution for a method or the entity itself.
 
         Returns list of attribution strings for decisions/outcomes.
         """
         from core.sovereign.runtime_engines import attribute
+
         return [
-            attribute(["Claude Shannon"]),      # SNR filtering
-            attribute(["Maciej Besta"]),        # GoT reasoning
-            attribute(["John Boyd"]),           # OODA loop
-            attribute(["Leslie Lamport"]),      # Distributed consensus
-            attribute(["Abu Hamid Al-Ghazali"]), # Muraqabah/Ihsan
-            attribute(["Anthropic"]),           # Constitutional AI
+            attribute(["Claude Shannon"]),  # SNR filtering
+            attribute(["Maciej Besta"]),  # GoT reasoning
+            attribute(["John Boyd"]),  # OODA loop
+            attribute(["Leslie Lamport"]),  # Distributed consensus
+            attribute(["Abu Hamid Al-Ghazali"]),  # Muraqabah/Ihsan
+            attribute(["Anthropic"]),  # Constitutional AI
         ]
 
     async def start(self) -> None:
@@ -495,7 +506,8 @@ class ApexSovereignEntity:
         # Workload forecast from swarm health
         if observation.swarm_health:
             healthy = sum(
-                1 for h in observation.swarm_health.values()
+                1
+                for h in observation.swarm_health.values()
                 if str(h) == "HealthStatus.HEALTHY"
             )
             total = len(observation.swarm_health)
@@ -531,7 +543,9 @@ class ApexSovereignEntity:
                     prediction.reasoning_path = got_result.best_path
                     # Boost confidence based on GoT exploration depth
                     depth_bonus = min(0.2, got_result.max_depth_reached * 0.03)
-                    prediction.confidence = min(1.0, prediction.confidence + depth_bonus)
+                    prediction.confidence = min(
+                        1.0, prediction.confidence + depth_bonus
+                    )
 
                     logger.debug(
                         f"GoT enhanced prediction: explored={got_result.explored_nodes}, "
@@ -570,11 +584,13 @@ class ApexSovereignEntity:
             )
 
             for collab in collaborations[:5]:  # Top 5
-                team_plan.collaborations.append({
-                    "agents": [collab.agent_a, collab.agent_b],
-                    "synergy": collab.synergy_score,
-                    "tasks": list(collab.recommended_task_types),
-                })
+                team_plan.collaborations.append(
+                    {
+                        "agents": [collab.agent_a, collab.agent_b],
+                        "synergy": collab.synergy_score,
+                        "tasks": list(collab.recommended_task_types),
+                    }
+                )
 
         except Exception as e:
             logger.warning(f"Collaboration discovery failed: {e}")
@@ -608,7 +624,9 @@ class ApexSovereignEntity:
                 if len(self._snr_history) > 100:
                     self._snr_history.pop(0)
 
-        logger.debug(f"Analyzed: {len(goals)} goals from {len(observation.market_readings)} readings")
+        logger.debug(
+            f"Analyzed: {len(goals)} goals from {len(observation.market_readings)} readings"
+        )
         return goals
 
     async def _decide(self, goals: List[MarketGoal]) -> List[Decision]:
@@ -626,7 +644,9 @@ class ApexSovereignEntity:
             ihsan_score = goal.ihsan_score
 
             if ihsan_score < self.ihsan_threshold:
-                logger.info(f"Goal filtered by Ihsan: {goal.goal_id}, score={ihsan_score:.3f}")
+                logger.info(
+                    f"Goal filtered by Ihsan: {goal.goal_id}, score={ihsan_score:.3f}"
+                )
                 continue
 
             # Track Ihsan
@@ -646,7 +666,9 @@ class ApexSovereignEntity:
             )
             decisions.append(decision)
 
-        logger.debug(f"Decided: {len(decisions)} decisions, {sum(1 for d in decisions if d.approved)} auto-approved")
+        logger.debug(
+            f"Decided: {len(decisions)} decisions, {sum(1 for d in decisions if d.approved)} auto-approved"
+        )
         return decisions
 
     async def _act(
@@ -681,7 +703,9 @@ class ApexSovereignEntity:
                 )
 
                 # Simulate execution (would call actual agent in production)
-                success = decision.ihsan_score >= 0.95 and decision.goal.snr_score >= 0.85
+                success = (
+                    decision.ihsan_score >= 0.95 and decision.goal.snr_score >= 0.85
+                )
                 value = decision.goal.estimated_value if success else 0.0
 
                 execution_time = (time.time() - start_time) * 1000
@@ -754,7 +778,9 @@ class ApexSovereignEntity:
             self.metrics["snr_average"] = mean(self._snr_history)
 
         if self._success_history:
-            self.metrics["success_rate"] = sum(self._success_history) / len(self._success_history)
+            self.metrics["success_rate"] = sum(self._success_history) / len(
+                self._success_history
+            )
 
         # Log summary every 10 cycles
         if self.cycle_count % 10 == 0:
@@ -798,7 +824,9 @@ class ApexSovereignEntity:
         # Add runtime_engines status (only if initialized)
         runtime_engines_status = {}
         if self._snr_maximizer is not None:
-            runtime_engines_status["snr_maximizer"] = self._snr_maximizer.get_statistics()
+            runtime_engines_status["snr_maximizer"] = (
+                self._snr_maximizer.get_statistics()
+            )
         if self._giants_registry is not None:
             runtime_engines_status["giants_registry"] = self._giants_registry.summary()
 

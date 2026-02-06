@@ -6,21 +6,19 @@
 //!
 //! Standing on Giants: Lamport (BFT), Das (SWIM)
 
-pub mod gossip;
-pub mod consensus;
-pub mod node;
 pub mod bootstrap;
+pub mod consensus;
+pub mod gossip;
+pub mod node;
 
-pub use gossip::{
-    GossipProtocol, GossipMessage, NodeState, Member,
-    SignedGossipMessage, FederationError,
-};
+pub use bootstrap::{BootstrapConfig, BootstrapResult, Bootstrapper, PeerInfo};
 pub use consensus::{
-    ConsensusEngine, Proposal, Vote, ConsensusState,
-    SignedVote, ConsensusError, KnownPeer,
+    ConsensusEngine, ConsensusError, ConsensusState, KnownPeer, Proposal, SignedVote, Vote,
+};
+pub use gossip::{
+    FederationError, GossipMessage, GossipProtocol, Member, NodeState, SignedGossipMessage,
 };
 pub use node::{FederationNode, NodeConfig};
-pub use bootstrap::{Bootstrapper, BootstrapConfig, BootstrapResult, PeerInfo};
 
 pub const DEFAULT_GOSSIP_PORT: u16 = 7946;
 pub const GOSSIP_INTERVAL_MS: u64 = 1000;

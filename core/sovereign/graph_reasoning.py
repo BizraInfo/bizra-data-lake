@@ -12,12 +12,11 @@ Standing on Giants:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .graph_types import (
     ThoughtNode,
     ThoughtType,
-    ReasoningResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,16 +37,24 @@ class GraphReasoningMixin:
     snr_threshold: float
     ihsan_threshold: float
 
-    def add_thought(self, content: str, thought_type: ThoughtType, **kwargs) -> ThoughtNode:
+    def add_thought(
+        self, content: str, thought_type: ThoughtType, **kwargs
+    ) -> ThoughtNode:
         raise NotImplementedError
 
-    def generate(self, content: str, thought_type: ThoughtType, **kwargs) -> ThoughtNode:
+    def generate(
+        self, content: str, thought_type: ThoughtType, **kwargs
+    ) -> ThoughtNode:
         raise NotImplementedError
 
-    def aggregate(self, thoughts: List[ThoughtNode], synthesis_content: str, **kwargs) -> ThoughtNode:
+    def aggregate(
+        self, thoughts: List[ThoughtNode], synthesis_content: str, **kwargs
+    ) -> ThoughtNode:
         raise NotImplementedError
 
-    def refine(self, thought: ThoughtNode, refined_content: str, **kwargs) -> ThoughtNode:
+    def refine(
+        self, thought: ThoughtNode, refined_content: str, **kwargs
+    ) -> ThoughtNode:
         raise NotImplementedError
 
     def validate(self, thought: ThoughtNode, **kwargs) -> ThoughtNode:
@@ -148,10 +155,14 @@ class GraphReasoningMixin:
 
         if not valid_branches:
             # Fallback: use best available even if below threshold
-            valid_branches = sorted(best_branches, key=lambda x: x["snr"], reverse=True)[:1]
+            valid_branches = sorted(
+                best_branches, key=lambda x: x["snr"], reverse=True
+            )[:1]
 
         # Create synthesis from top branches
-        synthesis_nodes = [b["terminal_node"] for b in valid_branches if b.get("terminal_node")]
+        synthesis_nodes = [
+            b["terminal_node"] for b in valid_branches if b.get("terminal_node")
+        ]
 
         if len(synthesis_nodes) >= 2:
             synthesis_content = self._synthesize_content(
@@ -192,8 +203,8 @@ class GraphReasoningMixin:
         # STAGE 6: Validate against Ihsan threshold
         self.validate(conclusion)
         passes_threshold = (
-            conclusion.snr_score >= self.snr_threshold and
-            conclusion.ihsan_score >= self.ihsan_threshold
+            conclusion.snr_score >= self.snr_threshold
+            and conclusion.ihsan_score >= self.ihsan_threshold
         )
 
         if not passes_threshold and max_depth > 1:
@@ -221,8 +232,8 @@ class GraphReasoningMixin:
             "snr_score": conclusion.snr_score,
             "ihsan_score": conclusion.ihsan_score,
             "passes_threshold": (
-                conclusion.snr_score >= self.snr_threshold and
-                conclusion.ihsan_score >= self.ihsan_threshold
+                conclusion.snr_score >= self.snr_threshold
+                and conclusion.ihsan_score >= self.ihsan_threshold
             ),
             "graph_stats": self.stats,
         }
@@ -250,8 +261,8 @@ class GraphReasoningMixin:
 
         # Synthesis hypothesis
         hypotheses.append(
-            f"Synthesis approach: Integrating available context and "
-            f"constraints to form a holistic understanding"
+            "Synthesis approach: Integrating available context and "
+            "constraints to form a holistic understanding"
         )
 
         # Domain-specific hypothesis
@@ -262,8 +273,8 @@ class GraphReasoningMixin:
             )
         else:
             hypotheses.append(
-                f"First-principles approach: Reasoning from fundamental "
-                f"axioms without domain assumptions"
+                "First-principles approach: Reasoning from fundamental "
+                "axioms without domain assumptions"
             )
 
         return hypotheses
@@ -304,8 +315,12 @@ class GraphReasoningMixin:
             reasoning.groundedness = max(current.groundedness * 0.998, 0.90)
             reasoning.coherence = max(current.coherence * 0.998, 0.92)
             reasoning.correctness = max(
-                current.correctness * 0.998 if hasattr(current, 'correctness') else 0.90,
-                0.90
+                (
+                    current.correctness * 0.998
+                    if hasattr(current, "correctness")
+                    else 0.90
+                ),
+                0.90,
             )
 
             # Apply minimal constraint penalty
@@ -361,9 +376,9 @@ class GraphReasoningMixin:
 
         domain = context.get("domain", "general")
         confidence_level = (
-            "high" if synthesis.confidence >= 0.9 else
-            "moderate" if synthesis.confidence >= 0.75 else
-            "preliminary"
+            "high"
+            if synthesis.confidence >= 0.9
+            else "moderate" if synthesis.confidence >= 0.75 else "preliminary"
         )
 
         return (

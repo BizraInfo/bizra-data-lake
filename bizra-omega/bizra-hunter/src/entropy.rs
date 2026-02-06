@@ -47,12 +47,24 @@ impl MultiAxisEntropy {
     #[inline]
     pub fn axes_above_threshold(&self, threshold: f32) -> usize {
         let mut count = 0;
-        if self.bytecode > threshold { count += 1; }
-        if self.cfg > threshold { count += 1; }
-        if self.state > threshold { count += 1; }
-        if self.economic > threshold { count += 1; }
-        if self.temporal > threshold { count += 1; }
-        if self.memory > threshold { count += 1; }
+        if self.bytecode > threshold {
+            count += 1;
+        }
+        if self.cfg > threshold {
+            count += 1;
+        }
+        if self.state > threshold {
+            count += 1;
+        }
+        if self.economic > threshold {
+            count += 1;
+        }
+        if self.temporal > threshold {
+            count += 1;
+        }
+        if self.memory > threshold {
+            count += 1;
+        }
         count
     }
 
@@ -66,7 +78,14 @@ impl MultiAxisEntropy {
     /// Convert to array for SIMD operations
     #[inline]
     pub fn to_array(&self) -> [f32; 6] {
-        [self.bytecode, self.cfg, self.state, self.economic, self.temporal, self.memory]
+        [
+            self.bytecode,
+            self.cfg,
+            self.state,
+            self.economic,
+            self.temporal,
+            self.memory,
+        ]
     }
 }
 
@@ -138,10 +157,10 @@ impl EntropyCalculator {
 
         for &opcode in bytecode {
             match opcode {
-                0x56 => jumps += 1,      // JUMP
-                0x57 => jumps += 1,      // JUMPI
-                0x5b => jumpdests += 1,  // JUMPDEST
-                0xf1 | 0xf2 | 0xf4 | 0xfa => calls += 1, // CALL variants
+                0x56 => jumps += 1,                        // JUMP
+                0x57 => jumps += 1,                        // JUMPI
+                0x5b => jumpdests += 1,                    // JUMPDEST
+                0xf1 | 0xf2 | 0xf4 | 0xfa => calls += 1,   // CALL variants
                 0xf3 | 0xfd | 0xfe | 0xff => returns += 1, // RETURN variants
                 _ => {}
             }
@@ -168,8 +187,8 @@ impl EntropyCalculator {
 
         for &opcode in bytecode {
             match opcode {
-                0x54 => sloads += 1,   // SLOAD
-                0x55 => sstores += 1,  // SSTORE
+                0x54 => sloads += 1,  // SLOAD
+                0x55 => sstores += 1, // SSTORE
                 _ => {}
             }
         }
@@ -201,7 +220,7 @@ impl EntropyCalculator {
 
         for &opcode in bytecode {
             match opcode {
-                0x34 => value_ops += 1,     // CALLVALUE
+                0x34 => value_ops += 1,      // CALLVALUE
                 0x31 => balance_checks += 1, // BALANCE
                 0x47 => balance_checks += 1, // SELFBALANCE
                 _ => {}

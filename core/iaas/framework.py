@@ -9,21 +9,22 @@ Standing on Giants:
  collection of broad, diverse, and well-articulated data."
 """
 
+import logging
+import math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
-import math
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class QualityDimension(Enum):
     """The four pillars of IaaS data quality."""
-    INCLUSIVENESS = "inclusiveness"   # Domains, Languages, Modalities, Sources
-    ABUNDANCE = "abundance"           # Scale with quality preservation
-    ARTICULATION = "articulation"     # Well-formatted, instructive, step-by-step
-    SANITIZATION = "sanitization"     # Privacy, ethics, risk removal
+
+    INCLUSIVENESS = "inclusiveness"  # Domains, Languages, Modalities, Sources
+    ABUNDANCE = "abundance"  # Scale with quality preservation
+    ARTICULATION = "articulation"  # Well-formatted, instructive, step-by-step
+    SANITIZATION = "sanitization"  # Privacy, ethics, risk removal
 
 
 @dataclass
@@ -35,12 +36,14 @@ class IaaSConfig:
     ihsan_target: float = 0.99
 
     # Dimension weights (empirically derived from DATA4LLM)
-    weights: Dict[QualityDimension, float] = field(default_factory=lambda: {
-        QualityDimension.INCLUSIVENESS: 0.25,
-        QualityDimension.ABUNDANCE: 0.20,
-        QualityDimension.ARTICULATION: 0.30,
-        QualityDimension.SANITIZATION: 0.25,
-    })
+    weights: Dict[QualityDimension, float] = field(
+        default_factory=lambda: {
+            QualityDimension.INCLUSIVENESS: 0.25,
+            QualityDimension.ABUNDANCE: 0.20,
+            QualityDimension.ARTICULATION: 0.30,
+            QualityDimension.SANITIZATION: 0.25,
+        }
+    )
 
     # Inclusiveness requirements
     min_domains: int = 3
@@ -73,6 +76,7 @@ class IaaSConfig:
 @dataclass
 class DimensionScore:
     """Score for a single IaaS dimension."""
+
     dimension: QualityDimension
     score: float  # 0.0 to 1.0
     components: Dict[str, float] = field(default_factory=dict)
@@ -126,8 +130,7 @@ class IaaSScore:
         }
 
         weighted_log_sum = sum(
-            self.weights[dim] * math.log(scores[dim])
-            for dim in QualityDimension
+            self.weights[dim] * math.log(scores[dim]) for dim in QualityDimension
         )
 
         return math.exp(weighted_log_sum)
@@ -140,12 +143,14 @@ class IaaSScore:
     @property
     def all_dimensions_passed(self) -> bool:
         """Check if all individual dimensions passed their thresholds."""
-        return all([
-            self.inclusiveness.passed,
-            self.abundance.passed,
-            self.articulation.passed,
-            self.sanitization.passed,
-        ])
+        return all(
+            [
+                self.inclusiveness.passed,
+                self.abundance.passed,
+                self.articulation.passed,
+                self.sanitization.passed,
+            ]
+        )
 
     @property
     def violations(self) -> List[str]:
@@ -233,21 +238,27 @@ class IaaSFramework:
         domain_score = min(n_domains / max(self.config.min_domains, 1), 1.0)
         components["domain_coverage"] = domain_score
         if n_domains < self.config.min_domains:
-            violations.append(f"Insufficient domains: {n_domains} < {self.config.min_domains}")
+            violations.append(
+                f"Insufficient domains: {n_domains} < {self.config.min_domains}"
+            )
 
         # Language diversity
         n_languages = len(set(languages))
         language_score = min(n_languages / max(self.config.min_languages, 1), 1.0)
         components["language_diversity"] = language_score
         if n_languages < self.config.min_languages:
-            violations.append(f"Insufficient languages: {n_languages} < {self.config.min_languages}")
+            violations.append(
+                f"Insufficient languages: {n_languages} < {self.config.min_languages}"
+            )
 
         # Modality support
         n_modalities = len(set(modalities))
         modality_score = min(n_modalities / max(self.config.min_modalities, 1), 1.0)
         components["modality_support"] = modality_score
         if n_modalities < self.config.min_modalities:
-            violations.append(f"Insufficient modalities: {n_modalities} < {self.config.min_modalities}")
+            violations.append(
+                f"Insufficient modalities: {n_modalities} < {self.config.min_modalities}"
+            )
 
         # Source variety (bonus, not required)
         n_sources = len(set(sources))
@@ -256,10 +267,10 @@ class IaaSFramework:
 
         # Composite inclusiveness score
         composite = (
-            0.35 * domain_score +
-            0.25 * language_score +
-            0.25 * modality_score +
-            0.15 * source_score
+            0.35 * domain_score
+            + 0.25 * language_score
+            + 0.25 * modality_score
+            + 0.15 * source_score
         )
 
         return DimensionScore(
@@ -287,7 +298,9 @@ class IaaSFramework:
         scale_score = min(math.log10(max(total_chunks, 1)) / 6, 1.0)  # Max at 1M chunks
         components["scale"] = scale_score
         if total_chunks < self.config.min_chunks:
-            violations.append(f"Insufficient chunks: {total_chunks} < {self.config.min_chunks}")
+            violations.append(
+                f"Insufficient chunks: {total_chunks} < {self.config.min_chunks}"
+            )
 
         # Uniqueness score
         uniqueness = unique_chunks / max(total_chunks, 1)
@@ -297,7 +310,9 @@ class IaaSFramework:
         # Redundancy check
         redundancy = 1 - uniqueness
         if redundancy > self.config.max_redundancy:
-            violations.append(f"High redundancy: {redundancy:.2%} > {self.config.max_redundancy:.2%}")
+            violations.append(
+                f"High redundancy: {redundancy:.2%} > {self.config.max_redundancy:.2%}"
+            )
         components["redundancy_rate"] = redundancy
 
         # Token density (tokens per chunk)
@@ -306,11 +321,7 @@ class IaaSFramework:
         components["token_density"] = density_score
 
         # Composite abundance score
-        composite = (
-            0.30 * scale_score +
-            0.40 * uniqueness_score +
-            0.30 * density_score
-        )
+        composite = 0.30 * scale_score + 0.40 * uniqueness_score + 0.30 * density_score
 
         return DimensionScore(
             dimension=QualityDimension.ABUNDANCE,
@@ -339,7 +350,9 @@ class IaaSFramework:
         perplexity_score = max(0, 1 - (mean_perplexity / self.config.max_perplexity))
         components["perplexity"] = perplexity_score
         if mean_perplexity > self.config.max_perplexity:
-            violations.append(f"High perplexity: {mean_perplexity:.1f} > {self.config.max_perplexity}")
+            violations.append(
+                f"High perplexity: {mean_perplexity:.1f} > {self.config.max_perplexity}"
+            )
 
         # Format compliance
         components["format_compliance"] = format_compliance_rate
@@ -349,17 +362,19 @@ class IaaSFramework:
         # Instruction clarity
         components["instruction_clarity"] = instruction_clarity
         if instruction_clarity < self.config.min_instruction_clarity:
-            violations.append(f"Low instruction clarity: {instruction_clarity:.2f} < {self.config.min_instruction_clarity}")
+            violations.append(
+                f"Low instruction clarity: {instruction_clarity:.2f} < {self.config.min_instruction_clarity}"
+            )
 
         # Reasoning depth (step-by-step)
         components["reasoning_depth"] = reasoning_depth
 
         # Composite articulation score
         composite = (
-            0.30 * perplexity_score +
-            0.25 * format_compliance_rate +
-            0.25 * instruction_clarity +
-            0.20 * reasoning_depth
+            0.30 * perplexity_score
+            + 0.25 * format_compliance_rate
+            + 0.25 * instruction_clarity
+            + 0.20 * reasoning_depth
         )
 
         return DimensionScore(
@@ -388,13 +403,17 @@ class IaaSFramework:
         pii_score = max(0, 1 - (pii_density / self.config.max_pii_density))
         components["pii_protection"] = pii_score
         if pii_density > self.config.max_pii_density:
-            violations.append(f"PII density exceeded: {pii_density:.4f} > {self.config.max_pii_density}")
+            violations.append(
+                f"PII density exceeded: {pii_density:.4f} > {self.config.max_pii_density}"
+            )
 
         # Toxicity (lower is better)
         toxicity_clean = max(0, 1 - toxicity_score)
         components["toxicity_free"] = toxicity_clean
         if toxicity_score > self.config.max_toxicity_score:
-            violations.append(f"Toxicity threshold exceeded: {toxicity_score:.2f} > {self.config.max_toxicity_score}")
+            violations.append(
+                f"Toxicity threshold exceeded: {toxicity_score:.2f} > {self.config.max_toxicity_score}"
+            )
 
         # Bias score (lower is better)
         bias_free = max(0, 1 - bias_score)
@@ -410,10 +429,10 @@ class IaaSFramework:
 
         # Composite sanitization score
         composite = (
-            0.30 * pii_score +
-            0.30 * toxicity_clean +
-            0.20 * bias_free +
-            0.20 * ethics_score
+            0.30 * pii_score
+            + 0.30 * toxicity_clean
+            + 0.20 * bias_free
+            + 0.20 * ethics_score
         )
 
         return DimensionScore(
@@ -450,10 +469,15 @@ class IaaSFramework:
 
         This is the main entry point for IaaS quality assessment.
         """
-        inclusiveness = self.score_inclusiveness(domains, languages, modalities, sources)
+        inclusiveness = self.score_inclusiveness(
+            domains, languages, modalities, sources
+        )
         abundance = self.score_abundance(total_chunks, unique_chunks, total_tokens)
         articulation = self.score_articulation(
-            mean_perplexity, format_compliance_rate, instruction_clarity, reasoning_depth
+            mean_perplexity,
+            format_compliance_rate,
+            instruction_clarity,
+            reasoning_depth,
         )
         sanitization = self.score_sanitization(
             pii_density, toxicity_score, bias_score, ethics_compliance
@@ -483,9 +507,7 @@ class IaaSFramework:
             return False
 
         if not score.all_dimensions_passed:
-            logger.warning(
-                f"Not all IaaS dimensions passed: {score.violations}"
-            )
+            logger.warning(f"Not all IaaS dimensions passed: {score.violations}")
             return False
 
         logger.info(f"IaaS validation PASSED: {score.composite_score:.4f} >= 0.95")

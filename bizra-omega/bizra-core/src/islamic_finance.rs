@@ -104,7 +104,9 @@ pub enum IslamicFinanceError {
     #[error("Contract expired at {expiry_ms}")]
     ContractExpired { expiry_ms: u64 },
 
-    #[error("Invalid profit ratio: investor {investor:.2} + entrepreneur {entrepreneur:.2} != 1.0")]
+    #[error(
+        "Invalid profit ratio: investor {investor:.2} + entrepreneur {entrepreneur:.2} != 1.0"
+    )]
     InvalidProfitRatio { investor: f64, entrepreneur: f64 },
 }
 
@@ -335,10 +337,7 @@ impl ZakatCalculator {
             .as_millis() as u64;
 
         // Generate distribution hash for auditability
-        let hash_input = format!(
-            "{}:{}:{}:{}",
-            payer.node_id, amount, now_ms, self.rate
-        );
+        let hash_input = format!("{}:{}:{}:{}", payer.node_id, amount, now_ms, self.rate);
         let distribution_hash = blake3::hash(hash_input.as_bytes()).to_hex().to_string();
 
         Ok(ZakatDistribution {
@@ -1234,11 +1233,8 @@ impl WaqfEndowment {
             });
         }
 
-        let active_beneficiaries: Vec<_> = self
-            .beneficiaries
-            .iter()
-            .filter(|b| b.is_active)
-            .collect();
+        let active_beneficiaries: Vec<_> =
+            self.beneficiaries.iter().filter(|b| b.is_active).collect();
 
         if active_beneficiaries.len() < MIN_WAQF_BENEFICIARIES {
             return Err(IslamicFinanceError::WaqfViolation {
@@ -1275,7 +1271,10 @@ impl WaqfEndowment {
         // Generate distribution hash
         let hash_input = format!(
             "{}:{}:{}:{}",
-            self.waqf_id, self.available_yield, now_ms, allocations.len()
+            self.waqf_id,
+            self.available_yield,
+            now_ms,
+            allocations.len()
         );
         let distribution_hash = blake3::hash(hash_input.as_bytes()).to_hex().to_string();
 
@@ -1475,8 +1474,14 @@ impl IslamicComplianceGate {
 
         // Check for excessive uncertainty indicators
         let gharar_indicators = [
-            "unknown", "undefined", "uncertain", "unspecified",
-            "variable", "fluctuating", "random", "chance",
+            "unknown",
+            "undefined",
+            "uncertain",
+            "unspecified",
+            "variable",
+            "fluctuating",
+            "random",
+            "chance",
         ];
 
         let mut uncertainty_score = 0.0;
@@ -1508,8 +1513,13 @@ impl IslamicComplianceGate {
         let content_lower = content.to_lowercase();
 
         let maysir_indicators = [
-            "gamble", "bet", "lottery", "jackpot",
-            "speculation", "leverage", "margin",
+            "gamble",
+            "bet",
+            "lottery",
+            "jackpot",
+            "speculation",
+            "leverage",
+            "margin",
         ];
 
         for indicator in maysir_indicators {
@@ -1671,13 +1681,12 @@ impl IslamicFinanceRegistry {
     }
 
     /// Register a Mudarabah contract
-    pub fn register_mudarabah(
-        &mut self,
-        contract: MudarabahContract,
-    ) -> IslamicFinanceResult<()> {
+    pub fn register_mudarabah(&mut self, contract: MudarabahContract) -> IslamicFinanceResult<()> {
         // Verify compliance
         let content = serde_json::to_string(&contract).unwrap_or_default();
-        let result = self.compliance_gate.check_compliance(&content, Some(contract.performance_ihsan), None);
+        let result =
+            self.compliance_gate
+                .check_compliance(&content, Some(contract.performance_ihsan), None);
 
         if !result.compliant {
             return Err(IslamicFinanceError::MudarabahViolation {
@@ -1711,8 +1720,7 @@ impl IslamicFinanceRegistry {
         // Verify Ihsan compliance
         waqf.verify_ihsan()?;
 
-        self.waqf_endowments
-            .insert(waqf.waqf_id.clone(), waqf);
+        self.waqf_endowments.insert(waqf.waqf_id.clone(), waqf);
         Ok(())
     }
 
@@ -1774,7 +1782,9 @@ mod tests {
         let calculator = ZakatCalculator::default();
 
         let mut record = WealthRecord::new("node1".into());
-        record.holdings.insert(ZakatableAsset::ComputeCredits, 2000.0);
+        record
+            .holdings
+            .insert(ZakatableAsset::ComputeCredits, 2000.0);
 
         // Without nisab_exceeded_at, no Zakat due
         assert!(calculator.calculate_zakat(&record).is_none());
@@ -1890,13 +1900,25 @@ mod tests {
             2,
         );
 
-        partnership.add_partner("node1".into(), 600.0, 0.55).unwrap();
-        partnership.add_partner("node2".into(), 400.0, 0.45).unwrap();
+        partnership
+            .add_partner("node1".into(), 600.0, 0.55)
+            .unwrap();
+        partnership
+            .add_partner("node2".into(), 400.0, 0.45)
+            .unwrap();
         partnership.activate().unwrap();
 
         // Verify loss shares equal contribution ratios
-        let node1 = partnership.partners.iter().find(|p| p.node_id == "node1").unwrap();
-        let node2 = partnership.partners.iter().find(|p| p.node_id == "node2").unwrap();
+        let node1 = partnership
+            .partners
+            .iter()
+            .find(|p| p.node_id == "node1")
+            .unwrap();
+        let node2 = partnership
+            .partners
+            .iter()
+            .find(|p| p.node_id == "node2")
+            .unwrap();
 
         assert!((node1.loss_share - 0.6).abs() < 0.01); // 60%
         assert!((node2.loss_share - 0.4).abs() < 0.01); // 40%
@@ -1924,7 +1946,9 @@ mod tests {
         ));
 
         // Others can be beneficiaries
-        assert!(waqf.add_beneficiary("node1".into(), 0.4, "Active nodes".into()).is_ok());
+        assert!(waqf
+            .add_beneficiary("node1".into(), 0.4, "Active nodes".into())
+            .is_ok());
     }
 
     #[test]
@@ -1959,7 +1983,10 @@ mod tests {
         let haram = "loan with 5% annual interest rate";
         let result = gate.check_compliance(haram, Some(0.96), None);
         assert!(!result.compliant);
-        assert!(result.violations.iter().any(|v| v.category == HaramCategory::Riba));
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.category == HaramCategory::Riba));
     }
 
     #[test]

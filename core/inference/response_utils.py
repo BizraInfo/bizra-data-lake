@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 import time
 from functools import lru_cache
-from typing import Optional, Pattern, Dict, Any
+from typing import Any, Dict, Optional, Pattern
 
 # =============================================================================
 # PRE-COMPILED REGEX PATTERNS
@@ -37,73 +37,59 @@ from typing import Optional, Pattern, Dict, Any
 
 # DeepSeek R1 <think> tag patterns
 _THINK_PATTERN: Pattern[str] = re.compile(
-    r'<think(?![a-zA-Z])[^>]*>.*?</think>',
-    re.DOTALL | re.IGNORECASE
+    r"<think(?![a-zA-Z])[^>]*>.*?</think>", re.DOTALL | re.IGNORECASE
 )
 
 _UNCLOSED_THINK_PATTERN: Pattern[str] = re.compile(
-    r'<think(?![a-zA-Z])[^>]*>.*$',
-    re.DOTALL | re.IGNORECASE
+    r"<think(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE
 )
 
-_CLOSE_THINK_TAG_PATTERN: Pattern[str] = re.compile(
-    r'</think>',
-    re.IGNORECASE
-)
+_CLOSE_THINK_TAG_PATTERN: Pattern[str] = re.compile(r"</think>", re.IGNORECASE)
 
-_OPEN_THINK_TAG_PATTERN: Pattern[str] = re.compile(
-    r'<think[^>]*>',
-    re.IGNORECASE
-)
+_OPEN_THINK_TAG_PATTERN: Pattern[str] = re.compile(r"<think[^>]*>", re.IGNORECASE)
 
 _THINK_CONTENT_PATTERN: Pattern[str] = re.compile(
-    r'<think[^>]*>(.*?)</think>',
-    re.DOTALL | re.IGNORECASE
+    r"<think[^>]*>(.*?)</think>", re.DOTALL | re.IGNORECASE
 )
 
 # Whitespace normalization patterns
-_EXCESS_NEWLINES_PATTERN: Pattern[str] = re.compile(r'\n{3,}')
-_EXCESS_SPACES_PATTERN: Pattern[str] = re.compile(r' {2,}')
+_EXCESS_NEWLINES_PATTERN: Pattern[str] = re.compile(r"\n{3,}")
+_EXCESS_SPACES_PATTERN: Pattern[str] = re.compile(r" {2,}")
 
 # Other reasoning tag patterns for extensibility
 _THINKING_PATTERN: Pattern[str] = re.compile(
-    r'<thinking(?![a-zA-Z])[^>]*>.*?</thinking>',
-    re.DOTALL | re.IGNORECASE
+    r"<thinking(?![a-zA-Z])[^>]*>.*?</thinking>", re.DOTALL | re.IGNORECASE
 )
 
 _REASONING_PATTERN: Pattern[str] = re.compile(
-    r'<reasoning(?![a-zA-Z])[^>]*>.*?</reasoning>',
-    re.DOTALL | re.IGNORECASE
+    r"<reasoning(?![a-zA-Z])[^>]*>.*?</reasoning>", re.DOTALL | re.IGNORECASE
 )
 
 _INTERNAL_PATTERN: Pattern[str] = re.compile(
-    r'<internal(?![a-zA-Z])[^>]*>.*?</internal>',
-    re.DOTALL | re.IGNORECASE
+    r"<internal(?![a-zA-Z])[^>]*>.*?</internal>", re.DOTALL | re.IGNORECASE
 )
 
 _THOUGHT_PATTERN: Pattern[str] = re.compile(
-    r'<thought(?![a-zA-Z])[^>]*>.*?</thought>',
-    re.DOTALL | re.IGNORECASE
+    r"<thought(?![a-zA-Z])[^>]*>.*?</thought>", re.DOTALL | re.IGNORECASE
 )
 
 # Combined pattern for strip_all_reasoning_tokens (single pass optimization)
 # This is significantly faster than iterating through multiple patterns
 _ALL_REASONING_PATTERN: Pattern[str] = re.compile(
-    r'<(?:think|thinking|reasoning|internal|thought)(?![a-zA-Z])[^>]*>.*?'
-    r'</(?:think|thinking|reasoning|internal|thought)>',
-    re.DOTALL | re.IGNORECASE
+    r"<(?:think|thinking|reasoning|internal|thought)(?![a-zA-Z])[^>]*>.*?"
+    r"</(?:think|thinking|reasoning|internal|thought)>",
+    re.DOTALL | re.IGNORECASE,
 )
 
 # Unclosed tags for all reasoning types (single pass)
 _ALL_UNCLOSED_REASONING_PATTERN: Pattern[str] = re.compile(
-    r'<(?:think|thinking|reasoning|internal|thought)(?![a-zA-Z])[^>]*>.*$',
-    re.DOTALL | re.IGNORECASE
+    r"<(?:think|thinking|reasoning|internal|thought)(?![a-zA-Z])[^>]*>.*$",
+    re.DOTALL | re.IGNORECASE,
 )
 
 # Orphaned closing tags for all reasoning types (single pass)
 _ALL_CLOSE_REASONING_PATTERN: Pattern[str] = re.compile(
-    r'</(?:think|thinking|reasoning|internal|thought)>',
-    re.IGNORECASE
+    r"</(?:think|thinking|reasoning|internal|thought)>", re.IGNORECASE
 )
 
 # Pre-compiled patterns lookup for known tags
@@ -111,23 +97,23 @@ _KNOWN_TAG_PATTERNS: Dict[str, tuple[Pattern[str], Pattern[str], Pattern[str]]] 
     "think": (_THINK_PATTERN, _UNCLOSED_THINK_PATTERN, _CLOSE_THINK_TAG_PATTERN),
     "thinking": (
         _THINKING_PATTERN,
-        re.compile(r'<thinking(?![a-zA-Z])[^>]*>.*$', re.DOTALL | re.IGNORECASE),
-        re.compile(r'</thinking>', re.IGNORECASE)
+        re.compile(r"<thinking(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE),
+        re.compile(r"</thinking>", re.IGNORECASE),
     ),
     "reasoning": (
         _REASONING_PATTERN,
-        re.compile(r'<reasoning(?![a-zA-Z])[^>]*>.*$', re.DOTALL | re.IGNORECASE),
-        re.compile(r'</reasoning>', re.IGNORECASE)
+        re.compile(r"<reasoning(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE),
+        re.compile(r"</reasoning>", re.IGNORECASE),
     ),
     "internal": (
         _INTERNAL_PATTERN,
-        re.compile(r'<internal(?![a-zA-Z])[^>]*>.*$', re.DOTALL | re.IGNORECASE),
-        re.compile(r'</internal>', re.IGNORECASE)
+        re.compile(r"<internal(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE),
+        re.compile(r"</internal>", re.IGNORECASE),
     ),
     "thought": (
         _THOUGHT_PATTERN,
-        re.compile(r'<thought(?![a-zA-Z])[^>]*>.*$', re.DOTALL | re.IGNORECASE),
-        re.compile(r'</thought>', re.IGNORECASE)
+        re.compile(r"<thought(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE),
+        re.compile(r"</thought>", re.IGNORECASE),
     ),
 }
 
@@ -136,8 +122,11 @@ _KNOWN_TAG_PATTERNS: Dict[str, tuple[Pattern[str], Pattern[str], Pattern[str]]] 
 # CACHED PATTERN GENERATION
 # =============================================================================
 
+
 @lru_cache(maxsize=128)
-def _get_custom_pattern(tag_name: str) -> tuple[Pattern[str], Pattern[str], Pattern[str]]:
+def _get_custom_pattern(
+    tag_name: str,
+) -> tuple[Pattern[str], Pattern[str], Pattern[str]]:
     """
     Get or create patterns for custom tag names (cached).
 
@@ -152,22 +141,20 @@ def _get_custom_pattern(tag_name: str) -> tuple[Pattern[str], Pattern[str], Patt
     tag_escaped = re.escape(tag_name)
 
     complete = re.compile(
-        rf'<{tag_escaped}(?![a-zA-Z])[^>]*>.*?</{tag_escaped}>',
-        re.DOTALL | re.IGNORECASE
+        rf"<{tag_escaped}(?![a-zA-Z])[^>]*>.*?</{tag_escaped}>",
+        re.DOTALL | re.IGNORECASE,
     )
     unclosed = re.compile(
-        rf'<{tag_escaped}(?![a-zA-Z])[^>]*>.*$',
-        re.DOTALL | re.IGNORECASE
+        rf"<{tag_escaped}(?![a-zA-Z])[^>]*>.*$", re.DOTALL | re.IGNORECASE
     )
-    close = re.compile(
-        rf'</{tag_escaped}>',
-        re.IGNORECASE
-    )
+    close = re.compile(rf"</{tag_escaped}>", re.IGNORECASE)
 
     return complete, unclosed, close
 
 
-def _get_patterns_for_tag(tag_name: str) -> tuple[Pattern[str], Pattern[str], Pattern[str]]:
+def _get_patterns_for_tag(
+    tag_name: str,
+) -> tuple[Pattern[str], Pattern[str], Pattern[str]]:
     """
     Get patterns for a tag name, using pre-compiled patterns when available.
 
@@ -191,6 +178,7 @@ def _get_patterns_for_tag(tag_name: str) -> tuple[Pattern[str], Pattern[str], Pa
 # =============================================================================
 # CORE STRIPPING FUNCTIONS
 # =============================================================================
+
 
 def strip_think_tokens(content: str) -> str:
     """
@@ -231,18 +219,18 @@ def strip_think_tokens(content: str) -> str:
         return ""
 
     # First pass: Remove all complete <think>...</think> blocks
-    cleaned = _THINK_PATTERN.sub('', content)
+    cleaned = _THINK_PATTERN.sub("", content)
 
     # Second pass: Handle unclosed <think> tags (strip from <think> to end)
     # This handles cases where the model output was truncated
-    cleaned = _UNCLOSED_THINK_PATTERN.sub('', cleaned)
+    cleaned = _UNCLOSED_THINK_PATTERN.sub("", cleaned)
 
     # Third pass: Handle orphaned </think> tags (rare but possible)
-    cleaned = _CLOSE_THINK_TAG_PATTERN.sub('', cleaned)
+    cleaned = _CLOSE_THINK_TAG_PATTERN.sub("", cleaned)
 
     # Clean up extra whitespace that may result from removal
     # Replace multiple newlines with at most two
-    cleaned = _EXCESS_NEWLINES_PATTERN.sub('\n\n', cleaned)
+    cleaned = _EXCESS_NEWLINES_PATTERN.sub("\n\n", cleaned)
 
     # Strip leading/trailing whitespace
     return cleaned.strip()
@@ -274,12 +262,12 @@ def strip_reasoning_tokens(content: str, tag_name: str = "think") -> str:
     complete_pattern, unclosed_pattern, close_pattern = _get_patterns_for_tag(tag_name)
 
     # Apply patterns
-    cleaned = complete_pattern.sub('', content)
-    cleaned = unclosed_pattern.sub('', cleaned)
-    cleaned = close_pattern.sub('', cleaned)
+    cleaned = complete_pattern.sub("", content)
+    cleaned = unclosed_pattern.sub("", cleaned)
+    cleaned = close_pattern.sub("", cleaned)
 
     # Clean up whitespace
-    cleaned = _EXCESS_NEWLINES_PATTERN.sub('\n\n', cleaned)
+    cleaned = _EXCESS_NEWLINES_PATTERN.sub("\n\n", cleaned)
 
     return cleaned.strip()
 
@@ -306,16 +294,16 @@ def strip_all_reasoning_tokens(content: str) -> str:
         return ""
 
     # Single-pass removal of all complete reasoning blocks
-    cleaned = _ALL_REASONING_PATTERN.sub('', content)
+    cleaned = _ALL_REASONING_PATTERN.sub("", content)
 
     # Handle unclosed tags (single pass)
-    cleaned = _ALL_UNCLOSED_REASONING_PATTERN.sub('', cleaned)
+    cleaned = _ALL_UNCLOSED_REASONING_PATTERN.sub("", cleaned)
 
     # Handle orphaned closing tags (single pass)
-    cleaned = _ALL_CLOSE_REASONING_PATTERN.sub('', cleaned)
+    cleaned = _ALL_CLOSE_REASONING_PATTERN.sub("", cleaned)
 
     # Clean up whitespace
-    cleaned = _EXCESS_NEWLINES_PATTERN.sub('\n\n', cleaned)
+    cleaned = _EXCESS_NEWLINES_PATTERN.sub("\n\n", cleaned)
 
     return cleaned.strip()
 
@@ -323,6 +311,7 @@ def strip_all_reasoning_tokens(content: str) -> str:
 # =============================================================================
 # NORMALIZATION AND UTILITY FUNCTIONS
 # =============================================================================
+
 
 def normalize_response(content: str, preserve_formatting: bool = True) -> str:
     """
@@ -343,13 +332,13 @@ def normalize_response(content: str, preserve_formatting: bool = True) -> str:
 
     if not preserve_formatting:
         # Collapse multiple spaces using pre-compiled pattern
-        cleaned = _EXCESS_SPACES_PATTERN.sub(' ', cleaned)
+        cleaned = _EXCESS_SPACES_PATTERN.sub(" ", cleaned)
         # Normalize line endings
-        cleaned = cleaned.replace('\r\n', '\n').replace('\r', '\n')
+        cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
 
     # Remove trailing whitespace on each line
-    lines = [line.rstrip() for line in cleaned.split('\n')]
-    cleaned = '\n'.join(lines)
+    lines = [line.rstrip() for line in cleaned.split("\n")]
+    cleaned = "\n".join(lines)
 
     return cleaned.strip()
 
@@ -372,7 +361,7 @@ def extract_think_content(content: str) -> Optional[str]:
     if not matches:
         return None
 
-    return '\n---\n'.join(match.strip() for match in matches)
+    return "\n---\n".join(match.strip() for match in matches)
 
 
 def has_think_tokens(content: str) -> bool:
@@ -395,9 +384,9 @@ def has_think_tokens(content: str) -> bool:
 # BENCHMARKING UTILITIES
 # =============================================================================
 
+
 def benchmark_strip_think_tokens(
-    content: str,
-    iterations: int = 1000
+    content: str, iterations: int = 1000
 ) -> Dict[str, Any]:
     """
     Benchmark the pre-compiled vs runtime-compiled regex performance.
@@ -421,12 +410,12 @@ def benchmark_strip_think_tokens(
     def _strip_runtime(content: str) -> str:
         if not content:
             return ""
-        pattern = r'<think(?![a-zA-Z])[^>]*>.*?</think>'
-        cleaned = re.sub(pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
-        unclosed_pattern = r'<think(?![a-zA-Z])[^>]*>.*$'
-        cleaned = re.sub(unclosed_pattern, '', cleaned, flags=re.DOTALL | re.IGNORECASE)
-        cleaned = re.sub(r'</think>', '', cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+        pattern = r"<think(?![a-zA-Z])[^>]*>.*?</think>"
+        cleaned = re.sub(pattern, "", content, flags=re.DOTALL | re.IGNORECASE)
+        unclosed_pattern = r"<think(?![a-zA-Z])[^>]*>.*$"
+        cleaned = re.sub(unclosed_pattern, "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r"</think>", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip()
 
     start = time.perf_counter()
@@ -434,8 +423,10 @@ def benchmark_strip_think_tokens(
         _strip_runtime(content)
     runtime_time = time.perf_counter() - start
 
-    speedup = runtime_time / precompiled_time if precompiled_time > 0 else float('inf')
-    reduction_pct = (1 - precompiled_time / runtime_time) * 100 if runtime_time > 0 else 0
+    speedup = runtime_time / precompiled_time if precompiled_time > 0 else float("inf")
+    reduction_pct = (
+        (1 - precompiled_time / runtime_time) * 100 if runtime_time > 0 else 0
+    )
 
     return {
         "iterations": iterations,
@@ -462,9 +453,11 @@ def get_pattern_cache_info() -> Dict[str, Any]:
         "misses": cache_info.misses,
         "maxsize": cache_info.maxsize,
         "currsize": cache_info.currsize,
-        "hit_rate": round(
-            cache_info.hits / (cache_info.hits + cache_info.misses) * 100, 1
-        ) if (cache_info.hits + cache_info.misses) > 0 else 0.0
+        "hit_rate": (
+            round(cache_info.hits / (cache_info.hits + cache_info.misses) * 100, 1)
+            if (cache_info.hits + cache_info.misses) > 0
+            else 0.0
+        ),
     }
 
 

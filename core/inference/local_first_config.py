@@ -39,8 +39,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any, Callable, TypeVar
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -52,37 +51,41 @@ logger = logging.getLogger(__name__)
 
 class ModelRole(str, Enum):
     """Model specialization roles."""
-    REASONING = "reasoning"      # Chain-of-thought, logic, math
-    CODING = "coding"            # Code generation, debugging
-    CREATIVE = "creative"        # Writing, conversation, nuance
-    FAST = "fast"                # Quick tasks, classification
-    EMBEDDING = "embedding"      # Vector embeddings
-    VISION = "vision"            # Image understanding
-    AGENTIC = "agentic"          # Tool use, planning
+
+    REASONING = "reasoning"  # Chain-of-thought, logic, math
+    CODING = "coding"  # Code generation, debugging
+    CREATIVE = "creative"  # Writing, conversation, nuance
+    FAST = "fast"  # Quick tasks, classification
+    EMBEDDING = "embedding"  # Vector embeddings
+    VISION = "vision"  # Image understanding
+    AGENTIC = "agentic"  # Tool use, planning
 
 
 class TaskType(str, Enum):
     """Task classification for routing."""
-    REASONING = "reasoning"          # Complex analysis, proof
-    CODING = "coding"                # Code generation/review
-    CONVERSATION = "conversation"    # Natural dialogue
+
+    REASONING = "reasoning"  # Complex analysis, proof
+    CODING = "coding"  # Code generation/review
+    CONVERSATION = "conversation"  # Natural dialogue
     SUMMARIZATION = "summarization"  # Text condensation
     CLASSIFICATION = "classification"  # Categorization
-    EXTRACTION = "extraction"        # Information extraction
+    EXTRACTION = "extraction"  # Information extraction
     CREATIVE_WRITING = "creative_writing"
-    MATH = "math"                    # Mathematical computation
-    PLANNING = "planning"            # Multi-step planning
+    MATH = "math"  # Mathematical computation
+    PLANNING = "planning"  # Multi-step planning
 
 
 class FallbackLevel(str, Enum):
     """Fallback chain levels (sovereignty-preserving)."""
-    LOCAL_ONLY = "local_only"        # Never leave node
-    LOCAL_POOL = "local_pool"        # Allow federated pool
+
+    LOCAL_ONLY = "local_only"  # Never leave node
+    LOCAL_POOL = "local_pool"  # Allow federated pool
     LOCAL_POOL_CLOUD = "local_pool_cloud"  # Allow cloud (explicit consent)
 
 
 class HealthStatus(str, Enum):
     """Model health status."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -97,6 +100,7 @@ class HealthStatus(str, Enum):
 @dataclass
 class ModelConfig:
     """Configuration for a single model."""
+
     endpoint: str
     model_id: str
     role: ModelRole
@@ -127,6 +131,7 @@ class ModelConfig:
 @dataclass
 class HealthReport:
     """Health status report for a model."""
+
     model_id: str
     status: HealthStatus
     latency_ms: float
@@ -142,6 +147,7 @@ class HealthReport:
 @dataclass
 class RoutingDecision:
     """Result of model routing decision."""
+
     model_name: str
     model_config: ModelConfig
     confidence: float
@@ -152,9 +158,10 @@ class RoutingDecision:
 @dataclass
 class BicameralResult:
     """Result from bicameral reasoning."""
-    cold_response: str           # Primary reasoning output
-    warm_critique: str           # Verification/critique
-    synthesis: str               # Final synthesized answer
+
+    cold_response: str  # Primary reasoning output
+    warm_critique: str  # Verification/critique
+    synthesis: str  # Final synthesized answer
     cold_model: str
     warm_model: str
     consensus_reached: bool
@@ -187,7 +194,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=20.0,
         priority=100,
     ),
-
     "qwq-reasoning": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="qwq-32b-preview",
@@ -202,7 +208,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=20.0,
         priority=90,
     ),
-
     # =========================================================================
     # CODING MODELS
     # =========================================================================
@@ -221,7 +226,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=20.0,
         priority=100,
     ),
-
     "deepseek-coder": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="deepseek-coder-v2-lite-instruct",
@@ -236,7 +240,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=8.0,
         priority=80,
     ),
-
     # =========================================================================
     # NUANCE MODELS (Warm Surface - Creativity)
     # =========================================================================
@@ -254,7 +257,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=8.0,
         priority=100,
     ),
-
     "llama-creative": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="llama-3.1-8b-instruct",
@@ -269,7 +271,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=6.0,
         priority=80,
     ),
-
     # =========================================================================
     # FAST MODELS (Edge - Quick responses)
     # =========================================================================
@@ -287,7 +288,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=4.0,
         priority=100,
     ),
-
     "qwen-nano": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="qwen2.5-1.5b-instruct",
@@ -302,7 +302,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=2.0,
         priority=90,
     ),
-
     "gemma-fast": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="gemma-2-2b-instruct",
@@ -317,7 +316,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=2.5,
         priority=70,
     ),
-
     # =========================================================================
     # EMBEDDING MODELS
     # =========================================================================
@@ -332,7 +330,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=0.5,
         priority=100,
     ),
-
     "bge-embed": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="bge-m3",
@@ -344,7 +341,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=0.8,
         priority=90,
     ),
-
     # =========================================================================
     # VISION MODELS
     # =========================================================================
@@ -363,7 +359,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=8.0,
         priority=100,
     ),
-
     "llava": ModelConfig(
         endpoint="http://192.168.56.1:1234/v1",
         model_id="llava-v1.6-mistral-7b",
@@ -379,7 +374,6 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
         vram_gb=7.0,
         priority=80,
     ),
-
     # =========================================================================
     # AGENTIC MODELS
     # =========================================================================
@@ -462,7 +456,8 @@ class ModelRouter:
         # Filter by health if monitor available
         if self.health_monitor:
             candidates = [
-                (name, cfg) for name, cfg in candidates
+                (name, cfg)
+                for name, cfg in candidates
                 if self.health_monitor.is_available(name)
             ]
 
@@ -521,14 +516,14 @@ class ModelRouter:
 
         # Filter by context window
         candidates = [
-            (name, cfg) for name, cfg in candidates
-            if cfg.context_window >= tokens
+            (name, cfg) for name, cfg in candidates if cfg.context_window >= tokens
         ]
 
         if not candidates:
             # Fallback to any model with sufficient context
             candidates = [
-                (name, cfg) for name, cfg in self.models.items()
+                (name, cfg)
+                for name, cfg in self.models.items()
                 if cfg.context_window >= tokens
             ]
 
@@ -540,7 +535,9 @@ class ModelRouter:
 
         selected_name, selected_config = candidates[0]
 
-        complexity_tier = "simple" if tokens < 500 else "medium" if tokens < 2000 else "complex"
+        complexity_tier = (
+            "simple" if tokens < 500 else "medium" if tokens < 2000 else "complex"
+        )
 
         return RoutingDecision(
             model_name=selected_name,
@@ -565,7 +562,9 @@ class ModelRouter:
             Tuple of (cold_decision, warm_decision)
         """
         # Cold Core: Select best reasoning model
-        cold_candidates = self._get_candidates_by_roles([ModelRole.REASONING, ModelRole.CODING])
+        cold_candidates = self._get_candidates_by_roles(
+            [ModelRole.REASONING, ModelRole.CODING]
+        )
         if not cold_candidates:
             cold_candidates = list(self.models.items())
         cold_candidates.sort(key=lambda x: x[1].priority, reverse=True)
@@ -584,11 +583,12 @@ class ModelRouter:
         if not warm_candidates:
             # Fallback: use a different model than cold
             warm_candidates = [
-                (name, cfg) for name, cfg in self.models.items()
-                if name != cold_name
+                (name, cfg) for name, cfg in self.models.items() if name != cold_name
             ]
         warm_candidates.sort(key=lambda x: x[1].priority, reverse=True)
-        warm_name, warm_config = warm_candidates[0] if warm_candidates else (cold_name, cold_config)
+        warm_name, warm_config = (
+            warm_candidates[0] if warm_candidates else (cold_name, cold_config)
+        )
 
         warm_decision = RoutingDecision(
             model_name=warm_name,
@@ -605,10 +605,7 @@ class ModelRouter:
         roles: List[ModelRole],
     ) -> List[Tuple[str, ModelConfig]]:
         """Get models matching any of the given roles."""
-        return [
-            (name, cfg) for name, cfg in self.models.items()
-            if cfg.role in roles
-        ]
+        return [(name, cfg) for name, cfg in self.models.items() if cfg.role in roles]
 
     def get_embedding_model(self) -> RoutingDecision:
         """Get best available embedding model."""
@@ -707,8 +704,7 @@ class HealthMonitor:
             Dict mapping model names to their HealthReport
         """
         tasks = [
-            self._check_model(name, config)
-            for name, config in self.models.items()
+            self._check_model(name, config) for name, config in self.models.items()
         ]
 
         reports = await asyncio.gather(*tasks, return_exceptions=True)
@@ -744,8 +740,7 @@ class HealthMonitor:
     def get_healthy_models(self) -> List[str]:
         """Get list of all healthy models."""
         return [
-            name for name, report in self._health_reports.items()
-            if report.is_available
+            name for name, report in self._health_reports.items() if report.is_available
         ]
 
     async def _monitor_loop(self) -> None:
@@ -781,7 +776,7 @@ class HealthMonitor:
 
                 if resp.status_code == 200:
                     # Update consecutive failures
-                    prev_report = self._health_reports.get(model_name)
+                    self._health_reports.get(model_name)
 
                     return HealthReport(
                         model_id=model_name,
@@ -832,7 +827,9 @@ class HealthMonitor:
     ) -> HealthReport:
         """Handle a failed health check."""
         prev_report = self._health_reports.get(model_name)
-        consecutive_failures = (prev_report.consecutive_failures + 1) if prev_report else 1
+        consecutive_failures = (
+            (prev_report.consecutive_failures + 1) if prev_report else 1
+        )
 
         status = (
             HealthStatus.UNHEALTHY
@@ -897,6 +894,7 @@ class BicameralOrchestrator:
         """Ensure HTTP client is available."""
         if self._client is None:
             import httpx
+
             self._client = httpx.AsyncClient(timeout=120.0)
         return self._client
 
@@ -1171,10 +1169,10 @@ If something is good, acknowledge it. If it needs work, be specific about why.""
         """Check if Warm Surface approved the response."""
         critique_lower = critique.lower()
         return (
-            critique_lower.startswith("approved:") or
-            "approved" in critique_lower[:50] or
-            "looks good" in critique_lower[:100] or
-            "well done" in critique_lower[:100]
+            critique_lower.startswith("approved:")
+            or "approved" in critique_lower[:50]
+            or "looks good" in critique_lower[:100]
+            or "well done" in critique_lower[:100]
         )
 
     def _extract_score(self, critique: str) -> float:
@@ -1261,7 +1259,9 @@ class LocalFirstManager:
         self.models = models or LOCAL_MODELS
         self.fallback_level = fallback_level
 
-        self.health_monitor = HealthMonitor(self.models) if enable_health_monitor else None
+        self.health_monitor = (
+            HealthMonitor(self.models) if enable_health_monitor else None
+        )
         self.router = ModelRouter(self.models, self.health_monitor)
         self.bicameral = BicameralOrchestrator(self.router, self.health_monitor)
 
@@ -1463,23 +1463,19 @@ __all__ = [
     "TaskType",
     "FallbackLevel",
     "HealthStatus",
-
     # Data models
     "ModelConfig",
     "HealthReport",
     "RoutingDecision",
     "BicameralResult",
-
     # Registry
     "LOCAL_MODELS",
     "TASK_TO_ROLE",
-
     # Classes
     "ModelRouter",
     "HealthMonitor",
     "BicameralOrchestrator",
     "LocalFirstManager",
-
     # Convenience functions
     "get_local_first_manager",
     "get_model_router",

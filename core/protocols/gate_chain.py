@@ -25,17 +25,18 @@ Created: 2026-02-05 | SAPE Elite Analysis Implementation
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import TypeVar, Generic, Optional, List, Dict, Any, Callable
 from datetime import datetime
+from enum import Enum, auto
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 
 class GateStatus(Enum):
     """Result status of a gate validation."""
-    PASS = auto()      # Validation passed
-    FAIL = auto()      # Validation failed
-    SKIP = auto()      # Gate skipped (not applicable)
-    ERROR = auto()     # Gate encountered an error
+
+    PASS = auto()  # Validation passed
+    FAIL = auto()  # Validation failed
+    SKIP = auto()  # Gate skipped (not applicable)
+    ERROR = auto()  # Gate encountered an error
 
 
 @dataclass
@@ -45,6 +46,7 @@ class GateResult:
 
     Provides detailed information about why a gate passed or failed.
     """
+
     status: GateStatus
     gate_name: str
     message: str = ""
@@ -72,6 +74,7 @@ class ChainResult:
     """
     Aggregate result of running a complete gate chain.
     """
+
     passed: bool
     gate_results: List[GateResult] = field(default_factory=list)
 
@@ -110,7 +113,7 @@ class ChainResult:
 
 
 # Generic type for items being validated
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Gate(ABC, Generic[T]):
@@ -221,7 +224,7 @@ class GateChain(Generic[T]):
         self._gates: List[Gate[T]] = []
         self._fail_fast = fail_fast
 
-    def add_gate(self, gate: Gate[T]) -> 'GateChain[T]':
+    def add_gate(self, gate: Gate[T]) -> "GateChain[T]":
         """
         Add a gate to the chain.
 
@@ -267,15 +270,18 @@ class GateChain(Generic[T]):
         for gate in sorted_gates:
             # Check if gate should run
             if not gate.should_run(item):
-                result.add_result(GateResult(
-                    GateStatus.SKIP,
-                    gate.name,
-                    message="Gate skipped (not applicable)"
-                ))
+                result.add_result(
+                    GateResult(
+                        GateStatus.SKIP,
+                        gate.name,
+                        message="Gate skipped (not applicable)",
+                    )
+                )
                 continue
 
             # Run the gate
             import time
+
             start = time.perf_counter()
             try:
                 gate_result = gate.validate(item)
@@ -284,7 +290,7 @@ class GateChain(Generic[T]):
                     GateStatus.ERROR,
                     gate.name,
                     message=f"Gate error: {str(e)}",
-                    reject_code="GATE_ERROR"
+                    reject_code="GATE_ERROR",
                 )
             gate_result.duration_ms = (time.perf_counter() - start) * 1000
 
@@ -330,6 +336,7 @@ def simple_gate(
     )
     ```
     """
+
     class SimpleGate(Gate[T]):
         @property
         def name(self) -> str:
@@ -346,7 +353,7 @@ def simple_gate(
                 GateStatus.FAIL,
                 self.name,
                 message=failure_message,
-                reject_code=reject_code
+                reject_code=reject_code,
             )
 
     return SimpleGate()

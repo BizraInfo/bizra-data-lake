@@ -17,44 +17,49 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional
+from enum import Enum
+from typing import Any, Deque, Dict, List, Optional
 
+from core.bridges.dual_agentic_bridge import DualAgenticBridge
+from core.bridges.swarm_knowledge_bridge import (
+    SwarmKnowledgeBridge,
+    create_swarm_knowledge_bridge,
+)
 from core.governance.autonomy import (
     AutonomousLoop,
     DecisionGate,
-    DecisionCandidate,
     SystemMetrics,
-    LoopState,
 )
-from .event_bus import EventBus, Event, EventPriority, get_event_bus
-from core.sovereign.state_checkpointer import StateCheckpointer, Checkpoint
-from .team_planner import TeamPlanner, Goal, TeamTask, AgentRole
-from core.bridges.dual_agentic_bridge import DualAgenticBridge, ConsensusResult
-from core.reasoning.collective_intelligence import CollectiveIntelligence, AgentContribution, AggregationMethod
-from .proactive_scheduler import ProactiveScheduler, ScheduleType, JobPriority
-from .predictive_monitor import PredictiveMonitor, TrendDirection, AlertSeverity
-from .proactive_team import ProactiveTeam
-from .muraqabah_engine import MuraqabahEngine, MonitorDomain, Opportunity
-from core.governance.autonomy_matrix import AutonomyMatrix, AutonomyLevel, ActionContext
+from core.governance.autonomy_matrix import ActionContext, AutonomyLevel, AutonomyMatrix
+from core.reasoning.collective_intelligence import (
+    CollectiveIntelligence,
+)
+from core.sovereign.state_checkpointer import StateCheckpointer
+
 from .enhanced_team_planner import EnhancedTeamPlanner, ProactiveGoal
-from core.bridges.knowledge_integrator import KnowledgeIntegrator, create_knowledge_integrator
-from core.bridges.swarm_knowledge_bridge import SwarmKnowledgeBridge, create_swarm_knowledge_bridge
+from .event_bus import Event, EventPriority, get_event_bus
+from .muraqabah_engine import MonitorDomain, MuraqabahEngine, Opportunity
+from .predictive_monitor import PredictiveMonitor
+from .proactive_scheduler import ProactiveScheduler
+from .proactive_team import ProactiveTeam
+from .team_planner import AgentRole
 
 logger = logging.getLogger(__name__)
 
 
 class EntityMode(str, Enum):
     """Operating modes of the Proactive Sovereign Entity."""
-    REACTIVE = "reactive"           # Traditional request-response
+
+    REACTIVE = "reactive"  # Traditional request-response
     PROACTIVE_SUGGEST = "proactive_suggest"  # Detect & suggest, require approval
-    PROACTIVE_AUTO = "proactive_auto"        # Auto-execute within constraints
+    PROACTIVE_AUTO = "proactive_auto"  # Auto-execute within constraints
     PROACTIVE_PARTNER = "proactive_partner"  # Full proactive partner mode
 
 
 @dataclass
 class EntityConfig:
     """Configuration for the Proactive Sovereign Entity."""
+
     mode: EntityMode = EntityMode.PROACTIVE_PARTNER
     ihsan_threshold: float = 0.95
     default_autonomy: AutonomyLevel = AutonomyLevel.AUTOLOW
@@ -70,6 +75,7 @@ class EntityConfig:
 @dataclass
 class EntityCycleResult:
     """Result of one entity operation cycle."""
+
     cycle_number: int = 0
     mode: EntityMode = EntityMode.REACTIVE
     # OODA phases
@@ -143,10 +149,14 @@ class ProactiveSovereignEntity:
         )
 
         # Muraqabah monitoring
-        self.muraqabah = MuraqabahEngine(
-            ihsan_threshold=self.config.ihsan_threshold,
-            event_bus=self.event_bus,
-        ) if self.config.enable_muraqabah else None
+        self.muraqabah = (
+            MuraqabahEngine(
+                ihsan_threshold=self.config.ihsan_threshold,
+                event_bus=self.event_bus,
+            )
+            if self.config.enable_muraqabah
+            else None
+        )
 
         # Dual-Agentic bridge
         self.bridge = DualAgenticBridge(
@@ -154,7 +164,9 @@ class ProactiveSovereignEntity:
         )
 
         # Collective intelligence
-        self.collective = CollectiveIntelligence() if self.config.enable_collective else None
+        self.collective = (
+            CollectiveIntelligence() if self.config.enable_collective else None
+        )
 
         # Proactive planner
         self.planner = EnhancedTeamPlanner(
@@ -227,10 +239,12 @@ class ProactiveSovereignEntity:
         async def learner(outcomes, reflection, learning) -> Dict:
             success_rate = reflection.get("success_rate", 1.0)
             if success_rate < 0.7:
-                learning["strategy_updates"].append({
-                    "type": "autonomy_adjustment",
-                    "action": "reduce autonomy level for risky actions",
-                })
+                learning["strategy_updates"].append(
+                    {
+                        "type": "autonomy_adjustment",
+                        "action": "reduce autonomy level for risky actions",
+                    }
+                )
             return {}
 
         self.ooda_loop.register_predictor(predictor)
@@ -242,7 +256,10 @@ class ProactiveSovereignEntity:
 
         async def handle_opportunity(event: Event):
             """Handle opportunity from Muraqabah."""
-            if self.config.mode in (EntityMode.PROACTIVE_AUTO, EntityMode.PROACTIVE_PARTNER):
+            if self.config.mode in (
+                EntityMode.PROACTIVE_AUTO,
+                EntityMode.PROACTIVE_PARTNER,
+            ):
                 opp = Opportunity(
                     domain=MonitorDomain(event.payload.get("domain", "environmental")),
                     description=event.payload.get("description", ""),
@@ -363,7 +380,9 @@ class ProactiveSovereignEntity:
             logger.error(f"Entity cycle error: {e}")
 
         finally:
-            result.duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+            result.duration_ms = (
+                datetime.now(timezone.utc) - start_time
+            ).total_seconds() * 1000
             # PERF FIX: deque with maxlen auto-discards oldest (O(1))
             self._cycle_results.append(result)
 
@@ -385,7 +404,11 @@ class ProactiveSovereignEntity:
                 logger.warning(f"Knowledge integration unavailable: {e}")
                 knowledge_status = "Unavailable (standalone mode)"
         else:
-            knowledge_status = "Disabled" if not self.config.enable_knowledge_integration else "Already initialized"
+            knowledge_status = (
+                "Disabled"
+                if not self.config.enable_knowledge_integration
+                else "Already initialized"
+            )
 
         logger.info(f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -414,9 +437,9 @@ class ProactiveSovereignEntity:
             tasks.append(asyncio.create_task(self.muraqabah.start_monitoring()))
 
         # Auto-checkpoint
-        tasks.append(asyncio.create_task(
-            self.checkpointer.auto_checkpoint_loop(self._get_state)
-        ))
+        tasks.append(
+            asyncio.create_task(self.checkpointer.auto_checkpoint_loop(self._get_state))
+        )
 
         # Main loop
         while self._running:
@@ -462,7 +485,9 @@ class ProactiveSovereignEntity:
             "autonomy_stats": self.autonomy.stats(),
             "bridge_stats": self.bridge.stats(),
             "scheduler_stats": self.scheduler.stats(),
-            "knowledge_stats": self.knowledge_bridge.stats() if self.knowledge_bridge else None,
+            "knowledge_stats": (
+                self.knowledge_bridge.stats() if self.knowledge_bridge else None
+            ),
         }
 
     async def restore(self, checkpoint_id: Optional[str] = None) -> bool:
@@ -547,7 +572,9 @@ class ProactiveSovereignEntity:
             "monitor": self.monitor.stats() if self.monitor else None,
             "collective": self.collective.stats() if self.collective else None,
             "checkpointer": self.checkpointer.stats(),
-            "knowledge": self.knowledge_bridge.stats() if self.knowledge_bridge else None,
+            "knowledge": (
+                self.knowledge_bridge.stats() if self.knowledge_bridge else None
+            ),
         }
 
 

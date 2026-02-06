@@ -57,58 +57,61 @@ import math
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple, TypeVar
+from datetime import datetime, timezone
+from enum import Enum
 from statistics import mean, stdev
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 # Shannon-inspired constants
-SNR_FLOOR: float = 0.85          # Minimum acceptable SNR
-SNR_EXCELLENT: float = 0.95       # Ihsan-grade SNR
-SNR_CHANNEL_CAPACITY: float = 1.0 # Theoretical maximum
-NOISE_FLOOR_DB: float = -60.0     # Minimum detectable noise
-ADAPTIVE_WINDOW: int = 100        # Samples for adaptive thresholding
+SNR_FLOOR: float = 0.85  # Minimum acceptable SNR
+SNR_EXCELLENT: float = 0.95  # Ihsan-grade SNR
+SNR_CHANNEL_CAPACITY: float = 1.0  # Theoretical maximum
+NOISE_FLOOR_DB: float = -60.0  # Minimum detectable noise
+ADAPTIVE_WINDOW: int = 100  # Samples for adaptive thresholding
 
 
 class SignalQuality(str, Enum):
     """Qualitative signal quality levels."""
-    EXCELLENT = "excellent"   # SNR >= 0.95
-    GOOD = "good"            # SNR >= 0.90
-    ACCEPTABLE = "acceptable" # SNR >= 0.85
-    POOR = "poor"            # SNR >= 0.70
-    NOISE = "noise"          # SNR < 0.70
+
+    EXCELLENT = "excellent"  # SNR >= 0.95
+    GOOD = "good"  # SNR >= 0.90
+    ACCEPTABLE = "acceptable"  # SNR >= 0.85
+    POOR = "poor"  # SNR >= 0.70
+    NOISE = "noise"  # SNR < 0.70
 
 
 class NoiseType(str, Enum):
     """Types of noise in information channels."""
-    THERMAL = "thermal"           # Random background noise
-    QUANTIZATION = "quantization" # Discretization error
-    INTERFERENCE = "interference" # External signal corruption
-    ATTENUATION = "attenuation"   # Signal loss over distance
-    DISTORTION = "distortion"     # Non-linear channel effects
+
+    THERMAL = "thermal"  # Random background noise
+    QUANTIZATION = "quantization"  # Discretization error
+    INTERFERENCE = "interference"  # External signal corruption
+    ATTENUATION = "attenuation"  # Signal loss over distance
+    DISTORTION = "distortion"  # Non-linear channel effects
 
 
 @dataclass
 class Signal:
     """A signal with SNR metrics."""
+
     id: str
     content: Any
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Signal metrics
-    signal_power: float = 1.0      # Raw signal strength
-    noise_power: float = 0.1       # Estimated noise
-    snr: float = 0.0               # Calculated SNR [0, 1]
-    snr_db: float = 0.0            # SNR in decibels
+    signal_power: float = 1.0  # Raw signal strength
+    noise_power: float = 0.1  # Estimated noise
+    snr: float = 0.0  # Calculated SNR [0, 1]
+    snr_db: float = 0.0  # SNR in decibels
     quality: SignalQuality = SignalQuality.POOR
 
     # Provenance
     source: str = ""
     channel: str = ""
-    hops: int = 0                  # Signal degradation tracking
+    hops: int = 0  # Signal degradation tracking
 
     def __post_init__(self):
         """Calculate derived metrics."""
@@ -118,7 +121,7 @@ class Signal:
         """Calculate SNR from signal and noise power."""
         if self.noise_power <= 0:
             self.snr = SNR_CHANNEL_CAPACITY
-            self.snr_db = float('inf')
+            self.snr_db = float("inf")
         else:
             # Normalized SNR [0, 1]
             self.snr = self.signal_power / (self.signal_power + self.noise_power)
@@ -141,12 +144,13 @@ class Signal:
 @dataclass
 class ChannelMetrics:
     """Metrics for an information channel."""
+
     channel_id: str
-    capacity: float = 1.0          # Shannon capacity
-    bandwidth: float = 1.0         # Available bandwidth
-    latency_ms: float = 0.0        # Channel latency
-    error_rate: float = 0.0        # Bit error rate
-    utilization: float = 0.0       # Current utilization
+    capacity: float = 1.0  # Shannon capacity
+    bandwidth: float = 1.0  # Available bandwidth
+    latency_ms: float = 0.0  # Channel latency
+    error_rate: float = 0.0  # Bit error rate
+    utilization: float = 0.0  # Current utilization
     snr_history: List[float] = field(default_factory=list)
 
     def average_snr(self) -> float:
@@ -209,7 +213,11 @@ class NoiseEstimator:
         if not self._noise_history:
             return self._baseline_noise
 
-        return mean(self._noise_history) + stdev(self._noise_history) if len(self._noise_history) > 1 else mean(self._noise_history)
+        return (
+            mean(self._noise_history) + stdev(self._noise_history)
+            if len(self._noise_history) > 1
+            else mean(self._noise_history)
+        )
 
 
 class SignalExtractor:
@@ -237,7 +245,7 @@ class SignalExtractor:
         """Extract from confidence score."""
         if isinstance(data, (int, float)):
             return max(0.0, min(1.0, float(data)))
-        if hasattr(data, 'confidence'):
+        if hasattr(data, "confidence"):
             return max(0.0, min(1.0, float(data.confidence)))
         return 0.5
 
@@ -245,7 +253,7 @@ class SignalExtractor:
         """Extract from probability."""
         if isinstance(data, (int, float)):
             return max(0.0, min(1.0, float(data)))
-        if hasattr(data, 'probability'):
+        if hasattr(data, "probability"):
             return max(0.0, min(1.0, float(data.probability)))
         return 0.5
 
@@ -254,7 +262,7 @@ class SignalExtractor:
         if isinstance(data, (int, float)):
             # Assume [0, 100] scale
             return max(0.0, min(1.0, float(data) / 100))
-        if hasattr(data, 'score'):
+        if hasattr(data, "score"):
             return max(0.0, min(1.0, float(data.score)))
         return 0.5
 
@@ -596,11 +604,13 @@ class SNRMaximizer:
         """Get maximizer statistics."""
         pass_rate = (
             self._total_passed / self._total_processed
-            if self._total_processed > 0 else 0.0
+            if self._total_processed > 0
+            else 0.0
         )
         excellence_rate = (
             self._total_excellent / self._total_processed
-            if self._total_processed > 0 else 0.0
+            if self._total_processed > 0
+            else 0.0
         )
 
         return {
@@ -642,6 +652,7 @@ def snr_filter(min_snr: float = SNR_FLOOR):
         def get_market_signals():
             return [signal1, signal2, ...]
     """
+
     def decorator(func: Callable) -> Callable:
         async def async_wrapper(*args, **kwargs):
             result = await func(*args, **kwargs)

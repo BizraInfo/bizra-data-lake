@@ -28,22 +28,12 @@ from __future__ import annotations
 
 import logging
 import math
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
-    PILLAR_1_RUNTIME_IHSAN,
-    PILLAR_2_MUSEUM_SNR_FLOOR,
-    PILLAR_3_SANDBOX_SNR_FLOOR,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +56,16 @@ class NTUState:
         entropy: H ∈ [0, ∞) — uncertainty/information content
         potential: Φ ∈ [-1, 1] — action potential (inhibit/excite)
     """
+
     belief: float
     entropy: float
     potential: float
 
     def __post_init__(self):
         # Validate ranges
-        object.__setattr__(self, 'belief', max(0.0, min(1.0, self.belief)))
-        object.__setattr__(self, 'entropy', max(0.0, self.entropy))
-        object.__setattr__(self, 'potential', max(-1.0, min(1.0, self.potential)))
+        object.__setattr__(self, "belief", max(0.0, min(1.0, self.belief)))
+        object.__setattr__(self, "entropy", max(0.0, self.entropy))
+        object.__setattr__(self, "potential", max(-1.0, min(1.0, self.potential)))
 
     @property
     def magnitude(self) -> float:
@@ -82,7 +73,11 @@ class NTUState:
         return math.sqrt(self.belief**2 + self.entropy**2 + self.potential**2)
 
     def to_dict(self) -> Dict[str, float]:
-        return {"belief": self.belief, "entropy": self.entropy, "potential": self.potential}
+        return {
+            "belief": self.belief,
+            "entropy": self.entropy,
+            "potential": self.potential,
+        }
 
 
 @dataclass(frozen=True)
@@ -93,27 +88,31 @@ class IhsanVector:
     Based on Islamic ethical framework aligned with Constitutional AI principles.
     Each dimension ∈ [0, 1].
     """
-    truthfulness: float      # صدق — sidq
-    trustworthiness: float   # أمانة — amanah
-    justice: float           # عدل — adl
-    excellence: float        # إحسان — ihsan
-    wisdom: float            # حكمة — hikmah
-    compassion: float        # رحمة — rahmah
-    patience: float          # صبر — sabr
-    gratitude: float         # شكر — shukr
+
+    truthfulness: float  # صدق — sidq
+    trustworthiness: float  # أمانة — amanah
+    justice: float  # عدل — adl
+    excellence: float  # إحسان — ihsan
+    wisdom: float  # حكمة — hikmah
+    compassion: float  # رحمة — rahmah
+    patience: float  # صبر — sabr
+    gratitude: float  # شكر — shukr
 
     def to_array(self) -> np.ndarray:
         """Convert to numpy array for matrix operations."""
-        return np.array([
-            self.truthfulness,
-            self.trustworthiness,
-            self.justice,
-            self.excellence,
-            self.wisdom,
-            self.compassion,
-            self.patience,
-            self.gratitude,
-        ], dtype=np.float64)
+        return np.array(
+            [
+                self.truthfulness,
+                self.trustworthiness,
+                self.justice,
+                self.excellence,
+                self.wisdom,
+                self.compassion,
+                self.patience,
+                self.gratitude,
+            ],
+            dtype=np.float64,
+        )
 
     @classmethod
     def from_array(cls, arr: np.ndarray) -> "IhsanVector":
@@ -164,14 +163,17 @@ class IhsanProjector:
     # Learned projection weights (3x8 matrix)
     # Rows: [belief, entropy, potential]
     # Cols: [truthfulness, trustworthiness, justice, excellence, wisdom, compassion, patience, gratitude]
-    DEFAULT_WEIGHTS: np.ndarray = np.array([
-        # Belief row: Excellence and Truthfulness dominate
-        [0.15, 0.10, 0.05, 0.35, 0.15, 0.10, 0.05, 0.05],
-        # Entropy row: Inverted patience/gratitude (high = low entropy)
-        [0.05, 0.05, 0.10, 0.10, 0.20, 0.10, 0.20, 0.20],
-        # Potential row: Justice dominates (action tendency)
-        [0.10, 0.15, 0.40, 0.10, 0.10, 0.05, 0.05, 0.05],
-    ], dtype=np.float64)
+    DEFAULT_WEIGHTS: np.ndarray = np.array(
+        [
+            # Belief row: Excellence and Truthfulness dominate
+            [0.15, 0.10, 0.05, 0.35, 0.15, 0.10, 0.05, 0.05],
+            # Entropy row: Inverted patience/gratitude (high = low entropy)
+            [0.05, 0.05, 0.10, 0.10, 0.20, 0.10, 0.20, 0.20],
+            # Potential row: Justice dominates (action tendency)
+            [0.10, 0.15, 0.40, 0.10, 0.10, 0.05, 0.05, 0.05],
+        ],
+        dtype=np.float64,
+    )
 
     DEFAULT_BIAS: np.ndarray = np.array([0.1, 0.05, 0.0], dtype=np.float64)
 
@@ -191,7 +193,10 @@ class IhsanProjector:
         self.bias = bias if bias is not None else self.DEFAULT_BIAS.copy()
 
         # Validate dimensions
-        assert self.weights.shape == (3, 8), f"Weights must be 3x8, got {self.weights.shape}"
+        assert self.weights.shape == (
+            3,
+            8,
+        ), f"Weights must be 3x8, got {self.weights.shape}"
         assert self.bias.shape == (3,), f"Bias must be 3-element, got {self.bias.shape}"
 
     def project(self, ihsan: IhsanVector) -> NTUState:
@@ -221,7 +226,9 @@ class IhsanProjector:
 
         return NTUState(belief=belief, entropy=entropy, potential=potential)
 
-    def inverse_project(self, ntu: NTUState, prior: Optional[IhsanVector] = None) -> IhsanVector:
+    def inverse_project(
+        self, ntu: NTUState, prior: Optional[IhsanVector] = None
+    ) -> IhsanVector:
         """
         Approximate inverse projection (for interpretability).
 
@@ -255,6 +262,7 @@ class IhsanProjector:
 @dataclass
 class AdlViolation:
     """Details of an Adl (justice) invariant violation."""
+
     pre_gini: float
     post_gini: float
     threshold: float
@@ -464,18 +472,20 @@ class TreasuryMode(Enum):
 
     The Wealth Engine must survive even when markets become unethical.
     """
-    ETHICAL = auto()       # Full operation, ethical trades only
-    HIBERNATION = auto()   # Minimal compute, preserve reserves
-    EMERGENCY = auto()     # Community funding, treasury unlock
+
+    ETHICAL = auto()  # Full operation, ethical trades only
+    HIBERNATION = auto()  # Minimal compute, preserve reserves
+    EMERGENCY = auto()  # Community funding, treasury unlock
 
 
 @dataclass
 class TreasuryState:
     """Current state of the Treasury controller."""
+
     mode: TreasuryMode
-    reserves_days: float          # Days of operation remaining
-    ethical_score: float          # Current market ethics score [0, 1]
-    burn_rate: float              # SEED tokens consumed per day
+    reserves_days: float  # Days of operation remaining
+    ethical_score: float  # Current market ethics score [0, 1]
+    burn_rate: float  # SEED tokens consumed per day
     last_transition: datetime
     transition_reason: str
     metrics: Dict[str, Any] = field(default_factory=dict)
@@ -496,16 +506,18 @@ class TreasuryController:
     """
 
     # Thresholds for mode transitions
-    ETHICAL_THRESHOLD: float = 0.60          # Below this → HIBERNATION
-    EMERGENCY_THRESHOLD_DAYS: float = 7.0    # Below this → EMERGENCY
-    RECOVERY_THRESHOLD: float = 0.75         # Above this → return to ETHICAL
-    EMERGENCY_UNLOCK_PERCENT: float = 0.10   # Unlock 10% in emergency
+    ETHICAL_THRESHOLD: float = 0.60  # Below this → HIBERNATION
+    EMERGENCY_THRESHOLD_DAYS: float = 7.0  # Below this → EMERGENCY
+    RECOVERY_THRESHOLD: float = 0.75  # Above this → return to ETHICAL
+    EMERGENCY_UNLOCK_PERCENT: float = 0.10  # Unlock 10% in emergency
 
     def __init__(
         self,
         initial_reserves_days: float = 90.0,
         initial_ethical_score: float = 0.80,
-        on_transition: Optional[Callable[[TreasuryMode, TreasuryMode, str], None]] = None,
+        on_transition: Optional[
+            Callable[[TreasuryMode, TreasuryMode, str], None]
+        ] = None,
     ):
         """
         Initialize Treasury controller.
@@ -524,7 +536,9 @@ class TreasuryController:
             transition_reason="initialization",
         )
         self.on_transition = on_transition
-        self._transition_log: List[Tuple[datetime, TreasuryMode, TreasuryMode, str]] = []
+        self._transition_log: List[Tuple[datetime, TreasuryMode, TreasuryMode, str]] = (
+            []
+        )
 
     def evaluate_market_ethics(self, market_data: Dict[str, Any]) -> float:
         """
@@ -550,10 +564,10 @@ class TreasuryController:
 
         # Weighted combination (lower volatility/manipulation = higher ethics)
         ethics = (
-            0.25 * (1.0 - min(volatility, 1.0)) +
-            0.25 * (1.0 - manipulation_score) +
-            0.25 * compliance_score +
-            0.25 * social_impact
+            0.25 * (1.0 - min(volatility, 1.0))
+            + 0.25 * (1.0 - manipulation_score)
+            + 0.25 * compliance_score
+            + 0.25 * social_impact
         )
 
         return max(0.0, min(1.0, ethics))
@@ -566,9 +580,9 @@ class TreasuryController:
             Burn rate as fraction of baseline (1.0 = normal)
         """
         mode_multipliers = {
-            TreasuryMode.ETHICAL: 1.0,      # Full burn
+            TreasuryMode.ETHICAL: 1.0,  # Full burn
             TreasuryMode.HIBERNATION: 0.2,  # 80% reduction
-            TreasuryMode.EMERGENCY: 0.05,   # 95% reduction
+            TreasuryMode.EMERGENCY: 0.05,  # 95% reduction
         }
         return mode_multipliers.get(self.state.mode, 1.0)
 
@@ -604,8 +618,16 @@ class TreasuryController:
             reserves_days=max(0.0, new_reserves),
             ethical_score=new_ethical_score,
             burn_rate=burn_rate,
-            last_transition=self.state.last_transition if new_mode == old_mode else datetime.now(timezone.utc),
-            transition_reason=self.state.transition_reason if new_mode == old_mode else self._transition_reason(old_mode, new_mode),
+            last_transition=(
+                self.state.last_transition
+                if new_mode == old_mode
+                else datetime.now(timezone.utc)
+            ),
+            transition_reason=(
+                self.state.transition_reason
+                if new_mode == old_mode
+                else self._transition_reason(old_mode, new_mode)
+            ),
             metrics={
                 "market_data": market_data,
                 "elapsed_days": elapsed_days,
@@ -618,7 +640,9 @@ class TreasuryController:
 
         return self.state
 
-    def _determine_mode(self, ethical_score: float, reserves_days: float) -> TreasuryMode:
+    def _determine_mode(
+        self, ethical_score: float, reserves_days: float
+    ) -> TreasuryMode:
         """Determine appropriate mode based on conditions."""
         current_mode = self.state.mode
 
@@ -640,9 +664,15 @@ class TreasuryController:
             return TreasuryMode.HIBERNATION
 
         elif current_mode == TreasuryMode.EMERGENCY:
-            if ethical_score > self.RECOVERY_THRESHOLD and reserves_days > self.EMERGENCY_THRESHOLD_DAYS * 2:
+            if (
+                ethical_score > self.RECOVERY_THRESHOLD
+                and reserves_days > self.EMERGENCY_THRESHOLD_DAYS * 2
+            ):
                 return TreasuryMode.ETHICAL
-            if ethical_score > self.ETHICAL_THRESHOLD and reserves_days > self.EMERGENCY_THRESHOLD_DAYS:
+            if (
+                ethical_score > self.ETHICAL_THRESHOLD
+                and reserves_days > self.EMERGENCY_THRESHOLD_DAYS
+            ):
                 return TreasuryMode.HIBERNATION
             return TreasuryMode.EMERGENCY
 
@@ -674,7 +704,9 @@ class TreasuryController:
         """Check if emergency mode is required."""
         return self.state.reserves_days < self.EMERGENCY_THRESHOLD_DAYS
 
-    def get_transition_history(self) -> List[Tuple[datetime, TreasuryMode, TreasuryMode, str]]:
+    def get_transition_history(
+        self,
+    ) -> List[Tuple[datetime, TreasuryMode, TreasuryMode, str]]:
         """Get history of mode transitions."""
         return self._transition_log.copy()
 
@@ -749,7 +781,9 @@ class OmegaEngine:
         Returns:
             (is_valid, error_message or None)
         """
-        valid, violation = self.adl.validate_transaction(pre_state, post_state, action_id)
+        valid, violation = self.adl.validate_transaction(
+            pre_state, post_state, action_id
+        )
 
         if not valid and violation:
             return False, violation.reason
@@ -818,7 +852,9 @@ def create_omega_engine(
     return OmegaEngine(
         ihsan_projector=IhsanProjector(),
         adl_invariant=AdlInvariant(gini_threshold=gini_threshold),
-        treasury_controller=TreasuryController(initial_reserves_days=initial_reserves_days),
+        treasury_controller=TreasuryController(
+            initial_reserves_days=initial_reserves_days
+        ),
     )
 
 

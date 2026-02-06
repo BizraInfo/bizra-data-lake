@@ -11,18 +11,19 @@ Standing on Giants:
  toxic content, and ethical violations before training."
 """
 
-import re
 import hashlib
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Any
-from enum import Enum
 import logging
+import re
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class PIIType(Enum):
     """Types of Personally Identifiable Information."""
+
     EMAIL = "email"
     PHONE = "phone"
     SSN = "ssn"
@@ -40,6 +41,7 @@ class PIIType(Enum):
 
 class ToxicityType(Enum):
     """Categories of toxic content."""
+
     HATE_SPEECH = "hate_speech"
     HARASSMENT = "harassment"
     VIOLENCE = "violence"
@@ -52,6 +54,7 @@ class ToxicityType(Enum):
 @dataclass
 class PIIMatch:
     """A detected PII instance."""
+
     pii_type: PIIType
     start: int
     end: int
@@ -63,6 +66,7 @@ class PIIMatch:
 @dataclass
 class SanitizationResult:
     """Result of sanitization operation."""
+
     original_count: int
     sanitized_count: int
     removed_indices: List[int]
@@ -102,27 +106,23 @@ class PIIAnonymizer:
     # Regex patterns for PII detection
     PATTERNS = {
         PIIType.EMAIL: re.compile(
-            r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
         ),
         PIIType.PHONE: re.compile(
-            r'\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b'
+            r"\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b"
         ),
-        PIIType.SSN: re.compile(
-            r'\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b'
-        ),
+        PIIType.SSN: re.compile(r"\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b"),
         PIIType.CREDIT_CARD: re.compile(
-            r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b'
+            r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b"
         ),
         PIIType.IP_ADDRESS: re.compile(
-            r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b'
+            r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
         ),
         PIIType.API_KEY: re.compile(
-            r'\b(?:sk-|pk-|api[_-]?key[=:\s]+)[A-Za-z0-9_-]{20,}\b',
-            re.IGNORECASE
+            r"\b(?:sk-|pk-|api[_-]?key[=:\s]+)[A-Za-z0-9_-]{20,}\b", re.IGNORECASE
         ),
         PIIType.PASSWORD: re.compile(
-            r'(?:password|passwd|pwd)[=:\s]+[^\s]{6,}',
-            re.IGNORECASE
+            r"(?:password|passwd|pwd)[=:\s]+[^\s]{6,}", re.IGNORECASE
         ),
     }
 
@@ -206,7 +206,9 @@ class PIIAnonymizer:
 
         anonymized = text
         for match in matches:
-            anonymized = anonymized[:match.start] + match.replacement + anonymized[match.end:]
+            anonymized = (
+                anonymized[: match.start] + match.replacement + anonymized[match.end :]
+            )
 
         return anonymized, matches
 
@@ -227,7 +229,9 @@ class PIIAnonymizer:
                 if remove_if_pii:
                     removed_indices.append(i)
 
-        logger.info(f"PII scan: {n} texts, {len(pii_detections)} with PII, {len(removed_indices)} removed")
+        logger.info(
+            f"PII scan: {n} texts, {len(pii_detections)} with PII, {len(removed_indices)} removed"
+        )
 
         return SanitizationResult(
             original_count=n,
@@ -256,16 +260,16 @@ class ToxicityDetector:
     # Toxicity keyword patterns (simplified, extend for production)
     TOXICITY_PATTERNS = {
         ToxicityType.PROFANITY: [
-            r'\b(?:fuck|shit|damn|ass|bitch|bastard|crap)\b',
+            r"\b(?:fuck|shit|damn|ass|bitch|bastard|crap)\b",
         ],
         ToxicityType.HATE_SPEECH: [
-            r'\b(?:hate|kill|die|death to)\s+(?:all|every)?\s*(?:\w+s)\b',
+            r"\b(?:hate|kill|die|death to)\s+(?:all|every)?\s*(?:\w+s)\b",
         ],
         ToxicityType.VIOLENCE: [
-            r'\b(?:kill|murder|attack|destroy|bomb|shoot|stab)\s+(?:you|them|him|her|people)\b',
+            r"\b(?:kill|murder|attack|destroy|bomb|shoot|stab)\s+(?:you|them|him|her|people)\b",
         ],
         ToxicityType.SELF_HARM: [
-            r'\b(?:suicide|self[- ]?harm|cut myself|end my life)\b',
+            r"\b(?:suicide|self[- ]?harm|cut myself|end my life)\b",
         ],
     }
 
@@ -372,19 +376,19 @@ class EthicsFilter:
     # Ethics violation patterns
     ETHICS_PATTERNS = {
         "manipulation": [
-            r'\b(?:trick|deceive|manipulate|exploit|scam|fraud)\b.*\b(?:people|users|victims|customers)\b',
+            r"\b(?:trick|deceive|manipulate|exploit|scam|fraud)\b.*\b(?:people|users|victims|customers)\b",
         ],
         "harm_instruction": [
-            r'\b(?:how to|instructions? for|guide to)\b.*\b(?:hack|steal|hurt|harm|kill|attack)\b',
+            r"\b(?:how to|instructions? for|guide to)\b.*\b(?:hack|steal|hurt|harm|kill|attack)\b",
         ],
         "discrimination": [
-            r'\b(?:only|just|never)\s+(?:for|allow|hire|accept)\s+(?:\w+)\s+(?:people|men|women|race|religion)\b',
+            r"\b(?:only|just|never)\s+(?:for|allow|hire|accept)\s+(?:\w+)\s+(?:people|men|women|race|religion)\b",
         ],
         "illegal_activity": [
-            r'\b(?:how to|buy|sell|make)\b.*\b(?:drugs|weapons|explosives|poison)\b',
+            r"\b(?:how to|buy|sell|make)\b.*\b(?:drugs|weapons|explosives|poison)\b",
         ],
         "consent_violation": [
-            r'\b(?:without|bypass|ignore)\s+(?:consent|permission|approval)\b',
+            r"\b(?:without|bypass|ignore)\s+(?:consent|permission|approval)\b",
         ],
     }
 
@@ -474,17 +478,19 @@ class SanitizationEngine:
         self.enable_toxicity = enable_toxicity
         self.enable_ethics = enable_ethics
 
-        self.pii_anonymizer = PIIAnonymizer(
-            anonymization_strategy=pii_strategy
-        ) if enable_pii else None
+        self.pii_anonymizer = (
+            PIIAnonymizer(anonymization_strategy=pii_strategy) if enable_pii else None
+        )
 
-        self.toxicity_detector = ToxicityDetector(
-            max_toxicity_threshold=max_toxicity
-        ) if enable_toxicity else None
+        self.toxicity_detector = (
+            ToxicityDetector(max_toxicity_threshold=max_toxicity)
+            if enable_toxicity
+            else None
+        )
 
-        self.ethics_filter = EthicsFilter(
-            strict_mode=ethics_strict
-        ) if enable_ethics else None
+        self.ethics_filter = (
+            EthicsFilter(strict_mode=ethics_strict) if enable_ethics else None
+        )
 
     def sanitize(
         self,
@@ -514,7 +520,9 @@ class SanitizationEngine:
             if anonymize_pii:
                 for idx, matches in pii_result.pii_detections.items():
                     if idx in keep_set:
-                        sanitized_texts[idx], _ = self.pii_anonymizer.anonymize_text(texts[idx])
+                        sanitized_texts[idx], _ = self.pii_anonymizer.anonymize_text(
+                            texts[idx]
+                        )
 
         # Toxicity Detection
         if self.enable_toxicity and self.toxicity_detector:
@@ -533,9 +541,17 @@ class SanitizationEngine:
                 keep_set -= set(ethics_result.removed_indices)
 
         # Compute aggregate metrics
-        pii_density = results.get("pii", SanitizationResult(n, n, [], {}, {}, {}, "")).pii_density
-        mean_toxicity = results.get("toxicity", SanitizationResult(n, n, [], {}, {}, {}, "")).mean_toxicity
-        ethics_violations_count = len(results.get("ethics", SanitizationResult(n, n, [], {}, {}, {}, "")).ethics_violations)
+        pii_density = results.get(
+            "pii", SanitizationResult(n, n, [], {}, {}, {}, "")
+        ).pii_density
+        mean_toxicity = results.get(
+            "toxicity", SanitizationResult(n, n, [], {}, {}, {}, "")
+        ).mean_toxicity
+        ethics_violations_count = len(
+            results.get(
+                "ethics", SanitizationResult(n, n, [], {}, {}, {}, "")
+            ).ethics_violations
+        )
 
         logger.info(
             f"Sanitization complete: {n} -> {len(keep_set)} "
@@ -565,9 +581,17 @@ class SanitizationEngine:
             remove_unethical=False,
         )
 
-        pii_density = results.get("pii", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")).pii_density
-        toxicity_score = results.get("toxicity", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")).mean_toxicity
-        ethics_violations = len(results.get("ethics", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")).ethics_violations)
+        pii_density = results.get(
+            "pii", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")
+        ).pii_density
+        toxicity_score = results.get(
+            "toxicity", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")
+        ).mean_toxicity
+        ethics_violations = len(
+            results.get(
+                "ethics", SanitizationResult(len(texts), len(texts), [], {}, {}, {}, "")
+            ).ethics_violations
+        )
 
         ethics_compliance = ethics_violations == 0
         bias_score = 0.0  # Placeholder for bias detection

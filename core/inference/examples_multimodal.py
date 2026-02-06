@@ -5,10 +5,10 @@ Shows practical patterns for routing tasks to the right model.
 """
 
 from core.inference.multimodal import (
-    get_multimodal_router,
     ModelCapability,
     MultiModalConfig,
     MultiModalRouter,
+    get_multimodal_router,
 )
 
 
@@ -46,12 +46,11 @@ def example_2_explicit_types():
     # Sometimes text doesn't clearly indicate modality
     # Use explicit_type to override detection
     decision = router.route(
-        "What does this say?",
-        explicit_type="image"  # Override: treat as vision task
+        "What does this say?", explicit_type="image"  # Override: treat as vision task
     )
 
-    print(f"\nTask: 'What does this say?'")
-    print(f"  Explicit type: image")
+    print("\nTask: 'What does this say?'")
+    print("  Explicit type: image")
     print(f"  Selected model: {decision.model.name}")
     print(f"  Reason: {decision.reason}")
 
@@ -73,7 +72,7 @@ def example_3_dict_specification():
 
     decision = router.route(task)
 
-    print(f"\nTask specification:")
+    print("\nTask specification:")
     print(f"  Text: {task['text'][:50]}...")
     print(f"  Has image: {task['has_image']}")
     print(f"  Has audio: {task['has_audio']}")
@@ -98,7 +97,7 @@ def example_4_capability_selection():
         print(f"  Speed: ~{decision.model.speed_tok_per_sec:.0f} tokens/sec")
 
         if decision.alternatives:
-            print(f"  Alternatives:")
+            print("  Alternatives:")
             for alt in decision.alternatives[:2]:
                 print(f"    - {alt.name}")
 
@@ -183,7 +182,7 @@ def example_7_listing_models():
     print(f"Total: {len(router.list_models())}")
 
     for model in router.list_models():
-        caps = ", ".join(c.value for c in model.capabilities)
+        ", ".join(c.value for c in model.capabilities)
         print(
             f"  {model.name:20} ({model.params_b:5.1f}B) - "
             f"{model.primary_capability.value:10} | {model.backend}"
@@ -210,9 +209,11 @@ def example_8_adaptive_speed_selection():
 
     # Vision tasks need low latency (streaming video analysis)
     vision_models = router.list_by_capability(ModelCapability.VISION)
-    vision_by_speed = sorted(vision_models, key=lambda m: m.speed_tok_per_sec, reverse=True)
+    vision_by_speed = sorted(
+        vision_models, key=lambda m: m.speed_tok_per_sec, reverse=True
+    )
 
-    print(f"\nVision models (fastest first):")
+    print("\nVision models (fastest first):")
     for model in vision_by_speed:
         print(f"  {model.name:20} - ~{model.speed_tok_per_sec:5.0f} tok/s")
 
@@ -223,7 +224,7 @@ def example_8_adaptive_speed_selection():
     reasoning_models = router.list_by_capability(ModelCapability.REASONING)
     reasoning_by_size = sorted(reasoning_models, key=lambda m: m.params_b, reverse=True)
 
-    print(f"\nReasoning models (largest first):")
+    print("\nReasoning models (largest first):")
     for model in reasoning_by_size:
         print(f"  {model.name:20} - {model.params_b:6.1f}B")
 
@@ -241,13 +242,13 @@ def example_9_fallback_chain():
 
     decision = router.select_model(ModelCapability.REASONING)
 
-    print(f"\nReasoning model selection:")
+    print("\nReasoning model selection:")
     print(f"  Primary choice: {decision.model.name}")
     print(f"  Confidence: {decision.confidence:.0%}")
     print(f"  Reason: {decision.reason}")
 
     if decision.alternatives:
-        print(f"\n  Fallback alternatives:")
+        print("\n  Fallback alternatives:")
         for i, alt in enumerate(decision.alternatives, 1):
             print(f"    {i}. {alt.name} ({alt.params_b}B)")
 

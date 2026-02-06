@@ -13,13 +13,12 @@ Where SignalMass/NoiseMass are auditable totals from:
 Every SNR computation produces a trace for audit.
 """
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.proof_engine import DEFAULT_SNR_POLICY
-from core.proof_engine.canonical import canonical_bytes, blake3_digest
+from core.proof_engine.canonical import blake3_digest, canonical_bytes
 
 
 @dataclass
@@ -29,6 +28,7 @@ class SNRPolicy:
 
     Defines weights and thresholds for signal/noise calculation.
     """
+
     snr_min: float = 0.95
     contradiction_penalty: float = 1.0
     unverifiable_penalty: float = 0.5
@@ -69,6 +69,7 @@ class SNRTrace:
 
     Captures all inputs and intermediate values for verification.
     """
+
     # Input scores
     provenance_score: float
     constraint_score: float
@@ -120,6 +121,7 @@ class SNRInput:
 
     All factors that contribute to signal/noise.
     """
+
     # Provenance factors
     provenance_depth: int = 0
     corroboration_count: int = 0
@@ -147,41 +149,28 @@ class SNRInput:
         depth_score = min(self.provenance_depth / 5, 1.0)
         corroboration_score = min(self.corroboration_count / 3, 1.0)
         return (
-            0.3 * depth_score +
-            0.3 * corroboration_score +
-            0.4 * self.source_trust_score
+            0.3 * depth_score
+            + 0.3 * corroboration_score
+            + 0.4 * self.source_trust_score
         )
 
     def compute_constraint_score(self) -> float:
         """Compute normalized constraint score."""
         z3_score = 1.0 if self.z3_satisfiable else 0.0
         violation_penalty = min(self.constraint_violations * 0.1, 0.5)
-        return (
-            0.4 * z3_score +
-            0.4 * self.ihsan_score +
-            0.2 * (1.0 - violation_penalty)
-        )
+        return 0.4 * z3_score + 0.4 * self.ihsan_score + 0.2 * (1.0 - violation_penalty)
 
     def compute_prediction_score(self) -> float:
         """Compute normalized prediction score."""
-        return (
-            0.6 * self.prediction_accuracy +
-            0.4 * self.context_fit_score
-        )
+        return 0.6 * self.prediction_accuracy + 0.4 * self.context_fit_score
 
     def compute_contradiction_mass(self) -> float:
         """Compute contradiction noise mass."""
-        return (
-            self.contradiction_count * 0.2 +
-            self.conflicting_sources * 0.3
-        )
+        return self.contradiction_count * 0.2 + self.conflicting_sources * 0.3
 
     def compute_unverifiable_mass(self) -> float:
         """Compute unverifiable noise mass."""
-        return (
-            self.unverifiable_claims * 0.15 +
-            self.missing_citations * 0.1
-        )
+        return self.unverifiable_claims * 0.15 + self.missing_citations * 0.1
 
 
 class SNREngine:
@@ -217,15 +206,15 @@ class SNREngine:
 
         # Compute signal mass (weighted sum of positive factors)
         signal_mass = (
-            self.policy.provenance_weight * provenance_score +
-            self.policy.constraint_weight * constraint_score +
-            self.policy.prediction_weight * prediction_score
+            self.policy.provenance_weight * provenance_score
+            + self.policy.constraint_weight * constraint_score
+            + self.policy.prediction_weight * prediction_score
         )
 
         # Compute noise mass (weighted sum of negative factors)
         noise_mass = (
-            self.policy.contradiction_penalty * contradiction_mass +
-            self.policy.unverifiable_penalty * unverifiable_mass
+            self.policy.contradiction_penalty * contradiction_mass
+            + self.policy.unverifiable_penalty * unverifiable_mass
         )
 
         # Compute SNR
@@ -287,15 +276,15 @@ class SNREngine:
 
         # Compute signal mass
         signal_mass = (
-            self.policy.provenance_weight * provenance_score +
-            self.policy.constraint_weight * constraint_score +
-            self.policy.prediction_weight * prediction_score
+            self.policy.provenance_weight * provenance_score
+            + self.policy.constraint_weight * constraint_score
+            + self.policy.prediction_weight * prediction_score
         )
 
         # Compute noise mass
         noise_mass = (
-            self.policy.contradiction_penalty * contradiction_mass +
-            self.policy.unverifiable_penalty * unverifiable_mass
+            self.policy.contradiction_penalty * contradiction_mass
+            + self.policy.unverifiable_penalty * unverifiable_mass
         )
 
         # Compute SNR
@@ -353,15 +342,15 @@ class SNREngine:
         """
         # Re-compute signal mass
         signal_mass = (
-            self.policy.provenance_weight * trace.provenance_score +
-            self.policy.constraint_weight * trace.constraint_score +
-            self.policy.prediction_weight * trace.prediction_score
+            self.policy.provenance_weight * trace.provenance_score
+            + self.policy.constraint_weight * trace.constraint_score
+            + self.policy.prediction_weight * trace.prediction_score
         )
 
         # Re-compute noise mass
         noise_mass = (
-            self.policy.contradiction_penalty * trace.contradiction_mass +
-            self.policy.unverifiable_penalty * trace.unverifiable_mass
+            self.policy.contradiction_penalty * trace.contradiction_mass
+            + self.policy.unverifiable_penalty * trace.unverifiable_mass
         )
 
         # Re-compute SNR

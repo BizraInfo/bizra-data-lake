@@ -16,24 +16,20 @@ Coordinates with specialized agents:
 """
 
 import asyncio
-import hashlib
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.bounty import (
-    AGENT_ROLES,
-    SECURITY_VECTORS,
-    VULN_CATEGORIES,
     BOUNTY_SNR_THRESHOLD,
 )
 from core.bounty.impact_proof import (
+    DomainEvent,
+    EntropyMeasurement,
     ImpactProof,
     ImpactProofBuilder,
-    EntropyMeasurement,
-    DomainEvent,
     Severity,
     VulnCategory,
 )
@@ -42,6 +38,7 @@ from core.proof_engine.receipt import SovereignSigner
 
 class ScanStatus(Enum):
     """Scan status."""
+
     IDLE = "idle"
     SCANNING = "scanning"
     ANALYZING = "analyzing"
@@ -52,6 +49,7 @@ class ScanStatus(Enum):
 @dataclass
 class ScanTarget:
     """A target to scan."""
+
     address: str
     chain: str = "ethereum"
     name: Optional[str] = None
@@ -75,6 +73,7 @@ class ScanTarget:
 @dataclass
 class ScanResult:
     """Result of a vulnerability scan."""
+
     target: ScanTarget
     vulnerabilities: List[Dict[str, Any]]
     entropy_measurements: EntropyMeasurement
@@ -140,6 +139,7 @@ class SurfaceAnalyzer(VectorAnalyzer):
             byte_counts[b] += 1
 
         import math
+
         entropy = 0.0
         total = len(bytecode)
         for count in byte_counts:
@@ -153,13 +153,15 @@ class SurfaceAnalyzer(VectorAnalyzer):
 
         # High entropy regions may indicate obfuscation or complexity
         if normalized > 0.9:
-            findings.append({
-                "category": "logic_error",
-                "severity": "medium",
-                "title": "High bytecode entropy detected",
-                "description": f"Bytecode entropy {normalized:.3f} suggests complex or obfuscated code",
-                "confidence": 0.6,
-            })
+            findings.append(
+                {
+                    "category": "logic_error",
+                    "severity": "medium",
+                    "title": "High bytecode entropy detected",
+                    "description": f"Bytecode entropy {normalized:.3f} suggests complex or obfuscated code",
+                    "confidence": 0.6,
+                }
+            )
 
         return normalized, findings
 
@@ -186,24 +188,29 @@ class StructuralAnalyzer(VectorAnalyzer):
         # Check for reentrancy patterns (simplified)
         # Real implementation would use proper disassembly
         call_count = bytecode.count(b"\xf1") + bytecode.count(b"\xf2")  # CALL, CALLCODE
-        sstore_count = bytecode.count(b"\x55")  # SSTORE
+        bytecode.count(b"\x55")  # SSTORE
 
         if call_count > 0:
             # Check if SSTORE appears after CALL (potential reentrancy)
-            call_indices = [i for i, b in enumerate(bytecode) if b == 0xf1]
+            call_indices = [i for i, b in enumerate(bytecode) if b == 0xF1]
             sstore_indices = [i for i, b in enumerate(bytecode) if b == 0x55]
 
             for call_idx in call_indices:
                 later_sstores = [s for s in sstore_indices if s > call_idx]
                 if later_sstores:
-                    findings.append({
-                        "category": "reentrancy",
-                        "severity": "high",
-                        "title": "Potential reentrancy vulnerability",
-                        "description": "State modification after external call detected",
-                        "confidence": 0.7,
-                        "location": {"call_offset": call_idx, "sstore_offset": later_sstores[0]},
-                    })
+                    findings.append(
+                        {
+                            "category": "reentrancy",
+                            "severity": "high",
+                            "title": "Potential reentrancy vulnerability",
+                            "description": "State modification after external call detected",
+                            "confidence": 0.7,
+                            "location": {
+                                "call_offset": call_idx,
+                                "sstore_offset": later_sstores[0],
+                            },
+                        }
+                    )
                     entropy = 0.8
                     break
 
@@ -240,24 +247,28 @@ class BehavioralAnalyzer(VectorAnalyzer):
 
                     # Flash loan patterns
                     if "flash" in name.lower() or "loan" in name.lower():
-                        findings.append({
-                            "category": "flash_loan",
-                            "severity": "medium",
-                            "title": f"Flash loan function: {name}",
-                            "description": "Flash loan functionality detected - verify callback security",
-                            "confidence": 0.8,
-                        })
+                        findings.append(
+                            {
+                                "category": "flash_loan",
+                                "severity": "medium",
+                                "title": f"Flash loan function: {name}",
+                                "description": "Flash loan functionality detected - verify callback security",
+                                "confidence": 0.8,
+                            }
+                        )
                         entropy = 0.7
 
                     # Upgrade patterns
                     if "upgrade" in name.lower() or "setImplementation" in name.lower():
-                        findings.append({
-                            "category": "upgrade_vulnerability",
-                            "severity": "high",
-                            "title": f"Upgrade function: {name}",
-                            "description": "Upgradeable contract - verify access controls",
-                            "confidence": 0.9,
-                        })
+                        findings.append(
+                            {
+                                "category": "upgrade_vulnerability",
+                                "severity": "high",
+                                "title": f"Upgrade function: {name}",
+                                "description": "Upgradeable contract - verify access controls",
+                                "confidence": 0.9,
+                            }
+                        )
                         entropy = max(entropy, 0.8)
 
         return entropy, findings
@@ -286,13 +297,15 @@ class HypotheticalAnalyzer(VectorAnalyzer):
             # Unchecked arithmetic (Solidity <0.8)
             if "pragma solidity ^0.7" in source or "pragma solidity ^0.6" in source:
                 if "SafeMath" not in source:
-                    findings.append({
-                        "category": "integer_overflow",
-                        "severity": "high",
-                        "title": "Unchecked arithmetic in legacy Solidity",
-                        "description": "Contract uses Solidity <0.8 without SafeMath",
-                        "confidence": 0.9,
-                    })
+                    findings.append(
+                        {
+                            "category": "integer_overflow",
+                            "severity": "high",
+                            "title": "Unchecked arithmetic in legacy Solidity",
+                            "description": "Contract uses Solidity <0.8 without SafeMath",
+                            "confidence": 0.9,
+                        }
+                    )
                     entropy = 0.85
 
         return entropy, findings
@@ -320,13 +333,15 @@ class ContextualAnalyzer(VectorAnalyzer):
 
             # Check for missing access control comments
             if "onlyOwner" in source and "* @notice" not in source:
-                findings.append({
-                    "category": "access_control",
-                    "severity": "low",
-                    "title": "Missing documentation for access-controlled functions",
-                    "description": "Access control present but NatSpec documentation missing",
-                    "confidence": 0.6,
-                })
+                findings.append(
+                    {
+                        "category": "access_control",
+                        "severity": "low",
+                        "title": "Missing documentation for access-controlled functions",
+                        "description": "Access control present but NatSpec documentation missing",
+                        "confidence": 0.6,
+                    }
+                )
                 entropy = 0.6
 
         return entropy, findings
@@ -372,10 +387,7 @@ class HunterAgent:
 
         try:
             # Run analyzers in parallel
-            tasks = [
-                analyzer.analyze(target)
-                for analyzer in self._analyzers.values()
-            ]
+            tasks = [analyzer.analyze(target) for analyzer in self._analyzers.values()]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Collect results
@@ -530,9 +542,7 @@ class HunterSwarm:
         num_agents: int = 3,
     ):
         self.signer = signer
-        self.agents = [
-            HunterAgent(signer) for _ in range(num_agents)
-        ]
+        self.agents = [HunterAgent(signer) for _ in range(num_agents)]
         self._results: List[Tuple[ScanResult, List[ImpactProof]]] = []
 
     async def hunt_targets(
@@ -559,8 +569,7 @@ class HunterSwarm:
             return results
 
         all_tasks = [
-            agent_hunt(agent, tasks)
-            for agent, tasks in zip(self.agents, agent_tasks)
+            agent_hunt(agent, tasks) for agent, tasks in zip(self.agents, agent_tasks)
         ]
 
         all_results = await asyncio.gather(*all_tasks)
@@ -577,9 +586,7 @@ class HunterSwarm:
         """Get swarm statistics."""
         total_scans = sum(len(a._scan_history) for a in self.agents)
         total_findings = sum(
-            len(s.vulnerabilities)
-            for a in self.agents
-            for s in a._scan_history
+            len(s.vulnerabilities) for a in self.agents for s in a._scan_history
         )
         total_proofs = sum(len(a._proofs) for a in self.agents)
 

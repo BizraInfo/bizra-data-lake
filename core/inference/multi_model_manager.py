@@ -26,7 +26,8 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable
+from typing import Any, Dict, List, Optional
+
 import httpx
 
 from core.inference.response_utils import strip_think_tokens
@@ -36,28 +37,31 @@ logger = logging.getLogger(__name__)
 
 class ModelPurpose(str, Enum):
     """Model specialization categories."""
-    REASONING = "reasoning"      # Deep thinking, chain-of-thought
-    VISION = "vision"            # Image understanding
-    AGENTIC = "agentic"          # Tool use, planning
-    EMBEDDING = "embedding"      # Vector embeddings
-    GENERAL = "general"          # General chat/completion
-    UNCENSORED = "uncensored"    # Unrestricted output
-    NANO = "nano"                # Fast, lightweight
-    VOICE = "voice"              # Speech/audio (TTS/STT models)
+
+    REASONING = "reasoning"  # Deep thinking, chain-of-thought
+    VISION = "vision"  # Image understanding
+    AGENTIC = "agentic"  # Tool use, planning
+    EMBEDDING = "embedding"  # Vector embeddings
+    GENERAL = "general"  # General chat/completion
+    UNCENSORED = "uncensored"  # Unrestricted output
+    NANO = "nano"  # Fast, lightweight
+    VOICE = "voice"  # Speech/audio (TTS/STT models)
 
 
 class ModelStatus(str, Enum):
     """Model loading status."""
-    AVAILABLE = "available"      # Downloaded, not loaded
-    LOADED = "loaded"            # In memory, ready
-    LOADING = "loading"          # Currently loading
-    UNLOADING = "unloading"      # Currently unloading
-    ERROR = "error"              # Failed to load
+
+    AVAILABLE = "available"  # Downloaded, not loaded
+    LOADED = "loaded"  # In memory, ready
+    LOADING = "loading"  # Currently loading
+    UNLOADING = "unloading"  # Currently unloading
+    ERROR = "error"  # Failed to load
 
 
 @dataclass
 class ModelProfile:
     """Profile for a model with its capabilities."""
+
     id: str
     name: str
     purposes: List[ModelPurpose]
@@ -88,33 +92,35 @@ class ConnectionPoolConfig:
     - Aggressive keepalive for connection reuse
     - Bounded pool size to prevent resource exhaustion
     """
+
     # Pool sizing (HikariCP-inspired)
-    max_connections: int = 100          # Maximum total connections
+    max_connections: int = 100  # Maximum total connections
     max_keepalive_connections: int = 20  # Persistent connections to maintain
-    keepalive_expiry: float = 30.0       # Seconds before idle connection expires
+    keepalive_expiry: float = 30.0  # Seconds before idle connection expires
 
     # Timeout configuration (prevent thread starvation)
-    connect_timeout: float = 5.0         # Connection establishment timeout
-    read_timeout: float = 30.0           # Response read timeout (reduced from 120s)
-    write_timeout: float = 10.0          # Request write timeout
-    pool_timeout: float = 5.0            # Wait for available connection
+    connect_timeout: float = 5.0  # Connection establishment timeout
+    read_timeout: float = 30.0  # Response read timeout (reduced from 120s)
+    write_timeout: float = 10.0  # Request write timeout
+    pool_timeout: float = 5.0  # Wait for available connection
 
     # HTTP/2 settings
-    http2: bool = True                   # Enable HTTP/2 for multiplexing
+    http2: bool = True  # Enable HTTP/2 for multiplexing
 
     # Health check settings
     health_check_interval: float = 30.0  # Seconds between health checks
-    unhealthy_threshold: int = 3         # Failures before marking unhealthy
+    unhealthy_threshold: int = 3  # Failures before marking unhealthy
 
 
 @dataclass
 class ConnectionPoolMetrics:
     """Metrics for connection pool monitoring."""
+
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
     total_latency_ms: float = 0.0
-    min_latency_ms: float = float('inf')
+    min_latency_ms: float = float("inf")
     max_latency_ms: float = 0.0
     connection_reuse_count: int = 0
     connection_errors: int = 0
@@ -156,7 +162,11 @@ class ConnectionPoolMetrics:
             "failed_requests": self.failed_requests,
             "success_rate_pct": round(self.success_rate, 2),
             "avg_latency_ms": round(self.avg_latency_ms, 2),
-            "min_latency_ms": round(self.min_latency_ms, 2) if self.min_latency_ms != float('inf') else 0.0,
+            "min_latency_ms": (
+                round(self.min_latency_ms, 2)
+                if self.min_latency_ms != float("inf")
+                else 0.0
+            ),
             "max_latency_ms": round(self.max_latency_ms, 2),
             "connection_reuse_count": self.connection_reuse_count,
             "connection_errors": self.connection_errors,
@@ -168,6 +178,7 @@ class ConnectionPoolMetrics:
 @dataclass
 class MultiModelConfig:
     """Configuration for multi-model manager."""
+
     host: str = "192.168.56.1"
     port: int = 1234
 
@@ -205,7 +216,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         vram_gb=8.0,
         priority=100,
         supports_tools=True,
-        quantization="Q8_0"
+        quantization="Q8_0",
     ),
     "mistralai/ministral-3-14b-reasoning": ModelProfile(
         id="mistralai/ministral-3-14b-reasoning",
@@ -215,7 +226,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=10.0,
         priority=90,
-        supports_tools=True
+        supports_tools=True,
     ),
     "qwen/qwen3-4b-thinking-2507": ModelProfile(
         id="qwen/qwen3-4b-thinking-2507",
@@ -224,9 +235,8 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=4.0,
         context_length=32768,
         vram_gb=3.0,
-        priority=70
+        priority=70,
     ),
-
     # ═══════════════════════════════════════════════════════════════════
     # VISION MODELS
     # ═══════════════════════════════════════════════════════════════════
@@ -238,7 +248,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=8.0,
         priority=100,
-        supports_vision=True
+        supports_vision=True,
     ),
     "qwen/qwen3-vl-4b": ModelProfile(
         id="qwen/qwen3-vl-4b",
@@ -248,9 +258,8 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=4.0,
         priority=80,
-        supports_vision=True
+        supports_vision=True,
     ),
-
     # ═══════════════════════════════════════════════════════════════════
     # AGENTIC MODELS
     # ═══════════════════════════════════════════════════════════════════
@@ -262,7 +271,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=6.0,
         priority=100,
-        supports_tools=True
+        supports_tools=True,
     ),
     "llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b": ModelProfile(
         id="llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b",
@@ -272,9 +281,8 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=12.0,
         priority=90,
-        supports_tools=True
+        supports_tools=True,
     ),
-
     # ═══════════════════════════════════════════════════════════════════
     # EMBEDDING MODELS
     # ═══════════════════════════════════════════════════════════════════
@@ -285,9 +293,8 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=0.1,
         context_length=8192,
         vram_gb=0.5,
-        priority=100
+        priority=100,
     ),
-
     # ═══════════════════════════════════════════════════════════════════
     # GENERAL/NANO MODELS
     # ═══════════════════════════════════════════════════════════════════
@@ -299,7 +306,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         context_length=32768,
         vram_gb=10.0,
         priority=90,
-        supports_tools=True
+        supports_tools=True,
     ),
     "qwen2.5-0.5b-instruct": ModelProfile(
         id="qwen2.5-0.5b-instruct",
@@ -308,7 +315,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=0.5,
         context_length=32768,
         vram_gb=0.5,
-        priority=100
+        priority=100,
     ),
     "chuanli11_-_llama-3.2-3b-instruct-uncensored": ModelProfile(
         id="chuanli11_-_llama-3.2-3b-instruct-uncensored",
@@ -317,7 +324,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=3.0,
         context_length=8192,
         vram_gb=2.5,
-        priority=80
+        priority=80,
     ),
     "nvidia/nemotron-3-nano": ModelProfile(
         id="nvidia/nemotron-3-nano",
@@ -326,7 +333,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=1.0,
         context_length=4096,
         vram_gb=1.0,
-        priority=70
+        priority=70,
     ),
     "liquid/lfm2.5-1.2b": ModelProfile(
         id="liquid/lfm2.5-1.2b",
@@ -335,7 +342,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=1.2,
         context_length=4096,
         vram_gb=1.0,
-        priority=60
+        priority=60,
     ),
     "ibm/granite-4-h-tiny": ModelProfile(
         id="ibm/granite-4-h-tiny",
@@ -344,7 +351,7 @@ MODEL_CATALOG: Dict[str, ModelProfile] = {
         params_b=0.5,
         context_length=4096,
         vram_gb=0.5,
-        priority=50
+        priority=50,
     ),
 }
 
@@ -408,11 +415,11 @@ class MultiModelManager:
 
         # Configure tiered timeouts (prevents 120s thread starvation)
         timeout = httpx.Timeout(
-            timeout=pool_cfg.read_timeout,      # Overall timeout
-            connect=pool_cfg.connect_timeout,   # Connection establishment
-            read=pool_cfg.read_timeout,         # Response reading
-            write=pool_cfg.write_timeout,       # Request writing
-            pool=pool_cfg.pool_timeout,         # Wait for available connection
+            timeout=pool_cfg.read_timeout,  # Overall timeout
+            connect=pool_cfg.connect_timeout,  # Connection establishment
+            read=pool_cfg.read_timeout,  # Response reading
+            write=pool_cfg.write_timeout,  # Request writing
+            pool=pool_cfg.pool_timeout,  # Wait for available connection
         )
 
         # Configure connection pool limits (HikariCP pattern)
@@ -446,12 +453,13 @@ class MultiModelManager:
 
             # Start background health check task
             self._health_check_task = asyncio.create_task(
-                self._health_check_loop(),
-                name="connection_pool_health_check"
+                self._health_check_loop(), name="connection_pool_health_check"
             )
 
             self._initialized = True
-            logger.info(f"MultiModelManager initialized with {len(self._models)} models")
+            logger.info(
+                f"MultiModelManager initialized with {len(self._models)} models"
+            )
             return True
 
         except Exception as e:
@@ -479,14 +487,16 @@ class MultiModelManager:
                     purposes=[ModelPurpose.GENERAL],
                     params_b=self._parse_params(model_data.get("params_string", "")),
                     context_length=model_data.get("max_context_length", 4096),
-                    quantization=model_data.get("quantization", {}).get("name", "")
+                    quantization=model_data.get("quantization", {}).get("name", ""),
                 )
 
             # Update status from API
             if model_data.get("loaded_instances"):
                 profile.status = ModelStatus.LOADED
                 instance = model_data["loaded_instances"][0]
-                profile.context_length = instance.get("config", {}).get("context_length", profile.context_length)
+                profile.context_length = instance.get("config", {}).get(
+                    "context_length", profile.context_length
+                )
                 if model_id not in self._loaded_models:
                     self._loaded_models.append(model_id)
             else:
@@ -494,7 +504,9 @@ class MultiModelManager:
 
             self._models[model_id] = profile
 
-        logger.info(f"Discovered {len(self._models)} models, {len(self._loaded_models)} loaded")
+        logger.info(
+            f"Discovered {len(self._models)} models, {len(self._loaded_models)} loaded"
+        )
 
     def _parse_params(self, params_str: str) -> float:
         """Parse parameter string like '8B' to float."""
@@ -536,7 +548,10 @@ class MultiModelManager:
                     self._pool_metrics.is_healthy = True
                 else:
                     self._pool_metrics.health_check_failures += 1
-                    if self._pool_metrics.health_check_failures >= pool_cfg.unhealthy_threshold:
+                    if (
+                        self._pool_metrics.health_check_failures
+                        >= pool_cfg.unhealthy_threshold
+                    ):
                         if self._pool_metrics.is_healthy:
                             logger.warning(
                                 f"Connection pool unhealthy after {pool_cfg.unhealthy_threshold} failures"
@@ -591,12 +606,7 @@ class MultiModelManager:
             logger.warning(f"Health check error: {e}")
             return False
 
-    async def _timed_request(
-        self,
-        method: str,
-        url: str,
-        **kwargs
-    ) -> httpx.Response:
+    async def _timed_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """
         Execute HTTP request with latency tracking.
 
@@ -625,7 +635,9 @@ class MultiModelManager:
             self._pool_metrics.record_request(latency_ms, success)
 
             # Track connection reuse (HTTP/2 multiplexing)
-            if success and latency_ms < 10.0:  # Fast response indicates connection reuse
+            if (
+                success and latency_ms < 10.0
+            ):  # Fast response indicates connection reuse
                 self._pool_metrics.connection_reuse_count += 1
 
     def get_pool_metrics(self) -> Dict[str, Any]:
@@ -646,7 +658,7 @@ class MultiModelManager:
         purpose: ModelPurpose,
         prefer_loaded: bool = True,
         min_context: int = 0,
-        max_params: float = float('inf')
+        max_params: float = float("inf"),
     ) -> Optional[ModelProfile]:
         """
         Get best model for a given purpose.
@@ -687,10 +699,7 @@ class MultiModelManager:
         return candidates[0]
 
     async def load_model(
-        self,
-        model_id: str,
-        context_length: Optional[int] = None,
-        gpu_layers: int = -1
+        self, model_id: str, context_length: Optional[int] = None, gpu_layers: int = -1
     ) -> bool:
         """Load a model into LM Studio."""
         if model_id not in self._models:
@@ -713,7 +722,7 @@ class MultiModelManager:
                 payload["gpu_layers"] = gpu_layers
 
             # Use _timed_request for metrics tracking (P0-1)
-            resp = await self._timed_request("POST", "/api/v1/models/load", json=payload)
+            await self._timed_request("POST", "/api/v1/models/load", json=payload)
 
             model.status = ModelStatus.LOADED
             if model_id not in self._loaded_models:
@@ -737,10 +746,8 @@ class MultiModelManager:
 
         try:
             # Use _timed_request for metrics tracking (P0-1)
-            resp = await self._timed_request(
-                "POST",
-                "/api/v1/models/unload",
-                json={"model": model_id}
+            await self._timed_request(
+                "POST", "/api/v1/models/unload", json={"model": model_id}
             )
 
             model.status = ModelStatus.AVAILABLE
@@ -775,7 +782,7 @@ class MultiModelManager:
         images: Optional[List[str]] = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Chat with automatic model selection based on purpose.
@@ -813,10 +820,12 @@ class MultiModelManager:
         if images and model.supports_vision:
             content = [{"type": "text", "text": message}]
             for img in images:
-                content.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{img}"}
-                })
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{img}"},
+                    }
+                )
             messages.append({"role": "user", "content": content})
         else:
             messages.append({"role": "user", "content": message})
@@ -826,15 +835,19 @@ class MultiModelManager:
             "model": model.id,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
         }
 
         try:
-            resp = await self._timed_request("POST", "/v1/chat/completions", json=payload)
+            resp = await self._timed_request(
+                "POST", "/v1/chat/completions", json=payload
+            )
             data = resp.json()
 
             # Extract raw content
-            raw_content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            raw_content = (
+                data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            )
 
             # Strip DeepSeek R1 <think>...</think> tokens if present
             # This ensures clean output for reasoning models
@@ -915,13 +928,12 @@ class MultiModelManager:
             try:
                 # Allow time for in-flight requests to complete
                 logger.info(f"Draining connections (timeout={drain_timeout}s)...")
-                await asyncio.wait_for(
-                    self._client.aclose(),
-                    timeout=drain_timeout
-                )
+                await asyncio.wait_for(self._client.aclose(), timeout=drain_timeout)
                 logger.info("Connection pool closed gracefully")
             except asyncio.TimeoutError:
-                logger.warning(f"Connection drain timed out after {drain_timeout}s, forcing close")
+                logger.warning(
+                    f"Connection drain timed out after {drain_timeout}s, forcing close"
+                )
             except Exception as e:
                 logger.error(f"Error during connection pool close: {e}")
             finally:
@@ -955,9 +967,7 @@ async def get_multi_model_manager() -> MultiModelManager:
 
 
 async def auto_chat(
-    message: str,
-    purpose: ModelPurpose = ModelPurpose.GENERAL,
-    **kwargs
+    message: str, purpose: ModelPurpose = ModelPurpose.GENERAL, **kwargs
 ) -> Dict[str, Any]:
     """Quick chat with automatic model selection."""
     manager = await get_multi_model_manager()
@@ -969,6 +979,7 @@ async def auto_chat(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
+
     async def test():
         print("=" * 70)
         print("    BIZRA MULTI-MODEL MANAGER")
@@ -979,12 +990,14 @@ if __name__ == "__main__":
         if await manager.initialize():
             status = manager.get_status()
 
-            print(f"\n[MODELS] {status['total_models']} total, {status['loaded_models']} loaded")
+            print(
+                f"\n[MODELS] {status['total_models']} total, {status['loaded_models']} loaded"
+            )
             print(f"[LOADED] {', '.join(status['loaded_list']) or 'None'}")
 
             # Display connection pool configuration
             pool_cfg = manager.config.pool_config
-            print(f"\n[POOL CONFIG]")
+            print("\n[POOL CONFIG]")
             print(f"  max_connections: {pool_cfg.max_connections}")
             print(f"  max_keepalive: {pool_cfg.max_keepalive_connections}")
             print(f"  keepalive_expiry: {pool_cfg.keepalive_expiry}s")
@@ -993,7 +1006,7 @@ if __name__ == "__main__":
             print(f"  read_timeout: {pool_cfg.read_timeout}s")
 
             print("\n[MODELS BY PURPOSE]")
-            for purpose, models in status['models_by_purpose'].items():
+            for purpose, models in status["models_by_purpose"].items():
                 print(f"  {purpose}:")
                 for m in models[:3]:
                     print(f"    {m}")
@@ -1004,13 +1017,15 @@ if __name__ == "__main__":
                 print(f"\n[CHAT TEST] Testing with {loaded[0].name}...")
                 response = await manager.chat(
                     "Say 'BIZRA multi-model ready' in one sentence.",
-                    purpose=ModelPurpose.REASONING
+                    purpose=ModelPurpose.REASONING,
                 )
-                print(f"  Response: {response.get('content', response.get('error', 'No response'))[:100]}")
+                print(
+                    f"  Response: {response.get('content', response.get('error', 'No response'))[:100]}"
+                )
 
             # Display connection pool metrics (P0-1)
             metrics = manager.get_pool_metrics()
-            print(f"\n[POOL METRICS]")
+            print("\n[POOL METRICS]")
             print(f"  total_requests: {metrics['total_requests']}")
             print(f"  success_rate: {metrics['success_rate_pct']}%")
             print(f"  avg_latency: {metrics['avg_latency_ms']}ms")

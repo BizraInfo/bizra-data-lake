@@ -8,14 +8,14 @@ Author: BIZRA Sovereign Engine
 Version: 1.0.0
 """
 
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Callable, Awaitable
-from datetime import datetime, timedelta
 import asyncio
-import uuid
 import logging
+import uuid
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum, auto
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -24,17 +24,19 @@ logger = logging.getLogger(__name__)
 # ENUMS
 # =============================================================================
 
+
 class LoopState(Enum):
     """States of the autonomous loop."""
+
     IDLE = auto()
     OBSERVING = auto()
-    PREDICTING = auto()      # Extended OODA: Predict future trends
-    COORDINATING = auto()    # Extended OODA: Coordinate team resources
+    PREDICTING = auto()  # Extended OODA: Predict future trends
+    COORDINATING = auto()  # Extended OODA: Coordinate team resources
     ANALYZING = auto()
     PLANNING = auto()
     ACTING = auto()
     REFLECTING = auto()
-    LEARNING = auto()        # Extended OODA: Learn from outcomes
+    LEARNING = auto()  # Extended OODA: Learn from outcomes
     ADAPTING = auto()
     PAUSED = auto()
     EMERGENCY = auto()
@@ -42,19 +44,21 @@ class LoopState(Enum):
 
 class DecisionType(Enum):
     """Types of autonomous decisions."""
-    ROUTINE = auto()       # Standard operations
-    ADAPTIVE = auto()      # Response to changing conditions
-    CORRECTIVE = auto()    # Fix detected issues
-    PREVENTIVE = auto()    # Prevent predicted issues
-    INNOVATIVE = auto()    # Try new approaches
-    EMERGENCY = auto()     # Critical interventions
+
+    ROUTINE = auto()  # Standard operations
+    ADAPTIVE = auto()  # Response to changing conditions
+    CORRECTIVE = auto()  # Fix detected issues
+    PREVENTIVE = auto()  # Prevent predicted issues
+    INNOVATIVE = auto()  # Try new approaches
+    EMERGENCY = auto()  # Critical interventions
 
 
 class GateResult(Enum):
     """Results from the decision gate."""
-    PASS = auto()      # Decision approved
-    REJECT = auto()    # Decision denied
-    DEFER = auto()     # Needs more information
+
+    PASS = auto()  # Decision approved
+    REJECT = auto()  # Decision denied
+    DEFER = auto()  # Needs more information
     ESCALATE = auto()  # Requires human approval
 
 
@@ -62,9 +66,11 @@ class GateResult(Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class SystemMetrics:
     """Current system health metrics."""
+
     snr_score: float = 0.0
     ihsan_score: float = 0.0
     latency_ms: float = 0.0
@@ -78,11 +84,11 @@ class SystemMetrics:
     def health_score(self) -> float:
         """Calculate overall health score (0-1)."""
         weights = {
-            'snr': 0.25,
-            'ihsan': 0.25,
-            'error': 0.20,
-            'latency': 0.15,
-            'memory': 0.15
+            "snr": 0.25,
+            "ihsan": 0.25,
+            "error": 0.20,
+            "latency": 0.15,
+            "memory": 0.15,
         }
 
         snr_norm = min(1.0, self.snr_score / 0.95)
@@ -92,11 +98,11 @@ class SystemMetrics:
         memory_norm = max(0.0, 1.0 - self.memory_usage)
 
         return (
-            weights['snr'] * snr_norm +
-            weights['ihsan'] * ihsan_norm +
-            weights['error'] * error_norm +
-            weights['latency'] * latency_norm +
-            weights['memory'] * memory_norm
+            weights["snr"] * snr_norm
+            + weights["ihsan"] * ihsan_norm
+            + weights["error"] * error_norm
+            + weights["latency"] * latency_norm
+            + weights["memory"] * memory_norm
         )
 
     def is_healthy(self, threshold: float = 0.85) -> bool:
@@ -107,6 +113,7 @@ class SystemMetrics:
 @dataclass
 class DecisionCandidate:
     """A candidate decision for evaluation."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     decision_type: DecisionType = DecisionType.ROUTINE
     action: str = ""
@@ -123,6 +130,7 @@ class DecisionCandidate:
 @dataclass
 class DecisionOutcome:
     """Outcome of an executed decision."""
+
     decision_id: str = ""
     gate_result: GateResult = GateResult.PASS
     executed: bool = False
@@ -138,6 +146,7 @@ class DecisionOutcome:
 # =============================================================================
 # DECISION GATE
 # =============================================================================
+
 
 class DecisionGate:
     """
@@ -169,7 +178,7 @@ class DecisionGate:
         self,
         ihsan_threshold: float = 0.95,
         require_rollback: bool = True,
-        max_concurrent: int = 5
+        max_concurrent: int = 5,
     ):
         self.ihsan_threshold = ihsan_threshold
         self.require_rollback = require_rollback
@@ -180,15 +189,13 @@ class DecisionGate:
         self.blocked_count = 0
 
     async def evaluate(
-        self,
-        decision: DecisionCandidate,
-        metrics: SystemMetrics
+        self, decision: DecisionCandidate, metrics: SystemMetrics
     ) -> GateResult:
         """Evaluate a decision candidate."""
 
         # Check concurrent limit
         if len(self.active_decisions) >= self.max_concurrent:
-            logger.warning(f"Gate: Too many concurrent decisions")
+            logger.warning("Gate: Too many concurrent decisions")
             return GateResult.DEFER
 
         # Check risk threshold
@@ -241,13 +248,14 @@ class DecisionGate:
             "blocked": self.blocked_count,
             "approval_rate": self.approval_rate,
             "active": len(self.active_decisions),
-            "history_size": len(self.decision_history)
+            "history_size": len(self.decision_history),
         }
 
 
 # =============================================================================
 # AUTONOMOUS LOOP
 # =============================================================================
+
 
 class AutonomousLoop:
     """
@@ -261,7 +269,7 @@ class AutonomousLoop:
         snr_threshold: float = 0.95,
         ihsan_threshold: float = 0.95,
         cycle_interval: float = 5.0,
-        max_decisions_per_cycle: int = 3
+        max_decisions_per_cycle: int = 3,
     ):
         self.gate = decision_gate or DecisionGate(ihsan_threshold)
         self.snr_threshold = snr_threshold
@@ -282,7 +290,9 @@ class AutonomousLoop:
 
         # Callbacks
         self._observers: List[Callable[[SystemMetrics], Awaitable[None]]] = []
-        self._analyzers: List[Callable[[SystemMetrics], Awaitable[List[DecisionCandidate]]]] = []
+        self._analyzers: List[
+            Callable[[SystemMetrics], Awaitable[List[DecisionCandidate]]]
+        ] = []
         self._executors: Dict[str, Callable[[DecisionCandidate], Awaitable[bool]]] = {}
 
     # -------------------------------------------------------------------------
@@ -302,7 +312,7 @@ class AutonomousLoop:
             throughput=100,
             memory_usage=0.45,
             active_tasks=len(self.gate.active_decisions),
-            pending_decisions=0
+            pending_decisions=0,
         )
 
         # Call registered observers
@@ -338,7 +348,11 @@ class AutonomousLoop:
             snr_values = [o.snr_score for o in recent]
             snr_trend = (snr_values[-1] - snr_values[0]) / len(snr_values)
             predictions["trends"]["snr"] = {
-                "direction": "rising" if snr_trend > 0.01 else "falling" if snr_trend < -0.01 else "stable",
+                "direction": (
+                    "rising"
+                    if snr_trend > 0.01
+                    else "falling" if snr_trend < -0.01 else "stable"
+                ),
                 "rate": snr_trend,
                 "forecast_1h": snr_values[-1] + snr_trend * 60,
             }
@@ -347,29 +361,37 @@ class AutonomousLoop:
             ihsan_values = [o.ihsan_score for o in recent]
             ihsan_trend = (ihsan_values[-1] - ihsan_values[0]) / len(ihsan_values)
             predictions["trends"]["ihsan"] = {
-                "direction": "rising" if ihsan_trend > 0.01 else "falling" if ihsan_trend < -0.01 else "stable",
+                "direction": (
+                    "rising"
+                    if ihsan_trend > 0.01
+                    else "falling" if ihsan_trend < -0.01 else "stable"
+                ),
                 "rate": ihsan_trend,
                 "forecast_1h": ihsan_values[-1] + ihsan_trend * 60,
             }
 
             # Detect opportunities
             if predictions["trends"]["snr"]["direction"] == "rising":
-                predictions["opportunities"].append({
-                    "type": "optimization",
-                    "description": "SNR improving - consider increasing workload",
-                    "confidence": 0.7,
-                })
+                predictions["opportunities"].append(
+                    {
+                        "type": "optimization",
+                        "description": "SNR improving - consider increasing workload",
+                        "confidence": 0.7,
+                    }
+                )
 
             # Detect risks
             if predictions["trends"]["ihsan"]["direction"] == "falling":
-                predictions["risks"].append({
-                    "type": "quality_degradation",
-                    "description": "Ihsan trending down - monitor closely",
-                    "severity": "warning",
-                })
+                predictions["risks"].append(
+                    {
+                        "type": "quality_degradation",
+                        "description": "Ihsan trending down - monitor closely",
+                        "severity": "warning",
+                    }
+                )
 
         # Call registered predictors
-        for predictor in getattr(self, '_predictors', []):
+        for predictor in getattr(self, "_predictors", []):
             try:
                 pred_result = await predictor(metrics, predictions)
                 if pred_result:
@@ -418,7 +440,7 @@ class AutonomousLoop:
             }
 
         # Call registered coordinators
-        for coordinator in getattr(self, '_coordinators', []):
+        for coordinator in getattr(self, "_coordinators", []):
             try:
                 coord_result = await coordinator(metrics, predictions, coordination)
                 if coord_result:
@@ -439,29 +461,33 @@ class AutonomousLoop:
 
         # Built-in analysis: SNR correction
         if metrics.snr_score < self.snr_threshold - 0.1:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.CORRECTIVE,
-                action="boost_snr",
-                parameters={"target": self.snr_threshold},
-                expected_impact=0.15,
-                risk_score=0.2,
-                confidence=0.85,
-                rationale=f"SNR {metrics.snr_score:.2f} below threshold",
-                rollback_plan="revert_snr_boost"
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.CORRECTIVE,
+                    action="boost_snr",
+                    parameters={"target": self.snr_threshold},
+                    expected_impact=0.15,
+                    risk_score=0.2,
+                    confidence=0.85,
+                    rationale=f"SNR {metrics.snr_score:.2f} below threshold",
+                    rollback_plan="revert_snr_boost",
+                )
+            )
 
         # Built-in analysis: Error rate
         if metrics.error_rate > 0.1:
-            candidates.append(DecisionCandidate(
-                decision_type=DecisionType.CORRECTIVE,
-                action="reduce_errors",
-                parameters={"current_rate": metrics.error_rate},
-                expected_impact=0.2,
-                risk_score=0.3,
-                confidence=0.8,
-                rationale=f"Error rate {metrics.error_rate:.2%} too high",
-                rollback_plan="restore_previous_config"
-            ))
+            candidates.append(
+                DecisionCandidate(
+                    decision_type=DecisionType.CORRECTIVE,
+                    action="reduce_errors",
+                    parameters={"current_rate": metrics.error_rate},
+                    expected_impact=0.2,
+                    risk_score=0.3,
+                    confidence=0.8,
+                    rationale=f"Error rate {metrics.error_rate:.2%} too high",
+                    rollback_plan="restore_previous_config",
+                )
+            )
 
         # Call registered analyzers
         for analyzer in self._analyzers:
@@ -472,16 +498,14 @@ class AutonomousLoop:
                 logger.error(f"Analyzer error: {e}")
 
         # Limit candidates per cycle
-        return candidates[:self.max_decisions_per_cycle]
+        return candidates[: self.max_decisions_per_cycle]
 
     # -------------------------------------------------------------------------
     # PHASE 3: DECIDE
     # -------------------------------------------------------------------------
 
     async def decide(
-        self,
-        candidates: List[DecisionCandidate],
-        metrics: SystemMetrics
+        self, candidates: List[DecisionCandidate], metrics: SystemMetrics
     ) -> List[DecisionCandidate]:
         """Filter candidates through the decision gate."""
         self.state = LoopState.PLANNING
@@ -503,9 +527,7 @@ class AutonomousLoop:
     # -------------------------------------------------------------------------
 
     async def act(
-        self,
-        decisions: List[DecisionCandidate],
-        metrics: SystemMetrics
+        self, decisions: List[DecisionCandidate], metrics: SystemMetrics
     ) -> List[DecisionOutcome]:
         """Execute approved decisions."""
         self.state = LoopState.ACTING
@@ -516,7 +538,7 @@ class AutonomousLoop:
             outcome = DecisionOutcome(
                 decision_id=decision.id,
                 gate_result=GateResult.PASS,
-                metrics_before=metrics
+                metrics_before=metrics,
             )
 
             try:
@@ -525,12 +547,13 @@ class AutonomousLoop:
 
                 if executor:
                     outcome.success = await asyncio.wait_for(
-                        executor(decision),
-                        timeout=decision.timeout_seconds
+                        executor(decision), timeout=decision.timeout_seconds
                     )
                 else:
                     # Default: log-only execution
-                    logger.info(f"Executing: {decision.action} with {decision.parameters}")
+                    logger.info(
+                        f"Executing: {decision.action} with {decision.parameters}"
+                    )
                     outcome.success = True
 
                 outcome.executed = True
@@ -543,7 +566,9 @@ class AutonomousLoop:
                 outcome.success = False
                 logger.error(f"Execution error for {decision.id}: {e}")
 
-            outcome.execution_time_ms = (datetime.now() - start_time).total_seconds() * 1000
+            outcome.execution_time_ms = (
+                datetime.now() - start_time
+            ).total_seconds() * 1000
             outcome.completed_at = datetime.now()
 
             self.gate.complete_decision(decision.id, outcome)
@@ -568,8 +593,10 @@ class AutonomousLoop:
             "decisions_made": total,
             "successful": successful,
             "success_rate": successful / total if total > 0 else 1.0,
-            "avg_execution_time": sum(o.execution_time_ms for o in outcomes) / total if total > 0 else 0,
-            "gate_stats": self.gate.get_stats()
+            "avg_execution_time": (
+                sum(o.execution_time_ms for o in outcomes) / total if total > 0 else 0
+            ),
+            "gate_stats": self.gate.get_stats(),
         }
 
         # Adaptation logic
@@ -601,33 +628,41 @@ class AutonomousLoop:
         if len(self.outcomes) >= 10:
             recent_outcomes = list(self.outcomes)[-20:]
             successes = [o for o in recent_outcomes if o.success]
-            failures = [o for o in recent_outcomes if not o.success]
+            [o for o in recent_outcomes if not o.success]
 
             # Success rate pattern
             success_rate = len(successes) / len(recent_outcomes)
             if success_rate < 0.7:
-                learning["patterns_detected"].append({
-                    "pattern": "low_success_rate",
-                    "rate": success_rate,
-                    "recommendation": "increase_confidence_threshold",
-                })
-                learning["threshold_adjustments"].append({
-                    "parameter": "confidence_threshold",
-                    "direction": "increase",
-                    "magnitude": 0.05,
-                })
+                learning["patterns_detected"].append(
+                    {
+                        "pattern": "low_success_rate",
+                        "rate": success_rate,
+                        "recommendation": "increase_confidence_threshold",
+                    }
+                )
+                learning["threshold_adjustments"].append(
+                    {
+                        "parameter": "confidence_threshold",
+                        "direction": "increase",
+                        "magnitude": 0.05,
+                    }
+                )
 
             # Execution time pattern
-            avg_time = sum(o.execution_time_ms for o in recent_outcomes) / len(recent_outcomes)
+            avg_time = sum(o.execution_time_ms for o in recent_outcomes) / len(
+                recent_outcomes
+            )
             if avg_time > 1000:
-                learning["patterns_detected"].append({
-                    "pattern": "slow_execution",
-                    "avg_time_ms": avg_time,
-                    "recommendation": "optimize_executors",
-                })
+                learning["patterns_detected"].append(
+                    {
+                        "pattern": "slow_execution",
+                        "avg_time_ms": avg_time,
+                        "recommendation": "optimize_executors",
+                    }
+                )
 
         # Call registered learners
-        for learner in getattr(self, '_learners', []):
+        for learner in getattr(self, "_learners", []):
             try:
                 learn_result = await learner(outcomes, reflection, learning)
                 if learn_result:
@@ -744,29 +779,33 @@ class AutonomousLoop:
         """Register a metrics observer."""
         self._observers.append(observer)
 
-    def register_analyzer(self, analyzer: Callable[[SystemMetrics], Awaitable[List[DecisionCandidate]]]):
+    def register_analyzer(
+        self, analyzer: Callable[[SystemMetrics], Awaitable[List[DecisionCandidate]]]
+    ):
         """Register a decision analyzer."""
         self._analyzers.append(analyzer)
 
-    def register_executor(self, action: str, executor: Callable[[DecisionCandidate], Awaitable[bool]]):
+    def register_executor(
+        self, action: str, executor: Callable[[DecisionCandidate], Awaitable[bool]]
+    ):
         """Register an action executor."""
         self._executors[action] = executor
 
     def register_predictor(self, predictor: Callable):
         """Register a predictor for the extended OODA predict phase."""
-        if not hasattr(self, '_predictors'):
+        if not hasattr(self, "_predictors"):
             self._predictors = []
         self._predictors.append(predictor)
 
     def register_coordinator(self, coordinator: Callable):
         """Register a coordinator for the extended OODA coordinate phase."""
-        if not hasattr(self, '_coordinators'):
+        if not hasattr(self, "_coordinators"):
             self._coordinators = []
         self._coordinators.append(coordinator)
 
     def register_learner(self, learner: Callable):
         """Register a learner for the extended OODA learn phase."""
-        if not hasattr(self, '_learners'):
+        if not hasattr(self, "_learners"):
             self._learners = []
         self._learners.append(learner)
 
@@ -784,7 +823,7 @@ class AutonomousLoop:
             "observations": len(self.observations),
             "decisions": len(self.decisions),
             "outcomes": len(self.outcomes),
-            "gate": self.gate.get_stats()
+            "gate": self.gate.get_stats(),
         }
 
 
@@ -792,10 +831,11 @@ class AutonomousLoop:
 # FACTORY FUNCTION
 # =============================================================================
 
+
 def create_autonomous_loop(
     snr_threshold: float = 0.95,
     ihsan_threshold: float = 0.95,
-    cycle_interval: float = 5.0
+    cycle_interval: float = 5.0,
 ) -> AutonomousLoop:
     """Create a configured autonomous loop."""
     gate = DecisionGate(ihsan_threshold=ihsan_threshold)
@@ -803,7 +843,7 @@ def create_autonomous_loop(
         decision_gate=gate,
         snr_threshold=snr_threshold,
         ihsan_threshold=ihsan_threshold,
-        cycle_interval=cycle_interval
+        cycle_interval=cycle_interval,
     )
 
 
@@ -812,13 +852,13 @@ def create_autonomous_loop(
 # =============================================================================
 
 __all__ = [
-    'LoopState',
-    'DecisionType',
-    'GateResult',
-    'SystemMetrics',
-    'DecisionCandidate',
-    'DecisionOutcome',
-    'DecisionGate',
-    'AutonomousLoop',
-    'create_autonomous_loop',
+    "LoopState",
+    "DecisionType",
+    "GateResult",
+    "SystemMetrics",
+    "DecisionCandidate",
+    "DecisionOutcome",
+    "DecisionGate",
+    "AutonomousLoop",
+    "create_autonomous_loop",
 ]

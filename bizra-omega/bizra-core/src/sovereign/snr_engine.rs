@@ -23,8 +23,8 @@
 //! - Streaming analysis for large texts
 //! - Zero-copy text processing where possible
 
-use std::collections::{HashSet, VecDeque};
 use super::error::{SovereignError, SovereignResult};
+use std::collections::{HashSet, VecDeque};
 
 /// Maximum input size (1MB) to prevent DoS
 pub const MAX_INPUT_SIZE: usize = 1_048_576;
@@ -228,18 +228,48 @@ impl SNREngine {
     fn init_grounding_keywords() -> HashSet<&'static str> {
         [
             // Technical terms
-            "algorithm", "function", "method", "class", "interface",
-            "implementation", "architecture", "protocol", "system",
+            "algorithm",
+            "function",
+            "method",
+            "class",
+            "interface",
+            "implementation",
+            "architecture",
+            "protocol",
+            "system",
             // Quantitative terms
-            "percent", "ratio", "number", "count", "measure",
-            "calculate", "compute", "estimate", "approximately",
+            "percent",
+            "ratio",
+            "number",
+            "count",
+            "measure",
+            "calculate",
+            "compute",
+            "estimate",
+            "approximately",
             // Logical connectors
-            "because", "therefore", "however", "although", "whereas",
-            "consequently", "furthermore", "moreover", "specifically",
+            "because",
+            "therefore",
+            "however",
+            "although",
+            "whereas",
+            "consequently",
+            "furthermore",
+            "moreover",
+            "specifically",
             // Evidence indicators
-            "research", "study", "data", "evidence", "source",
-            "according", "cited", "reference", "documented",
-        ].into_iter().collect()
+            "research",
+            "study",
+            "data",
+            "evidence",
+            "source",
+            "according",
+            "cited",
+            "reference",
+            "documented",
+        ]
+        .into_iter()
+        .collect()
     }
 
     /// Validate input before analysis
@@ -360,7 +390,7 @@ impl SNREngine {
         let mut total_chars = 0;
         let mut grounding_hits = 0;
         let mut seen_hashes: HashSet<u64> = HashSet::with_capacity(
-            (text.len() / 5).min(1000)  // Estimate unique words
+            (text.len() / 5).min(1000), // Estimate unique words
         );
 
         for word in text.split_whitespace() {
@@ -409,7 +439,7 @@ impl SNREngine {
     /// Calculate balance score based on word count
     #[inline]
     fn calculate_balance(&self, word_count: usize) -> f64 {
-        if word_count >= 10 && word_count <= 1000 {
+        if (10..=1000).contains(&word_count) {
             1.0
         } else if word_count < 10 {
             word_count as f64 / 10.0
@@ -531,7 +561,10 @@ mod tests {
                          to perform calculations exponentially faster than classical computers.";
         let metrics = engine.analyze_text(good_text).unwrap();
 
-        assert!(metrics.diversity > 0.5, "Good text should have high diversity");
+        assert!(
+            metrics.diversity > 0.5,
+            "Good text should have high diversity"
+        );
         assert!(metrics.balance > 0.5, "Good text should have good balance");
     }
 
@@ -608,7 +641,10 @@ mod tests {
         let technical = "The algorithm implementation uses research data to compute \
                         the ratio according to documented evidence.";
         let metrics = engine.analyze_text(technical).unwrap();
-        assert!(metrics.grounding > 0.7, "Technical text should have high grounding");
+        assert!(
+            metrics.grounding > 0.7,
+            "Technical text should have high grounding"
+        );
     }
 
     #[test]

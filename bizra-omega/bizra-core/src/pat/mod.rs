@@ -17,13 +17,13 @@
 //! - **Al-Ghazali (1095)**: Maqasid al-Shariah for FATE gate ethics
 //! - **Anthropic (2023)**: Constitutional AI for Ihsan threshold
 
-mod types;
-mod minting;
 mod attestation;
+mod minting;
+mod types;
 
-pub use types::*;
-pub use minting::*;
 pub use attestation::*;
+pub use minting::*;
+pub use types::*;
 
 /// PAT team size — 7 personal agents (mastermind council)
 pub const PAT_TEAM_SIZE: usize = 7;

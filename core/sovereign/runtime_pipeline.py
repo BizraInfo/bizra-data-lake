@@ -20,11 +20,11 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from .runtime_types import (
+    GraphReasonerProtocol,
+    GuardianProtocol,
+    SNROptimizerProtocol,
     SovereignQuery,
     SovereignResult,
-    GraphReasonerProtocol,
-    SNROptimizerProtocol,
-    GuardianProtocol,
 )
 
 logger = logging.getLogger("sovereign.pipeline")
@@ -63,9 +63,7 @@ class QueryPipeline:
         self._snr_threshold = snr_threshold
 
     async def process(
-        self,
-        query: SovereignQuery,
-        start_time: float
+        self, query: SovereignQuery, start_time: float
     ) -> SovereignResult:
         """Run the full query processing pipeline."""
         result = SovereignResult(query_id=query.id)
@@ -113,7 +111,7 @@ class QueryPipeline:
         if not self._omega:
             return None
 
-        mode = getattr(self._omega, 'get_operational_mode', lambda: None)()
+        mode = getattr(self._omega, "get_operational_mode", lambda: None)()
         if mode is None:
             return None
         return self._mode_to_tier(mode)
@@ -121,8 +119,10 @@ class QueryPipeline:
     def _mode_to_tier(self, mode: object) -> Optional[object]:
         """Map TreasuryMode to ComputeTier."""
         try:
-            from .omega_engine import TreasuryMode
             from core.inference.gateway import ComputeTier
+
+            from .omega_engine import TreasuryMode
+
             mapping = {
                 TreasuryMode.ETHICAL: ComputeTier.LOCAL,
                 TreasuryMode.HIBERNATION: ComputeTier.EDGE,
@@ -137,8 +137,7 @@ class QueryPipeline:
     # -------------------------------------------------------------------------
 
     async def _stage_reasoning(
-        self,
-        query: SovereignQuery
+        self, query: SovereignQuery
     ) -> Tuple[List[str], float, str]:
         """Execute Graph-of-Thoughts reasoning."""
         thought_prompt: str = query.text
@@ -165,23 +164,20 @@ class QueryPipeline:
     # -------------------------------------------------------------------------
 
     async def _stage_inference(
-        self,
-        thought_prompt: str,
-        compute_tier: Optional[object],
-        query: SovereignQuery
+        self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
     ) -> Tuple[str, str]:
         """Perform LLM inference via gateway."""
         if self._gateway:
             try:
-                infer_method = getattr(self._gateway, 'infer', None)
+                infer_method = getattr(self._gateway, "infer", None)
                 if infer_method is not None:
                     inference_result = await infer_method(
                         thought_prompt,
                         tier=compute_tier,
                         max_tokens=1024,
                     )
-                    answer = getattr(inference_result, 'content', str(inference_result))
-                    model_used = getattr(inference_result, 'model', 'unknown')
+                    answer = getattr(inference_result, "content", str(inference_result))
+                    model_used = getattr(inference_result, "model", "unknown")
                     return answer, model_used
             except Exception as e:
                 logger.warning(f"Gateway inference failed: {e}, using stub")
@@ -212,7 +208,7 @@ class QueryPipeline:
         content: str,
         context: Dict[str, Any],
         query: SovereignQuery,
-        snr_score: float
+        snr_score: float,
     ) -> Tuple[float, str]:
         """Validate against constitutional constraints."""
         ihsan_score = snr_score
@@ -222,7 +218,7 @@ class QueryPipeline:
         if self._omega:
             try:
                 ihsan_vector = self._extract_ihsan_vector(content, context)
-                evaluate_ihsan = getattr(self._omega, 'evaluate_ihsan', None)
+                evaluate_ihsan = getattr(self._omega, "evaluate_ihsan", None)
                 if evaluate_ihsan is not None and ihsan_vector is not None:
                     result = evaluate_ihsan(ihsan_vector)
                     if isinstance(result, tuple) and len(result) >= 2:
@@ -251,18 +247,17 @@ class QueryPipeline:
         return ihsan_score, guardian_verdict
 
     def _extract_ihsan_vector(
-        self,
-        content: str,
-        context: Dict[str, Any]
+        self, content: str, context: Dict[str, Any]
     ) -> Optional[object]:
         """Extract Ihsan vector from response content."""
         try:
             from .omega_engine import ihsan_from_scores
 
             word_count = len(content.split())
-            has_harmful = any(w in content.lower() for w in [
-                "kill", "harm", "destroy", "attack", "illegal"
-            ])
+            has_harmful = any(
+                w in content.lower()
+                for w in ["kill", "harm", "destroy", "attack", "illegal"]
+            )
 
             correctness = min(0.98, 0.85 + (word_count / 1000) * 0.1)
             safety = 0.50 if has_harmful else 0.98

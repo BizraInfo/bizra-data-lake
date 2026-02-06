@@ -12,11 +12,11 @@ Standing on Giants: Byzantine Consensus + Multi-Agent Systems + Constitutional A
 
 import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .team_planner import AgentRole, TeamTask
 
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class VetoReason(str, Enum):
     """Reasons for SAT veto."""
+
     SECURITY_VIOLATION = "security_violation"
     ETHICS_VIOLATION = "ethics_violation"
     PERFORMANCE_RISK = "performance_risk"
@@ -35,6 +36,7 @@ class VetoReason(str, Enum):
 
 class ConsensusResult(Enum):
     """Result of Byzantine consensus."""
+
     APPROVED = auto()
     VETOED = auto()
     PENDING = auto()
@@ -44,6 +46,7 @@ class ConsensusResult(Enum):
 @dataclass
 class ActionProposal:
     """A proposed action from PAT for SAT validation."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     task_id: str = ""
     action_type: str = ""
@@ -57,6 +60,7 @@ class ActionProposal:
 @dataclass
 class Vote:
     """A validator's vote on an action proposal."""
+
     validator_role: AgentRole = AgentRole.SECURITY_GUARDIAN
     approve: bool = True
     confidence: float = 1.0
@@ -68,6 +72,7 @@ class Vote:
 @dataclass
 class ConsensusOutcome:
     """Final consensus outcome for a proposal."""
+
     proposal_id: str = ""
     result: ConsensusResult = ConsensusResult.PENDING
     votes: List[Vote] = field(default_factory=list)
@@ -133,7 +138,9 @@ class DualAgenticBridge:
     def _register_default_validators(self) -> None:
         """Register default validator implementations."""
 
-        async def security_validator(proposal: ActionProposal) -> Tuple[bool, Optional[VetoReason], float]:
+        async def security_validator(
+            proposal: ActionProposal,
+        ) -> Tuple[bool, Optional[VetoReason], float]:
             """Security validation - check for dangerous patterns."""
             dangerous = {"delete", "drop", "rm", "format", "shutdown", "exec"}
             params_str = str(proposal.parameters).lower()
@@ -144,22 +151,30 @@ class DualAgenticBridge:
                 return False, VetoReason.SECURITY_VIOLATION, 0.9
             return True, None, 0.95
 
-        async def ethics_validator(proposal: ActionProposal) -> Tuple[bool, Optional[VetoReason], float]:
+        async def ethics_validator(
+            proposal: ActionProposal,
+        ) -> Tuple[bool, Optional[VetoReason], float]:
             """Ethics validation - check Ihsan compliance."""
             if proposal.ihsan_estimate < self.ihsan_threshold:
                 return False, VetoReason.IHSAN_THRESHOLD, 0.99
             return True, None, 0.95
 
-        async def performance_validator(proposal: ActionProposal) -> Tuple[bool, Optional[VetoReason], float]:
+        async def performance_validator(
+            proposal: ActionProposal,
+        ) -> Tuple[bool, Optional[VetoReason], float]:
             """Performance validation - check resource impact."""
             # Simulate performance check
             return True, None, 0.9
 
-        async def consistency_validator(proposal: ActionProposal) -> Tuple[bool, Optional[VetoReason], float]:
+        async def consistency_validator(
+            proposal: ActionProposal,
+        ) -> Tuple[bool, Optional[VetoReason], float]:
             """Consistency validation - check state consistency."""
             return True, None, 0.9
 
-        async def resource_validator(proposal: ActionProposal) -> Tuple[bool, Optional[VetoReason], float]:
+        async def resource_validator(
+            proposal: ActionProposal,
+        ) -> Tuple[bool, Optional[VetoReason], float]:
             """Resource validation - check resource availability."""
             return True, None, 0.85
 
@@ -198,7 +213,9 @@ class DualAgenticBridge:
 
         # PERF FIX #7: Run validators in parallel instead of sequentially
         # Create async tasks for all validators
-        async def validate_with_role(role: AgentRole, validator_fn: ValidatorFn) -> Vote:
+        async def validate_with_role(
+            role: AgentRole, validator_fn: ValidatorFn
+        ) -> Vote:
             try:
                 approve, veto_reason, confidence = await asyncio.wait_for(
                     validator_fn(proposal),
@@ -240,7 +257,9 @@ class DualAgenticBridge:
         # Check for veto from SECURITY or ETHICS roles
         for vote in votes:
             if not vote.approve and vote.validator_role in self.VETO_ROLES:
-                logger.warning(f"VETO from {vote.validator_role.value}: {vote.veto_reason}")
+                logger.warning(
+                    f"VETO from {vote.validator_role.value}: {vote.veto_reason}"
+                )
                 outcome.result = ConsensusResult.VETOED
                 outcome.votes = votes
                 outcome.veto_count = sum(1 for v in votes if not v.approve)
@@ -260,8 +279,7 @@ class DualAgenticBridge:
         if confident_votes:
             total_conf = sum(v.confidence for v in confident_votes)
             weighted_ihsan = sum(
-                (1.0 if v.approve else 0.8) * v.confidence
-                for v in confident_votes
+                (1.0 if v.approve else 0.8) * v.confidence for v in confident_votes
             )
             outcome.final_ihsan = weighted_ihsan / total_conf
         else:
@@ -317,9 +335,7 @@ class DualAgenticBridge:
             "total_proposals": self._proposal_count,
             "approved": self._approved_count,
             "vetoed": self._vetoed_count,
-            "approval_rate": (
-                self._approved_count / max(self._proposal_count, 1)
-            ),
+            "approval_rate": (self._approved_count / max(self._proposal_count, 1)),
             "ihsan_threshold": self.ihsan_threshold,
             "consensus_threshold": self.CONSENSUS_THRESHOLD,
         }

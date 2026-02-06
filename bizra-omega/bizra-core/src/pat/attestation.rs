@@ -298,9 +298,11 @@ impl AttestationRegistry {
         self.attestations
             .iter()
             .filter(|a| {
-                a.giants_cited
-                    .iter()
-                    .any(|c| c.giant_name.to_lowercase().contains(&giant_name.to_lowercase()))
+                a.giants_cited.iter().any(|c| {
+                    c.giant_name
+                        .to_lowercase()
+                        .contains(&giant_name.to_lowercase())
+                })
             })
             .collect()
     }
@@ -350,7 +352,7 @@ impl AttestationRegistry {
         log.push_str("=== BIZRA Action Attestation Audit Log ===\n\n");
         for attestation in &self.attestations {
             log.push_str(&attestation.format_audit_entry());
-            log.push_str("\n");
+            log.push('\n');
         }
         log
     }

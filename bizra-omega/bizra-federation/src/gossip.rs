@@ -5,6 +5,7 @@
 //!
 //! Standing on Giants: SWIM (Das et al., 2002)
 
+use bizra_core::NodeId;
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
@@ -13,10 +14,14 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
-use bizra_core::NodeId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum NodeState { Alive, Suspect, Dead, Left }
+pub enum NodeState {
+    Alive,
+    Suspect,
+    Dead,
+    Left,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Member {
@@ -29,9 +34,17 @@ pub struct Member {
 
 impl Member {
     pub fn new(node_id: NodeId, addr: SocketAddr) -> Self {
-        Self { node_id, addr, state: NodeState::Alive, incarnation: 0, last_update: Utc::now() }
+        Self {
+            node_id,
+            addr,
+            state: NodeState::Alive,
+            incarnation: 0,
+            last_update: Utc::now(),
+        }
     }
-    pub fn is_alive(&self) -> bool { self.state == NodeState::Alive }
+    pub fn is_alive(&self) -> bool {
+        self.state == NodeState::Alive
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -154,8 +167,8 @@ impl SignedGossipMessage {
         let mut ts_bytes = [0u8; 8];
         ts_bytes.copy_from_slice(&bytes[offset..offset + 8]);
         let ts_millis = i64::from_le_bytes(ts_bytes);
-        let timestamp = DateTime::from_timestamp_millis(ts_millis)
-            .ok_or(FederationError::InvalidTimestamp)?;
+        let timestamp =
+            DateTime::from_timestamp_millis(ts_millis).ok_or(FederationError::InvalidTimestamp)?;
         offset += 8;
 
         let message = GossipMessage::from_bytes(&bytes[offset..])?;
@@ -170,7 +183,7 @@ impl SignedGossipMessage {
 
     /// Get hex-encoded public key for logging
     pub fn pubkey_hex(&self) -> String {
-        hex::encode(&self.sender_pubkey)
+        hex::encode(self.sender_pubkey)
     }
 }
 
@@ -248,7 +261,10 @@ impl GossipProtocol {
     }
 
     pub async fn add_seed(&self, node_id: NodeId, addr: SocketAddr) {
-        self.members.write().await.insert(node_id.clone(), Member::new(node_id, addr));
+        self.members
+            .write()
+            .await
+            .insert(node_id.clone(), Member::new(node_id, addr));
     }
 
     /// Handle a signed gossip message with verification
@@ -338,14 +354,22 @@ impl GossipProtocol {
     async fn merge_member(&self, new: Member) {
         let mut members = self.members.write().await;
         if let Some(existing) = members.get_mut(&new.node_id) {
-            if new.incarnation > existing.incarnation { *existing = new; }
+            if new.incarnation > existing.incarnation {
+                *existing = new;
+            }
         } else {
             members.insert(new.node_id.clone(), new);
         }
     }
 
     pub async fn alive_members(&self) -> Vec<Member> {
-        self.members.read().await.values().filter(|m| m.is_alive()).cloned().collect()
+        self.members
+            .read()
+            .await
+            .values()
+            .filter(|m| m.is_alive())
+            .cloned()
+            .collect()
     }
 
     pub async fn member_count(&self) -> usize {
@@ -353,6 +377,8 @@ impl GossipProtocol {
     }
 
     pub fn create_leave_message(&self) -> GossipMessage {
-        GossipMessage::Leave { node_id: self.local_id.clone() }
+        GossipMessage::Leave {
+            node_id: self.local_id.clone(),
+        }
     }
 }

@@ -12,42 +12,45 @@ Standing on Giants: Holland (GA) + Maturana (Autopoiesis)
 Genesis Strict Synthesis v2.2.2
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
-from enum import Enum
-from datetime import datetime, timezone
+import copy
 import hashlib
 import random
-import copy
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+from core.autopoiesis import MUTATION_RATE
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-from core.autopoiesis import MUTATION_RATE, CROSSOVER_RATE
 
 
 class GeneType(Enum):
     """Types of genes in the agent genome."""
-    CAPABILITY = "capability"      # What agent can do
-    STRATEGY = "strategy"          # Decision-making approach
+
+    CAPABILITY = "capability"  # What agent can do
+    STRATEGY = "strategy"  # Decision-making approach
     CONSTITUTION = "constitution"  # Ethical constraints (immutable)
-    EFFICIENCY = "efficiency"      # Resource optimization
+    EFFICIENCY = "efficiency"  # Resource optimization
     COMMUNICATION = "communication"  # Inter-agent protocols
 
 
 class MutationType(Enum):
     """Types of mutations."""
-    POINT = "point"          # Single value change
+
+    POINT = "point"  # Single value change
     INSERTION = "insertion"  # Add new capability
-    DELETION = "deletion"    # Remove capability
-    SWAP = "swap"            # Exchange two genes
+    DELETION = "deletion"  # Remove capability
+    SWAP = "swap"  # Exchange two genes
     INVERSION = "inversion"  # Reverse gene order
 
 
 @dataclass
 class Gene:
     """A single gene in the genome."""
+
     name: str
     gene_type: GeneType
     value: Any
@@ -111,6 +114,7 @@ class AgentGenome:
     The genome encodes all evolvable aspects of agent behavior,
     while constitutional constraints remain immutable.
     """
+
     id: str = ""
     generation: int = 0
     parent_ids: List[str] = field(default_factory=list)
@@ -315,7 +319,9 @@ class AgentGenome:
         for name, gene in self.genes.items():
             if name in other.genes:
                 other_gene = other.genes[name]
-                if isinstance(gene.value, (int, float)) and isinstance(other_gene.value, (int, float)):
+                if isinstance(gene.value, (int, float)) and isinstance(
+                    other_gene.value, (int, float)
+                ):
                     # Normalized difference
                     max_val = max(abs(gene.value), abs(other_gene.value), 1.0)
                     total_diff += abs(gene.value - other_gene.value) / max_val
@@ -332,9 +338,12 @@ class AgentGenome:
         fate_gene = self.get_gene("fate_compliance")
 
         return (
-            ihsan_gene and ihsan_gene.value >= UNIFIED_IHSAN_THRESHOLD and
-            snr_gene and snr_gene.value >= UNIFIED_SNR_THRESHOLD and
-            fate_gene and fate_gene.value is True
+            ihsan_gene
+            and ihsan_gene.value >= UNIFIED_IHSAN_THRESHOLD
+            and snr_gene
+            and snr_gene.value >= UNIFIED_SNR_THRESHOLD
+            and fate_gene
+            and fate_gene.value is True
         )
 
     def to_dict(self) -> Dict[str, Any]:

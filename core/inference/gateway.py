@@ -26,12 +26,12 @@ Principle: لا نفترض — We do not assume.
 """
 
 import asyncio
-import json
-import os
-import time
 import hashlib
+import json
+import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -46,15 +46,16 @@ from typing import (
     List,
     Optional,
     Protocol,
-    Tuple,
     TypedDict,
     Union,
 )
-from contextlib import asynccontextmanager
 
 # Import LM Studio backend (primary)
 try:
-    from .lmstudio_backend import LMStudioBackend as LMStudioClient, LMStudioConfig, ChatMessage
+    from .lmstudio_backend import ChatMessage
+    from .lmstudio_backend import LMStudioBackend as LMStudioClient
+    from .lmstudio_backend import LMStudioConfig
+
     LMSTUDIO_AVAILABLE = True
 except ImportError:
     LMSTUDIO_AVAILABLE = False
@@ -75,8 +76,10 @@ CACHE_DIR: Final[Path] = Path("/var/lib/bizra/cache")
 # TYPE PROTOCOLS (mypy --strict compliance)
 # =============================================================================
 
+
 class RateLimiterMetrics(TypedDict):
     """Type definition for rate limiter metrics."""
+
     requests_allowed: int
     requests_throttled: int
     current_tokens: float
@@ -87,6 +90,7 @@ class RateLimiterMetrics(TypedDict):
 
 class BatchingMetrics(TypedDict):
     """Type definition for batching metrics."""
+
     total_batches: int
     total_requests: int
     avg_batch_size: float
@@ -96,6 +100,7 @@ class BatchingMetrics(TypedDict):
 
 class GatewayStats(TypedDict):
     """Type definition for gateway statistics."""
+
     total_requests: int
     total_tokens: int
     avg_latency_ms: float
@@ -103,6 +108,7 @@ class GatewayStats(TypedDict):
 
 class HealthData(TypedDict, total=False):
     """Type definition for gateway health data."""
+
     status: str
     active_backend: Optional[str]
     active_model: Optional[str]
@@ -113,6 +119,7 @@ class HealthData(TypedDict, total=False):
 
 class CircuitMetrics(TypedDict):
     """Type definition for circuit breaker metrics as dict."""
+
     state: str
     failure_count: int
     success_count: int
@@ -128,6 +135,7 @@ class CircuitMetrics(TypedDict):
 # Protocol for backend generate function signature
 class BackendGenerateFn(Protocol):
     """Protocol for backend generate function used by BatchingInferenceQueue."""
+
     async def __call__(
         self,
         prompt: str,
@@ -169,29 +177,33 @@ TIER_CONFIGS = {
 # TYPES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class ComputeTier(str, Enum):
     """Inference compute tiers."""
-    EDGE = "edge"      # Always-on, low-power (TPU/CPU)
-    LOCAL = "local"    # On-demand, high-power (GPU)
-    POOL = "pool"      # URP federated compute
+
+    EDGE = "edge"  # Always-on, low-power (TPU/CPU)
+    LOCAL = "local"  # On-demand, high-power (GPU)
+    POOL = "pool"  # URP federated compute
 
 
 class InferenceBackend(str, Enum):
     """Available inference backends."""
-    LLAMACPP = "llamacpp"      # Embedded (primary)
-    OLLAMA = "ollama"          # External (fallback 1)
-    LMSTUDIO = "lmstudio"      # External (fallback 2)
-    POOL = "pool"              # URP federated
-    OFFLINE = "offline"        # No inference available
+
+    LLAMACPP = "llamacpp"  # Embedded (primary)
+    OLLAMA = "ollama"  # External (fallback 1)
+    LMSTUDIO = "lmstudio"  # External (fallback 2)
+    POOL = "pool"  # URP federated
+    OFFLINE = "offline"  # No inference available
 
 
 class InferenceStatus(str, Enum):
     """Gateway status."""
-    COLD = "cold"              # Not initialized
-    WARMING = "warming"        # Loading models
-    READY = "ready"            # Fully operational
-    DEGRADED = "degraded"      # Fallback mode
-    OFFLINE = "offline"        # No inference available
+
+    COLD = "cold"  # Not initialized
+    WARMING = "warming"  # Loading models
+    READY = "ready"  # Fully operational
+    DEGRADED = "degraded"  # Fallback mode
+    OFFLINE = "offline"  # No inference available
 
 
 class CircuitState(str, Enum):
@@ -204,9 +216,10 @@ class CircuitState(str, Enum):
     - HALF_OPEN -> CLOSED: After success_threshold consecutive successes
     - HALF_OPEN -> OPEN: On any failure
     """
-    CLOSED = "closed"          # Normal operation, requests pass through
-    OPEN = "open"              # Circuit tripped, requests fail fast
-    HALF_OPEN = "half_open"    # Testing recovery, limited requests allowed
+
+    CLOSED = "closed"  # Normal operation, requests pass through
+    OPEN = "open"  # Circuit tripped, requests fail fast
+    HALF_OPEN = "half_open"  # Testing recovery, limited requests allowed
 
 
 @dataclass
@@ -218,6 +231,7 @@ class CircuitBreakerConfig:
     - Nygard (2007): Release It! - "Fail fast" pattern
     - Netflix (2012): Hystrix library defaults
     """
+
     # Failure threshold to trip circuit (CLOSED -> OPEN)
     failure_threshold: int = 5
 
@@ -249,6 +263,7 @@ class RateLimiterConfig:
     and each request consumes one token. If no tokens are available, the request
     is either queued (with timeout) or rejected immediately.
     """
+
     # Rate at which tokens are added to the bucket (requests per second)
     tokens_per_second: float = 10.0
 
@@ -276,6 +291,7 @@ class RateLimiterConfig:
 # CONNECTION POOLING (P1 OPTIMIZATION)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class PooledConnection:
     """
@@ -285,6 +301,7 @@ class PooledConnection:
     - Apache Commons Pool (2001): Connection lifecycle management
     - Amdahl (1967): Connection overhead reduction for parallel scaling
     """
+
     id: str
     backend_type: str
     endpoint: str
@@ -315,6 +332,7 @@ class PooledConnection:
 @dataclass
 class ConnectionPoolConfig:
     """Configuration for connection pool."""
+
     # Pool sizing
     min_size: int = 2
     max_size: int = 10
@@ -392,7 +410,8 @@ class ConnectionPoolMetrics:
                 "pool_misses": self._pool_misses,
                 "hit_rate": (
                     self._pool_hits / total_acquisitions
-                    if total_acquisitions > 0 else 0.0
+                    if total_acquisitions > 0
+                    else 0.0
                 ),
                 "connections_created": self._connections_created,
                 "connections_destroyed": self._connections_destroyed,
@@ -400,7 +419,8 @@ class ConnectionPoolMetrics:
                 "health_checks_failed": self._health_checks_failed,
                 "avg_wait_time_ms": (
                     self._total_wait_time_ms / total_acquisitions
-                    if total_acquisitions > 0 else 0.0
+                    if total_acquisitions > 0
+                    else 0.0
                 ),
                 "acquisition_timeouts": self._acquisition_timeouts,
             }
@@ -546,7 +566,7 @@ class ConnectionPool:
         if conn_id in self._connections:
             conn = self._connections.pop(conn_id)
             # Close connection if it has a close method
-            if hasattr(conn, 'close'):
+            if hasattr(conn, "close"):
                 try:
                     if asyncio.iscoroutinefunction(conn.close):
                         await conn.close()
@@ -579,7 +599,7 @@ class ConnectionPool:
             try:
                 await asyncio.wait_for(
                     self._available.acquire(),
-                    timeout=self.config.acquisition_timeout_seconds
+                    timeout=self.config.acquisition_timeout_seconds,
                 )
             except asyncio.TimeoutError:
                 await self.metrics.record_acquisition_timeout()
@@ -595,8 +615,8 @@ class ConnectionPool:
                     if not conn.in_use and conn.is_healthy:
                         # Check if connection is too old or idle
                         if (
-                            conn.age_seconds > self.config.max_age_seconds or
-                            conn.idle_seconds > self.config.max_idle_seconds
+                            conn.age_seconds > self.config.max_age_seconds
+                            or conn.idle_seconds > self.config.max_idle_seconds
                         ):
                             # Destroy old connection
                             await self._destroy_connection(conn_id)
@@ -683,8 +703,7 @@ class ConnectionPool:
                 # Ensure minimum connections
                 async with self._lock:
                     healthy_count = sum(
-                        1 for c in self._pool.values()
-                        if c.is_healthy and not c.in_use
+                        1 for c in self._pool.values() if c.is_healthy and not c.in_use
                     )
 
                 while healthy_count < self.config.min_size and self._running:
@@ -712,12 +731,12 @@ class ConnectionPool:
         try:
             result = await asyncio.wait_for(
                 self._health_checker(conn),
-                timeout=self.config.health_check_timeout_seconds
+                timeout=self.config.health_check_timeout_seconds,
             )
             return bool(result)
         except asyncio.TimeoutError:
             return False
-        except (ConnectionError, OSError, RuntimeError) as e:
+        except (ConnectionError, OSError, RuntimeError):
             # Health check failed - connection unhealthy
             return False
 
@@ -761,7 +780,7 @@ class PooledHttpClient:
 
     def __init__(self, pool: ConnectionPool, base_url: str) -> None:
         self.pool = pool
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
 
     async def request(
         self,
@@ -771,8 +790,8 @@ class PooledHttpClient:
         timeout: float = 60.0,
     ) -> Dict[str, Any]:
         """Make an HTTP request through the pool."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = f"{self.base_url}{path}"
 
@@ -784,13 +803,12 @@ class PooledHttpClient:
                     url,
                     data=payload,
                     headers={"Content-Type": "application/json"},
-                    method=method
+                    method=method,
                 )
 
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
-                    None,
-                    lambda: urllib.request.urlopen(req, timeout=timeout)
+                    None, lambda: urllib.request.urlopen(req, timeout=timeout)
                 )
                 with response as resp:
                     result: Dict[str, Any] = json.loads(resp.read().decode())
@@ -810,6 +828,7 @@ class PooledHttpClient:
 @dataclass
 class InferenceConfig:
     """Configuration for the inference gateway."""
+
     # Model settings
     default_model: str = "Qwen/Qwen2.5-1.5B-Instruct-GGUF"
     model_path: Optional[str] = None
@@ -857,20 +876,21 @@ class InferenceConfig:
 @dataclass
 class InferenceResult:
     """Result of an inference call."""
+
     content: str
     model: str
     backend: InferenceBackend
     tier: ComputeTier
-    
+
     # Metrics
     tokens_generated: int = 0
     tokens_per_second: float = 0.0
     latency_ms: float = 0.0
-    
+
     # Metadata
     timestamp: str = ""
     receipt_hash: Optional[str] = None
-    
+
     def __post_init__(self):
         if not self.timestamp:
             self.timestamp = datetime.now(timezone.utc).isoformat()
@@ -879,6 +899,7 @@ class InferenceResult:
 @dataclass
 class TaskComplexity:
     """Estimated complexity of an inference task."""
+
     input_tokens: int
     estimated_output_tokens: int
     reasoning_depth: float  # 0.0 = simple, 1.0 = complex
@@ -887,17 +908,20 @@ class TaskComplexity:
     @property
     def score(self) -> float:
         """Overall complexity score (0.0 - 1.0)."""
-        token_factor = min(1.0, (self.input_tokens + self.estimated_output_tokens) / 4000)
+        token_factor = min(
+            1.0, (self.input_tokens + self.estimated_output_tokens) / 4000
+        )
         return (
-            0.3 * token_factor +
-            0.4 * self.reasoning_depth +
-            0.3 * self.domain_specificity
+            0.3 * token_factor
+            + 0.4 * self.reasoning_depth
+            + 0.3 * self.domain_specificity
         )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CIRCUIT BREAKER (NYGARD 2007 / NETFLIX HYSTRIX)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class CircuitBreakerError(Exception):
     """Raised when circuit breaker is open and request cannot proceed."""
@@ -915,6 +939,7 @@ class CircuitBreakerError(Exception):
 @dataclass
 class CircuitBreakerMetrics:
     """Metrics for circuit breaker monitoring and observability."""
+
     state: CircuitState
     failure_count: int
     success_count: int
@@ -959,7 +984,9 @@ class CircuitBreaker:
         self,
         name: str,
         config: CircuitBreakerConfig,
-        on_state_change: Optional[Callable[[str, CircuitState, CircuitState], None]] = None
+        on_state_change: Optional[
+            Callable[[str, CircuitState, CircuitState], None]
+        ] = None,
     ) -> None:
         """
         Initialize circuit breaker.
@@ -971,7 +998,9 @@ class CircuitBreaker:
         """
         self.name: str = name
         self.config: CircuitBreakerConfig = config
-        self._on_state_change: Optional[Callable[[str, CircuitState, CircuitState], None]] = on_state_change
+        self._on_state_change: Optional[
+            Callable[[str, CircuitState, CircuitState], None]
+        ] = on_state_change
 
         # State
         self._state: CircuitState = CircuitState.CLOSED
@@ -1116,7 +1145,9 @@ class CircuitBreaker:
             self._last_failure_time = time.time()
 
             if error:
-                print(f"[CircuitBreaker:{self.name}] Failure recorded: {type(error).__name__}: {error}")
+                print(
+                    f"[CircuitBreaker:{self.name}] Failure recorded: {type(error).__name__}: {error}"
+                )
 
             if self._state == CircuitState.HALF_OPEN:
                 # Any failure in half-open immediately re-trips the circuit
@@ -1149,11 +1180,7 @@ class CircuitBreaker:
 
         if not await self.can_execute():
             await self.record_rejection()
-            raise CircuitBreakerError(
-                self.name,
-                self._state,
-                self._time_until_retry()
-            )
+            raise CircuitBreakerError(self.name, self._state, self._time_until_retry())
 
         try:
             yield
@@ -1162,12 +1189,7 @@ class CircuitBreaker:
             await self.record_failure(e)
             raise
 
-    async def execute(
-        self,
-        func: Callable,
-        *args,
-        **kwargs
-    ) -> Any:
+    async def execute(self, func: Callable, *args, **kwargs) -> Any:
         """
         Execute a function with circuit breaker protection.
 
@@ -1199,6 +1221,7 @@ class CircuitBreaker:
 # RATE LIMITING (RFC 6585 / TOKEN BUCKET)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class RateLimitError(Exception):
     """
     Raised when rate limit is exceeded (HTTP 429 Too Many Requests).
@@ -1213,14 +1236,15 @@ class RateLimitError(Exception):
         client_id: str,
         current_tokens: float,
         retry_after: float,
-        message: Optional[str] = None
+        message: Optional[str] = None,
     ):
         self.client_id = client_id
         self.current_tokens = current_tokens
         self.retry_after = retry_after
         self.http_status = 429  # Too Many Requests
         super().__init__(
-            message or f"Rate limit exceeded for client '{client_id}'. "
+            message
+            or f"Rate limit exceeded for client '{client_id}'. "
             f"Retry after {retry_after:.2f}s"
         )
 
@@ -1255,11 +1279,7 @@ class RateLimiter:
     Uses asyncio.Lock for safe concurrent access to token state.
     """
 
-    def __init__(
-        self,
-        config: RateLimiterConfig,
-        name: str = "default"
-    ) -> None:
+    def __init__(self, config: RateLimiterConfig, name: str = "default") -> None:
         """
         Initialize rate limiter.
 
@@ -1310,15 +1330,12 @@ class RateLimiter:
         # Add tokens based on elapsed time
         tokens_to_add = elapsed * self.config.tokens_per_second
         self._tokens[client_id] = min(
-            self._tokens[client_id] + tokens_to_add,
-            self.config.max_tokens
+            self._tokens[client_id] + tokens_to_add, self.config.max_tokens
         )
         self._last_refill[client_id] = now
 
     async def acquire(
-        self,
-        client_id: Optional[str] = None,
-        tokens: float = 1.0
+        self, client_id: Optional[str] = None, tokens: float = 1.0
     ) -> bool:
         """
         Acquire tokens from the bucket, waiting if necessary.
@@ -1365,7 +1382,7 @@ class RateLimiter:
                 raise RateLimitError(
                     client_id=effective_client,
                     current_tokens=current_tokens,
-                    retry_after=retry_after
+                    retry_after=retry_after,
                 )
 
             # Wait a short interval before retrying
@@ -1373,9 +1390,7 @@ class RateLimiter:
             await asyncio.sleep(wait_time)
 
     async def try_acquire(
-        self,
-        client_id: Optional[str] = None,
-        tokens: float = 1.0
+        self, client_id: Optional[str] = None, tokens: float = 1.0
     ) -> bool:
         """
         Try to acquire tokens without waiting.
@@ -1407,10 +1422,7 @@ class RateLimiter:
         self._requests_throttled += 1
         return False
 
-    async def get_tokens(
-        self,
-        client_id: Optional[str] = None
-    ) -> float:
+    async def get_tokens(self, client_id: Optional[str] = None) -> float:
         """
         Get current token count for a client.
 
@@ -1437,7 +1449,9 @@ class RateLimiter:
             RateLimiterMetrics with current state and statistics
         """
         # Get average current tokens across all clients
-        total_tokens = sum(self._tokens.values()) if self._tokens else self.config.max_tokens
+        total_tokens = (
+            sum(self._tokens.values()) if self._tokens else self.config.max_tokens
+        )
         num_clients = len(self._tokens) if self._tokens else 1
         avg_tokens = total_tokens / num_clients
 
@@ -1451,8 +1465,7 @@ class RateLimiter:
         )
 
     async def get_client_metrics(
-        self,
-        client_id: Optional[str] = None
+        self, client_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get metrics for a specific client.
@@ -1469,7 +1482,9 @@ class RateLimiter:
             await self._refill_tokens(effective_client)
             return {
                 "client_id": effective_client,
-                "current_tokens": self._tokens.get(effective_client, self.config.max_tokens),
+                "current_tokens": self._tokens.get(
+                    effective_client, self.config.max_tokens
+                ),
                 "max_tokens": self.config.max_tokens,
                 "tokens_per_second": self.config.tokens_per_second,
                 "last_refill": self._last_refill.get(effective_client),
@@ -1519,6 +1534,7 @@ class RateLimiter:
 # REQUEST BATCHING (P0-P1 OPTIMIZATION)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class PendingRequest:
     """
@@ -1528,6 +1544,7 @@ class PendingRequest:
     - Amdahl (1967): Parallelization for throughput improvement
     - NVIDIA (2020): Batch inference optimization for GPUs
     """
+
     prompt: str
     max_tokens: int
     temperature: float
@@ -1554,7 +1571,7 @@ class BatchingInferenceQueue:
         self,
         backend_generate_fn: Callable[[str, int, float], Awaitable[str]],
         max_batch_size: int = 8,
-        max_wait_ms: int = 50
+        max_wait_ms: int = 50,
     ) -> None:
         """
         Initialize batching queue.
@@ -1565,7 +1582,9 @@ class BatchingInferenceQueue:
             max_batch_size: Maximum number of requests per batch
             max_wait_ms: Maximum wait time before flushing batch
         """
-        self._backend_generate_fn: Callable[[str, int, float], Awaitable[str]] = backend_generate_fn
+        self._backend_generate_fn: Callable[[str, int, float], Awaitable[str]] = (
+            backend_generate_fn
+        )
         self.MAX_BATCH_SIZE: int = max_batch_size
         self.MAX_WAIT_MS: int = max_wait_ms
 
@@ -1587,7 +1606,9 @@ class BatchingInferenceQueue:
 
         self._running = True
         self._processor_task = asyncio.create_task(self._process_batches())
-        print(f"[BatchQueue] Started (max_batch={self.MAX_BATCH_SIZE}, max_wait={self.MAX_WAIT_MS}ms)")
+        print(
+            f"[BatchQueue] Started (max_batch={self.MAX_BATCH_SIZE}, max_wait={self.MAX_WAIT_MS}ms)"
+        )
 
     async def stop(self) -> None:
         """Stop the background batch processor."""
@@ -1598,12 +1619,7 @@ class BatchingInferenceQueue:
             self._processor_task = None
         print("[BatchQueue] Stopped")
 
-    async def submit(
-        self,
-        prompt: str,
-        max_tokens: int,
-        temperature: float
-    ) -> str:
+    async def submit(self, prompt: str, max_tokens: int, temperature: float) -> str:
         """
         Submit request to batch queue and wait for result.
 
@@ -1620,7 +1636,7 @@ class BatchingInferenceQueue:
             max_tokens=max_tokens,
             temperature=temperature,
             future=future,
-            created_at=time.time()
+            created_at=time.time(),
         )
 
         async with self._lock:
@@ -1645,8 +1661,7 @@ class BatchingInferenceQueue:
             # Wait for batch ready or timeout
             try:
                 await asyncio.wait_for(
-                    self._batch_event.wait(),
-                    timeout=self.MAX_WAIT_MS / 1000
+                    self._batch_event.wait(), timeout=self.MAX_WAIT_MS / 1000
                 )
             except asyncio.TimeoutError:
                 pass  # Timeout - process whatever we have
@@ -1657,8 +1672,8 @@ class BatchingInferenceQueue:
             async with self._lock:
                 if not self._queue:
                     continue
-                batch: List[PendingRequest] = self._queue[:self.MAX_BATCH_SIZE]
-                self._queue = self._queue[self.MAX_BATCH_SIZE:]
+                batch: List[PendingRequest] = self._queue[: self.MAX_BATCH_SIZE]
+                self._queue = self._queue[self.MAX_BATCH_SIZE :]
 
             # Process batch IN PARALLEL (key optimization)
             # NOTE: This parallelizes asyncio tasks. Backend-level parallelism
@@ -1670,9 +1685,7 @@ class BatchingInferenceQueue:
                 """Process a single request from the batch."""
                 try:
                     result: str = await self._backend_generate_fn(
-                        req.prompt,
-                        req.max_tokens,
-                        req.temperature
+                        req.prompt, req.max_tokens, req.temperature
                     )
                     req.future.set_result(result)
                 except Exception as e:
@@ -1694,11 +1707,13 @@ class BatchingInferenceQueue:
             total_requests=self._total_requests_batched,
             avg_batch_size=(
                 self._total_requests_batched / self._total_batches
-                if self._total_batches > 0 else 0.0
+                if self._total_batches > 0
+                else 0.0
             ),
             avg_batch_duration_ms=(
                 self._total_batch_wait_ms / self._total_batches
-                if self._total_batches > 0 else 0.0
+                if self._total_batches > 0
+                else 0.0
             ),
             queue_depth=len(self._queue),
         )
@@ -1707,6 +1722,7 @@ class BatchingInferenceQueue:
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKEND INTERFACE
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class InferenceBackendBase(ABC):
     """
@@ -1731,22 +1747,14 @@ class InferenceBackendBase(ABC):
 
     @abstractmethod
     async def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """Generate a completion."""
         pass
 
     @abstractmethod
     async def generate_stream(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate a completion with streaming."""
         pass
@@ -1794,6 +1802,7 @@ class InferenceBackendBase(ABC):
 # LLAMA.CPP BACKEND
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class LlamaCppBackend(InferenceBackendBase):
     """
     Embedded inference via llama-cpp-python.
@@ -1812,11 +1821,11 @@ class LlamaCppBackend(InferenceBackendBase):
 
         # P0-P1: Batching queue (replaces serial lock)
         self._batch_queue: Optional[BatchingInferenceQueue] = None
-    
+
     @property
     def backend_type(self) -> InferenceBackend:
         return InferenceBackend.LLAMACPP
-    
+
     async def initialize(self) -> bool:
         """Initialize llama.cpp with configured model."""
         try:
@@ -1841,17 +1850,19 @@ class LlamaCppBackend(InferenceBackendBase):
                 verbose=False,
             )
             self._model_path = str(model_path)
-            print(f"[LlamaCpp] Model loaded successfully")
+            print("[LlamaCpp] Model loaded successfully")
 
             # P0-P1: Initialize batching queue if enabled
             if self.config.enable_batching:
                 self._batch_queue = BatchingInferenceQueue(
                     backend_generate_fn=self._generate_direct,
                     max_batch_size=self.config.max_batch_size,
-                    max_wait_ms=self.config.max_batch_wait_ms
+                    max_wait_ms=self.config.max_batch_wait_ms,
                 )
                 await self._batch_queue.start()
-                print(f"[LlamaCpp] Batching enabled (max_batch={self.config.max_batch_size})")
+                print(
+                    f"[LlamaCpp] Batching enabled (max_batch={self.config.max_batch_size})"
+                )
             else:
                 print("[LlamaCpp] Batching disabled (using serial lock)")
 
@@ -1859,13 +1870,9 @@ class LlamaCppBackend(InferenceBackendBase):
         except Exception as e:
             print(f"[LlamaCpp] Failed to load model: {e}")
             return False
-    
+
     async def _generate_direct(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """
         Direct generation (used by batch queue or fallback).
@@ -1885,18 +1892,14 @@ class LlamaCppBackend(InferenceBackendBase):
                 max_tokens=max_tokens,
                 temperature=temperature,
                 echo=False,
-                **kwargs
-            )
+                **kwargs,
+            ),
         )
 
         return result["choices"][0]["text"]
 
     async def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """
         Generate completion.
@@ -1912,14 +1915,12 @@ class LlamaCppBackend(InferenceBackendBase):
 
         # Fallback: Serial lock (original behavior)
         async with self._lock:
-            return await self._generate_direct(prompt, max_tokens, temperature, **kwargs)
-    
+            return await self._generate_direct(
+                prompt, max_tokens, temperature, **kwargs
+            )
+
     async def generate_stream(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate completion with streaming."""
         if not self._model:
@@ -1931,21 +1932,23 @@ class LlamaCppBackend(InferenceBackendBase):
             # Get all chunks synchronously then yield asynchronously
             chunks = await loop.run_in_executor(
                 None,
-                lambda: list(self._model(
-                    prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    echo=False,
-                    stream=True,
-                    **kwargs
-                ))
+                lambda: list(
+                    self._model(
+                        prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        echo=False,
+                        stream=True,
+                        **kwargs,
+                    )
+                ),
             )
             for chunk in chunks:
                 if "choices" in chunk and chunk["choices"]:
                     text = chunk["choices"][0].get("text", "")
                     if text:
                         yield text
-    
+
     async def health_check(self) -> bool:
         """Check if model is loaded and responsive."""
         if not self._model:
@@ -1955,13 +1958,12 @@ class LlamaCppBackend(InferenceBackendBase):
             async with self._lock:
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(
-                    None,
-                    lambda: self._model("test", max_tokens=1)
+                    None, lambda: self._model("test", max_tokens=1)
                 )
             return True
         except Exception:
             return False
-    
+
     def get_loaded_model(self) -> Optional[str]:
         """Return loaded model path."""
         return self._model_path
@@ -1978,7 +1980,7 @@ class LlamaCppBackend(InferenceBackendBase):
         if self._batch_queue:
             return self._batch_queue.get_metrics()
         return None
-    
+
     def _resolve_model_path(self) -> Optional[Path]:
         """Resolve the model path."""
         # 1. Explicit path
@@ -1986,14 +1988,14 @@ class LlamaCppBackend(InferenceBackendBase):
             path = Path(self.config.model_path)
             if path.exists():
                 return path
-        
+
         # 2. Look in model directory
         if self.config.model_dir.exists():
             # Find any .gguf file
             gguf_files = list(self.config.model_dir.glob("*.gguf"))
             if gguf_files:
                 return gguf_files[0]
-        
+
         # 3. Try to download from HuggingFace
         # This would be implemented in a separate model manager
         return None
@@ -2002,6 +2004,7 @@ class LlamaCppBackend(InferenceBackendBase):
 # ═══════════════════════════════════════════════════════════════════════════════
 # OLLAMA BACKEND (FALLBACK)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class OllamaBackend(InferenceBackendBase):
     """
@@ -2021,7 +2024,7 @@ class OllamaBackend(InferenceBackendBase):
         self._circuit_breaker = CircuitBreaker(
             name="ollama",
             config=config.circuit_breaker,
-            on_state_change=self._on_circuit_state_change
+            on_state_change=self._on_circuit_state_change,
         )
 
         # Initialize connection pool if enabled
@@ -2034,18 +2037,15 @@ class OllamaBackend(InferenceBackendBase):
             )
 
     def _on_circuit_state_change(
-        self,
-        name: str,
-        old_state: CircuitState,
-        new_state: CircuitState
+        self, name: str, old_state: CircuitState, new_state: CircuitState
     ) -> None:
         """Handle circuit breaker state changes."""
         if new_state == CircuitState.OPEN:
-            print(f"[Ollama] Circuit OPEN - backend unavailable, failing fast")
+            print("[Ollama] Circuit OPEN - backend unavailable, failing fast")
         elif new_state == CircuitState.HALF_OPEN:
-            print(f"[Ollama] Circuit HALF_OPEN - testing recovery")
+            print("[Ollama] Circuit HALF_OPEN - testing recovery")
         elif new_state == CircuitState.CLOSED:
-            print(f"[Ollama] Circuit CLOSED - backend recovered")
+            print("[Ollama] Circuit CLOSED - backend recovered")
 
     @property
     def backend_type(self) -> InferenceBackend:
@@ -2053,13 +2053,13 @@ class OllamaBackend(InferenceBackendBase):
 
     async def initialize(self) -> bool:
         """Check Ollama availability and list models."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             req = urllib.request.Request(
                 f"{self.config.ollama_url}/api/tags",
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
             with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode())
@@ -2072,7 +2072,7 @@ class OllamaBackend(InferenceBackendBase):
                     # Start connection pool if enabled
                     if self._connection_pool:
                         await self._connection_pool.start()
-                        print(f"[Ollama] Connection pool started")
+                        print("[Ollama] Connection pool started")
 
                     return True
                 else:
@@ -2109,21 +2109,23 @@ class OllamaBackend(InferenceBackendBase):
         """Internal generate method (unprotected)."""
         import urllib.request
 
-        payload = json.dumps({
-            "model": self._current_model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "num_predict": max_tokens,
-                "temperature": temperature,
+        payload = json.dumps(
+            {
+                "model": self._current_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_predict": max_tokens,
+                    "temperature": temperature,
+                },
             }
-        }).encode()
+        ).encode()
 
         req = urllib.request.Request(
             f"{self.config.ollama_url}/api/generate",
             data=payload,
             headers={"Content-Type": "application/json"},
-            method="POST"
+            method="POST",
         )
 
         # Run blocking call in executor
@@ -2138,11 +2140,7 @@ class OllamaBackend(InferenceBackendBase):
         return await loop.run_in_executor(None, make_request)
 
     async def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """
         Generate via Ollama API with circuit breaker protection.
@@ -2151,18 +2149,11 @@ class OllamaBackend(InferenceBackendBase):
             CircuitBreakerError: If circuit is open
         """
         return await self._circuit_breaker.execute(
-            self._generate_internal,
-            prompt,
-            max_tokens,
-            temperature
+            self._generate_internal, prompt, max_tokens, temperature
         )
 
     async def generate_stream(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate with streaming via Ollama API."""
         # For simplicity, just return full response
@@ -2172,8 +2163,8 @@ class OllamaBackend(InferenceBackendBase):
 
     async def health_check(self) -> bool:
         """Check Ollama health (bypasses circuit breaker for health checks)."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             req = urllib.request.Request(f"{self.config.ollama_url}/api/tags")
@@ -2189,6 +2180,7 @@ class OllamaBackend(InferenceBackendBase):
 # ═══════════════════════════════════════════════════════════════════════════════
 # LM STUDIO BACKEND (PRIMARY - v2.2.1)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class LMStudioBackend(InferenceBackendBase):
     """
@@ -2211,22 +2203,19 @@ class LMStudioBackend(InferenceBackendBase):
         self._circuit_breaker = CircuitBreaker(
             name="lmstudio",
             config=config.circuit_breaker,
-            on_state_change=self._on_circuit_state_change
+            on_state_change=self._on_circuit_state_change,
         )
 
     def _on_circuit_state_change(
-        self,
-        name: str,
-        old_state: CircuitState,
-        new_state: CircuitState
+        self, name: str, old_state: CircuitState, new_state: CircuitState
     ) -> None:
         """Handle circuit breaker state changes."""
         if new_state == CircuitState.OPEN:
-            print(f"[LMStudio] Circuit OPEN - backend unavailable, failing fast")
+            print("[LMStudio] Circuit OPEN - backend unavailable, failing fast")
         elif new_state == CircuitState.HALF_OPEN:
-            print(f"[LMStudio] Circuit HALF_OPEN - testing recovery")
+            print("[LMStudio] Circuit HALF_OPEN - testing recovery")
         elif new_state == CircuitState.CLOSED:
-            print(f"[LMStudio] Circuit CLOSED - backend recovered")
+            print("[LMStudio] Circuit CLOSED - backend recovered")
 
     @property
     def backend_type(self) -> InferenceBackend:
@@ -2249,7 +2238,7 @@ class LMStudioBackend(InferenceBackendBase):
                 host=self.config.lmstudio_url.replace("http://", "").split(":")[0],
                 port=int(self.config.lmstudio_url.split(":")[-1]),
                 use_native_api=True,
-                enable_mcp=True
+                enable_mcp=True,
             )
             self._client = LMStudioClient(lms_config)
 
@@ -2264,7 +2253,9 @@ class LMStudioBackend(InferenceBackendBase):
                     return True
                 else:
                     # FAIL: No model loaded - generate() would fail
-                    print(f"[LMStudio] Connected but NO MODEL LOADED ({len(models)} available)")
+                    print(
+                        f"[LMStudio] Connected but NO MODEL LOADED ({len(models)} available)"
+                    )
                     print("[LMStudio] Load a model in LM Studio to enable this backend")
                     self._available = False
                     return False
@@ -2294,11 +2285,7 @@ class LMStudioBackend(InferenceBackendBase):
         return response.content
 
     async def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """
         Generate via LM Studio API with circuit breaker protection.
@@ -2307,18 +2294,11 @@ class LMStudioBackend(InferenceBackendBase):
             CircuitBreakerError: If circuit is open
         """
         return await self._circuit_breaker.execute(
-            self._generate_internal,
-            prompt,
-            max_tokens,
-            temperature
+            self._generate_internal, prompt, max_tokens, temperature
         )
 
     async def generate_stream(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.7,
-        **kwargs
+        self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate with streaming."""
         # Simplified: return full response
@@ -2342,6 +2322,7 @@ class LMStudioBackend(InferenceBackendBase):
 # ═══════════════════════════════════════════════════════════════════════════════
 # INFERENCE GATEWAY
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class InferenceGateway:
     """
@@ -2377,8 +2358,7 @@ class InferenceGateway:
         self._rate_limiter: Optional[RateLimiter] = None
         if self.config.enable_rate_limiting:
             self._rate_limiter = RateLimiter(
-                config=self.config.rate_limiter,
-                name="gateway"
+                config=self.config.rate_limiter, name="gateway"
             )
             print(
                 f"[Gateway] Rate limiting enabled "
@@ -2394,7 +2374,7 @@ class InferenceGateway:
         self._circuit_breaker_trips: int = 0
         self._fallback_invocations: int = 0
         self._rate_limit_rejections: int = 0
-    
+
     async def initialize(self) -> bool:
         """
         Initialize the gateway and backends.
@@ -2430,7 +2410,9 @@ class InferenceGateway:
 
             # Fail-closed: No fallbacks allowed when require_local=True
             self.status = InferenceStatus.OFFLINE
-            print("[Gateway] No embedded backend available (OFFLINE MODE - FAIL-CLOSED)")
+            print(
+                "[Gateway] No embedded backend available (OFFLINE MODE - FAIL-CLOSED)"
+            )
             return False
 
         # --- Fallback-enabled mode (require_local=False) ---
@@ -2480,48 +2462,58 @@ class InferenceGateway:
         self.status = InferenceStatus.OFFLINE
         print("[Gateway] No backend available (OFFLINE MODE)")
         return False
-    
+
     def estimate_complexity(self, prompt: str) -> TaskComplexity:
         """
         Estimate task complexity for routing decisions.
-        
+
         Simple heuristics for now. Could be replaced with classifier.
         """
         words = prompt.split()
         input_tokens = len(words) * 1.3  # Rough estimate
-        
+
         # Heuristics for reasoning depth
         reasoning_keywords = ["why", "how", "explain", "analyze", "compare", "prove"]
-        reasoning_depth = sum(1 for w in words if w.lower() in reasoning_keywords) / max(len(words), 1)
-        
-        # Heuristics for domain specificity  
-        technical_keywords = ["algorithm", "equation", "theorem", "protocol", "architecture"]
-        domain_specificity = sum(1 for w in words if w.lower() in technical_keywords) / max(len(words), 1)
-        
+        reasoning_depth = sum(
+            1 for w in words if w.lower() in reasoning_keywords
+        ) / max(len(words), 1)
+
+        # Heuristics for domain specificity
+        technical_keywords = [
+            "algorithm",
+            "equation",
+            "theorem",
+            "protocol",
+            "architecture",
+        ]
+        domain_specificity = sum(
+            1 for w in words if w.lower() in technical_keywords
+        ) / max(len(words), 1)
+
         return TaskComplexity(
             input_tokens=int(input_tokens),
             estimated_output_tokens=min(int(input_tokens * 2), 2048),
             reasoning_depth=min(reasoning_depth * 5, 1.0),
             domain_specificity=min(domain_specificity * 5, 1.0),
         )
-    
+
     def route(self, complexity: TaskComplexity) -> ComputeTier:
         """
         Route task to appropriate compute tier.
-        
+
         EDGE: complexity < 0.3
         LOCAL: 0.3 <= complexity < 0.8
         POOL: complexity >= 0.8
         """
         score = complexity.score
-        
+
         if score < 0.3:
             return ComputeTier.EDGE
         elif score < 0.8:
             return ComputeTier.LOCAL
         else:
             return ComputeTier.POOL
-    
+
     async def infer(
         self,
         prompt: str,
@@ -2620,14 +2612,18 @@ class InferenceGateway:
                 # Track if we used a fallback
                 if backend != primary_backend:
                     self._fallback_invocations += 1
-                    print(f"[Gateway] Fallback to {backend.backend_type.value} succeeded")
+                    print(
+                        f"[Gateway] Fallback to {backend.backend_type.value} succeeded"
+                    )
 
                 break
 
             except CircuitBreakerError as e:
                 # Circuit is open - try next backend
                 self._circuit_breaker_trips += 1
-                print(f"[Gateway] Circuit open for {e.backend_name}, trying fallback...")
+                print(
+                    f"[Gateway] Circuit open for {e.backend_name}, trying fallback..."
+                )
                 last_error = e
                 continue
 
@@ -2647,7 +2643,9 @@ class InferenceGateway:
         # Calculate metrics
         latency_ms = (time.time() - start_time) * 1000
         tokens_generated = len(response.split())  # Rough estimate
-        tokens_per_second = tokens_generated / (latency_ms / 1000) if latency_ms > 0 else 0
+        tokens_per_second = (
+            tokens_generated / (latency_ms / 1000) if latency_ms > 0 else 0
+        )
 
         # Update stats
         self._total_requests += 1
@@ -2663,7 +2661,7 @@ class InferenceGateway:
             tokens_per_second=round(tokens_per_second, 2),
             latency_ms=round(latency_ms, 2),
         )
-    
+
     async def health(self) -> Dict[str, Any]:
         """
         Get gateway health status including circuit breaker and rate limiter metrics.
@@ -2686,29 +2684,42 @@ class InferenceGateway:
             # Collect circuit breaker metrics
             cb_metrics = backend.get_circuit_metrics()
             if cb_metrics:
-                circuit_breakers[f"{tier_name}_{backend.backend_type.value}"] = cb_metrics
+                circuit_breakers[f"{tier_name}_{backend.backend_type.value}"] = (
+                    cb_metrics
+                )
 
         # P0-P1: Include batching metrics if available
         batching_metrics: Optional[Dict[str, Any]] = None
-        if self._active_backend and hasattr(self._active_backend, 'get_batching_metrics'):
+        if self._active_backend and hasattr(
+            self._active_backend, "get_batching_metrics"
+        ):
             batching_metrics = self._active_backend.get_batching_metrics()
 
         health_data: Dict[str, Any] = {
             "status": self.status.value,
-            "active_backend": self._active_backend.backend_type.value if self._active_backend else None,
-            "active_model": self._active_backend.get_loaded_model() if self._active_backend else None,
+            "active_backend": (
+                self._active_backend.backend_type.value
+                if self._active_backend
+                else None
+            ),
+            "active_model": (
+                self._active_backend.get_loaded_model()
+                if self._active_backend
+                else None
+            ),
             "backends": backends_health,
             "stats": {
                 "total_requests": self._total_requests,
                 "total_tokens": self._total_tokens,
                 "avg_latency_ms": (
                     self._total_latency_ms / self._total_requests
-                    if self._total_requests > 0 else 0.0
+                    if self._total_requests > 0
+                    else 0.0
                 ),
                 "circuit_breaker_trips": self._circuit_breaker_trips,
                 "fallback_invocations": self._fallback_invocations,
                 "rate_limit_rejections": self._rate_limit_rejections,
-            }
+            },
         }
 
         if circuit_breakers:
@@ -2724,10 +2735,12 @@ class InferenceGateway:
         # P1: Include connection pool metrics if available
         connection_pool_metrics: Dict[str, Any] = {}
         for tier, backend in self._backends.items():
-            if hasattr(backend, 'get_connection_pool_metrics'):
+            if hasattr(backend, "get_connection_pool_metrics"):
                 pool_metrics = backend.get_connection_pool_metrics()
                 if pool_metrics:
-                    connection_pool_metrics[f"{tier.value}_{backend.backend_type.value}"] = pool_metrics
+                    connection_pool_metrics[
+                        f"{tier.value}_{backend.backend_type.value}"
+                    ] = pool_metrics
 
         if connection_pool_metrics:
             health_data["connection_pools"] = connection_pool_metrics
@@ -2788,8 +2801,7 @@ class InferenceGateway:
         return None
 
     async def get_client_rate_status(
-        self,
-        client_id: Optional[str] = None
+        self, client_id: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Get rate limit status for a specific client.
@@ -2822,7 +2834,7 @@ class InferenceGateway:
     async def shutdown(self) -> None:
         """Shutdown gateway and all backends."""
         for backend in self._backends.values():
-            if hasattr(backend, 'shutdown'):
+            if hasattr(backend, "shutdown"):
                 await backend.shutdown()
 
 
@@ -2831,6 +2843,7 @@ class InferenceGateway:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _gateway_instance: Optional[InferenceGateway] = None
+
 
 def get_inference_gateway() -> InferenceGateway:
     """Get the singleton inference gateway."""
@@ -2844,35 +2857,36 @@ def get_inference_gateway() -> InferenceGateway:
 # CLI
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def main():
     """CLI entry point."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="BIZRA Inference Gateway")
     parser.add_argument("command", choices=["init", "infer", "health"])
     parser.add_argument("--prompt", help="Prompt for inference")
     parser.add_argument("--model", help="Model path")
     parser.add_argument("--tier", choices=["edge", "local", "pool"])
     args = parser.parse_args()
-    
+
     gateway = get_inference_gateway()
-    
+
     if args.model:
         gateway.config.model_path = args.model
-    
+
     if args.command == "init":
         success = await gateway.initialize()
         print(f"Initialization: {'SUCCESS' if success else 'FAILED'}")
         print(f"Status: {gateway.status.value}")
-    
+
     elif args.command == "infer":
         if not args.prompt:
             print("Error: --prompt required")
             return
-        
+
         await gateway.initialize()
         tier = ComputeTier(args.tier) if args.tier else None
-        
+
         result = await gateway.infer(args.prompt, tier=tier)
         print(f"\n{'='*60}")
         print(f"Model: {result.model}")
@@ -2882,7 +2896,7 @@ async def main():
         print(f"Latency: {result.latency_ms}ms")
         print(f"{'='*60}")
         print(result.content)
-    
+
     elif args.command == "health":
         await gateway.initialize()
         health = await gateway.health()

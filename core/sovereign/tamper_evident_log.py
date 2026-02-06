@@ -28,7 +28,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -38,7 +37,6 @@ from pathlib import Path
 from typing import Any, Dict, Final, Iterator, List, Optional, Tuple
 
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_CLOCK_SKEW_SECONDS,
 )
 
@@ -69,8 +67,10 @@ MAX_TIMESTAMP_DRIFT_NS: Final[int] = UNIFIED_CLOCK_SKEW_SECONDS * 1_000_000_000
 # ENUMS
 # =============================================================================
 
+
 class VerificationStatus(Enum):
     """Status of entry or chain verification."""
+
     VALID = "valid"
     INVALID_HMAC = "invalid_hmac"
     INVALID_CHAIN = "invalid_chain"
@@ -83,6 +83,7 @@ class VerificationStatus(Enum):
 
 class TamperType(Enum):
     """Type of tampering detected."""
+
     CONTENT_MODIFIED = "content_modified"
     ENTRY_DELETED = "entry_deleted"
     ENTRY_INSERTED = "entry_inserted"
@@ -94,6 +95,7 @@ class TamperType(Enum):
 # =============================================================================
 # DATA CLASSES
 # =============================================================================
+
 
 @dataclass
 class TamperEvidentEntry:
@@ -112,11 +114,12 @@ class TamperEvidentEntry:
     - Merkle (1979): Hash chains for tamper evidence
     - RFC 2104 (1997): HMAC specification
     """
+
     sequence: int
     timestamp_ns: int
     content: Dict[str, Any]
     content_hash: str  # SHA-256 of canonicalized content
-    prev_hash: str     # Hash of previous entry (chain link)
+    prev_hash: str  # Hash of previous entry (chain link)
     hmac_signature: str  # HMAC-SHA256 with secret key
 
     def verify(
@@ -211,6 +214,7 @@ class TamperEvidentEntry:
 @dataclass
 class TamperingReport:
     """Report of detected tampering in audit log."""
+
     is_tampered: bool
     tamper_type: Optional[TamperType]
     affected_sequences: List[int]
@@ -230,8 +234,7 @@ class TamperingReport:
             "verified_count": self.verified_count,
             "total_count": self.total_count,
             "integrity_ratio": (
-                self.verified_count / self.total_count
-                if self.total_count > 0 else 0.0
+                self.verified_count / self.total_count if self.total_count > 0 else 0.0
             ),
         }
 
@@ -239,6 +242,7 @@ class TamperingReport:
 @dataclass
 class KeyRotationEvent:
     """Record of a key rotation event."""
+
     old_key_id: str
     new_key_id: str
     rotation_timestamp_ns: int
@@ -260,6 +264,7 @@ class KeyRotationEvent:
 # KEY MANAGEMENT
 # =============================================================================
 
+
 @dataclass
 class AuditKeyManager:
     """
@@ -275,6 +280,7 @@ class AuditKeyManager:
     - NIST SP 800-132: Key Derivation Functions
     - RFC 5869: HKDF specification
     """
+
     _master_key: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     _key_id: str = field(default_factory=lambda: secrets.token_hex(8))
     _rotation_history: List[KeyRotationEvent] = field(default_factory=list)
@@ -283,9 +289,7 @@ class AuditKeyManager:
     def __post_init__(self):
         """Validate key length."""
         if len(self._master_key) < MIN_KEY_LENGTH:
-            raise ValueError(
-                f"Master key must be at least {MIN_KEY_LENGTH} bytes"
-            )
+            raise ValueError(f"Master key must be at least {MIN_KEY_LENGTH} bytes")
 
     @property
     def key_id(self) -> str:
@@ -349,9 +353,7 @@ class AuditKeyManager:
             new_key = secrets.token_bytes(32)
 
         if len(new_key) < MIN_KEY_LENGTH:
-            raise ValueError(
-                f"New key must be at least {MIN_KEY_LENGTH} bytes"
-            )
+            raise ValueError(f"New key must be at least {MIN_KEY_LENGTH} bytes")
 
         # Create rotation event
         event = KeyRotationEvent(
@@ -391,6 +393,7 @@ class AuditKeyManager:
 # =============================================================================
 # TAMPER-EVIDENT LOG
 # =============================================================================
+
 
 class TamperEvidentLog:
     """
@@ -759,7 +762,9 @@ class TamperEvidentLog:
 
     def export_chain(self) -> List[Dict[str, Any]]:
         """Export entire chain as list of dictionaries."""
-        return [entry.to_dict() for entry in sorted(self._entries, key=lambda e: e.sequence)]
+        return [
+            entry.to_dict() for entry in sorted(self._entries, key=lambda e: e.sequence)
+        ]
 
     def import_chain(
         self,
@@ -801,6 +806,7 @@ class TamperEvidentLog:
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
+
 
 def _compute_content_hash(content: Dict[str, Any]) -> str:
     """
@@ -863,6 +869,7 @@ def _compute_entry_hmac(
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 def create_audit_log(
     persist_path: Optional[Path] = None,

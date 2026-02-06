@@ -3,8 +3,8 @@
 //! Uses BLAKE3's built-in parallelism for large data and
 //! rayon for batch hashing of multiple messages.
 
-use blake3::Hasher;
 use crate::DOMAIN_PREFIX;
+use blake3::Hasher;
 
 /// Batch hash result
 #[derive(Debug)]
@@ -19,14 +19,14 @@ pub struct BatchHashResult {
 /// processing. For large messages, BLAKE3's internal SIMD
 /// handles parallelism automatically.
 pub fn blake3_parallel(messages: &[&[u8]]) -> BatchHashResult {
-    let digests: Vec<String> = messages
-        .iter()
-        .map(|msg| domain_hash_fast(msg))
-        .collect();
+    let digests: Vec<String> = messages.iter().map(|msg| domain_hash_fast(msg)).collect();
 
     let total_bytes: usize = messages.iter().map(|m| m.len()).sum();
 
-    BatchHashResult { digests, total_bytes }
+    BatchHashResult {
+        digests,
+        total_bytes,
+    }
 }
 
 /// Fast domain-separated hash (inline, no allocation overhead)
@@ -50,7 +50,10 @@ pub fn blake3_parallel_rayon(messages: &[Vec<u8>]) -> BatchHashResult {
 
     let total_bytes: usize = messages.iter().map(|m| m.len()).sum();
 
-    BatchHashResult { digests, total_bytes }
+    BatchHashResult {
+        digests,
+        total_bytes,
+    }
 }
 
 /// Hash large data with BLAKE3's internal parallelism
@@ -81,11 +84,7 @@ mod tests {
 
     #[test]
     fn test_parallel_hash() {
-        let messages: Vec<&[u8]> = vec![
-            b"message_1",
-            b"message_2",
-            b"message_3",
-        ];
+        let messages: Vec<&[u8]> = vec![b"message_1", b"message_2", b"message_3"];
 
         let result = blake3_parallel(&messages);
         assert_eq!(result.digests.len(), 3);

@@ -8,27 +8,27 @@
 //!
 //! Giants: Fielding (REST), Kleppmann (DDIA), Axum team
 
-pub mod routes;
-pub mod state;
+pub mod error;
 pub mod handlers;
 pub mod middleware;
-pub mod error;
+pub mod routes;
+pub mod state;
 pub mod websocket;
 
 pub use error::ApiError;
 pub use state::AppState;
 
 use axum::{
-    Router,
-    routing::{get, post},
     middleware as axum_middleware,
-};
-use tower_http::{
-    cors::{CorsLayer, Any},
-    trace::TraceLayer,
-    compression::CompressionLayer,
+    routing::{get, post},
+    Router,
 };
 use std::sync::Arc;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 
 /// API version
 pub const API_VERSION: &str = "v1";
@@ -40,31 +40,34 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/health", get(handlers::health::health_check))
         .route("/status", get(handlers::status::system_status))
         .route("/metrics", get(handlers::metrics::prometheus_metrics))
-
         // Identity
         .route("/identity/generate", post(handlers::identity::generate))
         .route("/identity/sign", post(handlers::identity::sign_message))
-        .route("/identity/verify", post(handlers::identity::verify_signature))
-
+        .route(
+            "/identity/verify",
+            post(handlers::identity::verify_signature),
+        )
         // PCI Protocol
         .route("/pci/envelope/create", post(handlers::pci::create_envelope))
         .route("/pci/envelope/verify", post(handlers::pci::verify_envelope))
         .route("/pci/gates/check", post(handlers::pci::check_gates))
-
         // Inference
         .route("/inference/generate", post(handlers::inference::generate))
         .route("/inference/models", get(handlers::inference::list_models))
         .route("/inference/tier", post(handlers::inference::select_tier))
-
         // Federation
         .route("/federation/status", get(handlers::federation::status))
         .route("/federation/peers", get(handlers::federation::list_peers))
         .route("/federation/propose", post(handlers::federation::propose))
-
         // Constitution
-        .route("/constitution", get(handlers::constitution::get_constitution))
-        .route("/constitution/check", post(handlers::constitution::check_compliance))
-
+        .route(
+            "/constitution",
+            get(handlers::constitution::get_constitution),
+        )
+        .route(
+            "/constitution/check",
+            post(handlers::constitution::check_compliance),
+        )
         // WebSocket for real-time updates
         .route("/ws", get(websocket::ws_handler));
 
@@ -76,11 +79,11 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_methods(Any)
-                .allow_headers(Any)
+                .allow_headers(Any),
         )
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
-            middleware::rate_limit::rate_limiter
+            middleware::rate_limit::rate_limiter,
         ))
         .with_state(state)
 }

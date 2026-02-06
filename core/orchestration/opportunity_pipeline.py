@@ -22,11 +22,12 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 # Core sovereign imports
 from core.governance.autonomy_matrix import AutonomyLevel
-from .event_bus import EventBus, Event
+
+from .event_bus import Event, EventBus
 
 logger = logging.getLogger(__name__)
 
@@ -35,19 +36,22 @@ logger = logging.getLogger(__name__)
 # PIPELINE STAGE DEFINITIONS
 # =============================================================================
 
+
 class PipelineStage(Enum):
     """Stages in the opportunity processing pipeline."""
-    DETECTION = auto()      # Muraqabah detected opportunity
-    ENRICHMENT = auto()     # Add context from knowledge base
-    FILTERING = auto()      # SNR and constitutional filtering
-    PLANNING = auto()       # Background agent creates action plan
-    APPROVAL = auto()       # Autonomy matrix decision
-    EXECUTION = auto()      # Action execution
-    REFLECTION = auto()     # Outcome recording and learning
+
+    DETECTION = auto()  # Muraqabah detected opportunity
+    ENRICHMENT = auto()  # Add context from knowledge base
+    FILTERING = auto()  # SNR and constitutional filtering
+    PLANNING = auto()  # Background agent creates action plan
+    APPROVAL = auto()  # Autonomy matrix decision
+    EXECUTION = auto()  # Action execution
+    REFLECTION = auto()  # Outcome recording and learning
 
 
 class OpportunityStatus(Enum):
     """Status of an opportunity in the pipeline."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     APPROVED = "approved"
@@ -60,6 +64,7 @@ class OpportunityStatus(Enum):
 @dataclass
 class PipelineOpportunity:
     """An opportunity flowing through the pipeline."""
+
     id: str
     domain: str
     description: str
@@ -119,9 +124,11 @@ class PipelineOpportunity:
 # PIPELINE FILTERS (Constitutional Guardrails)
 # =============================================================================
 
+
 @dataclass
 class FilterResult:
     """Result of a filter check."""
+
     passed: bool
     reason: str = ""
     score_adjustment: float = 0.0
@@ -148,10 +155,12 @@ class SNRFilter(ConstitutionalFilter):
 
     async def check(self, opportunity: PipelineOpportunity) -> FilterResult:
         if opportunity.snr_score >= self.min_snr:
-            return FilterResult(passed=True, reason=f"SNR {opportunity.snr_score:.2f} >= {self.min_snr}")
+            return FilterResult(
+                passed=True, reason=f"SNR {opportunity.snr_score:.2f} >= {self.min_snr}"
+            )
         return FilterResult(
             passed=False,
-            reason=f"SNR {opportunity.snr_score:.2f} < threshold {self.min_snr}"
+            reason=f"SNR {opportunity.snr_score:.2f} < threshold {self.min_snr}",
         )
 
 
@@ -176,11 +185,11 @@ class IhsanFilter(ConstitutionalFilter):
         if opportunity.ihsan_score >= threshold:
             return FilterResult(
                 passed=True,
-                reason=f"Ihsan {opportunity.ihsan_score:.3f} >= {threshold} for {opportunity.autonomy_level.name}"
+                reason=f"Ihsan {opportunity.ihsan_score:.3f} >= {threshold} for {opportunity.autonomy_level.name}",
             )
         return FilterResult(
             passed=False,
-            reason=f"Ihsan {opportunity.ihsan_score:.3f} < {threshold} required for {opportunity.autonomy_level.name}"
+            reason=f"Ihsan {opportunity.ihsan_score:.3f} < {threshold} required for {opportunity.autonomy_level.name}",
         )
 
 
@@ -203,7 +212,7 @@ class DaughterTestFilter(ConstitutionalFilter):
             if opportunity.autonomy_level.value > AutonomyLevel.SUGGESTER.value:
                 return FilterResult(
                     passed=False,
-                    reason=f"Domain '{opportunity.domain}' requires human approval (Daughter Test)"
+                    reason=f"Domain '{opportunity.domain}' requires human approval (Daughter Test)",
                 )
 
         # Check sensitive keywords in description
@@ -213,7 +222,7 @@ class DaughterTestFilter(ConstitutionalFilter):
                 if opportunity.autonomy_level.value > AutonomyLevel.AUTOLOW.value:
                     return FilterResult(
                         passed=False,
-                        reason=f"Keyword '{keyword}' requires elevated approval (Daughter Test)"
+                        reason=f"Keyword '{keyword}' requires elevated approval (Daughter Test)",
                     )
 
         return FilterResult(passed=True, reason="Passed Daughter Test")
@@ -249,9 +258,13 @@ class RateLimitFilter(ConstitutionalFilter):
         daily = self._daily_counts.get(domain, 0)
 
         if hourly >= self.max_per_hour:
-            return FilterResult(passed=False, reason=f"Hourly limit reached for {domain}")
+            return FilterResult(
+                passed=False, reason=f"Hourly limit reached for {domain}"
+            )
         if daily >= self.max_per_day:
-            return FilterResult(passed=False, reason=f"Daily limit reached for {domain}")
+            return FilterResult(
+                passed=False, reason=f"Daily limit reached for {domain}"
+            )
 
         return FilterResult(passed=True)
 
@@ -264,6 +277,7 @@ class RateLimitFilter(ConstitutionalFilter):
 # =============================================================================
 # OPPORTUNITY PIPELINE
 # =============================================================================
+
 
 class OpportunityPipeline:
     """
@@ -326,8 +340,11 @@ class OpportunityPipeline:
             "by_autonomy": {},
         }
 
-        logger.info("OpportunityPipeline initialized with SNR=%.2f, Ihsan=%.2f",
-                    snr_threshold, ihsan_threshold)
+        logger.info(
+            "OpportunityPipeline initialized with SNR=%.2f, Ihsan=%.2f",
+            snr_threshold,
+            ihsan_threshold,
+        )
 
     # -------------------------------------------------------------------------
     # LIFECYCLE
@@ -345,10 +362,9 @@ class OpportunityPipeline:
         asyncio.create_task(self._process_loop())
 
         if self.event_bus:
-            await self.event_bus.publish(Event(
-                topic="pipeline.started",
-                payload={"timestamp": time.time()}
-            ))
+            await self.event_bus.publish(
+                Event(topic="pipeline.started", payload={"timestamp": time.time()})
+            )
 
     async def stop(self) -> None:
         """Stop the pipeline gracefully."""
@@ -362,10 +378,12 @@ class OpportunityPipeline:
             await asyncio.sleep(0.5)
 
         if self.event_bus:
-            await self.event_bus.publish(Event(
-                topic="pipeline.stopped",
-                payload={"timestamp": time.time(), "metrics": self._metrics}
-            ))
+            await self.event_bus.publish(
+                Event(
+                    topic="pipeline.stopped",
+                    payload={"timestamp": time.time(), "metrics": self._metrics},
+                )
+            )
 
         logger.info("OpportunityPipeline stopped")
 
@@ -386,10 +404,11 @@ class OpportunityPipeline:
         await self._queue.put(opportunity)
 
         if self.event_bus:
-            await self.event_bus.publish(Event(
-                topic="pipeline.opportunity.received",
-                payload=opportunity.to_dict()
-            ))
+            await self.event_bus.publish(
+                Event(
+                    topic="pipeline.opportunity.received", payload=opportunity.to_dict()
+                )
+            )
 
         logger.debug("Opportunity %s submitted to pipeline", opportunity.id)
         return opportunity.id
@@ -432,9 +451,7 @@ class OpportunityPipeline:
 
                 # Get next opportunity (with timeout to check running state)
                 try:
-                    opportunity = await asyncio.wait_for(
-                        self._queue.get(), timeout=1.0
-                    )
+                    opportunity = await asyncio.wait_for(self._queue.get(), timeout=1.0)
                 except asyncio.TimeoutError:
                     continue
 
@@ -454,7 +471,9 @@ class OpportunityPipeline:
             await self._stage_enrichment(opp)
 
             # Stage 2: FILTERING
-            opp.advance_stage(PipelineStage.FILTERING, "Applying constitutional filters")
+            opp.advance_stage(
+                PipelineStage.FILTERING, "Applying constitutional filters"
+            )
             passed = await self._stage_filtering(opp)
             if not passed:
                 self._finalize(opp, OpportunityStatus.REJECTED)
@@ -479,7 +498,9 @@ class OpportunityPipeline:
             opp.advance_stage(PipelineStage.REFLECTION, "Recording outcome")
             await self._stage_reflection(opp, success)
 
-            self._finalize(opp, OpportunityStatus.EXECUTED if success else OpportunityStatus.FAILED)
+            self._finalize(
+                opp, OpportunityStatus.EXECUTED if success else OpportunityStatus.FAILED
+            )
 
         except Exception as e:
             logger.error("Error processing opportunity %s: %s", opp.id, e)
@@ -526,8 +547,12 @@ class OpportunityPipeline:
             elif not result.passed:
                 all_passed = False
                 filter_notes.append(f"{self._filters[i].name}: {result.reason}")
-                logger.info("Opportunity %s filtered by %s: %s",
-                           opp.id, self._filters[i].name, result.reason)
+                logger.info(
+                    "Opportunity %s filtered by %s: %s",
+                    opp.id,
+                    self._filters[i].name,
+                    result.reason,
+                )
 
         if not all_passed:
             opp.rejection_reason = "; ".join(filter_notes)
@@ -552,7 +577,9 @@ class OpportunityPipeline:
         # Default plan if none provided
         if not opp.action_plan:
             opp.action_plan = {
-                "steps": [{"action": "notify_user", "params": {"message": opp.description}}],
+                "steps": [
+                    {"action": "notify_user", "params": {"message": opp.description}}
+                ],
                 "reversible": True,
                 "estimated_duration": 60,
             }
@@ -573,7 +600,11 @@ class OpportunityPipeline:
 
         # AUTOLOW/AUTOMEDIUM/AUTOHIGH - auto-approve within Ihsan thresholds
         # (already checked in filtering stage)
-        if level in (AutonomyLevel.AUTOLOW, AutonomyLevel.AUTOMEDIUM, AutonomyLevel.AUTOHIGH):
+        if level in (
+            AutonomyLevel.AUTOLOW,
+            AutonomyLevel.AUTOMEDIUM,
+            AutonomyLevel.AUTOHIGH,
+        ):
             self._metrics["total_approved"] += 1
             opp.status = OpportunityStatus.APPROVED
             return True
@@ -596,10 +627,9 @@ class OpportunityPipeline:
         self._metrics["total_deferred"] += 1
 
         if self.event_bus:
-            await self.event_bus.publish(Event(
-                topic="pipeline.approval.requested",
-                payload=opp.to_dict()
-            ))
+            await self.event_bus.publish(
+                Event(topic="pipeline.approval.requested", payload=opp.to_dict())
+            )
 
         # If approval callback provided, use it
         if self._approval_callback:
@@ -649,15 +679,17 @@ class OpportunityPipeline:
     async def _stage_reflection(self, opp: PipelineOpportunity, success: bool) -> None:
         """Record outcome for learning."""
         if self.event_bus:
-            await self.event_bus.publish(Event(
-                topic="pipeline.opportunity.completed",
-                payload={
-                    **opp.to_dict(),
-                    "success": success,
-                    "execution_result": opp.execution_result,
-                    "duration": time.time() - opp.detected_at,
-                }
-            ))
+            await self.event_bus.publish(
+                Event(
+                    topic="pipeline.opportunity.completed",
+                    payload={
+                        **opp.to_dict(),
+                        "success": success,
+                        "execution_result": opp.execution_result,
+                        "duration": time.time() - opp.detected_at,
+                    },
+                )
+            )
 
     # -------------------------------------------------------------------------
     # HUMAN APPROVAL INTERFACE
@@ -680,7 +712,9 @@ class OpportunityPipeline:
         # Continue execution
         success = await self._stage_execution(opp)
         await self._stage_reflection(opp, success)
-        self._finalize(opp, OpportunityStatus.EXECUTED if success else OpportunityStatus.FAILED)
+        self._finalize(
+            opp, OpportunityStatus.EXECUTED if success else OpportunityStatus.FAILED
+        )
 
         return True
 
@@ -757,6 +791,7 @@ class OpportunityPipeline:
 # FACTORY FUNCTION
 # =============================================================================
 
+
 async def create_opportunity_pipeline(
     event_bus: Optional[EventBus] = None,
     snr_threshold: float = 0.85,
@@ -791,6 +826,7 @@ async def create_opportunity_pipeline(
 # INTEGRATION HELPERS
 # =============================================================================
 
+
 def connect_muraqabah_to_pipeline(
     muraqabah_engine: Any,
     pipeline: OpportunityPipeline,
@@ -801,6 +837,7 @@ def connect_muraqabah_to_pipeline(
     This creates the data flow:
         MuraqabahEngine.publish_opportunity() → OpportunityPipeline.submit()
     """
+
     async def forward_to_pipeline(event: Event) -> None:
         if event.event_type == "muraqabah.opportunity":
             await pipeline.submit_from_muraqabah(
@@ -815,7 +852,9 @@ def connect_muraqabah_to_pipeline(
 
     # Subscribe to muraqabah opportunities
     if hasattr(muraqabah_engine, "event_bus") and muraqabah_engine.event_bus:
-        muraqabah_engine.event_bus.subscribe("muraqabah.opportunity", forward_to_pipeline)
+        muraqabah_engine.event_bus.subscribe(
+            "muraqabah.opportunity", forward_to_pipeline
+        )
 
 
 def connect_background_agents_to_pipeline(
@@ -827,6 +866,7 @@ def connect_background_agents_to_pipeline(
 
     This allows background agents to create action plans for opportunities.
     """
+
     async def plan_with_agents(opp: PipelineOpportunity) -> Dict[str, Any]:
         # Find best agent for this domain
         if hasattr(agent_registry, "get_agent_for_domain"):

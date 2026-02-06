@@ -1,7 +1,7 @@
 //! BIZRA Resource Pool Benchmarks
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use bizra_resourcepool::*;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
 use rust_decimal::Decimal;
@@ -23,13 +23,9 @@ fn bench_pool_genesis(c: &mut Criterion) {
 
             rt.block_on(async {
                 black_box(
-                    ResourcePool::genesis(
-                        node_id,
-                        "BenchNode".to_string(),
-                        verifying_key,
-                    )
-                    .await
-                    .unwrap()
+                    ResourcePool::genesis(node_id, "BenchNode".to_string(), verifying_key)
+                        .await
+                        .unwrap(),
                 )
             })
         })
@@ -48,11 +44,7 @@ fn bench_gini_calculation(c: &mut Criterion) {
     });
 
     c.bench_function("gini_calculation", |b| {
-        b.iter(|| {
-            rt.block_on(async {
-                black_box(pool.calculate_gini().await)
-            })
-        })
+        b.iter(|| rt.block_on(async { black_box(pool.calculate_gini().await) }))
     });
 }
 
@@ -76,14 +68,12 @@ fn bench_zakat_calculation(c: &mut Criterion) {
     };
 
     c.bench_function("zakat_calculation", |b| {
-        b.iter(|| {
-            black_box(node.calculate_zakat())
-        })
+        b.iter(|| black_box(node.calculate_zakat()))
     });
 }
 
 fn bench_harberger_tax_calculation(c: &mut Criterion) {
-    let mut node = PoolNode {
+    let node = PoolNode {
         node_id: "a".repeat(64),
         name: "TestNode".to_string(),
         class: NodeClass::Sovereign,
@@ -111,9 +101,7 @@ fn bench_harberger_tax_calculation(c: &mut Criterion) {
     };
 
     c.bench_function("harberger_tax_calculation", |b| {
-        b.iter(|| {
-            black_box(node.calculate_harberger_tax())
-        })
+        b.iter(|| black_box(node.calculate_harberger_tax()))
     });
 }
 

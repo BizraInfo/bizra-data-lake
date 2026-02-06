@@ -310,7 +310,9 @@ mod tests {
         let owner = [1u8; 20];
 
         let payment = rent.calculate_rent(10, 7200) + rent.calculate_tax(100, 7200);
-        let id = rent.rent_slot(data.clone(), 7200, 100, owner, payment).unwrap();
+        let id = rent
+            .rent_slot(data.clone(), 7200, 100, owner, payment)
+            .unwrap();
 
         let retrieved = rent.get_data(id);
         assert_eq!(retrieved, Some(data));

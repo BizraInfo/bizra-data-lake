@@ -9,14 +9,13 @@ decisions that exceed individual agent capabilities.
 Standing on Giants: Wisdom of Crowds + Ensemble Methods + Swarm Intelligence
 """
 
-import asyncio
 import logging
+import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
-import uuid
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from .team_planner import AgentRole
 
@@ -25,16 +24,18 @@ logger = logging.getLogger(__name__)
 
 class AggregationMethod(Enum):
     """Methods for aggregating agent contributions."""
+
     WEIGHTED_AVERAGE = auto()  # Weight by confidence
-    MAJORITY_VOTE = auto()     # Democratic consensus
-    BEST_OF = auto()           # Highest confidence wins
-    SYNTHESIS = auto()         # LLM-based fusion
-    HIERARCHICAL = auto()      # Defer to role hierarchy
+    MAJORITY_VOTE = auto()  # Democratic consensus
+    BEST_OF = auto()  # Highest confidence wins
+    SYNTHESIS = auto()  # LLM-based fusion
+    HIERARCHICAL = auto()  # Defer to role hierarchy
 
 
 @dataclass
 class AgentContribution:
     """A contribution from a single agent to collective decision."""
+
     agent_role: AgentRole = AgentRole.MASTER_REASONER
     content: Any = None
     confidence: float = 0.9
@@ -46,6 +47,7 @@ class AgentContribution:
 @dataclass
 class CollectiveDecision:
     """The synthesized collective decision."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     question: str = ""
     contributions: List[AgentContribution] = field(default_factory=list)
@@ -109,7 +111,9 @@ class CollectiveIntelligence:
         method = method or self.default_method
 
         if len(contributions) < self.min_contributions:
-            logger.warning(f"Only {len(contributions)} contributions (min: {self.min_contributions})")
+            logger.warning(
+                f"Only {len(contributions)} contributions (min: {self.min_contributions})"
+            )
 
         decision = CollectiveDecision(
             question=question,
@@ -131,7 +135,9 @@ class CollectiveIntelligence:
 
         # Calculate synergy score
         individual_max = max((c.confidence for c in contributions), default=0)
-        decision.synergy_score = (decision.confidence - individual_max) / max(individual_max, 0.01)
+        decision.synergy_score = (decision.confidence - individual_max) / max(
+            individual_max, 0.01
+        )
 
         # Record dissenting views
         if decision.result is not None:
@@ -169,13 +175,17 @@ class CollectiveIntelligence:
             result = weighted_sum / total_weight
 
             # Confidence increases with agreement
-            variance = sum(
-                c.confidence * (c.content - result) ** 2
-                for c in contributions
-            ) / total_weight
+            variance = (
+                sum(c.confidence * (c.content - result) ** 2 for c in contributions)
+                / total_weight
+            )
             agreement_factor = 1.0 / (1.0 + variance)
 
-            confidence = min(0.99, (total_weight / len(contributions)) * agreement_factor + self.synergy_bonus)
+            confidence = min(
+                0.99,
+                (total_weight / len(contributions)) * agreement_factor
+                + self.synergy_bonus,
+            )
             return result, confidence
 
         # For categorical values - defer to majority
@@ -237,11 +247,12 @@ class CollectiveIntelligence:
         top = sorted_contribs[0]
         # Adjust confidence based on subordinate agreement
         agreement = sum(
-            1 for c in sorted_contribs[1:]
-            if c.content == top.content
+            1 for c in sorted_contribs[1:] if c.content == top.content
         ) / max(len(sorted_contribs) - 1, 1)
 
-        confidence = min(0.99, top.confidence * (0.8 + 0.2 * agreement) + self.synergy_bonus)
+        confidence = min(
+            0.99, top.confidence * (0.8 + 0.2 * agreement) + self.synergy_bonus
+        )
         return top.content, confidence
 
     def average_synergy(self) -> float:
@@ -257,7 +268,8 @@ class CollectiveIntelligence:
             "average_synergy": round(self.average_synergy(), 3),
             "synergy_history_len": len(self._synergy_history),
             "positive_synergy_rate": (
-                sum(1 for s in self._synergy_history if s > 0) / max(len(self._synergy_history), 1)
+                sum(1 for s in self._synergy_history if s > 0)
+                / max(len(self._synergy_history), 1)
             ),
             "default_method": self.default_method.name,
         }

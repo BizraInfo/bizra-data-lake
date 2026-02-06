@@ -66,19 +66,16 @@ pub struct UserProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum CommunicationStyle {
-    Concise,      // Brief, to the point
-    Detailed,     // Comprehensive explanations
-    Technical,    // Code and specs preferred
+    Concise,        // Brief, to the point
+    Detailed,       // Comprehensive explanations
+    Technical,      // Code and specs preferred
+    #[default]
     Conversational, // Natural dialogue
-    Formal,       // Professional tone
+    Formal,         // Professional tone
 }
 
-impl Default for CommunicationStyle {
-    fn default() -> Self {
-        CommunicationStyle::Conversational
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserGoal {
@@ -93,10 +90,10 @@ pub struct UserGoal {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GoalPriority {
-    Critical,  // Ramadan deadline, family reunion
-    High,      // First revenue, product launch
-    Medium,    // Feature completion
-    Low,       // Nice to have
+    Critical, // Ramadan deadline, family reunion
+    High,     // First revenue, product launch
+    Medium,   // Feature completion
+    Low,      // Nice to have
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,18 +140,18 @@ pub struct UserPreferences {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub enum NotificationLevel {
-    Silent,     // Only critical
-    Minimal,    // Important only
+    Silent,  // Only critical
+    Minimal, // Important only
     #[default]
-    Balanced,   // Default
-    Frequent,   // All updates
+    Balanced, // Default
+    Frequent, // All updates
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub enum InterventionLevel {
-    Passive,    // Wait for commands
+    Passive, // Wait for commands
     #[default]
-    Proactive,  // Suggest improvements
+    Proactive, // Suggest improvements
     Autonomous, // Act within bounds
 }
 
@@ -228,12 +225,12 @@ pub struct Observation {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ObservationCategory {
-    UserActivity,      // What user is doing
-    SystemState,       // Resource pool, other agents
-    ExternalEvent,     // External signals
-    GoalProgress,      // Progress toward goals
-    Opportunity,       // Detected opportunity
-    Risk,              // Detected risk
+    UserActivity,  // What user is doing
+    SystemState,   // Resource pool, other agents
+    ExternalEvent, // External signals
+    GoalProgress,  // Progress toward goals
+    Opportunity,   // Detected opportunity
+    Risk,          // Detected risk
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -277,10 +274,7 @@ pub enum ProactiveActionType {
         request: String,
     },
     /// Learn and update user profile
-    Learn {
-        insight: String,
-        confidence: f64,
-    },
+    Learn { insight: String, confidence: f64 },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -454,7 +448,11 @@ impl ProactivePATEngine {
         // First, extract what we need from the agent
         let (role, observations, profile) = {
             if let Some(agent) = self.agents.get(agent_id) {
-                (agent.role.clone(), agent.observations.clone(), agent.user_profile.clone())
+                (
+                    agent.role.clone(),
+                    agent.observations.clone(),
+                    agent.user_profile.clone(),
+                )
             } else {
                 return Vec::new();
             }
@@ -513,7 +511,8 @@ impl ProactivePATEngine {
                                 ),
                             },
                             description: "Goal deadline approaching".to_string(),
-                            rationale: "User has a critical deadline and may need to prioritize".to_string(),
+                            rationale: "User has a critical deadline and may need to prioritize"
+                                .to_string(),
                             confidence: 0.95,
                             impact_estimate: 0.9,
                             requires_approval: false,
@@ -526,7 +525,10 @@ impl ProactivePATEngine {
         }
 
         // Look for opportunities in observations
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::Opportunity) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::Opportunity)
+        {
             actions.push(ProactiveAction {
                 action_id: Uuid::new_v4().to_string(),
                 action_type: ProactiveActionType::Suggest {
@@ -554,7 +556,10 @@ impl ProactivePATEngine {
         let mut actions = Vec::new();
 
         // Proactively gather information on active topics
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::UserActivity) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::UserActivity)
+        {
             if obs.content.contains("research") || obs.content.contains("investigate") {
                 actions.push(ProactiveAction {
                     action_id: Uuid::new_v4().to_string(),
@@ -584,7 +589,10 @@ impl ProactivePATEngine {
         let mut actions = Vec::new();
 
         // Detect implementation patterns
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::UserActivity) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::UserActivity)
+        {
             if obs.content.contains("build") || obs.content.contains("implement") {
                 actions.push(ProactiveAction {
                     action_id: Uuid::new_v4().to_string(),
@@ -614,7 +622,10 @@ impl ProactivePATEngine {
         let mut actions = Vec::new();
 
         // Look for patterns in data
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::GoalProgress) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::GoalProgress)
+        {
             actions.push(ProactiveAction {
                 action_id: Uuid::new_v4().to_string(),
                 action_type: ProactiveActionType::Learn {
@@ -642,7 +653,10 @@ impl ProactivePATEngine {
         let mut actions = Vec::new();
 
         // Quality checks
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::Risk) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::Risk)
+        {
             actions.push(ProactiveAction {
                 action_id: Uuid::new_v4().to_string(),
                 action_type: ProactiveActionType::Alert {
@@ -671,28 +685,27 @@ impl ProactivePATEngine {
 
         // Check for routine tasks that can be automated
         for behavior in profile.patterns.iter() {
-            match behavior.pattern_type {
-                PatternType::MorningPlanning => {
-                    let now = Utc::now();
-                    let hour = now.hour();
-                    if hour >= profile.active_hours.0 as u32 && hour <= (profile.active_hours.0 + 1) as u32 {
-                        actions.push(ProactiveAction {
-                            action_id: Uuid::new_v4().to_string(),
-                            action_type: ProactiveActionType::Suggest {
-                                suggestion: "Ready for morning planning session?".to_string(),
-                                alternatives: vec!["Review yesterday's progress".to_string()],
-                            },
-                            description: "Morning planning prompt".to_string(),
-                            rationale: "User typically plans at this time".to_string(),
-                            confidence: 0.9,
-                            impact_estimate: 0.5,
-                            requires_approval: true,
-                            deadline: None,
-                            status: ActionStatus::Pending,
-                        });
-                    }
+            if let PatternType::MorningPlanning = behavior.pattern_type {
+                let now = Utc::now();
+                let hour = now.hour();
+                if hour >= profile.active_hours.0 as u32
+                    && hour <= (profile.active_hours.0 + 1) as u32
+                {
+                    actions.push(ProactiveAction {
+                        action_id: Uuid::new_v4().to_string(),
+                        action_type: ProactiveActionType::Suggest {
+                            suggestion: "Ready for morning planning session?".to_string(),
+                            alternatives: vec!["Review yesterday's progress".to_string()],
+                        },
+                        description: "Morning planning prompt".to_string(),
+                        rationale: "User typically plans at this time".to_string(),
+                        confidence: 0.9,
+                        impact_estimate: 0.5,
+                        requires_approval: true,
+                        deadline: None,
+                        status: ActionStatus::Pending,
+                    });
                 }
-                _ => {}
             }
         }
 
@@ -707,7 +720,10 @@ impl ProactivePATEngine {
         let mut actions = Vec::new();
 
         // Security and ethics monitoring
-        for obs in observations.iter().filter(|o| o.category == ObservationCategory::Risk) {
+        for obs in observations
+            .iter()
+            .filter(|o| o.category == ObservationCategory::Risk)
+        {
             if obs.confidence > 0.8 {
                 actions.push(ProactiveAction {
                     action_id: Uuid::new_v4().to_string(),
@@ -733,7 +749,11 @@ impl ProactivePATEngine {
     pub fn learn_from_feedback(&mut self, feedback: &UserFeedback, action_id: &str) {
         // Find the action and update learned behaviors
         for agent in self.agents.values_mut() {
-            if let Some(record) = agent.action_history.iter_mut().find(|r| r.action.action_id == action_id) {
+            if let Some(record) = agent
+                .action_history
+                .iter_mut()
+                .find(|r| r.action.action_id == action_id)
+            {
                 record.user_feedback = Some(feedback.clone());
 
                 // Adjust confidence thresholds based on feedback
@@ -864,7 +884,10 @@ mod tests {
         assert!(!actions.is_empty());
         assert!(matches!(
             actions[0].action_type,
-            ProactiveActionType::Alert { severity: AlertSeverity::Urgent, .. }
+            ProactiveActionType::Alert {
+                severity: AlertSeverity::Urgent,
+                ..
+            }
         ));
     }
 
@@ -890,7 +913,9 @@ mod tests {
                     deadline: None,
                     status: ActionStatus::Completed,
                 },
-                outcome: ActionOutcome::Success { result: "Done".to_string() },
+                outcome: ActionOutcome::Success {
+                    result: "Done".to_string(),
+                },
                 user_feedback: None,
                 completed_at: Utc::now(),
             });

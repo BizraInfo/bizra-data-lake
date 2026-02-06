@@ -29,69 +29,126 @@ pub mod pci;
 pub mod simd;
 pub mod sovereign;
 
-pub use identity::{NodeIdentity, NodeId, domain_separated_digest};
 pub use constitution::{Constitution, IhsanThreshold};
 pub use genesis::{
-    GenesisReceipt, GenesisReceiptBuilder, GenesisError, GenesisResult,
-    ExecutionContext, CryptoManifest, blake3_hash, blake3_domain_hash,
+    blake3_domain_hash, blake3_hash, CryptoManifest, ExecutionContext, GenesisError,
+    GenesisReceipt, GenesisReceiptBuilder, GenesisResult,
 };
-pub use pci::{PCIEnvelope, RejectCode, GateChain, Gate, GateResult, GateContext};
-pub use simd::{validate_gates_batch, verify_signatures_batch, blake3_parallel};
-pub use sovereign::{
-    SovereignOrchestrator, OrchestratorConfig, SNREngine, SNRConfig, SignalMetrics,
-    ThoughtGraph, ThoughtNode, ReasoningPath, GiantRegistry,
-    OmegaEngine, OmegaConfig, OmegaMetrics, CircuitState,
-    SovereignError, SovereignResult, ErrorContext,
-};
+pub use identity::{domain_separated_digest, NodeId, NodeIdentity};
 pub use islamic_finance::{
-    // Zakat Engine
-    ZakatCalculator, ZakatDistribution, ZakatableAsset, ZakatRecipient, WealthRecord,
-    // Mudarabah (Profit-Sharing)
-    MudarabahContract, MudarabahStatus, MudarabahSettlement, MudarabahLoss,
-    // Musharakah (Partnership)
-    MusharakahPartnership, MusharakahPartner, MusharakahStatus, MusharakahDecision,
-    // Waqf (Endowment)
-    WaqfEndowment, WaqfPurpose, WaqfBeneficiary, WaqfDistribution,
+    ComplianceResult,
+    ComplianceViolation,
+    HaramCategory,
     // Compliance
-    IslamicComplianceGate, ComplianceResult, ComplianceViolation, HaramCategory, ProhibitedService,
+    IslamicComplianceGate,
+    // Errors
+    IslamicFinanceError,
     // Registry
     IslamicFinanceRegistry,
-    // Errors
-    IslamicFinanceError, IslamicFinanceResult,
+    IslamicFinanceResult,
+    // Mudarabah (Profit-Sharing)
+    MudarabahContract,
+    MudarabahLoss,
+    MudarabahSettlement,
+    MudarabahStatus,
+    MusharakahDecision,
+    MusharakahPartner,
+    // Musharakah (Partnership)
+    MusharakahPartnership,
+    MusharakahStatus,
+    ProhibitedService,
+    WaqfBeneficiary,
+    WaqfDistribution,
+    // Waqf (Endowment)
+    WaqfEndowment,
+    WaqfPurpose,
+    WealthRecord,
+    // Zakat Engine
+    ZakatCalculator,
+    ZakatDistribution,
+    ZakatRecipient,
+    ZakatableAsset,
+    HAWL_DAYS,
+    MAX_RABBULMAL_SHARE,
+    MAX_WAQF_OVERHEAD,
+    MIN_MUDARIB_SHARE,
+    MIN_WAQF_BENEFICIARIES,
+    NISAB_THRESHOLD,
     // Constants
-    ZAKAT_RATE, NISAB_THRESHOLD, MIN_MUDARIB_SHARE, MAX_RABBULMAL_SHARE, HAWL_DAYS,
-    MAX_WAQF_OVERHEAD, MIN_WAQF_BENEFICIARIES,
+    ZAKAT_RATE,
 };
 pub use omega::{
-    // GAP-C1: Ihsan Projector
-    IhsanVector, NTUState, IhsanProjector,
     // GAP-C2: Adl Invariant
-    AdlInvariant, AdlInvariantResult, AdlViolation, AdlViolationType,
+    AdlInvariant,
+    AdlInvariantResult,
+    AdlViolation,
+    AdlViolationType,
     // GAP-C3: Byzantine Consensus
-    ByzantineParams, ByzantineVoteType, ConsensusState,
-    // GAP-C4: Treasury Controller
-    TreasuryMode, TreasuryModeConfig, TreasuryController,
+    ByzantineParams,
+    ByzantineVoteType,
+    ConsensusState,
     // Unified
-    ConstitutionalEngine, ConstitutionalError,
+    ConstitutionalEngine,
+    ConstitutionalError,
+    IhsanProjector,
+    // GAP-C1: Ihsan Projector
+    IhsanVector,
+    NTUState,
+    TreasuryController,
+    // GAP-C4: Treasury Controller
+    TreasuryMode,
+    TreasuryModeConfig,
+    ADL_GINI_EMERGENCY,
     // Constants
-    ADL_GINI_THRESHOLD, ADL_GINI_EMERGENCY, BFT_QUORUM_FRACTION, LANDAUER_LIMIT_JOULES,
+    ADL_GINI_THRESHOLD,
+    BFT_QUORUM_FRACTION,
+    LANDAUER_LIMIT_JOULES,
 };
 pub use pat::{
-    // Agent Roles
-    PATRole, SATRole, AgentCapability, AgentState,
-    // Types
-    AgentCapabilityCard, AgentResourceLimits, MintedAgent,
-    PersonalAgentTeam, SharedAgentTeam, AgentType, AgentMintRequest,
-    AgentIdentityBlock, AuthorityLink,
-    // Standing on Giants
-    StandingOnGiantsAttestation, IntellectualFoundation, ProvenanceRecord,
-    // Minting
-    AgentMintingEngine, MintingError, MintingResult,
     // Attestation
-    ActionAttestation, ActionType, GiantCitation, ProvenanceEntry, ProvenanceSource,
-    AttestationRegistry, PoolUsageRecord, ResourceUsage,
+    ActionAttestation,
+    ActionType,
+    AgentCapability,
+    // Types
+    AgentCapabilityCard,
+    AgentIdentityBlock,
+    AgentMintRequest,
+    // Minting
+    AgentMintingEngine,
+    AgentResourceLimits,
+    AgentState,
+    AgentType,
+    AttestationRegistry,
+    AuthorityLink,
+    GiantCitation,
+    IntellectualFoundation,
+    MintedAgent,
+    MintingError,
+    MintingResult,
+    // Agent Roles
+    PATRole,
+    PersonalAgentTeam,
+    PoolUsageRecord,
+    ProvenanceEntry,
+    ProvenanceRecord,
+    ProvenanceSource,
+    ResourceUsage,
+    SATRole,
+    SharedAgentTeam,
+    // Standing on Giants
+    StandingOnGiantsAttestation,
+    AGENT_MINT_IHSAN_THRESHOLD,
+    MAX_AGENT_DELEGATION_DEPTH,
     // Constants
-    PAT_TEAM_SIZE, SAT_TEAM_SIZE, AGENT_MINT_IHSAN_THRESHOLD, MAX_AGENT_DELEGATION_DEPTH,
+    PAT_TEAM_SIZE,
+    SAT_TEAM_SIZE,
+};
+pub use pci::{Gate, GateChain, GateContext, GateResult, PCIEnvelope, RejectCode};
+pub use simd::{blake3_parallel, validate_gates_batch, verify_signatures_batch};
+pub use sovereign::{
+    CircuitState, ErrorContext, GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics,
+    OrchestratorConfig, ReasoningPath, SNRConfig, SNREngine, SignalMetrics, SovereignError,
+    SovereignOrchestrator, SovereignResult, ThoughtGraph, ThoughtNode,
 };
 
 /// Domain separation prefix for all cryptographic operations

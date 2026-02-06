@@ -15,7 +15,7 @@ import json
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 
 def canonical_json(obj: Any) -> Any:
@@ -29,10 +29,7 @@ def canonical_json(obj: Any) -> Any:
     """
     if isinstance(obj, dict):
         # Sort keys and recursively canonicalize values
-        return {
-            k: canonical_json(v)
-            for k, v in sorted(obj.items())
-        }
+        return {k: canonical_json(v) for k, v in sorted(obj.items())}
     elif isinstance(obj, list):
         # Preserve order, canonicalize elements
         return [canonical_json(item) for item in obj]
@@ -66,6 +63,7 @@ def blake3_digest(data: bytes) -> bytes:
     """
     try:
         import blake3
+
         return blake3.blake3(data).digest()
     except ImportError:
         # Fallback to SHA-256
@@ -84,6 +82,7 @@ class CanonQuery:
 
     All fields are normalized for deterministic hashing.
     """
+
     user_id: str
     user_state: str
     intent: str
@@ -167,6 +166,7 @@ class CanonPolicy:
 
     Used for policy hashing in receipts.
     """
+
     policy_id: str
     version: str
     rules: Dict[str, Any]
@@ -200,6 +200,7 @@ class CanonEnvironment:
 
     Captures machine/runtime state for audit trail.
     """
+
     platform: str
     python_version: str
     hostname: str
@@ -226,12 +227,13 @@ class CanonEnvironment:
     @classmethod
     def capture(cls) -> "CanonEnvironment":
         """Capture current environment."""
+        import os
         import platform
         import sys
-        import os
 
         try:
             import psutil
+
             memory_gb = psutil.virtual_memory().total / (1024**3)
         except ImportError:
             memory_gb = 0.0

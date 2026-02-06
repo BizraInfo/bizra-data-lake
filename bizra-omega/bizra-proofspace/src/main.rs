@@ -54,17 +54,26 @@ fn main() {
     let result = validator.validate(&block);
 
     println!("  Verdict: {:?}", result.verdict);
-    println!("  Block ID Match: {}", result.block_id == result.computed_block_id);
+    println!(
+        "  Block ID Match: {}",
+        result.block_id == result.computed_block_id
+    );
     println!();
 
     println!("▸ FATE Scores:");
-    println!("  Ihsān Score:      {:.3} (threshold: {:.3})",
-             result.fate_scores.ihsan_score, IHSAN_THRESHOLD);
+    println!(
+        "  Ihsān Score:      {:.3} (threshold: {:.3})",
+        result.fate_scores.ihsan_score, IHSAN_THRESHOLD
+    );
     println!("  Adl Score:        {:.3}", result.fate_scores.adl_score);
-    println!("  Harm Score:       {:.3} (max: {:.3})",
-             result.fate_scores.harm_score, MAX_HARM_SCORE);
-    println!("  Confidence Score: {:.3} (min: {:.3})",
-             result.fate_scores.confidence_score, MIN_CONFIDENCE);
+    println!(
+        "  Harm Score:       {:.3} (max: {:.3})",
+        result.fate_scores.harm_score, MAX_HARM_SCORE
+    );
+    println!(
+        "  Confidence Score: {:.3} (min: {:.3})",
+        result.fate_scores.confidence_score, MIN_CONFIDENCE
+    );
     println!();
 
     if !result.errors.is_empty() {
@@ -115,9 +124,13 @@ fn main() {
 
     let circular_result = validator.validate(&circular_block);
     println!("  Verdict: {:?}", circular_result.verdict);
-    println!("  Circular dependency detected: {}",
-             circular_result.errors.iter().any(|e|
-                 matches!(e, ValidationError::CircularDependency { .. })));
+    println!(
+        "  Circular dependency detected: {}",
+        circular_result
+            .errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::CircularDependency { .. }))
+    );
     println!();
 
     // Scenario 2: High harm score
@@ -147,17 +160,21 @@ fn main() {
     let strict_validator = ProofSpaceValidator::new(true);
     let harmful_result = strict_validator.validate(&harmful_block);
     println!("  Verdict: {:?}", harmful_result.verdict);
-    println!("  Harm gate triggered: {}",
-             harmful_result.errors.iter().any(|e|
-                 matches!(e, ValidationError::HarmScoreTooHigh { .. })));
+    println!(
+        "  Harm gate triggered: {}",
+        harmful_result
+            .errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::HarmScoreTooHigh { .. }))
+    );
     println!();
 
     // Scenario 3: Invalid SMT-LIB2 assertion
     println!("▸ Scenario 3: Invalid Formal Assertion");
     let mut bad_smt_body = create_sample_body();
     bad_smt_body.ethical_envelope.formal_assertions = vec![
-        "(assert (= x 1))".to_string(),       // Valid
-        "assert (= y 2)".to_string(),          // Invalid: missing open paren
+        "(assert (= x 1))".to_string(), // Valid
+        "assert (= y 2)".to_string(),   // Invalid: missing open paren
     ];
 
     let bad_smt_block = BizraBlock {
@@ -181,9 +198,13 @@ fn main() {
 
     let smt_result = validator.validate(&bad_smt_block);
     println!("  Verdict: {:?}", smt_result.verdict);
-    println!("  Invalid assertion detected: {}",
-             smt_result.errors.iter().any(|e|
-                 matches!(e, ValidationError::InvalidFormalAssertion { .. })));
+    println!(
+        "  Invalid assertion detected: {}",
+        smt_result
+            .errors
+            .iter()
+            .any(|e| matches!(e, ValidationError::InvalidFormalAssertion { .. }))
+    );
     println!();
 
     // Summary
@@ -317,7 +338,10 @@ fn create_sample_body() -> BlockBody {
                 ],
             },
             context_limits: ContextLimits {
-                valid_domains: vec!["distributed systems".to_string(), "agent orchestration".to_string()],
+                valid_domains: vec![
+                    "distributed systems".to_string(),
+                    "agent orchestration".to_string(),
+                ],
                 invalid_domains: vec!["weapons".to_string(), "surveillance".to_string()],
                 required_context: vec!["Understanding of Byzantine fault tolerance".to_string()],
             },

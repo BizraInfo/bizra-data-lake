@@ -130,73 +130,142 @@ def __getattr__(name):
     """Lazy import of submodules."""
     if name in ("AgentGenome", "Gene", "GeneType", "GenomeFactory"):
         from .genome import AgentGenome, Gene, GeneType, GenomeFactory
+
         return locals()[name]
     elif name in ("FitnessEvaluator", "FitnessResult", "SelectionPressure"):
         from .fitness import FitnessEvaluator, FitnessResult, SelectionPressure
+
         return locals()[name]
     elif name in ("EvolutionEngine", "EvolutionConfig", "EvolutionResult"):
-        from .evolution import EvolutionEngine, EvolutionConfig, EvolutionResult
+        from .evolution import EvolutionConfig, EvolutionEngine, EvolutionResult
+
         return locals()[name]
     elif name in ("EmergenceDetector", "EmergentProperty", "EmergenceReport"):
-        from .emergence import EmergenceDetector, EmergentProperty, EmergenceReport
+        from .emergence import EmergenceDetector, EmergenceReport, EmergentProperty
+
         return locals()[name]
     elif name in ("AutopoieticLoop", "AutopoiesisConfig", "create_autopoietic_loop"):
-        from .loop import AutopoieticLoop, AutopoiesisConfig, create_autopoietic_loop
+        from .loop import AutopoiesisConfig, AutopoieticLoop, create_autopoietic_loop
+
         return locals()[name]
     elif name in (
-        "AutopoieticLoopEngine", "AutopoieticState", "SystemObservation",
-        "ActivationGuardrails", "ActivationReport",
-        "Hypothesis", "HypothesisCategory", "RiskLevel",
-        "ValidationResult", "ImplementationResult", "IntegrationResult",
-        "AutopoieticResult", "AuditLogEntry", "ApprovalRequest",
-        "RateLimiter", "RollbackManager", "HumanApprovalQueue",
-        "create_autopoietic_loop_engine"
+        "AutopoieticLoopEngine",
+        "AutopoieticState",
+        "SystemObservation",
+        "ActivationGuardrails",
+        "ActivationReport",
+        "Hypothesis",
+        "HypothesisCategory",
+        "RiskLevel",
+        "ValidationResult",
+        "ImplementationResult",
+        "IntegrationResult",
+        "AutopoieticResult",
+        "AuditLogEntry",
+        "ApprovalRequest",
+        "RateLimiter",
+        "RollbackManager",
+        "HumanApprovalQueue",
+        "create_autopoietic_loop_engine",
     ):
         from .loop_engine import (
-            AutopoieticLoop as AutopoieticLoopEngine,
-            AutopoieticState, SystemObservation, ActivationGuardrails, ActivationReport,
-            Hypothesis, HypothesisCategory, RiskLevel,
-            ValidationResult, ImplementationResult,
-            IntegrationResult, AutopoieticResult, AuditLogEntry,
-            ApprovalRequest, RateLimiter, RollbackManager,
-            HumanApprovalQueue, create_autopoietic_loop as create_autopoietic_loop_engine
+            ActivationGuardrails,
+            ActivationReport,
+            ApprovalRequest,
+            AuditLogEntry,
         )
+        from .loop_engine import AutopoieticLoop as AutopoieticLoopEngine
+        from .loop_engine import (
+            AutopoieticResult,
+            AutopoieticState,
+            HumanApprovalQueue,
+            Hypothesis,
+            HypothesisCategory,
+            ImplementationResult,
+            IntegrationResult,
+            RateLimiter,
+            RiskLevel,
+            RollbackManager,
+            SystemObservation,
+            ValidationResult,
+        )
+        from .loop_engine import (
+            create_autopoietic_loop as create_autopoietic_loop_engine,
+        )
+
         return locals()[name]
     elif name in (
-        "ShadowDeployer", "ShadowDeployment", "ShadowEnvironment",
-        "ShadowRequest", "ShadowResponse", "ShadowHypothesis",
-        "CanaryDeployer", "DeploymentVerdict", "ComparisonStatus",
-        "ComparisonResult", "MetricComparison", "MetricSample",
-        "ResourceLimits", "IsolationLevel", "TrafficMode",
-        "StatisticalAnalyzer", "AuditEntry",
+        "ShadowDeployer",
+        "ShadowDeployment",
+        "ShadowEnvironment",
+        "ShadowRequest",
+        "ShadowResponse",
+        "ShadowHypothesis",
+        "CanaryDeployer",
+        "DeploymentVerdict",
+        "ComparisonStatus",
+        "ComparisonResult",
+        "MetricComparison",
+        "MetricSample",
+        "ResourceLimits",
+        "IsolationLevel",
+        "TrafficMode",
+        "StatisticalAnalyzer",
+        "AuditEntry",
     ):
         from .shadow_deploy import (
-            ShadowDeployer, ShadowDeployment, ShadowEnvironment,
-            ShadowRequest, ShadowResponse, ShadowHypothesis,
-            CanaryDeployer, DeploymentVerdict, ComparisonStatus,
-            ComparisonResult, MetricComparison, MetricSample,
-            ResourceLimits, IsolationLevel, TrafficMode,
-            StatisticalAnalyzer, AuditEntry,
+            AuditEntry,
+            CanaryDeployer,
+            ComparisonResult,
+            ComparisonStatus,
+            DeploymentVerdict,
+            IsolationLevel,
+            MetricComparison,
+            MetricSample,
+            ResourceLimits,
+            ShadowDeployer,
+            ShadowDeployment,
+            ShadowEnvironment,
+            ShadowHypothesis,
+            ShadowRequest,
+            ShadowResponse,
+            StatisticalAnalyzer,
+            TrafficMode,
         )
+
         return locals()[name]
     elif name in (
-        "HypothesisGenerator", "ImprovementPattern",
-        "HypothesisStatus", "create_hypothesis_generator",
+        "HypothesisGenerator",
+        "ImprovementPattern",
+        "HypothesisStatus",
+        "create_hypothesis_generator",
     ):
         from .hypothesis_generator import (
-            HypothesisGenerator, ImprovementPattern,
-            HypothesisStatus, create_hypothesis_generator,
+            HypothesisGenerator,
+            HypothesisStatus,
+            ImprovementPattern,
+            create_hypothesis_generator,
         )
+
         return locals()[name]
     elif name in (
-        "GoTHypothesisExplorer", "GoTAutopoieticIntegration",
-        "ExploredHypothesis", "HypothesisThoughtNode", "MCTSNode",
-        "create_got_hypothesis_explorer", "create_got_autopoietic_integration",
+        "GoTHypothesisExplorer",
+        "GoTAutopoieticIntegration",
+        "ExploredHypothesis",
+        "HypothesisThoughtNode",
+        "MCTSNode",
+        "create_got_hypothesis_explorer",
+        "create_got_autopoietic_integration",
     ):
         from .got_integration import (
-            GoTHypothesisExplorer, GoTAutopoieticIntegration,
-            ExploredHypothesis, HypothesisThoughtNode, MCTSNode,
-            create_got_hypothesis_explorer, create_got_autopoietic_integration,
+            ExploredHypothesis,
+            GoTAutopoieticIntegration,
+            GoTHypothesisExplorer,
+            HypothesisThoughtNode,
+            MCTSNode,
+            create_got_autopoietic_integration,
+            create_got_hypothesis_explorer,
         )
+
         return locals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

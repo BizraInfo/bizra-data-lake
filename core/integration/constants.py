@@ -56,14 +56,14 @@ IHSAN_THRESHOLD_DEV: Final[float] = 0.80
 # 8-dimensional ethical scoring (must sum to 1.0)
 
 IHSAN_WEIGHTS: Final[dict] = {
-    "correctness": 0.22,        # Is it right?
-    "safety": 0.22,             # Is it safe?
-    "user_benefit": 0.14,       # Does it help?
-    "efficiency": 0.12,         # Is it optimal?
-    "auditability": 0.12,       # Can it be reviewed?
-    "anti_centralization": 0.08, # Does it decentralize?
-    "robustness": 0.06,         # Is it resilient?
-    "adl_fairness": 0.04,       # Is it fair (عدل)?
+    "correctness": 0.22,  # Is it right?
+    "safety": 0.22,  # Is it safe?
+    "user_benefit": 0.14,  # Does it help?
+    "efficiency": 0.12,  # Is it optimal?
+    "auditability": 0.12,  # Can it be reviewed?
+    "anti_centralization": 0.08,  # Does it decentralize?
+    "robustness": 0.06,  # Is it resilient?
+    "adl_fairness": 0.04,  # Is it fair (عدل)?
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -220,9 +220,9 @@ def validate_cross_repo_consistency() -> dict:
         if "0.95" in content:
             # Verify it's the correct context
             if repo == "bizra-omega-rust":
-                match = re.search(r'IHSAN_THRESHOLD.*=.*0\.95', content)
+                match = re.search(r"IHSAN_THRESHOLD.*=.*0\.95", content)
             else:
-                match = re.search(r'IHSAN_THRESHOLD.*=.*0\.95', content)
+                match = re.search(r"IHSAN_THRESHOLD.*=.*0\.95", content)
             if not match:
                 drift_count += 1
         else:

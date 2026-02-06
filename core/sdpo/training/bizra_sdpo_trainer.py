@@ -11,34 +11,32 @@ Standing on Giants: Shannon + SDPO Paper + Distributed Training
 Genesis Strict Synthesis v2.2.2
 """
 
-from abc import ABC, abstractmethod
+import json
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 from pathlib import Path
-import asyncio
-import json
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
 from core.sdpo import (
+    SDPO_ADVANTAGE_THRESHOLD,
     SDPO_LEARNING_RATE,
     SDPO_MAX_ITERATIONS,
-    SDPO_ADVANTAGE_THRESHOLD,
 )
 from core.sdpo.optimization import (
+    BIZRAFeedbackGenerator,
     SDPOAdvantage,
     SDPOAdvantageCalculator,
-    SDPOFeedback,
-    BIZRAFeedbackGenerator,
 )
 
 
 @dataclass
 class TrainingConfig:
     """Configuration for BIZRA-SDPO training."""
+
     learning_rate: float = SDPO_LEARNING_RATE
     batch_size: int = 8
     max_epochs: int = 10
@@ -56,6 +54,7 @@ class TrainingConfig:
 @dataclass
 class TrainingState:
     """State tracking for training."""
+
     epoch: int = 0
     global_step: int = 0
     best_loss: float = float("inf")
@@ -91,6 +90,7 @@ class TrainingState:
 @dataclass
 class TrainingBatch:
     """A batch of training data for SDPO."""
+
     questions: List[str]
     failed_attempts: List[str]
     feedbacks: List[str]
@@ -114,6 +114,7 @@ class TrainingBatch:
 @dataclass
 class TrainingResult:
     """Result from a training run."""
+
     final_state: TrainingState
     total_epochs_completed: int
     total_steps: int
@@ -181,9 +182,7 @@ class CheckpointManager:
 
     def list_checkpoints(self) -> List[str]:
         """List all available checkpoints."""
-        return sorted(
-            [str(p) for p in self.checkpoint_dir.glob("checkpoint_*.json")]
-        )
+        return sorted([str(p) for p in self.checkpoint_dir.glob("checkpoint_*.json")])
 
 
 class BIZRASDPOTrainer:
@@ -321,7 +320,9 @@ class BIZRASDPOTrainer:
             if advantage.is_beneficial:
                 loss = -advantage.overall_advantage
             else:
-                loss = abs(advantage.overall_advantage) + 1.0  # Penalty for non-beneficial
+                loss = (
+                    abs(advantage.overall_advantage) + 1.0
+                )  # Penalty for non-beneficial
 
             batch_losses.append(loss)
 
@@ -329,7 +330,10 @@ class BIZRASDPOTrainer:
             self._accumulated_gradients.append(advantage)
 
             # Apply gradient update if accumulation complete
-            if len(self._accumulated_gradients) >= self.config.gradient_accumulation_steps:
+            if (
+                len(self._accumulated_gradients)
+                >= self.config.gradient_accumulation_steps
+            ):
                 await self._apply_accumulated_gradients()
                 self._accumulated_gradients = []
 
@@ -348,7 +352,9 @@ class BIZRASDPOTrainer:
             return
 
         # Average advantages
-        avg_overall = sum(a.overall_advantage for a in self._accumulated_gradients) / len(self._accumulated_gradients)
+        avg_overall = sum(
+            a.overall_advantage for a in self._accumulated_gradients
+        ) / len(self._accumulated_gradients)
 
         # Create combined advantage
         combined = SDPOAdvantage(
@@ -357,7 +363,8 @@ class BIZRASDPOTrainer:
             advantage_variance=0.0,
             max_advantage=max(a.max_advantage for a in self._accumulated_gradients),
             min_advantage=min(a.min_advantage for a in self._accumulated_gradients),
-            positive_ratio=sum(a.positive_ratio for a in self._accumulated_gradients) / len(self._accumulated_gradients),
+            positive_ratio=sum(a.positive_ratio for a in self._accumulated_gradients)
+            / len(self._accumulated_gradients),
         )
 
         # Get current learning rate (with warmup)
@@ -371,7 +378,9 @@ class BIZRASDPOTrainer:
         """Get current learning rate with warmup."""
         if self.state.global_step < self.config.warmup_steps:
             # Linear warmup
-            return self.config.learning_rate * (self.state.global_step / self.config.warmup_steps)
+            return self.config.learning_rate * (
+                self.state.global_step / self.config.warmup_steps
+            )
         return self.config.learning_rate
 
     async def evaluate(self, batches: List[TrainingBatch]) -> Dict[str, float]:

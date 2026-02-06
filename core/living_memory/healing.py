@@ -10,22 +10,20 @@ Implements autonomous memory repair and optimization:
 Standing on Giants: Autopoiesis (Self-Repair) + Shannon (Error Correction)
 """
 
-import asyncio
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 
-from core.living_memory.core import (
-    LivingMemoryCore,
-    MemoryEntry,
-    MemoryType,
-    MemoryState,
-)
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
+)
+from core.living_memory.core import (
+    LivingMemoryCore,
+    MemoryState,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 class CorruptionType(str):
     """Types of memory corruption."""
+
     ENCODING_ERROR = "encoding_error"
     EMBEDDING_MISMATCH = "embedding_mismatch"
     QUALITY_DEGRADATION = "quality_degradation"
@@ -44,6 +43,7 @@ class CorruptionType(str):
 @dataclass
 class CorruptionReport:
     """Report of detected corruption."""
+
     entry_id: str
     corruption_type: str
     severity: float  # 0-1
@@ -55,6 +55,7 @@ class CorruptionReport:
 @dataclass
 class RepairResult:
     """Result of a repair operation."""
+
     entry_id: str
     success: bool
     action_taken: str
@@ -65,6 +66,7 @@ class RepairResult:
 @dataclass
 class HealingStats:
     """Statistics from healing operations."""
+
     entries_scanned: int = 0
     corruptions_found: int = 0
     repairs_attempted: int = 0
@@ -118,7 +120,7 @@ class MemoryHealer:
         - State consistency
         """
         reports = []
-        start_time = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
 
         entries_to_scan = entry_ids or list(self.memory._memories.keys())
 
@@ -129,74 +131,89 @@ class MemoryHealer:
 
             # Check encoding
             try:
-                entry.content.encode('utf-8')
+                entry.content.encode("utf-8")
             except UnicodeError:
-                reports.append(CorruptionReport(
-                    entry_id=entry_id,
-                    corruption_type=CorruptionType.ENCODING_ERROR,
-                    severity=0.9,
-                    description="Content contains invalid encoding",
-                    repairable=False,
-                    suggested_action="delete",
-                ))
+                reports.append(
+                    CorruptionReport(
+                        entry_id=entry_id,
+                        corruption_type=CorruptionType.ENCODING_ERROR,
+                        severity=0.9,
+                        description="Content contains invalid encoding",
+                        repairable=False,
+                        suggested_action="delete",
+                    )
+                )
                 continue
 
             # Check quality degradation
             if entry.state == MemoryState.ACTIVE:
                 if entry.ihsan_score < self.ihsan_threshold * 0.7:
-                    reports.append(CorruptionReport(
-                        entry_id=entry_id,
-                        corruption_type=CorruptionType.QUALITY_DEGRADATION,
-                        severity=0.6,
-                        description=f"Ihsān score degraded to {entry.ihsan_score:.3f}",
-                        repairable=True,
-                        suggested_action="revalidate",
-                    ))
+                    reports.append(
+                        CorruptionReport(
+                            entry_id=entry_id,
+                            corruption_type=CorruptionType.QUALITY_DEGRADATION,
+                            severity=0.6,
+                            description=f"Ihsān score degraded to {entry.ihsan_score:.3f}",
+                            repairable=True,
+                            suggested_action="revalidate",
+                        )
+                    )
 
                 if entry.snr_score < self.snr_threshold * 0.7:
-                    reports.append(CorruptionReport(
-                        entry_id=entry_id,
-                        corruption_type=CorruptionType.QUALITY_DEGRADATION,
-                        severity=0.5,
-                        description=f"SNR score degraded to {entry.snr_score:.3f}",
-                        repairable=True,
-                        suggested_action="revalidate",
-                    ))
+                    reports.append(
+                        CorruptionReport(
+                            entry_id=entry_id,
+                            corruption_type=CorruptionType.QUALITY_DEGRADATION,
+                            severity=0.5,
+                            description=f"SNR score degraded to {entry.snr_score:.3f}",
+                            repairable=True,
+                            suggested_action="revalidate",
+                        )
+                    )
 
             # Check orphaned references
             for related_id in entry.related_ids:
                 if related_id not in self.memory._memories:
-                    reports.append(CorruptionReport(
-                        entry_id=entry_id,
-                        corruption_type=CorruptionType.ORPHANED_REFERENCE,
-                        severity=0.3,
-                        description=f"Reference to non-existent entry: {related_id[:8]}",
-                        repairable=True,
-                        suggested_action="remove_reference",
-                    ))
+                    reports.append(
+                        CorruptionReport(
+                            entry_id=entry_id,
+                            corruption_type=CorruptionType.ORPHANED_REFERENCE,
+                            severity=0.3,
+                            description=f"Reference to non-existent entry: {related_id[:8]}",
+                            repairable=True,
+                            suggested_action="remove_reference",
+                        )
+                    )
 
             # Check state consistency
-            if entry.state == MemoryState.DELETED and entry_id in self.memory._type_index[entry.memory_type]:
-                reports.append(CorruptionReport(
-                    entry_id=entry_id,
-                    corruption_type=CorruptionType.INCONSISTENT_STATE,
-                    severity=0.4,
-                    description="Deleted entry still in type index",
-                    repairable=True,
-                    suggested_action="cleanup_index",
-                ))
+            if (
+                entry.state == MemoryState.DELETED
+                and entry_id in self.memory._type_index[entry.memory_type]
+            ):
+                reports.append(
+                    CorruptionReport(
+                        entry_id=entry_id,
+                        corruption_type=CorruptionType.INCONSISTENT_STATE,
+                        severity=0.4,
+                        description="Deleted entry still in type index",
+                        repairable=True,
+                        suggested_action="cleanup_index",
+                    )
+                )
 
             # Check embedding consistency
             if entry.embedding is not None:
                 if entry_id not in self.memory._embedding_index:
-                    reports.append(CorruptionReport(
-                        entry_id=entry_id,
-                        corruption_type=CorruptionType.EMBEDDING_MISMATCH,
-                        severity=0.5,
-                        description="Entry has embedding but not in index",
-                        repairable=True,
-                        suggested_action="rebuild_embedding_index",
-                    ))
+                    reports.append(
+                        CorruptionReport(
+                            entry_id=entry_id,
+                            corruption_type=CorruptionType.EMBEDDING_MISMATCH,
+                            severity=0.5,
+                            description="Entry has embedding but not in index",
+                            repairable=True,
+                            suggested_action="rebuild_embedding_index",
+                        )
+                    )
 
         self._corruption_history.extend(reports)
         self._last_full_scan = datetime.now(timezone.utc)
@@ -261,8 +278,7 @@ class MemoryHealer:
         elif report.suggested_action == "remove_reference":
             # Remove orphaned references
             entry.related_ids = {
-                rid for rid in entry.related_ids
-                if rid in self.memory._memories
+                rid for rid in entry.related_ids if rid in self.memory._memories
             }
             return RepairResult(
                 entry_id=report.entry_id,
@@ -317,16 +333,18 @@ class MemoryHealer:
 
         # Get all entries with embeddings
         entries_with_embeddings = [
-            (eid, entry) for eid, entry in self.memory._memories.items()
+            (eid, entry)
+            for eid, entry in self.memory._memories.items()
             if entry.embedding is not None and entry.state == MemoryState.ACTIVE
         ]
 
         # O(n^2) comparison - could be optimized with LSH
         for i, (id1, entry1) in enumerate(entries_with_embeddings):
-            for j, (id2, entry2) in enumerate(entries_with_embeddings[i+1:], i+1):
+            for j, (id2, entry2) in enumerate(entries_with_embeddings[i + 1 :], i + 1):
                 # Compute cosine similarity
                 sim = np.dot(entry1.embedding, entry2.embedding) / (
-                    np.linalg.norm(entry1.embedding) * np.linalg.norm(entry2.embedding) + 1e-10
+                    np.linalg.norm(entry1.embedding) * np.linalg.norm(entry2.embedding)
+                    + 1e-10
                 )
                 if sim >= similarity_threshold:
                     duplicates.append((id1, id2, float(sim)))
@@ -431,7 +449,9 @@ class MemoryHealer:
 
         # Penalize for corrupted entries
         if memory_stats.total_entries > 0:
-            corruption_ratio = memory_stats.corrupted_entries / memory_stats.total_entries
+            corruption_ratio = (
+                memory_stats.corrupted_entries / memory_stats.total_entries
+            )
             health_score -= corruption_ratio * 0.5
 
         # Penalize for low average quality
@@ -453,6 +473,8 @@ class MemoryHealer:
             "quarantined_entries": len(self._quarantine),
             "avg_ihsan": memory_stats.avg_ihsan,
             "avg_snr": memory_stats.avg_snr,
-            "last_full_scan": self._last_full_scan.isoformat() if self._last_full_scan else None,
+            "last_full_scan": (
+                self._last_full_scan.isoformat() if self._last_full_scan else None
+            ),
             "recent_corruptions": len([r for r in self._corruption_history[-100:]]),
         }

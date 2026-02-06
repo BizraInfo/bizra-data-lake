@@ -8,7 +8,7 @@ fn main() {
 
     // Basic health + warm loop
     let healthy = hunter.health_check();
-    println!("Hunter health: {}", if healthy {"OK"} else {"NOT OK"});
+    println!("Hunter health: {}", if healthy { "OK" } else { "NOT OK" });
 
     let stats = hunter.run_loop(10);
     println!("Loop complete. lane1_processed={}", stats.lane1_processed);

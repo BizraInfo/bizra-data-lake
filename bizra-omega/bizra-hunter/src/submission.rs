@@ -19,11 +19,20 @@ pub struct SubmissionResult {
 impl BondedSubmission {
     pub fn validate(&self) -> SubmissionResult {
         if self.bond_cents == 0 {
-            return SubmissionResult { accepted: false, reason: "Bond required".to_string() };
+            return SubmissionResult {
+                accepted: false,
+                reason: "Bond required".to_string(),
+            };
         }
         if self.poc.trim().is_empty() {
-            return SubmissionResult { accepted: false, reason: "PoC missing".to_string() };
+            return SubmissionResult {
+                accepted: false,
+                reason: "PoC missing".to_string(),
+            };
         }
-        SubmissionResult { accepted: true, reason: "Accepted".to_string() }
+        SubmissionResult {
+            accepted: true,
+            reason: "Accepted".to_string(),
+        }
     }
 }

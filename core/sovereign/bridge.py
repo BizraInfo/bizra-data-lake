@@ -29,7 +29,6 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -48,8 +47,10 @@ T = TypeVar("T")
 # ENUMS & TYPES
 # =============================================================================
 
+
 class SubsystemStatus(Enum):
     """Status of a connected subsystem."""
+
     DISCONNECTED = auto()
     CONNECTING = auto()
     CONNECTED = auto()
@@ -59,6 +60,7 @@ class SubsystemStatus(Enum):
 
 class MessagePriority(Enum):
     """Priority levels for inter-system messages."""
+
     LOW = 1
     NORMAL = 5
     HIGH = 8
@@ -67,19 +69,22 @@ class MessagePriority(Enum):
 
 class InferenceTier(Enum):
     """Inference backend tiers."""
-    EDGE = "edge"        # Always-on, low-power (0.5B-1.5B)
-    LOCAL = "local"      # On-demand, high-power (7B)
-    POOL = "pool"        # Federated compute (70B+)
-    CLOUD = "cloud"      # External API (Claude, GPT)
+
+    EDGE = "edge"  # Always-on, low-power (0.5B-1.5B)
+    LOCAL = "local"  # On-demand, high-power (7B)
+    POOL = "pool"  # Federated compute (70B+)
+    CLOUD = "cloud"  # External API (Claude, GPT)
 
 
 # =============================================================================
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class SubsystemHealth:
     """Health metrics for a subsystem."""
+
     name: str
     status: SubsystemStatus = SubsystemStatus.DISCONNECTED
     latency_ms: float = 0.0
@@ -95,6 +100,7 @@ class SubsystemHealth:
 @dataclass
 class BridgeMessage:
     """Message passed between subsystems."""
+
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     source: str = ""
     destination: str = ""
@@ -130,6 +136,7 @@ class BridgeMessage:
 @dataclass
 class InferenceRequest:
     """Request to the inference gateway."""
+
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     prompt: str = ""
     system_prompt: str = ""
@@ -155,6 +162,7 @@ class InferenceRequest:
 @dataclass
 class InferenceResponse:
     """Response from the inference gateway."""
+
     request_id: str = ""
     success: bool = False
     content: str = ""
@@ -177,6 +185,7 @@ class InferenceResponse:
 # =============================================================================
 # ABSTRACT SUBSYSTEM INTERFACE
 # =============================================================================
+
 
 class SubsystemConnector(ABC):
     """Abstract interface for subsystem connectors."""
@@ -214,6 +223,7 @@ class SubsystemConnector(ABC):
 # INFERENCE GATEWAY CONNECTOR
 # =============================================================================
 
+
 class InferenceConnector(SubsystemConnector):
     """
     Connects to inference backends.
@@ -243,10 +253,11 @@ class InferenceConnector(SubsystemConnector):
         # Try Ollama
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"{self.ollama_url}/api/tags",
-                    timeout=aiohttp.ClientTimeout(total=5)
+                    timeout=aiohttp.ClientTimeout(total=5),
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -254,17 +265,20 @@ class InferenceConnector(SubsystemConnector):
                             m["name"] for m in data.get("models", [])
                         ]
                         self._tier_backends[InferenceTier.LOCAL] = "ollama"
-                        logger.info(f"Ollama connected: {len(self._available_models)} models")
+                        logger.info(
+                            f"Ollama connected: {len(self._available_models)} models"
+                        )
         except Exception as e:
             logger.debug(f"Ollama unavailable: {e}")
 
         # Try LM Studio
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"{self.lmstudio_url}/v1/models",
-                    timeout=aiohttp.ClientTimeout(total=5)
+                    timeout=aiohttp.ClientTimeout(total=5),
                 ) as resp:
                     if resp.status == 200:
                         self._tier_backends[InferenceTier.LOCAL] = "lmstudio"
@@ -371,7 +385,10 @@ class InferenceConnector(SubsystemConnector):
         response = InferenceResponse(request_id=request.id)
 
         messages = [
-            {"role": "system", "content": request.system_prompt or "You are a helpful assistant."},
+            {
+                "role": "system",
+                "content": request.system_prompt or "You are a helpful assistant.",
+            },
             {"role": "user", "content": request.prompt},
         ]
 
@@ -408,6 +425,7 @@ class InferenceConnector(SubsystemConnector):
 # FEDERATION CONNECTOR
 # =============================================================================
 
+
 class FederationConnector(SubsystemConnector):
     """
     Connects to the P2P federation layer.
@@ -431,6 +449,7 @@ class FederationConnector(SubsystemConnector):
         try:
             # Try to import and connect to federation
             from core.federation import FederationNode
+
             # Note: Full implementation would initialize the node here
             self._gossip_enabled = True
             self.health.status = SubsystemStatus.CONNECTED
@@ -460,9 +479,7 @@ class FederationConnector(SubsystemConnector):
         return len(self._peers)
 
     async def request_consensus(
-        self,
-        proposal: Dict[str, Any],
-        timeout_ms: int = 10000
+        self, proposal: Dict[str, Any], timeout_ms: int = 10000
     ) -> Dict[str, Any]:
         """Request consensus on a proposal."""
         if not self._gossip_enabled:
@@ -479,6 +496,7 @@ class FederationConnector(SubsystemConnector):
 # =============================================================================
 # MEMORY CONNECTOR
 # =============================================================================
+
 
 class MemoryConnector(SubsystemConnector):
     """
@@ -505,6 +523,7 @@ class MemoryConnector(SubsystemConnector):
         # Try to connect to vault
         try:
             from core.vault import Vault
+
             self._vault_available = True
             logger.info("Vault connected")
         except ImportError:
@@ -559,7 +578,9 @@ class MemoryConnector(SubsystemConnector):
 
     async def _persist(self, key: str, value: Any) -> None:
         """Persist single key to disk."""
-        key_file = self.state_dir / f"mem_{hashlib.sha256(key.encode()).hexdigest()[:16]}.json"
+        key_file = (
+            self.state_dir / f"mem_{hashlib.sha256(key.encode()).hexdigest()[:16]}.json"
+        )
         try:
             key_file.write_text(json.dumps({"key": key, "value": value}, default=str))
         except Exception as e:
@@ -569,6 +590,7 @@ class MemoryConnector(SubsystemConnector):
 # =============================================================================
 # A2A CONNECTOR
 # =============================================================================
+
 
 class A2AConnector(SubsystemConnector):
     """
@@ -591,6 +613,7 @@ class A2AConnector(SubsystemConnector):
 
         try:
             from core.a2a import A2AEngine
+
             self.health.status = SubsystemStatus.CONNECTED
             logger.info(f"A2A connected: agent={self.agent_id}")
         except ImportError:
@@ -611,24 +634,18 @@ class A2AConnector(SubsystemConnector):
     async def register_capability(
         self,
         capability: str,
-        handler: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]
+        handler: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]],
     ) -> None:
         """Register a capability that this agent provides."""
         # Stub: would register with A2A discovery
         logger.info(f"Registered capability: {capability}")
 
-    async def discover_agents(
-        self,
-        capability: str = ""
-    ) -> List[Dict[str, Any]]:
+    async def discover_agents(self, capability: str = "") -> List[Dict[str, Any]]:
         """Discover agents with a specific capability."""
         return list(self._registered_agents.values())
 
     async def delegate_task(
-        self,
-        target_agent: str,
-        task: Dict[str, Any],
-        timeout_ms: int = 30000
+        self, target_agent: str, task: Dict[str, Any], timeout_ms: int = 30000
     ) -> Dict[str, Any]:
         """Delegate a task to another agent."""
         # Stub: would send via A2A protocol
@@ -642,6 +659,7 @@ class A2AConnector(SubsystemConnector):
 # =============================================================================
 # UNIFIED BRIDGE
 # =============================================================================
+
 
 class SovereignBridge:
     """
@@ -733,7 +751,7 @@ class SovereignBridge:
         prompt: str,
         system_prompt: str = "",
         tier: InferenceTier = InferenceTier.LOCAL,
-        **kwargs
+        **kwargs,
     ) -> InferenceResponse:
         """
         Shortcut for inference.
@@ -743,10 +761,7 @@ class SovereignBridge:
             print(response.content)
         """
         request = InferenceRequest(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            preferred_tier=tier,
-            **kwargs
+            prompt=prompt, system_prompt=system_prompt, preferred_tier=tier, **kwargs
         )
         return await self.inference.infer(request)
 
@@ -761,7 +776,7 @@ class SovereignBridge:
     async def broadcast(
         self,
         payload: Dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL
+        priority: MessagePriority = MessagePriority.NORMAL,
     ) -> int:
         """Broadcast to federation peers."""
         message = BridgeMessage(
@@ -776,6 +791,7 @@ class SovereignBridge:
 # =============================================================================
 # FACTORY FUNCTION
 # =============================================================================
+
 
 async def create_bridge(
     node_id: str = "",

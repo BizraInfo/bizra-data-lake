@@ -63,7 +63,8 @@ impl Default for Identity {
             location: "Dubai, UAE".to_string(),
             timezone: "GMT+4".to_string(),
             node_id: "node0_ce5af35c848ce889".to_string(),
-            genesis_hash: "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b".to_string(),
+            genesis_hash: "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b"
+                .to_string(),
         }
     }
 }
@@ -261,17 +262,17 @@ impl ProactiveEngine {
 
         match hour {
             8 => Some(ProactiveSuggestion::next_step(
-                "Morning! Run /morning for your daily brief"
+                "Morning! Run /morning for your daily brief",
             )),
             12 => Some(ProactiveSuggestion::quick_win(
                 "Midday check: any quick tasks to clear?",
-                "/task list quick"
+                "/task list quick",
             )),
             17 => Some(ProactiveSuggestion::next_step(
-                "End of day: capture today's learnings with /learn"
+                "End of day: capture today's learnings with /learn",
             )),
             20 => Some(ProactiveSuggestion::next_step(
-                "Evening review time. Run /daily-review?"
+                "Evening review time. Run /daily-review?",
             )),
             _ => None,
         }

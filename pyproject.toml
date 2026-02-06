@@ -128,6 +128,33 @@ title = "BIZRA Coverage Report"
 # XML report configuration (for CI)
 output = "coverage.xml"
 
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E402",   # module-import-not-at-top (deferred imports for performance)
+    "E501",   # line-too-long (Black handles this)
+    "E741",   # ambiguous-variable-name (math code uses short names)
+    "F403",   # undefined-local-with-import-star
+    "F821",   # undefined-name (forward references in runtime engines)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F402"]  # Re-exports are intentional
+"core/sovereign/runtime_engines/*" = ["F821"]  # Forward references
+"core/autopoiesis/__init__.py" = ["F811"]  # Intentional lazy imports
+"core/bridges/bridge.py" = ["F401"]  # Availability-check imports in try/except
+"core/bridges/local_inference_bridge.py" = ["F401"]  # Availability-check imports
+"core/sovereign/bridge.py" = ["F401"]  # Availability-check imports in try/except
+"core/sovereign/doctor.py" = ["F401"]  # Availability-check imports
+"core/sovereign/api.py" = ["F401"]  # Conditional imports for optional FastAPI
+"core/sovereign/integration_runtime.py" = ["F401"]  # Availability-check imports
+"core/sovereign/local_inference_bridge.py" = ["F401"]  # Availability-check imports
+"core/proof_engine/gates.py" = ["F402"]  # Loop variable shadows import
+
 [tool.black]
 line-length = 88
 target-version = ['py39']

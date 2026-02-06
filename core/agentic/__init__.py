@@ -29,32 +29,39 @@ DEFAULT_PLANNING_DEPTH = 3
 
 # Agent types
 AGENT_TYPES = [
-    "orchestrator",   # Coordinates other agents
-    "researcher",     # Gathers information
-    "analyzer",       # Processes data
-    "executor",       # Takes actions
-    "monitor",        # Watches for changes
-    "healer",         # Fixes problems
+    "orchestrator",  # Coordinates other agents
+    "researcher",  # Gathers information
+    "analyzer",  # Processes data
+    "executor",  # Takes actions
+    "monitor",  # Watches for changes
+    "healer",  # Fixes problems
 ]
+
 
 # Lazy imports
 def __getattr__(name: str):
     if name == "AgentOrchestrator":
         from .orchestrator import AgentOrchestrator
+
         return AgentOrchestrator
     elif name == "AutonomousAgent":
         from .agent import AutonomousAgent
+
         return AutonomousAgent
     elif name == "AgentTask":
         from .agent import AgentTask
+
         return AgentTask
     elif name == "SelfOptimizer":
         from .optimizer import SelfOptimizer
+
         return SelfOptimizer
     elif name == "ProactiveEngine":
         from .proactive import ProactiveEngine
+
         return ProactiveEngine
     raise AttributeError(f"module 'core.agentic' has no attribute '{name}'")
+
 
 __all__ = [
     "AgentOrchestrator",

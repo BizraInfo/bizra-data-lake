@@ -8,27 +8,29 @@ Standing on Giants: Cron + Predictive Scheduling + Reactive Systems
 """
 
 import asyncio
+import heapq
 import logging
+import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from typing import Any, Callable, Coroutine, Dict, List, Optional
-import uuid
-import heapq
 
 logger = logging.getLogger(__name__)
 
 
 class ScheduleType(Enum):
     """Types of scheduled jobs."""
-    ONE_TIME = auto()     # Execute once at specified time
-    RECURRING = auto()    # Execute on interval
-    TRIGGERED = auto()    # Execute when condition met
-    PROACTIVE = auto()    # Execute when opportunity detected
+
+    ONE_TIME = auto()  # Execute once at specified time
+    RECURRING = auto()  # Execute on interval
+    TRIGGERED = auto()  # Execute when condition met
+    PROACTIVE = auto()  # Execute when opportunity detected
 
 
 class JobPriority(Enum):
     """Job execution priority."""
+
     CRITICAL = 1
     HIGH = 2
     NORMAL = 3
@@ -39,6 +41,7 @@ class JobPriority(Enum):
 @dataclass
 class ScheduledJob:
     """A job in the proactive schedule."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     name: str = ""
     handler: Optional[Callable[[], Coroutine[Any, Any, Any]]] = None
@@ -69,12 +72,16 @@ class ScheduledJob:
             return False
         if other.next_run is None:
             return True
-        return (self.next_run, self.priority.value) < (other.next_run, other.priority.value)
+        return (self.next_run, self.priority.value) < (
+            other.next_run,
+            other.priority.value,
+        )
 
 
 @dataclass
 class JobResult:
     """Result of a job execution."""
+
     job_id: str = ""
     success: bool = True
     result: Any = None
@@ -196,7 +203,9 @@ class ProactiveScheduler:
 
         finally:
             self._active_count -= 1
-            result.duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+            result.duration_ms = (
+                datetime.now(timezone.utc) - start_time
+            ).total_seconds() * 1000
 
         self._results[job.id].append(result)
 

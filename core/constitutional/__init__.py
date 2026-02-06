@@ -47,38 +47,31 @@ Standing on Giants: Shannon, Lamport, Landauer, Al-Ghazali
 Created: 2026-02-03 | BIZRA Constitutional Engine v1.0.0
 """
 
-from core.constitutional.omega_engine import (
-    # Core Types
-    IhsanVector,
-    NTUState,
-    # GAP-C1: Ihsan Projector
-    IhsanProjector,
-    # GAP-C2: Adl Invariant
+from core.constitutional.omega_engine import (  # Core Types; GAP-C1: Ihsan Projector; GAP-C2: Adl Invariant; GAP-C3: Byzantine Consensus; GAP-C4: Treasury Controller; Unified Engine; Constants
+    ADL_GINI_EMERGENCY,
+    ADL_GINI_THRESHOLD,
+    BFT_QUORUM_FRACTION,
+    IHSAN_DIMENSIONS,
+    LANDAUER_LIMIT_JOULES,
+    TREASURY_MODES,
     AdlInvariant,
     AdlInvariantResult,
     AdlViolation,
-    AdlViolationType,
     AdlViolationError,
-    # GAP-C3: Byzantine Consensus
+    AdlViolationType,
     ByzantineConsensus,
     ByzantineVoteType,
-    SignedVote,
-    ConsensusState,
     ConsensusProposal,
-    # GAP-C4: Treasury Controller
+    ConsensusState,
+    ConstitutionalEngine,
+    IhsanProjector,
+    IhsanVector,
+    NTUState,
+    SignedVote,
+    TreasuryController,
     TreasuryMode,
     TreasuryModeConfig,
-    TreasuryController,
-    TREASURY_MODES,
-    # Unified Engine
-    ConstitutionalEngine,
     create_constitutional_engine,
-    # Constants
-    IHSAN_DIMENSIONS,
-    ADL_GINI_THRESHOLD,
-    ADL_GINI_EMERGENCY,
-    BFT_QUORUM_FRACTION,
-    LANDAUER_LIMIT_JOULES,
 )
 
 __all__ = [

@@ -14,14 +14,15 @@ Standing on Giants: Shannon (information theory) + SDPO Paper
 Genesis Strict Synthesis v2.2.2
 """
 
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
-import math
+from typing import Any, Dict, List, Optional
 
 # Use numpy if available, otherwise fallback to pure Python
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
@@ -36,6 +37,7 @@ from core.sdpo import SDPO_ADVANTAGE_THRESHOLD
 @dataclass
 class SDPOAdvantage:
     """Result of SDPO advantage calculation."""
+
     token_advantages: List[float]
     overall_advantage: float
     advantage_variance: float
@@ -62,6 +64,7 @@ class SDPOAdvantage:
 @dataclass
 class SDPOFeedback:
     """Rich feedback for SDPO self-teaching."""
+
     text: str
     source: str  # "fate", "ihsan", "snr", "user", etc.
     confidence: float
@@ -171,7 +174,9 @@ class SDPOAdvantageCalculator:
 
         # Calculate softmax probabilities and advantages
         advantages = []
-        for t in range(min(len(corrected_tokens), len(base_logits), len(feedback_logits))):
+        for t in range(
+            min(len(corrected_tokens), len(base_logits), len(feedback_logits))
+        ):
             token_id = corrected_tokens[t]
 
             # Get probabilities (softmax)
@@ -220,7 +225,9 @@ class SDPOAdvantageCalculator:
 
         # Normalize by feedback quality indicators
         quality_keywords = ["improve", "correct", "instead", "should", "better"]
-        quality_bonus = sum(1 for kw in quality_keywords if kw in feedback.lower()) * 0.1
+        quality_bonus = (
+            sum(1 for kw in quality_keywords if kw in feedback.lower()) * 0.1
+        )
 
         if advantages:
             if HAS_NUMPY:
@@ -357,7 +364,9 @@ class BIZRAFeedbackGenerator:
         # FATE compliance feedback
         if not quality_check.get("fate_compliant", True):
             violation = quality_check.get("fate_violation", "ethical constraint")
-            correction = quality_check.get("fate_correction", "ensure ethical compliance")
+            correction = quality_check.get(
+                "fate_correction", "ensure ethical compliance"
+            )
             feedback_parts.append(
                 f"FATE violation: {violation}. Correct by: {correction}"
             )
@@ -375,8 +384,16 @@ class BIZRAFeedbackGenerator:
             confidence_scores.append(0.85)
 
         # Compile feedback
-        text = "\n".join(feedback_parts) if feedback_parts else "Response meets quality standards."
-        confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 1.0
+        text = (
+            "\n".join(feedback_parts)
+            if feedback_parts
+            else "Response meets quality standards."
+        )
+        confidence = (
+            sum(confidence_scores) / len(confidence_scores)
+            if confidence_scores
+            else 1.0
+        )
         source = "bizra_quality_gates"
 
         return SDPOFeedback(

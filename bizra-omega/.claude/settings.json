@@ -1,0 +1,62 @@
+{
+  "$schema": "https://claude.ai/schemas/settings.json",
+  "version": "1.0",
+  "project": "bizra-omega",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Write|Edit)$",
+        "hooks": [{
+          "type": "command",
+          "command": "bash -c 'echo {\"continue\": true, \"decision\": \"allow\", \"reason\": \"BIZRA standard edit\"}'"
+        }]
+      },
+      {
+        "matcher": "^Write$",
+        "hooks": [{
+          "type": "command",
+          "command": "bash -c 'if [[ \"${tool.params.file_path}\" == *.env* ]] || [[ \"${tool.params.file_path}\" == *secret* ]]; then echo {\"continue\": false, \"reason\": \"Protected file - secrets not allowed\"}; else echo {\"continue\": true}; fi'"
+        }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [{
+          "type": "command",
+          "command": "bash -c 'if [ \"${tool.result.exitCode}\" != \"0\" ]; then echo \"[HOOK] Command failed with exit code ${tool.result.exitCode}\" >> /tmp/bizra-hook.log; fi; echo {\"logged\": true}'"
+        }]
+      },
+      {
+        "matcher": "^(Write|Edit)$",
+        "hooks": [{
+          "type": "command",
+          "command": "bash -c 'if [[ \"${tool.params.file_path}\" == *.rs ]]; then echo \"[HOOK] Rust file modified: ${tool.params.file_path}\" >> /tmp/bizra-hook.log; fi; echo {\"logged\": true}'"
+        }]
+      }
+    ]
+  },
+
+  "quality": {
+    "ihsan_threshold": 0.95,
+    "snr_threshold": 0.85,
+    "auto_format": true,
+    "auto_lint": true
+  },
+
+  "security": {
+    "protected_patterns": [
+      "*.env*",
+      "*secret*",
+      "*credential*",
+      "*.key",
+      "*.pem"
+    ],
+    "require_review": [
+      "Cargo.toml",
+      "Dockerfile",
+      ".github/*"
+    ]
+  }
+}

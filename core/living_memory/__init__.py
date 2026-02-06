@@ -31,34 +31,42 @@ IHSAN_MEMORY_THRESHOLD = 0.90  # Lower than operational threshold
 
 # Memory types
 MEMORY_TYPES = [
-    "episodic",     # Event-based memories
-    "semantic",     # Fact-based knowledge
-    "procedural",   # How-to knowledge
-    "working",      # Active context
+    "episodic",  # Event-based memories
+    "semantic",  # Fact-based knowledge
+    "procedural",  # How-to knowledge
+    "working",  # Active context
     "prospective",  # Future-oriented (goals, plans)
 ]
+
 
 # Lazy imports
 def __getattr__(name: str):
     if name == "LivingMemoryCore":
         from .core import LivingMemoryCore
+
         return LivingMemoryCore
     elif name == "MemoryEntry":
         from .core import MemoryEntry
+
         return MemoryEntry
     elif name == "MemoryConsolidator":
         from .consolidation import MemoryConsolidator
+
         return MemoryConsolidator
     elif name == "ProactiveRetriever":
         from .proactive import ProactiveRetriever
+
         return ProactiveRetriever
     elif name == "KnowledgeGraph":
         from .graph import KnowledgeGraph
+
         return KnowledgeGraph
     elif name == "MemoryHealer":
         from .healing import MemoryHealer
+
         return MemoryHealer
     raise AttributeError(f"module 'core.living_memory' has no attribute '{name}'")
+
 
 __all__ = [
     "LivingMemoryCore",

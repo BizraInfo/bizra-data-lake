@@ -37,14 +37,12 @@ import sys
 from typing import Optional
 
 # Add parent to path for imports
-sys.path.insert(0, str(__file__).rsplit('/core/', 1)[0])
+sys.path.insert(0, str(__file__).rsplit("/core/", 1)[0])
 
 from core.inference.multi_model_manager import (
-    MultiModelManager,
     ModelPurpose,
     get_multi_model_manager,
 )
-
 
 # PAT Agent system prompts (same as Rust version)
 PAT_PROMPTS = {
@@ -54,37 +52,31 @@ Standing on the shoulders of: Al-Ghazali, John Rawls, Anthropic.
 Focus on beneficial outcomes, ethical considerations, and harm prevention.
 Apply the FATE gates: Ihsān (excellence ≥0.95), Adl (fairness), Harm (≤0.30), Confidence (≥0.80).
 Be wise, protective, and guide toward beneficial outcomes.""",
-
     "strategist": """You are the Strategist of a Personal Agentic Team (PAT).
 Your role is strategic planning and long-term thinking.
 Standing on the shoulders of: Sun Tzu, Clausewitz, Michael Porter.
 Focus on objectives, competitive advantage, and strategic positioning.
 Be concise but thorough. Think in terms of goals, resources, and outcomes.""",
-
     "researcher": """You are the Researcher of a Personal Agentic Team (PAT).
 Your role is knowledge discovery and synthesis.
 Standing on the shoulders of: Claude Shannon, Alan Turing, Edsger Dijkstra.
 Focus on finding accurate information, synthesizing knowledge, and providing insights.
 Be thorough in research but clear in presentation.""",
-
     "developer": """You are the Developer of a Personal Agentic Team (PAT).
 Your role is code implementation and technical solutions.
 Standing on the shoulders of: Donald Knuth, Dennis Ritchie, Linus Torvalds.
 Focus on clean code, efficient algorithms, and robust implementation.
 Be precise, practical, and security-conscious.""",
-
     "analyst": """You are the Analyst of a Personal Agentic Team (PAT).
 Your role is data analysis and insight extraction.
 Standing on the shoulders of: John Tukey, Edward Tufte, William Cleveland.
 Focus on patterns, trends, and data-driven insights.
 Be quantitative, visual, and clear in presenting findings.""",
-
     "reviewer": """You are the Reviewer of a Personal Agentic Team (PAT).
 Your role is quality validation and constructive feedback.
 Standing on the shoulders of: Michael Fagan, David Parnas, Fred Brooks.
 Focus on correctness, completeness, and improvement opportunities.
 Be thorough but constructive. Identify issues and suggest solutions.""",
-
     "executor": """You are the Executor of a Personal Agentic Team (PAT).
 Your role is task execution and delivery.
 Standing on the shoulders of: Toyota Production System, W. Edwards Deming, Taiichi Ohno.
@@ -134,15 +126,17 @@ async def cmd_models(purpose: Optional[str] = None):
 
         result = []
         for m in models:
-            result.append({
-                "id": m.id,
-                "name": m.name,
-                "purposes": [p.value for p in m.purposes],
-                "params_b": m.params_b,
-                "loaded": m.is_loaded,
-                "supports_vision": m.supports_vision,
-                "supports_tools": m.supports_tools,
-            })
+            result.append(
+                {
+                    "id": m.id,
+                    "name": m.name,
+                    "purposes": [p.value for p in m.purposes],
+                    "params_b": m.params_b,
+                    "loaded": m.is_loaded,
+                    "supports_vision": m.supports_vision,
+                    "supports_tools": m.supports_tools,
+                }
+            )
 
         print(json.dumps({"models": result}))
         return 0
@@ -152,7 +146,9 @@ async def cmd_models(purpose: Optional[str] = None):
         return 1
 
 
-async def cmd_chat(message: str, purpose: str = "general", system_prompt: Optional[str] = None):
+async def cmd_chat(
+    message: str, purpose: str = "general", system_prompt: Optional[str] = None
+):
     """Chat with auto-routed model."""
     try:
         manager = await get_multi_model_manager()
@@ -168,7 +164,7 @@ async def cmd_chat(message: str, purpose: str = "general", system_prompt: Option
             purpose=p,
             system_prompt=system_prompt,
             temperature=0.7,
-            max_tokens=2048
+            max_tokens=2048,
         )
 
         print(json.dumps(response))
@@ -183,7 +179,13 @@ async def cmd_agent(agent: str, message: str):
     """Chat with PAT agent."""
     agent = agent.lower()
     if agent not in PAT_PROMPTS:
-        print(json.dumps({"error": f"Unknown agent: {agent}. Available: {list(PAT_PROMPTS.keys())}"}))
+        print(
+            json.dumps(
+                {
+                    "error": f"Unknown agent: {agent}. Available: {list(PAT_PROMPTS.keys())}"
+                }
+            )
+        )
         return 1
 
     system_prompt = PAT_PROMPTS[agent]
@@ -220,9 +222,13 @@ async def cmd_serve(port: int = 8765):
     async def handle_models(request):
         purpose = request.query.get("purpose")
         models = manager.list_models(ModelPurpose(purpose) if purpose else None)
-        return web.json_response({
-            "models": [{"id": m.id, "name": m.name, "loaded": m.is_loaded} for m in models]
-        })
+        return web.json_response(
+            {
+                "models": [
+                    {"id": m.id, "name": m.name, "loaded": m.is_loaded} for m in models
+                ]
+            }
+        )
 
     async def handle_chat(request):
         data = await request.json()
@@ -242,7 +248,7 @@ async def cmd_serve(port: int = 8765):
             purpose=p,
             system_prompt=system_prompt,
             temperature=data.get("temperature", 0.7),
-            max_tokens=data.get("max_tokens", 2048)
+            max_tokens=data.get("max_tokens", 2048),
         )
         return web.json_response(response)
 
@@ -256,11 +262,11 @@ async def cmd_serve(port: int = 8765):
     app.router.add_get("/health", handle_health)
 
     print(f"Starting BIZRA inference bridge on port {port}...")
-    print(f"Endpoints:")
-    print(f"  GET  /health - Health check")
-    print(f"  GET  /status - System status")
-    print(f"  GET  /models - List models")
-    print(f"  POST /chat   - Chat ({{message, purpose?, agent?, system_prompt?}})")
+    print("Endpoints:")
+    print("  GET  /health - Health check")
+    print("  GET  /status - System status")
+    print("  GET  /models - List models")
+    print("  POST /chat   - Chat ({message, purpose?, agent?, system_prompt?})")
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -299,12 +305,16 @@ def main():
 
     # Agent
     agent_parser = subparsers.add_parser("agent", help="Chat with PAT agent")
-    agent_parser.add_argument("agent", choices=list(PAT_PROMPTS.keys()), help="Agent name")
+    agent_parser.add_argument(
+        "agent", choices=list(PAT_PROMPTS.keys()), help="Agent name"
+    )
     agent_parser.add_argument("message", help="Message to send")
 
     # Serve
     serve_parser = subparsers.add_parser("serve", help="Start HTTP server")
-    serve_parser.add_argument("--port", "-p", type=int, default=8765, help="Port number")
+    serve_parser.add_argument(
+        "--port", "-p", type=int, default=8765, help="Port number"
+    )
 
     args = parser.parse_args()
 
