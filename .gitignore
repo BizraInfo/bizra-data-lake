@@ -124,6 +124,12 @@ htmlcov/
 bizra
 *.exe
 
+# ── ML Models (large files) ───────────────────────────────────
+models/
+*.gguf
+*.bin
+*.safetensors
+
 # ── Research Archive (large files) ────────────────────────────
 research_archive/
 
