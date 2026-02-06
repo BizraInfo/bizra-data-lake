@@ -579,10 +579,10 @@ class EfficiencyProbe(Probe):
         plan_efficiency = 1.0
         if candidate.execution_plan:
             steps = candidate.execution_plan.get("steps", [])
-            if len(steps) > 10:
-                plan_efficiency = 0.7  # Many steps may indicate inefficiency
-            elif len(steps) > 20:
+            if len(steps) > 20:
                 plan_efficiency = 0.5
+            elif len(steps) > 10:
+                plan_efficiency = 0.7  # Many steps may indicate inefficiency
 
         # Score based on multiple factors
         # Very long sentences indicate complexity
