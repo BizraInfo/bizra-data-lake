@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-02-06T21:24:10Z",
+  "artifacts": [
+    {
+      "path": "sovereign_state/node0_genesis.json",
+      "sha256": "1fccaa698c522c0a70f16f36c48066c5476727022847faa4081fd84fddc8f2e4",
+      "size_bytes": 14100,
+      "mtime": "2026-02-05T12:41:30Z",
+      "note": "hash-only; content not embedded"
+    },
+    {
+      "path": "sovereign_state/checkpoint.json",
+      "sha256": "67bb370ba2d871e51ff1a0cbd24423440e84d823d5b9c8e8cc4323db34b39d32",
+      "size_bytes": 649,
+      "mtime": "2026-02-06T20:28:10Z",
+      "note": "hash-only; content not embedded"
+    },
+    {
+      "path": "sovereign_state/key_registry.json",
+      "sha256": "c0fc54745bba34b00912e9c67e86c3cac914c30a9492d1a1834fd34d4836d925",
+      "size_bytes": 7605,
+      "mtime": "2026-02-06T21:09:44Z",
+      "note": "hash-only; content not embedded"
+    },
+    {
+      "path": ".claude-flow/memory/integration-summary.json",
+      "sha256": "17facad865855390304842ed46871c3625332232e9fa198d372fe9cb1bad7bde",
+      "size_bytes": 7289,
+      "mtime": "2026-02-01T16:40:37Z",
+      "note": "hash-only; content not embedded"
+    },
+    {
+      "path": ".claude-flow/memory/vv-report-das-20260201.json",
+      "sha256": "746b26d40f4ecfc75b02b2475c1fb95e56fb6a3b774dba49e2857e41844f8098",
+      "size_bytes": 9107,
+      "mtime": "2026-02-01T14:42:02Z",
+      "note": "hash-only; content not embedded"
+    },
+    {
+      "path": ".swarm/ecosystem-report-20260201-011350.json",
+      "sha256": "eb7899de4aff3e0c794f1df0ed18e4c230a9d146dd2ed5a6297397775aff4905",
+      "size_bytes": 511,
+      "mtime": "2026-01-31T21:13:50Z",
+      "note": "hash-only; content not embedded"
+    }
+  ]
+}
