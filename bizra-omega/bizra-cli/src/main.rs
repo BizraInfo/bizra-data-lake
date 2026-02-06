@@ -452,7 +452,7 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
         widgets::{Block, Borders, Clear, Paragraph},
     };
 
-    let size = f.size();
+    let size = f.area();
 
     // Main layout: header, content, status bar
     let chunks = Layout::default()
@@ -516,7 +516,7 @@ fn ui(f: &mut ratatui::Frame, app: &app::App) {
         f.render_widget(input, input_area);
 
         // Cursor position
-        f.set_cursor(input_area.x + app.input.len() as u16 + 1, input_area.y + 1);
+        f.set_cursor_position((input_area.x + app.input.len() as u16 + 1, input_area.y + 1));
     }
 }
 

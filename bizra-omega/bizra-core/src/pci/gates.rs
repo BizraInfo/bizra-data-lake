@@ -184,7 +184,10 @@ impl Gate for IhsanGate {
 
 pub fn default_gate_chain() -> GateChain {
     let mut chain = GateChain::new();
-    chain.add(SchemaGate).add(SNRGate).add(IhsanGate);
+    // Ethics before efficiency: Ihsan gate rejects unethical content
+    // before wasting compute on SNR analysis (fail-fast-on-ethics).
+    // See also: core/pci/gates.py line 10 (Python PCI specification).
+    chain.add(SchemaGate).add(IhsanGate).add(SNRGate);
     chain
 }
 

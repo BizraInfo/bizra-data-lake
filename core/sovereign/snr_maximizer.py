@@ -160,9 +160,11 @@ class SNRAnalysis:
     recommendations: List[str] = field(default_factory=list)
 
     def __post_init__(self):
+        from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
         self.snr_linear = self.signal.total_signal / (self.noise.total_noise + 1e-10)
         self.snr_db = 10 * math.log10(max(self.snr_linear, 1e-10))
-        self.ihsan_achieved = self.snr_linear >= 0.95
+        self.ihsan_achieved = self.snr_linear >= UNIFIED_IHSAN_THRESHOLD
 
     def to_dict(self) -> dict:
         return {
@@ -524,11 +526,13 @@ class SNRMaximizer:
 
     def __init__(
         self,
-        ihsan_threshold: float = 0.95,
+        ihsan_threshold: Optional[float] = None,
         auto_filter: bool = True,
         auto_amplify: bool = True,
     ):
-        self.ihsan_threshold = ihsan_threshold
+        from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
+        self.ihsan_threshold = ihsan_threshold if ihsan_threshold is not None else UNIFIED_IHSAN_THRESHOLD
         self.auto_filter = auto_filter
         self.auto_amplify = auto_amplify
 
