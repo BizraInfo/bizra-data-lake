@@ -1,1 +1,186 @@
-{"hooks":{"PreToolUse":[],"PostToolUse":[],"Stop":[]},"permissions":{"allow":["Bash(**)","Read(**)","Write(**)","Edit(**)"]}}
+{
+  "_comment": "BIZRA Advanced Hooks Configuration v2.0",
+  "_version": "2.0.0",
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py session_start",
+            "timeout": 10,
+            "statusMessage": "Initializing BIZRA session..."
+          }
+        ]
+      }
+    ],
+
+    "SessionEnd": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py session_end",
+            "timeout": 10,
+            "statusMessage": "Finalizing BIZRA session..."
+          }
+        ]
+      }
+    ],
+
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py user_prompt_submit",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+
+    "PermissionRequest": [
+      {
+        "matcher": "Read|Glob|Grep|LS",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py permission_request",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py subagent_start",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py pre_tool",
+            "timeout": 5,
+            "statusMessage": "FATE validation..."
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py post_tool",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+
+    "PostToolUseFailure": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py post_tool_failure",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py subagent_stop",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py stop",
+            "timeout": 10,
+            "statusMessage": "Saving session state..."
+          }
+        ]
+      }
+    ],
+
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py pre_compact",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "Notification": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py notification",
+            "timeout": 3,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(python3 *)",
+      "Bash(pytest *)",
+      "Bash(cargo *)",
+      "Bash(npm *)",
+      "Bash(ls *)",
+      "Bash(which *)",
+      "Bash(uname *)",
+      "Bash(docker *)",
+      "Bash(kubectl *)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)"
+    ]
+  }
+}
