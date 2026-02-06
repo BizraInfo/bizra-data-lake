@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-02-07",
+  "claims": [
+    {
+      "id": "C-LOC-PY-CORE",
+      "claim": "Python core LOC count",
+      "value": 129819,
+      "status": "VERIFIED",
+      "evidence": ["docs/evidence-pack/metrics_current.json"]
+    },
+    {
+      "id": "C-LOC-RS-OMEGA",
+      "claim": "Rust LOC count in bizra-omega",
+      "value": 137527,
+      "status": "VERIFIED",
+      "evidence": ["docs/evidence-pack/metrics_current.json"]
+    },
+    {
+      "id": "C-LOC-PY-TESTS",
+      "claim": "Python tests LOC count",
+      "value": 39156,
+      "status": "VERIFIED",
+      "evidence": ["docs/evidence-pack/metrics_current.json"]
+    },
+    {
+      "id": "C-NODE0-GENESIS",
+      "claim": "Node0 genesis record exists (hash-only)",
+      "status": "HASHED",
+      "evidence": ["docs/evidence-pack/evidence_manifest.json"]
+    },
+    {
+      "id": "C-SOV-CHECKPOINT",
+      "claim": "Sovereign checkpoint exists (hash-only)",
+      "status": "HASHED",
+      "evidence": ["docs/evidence-pack/evidence_manifest.json"]
+    },
+    {
+      "id": "C-KEY-REGISTRY",
+      "claim": "Key registry exists (hash-only)",
+      "status": "HASHED",
+      "evidence": ["docs/evidence-pack/evidence_manifest.json"]
+    },
+    {
+      "id": "C-INTEGRATION-SUMMARY",
+      "claim": "Integration summary present (hash-only)",
+      "status": "HASHED",
+      "evidence": ["docs/evidence-pack/evidence_manifest.json"]
+    },
+    {
+      "id": "C-TEST-PASS-COUNTS",
+      "claim": "Test pass counts (Python/Rust)",
+      "status": "UNVERIFIED",
+      "missing": "No junit/coverage artifacts located; needs fresh test run or log file paths."
+    },
+    {
+      "id": "C-POI-LEDGER",
+      "claim": "Proof-of-Impact ledger entries",
+      "status": "UNVERIFIED",
+      "missing": "No ledger/attestation artifact found in repo; please provide path or generate export."
+    },
+    {
+      "id": "C-GRAPH-METRICS",
+      "claim": "Graph nodes/edges/chunks counts",
+      "status": "UNVERIFIED",
+      "missing": "No metrics artifact located; please provide path or generate metrics export."
+    }
+  ]
+}
