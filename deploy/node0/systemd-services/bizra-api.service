@@ -1,0 +1,114 @@
+# ==============================================================================
+# BIZRA API SERVER - systemd service unit
+# ==============================================================================
+#
+# Rust API Server for BIZRA Genesis Node
+# Provides REST/gRPC endpoints for dashboard and external integrations
+#
+# Standing on Giants: Rust (memory safety) | Tokio (async runtime) | Axum (web)
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Installation:
+#   sudo cp bizra-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-api
+#   sudo systemctl start bizra-api
+#
+# ==============================================================================
+
+[Unit]
+Description=BIZRA API Server - Genesis Node REST/gRPC Gateway
+Documentation=https://github.com/bizra/bizra-genesis-node
+After=network-online.target postgresql.service redis.service
+Wants=network-online.target
+Requires=postgresql.service redis.service
+
+# Service dependencies
+BindsTo=bizra-inference.service
+After=bizra-inference.service
+
+# Ensure clean startup order
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=bizra
+Group=bizra
+
+# Working directory
+WorkingDirectory=/mnt/c/bizra-genesis-node
+
+# Environment configuration
+Environment="RUST_LOG=info,bizra=debug"
+Environment="RUST_BACKTRACE=1"
+Environment="BIZRA_ENV=production"
+Environment="BIZRA_NODE_TYPE=genesis"
+
+# Database and cache
+Environment="DATABASE_URL=postgres://bizra:${POSTGRES_PASSWORD}@localhost:5432/bizra"
+Environment="REDIS_URL=redis://localhost:6379"
+
+# Inference backends (fail-closed)
+Environment="INFERENCE_PRIMARY=http://192.168.56.1:1234"
+Environment="INFERENCE_FALLBACK=http://localhost:11434"
+
+# Quality thresholds
+Environment="IHSAN_THRESHOLD=0.95"
+Environment="SNR_THRESHOLD=0.85"
+
+# Load secrets from environment file
+EnvironmentFile=-/etc/bizra/secrets.env
+
+# Execute the API server
+ExecStart=/mnt/c/bizra-genesis-node/target/release/api_server \
+    --host 0.0.0.0 \
+    --port 3001 \
+    --workers 4 \
+    --max-connections 1000
+
+# Health check command
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -sf http://localhost:3001/health && exit 0 || sleep 1; done; exit 1'
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=5
+
+# Resource limits
+MemoryMax=2G
+MemoryHigh=1536M
+CPUQuota=200%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Allow network and specific paths
+ReadWritePaths=/var/log/bizra
+ReadWritePaths=/var/lib/bizra
+ReadOnlyPaths=/mnt/c/bizra-genesis-node
+ReadOnlyPaths=/mnt/c/BIZRA-DATA-LAKE/04_GOLD
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-api
+
+# OOM handling
+OOMScoreAdjust=-500
+
+[Install]
+WantedBy=multi-user.target

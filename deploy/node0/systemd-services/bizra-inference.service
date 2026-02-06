@@ -1,0 +1,123 @@
+# ==============================================================================
+# BIZRA INFERENCE SERVICE - systemd service unit
+# ==============================================================================
+#
+# LLM Inference Manager for BIZRA
+# Manages LM Studio (external) and Ollama (local) backends with fail-closed
+#
+# Standing on Giants: Shannon (information) | Nygard (resilience)
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Architecture:
+#   1. LM Studio (192.168.56.1:1234) - PRIMARY (RTX 4090 optimized)
+#   2. Ollama (localhost:11434) - FALLBACK
+#   3. DENY - fail-closed on complete failure
+#
+# Installation:
+#   sudo cp bizra-inference.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-inference
+#   sudo systemctl start bizra-inference
+#
+# ==============================================================================
+
+[Unit]
+Description=BIZRA Inference Service - LLM Backend Manager
+Documentation=https://github.com/bizra/bizra-data-lake
+After=network-online.target
+Wants=network-online.target
+
+# GPU dependencies
+After=nvidia-persistenced.service
+Wants=nvidia-persistenced.service
+
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=forking
+User=bizra
+Group=bizra
+
+# Working directory
+WorkingDirectory=/var/lib/bizra
+
+# Environment configuration
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_MODELS=/var/lib/bizra/models/ollama"
+Environment="OLLAMA_KEEP_ALIVE=24h"
+Environment="OLLAMA_NUM_PARALLEL=4"
+Environment="OLLAMA_MAX_LOADED_MODELS=2"
+
+# GPU settings
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="NVIDIA_VISIBLE_DEVICES=all"
+
+# Load from environment file
+EnvironmentFile=-/etc/bizra/inference.env
+
+# Pre-start: Verify GPU is available
+ExecStartPre=/bin/bash -c 'nvidia-smi > /dev/null 2>&1 || (echo "GPU not available" && exit 1)'
+
+# Pre-start: Check LM Studio availability (external, non-blocking)
+ExecStartPre=/bin/bash -c 'curl -sf http://192.168.56.1:1234/v1/models > /dev/null 2>&1 && echo "LM Studio: AVAILABLE" || echo "LM Studio: UNAVAILABLE (will use Ollama)"'
+
+# Start Ollama service (primary managed backend)
+ExecStart=/usr/local/bin/ollama serve
+
+# Post-start: Verify Ollama is responding
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -sf http://localhost:11434/api/tags && exit 0 || sleep 1; done; exit 1'
+
+# Post-start: Pre-load primary model
+ExecStartPost=/bin/bash -c 'ollama pull llama3.1:8b 2>/dev/null || true'
+ExecStartPost=/bin/bash -c 'ollama pull mxbai-embed-large 2>/dev/null || true'
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=60
+
+# Restart policy (conservative for GPU service)
+Restart=on-failure
+RestartSec=30
+
+# Resource limits (GPU-bound service needs more resources)
+MemoryMax=32G
+MemoryHigh=24G
+CPUQuota=400%
+
+# Security hardening (relaxed for GPU access)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=false  # GPU may need realtime scheduling
+
+# Allow GPU device access
+PrivateDevices=false
+DeviceAllow=/dev/nvidia0 rw
+DeviceAllow=/dev/nvidiactl rw
+DeviceAllow=/dev/nvidia-uvm rw
+DeviceAllow=/dev/nvidia-uvm-tools rw
+
+# Allow specific paths
+ReadWritePaths=/var/lib/bizra/models
+ReadWritePaths=/var/log/bizra
+ReadWritePaths=/tmp/ollama
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-inference
+
+# OOM handling (protect inference service)
+OOMScoreAdjust=-900
+
+# Watchdog
+WatchdogSec=120
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target

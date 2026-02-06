@@ -1,0 +1,123 @@
+# BIZRA RBAC Configuration
+# Service accounts and role bindings
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bizra-service-account
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bizra-role
+  namespace: bizra
+rules:
+  # Allow reading ConfigMaps and Secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading own pod info
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading services for federation discovery
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bizra-role-binding
+  namespace: bizra
+subjects:
+  - kind: ServiceAccount
+    name: bizra-service-account
+    namespace: bizra
+roleRef:
+  kind: Role
+  name: bizra-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bizra-network-policy
+  namespace: bizra
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: bizra
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3001
+        - protocol: TCP
+          port: 8000
+    # Allow internal pod communication
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bizra
+      ports:
+        - protocol: TCP
+          port: 3001
+        - protocol: TCP
+          port: 8000
+        - protocol: UDP
+          port: 7946
+        - protocol: TCP
+          port: 7654
+    # Allow Prometheus scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow internal pod communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bizra
+    # Allow Ollama access
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Allow external HTTPS (for external APIs if needed)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

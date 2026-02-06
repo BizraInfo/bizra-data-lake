@@ -1,0 +1,527 @@
+# ==============================================================================
+# BIZRA NODE0 DEPLOYMENT MANIFEST
+# ==============================================================================
+#
+# Genesis Block Hardware & Service Specification
+# Version: 1.0.0
+# Date: 2026-02-05
+#
+# Standing on Giants: Shannon (information theory) | Lamport (distributed systems)
+#                     Nygard (resilience) | Anthropic (constitutional AI)
+#
+# Constitutional Constraint: Ihsan >= 0.95
+# Principle: "No assumptions - only verified excellence"
+#
+# ==============================================================================
+
+apiVersion: bizra.io/v1
+kind: Node0Manifest
+metadata:
+  name: bizra-node0-genesis
+  description: "Genesis Block - BIZRA Flagship Development Environment"
+  version: "1.0.0"
+  created: "2026-02-05"
+  labels:
+    tier: genesis
+    role: development
+    criticality: sovereign
+
+# ==============================================================================
+# HARDWARE SPECIFICATION
+# ==============================================================================
+
+hardware:
+  # -------------------------------------------------------------------------
+  # GPU Specifications (RTX 4090)
+  # -------------------------------------------------------------------------
+  gpu:
+    vendor: nvidia
+    model: RTX 4090
+    vram: 24GB  # Note: User specified 16GB, but 4090 has 24GB
+    compute_capability: "8.9"
+    driver_version: ">=545.0"
+    cuda_version: ">=12.0"
+
+    requirements:
+      minimum_vram_free: 8GB
+      compute_capability_min: "8.0"
+      tensor_cores: true
+
+    allocation:
+      inference: 16GB        # LLM inference (primary)
+      embedding: 4GB         # Vector embedding generation
+      reserved: 4GB          # System/overflow buffer
+
+    monitoring:
+      temperature_warning: 75  # Celsius
+      temperature_critical: 85
+      utilization_target: 80   # Percent
+      memory_pressure_warning: 90
+
+  # -------------------------------------------------------------------------
+  # CPU Specifications
+  # -------------------------------------------------------------------------
+  cpu:
+    cores_minimum: 8
+    cores_recommended: 16
+    architecture: x86_64
+    features_required:
+      - avx2
+      - aes-ni
+      - sse4.2
+
+    allocation:
+      system: 2              # Core OS operations
+      inference_dispatch: 2  # Request handling
+      embedding: 4           # Vector operations
+      federation: 2          # P2P network
+      reserved: 6            # Headroom
+
+  # -------------------------------------------------------------------------
+  # Memory Specifications
+  # -------------------------------------------------------------------------
+  memory:
+    total: 128GB
+    type: DDR5
+    speed_mhz: 4800
+
+    allocation:
+      system_os: 8GB
+      inference_runtime: 32GB    # LLM context windows
+      vector_cache: 16GB         # FAISS index in memory
+      graph_reasoner: 8GB        # GoT state
+      federation_state: 4GB      # P2P connections
+      application_heap: 16GB     # Python/Rust apps
+      page_cache: 32GB           # Disk I/O buffer
+      reserved: 12GB             # Safety margin
+
+    limits:
+      per_service_max: 32GB
+      oom_score_adjustment: -1000  # Protect critical services
+
+  # -------------------------------------------------------------------------
+  # Storage Specifications
+  # -------------------------------------------------------------------------
+  storage:
+    primary:
+      type: NVMe SSD
+      minimum_size: 1TB
+      iops_minimum: 100000
+      throughput_mbps: 3500
+      mount_point: /mnt/c/BIZRA-DATA-LAKE
+
+    data_paths:
+      intake: /mnt/c/BIZRA-DATA-LAKE/00_INTAKE
+      raw: /mnt/c/BIZRA-DATA-LAKE/01_RAW
+      processed: /mnt/c/BIZRA-DATA-LAKE/02_PROCESSED
+      indexed: /mnt/c/BIZRA-DATA-LAKE/03_INDEXED
+      gold: /mnt/c/BIZRA-DATA-LAKE/04_GOLD
+      quarantine: /mnt/c/BIZRA-DATA-LAKE/99_QUARANTINE
+
+    model_storage:
+      path: /var/lib/bizra/models
+      minimum_size: 100GB
+      models:
+        - name: qwen2.5-coder-7b
+          size: 14GB
+          purpose: code_generation
+        - name: llama3.1-8b
+          size: 16GB
+          purpose: general_inference
+        - name: mxbai-embed-large
+          size: 1.2GB
+          purpose: embedding
+
+  # -------------------------------------------------------------------------
+  # Network Specifications
+  # -------------------------------------------------------------------------
+  network:
+    interfaces:
+      primary:
+        name: eth0
+        type: wsl2_bridge
+        speed: 10Gbps
+
+    ports:
+      api_server: 3001          # Rust API
+      dashboard: 5173           # React Dashboard
+      inference_lmstudio: 1234  # LM Studio (192.168.56.1)
+      inference_ollama: 11434   # Ollama (localhost)
+      metrics: 9090             # Prometheus
+      grafana: 3000             # Grafana
+      quality_gate: 8095        # Quality Gate
+      postgres: 5432            # PostgreSQL
+      redis: 6379               # Redis
+
+    firewall:
+      inbound:
+        - port: 3001
+          protocol: tcp
+          source: "127.0.0.1/8"
+          description: "API Server - local only"
+        - port: 5173
+          protocol: tcp
+          source: "192.168.0.0/16"
+          description: "Dashboard - local network"
+      outbound:
+        - port: 443
+          protocol: tcp
+          destination: "0.0.0.0/0"
+          description: "HTTPS for external APIs"
+
+# ==============================================================================
+# SERVICE DEFINITIONS
+# ==============================================================================
+
+services:
+  # -------------------------------------------------------------------------
+  # TIER 1: Infrastructure (Must start first)
+  # -------------------------------------------------------------------------
+
+  postgres:
+    name: bizra-postgres
+    image: postgres:16-alpine
+    tier: infrastructure
+    start_order: 1
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: bizra
+      POSTGRES_USER: bizra
+      # POSTGRES_PASSWORD loaded from secrets
+    volumes:
+      - /var/lib/bizra/postgres:/var/lib/postgresql/data
+    healthcheck:
+      command: ["pg_isready", "-U", "bizra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    resources:
+      memory:
+        request: 512Mi
+        limit: 2Gi
+      cpu:
+        request: 250m
+        limit: 1000m
+
+  redis:
+    name: bizra-redis
+    image: redis:7-alpine
+    tier: infrastructure
+    start_order: 2
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "1gb"]
+    volumes:
+      - /var/lib/bizra/redis:/data
+    healthcheck:
+      command: ["redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    resources:
+      memory:
+        request: 256Mi
+        limit: 1Gi
+      cpu:
+        request: 100m
+        limit: 500m
+
+  # -------------------------------------------------------------------------
+  # TIER 2: Inference Layer (GPU-bound)
+  # -------------------------------------------------------------------------
+
+  lmstudio:
+    name: bizra-lmstudio
+    tier: inference
+    start_order: 3
+    type: external
+    host: 192.168.56.1
+    port: 1234
+    protocol: http
+    api_version: v1
+    healthcheck:
+      endpoint: /v1/models
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    fallback: ollama
+    priority: 1
+    description: "LM Studio - Primary inference backend (RTX 4090)"
+
+  ollama:
+    name: bizra-ollama
+    tier: inference
+    start_order: 4
+    type: service
+    command: ollama serve
+    port: 11434
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+      OLLAMA_MODELS: /var/lib/bizra/models/ollama
+      OLLAMA_KEEP_ALIVE: "24h"
+    healthcheck:
+      endpoint: /api/tags
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    fallback: deny
+    priority: 2
+    resources:
+      gpu: true
+      memory:
+        request: 8Gi
+        limit: 32Gi
+    description: "Ollama - Secondary inference backend"
+
+  # -------------------------------------------------------------------------
+  # TIER 3: Core Application Services
+  # -------------------------------------------------------------------------
+
+  api_server:
+    name: bizra-api
+    tier: application
+    start_order: 5
+    type: rust_binary
+    binary: /mnt/c/bizra-genesis-node/target/release/api_server
+    port: 3001
+    environment:
+      RUST_LOG: info
+      DATABASE_URL: "postgres://bizra:${POSTGRES_PASSWORD}@localhost:5432/bizra"
+      REDIS_URL: "redis://localhost:6379"
+      INFERENCE_PRIMARY: "http://192.168.56.1:1234"
+      INFERENCE_FALLBACK: "http://localhost:11434"
+    healthcheck:
+      endpoint: /health
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - postgres
+      - redis
+      - lmstudio
+    resources:
+      memory:
+        request: 512Mi
+        limit: 2Gi
+      cpu:
+        request: 500m
+        limit: 2000m
+    description: "Rust API Server - Core backend"
+
+  dashboard:
+    name: bizra-dashboard
+    tier: application
+    start_order: 6
+    type: node_service
+    command: npm run dev
+    working_dir: /mnt/c/BIZRA-OS
+    port: 5173
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: "http://localhost:3001"
+    healthcheck:
+      endpoint: /
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - api_server
+    resources:
+      memory:
+        request: 256Mi
+        limit: 1Gi
+      cpu:
+        request: 250m
+        limit: 1000m
+    description: "React Dashboard - Agent orchestration UI"
+
+  # -------------------------------------------------------------------------
+  # TIER 4: Sovereign Engine (Core Intelligence)
+  # -------------------------------------------------------------------------
+
+  sovereign:
+    name: bizra-sovereign
+    tier: sovereign
+    start_order: 7
+    type: python_service
+    command: python -m core.sovereign
+    working_dir: /mnt/c/BIZRA-DATA-LAKE
+    port: 8080
+    environment:
+      PYTHONPATH: /mnt/c/BIZRA-DATA-LAKE
+      IHSAN_THRESHOLD: "0.95"
+      SNR_THRESHOLD: "0.85"
+      AUTONOMOUS_ENABLED: "true"
+      LOOP_INTERVAL_SECONDS: "60"
+      INFERENCE_PRIMARY: "http://192.168.56.1:1234"
+      INFERENCE_FALLBACK: "http://localhost:11434"
+    healthcheck:
+      endpoint: /health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - api_server
+      - lmstudio
+    resources:
+      memory:
+        request: 2Gi
+        limit: 8Gi
+      cpu:
+        request: 1000m
+        limit: 4000m
+    components:
+      - name: GraphOfThoughts
+        description: "Multi-path reasoning exploration"
+      - name: SNRMaximizer
+        description: "Signal quality enforcement (Shannon)"
+      - name: GuardianCouncil
+        description: "Byzantine validation consensus"
+      - name: OmegaEngine
+        description: "Constitutional enforcement core"
+      - name: AutonomousLoop
+        description: "OODA cycle for continuous operation"
+    description: "Apex Sovereign Engine - Constitutional AI core"
+
+# ==============================================================================
+# QUALITY CONSTRAINTS (IHSAN)
+# ==============================================================================
+
+quality:
+  ihsan:
+    threshold: 0.95
+    enforcement: hard
+    description: "Excellence as constitutional constraint"
+
+  snr:
+    data_threshold: 0.90
+    information_threshold: 0.95
+    knowledge_threshold: 0.99
+    wisdom_threshold: 0.999
+    enforcement: hard
+
+  constitutional:
+    principles:
+      - "Correctness before performance"
+      - "Safety before convenience"
+      - "Transparency in all operations"
+      - "User benefit maximization"
+
+    guardrails:
+      - "Fail-closed on uncertainty"
+      - "No hardcoded secrets"
+      - "Input validation mandatory"
+      - "Rate limiting required"
+
+# ==============================================================================
+# MONITORING & OBSERVABILITY
+# ==============================================================================
+
+monitoring:
+  prometheus:
+    port: 9090
+    scrape_interval: 15s
+    evaluation_interval: 15s
+    retention: 15d
+    targets:
+      - job: bizra-api
+        endpoint: localhost:3001/metrics
+      - job: bizra-sovereign
+        endpoint: localhost:8080/metrics
+      - job: node-exporter
+        endpoint: localhost:9100/metrics
+      - job: nvidia-exporter
+        endpoint: localhost:9400/metrics
+
+  grafana:
+    port: 3000
+    dashboards:
+      - bizra-overview
+      - inference-performance
+      - sovereign-health
+      - gpu-utilization
+
+  alerting:
+    critical:
+      - name: InferenceDown
+        condition: up{job="bizra-sovereign"} == 0
+        duration: 1m
+        action: page
+      - name: IhsanBelowThreshold
+        condition: bizra_ihsan_score < 0.95
+        duration: 5m
+        action: page
+      - name: GPUTemperatureCritical
+        condition: nvidia_gpu_temperature > 85
+        duration: 30s
+        action: page
+
+    warning:
+      - name: HighLatency
+        condition: bizra_query_latency_p99 > 5s
+        duration: 5m
+        action: notify
+      - name: SNRDegraded
+        condition: bizra_snr_score < 0.85
+        duration: 10m
+        action: notify
+      - name: CacheHitRateLow
+        condition: bizra_cache_hit_rate < 0.5
+        duration: 15m
+        action: notify
+
+# ==============================================================================
+# LOGGING
+# ==============================================================================
+
+logging:
+  level: INFO
+  format: "%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s"
+  datefmt: "%Y-%m-%d %H:%M:%S"
+
+  outputs:
+    - type: console
+      level: INFO
+    - type: file
+      path: /var/log/bizra/node0.log
+      level: DEBUG
+      rotation:
+        max_size: 100MB
+        max_files: 10
+    - type: journald
+      level: INFO
+
+  structured:
+    enabled: true
+    format: json
+    path: /var/log/bizra/node0.jsonl
+
+# ==============================================================================
+# BACKUP & RECOVERY
+# ==============================================================================
+
+backup:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+
+  targets:
+    - name: postgres
+      type: pg_dump
+      path: /var/backups/bizra/postgres
+    - name: redis
+      type: rdb
+      path: /var/backups/bizra/redis
+    - name: gold_data
+      type: rsync
+      source: /mnt/c/BIZRA-DATA-LAKE/04_GOLD
+      destination: /var/backups/bizra/gold
+    - name: sovereign_state
+      type: rsync
+      source: /mnt/c/BIZRA-DATA-LAKE/sovereign_state
+      destination: /var/backups/bizra/sovereign
+
+  recovery:
+    rpo_target: 24h  # Recovery Point Objective
+    rto_target: 1h   # Recovery Time Objective

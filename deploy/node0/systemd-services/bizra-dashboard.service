@@ -1,0 +1,104 @@
+# ==============================================================================
+# BIZRA DASHBOARD - systemd service unit
+# ==============================================================================
+#
+# React Dashboard for Agent Orchestration
+# Provides real-time visualization and control interface for BIZRA
+#
+# Standing on Giants: React (UI) | Vite (bundler) | TypeScript (safety)
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Installation:
+#   sudo cp bizra-dashboard.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-dashboard
+#   sudo systemctl start bizra-dashboard
+#
+# ==============================================================================
+
+[Unit]
+Description=BIZRA Dashboard - Agent Orchestration Interface
+Documentation=https://github.com/bizra/bizra-os
+After=network-online.target bizra-api.service
+Wants=network-online.target
+Requires=bizra-api.service
+
+# Service dependencies
+BindsTo=bizra-api.service
+
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=bizra
+Group=bizra
+
+# Working directory
+WorkingDirectory=/mnt/c/BIZRA-OS
+
+# Environment configuration
+Environment="NODE_ENV=production"
+Environment="VITE_API_URL=http://localhost:3001"
+Environment="VITE_WS_URL=ws://localhost:3001"
+Environment="PORT=5173"
+Environment="HOST=0.0.0.0"
+
+# Node.js settings
+Environment="NODE_OPTIONS=--max-old-space-size=1024"
+
+# Load from environment file
+EnvironmentFile=-/etc/bizra/dashboard.env
+
+# Build and serve production (or dev mode)
+# For production:
+# ExecStartPre=/usr/bin/npm run build
+# ExecStart=/usr/bin/npx serve -s dist -l 5173
+
+# For development (with HMR):
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0 --port 5173
+
+# Health check
+ExecStartPost=/bin/bash -c 'for i in {1..60}; do curl -sf http://localhost:5173/ && exit 0 || sleep 1; done; exit 1'
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=15
+
+# Restart policy
+Restart=always
+RestartSec=5
+
+# Resource limits
+MemoryMax=1G
+MemoryHigh=768M
+CPUQuota=100%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Allow specific paths
+ReadWritePaths=/mnt/c/BIZRA-OS/node_modules/.vite
+ReadWritePaths=/var/log/bizra
+ReadOnlyPaths=/mnt/c/BIZRA-OS
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-dashboard
+
+# OOM handling
+OOMScoreAdjust=-100
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+# BIZRA Persistent Storage
+# Volume claims for data persistence
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bizra-data-pvc
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bizra-omega-pvc
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: omega
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Gold data PVC (read-only training data)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bizra-gold-pvc
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: data
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Gi

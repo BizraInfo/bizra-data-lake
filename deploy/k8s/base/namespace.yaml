@@ -1,0 +1,43 @@
+# BIZRA Namespace Definition
+# Provides isolation and resource quotas for BIZRA workloads
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/part-of: bizra-ecosystem
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Resource Quota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: bizra-quota
+  namespace: bizra
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    persistentvolumeclaims: "10"
+    pods: "50"
+---
+# Limit Range for default resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: bizra-limits
+  namespace: bizra
+spec:
+  limits:
+    - default:
+        memory: 512Mi
+        cpu: 500m
+      defaultRequest:
+        memory: 256Mi
+        cpu: 100m
+      type: Container

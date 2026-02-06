@@ -1,0 +1,76 @@
+# BIZRA Ingress
+# External traffic routing with TLS termination
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-ingress
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+spec:
+  tls:
+    - hosts:
+        - api.bizra.node0
+        - elite.bizra.node0
+      secretName: bizra-tls
+  rules:
+    # Omega API (Rust)
+    - host: api.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-omega
+                port:
+                  number: 80
+    # Elite API (Python)
+    - host: elite.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-elite
+                port:
+                  number: 80
+---
+# Quality Gate Ingress (internal)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-internal-ingress
+  namespace: bizra
+  annotations:
+    kubernetes.io/ingress.class: nginx-internal
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+spec:
+  rules:
+    - host: quality-gate.bizra.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-quality-gate
+                port:
+                  number: 8095

@@ -1,0 +1,84 @@
+# BIZRA ConfigMap — Application Configuration
+# Constitutional thresholds and runtime settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-config
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+data:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Constitutional Thresholds (LOCKED - requires constitutional amendment)
+  # ═══════════════════════════════════════════════════════════════════════════
+  IHSAN_THRESHOLD: "0.95"
+  STRICT_IHSAN_THRESHOLD: "0.99"
+  RUNTIME_IHSAN_THRESHOLD: "1.0"
+
+  # SNR Tier Thresholds
+  SNR_THRESHOLD_T0_ELITE: "0.98"
+  SNR_THRESHOLD_T1_HIGH: "0.95"
+  SNR_THRESHOLD_T2_STANDARD: "0.90"
+  SNR_THRESHOLD_T3_ACCEPTABLE: "0.85"
+
+  # SAPE Layer SNR Targets
+  SNR_DATA_THRESHOLD: "0.90"
+  SNR_INFORMATION_THRESHOLD: "0.95"
+  SNR_KNOWLEDGE_THRESHOLD: "0.99"
+  SNR_WISDOM_THRESHOLD: "0.999"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Runtime Configuration
+  # ═══════════════════════════════════════════════════════════════════════════
+  RUST_LOG: "bizra_api=info,bizra_core=debug,tower_http=debug"
+  API_PORT: "3001"
+  GOSSIP_PORT: "7946"
+  METRICS_PORT: "9090"
+
+  # Inference Configuration
+  OLLAMA_HOST: "http://ollama:11434"
+  DEFAULT_MODEL: "qwen2.5:7b"
+  MAX_TOKENS: "4096"
+  TEMPERATURE: "0.7"
+
+  # Federation Configuration
+  FEDERATION_BIND: "0.0.0.0:7654"
+  A2A_PORT_OFFSET: "100"
+  MAX_RETRY_ATTEMPTS: "3"
+  SYNC_INTERVAL_SECONDS: "60"
+  CONSENSUS_INTERVAL_SECONDS: "30"
+
+  # Timing Configuration
+  CLOCK_SKEW_SECONDS: "120"
+  NONCE_TTL_SECONDS: "300"
+  AGENT_TIMEOUT_MS: "30000"
+
+  # Feature Flags
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+  ENABLE_PROFILING: "false"
+  FAIL_CLOSED: "true"
+---
+# Python-specific configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-python-config
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: python
+data:
+  # Quality Gate Configuration
+  GATE_MODE: "constitutional"
+  CONSTITUTIONAL_OVERRIDE: "false"
+
+  # SAPE Configuration
+  SAPE_MAX_DEPTH: "4"
+  SAPE_BACKTRACK_LIMIT: "10"
+  GOT_SYNTHESIS_ENABLED: "true"
+
+  # Risk Management
+  CASCADE_DEPTH_LIMIT: "5"
+  CONSTITUTIONAL_PRIORITY: "10.0"
+  ALERT_THRESHOLD: "0.7"

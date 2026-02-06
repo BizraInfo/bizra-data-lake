@@ -1,0 +1,38 @@
+# BIZRA Base Kustomization
+# Common resources for all environments
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bizra
+
+commonLabels:
+  app.kubernetes.io/name: bizra
+  app.kubernetes.io/part-of: bizra-ecosystem
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - rbac.yaml
+  - storage.yaml
+  - deployment-elite.yaml
+  - deployment-omega.yaml
+  - services.yaml
+  - ingress.yaml
+  - hpa.yaml
+
+images:
+  - name: bizra-elite
+    newName: ghcr.io/bizra/bizra-data-lake/elite
+    newTag: latest
+  - name: bizra-omega
+    newName: ghcr.io/bizra/bizra-data-lake/omega
+    newTag: latest
+
+configMapGenerator:
+  - name: bizra-version
+    literals:
+      - version=1.0.0
+      - commit=${GIT_COMMIT:-unknown}
+      - build_date=${BUILD_DATE:-unknown}

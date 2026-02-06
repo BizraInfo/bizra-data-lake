@@ -1,0 +1,207 @@
+# BIZRA Elite Prometheus Configuration
+# ServiceMonitor for K3d cluster: bizra-prod, namespace: bizra
+#
+# Constitutional Thresholds (from core/integration/constants.py):
+# - IHSAN_THRESHOLD: 0.95 (standard), 0.99 (strict)
+# - SNR_THRESHOLD: 0.85 (minimum), 0.95 (T1), 0.98 (T0/elite)
+#
+# Metrics exposed at /v1/metrics:
+# - sovereign_queries_total (counter)
+# - sovereign_query_success_rate (gauge)
+# - sovereign_snr_score (gauge)
+# - sovereign_ihsan_score (gauge)
+# - sovereign_avg_query_time_ms (gauge)
+# - sovereign_health_score (gauge)
+
+---
+# Prometheus Operator ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bizra-elite-monitor
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    team: sovereign
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: bizra-elite
+      component: sovereign-api
+  namespaceSelector:
+    matchNames:
+      - bizra
+  endpoints:
+    - port: http-metrics
+      path: /v1/metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+      metricRelabelings:
+        # Add constitutional threshold labels for context
+        - sourceLabels: [__name__]
+          regex: sovereign_snr_score
+          targetLabel: threshold
+          replacement: "0.85"
+        - sourceLabels: [__name__]
+          regex: sovereign_ihsan_score
+          targetLabel: threshold
+          replacement: "0.95"
+
+---
+# Alternative: Static scrape config for non-Operator setups
+# Add this to prometheus.yml scrape_configs section
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-bizra-scrape-config
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: scrape-config
+data:
+  bizra-elite.yaml: |
+    # BIZRA Elite scrape configuration
+    - job_name: 'bizra-elite'
+      kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+              - bizra
+      relabel_configs:
+        # Only scrape pods with bizra-elite label
+        - source_labels: [__meta_kubernetes_service_label_app]
+          regex: bizra-elite
+          action: keep
+        # Use service port named http-metrics
+        - source_labels: [__meta_kubernetes_endpoint_port_name]
+          regex: http-metrics
+          action: keep
+        # Set instance label to pod name
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: instance
+        # Add namespace label
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        # Add node label
+        - source_labels: [__meta_kubernetes_pod_node_name]
+          target_label: node
+      metrics_path: /v1/metrics
+      scheme: http
+      scrape_interval: 15s
+      scrape_timeout: 10s
+
+---
+# Service definition for the Sovereign API (if not already defined)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-metrics
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    component: sovereign-api
+spec:
+  selector:
+    app: bizra-elite
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+
+---
+# PodMonitor for direct pod scraping (alternative to ServiceMonitor)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: bizra-elite-pods
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    team: sovereign
+spec:
+  selector:
+    matchLabels:
+      app: bizra-elite
+  podMetricsEndpoints:
+    - port: http-metrics
+      path: /v1/metrics
+      interval: 15s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - bizra
+
+---
+# Recording rules for efficient queries
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bizra-elite-recording-rules
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: bizra.elite.recording
+      interval: 30s
+      rules:
+        # SNR moving average (5m window)
+        - record: bizra:snr_score:avg5m
+          expr: avg_over_time(sovereign_snr_score[5m])
+
+        # Ihsan moving average (5m window)
+        - record: bizra:ihsan_score:avg5m
+          expr: avg_over_time(sovereign_ihsan_score[5m])
+
+        # Query success rate (5m window)
+        - record: bizra:query_success_rate:avg5m
+          expr: avg_over_time(sovereign_query_success_rate[5m])
+
+        # Health score moving average
+        - record: bizra:health_score:avg5m
+          expr: avg_over_time(sovereign_health_score[5m])
+
+        # Query latency percentiles
+        - record: bizra:query_latency_ms:p50
+          expr: histogram_quantile(0.50, rate(sovereign_query_duration_seconds_bucket[5m])) * 1000
+
+        - record: bizra:query_latency_ms:p95
+          expr: histogram_quantile(0.95, rate(sovereign_query_duration_seconds_bucket[5m])) * 1000
+
+        - record: bizra:query_latency_ms:p99
+          expr: histogram_quantile(0.99, rate(sovereign_query_duration_seconds_bucket[5m])) * 1000
+
+        # Error rate calculation
+        - record: bizra:error_rate:5m
+          expr: |
+            1 - (
+              increase(sovereign_queries_total{status="success"}[5m])
+              /
+              (increase(sovereign_queries_total[5m]) > 0)
+            )
+
+        # Queries per second
+        - record: bizra:queries:rate5m
+          expr: rate(sovereign_queries_total[5m])
+
+        # Constitutional compliance score
+        # Combined SNR + Ihsan weighted average
+        - record: bizra:constitutional_compliance
+          expr: |
+            (
+              (sovereign_snr_score >= 0.85) * 0.4 +
+              (sovereign_ihsan_score >= 0.95) * 0.6
+            )

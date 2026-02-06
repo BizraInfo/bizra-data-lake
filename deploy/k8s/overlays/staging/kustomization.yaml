@@ -1,0 +1,76 @@
+# BIZRA Staging Overlay
+# Configuration for staging environment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bizra-staging
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+resources:
+  - ../../base
+
+patches:
+  # Reduce replicas for staging
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: bizra-elite
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: bizra-omega
+
+  # Reduce HPA limits for staging
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+    target:
+      kind: HorizontalPodAutoscaler
+
+  # Update ingress hosts for staging
+  - patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts
+        value:
+          - staging-api.bizra.node0
+          - staging-elite.bizra.node0
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging-api.bizra.node0
+      - op: replace
+        path: /spec/rules/1/host
+        value: staging-elite.bizra.node0
+    target:
+      kind: Ingress
+      name: bizra-ingress
+
+configMapGenerator:
+  - name: bizra-staging-config
+    behavior: merge
+    literals:
+      - BIZRA_ENV=staging
+      - RUST_LOG=bizra_api=debug,bizra_core=debug,tower_http=trace
+      - IHSAN_THRESHOLD=0.95  # Same as production
+      - SNR_THRESHOLD_T1_HIGH=0.95
+
+images:
+  - name: bizra-elite
+    newName: ghcr.io/bizra/bizra-data-lake/elite
+    newTag: staging
+  - name: bizra-omega
+    newName: ghcr.io/bizra/bizra-data-lake/omega
+    newTag: staging

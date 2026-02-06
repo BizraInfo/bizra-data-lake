@@ -1,0 +1,143 @@
+# BIZRA OMEGA Runtime — Staging Deployment
+# v3.1-OMEGA Production-Hardened Sovereign Intelligence
+# Standing on Giants: Shannon • de Moura • Jaynes • DeepSeek • Karpathy • Anthropic
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-omega
+  namespace: bizra-staging
+  labels:
+    app: bizra-omega
+    version: v3.1-omega
+    environment: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bizra-omega
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-omega
+        version: v3.1-omega
+        environment: staging
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: omega-runtime
+        image: bizra-elite:v3.1-omega
+        imagePullPolicy: Never
+        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: BIZRA_ENV
+          value: "staging"
+        - name: OMEGA_VERSION
+          value: "v3.1-omega"
+        # Constitutional thresholds
+        - name: IHSAN_THRESHOLD
+          value: "0.95"
+        - name: SNR_FLOOR
+          value: "0.85"
+        - name: CONSENSUS_THRESHOLD
+          value: "0.95"
+        # Runtime configuration
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: Z3_TIMEOUT_MS
+          value: "5000"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: omega-logs
+          mountPath: /app/logs
+        - name: omega-state
+          mountPath: /app/state
+      volumes:
+      - name: omega-logs
+        emptyDir: {}
+      - name: omega-state
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-omega
+  namespace: bizra-staging
+  labels:
+    app: bizra-omega
+    version: v3.1-omega
+spec:
+  type: ClusterIP
+  selector:
+    app: bizra-omega
+  ports:
+  - port: 80
+    targetPort: 8000
+    name: http
+    protocol: TCP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: omega-config
+  namespace: bizra-staging
+  labels:
+    app: bizra-omega
+data:
+  OMEGA_VERSION: "v3.1-omega"
+  STANDING_ON_GIANTS: |
+    Shannon (1948): SNR Maximization
+    de Moura & Bjorner (2008): Z3 SMT Solver
+    Eclipse Foundation (2024): iceoryx2 Zero-Copy
+    Anthropic (2025): Claude-Mem Progressive Disclosure
+    DeepSeek (2025): R1 Reasoning
+    Karpathy (2024): Generation-Verification Loop
+    Jaynes (1976): Bicameral Mind Theory

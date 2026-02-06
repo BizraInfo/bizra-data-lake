@@ -482,9 +482,16 @@ class SandboxWorker:
 
 def main():
     """Entry point for the sandbox worker."""
-    # Ensure we're in a sandboxed environment
+    # SECURITY (SEC-007): Fail-closed sandbox enforcement
+    # CRITICAL: Never execute inference outside sandbox environment
     if os.environ.get("BIZRA_SANDBOX") != "1":
-        print("Warning: Running outside sandbox environment", file=sys.stderr)
+        print(json.dumps({
+            "type": "error",
+            "code": "SANDBOX_VIOLATION",
+            "message": "Refusing execution: BIZRA_SANDBOX not set",
+            "fatal": True
+        }), file=sys.stderr, flush=True)
+        sys.exit(78)  # EX_CONFIG - configuration error
 
     # Initialize model store
     store_path = os.environ.get("BIZRA_MODEL_STORE")

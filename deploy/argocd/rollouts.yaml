@@ -1,0 +1,177 @@
+# BIZRA Argo Rollouts Configuration
+# Progressive delivery with canary deployments
+#
+# Standing on Giants: Argo Rollouts • Istio • Prometheus
+# Requirement: Replace Deployment with Rollout for progressive delivery
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: bizra-elite-rollout
+  namespace: bizra
+  labels:
+    app: bizra-elite
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: bizra-elite
+  template:
+    metadata:
+      labels:
+        app: bizra-elite
+    spec:
+      containers:
+        - name: elite
+          image: bizra-elite:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+  strategy:
+    canary:
+      # Canary steps
+      steps:
+        - setWeight: 5
+        - pause: {duration: 2m}
+        - setWeight: 20
+        - pause: {duration: 5m}
+        - setWeight: 50
+        - pause: {duration: 5m}
+        - setWeight: 80
+        - pause: {duration: 2m}
+
+      # Traffic routing (requires service mesh or ingress controller)
+      trafficRouting:
+        nginx:
+          stableIngress: bizra-elite-stable
+          annotationPrefix: nginx.ingress.kubernetes.io
+
+      # Analysis for automatic promotion/rollback
+      analysis:
+        templates:
+          - templateName: bizra-quality-gate
+        startingStep: 2
+        args:
+          - name: service-name
+            value: bizra-elite
+
+      # Anti-affinity with stable
+      antiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          weight: 100
+
+      # Maximum unavailable during rollout
+      maxUnavailable: 0
+      maxSurge: 1
+---
+# Analysis Template for Quality Gate
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: bizra-quality-gate
+  namespace: bizra
+spec:
+  args:
+    - name: service-name
+  metrics:
+    # Error rate check
+    - name: error-rate
+      interval: 1m
+      count: 5
+      successCondition: result[0] < 0.01
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            sum(rate(http_requests_total{namespace="bizra",service="{{ args.service-name }}",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="bizra",service="{{ args.service-name }}"}[5m]))
+
+    # Latency check (p95 < 500ms)
+    - name: latency
+      interval: 1m
+      count: 5
+      successCondition: result[0] < 500
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="bizra",service="{{ args.service-name }}"}[5m])) by (le)) * 1000
+
+    # SNR threshold check
+    - name: snr-score
+      interval: 2m
+      count: 3
+      successCondition: result[0] >= 0.85
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            bizra_snr_score{namespace="bizra",service="{{ args.service-name }}"}
+
+    # Ihsan threshold check (constitutional)
+    - name: ihsan-score
+      interval: 2m
+      count: 3
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            bizra_ihsan_score{namespace="bizra",service="{{ args.service-name }}"}
+---
+# Stable Ingress for canary traffic splitting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-elite-stable
+  namespace: bizra
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: elite.bizra.node0
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizra-elite-stable
+                port:
+                  number: 80
+---
+# Services for canary
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-stable
+  namespace: bizra
+spec:
+  selector:
+    app: bizra-elite
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-canary
+  namespace: bizra
+spec:
+  selector:
+    app: bizra-elite
+  ports:
+    - port: 80
+      targetPort: 8000

@@ -1,0 +1,28 @@
+# Kustomization for BIZRA Elite Canary Deployment
+# Usage: kubectl apply -k deploy/k8s/canary/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: bizra-canary
+
+namespace: bizra
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+      bizra.io/deployment-type: canary
+
+resources:
+  - canary-deployment.yaml
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: bizra-ecosystem
+
+# Patches can be added for environment-specific overrides
+# patches:
+#   - path: patches/canary-replicas.yaml
+#     target:
+#       kind: Deployment
+#       name: bizra-elite-canary

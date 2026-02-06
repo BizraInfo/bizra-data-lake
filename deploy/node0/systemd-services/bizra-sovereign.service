@@ -1,0 +1,149 @@
+# ==============================================================================
+# BIZRA SOVEREIGN ENGINE - systemd service unit
+# ==============================================================================
+#
+# Apex Sovereign Engine - Constitutional AI Core
+# Integrates: GraphOfThoughts, SNRMaximizer, GuardianCouncil, OmegaEngine
+#
+# Standing on Giants: Besta (GoT) | Shannon (SNR) | Lamport (consensus)
+#                     Anthropic (constitutional AI)
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Components:
+#   - GraphOfThoughts: Multi-path reasoning exploration
+#   - SNRMaximizer: Signal quality enforcement
+#   - GuardianCouncil: Byzantine fault-tolerant validation
+#   - OmegaEngine: Constitutional constraint enforcement
+#   - AutonomousLoop: OODA cycle for continuous operation
+#
+# Installation:
+#   sudo cp bizra-sovereign.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-sovereign
+#   sudo systemctl start bizra-sovereign
+#
+# ==============================================================================
+
+[Unit]
+Description=BIZRA Sovereign Engine - Constitutional AI Core
+Documentation=https://github.com/bizra/bizra-data-lake
+After=network-online.target bizra-inference.service bizra-api.service
+Wants=network-online.target
+Requires=bizra-inference.service
+
+# Critical service - binds to inference
+BindsTo=bizra-inference.service
+
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=bizra
+Group=bizra
+
+# Working directory
+WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE
+
+# Python environment
+Environment="PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE"
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONDONTWRITEBYTECODE=1"
+
+# Virtual environment
+Environment="VIRTUAL_ENV=/mnt/c/BIZRA-DATA-LAKE/.venv"
+Environment="PATH=/mnt/c/BIZRA-DATA-LAKE/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# BIZRA configuration
+Environment="BIZRA_ENV=production"
+Environment="BIZRA_NODE_TYPE=genesis"
+Environment="BIZRA_NODE_ID=node0-genesis"
+
+# Constitutional thresholds (HARD CONSTRAINTS)
+Environment="IHSAN_THRESHOLD=0.95"
+Environment="SNR_DATA_THRESHOLD=0.90"
+Environment="SNR_INFORMATION_THRESHOLD=0.95"
+Environment="SNR_KNOWLEDGE_THRESHOLD=0.99"
+Environment="SNR_WISDOM_THRESHOLD=0.999"
+
+# Autonomous operation
+Environment="AUTONOMOUS_ENABLED=true"
+Environment="LOOP_INTERVAL_SECONDS=60"
+
+# Inference backends
+Environment="INFERENCE_PRIMARY=http://192.168.56.1:1234"
+Environment="INFERENCE_FALLBACK=http://localhost:11434"
+
+# Data paths
+Environment="DATA_LAKE_ROOT=/mnt/c/BIZRA-DATA-LAKE"
+Environment="GOLD_PATH=/mnt/c/BIZRA-DATA-LAKE/04_GOLD"
+Environment="STATE_PATH=/mnt/c/BIZRA-DATA-LAKE/sovereign_state"
+
+# Guardian Council configuration
+Environment="GUARDIAN_QUORUM=3"
+Environment="GUARDIAN_BYZANTINE_TOLERANCE=1"
+
+# Load secrets from environment file
+EnvironmentFile=-/etc/bizra/sovereign.env
+
+# Execute the Sovereign Runtime
+ExecStart=/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python -m core.sovereign \
+    --mode production \
+    --enable-autonomous \
+    --ihsan-threshold 0.95 \
+    --snr-threshold 0.85 \
+    --persist-state
+
+# Health check (validates Ihsan score)
+ExecStartPost=/bin/bash -c 'for i in {1..60}; do curl -sf http://localhost:8080/health | grep -q "healthy" && exit 0 || sleep 1; done; exit 1'
+
+# Graceful shutdown (checkpoint state)
+ExecStop=/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python -c "import asyncio; from core.sovereign import SovereignRuntime; asyncio.run(SovereignRuntime().shutdown())"
+TimeoutStopSec=60
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+MemoryMax=8G
+MemoryHigh=6G
+CPUQuota=400%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Allow specific paths
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/sovereign_state
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/checkpoints
+ReadWritePaths=/var/log/bizra
+ReadOnlyPaths=/mnt/c/BIZRA-DATA-LAKE
+ReadOnlyPaths=/var/lib/bizra/models
+
+# Network namespace (allow localhost only for inference)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-sovereign
+
+# OOM handling (CRITICAL - protect sovereign engine)
+OOMScoreAdjust=-1000
+
+# Watchdog (sovereign must respond within 2 minutes)
+WatchdogSec=120
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target

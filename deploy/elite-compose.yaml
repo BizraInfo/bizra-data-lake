@@ -1,0 +1,168 @@
+# BIZRA Elite Framework — Docker Compose Deployment
+# DevOps Configuration v1.0.0
+#
+# Standing on Giants: Docker • Kubernetes • GitOps
+# Constitutional Constraint: Ihsān ≥ 0.95
+
+services:
+  # ============================================================================
+  # ELITE CORE SERVICES
+  # ============================================================================
+
+  elite-pipeline:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.elite
+    container_name: bizra-elite-pipeline
+    environment:
+      - BIZRA_ENV=production
+      - IHSAN_THRESHOLD=0.95
+      - SNR_DATA_THRESHOLD=0.90
+      - SNR_INFORMATION_THRESHOLD=0.95
+      - SNR_KNOWLEDGE_THRESHOLD=0.99
+      - SNR_WISDOM_THRESHOLD=0.999
+      # Secrets injected at runtime
+      - BIZRA_SECRET_KEY=${BIZRA_SECRET_KEY}
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+      - elite-logs:/app/logs
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "from core.elite import ELITE_VERSION; print(ELITE_VERSION)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  # ============================================================================
+  # SAPE OPTIMIZER SERVICE
+  # ============================================================================
+
+  sape-optimizer:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.sape
+    container_name: bizra-sape-optimizer
+    environment:
+      - SAPE_MAX_DEPTH=4
+      - SAPE_BACKTRACK_LIMIT=10
+      - GOT_SYNTHESIS_ENABLED=true
+      - IHSAN_THRESHOLD=0.95
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+      - sape-cache:/app/cache
+    networks:
+      - bizra-network
+    depends_on:
+      elite-pipeline:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================================
+  # QUALITY GATE VALIDATOR
+  # ============================================================================
+
+  quality-gate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gate
+    container_name: bizra-quality-gate
+    environment:
+      - GATE_MODE=constitutional
+      - FAIL_CLOSED=true
+      - CONSTITUTIONAL_OVERRIDE=false
+    ports:
+      - "8095:8095"
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================================================
+  # RISK MANAGER SERVICE
+  # ============================================================================
+
+  risk-manager:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.risk
+    container_name: bizra-risk-manager
+    environment:
+      - CASCADE_DEPTH_LIMIT=5
+      - CONSTITUTIONAL_PRIORITY=10.0
+      - ALERT_THRESHOLD=0.7
+    volumes:
+      - risk-data:/app/data
+    networks:
+      - bizra-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # MONITORING & OBSERVABILITY
+  # ============================================================================
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: bizra-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - bizra-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: bizra-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - bizra-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+
+networks:
+  bizra-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+
+volumes:
+  elite-logs:
+  sape-cache:
+  risk-data:
+  prometheus-data:
+  grafana-data:

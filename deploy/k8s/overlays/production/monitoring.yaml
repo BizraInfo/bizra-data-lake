@@ -1,0 +1,162 @@
+# BIZRA Production Monitoring
+# Prometheus ServiceMonitor and Alerting Rules
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bizra-elite-monitor
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: bizra-elite
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bizra-omega-monitor
+  namespace: bizra
+  labels:
+    app: bizra-omega
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: bizra-omega
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bizra-alerts
+  namespace: bizra
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: bizra.rules
+      rules:
+        # High error rate alert
+        - alert: BizraHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{namespace="bizra",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="bizra"}[5m])) > 0.01
+          for: 5m
+          labels:
+            severity: critical
+            team: bizra
+          annotations:
+            summary: "High error rate in BIZRA services"
+            description: "Error rate is {{ $value | humanizePercentage }} in namespace bizra"
+
+        # Pod restart alert
+        - alert: BizraPodRestartLoop
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="bizra"}[1h]) > 3
+          for: 10m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "Pod {{ $labels.pod }} is in restart loop"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour"
+
+        # Quality gate failure alert
+        - alert: BizraQualityGateFailure
+          expr: |
+            bizra_quality_gate_passed == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: bizra
+          annotations:
+            summary: "BIZRA Quality Gate Failed"
+            description: "Quality gate has been failing for 5 minutes. Constitutional threshold may be violated."
+
+        # SNR threshold alert
+        - alert: BizraSNRBelowThreshold
+          expr: |
+            bizra_snr_score < 0.85
+          for: 10m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "SNR Score Below Threshold"
+            description: "SNR score {{ $value }} is below minimum threshold 0.85"
+
+        # Ihsan threshold alert
+        - alert: BizraIhsanBelowThreshold
+          expr: |
+            bizra_ihsan_score < 0.95
+          for: 5m
+          labels:
+            severity: critical
+            team: bizra
+          annotations:
+            summary: "Ihsan Score Below Constitutional Threshold"
+            description: "Ihsan score {{ $value }} is below constitutional threshold 0.95"
+
+        # Memory pressure alert
+        - alert: BizraMemoryPressure
+          expr: |
+            container_memory_usage_bytes{namespace="bizra"}
+            /
+            container_spec_memory_limit_bytes{namespace="bizra"} > 0.9
+          for: 10m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "High memory usage in {{ $labels.container }}"
+            description: "Memory usage is {{ $value | humanizePercentage }}"
+
+        # CPU throttling alert
+        - alert: BizraCPUThrottling
+          expr: |
+            rate(container_cpu_cfs_throttled_seconds_total{namespace="bizra"}[5m]) > 0.1
+          for: 15m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "CPU throttling detected in {{ $labels.container }}"
+            description: "Container is being CPU throttled"
+
+    - name: bizra.federation.rules
+      rules:
+        # Federation peer health
+        - alert: BizraFederationPeerDown
+          expr: |
+            bizra_federation_peers_healthy < bizra_federation_peers_total * 0.5
+          for: 10m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "Federation peer cluster degraded"
+            description: "Less than 50% of federation peers are healthy"
+
+        # Gossip protocol issues
+        - alert: BizraGossipFailure
+          expr: |
+            increase(bizra_gossip_messages_failed_total[10m]) > 100
+          for: 5m
+          labels:
+            severity: warning
+            team: bizra
+          annotations:
+            summary: "High gossip message failure rate"
+            description: "{{ $value }} gossip messages failed in the last 10 minutes"

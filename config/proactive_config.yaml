@@ -1,0 +1,146 @@
+# Proactive Sovereign Entity Configuration
+# =========================================
+# Configuration for the 24/7 proactive AI system with
+# constitutional guardrails and autonomous operation.
+
+# Operating Mode
+# - reactive: Traditional request-response only
+# - proactive_suggest: Detect & suggest, require approval
+# - proactive_auto: Auto-execute within constraints
+# - proactive_partner: Full proactive partner mode
+mode: proactive_partner
+
+# Constitutional Thresholds
+constitutional:
+  ihsan_threshold: 0.95          # Minimum quality/ethics score
+  snr_threshold: 0.85            # Minimum signal-to-noise ratio
+  daughter_test: true            # Enable "Daughter Test" ethical filter
+
+# Autonomy Matrix Configuration
+autonomy:
+  # Default autonomy level for new action types
+  default_level: autolow          # observer|suggester|autolow|automedium|autohigh|sovereign
+
+  # Per-level Ihsan requirements (min quality score)
+  ihsan_requirements:
+    observer: 0.0                 # No actions, no requirements
+    suggester: 0.95               # Suggestions need 0.95+
+    autolow: 0.97                 # Auto low-risk needs 0.97+
+    automedium: 0.98              # Auto medium-risk needs 0.98+
+    autohigh: 0.99                # Auto high-risk needs 0.99+
+    sovereign: 1.0                # Sovereign (emergency) needs perfect score
+
+  # Financial limits (as % of managed resources)
+  financial_limits:
+    autolow: 1.0                  # 1% for low-risk auto
+    automedium: 5.0               # 5% for medium-risk auto
+    autohigh: 10.0                # 10% for high-risk auto
+
+  # Action type overrides (set specific levels)
+  action_overrides:
+    financial_investment: automedium
+    health_emergency: sovereign
+    data_backup: autolow
+    system_optimization: autolow
+    user_communication: suggester
+
+# Muraqabah (24/7 Monitoring) Configuration
+monitoring:
+  enabled: true
+
+  # Scan intervals per domain (seconds)
+  intervals:
+    financial: 300                # 5 minutes
+    health: 60                    # 1 minute
+    social: 600                   # 10 minutes
+    cognitive: 300                # 5 minutes
+    environmental: 120            # 2 minutes
+
+  # Opportunity thresholds
+  opportunity_thresholds:
+    min_value: 0.3                # Minimum value to consider
+    min_confidence: 0.7           # Minimum confidence to act
+    max_urgency_auto: 0.8         # Max urgency for auto-action
+
+# Predictive Monitor Configuration
+predictions:
+  enabled: true
+  window_size: 100                # Readings to analyze
+  anomaly_threshold: 2.5          # Standard deviations
+  forecast_horizons:
+    - 1h
+    - 24h
+    - 7d
+
+# Dual-Agentic Team Configuration
+dual_agentic:
+  # PAT - Primary Action Team (7 specialists)
+  pat:
+    master_reasoner: true
+    data_analyzer: true
+    execution_planner: true
+    ethics_guardian: true
+    communicator: true
+    memory_architect: true
+    fusion: true
+
+  # SAT - Secondary Action Team (5 validators)
+  sat:
+    security_guardian: true       # VETO power
+    ethics_validator: true        # VETO power
+    performance_monitor: true
+    consistency_checker: true
+    resource_optimizer: true
+
+  # Consensus settings
+  consensus:
+    threshold: 3                  # 3 of 5 for approval
+    veto_roles:
+      - security_guardian
+      - ethics_validator
+    vote_timeout_seconds: 5.0
+
+# Collective Intelligence Configuration
+collective_intelligence:
+  enabled: true
+  default_method: weighted_average  # weighted_average|majority_vote|best_of|hierarchical
+  min_contributions: 2
+  synergy_bonus: 0.1              # Bonus for collective decisions
+
+# Scheduler Configuration
+scheduler:
+  max_concurrent_jobs: 5
+  check_interval_seconds: 1.0
+  default_priority: normal        # critical|high|normal|low|background
+
+# State Persistence Configuration
+checkpointing:
+  enabled: true
+  directory: sovereign_state/checkpoints
+  max_checkpoints: 10
+  auto_interval_seconds: 300      # 5 minutes
+
+# Cycle Configuration
+cycles:
+  interval_seconds: 5.0           # Main loop interval
+  extended_ooda: true             # Use extended OODA (with PREDICT/COORDINATE/LEARN)
+  max_concurrent_goals: 5
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  log_file: logs/proactive/sovereign.log
+  rotate_size_mb: 100
+  backup_count: 5
+
+# Alert Configuration
+alerts:
+  enabled: true
+  channels:
+    - console
+    - event_bus
+  severity_thresholds:
+    info: true
+    warning: true
+    critical: true

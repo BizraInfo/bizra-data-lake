@@ -1,0 +1,170 @@
+# BIZRA ArgoCD Application
+# GitOps-driven Kubernetes deployment
+#
+# Standing on Giants: ArgoCD • GitOps • Kubernetes
+# Constitutional: Automatic sync with quality gate enforcement
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bizra-production
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: bizra
+    environment: production
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: bizra
+
+  source:
+    repoURL: https://github.com/bizra/bizra-data-lake.git
+    targetRevision: main
+    path: deploy/k8s/overlays/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bizra
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health assessment
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Allow HPA to manage replicas
+
+  # Quality Gate Hook
+  info:
+    - name: Quality Gate
+      value: constitutional
+    - name: Ihsan Threshold
+      value: "0.95"
+    - name: SNR Threshold
+      value: "0.85"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bizra-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: bizra
+    environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: bizra
+
+  source:
+    repoURL: https://github.com/bizra/bizra-data-lake.git
+    targetRevision: develop
+    path: deploy/k8s/overlays/staging
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bizra-staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+---
+# ArgoCD Project Definition
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bizra
+  namespace: argocd
+spec:
+  description: BIZRA Sovereign Organism - Data Lake and Federation
+
+  # Source repositories
+  sourceRepos:
+    - https://github.com/bizra/bizra-data-lake.git
+    - https://github.com/bizra/bizra-omega.git
+
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: bizra
+      server: https://kubernetes.default.svc
+    - namespace: bizra-staging
+      server: https://kubernetes.default.svc
+    - namespace: bizra-monitoring
+      server: https://kubernetes.default.svc
+
+  # Allowed cluster resources
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+  # Namespace resources
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: '*'
+    - group: apps
+      kind: '*'
+    - group: networking.k8s.io
+      kind: '*'
+    - group: autoscaling
+      kind: '*'
+    - group: policy
+      kind: '*'
+    - group: monitoring.coreos.com
+      kind: '*'
+
+  # Sync windows (optional - restrict sync times)
+  # syncWindows:
+  #   - kind: allow
+  #     schedule: '0 * * * *'  # Allow every hour
+  #     duration: 30m
+  #     applications:
+  #       - bizra-production
+
+  # Roles for RBAC
+  roles:
+    - name: developer
+      description: Developer access to staging
+      policies:
+        - p, proj:bizra:developer, applications, get, bizra/bizra-staging, allow
+        - p, proj:bizra:developer, applications, sync, bizra/bizra-staging, allow
+      groups:
+        - bizra-developers
+
+    - name: sre
+      description: SRE access to all environments
+      policies:
+        - p, proj:bizra:sre, applications, *, bizra/*, allow
+      groups:
+        - bizra-sre

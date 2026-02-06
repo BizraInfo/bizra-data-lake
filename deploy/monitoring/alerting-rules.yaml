@@ -1,0 +1,398 @@
+# BIZRA Elite Alerting Rules
+# Constitutional Thresholds:
+# - IHSAN_THRESHOLD: 0.95 (standard), 0.99 (strict)
+# - SNR_THRESHOLD: 0.85 (minimum), 0.95 (T1), 0.98 (T0/elite)
+#
+# Alert Priorities:
+# - critical: Pager-duty worthy, immediate action required
+# - warning: Investigation needed within 1 hour
+# - info: For dashboard visibility only
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bizra-elite-alerts
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    prometheus: k8s
+    role: alert-rules
+    team: sovereign
+spec:
+  groups:
+    # =========================================================================
+    # SNR (Signal-to-Noise Ratio) Alerts
+    # Constitutional minimum: 0.85
+    # =========================================================================
+    - name: bizra.snr.alerts
+      rules:
+        # CRITICAL: SNR below constitutional minimum
+        - alert: BizraSNRCritical
+          expr: sovereign_snr_score < 0.85
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            constitutional: "true"
+            threshold: "0.85"
+          annotations:
+            summary: "CONSTITUTIONAL VIOLATION: SNR below minimum threshold"
+            description: |
+              SNR score {{ $value | printf "%.4f" }} is below the constitutional
+              minimum of 0.85 for pod {{ $labels.pod }} in namespace {{ $labels.namespace }}.
+              This is a Four Pillars violation (Pillar 2: Museum SNR Floor).
+              Immediate investigation required.
+            runbook_url: "https://docs.bizra.io/runbooks/snr-critical"
+            dashboard_url: "https://grafana.bizra.io/d/bizra-elite/snr-analysis"
+
+        # WARNING: SNR below T1 threshold
+        - alert: BizraSNRDegraded
+          expr: sovereign_snr_score < 0.95 and sovereign_snr_score >= 0.85
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "0.95"
+          annotations:
+            summary: "SNR degraded below T1 threshold"
+            description: |
+              SNR score {{ $value | printf "%.4f" }} is below the T1 threshold
+              of 0.95 for pod {{ $labels.pod }}. Currently operating at T2/T3 tier.
+              Quality degradation detected.
+            runbook_url: "https://docs.bizra.io/runbooks/snr-degraded"
+
+        # WARNING: SNR trending downward
+        - alert: BizraSNRTrendingDown
+          expr: |
+            (
+              avg_over_time(sovereign_snr_score[5m]) -
+              avg_over_time(sovereign_snr_score[30m])
+            ) < -0.05
+          for: 10m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "SNR showing sustained downward trend"
+            description: |
+              SNR has dropped by more than 0.05 over the last 30 minutes
+              for pod {{ $labels.pod }}. Current: {{ $value | printf "%.4f" }}.
+              Investigate potential quality degradation.
+
+    # =========================================================================
+    # Ihsan (Excellence) Alerts
+    # Standard threshold: 0.95, Strict: 0.99
+    # =========================================================================
+    - name: bizra.ihsan.alerts
+      rules:
+        # CRITICAL: Ihsan below standard threshold
+        - alert: BizraIhsanCritical
+          expr: sovereign_ihsan_score < 0.95
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            constitutional: "true"
+            threshold: "0.95"
+          annotations:
+            summary: "CONSTITUTIONAL VIOLATION: Ihsan below threshold"
+            description: |
+              Ihsan score {{ $value | printf "%.4f" }} is below the constitutional
+              threshold of 0.95 for pod {{ $labels.pod }} in namespace {{ $labels.namespace }}.
+              Excellence constraint violated. Guardian Council review triggered.
+            runbook_url: "https://docs.bizra.io/runbooks/ihsan-critical"
+            dashboard_url: "https://grafana.bizra.io/d/bizra-elite/ihsan-analysis"
+
+        # WARNING: Ihsan below strict threshold
+        - alert: BizraIhsanDegraded
+          expr: sovereign_ihsan_score < 0.99 and sovereign_ihsan_score >= 0.95
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "0.99"
+          annotations:
+            summary: "Ihsan below strict excellence threshold"
+            description: |
+              Ihsan score {{ $value | printf "%.4f" }} is below the strict
+              threshold of 0.99 for pod {{ $labels.pod }}.
+              Operating at standard tier instead of elite.
+
+        # INFO: Ihsan variance detected
+        - alert: BizraIhsanVariance
+          expr: stddev_over_time(sovereign_ihsan_score[15m]) > 0.02
+          for: 10m
+          labels:
+            severity: info
+            team: sovereign
+          annotations:
+            summary: "High Ihsan score variance detected"
+            description: |
+              Ihsan score showing significant variance (stddev > 0.02) over
+              the last 15 minutes for pod {{ $labels.pod }}.
+              May indicate inconsistent output quality.
+
+    # =========================================================================
+    # Health Score Alerts
+    # =========================================================================
+    - name: bizra.health.alerts
+      rules:
+        # CRITICAL: Health score critical
+        - alert: BizraHealthCritical
+          expr: sovereign_health_score < 0.7
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+          annotations:
+            summary: "System health critical"
+            description: |
+              Health score {{ $value | printf "%.4f" }} is critical (< 0.7)
+              for pod {{ $labels.pod }}. Multiple subsystems may be failing.
+              Immediate investigation required.
+            runbook_url: "https://docs.bizra.io/runbooks/health-critical"
+
+        # WARNING: Health score degraded
+        - alert: BizraHealthDegraded
+          expr: sovereign_health_score < 0.9 and sovereign_health_score >= 0.7
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "System health degraded"
+            description: |
+              Health score {{ $value | printf "%.4f" }} is degraded (< 0.9)
+              for pod {{ $labels.pod }}. Check SNR, Ihsan, and latency metrics.
+
+        # WARNING: Health score sudden drop
+        - alert: BizraHealthSuddenDrop
+          expr: |
+            (
+              sovereign_health_score -
+              sovereign_health_score offset 5m
+            ) < -0.1
+          for: 1m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Sudden health score drop detected"
+            description: |
+              Health score dropped by more than 0.1 in the last 5 minutes
+              for pod {{ $labels.pod }}. Current: {{ $value | printf "%.4f" }}.
+              Possible incident in progress.
+
+    # =========================================================================
+    # Query Latency Alerts
+    # P99 threshold: 1000ms
+    # =========================================================================
+    - name: bizra.latency.alerts
+      rules:
+        # CRITICAL: P99 latency > 1000ms
+        - alert: BizraLatencyP99Critical
+          expr: sovereign_avg_query_time_ms > 1000
+          for: 5m
+          labels:
+            severity: critical
+            team: sovereign
+            threshold: "1000ms"
+          annotations:
+            summary: "Query latency P99 exceeds 1000ms threshold"
+            description: |
+              Average query time {{ $value | printf "%.0f" }}ms exceeds the
+              P99 threshold of 1000ms for pod {{ $labels.pod }}.
+              Users experiencing significant delays.
+            runbook_url: "https://docs.bizra.io/runbooks/latency-critical"
+
+        # WARNING: P99 latency > 500ms
+        - alert: BizraLatencyP99Warning
+          expr: sovereign_avg_query_time_ms > 500 and sovereign_avg_query_time_ms <= 1000
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "500ms"
+          annotations:
+            summary: "Query latency elevated"
+            description: |
+              Average query time {{ $value | printf "%.0f" }}ms is elevated
+              for pod {{ $labels.pod }}. Monitor for further degradation.
+
+        # WARNING: Latency spike
+        - alert: BizraLatencySpike
+          expr: |
+            (
+              sovereign_avg_query_time_ms -
+              avg_over_time(sovereign_avg_query_time_ms[1h])
+            ) > 200
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Latency spike detected"
+            description: |
+              Query latency spiked {{ $value | printf "%.0f" }}ms above
+              the 1-hour average for pod {{ $labels.pod }}.
+              Investigate resource constraints or backend issues.
+
+    # =========================================================================
+    # Error Rate Alerts
+    # Threshold: 5%
+    # =========================================================================
+    - name: bizra.errors.alerts
+      rules:
+        # CRITICAL: Error rate > 5%
+        - alert: BizraErrorRateCritical
+          expr: (1 - sovereign_query_success_rate) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            threshold: "5%"
+          annotations:
+            summary: "Error rate exceeds 5% threshold"
+            description: |
+              Error rate {{ $value | printf "%.2f" | mul 100 }}% exceeds the
+              5% threshold for pod {{ $labels.pod }}.
+              Significant number of queries failing.
+            runbook_url: "https://docs.bizra.io/runbooks/error-rate-critical"
+
+        # WARNING: Error rate > 1%
+        - alert: BizraErrorRateWarning
+          expr: (1 - sovereign_query_success_rate) > 0.01 and (1 - sovereign_query_success_rate) <= 0.05
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "1%"
+          annotations:
+            summary: "Error rate elevated"
+            description: |
+              Error rate {{ $value | printf "%.2f" | mul 100 }}% is above 1%
+              for pod {{ $labels.pod }}. Monitor for escalation.
+
+        # CRITICAL: No successful queries
+        - alert: BizraNoSuccessfulQueries
+          expr: sovereign_query_success_rate == 0 and sovereign_queries_total > 0
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+          annotations:
+            summary: "No successful queries - complete outage"
+            description: |
+              Pod {{ $labels.pod }} has 0% success rate with active traffic.
+              Complete service failure. Immediate action required.
+
+    # =========================================================================
+    # Availability & Traffic Alerts
+    # =========================================================================
+    - name: bizra.availability.alerts
+      rules:
+        # WARNING: No traffic received
+        - alert: BizraNoTraffic
+          expr: increase(sovereign_queries_total[10m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "No query traffic received"
+            description: |
+              Pod {{ $labels.pod }} has received no queries in the last
+              10 minutes. Check if service is accessible.
+
+        # CRITICAL: Pod not responding
+        - alert: BizraPodNotResponding
+          expr: up{job="bizra-elite"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: sovereign
+          annotations:
+            summary: "BIZRA Elite pod not responding"
+            description: |
+              Pod {{ $labels.instance }} is not responding to scrapes.
+              Service may be down or unreachable.
+
+        # WARNING: High query volume
+        - alert: BizraHighQueryVolume
+          expr: rate(sovereign_queries_total[5m]) > 100
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "High query volume detected"
+            description: |
+              Query rate {{ $value | printf "%.1f" }} queries/sec exceeds
+              normal thresholds for pod {{ $labels.pod }}.
+              Monitor for capacity issues.
+
+    # =========================================================================
+    # Autonomous Loop Alerts (if autonomous_enabled)
+    # =========================================================================
+    - name: bizra.autonomous.alerts
+      rules:
+        # WARNING: Autonomous loop stopped
+        - alert: BizraAutonomousLoopStopped
+          expr: increase(sovereign_autonomous_cycles_total[5m]) == 0
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Autonomous loop appears stopped"
+            description: |
+              No autonomous cycles recorded in 5 minutes for pod {{ $labels.pod }}.
+              Self-healing may be impaired.
+
+        # WARNING: High decision rejection rate
+        - alert: BizraDecisionRejectionHigh
+          expr: |
+            sovereign_decisions_rejected_total /
+            (sovereign_decisions_made_total > 0) > 0.3
+          for: 10m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "High autonomous decision rejection rate"
+            description: |
+              More than 30% of autonomous decisions are being rejected
+              for pod {{ $labels.pod }}. Review decision criteria.
+
+    # =========================================================================
+    # Guardian Council Alerts
+    # =========================================================================
+    - name: bizra.guardian.alerts
+      rules:
+        # WARNING: Guardian rejection rate high
+        - alert: BizraGuardianRejectionHigh
+          expr: |
+            sovereign_council_rejections_total /
+            (sovereign_council_invocations_total > 0) > 0.2
+          for: 10m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Guardian Council rejection rate high"
+            description: |
+              More than 20% of Guardian Council validations are being rejected
+              for pod {{ $labels.pod }}. Review output quality.
+
+        # CRITICAL: Guardian Council not invoked
+        - alert: BizraGuardianCouncilInactive
+          expr: increase(sovereign_council_invocations_total[30m]) == 0
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Guardian Council not invoked"
+            description: |
+              No Guardian Council invocations in 30 minutes for pod {{ $labels.pod }}.
+              Validation may be bypassed.

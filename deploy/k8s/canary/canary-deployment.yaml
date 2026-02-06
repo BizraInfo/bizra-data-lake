@@ -1,0 +1,491 @@
+# BIZRA Elite Canary Deployment
+# Progressive rollout with 10/90 traffic split (canary/stable)
+#
+# Standing on Giants: Shannon (SNR) | Lamport (Distributed Systems) | Kubernetes
+#
+# Usage:
+#   kubectl apply -f canary-deployment.yaml
+#   # Monitor: kubectl get pods -n bizra -l track=canary
+#   # Rollback: kubectl delete -f canary-deployment.yaml
+---
+# ConfigMap for canary-specific settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-canary-config
+  namespace: bizra
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: elite
+    track: canary
+data:
+  # Canary identification
+  DEPLOYMENT_TRACK: "canary"
+  CANARY_ENABLED: "true"
+
+  # Inherit from main config but override for canary testing
+  BIZRA_ENV: "staging-canary"
+  LOG_LEVEL: "debug"
+
+  # Metrics labeling for canary analysis
+  METRICS_LABEL_TRACK: "canary"
+
+  # Feature flags for canary testing (enable experimental features)
+  ENABLE_EXPERIMENTAL: "true"
+  ENABLE_PROFILING: "true"
+---
+# Stable Deployment (existing pods get this label)
+# This patch ensures stable pods are properly labeled
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-elite-stable
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: elite
+    app.kubernetes.io/version: "1.0.1"
+    track: stable
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    bizra.io/canary-enabled: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bizra-elite
+      track: stable
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-elite
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: elite
+        track: stable
+        version: v1.0.1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: bizra-elite
+        image: bizra-elite:v1.0.1
+        imagePullPolicy: Never  # Local K3d image
+        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: BIZRA_ENV
+          value: "production"
+        - name: DEPLOYMENT_TRACK
+          value: "stable"
+        - name: IHSAN_THRESHOLD
+          value: "0.95"
+        - name: SNR_THRESHOLD
+          value: "0.85"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 12
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir:
+          sizeLimit: 500Mi
+---
+# Canary Deployment (new version to test)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-elite-canary
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: elite
+    app.kubernetes.io/version: "1.0.2-canary"
+    track: canary
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    bizra.io/canary-enabled: "true"
+    bizra.io/canary-weight: "10"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bizra-elite
+      track: canary
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-elite
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: elite
+        track: canary
+        version: v1.0.2-canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: bizra-elite
+        # IMPORTANT: Update this image tag for the canary version
+        image: bizra-elite:v1.0.2-canary
+        imagePullPolicy: Never  # Local K3d image
+        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: bizra-canary-config
+        env:
+        - name: BIZRA_ENV
+          value: "staging-canary"
+        - name: DEPLOYMENT_TRACK
+          value: "canary"
+        - name: IHSAN_THRESHOLD
+          value: "0.95"
+        - name: SNR_THRESHOLD
+          value: "0.85"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 12
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir:
+          sizeLimit: 500Mi
+      # Prefer scheduling on different nodes from stable
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: track
+                  operator: In
+                  values:
+                  - stable
+              topologyKey: kubernetes.io/hostname
+---
+# Service for stable pods only (90% traffic)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-stable
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    track: stable
+spec:
+  type: ClusterIP
+  selector:
+    app: bizra-elite
+    track: stable
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+---
+# Service for canary pods only (10% traffic)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-canary
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    track: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: bizra-elite
+    track: canary
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+---
+# Combined service selecting all pods (for direct access without split)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-all
+  namespace: bizra
+  labels:
+    app: bizra-elite
+spec:
+  type: ClusterIP
+  selector:
+    app: bizra-elite
+    # No track selector = all pods
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+---
+# Ingress with traffic splitting (90/10)
+# Uses NGINX ingress controller canary annotations
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-elite-ingress-stable
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    track: stable
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Deployment-Track "stable" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+spec:
+  rules:
+  - host: elite.bizra.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bizra-elite-stable
+            port:
+              number: 80
+---
+# Canary Ingress with weight-based traffic splitting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizra-elite-ingress-canary
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    track: canary
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # CANARY TRAFFIC SPLITTING - 10% to canary
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "10"
+    # Optional: Header-based routing for testing (X-Canary: true)
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "true"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Deployment-Track "canary" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+spec:
+  rules:
+  - host: elite.bizra.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bizra-elite-canary
+            port:
+              number: 80
+---
+# PodDisruptionBudget for stable deployment
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bizra-elite-stable-pdb
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    track: stable
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: bizra-elite
+      track: stable
+---
+# NetworkPolicy to allow traffic between canary and stable
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bizra-elite-canary-policy
+  namespace: bizra
+spec:
+  podSelector:
+    matchLabels:
+      app: bizra-elite
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: bizra
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 11434  # Ollama
+    - protocol: UDP
+      port: 53     # DNS

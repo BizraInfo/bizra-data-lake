@@ -1,0 +1,220 @@
+# BIZRA Omega (Rust) Deployment
+# High-performance API and Federation Node
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-omega
+  namespace: bizra
+  labels:
+    app: bizra-omega
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: omega
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bizra-omega
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-omega
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: omega
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: omega
+          image: bizra-omega:latest
+          imagePullPolicy: Always
+          args:
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "3001"
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+            - name: gossip
+              containerPort: 7946
+              protocol: UDP
+            - name: federation
+              containerPort: 7654
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bizra-secrets
+                  key: node-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: bizra-data
+              mountPath: /home/bizra/.bizra
+      volumes:
+        - name: bizra-data
+          persistentVolumeClaim:
+            claimName: bizra-omega-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - bizra-omega
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: bizra-omega
+---
+# GPU-enabled Omega deployment (optional)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-omega-gpu
+  namespace: bizra
+  labels:
+    app: bizra-omega-gpu
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: omega
+    accelerator: nvidia
+spec:
+  replicas: 0  # Enable by scaling up
+  selector:
+    matchLabels:
+      app: bizra-omega-gpu
+  template:
+    metadata:
+      labels:
+        app: bizra-omega-gpu
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: omega
+        accelerator: nvidia
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: omega
+          image: bizra-omega:cuda
+          imagePullPolicy: Always
+          args:
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "3001"
+          ports:
+            - name: http
+              containerPort: 3001
+            - name: gossip
+              containerPort: 7946
+              protocol: UDP
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+              nvidia.com/gpu: 1
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+              nvidia.com/gpu: 1
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: bizra-data
+              mountPath: /home/bizra/.bizra
+      volumes:
+        - name: bizra-data
+          persistentVolumeClaim:
+            claimName: bizra-omega-pvc
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        accelerator: nvidia

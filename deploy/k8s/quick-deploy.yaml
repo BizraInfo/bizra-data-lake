@@ -1,0 +1,84 @@
+# BIZRA Quick Deploy — 48-Hour Launch
+# Minimal deployment for rapid verification
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-elite
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    version: v1.0.1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bizra-elite
+  template:
+    metadata:
+      labels:
+        app: bizra-elite
+        version: v1.0.1
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: bizra-elite
+        image: bizra-elite:v1.0.1
+        imagePullPolicy: Never  # Use local image
+        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: BIZRA_ENV
+          value: "production"
+        - name: IHSAN_THRESHOLD
+          value: "0.95"
+        - name: SNR_THRESHOLD
+          value: "0.85"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /v1/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite-quick
+  namespace: bizra
+spec:
+  type: ClusterIP
+  selector:
+    app: bizra-elite
+  ports:
+  - port: 80
+    targetPort: 8000
+    name: http

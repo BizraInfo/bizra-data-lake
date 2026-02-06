@@ -1,0 +1,90 @@
+# BIZRA Services
+# Internal and external service definitions
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-elite
+  namespace: bizra
+  labels:
+    app: bizra-elite
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: elite
+spec:
+  selector:
+    app: bizra-elite
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-omega
+  namespace: bizra
+  labels:
+    app: bizra-omega
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: omega
+spec:
+  selector:
+    app: bizra-omega
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+      protocol: TCP
+    - name: gossip
+      port: 7946
+      targetPort: 7946
+      protocol: UDP
+    - name: federation
+      port: 7654
+      targetPort: 7654
+      protocol: TCP
+  type: ClusterIP
+---
+# Headless service for StatefulSet-like discovery (federation peers)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-omega-headless
+  namespace: bizra
+  labels:
+    app: bizra-omega
+spec:
+  clusterIP: None
+  selector:
+    app: bizra-omega
+  ports:
+    - name: gossip
+      port: 7946
+      protocol: UDP
+    - name: federation
+      port: 7654
+      protocol: TCP
+---
+# Quality Gate Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-quality-gate
+  namespace: bizra
+  labels:
+    app: bizra-quality-gate
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: quality-gate
+spec:
+  selector:
+    app: bizra-elite
+  ports:
+    - name: gate
+      port: 8095
+      targetPort: 8095
+  type: ClusterIP
