@@ -15,9 +15,13 @@
 
 import hashlib
 import json
+import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
+
+logger = logging.getLogger("PROPAGATION")
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Callable, Any, Tuple
@@ -27,10 +31,11 @@ from typing import Dict, List, Optional, Set, Callable, Any, Tuple
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ELEVATION_THRESHOLD = 3  # Min repetitions to elevate
-MIN_SNR_FOR_ELEVATION = 0.75  # Minimum SNR to consider for elevation
+MIN_SNR_FOR_ELEVATION = 0.85  # Minimum SNR to consider for elevation (SEC-020 aligned)
+MIN_SNR_DELTA_FOR_ELEVATION = 0.10  # Minimum SNR improvement required for elevation
 MIN_IHSAN_FOR_PROPAGATION = 0.95  # Ihsān floor for network sharing
 PATTERN_TTL_HOURS = 168  # 7 days
-MAX_PATTERNS_CACHE = 1000
+MAX_PATTERNS_CACHE = 1000  # Hard limit for pattern cache size
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPES
@@ -192,7 +197,8 @@ class PatternStore:
         self.pending_candidates[trigger] = self.pending_candidates.get(trigger, 0) + 1
 
         if self.pending_candidates[trigger] >= ELEVATION_THRESHOLD:
-            if snr_delta >= MIN_SNR_FOR_ELEVATION - 0.75:  # Relative check
+            # SEC-020: Enforce minimum SNR improvement for elevation
+            if snr_delta >= MIN_SNR_DELTA_FOR_ELEVATION:
                 self._elevate_pattern(trigger, snr_delta)
 
     def _elevate_pattern(self, trigger: str, snr_delta: float):
@@ -219,6 +225,9 @@ class PatternStore:
         self.local_patterns[pattern_id] = pattern
         del self.pending_candidates[trigger]
 
+        # Enforce cache limit
+        self._prune_cache_if_needed(self.local_patterns)
+
         print(f"📈 Pattern elevated: {pattern_id}")
 
     def add_network_pattern(self, pattern: ElevatedPattern) -> bool:
@@ -242,6 +251,10 @@ class PatternStore:
 
         pattern.status = PatternStatus.VALIDATED
         self.network_patterns[pattern.pattern_id] = pattern
+
+        # Enforce cache limit
+        self._prune_cache_if_needed(self.network_patterns)
+
         print(f"✅ Accepted network pattern: {pattern.pattern_id}")
         return True
 
@@ -273,6 +286,25 @@ class PatternStore:
                     shareable.append(p)
         return shareable
 
+    def _prune_cache_if_needed(self, cache: Dict[str, ElevatedPattern]):
+        """
+        Enforce MAX_PATTERNS_CACHE by evicting lowest-impact patterns.
+
+        SECURITY: Prevents unbounded memory growth from pattern accumulation.
+        """
+        if len(cache) <= MAX_PATTERNS_CACHE:
+            return
+
+        # Sort by impact score (lowest first) and evict excess
+        sorted_patterns = sorted(
+            cache.items(),
+            key=lambda x: x[1].compute_impact_score()
+        )
+        excess = len(cache) - MAX_PATTERNS_CACHE
+        for pattern_id, _ in sorted_patterns[:excess]:
+            del cache[pattern_id]
+            print(f"🗑️ Evicted low-impact pattern: {pattern_id}")
+
     def get_stats(self) -> Dict:
         return {
             "local_patterns": len(self.local_patterns),
@@ -292,49 +324,295 @@ class PatternStore:
 class PropagationEngine:
     """
     Manages the broadcast and reception of patterns across the network.
+
+    Security (Standing on Giants — Lamport BFT):
+    - All patterns are wrapped in PCI envelopes with Ed25519 signatures
+    - Patterns without valid signatures are rejected
+    - Ihsān threshold enforced before propagation
     """
 
     def __init__(
-        self, store: PatternStore, broadcast_fn: Callable[[bytes], None] = None
+        self,
+        store: PatternStore,
+        broadcast_fn: Callable[[bytes], None] = None,
+        node_id: str = "",
+        private_key: str = "",
+        public_key: str = "",
     ):
         self.store = store
         self.broadcast = broadcast_fn or (lambda x: None)
         self._propagation_queue: List[ElevatedPattern] = []
 
+        # PCI signing credentials
+        self._node_id = node_id
+        self._private_key = private_key
+        self._public_key = public_key
+
+        # PCI verification (lazy import)
+        self._pci_gatekeeper = None
+
+    def _get_pci_gatekeeper(self):
+        """
+        Lazy load PCI gatekeeper for pattern verification.
+
+        Note: Policy enforcement is disabled for pattern propagation.
+        Patterns are validated by signature + Ihsān + SNR thresholds.
+        The constitution policy applies to inference requests, not pattern sharing.
+        """
+        if self._pci_gatekeeper is None:
+            try:
+                from core.pci import PCIGateKeeper
+                # Disable policy enforcement for pattern propagation
+                # Patterns are self-validating via Ed25519 signature
+                self._pci_gatekeeper = PCIGateKeeper(policy_enforcement=False)
+            except ImportError:
+                logger.warning("PCI module not available, signatures disabled")
+        return self._pci_gatekeeper
+
     def queue_for_propagation(self, pattern: ElevatedPattern):
         """Add a pattern to the propagation queue."""
         if pattern.ihsan_score < MIN_IHSAN_FOR_PROPAGATION:
-            print(
-                f"⚠️ Pattern {pattern.pattern_id} below Ihsān threshold, not propagating"
+            logger.warning(
+                f"Pattern {pattern.pattern_id} below Ihsān threshold ({pattern.ihsan_score} < {MIN_IHSAN_FOR_PROPAGATION}), not propagating"
             )
             return
         self._propagation_queue.append(pattern)
 
     def propagate_pending(self) -> int:
-        """Send all queued patterns to the network."""
+        """
+        Send all queued patterns to the network with PCI envelopes.
+
+        Security: Each pattern is wrapped in a signed PCI envelope before broadcast.
+        """
         count = 0
         while self._propagation_queue:
             pattern = self._propagation_queue.pop(0)
             pattern.status = PatternStatus.PROPOSED
 
-            # Create propagation message
-            msg = json.dumps(
-                {"type": "PATTERN_PROPAGATE", "pattern": pattern.to_dict()}
-            ).encode("utf-8")
+            # Create PCI-enveloped propagation message
+            envelope_data = self._create_pci_envelope(pattern)
+
+            msg = json.dumps({
+                "type": "PATTERN_PROPAGATE",
+                "envelope": envelope_data,
+            }).encode("utf-8")
 
             self.broadcast(msg)
             count += 1
-            print(f"📡 Propagated pattern: {pattern.pattern_id}")
+            logger.info(f"📡 Propagated pattern: {pattern.pattern_id} (PCI-signed)")
 
         return count
 
-    def receive_pattern(self, data: Dict) -> bool:
-        """Process a received pattern from the network."""
+    def _create_pci_envelope(self, pattern: ElevatedPattern) -> Dict:
+        """
+        Wrap pattern in PCI envelope with Ed25519 signature.
+
+        Standing on Giants — Shannon + Lamport:
+        - Content integrity via cryptographic signature
+        - Ihsān/SNR scores embedded in metadata
+
+        SNR Calculation for Patterns:
+        - Patterns with positive SNR delta (improvement) get a high SNR score
+        - Base SNR score is MIN_SNR_FOR_ELEVATION (0.85) + scaled delta
+        - Capped at 1.0
+        """
         try:
-            pattern = ElevatedPattern.from_dict(data.get("pattern", data))
-            return self.store.add_network_pattern(pattern)
+            from core.pci import EnvelopeBuilder
+
+            if self._private_key and self._public_key:
+                # Calculate pattern SNR: base + scaled improvement
+                # A pattern with 0.15 avg boost gets 0.85 + 0.10 = 0.95
+                snr_boost = pattern.metrics.average_snr_boost
+                pattern_snr = min(1.0, MIN_SNR_FOR_ELEVATION + (snr_boost * 0.67))
+
+                # Use pattern hash for policy (patterns are self-validating via signature)
+                pattern_hash = pattern.compute_hash()
+
+                builder = EnvelopeBuilder()
+                envelope = (
+                    builder
+                    .with_sender("PAT", self._node_id, self._public_key)
+                    .with_payload(
+                        "pattern/propagate",
+                        pattern.to_dict(),
+                        pattern_hash,  # Pattern's own hash as policy
+                        "federation"
+                    )
+                    .with_metadata(pattern.ihsan_score, pattern_snr)
+                    .build()
+                    .sign(self._private_key)
+                )
+                return envelope.to_dict()
+            else:
+                # Fallback: unsigned envelope (log warning)
+                logger.warning(f"No signing keys available for pattern {pattern.pattern_id}")
+                return {"pattern": pattern.to_dict(), "signed": False}
+
+        except ImportError:
+            logger.warning("PCI EnvelopeBuilder not available")
+            return {"pattern": pattern.to_dict(), "signed": False}
+
+    def _verify_pci_envelope(self, envelope_data: Dict) -> bool:
+        """
+        Verify PCI envelope signature using Ed25519.
+
+        Standing on Giants — Lamport BFT:
+        - Cryptographic verification prevents message tampering
+        - Rejects patterns without valid signatures
+        - Enforces Ihsān threshold on incoming patterns
+
+        Security (SEC-016 compliance):
+        - All federation messages MUST be signed
+        - Unsigned or invalid signatures result in rejection
+
+        Returns:
+            True if envelope signature is valid and thresholds met, False otherwise
+        """
+        try:
+            # Check if this is explicitly marked as unsigned
+            if envelope_data.get("signed") is False:
+                logger.warning("Rejecting unsigned envelope (strict mode)")
+                return False
+
+            # Extract signature info
+            sig_data = envelope_data.get("signature")
+            if isinstance(sig_data, dict):
+                signature = sig_data.get("value", "")
+            else:
+                signature = sig_data
+
+            sender_info = envelope_data.get("sender", {})
+            public_key = sender_info.get("public_key", "")
+
+            if not signature or not public_key:
+                logger.error(
+                    "Missing signature or public key in envelope",
+                    extra={
+                        "has_signature": bool(signature),
+                        "has_public_key": bool(public_key),
+                    }
+                )
+                return False
+
+            # Use PCI gatekeeper for full verification
+            gatekeeper = self._get_pci_gatekeeper()
+            if gatekeeper:
+                from core.pci import PCIEnvelope
+
+                # Reconstruct envelope and verify through gate chain
+                envelope = PCIEnvelope.from_dict(envelope_data)
+                result = gatekeeper.verify(envelope)
+
+                if not result.passed:
+                    logger.error(
+                        f"PCI verification failed: {result.reject_code}",
+                        extra={
+                            "reject_code": str(result.reject_code),
+                            "details": result.details,
+                            "gate_passed": result.gate_passed,
+                        }
+                    )
+                    return False
+
+                logger.debug(
+                    f"PCI envelope verified: {result.gate_passed}",
+                    extra={"gate_passed": result.gate_passed}
+                )
+                return True
+
+            else:
+                # Fallback: manual signature verification
+                from core.pci.crypto import verify_signature, domain_separated_digest, canonical_json
+
+                # Reconstruct signable content (excluding signature)
+                signable = {
+                    "version": envelope_data.get("version"),
+                    "envelope_id": envelope_data.get("envelope_id"),
+                    "timestamp": envelope_data.get("timestamp"),
+                    "nonce": envelope_data.get("nonce"),
+                    "sender": envelope_data.get("sender"),
+                    "payload": envelope_data.get("payload"),
+                    "metadata": envelope_data.get("metadata"),
+                }
+
+                digest = domain_separated_digest(canonical_json(signable))
+
+                if not verify_signature(digest, signature, public_key):
+                    logger.error("Signature verification failed (manual)")
+                    return False
+
+                # Manual threshold checks (Ihsān ≥ 0.95)
+                metadata = envelope_data.get("metadata", {})
+                ihsan = metadata.get("ihsan_score", 0.0)
+                if ihsan < MIN_IHSAN_FOR_PROPAGATION:
+                    logger.error(
+                        f"Ihsān below threshold: {ihsan} < {MIN_IHSAN_FOR_PROPAGATION}"
+                    )
+                    return False
+
+                logger.debug("PCI envelope verified (manual fallback)")
+                return True
+
+        except ImportError as e:
+            logger.error(f"PCI crypto module not available: {e}")
+            return False
         except Exception as e:
-            print(f"❌ Failed to process pattern: {e}")
+            logger.error(
+                f"Envelope verification error: {e}",
+                extra={"error_type": type(e).__name__}
+            )
+            return False
+
+    def receive_pattern(self, data: Dict) -> bool:
+        """
+        Process a received pattern from the network.
+
+        Security: Verifies PCI envelope signature before accepting pattern.
+        """
+        try:
+            envelope_data = data.get("envelope")
+
+            if envelope_data:
+                # Verify PCI envelope
+                if not self._verify_pci_envelope(envelope_data):
+                    logger.error(
+                        f"Pattern rejected: invalid PCI signature",
+                        extra={"envelope_id": envelope_data.get("id", "unknown")}
+                    )
+                    return False
+
+                # Extract pattern from verified envelope
+                # Pattern is in payload.data (not payload.content)
+                payload = envelope_data.get("payload", {})
+                pattern_data = payload.get("data", {})
+                if not pattern_data:
+                    # Fallback paths
+                    pattern_data = payload.get("content", {})
+                if not pattern_data:
+                    pattern_data = envelope_data.get("pattern", data.get("pattern", data))
+            else:
+                # Legacy format without envelope
+                pattern_data = data.get("pattern", data)
+                if os.getenv("BIZRA_ALLOW_LEGACY_UNSIGNED_PATTERNS", "0") == "1":
+                    logger.warning("Received unsigned pattern (legacy format) - allowed by env")
+                else:
+                    logger.error(
+                        "Rejecting unsigned pattern (legacy format). "
+                        "Set BIZRA_ALLOW_LEGACY_UNSIGNED_PATTERNS=1 to allow."
+                    )
+                    return False
+
+            pattern = ElevatedPattern.from_dict(pattern_data)
+            return self.store.add_network_pattern(pattern)
+
+        except Exception as e:
+            logger.error(
+                f"Failed to process pattern: {e}",
+                extra={
+                    "pattern_id": data.get("pattern", {}).get("pattern_id", "unknown"),
+                    "error_type": type(e).__name__,
+                }
+            )
             return False
 
     def auto_share_elevated(self):

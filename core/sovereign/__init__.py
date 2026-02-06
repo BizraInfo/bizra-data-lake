@@ -110,6 +110,284 @@ from .metrics import (
 # Launcher
 from .launch import SovereignLauncher
 
+# =============================================================================
+# PROACTIVE SOVEREIGN ENTITY MODULES (v2.3.0)
+# =============================================================================
+
+# Event Bus
+from .event_bus import (
+    Event,
+    EventBus,
+    EventPriority,
+    get_event_bus,
+)
+
+# State Checkpointer
+from .state_checkpointer import (
+    Checkpoint,
+    StateCheckpointer,
+)
+
+# Team Planner
+from .team_planner import (
+    AgentRole,
+    Goal,
+    TaskAllocation,
+    TaskComplexity,
+    TeamPlanner,
+    TeamTask,
+)
+
+# Dual-Agentic Bridge
+from .dual_agentic_bridge import (
+    ActionProposal,
+    ConsensusOutcome,
+    ConsensusResult,
+    DualAgenticBridge,
+    VetoReason,
+    Vote,
+)
+
+# Collective Intelligence
+from .collective_intelligence import (
+    AgentContribution,
+    AggregationMethod,
+    CollectiveDecision,
+    CollectiveIntelligence,
+)
+
+# Collective Synthesizer (Trust-Weighted Decision Synthesis)
+from .collective_synthesizer import (
+    AgentOutput,
+    CollectiveSynthesizer,
+    ConflictStrategy,
+    ResolvedOutput,
+    SynthesizedResult,
+)
+
+# Proactive Scheduler
+from .proactive_scheduler import (
+    JobPriority,
+    JobResult,
+    ProactiveScheduler,
+    ScheduledJob,
+    ScheduleType,
+)
+
+# Predictive Monitor
+from .predictive_monitor import (
+    AlertSeverity,
+    MetricReading,
+    PredictiveAlert,
+    PredictiveMonitor,
+    TrendAnalysis,
+    TrendDirection,
+)
+
+# Proactive Team
+from .proactive_team import (
+    ProactiveCycleResult,
+    ProactiveTeam,
+)
+
+# Muraqabah Engine (24/7 Monitoring)
+from .muraqabah_engine import (
+    MonitorDomain,
+    MuraqabahEngine,
+    Opportunity,
+    SensorReading,
+    SensorState,
+)
+
+# Muraqabah Sensor Hub (Multi-Domain SNR-Filtered Monitoring)
+from .muraqabah_sensors import (
+    MuraqabahSensorHub,
+    SensorDomain,
+    SensorReading as HubSensorReading,
+    SignificantChange,
+    SNR_FLOOR,
+    SNR_HIGH,
+)
+
+# Autonomy Matrix (5-Level Control)
+from .autonomy_matrix import (
+    ActionContext,
+    AutonomyConstraints,
+    AutonomyDecision,
+    AutonomyLevel,
+    AutonomyMatrix,
+)
+
+# Enhanced Team Planner
+from .enhanced_team_planner import (
+    EnhancedTeamPlanner,
+    ExecutionPlan,
+    ExecutionResult,
+    ProactiveGoal,
+)
+
+# Proactive Integration (Unified System)
+from .proactive_integration import (
+    EntityConfig,
+    EntityCycleResult,
+    EntityMode,
+    ProactiveSovereignEntity,
+    create_proactive_entity,
+)
+
+# Knowledge Integration (BIZRA Data Lake + MoMo R&D)
+from .knowledge_integrator import (
+    KnowledgeIntegrator,
+    KnowledgeQuery,
+    KnowledgeResult,
+    KnowledgeSource,
+    create_knowledge_integrator,
+)
+
+# Swarm Knowledge Bridge (Agent-to-Knowledge Interface)
+from .swarm_knowledge_bridge import (
+    AgentKnowledgeContext,
+    KnowledgeInjection,
+    ROLE_KNOWLEDGE_ACCESS,
+    SwarmKnowledgeBridge,
+    create_swarm_knowledge_bridge,
+)
+
+# Dashboard (CLI Interface)
+from .dashboard import (
+    DashboardConfig,
+    DashboardMode,
+    ProactiveDashboard,
+    create_dashboard,
+    RICH_AVAILABLE,
+)
+
+# Background Agents (Domain-Specific Proactive Plugins)
+from .background_agents import (
+    AgentState as BackgroundAgentState,
+    ActionType as BackgroundActionType,
+    ApprovalStatus,
+    ExecutionStatus,
+    Reversibility,
+    ProactiveOpportunity,
+    ProactiveAction,
+    BackgroundAgent,
+    CalendarOptimizer,
+    EmailTriage,
+    FileOrganizer,
+    BackgroundAgentRegistry,
+    create_default_registry,
+)
+
+# Opportunity Pipeline (Nervous System connecting Detection to Execution)
+from .opportunity_pipeline import (
+    ConstitutionalFilter,
+    DaughterTestFilter,
+    FilterResult,
+    IhsanFilter,
+    OpportunityPipeline,
+    OpportunityStatus,
+    PipelineOpportunity,
+    PipelineStage,
+    RateLimitFilter,
+    SNRFilter,
+    connect_background_agents_to_pipeline,
+    connect_muraqabah_to_pipeline,
+    create_opportunity_pipeline,
+)
+
+# Rust Lifecycle Integration (Python <-> Rust Bridge)
+from .rust_lifecycle import (
+    RustAPIClient,
+    RustLifecycleManager,
+    RustProcessManager,
+    RustServiceHealth,
+    RustServiceStatus,
+    create_rust_gate_filter,
+    create_rust_lifecycle,
+)
+
+# Apex Sovereign Engine (v3.0 Peak Masterpiece)
+# Standing on Giants: Shannon, de Moura, Jaynes, Besta, Maturana, Karpathy, Al-Ghazali
+from .apex_engine import (
+    ApexSovereignEngine,
+    ApexConfig,
+    ApexResult,
+    LocalModelConfig,
+    EvolutionResult,
+    GiantsAttribution,
+    GIANTS_REGISTRY,
+    ProcessingStage,
+    BackendType,
+    create_apex_engine,
+)
+
+# 9-Probe Defense Matrix (SAPE v1.infinity Cognitive Antibody System)
+# Standing on Giants: Turing (1936), LeCun (2024), Pearl (2000), OWASP
+from .probe_defense import (
+    # Enums
+    ProbeType,
+    # Data classes
+    ProbeResult,
+    ProbeReport,
+    CandidateContext,
+    # Base class
+    Probe,
+    # Concrete probes
+    CounterfactualProbe,
+    AdversarialProbe,
+    InvariantProbe,
+    EfficiencyProbe,
+    PrivacyProbe,
+    SycophancyProbe,
+    CausalityProbe,
+    HallucinationProbe,
+    LivenessProbe,
+    # Matrix classes
+    ProbeMatrix,
+    IntegratedProbeMatrix,
+    # Factory functions
+    create_probe_matrix,
+    create_candidate_context,
+    # Constants
+    DEFAULT_FAIL_THRESHOLD,
+    PII_PATTERNS,
+    SYCOPHANCY_PATTERNS,
+)
+
+# Iceoryx2 Zero-Copy IPC Bridge (v3.1-OMEGA L2 Synapse Protocol)
+# Standing on Giants: iceoryx2 (Eclipse Foundation, 2024)
+from .iceoryx2_bridge import (
+    ICEORYX2_AVAILABLE,
+    AsyncFallbackBridge,
+    DeliveryResult,
+    DeliveryStatus,
+    IPCBridge,
+    Iceoryx2Bridge,
+    IceoryxMessage,
+    LatencyStats,
+    PayloadType,
+    create_ipc_bridge,
+)
+
+# Canonical 8-Dimension Ihsan Vector (Constitutional Excellence Enforcement)
+# Standing on Giants: Al-Ghazali (1111), Shannon (1948), de Moura (2008)
+from .ihsan_vector import (
+    ANTI_CENTRALIZATION_GINI_THRESHOLD,
+    CANONICAL_WEIGHTS,
+    CONTEXT_THRESHOLDS,
+    VERIFY_METHODS,
+    DimensionId,
+    ExecutionContext,
+    IhsanDimension as CanonicalIhsanDimension,
+    IhsanReceipt,
+    IhsanVector as CanonicalIhsanVector,
+    ThresholdResult,
+    create_verifier,
+    passes_production,
+    quick_ihsan,
+)
+
 # Capability Card (v2.2.0 Sovereign LLM)
 from .capability_card import (
     CapabilityCard,
@@ -133,6 +411,70 @@ from .model_license_gate import (
     create_gate_chain,
 )
 
+# Treasury Mode (GAP-C4: Wealth Engine Graceful Degradation)
+from .treasury_mode import (
+    TreasuryMode,
+    TreasuryState,
+    TreasuryController,
+    TreasuryEvent,
+    TransitionTrigger,
+    TransitionEvent,
+    EthicsAssessment,
+    TreasuryPersistence,
+    create_treasury_controller,
+    ETHICS_THRESHOLD_HIBERNATION,
+    ETHICS_THRESHOLD_RECOVERY,
+    RESERVES_THRESHOLD_EMERGENCY,
+    RESERVES_THRESHOLD_HIBERNATION,
+)
+
+# Adl (Justice) Invariant - Anti-Plutocracy Enforcement (GAP-C2)
+# Standing on Giants: Gini (1912), Harberger (1962), Rawls (1971)
+from .adl_invariant import (
+    AdlInvariant,
+    AdlGate,
+    AdlRejectCode,
+    AdlValidationResult,
+    RedistributionResult,
+    Transaction as AdlTransaction,
+    calculate_gini,
+    calculate_gini_components,
+    assert_adl_invariant,
+    simulate_transaction_impact,
+    create_adl_extended_gatekeeper,
+    ADL_GINI_THRESHOLD,
+    HARBERGER_TAX_RATE,
+    MINIMUM_HOLDING as ADL_MINIMUM_HOLDING,
+    UBC_POOL_ID,
+)
+
+# ADL Kernel - Full Antitrust Kernel with Causal Drag and Bias Parity (DDAGI)
+# Standing on Giants: Rawls (1971), Gini (1912), Harberger (1962), Kullback & Leibler (1951)
+from .adl_kernel import (
+    AdlInvariant as AdlKernelConfig,
+    GiniResult,
+    CausalDragResult,
+    HarbergerTaxResult,
+    BiasParityResult,
+    AdlValidationResult as AdlKernelResult,
+    AdlRejectCode as AdlKernelRejectCode,
+    AdlEnforcer,
+    calculate_gini as kernel_calculate_gini,
+    calculate_gini_from_holdings,
+    calculate_gini_detailed,
+    compute_causal_drag,
+    harberger_tax,
+    apply_harberger_redistribution,
+    check_bias_parity,
+    create_uniform_distribution,
+    quick_adl_check,
+    compute_ihsan_adl_score,
+    ADL_GINI_ALERT_THRESHOLD,
+    OMEGA_DEFAULT,
+    OMEGA_MAX,
+    BIAS_EPSILON,
+)
+
 # Integration Runtime (v2.2.0 Sovereign LLM)
 from .integration import (
     SovereignRuntime as SovereignLLMRuntime,
@@ -142,6 +484,34 @@ from .integration import (
     NetworkMode as SovereignNetworkMode,
     create_sovereign_runtime,
     print_banner as print_sovereign_banner,
+)
+
+# MCP Progressive Disclosure (v3.1-OMEGA Claude-Mem Architecture)
+# Standing on Giants: Claude-Mem (Anthropic, 2025)
+from .mcp_disclosure import (
+    SkillIndex,
+    SkillContext,
+    LoadedSkill,
+    MCPProgressiveDisclosure,
+    create_mcp_disclosure,
+)
+
+# Tamper-Evident Audit Log (P0-3 Unified Audit)
+# Standing on Giants: Merkle (1979), RFC 2104 (1997), Haber & Stornetta (1991)
+from .tamper_evident_log import (
+    TamperEvidentEntry,
+    TamperEvidentLog,
+    AuditKeyManager,
+    TamperingReport,
+    KeyRotationEvent,
+    VerificationStatus,
+    TamperType,
+    create_audit_log,
+    verify_entry,
+    verify_chain,
+    detect_tampering,
+    GENESIS_HASH,
+    HMAC_DOMAIN_PREFIX,
 )
 
 # =============================================================================
@@ -172,6 +542,15 @@ try:
         GuardianCouncil,
         CouncilVerdict,
         ConsensusMode,
+    )
+    from .ihsan_projector import (
+        IhsanProjector,
+        IhsanVector,
+        IhsanDimension,
+        ProjectorConfig,
+        project_ihsan_to_ntu,
+        create_ihsan_from_scores,
+        IHSAN_ARABIC_NAMES,
     )
     from .orchestrator import (
         SovereignOrchestrator,
@@ -256,6 +635,32 @@ except ImportError as e:
     class AgentRouter(metaclass=_PlaceholderMeta):
         """Placeholder - requires numpy."""
         pass
+
+    class IhsanProjector(metaclass=_PlaceholderMeta):
+        """Placeholder - requires numpy."""
+        pass
+
+    class IhsanVector(metaclass=_PlaceholderMeta):
+        """Placeholder - requires numpy."""
+        pass
+
+    class IhsanDimension(metaclass=_PlaceholderMeta):
+        """Placeholder - requires numpy."""
+        pass
+
+    class ProjectorConfig(metaclass=_PlaceholderMeta):
+        """Placeholder - requires numpy."""
+        pass
+
+    def project_ihsan_to_ntu(*args, **kwargs):
+        """Placeholder - requires numpy."""
+        raise ImportError("project_ihsan_to_ntu requires numpy. Install with: pip install numpy")
+
+    def create_ihsan_from_scores(*args, **kwargs):
+        """Placeholder - requires numpy."""
+        raise ImportError("create_ihsan_from_scores requires numpy. Install with: pip install numpy")
+
+    IHSAN_ARABIC_NAMES = {}
 
 
 # =============================================================================
@@ -353,6 +758,290 @@ __all__ = [
     "SovereignNetworkMode",
     "create_sovereign_runtime",
     "print_sovereign_banner",
+    # MCP Progressive Disclosure (v3.1-OMEGA Claude-Mem Architecture)
+    "SkillIndex",
+    "SkillContext",
+    "LoadedSkill",
+    "MCPProgressiveDisclosure",
+    "create_mcp_disclosure",
+    # Treasury Mode (GAP-C4: Wealth Engine Graceful Degradation)
+    "TreasuryMode",
+    "TreasuryState",
+    "TreasuryController",
+    "TreasuryEvent",
+    "TransitionTrigger",
+    "TransitionEvent",
+    "EthicsAssessment",
+    "TreasuryPersistence",
+    "create_treasury_controller",
+    "ETHICS_THRESHOLD_HIBERNATION",
+    "ETHICS_THRESHOLD_RECOVERY",
+    "RESERVES_THRESHOLD_EMERGENCY",
+    "RESERVES_THRESHOLD_HIBERNATION",
+    # Adl (Justice) Invariant - Anti-Plutocracy Enforcement (GAP-C2)
+    "AdlInvariant",
+    "AdlGate",
+    "AdlRejectCode",
+    "AdlValidationResult",
+    "RedistributionResult",
+    "AdlTransaction",
+    "calculate_gini",
+    "calculate_gini_components",
+    "assert_adl_invariant",
+    "simulate_transaction_impact",
+    "create_adl_extended_gatekeeper",
+    "ADL_GINI_THRESHOLD",
+    "HARBERGER_TAX_RATE",
+    "ADL_MINIMUM_HOLDING",
+    "UBC_POOL_ID",
+    # ADL Kernel - Full Antitrust Kernel (DDAGI)
+    "AdlKernelConfig",
+    "GiniResult",
+    "CausalDragResult",
+    "HarbergerTaxResult",
+    "BiasParityResult",
+    "AdlKernelResult",
+    "AdlKernelRejectCode",
+    "AdlEnforcer",
+    "kernel_calculate_gini",
+    "calculate_gini_from_holdings",
+    "calculate_gini_detailed",
+    "compute_causal_drag",
+    "harberger_tax",
+    "apply_harberger_redistribution",
+    "check_bias_parity",
+    "create_uniform_distribution",
+    "quick_adl_check",
+    "compute_ihsan_adl_score",
+    "ADL_GINI_ALERT_THRESHOLD",
+    "OMEGA_DEFAULT",
+    "OMEGA_MAX",
+    "BIAS_EPSILON",
+    # Ihsan Projector - Constitutional AI to NTU Bridge (GAP-C1)
+    "IhsanProjector",
+    "IhsanVector",
+    "IhsanDimension",
+    "ProjectorConfig",
+    "project_ihsan_to_ntu",
+    "create_ihsan_from_scores",
+    "IHSAN_ARABIC_NAMES",
+    # ==========================================================================
+    # PROACTIVE SOVEREIGN ENTITY (v2.3.0)
+    # ==========================================================================
+    # Event Bus
+    "Event",
+    "EventBus",
+    "EventPriority",
+    "get_event_bus",
+    # State Checkpointer
+    "Checkpoint",
+    "StateCheckpointer",
+    # Team Planner
+    "AgentRole",
+    "Goal",
+    "TaskAllocation",
+    "TaskComplexity",
+    "TeamPlanner",
+    "TeamTask",
+    # Dual-Agentic Bridge
+    "ActionProposal",
+    "ConsensusOutcome",
+    "ConsensusResult",
+    "DualAgenticBridge",
+    "VetoReason",
+    "Vote",
+    # Collective Intelligence
+    "AgentContribution",
+    "AggregationMethod",
+    "CollectiveDecision",
+    "CollectiveIntelligence",
+    # Collective Synthesizer
+    "AgentOutput",
+    "CollectiveSynthesizer",
+    "ConflictStrategy",
+    "ResolvedOutput",
+    "SynthesizedResult",
+    # Proactive Scheduler
+    "JobPriority",
+    "JobResult",
+    "ProactiveScheduler",
+    "ScheduledJob",
+    "ScheduleType",
+    # Predictive Monitor
+    "AlertSeverity",
+    "MetricReading",
+    "PredictiveAlert",
+    "PredictiveMonitor",
+    "TrendAnalysis",
+    "TrendDirection",
+    # Proactive Team
+    "ProactiveCycleResult",
+    "ProactiveTeam",
+    # Muraqabah Engine (24/7 Monitoring)
+    "MonitorDomain",
+    "MuraqabahEngine",
+    "Opportunity",
+    "SensorReading",
+    "SensorState",
+    # Muraqabah Sensor Hub (Multi-Domain SNR-Filtered Monitoring)
+    "MuraqabahSensorHub",
+    "SensorDomain",
+    "HubSensorReading",
+    "SignificantChange",
+    "SNR_FLOOR",
+    "SNR_HIGH",
+    # Autonomy Matrix (5-Level Control)
+    "ActionContext",
+    "AutonomyConstraints",
+    "AutonomyDecision",
+    "AutonomyLevel",
+    "AutonomyMatrix",
+    # Enhanced Team Planner
+    "EnhancedTeamPlanner",
+    "ExecutionPlan",
+    "ExecutionResult",
+    "ProactiveGoal",
+    # Proactive Integration (Unified System)
+    "EntityConfig",
+    "EntityCycleResult",
+    "EntityMode",
+    "ProactiveSovereignEntity",
+    "create_proactive_entity",
+    # Knowledge Integration (BIZRA Data Lake + MoMo R&D)
+    "KnowledgeIntegrator",
+    "KnowledgeQuery",
+    "KnowledgeResult",
+    "KnowledgeSource",
+    "create_knowledge_integrator",
+    # Swarm Knowledge Bridge (Agent-to-Knowledge Interface)
+    "AgentKnowledgeContext",
+    "KnowledgeInjection",
+    "ROLE_KNOWLEDGE_ACCESS",
+    "SwarmKnowledgeBridge",
+    "create_swarm_knowledge_bridge",
+    # Dashboard (CLI Interface)
+    "DashboardConfig",
+    "DashboardMode",
+    "ProactiveDashboard",
+    "create_dashboard",
+    "RICH_AVAILABLE",
+    # Background Agents (Domain-Specific Proactive Plugins)
+    "BackgroundAgentState",
+    "BackgroundActionType",
+    "ApprovalStatus",
+    "ExecutionStatus",
+    "Reversibility",
+    "ProactiveOpportunity",
+    "ProactiveAction",
+    "BackgroundAgent",
+    "CalendarOptimizer",
+    "EmailTriage",
+    "FileOrganizer",
+    "BackgroundAgentRegistry",
+    "create_default_registry",
+    # Opportunity Pipeline (Nervous System connecting Detection to Execution)
+    "ConstitutionalFilter",
+    "DaughterTestFilter",
+    "FilterResult",
+    "IhsanFilter",
+    "OpportunityPipeline",
+    "OpportunityStatus",
+    "PipelineOpportunity",
+    "PipelineStage",
+    "RateLimitFilter",
+    "SNRFilter",
+    "connect_background_agents_to_pipeline",
+    "connect_muraqabah_to_pipeline",
+    "create_opportunity_pipeline",
+    # Rust Lifecycle Integration (Python <-> Rust Bridge)
+    "RustAPIClient",
+    "RustLifecycleManager",
+    "RustProcessManager",
+    "RustServiceHealth",
+    "RustServiceStatus",
+    "create_rust_gate_filter",
+    "create_rust_lifecycle",
+    # Iceoryx2 Zero-Copy IPC Bridge (v3.1-OMEGA L2 Synapse Protocol)
+    "ICEORYX2_AVAILABLE",
+    "AsyncFallbackBridge",
+    "DeliveryResult",
+    "DeliveryStatus",
+    "IPCBridge",
+    "Iceoryx2Bridge",
+    "IceoryxMessage",
+    "LatencyStats",
+    "PayloadType",
+    "create_ipc_bridge",
+    # Canonical 8-Dimension Ihsan Vector (Constitutional Excellence Enforcement)
+    "ANTI_CENTRALIZATION_GINI_THRESHOLD",
+    "CANONICAL_WEIGHTS",
+    "CONTEXT_THRESHOLDS",
+    "VERIFY_METHODS",
+    "DimensionId",
+    "ExecutionContext",
+    "CanonicalIhsanDimension",
+    "IhsanReceipt",
+    "CanonicalIhsanVector",
+    "ThresholdResult",
+    "create_verifier",
+    "passes_production",
+    "quick_ihsan",
+    # ==========================================================================
+    # APEX SOVEREIGN ENGINE (v3.0 Peak Masterpiece)
+    # Standing on Giants: Shannon, de Moura, Jaynes, Besta, Maturana, Karpathy, Al-Ghazali
+    # ==========================================================================
+    "ApexSovereignEngine",
+    "ApexConfig",
+    "ApexResult",
+    "LocalModelConfig",
+    "EvolutionResult",
+    "GiantsAttribution",
+    "GIANTS_REGISTRY",
+    "ProcessingStage",
+    "BackendType",
+    "create_apex_engine",
+    # ==========================================================================
+    # 9-PROBE DEFENSE MATRIX (SAPE v1.infinity Cognitive Antibody System)
+    # Standing on Giants: Turing (1936), LeCun (2024), Pearl (2000), OWASP
+    # ==========================================================================
+    "ProbeType",
+    "ProbeResult",
+    "ProbeReport",
+    "CandidateContext",
+    "Probe",
+    "CounterfactualProbe",
+    "AdversarialProbe",
+    "InvariantProbe",
+    "EfficiencyProbe",
+    "PrivacyProbe",
+    "SycophancyProbe",
+    "CausalityProbe",
+    "HallucinationProbe",
+    "LivenessProbe",
+    "ProbeMatrix",
+    "IntegratedProbeMatrix",
+    "create_probe_matrix",
+    "create_candidate_context",
+    "DEFAULT_FAIL_THRESHOLD",
+    "PII_PATTERNS",
+    "SYCOPHANCY_PATTERNS",
+    # ==========================================================================
+    # TAMPER-EVIDENT AUDIT LOG (P0-3 Unified Audit)
+    # Standing on Giants: Merkle (1979), RFC 2104 (1997), Haber & Stornetta (1991)
+    # ==========================================================================
+    "TamperEvidentEntry",
+    "TamperEvidentLog",
+    "AuditKeyManager",
+    "TamperingReport",
+    "KeyRotationEvent",
+    "VerificationStatus",
+    "TamperType",
+    "create_audit_log",
+    "verify_entry",
+    "verify_chain",
+    "detect_tampering",
+    "GENESIS_HASH",
+    "HMAC_DOMAIN_PREFIX",
 ]
 
 

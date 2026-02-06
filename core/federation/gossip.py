@@ -32,6 +32,11 @@ DEAD_TIMEOUT_MS = 15000  # Mark dead after 15s silence
 MAX_FANOUT = 3  # Number of peers to gossip to per round
 PROTOCOL_VERSION = "1.0.0"
 
+# Security Hardening S-1: Replay Protection
+MAX_MESSAGE_AGE_SECONDS = 300  # 5 minute window for message acceptance
+MAX_FUTURE_TIMESTAMP_SECONDS = 30  # Reject messages >30s in future
+MAX_RATE_PER_PEER_PER_SECOND = 10  # Rate limiting for DoS protection
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -70,6 +75,14 @@ class NodeInfo:
     ihsan_average: float = 0.95  # Node's average Ihsān score
     patterns_contributed: int = 0
 
+    def __post_init__(self):
+        """SECURITY (SEC-017): Mandatory public key validation."""
+        if not self.public_key or len(self.public_key) < 64:
+            raise ValueError(
+                "NodeInfo requires valid 64-char hex public_key. "
+                "Nodes without cryptographic identity cannot participate in BIZRA federation."
+            )
+
     def to_dict(self) -> Dict:
         return {
             "node_id": self.node_id,
@@ -93,6 +106,49 @@ class GossipMessage:
     timestamp: str
     payload: Dict[str, Any]
     piggyback: List[Dict] = field(default_factory=list)  # Bundled state updates
+    signature: str = ""  # Ed25519 signature (SEC-016)
+
+    def _signable_dict(self) -> Dict[str, Any]:
+        """Return dict of fields to be signed (excludes signature itself)."""
+        return {
+            "msg_type": self.msg_type.value if isinstance(self.msg_type, MessageType) else self.msg_type,
+            "sender_id": self.sender_id,
+            "sender_address": self.sender_address,
+            "sequence": self.sequence,
+            "timestamp": self.timestamp,
+            "payload": self.payload,
+            "piggyback": self.piggyback,
+        }
+
+    def sign(self, private_key_hex: str) -> "GossipMessage":
+        """
+        Sign the message with Ed25519 (SEC-016).
+
+        Returns self for method chaining.
+        """
+        from core.pci.crypto import sign_message, domain_separated_digest, canonical_json
+        digest = domain_separated_digest(canonical_json(self._signable_dict()))
+        self.signature = sign_message(digest, private_key_hex)
+        return self
+
+    def verify_signature(self, public_key_hex: str) -> bool:
+        """
+        Verify Ed25519 signature (SEC-016).
+
+        Returns True if signature is valid, False otherwise.
+        """
+        from core.pci.crypto import verify_signature, domain_separated_digest, canonical_json
+        if not self.signature or not public_key_hex:
+            return False
+        try:
+            digest = domain_separated_digest(canonical_json(self._signable_dict()))
+            return verify_signature(digest, self.signature, public_key_hex)
+        except (ValueError, TypeError, KeyError) as e:
+            # Signature verification failed - reject message
+            # ValueError: Invalid signature format
+            # TypeError: Invalid key type
+            # KeyError: Missing required field in signable dict
+            return False
 
     def to_bytes(self) -> bytes:
         return json.dumps(asdict(self), default=str).encode("utf-8")
@@ -125,6 +181,7 @@ class GossipEngine:
         node_id: str,
         address: str,
         public_key: str,
+        private_key: str = "",  # SEC-016: Required for signing outgoing messages
         on_node_joined: Optional[Callable[[NodeInfo], None]] = None,
         on_node_left: Optional[Callable[[NodeInfo], None]] = None,
         on_pattern_received: Optional[Callable[[Dict], None]] = None,
@@ -135,6 +192,8 @@ class GossipEngine:
             public_key=public_key,
             state=NodeState.ALIVE,
         )
+        # SECURITY (SEC-016): Store private key for signing outgoing messages
+        self._private_key = private_key
 
         self.peers: Dict[str, NodeInfo] = {}
         self.sequence = 0
@@ -155,12 +214,27 @@ class GossipEngine:
         self._seen_messages: Set[str] = set()
         self._max_seen = 10000
 
+        # SECURITY (SEC-018): Rate limiting per peer - DoS protection
+        # Maps sender_id to list of message timestamps (last N seconds)
+        self._rate_limit_window: Dict[str, List[float]] = {}
+        self._rate_limit_window_seconds = 1.0  # 1 second window
+
     # ─────────────────────────────────────────────────────────────────────────
     # MEMBERSHIP
     # ─────────────────────────────────────────────────────────────────────────
 
     def add_seed_node(self, address: str, node_id: str = None, public_key: str = ""):
-        """Add a bootstrap/seed node to connect to."""
+        """
+        Add a bootstrap/seed node to connect to.
+
+        SECURITY (SEC-017): public_key is now required for all nodes.
+        Raises ValueError if public_key is invalid.
+        """
+        if not public_key or len(public_key) < 64:
+            raise ValueError(
+                "add_seed_node requires valid 64-char hex public_key. "
+                "Seed nodes must have cryptographic identity."
+            )
         nid = node_id or f"seed_{hashlib.sha256(address.encode()).hexdigest()[:16]}"
         self.peers[nid] = NodeInfo(
             node_id=nid, address=address, public_key=public_key, state=NodeState.ALIVE
@@ -204,15 +278,25 @@ class GossipEngine:
         return self.sequence
 
     def _create_message(self, msg_type: MessageType, payload: Dict) -> GossipMessage:
-        return GossipMessage(
+        """Create and sign a gossip message (SEC-016)."""
+        # Ensure all messages carry sender public key for trust bootstrapping
+        safe_payload = dict(payload) if payload is not None else {}
+        if "public_key" not in safe_payload:
+            safe_payload["public_key"] = self.self_node.public_key
+
+        msg = GossipMessage(
             msg_type=msg_type,
             sender_id=self.self_node.node_id,
             sender_address=self.self_node.address,
             sequence=self._next_sequence(),
             timestamp=datetime.now(timezone.utc).isoformat(),
-            payload=payload,
+            payload=safe_payload,
             piggyback=self._collect_piggyback(),
         )
+        # SECURITY (SEC-016): Sign all outgoing messages
+        if self._private_key:
+            msg.sign(self._private_key)
+        return msg
 
     def _collect_piggyback(self, max_items: int = 5) -> List[Dict]:
         """Collect recent state changes to piggyback on messages."""
@@ -237,16 +321,110 @@ class GossipEngine:
             self._seen_messages = set(list(self._seen_messages)[-5000:])
         return False
 
+    def _get_sender_public_key(self, sender_id: str) -> str:
+        """Get the public key for a sender node."""
+        if sender_id in self.peers:
+            return self.peers[sender_id].public_key
+        return ""
+
+    def _check_rate_limit(self, sender_id: str) -> bool:
+        """
+        SECURITY (SEC-018): Check if sender exceeds rate limit.
+        Returns True if rate limit exceeded (should reject message).
+
+        Standing on Giants: Token Bucket / Sliding Window algorithm
+        """
+        now = time.time()
+        window_start = now - self._rate_limit_window_seconds
+
+        # Get or create timestamp list for this sender
+        if sender_id not in self._rate_limit_window:
+            self._rate_limit_window[sender_id] = []
+
+        # Remove timestamps outside the window
+        self._rate_limit_window[sender_id] = [
+            ts for ts in self._rate_limit_window[sender_id] if ts > window_start
+        ]
+
+        # Check if rate exceeded
+        if len(self._rate_limit_window[sender_id]) >= MAX_RATE_PER_PEER_PER_SECOND:
+            return True  # Rate limit exceeded
+
+        # Record this message timestamp
+        self._rate_limit_window[sender_id].append(now)
+
+        # Periodic cleanup of stale sender entries (every 100 checks)
+        if len(self._rate_limit_window) > 1000:
+            stale_senders = [
+                sid for sid, times in self._rate_limit_window.items()
+                if not times or max(times) < window_start
+            ]
+            for sid in stale_senders[:100]:  # Limit cleanup per call
+                del self._rate_limit_window[sid]
+
+        return False
+
     async def handle_message(self, data: bytes) -> Optional[bytes]:
         """
         Process incoming gossip message.
         Returns response bytes if applicable.
+
+        SECURITY (SEC-016): Validates Ed25519 signature BEFORE any other processing.
+        This prevents cache poisoning attacks where unsigned messages poison the
+        deduplication cache and cause legitimate signed messages to be rejected.
+
+        SECURITY (S-1): Validates timestamp to prevent replay and time-travel attacks.
+        Standing on Giants: Lamport (1982) - "Time, Clocks, and Ordering of Events"
+
+        SECURITY (SEC-018): Rate limiting per peer to prevent DoS flooding.
         """
         try:
             msg = GossipMessage.from_bytes(data)
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+            # Specific exceptions for malformed messages
             return None
 
+        # SECURITY (SEC-018): Rate limiting - check BEFORE any expensive processing
+        # This prevents DoS by rejecting flood traffic early
+        if self._check_rate_limit(msg.sender_id):
+            return None  # Rate limit exceeded, silent drop
+
+        # SECURITY (S-1): Validate timestamp FIRST - prevents replay attacks
+        # This MUST happen before signature verification to avoid wasting CPU
+        # on replayed messages with valid signatures
+        if hasattr(msg, 'timestamp') and msg.timestamp:
+            try:
+                msg_time = datetime.fromisoformat(msg.timestamp.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                age_seconds = (now - msg_time).total_seconds()
+
+                # Reject messages too old (replay attack)
+                if age_seconds > MAX_MESSAGE_AGE_SECONDS:
+                    return None  # Silent drop
+
+                # Reject messages too far in future (time-travel attack)
+                if age_seconds < -MAX_FUTURE_TIMESTAMP_SECONDS:
+                    return None  # Silent drop
+            except (ValueError, AttributeError):
+                return None  # Invalid timestamp format
+
+        # SECURITY (SEC-016): Verify signature FIRST, before deduplication check.
+        # This prevents cache poisoning DoS where attacker sends unsigned message
+        # with valid message ID, poisoning _seen_messages and causing real signed
+        # message to be rejected as duplicate.
+        sender_pubkey = self._get_sender_public_key(msg.sender_id)
+        if not sender_pubkey:
+            # Check if public_key is in payload (for new node announcements)
+            sender_pubkey = msg.payload.get("public_key", "")
+
+        if not msg.verify_signature(sender_pubkey):
+            # Reject unsigned or invalid signature messages
+            # Silent rejection to avoid amplification attacks
+            # NOTE: Do NOT add to _seen_messages - this is intentional to prevent
+            # cache poisoning attacks
+            return None
+
+        # Only check for duplicates AFTER signature verification passes
         if self._is_duplicate(msg):
             return None
 
@@ -286,10 +464,14 @@ class GossipEngine:
 
     def _add_peer_from_message(self, msg: GossipMessage):
         """Add a newly discovered peer."""
+        public_key = msg.payload.get("public_key", "")
+        if not public_key or len(public_key) < 64:
+            # Do not add peers without cryptographic identity
+            return
         peer = NodeInfo(
             node_id=msg.sender_id,
             address=msg.sender_address,
-            public_key=msg.payload.get("public_key", ""),
+            public_key=public_key,
             state=NodeState.ALIVE,
         )
         self.peers[msg.sender_id] = peer
@@ -316,10 +498,13 @@ class GossipEngine:
                 )
         else:
             # New peer from gossip
+            public_key = update.get("public_key", "")
+            if not public_key or len(public_key) < 64:
+                return
             self.peers[node_id] = NodeInfo(
                 node_id=node_id,
                 address=update.get("address", "unknown"),
-                public_key=update.get("public_key", ""),
+                public_key=public_key,
                 state=new_state,
                 incarnation=new_incarnation,
                 ihsan_average=update.get("ihsan_average", 0.95),

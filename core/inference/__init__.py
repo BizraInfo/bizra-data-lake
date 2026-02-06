@@ -1,6 +1,6 @@
 """
 BIZRA INFERENCE ENGINE
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 Tiered local inference for sovereign AI.
 
@@ -9,6 +9,7 @@ Components:
 - selector: Adaptive model selection based on task complexity
 - unified: Complete inference system with routing + tracking
 - lmstudio_backend: LM Studio v1 API integration (primary backend)
+- local_first_config: Bicameral mind architecture (Cold Core + Warm Surface)
 
 Tiers:
 - EDGE/NANO: Always-on, low-power (0.5B-1.5B models)
@@ -19,12 +20,27 @@ Backends:
 - LM Studio (192.168.56.1:1234) - Primary, native v1 API with MCP + stateful chats
 - Ollama (localhost:11434) - Fallback
 
+Bicameral Architecture (Jaynes, 1976):
+- Cold Core: Logical reasoning (DeepSeek-R1, Qwen-Coder)
+- Warm Surface: Creative verification (Mistral-Nemo)
+- Generate-Verify Loop (Karpathy, 2024)
+
 Created: 2026-01-29 | BIZRA Sovereignty
 Updated: 2026-01-30 | Added selector + unified system
 Updated: 2026-02-01 | Added LM Studio v1 API backend
+Updated: 2026-02-05 | Added Bicameral Mind local-first config
+Updated: 2026-02-05 | Added response_utils for DeepSeek R1 think token stripping
 """
 
 from .gateway import InferenceGateway, ComputeTier, InferenceConfig, InferenceResult
+from .response_utils import (
+    strip_think_tokens,
+    strip_reasoning_tokens,
+    strip_all_reasoning_tokens,
+    normalize_response,
+    extract_think_content,
+    has_think_tokens,
+)
 from .backends import LlamaCppBackend, OllamaBackend
 from .selector import (
     AdaptiveModelSelector,
@@ -36,6 +52,153 @@ from .selector import (
     get_task_analyzer,
 )
 from .unified import UnifiedInferenceSystem, UnifiedInferenceResult, get_inference_system
+from .local_first import (
+    LocalFirstDetector,
+    LocalBackend,
+    BackendStatus,
+    get_local_first_backend,
+)
+from .multimodal import (
+    MultiModalRouter,
+    MultiModalConfig,
+    ModelCapability,
+    ModelInfo as MultiModalModelInfo,
+    RoutingDecision,
+    TaskTypeDetector,
+    get_multimodal_router,
+)
+
+# Bicameral Mind Local-First Configuration (requires httpx)
+_BICAMERAL_AVAILABLE = False
+try:
+    from .local_first_config import (
+        # Enums
+        ModelRole,
+        TaskType,
+        FallbackLevel,
+        HealthStatus,
+        # Data models
+        ModelConfig,
+        HealthReport,
+        RoutingDecision as BicameralRoutingDecision,
+        BicameralResult,
+        # Registry
+        LOCAL_MODELS,
+        TASK_TO_ROLE,
+        # Classes
+        ModelRouter,
+        HealthMonitor,
+        BicameralOrchestrator,
+        LocalFirstManager,
+        # Convenience functions
+        get_local_first_manager,
+        get_model_router,
+        get_bicameral_orchestrator,
+    )
+    _BICAMERAL_AVAILABLE = True
+except ImportError:
+    # Define placeholder classes for when httpx is not available
+    class ModelRole:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class TaskType:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class FallbackLevel:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class HealthStatus:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class ModelConfig:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class HealthReport:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class BicameralRoutingDecision:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    class BicameralResult:  # type: ignore
+        """Placeholder - requires httpx."""
+        pass
+
+    LOCAL_MODELS = {}  # type: ignore
+
+    TASK_TO_ROLE = {}  # type: ignore
+
+    class ModelRouter:  # type: ignore
+        """Placeholder - requires httpx."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    class HealthMonitor:  # type: ignore
+        """Placeholder - requires httpx."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    class BicameralOrchestrator:  # type: ignore
+        """Placeholder - requires httpx."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    class LocalFirstManager:  # type: ignore
+        """Placeholder - requires httpx."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    async def get_local_first_manager():  # type: ignore
+        raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    def get_model_router():  # type: ignore
+        raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+    def get_bicameral_orchestrator():  # type: ignore
+        raise ImportError("Bicameral config requires httpx. Install with: pip install httpx")
+
+# Voice backend (requires personaplex)
+_VOICE_AVAILABLE = False
+try:
+    from .voice_backend import (
+        VoiceBackend,
+        VoiceConfig,
+        VoiceRequest,
+        VoiceResponse,
+        get_voice_backend,
+        check_voice_availability,
+    )
+    _VOICE_AVAILABLE = True
+except ImportError:
+    # Define placeholder classes
+    class VoiceBackend:  # type: ignore
+        """Placeholder - requires personaplex."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Voice backend requires personaplex. Install with: pip install personaplex")
+
+    class VoiceConfig:  # type: ignore
+        """Placeholder - requires personaplex."""
+        pass
+
+    class VoiceRequest:  # type: ignore
+        """Placeholder - requires personaplex."""
+        pass
+
+    class VoiceResponse:  # type: ignore
+        """Placeholder - requires personaplex."""
+        pass
+
+    def get_voice_backend(*args, **kwargs):  # type: ignore
+        raise ImportError("Voice backend requires personaplex. Install with: pip install personaplex")
+
+    async def check_voice_availability():  # type: ignore
+        return False
 
 # LM Studio backend (optional - requires httpx)
 _LMSTUDIO_AVAILABLE = False
@@ -81,6 +244,14 @@ except ImportError:
         raise ImportError("LM Studio backend requires httpx. Install with: pip install httpx")
 
 __all__ = [
+    # Response Utilities (DeepSeek R1 think token handling)
+    "strip_think_tokens",
+    "strip_reasoning_tokens",
+    "strip_all_reasoning_tokens",
+    "normalize_response",
+    "extract_think_content",
+    "has_think_tokens",
+
     # Gateway
     "InferenceGateway",
     "ComputeTier",
@@ -113,4 +284,46 @@ __all__ = [
     "UnifiedInferenceSystem",
     "UnifiedInferenceResult",
     "get_inference_system",
+
+    # Local-First (Zero-Token Operation)
+    "LocalFirstDetector",
+    "LocalBackend",
+    "BackendStatus",
+    "get_local_first_backend",
+
+    # Multi-Modal Router
+    "MultiModalRouter",
+    "MultiModalConfig",
+    "ModelCapability",
+    "MultiModalModelInfo",
+    "RoutingDecision",
+    "TaskTypeDetector",
+    "get_multimodal_router",
+
+    # Voice Backend (PersonaPlex)
+    "VoiceBackend",
+    "VoiceConfig",
+    "VoiceRequest",
+    "VoiceResponse",
+    "get_voice_backend",
+    "check_voice_availability",
+
+    # Bicameral Mind Local-First Config
+    "ModelRole",
+    "TaskType",
+    "FallbackLevel",
+    "HealthStatus",
+    "ModelConfig",
+    "HealthReport",
+    "BicameralRoutingDecision",
+    "BicameralResult",
+    "LOCAL_MODELS",
+    "TASK_TO_ROLE",
+    "ModelRouter",
+    "HealthMonitor",
+    "BicameralOrchestrator",
+    "LocalFirstManager",
+    "get_local_first_manager",
+    "get_model_router",
+    "get_bicameral_orchestrator",
 ]

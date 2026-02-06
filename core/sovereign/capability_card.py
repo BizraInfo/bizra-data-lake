@@ -29,10 +29,15 @@ except ImportError:
     Ed25519PrivateKey = None
     Ed25519PublicKey = None
 
+# Import unified thresholds from authoritative source
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
-# Constitutional thresholds
-IHSAN_THRESHOLD = 0.95
-SNR_THRESHOLD = 0.85
+# Use unified constants
+IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
+SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
 CARD_VALIDITY_DAYS = 90
 
 
@@ -358,7 +363,14 @@ class CardIssuer:
         canonical = card.canonical_bytes()
 
         if card.signature.startswith("sim:"):
-            # Simulation mode verification
+            # SECURITY: Simulation mode ONLY allowed in development/testing
+            # Production environments MUST set BIZRA_ENV=production to disable
+            import os
+            if os.environ.get("BIZRA_ENV", "development").lower() == "production":
+                # Reject simulation signatures in production
+                return False
+
+            # Development mode - allow simulation verification
             expected_sig = card.signature[4:]
             h = hashlib.sha256()
             h.update(self._sim_secret)
@@ -390,9 +402,33 @@ def verify_capability_card(card: CapabilityCard) -> Dict[str, Any]:
     """
     is_valid, reason = card.is_valid()
 
-    # Signature verification requires the issuer's public key
-    # In production, this would look up the key from a trusted registry
-    signature_valid = bool(card.signature and card.issuer_public_key)
+    # Signature verification using trusted key registry
+    from core.sovereign.key_registry import get_key_registry
+
+    signature_valid = False
+    if card.signature and card.issuer_public_key:
+        registry = get_key_registry()
+        # Check if issuer's key is in trusted registry
+        if registry.is_trusted(card.issuer_public_key):
+            # Key is trusted - verify signature with issuer public key
+            if card.signature.startswith("sim:"):
+                # Allow simulation signatures only outside production
+                import os
+                if os.environ.get("BIZRA_ENV", "development").lower() != "production":
+                    signature_valid = True
+            else:
+                try:
+                    if CRYPTO_AVAILABLE:
+                        pk_bytes = bytes.fromhex(card.issuer_public_key)
+                        public_key = Ed25519PublicKey.from_public_bytes(pk_bytes)
+                        signature = bytes.fromhex(card.signature)
+                        public_key.verify(signature, card.canonical_bytes())
+                        signature_valid = True
+                except Exception:
+                    signature_valid = False
+        else:
+            # Key not in registry - signature not trusted
+            signature_valid = False
 
     ihsan_valid = card.capabilities.ihsan_score >= IHSAN_THRESHOLD
     snr_valid = card.capabilities.snr_score >= SNR_THRESHOLD

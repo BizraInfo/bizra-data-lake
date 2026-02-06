@@ -64,6 +64,23 @@ from .snr_v2 import (
     SNRComponentsV2,
     IhsanGate,
 )
+from .selection import (
+    SimilaritySelector,
+    OptimizationSelector,
+    ModelBasedSelector,
+    DataSelectionPipeline,
+    SelectionResult,
+)
+from .synthesis import (
+    RephrasingSynthesizer,
+    InstructionSynthesizer,
+    ReasoningSynthesizer,
+    AgenticSynthesizer,
+    DomainSynthesizer,
+    DataSynthesisPipeline,
+    SynthesisStrategy,
+    SynthesisResult,
+)
 
 __all__ = [
     # Framework
@@ -99,7 +116,22 @@ __all__ = [
     "SNRCalculatorV2",
     "SNRComponentsV2",
     "IhsanGate",
+    # Selection (DATA4LLM)
+    "SimilaritySelector",
+    "OptimizationSelector",
+    "ModelBasedSelector",
+    "DataSelectionPipeline",
+    "SelectionResult",
+    # Synthesis (DATA4LLM)
+    "RephrasingSynthesizer",
+    "InstructionSynthesizer",
+    "ReasoningSynthesizer",
+    "AgenticSynthesizer",
+    "DomainSynthesizer",
+    "DataSynthesisPipeline",
+    "SynthesisStrategy",
+    "SynthesisResult",
 ]
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"  # DATA4LLM Complete Integration
 __author__ = "BIZRA Node0 + DATA4LLM Integration"

@@ -1,6 +1,45 @@
 """
 BIZRA PROOF-CARRYING INFERENCE (PCI) PROTOCOL
 Receipt and Verification Gates
+
+Standing on Giants: Lamport (BFT), Shannon (SNR)
+
+GATE CHAIN ORDERING RATIONALE
+=============================
+
+PCI Gate Chain: SCHEMA -> SIGNATURE -> TIMESTAMP -> REPLAY -> IHSAN -> SNR -> POLICY
+
+This ordering is intentional and differs from the License Gate ordering (SNR before IHSAN).
+
+Why IHSAN before SNR in PCI?
+----------------------------
+PCI envelopes represent inter-node communication in the federation. When processing
+messages from potentially untrusted peers, ethical violations (Ihsan) represent a
+more severe class of failure than signal quality issues (SNR).
+
+1. FAIL-FAST ON ETHICAL VIOLATIONS: An envelope with low Ihsan score indicates
+   content that violates constitutional principles (harmful, misleading, or
+   malicious). These must be rejected immediately regardless of signal quality.
+   A high-SNR message that is ethically compromised is MORE dangerous than a
+   noisy but benign message.
+
+2. SECURITY POSTURE: In adversarial P2P environments, attackers may craft
+   high-SNR messages specifically to bypass quality filters. Checking Ihsan
+   first ensures malicious content is caught even if it has been optimized
+   for clarity and coherence.
+
+3. RESOURCE PROTECTION: SNR computation can be more expensive than Ihsan
+   scoring (especially for large payloads). Rejecting ethical violations
+   early prevents wasted computation on messages that would fail anyway.
+
+Contrast with License Gate (model_license_gate.py):
+---------------------------------------------------
+License gates check SNR before Ihsan because they validate inference OUTPUT
+from trusted local models, not untrusted external messages. In that context,
+filtering noise first (low SNR = garbled output) before quality assessment
+(Ihsan) is appropriate since the content source is already authenticated.
+
+See also: core/sovereign/model_license_gate.py for the License Gate rationale.
 """
 
 import hmac
@@ -13,9 +52,19 @@ from .envelope import PCIEnvelope
 from .reject_codes import RejectCode
 from .crypto import verify_signature
 
-IHSAN_MINIMUM_THRESHOLD = 0.95
-MAX_CLOCK_SKEW_SECONDS = 120
-NONCE_TTL_SECONDS = 300  # 5 minutes - nonces older than this are pruned
+# Import unified thresholds from authoritative source
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+    UNIFIED_CLOCK_SKEW_SECONDS,
+    UNIFIED_NONCE_TTL_SECONDS,
+)
+
+# Use unified constants
+IHSAN_MINIMUM_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
+SNR_MINIMUM_THRESHOLD = UNIFIED_SNR_THRESHOLD
+MAX_CLOCK_SKEW_SECONDS = UNIFIED_CLOCK_SKEW_SECONDS
+NONCE_TTL_SECONDS = UNIFIED_NONCE_TTL_SECONDS
 MAX_NONCE_CACHE_SIZE = 10000  # Hard limit to prevent memory exhaustion
 
 @dataclass
@@ -118,10 +167,16 @@ class PCIGateKeeper:
         
         # 6. Ihsan
         if envelope.metadata.ihsan_score < IHSAN_MINIMUM_THRESHOLD:
-             return VerificationResult(False, RejectCode.REJECT_IHSAN_BELOW_MIN, 
+             return VerificationResult(False, RejectCode.REJECT_IHSAN_BELOW_MIN,
                                      f"Ihsan {envelope.metadata.ihsan_score} < {IHSAN_MINIMUM_THRESHOLD}")
         gates_passed.append("IHSAN")
-        
+
+        # 7. SNR Gate (SEC-020: Shannon signal quality)
+        if envelope.metadata.snr_score < SNR_MINIMUM_THRESHOLD:
+            return VerificationResult(False, RejectCode.REJECT_SNR_BELOW_MIN,
+                                     f"SNR {envelope.metadata.snr_score} < {SNR_MINIMUM_THRESHOLD}")
+        gates_passed.append("SNR")
+
         # 8. Policy (Sovereignty: Default-deny with explicit verification)
         # SECURITY: Use constant-time comparison to prevent timing attacks
         if self.policy_enforcement:

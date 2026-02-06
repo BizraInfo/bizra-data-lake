@@ -6,7 +6,12 @@ Allows nodes to share SAPE-elevated patterns with Proof-of-Impact.
 import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
+
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
+
 from core.pci import PCIEnvelope, EnvelopeBuilder
+from core.pci.gates import PCIGateKeeper, DEFAULT_CONSTITUTION_HASH
 
 @dataclass
 class PatternImpact:
@@ -39,7 +44,25 @@ class FederationProtocol:
     def __init__(self, node_id: str, private_key: str):
         self.node_id = node_id
         self.private_key = private_key
+        self.public_key = self._derive_public_key(private_key)
+        if not self.public_key:
+            raise ValueError("Invalid Ed25519 private key; cannot derive public key")
         self.known_patterns: Dict[str, FederatedPattern] = {}
+        self.gatekeeper = PCIGateKeeper(policy_enforcement=True)
+
+    def _derive_public_key(self, private_key_hex: str) -> str:
+        """Derive public key from Ed25519 private key hex."""
+        try:
+            private_bytes = bytes.fromhex(private_key_hex)
+            private_key = ed25519.Ed25519PrivateKey.from_private_bytes(private_bytes)
+            public_key = private_key.public_key()
+            return public_key.public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw
+            ).hex()
+        except (ValueError, TypeError, AttributeError) as e:
+            # Key derivation failed - return empty (validation will catch this)
+            return ""
         
     def create_pattern_proposal(self, logic: str, impact: PatternImpact) -> PCIEnvelope:
         """Wrap a pattern in a PCI Envelope for federation."""
@@ -52,11 +75,11 @@ class FederationProtocol:
         
         # Build PCI Envelope
         builder = EnvelopeBuilder()
-        builder.with_sender("PAT", self.node_id, "lookup_public_key") # Simplify pubkey lookup
+        builder.with_sender("PAT", self.node_id, self.public_key)
         builder.with_payload(
             action="FEDERATE_PATTERN",
             data=self._serialize_pattern(pattern),
-            policy_hash="constitution_v1",
+            policy_hash=DEFAULT_CONSTITUTION_HASH,
             state_hash="current_state"
         )
         # Ihsan score must meet threshold
@@ -75,12 +98,14 @@ class FederationProtocol:
         Receive and validate a pattern proposal from the network.
         Should use PCIGateKeeper for verification.
         """
-        # 1. basic PCI verification (GateKeeper) would happen here
+        # 1. PCI verification (GateKeeper)
+        result = self.gatekeeper.verify(envelope)
+        if not result.passed:
+            print(f"Refused pattern {envelope.envelope_id}: {result.reject_code}")
+            return False
+
         # 2. Extract pattern
         data = envelope.payload.data
-        if envelope.metadata.ihsan_score < 0.95:
-             print(f"Refused pattern {envelope.envelope_id}: Low Ihsan")
-             return False
              
         # 3. Store
         print(f"Accepted pattern from {envelope.sender.agent_id}")

@@ -62,24 +62,38 @@ class FederationNode:
     ):
         self.node_id = node_id or f"bizra_{uuid.uuid4().hex[:8]}"
         self.bind_address = bind_address
-        self.public_key = public_key or f"pk_{self.node_id}"
         self.ihsan_score = ihsan_score
         self.contribution_count = contribution_count
 
-        # Core components
+        # Generate keypair if not provided (SEC-016/017 compliance)
+        if not public_key or not private_key or len(public_key) < 64:
+            from core.pci import generate_keypair
+            private_key, public_key = generate_keypair()
+            print(f"[FederationNode] Generated Ed25519 keypair for {self.node_id}")
+
+        self.public_key = public_key
+        self.private_key = private_key
+
+        # Core components - pass private_key for message signing (SEC-016)
         self.gossip = GossipEngine(
             node_id=self.node_id,
             address=bind_address,
             public_key=self.public_key,
+            private_key=self.private_key,
             on_pattern_received=self._on_pattern_received,
         )
 
         self.pattern_store = PatternStore(self.node_id)
+        # SEC-016: Pass PCI credentials to PropagationEngine for envelope signing
         self.propagation = PropagationEngine(
-            self.pattern_store, broadcast_fn=self._broadcast_pattern
+            self.pattern_store,
+            broadcast_fn=self._broadcast_pattern,
+            node_id=self.node_id,
+            private_key=self.private_key,
+            public_key=self.public_key,
         )
         self.consensus = ConsensusEngine(
-            self.node_id, private_key=private_key, public_key=self.public_key
+            self.node_id, private_key=self.private_key, public_key=self.public_key
         )
 
         # State
@@ -106,6 +120,14 @@ class FederationNode:
             "COMMIT": self._handle_commit,
             "PATTERN_REQUEST": self._handle_pattern_request,
         }
+
+    def _setup_consensus_callbacks(self):
+        """Setup callbacks for consensus engine to broadcast commits."""
+        def on_commit(payload: Dict):
+            """Broadcast commit certificate to network."""
+            self._broadcast_consensus_msg("COMMIT", payload)
+
+        self.consensus.on_commit_broadcast = on_commit
 
     # ═══════════════════════════════════════════════════════════════════════════
     # LIFECYCLE
@@ -182,6 +204,13 @@ class FederationNode:
             asyncio.create_task(self.gossip.broadcast_pattern_async(pattern_data))
         except Exception as e:
             print(f"⚠️ Broadcast failed: {e}")
+
+    def _handle_pattern_propagate(self, payload: Dict):
+        """Handle incoming pattern from the network."""
+        # Use propagation engine to validate and store network pattern
+        success = self.propagation.receive_pattern(payload)
+        if success:
+            logger.info(f"📥 Received pattern from network: {payload.get('pattern_id', 'unknown')}")
 
     def _handle_propose(self, payload: Dict):
         """Handle incoming BFT proposal."""

@@ -124,7 +124,8 @@ class LMStudioBackend:
         self._client: Optional[httpx.AsyncClient] = None
         self._connected = False
         self._current_model: Optional[str] = None
-        self._chat_id: Optional[str] = None
+        self._chat_id: Optional[str] = None  # For native /api/v1/chat stateful sessions
+        self._response_id: Optional[str] = None  # For /v1/responses stateful sessions
 
     async def connect(self) -> bool:
         """Connect to LM Studio server."""
@@ -410,9 +411,158 @@ class LMStudioBackend:
             raw_response=data
         )
 
+    async def chat_responses(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        tools: Optional[List[Dict]] = None,
+        mcp_servers: Optional[List[Dict[str, Any]]] = None,
+        previous_response_id: Optional[str] = None
+    ) -> ChatResponse:
+        """
+        Send a chat request using OpenAI-compatible /v1/responses endpoint.
+
+        LM Studio 0.4.0+ feature - combines OpenAI compatibility with:
+        - Stateful chats (via previous_response_id)
+        - Remote MCP server support
+        - Local MCP servers configured in LM Studio
+        - Custom tools
+
+        Args:
+            messages: Chat messages
+            model: Model identifier
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+            tools: Custom tool definitions (OpenAI format)
+            mcp_servers: Remote MCP server configurations
+            previous_response_id: ID from previous response for stateful chat
+
+        Returns:
+            ChatResponse with response_id for continuation
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        model_id = model or self._current_model
+        if not model_id:
+            raise ValueError("No model specified or loaded")
+
+        payload = {
+            "model": model_id,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        # Stateful chat continuation
+        if previous_response_id:
+            payload["previous_response_id"] = previous_response_id
+
+        # Custom tools (OpenAI format)
+        if tools:
+            payload["tools"] = tools
+
+        # Remote MCP servers (LM Studio 0.4.0+)
+        if mcp_servers and self.config.enable_mcp:
+            payload["mcp_servers"] = mcp_servers
+
+        response = await self._client.post(
+            LMStudioEndpoint.RESPONSES.value,
+            json=payload
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # Store response_id for stateful continuation
+        response_id = data.get("id")
+        if response_id:
+            self._response_id = response_id
+
+        return ChatResponse(
+            content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
+            model=data.get("model", model_id),
+            finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
+            usage=data.get("usage", {}),
+            raw_response=data
+        )
+
+    async def chat_anthropic_compat(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        tools: Optional[List[Dict]] = None
+    ) -> ChatResponse:
+        """
+        Send a chat request using Anthropic-compatible /v1/messages endpoint.
+
+        LM Studio 0.4.0+ feature for Anthropic SDK compatibility.
+        Supports custom tools in Anthropic format.
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to LM Studio")
+
+        model_id = model or self._current_model
+        if not model_id:
+            raise ValueError("No model specified or loaded")
+
+        # Convert to Anthropic message format
+        anthropic_messages = []
+        system_prompt = None
+
+        for m in messages:
+            if m.role == "system":
+                system_prompt = m.content
+            else:
+                anthropic_messages.append({
+                    "role": m.role,
+                    "content": m.content
+                })
+
+        payload = {
+            "model": model_id,
+            "messages": anthropic_messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
+
+        if system_prompt:
+            payload["system"] = system_prompt
+
+        if tools:
+            payload["tools"] = tools
+
+        response = await self._client.post(
+            LMStudioEndpoint.MESSAGES.value,
+            json=payload
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract content from Anthropic format
+        content = ""
+        for block in data.get("content", []):
+            if block.get("type") == "text":
+                content += block.get("text", "")
+
+        return ChatResponse(
+            content=content,
+            model=data.get("model", model_id),
+            finish_reason=data.get("stop_reason", "end_turn"),
+            usage={
+                "prompt_tokens": data.get("usage", {}).get("input_tokens", 0),
+                "completion_tokens": data.get("usage", {}).get("output_tokens", 0)
+            },
+            raw_response=data
+        )
+
     def reset_chat(self):
-        """Reset stateful chat session."""
+        """Reset stateful chat session (both native and OpenAI-compat)."""
         self._chat_id = None
+        self._response_id = None
 
     @property
     def is_connected(self) -> bool:
@@ -421,6 +571,16 @@ class LMStudioBackend:
     @property
     def current_model(self) -> Optional[str]:
         return self._current_model
+
+    @property
+    def response_id(self) -> Optional[str]:
+        """Get current response_id for stateful /v1/responses continuation."""
+        return self._response_id
+
+    @property
+    def chat_id(self) -> Optional[str]:
+        """Get current chat_id for stateful /api/v1/chat continuation."""
+        return self._chat_id
 
 
 # Convenience function for BIZRA integration

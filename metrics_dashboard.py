@@ -3,6 +3,7 @@
 # Part of SAPE Implementation Blueprint
 
 import json
+import os
 import time
 import statistics
 from pathlib import Path
@@ -13,10 +14,20 @@ from enum import Enum
 from collections import deque
 import threading
 
-# Configuration
-METRICS_ROOT = Path("C:/BIZRA-DATA-LAKE/03_INDEXED/metrics")
-IHSAN_THRESHOLD = 0.99
-ACCEPTABLE_THRESHOLD = 0.95
+# Import unified thresholds from authoritative source
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+    STRICT_IHSAN_THRESHOLD,
+)
+
+# Configuration — cross-platform path resolution
+_data_lake_root = os.environ.get("BIZRA_DATA_LAKE_ROOT", "/mnt/c/BIZRA-DATA-LAKE")
+METRICS_ROOT = Path(_data_lake_root) / "03_INDEXED" / "metrics"
+
+# Use unified thresholds
+IHSAN_THRESHOLD = STRICT_IHSAN_THRESHOLD  # 0.99 for operational monitoring
+ACCEPTABLE_THRESHOLD = UNIFIED_IHSAN_THRESHOLD  # 0.95 standard threshold
 METRICS_RETENTION_HOURS = 24
 ALERT_COOLDOWN_SECONDS = 300
 
@@ -277,6 +288,8 @@ class MetricsCollector:
 
             return {
                 "count": len(values),
+                "min": min(values),
+                "max": max(values),
                 "average_ms": statistics.mean(values),
                 "median_ms": statistics.median(values),
                 "p95_ms": values[int(len(values) * 0.95)] if values else 0,
