@@ -50,17 +50,19 @@ def __getattr__(name: str):
 
         return MemoryEntry
     elif name == "MemoryConsolidator":
-        from .consolidation import MemoryConsolidator
-
-        return MemoryConsolidator
+        # TODO: core/living_memory/consolidation.py does not exist yet -- create it or remove this lazy import
+        raise ImportError(
+            "MemoryConsolidator requires core.living_memory.consolidation which has not been created yet"
+        )
     elif name == "ProactiveRetriever":
         from .proactive import ProactiveRetriever
 
         return ProactiveRetriever
     elif name == "KnowledgeGraph":
-        from .graph import KnowledgeGraph
-
-        return KnowledgeGraph
+        # TODO: core/living_memory/graph.py does not exist yet -- create it or remove this lazy import
+        raise ImportError(
+            "KnowledgeGraph requires core.living_memory.graph which has not been created yet"
+        )
     elif name == "MemoryHealer":
         from .healing import MemoryHealer
 

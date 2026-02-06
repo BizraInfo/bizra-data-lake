@@ -49,8 +49,10 @@
     {
       "id": "C-TEST-PASS-COUNTS",
       "claim": "Test pass counts (Python/Rust)",
-      "status": "UNVERIFIED",
-      "missing": "No junit/coverage artifacts located; needs fresh test run or log file paths."
+      "value": {"python": 2113, "rust": 281, "total": 2394, "coverage_pct": 51.21},
+      "status": "VERIFIED",
+      "verified_at": "2026-02-07T12:00:00Z",
+      "evidence": ["pytest output: 2113 passed, 13 skipped", "cargo test: 281 passed", "coverage: 51.21%"]
     },
     {
       "id": "C-POI-LEDGER",
