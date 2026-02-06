@@ -19,6 +19,8 @@
 
 from typing import TYPE_CHECKING
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+
 # Version
 BOUNTY_VERSION = "1.0.0"
 
@@ -69,7 +71,7 @@ BASE_PAYOUT_PER_DELTA_E = 500  # $500 per entropy unit reduced
 BOUNTY_SNR_THRESHOLD = 0.90
 
 # Ihsān threshold for ethical validation
-BOUNTY_IHSAN_THRESHOLD = 0.95
+BOUNTY_IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
 
 # Lazy imports
 if TYPE_CHECKING:

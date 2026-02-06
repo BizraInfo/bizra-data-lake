@@ -11,17 +11,20 @@
 """
 
 import asyncio
-import sys
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, List, Optional
-
-sys.path.insert(0, "c:\\BIZRA-DATA-LAKE")
 
 from core.pci import (
     domain_separated_digest,
     generate_keypair,
     sign_message,
     verify_signature,
+)
+
+from core.integration.constants import (
+    MAX_RETRY_ATTEMPTS,
+    UNIFIED_AGENT_TIMEOUT_MS,
+    UNIFIED_IHSAN_THRESHOLD,
 )
 
 from .schema import (
@@ -35,12 +38,11 @@ from .schema import (
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CONSTANTS
+# CONSTANTS (imported from single source of truth)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-IHSAN_MINIMUM = 0.95
-AGENT_TIMEOUT_MS = 30000
-MAX_RETRY_ATTEMPTS = 3
+IHSAN_MINIMUM = UNIFIED_IHSAN_THRESHOLD
+AGENT_TIMEOUT_MS = UNIFIED_AGENT_TIMEOUT_MS
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
