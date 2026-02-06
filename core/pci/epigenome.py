@@ -22,6 +22,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -126,7 +128,7 @@ class EpigeneticLayer:
     HEALING_THRESHOLD = timedelta(days=7 * 365)
 
     # Minimum Ihsan score for any interpretation
-    IHSAN_MINIMUM = 0.95
+    IHSAN_MINIMUM = UNIFIED_IHSAN_THRESHOLD
 
     def __init__(
         self,

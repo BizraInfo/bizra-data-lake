@@ -60,6 +60,8 @@ from core.sovereign.market_integration import (
 from core.sovereign.social_integration import ScoredAgent, SociallyAwareBridge
 from core.sovereign.swarm_integration import HybridSwarmOrchestrator
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
 # Lazy imports for runtime_engines to avoid circular dependencies
 if TYPE_CHECKING:
     from core.sovereign.runtime_engines import (
@@ -73,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 # OODA cycle interval
 CYCLE_INTERVAL_MS: int = 1000
-IHSAN_THRESHOLD: float = 0.95
+IHSAN_THRESHOLD: float = UNIFIED_IHSAN_THRESHOLD
 
 
 class ApexOODAState(str, Enum):

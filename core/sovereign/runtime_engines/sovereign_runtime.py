@@ -88,12 +88,17 @@ from .snr_maximizer import (
     SNRMaximizer,
 )
 
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    STRICT_IHSAN_THRESHOLD,
+)
+
 logger = logging.getLogger(__name__)
 
 
-# Constitutional constants
-IHSAN_THRESHOLD: float = 0.95  # Excellence threshold
-IHSAN_SUPREME: float = 0.99  # Supreme excellence
+# Constitutional constants (from single source of truth)
+IHSAN_THRESHOLD: float = UNIFIED_IHSAN_THRESHOLD  # Excellence threshold
+IHSAN_SUPREME: float = STRICT_IHSAN_THRESHOLD  # Supreme excellence
 DAUGHTER_TEST: float = 0.97  # "Would I approve this for my daughter?"
 
 # Runtime constants

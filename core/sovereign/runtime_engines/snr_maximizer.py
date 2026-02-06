@@ -62,12 +62,14 @@ from enum import Enum
 from statistics import mean, stdev
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
+from core.integration.constants import UNIFIED_SNR_THRESHOLD, SNR_THRESHOLD_T1_HIGH
+
 logger = logging.getLogger(__name__)
 
 
-# Shannon-inspired constants
-SNR_FLOOR: float = 0.85  # Minimum acceptable SNR
-SNR_EXCELLENT: float = 0.95  # Ihsan-grade SNR
+# Shannon-inspired constants (from single source of truth)
+SNR_FLOOR: float = UNIFIED_SNR_THRESHOLD  # Minimum acceptable SNR
+SNR_EXCELLENT: float = SNR_THRESHOLD_T1_HIGH  # Ihsan-grade SNR
 SNR_CHANNEL_CAPACITY: float = 1.0  # Theoretical maximum
 NOISE_FLOOR_DB: float = -60.0  # Minimum detectable noise
 ADAPTIVE_WINDOW: int = 100  # Samples for adaptive thresholding
