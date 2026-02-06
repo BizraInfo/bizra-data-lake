@@ -45,10 +45,16 @@ from core.sovereign.muraqabah_engine import (
 logger = logging.getLogger(__name__)
 
 
-# Shannon-inspired SNR thresholds
-SNR_FLOOR: float = 0.85
-SNR_HIGH_CONFIDENCE: float = 0.95
-SNR_VERY_HIGH: float = 0.99
+from core.integration.constants import (
+    UNIFIED_SNR_THRESHOLD,
+    SNR_THRESHOLD_T1_HIGH,
+    STRICT_IHSAN_THRESHOLD,
+)
+
+# Shannon-inspired SNR thresholds (from single source of truth)
+SNR_FLOOR: float = UNIFIED_SNR_THRESHOLD
+SNR_HIGH_CONFIDENCE: float = SNR_THRESHOLD_T1_HIGH
+SNR_VERY_HIGH: float = STRICT_IHSAN_THRESHOLD
 DATA_STALENESS_MINUTES: int = 5
 
 

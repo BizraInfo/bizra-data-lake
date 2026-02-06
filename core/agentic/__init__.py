@@ -52,14 +52,6 @@ def __getattr__(name: str):
         from .agent import AgentTask
 
         return AgentTask
-    elif name == "SelfOptimizer":
-        from .optimizer import SelfOptimizer
-
-        return SelfOptimizer
-    elif name == "ProactiveEngine":
-        from .proactive import ProactiveEngine
-
-        return ProactiveEngine
     raise AttributeError(f"module 'core.agentic' has no attribute '{name}'")
 
 
@@ -67,8 +59,6 @@ __all__ = [
     "AgentOrchestrator",
     "AutonomousAgent",
     "AgentTask",
-    "SelfOptimizer",
-    "ProactiveEngine",
     "AGENTIC_VERSION",
     "MAX_CONCURRENT_AGENTS",
     "AGENT_TYPES",

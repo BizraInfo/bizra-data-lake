@@ -119,18 +119,6 @@ jobs:
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
-        continue-on-error: true
-
-      - name: Check test results
-        run: |
-          if grep -q "FAILED" test-output.log; then
-            echo "::error::Some unit tests failed"
-            exit 1
-          fi
-          if grep -q "ERROR" test-output.log; then
-            echo "::error::Some tests had errors"
-            exit 1
-          fi
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v4
@@ -226,15 +214,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           REDIS_URL: redis://localhost:6379
-        continue-on-error: true
-
-      - name: Check test results
-        run: |
-          # Allow empty test collection for integration tests
-          if grep -q "FAILED" test-output.log; then
-            echo "::error::Some integration tests failed"
-            exit 1
-          fi
 
       - name: Upload integration test results
         uses: actions/upload-artifact@v4
@@ -306,7 +285,6 @@ jobs:
             2>&1 | tee test-output.log
         env:
           PYTHONPATH: ${{ github.workspace }}
-        continue-on-error: true
 
       - name: Upload slow test results
         uses: actions/upload-artifact@v4
@@ -425,8 +403,7 @@ jobs:
           threshold=${{ env.COVERAGE_THRESHOLD }}
           if (( $(echo "$coverage_pct < $threshold" | bc -l) )); then
             echo "::error::Coverage ${coverage_pct}% is below threshold ${threshold}%"
-            # Soft fail for now - change to exit 1 to enforce
-            echo "::warning::Coverage threshold not met. Consider improving test coverage."
+            exit 1
           else
             echo "::notice::Coverage ${coverage_pct}% meets threshold ${threshold}%"
           fi

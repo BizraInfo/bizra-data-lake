@@ -252,7 +252,12 @@ async def run_status(json_output: bool = False):
 
 def run_tests():
     """Run integration tests."""
-    from .tests.test_integration import run_all_tests
+    try:
+        from .tests.test_integration import run_all_tests
+    except ImportError:
+        print("Test module not found. Run tests via pytest instead:")
+        print("  pytest tests/ -v")
+        sys.exit(1)
 
     sys.exit(run_all_tests())
 

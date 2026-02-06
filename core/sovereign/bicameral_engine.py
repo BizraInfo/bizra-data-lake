@@ -20,9 +20,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONSENSUS_THRESHOLD = 0.95
+DEFAULT_CONSENSUS_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
 DEFAULT_NUM_CANDIDATES = 3
 
 
