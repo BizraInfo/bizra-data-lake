@@ -14,8 +14,8 @@ bizra-inference = { path = "../bizra-inference" }
 bizra-autopoiesis = { path = "../bizra-autopoiesis" }
 bizra-federation = { path = "../bizra-federation" }
 
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.24", features = ["extension-module"] }
 serde_json = "1.0"
 
 [build-dependencies]
-pyo3-build-config = "0.20"
+pyo3-build-config = "0.24"

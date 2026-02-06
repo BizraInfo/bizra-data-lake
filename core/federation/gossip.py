@@ -277,7 +277,9 @@ class GossipEngine:
         avg_ihsan = sum(p.ihsan_average for p in self.peers.values()) / max(
             1, len(self.peers)
         )
-        avg_ihsan = max(0.95, avg_ihsan)  # Floor at Ihsān minimum
+        from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+
+        avg_ihsan = max(UNIFIED_IHSAN_THRESHOLD, avg_ihsan)  # Floor at Ihsān minimum
 
         multiplier = 1.0 + (math.log10(n + 1) / 10.0) * 1.0 * avg_ihsan
         return round(multiplier, 4)

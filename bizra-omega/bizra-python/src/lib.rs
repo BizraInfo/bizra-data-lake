@@ -398,7 +398,7 @@ impl PyGateChain {
 
 /// BIZRA Python Module
 #[pymodule]
-fn bizra(_py: Python, m: &PyModule) -> PyResult<()> {
+fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core types
     m.add_class::<PyNodeId>()?;
     m.add_class::<PyNodeIdentity>()?;

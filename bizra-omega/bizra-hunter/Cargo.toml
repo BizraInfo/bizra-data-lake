@@ -63,8 +63,7 @@ rand = "0.8"
 # CLI
 clap = { version = "4.4", features = ["derive"] }
 
-# Metrics
-prometheus = "0.13"
+# Metrics (prometheus removed: RUSTSEC-2024-0437 protobuf vuln, crate was unused)
 
 [dev-dependencies]
 criterion = "0.5"

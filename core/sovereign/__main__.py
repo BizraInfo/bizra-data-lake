@@ -113,7 +113,7 @@ Or type any query to get a sovereign response.
 
                 if query.lower() == "status":
                     status = runtime.status()
-                    print(f"\nNode: {status['identity']['node_name']}")
+                    print(f"\nNode: {status['identity'].get('node_name', status['identity']['node_id'])}")
                     print(
                         f"Health: {status['health']['status']} ({status['health']['score']})"
                     )
@@ -231,14 +231,15 @@ async def run_status(json_output: bool = False):
             print("System Status")
             print("=" * 60)
             print(f"Node ID:    {status['identity']['node_id']}")
-            print(f"Node Name:  {status['identity']['node_name']}")
+            print(f"Node Name:  {status['identity'].get('node_name', status['identity']['node_id'])}")
             print(f"Version:    {status['identity']['version']}")
             print(f"Mode:       {status['state']['mode']}")
             print("-" * 60)
-            print(f"Health:     {status['health']['status']}")
-            print(f"Score:      {status['health']['score']}")
-            print(f"SNR:        {status['health']['snr']}")
-            print(f"Ihsān:      {status['health']['ihsan']}")
+            health = status.get('health', {})
+            print(f"Health:     {health.get('status', 'unknown')}")
+            print(f"Score:      {health.get('score', 'N/A')}")
+            print(f"SNR:        {health.get('snr', 'N/A')}")
+            print(f"Ihsan:      {health.get('ihsan', 'N/A')}")
             print("-" * 60)
             print("Local Backends (Zero-Token Operation):")
             for b in backends:
