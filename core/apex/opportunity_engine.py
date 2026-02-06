@@ -45,15 +45,17 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional, Tuple
 
+from core.integration.constants import UNIFIED_SNR_THRESHOLD
+
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# CONSTANTS (Standing on Giants)
+# CONSTANTS (Standing on Giants — imported from single source of truth)
 # =============================================================================
 
 # SNR threshold (Shannon)
-SNR_THRESHOLD = 0.85
+SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
 
 # Risk-free rate assumption (for Sharpe calculation)
 RISK_FREE_RATE = 0.02

@@ -35,13 +35,15 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from core.integration.constants import SNR_THRESHOLD_T1_HIGH, UNIFIED_SNR_THRESHOLD
+
 from .event_bus import EventBus, EventPriority, get_event_bus
 
 logger = logging.getLogger(__name__)
 
-# SNR thresholds (Shannon-inspired)
-SNR_FLOOR: float = 0.85
-SNR_HIGH: float = 0.95
+# SNR thresholds (Shannon-inspired — imported from single source of truth)
+SNR_FLOOR: float = UNIFIED_SNR_THRESHOLD
+SNR_HIGH: float = SNR_THRESHOLD_T1_HIGH
 
 
 class SensorDomain(str, Enum):
