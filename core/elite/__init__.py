@@ -87,9 +87,10 @@ def __getattr__(name: str):
 
         return ElitePipeline
     elif name == "MetricsDashboard":
-        from .metrics import MetricsDashboard
-
-        return MetricsDashboard
+        # TODO: core/elite/metrics.py does not exist yet -- create it or remove this lazy import
+        raise ImportError(
+            "MetricsDashboard requires core.elite.metrics which has not been created yet"
+        )
     elif name == "RiskManager":
         from .risk import RiskManager
 
@@ -99,9 +100,10 @@ def __getattr__(name: str):
 
         return SAPEOptimizer
     elif name == "IhsanValidator":
-        from .ihsan import IhsanValidator
-
-        return IhsanValidator
+        # TODO: core/elite/ihsan.py does not exist yet -- create it or remove this lazy import
+        raise ImportError(
+            "IhsanValidator requires core.elite.ihsan which has not been created yet"
+        )
     # v1.1.0 additions
     elif name == "FATEGate":
         from .hooks import FATEGate

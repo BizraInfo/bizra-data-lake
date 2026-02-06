@@ -107,9 +107,10 @@ def __getattr__(name: str):
 
         return PATMessage
     elif name == "ChannelAdapter":
-        from .channels import ChannelAdapter
-
-        return ChannelAdapter
+        # TODO: core/pat/channels.py does not exist yet -- create it or remove this lazy import
+        raise ImportError(
+            "ChannelAdapter requires core.pat.channels which has not been created yet"
+        )
 
     # Identity Card module
     elif name == "IdentityCard":
