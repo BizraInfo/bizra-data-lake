@@ -49,46 +49,40 @@ logging.basicConfig(
 # PUBLIC API - Re-export from modular components
 # =============================================================================
 
-# Type definitions and protocols
-from .runtime_types import (
-    # TypedDicts
-    ReasoningResult,
-    SNRResult,
-    ValidationResult,
-    AutonomousCycleResult,
-    LoopStatus,
-    # Protocols
-    GraphReasonerProtocol,
-    SNROptimizerProtocol,
-    GuardianProtocol,
-    AutonomousLoopProtocol,
-    # Enums
-    RuntimeMode,
-    HealthStatus,
-    # Config
-    RuntimeConfig,
-    RuntimeMetrics,
-    # Query/Result
-    SovereignQuery,
-    SovereignResult,
-)
-
-# Stub implementations for graceful degradation
-from .runtime_stubs import (
-    ComponentStub,
-    GraphReasonerStub,
-    SNROptimizerStub,
-    GuardianStub,
-    AutonomousLoopStub,
-    StubFactory,
-)
+# CLI interface
+from .runtime_cli import cli_main
 
 # Core runtime class
 from .runtime_core import SovereignRuntime
 
-# CLI interface
-from .runtime_cli import cli_main
+# Stub implementations for graceful degradation
+from .runtime_stubs import (
+    AutonomousLoopStub,
+    ComponentStub,
+    GraphReasonerStub,
+    GuardianStub,
+    SNROptimizerStub,
+    StubFactory,
+)
 
+# Type definitions and protocols
+from .runtime_types import (  # TypedDicts; Protocols; Enums; Config; Query/Result
+    AutonomousCycleResult,
+    AutonomousLoopProtocol,
+    GraphReasonerProtocol,
+    GuardianProtocol,
+    HealthStatus,
+    LoopStatus,
+    ReasoningResult,
+    RuntimeConfig,
+    RuntimeMetrics,
+    RuntimeMode,
+    SNROptimizerProtocol,
+    SNRResult,
+    SovereignQuery,
+    SovereignResult,
+    ValidationResult,
+)
 
 # =============================================================================
 # EXPORTS

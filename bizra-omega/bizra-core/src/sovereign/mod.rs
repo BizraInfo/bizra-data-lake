@@ -40,15 +40,17 @@
 //! ```
 
 pub mod error;
-pub mod orchestrator;
-pub mod graph_of_thoughts;
-pub mod snr_engine;
 pub mod giants;
+pub mod graph_of_thoughts;
 pub mod omega;
+pub mod orchestrator;
+pub mod snr_engine;
 
-pub use error::{SovereignError, SovereignResult, ErrorContext};
-pub use orchestrator::{SovereignOrchestrator, OrchestratorConfig};
-pub use graph_of_thoughts::{ThoughtGraph, ThoughtNode, ThoughtType, ReasoningPath, AggregateResult, GraphStats};
-pub use snr_engine::{SNREngine, SignalMetrics, SNRConfig};
-pub use giants::{GiantRegistry, Giant, Contribution};
-pub use omega::{OmegaEngine, OmegaConfig, OmegaMetrics, CircuitState};
+pub use error::{ErrorContext, SovereignError, SovereignResult};
+pub use giants::{Contribution, Giant, GiantRegistry};
+pub use graph_of_thoughts::{
+    AggregateResult, GraphStats, ReasoningPath, ThoughtGraph, ThoughtNode, ThoughtType,
+};
+pub use omega::{CircuitState, OmegaConfig, OmegaEngine, OmegaMetrics};
+pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
+pub use snr_engine::{SNRConfig, SNREngine, SignalMetrics};

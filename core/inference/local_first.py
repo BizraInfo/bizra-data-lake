@@ -16,15 +16,16 @@ Standing on Giants:
 
 import asyncio
 import logging
-from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List
+from enum import Enum
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 
 class LocalBackend(str, Enum):
     """Available local backends (zero-token operation)."""
+
     LMSTUDIO = "lmstudio"
     OLLAMA = "ollama"
     LLAMACPP = "llamacpp"
@@ -34,6 +35,7 @@ class LocalBackend(str, Enum):
 @dataclass
 class BackendStatus:
     """Status of a local backend."""
+
     backend: LocalBackend
     available: bool
     latency_ms: float
@@ -74,10 +76,7 @@ class LocalFirstDetector:
                 statuses.append(result)
 
         # Sort by availability (available first), then by latency
-        return sorted(
-            statuses,
-            key=lambda s: (not s.available, s.latency_ms)
-        )
+        return sorted(statuses, key=lambda s: (not s.available, s.latency_ms))
 
     @classmethod
     async def select_best(cls) -> LocalBackend:
@@ -119,16 +118,16 @@ class LocalFirstDetector:
                         backend=LocalBackend.LMSTUDIO,
                         available=True,
                         latency_ms=latency,
-                        reason="LM Studio v1 API responsive"
+                        reason="LM Studio v1 API responsive",
                     )
-        except Exception as e:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.LMSTUDIO,
             available=False,
             latency_ms=latency,
-            reason=f"LM Studio unreachable ({str(e)[:40]})"
+            reason=f"LM Studio unreachable ({str(e)[:40]})",
         )
 
     @classmethod
@@ -150,16 +149,16 @@ class LocalFirstDetector:
                         backend=LocalBackend.OLLAMA,
                         available=True,
                         latency_ms=latency,
-                        reason="Ollama API responsive"
+                        reason="Ollama API responsive",
                     )
-        except Exception as e:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.OLLAMA,
             available=False,
             latency_ms=latency,
-            reason=f"Ollama unreachable ({str(e)[:40]})"
+            reason=f"Ollama unreachable ({str(e)[:40]})",
         )
 
     @classmethod
@@ -183,16 +182,20 @@ class LocalFirstDetector:
                 backend=LocalBackend.LLAMACPP,
                 available=available,
                 latency_ms=latency,
-                reason="llama.cpp embedded backend" if available else "llama.cpp unavailable"
+                reason=(
+                    "llama.cpp embedded backend"
+                    if available
+                    else "llama.cpp unavailable"
+                ),
             )
-        except Exception as e:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.LLAMACPP,
             available=False,
             latency_ms=latency,
-            reason=f"llama.cpp check failed ({str(e)[:40]})"
+            reason=f"llama.cpp check failed ({str(e)[:40]})",
         )
 
 

@@ -47,16 +47,14 @@ Created: 2026-02-04 | BIZRA Sovereign Runtime v1.0
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from heapq import heappush, heappop, nlargest
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar
+from enum import Enum
+from heapq import heappop, heappush
+from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -70,18 +68,20 @@ REFINEMENT_ITERATIONS: int = 3
 
 class ThoughtType(str, Enum):
     """Types of thought operations."""
-    ROOT = "root"              # Starting thought
-    GENERATE = "generate"      # New thought generation
-    AGGREGATE = "aggregate"    # Combining multiple thoughts
-    REFINE = "refine"          # Iterative improvement
-    VALIDATE = "validate"      # Quality scoring
-    PRUNE = "prune"            # Removal marker
-    BACKTRACK = "backtrack"    # Return to earlier state
-    SOLUTION = "solution"      # Final answer
+
+    ROOT = "root"  # Starting thought
+    GENERATE = "generate"  # New thought generation
+    AGGREGATE = "aggregate"  # Combining multiple thoughts
+    REFINE = "refine"  # Iterative improvement
+    VALIDATE = "validate"  # Quality scoring
+    PRUNE = "prune"  # Removal marker
+    BACKTRACK = "backtrack"  # Return to earlier state
+    SOLUTION = "solution"  # Final answer
 
 
 class ThoughtStatus(str, Enum):
     """Status of a thought node."""
+
     ACTIVE = "active"
     PRUNED = "pruned"
     MERGED = "merged"
@@ -96,15 +96,16 @@ class ThoughtNode:
     Each node represents a reasoning step with content,
     quality scores, and connections to other nodes.
     """
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     content: str = ""
     thought_type: ThoughtType = ThoughtType.GENERATE
 
     # Quality metrics
-    score: float = 0.5           # Overall quality [0, 1]
-    confidence: float = 0.5      # Certainty in the thought
-    coherence: float = 0.5       # Internal consistency
-    relevance: float = 0.5       # Relevance to goal
+    score: float = 0.5  # Overall quality [0, 1]
+    confidence: float = 0.5  # Certainty in the thought
+    coherence: float = 0.5  # Internal consistency
+    relevance: float = 0.5  # Relevance to goal
 
     # Graph structure
     parent_ids: List[str] = field(default_factory=list)
@@ -122,15 +123,16 @@ class ThoughtNode:
 
     def combined_score(self) -> float:
         """Calculate combined quality score."""
-        return (self.confidence * 0.4 + self.coherence * 0.3 + self.relevance * 0.3)
+        return self.confidence * 0.4 + self.coherence * 0.3 + self.relevance * 0.3
 
 
 @dataclass
 class ThoughtEdge:
     """An edge connecting two thought nodes."""
+
     source_id: str
     target_id: str
-    edge_type: str = "derives"   # derives, aggregates, refines
+    edge_type: str = "derives"  # derives, aggregates, refines
     weight: float = 1.0
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -138,6 +140,7 @@ class ThoughtEdge:
 @dataclass
 class GoTResult:
     """Result of a Graph-of-Thoughts reasoning process."""
+
     goal: str
     solution: Optional[ThoughtNode]
     explored_nodes: int
@@ -214,7 +217,7 @@ class ThoughtGraph:
     def _default_scorer(self, node: ThoughtNode) -> float:
         """Default scoring function based on node properties."""
         # Simple heuristic scoring
-        depth_penalty = 0.95 ** node.depth  # Prefer shallower solutions
+        depth_penalty = 0.95**node.depth  # Prefer shallower solutions
         return node.combined_score() * depth_penalty
 
     def _default_generator(self, parent: ThoughtNode, goal: str) -> List[str]:
@@ -225,7 +228,7 @@ class ThoughtGraph:
             f"Approach 2: Find similar solved problems for '{goal}'",
             f"Approach 3: Identify key constraints in '{goal}'",
         ]
-        return base_thoughts[:self.max_branches]
+        return base_thoughts[: self.max_branches]
 
     def create_root(self, goal: str) -> ThoughtNode:
         """Create the root node from a goal."""
@@ -260,7 +263,7 @@ class ThoughtGraph:
         thought_contents = generator(parent, goal)
 
         new_nodes = []
-        for content in thought_contents[:self.max_branches]:
+        for content in thought_contents[: self.max_branches]:
             node = ThoughtNode(
                 content=content,
                 thought_type=ThoughtType.GENERATE,
@@ -324,18 +327,22 @@ class ThoughtGraph:
         # Update parent references
         for node in nodes:
             node.child_ids.append(aggregated.id)
-            self._edges.append(ThoughtEdge(
-                source_id=node.id,
-                target_id=aggregated.id,
-                edge_type="aggregates",
-            ))
+            self._edges.append(
+                ThoughtEdge(
+                    source_id=node.id,
+                    target_id=aggregated.id,
+                    edge_type="aggregates",
+                )
+            )
 
         heappush(self._frontier, aggregated)
 
         logger.debug(f"Aggregated {len(nodes)} nodes into {aggregated.id}")
         return aggregated
 
-    def refine(self, node: ThoughtNode, iterations: int = REFINEMENT_ITERATIONS) -> ThoughtNode:
+    def refine(
+        self, node: ThoughtNode, iterations: int = REFINEMENT_ITERATIONS
+    ) -> ThoughtNode:
         """
         REFINE: Iteratively improve a thought.
 
@@ -361,11 +368,13 @@ class ThoughtGraph:
             self._nodes[refined.id] = refined
             current.child_ids.append(refined.id)
 
-            self._edges.append(ThoughtEdge(
-                source_id=current.id,
-                target_id=refined.id,
-                edge_type="refines",
-            ))
+            self._edges.append(
+                ThoughtEdge(
+                    source_id=current.id,
+                    target_id=refined.id,
+                    edge_type="refines",
+                )
+            )
 
             current = refined
 
@@ -527,7 +536,9 @@ class ThoughtGraph:
         # Get results
         best_path = self.get_best_path()
         solution = best_path[-1] if best_path else None
-        pruned_count = sum(1 for n in self._nodes.values() if n.status == ThoughtStatus.PRUNED)
+        pruned_count = sum(
+            1 for n in self._nodes.values() if n.status == ThoughtStatus.PRUNED
+        )
 
         result = GoTResult(
             goal=goal,
@@ -565,11 +576,15 @@ class ThoughtGraph:
                 ThoughtStatus.SOLUTION: "★",
             }.get(node.status, "?")
 
-            content_preview = node.content[:40] + "..." if len(node.content) > 40 else node.content
+            content_preview = (
+                node.content[:40] + "..." if len(node.content) > 40 else node.content
+            )
             line = f"{prefix}{connector}{status_icon} [{node.id}] {content_preview} (score={node.score:.2f})"
             lines.append(line)
 
-            children = [self._nodes[cid] for cid in node.child_ids if cid in self._nodes]
+            children = [
+                self._nodes[cid] for cid in node.child_ids if cid in self._nodes
+            ]
             for i, child in enumerate(children):
                 is_child_last = i == len(children) - 1
                 child_prefix = prefix + ("    " if is_last else "│   ")

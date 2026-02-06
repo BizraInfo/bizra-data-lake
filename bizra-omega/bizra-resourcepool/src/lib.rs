@@ -38,8 +38,8 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 // Re-export integration types
-pub use bizra_proofspace::{BizraBlock, Verdict, ValidationResult};
-pub use bizra_telescript::{Authority, Permit, Capability, Agent, Place, AgentState};
+pub use bizra_proofspace::{BizraBlock, ValidationResult, Verdict};
+pub use bizra_telescript::{Agent, AgentState, Authority, Capability, Permit, Place};
 
 // Genesis module
 pub mod genesis;
@@ -848,7 +848,10 @@ impl ResourcePool {
     }
 
     /// Register a new node to the pool
-    pub async fn register_node(&self, request: RegistrationRequest) -> Result<RegistrationResponse> {
+    pub async fn register_node(
+        &self,
+        request: RegistrationRequest,
+    ) -> Result<RegistrationResponse> {
         // Check if already registered
         {
             let nodes = self.nodes.read().await;
@@ -863,9 +866,12 @@ impl ResourcePool {
         if request.requested_class != NodeClass::Genesis {
             if let Some(ref sponsor_id) = request.sponsor_node {
                 let nodes = self.nodes.read().await;
-                let sponsor = nodes.get(sponsor_id).ok_or_else(|| PoolError::NodeNotRegistered {
-                    node_id: sponsor_id.clone(),
-                })?;
+                let sponsor =
+                    nodes
+                        .get(sponsor_id)
+                        .ok_or_else(|| PoolError::NodeNotRegistered {
+                            node_id: sponsor_id.clone(),
+                        })?;
 
                 // Sponsor must be active and have sufficient Ihsan
                 if sponsor.status != NodeStatus::Active {
@@ -899,14 +905,13 @@ impl ResourcePool {
             reason: format!("Invalid node ID: {}", e),
         })?;
 
-        let verifying_key = VerifyingKey::from_bytes(
-            &pk_bytes.try_into().map_err(|_| PoolError::CryptoError {
+        let verifying_key =
+            VerifyingKey::from_bytes(&pk_bytes.try_into().map_err(|_| PoolError::CryptoError {
                 reason: "Invalid key length".to_string(),
-            })?,
-        )
-        .map_err(|e| PoolError::CryptoError {
-            reason: format!("Invalid public key: {}", e),
-        })?;
+            })?)
+            .map_err(|e| PoolError::CryptoError {
+                reason: format!("Invalid public key: {}", e),
+            })?;
 
         // Create the new node
         let place_id = Uuid::new_v4();
@@ -970,9 +975,11 @@ impl ResourcePool {
     ) -> Result<MintProof> {
         // Verify node exists and is active
         let mut nodes = self.nodes.write().await;
-        let node = nodes.get_mut(node_id).ok_or_else(|| PoolError::NodeNotRegistered {
-            node_id: node_id.to_string(),
-        })?;
+        let node = nodes
+            .get_mut(node_id)
+            .ok_or_else(|| PoolError::NodeNotRegistered {
+                node_id: node_id.to_string(),
+            })?;
 
         if node.status != NodeStatus::Active {
             return Err(PoolError::FateRejection {
@@ -1037,14 +1044,14 @@ impl ResourcePool {
         let base_amount = match contribution.resource_type {
             ResourceType::Cpu => contribution.quantity * TOKENS_PER_COMPUTE_UNIT,
             ResourceType::Gpu => contribution.quantity * TOKENS_PER_COMPUTE_UNIT * 10, // GPUs worth more
-            ResourceType::Memory => contribution.quantity / 1024 / 1024, // Per MB
-            ResourceType::Storage => contribution.quantity / 1024 / 1024 / 1024, // Per GB
+            ResourceType::Memory => contribution.quantity / 1024 / 1024,               // Per MB
+            ResourceType::Storage => contribution.quantity / 1024 / 1024 / 1024,       // Per GB
             ResourceType::Network => contribution.quantity / 1024 / 1024, // Per MB transferred
-            ResourceType::Inference => contribution.quantity * 10, // Per inference token
+            ResourceType::Inference => contribution.quantity * 10,        // Per inference token
         };
 
         // Adjust for duration and utilization
-        let duration_factor = contribution.duration_seconds as u64 / 3600; // Per hour
+        let duration_factor = contribution.duration_seconds / 3600; // Per hour
         let utilization_factor = contribution.utilization as u64;
 
         (base_amount * duration_factor * utilization_factor) / 100
@@ -1055,11 +1062,12 @@ impl ResourcePool {
         // Verify provider exists
         {
             let nodes = self.nodes.read().await;
-            let provider = nodes.get(&service.provider_node).ok_or_else(|| {
-                PoolError::NodeNotRegistered {
-                    node_id: service.provider_node.clone(),
-                }
-            })?;
+            let provider =
+                nodes
+                    .get(&service.provider_node)
+                    .ok_or_else(|| PoolError::NodeNotRegistered {
+                        node_id: service.provider_node.clone(),
+                    })?;
 
             provider.passes_ihsan()?;
         }
@@ -1092,19 +1100,23 @@ impl ResourcePool {
         // Get service
         let service = {
             let services = self.services.read().await;
-            services.get(&service_id).cloned().ok_or_else(|| PoolError::ServiceNotFound {
-                service_id: service_id.to_string(),
-            })?
+            services
+                .get(&service_id)
+                .cloned()
+                .ok_or_else(|| PoolError::ServiceNotFound {
+                    service_id: service_id.to_string(),
+                })?
         };
 
         // Check invoker balance
         {
             let mut nodes = self.nodes.write().await;
-            let invoker = nodes.get_mut(invoker_node).ok_or_else(|| {
-                PoolError::NodeNotRegistered {
-                    node_id: invoker_node.to_string(),
-                }
-            })?;
+            let invoker =
+                nodes
+                    .get_mut(invoker_node)
+                    .ok_or_else(|| PoolError::NodeNotRegistered {
+                        node_id: invoker_node.to_string(),
+                    })?;
 
             if invoker.token_balance < service.price_per_call {
                 return Err(PoolError::InsufficientBalance {
@@ -1142,9 +1154,11 @@ impl ResourcePool {
         // Verify node exists
         {
             let nodes = self.nodes.read().await;
-            let _node = nodes.get(owner_node).ok_or_else(|| PoolError::NodeNotRegistered {
-                node_id: owner_node.to_string(),
-            })?;
+            let _node = nodes
+                .get(owner_node)
+                .ok_or_else(|| PoolError::NodeNotRegistered {
+                    node_id: owner_node.to_string(),
+                })?;
         }
 
         // Check if PAT already exists
@@ -1162,7 +1176,10 @@ impl ResourcePool {
             created_at: Utc::now(),
         };
 
-        self.pat_teams.write().await.insert(owner_node.to_string(), pat.clone());
+        self.pat_teams
+            .write()
+            .await
+            .insert(owner_node.to_string(), pat.clone());
 
         tracing::info!(owner = %owner_node, "PAT created");
 
@@ -1233,10 +1250,7 @@ impl ResourcePool {
             distribution_hash: *hasher.finalize().as_bytes(),
         };
 
-        tracing::info!(
-            total = total_collected,
-            "Zakat distribution processed"
-        );
+        tracing::info!(total = total_collected, "Zakat distribution processed");
 
         Ok(distribution)
     }
@@ -1254,13 +1268,17 @@ impl ResourcePool {
         if self_assessment < min_assessment {
             return Err(PoolError::FateRejection {
                 gate: "HARBERGER".to_string(),
-                reason: format!("Self-assessment {} below minimum {}", self_assessment, min_assessment),
+                reason: format!(
+                    "Self-assessment {} below minimum {}",
+                    self_assessment, min_assessment
+                ),
             });
         }
 
-        let annual_tax = (Decimal::from(self_assessment) * Decimal::from(quantity) * HARBERGER_TAX_RATE)
-            .to_u64()
-            .unwrap_or(0);
+        let annual_tax =
+            (Decimal::from(self_assessment) * Decimal::from(quantity) * HARBERGER_TAX_RATE)
+                .to_u64()
+                .unwrap_or(0);
 
         let listing_id = Uuid::new_v4();
 
@@ -1280,7 +1298,10 @@ impl ResourcePool {
             listing_hash: *hasher.finalize().as_bytes(),
         };
 
-        self.harberger_listings.write().await.insert(listing_id, listing.clone());
+        self.harberger_listings
+            .write()
+            .await
+            .insert(listing_id, listing.clone());
 
         tracing::info!(
             listing_id = %listing_id,
@@ -1294,11 +1315,12 @@ impl ResourcePool {
     /// Process Harberger offer (forced sale at self-assessed price)
     pub async fn process_harberger_offer(&self, offer: HarbergerOffer) -> Result<bool> {
         let mut listings = self.harberger_listings.write().await;
-        let listing = listings.get_mut(&offer.listing_id).ok_or_else(|| {
-            PoolError::ResourceNotAvailable {
-                resource_type: "listing".to_string(),
-            }
-        })?;
+        let listing =
+            listings
+                .get_mut(&offer.listing_id)
+                .ok_or_else(|| PoolError::ResourceNotAvailable {
+                    resource_type: "listing".to_string(),
+                })?;
 
         // Offer must be >= self-assessment
         if offer.offered_price < listing.self_assessment {
@@ -1405,15 +1427,20 @@ impl ResourcePool {
         let pat_teams = self.pat_teams.read().await;
         let sat_teams = self.sat_teams.read().await;
 
-        let active_nodes = nodes.values().filter(|n| n.status == NodeStatus::Active).count();
+        let active_nodes = nodes
+            .values()
+            .filter(|n| n.status == NodeStatus::Active)
+            .count();
         let total_staked: u64 = nodes.values().map(|n| n.token_balance).sum();
-        let total_compute: u64 = nodes.values().map(|n| n.resources.cpu_millicores as u64).sum();
+        let total_compute: u64 = nodes
+            .values()
+            .map(|n| n.resources.cpu_millicores as u64)
+            .sum();
 
         let avg_ihsan = if nodes.is_empty() {
             Decimal::ZERO
         } else {
-            nodes.values().map(|n| n.ihsan_score).sum::<Decimal>()
-                / Decimal::from(nodes.len())
+            nodes.values().map(|n| n.ihsan_score).sum::<Decimal>() / Decimal::from(nodes.len())
         };
 
         PoolStats {
@@ -1460,9 +1487,9 @@ mod hex_verifying_key {
     {
         let s = String::deserialize(deserializer)?;
         let bytes = hex::decode(&s).map_err(serde::de::Error::custom)?;
-        let arr: [u8; 32] = bytes.try_into().map_err(|_| {
-            serde::de::Error::custom("Invalid key length")
-        })?;
+        let arr: [u8; 32] = bytes
+            .try_into()
+            .map_err(|_| serde::de::Error::custom("Invalid key length"))?;
         VerifyingKey::from_bytes(&arr).map_err(serde::de::Error::custom)
     }
 }
@@ -1488,13 +1515,9 @@ mod tests {
         let (_, verifying_key) = generate_keypair();
         let node_id = hex::encode(verifying_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            node_id.clone(),
-            "Node0-MoMo".to_string(),
-            verifying_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(node_id.clone(), "Node0-MoMo".to_string(), verifying_key)
+            .await
+            .unwrap();
 
         let stats = pool.stats().await;
         assert_eq!(stats.total_nodes, 1);
@@ -1510,13 +1533,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         // Register a new node
         let (_, new_key) = generate_keypair();
@@ -1545,13 +1564,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         let contribution = ResourceContribution {
             resource_type: ResourceType::Cpu,
@@ -1561,7 +1576,10 @@ mod tests {
             proof_block_id: None,
         };
 
-        let proof = pool.contribute_resources(&genesis_id, contribution).await.unwrap();
+        let proof = pool
+            .contribute_resources(&genesis_id, contribution)
+            .await
+            .unwrap();
         assert!(proof.tokens_minted > 0);
 
         let node = pool.get_node(&genesis_id).await.unwrap();
@@ -1573,13 +1591,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         let node = pool.get_node(&genesis_id).await.unwrap();
 
@@ -1593,13 +1607,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         // With single node, Gini should be 0
         let gini = pool.calculate_gini().await;
@@ -1614,13 +1624,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         let pat = pool.create_pat(&genesis_id).await.unwrap();
         assert_eq!(pat.owner_node, genesis_id);
@@ -1632,13 +1638,9 @@ mod tests {
         let (_, genesis_key) = generate_keypair();
         let genesis_id = hex::encode(genesis_key.as_bytes());
 
-        let pool = ResourcePool::genesis(
-            genesis_id.clone(),
-            "Node0".to_string(),
-            genesis_key,
-        )
-        .await
-        .unwrap();
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
 
         let listing = pool
             .create_harberger_listing(&genesis_id, ResourceType::Cpu, 1000, 10000)

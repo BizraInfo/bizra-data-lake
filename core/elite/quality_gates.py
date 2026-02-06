@@ -10,24 +10,23 @@ Implements PMBOK Quality Management with Ihsān principles:
 Standing on Giants: PMBOK + ISO 9001 + Constitutional AI
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from core.elite import IHSAN_DIMENSIONS, SAPE_LAYERS, SNR_TARGETS
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
-from core.elite import IHSAN_DIMENSIONS, SNR_TARGETS, SAPE_LAYERS
 
 logger = logging.getLogger(__name__)
 
 
 class GateStatus(str, Enum):
     """Quality gate status."""
+
     PENDING = "pending"
     PASSED = "passed"
     FAILED = "failed"
@@ -37,15 +36,17 @@ class GateStatus(str, Enum):
 
 class GateLevel(str, Enum):
     """Gate severity level."""
-    ADVISORY = "advisory"      # Warn but allow
-    STANDARD = "standard"      # Block but can override
-    MANDATORY = "mandatory"    # Block, no override
+
+    ADVISORY = "advisory"  # Warn but allow
+    STANDARD = "standard"  # Block but can override
+    MANDATORY = "mandatory"  # Block, no override
     CONSTITUTIONAL = "constitutional"  # Immutable, never override
 
 
 @dataclass
 class GateCriterion:
     """A single criterion within a quality gate."""
+
     name: str
     description: str
     threshold: float
@@ -69,6 +70,7 @@ class GateCriterion:
 @dataclass
 class GateResult:
     """Result of a quality gate evaluation."""
+
     gate_name: str
     status: GateStatus
     overall_score: float
@@ -131,27 +133,36 @@ class QualityGate:
         # Ihsān dimensional criteria
         for dimension, weight in IHSAN_DIMENSIONS.items():
             level = (
-                GateLevel.CONSTITUTIONAL if dimension in ("correctness", "safety")
-                else GateLevel.MANDATORY if dimension == "user_benefit"
-                else GateLevel.STANDARD
+                GateLevel.CONSTITUTIONAL
+                if dimension in ("correctness", "safety")
+                else (
+                    GateLevel.MANDATORY
+                    if dimension == "user_benefit"
+                    else GateLevel.STANDARD
+                )
             )
 
-            self._exit_criteria.append(GateCriterion(
-                name=f"ihsan_{dimension}",
-                description=f"Ihsān dimension: {dimension}",
-                threshold=self.ihsan_threshold * 0.9,  # Slightly relaxed per-dimension
-                weight=weight,
-                level=level,
-            ))
+            self._exit_criteria.append(
+                GateCriterion(
+                    name=f"ihsan_{dimension}",
+                    description=f"Ihsān dimension: {dimension}",
+                    threshold=self.ihsan_threshold
+                    * 0.9,  # Slightly relaxed per-dimension
+                    weight=weight,
+                    level=level,
+                )
+            )
 
         # SNR criterion
-        self._exit_criteria.append(GateCriterion(
-            name="snr_threshold",
-            description=f"SNR for {self.sape_layer} layer",
-            threshold=self.snr_threshold,
-            weight=1.0,
-            level=GateLevel.MANDATORY,
-        ))
+        self._exit_criteria.append(
+            GateCriterion(
+                name="snr_threshold",
+                description=f"SNR for {self.sape_layer} layer",
+                threshold=self.snr_threshold,
+                weight=1.0,
+                level=GateLevel.MANDATORY,
+            )
+        )
 
     def add_entry_criterion(
         self,
@@ -163,14 +174,16 @@ class QualityGate:
         validator: Optional[Callable] = None,
     ) -> None:
         """Add an entry criterion."""
-        self._entry_criteria.append(GateCriterion(
-            name=name,
-            description=description,
-            threshold=threshold,
-            weight=weight,
-            level=level,
-            validator=validator,
-        ))
+        self._entry_criteria.append(
+            GateCriterion(
+                name=name,
+                description=description,
+                threshold=threshold,
+                weight=weight,
+                level=level,
+                validator=validator,
+            )
+        )
 
     def add_exit_criterion(
         self,
@@ -182,16 +195,20 @@ class QualityGate:
         validator: Optional[Callable] = None,
     ) -> None:
         """Add an exit criterion."""
-        self._exit_criteria.append(GateCriterion(
-            name=name,
-            description=description,
-            threshold=threshold,
-            weight=weight,
-            level=level,
-            validator=validator,
-        ))
+        self._exit_criteria.append(
+            GateCriterion(
+                name=name,
+                description=description,
+                threshold=threshold,
+                weight=weight,
+                level=level,
+                validator=validator,
+            )
+        )
 
-    def _compute_ihsan_score(self, criteria_results: Dict[str, Tuple[bool, float]]) -> float:
+    def _compute_ihsan_score(
+        self, criteria_results: Dict[str, Tuple[bool, float]]
+    ) -> float:
         """Compute overall Ihsān score from dimensional results."""
         total_weight = 0.0
         weighted_sum = 0.0
@@ -207,7 +224,9 @@ class QualityGate:
             return weighted_sum / total_weight
         return 0.0
 
-    def _compute_snr_score(self, criteria_results: Dict[str, Tuple[bool, float]]) -> float:
+    def _compute_snr_score(
+        self, criteria_results: Dict[str, Tuple[bool, float]]
+    ) -> float:
         """Extract SNR score from criteria results."""
         if "snr_threshold" in criteria_results:
             return criteria_results["snr_threshold"][1]
@@ -226,7 +245,10 @@ class QualityGate:
             passed, score = criterion.validate(value)
             criteria_results[criterion.name] = (passed, score)
 
-            if not passed and criterion.level in (GateLevel.MANDATORY, GateLevel.CONSTITUTIONAL):
+            if not passed and criterion.level in (
+                GateLevel.MANDATORY,
+                GateLevel.CONSTITUTIONAL,
+            ):
                 blocking.append(criterion.name)
 
         status = GateStatus.PASSED if not blocking else GateStatus.BLOCKED
@@ -234,12 +256,17 @@ class QualityGate:
         return GateResult(
             gate_name=f"{self.name}_entry",
             status=status,
-            overall_score=sum(r[1] for r in criteria_results.values()) / max(len(criteria_results), 1),
+            overall_score=sum(r[1] for r in criteria_results.values())
+            / max(len(criteria_results), 1),
             ihsan_score=self._compute_ihsan_score(criteria_results),
             snr_score=self._compute_snr_score(criteria_results),
             criteria_results=criteria_results,
             blocking_criteria=blocking,
-            message="Entry validation complete" if status == GateStatus.PASSED else f"Blocked by: {blocking}",
+            message=(
+                "Entry validation complete"
+                if status == GateStatus.PASSED
+                else f"Blocked by: {blocking}"
+            ),
         )
 
     async def validate_exit(
@@ -273,12 +300,17 @@ class QualityGate:
         return GateResult(
             gate_name=f"{self.name}_exit",
             status=status,
-            overall_score=sum(r[1] for r in criteria_results.values()) / max(len(criteria_results), 1),
+            overall_score=sum(r[1] for r in criteria_results.values())
+            / max(len(criteria_results), 1),
             ihsan_score=ihsan_score,
             snr_score=snr_score,
             criteria_results=criteria_results,
             blocking_criteria=blocking,
-            message="Exit validation passed" if status == GateStatus.PASSED else f"Failed criteria: {blocking}",
+            message=(
+                "Exit validation passed"
+                if status == GateStatus.PASSED
+                else f"Failed criteria: {blocking}"
+            ),
         )
 
     async def validate(

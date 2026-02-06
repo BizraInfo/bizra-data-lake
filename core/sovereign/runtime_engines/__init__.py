@@ -57,42 +57,42 @@ from .giants_registry import (
     GiantApplication,
     GiantCategory,
     GiantsRegistry,
-    get_giants_registry,
     attribute,
+    get_giants_registry,
+)
+
+# Graph-of-Thoughts Bridge — Multi-Path Reasoning
+from .got_bridge import (
+    MAX_BRANCHES,
+    MAX_DEPTH,
+    PRUNE_THRESHOLD,
+    GoTBridge,
+    GoTResult,
+    ThoughtEdge,
+    ThoughtGraph,
+    ThoughtNode,
+    ThoughtStatus,
+    ThoughtType,
+    get_got_bridge,
+    think,
 )
 
 # SNR Maximizer — Shannon-Inspired Signal Optimization
 from .snr_maximizer import (
-    Signal,
-    SignalQuality,
-    NoiseType,
+    SNR_CHANNEL_CAPACITY,
+    SNR_EXCELLENT,
+    SNR_FLOOR,
     ChannelMetrics,
     NoiseEstimator,
+    NoiseType,
+    Signal,
     SignalExtractor,
+    SignalQuality,
     SNRCalculator,
     SNRFilter,
     SNRMaximizer,
     get_snr_maximizer,
     snr_filter,
-    SNR_FLOOR,
-    SNR_EXCELLENT,
-    SNR_CHANNEL_CAPACITY,
-)
-
-# Graph-of-Thoughts Bridge — Multi-Path Reasoning
-from .got_bridge import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
-    ThoughtStatus,
-    ThoughtGraph,
-    GoTResult,
-    GoTBridge,
-    get_got_bridge,
-    think,
-    MAX_DEPTH,
-    MAX_BRANCHES,
-    PRUNE_THRESHOLD,
 )
 
 __all__ = [

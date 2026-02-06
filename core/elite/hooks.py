@@ -32,28 +32,24 @@ import functools
 import hashlib
 import logging
 import time
-from abc import ABC, abstractmethod
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from typing import (
     Any,
     Awaitable,
     Callable,
     Dict,
-    Generic,
     List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
-import uuid
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    IHSAN_WEIGHTS,
 )
 
 logger = logging.getLogger(__name__)
@@ -74,28 +70,31 @@ HookFunction = Union[SyncHook, AsyncHook]
 
 class HookPhase(str, Enum):
     """Phase in the hook execution chain."""
-    PRE_VALIDATE = "pre_validate"   # Before validation (schema check)
-    PRE_EXECUTE = "pre_execute"     # Before execution (business logic)
-    EXECUTE = "execute"             # The actual operation
-    POST_EXECUTE = "post_execute"   # After execution (cleanup)
-    POST_VALIDATE = "post_validate" # Final validation (quality check)
+
+    PRE_VALIDATE = "pre_validate"  # Before validation (schema check)
+    PRE_EXECUTE = "pre_execute"  # Before execution (business logic)
+    EXECUTE = "execute"  # The actual operation
+    POST_EXECUTE = "post_execute"  # After execution (cleanup)
+    POST_VALIDATE = "post_validate"  # Final validation (quality check)
 
 
 class HookPriority(Enum):
     """Hook execution priority (lower = earlier)."""
-    CRITICAL = 0    # Security, ethics (FATE)
-    HIGH = 10       # Quality gates (Ihsan)
-    NORMAL = 50     # Standard hooks
-    LOW = 90        # Logging, metrics
+
+    CRITICAL = 0  # Security, ethics (FATE)
+    HIGH = 10  # Quality gates (Ihsan)
+    NORMAL = 50  # Standard hooks
+    LOW = 90  # Logging, metrics
     DEFERRED = 100  # Non-blocking cleanup
 
 
 class FATEDimension(str, Enum):
     """FATE validation dimensions."""
-    FIDELITY = "fidelity"           # Alignment with intent
-    ACCOUNTABILITY = "accountability" # Traceability
-    TRANSPARENCY = "transparency"    # Explainability
-    ETHICS = "ethics"               # Ihsan compliance
+
+    FIDELITY = "fidelity"  # Alignment with intent
+    ACCOUNTABILITY = "accountability"  # Traceability
+    TRANSPARENCY = "transparency"  # Explainability
+    ETHICS = "ethics"  # Ihsan compliance
 
 
 @dataclass
@@ -106,6 +105,7 @@ class FATEScore:
     Each dimension scored 0.0 to 1.0.
     Overall score is weighted geometric mean.
     """
+
     fidelity: float = 0.0
     accountability: float = 0.0
     transparency: float = 0.0
@@ -172,6 +172,7 @@ class HookContext:
 
     Immutable reference with mutable data dict.
     """
+
     # Unique execution ID
     execution_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
 
@@ -210,14 +211,18 @@ class HookContext:
     def compute_digest(self) -> str:
         """Compute SHA-256 digest of context for integrity verification."""
         import json
-        content = json.dumps({
-            "execution_id": self.execution_id,
-            "timestamp": self.timestamp.isoformat(),
-            "operation_name": self.operation_name,
-            "input_hash": hashlib.sha256(
-                str(self.input_data).encode()
-            ).hexdigest()[:16],
-        }, sort_keys=True)
+
+        content = json.dumps(
+            {
+                "execution_id": self.execution_id,
+                "timestamp": self.timestamp.isoformat(),
+                "operation_name": self.operation_name,
+                "input_hash": hashlib.sha256(str(self.input_data).encode()).hexdigest()[
+                    :16
+                ],
+            },
+            sort_keys=True,
+        )
         return hashlib.sha256(content.encode()).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
@@ -238,6 +243,7 @@ class HookContext:
 @dataclass
 class HookResult:
     """Result of hook chain execution."""
+
     success: bool
     context: HookContext
     phase_results: Dict[str, bool] = field(default_factory=dict)
@@ -259,9 +265,11 @@ class HookResult:
 # HOOK REGISTRY
 # ============================================================================
 
+
 @dataclass
 class RegisteredHook:
     """A registered hook with metadata."""
+
     name: str
     phase: HookPhase
     priority: HookPriority
@@ -324,7 +332,9 @@ class HookRegistry:
         # Sort by priority
         self._hooks[phase].sort(key=lambda h: h.priority.value)
 
-        logger.debug(f"Registered hook '{name}' for phase {phase.value} (priority: {priority.name})")
+        logger.debug(
+            f"Registered hook '{name}' for phase {phase.value} (priority: {priority.name})"
+        )
 
     def unregister(self, name: str) -> bool:
         """Unregister a hook by name."""
@@ -379,6 +389,7 @@ class HookRegistry:
 # ============================================================================
 # FATE GATE
 # ============================================================================
+
 
 class FATEGate:
     """
@@ -460,7 +471,7 @@ class FATEGate:
         # Record history
         self._history.append(score)
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         logger.info(
             f"FATE validation: {score.overall:.4f} "
@@ -608,6 +619,7 @@ class FATEGate:
 # HOOK EXECUTOR
 # ============================================================================
 
+
 class HookExecutor:
     """
     Executes hooks in the correct order with FATE validation.
@@ -672,8 +684,7 @@ class HookExecutor:
             phase_results[HookPhase.PRE_VALIDATE.value] = success
             if not success:
                 return self._create_result(
-                    False, context, phase_results, start_time,
-                    blocked_by="pre_validate"
+                    False, context, phase_results, start_time, blocked_by="pre_validate"
                 )
 
             # 2. FATE GATE (Constitutional check)
@@ -686,8 +697,11 @@ class HookExecutor:
                     f"score={fate_score.overall:.4f}, weakest={fate_score.weakest_dimension.value}"
                 )
                 return self._create_result(
-                    False, context, phase_results, start_time,
-                    blocked_by=f"fate_gate:{fate_score.weakest_dimension.value}"
+                    False,
+                    context,
+                    phase_results,
+                    start_time,
+                    blocked_by=f"fate_gate:{fate_score.weakest_dimension.value}",
                 )
 
             phase_results["fate_gate"] = True
@@ -697,8 +711,7 @@ class HookExecutor:
             phase_results[HookPhase.PRE_EXECUTE.value] = success
             if not success:
                 return self._create_result(
-                    False, context, phase_results, start_time,
-                    blocked_by="pre_execute"
+                    False, context, phase_results, start_time, blocked_by="pre_execute"
                 )
 
             # 4. EXECUTE the operation
@@ -755,7 +768,9 @@ class HookExecutor:
                 hook.total_time_ms += (time.time() - hook_start) * 1000
 
                 # Check for explicit failure
-                if result is False or (isinstance(result, dict) and result.get("_blocked")):
+                if result is False or (
+                    isinstance(result, dict) and result.get("_blocked")
+                ):
                     hook.failure_count += 1
                     logger.warning(f"Hook '{hook.name}' blocked execution")
                     return False
@@ -798,6 +813,7 @@ class HookExecutor:
 # DECORATORS
 # ============================================================================
 
+
 def fate_guarded(
     operation_type: str = "function",
     declared_intent: Optional[str] = None,
@@ -811,6 +827,7 @@ def fate_guarded(
         async def generate_summary(text: str) -> str:
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         # Get or create global executor
         executor = _get_global_executor()
@@ -900,6 +917,7 @@ def get_hook_stats() -> Dict[str, Any]:
 # BUILT-IN HOOKS
 # ============================================================================
 
+
 def _logging_hook(data: Dict[str, Any]) -> Dict[str, Any]:
     """Built-in logging hook."""
     context: HookContext = data["context"]
@@ -950,6 +968,7 @@ _register_builtin_hooks()
 # INTEGRATION WITH NTU
 # ============================================================================
 
+
 class NTUHookAdapter:
     """
     Adapter connecting hooks to NTU for temporal pattern tracking.
@@ -970,6 +989,7 @@ class NTUHookAdapter:
         if self._ntu is None:
             try:
                 from core.ntu import NTU, NTUConfig
+
                 self._ntu = NTU(NTUConfig(ihsan_threshold=UNIFIED_IHSAN_THRESHOLD))
             except ImportError:
                 logger.warning("NTU not available, hook adaptation disabled")
@@ -986,13 +1006,16 @@ class NTUHookAdapter:
             return None
 
         # Use overall FATE score as observation
-        state = self.ntu.observe(score.overall, {
-            "source": "fate_gate",
-            "fidelity": score.fidelity,
-            "accountability": score.accountability,
-            "transparency": score.transparency,
-            "ethics": score.ethics,
-        })
+        state = self.ntu.observe(
+            score.overall,
+            {
+                "source": "fate_gate",
+                "fidelity": score.fidelity,
+                "accountability": score.accountability,
+                "transparency": score.transparency,
+                "ethics": score.ethics,
+            },
+        )
 
         return state.belief
 

@@ -48,15 +48,31 @@ impl NodeIdentity {
     fn from_signing_key(signing_key: SigningKey) -> Self {
         let verifying_key = signing_key.verifying_key();
         let node_id = NodeId::from_verifying_key(&verifying_key);
-        Self { signing_key, verifying_key, node_id }
+        Self {
+            signing_key,
+            verifying_key,
+            node_id,
+        }
     }
 
-    pub fn node_id(&self) -> &NodeId { &self.node_id }
-    pub fn verifying_key(&self) -> &VerifyingKey { &self.verifying_key }
-    pub fn public_key_hex(&self) -> String { hex_encode(self.verifying_key.as_bytes()) }
-    pub fn public_key_bytes(&self) -> [u8; 32] { *self.verifying_key.as_bytes() }
-    pub fn secret_bytes(&self) -> [u8; 32] { self.signing_key.to_bytes() }
-    pub fn signing_key(&self) -> &SigningKey { &self.signing_key }
+    pub fn node_id(&self) -> &NodeId {
+        &self.node_id
+    }
+    pub fn verifying_key(&self) -> &VerifyingKey {
+        &self.verifying_key
+    }
+    pub fn public_key_hex(&self) -> String {
+        hex_encode(self.verifying_key.as_bytes())
+    }
+    pub fn public_key_bytes(&self) -> [u8; 32] {
+        *self.verifying_key.as_bytes()
+    }
+    pub fn secret_bytes(&self) -> [u8; 32] {
+        self.signing_key.to_bytes()
+    }
+    pub fn signing_key(&self) -> &SigningKey {
+        &self.signing_key
+    }
 
     /// Sign with domain separation
     pub fn sign(&self, message: &[u8]) -> String {
@@ -111,8 +127,11 @@ pub fn hex_encode(bytes: &[u8]) -> String {
 }
 
 pub fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
-    if s.len() % 2 != 0 { return Err(()); }
-    (0..s.len()).step_by(2)
+    if !s.len().is_multiple_of(2) {
+        return Err(());
+    }
+    (0..s.len())
+        .step_by(2)
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|_| ()))
         .collect()
 }

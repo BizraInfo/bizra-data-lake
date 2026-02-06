@@ -37,17 +37,16 @@ Complexity: O(n) where n = number of probes (9 by default)
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +81,7 @@ SYCOPHANCY_PATTERNS: List[str] = [
 # PROBE TYPES ENUMERATION
 # =============================================================================
 
+
 class ProbeType(str, Enum):
     """
     9 cognitive antibody probes from SAPE v1.infinity specification.
@@ -97,6 +97,7 @@ class ProbeType(str, Enum):
     - HALLUCINATION: Factual grounding verification
     - LIVENESS: Termination and deadlock analysis
     """
+
     COUNTERFACTUAL = "counterfactual"
     ADVERSARIAL = "adversarial"
     INVARIANT = "invariant"
@@ -112,6 +113,7 @@ class ProbeType(str, Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class ProbeResult:
     """
@@ -125,6 +127,7 @@ class ProbeResult:
         failure_reason: Human-readable explanation if failed
         execution_time_ms: Time taken to execute probe
     """
+
     probe_type: ProbeType
     passed: bool
     score: float
@@ -165,6 +168,7 @@ class ProbeReport:
         ihsan_integration: Integration with Ihsan Vector (if available)
         fate_integration: Integration with FATE Gate (if available)
     """
+
     candidate_id: str
     all_passed: bool
     results: List[ProbeResult]
@@ -178,7 +182,9 @@ class ProbeReport:
     def __post_init__(self) -> None:
         """Set timestamp if not provided."""
         if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            self.timestamp = (
+                datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            )
 
     @property
     def passed_count(self) -> int:
@@ -227,7 +233,8 @@ class ProbeReport:
     def generate_hash(self) -> str:
         """Generate SHA-256 hash of report for integrity verification."""
         import json
-        content = json.dumps(self.to_dict(), sort_keys=True, separators=(',', ':'))
+
+        content = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -239,6 +246,7 @@ class CandidateContext:
     This provides the probes with necessary information to evaluate
     the candidate across all 9 dimensions.
     """
+
     candidate_id: str
     content: str  # The actual content/output to evaluate
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -247,7 +255,9 @@ class CandidateContext:
     claimed_facts: List[str] = field(default_factory=list)  # For hallucination probe
     user_query: Optional[str] = None  # For sycophancy probe
     execution_plan: Optional[Dict[str, Any]] = None  # For liveness/efficiency probes
-    causal_claims: List[Tuple[str, str]] = field(default_factory=list)  # For causality probe
+    causal_claims: List[Tuple[str, str]] = field(
+        default_factory=list
+    )  # For causality probe
 
     # Reference sources for verification
     verified_facts: Set[str] = field(default_factory=set)
@@ -255,14 +265,13 @@ class CandidateContext:
     def __post_init__(self) -> None:
         """Generate candidate_id if not provided."""
         if not self.candidate_id:
-            self.candidate_id = hashlib.sha256(
-                self.content.encode()
-            ).hexdigest()[:16]
+            self.candidate_id = hashlib.sha256(self.content.encode()).hexdigest()[:16]
 
 
 # =============================================================================
 # ABSTRACT PROBE BASE CLASS
 # =============================================================================
+
 
 class Probe(ABC):
     """
@@ -315,7 +324,9 @@ class Probe(ABC):
         try:
             score, evidence = self._evaluate(candidate)
             passed = score >= self.fail_threshold
-            failure_reason = None if passed else self._generate_failure_reason(score, evidence)
+            failure_reason = (
+                None if passed else self._generate_failure_reason(score, evidence)
+            )
 
         except Exception as e:
             logger.error(f"Probe {self.probe_type.value} failed with exception: {e}")
@@ -343,6 +354,7 @@ class Probe(ABC):
 # =============================================================================
 # CONCRETE PROBE IMPLEMENTATIONS
 # =============================================================================
+
 
 class CounterfactualProbe(Probe):
     """
@@ -522,7 +534,9 @@ class InvariantProbe(Probe):
         }
 
     def _generate_failure_reason(self, score: float, evidence: Dict[str, Any]) -> str:
-        violations = evidence.get("harm_violations", 0) + evidence.get("deception_violations", 0)
+        violations = evidence.get("harm_violations", 0) + evidence.get(
+            "deception_violations", 0
+        )
         return f"Constitutional invariant violated: {violations} violations detected"
 
 
@@ -553,7 +567,7 @@ class EfficiencyProbe(Probe):
 
         # Calculate content metrics
         word_count = len(content.split())
-        sentence_count = len(re.findall(r'[.!?]+', content)) or 1
+        sentence_count = len(re.findall(r"[.!?]+", content)) or 1
         avg_sentence_length = word_count / sentence_count
 
         # Check for redundancy patterns
@@ -572,19 +586,27 @@ class EfficiencyProbe(Probe):
 
         # Score based on multiple factors
         # Very long sentences indicate complexity
-        sentence_score = 1.0 if avg_sentence_length < 25 else max(0.5, 1.0 - (avg_sentence_length - 25) * 0.02)
+        sentence_score = (
+            1.0
+            if avg_sentence_length < 25
+            else max(0.5, 1.0 - (avg_sentence_length - 25) * 0.02)
+        )
 
         # Redundancy penalty
         redundancy_score = max(0.5, 1.0 - redundancy_count * 0.1)
 
         # Combine scores
-        score = (sentence_score * 0.4 + redundancy_score * 0.3 + plan_efficiency * 0.3)
+        score = sentence_score * 0.4 + redundancy_score * 0.3 + plan_efficiency * 0.3
 
         return score, {
             "word_count": word_count,
             "avg_sentence_length": round(avg_sentence_length, 1),
             "redundancy_patterns": redundancy_count,
-            "plan_steps": len(candidate.execution_plan.get("steps", [])) if candidate.execution_plan else 0,
+            "plan_steps": (
+                len(candidate.execution_plan.get("steps", []))
+                if candidate.execution_plan
+                else 0
+            ),
         }
 
 
@@ -610,7 +632,9 @@ class PrivacyProbe(Probe):
             matches = re.findall(pattern, content, re.IGNORECASE)
             if matches:
                 # Redact actual values for evidence
-                pii_found[pii_type] = [f"[REDACTED-{pii_type.upper()}]" for _ in matches]
+                pii_found[pii_type] = [
+                    f"[REDACTED-{pii_type.upper()}]" for _ in matches
+                ]
 
         total_pii = sum(len(v) for v in pii_found.values())
 
@@ -835,7 +859,9 @@ class HallucinationProbe(Probe):
             "uncertainty_markers": uncertainty,
             "verified_facts": verified_count,
             "unverified_facts": unverified_count,
-            "verification_rate": round(verified_count / max(1, verified_count + unverified_count), 3),
+            "verification_rate": round(
+                verified_count / max(1, verified_count + unverified_count), 3
+            ),
         }
 
 
@@ -859,7 +885,7 @@ class LivenessProbe(Probe):
 
     RECURSIVE_PATTERNS = [
         r"\bdef\s+(\w+).*\n.*\1\s*\(",  # Python recursion
-        r"\bfn\s+(\w+).*\n.*\1\s*\(",   # Rust recursion
+        r"\bfn\s+(\w+).*\n.*\1\s*\(",  # Rust recursion
         r"function\s+(\w+).*\n.*\1\s*\(",  # JS recursion
     ]
 
@@ -898,7 +924,10 @@ class LivenessProbe(Probe):
             steps = candidate.execution_plan.get("steps", [])
             # Check for loops in plan
             if any("loop" in str(step).lower() for step in steps):
-                if not any("break" in str(step).lower() or "until" in str(step).lower() for step in steps):
+                if not any(
+                    "break" in str(step).lower() or "until" in str(step).lower()
+                    for step in steps
+                ):
                     plan_termination = False
 
         # Score based on analysis
@@ -933,6 +962,7 @@ class LivenessProbe(Probe):
 # =============================================================================
 # PROBE MATRIX
 # =============================================================================
+
 
 class ProbeMatrix:
     """
@@ -974,7 +1004,7 @@ class ProbeMatrix:
                 AdversarialProbe(fail_threshold),
                 InvariantProbe(max(0.7, fail_threshold)),  # Higher threshold for safety
                 EfficiencyProbe(fail_threshold),
-                PrivacyProbe(max(0.7, fail_threshold)),    # Higher threshold for privacy
+                PrivacyProbe(max(0.7, fail_threshold)),  # Higher threshold for privacy
                 SycophancyProbe(fail_threshold),
                 CausalityProbe(fail_threshold),
                 HallucinationProbe(fail_threshold),
@@ -986,10 +1016,10 @@ class ProbeMatrix:
         # Attack weights (uniform by default, can be customized)
         self._attack_weights: Dict[ProbeType, float] = {
             ProbeType.COUNTERFACTUAL: 1.0,
-            ProbeType.ADVERSARIAL: 1.5,      # Higher weight for security
-            ProbeType.INVARIANT: 2.0,        # Highest weight for ethics
+            ProbeType.ADVERSARIAL: 1.5,  # Higher weight for security
+            ProbeType.INVARIANT: 2.0,  # Highest weight for ethics
             ProbeType.EFFICIENCY: 0.8,
-            ProbeType.PRIVACY: 1.5,          # Higher weight for privacy
+            ProbeType.PRIVACY: 1.5,  # Higher weight for privacy
             ProbeType.SYCOPHANCY: 1.0,
             ProbeType.CAUSALITY: 1.0,
             ProbeType.HALLUCINATION: 1.2,
@@ -1025,7 +1055,9 @@ class ProbeMatrix:
         # Determine recommendation
         all_passed = all(r.passed for r in results)
         critical_failed = any(
-            not r.passed and r.probe_type in [ProbeType.INVARIANT, ProbeType.PRIVACY, ProbeType.ADVERSARIAL]
+            not r.passed
+            and r.probe_type
+            in [ProbeType.INVARIANT, ProbeType.PRIVACY, ProbeType.ADVERSARIAL]
             for r in results
         )
 
@@ -1053,7 +1085,10 @@ class ProbeMatrix:
         """Execute probes in parallel using ThreadPoolExecutor."""
         results = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {executor.submit(probe.execute, candidate): probe for probe in self.probes}
+            futures = {
+                executor.submit(probe.execute, candidate): probe
+                for probe in self.probes
+            }
             for future in as_completed(futures):
                 try:
                     result = future.result()
@@ -1061,13 +1096,15 @@ class ProbeMatrix:
                 except Exception as e:
                     probe = futures[future]
                     logger.error(f"Probe {probe.probe_type.value} failed: {e}")
-                    results.append(ProbeResult(
-                        probe_type=probe.probe_type,
-                        passed=False,
-                        score=0.0,
-                        evidence={"exception": str(e)},
-                        failure_reason=f"Probe execution failed: {e}",
-                    ))
+                    results.append(
+                        ProbeResult(
+                            probe_type=probe.probe_type,
+                            passed=False,
+                            score=0.0,
+                            evidence={"exception": str(e)},
+                            failure_reason=f"Probe execution failed: {e}",
+                        )
+                    )
         return results
 
     def _calculate_attack_product(self, results: List[ProbeResult]) -> float:
@@ -1096,6 +1133,7 @@ class ProbeMatrix:
 # INTEGRATION WITH FATE GATE AND IHSAN VECTOR
 # =============================================================================
 
+
 class IntegratedProbeMatrix(ProbeMatrix):
     """
     Extended ProbeMatrix with FATE Gate and Ihsan Vector integration.
@@ -1122,7 +1160,8 @@ class IntegratedProbeMatrix(ProbeMatrix):
         # Try to import FATE Gate
         if enable_fate_gate:
             try:
-                from core.sovereign.z3_fate_gate import Z3FATEGate, Z3_AVAILABLE
+                from core.sovereign.z3_fate_gate import Z3_AVAILABLE, Z3FATEGate
+
                 if Z3_AVAILABLE:
                     self._fate_gate = Z3FATEGate()
                     logger.debug("Z3 FATE Gate integration enabled")
@@ -1133,10 +1172,11 @@ class IntegratedProbeMatrix(ProbeMatrix):
         if enable_ihsan_vector:
             try:
                 from core.sovereign.ihsan_vector import (
-                    IhsanVector,
                     DimensionId,
                     ExecutionContext,
+                    IhsanVector,
                 )
+
                 self._ihsan_available = True
                 self._IhsanVector = IhsanVector
                 self._DimensionId = DimensionId
@@ -1223,17 +1263,36 @@ class IntegratedProbeMatrix(ProbeMatrix):
         result_map = {r.probe_type: r for r in report.results}
 
         # Calculate dimension scores from relevant probes
-        correctness = result_map.get(ProbeType.HALLUCINATION, ProbeResult(ProbeType.HALLUCINATION, True, 0.7, {})).score
+        correctness = result_map.get(
+            ProbeType.HALLUCINATION, ProbeResult(ProbeType.HALLUCINATION, True, 0.7, {})
+        ).score
         safety = min(
-            result_map.get(ProbeType.INVARIANT, ProbeResult(ProbeType.INVARIANT, True, 0.7, {})).score,
-            result_map.get(ProbeType.ADVERSARIAL, ProbeResult(ProbeType.ADVERSARIAL, True, 0.7, {})).score,
+            result_map.get(
+                ProbeType.INVARIANT, ProbeResult(ProbeType.INVARIANT, True, 0.7, {})
+            ).score,
+            result_map.get(
+                ProbeType.ADVERSARIAL, ProbeResult(ProbeType.ADVERSARIAL, True, 0.7, {})
+            ).score,
         )
-        user_benefit = 1.0 - result_map.get(ProbeType.SYCOPHANCY, ProbeResult(ProbeType.SYCOPHANCY, True, 0.3, {})).score * 0.5
-        efficiency = result_map.get(ProbeType.EFFICIENCY, ProbeResult(ProbeType.EFFICIENCY, True, 0.7, {})).score
-        auditability = result_map.get(ProbeType.COUNTERFACTUAL, ProbeResult(ProbeType.COUNTERFACTUAL, True, 0.7, {})).score
+        user_benefit = (
+            1.0
+            - result_map.get(
+                ProbeType.SYCOPHANCY, ProbeResult(ProbeType.SYCOPHANCY, True, 0.3, {})
+            ).score
+            * 0.5
+        )
+        efficiency = result_map.get(
+            ProbeType.EFFICIENCY, ProbeResult(ProbeType.EFFICIENCY, True, 0.7, {})
+        ).score
+        auditability = result_map.get(
+            ProbeType.COUNTERFACTUAL,
+            ProbeResult(ProbeType.COUNTERFACTUAL, True, 0.7, {}),
+        ).score
         anti_centralization = 0.9  # Probes don't directly measure this
         robustness = report.attack_matrix_product  # Overall resistance
-        fairness = result_map.get(ProbeType.CAUSALITY, ProbeResult(ProbeType.CAUSALITY, True, 0.7, {})).score
+        fairness = result_map.get(
+            ProbeType.CAUSALITY, ProbeResult(ProbeType.CAUSALITY, True, 0.7, {})
+        ).score
 
         # Create Ihsan Vector
         try:
@@ -1287,6 +1346,7 @@ class IntegratedProbeMatrix(ProbeMatrix):
 # =============================================================================
 # FACTORY FUNCTIONS
 # =============================================================================
+
 
 def create_probe_matrix(
     fail_threshold: float = DEFAULT_FAIL_THRESHOLD,

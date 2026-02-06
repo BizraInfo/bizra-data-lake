@@ -33,17 +33,14 @@ Created: 2026-02-04 | BIZRA Apex System v1.0
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import math
-import time
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Dict, List, Optional, Set, Tuple, Any, Callable
-from heapq import heappush, heappop
-import uuid
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -76,17 +73,20 @@ COLLABORATION_VALUE_RATIO = 2.0
 # ENUMS
 # =============================================================================
 
+
 class RelationshipType(str, Enum):
     """Types of agent relationships."""
+
     UNKNOWN = "unknown"
-    ACQUAINTANCE = "acquaintance"    # Weak tie (Granovetter)
-    COLLABORATOR = "collaborator"    # Working relationship
-    TRUSTED = "trusted"              # Strong tie
-    STRATEGIC = "strategic"          # High-value partnership
+    ACQUAINTANCE = "acquaintance"  # Weak tie (Granovetter)
+    COLLABORATOR = "collaborator"  # Working relationship
+    TRUSTED = "trusted"  # Strong tie
+    STRATEGIC = "strategic"  # High-value partnership
 
 
 class InteractionType(str, Enum):
     """Types of interactions between agents."""
+
     MESSAGE = "message"
     TASK_DELEGATION = "task_delegation"
     TASK_COMPLETION = "task_completion"
@@ -98,6 +98,7 @@ class InteractionType(str, Enum):
 
 class CollaborationStatus(str, Enum):
     """Status of collaboration opportunities."""
+
     DISCOVERED = "discovered"
     PROPOSED = "proposed"
     NEGOTIATING = "negotiating"
@@ -112,9 +113,11 @@ class CollaborationStatus(str, Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class Interaction:
     """Record of an interaction between agents."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     interaction_type: InteractionType = InteractionType.MESSAGE
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -134,6 +137,7 @@ class Relationship:
     - Trust decays with time (half-life model)
     - Trust bounded [0, 1]
     """
+
     agent_id: str
     peer_id: str
 
@@ -144,8 +148,12 @@ class Relationship:
 
     # Relationship metadata
     relationship_type: RelationshipType = RelationshipType.UNKNOWN
-    first_interaction: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_interaction: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    first_interaction: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    last_interaction: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Interaction history (bounded to save memory)
     interactions: List[Interaction] = field(default_factory=list)
@@ -175,7 +183,9 @@ class Relationship:
 
         # Blend with new evidence (Bayesian update approximation)
         evidence_weight = 1.0 / (self.interaction_count + 1)
-        self.trust_score = (1 - evidence_weight) * decayed_trust + evidence_weight * interaction.outcome_score
+        self.trust_score = (
+            1 - evidence_weight
+        ) * decayed_trust + evidence_weight * interaction.outcome_score
         self.trust_score = max(0.0, min(1.0, self.trust_score))
 
         # Update reliability
@@ -185,11 +195,17 @@ class Relationship:
         self.reliability_score = self.successful_interactions / self.interaction_count
 
         # Update reciprocity
-        self.total_value_given += interaction.value_exchanged if interaction.value_exchanged > 0 else 0
-        self.total_value_received += abs(interaction.value_exchanged) if interaction.value_exchanged < 0 else 0
+        self.total_value_given += (
+            interaction.value_exchanged if interaction.value_exchanged > 0 else 0
+        )
+        self.total_value_received += (
+            abs(interaction.value_exchanged) if interaction.value_exchanged < 0 else 0
+        )
 
         if self.total_value_given + self.total_value_received > 0:
-            balance = self.total_value_received / (self.total_value_given + self.total_value_received)
+            balance = self.total_value_received / (
+                self.total_value_given + self.total_value_received
+            )
             self.reciprocity_score = 1.0 - abs(0.5 - balance) * 2  # Perfect at 0.5
 
         # Update relationship type
@@ -205,7 +221,9 @@ class Relationship:
 
     def _update_relationship_type(self):
         """Classify relationship based on trust metrics."""
-        combined = (self.trust_score + self.reliability_score + self.reciprocity_score) / 3
+        combined = (
+            self.trust_score + self.reliability_score + self.reciprocity_score
+        ) / 3
 
         if combined >= STRONG_TIE_THRESHOLD and self.interaction_count >= 10:
             self.relationship_type = RelationshipType.STRATEGIC
@@ -221,7 +239,11 @@ class Relationship:
     @property
     def strength(self) -> float:
         """Combined relationship strength score."""
-        return (self.trust_score * 0.4 + self.reliability_score * 0.35 + self.reciprocity_score * 0.25)
+        return (
+            self.trust_score * 0.4
+            + self.reliability_score * 0.35
+            + self.reciprocity_score * 0.25
+        )
 
     @property
     def is_weak_tie(self) -> bool:
@@ -239,6 +261,7 @@ class CollaborationOpportunity:
     - Cost = coordination overhead + risk
     - Net value must exceed 2x cost (COLLABORATION_VALUE_RATIO)
     """
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     initiator_id: str = ""
     partner_id: str = ""
@@ -268,7 +291,7 @@ class CollaborationOpportunity:
     @property
     def value_ratio(self) -> float:
         if self.estimated_cost <= 0:
-            return float('inf')
+            return float("inf")
         return self.potential_value / self.estimated_cost
 
     @property
@@ -279,6 +302,7 @@ class CollaborationOpportunity:
 @dataclass
 class NegotiationOffer:
     """An offer in a negotiation."""
+
     offer_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     from_agent: str = ""
     to_agent: str = ""
@@ -297,6 +321,7 @@ class NegotiationOffer:
 # =============================================================================
 # SOCIAL GRAPH ENGINE
 # =============================================================================
+
 
 class SocialGraph:
     """
@@ -347,7 +372,9 @@ class SocialGraph:
     # RELATIONSHIP MANAGEMENT
     # -------------------------------------------------------------------------
 
-    def add_relationship(self, peer_id: str, initial_trust: float = 0.1) -> Relationship:
+    def add_relationship(
+        self, peer_id: str, initial_trust: float = 0.1
+    ) -> Relationship:
         """Add or get existing relationship."""
         if peer_id in self._relationships:
             return self._relationships[peer_id]
@@ -358,9 +385,7 @@ class SocialGraph:
             self._prune_weakest_relationship()
 
         rel = Relationship(
-            agent_id=self.agent_id,
-            peer_id=peer_id,
-            trust_score=initial_trust
+            agent_id=self.agent_id, peer_id=peer_id, trust_score=initial_trust
         )
         self._relationships[peer_id] = rel
         self._pagerank_dirty = True
@@ -374,7 +399,7 @@ class SocialGraph:
         interaction_type: InteractionType,
         outcome_score: float,
         value_exchanged: float = 0.0,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> Relationship:
         """Record an interaction and update trust."""
         rel = self.add_relationship(peer_id)
@@ -383,7 +408,7 @@ class SocialGraph:
             interaction_type=interaction_type,
             outcome_score=outcome_score,
             value_exchanged=value_exchanged,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         old_trust = rel.trust_score
@@ -393,7 +418,9 @@ class SocialGraph:
         self._trust_graph[self.agent_id][peer_id] = new_trust
         self._pagerank_dirty = True
 
-        logger.debug(f"Interaction with {peer_id}: trust {old_trust:.3f} → {new_trust:.3f}")
+        logger.debug(
+            f"Interaction with {peer_id}: trust {old_trust:.3f} → {new_trust:.3f}"
+        )
         return rel
 
     def get_relationship(self, peer_id: str) -> Optional[Relationship]:
@@ -410,7 +437,9 @@ class SocialGraph:
         if not self._relationships:
             return
 
-        weakest_id = min(self._relationships.keys(), key=lambda k: self._relationships[k].strength)
+        weakest_id = min(
+            self._relationships.keys(), key=lambda k: self._relationships[k].strength
+        )
         del self._relationships[weakest_id]
 
         if weakest_id in self._trust_graph[self.agent_id]:
@@ -422,7 +451,9 @@ class SocialGraph:
     # TRUST PROPAGATION (PageRank-inspired)
     # -------------------------------------------------------------------------
 
-    def propagate_trust(self, external_graph: Optional[Dict[str, Dict[str, float]]] = None) -> Dict[str, float]:
+    def propagate_trust(
+        self, external_graph: Optional[Dict[str, Dict[str, float]]] = None
+    ) -> Dict[str, float]:
         """
         Compute global trust scores using PageRank algorithm.
 
@@ -454,7 +485,7 @@ class SocialGraph:
 
         n = len(nodes)
         node_list = list(nodes)
-        node_idx = {node: i for i, node in enumerate(node_list)}
+        {node: i for i, node in enumerate(node_list)}
 
         # Initialize PageRank
         pr = {node: 1.0 / n for node in nodes}
@@ -472,7 +503,9 @@ class SocialGraph:
                     if node in edges:
                         out_degree = sum(edges.values())
                         if out_degree > 0:
-                            rank += PAGERANK_DAMPING * pr[source] * edges[node] / out_degree
+                            rank += (
+                                PAGERANK_DAMPING * pr[source] * edges[node] / out_degree
+                            )
 
                 new_pr[node] = rank
 
@@ -513,7 +546,7 @@ class SocialGraph:
         self,
         required_capabilities: Set[str],
         min_trust: float = WEAK_TIE_THRESHOLD,
-        max_results: int = 10
+        max_results: int = 10,
     ) -> List[CollaborationOpportunity]:
         """
         Find collaboration opportunities using Graph-of-Thoughts reasoning.
@@ -557,7 +590,9 @@ class SocialGraph:
             trust_factor = rel.trust_score
             reliability_factor = rel.reliability_score
 
-            potential_value = coverage * trust_factor * reliability_factor * 100  # Normalized
+            potential_value = (
+                coverage * trust_factor * reliability_factor * 100
+            )  # Normalized
             estimated_cost = 10 + (1 - trust_factor) * 20  # Coordination cost
 
             opp = CollaborationOpportunity(
@@ -568,7 +603,7 @@ class SocialGraph:
                 complementary_capabilities=complementary,
                 potential_value=potential_value,
                 estimated_cost=estimated_cost,
-                confidence=trust_factor
+                confidence=trust_factor,
             )
 
             if opp.is_viable:
@@ -602,9 +637,7 @@ class SocialGraph:
     # -------------------------------------------------------------------------
 
     async def propose_collaboration(
-        self,
-        opportunity: CollaborationOpportunity,
-        initial_split: float = 0.5
+        self, opportunity: CollaborationOpportunity, initial_split: float = 0.5
     ) -> NegotiationOffer:
         """
         Propose a collaboration to a partner.
@@ -626,7 +659,7 @@ class SocialGraph:
             to_agent=opportunity.partner_id,
             collaboration_id=opportunity.id,
             value_split=initial_split,
-            expiry=datetime.now(timezone.utc)
+            expiry=datetime.now(timezone.utc),
         )
 
         self._negotiations[opportunity.id].append(offer)
@@ -635,7 +668,9 @@ class SocialGraph:
 
         self._collaborations[opportunity.id] = opportunity
 
-        logger.info(f"Proposed collaboration {opportunity.id} with split {initial_split:.2f}")
+        logger.info(
+            f"Proposed collaboration {opportunity.id} with split {initial_split:.2f}"
+        )
         return offer
 
     def evaluate_offer(self, offer: NegotiationOffer) -> Tuple[bool, Optional[float]]:
@@ -657,10 +692,12 @@ class SocialGraph:
 
         # My expected share
         my_share = 1.0 - offer.value_split
-        my_value = opp.potential_value * my_share
+        opp.potential_value * my_share
 
         # Minimum acceptable (based on estimated contribution)
-        my_contribution = len(opp.complementary_capabilities) / len(opp.required_capabilities)
+        my_contribution = len(opp.complementary_capabilities) / len(
+            opp.required_capabilities
+        )
         min_acceptable = 0.3 + my_contribution * 0.4  # 30-70% range
 
         if my_share >= min_acceptable:
@@ -678,7 +715,9 @@ class SocialGraph:
         if opp:
             opp.status = CollaborationStatus.ACCEPTED
             opp.agreed_split = agreed_split
-            logger.info(f"Accepted collaboration {collaboration_id} with split {agreed_split:.2f}")
+            logger.info(
+                f"Accepted collaboration {collaboration_id} with split {agreed_split:.2f}"
+            )
 
     # -------------------------------------------------------------------------
     # ANALYTICS
@@ -693,7 +732,11 @@ class SocialGraph:
         trust_scores = [r.trust_score for r in self._relationships.values()]
 
         weak_ties = sum(1 for r in self._relationships.values() if r.is_weak_tie)
-        strong_ties = sum(1 for r in self._relationships.values() if r.strength >= STRONG_TIE_THRESHOLD)
+        strong_ties = sum(
+            1
+            for r in self._relationships.values()
+            if r.strength >= STRONG_TIE_THRESHOLD
+        )
 
         return {
             "total_relationships": len(self._relationships),
@@ -702,9 +745,23 @@ class SocialGraph:
             "avg_trust": sum(trust_scores) / len(trust_scores),
             "weak_ties": weak_ties,
             "strong_ties": strong_ties,
-            "weak_tie_ratio": weak_ties / len(self._relationships) if self._relationships else 0,
-            "active_collaborations": len([c for c in self._collaborations.values() if c.status == CollaborationStatus.IN_PROGRESS]),
-            "unique_capabilities_accessible": len(set().union(*[r.known_capabilities for r in self._relationships.values()]) if self._relationships else set()),
+            "weak_tie_ratio": (
+                weak_ties / len(self._relationships) if self._relationships else 0
+            ),
+            "active_collaborations": len(
+                [
+                    c
+                    for c in self._collaborations.values()
+                    if c.status == CollaborationStatus.IN_PROGRESS
+                ]
+            ),
+            "unique_capabilities_accessible": len(
+                set().union(
+                    *[r.known_capabilities for r in self._relationships.values()]
+                )
+                if self._relationships
+                else set()
+            ),
         }
 
     def get_relationship_summary(self) -> List[Dict[str, Any]]:
@@ -720,7 +777,9 @@ class SocialGraph:
                 "interactions": r.interaction_count,
                 "capabilities": list(r.known_capabilities)[:5],
             }
-            for r in sorted(self._relationships.values(), key=lambda r: r.strength, reverse=True)
+            for r in sorted(
+                self._relationships.values(), key=lambda r: r.strength, reverse=True
+            )
         ]
 
 

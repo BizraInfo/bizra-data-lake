@@ -16,17 +16,16 @@ import asyncio
 import hashlib
 import json
 import logging
-import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
 import numpy as np
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,26 +33,29 @@ logger = logging.getLogger(__name__)
 
 class MemoryType(str, Enum):
     """Types of memory in the living system."""
-    EPISODIC = "episodic"      # Event memories (what happened)
-    SEMANTIC = "semantic"      # Fact memories (what is true)
+
+    EPISODIC = "episodic"  # Event memories (what happened)
+    SEMANTIC = "semantic"  # Fact memories (what is true)
     PROCEDURAL = "procedural"  # Skill memories (how to do)
-    WORKING = "working"        # Active context (what's now)
+    WORKING = "working"  # Active context (what's now)
     PROSPECTIVE = "prospective"  # Future memories (what will be)
 
 
 class MemoryState(str, Enum):
     """State of a memory entry."""
-    ACTIVE = "active"          # Currently accessible
+
+    ACTIVE = "active"  # Currently accessible
     CONSOLIDATING = "consolidating"  # Being processed
-    ARCHIVED = "archived"      # Stored long-term
-    DECAYING = "decaying"      # Fading out
-    CORRUPTED = "corrupted"    # Needs repair
-    DELETED = "deleted"        # Marked for removal
+    ARCHIVED = "archived"  # Stored long-term
+    DECAYING = "decaying"  # Fading out
+    CORRUPTED = "corrupted"  # Needs repair
+    DELETED = "deleted"  # Marked for removal
 
 
 @dataclass
 class MemoryEntry:
     """A single memory entry in the living system."""
+
     id: str
     content: str
     memory_type: MemoryType
@@ -106,8 +108,12 @@ class MemoryEntry:
             content=data["content"],
             memory_type=MemoryType(data["memory_type"]),
         )
-        entry.created_at = datetime.fromisoformat(data.get("created_at", datetime.now(timezone.utc).isoformat()))
-        entry.last_accessed = datetime.fromisoformat(data.get("last_accessed", datetime.now(timezone.utc).isoformat()))
+        entry.created_at = datetime.fromisoformat(
+            data.get("created_at", datetime.now(timezone.utc).isoformat())
+        )
+        entry.last_accessed = datetime.fromisoformat(
+            data.get("last_accessed", datetime.now(timezone.utc).isoformat())
+        )
         entry.access_count = data.get("access_count", 0)
         entry.ihsan_score = data.get("ihsan_score", 1.0)
         entry.snr_score = data.get("snr_score", 1.0)
@@ -119,7 +125,9 @@ class MemoryEntry:
         entry.emotional_weight = data.get("emotional_weight", 0.5)
         return entry
 
-    def compute_retrieval_score(self, query_embedding: Optional[np.ndarray] = None) -> float:
+    def compute_retrieval_score(
+        self, query_embedding: Optional[np.ndarray] = None
+    ) -> float:
         """
         Compute retrieval priority score.
 
@@ -150,12 +158,7 @@ class MemoryEntry:
             relevance = max(0, similarity)
 
         # Combined score
-        score = (
-            0.3 * recency +
-            0.1 * frequency +
-            0.2 * importance +
-            0.4 * relevance
-        )
+        score = 0.3 * recency + 0.1 * frequency + 0.2 * importance + 0.4 * relevance
 
         return min(1.0, score)
 
@@ -163,6 +166,7 @@ class MemoryEntry:
 @dataclass
 class MemoryStats:
     """Statistics about the living memory system."""
+
     total_entries: int = 0
     active_entries: int = 0
     archived_entries: int = 0
@@ -189,8 +193,12 @@ class MemoryStats:
             "avg_ihsan": self.avg_ihsan,
             "avg_snr": self.avg_snr,
             "avg_access_count": self.avg_access_count,
-            "last_consolidation": self.last_consolidation.isoformat() if self.last_consolidation else None,
-            "last_cleanup": self.last_cleanup.isoformat() if self.last_cleanup else None,
+            "last_consolidation": (
+                self.last_consolidation.isoformat() if self.last_consolidation else None
+            ),
+            "last_cleanup": (
+                self.last_cleanup.isoformat() if self.last_cleanup else None
+            ),
             "memory_bytes": self.memory_bytes,
         }
 
@@ -254,7 +262,7 @@ class LivingMemoryCore:
             return
 
         try:
-            with open(memory_file, 'r') as f:
+            with open(memory_file, "r") as f:
                 for line in f:
                     if line.strip():
                         data = json.loads(line)
@@ -268,7 +276,7 @@ class LivingMemoryCore:
         """Persist memories to storage."""
         memory_file = self.storage_path / "memories.jsonl"
         try:
-            with open(memory_file, 'w') as f:
+            with open(memory_file, "w") as f:
                 for entry in self._memories.values():
                     if entry.state != MemoryState.DELETED:
                         f.write(json.dumps(entry.to_dict()) + "\n")
@@ -487,9 +495,11 @@ class LivingMemoryCore:
 
             for entry_id, entry in list(self._memories.items()):
                 # Archive old episodic memories
-                if (entry.memory_type == MemoryType.EPISODIC and
-                    entry.last_accessed < archive_threshold and
-                    entry.state == MemoryState.ACTIVE):
+                if (
+                    entry.memory_type == MemoryType.EPISODIC
+                    and entry.last_accessed < archive_threshold
+                    and entry.state == MemoryState.ACTIVE
+                ):
                     entry.state = MemoryState.ARCHIVED
                     stats["archived"] += 1
 

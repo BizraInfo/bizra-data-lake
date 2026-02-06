@@ -19,38 +19,37 @@ Security Model:
     - All timestamps in ISO 8601 UTC
 """
 
-import hashlib
-import secrets
-import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
 from enum import Enum
+from typing import Any, Dict, Optional, Tuple
 
 # Import crypto primitives from PCI module
 from core.pci.crypto import (
+    canonical_json,
+    domain_separated_digest,
     generate_keypair,
     sign_message,
     verify_signature,
-    canonical_json,
-    domain_separated_digest,
 )
 
 
 class IdentityStatus(str, Enum):
     """Identity card status states."""
-    PENDING = "pending"      # Awaiting first signature
-    ACTIVE = "active"        # Fully activated
+
+    PENDING = "pending"  # Awaiting first signature
+    ACTIVE = "active"  # Fully activated
     SUSPENDED = "suspended"  # Temporarily disabled
-    REVOKED = "revoked"      # Permanently invalidated
+    REVOKED = "revoked"  # Permanently invalidated
 
 
 class SovereigntyTier(str, Enum):
     """Sovereignty tier based on contribution score."""
-    SEED = "seed"            # 0.0 - 0.25: New node
-    SPROUT = "sprout"        # 0.25 - 0.50: Growing contributor
-    TREE = "tree"            # 0.50 - 0.75: Established node
-    FOREST = "forest"        # 0.75 - 1.0: Network pillar
+
+    SEED = "seed"  # 0.0 - 0.25: New node
+    SPROUT = "sprout"  # 0.25 - 0.50: Growing contributor
+    TREE = "tree"  # 0.50 - 0.75: Established node
+    FOREST = "forest"  # 0.75 - 1.0: Network pillar
 
 
 # Domain prefix for identity card signatures
@@ -74,8 +73,9 @@ def _generate_node_id(public_key_hex: str) -> str:
     """
     # Use BLAKE3 for consistent hashing with rest of system
     import blake3
+
     hasher = blake3.blake3()
-    hasher.update(IDENTITY_DOMAIN_PREFIX.encode('utf-8'))
+    hasher.update(IDENTITY_DOMAIN_PREFIX.encode("utf-8"))
     hasher.update(bytes.fromhex(public_key_hex))
     digest = hasher.hexdigest()
 
@@ -85,7 +85,7 @@ def _generate_node_id(public_key_hex: str) -> str:
 
 def _datetime_now_iso() -> str:
     """Get current UTC time in ISO 8601 format."""
-    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @dataclass
@@ -130,7 +130,9 @@ class IdentityCard:
 
         # Validate sovereignty_score range
         if not (0.0 <= self.sovereignty_score <= 1.0):
-            raise ValueError(f"sovereignty_score must be 0.0-1.0: {self.sovereignty_score}")
+            raise ValueError(
+                f"sovereignty_score must be 0.0-1.0: {self.sovereignty_score}"
+            )
 
     @property
     def sovereignty_tier(self) -> SovereigntyTier:
@@ -156,12 +158,18 @@ class IdentityCard:
             "public_key": self.public_key,
             "creation_timestamp": self.creation_timestamp,
             "sovereignty_score": self.sovereignty_score,
-            "status": self.status.value if isinstance(self.status, IdentityStatus) else self.status,
+            "status": (
+                self.status.value
+                if isinstance(self.status, IdentityStatus)
+                else self.status
+            ),
             "metadata": self.metadata,
         }
         return domain_separated_digest(canonical_json(signable_data))
 
-    def sign_as_minter(self, minter_private_key: str, minter_public_key: str) -> 'IdentityCard':
+    def sign_as_minter(
+        self, minter_private_key: str, minter_public_key: str
+    ) -> "IdentityCard":
         """
         Sign the card as the system minter.
 
@@ -180,7 +188,7 @@ class IdentityCard:
         self.minter_public_key = minter_public_key
         return self
 
-    def sign_as_owner(self, owner_private_key: str) -> 'IdentityCard':
+    def sign_as_owner(self, owner_private_key: str) -> "IdentityCard":
         """
         Self-sign the card as the owner.
 
@@ -217,26 +225,32 @@ class IdentityCard:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         d = asdict(self)
-        d['status'] = self.status.value if isinstance(self.status, IdentityStatus) else self.status
-        d['sovereignty_tier'] = self.sovereignty_tier.value
+        d["status"] = (
+            self.status.value
+            if isinstance(self.status, IdentityStatus)
+            else self.status
+        )
+        d["sovereignty_tier"] = self.sovereignty_tier.value
         return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'IdentityCard':
+    def from_dict(cls, data: Dict[str, Any]) -> "IdentityCard":
         """Reconstruct from dictionary."""
         data = data.copy()
 
         # Handle enum conversion
-        if 'status' in data:
-            data['status'] = IdentityStatus(data['status'])
+        if "status" in data:
+            data["status"] = IdentityStatus(data["status"])
 
         # Remove computed fields
-        data.pop('sovereignty_tier', None)
+        data.pop("sovereignty_tier", None)
 
         return cls(**data)
 
     @classmethod
-    def create(cls, public_key: str, metadata: Optional[Dict[str, Any]] = None) -> 'IdentityCard':
+    def create(
+        cls, public_key: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> "IdentityCard":
         """
         Factory method to create a new identity card.
 

@@ -39,9 +39,8 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
-import uuid
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -55,9 +54,9 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 # The sacred 7-3-6-9 signature
-DNA_DEPTH = 7     # Maximum cognitive depth layers
-DNA_TRACKS = 3    # Parallel reasoning tracks
-DNA_BALANCE = 6   # Balance/equilibrium point
+DNA_DEPTH = 7  # Maximum cognitive depth layers
+DNA_TRACKS = 3  # Parallel reasoning tracks
+DNA_BALANCE = 6  # Balance/equilibrium point
 DNA_COMPLETE = 9  # Completion/finalization
 
 # DNA-derived constants
@@ -69,13 +68,15 @@ DNA_HARMONY = (7 + 3 + 6 + 9) / 4  # = 6.25 - harmonic mean for budget scaling
 # BUDGET CATEGORIES
 # ============================================================================
 
+
 class BudgetTier(str, Enum):
     """Cognitive budget tiers."""
-    NANO = "nano"     # Reflexive, instant
-    MICRO = "micro"   # Quick lookup
-    MESO = "meso"     # Standard reasoning
-    MACRO = "macro"   # Deep analysis
-    MEGA = "mega"     # Full deliberation
+
+    NANO = "nano"  # Reflexive, instant
+    MICRO = "micro"  # Quick lookup
+    MESO = "meso"  # Standard reasoning
+    MACRO = "macro"  # Deep analysis
+    MEGA = "mega"  # Full deliberation
 
 
 @dataclass
@@ -85,6 +86,7 @@ class BudgetAllocation:
 
     Specifies computational resources across dimensions.
     """
+
     tier: BudgetTier
 
     # Time budget (seconds)
@@ -185,34 +187,36 @@ TIER_SPECS: Dict[BudgetTier, Dict[str, Any]] = {
 # TASK TYPES
 # ============================================================================
 
+
 class TaskType(str, Enum):
     """Task type classification."""
+
     # Reflexive tasks (NANO)
-    ECHO = "echo"                # Simple echo/repeat
-    CLASSIFY = "classify"        # Single-label classification
+    ECHO = "echo"  # Simple echo/repeat
+    CLASSIFY = "classify"  # Single-label classification
 
     # Simple tasks (MICRO)
-    LOOKUP = "lookup"            # Information retrieval
-    TRANSFORM = "transform"      # Data transformation
-    VALIDATE = "validate"        # Validation check
+    LOOKUP = "lookup"  # Information retrieval
+    TRANSFORM = "transform"  # Data transformation
+    VALIDATE = "validate"  # Validation check
 
     # Standard tasks (MESO)
-    SUMMARIZE = "summarize"      # Content summarization
-    ANALYZE = "analyze"          # Basic analysis
-    GENERATE = "generate"        # Content generation
-    REASON = "reason"            # Multi-step reasoning
+    SUMMARIZE = "summarize"  # Content summarization
+    ANALYZE = "analyze"  # Basic analysis
+    GENERATE = "generate"  # Content generation
+    REASON = "reason"  # Multi-step reasoning
 
     # Complex tasks (MACRO)
-    PLAN = "plan"                # Strategic planning
-    SYNTHESIZE = "synthesize"    # Multi-source synthesis
-    DEBUG = "debug"              # Complex debugging
-    OPTIMIZE = "optimize"        # Optimization
+    PLAN = "plan"  # Strategic planning
+    SYNTHESIZE = "synthesize"  # Multi-source synthesis
+    DEBUG = "debug"  # Complex debugging
+    OPTIMIZE = "optimize"  # Optimization
 
     # Deep tasks (MEGA)
-    ARCHITECT = "architect"      # System design
-    RESEARCH = "research"        # Deep research
-    PROOF = "proof"              # Formal proof
-    CONSENSUS = "consensus"      # Multi-agent consensus
+    ARCHITECT = "architect"  # System design
+    RESEARCH = "research"  # Deep research
+    PROOF = "proof"  # Formal proof
+    CONSENSUS = "consensus"  # Multi-agent consensus
 
 
 # Task type to tier mapping
@@ -246,6 +250,7 @@ TASK_TIER_MAP: Dict[TaskType, BudgetTier] = {
 # COMPLEXITY ESTIMATION
 # ============================================================================
 
+
 @dataclass
 class ComplexitySignal:
     """
@@ -253,21 +258,22 @@ class ComplexitySignal:
 
     Uses 7-3-6-9 DNA pattern for scoring.
     """
+
     # Input signals
-    input_length: int = 0          # Characters
-    input_entropy: float = 0.0     # Shannon entropy (normalized)
+    input_length: int = 0  # Characters
+    input_entropy: float = 0.0  # Shannon entropy (normalized)
     domain_specificity: float = 0.0  # How specialized (0-1)
 
     # Task signals
-    reasoning_depth: int = 1       # Estimated reasoning layers (1-7)
+    reasoning_depth: int = 1  # Estimated reasoning layers (1-7)
     convergence_required: int = 1  # Parallel paths needed (1-3)
 
     # Context signals
-    context_size: int = 0          # Relevant context tokens
-    knowledge_gap: float = 0.0     # Estimated knowledge gap (0-1)
+    context_size: int = 0  # Relevant context tokens
+    knowledge_gap: float = 0.0  # Estimated knowledge gap (0-1)
 
     # History signals
-    previous_attempts: int = 0     # Failed attempts
+    previous_attempts: int = 0  # Failed attempts
     snr_history: List[float] = field(default_factory=list)
 
     def compute_complexity_score(self) -> float:
@@ -293,15 +299,19 @@ class ComplexitySignal:
 
         # Completion factor (9-based): difficulty to finalize
         retry_penalty = min(1.0, self.previous_attempts / DNA_COMPLETE)
-        snr_factor = 1.0 - (sum(self.snr_history) / max(len(self.snr_history), 1)) if self.snr_history else 0.5
+        snr_factor = (
+            1.0 - (sum(self.snr_history) / max(len(self.snr_history), 1))
+            if self.snr_history
+            else 0.5
+        )
         completion_factor = (retry_penalty + snr_factor) / 2
 
         # DNA-weighted score
         score = (
-            depth_factor * DNA_DEPTH +
-            convergence_factor * DNA_TRACKS +
-            effort_factor * DNA_BALANCE +
-            completion_factor * DNA_COMPLETE
+            depth_factor * DNA_DEPTH
+            + convergence_factor * DNA_TRACKS
+            + effort_factor * DNA_BALANCE
+            + completion_factor * DNA_COMPLETE
         ) / (DNA_DEPTH + DNA_TRACKS + DNA_BALANCE + DNA_COMPLETE)
 
         return max(0.0, min(1.0, score))
@@ -317,7 +327,11 @@ class ComplexitySignal:
             "context_size": self.context_size,
             "knowledge_gap": self.knowledge_gap,
             "previous_attempts": self.previous_attempts,
-            "snr_history_mean": sum(self.snr_history) / max(len(self.snr_history), 1) if self.snr_history else 0,
+            "snr_history_mean": (
+                sum(self.snr_history) / max(len(self.snr_history), 1)
+                if self.snr_history
+                else 0
+            ),
             "complexity_score": self.compute_complexity_score(),
         }
 
@@ -325,6 +339,7 @@ class ComplexitySignal:
 # ============================================================================
 # BUDGET ALLOCATOR
 # ============================================================================
+
 
 class CognitiveBudgetAllocator:
     """
@@ -397,7 +412,6 @@ class CognitiveBudgetAllocator:
 
     def _compute_entropy(self, text: str) -> float:
         """Compute normalized Shannon entropy of text."""
-        import math
         from collections import Counter
 
         if not text:
@@ -469,15 +483,17 @@ class CognitiveBudgetAllocator:
         self._tier_distribution[tier] += 1
 
         # Record history
-        self._history.append({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "task_type": task_type.value,
-            "complexity_score": complexity_score,
-            "tier": tier.value,
-            "allocation": allocation.to_dict(),
-        })
+        self._history.append(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "task_type": task_type.value,
+                "complexity_score": complexity_score,
+                "tier": tier.value,
+                "allocation": allocation.to_dict(),
+            }
+        )
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         logger.info(
             f"Budget allocated: {task_type.value} -> {tier.value} "
@@ -538,7 +554,9 @@ class CognitiveBudgetAllocator:
         modulated["depth"] = max(specs["depth"], complexity.reasoning_depth)
 
         # Adjust tracks based on convergence requirement
-        modulated["parallel_tracks"] = max(specs["parallel_tracks"], complexity.convergence_required)
+        modulated["parallel_tracks"] = max(
+            specs["parallel_tracks"], complexity.convergence_required
+        )
 
         return modulated
 
@@ -583,15 +601,23 @@ class CognitiveBudgetAllocator:
 
         # Success rate from history
         executions = [h for h in self._history if "execution" in h]
-        success_rate = sum(1 for e in executions if e["execution"]["success"]) / max(len(executions), 1)
+        success_rate = sum(1 for e in executions if e["execution"]["success"]) / max(
+            len(executions), 1
+        )
 
         # Average efficiency
-        time_eff = sum(e["execution"]["time_efficiency"] for e in executions if "execution" in e) / max(len(executions), 1)
-        token_eff = sum(e["execution"]["token_efficiency"] for e in executions if "execution" in e) / max(len(executions), 1)
+        time_eff = sum(
+            e["execution"]["time_efficiency"] for e in executions if "execution" in e
+        ) / max(len(executions), 1)
+        token_eff = sum(
+            e["execution"]["token_efficiency"] for e in executions if "execution" in e
+        ) / max(len(executions), 1)
 
         return {
             "total_allocations": self._total_allocations,
-            "tier_distribution": {t.value: c / total for t, c in self._tier_distribution.items()},
+            "tier_distribution": {
+                t.value: c / total for t, c in self._tier_distribution.items()
+            },
             "success_rate": success_rate,
             "avg_time_efficiency": time_eff,
             "avg_token_efficiency": token_eff,
@@ -610,9 +636,11 @@ class CognitiveBudgetAllocator:
 # BUDGET TRACKER
 # ============================================================================
 
+
 @dataclass
 class BudgetUsage:
     """Tracks budget usage during execution."""
+
     allocation: BudgetAllocation
 
     # Usage tracking
@@ -644,10 +672,10 @@ class BudgetUsage:
     def is_budget_available(self) -> bool:
         """Check if budget is still available."""
         return (
-            self.time_remaining_s() > 0 and
-            self.tokens_remaining() > 0 and
-            self.iterations_remaining() > 0 and
-            not self.exhausted
+            self.time_remaining_s() > 0
+            and self.tokens_remaining() > 0
+            and self.iterations_remaining() > 0
+            and not self.exhausted
         )
 
     def should_continue(self) -> bool:
@@ -745,6 +773,7 @@ class BudgetTracker:
 # NTU INTEGRATION
 # ============================================================================
 
+
 class NTUBudgetAdapter:
     """
     Adapts NTU temporal patterns to budget decisions.
@@ -764,7 +793,10 @@ class NTUBudgetAdapter:
         if self._ntu is None:
             try:
                 from core.ntu import NTU, NTUConfig
-                self._ntu = NTU(NTUConfig(ihsan_threshold=self.allocator.ihsan_threshold))
+
+                self._ntu = NTU(
+                    NTUConfig(ihsan_threshold=self.allocator.ihsan_threshold)
+                )
             except ImportError:
                 logger.warning("NTU not available")
         return self._ntu
@@ -824,16 +856,20 @@ class NTUBudgetAdapter:
         )
         efficiency = max(0.0, min(1.0, efficiency + 0.5))  # Shift to [0, 1]
 
-        self.ntu.observe(efficiency, {
-            "source": "cognitive_budget",
-            "tier": summary["tier"],
-            "utilization": summary["time_utilization"],
-        })
+        self.ntu.observe(
+            efficiency,
+            {
+                "source": "cognitive_budget",
+                "tier": summary["tier"],
+                "utilization": summary["time_utilization"],
+            },
+        )
 
 
 # ============================================================================
 # FACTORY FUNCTIONS
 # ============================================================================
+
 
 def create_allocator(
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD,

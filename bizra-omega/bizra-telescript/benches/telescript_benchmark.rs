@@ -8,7 +8,7 @@
 //! - Agent creation and travel
 
 use bizra_telescript::*;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 fn bench_authority_chain(c: &mut Criterion) {
     let mut group = c.benchmark_group("authority_chain");
@@ -50,13 +50,9 @@ fn bench_gini_calculation(c: &mut Criterion) {
     for size in [10, 100, 1000, 10000] {
         let values: Vec<f64> = (0..size).map(|i| i as f64).collect();
 
-        group.bench_with_input(
-            BenchmarkId::new("calculate", size),
-            &values,
-            |b, values| {
-                b.iter(|| black_box(TelescriptEngine::calculate_gini(values)));
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("calculate", size), &values, |b, values| {
+            b.iter(|| black_box(TelescriptEngine::calculate_gini(values)));
+        });
     }
 
     group.finish();
@@ -72,7 +68,12 @@ fn bench_place_fate_check(c: &mut Criterion) {
 
 fn bench_ticket_operations(c: &mut Criterion) {
     let genesis = Authority::genesis();
-    let permit = Permit::new(genesis, vec![Capability::Go], ResourceLimits::default(), 3600);
+    let permit = Permit::new(
+        genesis,
+        vec![Capability::Go],
+        ResourceLimits::default(),
+        3600,
+    );
     let agent = Agent::new("benchmark_agent", permit, vec![1, 2, 3]);
     let from_place = uuid::Uuid::new_v4();
     let to_place = uuid::Uuid::new_v4();
@@ -80,9 +81,7 @@ fn bench_ticket_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("ticket_ops");
 
     group.bench_function("ticket_issue", |b| {
-        b.iter(|| {
-            black_box(Ticket::issue(&agent, from_place, to_place, 300).unwrap())
-        });
+        b.iter(|| black_box(Ticket::issue(&agent, from_place, to_place, 300).unwrap()));
     });
 
     let ticket = Ticket::issue(&agent, from_place, to_place, 300).unwrap();

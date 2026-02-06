@@ -5,11 +5,11 @@
 //!
 //! Standing on Giants: Lamport (1982) — Byzantine Generals Problem
 
+use bizra_core::{NodeId, NodeIdentity, IHSAN_THRESHOLD};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use bizra_core::{NodeIdentity, NodeId, IHSAN_THRESHOLD};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Proposal {
@@ -23,8 +23,14 @@ pub struct Proposal {
 impl Proposal {
     pub fn new(proposer: NodeId, pattern: serde_json::Value, ihsan_score: f64) -> Self {
         Self {
-            id: format!("prop_{}", &uuid::Uuid::new_v4().to_string().replace("-", "")[..12]),
-            proposer, pattern, created_at: Utc::now(), ihsan_score,
+            id: format!(
+                "prop_{}",
+                &uuid::Uuid::new_v4().to_string().replace("-", "")[..12]
+            ),
+            proposer,
+            pattern,
+            created_at: Utc::now(),
+            ihsan_score,
         }
     }
 }
@@ -88,12 +94,18 @@ impl SignedVote {
 
     /// Get hex-encoded public key for display
     pub fn pubkey_hex(&self) -> String {
-        hex::encode(&self.sender_pubkey)
+        hex::encode(self.sender_pubkey)
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ConsensusState { Idle, Voting, Committing, Committed, Rejected }
+pub enum ConsensusState {
+    Idle,
+    Voting,
+    Committing,
+    Committed,
+    Rejected,
+}
 
 struct Round {
     proposal: Proposal,
@@ -144,29 +156,46 @@ impl ConsensusEngine {
     pub fn register_peer(&mut self, node_id: NodeId, public_key: [u8; 32]) {
         self.known_peers.insert(
             node_id.clone(),
-            KnownPeer { node_id, public_key },
+            KnownPeer {
+                node_id,
+                public_key,
+            },
         );
     }
 
-    pub fn set_node_count(&mut self, count: usize) { self.total_nodes = count.max(1); }
+    pub fn set_node_count(&mut self, count: usize) {
+        self.total_nodes = count.max(1);
+    }
 
-    pub fn propose(&mut self, pattern: serde_json::Value, ihsan_score: f64) -> Result<Proposal, ConsensusError> {
+    pub fn propose(
+        &mut self,
+        pattern: serde_json::Value,
+        ihsan_score: f64,
+    ) -> Result<Proposal, ConsensusError> {
         if ihsan_score < IHSAN_THRESHOLD {
             return Err(ConsensusError::IhsanThreshold(ihsan_score));
         }
         let proposal = Proposal::new(self.identity.node_id().clone(), pattern, ihsan_score);
         let quorum = (2 * self.total_nodes / 3) + 1;
-        self.rounds.insert(proposal.id.clone(), Round {
-            proposal: proposal.clone(),
-            votes: HashMap::new(),
-            state: ConsensusState::Voting,
-            quorum_size: quorum.max(1),
-        });
+        self.rounds.insert(
+            proposal.id.clone(),
+            Round {
+                proposal: proposal.clone(),
+                votes: HashMap::new(),
+                state: ConsensusState::Voting,
+                quorum_size: quorum.max(1),
+            },
+        );
         Ok(proposal)
     }
 
     /// Create a signed vote for a proposal
-    pub fn vote(&self, proposal_id: &str, approve: bool, ihsan: f64) -> Result<SignedVote, ConsensusError> {
+    pub fn vote(
+        &self,
+        proposal_id: &str,
+        approve: bool,
+        ihsan: f64,
+    ) -> Result<SignedVote, ConsensusError> {
         if !self.rounds.contains_key(proposal_id) {
             return Err(ConsensusError::ProposalNotFound(proposal_id.into()));
         }
@@ -196,8 +225,8 @@ impl ConsensusEngine {
         if signed_vote.sender_pubkey != expected_peer.public_key {
             return Err(ConsensusError::PubkeyMismatch {
                 voter: voter_id.clone(),
-                expected: hex::encode(&expected_peer.public_key),
-                received: hex::encode(&signed_vote.sender_pubkey),
+                expected: hex::encode(expected_peer.public_key),
+                received: hex::encode(signed_vote.sender_pubkey),
             });
         }
 
@@ -209,7 +238,9 @@ impl ConsensusEngine {
         let round = self
             .rounds
             .get_mut(&signed_vote.vote.proposal_id)
-            .ok_or_else(|| ConsensusError::ProposalNotFound(signed_vote.vote.proposal_id.clone()))?;
+            .ok_or_else(|| {
+                ConsensusError::ProposalNotFound(signed_vote.vote.proposal_id.clone())
+            })?;
 
         if round.state != ConsensusState::Voting {
             return Err(ConsensusError::NotVoting);
@@ -227,16 +258,24 @@ impl ConsensusEngine {
     }
 
     pub fn commit(&mut self, proposal_id: &str) -> Result<(), ConsensusError> {
-        let round = self.rounds.get_mut(proposal_id)
+        let round = self
+            .rounds
+            .get_mut(proposal_id)
             .ok_or_else(|| ConsensusError::ProposalNotFound(proposal_id.into()))?;
-        if round.state != ConsensusState::Committing { return Err(ConsensusError::NotReady); }
+        if round.state != ConsensusState::Committing {
+            return Err(ConsensusError::NotReady);
+        }
         round.state = ConsensusState::Committed;
         self.committed.insert(proposal_id.into());
         Ok(())
     }
 
-    pub fn is_committed(&self, proposal_id: &str) -> bool { self.committed.contains(proposal_id) }
-    pub fn committed_count(&self) -> usize { self.committed.len() }
+    pub fn is_committed(&self, proposal_id: &str) -> bool {
+        self.committed.contains(proposal_id)
+    }
+    pub fn committed_count(&self) -> usize {
+        self.committed.len()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

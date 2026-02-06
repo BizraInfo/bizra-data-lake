@@ -4,16 +4,19 @@
 //! including the sovereign orchestration layer.
 
 use bizra_core::{
-    NodeIdentity, Constitution, PCIEnvelope, GateChain, GateContext,
-    domain_separated_digest, IHSAN_THRESHOLD, SNR_THRESHOLD,
+    domain_separated_digest,
     // Sovereign module imports
     sovereign::{
-        OmegaEngine, OmegaConfig, OmegaMetrics, CircuitState,
-        SNREngine, SNRConfig, SignalMetrics,
-        ThoughtGraph, ThoughtNode, ReasoningPath,
-        SovereignError, SovereignResult,
-        GiantRegistry,
+        CircuitState, GiantRegistry, OmegaConfig, OmegaEngine,
+        SNRConfig, SNREngine, SovereignError, ThoughtGraph,
+        ThoughtNode,
     },
+    Constitution,
+    GateContext,
+    NodeIdentity,
+    PCIEnvelope,
+    IHSAN_THRESHOLD,
+    SNR_THRESHOLD,
 };
 
 /// Test full PCI envelope lifecycle
@@ -72,10 +75,18 @@ fn test_crypto_operations() {
     assert!(!signature.is_empty());
 
     // Verify
-    assert!(NodeIdentity::verify(message, &signature, identity.verifying_key()));
+    assert!(NodeIdentity::verify(
+        message,
+        &signature,
+        identity.verifying_key()
+    ));
 
     // Tampered message fails
-    assert!(!NodeIdentity::verify(b"tampered", &signature, identity.verifying_key()));
+    assert!(!NodeIdentity::verify(
+        b"tampered",
+        &signature,
+        identity.verifying_key()
+    ));
 }
 
 /// Test domain separation
@@ -229,7 +240,10 @@ async fn test_snr_engine_omega_integration() {
                         through novel algorithmic approaches validated by data.";
 
     let result = engine.validate_with_reasoning(good_content).await;
-    assert!(result.is_ok(), "High-quality content should pass validation");
+    assert!(
+        result.is_ok(),
+        "High-quality content should pass validation"
+    );
 
     let (metrics, path) = result.unwrap();
     assert!(metrics.compute_snr() > 0.5);
@@ -251,7 +265,10 @@ async fn test_snr_rejects_noise() {
     assert!(result.is_ok());
     let metrics = result.unwrap();
     // Repetitive content should have low diversity
-    assert!(metrics.diversity < 0.5, "Repetitive content should have low diversity");
+    assert!(
+        metrics.diversity < 0.5,
+        "Repetitive content should have low diversity"
+    );
 }
 
 /// Test Graph-of-Thoughts reasoning path creation
@@ -339,14 +356,17 @@ async fn test_omega_metrics_accumulation() {
 
     // Execute operations
     for _ in 0..10 {
-        engine.execute(|| {
-            // Simulate some work
-            let mut sum = 0u64;
-            for i in 0..1000 {
-                sum += i;
-            }
-            sum
-        }).await.unwrap();
+        engine
+            .execute(|| {
+                // Simulate some work
+                let mut sum = 0u64;
+                for i in 0..1000 {
+                    sum += i;
+                }
+                sum
+            })
+            .await
+            .unwrap();
     }
 
     let metrics = engine.metrics().await;
@@ -354,7 +374,10 @@ async fn test_omega_metrics_accumulation() {
     // Verify accumulation
     assert_eq!(metrics.total_operations, 10);
     assert_eq!(metrics.successful_operations, 10);
-    assert!(metrics.avg_latency_us > 0, "Average latency should be recorded");
+    assert!(
+        metrics.avg_latency_us > 0,
+        "Average latency should be recorded"
+    );
 }
 
 /// Test health check integration
@@ -450,10 +473,12 @@ async fn test_full_sovereign_pipeline() {
     assert!(metrics.compute_snr() > 0.5);
 
     // 5. Execute through Omega
-    let omega_result = engine.execute(|| {
-        // Simulate sovereign operation
-        "operation_complete"
-    }).await;
+    let omega_result = engine
+        .execute(|| {
+            // Simulate sovereign operation
+            "operation_complete"
+        })
+        .await;
 
     assert!(omega_result.is_ok());
     let res = omega_result.unwrap();
@@ -475,9 +500,7 @@ async fn test_omega_concurrent_operations() {
     let mut handles = vec![];
     for i in 0..10 {
         let engine_clone = engine.clone();
-        let handle = tokio::spawn(async move {
-            engine_clone.execute(|| i * 2).await
-        });
+        let handle = tokio::spawn(async move { engine_clone.execute(|| i * 2).await });
         handles.push(handle);
     }
 
@@ -513,9 +536,12 @@ fn test_snr_content_type_analysis() {
     let filler_snr = filler_result.unwrap().compute_snr();
 
     // Technical should score higher than filler
-    assert!(tech_snr > filler_snr,
-            "Technical content ({}) should score higher than filler ({})",
-            tech_snr, filler_snr);
+    assert!(
+        tech_snr > filler_snr,
+        "Technical content ({}) should score higher than filler ({})",
+        tech_snr,
+        filler_snr
+    );
 }
 
 /// Test input validation bounds

@@ -232,12 +232,12 @@ pub struct ResourceLimits {
 impl Default for ResourceLimits {
     fn default() -> Self {
         ResourceLimits {
-            cpu_millicores: 100,      // 0.1 cores
-            memory_bytes: 64 * 1024 * 1024, // 64 MB
+            cpu_millicores: 100,              // 0.1 cores
+            memory_bytes: 64 * 1024 * 1024,   // 64 MB
             storage_bytes: 256 * 1024 * 1024, // 256 MB
-            network_bps: 1024 * 1024,  // 1 MB/s
-            inference_tokens: 4096,    // Standard context
-            ttl_seconds: 3600,         // 1 hour
+            network_bps: 1024 * 1024,         // 1 MB/s
+            inference_tokens: 4096,           // Standard context
+            ttl_seconds: 3600,                // 1 hour
         }
     }
 }
@@ -1021,9 +1021,9 @@ impl TelescriptEngine {
             .get_mut(&agent_id)
             .ok_or_else(|| TelescriptError::AgentNotFound(agent_id.to_string()))?;
 
-        let from_place_id = agent
-            .current_place
-            .ok_or_else(|| TelescriptError::FateRejection("Agent has no current place".to_string()))?;
+        let from_place_id = agent.current_place.ok_or_else(|| {
+            TelescriptError::FateRejection("Agent has no current place".to_string())
+        })?;
 
         // Check permits and FATE
         agent.passes_fate()?;
@@ -1129,7 +1129,8 @@ impl TelescriptEngine {
         self.meetings.write().await.insert(meeting_id, meeting);
 
         // Record impact
-        self.record_impact(initiator_id, "meeting_initiated", 8).await;
+        self.record_impact(initiator_id, "meeting_initiated", 8)
+            .await;
 
         Ok(meeting_id)
     }

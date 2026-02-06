@@ -8,11 +8,11 @@ Standing on Giants:
 - Bernstein (2011): Ed25519 signatures
 """
 
-import uuid
-import time
 import secrets
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from typing import (
     Any,
     Dict,
@@ -23,17 +23,13 @@ from typing import (
     Tuple,
     TypedDict,
 )
-from enum import Enum
 
-from .reject_codes import RejectCode
 from .crypto import (
     canonical_json,
     domain_separated_digest,
     sign_message,
     timing_safe_compare,
-    timing_safe_compare_hex,
 )
-
 
 # =============================================================================
 # REPLAY PROTECTION CONSTANTS (Security Hardening S-1)
@@ -54,8 +50,10 @@ _nonce_max_size: Final[int] = 100000
 # TYPE DEFINITIONS (mypy --strict compliance)
 # =============================================================================
 
+
 class SenderDict(TypedDict, total=False):
     """Type definition for serialized EnvelopeSender."""
+
     agent_type: str
     agent_id: str
     public_key: str
@@ -63,6 +61,7 @@ class SenderDict(TypedDict, total=False):
 
 class PayloadDict(TypedDict, total=False):
     """Type definition for serialized EnvelopePayload."""
+
     action: str
     data: Dict[str, Any]
     policy_hash: str
@@ -71,6 +70,7 @@ class PayloadDict(TypedDict, total=False):
 
 class MetadataDict(TypedDict, total=False):
     """Type definition for serialized EnvelopeMetadata."""
+
     ihsan_score: float
     snr_score: float
     urgency: str
@@ -78,6 +78,7 @@ class MetadataDict(TypedDict, total=False):
 
 class SignatureDict(TypedDict, total=False):
     """Type definition for serialized EnvelopeSignature."""
+
     algorithm: str
     value: str
     signed_fields: List[str]
@@ -85,6 +86,7 @@ class SignatureDict(TypedDict, total=False):
 
 class EnvelopeDict(TypedDict, total=False):
     """Type definition for serialized PCIEnvelope."""
+
     version: str
     envelope_id: str
     timestamp: str
@@ -134,11 +136,13 @@ class AgentType(str, Enum):
     PAT = "PAT"
     SAT = "SAT"
 
+
 @dataclass
 class EnvelopeSender:
     agent_type: AgentType
     agent_id: str
     public_key: str
+
 
 @dataclass
 class EnvelopePayload:
@@ -146,6 +150,7 @@ class EnvelopePayload:
     data: Dict[str, Any]
     policy_hash: str
     state_hash: str
+
 
 @dataclass
 class EnvelopeMetadata:
@@ -157,11 +162,13 @@ class EnvelopeMetadata:
         if not (0.0 <= self.ihsan_score <= 1.0):
             raise ValueError("Ihsan score must be between 0.0 and 1.0")
 
+
 @dataclass
 class EnvelopeSignature:
     algorithm: str
     value: str
     signed_fields: List[str]
+
 
 @dataclass
 class PCIEnvelope:
@@ -181,8 +188,8 @@ class PCIEnvelope:
         """Compute the canonical digest of the envelope (excluding signature)."""
         # Create a dict without signature
         d = asdict(self)
-        if 'signature' in d:
-            del d['signature']
+        if "signature" in d:
+            del d["signature"]
 
         # Canonicalize and hash
         return domain_separated_digest(canonical_json(d))
@@ -203,7 +210,7 @@ class PCIEnvelope:
             True if message should be rejected (expired or future-dated)
         """
         try:
-            msg_time = datetime.fromisoformat(self.timestamp.replace('Z', '+00:00'))
+            msg_time = datetime.fromisoformat(self.timestamp.replace("Z", "+00:00"))
             now = datetime.now(timezone.utc)
             age_seconds = (now - msg_time).total_seconds()
 
@@ -248,7 +255,7 @@ class PCIEnvelope:
         # Evict oldest if over limit (simple size-based eviction)
         if len(_seen_nonces) > _nonce_max_size:
             # Remove ~10% of oldest entries
-            to_remove = list(_seen_nonces)[:_nonce_max_size // 10]
+            to_remove = list(_seen_nonces)[: _nonce_max_size // 10]
             for nonce in to_remove:
                 _seen_nonces.discard(nonce)
 
@@ -268,8 +275,8 @@ class PCIEnvelope:
             return False, f"Replay attack detected: nonce {self.nonce[:16]}..."
 
         return True, ""
-        
-    def sign(self, private_key_hex: str) -> 'PCIEnvelope':
+
+    def sign(self, private_key_hex: str) -> "PCIEnvelope":
         """Sign the envelope and attach signature."""
         digest = self.compute_digest()
         sig_hex = sign_message(digest, private_key_hex)
@@ -277,12 +284,20 @@ class PCIEnvelope:
         self.signature = EnvelopeSignature(
             algorithm="ed25519",
             value=sig_hex,
-            signed_fields=["version", "envelope_id", "timestamp", "nonce", "sender", "payload", "metadata"]
+            signed_fields=[
+                "version",
+                "envelope_id",
+                "timestamp",
+                "nonce",
+                "sender",
+                "payload",
+                "metadata",
+            ],
         )
         return self
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> 'PCIEnvelope':
+    def from_dict(cls, d: Dict[str, Any]) -> "PCIEnvelope":
         """
         Reconstruct a PCIEnvelope from a dictionary.
 
@@ -334,6 +349,7 @@ class PCIEnvelope:
             signature=signature,
         )
 
+
 class EnvelopeBuilder:
     """Builder for PCI Envelopes."""
 
@@ -374,6 +390,8 @@ class EnvelopeBuilder:
             metadata=self._metadata,
         )
 
+
 def datetime_now_iso() -> str:
     from datetime import datetime, timezone
-    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

@@ -16,11 +16,10 @@ BIZRA Integration:
 - FATE compliance: Selected data respects fairness and ethics constraints
 """
 
-import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable, Tuple, Set
-from collections import defaultdict, Counter
 import logging
+from collections import Counter
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SelectionResult:
     """Result of data selection operation."""
+
     original_count: int
     selected_count: int
     selected_indices: List[int]
@@ -88,9 +88,7 @@ class SimilaritySelector:
         return intersection / union if union > 0 else 0.0
 
     def _bag_of_words_similarity(
-        self,
-        source: str,
-        target_distribution: Dict[str, float]
+        self, source: str, target_distribution: Dict[str, float]
     ) -> float:
         """
         Compute BoW distribution matching score.
@@ -176,7 +174,7 @@ class SimilaritySelector:
                 target_tokens = self._tokenize(target)
                 target_counts = Counter(target_tokens)
                 total = sum(target_counts.values())
-                target_distribution = {t: c/total for t, c in target_counts.items()}
+                target_distribution = {t: c / total for t, c in target_counts.items()}
 
             for i, source in enumerate(sources):
                 scores[i] = self._bag_of_words_similarity(source, target_distribution)
@@ -193,8 +191,10 @@ class SimilaritySelector:
 
         # Select by threshold or top-k
         if self.top_k:
-            sorted_indices = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)
-            selected = sorted_indices[:self.top_k]
+            sorted_indices = sorted(
+                scores.keys(), key=lambda x: scores[x], reverse=True
+            )
+            selected = sorted_indices[: self.top_k]
         else:
             selected = [i for i, s in scores.items() if s >= self.threshold]
 
@@ -292,7 +292,7 @@ class OptimizationSelector:
         # Reward: informativeness (unique content)
         unique_ratio = len(set(words)) / len(words)
         # Reward: structure (sentences)
-        sentence_count = sample.count('.') + sample.count('!') + sample.count('?')
+        sentence_count = sample.count(".") + sample.count("!") + sample.count("?")
         structure_score = min(sentence_count / 5, 1.0)
 
         return unique_ratio * (1 + structure_score)
@@ -398,7 +398,7 @@ class ModelBasedSelector:
 
         # Quality dimensions
         vocab_diversity = len(set(words)) / len(words)
-        punctuation = sum(1 for c in text if c in '.!?;:,')
+        punctuation = sum(1 for c in text if c in ".!?;:,")
         structure = min(punctuation / len(words), 0.3) / 0.3
 
         # Combined score
@@ -439,7 +439,7 @@ class ModelBasedSelector:
         complexity = 0.5 * unique_ratio + 0.5 * min(avg_len / 10, 1.0)
 
         # Quality: How well-formed is this text?
-        has_punctuation = any(c in text for c in '.!?')
+        has_punctuation = any(c in text for c in ".!?")
         proper_length = 10 <= len(words) <= 500
         quality = 0.5 * float(has_punctuation) + 0.5 * float(proper_length)
 
@@ -517,7 +517,9 @@ class DataSelectionPipeline:
         self.model_selector = model_selector or ModelBasedSelector()
         self.ihsan_threshold = ihsan_threshold
 
-    def _ihsan_filter(self, samples: List[str], scores: Dict[int, float]) -> Dict[int, float]:
+    def _ihsan_filter(
+        self, samples: List[str], scores: Dict[int, float]
+    ) -> Dict[int, float]:
         """Filter scores below Ihsān threshold."""
         return {i: s for i, s in scores.items() if s >= self.ihsan_threshold}
 
@@ -576,7 +578,9 @@ class DataSelectionPipeline:
 
             # Select top 10% from passing samples
             k = max(1, int(len(filtered_scores) * 0.1))
-            sorted_indices = sorted(filtered_scores.keys(), key=lambda x: filtered_scores[x], reverse=True)
+            sorted_indices = sorted(
+                filtered_scores.keys(), key=lambda x: filtered_scores[x], reverse=True
+            )
             selected = sorted_indices[:k]
 
             return SelectionResult(

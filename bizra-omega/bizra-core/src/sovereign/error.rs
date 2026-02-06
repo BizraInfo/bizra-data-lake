@@ -28,69 +28,43 @@ pub enum SovereignError {
     // ═══════════════════════════════════════════════════════════════════════
     // SNR Errors (Shannon-inspired)
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// SNR score below minimum threshold
     #[error("SNR violation: score {actual:.4} below threshold {threshold:.4}")]
-    SNRBelowThreshold {
-        actual: f64,
-        threshold: f64,
-    },
+    SNRBelowThreshold { actual: f64, threshold: f64 },
 
     /// Noise level exceeds acceptable bounds
     #[error("Excessive noise: {noise_level:.4} exceeds maximum {max_noise:.4}")]
-    ExcessiveNoise {
-        noise_level: f64,
-        max_noise: f64,
-    },
+    ExcessiveNoise { noise_level: f64, max_noise: f64 },
 
     /// Signal strength insufficient
     #[error("Weak signal: strength {strength:.4} below minimum {minimum:.4}")]
-    WeakSignal {
-        strength: f64,
-        minimum: f64,
-    },
+    WeakSignal { strength: f64, minimum: f64 },
 
     /// Diversity score too low (repetitive content)
     #[error("Low diversity: {diversity:.4} indicates repetitive content")]
-    LowDiversity {
-        diversity: f64,
-    },
+    LowDiversity { diversity: f64 },
 
     // ═══════════════════════════════════════════════════════════════════════
     // Ihsan Errors (Excellence constraint)
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// Ihsan score below excellence threshold
     #[error("Ihsan violation: score {actual:.4} below excellence threshold {threshold:.4}")]
-    IhsanViolation {
-        actual: f64,
-        threshold: f64,
-    },
+    IhsanViolation { actual: f64, threshold: f64 },
 
     /// Quality gate rejection
     #[error("Quality gate '{gate}' rejected: {reason}")]
-    QualityGateRejection {
-        gate: String,
-        reason: String,
-    },
+    QualityGateRejection { gate: String, reason: String },
 
     // ═══════════════════════════════════════════════════════════════════════
     // Validation Errors
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// Input exceeds maximum allowed length
     #[error("Input too large: {size} bytes exceeds maximum {max_size} bytes")]
-    InputTooLarge {
-        size: usize,
-        max_size: usize,
-    },
+    InputTooLarge { size: usize, max_size: usize },
 
     /// Input below minimum required length
     #[error("Input too small: {size} bytes below minimum {min_size} bytes")]
-    InputTooSmall {
-        size: usize,
-        min_size: usize,
-    },
+    InputTooSmall { size: usize, min_size: usize },
 
     /// Empty input not allowed
     #[error("Empty input: content cannot be empty")]
@@ -98,25 +72,18 @@ pub enum SovereignError {
 
     /// Invalid JSON structure
     #[error("Invalid JSON: {message}")]
-    InvalidJson {
-        message: String,
-    },
+    InvalidJson { message: String },
 
     /// Schema validation failed
     #[error("Schema validation failed: {message}")]
-    SchemaValidation {
-        message: String,
-    },
+    SchemaValidation { message: String },
 
     // ═══════════════════════════════════════════════════════════════════════
     // Operation Errors
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// Operation timed out
     #[error("Operation timed out after {duration_ms}ms")]
-    Timeout {
-        duration_ms: u64,
-    },
+    Timeout { duration_ms: u64 },
 
     /// Circuit breaker is open
     #[error("Circuit breaker open: {service} unavailable, retry after {retry_after_ms}ms")]
@@ -127,22 +94,15 @@ pub enum SovereignError {
 
     /// Rate limit exceeded
     #[error("Rate limit exceeded: {limit} requests per {window_seconds}s")]
-    RateLimitExceeded {
-        limit: u32,
-        window_seconds: u32,
-    },
+    RateLimitExceeded { limit: u32, window_seconds: u32 },
 
     /// Internal operation failed
     #[error("Operation failed: {operation} - {reason}")]
-    OperationFailed {
-        operation: String,
-        reason: String,
-    },
+    OperationFailed { operation: String, reason: String },
 
     // ═══════════════════════════════════════════════════════════════════════
     // Graph-of-Thoughts Errors
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// No consensus reached in reasoning paths
     #[error("No consensus: {successful}/{total} paths succeeded, threshold: {threshold}")]
     NoConsensus {
@@ -161,23 +121,18 @@ pub enum SovereignError {
 
     /// Maximum reasoning depth exceeded
     #[error("Maximum reasoning depth {max_depth} exceeded")]
-    MaxDepthExceeded {
-        max_depth: usize,
-    },
+    MaxDepthExceeded { max_depth: usize },
 
     // ═══════════════════════════════════════════════════════════════════════
     // Identity Errors
     // ═══════════════════════════════════════════════════════════════════════
-    
     /// Identity not initialized
     #[error("Identity not initialized: call with_identity() first")]
     IdentityNotInitialized,
 
     /// Signature verification failed
     #[error("Signature verification failed: {reason}")]
-    SignatureInvalid {
-        reason: String,
-    },
+    SignatureInvalid { reason: String },
 }
 
 impl SovereignError {
@@ -210,28 +165,28 @@ impl SovereignError {
             // Critical errors
             SovereignError::SignatureInvalid { .. } => 1.0,
             SovereignError::IdentityNotInitialized => 0.9,
-            
+
             // High severity
             SovereignError::IhsanViolation { .. } => 0.8,
             SovereignError::SNRBelowThreshold { .. } => 0.7,
-            
+
             // Medium severity
             SovereignError::NoConsensus { .. } => 0.6,
             SovereignError::QualityGateRejection { .. } => 0.5,
             SovereignError::OperationFailed { .. } => 0.5,
-            
+
             // Low severity (recoverable)
             SovereignError::Timeout { .. } => 0.3,
             SovereignError::CircuitBreakerOpen { .. } => 0.3,
             SovereignError::RateLimitExceeded { .. } => 0.2,
-            
+
             // Validation (user error)
             SovereignError::InputTooLarge { .. } => 0.2,
             SovereignError::InputTooSmall { .. } => 0.2,
             SovereignError::EmptyInput => 0.1,
             SovereignError::InvalidJson { .. } => 0.2,
             SovereignError::SchemaValidation { .. } => 0.2,
-            
+
             // Other
             _ => 0.5,
         }

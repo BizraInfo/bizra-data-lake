@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from .proactive_scheduler import ProactiveScheduler, ScheduleType, JobPriority
+from .proactive_scheduler import JobPriority, ProactiveScheduler, ScheduleType
 from .runtime_engines.sovereign_runtime import (
-    RuntimeInput, RuntimeDecision, SovereignRuntime, get_sovereign_runtime,
+    RuntimeDecision,
+    RuntimeInput,
+    SovereignRuntime,
+    get_sovereign_runtime,
 )
 
 logger = logging.getLogger(__name__)
@@ -18,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ScheduledTask:
     """A scheduled RuntimeInput task."""
+
     task_id: str
     cron_pattern: Optional[str]
     runtime_input: RuntimeInput
@@ -64,14 +68,20 @@ class ProactiveSchedulerBridge:
     ) -> ScheduledTask:
         """Schedule a RuntimeInput query for execution."""
         runtime_input = RuntimeInput(
-            query=query, context=context or {}, source="scheduler",
+            query=query,
+            context=context or {},
+            source="scheduler",
             priority=priority.value / 5.0,
         )
-        schedule_type = ScheduleType.RECURRING if cron_pattern else ScheduleType.ONE_TIME
+        schedule_type = (
+            ScheduleType.RECURRING if cron_pattern else ScheduleType.ONE_TIME
+        )
         interval = parse_cron_to_interval(cron_pattern) if cron_pattern else None
 
         task = ScheduledTask(
-            task_id=task_id, cron_pattern=cron_pattern, runtime_input=runtime_input,
+            task_id=task_id,
+            cron_pattern=cron_pattern,
+            runtime_input=runtime_input,
             next_run=run_at or datetime.now(timezone.utc),
         )
         self._tasks[task_id] = task
@@ -80,8 +90,12 @@ class ProactiveSchedulerBridge:
             return await self._execute_task(task_id)
 
         self._scheduler.schedule(
-            name=f"sovereign:{task_id}", handler=handler, schedule_type=schedule_type,
-            priority=priority, run_at=run_at, interval=interval,
+            name=f"sovereign:{task_id}",
+            handler=handler,
+            schedule_type=schedule_type,
+            priority=priority,
+            run_at=run_at,
+            interval=interval,
             metadata={"task_id": task_id},
         )
         logger.info(f"Scheduled task: {task_id}, pattern={cron_pattern}")
@@ -124,13 +138,20 @@ class ProactiveSchedulerBridge:
         task.last_result = result
         task.execution_count += 1
         if task.cron_pattern:
-            task.next_run = start + timedelta(seconds=parse_cron_to_interval(task.cron_pattern))
+            task.next_run = start + timedelta(
+                seconds=parse_cron_to_interval(task.cron_pattern)
+            )
 
-        self._history.append({
-            "task_id": task_id, "executed_at": start.isoformat(),
-            "decision_id": result.id, "action": result.action,
-            "ihsan_score": result.ihsan_score, "execution_allowed": result.execution_allowed,
-        })
+        self._history.append(
+            {
+                "task_id": task_id,
+                "executed_at": start.isoformat(),
+                "decision_id": result.id,
+                "action": result.action,
+                "ihsan_score": result.ihsan_score,
+                "execution_allowed": result.execution_allowed,
+            }
+        )
         return result
 
     def get_history(self, task_id: Optional[str] = None, limit: int = 20) -> List[Dict]:

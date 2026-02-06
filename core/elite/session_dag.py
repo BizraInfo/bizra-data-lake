@@ -30,30 +30,23 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import time
-from abc import ABC, abstractmethod
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
-    Iterator,
     List,
     Optional,
     Set,
-    Tuple,
     TypeVar,
-    Union,
 )
-import uuid
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,31 +61,38 @@ T = TypeVar("T")
 
 class SessionState(str, Enum):
     """Session lifecycle states."""
-    INIT = "init"           # Session created, not yet active
-    ACTIVE = "active"       # Session active, processing allowed
-    COMPUTING = "computing" # In computation (blocking state)
-    VALIDATED = "validated" # Computation validated via FATE
-    COMMITTED = "committed" # State committed to DAG
-    SUSPENDED = "suspended" # Temporarily suspended
-    RESUMED = "resumed"     # Resumed from suspension
-    FAILED = "failed"       # Error state
-    RECOVERED = "recovered" # Recovered from failure
-    TERMINATED = "terminated" # Session ended
+
+    INIT = "init"  # Session created, not yet active
+    ACTIVE = "active"  # Session active, processing allowed
+    COMPUTING = "computing"  # In computation (blocking state)
+    VALIDATED = "validated"  # Computation validated via FATE
+    COMMITTED = "committed"  # State committed to DAG
+    SUSPENDED = "suspended"  # Temporarily suspended
+    RESUMED = "resumed"  # Resumed from suspension
+    FAILED = "failed"  # Error state
+    RECOVERED = "recovered"  # Recovered from failure
+    TERMINATED = "terminated"  # Session ended
 
 
 class TransitionType(str, Enum):
     """Types of state transitions."""
-    STANDARD = "standard"     # Normal state progression
-    BRANCH = "branch"         # Fork to parallel state
-    MERGE = "merge"           # Join from multiple states
-    ROLLBACK = "rollback"     # Revert to previous state
-    RECOVERY = "recovery"     # Recover from failure
+
+    STANDARD = "standard"  # Normal state progression
+    BRANCH = "branch"  # Fork to parallel state
+    MERGE = "merge"  # Join from multiple states
+    ROLLBACK = "rollback"  # Revert to previous state
+    RECOVERY = "recovery"  # Recover from failure
 
 
 # Valid state transitions
 VALID_TRANSITIONS: Dict[SessionState, Set[SessionState]] = {
     SessionState.INIT: {SessionState.ACTIVE, SessionState.TERMINATED},
-    SessionState.ACTIVE: {SessionState.COMPUTING, SessionState.SUSPENDED, SessionState.FAILED, SessionState.TERMINATED},
+    SessionState.ACTIVE: {
+        SessionState.COMPUTING,
+        SessionState.SUSPENDED,
+        SessionState.FAILED,
+        SessionState.TERMINATED,
+    },
     SessionState.COMPUTING: {SessionState.VALIDATED, SessionState.FAILED},
     SessionState.VALIDATED: {SessionState.COMMITTED, SessionState.FAILED},
     SessionState.COMMITTED: {SessionState.ACTIVE, SessionState.TERMINATED},
@@ -108,6 +108,7 @@ VALID_TRANSITIONS: Dict[SessionState, Set[SessionState]] = {
 # MERKLE NODE
 # ============================================================================
 
+
 @dataclass
 class MerkleNode:
     """
@@ -116,6 +117,7 @@ class MerkleNode:
     Each node represents a session state with cryptographic linking
     to parent states.
     """
+
     # Content hash (computed from state + metadata)
     hash: str
 
@@ -196,6 +198,7 @@ class MerkleNode:
 # ============================================================================
 # MERKLE DAG
 # ============================================================================
+
 
 class MerkleDAG:
     """
@@ -290,7 +293,12 @@ class MerkleDAG:
                         f"Invalid transition: {parent.state.value} -> {state.value}"
                     )
                     # Allow for rollback, recovery, and branch scenarios
-                    if transition_type not in (TransitionType.ROLLBACK, TransitionType.RECOVERY, TransitionType.BRANCH, TransitionType.MERGE):
+                    if transition_type not in (
+                        TransitionType.ROLLBACK,
+                        TransitionType.RECOVERY,
+                        TransitionType.BRANCH,
+                        TransitionType.MERGE,
+                    ):
                         raise InvalidTransitionError(
                             f"Cannot transition from {parent.state.value} to {state.value}"
                         )
@@ -422,7 +430,9 @@ class MerkleDAG:
 
         return lineage
 
-    def branch(self, branch_name: str, data: Optional[Dict[str, Any]] = None) -> MerkleNode:
+    def branch(
+        self, branch_name: str, data: Optional[Dict[str, Any]] = None
+    ) -> MerkleNode:
         """
         Create a branch from current state.
 
@@ -561,6 +571,7 @@ class MerkleDAG:
 # SESSION STATE MACHINE
 # ============================================================================
 
+
 class SessionStateMachine:
     """
     Session state machine backed by Merkle-DAG.
@@ -607,6 +618,7 @@ class SessionStateMachine:
         if self._ntu is None:
             try:
                 from core.ntu import NTU, NTUConfig
+
                 self._ntu = NTU(NTUConfig(ihsan_threshold=self.ihsan_threshold))
             except ImportError:
                 logger.warning("NTU not available")
@@ -677,9 +689,13 @@ class SessionStateMachine:
 
     def compute(self, computation_data: Dict[str, Any]) -> MerkleNode:
         """Enter computation state."""
-        return self.transition(SessionState.COMPUTING, computation_data, "Starting computation")
+        return self.transition(
+            SessionState.COMPUTING, computation_data, "Starting computation"
+        )
 
-    def validate(self, validation_result: Dict[str, Any], fate_score: float) -> MerkleNode:
+    def validate(
+        self, validation_result: Dict[str, Any], fate_score: float
+    ) -> MerkleNode:
         """Validate computation result."""
         return self.transition(
             SessionState.VALIDATED,
@@ -694,7 +710,9 @@ class SessionStateMachine:
 
     def suspend(self, reason: str = "") -> MerkleNode:
         """Suspend session."""
-        return self.transition(SessionState.SUSPENDED, {"suspend_reason": reason}, reason)
+        return self.transition(
+            SessionState.SUSPENDED, {"suspend_reason": reason}, reason
+        )
 
     def resume(self) -> MerkleNode:
         """Resume suspended session."""
@@ -702,15 +720,21 @@ class SessionStateMachine:
 
     def fail(self, error: str) -> MerkleNode:
         """Mark session as failed."""
-        return self.transition(SessionState.FAILED, {"error": error}, f"Failed: {error}")
+        return self.transition(
+            SessionState.FAILED, {"error": error}, f"Failed: {error}"
+        )
 
     def recover(self, recovery_data: Optional[Dict[str, Any]] = None) -> MerkleNode:
         """Recover from failure."""
-        return self.transition(SessionState.RECOVERED, recovery_data, "Recovered from failure")
+        return self.transition(
+            SessionState.RECOVERED, recovery_data, "Recovered from failure"
+        )
 
     def terminate(self, reason: str = "Normal termination") -> MerkleNode:
         """Terminate session."""
-        return self.transition(SessionState.TERMINATED, {"termination_reason": reason}, reason)
+        return self.transition(
+            SessionState.TERMINATED, {"termination_reason": reason}, reason
+        )
 
     def on_transition(self, callback: Callable[[MerkleNode], None]) -> None:
         """Register transition callback."""
@@ -749,19 +773,23 @@ class SessionStateMachine:
 # EXCEPTIONS
 # ============================================================================
 
+
 class DAGError(Exception):
     """Base exception for DAG operations."""
+
     pass
 
 
 class InvalidTransitionError(DAGError):
     """Invalid state transition attempted."""
+
     pass
 
 
 # ============================================================================
 # INTEGRATION WITH HOOKS
 # ============================================================================
+
 
 class SessionHookIntegration:
     """
@@ -793,10 +821,12 @@ class SessionHookIntegration:
         @functools.wraps(operation)
         async def async_wrapper(*args, **kwargs):
             # Enter computing state
-            self.session.compute({
-                "operation": operation_name or operation.__name__,
-                "args_hash": hashlib.sha256(str(args).encode()).hexdigest()[:8],
-            })
+            self.session.compute(
+                {
+                    "operation": operation_name or operation.__name__,
+                    "args_hash": hashlib.sha256(str(args).encode()).hexdigest()[:8],
+                }
+            )
 
             try:
                 # Execute operation
@@ -806,7 +836,9 @@ class SessionHookIntegration:
                     result = operation(*args, **kwargs)
 
                 # Validate (using simple heuristic - production would use FATE)
-                fate_score = self.session.ihsan_threshold  # Assume success meets threshold
+                fate_score = (
+                    self.session.ihsan_threshold
+                )  # Assume success meets threshold
 
                 self.session.validate(
                     {"result_type": type(result).__name__},
@@ -829,6 +861,7 @@ class SessionHookIntegration:
 # ============================================================================
 # FACTORY FUNCTIONS
 # ============================================================================
+
 
 def create_session(
     session_id: Optional[str] = None,

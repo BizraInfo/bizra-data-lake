@@ -11,20 +11,20 @@ Key properties:
 - Optional ZK-proof for trustless verification
 """
 
-import hashlib
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.bounty import SEVERITY_LEVELS
 from core.proof_engine.canonical import blake3_digest, canonical_bytes
 from core.proof_engine.receipt import SovereignSigner
-from core.bounty import SEVERITY_LEVELS, VULN_CATEGORIES
 
 
 class Severity(Enum):
     """Vulnerability severity levels."""
+
     INFORMATIONAL = "informational"
     LOW = "low"
     MEDIUM = "medium"
@@ -34,6 +34,7 @@ class Severity(Enum):
 
 class VulnCategory(Enum):
     """Vulnerability categories."""
+
     REENTRANCY = "reentrancy"
     FLASH_LOAN = "flash_loan"
     ORACLE_MANIPULATION = "oracle_manipulation"
@@ -49,6 +50,7 @@ class VulnCategory(Enum):
 @dataclass
 class DomainEvent:
     """A single step in exploit reproduction."""
+
     event_type: str
     timestamp: datetime
     data: Dict[str, Any]
@@ -68,6 +70,7 @@ class DomainEvent:
 @dataclass
 class EntropyMeasurement:
     """UERS entropy measurement for impact quantification."""
+
     surface_entropy: float = 0.0
     structural_entropy: float = 0.0
     behavioral_entropy: float = 0.0
@@ -78,11 +81,11 @@ class EntropyMeasurement:
     def total_entropy(self) -> float:
         """Total entropy across all vectors."""
         return (
-            self.surface_entropy +
-            self.structural_entropy +
-            self.behavioral_entropy +
-            self.hypothetical_entropy +
-            self.contextual_entropy
+            self.surface_entropy
+            + self.structural_entropy
+            + self.behavioral_entropy
+            + self.hypothetical_entropy
+            + self.contextual_entropy
         )
 
     @property
@@ -109,6 +112,7 @@ class ImpactProof:
 
     This is the sealed evidence submitted for bounty claims.
     """
+
     # Identity
     proof_id: str
 
@@ -341,7 +345,9 @@ class ImpactProofBuilder:
             surface_entropy=scan_result.get("entropy", {}).get("surface", 0.5),
             structural_entropy=scan_result.get("entropy", {}).get("structural", 0.5),
             behavioral_entropy=scan_result.get("entropy", {}).get("behavioral", 0.5),
-            hypothetical_entropy=scan_result.get("entropy", {}).get("hypothetical", 0.5),
+            hypothetical_entropy=scan_result.get("entropy", {}).get(
+                "hypothetical", 0.5
+            ),
             contextual_entropy=scan_result.get("entropy", {}).get("contextual", 0.5),
         )
 
@@ -416,12 +422,18 @@ class ImpactProofVerifier:
         # Verify SNR threshold
         if proof.snr_score < self.snr_threshold:
             self._rejected.append(proof.proof_id)
-            return False, f"SNR below threshold: {proof.snr_score:.3f} < {self.snr_threshold}"
+            return (
+                False,
+                f"SNR below threshold: {proof.snr_score:.3f} < {self.snr_threshold}",
+            )
 
         # Verify Ihsān threshold (ethical validation)
         if proof.ihsan_score < self.ihsan_threshold:
             self._rejected.append(proof.proof_id)
-            return False, f"Ihsān below threshold: {proof.ihsan_score:.3f} < {self.ihsan_threshold}"
+            return (
+                False,
+                f"Ihsān below threshold: {proof.ihsan_score:.3f} < {self.ihsan_threshold}",
+            )
 
         # Verify positive delta_e (must reduce entropy)
         if proof.delta_e <= 0:

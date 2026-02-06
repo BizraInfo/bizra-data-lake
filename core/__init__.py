@@ -26,28 +26,39 @@ Updated: 2026-02-03 — Added NTU (NeuroTemporal Unit) for pattern detection
 Updated: 2026-02-05 — Added protocols + decomposed sovereign (SAPE Elite Analysis)
 """
 
-from . import pci
-from . import vault
-from . import federation
-from . import inference
-from . import a2a
-from . import integration
-from . import ntu
-from . import protocols
-
 # Decomposed sovereign sub-packages (backwards compatible)
-from . import governance
-from . import reasoning
-from . import orchestration
-from . import treasury
-from . import bridges
+from . import (
+    a2a,
+    bridges,
+    federation,
+    governance,
+    inference,
+    integration,
+    ntu,
+    orchestration,
+    pci,
+    protocols,
+    reasoning,
+    treasury,
+    vault,
+)
 
 __all__ = [
     # Core infrastructure
-    "pci", "vault", "federation", "inference", "a2a", "integration", "ntu",
+    "pci",
+    "vault",
+    "federation",
+    "inference",
+    "a2a",
+    "integration",
+    "ntu",
     # Protocols
     "protocols",
     # Decomposed sovereign (new structure)
-    "governance", "reasoning", "orchestration", "treasury", "bridges",
+    "governance",
+    "reasoning",
+    "orchestration",
+    "treasury",
+    "bridges",
 ]
 __version__ = "2.3.1"

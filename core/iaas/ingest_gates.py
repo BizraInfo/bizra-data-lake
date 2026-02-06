@@ -2,8 +2,9 @@
 # Lightweight SNR + Ihsān gating hooks for new ingestion
 
 import math
-from typing import Dict, Any
-from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
+from typing import Any, Dict
+
+from bizra_config import IHSAN_CONSTRAINT, SNR_THRESHOLD
 
 
 class IngestGate:

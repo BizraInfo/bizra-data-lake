@@ -12,8 +12,6 @@ Key capabilities:
 """
 
 import gc
-import hashlib
-import resource
 import time
 import tracemalloc
 from contextlib import contextmanager
@@ -28,9 +26,6 @@ from core.proof_engine.canonical import (
 )
 from core.proof_engine.receipt import (
     Metrics,
-    Receipt,
-    ReceiptBuilder,
-    ReceiptStatus,
     SovereignSigner,
 )
 
@@ -40,6 +35,7 @@ T = TypeVar("T")
 @dataclass
 class BenchSample:
     """Single benchmark sample."""
+
     iteration: int
     duration_ns: int
     allocs: int
@@ -63,6 +59,7 @@ class BenchResult:
 
     Contains percentile statistics for timing and memory.
     """
+
     name: str
     iterations: int
     samples: List[BenchSample]
@@ -146,7 +143,9 @@ class BenchResult:
             "throughput_ops": self.throughput_ops,
             "total_allocs": self.total_allocs,
             "peak_memory_bytes": self.peak_memory_bytes,
-            "environment": self.environment.canonical_bytes().hex() if self.environment else None,
+            "environment": (
+                self.environment.canonical_bytes().hex() if self.environment else None
+            ),
             "timestamp": self.timestamp.isoformat(),
         }
 
@@ -170,6 +169,7 @@ class BenchReceipt:
 
     The proof of performance claims.
     """
+
     receipt_id: str
     bench_result: BenchResult
     claims_verified: bool
@@ -328,12 +328,14 @@ class BenchHarness:
                 end = time.perf_counter_ns()
                 allocs, peak = get_stats()
 
-            samples.append(BenchSample(
-                iteration=i,
-                duration_ns=end - start,
-                allocs=allocs,
-                peak_memory_bytes=peak,
-            ))
+            samples.append(
+                BenchSample(
+                    iteration=i,
+                    duration_ns=end - start,
+                    allocs=allocs,
+                    peak_memory_bytes=peak,
+                )
+            )
 
         result = BenchResult(
             name=name,
@@ -372,7 +374,9 @@ class BenchHarness:
 
         # Check claims
         p99_ok = actual_p99 <= claimed_p99_us * (1 + tolerance_pct / 100)
-        throughput_ok = actual_throughput >= claimed_throughput * (1 - tolerance_pct / 100)
+        throughput_ok = actual_throughput >= claimed_throughput * (
+            1 - tolerance_pct / 100
+        )
         allocs_ok = actual_allocs <= claimed_allocs * (1 + tolerance_pct / 100)
 
         claims_verified = p99_ok and throughput_ok and allocs_ok
@@ -380,9 +384,14 @@ class BenchHarness:
         # Calculate degradation
         degradation = 0.0
         if claimed_p99_us > 0:
-            degradation = max(degradation, (actual_p99 - claimed_p99_us) / claimed_p99_us * 100)
+            degradation = max(
+                degradation, (actual_p99 - claimed_p99_us) / claimed_p99_us * 100
+            )
         if claimed_throughput > 0:
-            degradation = max(degradation, (claimed_throughput - actual_throughput) / claimed_throughput * 100)
+            degradation = max(
+                degradation,
+                (claimed_throughput - actual_throughput) / claimed_throughput * 100,
+            )
 
         # Determine verdict
         if claims_verified:
@@ -452,17 +461,29 @@ class BenchHarness:
         # P99 regression
         p99_delta_pct = 0.0
         if baseline.actual_p99_us > 0:
-            p99_delta_pct = (current.actual_p99_us - baseline.actual_p99_us) / baseline.actual_p99_us * 100
+            p99_delta_pct = (
+                (current.actual_p99_us - baseline.actual_p99_us)
+                / baseline.actual_p99_us
+                * 100
+            )
 
         # Throughput regression
         throughput_delta_pct = 0.0
         if baseline.actual_throughput > 0:
-            throughput_delta_pct = (baseline.actual_throughput - current.actual_throughput) / baseline.actual_throughput * 100
+            throughput_delta_pct = (
+                (baseline.actual_throughput - current.actual_throughput)
+                / baseline.actual_throughput
+                * 100
+            )
 
         # Allocs regression
         allocs_delta_pct = 0.0
         if baseline.actual_allocs > 0:
-            allocs_delta_pct = (current.actual_allocs - baseline.actual_allocs) / baseline.actual_allocs * 100
+            allocs_delta_pct = (
+                (current.actual_allocs - baseline.actual_allocs)
+                / baseline.actual_allocs
+                * 100
+            )
 
         # Determine if regressed
         p99_regressed = p99_delta_pct > regression_threshold_pct

@@ -189,7 +189,7 @@ impl ReasoningPath {
     /// Record result for a thought
     pub fn record_result(&mut self, thought_id: &str, result: bool) {
         self.results.insert(thought_id.to_string(), result);
-        
+
         // Update confidence (multiplicative for now)
         if !result {
             self.confidence *= 0.5; // Penalty for failures
@@ -201,7 +201,9 @@ impl ReasoningPath {
 
     /// Check if path is complete (all thoughts evaluated)
     pub fn is_complete(&self) -> bool {
-        self.thoughts.iter().all(|t| self.results.contains_key(&t.id))
+        self.thoughts
+            .iter()
+            .all(|t| self.results.contains_key(&t.id))
     }
 
     /// Get success rate
@@ -256,7 +258,7 @@ impl ThoughtGraph {
     pub fn create_thought(&mut self, description: &str, parent: Option<&str>) -> String {
         self.counter += 1;
         let id = format!("thought_{}", self.counter);
-        
+
         let mut thought = ThoughtNode::new(&id, description);
         thought.parent = parent.map(|s| s.to_string());
 
@@ -279,11 +281,11 @@ impl ThoughtGraph {
             for child_id in &root.children {
                 let mut path = ReasoningPath::new(&format!("path_{}", child_id));
                 path.add_thought(root.clone());
-                
+
                 if let Some(child) = self.thoughts.get(child_id) {
                     path.add_thought(child.clone());
                 }
-                
+
                 paths.push(path);
             }
 
@@ -302,8 +304,11 @@ impl ThoughtGraph {
     pub fn aggregate_paths(&self, paths: &[ReasoningPath]) -> AggregateResult {
         let total = paths.len();
         let complete = paths.iter().filter(|p| p.is_complete()).count();
-        let successful = paths.iter().filter(|p| p.final_result == Some(true)).count();
-        
+        let successful = paths
+            .iter()
+            .filter(|p| p.final_result == Some(true))
+            .count();
+
         let avg_confidence = if total > 0 {
             paths.iter().map(|p| p.confidence).sum::<f64>() / total as f64
         } else {
@@ -613,13 +618,13 @@ mod tests {
     #[test]
     fn test_reasoning_path() {
         let mut path = ReasoningPath::new("test_path");
-        
+
         path.add_thought(ThoughtNode::new("t1", "First thought"));
         path.add_thought(ThoughtNode::new("t2", "Second thought"));
-        
+
         path.record_result("t1", true);
         path.record_result("t2", true);
-        
+
         assert!(path.is_complete());
         assert_eq!(path.success_rate(), 1.0);
         assert_eq!(path.final_result, Some(true));
@@ -697,11 +702,8 @@ mod tests {
             Some(&root),
             ThoughtType::Hypothesis,
         );
-        let conclusion = graph.create_thought_with_type(
-            "Final answer",
-            Some(&root),
-            ThoughtType::Conclusion,
-        );
+        let conclusion =
+            graph.create_thought_with_type("Final answer", Some(&root), ThoughtType::Conclusion);
 
         // Even if conclusion has higher SNR, backtrack should return hypothesis
         if let Some(node) = graph.get_thought_mut(&hypothesis) {
@@ -721,11 +723,7 @@ mod tests {
         let mut graph = ThoughtGraph::new();
 
         // Create only conclusions (all terminal)
-        let _root = graph.create_thought_with_type(
-            "Final answer",
-            None,
-            ThoughtType::Conclusion,
-        );
+        let _root = graph.create_thought_with_type("Final answer", None, ThoughtType::Conclusion);
 
         // No unexplored nodes
         let backtrack_node = graph.backtrack();
@@ -739,8 +737,16 @@ mod tests {
         let root = graph.create_thought("Root", None);
 
         // Create conclusions with different SNR scores
-        let c1 = graph.create_thought_with_type("Low SNR conclusion", Some(&root), ThoughtType::Conclusion);
-        let c2 = graph.create_thought_with_type("High SNR conclusion", Some(&root), ThoughtType::Conclusion);
+        let c1 = graph.create_thought_with_type(
+            "Low SNR conclusion",
+            Some(&root),
+            ThoughtType::Conclusion,
+        );
+        let c2 = graph.create_thought_with_type(
+            "High SNR conclusion",
+            Some(&root),
+            ThoughtType::Conclusion,
+        );
 
         if let Some(node) = graph.get_thought_mut(&c1) {
             node.set_snr(0.3);
@@ -764,11 +770,28 @@ mod tests {
         let mut graph = ThoughtGraph::new();
 
         let question = graph.create_thought_with_type("What is X?", None, ThoughtType::Question);
-        let hypothesis = graph.create_thought_with_type("X might be Y", Some(&question), ThoughtType::Hypothesis);
-        let evidence = graph.create_thought_with_type("Data supports Y", Some(&hypothesis), ThoughtType::Evidence);
+        let hypothesis = graph.create_thought_with_type(
+            "X might be Y",
+            Some(&question),
+            ThoughtType::Hypothesis,
+        );
+        let evidence = graph.create_thought_with_type(
+            "Data supports Y",
+            Some(&hypothesis),
+            ThoughtType::Evidence,
+        );
 
-        assert_eq!(graph.get_thought(&question).unwrap().thought_type, ThoughtType::Question);
-        assert_eq!(graph.get_thought(&hypothesis).unwrap().thought_type, ThoughtType::Hypothesis);
-        assert_eq!(graph.get_thought(&evidence).unwrap().thought_type, ThoughtType::Evidence);
+        assert_eq!(
+            graph.get_thought(&question).unwrap().thought_type,
+            ThoughtType::Question
+        );
+        assert_eq!(
+            graph.get_thought(&hypothesis).unwrap().thought_type,
+            ThoughtType::Hypothesis
+        );
+        assert_eq!(
+            graph.get_thought(&evidence).unwrap().thought_type,
+            ThoughtType::Evidence
+        );
     }
 }

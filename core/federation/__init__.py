@@ -12,34 +12,30 @@ Components:
 - protocol: Protocol definitions and wire formats
 """
 
-from .gossip import GossipEngine, NodeInfo, NodeState, GossipMessage, MessageType
+from .consensus import ConsensusEngine, Proposal, Vote
+from .gossip import GossipEngine, GossipMessage, MessageType, NodeInfo, NodeState
+from .node import FederationNode, SyncFederationNode
 from .propagation import (
+    ElevatedPattern,
+    PatternMetrics,
+    PatternStatus,
     PatternStore,
     PropagationEngine,
-    ElevatedPattern,
-    PatternStatus,
-    PatternMetrics
 )
-from .consensus import ConsensusEngine, Vote, Proposal
-from .node import FederationNode, SyncFederationNode
-from .protocol import FederatedPattern, PatternImpact, FederationProtocol
-from .secure_transport import (
-    # Error types
-    SecureTransportError,
-    HandshakeError,
-    DecryptionError,
-    ReplayError,
-    SessionError,
-    # Data structures
-    SecureSession,
+from .protocol import FederatedPattern, FederationProtocol, PatternImpact
+from .secure_transport import (  # Error types; Data structures; Transports; Factory
     CipherState,
-    ReplayWindow,
-    # Transports
-    SecureChannel,
-    NoiseTransport,
+    DecryptionError,
     DTLSTransport,
+    HandshakeError,
+    NoiseTransport,
+    ReplayError,
+    ReplayWindow,
+    SecureChannel,
+    SecureSession,
+    SecureTransportError,
     SecureTransportManager,
-    # Factory
+    SessionError,
     create_secure_gossip_transport,
 )
 

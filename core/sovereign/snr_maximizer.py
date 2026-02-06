@@ -40,43 +40,44 @@ Formula:
     Noise_Power = Redundancy × Inconsistency × Ambiguity + ε
 """
 
-import math
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any, Set
-from enum import Enum
+import math
 from collections import defaultdict
-
-import numpy as np
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class NoiseType(Enum):
     """Categories of noise to filter."""
-    REDUNDANCY = "redundancy"           # Duplicate information
-    INCONSISTENCY = "inconsistency"     # Contradictory claims
-    AMBIGUITY = "ambiguity"             # Unclear statements
-    IRRELEVANCE = "irrelevance"         # Off-topic content
-    HALLUCINATION = "hallucination"     # Ungrounded claims
-    VERBOSITY = "verbosity"             # Excessive wordiness
-    BIAS = "bias"                       # Systematic distortion
+
+    REDUNDANCY = "redundancy"  # Duplicate information
+    INCONSISTENCY = "inconsistency"  # Contradictory claims
+    AMBIGUITY = "ambiguity"  # Unclear statements
+    IRRELEVANCE = "irrelevance"  # Off-topic content
+    HALLUCINATION = "hallucination"  # Ungrounded claims
+    VERBOSITY = "verbosity"  # Excessive wordiness
+    BIAS = "bias"  # Systematic distortion
 
 
 class SignalType(Enum):
     """Categories of valuable signal."""
-    INSIGHT = "insight"                 # Novel understanding
-    EVIDENCE = "evidence"               # Grounded facts
-    PATTERN = "pattern"                 # Recurring structures
-    CAUSATION = "causation"             # Cause-effect relationships
-    SYNTHESIS = "synthesis"             # Combined knowledge
-    PREDICTION = "prediction"           # Future implications
-    ACTIONABLE = "actionable"           # Concrete next steps
+
+    INSIGHT = "insight"  # Novel understanding
+    EVIDENCE = "evidence"  # Grounded facts
+    PATTERN = "pattern"  # Recurring structures
+    CAUSATION = "causation"  # Cause-effect relationships
+    SYNTHESIS = "synthesis"  # Combined knowledge
+    PREDICTION = "prediction"  # Future implications
+    ACTIONABLE = "actionable"  # Concrete next steps
 
 
 @dataclass
 class NoiseProfile:
     """Profile of noise in a content piece."""
+
     redundancy: float = 0.0
     inconsistency: float = 0.0
     ambiguity: float = 0.0
@@ -89,13 +90,13 @@ class NoiseProfile:
     def total_noise(self) -> float:
         """Compute total noise power."""
         return (
-            self.redundancy * 0.20 +
-            self.inconsistency * 0.25 +
-            self.ambiguity * 0.15 +
-            self.irrelevance * 0.15 +
-            self.hallucination * 0.10 +
-            self.verbosity * 0.05 +
-            self.bias * 0.10
+            self.redundancy * 0.20
+            + self.inconsistency * 0.25
+            + self.ambiguity * 0.15
+            + self.irrelevance * 0.15
+            + self.hallucination * 0.10
+            + self.verbosity * 0.05
+            + self.bias * 0.10
         )
 
     def to_dict(self) -> dict:
@@ -114,6 +115,7 @@ class NoiseProfile:
 @dataclass
 class SignalProfile:
     """Profile of signal strength in content."""
+
     relevance: float = 0.5
     novelty: float = 0.5
     groundedness: float = 0.5
@@ -149,6 +151,7 @@ class SignalProfile:
 @dataclass
 class SNRAnalysis:
     """Complete SNR analysis result."""
+
     signal: SignalProfile
     noise: NoiseProfile
     snr_linear: float = 0.0
@@ -227,9 +230,19 @@ class NoiseFilter:
     def _detect_ambiguity(self, text: str) -> float:
         """Detect ambiguous or vague language."""
         ambiguous_markers = [
-            "maybe", "perhaps", "might", "could be", "possibly",
-            "sort of", "kind of", "somewhat", "seems like",
-            "i think", "i guess", "not sure", "unclear",
+            "maybe",
+            "perhaps",
+            "might",
+            "could be",
+            "possibly",
+            "sort of",
+            "kind of",
+            "somewhat",
+            "seems like",
+            "i think",
+            "i guess",
+            "not sure",
+            "unclear",
         ]
 
         text_lower = text.lower()
@@ -248,9 +261,13 @@ class NoiseFilter:
 
         # Check for filler phrases
         fillers = [
-            "in order to", "due to the fact that", "at this point in time",
-            "it is important to note that", "as a matter of fact",
-            "for all intents and purposes", "in the event that",
+            "in order to",
+            "due to the fact that",
+            "at this point in time",
+            "it is important to note that",
+            "as a matter of fact",
+            "for all intents and purposes",
+            "in the event that",
         ]
 
         filler_count = sum(1 for f in fillers if f in text.lower())
@@ -285,7 +302,9 @@ class NoiseFilter:
         # Remove verbose phrases
         if noise.verbosity > self.verbosity_limit:
             verbose_phrases = [
-                "in order to", "due to the fact that", "at this point in time",
+                "in order to",
+                "due to the fact that",
+                "at this point in time",
             ]
             for phrase in verbose_phrases:
                 filtered = filtered.replace(phrase, "")
@@ -350,8 +369,15 @@ class SignalAmplifier:
 
         # Check for novel patterns
         novel_indicators = [
-            "novel", "new", "first", "discover", "breakthrough",
-            "insight", "finding", "reveal", "emerge",
+            "novel",
+            "new",
+            "first",
+            "discover",
+            "breakthrough",
+            "insight",
+            "finding",
+            "reveal",
+            "emerge",
         ]
 
         indicator_count = sum(1 for i in novel_indicators if i in text.lower())
@@ -359,10 +385,17 @@ class SignalAmplifier:
 
         return min(unique_ratio * 0.7 + novelty_boost + 0.3, 1.0)
 
-    def _compute_groundedness(self, text: str, sources: Optional[List[str]] = None) -> float:
+    def _compute_groundedness(
+        self, text: str, sources: Optional[List[str]] = None
+    ) -> float:
         """Compute factual groundedness."""
         # Check for citation markers
-        citation_patterns = ["according to", "research shows", "study found", "data indicates"]
+        citation_patterns = [
+            "according to",
+            "research shows",
+            "study found",
+            "data indicates",
+        ]
         citation_count = sum(1 for p in citation_patterns if p in text.lower())
 
         # Check against known facts
@@ -385,8 +418,15 @@ class SignalAmplifier:
 
         # Check for logical connectors
         connectors = [
-            "therefore", "thus", "hence", "because", "since",
-            "however", "moreover", "furthermore", "consequently",
+            "therefore",
+            "thus",
+            "hence",
+            "because",
+            "since",
+            "however",
+            "moreover",
+            "furthermore",
+            "consequently",
         ]
 
         connector_count = sum(1 for c in connectors if c in text.lower())
@@ -403,9 +443,21 @@ class SignalAmplifier:
     def _compute_actionability(self, text: str) -> float:
         """Compute actionability score."""
         action_patterns = [
-            "should", "must", "need to", "can be", "try",
-            "implement", "use", "apply", "consider", "ensure",
-            "step", "first", "then", "finally", "next",
+            "should",
+            "must",
+            "need to",
+            "can be",
+            "try",
+            "implement",
+            "use",
+            "apply",
+            "consider",
+            "ensure",
+            "step",
+            "first",
+            "then",
+            "finally",
+            "next",
         ]
 
         text_lower = text.lower()
@@ -521,9 +573,8 @@ class SNRMaximizer:
         else:
             self.stats["ihsan_fails"] += 1
         self.stats["avg_snr"] = (
-            (self.stats["avg_snr"] * (self.stats["analyses"] - 1) + analysis.snr_linear)
-            / self.stats["analyses"]
-        )
+            self.stats["avg_snr"] * (self.stats["analyses"] - 1) + analysis.snr_linear
+        ) / self.stats["analyses"]
 
         return analysis
 

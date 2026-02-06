@@ -19,11 +19,12 @@ Standing on Giants:
 Created: 2026-02-04 | BIZRA Sovereignty
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, AsyncIterator
-from pathlib import Path
 import asyncio
 import logging
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VoiceConfig:
     """Configuration for voice backend."""
+
     # PersonaPlex settings
     personaplex_endpoint: str = "localhost:8998"
     hf_repo: str = "nvidia/personaplex-7b-v1"
@@ -42,7 +44,9 @@ class VoiceConfig:
     frame_rate: float = 12.5  # Moshi default
 
     # Voice prompts directory
-    voice_dir: Path = field(default_factory=lambda: Path("/mnt/c/BIZRA-DATA-LAKE/voices"))
+    voice_dir: Path = field(
+        default_factory=lambda: Path("/mnt/c/BIZRA-DATA-LAKE/voices")
+    )
 
     # Guardian defaults
     default_guardian: str = "architect"
@@ -55,6 +59,7 @@ class VoiceConfig:
 @dataclass
 class VoiceRequest:
     """Voice processing request."""
+
     audio: Optional[np.ndarray] = None
     text: Optional[str] = None  # For TTS-only mode
     guardian: str = "architect"
@@ -65,6 +70,7 @@ class VoiceRequest:
 @dataclass
 class VoiceResponse:
     """Voice processing response."""
+
     text: str = ""
     audio: Optional[np.ndarray] = None
     guardian: str = ""
@@ -179,6 +185,7 @@ class VoiceBackend:
                 )
 
         import time
+
         start = time.time()
 
         try:
@@ -199,7 +206,7 @@ class VoiceBackend:
                 )
                 return VoiceResponse(
                     text=request.text,
-                    audio=result.audio if hasattr(result, 'audio') else None,
+                    audio=result.audio if hasattr(result, "audio") else None,
                     guardian=request.guardian,
                     latency_ms=(time.time() - start) * 1000,
                     ihsan_score=1.0,
@@ -232,18 +239,22 @@ class VoiceBackend:
 
     async def speak(self, text: str, guardian: str = "architect") -> VoiceResponse:
         """Convenience method for text-to-speech."""
-        return await self.process(VoiceRequest(
-            text=text,
-            guardian=guardian,
-            mode="tts",
-        ))
+        return await self.process(
+            VoiceRequest(
+                text=text,
+                guardian=guardian,
+                mode="tts",
+            )
+        )
 
     async def transcribe(self, audio: np.ndarray) -> VoiceResponse:
         """Convenience method for speech-to-text."""
-        return await self.process(VoiceRequest(
-            audio=audio,
-            mode="stt",
-        ))
+        return await self.process(
+            VoiceRequest(
+                audio=audio,
+                mode="stt",
+            )
+        )
 
     async def converse(
         self,
@@ -251,34 +262,50 @@ class VoiceBackend:
         guardian: str = "architect",
     ) -> VoiceResponse:
         """Convenience method for full-duplex conversation."""
-        return await self.process(VoiceRequest(
-            audio=audio,
-            guardian=guardian,
-            mode="full_duplex",
-        ))
+        return await self.process(
+            VoiceRequest(
+                audio=audio,
+                guardian=guardian,
+                mode="full_duplex",
+            )
+        )
 
     def list_guardians(self) -> List[str]:
         """List available Guardian personas."""
         return [
-            "architect",    # System architecture, design
-            "security",     # Security, privacy, protection
-            "ethics",       # Ethical reasoning, values
-            "reasoning",    # Logical analysis, proof
-            "knowledge",    # Information, memory, retrieval
-            "creative",     # Innovation, synthesis
+            "architect",  # System architecture, design
+            "security",  # Security, privacy, protection
+            "ethics",  # Ethical reasoning, values
+            "reasoning",  # Logical analysis, proof
+            "knowledge",  # Information, memory, retrieval
+            "creative",  # Innovation, synthesis
             "integration",  # Coordination, connection
-            "nucleus",      # Core orchestration
+            "nucleus",  # Core orchestration
         ]
 
     def list_voices(self) -> List[str]:
         """List available voice prompts."""
         return [
             # Natural voices
-            "NATF0", "NATF1", "NATF2", "NATF3",  # Natural female
-            "NATM0", "NATM1", "NATM2", "NATM3",  # Natural male
+            "NATF0",
+            "NATF1",
+            "NATF2",
+            "NATF3",  # Natural female
+            "NATM0",
+            "NATM1",
+            "NATM2",
+            "NATM3",  # Natural male
             # Variety voices
-            "VARF0", "VARF1", "VARF2", "VARF3", "VARF4",  # Variety female
-            "VARM0", "VARM1", "VARM2", "VARM3", "VARM4",  # Variety male
+            "VARF0",
+            "VARF1",
+            "VARF2",
+            "VARF3",
+            "VARF4",  # Variety female
+            "VARM0",
+            "VARM1",
+            "VARM2",
+            "VARM3",
+            "VARM4",  # Variety male
         ]
 
     @property
@@ -355,7 +382,7 @@ if __name__ == "__main__":
             print("\n🗣️ Testing TTS...")
             response = await backend.speak(
                 text="Hello, I am the Architect Guardian. How may I assist you?",
-                guardian="architect"
+                guardian="architect",
             )
             print(f"   Response: {response.text[:50]}...")
             print(f"   Has audio: {response.has_audio}")

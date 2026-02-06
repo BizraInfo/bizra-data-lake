@@ -21,20 +21,19 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from core.proof_engine import GATE_CHAIN
-from core.proof_engine.canonical import CanonQuery, CanonPolicy, blake3_digest
-from core.proof_engine.snr import SNREngine, SNRInput, SNRPolicy, SNRTrace
+from core.proof_engine.canonical import CanonPolicy, CanonQuery
 from core.proof_engine.receipt import (
     Metrics,
     Receipt,
     ReceiptBuilder,
-    ReceiptStatus,
     SovereignSigner,
 )
+from core.proof_engine.snr import SNREngine, SNRInput, SNRPolicy, SNRTrace
 
 
 class GateStatus(Enum):
     """Gate execution status."""
+
     PENDING = "pending"
     PASSED = "passed"
     FAILED = "failed"
@@ -44,6 +43,7 @@ class GateStatus(Enum):
 @dataclass
 class GateResult:
     """Result of a single gate evaluation."""
+
     gate_name: str
     status: GateStatus
     duration_us: int = 0
@@ -69,6 +69,7 @@ class GateResult:
 @dataclass
 class GateChainResult:
     """Result of full gate chain evaluation."""
+
     query: CanonQuery
     policy: CanonPolicy
     gate_results: List[GateResult]
@@ -349,7 +350,9 @@ class ConstraintGate(Gate):
         self,
         ihsan_threshold: float = 0.95,
         z3_timeout_ms: int = 1000,
-        constraint_validator: Optional[Callable[[CanonQuery, CanonPolicy], Tuple[bool, str]]] = None,
+        constraint_validator: Optional[
+            Callable[[CanonQuery, CanonPolicy], Tuple[bool, str]]
+        ] = None,
     ):
         super().__init__("constraint")
         self.ihsan_threshold = ihsan_threshold
@@ -372,7 +375,10 @@ class ConstraintGate(Gate):
                 status=GateStatus.FAILED,
                 duration_us=(time.perf_counter_ns() - start) // 1000,
                 reason=f"Ihsān score below threshold: {ihsan_score:.3f} < {self.ihsan_threshold}",
-                evidence={"ihsan_score": ihsan_score, "threshold": self.ihsan_threshold},
+                evidence={
+                    "ihsan_score": ihsan_score,
+                    "threshold": self.ihsan_threshold,
+                },
             )
 
         # Check Z3 satisfiability
@@ -513,7 +519,10 @@ class CommitGate(Gate):
                 status=GateStatus.FAILED,
                 duration_us=(time.perf_counter_ns() - start) // 1000,
                 reason=f"Max concurrent operations reached: {self._current_ops}/{self.max_concurrent_ops}",
-                evidence={"current_ops": self._current_ops, "max_ops": self.max_concurrent_ops},
+                evidence={
+                    "current_ops": self._current_ops,
+                    "max_ops": self.max_concurrent_ops,
+                },
             )
 
         # Check resources if checker provided
@@ -732,7 +741,8 @@ class GateChain:
             "passed": passed,
             "failed": failed,
             "pass_rate": passed / len(self._evaluations),
-            "avg_duration_us": sum(e.total_duration_us for e in self._evaluations) / len(self._evaluations),
+            "avg_duration_us": sum(e.total_duration_us for e in self._evaluations)
+            / len(self._evaluations),
             "avg_snr": sum(e.snr for e in self._evaluations) / len(self._evaluations),
             "failure_by_gate": failure_by_gate,
             "gates": [g.name for g in self.gates],

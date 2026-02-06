@@ -17,15 +17,14 @@ Standing on Giants:
 """
 
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
-from pathlib import Path
 import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .guardians import Guardian, IhsanVector, BIZRA_GUARDIANS, get_guardian
-from .voices import VoicePrompt, VOICE_LIBRARY, get_voice, resolve_voice_path
+from .guardians import BIZRA_GUARDIANS, Guardian
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PersonaPlexConfig:
     """Configuration for PersonaPlex engine."""
+
     # Model settings
     hf_repo: str = "nvidia/personaplex-7b-v1"
     device: str = "cuda"
@@ -43,7 +43,9 @@ class PersonaPlexConfig:
     frame_rate: int = 12.5  # Moshi default
 
     # Voice prompts directory
-    voice_dir: Path = field(default_factory=lambda: Path("/mnt/c/BIZRA-DATA-LAKE/voices"))
+    voice_dir: Path = field(
+        default_factory=lambda: Path("/mnt/c/BIZRA-DATA-LAKE/voices")
+    )
 
     # Ihsān settings
     ihsan_threshold: float = 0.75
@@ -57,6 +59,7 @@ class PersonaPlexConfig:
 @dataclass
 class VoiceResponse:
     """Response from PersonaPlex voice processing."""
+
     guardian_name: str
     audio: Optional[np.ndarray] = None
     text: str = ""
@@ -133,11 +136,11 @@ class BIZRAPersonaPlex:
         logger.info("Initializing PersonaPlex engine...")
 
         try:
-            from huggingface_hub import hf_hub_download
             import sentencepiece
+            from huggingface_hub import hf_hub_download
 
             # Import Moshi components
-            from moshi.models import loaders, LMGen
+            from moshi.models import LMGen, loaders
 
             # Load Mimi (speech encoder/decoder)
             logger.info("Loading Mimi speech codec...")
@@ -147,7 +150,9 @@ class BIZRAPersonaPlex:
 
             # Load tokenizer
             logger.info("Loading tokenizer...")
-            tokenizer_path = hf_hub_download(self.config.hf_repo, loaders.TEXT_TOKENIZER_NAME)
+            tokenizer_path = hf_hub_download(
+                self.config.hf_repo, loaders.TEXT_TOKENIZER_NAME
+            )
             self._tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_path)
 
             # Load Moshi LM
@@ -156,7 +161,7 @@ class BIZRAPersonaPlex:
             lm = loaders.get_moshi_lm(
                 moshi_weight,
                 device=self.config.device,
-                cpu_offload=self.config.cpu_offload
+                cpu_offload=self.config.cpu_offload,
             )
             lm.eval()
 
@@ -178,10 +183,18 @@ class BIZRAPersonaPlex:
             # Warmup
             logger.info("Warming up models...")
             from moshi.offline import warmup
-            warmup(self._mimi, self._other_mimi, self._lm_gen, self.config.device, frame_size)
+
+            warmup(
+                self._mimi,
+                self._other_mimi,
+                self._lm_gen,
+                self.config.device,
+                frame_size,
+            )
 
             # Get voice prompts directory
             from moshi.offline import _get_voice_prompt_dir
+
             self._voice_prompt_dir = _get_voice_prompt_dir(None, self.config.hf_repo)
 
             self._initialized = True
@@ -224,7 +237,7 @@ class BIZRAPersonaPlex:
             logger.warning(f"Voice prompt not found: {voice_path}, using default")
         else:
             # Load voice prompt
-            if voice_path.suffix == '.pt':
+            if voice_path.suffix == ".pt":
                 self._lm_gen.load_voice_prompt_embeddings(str(voice_path))
             else:
                 self._lm_gen.load_voice_prompt(str(voice_path))
@@ -232,6 +245,7 @@ class BIZRAPersonaPlex:
 
         # Set text prompt
         from moshi.offline import wrap_with_system_tags
+
         full_prompt = guardian.get_full_prompt()
         self._lm_gen.text_prompt_tokens = self._tokenizer.encode(
             wrap_with_system_tags(full_prompt)
@@ -317,16 +331,12 @@ class BIZRAPersonaPlex:
 
             for user_encoded in encode_from_sphn(
                 self._mimi,
-                _iterate_audio(
-                    input_audio,
-                    sample_interval_size=frame_size,
-                    pad=True
-                ),
+                _iterate_audio(input_audio, sample_interval_size=frame_size, pad=True),
                 max_batch=1,
             ):
                 steps = user_encoded.shape[-1]
                 for c in range(steps):
-                    step_in = user_encoded[:, :, c:c + 1]
+                    step_in = user_encoded[:, :, c : c + 1]
                     tokens = self._lm_gen.step(step_in)
 
                     if tokens is None:
@@ -346,7 +356,9 @@ class BIZRAPersonaPlex:
                         generated_tokens.append(text)
 
             # Combine output
-            output_audio = np.concatenate(generated_frames, axis=-1) if generated_frames else None
+            output_audio = (
+                np.concatenate(generated_frames, axis=-1) if generated_frames else None
+            )
             output_text = "".join(generated_tokens)
 
             latency_ms = (time.time() - start_time) * 1000
@@ -377,6 +389,7 @@ class BIZRAPersonaPlex:
     ) -> VoiceResponse:
         """Async wrapper for process_audio."""
         import asyncio
+
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None,
@@ -400,14 +413,21 @@ class BIZRAPersonaPlex:
         if self.config.ssl_enabled:
             ssl_dir = tempfile.mkdtemp()
             cmd = [
-                "python", "-m", "moshi.server",
-                "--ssl", ssl_dir,
-                "--port", str(port),
+                "python",
+                "-m",
+                "moshi.server",
+                "--ssl",
+                ssl_dir,
+                "--port",
+                str(port),
             ]
         else:
             cmd = [
-                "python", "-m", "moshi.server",
-                "--port", str(port),
+                "python",
+                "-m",
+                "moshi.server",
+                "--port",
+                str(port),
             ]
 
         if self.config.cpu_offload:
@@ -445,12 +465,19 @@ class BIZRAPersonaPlex:
         prompt = guardian.get_full_prompt()
 
         cmd = [
-            "python", "-m", "moshi.offline",
-            "--voice-prompt", str(voice_path),
-            "--text-prompt", prompt,
-            "--input-wav", input_wav,
-            "--output-wav", output_wav,
-            "--seed", str(seed),
+            "python",
+            "-m",
+            "moshi.offline",
+            "--voice-prompt",
+            str(voice_path),
+            "--text-prompt",
+            prompt,
+            "--input-wav",
+            input_wav,
+            "--output-wav",
+            output_wav,
+            "--seed",
+            str(seed),
         ]
 
         if output_text:
@@ -470,6 +497,7 @@ class BIZRAPersonaPlex:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Convenience Functions
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def create_engine(
     device: str = "cuda",

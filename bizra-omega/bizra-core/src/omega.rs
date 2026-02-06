@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 
-use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
+use crate::IHSAN_THRESHOLD;
 
 // =============================================================================
 // CONSTANTS
@@ -367,7 +367,11 @@ impl AdlInvariant {
                         gini_actual: current_gini,
                         gini_threshold: self.gini_threshold,
                         violator_id: Some(holder_id.clone()),
-                        details: format!("Holder {} controls {:.1}% of resources", holder_id, share * 100.0),
+                        details: format!(
+                            "Holder {} controls {:.1}% of resources",
+                            holder_id,
+                            share * 100.0
+                        ),
                         timestamp_ms: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -465,7 +469,7 @@ impl ByzantineParams {
     #[inline]
     pub fn verify_bft_property(&self) -> bool {
         let f = self.fault_tolerance();
-        self.total_nodes >= 3 * f + 1
+        self.total_nodes > 3 * f
     }
 }
 

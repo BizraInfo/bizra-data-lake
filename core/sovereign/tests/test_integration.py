@@ -29,9 +29,11 @@ sys.path.insert(0, str(__file__).rsplit("/", 3)[0])
 # TEST FRAMEWORK (Minimal, no pytest dependency)
 # =============================================================================
 
+
 @dataclass
 class TestResult:
     """Result of a single test."""
+
     name: str
     passed: bool
     duration_ms: float
@@ -81,7 +83,9 @@ class TestSuite:
             "total": len(self.results),
             "passed": passed,
             "failed": failed,
-            "pass_rate": f"{passed / len(self.results) * 100:.1f}%" if self.results else "N/A",
+            "pass_rate": (
+                f"{passed / len(self.results) * 100:.1f}%" if self.results else "N/A"
+            ),
             "total_time_ms": total_time,
         }
 
@@ -89,6 +93,7 @@ class TestSuite:
 # =============================================================================
 # AUTONOMY MODULE TESTS
 # =============================================================================
+
 
 def test_autonomy_module():
     """Test the autonomy module."""
@@ -99,19 +104,14 @@ def test_autonomy_module():
         from core.sovereign.autonomy import (
             AutonomousLoop,
             DecisionGate,
-            DecisionCandidate,
-            DecisionOutcome,
-            SystemMetrics,
-            LoopState,
-            DecisionType,
-            GateResult,
-            create_autonomous_loop,
         )
+
         assert AutonomousLoop is not None
         assert DecisionGate is not None
 
     def test_system_metrics():
         from core.sovereign.autonomy import SystemMetrics
+
         metrics = SystemMetrics(
             snr_score=0.92,
             ihsan_score=0.94,
@@ -124,6 +124,7 @@ def test_autonomy_module():
 
     def test_decision_candidate():
         from core.sovereign.autonomy import DecisionCandidate, DecisionType
+
         candidate = DecisionCandidate(
             decision_type=DecisionType.CORRECTIVE,
             action="test_action",
@@ -136,9 +137,13 @@ def test_autonomy_module():
 
     async def test_decision_gate():
         from core.sovereign.autonomy import (
-            DecisionGate, DecisionCandidate, DecisionType,
-            SystemMetrics, GateResult
+            DecisionCandidate,
+            DecisionGate,
+            DecisionType,
+            GateResult,
+            SystemMetrics,
         )
+
         gate = DecisionGate(ihsan_threshold=0.95)
         candidate = DecisionCandidate(
             decision_type=DecisionType.ROUTINE,
@@ -152,9 +157,13 @@ def test_autonomy_module():
 
     async def test_decision_gate_rejection():
         from core.sovereign.autonomy import (
-            DecisionGate, DecisionCandidate, DecisionType,
-            SystemMetrics, GateResult
+            DecisionCandidate,
+            DecisionGate,
+            DecisionType,
+            GateResult,
+            SystemMetrics,
         )
+
         gate = DecisionGate(ihsan_threshold=0.95)
         candidate = DecisionCandidate(
             decision_type=DecisionType.ROUTINE,
@@ -167,15 +176,17 @@ def test_autonomy_module():
         assert result == GateResult.REJECT
 
     def test_autonomous_loop_creation():
-        from core.sovereign.autonomy import create_autonomous_loop, LoopState
+        from core.sovereign.autonomy import LoopState, create_autonomous_loop
+
         loop = create_autonomous_loop(snr_threshold=0.95, ihsan_threshold=0.95)
         assert loop.state == LoopState.IDLE
         assert loop.cycle_count == 0
         status = loop.status()
-        assert status["running"] == False
+        assert not status["running"]
 
     async def test_autonomous_loop_cycle():
         from core.sovereign.autonomy import create_autonomous_loop
+
         loop = create_autonomous_loop()
         result = await loop.run_cycle()
         assert result["cycle"] == 1
@@ -196,6 +207,7 @@ def test_autonomy_module():
 # RUNTIME MODULE TESTS
 # =============================================================================
 
+
 def test_runtime_module():
     """Test the runtime module."""
     suite = TestSuite("Runtime Module")
@@ -203,18 +215,16 @@ def test_runtime_module():
 
     def test_imports():
         from core.sovereign.runtime import (
-            SovereignRuntime,
             RuntimeConfig,
-            RuntimeMode,
-            RuntimeMetrics,
-            SovereignQuery,
-            SovereignResult,
+            SovereignRuntime,
         )
+
         assert SovereignRuntime is not None
         assert RuntimeConfig is not None
 
     def test_config_defaults():
         from core.sovereign.runtime import RuntimeConfig, RuntimeMode
+
         config = RuntimeConfig()
         assert config.snr_threshold == 0.95
         assert config.ihsan_threshold == 0.95
@@ -223,6 +233,7 @@ def test_runtime_module():
 
     def test_metrics():
         from core.sovereign.runtime import RuntimeMetrics
+
         metrics = RuntimeMetrics()
         assert metrics.success_rate() == 1.0
         assert metrics.cache_hit_rate() == 0.0
@@ -232,16 +243,18 @@ def test_runtime_module():
 
     def test_query_object():
         from core.sovereign.runtime import SovereignQuery
+
         query = SovereignQuery(
             content="Test query",
             context={"key": "value"},
         )
         assert query.id is not None
         assert query.content == "Test query"
-        assert query.require_reasoning == True
+        assert query.require_reasoning
 
     def test_result_object():
         from core.sovereign.runtime import SovereignResult
+
         result = SovereignResult(
             query_id="test-123",
             success=True,
@@ -253,27 +266,30 @@ def test_runtime_module():
         assert not result.meets_ihsan(0.99)
 
     async def test_runtime_initialization():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(autonomous_enabled=False)
         runtime = SovereignRuntime(config)
         await runtime.initialize()
-        assert runtime._initialized == True
+        assert runtime._initialized
         status = runtime.status()
-        assert status["state"]["initialized"] == True
+        assert status["state"]["initialized"]
         await runtime.shutdown()
 
     async def test_runtime_query():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(autonomous_enabled=False)
         async with SovereignRuntime.create(config) as runtime:
             result = await runtime.query("What is 2+2?")
-            assert result.success == True
+            assert result.success
             assert result.answer is not None
             assert result.snr_score > 0
             assert result.total_time_ms > 0
 
     async def test_runtime_think():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(autonomous_enabled=False)
         async with SovereignRuntime.create(config) as runtime:
             answer = await runtime.think("Hello")
@@ -296,6 +312,7 @@ def test_runtime_module():
 # API MODULE TESTS
 # =============================================================================
 
+
 def test_api_module():
     """Test the API module."""
     suite = TestSuite("API Module")
@@ -303,27 +320,29 @@ def test_api_module():
 
     def test_imports():
         from core.sovereign.api import (
-            SovereignAPIServer,
             QueryRequest,
-            QueryResponse,
-            HealthResponse,
-            RateLimiter,
+            SovereignAPIServer,
         )
+
         assert SovereignAPIServer is not None
         assert QueryRequest is not None
 
     def test_query_request():
         from core.sovereign.api import QueryRequest
-        request = QueryRequest.from_dict({
-            "query": "Test query",
-            "context": {"key": "value"},
-            "max_depth": 5,
-        })
+
+        request = QueryRequest.from_dict(
+            {
+                "query": "Test query",
+                "context": {"key": "value"},
+                "max_depth": 5,
+            }
+        )
         assert request.query == "Test query"
         assert request.max_depth == 5
 
     def test_query_response():
         from core.sovereign.api import QueryResponse
+
         response = QueryResponse(
             success=True,
             answer="Test answer",
@@ -331,11 +350,12 @@ def test_api_module():
             ihsan_score=0.96,
         )
         data = response.to_dict()
-        assert data["success"] == True
+        assert data["success"]
         assert data["quality"]["snr"] == 0.95
 
     def test_rate_limiter():
         from core.sovereign.api import RateLimiter
+
         limiter = RateLimiter(requests_per_minute=60, burst_size=5)
 
         # Should allow first 5 requests (burst)
@@ -347,6 +367,7 @@ def test_api_module():
 
     def test_rate_limiter_different_keys():
         from core.sovereign.api import RateLimiter
+
         limiter = RateLimiter(requests_per_minute=60, burst_size=2)
 
         assert limiter.check("key-1")
@@ -369,13 +390,15 @@ def test_api_module():
 # INTEGRATION TESTS
 # =============================================================================
 
+
 def test_full_integration():
     """Full integration tests."""
     suite = TestSuite("Full Integration")
     print("\n▶ Testing Full Integration")
 
     async def test_runtime_with_autonomy():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(
             autonomous_enabled=True,
             loop_interval_seconds=0.1,  # Fast for testing
@@ -385,14 +408,15 @@ def test_full_integration():
             await asyncio.sleep(0.3)
 
             status = runtime.status()
-            assert status["autonomous"]["running"] == True
+            assert status["autonomous"]["running"]
 
             # Query should still work
             result = await runtime.query("Test during autonomous")
-            assert result.success == True
+            assert result.success
 
     async def test_query_caching():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(
             autonomous_enabled=False,
             enable_cache=True,
@@ -400,15 +424,16 @@ def test_full_integration():
         async with SovereignRuntime.create(config) as runtime:
             # First query
             result1 = await runtime.query("Cached query test")
-            assert result1.cached == False
+            assert not result1.cached
 
             # Same query should be cached
             result2 = await runtime.query("Cached query test")
-            assert result2.cached == True
+            assert result2.cached
             assert result2.total_time_ms < result1.total_time_ms
 
     async def test_metrics_accumulation():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(autonomous_enabled=False)
         async with SovereignRuntime.create(config) as runtime:
             # Run multiple queries
@@ -421,11 +446,17 @@ def test_full_integration():
             assert metrics.avg_query_time_ms > 0
 
     async def test_health_status():
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig, HealthStatus
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
+
         config = RuntimeConfig(autonomous_enabled=False)
         async with SovereignRuntime.create(config) as runtime:
             status = runtime.status()
-            assert status["health"]["status"] in ["healthy", "degraded", "critical", "unknown"]
+            assert status["health"]["status"] in [
+                "healthy",
+                "degraded",
+                "critical",
+                "unknown",
+            ]
 
     suite.run_test("Runtime with autonomous loop", test_runtime_with_autonomy)
     suite.run_test("Query caching", test_query_caching)
@@ -438,6 +469,7 @@ def test_full_integration():
 # =============================================================================
 # MAIN RUNNER
 # =============================================================================
+
 
 def run_all_tests():
     """Run all test suites."""
@@ -470,7 +502,9 @@ def run_all_tests():
         total_time += summary["total_time_ms"]
 
         status = "✓" if summary["failed"] == 0 else "✗"
-        print(f"{status} {summary['suite']}: {summary['passed']}/{summary['total']} ({summary['pass_rate']})")
+        print(
+            f"{status} {summary['suite']}: {summary['passed']}/{summary['total']} ({summary['pass_rate']})"
+        )
 
     print("-" * 70)
     total = total_passed + total_failed

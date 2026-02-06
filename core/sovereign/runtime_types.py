@@ -15,7 +15,6 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
@@ -24,13 +23,14 @@ from typing import (
     runtime_checkable,
 )
 
-
 # =============================================================================
 # TYPED DICTS
 # =============================================================================
 
+
 class ReasoningResult(TypedDict, total=False):
     """Type definition for reasoning results from GraphOfThoughts."""
+
     thoughts: List[str]
     conclusion: str
     confidence: float
@@ -39,6 +39,7 @@ class ReasoningResult(TypedDict, total=False):
 
 class SNRResult(TypedDict, total=False):
     """Type definition for SNR optimization results."""
+
     original_length: int
     snr_score: float
     meets_threshold: bool
@@ -46,6 +47,7 @@ class SNRResult(TypedDict, total=False):
 
 class ValidationResult(TypedDict, total=False):
     """Type definition for Guardian Council validation results."""
+
     is_valid: bool
     confidence: float
     issues: List[str]
@@ -53,6 +55,7 @@ class ValidationResult(TypedDict, total=False):
 
 class AutonomousCycleResult(TypedDict, total=False):
     """Type definition for autonomous loop cycle results."""
+
     cycle: int
     decisions: int
     actions: int
@@ -60,6 +63,7 @@ class AutonomousCycleResult(TypedDict, total=False):
 
 class LoopStatus(TypedDict, total=False):
     """Type definition for autonomous loop status."""
+
     running: bool
     cycle: int
 
@@ -67,6 +71,7 @@ class LoopStatus(TypedDict, total=False):
 # =============================================================================
 # PROTOCOLS (Interfaces)
 # =============================================================================
+
 
 @runtime_checkable
 class GraphReasonerProtocol(Protocol):
@@ -111,17 +116,20 @@ class AutonomousLoopProtocol(Protocol):
 # ENUMS
 # =============================================================================
 
+
 class RuntimeMode(Enum):
     """Operating mode of the runtime."""
-    MINIMAL = auto()      # Basic reasoning only
-    STANDARD = auto()     # Reasoning + SNR + Guardian
-    AUTONOMOUS = auto()   # Full autonomous operation
-    DEBUG = auto()        # Verbose debugging mode
+
+    MINIMAL = auto()  # Basic reasoning only
+    STANDARD = auto()  # Reasoning + SNR + Guardian
+    AUTONOMOUS = auto()  # Full autonomous operation
+    DEBUG = auto()  # Verbose debugging mode
     DEVELOPMENT = auto()  # Development/testing mode
 
 
 class HealthStatus(Enum):
     """Health status of runtime components."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -131,6 +139,7 @@ class HealthStatus(Enum):
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
+
 
 @dataclass
 class RuntimeConfig:
@@ -210,6 +219,7 @@ class RuntimeConfig:
 # METRICS
 # =============================================================================
 
+
 @dataclass
 class RuntimeMetrics:
     """Metrics for runtime operations."""
@@ -258,25 +268,21 @@ class RuntimeMetrics:
 
         # Rolling average
         n = self.queries_processed
-        self.avg_query_time_ms = (
-            (self.avg_query_time_ms * (n - 1) + duration_ms) / n
-        )
+        self.avg_query_time_ms = (self.avg_query_time_ms * (n - 1) + duration_ms) / n
 
     def update_reasoning_stats(self, depth: int) -> None:
         """Update reasoning statistics."""
         self.reasoning_calls += 1
         n = self.reasoning_calls
-        self.reasoning_avg_depth = (
-            (self.reasoning_avg_depth * (n - 1) + depth) / n
-        )
+        self.reasoning_avg_depth = (self.reasoning_avg_depth * (n - 1) + depth) / n
 
     def update_snr_stats(self, improvement: float) -> None:
         """Update SNR statistics."""
         self.snr_optimizations += 1
         n = self.snr_optimizations
         self.snr_avg_improvement = (
-            (self.snr_avg_improvement * (n - 1) + improvement) / n
-        )
+            self.snr_avg_improvement * (n - 1) + improvement
+        ) / n
 
     def update_validation_stats(self, passed: bool) -> None:
         """Update validation statistics."""
@@ -326,9 +332,11 @@ class RuntimeMetrics:
 # QUERY/RESULT TYPES
 # =============================================================================
 
+
 @dataclass
 class SovereignQuery:
     """A query to the Sovereign Runtime."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     text: str = ""
     context: Dict[str, Any] = field(default_factory=dict)
@@ -342,6 +350,7 @@ class SovereignQuery:
 @dataclass
 class SovereignResult:
     """Result from the Sovereign Runtime."""
+
     query_id: str = ""
     success: bool = False
     response: str = ""
@@ -393,8 +402,6 @@ class SovereignResult:
 
 
 # Need uuid for SovereignQuery
-import uuid
-
 
 __all__ = [
     # TypedDicts

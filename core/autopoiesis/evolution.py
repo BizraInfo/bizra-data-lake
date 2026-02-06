@@ -16,35 +16,35 @@ Standing on Giants: Holland (GA) + Darwin + Anthropic
 Genesis Strict Synthesis v2.2.2
 """
 
+import random
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 from enum import Enum
-import asyncio
-import random
+from typing import Any, Callable, Dict, List, Optional
 
+from core.autopoiesis import (
+    CROSSOVER_RATE,
+    ELITE_RATIO,
+    GENERATION_LIMIT,
+    MUTATION_RATE,
+    POPULATION_SIZE,
+)
+from core.autopoiesis.fitness import (
+    EvaluationContext,
+    FitnessEvaluator,
+    FitnessResult,
+    SelectionPressure,
+)
+from core.autopoiesis.genome import AgentGenome, GenomeFactory
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-)
-from core.autopoiesis import (
-    POPULATION_SIZE,
-    ELITE_RATIO,
-    MUTATION_RATE,
-    CROSSOVER_RATE,
-    GENERATION_LIMIT,
-)
-from core.autopoiesis.genome import AgentGenome, GenomeFactory
-from core.autopoiesis.fitness import (
-    FitnessEvaluator,
-    FitnessResult,
-    EvaluationContext,
-    SelectionPressure,
 )
 
 
 class EvolutionStatus(Enum):
     """Status of the evolution process."""
+
     INITIALIZING = "initializing"
     RUNNING = "running"
     PAUSED = "paused"
@@ -56,6 +56,7 @@ class EvolutionStatus(Enum):
 @dataclass
 class GenerationStats:
     """Statistics for a single generation."""
+
     generation: int
     population_size: int
     best_fitness: float
@@ -81,6 +82,7 @@ class GenerationStats:
 @dataclass
 class EvolutionConfig:
     """Configuration for the evolution engine."""
+
     population_size: int = POPULATION_SIZE
     max_generations: int = GENERATION_LIMIT
     elite_ratio: float = ELITE_RATIO
@@ -96,6 +98,7 @@ class EvolutionConfig:
 @dataclass
 class EvolutionResult:
     """Result of an evolution run."""
+
     status: EvolutionStatus
     generations_completed: int
     best_genome: Optional[AgentGenome]
@@ -243,9 +246,7 @@ class EvolutionEngine:
         )
 
         # Evaluate fitness
-        results = await self.fitness_evaluator.rank_population(
-            self.population, context
-        )
+        results = await self.fitness_evaluator.rank_population(self.population, context)
         self.fitness_results = {r.genome_id: r for r in results}
 
         # Calculate statistics
@@ -253,7 +254,10 @@ class EvolutionEngine:
         self.history.append(stats)
 
         # Check improvement
-        if stats.best_fitness > self._best_fitness_ever + self.config.convergence_threshold:
+        if (
+            stats.best_fitness
+            > self._best_fitness_ever + self.config.convergence_threshold
+        ):
             self._best_fitness_ever = stats.best_fitness
             self._stall_counter = 0
         else:
@@ -316,7 +320,7 @@ class EvolutionEngine:
 
             new_population.append(child)
 
-        return new_population[:self.config.population_size]
+        return new_population[: self.config.population_size]
 
     def _ensure_ihsan_compliance(self, genome: AgentGenome) -> AgentGenome:
         """Repair genome to ensure Ihsān compliance."""
@@ -389,8 +393,7 @@ class EvolutionEngine:
             return self.population[0] if self.population else None
 
         best_result = max(
-            self.fitness_results.values(),
-            key=lambda r: r.overall_fitness
+            self.fitness_results.values(), key=lambda r: r.overall_fitness
         )
         return self._get_genome_by_id(best_result.genome_id)
 
@@ -443,7 +446,9 @@ class CoevolutionEngine:
     async def coevolve(
         self,
         max_generations: int = 50,
-        interaction_fn: Optional[Callable[[Dict[str, AgentGenome]], Dict[str, float]]] = None,
+        interaction_fn: Optional[
+            Callable[[Dict[str, AgentGenome]], Dict[str, float]]
+        ] = None,
     ) -> Dict[str, EvolutionResult]:
         """
         Run coevolution across all populations.
@@ -479,10 +484,12 @@ class CoevolutionEngine:
                         if best:
                             best.fitness += bonus
 
-                self.interaction_history.append({
-                    "generation": gen,
-                    "scores": interaction_scores,
-                })
+                self.interaction_history.append(
+                    {
+                        "generation": gen,
+                        "scores": interaction_scores,
+                    }
+                )
 
             # Increment generation counters
             for engine in self.engines.values():

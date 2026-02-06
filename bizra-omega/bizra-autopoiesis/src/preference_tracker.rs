@@ -25,7 +25,14 @@ pub struct Preference {
 
 impl Preference {
     pub fn new(pref_type: PreferenceType, key: String, value: String) -> Self {
-        Self { pref_type, key, value, confidence: 0.5, observations: 1, updated_at: Utc::now() }
+        Self {
+            pref_type,
+            key,
+            value,
+            confidence: 0.5,
+            observations: 1,
+            updated_at: Utc::now(),
+        }
     }
 
     pub fn reinforce(&mut self, same_value: bool) {
@@ -46,22 +53,29 @@ pub struct PreferenceTracker {
 
 impl PreferenceTracker {
     pub fn new() -> Self {
-        Self { preferences: HashMap::new(), activation_threshold: 0.7 }
+        Self {
+            preferences: HashMap::new(),
+            activation_threshold: 0.7,
+        }
     }
 
     pub fn observe(&mut self, pref_type: PreferenceType, key: &str, value: &str) {
         let lookup = (pref_type.clone(), key.to_string());
         if let Some(existing) = self.preferences.get_mut(&lookup) {
             let same = existing.value == value;
-            if !same { existing.value = value.to_string(); }
+            if !same {
+                existing.value = value.to_string();
+            }
             existing.reinforce(same);
         } else {
-            self.preferences.insert(lookup, Preference::new(pref_type, key.into(), value.into()));
+            self.preferences
+                .insert(lookup, Preference::new(pref_type, key.into(), value.into()));
         }
     }
 
     pub fn get(&self, pref_type: &PreferenceType, key: &str) -> Option<&str> {
-        self.preferences.get(&(pref_type.clone(), key.to_string()))
+        self.preferences
+            .get(&(pref_type.clone(), key.to_string()))
             .filter(|p| p.confidence >= self.activation_threshold)
             .map(|p| p.value.as_str())
     }
@@ -71,11 +85,16 @@ impl PreferenceTracker {
         if let Some(style) = self.get(&PreferenceType::Style, "response") {
             additions.push(format!("Use {} tone.", style));
         }
-        if additions.is_empty() { prompt.to_string() }
-        else { format!("{}\n\nPreferences: {}", prompt, additions.join(" ")) }
+        if additions.is_empty() {
+            prompt.to_string()
+        } else {
+            format!("{}\n\nPreferences: {}", prompt, additions.join(" "))
+        }
     }
 }
 
 impl Default for PreferenceTracker {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

@@ -28,31 +28,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set, Deque
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Deque, Dict, Optional
 
 from core.apex import (
-    SwarmOrchestrator,
     AgentConfig,
     AgentInstance,
     AgentStatus,
     HealthStatus,
-    SwarmTopology,
-    Swarm,
-    SwarmConfig,
-    ScalingDecision,
     ScalingAction,
-    HealthMonitor,
-    ScalingManager,
+    ScalingDecision,
+    SwarmOrchestrator,
 )
 from core.sovereign.rust_lifecycle import (
     RustServiceStatus,
-    RustServiceHealth,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,13 +53,14 @@ logger = logging.getLogger(__name__)
 
 # Hamilton's operations principles
 HEALTH_CHECK_INTERVAL: int = 30  # seconds
-RESTART_BACKOFF_BASE: int = 5   # seconds
+RESTART_BACKOFF_BASE: int = 5  # seconds
 MAX_RESTART_ATTEMPTS: int = 3
 AVAILABILITY_TARGET: float = 0.999  # Three nines
 
 
 class ServiceType(str, Enum):
     """Types of services in hybrid swarm."""
+
     PYTHON_AGENT = "python_agent"
     RUST_SERVICE = "rust_service"
 
@@ -74,6 +68,7 @@ class ServiceType(str, Enum):
 @dataclass
 class ServiceStatus:
     """Unified status for Python and Rust services."""
+
     service_id: str
     service_type: ServiceType
     health: HealthStatus
@@ -153,7 +148,9 @@ class RustServiceAdapter:
 
         except ImportError:
             # Fallback without aiohttp
-            logger.debug(f"aiohttp not available, assuming healthy: {self.service_name}")
+            logger.debug(
+                f"aiohttp not available, assuming healthy: {self.service_name}"
+            )
             self.last_health = HealthStatus.HEALTHY
 
         except asyncio.TimeoutError:
@@ -177,7 +174,7 @@ class RustServiceAdapter:
             return False
 
         # Exponential backoff
-        backoff = RESTART_BACKOFF_BASE * (2 ** self.restart_count)
+        backoff = RESTART_BACKOFF_BASE * (2**self.restart_count)
         logger.info(f"Restarting {self.service_name} after {backoff}s backoff")
 
         await asyncio.sleep(backoff)
@@ -571,7 +568,8 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         """Get orchestrator metrics."""
         avg_availability = (
             sum(self._availability_history) / len(self._availability_history)
-            if self._availability_history else 0.0
+            if self._availability_history
+            else 0.0
         )
 
         return {

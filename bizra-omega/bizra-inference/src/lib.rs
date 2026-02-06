@@ -13,10 +13,10 @@ pub mod backends;
 pub mod gateway;
 pub mod selector;
 
-pub use gateway::{InferenceGateway, InferenceRequest, InferenceResponse};
-pub use selector::{ModelSelector, ModelTier, TaskComplexity};
 pub use backends::{Backend, BackendConfig, BackendError};
 pub use backends::{LMStudioBackend, LMStudioConfig, ModelCapability};
+pub use gateway::{InferenceGateway, InferenceRequest, InferenceResponse};
+pub use selector::{ModelSelector, ModelTier, TaskComplexity};
 
 /// Default timeout for inference requests
 pub const DEFAULT_TIMEOUT_SECS: u64 = 120;

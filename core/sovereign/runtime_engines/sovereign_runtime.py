@@ -68,43 +68,33 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar
-from statistics import mean
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 # Runtime components
 from .giants_registry import (
-    Giant,
-    GiantCategory,
-    GiantsRegistry,
-    get_giants_registry,
     attribute,
+    get_giants_registry,
+)
+from .got_bridge import (
+    GoTBridge,
+    GoTResult,
+    ThoughtNode,
 )
 from .snr_maximizer import (
+    SNR_FLOOR,
     Signal,
     SignalQuality,
     SNRMaximizer,
-    get_snr_maximizer,
-    SNR_FLOOR,
-    SNR_EXCELLENT,
-)
-from .got_bridge import (
-    ThoughtGraph,
-    ThoughtNode,
-    ThoughtType,
-    GoTResult,
-    GoTBridge,
-    get_got_bridge,
-    think,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # Constitutional constants
-IHSAN_THRESHOLD: float = 0.95      # Excellence threshold
-IHSAN_SUPREME: float = 0.99        # Supreme excellence
-DAUGHTER_TEST: float = 0.97        # "Would I approve this for my daughter?"
+IHSAN_THRESHOLD: float = 0.95  # Excellence threshold
+IHSAN_SUPREME: float = 0.99  # Supreme excellence
+DAUGHTER_TEST: float = 0.97  # "Would I approve this for my daughter?"
 
 # Runtime constants
 MAX_CONCURRENT_THOUGHTS: int = 5
@@ -114,16 +104,18 @@ DECISION_TIMEOUT_MS: int = 5000
 
 class RuntimePhase(str, Enum):
     """Phases of the Sovereign Runtime."""
-    IDLE = "idle"                  # Awaiting input
-    FILTERING = "filtering"        # SNR filtering
-    REASONING = "reasoning"        # GoT exploration
-    VALIDATING = "validating"      # Constitutional check
-    EXECUTING = "executing"        # Action execution
-    ATTRIBUTING = "attributing"    # Giants attribution
+
+    IDLE = "idle"  # Awaiting input
+    FILTERING = "filtering"  # SNR filtering
+    REASONING = "reasoning"  # GoT exploration
+    VALIDATING = "validating"  # Constitutional check
+    EXECUTING = "executing"  # Action execution
+    ATTRIBUTING = "attributing"  # Giants attribution
 
 
 class ConstitutionalResult(str, Enum):
     """Result of constitutional validation."""
+
     APPROVED = "approved"
     REJECTED = "rejected"
     NEEDS_REVIEW = "needs_review"
@@ -132,6 +124,7 @@ class ConstitutionalResult(str, Enum):
 @dataclass
 class RuntimeInput:
     """Input to the Sovereign Runtime."""
+
     query: str
     context: Dict[str, Any] = field(default_factory=dict)
     source: str = "user"
@@ -142,6 +135,7 @@ class RuntimeInput:
 @dataclass
 class RuntimeDecision:
     """A decision produced by the runtime."""
+
     id: str
     action: str
     confidence: float
@@ -158,6 +152,7 @@ class RuntimeDecision:
 @dataclass
 class RuntimeMetrics:
     """Metrics for the Sovereign Runtime."""
+
     total_inputs: int = 0
     filtered_inputs: int = 0
     successful_reasoning: int = 0
@@ -246,11 +241,11 @@ class ConstitutionalGate:
 
         # Weighted combination
         ihsan_score = (
-            base_score * 0.4 +
-            safety_score * 0.3 +
-            benefit * 0.2 +
-            coherence_bonus +
-            reversibility_bonus
+            base_score * 0.4
+            + safety_score * 0.3
+            + benefit * 0.2
+            + coherence_bonus
+            + reversibility_bonus
         )
 
         return min(1.0, max(0.0, ihsan_score))
@@ -265,7 +260,13 @@ class ConstitutionalGate:
         action = decision.get("action", "")
 
         # High-risk actions require higher standards
-        high_risk_keywords = ["delete", "destroy", "irreversible", "financial", "personal"]
+        high_risk_keywords = [
+            "delete",
+            "destroy",
+            "irreversible",
+            "financial",
+            "personal",
+        ]
         is_high_risk = any(kw in action.lower() for kw in high_risk_keywords)
 
         if is_high_risk:
@@ -289,11 +290,13 @@ class ConstitutionalGate:
         ihsan_score = self.calculate_ihsan_score(decision, reasoning)
 
         # Record validation
-        self._validation_history.append((
-            decision.get("id", "unknown"),
-            ihsan_score,
-            ihsan_score >= self.ihsan_threshold,
-        ))
+        self._validation_history.append(
+            (
+                decision.get("id", "unknown"),
+                ihsan_score,
+                ihsan_score >= self.ihsan_threshold,
+            )
+        )
 
         if ihsan_score >= self.ihsan_threshold:
             return ConstitutionalResult.APPROVED, ihsan_score
@@ -508,8 +511,14 @@ class SovereignRuntime:
         # Build decision dict for validation
         decision_dict = {
             "id": f"decision-{int(time.time() * 1000)}",
-            "action": reasoning_result.solution.content if reasoning_result.solution else "no_action",
-            "confidence": reasoning_result.solution.score if reasoning_result.solution else 0.0,
+            "action": (
+                reasoning_result.solution.content
+                if reasoning_result.solution
+                else "no_action"
+            ),
+            "confidence": (
+                reasoning_result.solution.score if reasoning_result.solution else 0.0
+            ),
             "reversible": True,  # Default assumption
             "expected_benefit": 0.7,  # Default estimate
         }
@@ -557,10 +566,12 @@ class SovereignRuntime:
         giants_used = []
 
         # Core giants always attributed
-        giants_used.extend([
-            "Claude Shannon",  # SNR filtering
-            "Maciej Besta",    # GoT reasoning
-        ])
+        giants_used.extend(
+            [
+                "Claude Shannon",  # SNR filtering
+                "Maciej Besta",  # GoT reasoning
+            ]
+        )
 
         # Constitutional giants if validated
         if decision.constitutional_result != ConstitutionalResult.REJECTED:
@@ -570,9 +581,7 @@ class SovereignRuntime:
         # Decision theory
         giants_used.append("John Boyd")  # OODA
 
-        decision.giants_attribution = [
-            attribute([g]) for g in giants_used
-        ]
+        decision.giants_attribution = [attribute([g]) for g in giants_used]
 
         return decision
 
@@ -615,14 +624,14 @@ class SovereignRuntime:
         # Update averages
         n = self._metrics.total_inputs
         self._metrics.average_snr = (
-            (self._metrics.average_snr * (n - 1) + decision.snr_score) / n
-        )
+            self._metrics.average_snr * (n - 1) + decision.snr_score
+        ) / n
         self._metrics.average_ihsan = (
-            (self._metrics.average_ihsan * (n - 1) + decision.ihsan_score) / n
-        )
+            self._metrics.average_ihsan * (n - 1) + decision.ihsan_score
+        ) / n
         self._metrics.average_reasoning_time_ms = (
-            (self._metrics.average_reasoning_time_ms * (n - 1) + elapsed_ms) / n
-        )
+            self._metrics.average_reasoning_time_ms * (n - 1) + elapsed_ms
+        ) / n
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get runtime metrics."""
@@ -637,7 +646,8 @@ class SovereignRuntime:
             "average_reasoning_time_ms": self._metrics.average_reasoning_time_ms,
             "filter_rate": (
                 self._metrics.filtered_inputs / self._metrics.total_inputs
-                if self._metrics.total_inputs > 0 else 0.0
+                if self._metrics.total_inputs > 0
+                else 0.0
             ),
             "approval_rate": self._constitutional_gate.get_approval_rate(),
             "phase": self._phase.value,
@@ -679,6 +689,7 @@ class SovereignRuntime:
 @dataclass
 class SNRFilterResult:
     """Result of SNR filtering."""
+
     signal: Signal
     passes: bool
     quality: SignalQuality

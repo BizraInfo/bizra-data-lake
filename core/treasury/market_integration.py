@@ -26,31 +26,21 @@ Created: 2026-02-04 | BIZRA Apex Integration v1.0
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum, auto
+from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from core.apex import (
     OpportunityEngine,
-    MarketData,
-    TradingSignal,
-    MarketAnalyzer,
-    SignalGenerator,
-    ArbitrageDetector,
-    SignalType,
-    SignalStrength,
-)
-from core.sovereign.muraqabah_engine import (
-    MuraqabahEngine,
-    SensorReading,
-    Opportunity,
-    MonitorDomain,
-    SensorState,
 )
 from core.sovereign.autonomy_matrix import AutonomyLevel
+from core.sovereign.muraqabah_engine import (
+    MonitorDomain,
+    MuraqabahEngine,
+    SensorReading,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +54,7 @@ DATA_STALENESS_MINUTES: int = 5
 
 class MarketSensorType(str, Enum):
     """Types of market sensors."""
+
     MARKET_ANALYSIS = "market_analysis"
     TRADING_SIGNAL = "trading_signal"
     ARBITRAGE = "arbitrage"
@@ -77,6 +68,7 @@ class MarketSensorReading:
 
     Extends SensorReading with market-specific fields.
     """
+
     sensor_id: str = ""
     sensor_type: MarketSensorType = MarketSensorType.MARKET_ANALYSIS
     domain: MonitorDomain = MonitorDomain.FINANCIAL
@@ -108,6 +100,7 @@ class MarketGoal:
 
     Includes autonomy level based on SNR score.
     """
+
     goal_id: str = ""
     domain: str = "financial"
     description: str = ""
@@ -193,12 +186,18 @@ class MarketSensorAdapter:
                 sensor_type=MarketSensorType.MARKET_ANALYSIS,
                 symbol=symbol,
                 value={
-                    "condition": analysis.condition.value if hasattr(analysis, 'condition') else "unknown",
-                    "volatility": getattr(analysis, 'volatility', 0.0),
-                    "trend": getattr(analysis, 'trend_direction', "neutral"),
+                    "condition": (
+                        analysis.condition.value
+                        if hasattr(analysis, "condition")
+                        else "unknown"
+                    ),
+                    "volatility": getattr(analysis, "volatility", 0.0),
+                    "trend": getattr(analysis, "trend_direction", "neutral"),
                 },
                 snr_score=effective_snr,
-                confidence=analysis.confidence if hasattr(analysis, 'confidence') else 0.5,
+                confidence=(
+                    analysis.confidence if hasattr(analysis, "confidence") else 0.5
+                ),
                 timestamp=analysis.timestamp,
                 is_stale=is_stale,
             )
@@ -210,7 +209,9 @@ class MarketSensorAdapter:
         for signal in active_signals:
             # Filter by SNR
             if signal.snr_score < self.snr_threshold:
-                logger.debug(f"Filtering low-SNR signal: {signal.id}, SNR={signal.snr_score:.2f}")
+                logger.debug(
+                    f"Filtering low-SNR signal: {signal.id}, SNR={signal.snr_score:.2f}"
+                )
                 continue
 
             is_stale = self._check_staleness(signal.timestamp)
@@ -224,7 +225,7 @@ class MarketSensorAdapter:
                     "signal_type": signal.signal_type.value,
                     "strength": signal.strength.value,
                     "expected_return": signal.expected_return,
-                    "expected_risk": getattr(signal, 'expected_risk', 0.0),
+                    "expected_risk": getattr(signal, "expected_risk", 0.0),
                 },
                 snr_score=effective_snr,
                 confidence=signal.confidence,
@@ -245,7 +246,7 @@ class MarketSensorAdapter:
                     "buy_market": arb.buy_market,
                     "sell_market": arb.sell_market,
                     "profit_pct": arb.profit_percentage,
-                    "volume_available": getattr(arb, 'volume_available', 0.0),
+                    "volume_available": getattr(arb, "volume_available", 0.0),
                 },
                 snr_score=arb.confidence,
                 confidence=arb.confidence,
@@ -407,7 +408,9 @@ class MarketAwareMuraqabah(MuraqabahEngine):
         """
         # SNR gate
         if reading.snr_score < SNR_FLOOR:
-            logger.debug(f"Filtered by SNR: {reading.sensor_id}, SNR={reading.snr_score:.2f}")
+            logger.debug(
+                f"Filtered by SNR: {reading.sensor_id}, SNR={reading.snr_score:.2f}"
+            )
             return None
 
         # Calculate effective SNR with staleness penalty
@@ -440,7 +443,9 @@ class MarketAwareMuraqabah(MuraqabahEngine):
         # Ihsan validation (simplified)
         ihsan_score = self._calculate_ihsan(goal)
         if ihsan_score < self.ihsan_threshold:
-            logger.warning(f"Goal failed Ihsan: {goal.goal_id}, score={ihsan_score:.3f}")
+            logger.warning(
+                f"Goal failed Ihsan: {goal.goal_id}, score={ihsan_score:.3f}"
+            )
             return None
 
         goal.ihsan_score = ihsan_score
@@ -507,7 +512,8 @@ class MarketAwareMuraqabah(MuraqabahEngine):
         """Clear goals older than max_age_minutes."""
         now = datetime.now(timezone.utc)
         expired = [
-            gid for gid, goal in self._pending_goals.items()
+            gid
+            for gid, goal in self._pending_goals.items()
             if (now - goal.created_at) > timedelta(minutes=max_age_minutes)
         ]
 

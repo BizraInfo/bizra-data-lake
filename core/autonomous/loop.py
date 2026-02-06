@@ -11,39 +11,37 @@ Standing on Giants:
 - Anthropic (Constitutional AI)
 """
 
-import asyncio
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
 import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
-from core.autonomous import SNR_THRESHOLDS, CONSTITUTIONAL_CONSTRAINTS
+from core.autonomous import CONSTITUTIONAL_CONSTRAINTS, SNR_THRESHOLDS
+from core.autonomous.giants import Giant, GiantsProtocol, ProvenanceRecord
 from core.autonomous.nodes import (
-    ReasoningGraph,
-    ReasoningNode,
-    ReasoningPath,
     NodeType,
-    NodeState,
+    ReasoningGraph,
+    ReasoningPath,
 )
-from core.autonomous.giants import GiantsProtocol, Giant, ProvenanceRecord
 
 logger = logging.getLogger(__name__)
 
 
 class LoopPhase(str, Enum):
     """Phases of the Sovereign Loop."""
-    OBSERVE = "observe"       # Input processing
-    ORIENT = "orient"         # Context establishment
-    REASON = "reason"         # Core inference
-    SYNTHESIZE = "synthesize" # Integration
-    ACT = "act"              # Output generation
-    REFLECT = "reflect"       # Meta-cognition
+
+    OBSERVE = "observe"  # Input processing
+    ORIENT = "orient"  # Context establishment
+    REASON = "reason"  # Core inference
+    SYNTHESIZE = "synthesize"  # Integration
+    ACT = "act"  # Output generation
+    REFLECT = "reflect"  # Meta-cognition
 
 
 class LoopState(str, Enum):
     """State of the loop execution."""
+
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
@@ -54,6 +52,7 @@ class LoopState(str, Enum):
 @dataclass
 class PhaseResult:
     """Result of a single phase execution."""
+
     phase: LoopPhase
     success: bool
     content: str
@@ -78,6 +77,7 @@ class PhaseResult:
 @dataclass
 class LoopExecution:
     """Complete execution of a sovereign loop."""
+
     id: str
     input_content: str
     output_content: str
@@ -234,7 +234,10 @@ class SovereignLoop:
             parent_ids={observation.node_id} if observation.node_id else None,
             technique="attention",
             giant="vaswani",
-            metadata={"phase": "orient", "top_context": [str(c[0])[:50] for c in top_context]},
+            metadata={
+                "phase": "orient",
+                "top_context": [str(c[0])[:50] for c in top_context],
+            },
         )
 
         duration = (time.time() - start) * 1000
@@ -326,10 +329,13 @@ Focus on the most relevant patterns and implications."""
 
         # Generate synthesis content
         if self.llm_fn:
-            phase_summaries = "\n".join([
-                f"- {p.phase.value}: {p.content[:100]}..."
-                for p in phases if p.content
-            ])
+            phase_summaries = "\n".join(
+                [
+                    f"- {p.phase.value}: {p.content[:100]}..."
+                    for p in phases
+                    if p.content
+                ]
+            )
 
             prompt = f"""Synthesize these insights into a coherent understanding:
 
@@ -430,8 +436,8 @@ Provide a clear, actionable response that:
         duration = (time.time() - start) * 1000
 
         success = (
-            validation.get("passed", False) and
-            node.ihsan_score >= self._constitutional["ihsan_threshold"]
+            validation.get("passed", False)
+            and node.ihsan_score >= self._constitutional["ihsan_threshold"]
         )
 
         return PhaseResult(
@@ -487,8 +493,8 @@ Provide a clear, actionable response that:
 
         # Determine if loop should continue
         should_continue = (
-            avg_snr < self._snr_thresholds["reflection"] and
-            self._loop_count < self.max_loops
+            avg_snr < self._snr_thresholds["reflection"]
+            and self._loop_count < self.max_loops
         )
 
         return PhaseResult(
@@ -517,6 +523,7 @@ Provide a clear, actionable response that:
         Returns a complete execution record with provenance.
         """
         import uuid as uuid_module
+
         execution_id = f"exec_{uuid_module.uuid4().hex[:8]}"
         context = context or {}
         start_time = time.time()
@@ -620,9 +627,16 @@ Provide a clear, actionable response that:
 
         return {
             "total_executions": len(self._executions),
-            "avg_loop_count": sum(e.loop_count for e in self._executions) / len(self._executions),
-            "avg_backtrack_count": sum(e.backtrack_count for e in self._executions) / len(self._executions),
-            "avg_snr": sum(e.final_snr for e in self._executions) / len(self._executions),
-            "avg_ihsan": sum(e.final_ihsan for e in self._executions) / len(self._executions),
-            "success_rate": sum(1 for e in self._executions if e.state == LoopState.COMPLETED) / len(self._executions),
+            "avg_loop_count": sum(e.loop_count for e in self._executions)
+            / len(self._executions),
+            "avg_backtrack_count": sum(e.backtrack_count for e in self._executions)
+            / len(self._executions),
+            "avg_snr": sum(e.final_snr for e in self._executions)
+            / len(self._executions),
+            "avg_ihsan": sum(e.final_ihsan for e in self._executions)
+            / len(self._executions),
+            "success_rate": sum(
+                1 for e in self._executions if e.state == LoopState.COMPLETED
+            )
+            / len(self._executions),
         }

@@ -16,18 +16,16 @@ This provides bidirectional data flow:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-import numpy as np
-
-from .ntu import NTU, NTUConfig, NTUState, Observation
+from .ntu import NTU, NTUConfig, NTUState
 
 # Avoid circular imports
 if TYPE_CHECKING:
-    from core.iaas.snr_v2 import SNRComponentsV2, SNRCalculatorV2
-    from core.living_memory import LivingMemoryCore, MemoryEntry
+    from core.iaas.snr_v2 import SNRComponentsV2
+    from core.living_memory import MemoryEntry
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NTUBridgeConfig:
     """Configuration for NTU bridge."""
+
     # NTU configuration
     ntu_config: Optional[NTUConfig] = None
 
@@ -118,16 +117,20 @@ class NTUSNRAdapter:
 
         # Enrich metadata with SNR details
         obs_metadata = metadata or {}
-        obs_metadata.update({
-            "source": "snr_v2",
-            "snr": snr_components.snr,
-            "quality_tier": snr_components.quality_tier,
-        })
+        obs_metadata.update(
+            {
+                "source": "snr_v2",
+                "snr": snr_components.snr,
+                "quality_tier": snr_components.quality_tier,
+            }
+        )
 
         # Track history
         self._snr_history.append(snr_components.snr)
         if len(self._snr_history) > self.config.max_memory_observations:
-            self._snr_history = self._snr_history[-self.config.max_memory_observations:]
+            self._snr_history = self._snr_history[
+                -self.config.max_memory_observations :
+            ]
 
         state = self.ntu.observe(obs_value, obs_metadata)
 
@@ -237,7 +240,7 @@ class NTUMemoryAdapter:
         }
 
         # Get weight (default 0.8 if unknown type)
-        memory_type = getattr(entry, 'memory_type', 'episodic')
+        memory_type = getattr(entry, "memory_type", "episodic")
         type_weight = type_weights.get(memory_type, 0.8)
 
         observation = base_value * type_weight
@@ -267,7 +270,7 @@ class NTUMemoryAdapter:
 
             metadata = {
                 "source": "living_memory",
-                "memory_type": getattr(entry, 'memory_type', 'unknown'),
+                "memory_type": getattr(entry, "memory_type", "unknown"),
                 "relevance": relevance,
             }
 
@@ -381,11 +384,13 @@ class NTUBridge:
             relevance_scores = [0.5] * len(entries)
 
         for entry, relevance in zip(entries, relevance_scores):
-            obs_value = self.memory_adapter.memory_entry_to_observation(entry, relevance)
+            obs_value = self.memory_adapter.memory_entry_to_observation(
+                entry, relevance
+            )
 
             metadata = {
                 "source": "living_memory",
-                "memory_type": getattr(entry, 'memory_type', 'unknown'),
+                "memory_type": getattr(entry, "memory_type", "unknown"),
             }
 
             self._unified_ntu.observe(obs_value, metadata)

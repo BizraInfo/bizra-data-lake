@@ -27,12 +27,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -46,37 +45,42 @@ logger = logging.getLogger(__name__)
 # ENUMS AND TYPES
 # =============================================================================
 
+
 class HypothesisCategory(str, Enum):
     """Categories of improvement hypotheses."""
-    PERFORMANCE = "performance"    # Speed/latency improvements
-    QUALITY = "quality"            # Ihsan/SNR improvements
-    EFFICIENCY = "efficiency"      # Resource optimization
-    CAPABILITY = "capability"      # New features/skills
-    RESILIENCE = "resilience"      # Fault tolerance
+
+    PERFORMANCE = "performance"  # Speed/latency improvements
+    QUALITY = "quality"  # Ihsan/SNR improvements
+    EFFICIENCY = "efficiency"  # Resource optimization
+    CAPABILITY = "capability"  # New features/skills
+    RESILIENCE = "resilience"  # Fault tolerance
 
 
 class RiskLevel(str, Enum):
     """Risk level for hypothesis implementation."""
-    LOW = "low"          # Safe to auto-apply
-    MEDIUM = "medium"    # Requires review
-    HIGH = "high"        # Requires explicit approval
+
+    LOW = "low"  # Safe to auto-apply
+    MEDIUM = "medium"  # Requires review
+    HIGH = "high"  # Requires explicit approval
 
 
 class HypothesisStatus(str, Enum):
     """Status of a hypothesis in its lifecycle."""
-    GENERATED = "generated"        # Just created
-    VALIDATED = "validated"        # Passed initial checks
-    SCHEDULED = "scheduled"        # Scheduled for testing
-    TESTING = "testing"            # Currently being tested
-    SUCCESSFUL = "successful"      # Proved beneficial
-    FAILED = "failed"              # Did not improve
-    REJECTED = "rejected"          # Rejected due to constraints
-    ROLLED_BACK = "rolled_back"    # Was applied but rolled back
+
+    GENERATED = "generated"  # Just created
+    VALIDATED = "validated"  # Passed initial checks
+    SCHEDULED = "scheduled"  # Scheduled for testing
+    TESTING = "testing"  # Currently being tested
+    SUCCESSFUL = "successful"  # Proved beneficial
+    FAILED = "failed"  # Did not improve
+    REJECTED = "rejected"  # Rejected due to constraints
+    ROLLED_BACK = "rolled_back"  # Was applied but rolled back
 
 
 # =============================================================================
 # SYSTEM OBSERVATION
 # =============================================================================
+
 
 @dataclass
 class SystemObservation:
@@ -86,6 +90,7 @@ class SystemObservation:
     Captures metrics across multiple dimensions that inform
     improvement opportunities.
     """
+
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Performance metrics
@@ -216,6 +221,7 @@ class SystemObservation:
 # HYPOTHESIS
 # =============================================================================
 
+
 @dataclass
 class Hypothesis:
     """
@@ -225,6 +231,7 @@ class Hypothesis:
     a specific change might improve the system, along with
     risk assessment and rollback procedures.
     """
+
     id: str
     category: HypothesisCategory
     description: str
@@ -273,10 +280,10 @@ class Hypothesis:
     def is_safe(self) -> bool:
         """Check if hypothesis is safe to implement without review."""
         return (
-            self.risk_level == RiskLevel.LOW and
-            self.confidence >= 0.7 and
-            self.ihsan_impact >= 0 and
-            self.status in (HypothesisStatus.GENERATED, HypothesisStatus.VALIDATED)
+            self.risk_level == RiskLevel.LOW
+            and self.confidence >= 0.7
+            and self.ihsan_impact >= 0
+            and self.status in (HypothesisStatus.GENERATED, HypothesisStatus.VALIDATED)
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -322,6 +329,7 @@ class Hypothesis:
 # IMPROVEMENT PATTERNS
 # =============================================================================
 
+
 @dataclass
 class ImprovementPattern:
     """
@@ -330,6 +338,7 @@ class ImprovementPattern:
     Patterns encode domain knowledge about what improvements
     typically work for specific problem signatures.
     """
+
     name: str
     category: HypothesisCategory
     condition: Callable[[SystemObservation], bool]
@@ -349,6 +358,7 @@ class ImprovementPattern:
 # =============================================================================
 # HYPOTHESIS GENERATOR
 # =============================================================================
+
 
 class HypothesisGenerator:
     """
@@ -407,441 +417,473 @@ class HypothesisGenerator:
         # -------------------------------------------------------------------------
 
         # High latency -> Caching hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="high_latency_caching",
-            category=HypothesisCategory.PERFORMANCE,
-            condition=lambda obs: obs.avg_latency_ms > 500 and obs.cache_hit_rate < 0.7,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("perf_cache"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="high_latency_caching",
                 category=HypothesisCategory.PERFORMANCE,
-                description=f"Improve cache strategy to reduce latency (current: {obs.avg_latency_ms:.0f}ms, hit rate: {obs.cache_hit_rate:.1%})",
-                predicted_improvement={
-                    "latency_reduction_pct": 0.3,
-                    "throughput_increase_pct": 0.2,
-                },
-                confidence=0.75,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Analyze cache miss patterns to identify hot keys",
-                    "Increase cache size by 50%",
-                    "Switch to adaptive LRU with frequency tracking",
-                    "Add cache warming for predictable queries",
-                ],
-                rollback_plan=[
-                    "Revert cache configuration to previous settings",
-                    "Clear cache and let it rebuild naturally",
-                ],
-                ihsan_impact=0.05,
-                trigger_pattern="high_latency_caching",
-            ),
-        ))
+                condition=lambda obs: obs.avg_latency_ms > 500
+                and obs.cache_hit_rate < 0.7,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("perf_cache"),
+                    category=HypothesisCategory.PERFORMANCE,
+                    description=f"Improve cache strategy to reduce latency (current: {obs.avg_latency_ms:.0f}ms, hit rate: {obs.cache_hit_rate:.1%})",
+                    predicted_improvement={
+                        "latency_reduction_pct": 0.3,
+                        "throughput_increase_pct": 0.2,
+                    },
+                    confidence=0.75,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Analyze cache miss patterns to identify hot keys",
+                        "Increase cache size by 50%",
+                        "Switch to adaptive LRU with frequency tracking",
+                        "Add cache warming for predictable queries",
+                    ],
+                    rollback_plan=[
+                        "Revert cache configuration to previous settings",
+                        "Clear cache and let it rebuild naturally",
+                    ],
+                    ihsan_impact=0.05,
+                    trigger_pattern="high_latency_caching",
+                ),
+            )
+        )
 
         # Low throughput -> Batching hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_throughput_batching",
-            category=HypothesisCategory.PERFORMANCE,
-            condition=lambda obs: obs.throughput_rps < 10 and obs.batch_utilization < 0.5,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("perf_batch"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_throughput_batching",
                 category=HypothesisCategory.PERFORMANCE,
-                description=f"Optimize request batching (current utilization: {obs.batch_utilization:.1%})",
-                predicted_improvement={
-                    "throughput_increase_pct": 0.4,
-                    "resource_efficiency_pct": 0.25,
-                },
-                confidence=0.8,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Increase batch accumulation window to 50ms",
-                    "Implement dynamic batch sizing based on queue depth",
-                    "Add batch priority for latency-sensitive requests",
-                ],
-                rollback_plan=[
-                    "Reset batch size to default",
-                    "Disable dynamic batching",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="low_throughput_batching",
-            ),
-        ))
+                condition=lambda obs: obs.throughput_rps < 10
+                and obs.batch_utilization < 0.5,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("perf_batch"),
+                    category=HypothesisCategory.PERFORMANCE,
+                    description=f"Optimize request batching (current utilization: {obs.batch_utilization:.1%})",
+                    predicted_improvement={
+                        "throughput_increase_pct": 0.4,
+                        "resource_efficiency_pct": 0.25,
+                    },
+                    confidence=0.8,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Increase batch accumulation window to 50ms",
+                        "Implement dynamic batch sizing based on queue depth",
+                        "Add batch priority for latency-sensitive requests",
+                    ],
+                    rollback_plan=[
+                        "Reset batch size to default",
+                        "Disable dynamic batching",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="low_throughput_batching",
+                ),
+            )
+        )
 
         # CPU bottleneck -> Parallelization hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="cpu_bottleneck_parallel",
-            category=HypothesisCategory.PERFORMANCE,
-            condition=lambda obs: obs.cpu_percent > 80 and obs.latency_trend > 0.2,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("perf_parallel"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="cpu_bottleneck_parallel",
                 category=HypothesisCategory.PERFORMANCE,
-                description=f"Increase parallelization to address CPU bottleneck ({obs.cpu_percent:.0f}% usage)",
-                predicted_improvement={
-                    "cpu_utilization_efficiency": 0.2,
-                    "latency_reduction_pct": 0.15,
-                },
-                confidence=0.65,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Profile CPU-bound operations to identify hotspots",
-                    "Implement worker pool with configurable size",
-                    "Add async processing for I/O-bound operations",
-                    "Enable concurrent request processing up to core count",
-                ],
-                rollback_plan=[
-                    "Reduce worker count to previous level",
-                    "Revert to synchronous processing if instability occurs",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="cpu_bottleneck_parallel",
-            ),
-        ))
+                condition=lambda obs: obs.cpu_percent > 80 and obs.latency_trend > 0.2,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("perf_parallel"),
+                    category=HypothesisCategory.PERFORMANCE,
+                    description=f"Increase parallelization to address CPU bottleneck ({obs.cpu_percent:.0f}% usage)",
+                    predicted_improvement={
+                        "cpu_utilization_efficiency": 0.2,
+                        "latency_reduction_pct": 0.15,
+                    },
+                    confidence=0.65,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Profile CPU-bound operations to identify hotspots",
+                        "Implement worker pool with configurable size",
+                        "Add async processing for I/O-bound operations",
+                        "Enable concurrent request processing up to core count",
+                    ],
+                    rollback_plan=[
+                        "Reduce worker count to previous level",
+                        "Revert to synchronous processing if instability occurs",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="cpu_bottleneck_parallel",
+                ),
+            )
+        )
 
         # -------------------------------------------------------------------------
         # QUALITY PATTERNS
         # -------------------------------------------------------------------------
 
         # Low Ihsan -> Constraint tightening hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_ihsan_constraints",
-            category=HypothesisCategory.QUALITY,
-            condition=lambda obs: obs.ihsan_score < UNIFIED_IHSAN_THRESHOLD,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("qual_ihsan"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_ihsan_constraints",
                 category=HypothesisCategory.QUALITY,
-                description=f"Tighten quality constraints to improve Ihsan score ({obs.ihsan_score:.3f} < {UNIFIED_IHSAN_THRESHOLD})",
-                predicted_improvement={
-                    "ihsan_score_delta": UNIFIED_IHSAN_THRESHOLD - obs.ihsan_score + 0.02,
-                    "verification_accuracy_pct": 0.1,
-                },
-                confidence=0.7,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Enable stricter verification gates",
-                    "Add secondary validation pass for edge cases",
-                    "Increase constitutional check depth",
-                    "Enable Ihsan audit logging",
-                ],
-                rollback_plan=[
-                    "Restore previous verification settings",
-                    "Disable secondary validation if latency impact > 20%",
-                ],
-                ihsan_impact=0.1,
-                trigger_pattern="low_ihsan_constraints",
-            ),
-        ))
+                condition=lambda obs: obs.ihsan_score < UNIFIED_IHSAN_THRESHOLD,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("qual_ihsan"),
+                    category=HypothesisCategory.QUALITY,
+                    description=f"Tighten quality constraints to improve Ihsan score ({obs.ihsan_score:.3f} < {UNIFIED_IHSAN_THRESHOLD})",
+                    predicted_improvement={
+                        "ihsan_score_delta": UNIFIED_IHSAN_THRESHOLD
+                        - obs.ihsan_score
+                        + 0.02,
+                        "verification_accuracy_pct": 0.1,
+                    },
+                    confidence=0.7,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Enable stricter verification gates",
+                        "Add secondary validation pass for edge cases",
+                        "Increase constitutional check depth",
+                        "Enable Ihsan audit logging",
+                    ],
+                    rollback_plan=[
+                        "Restore previous verification settings",
+                        "Disable secondary validation if latency impact > 20%",
+                    ],
+                    ihsan_impact=0.1,
+                    trigger_pattern="low_ihsan_constraints",
+                ),
+            )
+        )
 
         # Low SNR -> Signal enhancement hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_snr_enhancement",
-            category=HypothesisCategory.QUALITY,
-            condition=lambda obs: obs.snr_score < UNIFIED_SNR_THRESHOLD,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("qual_snr"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_snr_enhancement",
                 category=HypothesisCategory.QUALITY,
-                description=f"Enhance signal quality (SNR: {obs.snr_score:.3f} < {UNIFIED_SNR_THRESHOLD})",
-                predicted_improvement={
-                    "snr_score_delta": UNIFIED_SNR_THRESHOLD - obs.snr_score + 0.05,
-                    "noise_reduction_pct": 0.2,
-                },
-                confidence=0.75,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Enable noise filtering in preprocessing",
-                    "Add relevance scoring to prioritize signal",
-                    "Implement adaptive grounding checks",
-                    "Enable diversity deduplication",
-                ],
-                rollback_plan=[
-                    "Disable noise filtering",
-                    "Revert to default relevance weights",
-                ],
-                ihsan_impact=0.08,
-                trigger_pattern="low_snr_enhancement",
-            ),
-        ))
+                condition=lambda obs: obs.snr_score < UNIFIED_SNR_THRESHOLD,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("qual_snr"),
+                    category=HypothesisCategory.QUALITY,
+                    description=f"Enhance signal quality (SNR: {obs.snr_score:.3f} < {UNIFIED_SNR_THRESHOLD})",
+                    predicted_improvement={
+                        "snr_score_delta": UNIFIED_SNR_THRESHOLD - obs.snr_score + 0.05,
+                        "noise_reduction_pct": 0.2,
+                    },
+                    confidence=0.75,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Enable noise filtering in preprocessing",
+                        "Add relevance scoring to prioritize signal",
+                        "Implement adaptive grounding checks",
+                        "Enable diversity deduplication",
+                    ],
+                    rollback_plan=[
+                        "Disable noise filtering",
+                        "Revert to default relevance weights",
+                    ],
+                    ihsan_impact=0.08,
+                    trigger_pattern="low_snr_enhancement",
+                ),
+            )
+        )
 
         # High verification failure -> Prompt improvement hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="verification_failure_prompts",
-            category=HypothesisCategory.QUALITY,
-            condition=lambda obs: obs.verification_failure_rate > 0.1,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("qual_prompts"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="verification_failure_prompts",
                 category=HypothesisCategory.QUALITY,
-                description=f"Improve prompts to reduce verification failures ({obs.verification_failure_rate:.1%} failure rate)",
-                predicted_improvement={
-                    "verification_success_pct": obs.verification_failure_rate * 0.5,
-                    "output_quality_pct": 0.15,
-                },
-                confidence=0.6,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Analyze verification failures for common patterns",
-                    "Add explicit constraint reminders to prompts",
-                    "Implement chain-of-thought verification",
-                    "Enable structured output enforcement",
-                ],
-                rollback_plan=[
-                    "Revert to previous prompt templates",
-                    "Disable chain-of-thought if latency impact > 30%",
-                ],
-                ihsan_impact=0.12,
-                trigger_pattern="verification_failure_prompts",
-            ),
-        ))
+                condition=lambda obs: obs.verification_failure_rate > 0.1,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("qual_prompts"),
+                    category=HypothesisCategory.QUALITY,
+                    description=f"Improve prompts to reduce verification failures ({obs.verification_failure_rate:.1%} failure rate)",
+                    predicted_improvement={
+                        "verification_success_pct": obs.verification_failure_rate * 0.5,
+                        "output_quality_pct": 0.15,
+                    },
+                    confidence=0.6,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Analyze verification failures for common patterns",
+                        "Add explicit constraint reminders to prompts",
+                        "Implement chain-of-thought verification",
+                        "Enable structured output enforcement",
+                    ],
+                    rollback_plan=[
+                        "Revert to previous prompt templates",
+                        "Disable chain-of-thought if latency impact > 30%",
+                    ],
+                    ihsan_impact=0.12,
+                    trigger_pattern="verification_failure_prompts",
+                ),
+            )
+        )
 
         # -------------------------------------------------------------------------
         # EFFICIENCY PATTERNS
         # -------------------------------------------------------------------------
 
         # Memory pressure -> Garbage collection hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="memory_pressure_gc",
-            category=HypothesisCategory.EFFICIENCY,
-            condition=lambda obs: obs.memory_percent > 85,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("eff_memory"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="memory_pressure_gc",
                 category=HypothesisCategory.EFFICIENCY,
-                description=f"Optimize memory usage (current: {obs.memory_percent:.0f}%)",
-                predicted_improvement={
-                    "memory_reduction_pct": 0.2,
-                    "gc_pause_reduction_pct": 0.15,
-                },
-                confidence=0.7,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Reduce cache sizes by 30%",
-                    "Enable LRU eviction for all caches",
-                    "Add memory pressure monitoring",
-                    "Implement object pooling for frequent allocations",
-                ],
-                rollback_plan=[
-                    "Restore cache sizes",
-                    "Disable aggressive eviction if hit rate drops",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="memory_pressure_gc",
-            ),
-        ))
+                condition=lambda obs: obs.memory_percent > 85,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("eff_memory"),
+                    category=HypothesisCategory.EFFICIENCY,
+                    description=f"Optimize memory usage (current: {obs.memory_percent:.0f}%)",
+                    predicted_improvement={
+                        "memory_reduction_pct": 0.2,
+                        "gc_pause_reduction_pct": 0.15,
+                    },
+                    confidence=0.7,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Reduce cache sizes by 30%",
+                        "Enable LRU eviction for all caches",
+                        "Add memory pressure monitoring",
+                        "Implement object pooling for frequent allocations",
+                    ],
+                    rollback_plan=[
+                        "Restore cache sizes",
+                        "Disable aggressive eviction if hit rate drops",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="memory_pressure_gc",
+                ),
+            )
+        )
 
         # High token usage -> Token optimization hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="high_token_usage",
-            category=HypothesisCategory.EFFICIENCY,
-            condition=lambda obs: obs.token_usage_avg > 2000,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("eff_tokens"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="high_token_usage",
                 category=HypothesisCategory.EFFICIENCY,
-                description=f"Reduce token usage (avg: {obs.token_usage_avg:.0f} tokens/request)",
-                predicted_improvement={
-                    "token_reduction_pct": 0.25,
-                    "cost_reduction_pct": 0.25,
-                },
-                confidence=0.65,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Analyze prompts for redundant context",
-                    "Implement context compression",
-                    "Add semantic caching for repeated patterns",
-                    "Enable early stopping for confident responses",
-                ],
-                rollback_plan=[
-                    "Restore full context if quality degrades",
-                    "Disable compression if verification failures increase",
-                ],
-                ihsan_impact=-0.02,  # Slight risk to quality
-                trigger_pattern="high_token_usage",
-            ),
-        ))
+                condition=lambda obs: obs.token_usage_avg > 2000,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("eff_tokens"),
+                    category=HypothesisCategory.EFFICIENCY,
+                    description=f"Reduce token usage (avg: {obs.token_usage_avg:.0f} tokens/request)",
+                    predicted_improvement={
+                        "token_reduction_pct": 0.25,
+                        "cost_reduction_pct": 0.25,
+                    },
+                    confidence=0.65,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Analyze prompts for redundant context",
+                        "Implement context compression",
+                        "Add semantic caching for repeated patterns",
+                        "Enable early stopping for confident responses",
+                    ],
+                    rollback_plan=[
+                        "Restore full context if quality degrades",
+                        "Disable compression if verification failures increase",
+                    ],
+                    ihsan_impact=-0.02,  # Slight risk to quality
+                    trigger_pattern="high_token_usage",
+                ),
+            )
+        )
 
         # Low GPU utilization -> Compute scheduling hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_gpu_utilization",
-            category=HypothesisCategory.EFFICIENCY,
-            condition=lambda obs: obs.gpu_percent < 50 and obs.throughput_rps > 0,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("eff_gpu"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_gpu_utilization",
                 category=HypothesisCategory.EFFICIENCY,
-                description=f"Optimize GPU scheduling (utilization: {obs.gpu_percent:.0f}%)",
-                predicted_improvement={
-                    "gpu_utilization_pct": 0.3,
-                    "throughput_increase_pct": 0.2,
-                },
-                confidence=0.6,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Enable continuous batching for inference",
-                    "Implement kernel fusion for common operations",
-                    "Add speculative execution for predictable patterns",
-                    "Enable pipelined model loading",
-                ],
-                rollback_plan=[
-                    "Disable continuous batching",
-                    "Revert to sequential execution",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="low_gpu_utilization",
-            ),
-        ))
+                condition=lambda obs: obs.gpu_percent < 50 and obs.throughput_rps > 0,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("eff_gpu"),
+                    category=HypothesisCategory.EFFICIENCY,
+                    description=f"Optimize GPU scheduling (utilization: {obs.gpu_percent:.0f}%)",
+                    predicted_improvement={
+                        "gpu_utilization_pct": 0.3,
+                        "throughput_increase_pct": 0.2,
+                    },
+                    confidence=0.6,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Enable continuous batching for inference",
+                        "Implement kernel fusion for common operations",
+                        "Add speculative execution for predictable patterns",
+                        "Enable pipelined model loading",
+                    ],
+                    rollback_plan=[
+                        "Disable continuous batching",
+                        "Revert to sequential execution",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="low_gpu_utilization",
+                ),
+            )
+        )
 
         # -------------------------------------------------------------------------
         # CAPABILITY PATTERNS
         # -------------------------------------------------------------------------
 
         # Low skill coverage -> Skill acquisition hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_skill_coverage",
-            category=HypothesisCategory.CAPABILITY,
-            condition=lambda obs: obs.skill_coverage < 0.7,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("cap_skills"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_skill_coverage",
                 category=HypothesisCategory.CAPABILITY,
-                description=f"Expand skill coverage (current: {obs.skill_coverage:.1%})",
-                predicted_improvement={
-                    "skill_coverage_pct": 0.15,
-                    "task_success_pct": 0.1,
-                },
-                confidence=0.5,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Analyze task failures for missing capabilities",
-                    "Implement skill discovery from successful patterns",
-                    "Add tool integration for common gaps",
-                    "Enable skill transfer from related domains",
-                ],
-                rollback_plan=[
-                    "Disable new skills if error rate increases",
-                    "Revert to core skill set",
-                ],
-                ihsan_impact=0.05,
-                trigger_pattern="low_skill_coverage",
-            ),
-        ))
+                condition=lambda obs: obs.skill_coverage < 0.7,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("cap_skills"),
+                    category=HypothesisCategory.CAPABILITY,
+                    description=f"Expand skill coverage (current: {obs.skill_coverage:.1%})",
+                    predicted_improvement={
+                        "skill_coverage_pct": 0.15,
+                        "task_success_pct": 0.1,
+                    },
+                    confidence=0.5,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Analyze task failures for missing capabilities",
+                        "Implement skill discovery from successful patterns",
+                        "Add tool integration for common gaps",
+                        "Enable skill transfer from related domains",
+                    ],
+                    rollback_plan=[
+                        "Disable new skills if error rate increases",
+                        "Revert to core skill set",
+                    ],
+                    ihsan_impact=0.05,
+                    trigger_pattern="low_skill_coverage",
+                ),
+            )
+        )
 
         # Low pattern accuracy -> Pattern learning hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="low_pattern_accuracy",
-            category=HypothesisCategory.CAPABILITY,
-            condition=lambda obs: obs.pattern_recognition_accuracy < 0.8,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("cap_patterns"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="low_pattern_accuracy",
                 category=HypothesisCategory.CAPABILITY,
-                description=f"Improve pattern recognition (accuracy: {obs.pattern_recognition_accuracy:.1%})",
-                predicted_improvement={
-                    "pattern_accuracy_pct": 0.15,
-                    "prediction_quality_pct": 0.1,
-                },
-                confidence=0.55,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Expand pattern library with recent examples",
-                    "Implement ensemble pattern matching",
-                    "Add contextual pattern weighting",
-                    "Enable pattern feedback loop",
-                ],
-                rollback_plan=[
-                    "Revert to previous pattern library",
-                    "Disable new pattern types",
-                ],
-                ihsan_impact=0.03,
-                trigger_pattern="low_pattern_accuracy",
-            ),
-        ))
+                condition=lambda obs: obs.pattern_recognition_accuracy < 0.8,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("cap_patterns"),
+                    category=HypothesisCategory.CAPABILITY,
+                    description=f"Improve pattern recognition (accuracy: {obs.pattern_recognition_accuracy:.1%})",
+                    predicted_improvement={
+                        "pattern_accuracy_pct": 0.15,
+                        "prediction_quality_pct": 0.1,
+                    },
+                    confidence=0.55,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Expand pattern library with recent examples",
+                        "Implement ensemble pattern matching",
+                        "Add contextual pattern weighting",
+                        "Enable pattern feedback loop",
+                    ],
+                    rollback_plan=[
+                        "Revert to previous pattern library",
+                        "Disable new pattern types",
+                    ],
+                    ihsan_impact=0.03,
+                    trigger_pattern="low_pattern_accuracy",
+                ),
+            )
+        )
 
         # -------------------------------------------------------------------------
         # RESILIENCE PATTERNS
         # -------------------------------------------------------------------------
 
         # High error rate -> Retry mechanism hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="high_error_rate_retry",
-            category=HypothesisCategory.RESILIENCE,
-            condition=lambda obs: obs.error_rate > 0.05 or obs.error_trend > 0.3,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("res_retry"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="high_error_rate_retry",
                 category=HypothesisCategory.RESILIENCE,
-                description=f"Implement retry mechanisms (error rate: {obs.error_rate:.1%}, trend: {obs.error_trend:+.2f})",
-                predicted_improvement={
-                    "error_reduction_pct": 0.3,
-                    "success_rate_pct": 0.2,
-                },
-                confidence=0.8,
-                risk_level=RiskLevel.LOW,
-                implementation_plan=[
-                    "Add exponential backoff for transient errors",
-                    "Implement circuit breaker pattern",
-                    "Enable fallback to alternative backends",
-                    "Add error classification for targeted retries",
-                ],
-                rollback_plan=[
-                    "Disable retries if latency impact > 50%",
-                    "Revert circuit breaker thresholds",
-                ],
-                ihsan_impact=0.02,
-                trigger_pattern="high_error_rate_retry",
-            ),
-        ))
+                condition=lambda obs: obs.error_rate > 0.05 or obs.error_trend > 0.3,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("res_retry"),
+                    category=HypothesisCategory.RESILIENCE,
+                    description=f"Implement retry mechanisms (error rate: {obs.error_rate:.1%}, trend: {obs.error_trend:+.2f})",
+                    predicted_improvement={
+                        "error_reduction_pct": 0.3,
+                        "success_rate_pct": 0.2,
+                    },
+                    confidence=0.8,
+                    risk_level=RiskLevel.LOW,
+                    implementation_plan=[
+                        "Add exponential backoff for transient errors",
+                        "Implement circuit breaker pattern",
+                        "Enable fallback to alternative backends",
+                        "Add error classification for targeted retries",
+                    ],
+                    rollback_plan=[
+                        "Disable retries if latency impact > 50%",
+                        "Revert circuit breaker thresholds",
+                    ],
+                    ihsan_impact=0.02,
+                    trigger_pattern="high_error_rate_retry",
+                ),
+            )
+        )
 
         # Slow recovery -> Recovery optimization hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="slow_recovery_optimization",
-            category=HypothesisCategory.RESILIENCE,
-            condition=lambda obs: obs.recovery_time_avg_ms > 5000,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("res_recovery"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="slow_recovery_optimization",
                 category=HypothesisCategory.RESILIENCE,
-                description=f"Optimize recovery procedures (avg: {obs.recovery_time_avg_ms:.0f}ms)",
-                predicted_improvement={
-                    "recovery_time_reduction_pct": 0.4,
-                    "availability_pct": 0.05,
-                },
-                confidence=0.65,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Implement warm standby for critical components",
-                    "Add health check pre-warming",
-                    "Enable partial degradation modes",
-                    "Implement checkpoint-based recovery",
-                ],
-                rollback_plan=[
-                    "Disable warm standby if resource overhead > 20%",
-                    "Revert to cold start recovery",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="slow_recovery_optimization",
-            ),
-        ))
+                condition=lambda obs: obs.recovery_time_avg_ms > 5000,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("res_recovery"),
+                    category=HypothesisCategory.RESILIENCE,
+                    description=f"Optimize recovery procedures (avg: {obs.recovery_time_avg_ms:.0f}ms)",
+                    predicted_improvement={
+                        "recovery_time_reduction_pct": 0.4,
+                        "availability_pct": 0.05,
+                    },
+                    confidence=0.65,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Implement warm standby for critical components",
+                        "Add health check pre-warming",
+                        "Enable partial degradation modes",
+                        "Implement checkpoint-based recovery",
+                    ],
+                    rollback_plan=[
+                        "Disable warm standby if resource overhead > 20%",
+                        "Revert to cold start recovery",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="slow_recovery_optimization",
+                ),
+            )
+        )
 
         # Circuit breaker trips -> Redundancy hypothesis
-        self._patterns.append(ImprovementPattern(
-            name="circuit_breaker_redundancy",
-            category=HypothesisCategory.RESILIENCE,
-            condition=lambda obs: obs.circuit_breaker_trips > 3,
-            hypothesis_template=lambda obs: Hypothesis(
-                id=self._generate_id("res_redundancy"),
+        self._patterns.append(
+            ImprovementPattern(
+                name="circuit_breaker_redundancy",
                 category=HypothesisCategory.RESILIENCE,
-                description=f"Add redundancy for circuit-breaker-prone components ({obs.circuit_breaker_trips} trips)",
-                predicted_improvement={
-                    "availability_pct": 0.1,
-                    "circuit_breaker_trips_reduction": 0.5,
-                },
-                confidence=0.7,
-                risk_level=RiskLevel.HIGH,
-                implementation_plan=[
-                    "Deploy secondary instances for critical paths",
-                    "Implement load balancing with health-aware routing",
-                    "Add request shadowing for hot standby",
-                    "Enable automatic failover",
-                ],
-                rollback_plan=[
-                    "Remove secondary instances",
-                    "Disable automatic failover",
-                    "Revert to single-instance mode",
-                ],
-                ihsan_impact=0.0,
-                dependencies=["infrastructure_capacity"],
-                trigger_pattern="circuit_breaker_redundancy",
-            ),
-        ))
+                condition=lambda obs: obs.circuit_breaker_trips > 3,
+                hypothesis_template=lambda obs: Hypothesis(
+                    id=self._generate_id("res_redundancy"),
+                    category=HypothesisCategory.RESILIENCE,
+                    description=f"Add redundancy for circuit-breaker-prone components ({obs.circuit_breaker_trips} trips)",
+                    predicted_improvement={
+                        "availability_pct": 0.1,
+                        "circuit_breaker_trips_reduction": 0.5,
+                    },
+                    confidence=0.7,
+                    risk_level=RiskLevel.HIGH,
+                    implementation_plan=[
+                        "Deploy secondary instances for critical paths",
+                        "Implement load balancing with health-aware routing",
+                        "Add request shadowing for hot standby",
+                        "Enable automatic failover",
+                    ],
+                    rollback_plan=[
+                        "Remove secondary instances",
+                        "Disable automatic failover",
+                        "Revert to single-instance mode",
+                    ],
+                    ihsan_impact=0.0,
+                    dependencies=["infrastructure_capacity"],
+                    trigger_pattern="circuit_breaker_redundancy",
+                ),
+            )
+        )
 
     def _generate_id(self, prefix: str) -> str:
         """Generate a unique hypothesis ID."""
@@ -875,7 +917,7 @@ class HypothesisGenerator:
                     hypothesis = pattern.hypothesis_template(observation)
 
                     # Adjust confidence based on pattern success rate
-                    hypothesis.confidence *= (0.5 + 0.5 * pattern.success_rate)
+                    hypothesis.confidence *= 0.5 + 0.5 * pattern.success_rate
 
                     # Find similar past hypotheses
                     hypothesis.similar_past_hypotheses = self._find_similar(hypothesis)
@@ -884,7 +926,9 @@ class HypothesisGenerator:
                     logger.debug(f"Pattern matched: {pattern.name}")
 
                 except Exception as e:
-                    logger.warning(f"Pattern {pattern.name} hypothesis generation failed: {e}")
+                    logger.warning(
+                        f"Pattern {pattern.name} hypothesis generation failed: {e}"
+                    )
 
         # Step 2: Generate novel hypotheses via heuristics
         novel_hypotheses = self._generate_novel_hypotheses(observation)
@@ -904,8 +948,7 @@ class HypothesisGenerator:
         return hypotheses
 
     def _generate_novel_hypotheses(
-        self,
-        observation: SystemObservation
+        self, observation: SystemObservation
     ) -> List[Hypothesis]:
         """
         Generate novel hypotheses using heuristics.
@@ -916,80 +959,88 @@ class HypothesisGenerator:
 
         # Heuristic: Declining trends deserve attention
         if observation.quality_trend < -0.2:
-            novel.append(Hypothesis(
-                id=self._generate_id("novel_quality"),
-                category=HypothesisCategory.QUALITY,
-                description=f"Address declining quality trend ({observation.quality_trend:+.2f})",
-                predicted_improvement={
-                    "quality_stabilization": 0.2,
-                    "trend_reversal": 0.3,
-                },
-                confidence=0.5,  # Lower confidence for novel hypotheses
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Analyze recent changes that may have caused decline",
-                    "Enable additional quality monitoring",
-                    "Consider reverting recent configuration changes",
-                ],
-                rollback_plan=[
-                    "Revert to last known good configuration",
-                ],
-                ihsan_impact=0.05,
-                trigger_pattern="novel_quality_trend",
-            ))
+            novel.append(
+                Hypothesis(
+                    id=self._generate_id("novel_quality"),
+                    category=HypothesisCategory.QUALITY,
+                    description=f"Address declining quality trend ({observation.quality_trend:+.2f})",
+                    predicted_improvement={
+                        "quality_stabilization": 0.2,
+                        "trend_reversal": 0.3,
+                    },
+                    confidence=0.5,  # Lower confidence for novel hypotheses
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Analyze recent changes that may have caused decline",
+                        "Enable additional quality monitoring",
+                        "Consider reverting recent configuration changes",
+                    ],
+                    rollback_plan=[
+                        "Revert to last known good configuration",
+                    ],
+                    ihsan_impact=0.05,
+                    trigger_pattern="novel_quality_trend",
+                )
+            )
 
         if observation.efficiency_trend < -0.2:
-            novel.append(Hypothesis(
-                id=self._generate_id("novel_efficiency"),
-                category=HypothesisCategory.EFFICIENCY,
-                description=f"Address declining efficiency trend ({observation.efficiency_trend:+.2f})",
-                predicted_improvement={
-                    "efficiency_stabilization": 0.2,
-                    "resource_optimization": 0.15,
-                },
-                confidence=0.45,
-                risk_level=RiskLevel.MEDIUM,
-                implementation_plan=[
-                    "Profile resource usage patterns",
-                    "Identify newly introduced inefficiencies",
-                    "Enable resource leak detection",
-                ],
-                rollback_plan=[
-                    "Restart services to clear potential memory leaks",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="novel_efficiency_trend",
-            ))
+            novel.append(
+                Hypothesis(
+                    id=self._generate_id("novel_efficiency"),
+                    category=HypothesisCategory.EFFICIENCY,
+                    description=f"Address declining efficiency trend ({observation.efficiency_trend:+.2f})",
+                    predicted_improvement={
+                        "efficiency_stabilization": 0.2,
+                        "resource_optimization": 0.15,
+                    },
+                    confidence=0.45,
+                    risk_level=RiskLevel.MEDIUM,
+                    implementation_plan=[
+                        "Profile resource usage patterns",
+                        "Identify newly introduced inefficiencies",
+                        "Enable resource leak detection",
+                    ],
+                    rollback_plan=[
+                        "Restart services to clear potential memory leaks",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="novel_efficiency_trend",
+                )
+            )
 
         # Heuristic: Compound issues may need combined solutions
-        if (observation.error_rate > 0.03 and
-            observation.memory_percent > 80 and
-            observation.latency_trend > 0.1):
-            novel.append(Hypothesis(
-                id=self._generate_id("novel_compound"),
-                category=HypothesisCategory.RESILIENCE,
-                description="Address compound stress indicators (errors + memory + latency)",
-                predicted_improvement={
-                    "system_stability": 0.25,
-                    "error_reduction": 0.15,
-                    "memory_reduction": 0.1,
-                },
-                confidence=0.4,
-                risk_level=RiskLevel.HIGH,
-                implementation_plan=[
-                    "Reduce load by enabling request rate limiting",
-                    "Clear caches to relieve memory pressure",
-                    "Enable graceful degradation mode",
-                    "Investigate root cause correlation",
-                ],
-                rollback_plan=[
-                    "Disable rate limiting",
-                    "Restore caches",
-                    "Exit degradation mode",
-                ],
-                ihsan_impact=0.0,
-                trigger_pattern="novel_compound_stress",
-            ))
+        if (
+            observation.error_rate > 0.03
+            and observation.memory_percent > 80
+            and observation.latency_trend > 0.1
+        ):
+            novel.append(
+                Hypothesis(
+                    id=self._generate_id("novel_compound"),
+                    category=HypothesisCategory.RESILIENCE,
+                    description="Address compound stress indicators (errors + memory + latency)",
+                    predicted_improvement={
+                        "system_stability": 0.25,
+                        "error_reduction": 0.15,
+                        "memory_reduction": 0.1,
+                    },
+                    confidence=0.4,
+                    risk_level=RiskLevel.HIGH,
+                    implementation_plan=[
+                        "Reduce load by enabling request rate limiting",
+                        "Clear caches to relieve memory pressure",
+                        "Enable graceful degradation mode",
+                        "Investigate root cause correlation",
+                    ],
+                    rollback_plan=[
+                        "Disable rate limiting",
+                        "Restore caches",
+                        "Exit degradation mode",
+                    ],
+                    ihsan_impact=0.0,
+                    trigger_pattern="novel_compound_stress",
+                )
+            )
 
         return novel
 
@@ -998,16 +1049,16 @@ class HypothesisGenerator:
         similar: List[str] = []
 
         for past in self._successful_patterns + self._failed_patterns:
-            if (past.category == hypothesis.category and
-                past.trigger_pattern == hypothesis.trigger_pattern):
+            if (
+                past.category == hypothesis.category
+                and past.trigger_pattern == hypothesis.trigger_pattern
+            ):
                 similar.append(past.id)
 
         return similar[:5]  # Limit to 5 most relevant
 
     def rank_hypotheses(
-        self,
-        hypotheses: List[Hypothesis],
-        top_k: Optional[int] = None
+        self, hypotheses: List[Hypothesis], top_k: Optional[int] = None
     ) -> List[Hypothesis]:
         """
         Rank hypotheses by expected value.
@@ -1030,7 +1081,7 @@ class HypothesisGenerator:
         self,
         hypothesis: Hypothesis,
         success: bool,
-        actual_improvement: Optional[Dict[str, float]] = None
+        actual_improvement: Optional[Dict[str, float]] = None,
     ) -> None:
         """
         Update pattern library based on hypothesis outcome.
@@ -1042,7 +1093,9 @@ class HypothesisGenerator:
         """
         # Update hypothesis status
         hypothesis.tested_at = datetime.now(timezone.utc)
-        hypothesis.status = HypothesisStatus.SUCCESSFUL if success else HypothesisStatus.FAILED
+        hypothesis.status = (
+            HypothesisStatus.SUCCESSFUL if success else HypothesisStatus.FAILED
+        )
         hypothesis.outcome = {
             "success": success,
             "actual_improvement": actual_improvement,
@@ -1090,7 +1143,8 @@ class HypothesisGenerator:
         """Get generator statistics."""
         success_rate = (
             self._total_successful / self._total_tested
-            if self._total_tested > 0 else 0.0
+            if self._total_tested > 0
+            else 0.0
         )
 
         pattern_stats = {}
@@ -1129,7 +1183,9 @@ class HypothesisGenerator:
                 }
                 for p in self._patterns
             ],
-            "successful_patterns": [h.to_dict() for h in self._successful_patterns[-100:]],
+            "successful_patterns": [
+                h.to_dict() for h in self._successful_patterns[-100:]
+            ],
             "failed_patterns": [h.to_dict() for h in self._failed_patterns[-50:]],
         }
 
@@ -1172,8 +1228,10 @@ class HypothesisGenerator:
                 Hypothesis.from_dict(h) for h in state.get("failed_patterns", [])
             ]
 
-            logger.info(f"Loaded hypothesis generator state: {self._total_tested} tested, "
-                       f"{self._total_successful} successful")
+            logger.info(
+                f"Loaded hypothesis generator state: {self._total_tested} tested, "
+                f"{self._total_successful} successful"
+            )
 
         except Exception as e:
             logger.warning(f"Failed to load hypothesis generator state: {e}")
@@ -1182,6 +1240,7 @@ class HypothesisGenerator:
 # =============================================================================
 # FACTORY FUNCTION
 # =============================================================================
+
 
 def create_hypothesis_generator(
     memory_path: Optional[Path] = None,

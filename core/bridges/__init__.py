@@ -22,21 +22,21 @@ Created: 2026-02-05 | SAPE Sovereign Module Decomposition
 Migrated: 2026-02-05 | Files now in dedicated bridges package
 """
 
+# Import protocol for type checking
+from core.protocols.bridge import BridgeDirection, BridgeHealth, BridgeProtocol
+
 # --------------------------------------------------------------------------
 # PHASE 1: Safe imports (no cross-package dependencies)
 # --------------------------------------------------------------------------
 from .bridge import SovereignBridge
-from .local_inference_bridge import LocalInferenceBridge
 from .iceoryx2_bridge import Iceoryx2Bridge
+from .knowledge_integrator import KnowledgeIntegrator
+from .local_inference_bridge import LocalInferenceBridge
 from .rust_lifecycle import (
     RustLifecycle,
     RustLifecycleManager,
     RustProcessManager,
 )
-from .knowledge_integrator import KnowledgeIntegrator
-
-# Import protocol for type checking
-from core.protocols.bridge import BridgeProtocol, BridgeHealth, BridgeDirection
 
 # --------------------------------------------------------------------------
 # PHASE 2: Lazy imports for modules with cross-package dependencies.
@@ -53,6 +53,7 @@ def __getattr__(name: str):
     if name in _LAZY_MODULES:
         module_path, attr_name = _LAZY_MODULES[name]
         import importlib
+
         mod = importlib.import_module(module_path, __name__)
         value = getattr(mod, attr_name)
         globals()[name] = value  # Cache for subsequent access

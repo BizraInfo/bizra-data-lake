@@ -10,10 +10,10 @@
 //!
 //! Giants: Gerganov (llama.cpp), NVIDIA (CUDA), Rust llama-cpp-2 team
 
+use async_trait::async_trait;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use async_trait::async_trait;
 
 use super::{Backend, BackendConfig, BackendError};
 use crate::gateway::{InferenceRequest, InferenceResponse};
@@ -50,7 +50,7 @@ impl Default for LlamaCppFFIConfig {
     fn default() -> Self {
         Self {
             model_path: String::new(),
-            n_gpu_layers: -1,      // All layers on GPU
+            n_gpu_layers: -1, // All layers on GPU
             n_ctx: 4096,
             n_batch: 512,
             n_threads: 4,
@@ -299,7 +299,10 @@ impl Backend for LlamaCppFFIBackend {
         &self.name
     }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         let start = std::time::Instant::now();
 
         // Build chat template prompt
@@ -319,11 +322,9 @@ impl Backend for LlamaCppFFIBackend {
             ..Default::default()
         };
 
-        let (text, completion_tokens) = self.generate_internal(
-            &full_prompt,
-            request.max_tokens,
-            &sampling,
-        ).await?;
+        let (text, completion_tokens) = self
+            .generate_internal(&full_prompt, request.max_tokens, &sampling)
+            .await?;
 
         let duration_ms = start.elapsed().as_millis() as u64;
         let tokens_per_second = if duration_ms > 0 {

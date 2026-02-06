@@ -151,10 +151,8 @@ async fn run_genesis(args: &[String]) -> anyhow::Result<()> {
 
     info!("Initializing Genesis Resource Pool...");
 
-    let (signing_key, verifying_key, node_id) = resolve_genesis_identity(
-        signing_key_hex.as_deref(),
-        public_key_hex.as_deref(),
-    )?;
+    let (signing_key, verifying_key, node_id) =
+        resolve_genesis_identity(signing_key_hex.as_deref(), public_key_hex.as_deref())?;
 
     if let Some(id) = &identity {
         if let Some(node_id_hint) = &id.node_id {
@@ -213,7 +211,10 @@ async fn run_genesis(args: &[String]) -> anyhow::Result<()> {
 
     // Process initial Zakat cycle
     let zakat = pool.process_zakat().await?;
-    info!(collected = zakat.total_collected, "Initial Zakat cycle processed");
+    info!(
+        collected = zakat.total_collected,
+        "Initial Zakat cycle processed"
+    );
 
     Ok(())
 }
@@ -254,7 +255,7 @@ fn parse_verifying_key(pk_hex: &str) -> anyhow::Result<VerifyingKey> {
     let pk_arr: [u8; 32] = pk_bytes
         .try_into()
         .map_err(|_| anyhow::anyhow!("Public key must be 32 bytes"))?;
-    Ok(VerifyingKey::from_bytes(&pk_arr)? )
+    Ok(VerifyingKey::from_bytes(&pk_arr)?)
 }
 
 fn load_identity(path: &Path) -> anyhow::Result<IdentityRecord> {

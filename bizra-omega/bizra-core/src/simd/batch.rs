@@ -3,8 +3,8 @@
 //! Uses ed25519-dalek's batch verification for 4x+ throughput
 //! when verifying multiple signatures simultaneously.
 
-use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use crate::identity::domain_separated_digest;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 
 /// Batch signature verification result
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub fn verify_signatures_batch(requests: &[VerifyRequest]) -> BatchVerifyResult 
     let mut public_keys = Vec::with_capacity(requests.len());
     let mut valid_parse = Vec::with_capacity(requests.len());
 
-    for (_i, req) in requests.iter().enumerate() {
+    for req in requests.iter() {
         let digest = domain_separated_digest(req.message);
 
         // Parse signature
@@ -65,7 +65,8 @@ pub fn verify_signatures_batch(requests: &[VerifyRequest]) -> BatchVerifyResult 
 
     // Individual verification (batch API requires ownership)
     // In production: use verify_batch from ed25519-dalek
-    for (i, ((msg, sig), pk)) in messages.iter()
+    for (i, ((msg, sig), pk)) in messages
+        .iter()
         .zip(signatures.iter())
         .zip(public_keys.iter())
         .enumerate()
@@ -95,7 +96,7 @@ pub fn verify_signatures_batch(requests: &[VerifyRequest]) -> BatchVerifyResult 
 /// Fast hex decode (no allocation for small inputs)
 #[inline]
 fn hex_decode(s: &str) -> Option<Vec<u8>> {
-    if s.len() % 2 != 0 {
+    if !s.len().is_multiple_of(2) {
         return None;
     }
 
@@ -119,10 +120,7 @@ mod tests {
             .map(|i| format!("message_{}", i).into_bytes())
             .collect();
 
-        let signatures: Vec<String> = messages
-            .iter()
-            .map(|m| identity.sign(m))
-            .collect();
+        let signatures: Vec<String> = messages.iter().map(|m| identity.sign(m)).collect();
 
         let requests: Vec<VerifyRequest> = messages
             .iter()

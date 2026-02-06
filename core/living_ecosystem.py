@@ -28,11 +28,10 @@
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
-import json
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -44,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 class EcosystemState(str, Enum):
     """State of the living ecosystem."""
+
     DORMANT = "dormant"
     INITIALIZING = "initializing"
     RUNNING = "running"
@@ -56,6 +56,7 @@ class EcosystemState(str, Enum):
 @dataclass
 class EcosystemHealth:
     """Health metrics for the ecosystem."""
+
     overall_health: float = 1.0
     memory_health: float = 1.0
     agent_health: float = 1.0
@@ -81,6 +82,7 @@ class EcosystemHealth:
 @dataclass
 class EcosystemConfig:
     """Configuration for the living ecosystem."""
+
     # Storage
     data_path: Path = field(default_factory=lambda: Path("/var/lib/bizra"))
 
@@ -156,6 +158,7 @@ class LivingEcosystem:
 
         # Initialize Living Memory
         from core.living_memory.core import LivingMemoryCore
+
         self._memory = LivingMemoryCore(
             storage_path=self.config.data_path / "memory",
             embedding_fn=self.embedding_fn,
@@ -167,6 +170,7 @@ class LivingEcosystem:
 
         # Initialize Memory Healer
         from core.living_memory.healing import MemoryHealer
+
         self._memory_healer = MemoryHealer(
             memory=self._memory,
             llm_fn=self.llm_fn,
@@ -177,6 +181,7 @@ class LivingEcosystem:
         # Initialize Proactive Retriever
         if self.config.enable_proactive:
             from core.living_memory.proactive import ProactiveRetriever
+
             self._proactive_retriever = ProactiveRetriever(
                 memory=self._memory,
                 llm_fn=self.llm_fn,
@@ -184,6 +189,7 @@ class LivingEcosystem:
 
         # Initialize Agent Orchestrator
         from core.agentic.orchestrator import AgentOrchestrator
+
         self._orchestrator = AgentOrchestrator(
             memory=self._memory,
             llm_fn=self.llm_fn,
@@ -195,7 +201,8 @@ class LivingEcosystem:
         # Initialize Autopoietic Loop
         if self.config.enable_evolution:
             try:
-                from core.autopoiesis.loop import AutopoieticLoop, AutopoiesisConfig
+                from core.autopoiesis.loop import AutopoiesisConfig, AutopoieticLoop
+
                 autopoiesis_config = AutopoiesisConfig(
                     ihsan_threshold=self.config.ihsan_threshold,
                     snr_threshold=self.config.snr_threshold,
@@ -207,6 +214,7 @@ class LivingEcosystem:
         # Initialize PAT Bridge
         if self.config.enable_pat:
             from core.pat.bridge import PATBridge
+
             self._pat_bridge = PATBridge(
                 memory=self._memory,
                 llm_fn=self.llm_fn,
@@ -222,20 +230,14 @@ class LivingEcosystem:
             await self.initialize()
 
         # Start maintenance loop
-        self._tasks.append(asyncio.create_task(
-            self._maintenance_loop()
-        ))
+        self._tasks.append(asyncio.create_task(self._maintenance_loop()))
 
         # Start memory consolidation loop
-        self._tasks.append(asyncio.create_task(
-            self._memory_consolidation_loop()
-        ))
+        self._tasks.append(asyncio.create_task(self._memory_consolidation_loop()))
 
         # Start evolution loop
         if self._autopoietic_loop and self.config.enable_evolution:
-            self._tasks.append(asyncio.create_task(
-                self._evolution_loop()
-            ))
+            self._tasks.append(asyncio.create_task(self._evolution_loop()))
 
         # Connect PAT bridge
         if self._pat_bridge and self.config.enable_pat:
@@ -320,17 +322,17 @@ class LivingEcosystem:
 
         # Check agent health
         if self._orchestrator:
-            maintenance_result = await self._orchestrator.run_maintenance()
+            await self._orchestrator.run_maintenance()
             stats = self._orchestrator.get_stats()
             if stats.total_agents > 0:
                 self._health.agent_health = stats.active_agents / stats.total_agents
 
         # Update overall health
         self._health.overall_health = (
-            0.4 * self._health.memory_health +
-            0.3 * self._health.agent_health +
-            0.2 * self._health.ihsan_compliance +
-            0.1 * (self._health.snr_average / self.config.snr_threshold)
+            0.4 * self._health.memory_health
+            + 0.3 * self._health.agent_health
+            + 0.2 * self._health.ihsan_compliance
+            + 0.1 * (self._health.snr_average / self.config.snr_threshold)
         )
         self._health.last_check = datetime.now(timezone.utc)
 
@@ -404,8 +406,7 @@ class LivingEcosystem:
             suggestions = await self._proactive_retriever.get_proactive_suggestions()
 
         suggestion_context = "\n".join(
-            f"- {s.reason}: {s.memory.content[:100]}"
-            for s in suggestions[:3]
+            f"- {s.reason}: {s.memory.content[:100]}" for s in suggestions[:3]
         )
 
         # Build prompt
@@ -459,6 +460,7 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
             return False
 
         from core.living_memory.core import MemoryType
+
         entry = await self._memory.encode(
             content=content,
             memory_type=MemoryType.SEMANTIC,
@@ -475,6 +477,7 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
         """Chat interface (routes through PAT if available)."""
         if self._pat_bridge and self.config.enable_pat:
             from core.pat.bridge import ChannelType
+
             try:
                 channel_type = ChannelType(channel)
             except ValueError:
@@ -498,6 +501,7 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
             return None
 
         from core.agentic.agent import TaskPriority
+
         try:
             task_priority = TaskPriority(priority)
         except ValueError:
@@ -515,8 +519,10 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
         status = {
             "state": self.state.value,
             "uptime_seconds": (
-                datetime.now(timezone.utc) - self._start_time
-            ).total_seconds() if self._start_time else 0,
+                (datetime.now(timezone.utc) - self._start_time).total_seconds()
+                if self._start_time
+                else 0
+            ),
             "health": self._health.to_dict(),
         }
 

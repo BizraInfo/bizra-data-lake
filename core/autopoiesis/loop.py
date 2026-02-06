@@ -16,28 +16,29 @@ Standing on Giants: Maturana & Varela + Holland + Shannon + Anthropic
 Genesis Strict Synthesis v2.2.2
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
-from datetime import datetime, timezone
-from enum import Enum
 import asyncio
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
+from core.autopoiesis import GENERATION_LIMIT, POPULATION_SIZE
+from core.autopoiesis.emergence import EmergenceDetector, EmergenceReport
+from core.autopoiesis.evolution import EvolutionConfig, EvolutionEngine, EvolutionResult
+from core.autopoiesis.fitness import EvaluationContext, FitnessEvaluator
+from core.autopoiesis.genome import AgentGenome, GenomeFactory
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-from core.autopoiesis import POPULATION_SIZE, GENERATION_LIMIT
-from core.autopoiesis.genome import AgentGenome, GenomeFactory
-from core.autopoiesis.fitness import FitnessEvaluator, EvaluationContext
-from core.autopoiesis.evolution import EvolutionEngine, EvolutionConfig, EvolutionResult
-from core.autopoiesis.emergence import EmergenceDetector, EmergenceReport, NoveltyLevel
 
 logger = logging.getLogger(__name__)
 
 
 class AutopoiesisPhase(Enum):
     """Phases of the autopoietic loop."""
+
     IDLE = "idle"
     OBSERVING = "observing"
     EVOLVING = "evolving"
@@ -50,6 +51,7 @@ class AutopoiesisPhase(Enum):
 @dataclass
 class AutopoiesisConfig:
     """Configuration for the autopoietic loop."""
+
     population_size: int = POPULATION_SIZE
     evolution_generations: int = 20  # Generations per evolution cycle
     max_evolution_cycles: int = GENERATION_LIMIT
@@ -63,6 +65,7 @@ class AutopoiesisConfig:
 @dataclass
 class AutopoiesisState:
     """State of the autopoietic system."""
+
     phase: AutopoiesisPhase = AutopoiesisPhase.IDLE
     evolution_cycle: int = 0
     total_generations: int = 0
@@ -93,6 +96,7 @@ class AutopoiesisState:
 @dataclass
 class IntegrationCandidate:
     """A genome candidate for production integration."""
+
     genome: AgentGenome
     fitness: float
     novelty_score: float
@@ -233,14 +237,18 @@ class AutopoieticLoop:
 
         if results:
             self.state.best_fitness = results[0].overall_fitness
-            self.state.avg_fitness = sum(r.overall_fitness for r in results) / len(results)
+            self.state.avg_fitness = sum(r.overall_fitness for r in results) / len(
+                results
+            )
             self.state.ihsan_compliance_rate = sum(
                 1 for r in results if r.ihsan_compliant
             ) / len(results)
 
-        logger.debug(f"Observed: pop={self.state.population_size}, "
-                     f"best={self.state.best_fitness:.3f}, "
-                     f"ihsan_rate={self.state.ihsan_compliance_rate:.2%}")
+        logger.debug(
+            f"Observed: pop={self.state.population_size}, "
+            f"best={self.state.best_fitness:.3f}, "
+            f"ihsan_rate={self.state.ihsan_compliance_rate:.2%}"
+        )
 
     async def _phase_evolve(self) -> EvolutionResult:
         """Run evolution for configured generations."""
@@ -253,14 +261,14 @@ class AutopoieticLoop:
         self.state.total_generations += result.generations_completed
 
         # Save population snapshot
-        self._population_history.append(
-            [genome for genome in result.final_population]
-        )
+        self._population_history.append([genome for genome in result.final_population])
         if len(self._population_history) > 10:
             self._population_history = self._population_history[-10:]
 
-        logger.info(f"Evolved {result.generations_completed} generations, "
-                    f"best fitness: {result.best_fitness:.3f}")
+        logger.info(
+            f"Evolved {result.generations_completed} generations, "
+            f"best fitness: {result.best_fitness:.3f}"
+        )
 
         return result
 
@@ -269,7 +277,9 @@ class AutopoieticLoop:
         self.state.phase = AutopoiesisPhase.DETECTING
 
         current_pop = self.evolution_engine.population
-        previous_pop = self._population_history[-2] if len(self._population_history) >= 2 else None
+        previous_pop = (
+            self._population_history[-2] if len(self._population_history) >= 2 else None
+        )
 
         report = self.emergence_detector.analyze_generation(
             population=current_pop,
@@ -290,8 +300,10 @@ class AutopoieticLoop:
         if self.on_emergence and report.properties:
             self.on_emergence(report)
 
-        logger.debug(f"Detected {len(report.properties)} emergences, "
-                     f"diversity: {report.diversity_score:.3f}")
+        logger.debug(
+            f"Detected {len(report.properties)} emergences, "
+            f"diversity: {report.diversity_score:.3f}"
+        )
 
         return report
 
@@ -316,8 +328,16 @@ class AutopoieticLoop:
                     genome=genome,
                     fitness=genome.fitness,
                     novelty_score=novelty_score,
-                    ihsan_score=genome.get_gene("ihsan_threshold").value if genome.get_gene("ihsan_threshold") else 0.95,
-                    recommendation="Integrate" if genome.is_ihsan_compliant() else "Review required",
+                    ihsan_score=(
+                        genome.get_gene("ihsan_threshold").value
+                        if genome.get_gene("ihsan_threshold")
+                        else 0.95
+                    ),
+                    recommendation=(
+                        "Integrate"
+                        if genome.is_ihsan_compliant()
+                        else "Review required"
+                    ),
                     approved=genome.is_ihsan_compliant(),
                 )
                 candidates.append(candidate)
@@ -332,8 +352,10 @@ class AutopoieticLoop:
                 self._integration_history.append(candidate)
                 self.state.integrations_performed += 1
 
-                logger.info(f"Integrated genome {candidate.genome.id} "
-                            f"with fitness {candidate.fitness:.3f}")
+                logger.info(
+                    f"Integrated genome {candidate.genome.id} "
+                    f"with fitness {candidate.fitness:.3f}"
+                )
 
     async def _phase_reflect(self):
         """Reflect on evolution progress and adapt parameters."""
@@ -342,8 +364,7 @@ class AutopoieticLoop:
         # Analyze trends
         if len(self._population_history) >= 3:
             recent_diversity = [
-                self._calculate_diversity(pop)
-                for pop in self._population_history[-3:]
+                self._calculate_diversity(pop) for pop in self._population_history[-3:]
             ]
 
             # If diversity is declining, increase mutation rate
@@ -351,14 +372,20 @@ class AutopoieticLoop:
                 current_rate = self.evolution_engine.config.mutation_rate
                 new_rate = min(0.3, current_rate * 1.2)
                 self.evolution_engine.config.mutation_rate = new_rate
-                logger.info(f"Increased mutation rate to {new_rate:.2f} due to declining diversity")
+                logger.info(
+                    f"Increased mutation rate to {new_rate:.2f} due to declining diversity"
+                )
 
             # If diversity is very high but fitness not improving, decrease mutation
-            elif self.state.diversity > 0.8 and self.evolution_engine._stall_counter > 5:
+            elif (
+                self.state.diversity > 0.8 and self.evolution_engine._stall_counter > 5
+            ):
                 current_rate = self.evolution_engine.config.mutation_rate
                 new_rate = max(0.05, current_rate * 0.8)
                 self.evolution_engine.config.mutation_rate = new_rate
-                logger.info(f"Decreased mutation rate to {new_rate:.2f} for exploitation")
+                logger.info(
+                    f"Decreased mutation rate to {new_rate:.2f} for exploitation"
+                )
 
         # Update state
         self.state.phase = AutopoiesisPhase.IDLE
@@ -372,7 +399,9 @@ class AutopoieticLoop:
         self.evolution_engine.population.extend(new_randoms)
 
         # Trim to population size
-        self.evolution_engine.population = self.evolution_engine.population[:self.config.population_size]
+        self.evolution_engine.population = self.evolution_engine.population[
+            : self.config.population_size
+        ]
 
         # Reset stall counter
         self.evolution_engine._stall_counter = 0
@@ -386,7 +415,7 @@ class AutopoieticLoop:
         count = 0
 
         for i, g1 in enumerate(population):
-            for g2 in population[i + 1:]:
+            for g2 in population[i + 1 :]:
                 total_distance += g1.distance(g2)
                 count += 1
 
@@ -397,10 +426,7 @@ class AutopoieticLoop:
         if not self.evolution_engine.population:
             return None
 
-        return max(
-            self.evolution_engine.population,
-            key=lambda g: g.fitness
-        )
+        return max(self.evolution_engine.population, key=lambda g: g.fitness)
 
     def get_production_agents(self) -> List[AgentGenome]:
         """Get all integrated production agents."""

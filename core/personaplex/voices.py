@@ -11,8 +11,8 @@ Voice Categories:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
 
 
 class VoiceGender(Enum):
@@ -36,6 +36,7 @@ class VoiceStyle(Enum):
 @dataclass
 class VoicePrompt:
     """A voice prompt configuration."""
+
     code: str
     filename: str
     gender: VoiceGender
@@ -57,7 +58,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.WARM,
         description="Warm female voice with approachable tone",
-        recommended_for=["customer_service", "onboarding", "support"]
+        recommended_for=["customer_service", "onboarding", "support"],
     ),
     "NATF1": VoicePrompt(
         code="NATF1",
@@ -65,7 +66,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.CLEAR,
         description="Clear, analytical female voice for precise communication",
-        recommended_for=["reasoning", "analysis", "technical_explanation"]
+        recommended_for=["reasoning", "analysis", "technical_explanation"],
     ),
     "NATF2": VoicePrompt(
         code="NATF2",
@@ -73,7 +74,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.AUTHORITATIVE,
         description="Authoritative female voice conveying expertise",
-        recommended_for=["security", "compliance", "leadership"]
+        recommended_for=["security", "compliance", "leadership"],
     ),
     "NATF3": VoicePrompt(
         code="NATF3",
@@ -81,9 +82,8 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.FRIENDLY,
         description="Friendly female voice for approachable interaction",
-        recommended_for=["integration", "collaboration", "casual"]
+        recommended_for=["integration", "collaboration", "casual"],
     ),
-
     # Natural Male Voices
     "NATM0": VoicePrompt(
         code="NATM0",
@@ -91,7 +91,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.SCHOLARLY,
         description="Scholarly male voice with educational tone",
-        recommended_for=["knowledge", "teaching", "documentation"]
+        recommended_for=["knowledge", "teaching", "documentation"],
     ),
     "NATM1": VoicePrompt(
         code="NATM1",
@@ -99,7 +99,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.PROFESSIONAL,
         description="Professional male voice for business contexts",
-        recommended_for=["architect", "business", "presentations"]
+        recommended_for=["architect", "business", "presentations"],
     ),
     "NATM2": VoicePrompt(
         code="NATM2",
@@ -107,7 +107,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.CALM,
         description="Calm, wise male voice for thoughtful discourse",
-        recommended_for=["ethics", "counseling", "meditation"]
+        recommended_for=["ethics", "counseling", "meditation"],
     ),
     "NATM3": VoicePrompt(
         code="NATM3",
@@ -115,9 +115,8 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.COMMANDING,
         description="Commanding male voice for leadership and authority",
-        recommended_for=["nucleus", "orchestration", "decisions"]
+        recommended_for=["nucleus", "orchestration", "decisions"],
     ),
-
     # Variety Female Voices
     "VARF0": VoicePrompt(
         code="VARF0",
@@ -125,7 +124,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.VARIED,
         description="Varied female voice 0",
-        recommended_for=["creative", "storytelling"]
+        recommended_for=["creative", "storytelling"],
     ),
     "VARF1": VoicePrompt(
         code="VARF1",
@@ -133,7 +132,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.VARIED,
         description="Varied female voice 1",
-        recommended_for=["creative", "entertainment"]
+        recommended_for=["creative", "entertainment"],
     ),
     "VARF2": VoicePrompt(
         code="VARF2",
@@ -141,7 +140,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.EXPRESSIVE,
         description="Expressive female voice for creative applications",
-        recommended_for=["creative", "innovation", "brainstorming"]
+        recommended_for=["creative", "innovation", "brainstorming"],
     ),
     "VARF3": VoicePrompt(
         code="VARF3",
@@ -149,7 +148,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.VARIED,
         description="Varied female voice 3",
-        recommended_for=["roleplay", "characters"]
+        recommended_for=["roleplay", "characters"],
     ),
     "VARF4": VoicePrompt(
         code="VARF4",
@@ -157,9 +156,8 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.FEMALE,
         style=VoiceStyle.VARIED,
         description="Varied female voice 4",
-        recommended_for=["diverse", "multilingual"]
+        recommended_for=["diverse", "multilingual"],
     ),
-
     # Variety Male Voices
     "VARM0": VoicePrompt(
         code="VARM0",
@@ -167,7 +165,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.VARIED,
         description="Varied male voice 0",
-        recommended_for=["creative", "narration"]
+        recommended_for=["creative", "narration"],
     ),
     "VARM1": VoicePrompt(
         code="VARM1",
@@ -175,7 +173,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.VARIED,
         description="Varied male voice 1",
-        recommended_for=["creative", "podcasts"]
+        recommended_for=["creative", "podcasts"],
     ),
     "VARM2": VoicePrompt(
         code="VARM2",
@@ -183,7 +181,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.VARIED,
         description="Varied male voice 2",
-        recommended_for=["roleplay", "games"]
+        recommended_for=["roleplay", "games"],
     ),
     "VARM3": VoicePrompt(
         code="VARM3",
@@ -191,7 +189,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.VARIED,
         description="Varied male voice 3",
-        recommended_for=["characters", "drama"]
+        recommended_for=["characters", "drama"],
     ),
     "VARM4": VoicePrompt(
         code="VARM4",
@@ -199,7 +197,7 @@ VOICE_LIBRARY: Dict[str, VoicePrompt] = {
         gender=VoiceGender.MALE,
         style=VoiceStyle.VARIED,
         description="Varied male voice 4",
-        recommended_for=["diverse", "experimental"]
+        recommended_for=["diverse", "experimental"],
     ),
 }
 

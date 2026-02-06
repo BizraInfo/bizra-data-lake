@@ -8,14 +8,14 @@
 //!
 //! Giants: Hashicorp (Serf/Consul), Bitcoin (peer discovery)
 
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::time::timeout;
-use serde::{Deserialize, Serialize};
 
+use crate::gossip::GossipProtocol;
 use bizra_core::NodeId;
-use crate::gossip::{GossipProtocol, GossipMessage, Member};
 
 /// Bootstrap configuration
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -88,7 +88,10 @@ impl Bootstrapper {
             "Starting federation bootstrap..."
         );
 
-        let local_addr: SocketAddr = self.config.bind_addr.parse()
+        let local_addr: SocketAddr = self
+            .config
+            .bind_addr
+            .parse()
             .map_err(|_| BootstrapError::InvalidAddress(self.config.bind_addr.clone()))?;
 
         let mut discovered_peers = Vec::new();
@@ -100,7 +103,10 @@ impl Bootstrapper {
                 Ok(peers) => {
                     tracing::info!(seed = %seed, peers = peers.len(), "Seed responded");
                     for peer in peers {
-                        if !discovered_peers.iter().any(|p: &PeerInfo| p.node_id == peer.node_id) {
+                        if !discovered_peers
+                            .iter()
+                            .any(|p: &PeerInfo| p.node_id == peer.node_id)
+                        {
                             discovered_peers.push(peer);
                         }
                     }
@@ -145,10 +151,12 @@ impl Bootstrapper {
 
     /// Probe a seed node for peers
     async fn probe_seed(&self, seed: &str) -> Result<Vec<PeerInfo>, BootstrapError> {
-        let addr: SocketAddr = seed.parse()
+        let addr: SocketAddr = seed
+            .parse()
             .map_err(|_| BootstrapError::InvalidAddress(seed.into()))?;
 
-        let socket = UdpSocket::bind("0.0.0.0:0").await
+        let socket = UdpSocket::bind("0.0.0.0:0")
+            .await
             .map_err(|e| BootstrapError::Network(e.to_string()))?;
 
         // Send discovery request
@@ -159,7 +167,9 @@ impl Bootstrapper {
         let request_bytes = serde_json::to_vec(&request)
             .map_err(|e| BootstrapError::Serialization(e.to_string()))?;
 
-        socket.send_to(&request_bytes, addr).await
+        socket
+            .send_to(&request_bytes, addr)
+            .await
             .map_err(|e| BootstrapError::Network(e.to_string()))?;
 
         // Wait for response
@@ -188,7 +198,8 @@ impl Bootstrapper {
         gossip: &GossipProtocol,
         bind_addr: SocketAddr,
     ) -> Result<(), BootstrapError> {
-        let socket = UdpSocket::bind(bind_addr).await
+        let socket = UdpSocket::bind(bind_addr)
+            .await
             .map_err(|e| BootstrapError::Network(e.to_string()))?;
 
         tracing::info!(addr = %bind_addr, "Discovery server started");
@@ -203,12 +214,15 @@ impl Bootstrapper {
 
                         // Build peer list from gossip members
                         let members = gossip.alive_members().await;
-                        let peers: Vec<PeerInfo> = members.iter().map(|m| PeerInfo {
-                            node_id: m.node_id.clone(),
-                            address: m.addr,
-                            version: env!("CARGO_PKG_VERSION").into(),
-                            capabilities: vec!["inference".into(), "consensus".into()],
-                        }).collect();
+                        let peers: Vec<PeerInfo> = members
+                            .iter()
+                            .map(|m| PeerInfo {
+                                node_id: m.node_id.clone(),
+                                address: m.addr,
+                                version: env!("CARGO_PKG_VERSION").into(),
+                                capabilities: vec!["inference".into(), "consensus".into()],
+                            })
+                            .collect();
 
                         let response = DiscoveryResponse { peers };
                         if let Ok(response_bytes) = serde_json::to_vec(&response) {

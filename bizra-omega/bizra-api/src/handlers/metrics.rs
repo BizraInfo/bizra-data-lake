@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 use crate::state::AppState;
 
-pub async fn prometheus_metrics(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn prometheus_metrics(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let uptime = state.uptime_secs();
     let requests = state.get_request_count();
 

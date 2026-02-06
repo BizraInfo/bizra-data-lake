@@ -41,7 +41,6 @@ Created: 2026-02-05 | BIZRA v3.1-OMEGA
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
@@ -49,43 +48,47 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from core.sovereign.bicameral_engine import BicameralReasoningEngine, BicameralResult
+from core.sovereign.iceoryx2_bridge import (
+    IceoryxMessage,
+    create_ipc_bridge,
+)
+from core.sovereign.mcp_disclosure import (
+    create_mcp_disclosure,
+)
+
 # v3.0 Runtime Engines
 from core.sovereign.runtime_engines import (
-    SNRMaximizer,
-    get_snr_maximizer,
-    GiantsRegistry,
-    get_giants_registry,
-    GoTBridge,
     SNR_FLOOR,
-    SNR_EXCELLENT,
+    get_giants_registry,
+    get_snr_maximizer,
 )
 
 # v3.1-OMEGA Components
 from core.sovereign.z3_fate_gate import Z3FATEGate, Z3Proof
-from core.sovereign.iceoryx2_bridge import create_ipc_bridge, IceoryxMessage, PayloadType
-from core.sovereign.mcp_disclosure import MCPProgressiveDisclosure, create_mcp_disclosure
-from core.sovereign.bicameral_engine import BicameralReasoningEngine, BicameralResult
 
 logger = logging.getLogger(__name__)
 
 
 class OMEGAPhase(str, Enum):
     """Phases of OMEGA runtime execution."""
+
     IDLE = "idle"
-    FILTERING = "filtering"          # SNR filter
-    REASONING = "reasoning"          # Bicameral generate-verify
-    VERIFICATION = "verification"    # Z3 formal proof
-    EXECUTION = "execution"          # Action dispatch
+    FILTERING = "filtering"  # SNR filter
+    REASONING = "reasoning"  # Bicameral generate-verify
+    VERIFICATION = "verification"  # Z3 formal proof
+    EXECUTION = "execution"  # Action dispatch
     COMPLETE = "complete"
 
 
 @dataclass
 class OMEGAInput:
     """Input to the OMEGA runtime."""
+
     query: str
     context: Dict[str, Any] = field(default_factory=dict)
-    autonomy_level: int = 2          # 0-5 scale
-    max_cost: float = 1000.0         # Resource limit
+    autonomy_level: int = 2  # 0-5 scale
+    max_cost: float = 1000.0  # Resource limit
     require_reversible: bool = False
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -93,6 +96,7 @@ class OMEGAInput:
 @dataclass
 class OMEGAResult:
     """Result from OMEGA runtime processing."""
+
     input_id: str
     phase_reached: OMEGAPhase
 
@@ -121,6 +125,7 @@ class OMEGAResult:
 @dataclass
 class OMEGAMetrics:
     """Runtime metrics for OMEGA."""
+
     total_requests: int = 0
     snr_filtered: int = 0
     reasoning_failures: int = 0
@@ -276,15 +281,17 @@ class OMEGARuntime:
 
         # Phase 3: Z3 Formal Verification
         self._phase = OMEGAPhase.VERIFICATION
-        z3_proof = self._z3_gate.generate_proof({
-            "ihsan": reasoning.consensus_score,
-            "snr": signal.snr,
-            "risk_level": input_data.context.get("risk_level", 0.3),
-            "reversible": input_data.require_reversible,
-            "human_approved": input_data.context.get("human_approved", False),
-            "cost": input_data.context.get("estimated_cost", 100),
-            "autonomy_limit": input_data.max_cost,
-        })
+        z3_proof = self._z3_gate.generate_proof(
+            {
+                "ihsan": reasoning.consensus_score,
+                "snr": signal.snr,
+                "risk_level": input_data.context.get("risk_level", 0.3),
+                "reversible": input_data.require_reversible,
+                "human_approved": input_data.context.get("human_approved", False),
+                "cost": input_data.context.get("estimated_cost", 100),
+                "autonomy_limit": input_data.max_cost,
+            }
+        )
 
         if not z3_proof.satisfiable:
             self._metrics.verification_failures += 1
@@ -342,8 +349,8 @@ class OMEGARuntime:
             self._metrics.average_latency_ms = new_latency
         else:
             self._metrics.average_latency_ms = (
-                (self._metrics.average_latency_ms * (n - 1) + new_latency) / n
-            )
+                self._metrics.average_latency_ms * (n - 1) + new_latency
+            ) / n
 
     async def send_ipc(self, message: IceoryxMessage) -> bool:
         """Send message via IPC bridge."""
@@ -359,11 +366,13 @@ class OMEGARuntime:
             "reasoning_failures": self._metrics.reasoning_failures,
             "verification_failures": self._metrics.verification_failures,
             "successful_executions": self._metrics.successful_executions,
-            "success_rate": self._metrics.successful_executions / total if total > 0 else 0.0,
+            "success_rate": (
+                self._metrics.successful_executions / total if total > 0 else 0.0
+            ),
             "average_latency_ms": self._metrics.average_latency_ms,
             "current_phase": self._phase.value,
             "ipc_bridge": self._ipc_bridge.__class__.__name__,
-            "bicameral_metrics": getattr(self._bicameral_engine, '_metrics', {}),
+            "bicameral_metrics": getattr(self._bicameral_engine, "_metrics", {}),
         }
 
     def status(self) -> Dict[str, Any]:

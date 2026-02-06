@@ -65,66 +65,55 @@ __version__ = "1.0.0"
 __author__ = "BIZRA Node0"
 
 # =============================================================================
-# Social Graph — Relationship Intelligence
+# Opportunity Engine — Active Market Intelligence
 # =============================================================================
-from core.apex.social_graph import (
-    # Enums
-    RelationshipType,
-    InteractionType,
-    CollaborationStatus,
-    # Data classes
-    Interaction,
-    Relationship,
-    CollaborationOpportunity,
-    NegotiationOffer,
-    # Main class
-    SocialGraph,
+from core.apex.opportunity_engine import (  # Enums; Data classes; Component classes; Main class
+    ArbitrageDetector,
+    ArbitrageOpportunity,
+    MarketAnalysis,
+    MarketAnalyzer,
+    MarketCondition,
+    MarketData,
+    OpportunityEngine,
+    Position,
+    PositionStatus,
+    SignalGenerator,
+    SignalStrength,
+    SignalType,
+    TradingSignal,
 )
 
 # =============================================================================
-# Opportunity Engine — Active Market Intelligence
+# Social Graph — Relationship Intelligence
 # =============================================================================
-from core.apex.opportunity_engine import (
-    # Enums
-    MarketCondition,
-    SignalType,
-    SignalStrength,
-    PositionStatus,
-    # Data classes
-    MarketData,
-    MarketAnalysis,
-    TradingSignal,
-    ArbitrageOpportunity,
-    Position,
-    # Component classes
-    MarketAnalyzer,
-    SignalGenerator,
-    ArbitrageDetector,
-    # Main class
-    OpportunityEngine,
+from core.apex.social_graph import (  # Enums; Data classes; Main class
+    CollaborationOpportunity,
+    CollaborationStatus,
+    Interaction,
+    InteractionType,
+    NegotiationOffer,
+    Relationship,
+    RelationshipType,
+    SocialGraph,
 )
 
 # =============================================================================
 # Swarm Orchestrator — Autonomous Deployment & Scaling
 # =============================================================================
-from core.apex.swarm_orchestrator import (
-    # Enums
-    AgentStatus,
-    ScalingAction,
-    HealthStatus,
-    SwarmTopology,
-    # Data classes
+from core.apex.swarm_orchestrator import (  # Enums; Data classes; Component classes; Main class
     AgentConfig,
     AgentInstance,
-    SwarmConfig,
-    Swarm,
-    ScalingDecision,
-    HealthReport,
-    # Component classes
+    AgentStatus,
     HealthMonitor,
+    HealthReport,
+    HealthStatus,
+    ScalingAction,
+    ScalingDecision,
     ScalingManager,
-    # Main class
+    Swarm,
+    SwarmConfig,
     SwarmOrchestrator,
+    SwarmTopology,
 )
 
 # =============================================================================
@@ -134,7 +123,6 @@ __all__ = [
     # Version info
     "__version__",
     "__author__",
-
     # Social Graph
     "RelationshipType",
     "InteractionType",
@@ -144,7 +132,6 @@ __all__ = [
     "CollaborationOpportunity",
     "NegotiationOffer",
     "SocialGraph",
-
     # Opportunity Engine
     "MarketCondition",
     "SignalType",
@@ -159,7 +146,6 @@ __all__ = [
     "SignalGenerator",
     "ArbitrageDetector",
     "OpportunityEngine",
-
     # Swarm Orchestrator
     "AgentStatus",
     "ScalingAction",
@@ -264,10 +250,15 @@ class ApexSystem:
 
         # Start in parallel
         import asyncio
+
         await asyncio.gather(
-            self.social.start() if hasattr(self.social, 'start') else asyncio.sleep(0),
-            self.opportunity.start() if hasattr(self.opportunity, 'start') else asyncio.sleep(0),
-            self.swarm.start() if hasattr(self.swarm, 'start') else asyncio.sleep(0),
+            self.social.start() if hasattr(self.social, "start") else asyncio.sleep(0),
+            (
+                self.opportunity.start()
+                if hasattr(self.opportunity, "start")
+                else asyncio.sleep(0)
+            ),
+            self.swarm.start() if hasattr(self.swarm, "start") else asyncio.sleep(0),
         )
 
         self._running = True
@@ -278,10 +269,23 @@ class ApexSystem:
             return
 
         import asyncio
+
         await asyncio.gather(
-            self.social.stop() if self._social and hasattr(self._social, 'stop') else asyncio.sleep(0),
-            self.opportunity.stop() if self._opportunity and hasattr(self._opportunity, 'stop') else asyncio.sleep(0),
-            self.swarm.stop() if self._swarm and hasattr(self._swarm, 'stop') else asyncio.sleep(0),
+            (
+                self.social.stop()
+                if self._social and hasattr(self._social, "stop")
+                else asyncio.sleep(0)
+            ),
+            (
+                self.opportunity.stop()
+                if self._opportunity and hasattr(self._opportunity, "stop")
+                else asyncio.sleep(0)
+            ),
+            (
+                self.swarm.stop()
+                if self._swarm and hasattr(self._swarm, "stop")
+                else asyncio.sleep(0)
+            ),
         )
 
         self._running = False

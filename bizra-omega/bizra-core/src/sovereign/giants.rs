@@ -88,19 +88,16 @@ impl GiantRegistry {
             Giant::new("Claude Shannon", "Information Theory")
                 .with_contribution(
                     "Information Entropy",
-                    "H(X) = -Σ p(x) log p(x) — measuring information content"
+                    "H(X) = -Σ p(x) log p(x) — measuring information content",
                 )
-                .with_contribution(
-                    "Channel Capacity",
-                    "Maximum rate of reliable communication"
-                )
+                .with_contribution("Channel Capacity", "Maximum rate of reliable communication")
                 .with_contribution(
                     "SNR Relationship",
-                    "C = B log₂(1 + S/N) — capacity from signal-to-noise"
+                    "C = B log₂(1 + S/N) — capacity from signal-to-noise",
                 )
                 .used_in("SNR Engine")
                 .used_in("Constitution thresholds")
-                .with_citation("A Mathematical Theory of Communication, 1948")
+                .with_citation("A Mathematical Theory of Communication, 1948"),
         );
 
         // Leslie Lamport — Distributed Systems
@@ -108,19 +105,19 @@ impl GiantRegistry {
             Giant::new("Leslie Lamport", "Distributed Systems")
                 .with_contribution(
                     "Paxos Consensus",
-                    "Fault-tolerant distributed agreement protocol"
+                    "Fault-tolerant distributed agreement protocol",
                 )
                 .with_contribution(
                     "Byzantine Generals",
-                    "Problem formulation for adversarial consensus"
+                    "Problem formulation for adversarial consensus",
                 )
                 .with_contribution(
                     "Logical Clocks",
-                    "Happened-before relation for event ordering"
+                    "Happened-before relation for event ordering",
                 )
                 .used_in("BFT Consensus Engine")
                 .used_in("Federation Protocol")
-                .with_citation("Paxos Made Simple, 2001")
+                .with_citation("Paxos Made Simple, 2001"),
         );
 
         // Ashish Vaswani et al. — Transformers
@@ -128,15 +125,15 @@ impl GiantRegistry {
             Giant::new("Ashish Vaswani", "Deep Learning")
                 .with_contribution(
                     "Transformer Architecture",
-                    "Self-attention mechanism for sequence modeling"
+                    "Self-attention mechanism for sequence modeling",
                 )
                 .with_contribution(
                     "Multi-Head Attention",
-                    "Parallel attention for diverse representations"
+                    "Parallel attention for diverse representations",
                 )
                 .used_in("Inference Gateway")
                 .used_in("Task Complexity Estimation")
-                .with_citation("Attention Is All You Need, 2017")
+                .with_citation("Attention Is All You Need, 2017"),
         );
 
         // Maciej Besta et al. — Graph of Thoughts
@@ -144,31 +141,22 @@ impl GiantRegistry {
             Giant::new("Maciej Besta", "AI Reasoning")
                 .with_contribution(
                     "Graph-of-Thoughts",
-                    "Non-linear reasoning with thought graphs"
+                    "Non-linear reasoning with thought graphs",
                 )
-                .with_contribution(
-                    "Thought Aggregation",
-                    "Combining multiple reasoning paths"
-                )
+                .with_contribution("Thought Aggregation", "Combining multiple reasoning paths")
                 .used_in("Sovereign Orchestrator")
                 .used_in("Validation Reasoning")
-                .with_citation("Graph of Thoughts: Solving Elaborate Problems, 2023")
+                .with_citation("Graph of Thoughts: Solving Elaborate Problems, 2023"),
         );
 
         // Linus Torvalds — Unix Philosophy
         self.add(
             Giant::new("Linus Torvalds", "Operating Systems")
-                .with_contribution(
-                    "Unix Philosophy",
-                    "Do one thing well, compose with pipes"
-                )
-                .with_contribution(
-                    "Git",
-                    "Distributed version control with integrity"
-                )
+                .with_contribution("Unix Philosophy", "Do one thing well, compose with pipes")
+                .with_contribution("Git", "Distributed version control with integrity")
                 .used_in("CLI Design")
                 .used_in("Module Architecture")
-                .with_citation("Just for Fun, 2001")
+                .with_citation("Just for Fun, 2001"),
         );
 
         // Roy Fielding — REST
@@ -176,91 +164,58 @@ impl GiantRegistry {
             Giant::new("Roy Fielding", "Web Architecture")
                 .with_contribution(
                     "REST",
-                    "Representational State Transfer architectural style"
+                    "Representational State Transfer architectural style",
                 )
                 .with_contribution(
                     "Uniform Interface",
-                    "Resource-based, self-descriptive messages"
+                    "Resource-based, self-descriptive messages",
                 )
                 .used_in("API Gateway")
                 .used_in("Federation Protocol")
-                .with_citation("Architectural Styles and REST, 2000")
+                .with_citation("Architectural Styles and REST, 2000"),
         );
 
         // Georgi Gerganov — llama.cpp
         self.add(
             Giant::new("Georgi Gerganov", "Efficient Inference")
-                .with_contribution(
-                    "llama.cpp",
-                    "Efficient C++ implementation of LLM inference"
-                )
-                .with_contribution(
-                    "GGML",
-                    "Tensor library optimized for LLMs"
-                )
-                .with_contribution(
-                    "Quantization",
-                    "Memory-efficient model representation"
-                )
+                .with_contribution("llama.cpp", "Efficient C++ implementation of LLM inference")
+                .with_contribution("GGML", "Tensor library optimized for LLMs")
+                .with_contribution("Quantization", "Memory-efficient model representation")
                 .used_in("LlamaCpp FFI Backend")
                 .used_in("SIMD Optimizations")
-                .with_citation("llama.cpp, 2023")
+                .with_citation("llama.cpp, 2023"),
         );
 
         // Daniel Bernstein — Cryptography
         self.add(
             Giant::new("Daniel J. Bernstein", "Cryptography")
-                .with_contribution(
-                    "Curve25519",
-                    "High-performance elliptic curve cryptography"
-                )
-                .with_contribution(
-                    "Ed25519",
-                    "Fast and secure digital signatures"
-                )
-                .with_contribution(
-                    "ChaCha20",
-                    "Stream cipher for authenticated encryption"
-                )
+                .with_contribution("Curve25519", "High-performance elliptic curve cryptography")
+                .with_contribution("Ed25519", "Fast and secure digital signatures")
+                .with_contribution("ChaCha20", "Stream cipher for authenticated encryption")
                 .used_in("Node Identity")
                 .used_in("PCI Signatures")
-                .with_citation("High-speed high-security signatures, 2012")
+                .with_citation("High-speed high-security signatures, 2012"),
         );
 
         // Jack O'Connor — BLAKE3
         self.add(
             Giant::new("Jack O'Connor", "Cryptographic Hashing")
-                .with_contribution(
-                    "BLAKE3",
-                    "Fast, parallel, secure cryptographic hash"
-                )
-                .with_contribution(
-                    "Merkle Tree Mode",
-                    "Unlimited parallelism for large data"
-                )
+                .with_contribution("BLAKE3", "Fast, parallel, secure cryptographic hash")
+                .with_contribution("Merkle Tree Mode", "Unlimited parallelism for large data")
                 .used_in("Domain Separation")
                 .used_in("Content Hashing")
-                .with_citation("BLAKE3 Specification, 2020")
+                .with_citation("BLAKE3 Specification, 2020"),
         );
 
         // Anthropic — Claude
         self.add(
             Giant::new("Anthropic", "AI Safety")
-                .with_contribution(
-                    "Constitutional AI",
-                    "AI systems governed by principles"
-                )
-                .with_contribution(
-                    "RLHF",
-                    "Reinforcement learning from human feedback"
-                )
-                .with_contribution(
-                    "Claude",
-                    "Helpful, harmless, honest AI assistant"
-                )
+                .with_contribution("Constitutional AI", "AI systems governed by principles")
+                .with_contribution("RLHF", "Reinforcement learning from human feedback")
+                .with_contribution("Claude", "Helpful, harmless, honest AI assistant")
                 .used_in("Constitution Framework")
                 .used_in("Ihsān Constraints")
-                .with_citation("Constitutional AI, 2022")
+                .with_citation("Constitutional AI, 2022"),
         );
     }
 
@@ -281,14 +236,16 @@ impl GiantRegistry {
 
     /// Get giants by domain
     pub fn by_domain(&self, domain: &str) -> Vec<&Giant> {
-        self.giants.values()
+        self.giants
+            .values()
             .filter(|g| g.domain == domain)
             .collect()
     }
 
     /// Get giants used in a component
     pub fn used_in(&self, component: &str) -> Vec<&Giant> {
-        self.giants.values()
+        self.giants
+            .values()
             .filter(|g| g.bizra_usage.iter().any(|u| u == component))
             .collect()
     }
@@ -297,7 +254,7 @@ impl GiantRegistry {
     pub fn attribution(&self) -> String {
         let mut s = String::new();
         s.push_str("BIZRA Omega — Standing on the Shoulders of Giants\n\n");
-        
+
         for giant in self.giants.values() {
             s.push_str(&format!("• {} ({})\n", giant.name, giant.domain));
             for contrib in &giant.contributions {
@@ -308,7 +265,7 @@ impl GiantRegistry {
             }
             s.push('\n');
         }
-        
+
         s
     }
 

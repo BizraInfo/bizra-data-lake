@@ -5,8 +5,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 use bizra_hunter::{
-    EntropyCalculator, InvariantCache, MultiAxisEntropy, SNRPipeline,
-    CriticalCascade, GateType,
+    CriticalCascade, EntropyCalculator, GateType, InvariantCache, MultiAxisEntropy, SNRPipeline,
 };
 
 /// Benchmark entropy calculation (TRICK 3: Multi-axis SIMD)
@@ -20,16 +19,12 @@ fn bench_entropy_calculation(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_function(format!("bytecode_{}", size), |b| {
             let mut calc = EntropyCalculator::new();
-            b.iter(|| {
-                black_box(calc.bytecode_entropy(black_box(&bytecode)))
-            });
+            b.iter(|| black_box(calc.bytecode_entropy(black_box(&bytecode))));
         });
 
         group.bench_function(format!("multi_axis_{}", size), |b| {
             let mut calc = EntropyCalculator::new();
-            b.iter(|| {
-                black_box(calc.calculate_all(black_box(&bytecode)))
-            });
+            b.iter(|| black_box(calc.calculate_all(black_box(&bytecode))));
         });
     }
     group.finish();
@@ -46,7 +41,10 @@ fn bench_invariant_cache(c: &mut Criterion) {
         let addr = [0xdeu8; 20];
         let bytecode = vec![0x60u8; 1024];
         b.iter(|| {
-            black_box(InvariantCache::compute_hash(black_box(&addr), black_box(&bytecode)))
+            black_box(InvariantCache::compute_hash(
+                black_box(&addr),
+                black_box(&bytecode),
+            ))
         });
     });
 
@@ -70,9 +68,7 @@ fn bench_invariant_cache(c: &mut Criterion) {
         let addr = [0xdeu8; 20];
         let bytecode = vec![0x60u8; 1024];
         cache.check_and_insert(&addr, &bytecode);
-        b.iter(|| {
-            black_box(cache.check_and_insert(black_box(&addr), black_box(&bytecode)))
-        });
+        b.iter(|| black_box(cache.check_and_insert(black_box(&addr), black_box(&bytecode))));
     });
 
     group.finish();
@@ -86,16 +82,12 @@ fn bench_critical_cascade(c: &mut Criterion) {
 
     group.bench_function("is_open_check", |b| {
         let cascade = CriticalCascade::new();
-        b.iter(|| {
-            black_box(cascade.is_open(black_box(GateType::Technical)))
-        });
+        b.iter(|| black_box(cascade.is_open(black_box(GateType::Technical))));
     });
 
     group.bench_function("all_open_check", |b| {
         let cascade = CriticalCascade::new();
-        b.iter(|| {
-            black_box(cascade.all_open())
-        });
+        b.iter(|| black_box(cascade.all_open()));
     });
 
     group.bench_function("record_success", |b| {
@@ -188,7 +180,10 @@ fn bench_throughput(c: &mut Criterion) {
 
         b.iter(|| {
             for _ in 0..batch_size {
-                black_box(InvariantCache::compute_hash(black_box(&addr), black_box(&bytecode)));
+                black_box(InvariantCache::compute_hash(
+                    black_box(&addr),
+                    black_box(&bytecode),
+                ));
             }
         });
     });

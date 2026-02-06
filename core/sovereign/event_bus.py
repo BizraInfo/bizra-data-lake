@@ -9,27 +9,29 @@ Standing on Giants: Observer Pattern + Async Python + Domain Events
 
 import asyncio
 import logging
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set
-import uuid
+from typing import Any, Callable, Coroutine, Dict, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class EventPriority(Enum):
     """Event processing priority."""
-    CRITICAL = auto()   # Process immediately
-    HIGH = auto()       # Process next
-    NORMAL = auto()     # Standard queue
-    LOW = auto()        # When available
+
+    CRITICAL = auto()  # Process immediately
+    HIGH = auto()  # Process next
+    NORMAL = auto()  # Standard queue
+    LOW = auto()  # When available
 
 
 @dataclass
 class Event:
     """Base event structure for the sovereign bus."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     topic: str = ""
     payload: Dict[str, Any] = field(default_factory=dict)
@@ -57,7 +59,9 @@ class EventBus:
     def __init__(self, max_queue_size: int = 1000):
         self._subscribers: Dict[str, Set[EventHandler]] = defaultdict(set)
         self._wildcard_subscribers: Dict[str, Set[EventHandler]] = defaultdict(set)
-        self._event_queue: asyncio.PriorityQueue = asyncio.PriorityQueue(maxsize=max_queue_size)
+        self._event_queue: asyncio.PriorityQueue = asyncio.PriorityQueue(
+            maxsize=max_queue_size
+        )
         self._running = False
         self._event_count = 0
         self._processed_count = 0
@@ -145,8 +149,7 @@ class EventBus:
             try:
                 # Wait for next event with timeout
                 _, _, event = await asyncio.wait_for(
-                    self._event_queue.get(),
-                    timeout=1.0
+                    self._event_queue.get(), timeout=1.0
                 )
                 await self._process_event(event)
             except asyncio.TimeoutError:

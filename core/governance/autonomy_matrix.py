@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -23,24 +23,26 @@ class AutonomyLevel(IntEnum):
     Inspired by SAE driving automation levels,
     adapted for AI sovereign operation.
     """
-    OBSERVER = 0      # Watch only, no action
-    SUGGESTER = 1     # Suggest actions, require approval
-    AUTOLOW = 2       # Execute low-risk, notify after
-    AUTOMEDIUM = 3    # Execute medium-risk, notify before
-    AUTOHIGH = 4      # Execute high-risk, require pre-approval
-    SOVEREIGN = 5     # Full agency (emergencies only)
+
+    OBSERVER = 0  # Watch only, no action
+    SUGGESTER = 1  # Suggest actions, require approval
+    AUTOLOW = 2  # Execute low-risk, notify after
+    AUTOMEDIUM = 3  # Execute medium-risk, notify before
+    AUTOHIGH = 4  # Execute high-risk, require pre-approval
+    SOVEREIGN = 5  # Full agency (emergencies only)
 
 
 @dataclass
 class AutonomyConstraints:
     """Constraints for an autonomy level."""
-    max_cost_percent: float = 0.0    # Max % of resources to use
-    max_risk_score: float = 0.0      # Max risk (0-1)
-    min_ihsan_score: float = 1.0     # Min quality threshold
-    reversible_only: bool = True     # Must be reversible
-    require_approval: bool = True    # Needs human approval
-    notify_before: bool = True       # Notify before action
-    notify_after: bool = True        # Notify after action
+
+    max_cost_percent: float = 0.0  # Max % of resources to use
+    max_risk_score: float = 0.0  # Max risk (0-1)
+    min_ihsan_score: float = 1.0  # Min quality threshold
+    reversible_only: bool = True  # Must be reversible
+    require_approval: bool = True  # Needs human approval
+    notify_before: bool = True  # Notify before action
+    notify_after: bool = True  # Notify after action
 
 
 # Default constraints per autonomy level
@@ -64,7 +66,7 @@ DEFAULT_CONSTRAINTS: Dict[AutonomyLevel, AutonomyConstraints] = {
         notify_after=True,
     ),
     AutonomyLevel.AUTOLOW: AutonomyConstraints(
-        max_cost_percent=1.0,     # 1% of resources
+        max_cost_percent=1.0,  # 1% of resources
         max_risk_score=0.3,
         min_ihsan_score=0.97,
         reversible_only=True,
@@ -73,7 +75,7 @@ DEFAULT_CONSTRAINTS: Dict[AutonomyLevel, AutonomyConstraints] = {
         notify_after=True,
     ),
     AutonomyLevel.AUTOMEDIUM: AutonomyConstraints(
-        max_cost_percent=5.0,     # 5% of resources
+        max_cost_percent=5.0,  # 5% of resources
         max_risk_score=0.5,
         min_ihsan_score=0.98,
         reversible_only=False,
@@ -82,21 +84,21 @@ DEFAULT_CONSTRAINTS: Dict[AutonomyLevel, AutonomyConstraints] = {
         notify_after=True,
     ),
     AutonomyLevel.AUTOHIGH: AutonomyConstraints(
-        max_cost_percent=10.0,    # 10% of resources
+        max_cost_percent=10.0,  # 10% of resources
         max_risk_score=0.7,
         min_ihsan_score=0.99,
         reversible_only=False,
-        require_approval=True,   # Pre-approval required
+        require_approval=True,  # Pre-approval required
         notify_before=True,
         notify_after=True,
     ),
     AutonomyLevel.SOVEREIGN: AutonomyConstraints(
-        max_cost_percent=100.0,   # Full authority
+        max_cost_percent=100.0,  # Full authority
         max_risk_score=1.0,
-        min_ihsan_score=1.0,      # Must be perfect
+        min_ihsan_score=1.0,  # Must be perfect
         reversible_only=False,
-        require_approval=False,   # Emergency authority
-        notify_before=False,      # No time
+        require_approval=False,  # Emergency authority
+        notify_before=False,  # No time
         notify_after=True,
     ),
 }
@@ -105,11 +107,12 @@ DEFAULT_CONSTRAINTS: Dict[AutonomyLevel, AutonomyConstraints] = {
 @dataclass
 class ActionContext:
     """Context for evaluating an action's autonomy requirements."""
+
     action_type: str = ""
     description: str = ""
-    cost_percent: float = 0.0       # Estimated cost as % of resources
-    risk_score: float = 0.0         # Risk score 0-1
-    ihsan_score: float = 0.95       # Quality/ethics score
+    cost_percent: float = 0.0  # Estimated cost as % of resources
+    risk_score: float = 0.0  # Risk score 0-1
+    ihsan_score: float = 0.95  # Quality/ethics score
     is_reversible: bool = True
     is_emergency: bool = False
     domain: str = ""
@@ -119,6 +122,7 @@ class ActionContext:
 @dataclass
 class AutonomyDecision:
     """Decision about autonomy for an action."""
+
     action_type: str = ""
     determined_level: AutonomyLevel = AutonomyLevel.OBSERVER
     can_execute: bool = False
@@ -272,13 +276,19 @@ class AutonomyMatrix:
 
         # Check each constraint
         if context.cost_percent > constraints.max_cost_percent:
-            violations.append(f"cost {context.cost_percent:.1f}% > {constraints.max_cost_percent:.1f}%")
+            violations.append(
+                f"cost {context.cost_percent:.1f}% > {constraints.max_cost_percent:.1f}%"
+            )
 
         if context.risk_score > constraints.max_risk_score:
-            violations.append(f"risk {context.risk_score:.2f} > {constraints.max_risk_score:.2f}")
+            violations.append(
+                f"risk {context.risk_score:.2f} > {constraints.max_risk_score:.2f}"
+            )
 
         if context.ihsan_score < constraints.min_ihsan_score:
-            violations.append(f"ihsan {context.ihsan_score:.2f} < {constraints.min_ihsan_score:.2f}")
+            violations.append(
+                f"ihsan {context.ihsan_score:.2f} < {constraints.min_ihsan_score:.2f}"
+            )
 
         if constraints.reversible_only and not context.is_reversible:
             violations.append("action is not reversible")

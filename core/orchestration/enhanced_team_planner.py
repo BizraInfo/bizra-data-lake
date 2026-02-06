@@ -7,18 +7,29 @@ autonomy-aware execution, and integration with the Muraqabah engine.
 Standing on Giants: HTN Planning + Proactive Computing + GOAP
 """
 
-import asyncio
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, Dict, List, Optional
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, Dict, List, Optional
 
-from .team_planner import TeamPlanner, TeamTask, Goal, TaskComplexity, AgentRole, TaskAllocation
-from core.governance.autonomy_matrix import AutonomyMatrix, AutonomyLevel, ActionContext, AutonomyDecision
-from .muraqabah_engine import MuraqabahEngine, Opportunity, MonitorDomain
-from core.bridges.dual_agentic_bridge import DualAgenticBridge, ConsensusResult
+from core.bridges.dual_agentic_bridge import ConsensusResult, DualAgenticBridge
+from core.governance.autonomy_matrix import (
+    ActionContext,
+    AutonomyDecision,
+    AutonomyLevel,
+    AutonomyMatrix,
+)
+
 from .event_bus import EventBus, EventPriority, get_event_bus
+from .muraqabah_engine import MonitorDomain, MuraqabahEngine, Opportunity
+from .team_planner import (
+    AgentRole,
+    Goal,
+    TaskAllocation,
+    TeamPlanner,
+    TeamTask,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +37,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ProactiveGoal:
     """A proactively detected goal from opportunity analysis."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     opportunity_id: str = ""
     domain: MonitorDomain = MonitorDomain.ENVIRONMENTAL
     description: str = ""
-    urgency: float = 0.5           # 0-1, higher = more urgent
-    estimated_value: float = 0.5   # 0-1, relative value
+    urgency: float = 0.5  # 0-1, higher = more urgent
+    estimated_value: float = 0.5  # 0-1, relative value
     deadline: Optional[datetime] = None
     autonomy_level: AutonomyLevel = AutonomyLevel.SUGGESTER
     constitutional_score: float = 0.95
@@ -44,6 +56,7 @@ class ProactiveGoal:
 @dataclass
 class ExecutionPlan:
     """A plan for executing a proactive goal."""
+
     goal_id: str = ""
     tasks: List[TeamTask] = field(default_factory=list)
     allocations: Dict[str, List[TaskAllocation]] = field(default_factory=dict)
@@ -56,6 +69,7 @@ class ExecutionPlan:
 @dataclass
 class ExecutionResult:
     """Result of executing a proactive goal."""
+
     goal_id: str = ""
     success: bool = False
     tasks_completed: int = 0
@@ -89,7 +103,9 @@ class EnhancedTeamPlanner(TeamPlanner):
     ):
         super().__init__(ihsan_threshold=ihsan_threshold)
 
-        self.autonomy = autonomy_matrix or AutonomyMatrix(default_level=AutonomyLevel.SUGGESTER)
+        self.autonomy = autonomy_matrix or AutonomyMatrix(
+            default_level=AutonomyLevel.SUGGESTER
+        )
         self.bridge = bridge or DualAgenticBridge(ihsan_threshold=ihsan_threshold)
         self.muraqabah = muraqabah
         self.event_bus = event_bus or get_event_bus()
@@ -104,7 +120,9 @@ class EnhancedTeamPlanner(TeamPlanner):
         self._approval_handlers: List[Callable[[ProactiveGoal], bool]] = []
         self._execution_handlers: Dict[str, Callable[[TeamTask], bool]] = {}
 
-    async def handle_opportunity(self, opportunity: Opportunity) -> Optional[ProactiveGoal]:
+    async def handle_opportunity(
+        self, opportunity: Opportunity
+    ) -> Optional[ProactiveGoal]:
         """Convert an opportunity into a proactive goal."""
         # Assess autonomy level based on opportunity characteristics
         context = ActionContext(
@@ -282,7 +300,9 @@ class EnhancedTeamPlanner(TeamPlanner):
             logger.error(f"Goal execution error: {e}")
 
         finally:
-            result.duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+            result.duration_ms = (
+                datetime.now(timezone.utc) - start_time
+            ).total_seconds() * 1000
             result.completed_at = datetime.now(timezone.utc)
             self._execution_results.append(result)
 
@@ -335,7 +355,9 @@ class EnhancedTeamPlanner(TeamPlanner):
         logger.info(f"Executing task: {task.name}")
         return True
 
-    def register_approval_handler(self, handler: Callable[[ProactiveGoal], bool]) -> None:
+    def register_approval_handler(
+        self, handler: Callable[[ProactiveGoal], bool]
+    ) -> None:
         """Register an approval handler."""
         self._approval_handlers.append(handler)
 
@@ -373,7 +395,9 @@ class EnhancedTeamPlanner(TeamPlanner):
             "total_executions": total_results,
             "successful_executions": successful,
             "success_rate": successful / max(total_results, 1),
-            "total_value_delivered": sum(r.value_delivered for r in self._execution_results),
+            "total_value_delivered": sum(
+                r.value_delivered for r in self._execution_results
+            ),
             "autonomy_stats": self.autonomy.stats(),
             "bridge_stats": self.bridge.stats(),
         }

@@ -18,33 +18,35 @@ Giants Protocol:
 Created: 2026-02-04 | BIZRA Sovereignty
 """
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any, Union
-from pathlib import Path
-import re
-
+from typing import Any, Dict, List, Optional, Union
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODEL CAPABILITIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class ModelCapability(str, Enum):
     """Model capability classification."""
+
     REASONING = "reasoning"  # Chain-of-thought, complex thinking, mathematical proof
-    VISION = "vision"        # Image understanding, visual analysis, OCR
-    VOICE = "voice"          # Speech recognition, audio processing
-    AGENTIC = "agentic"      # Workflow planning, task decomposition, orchestration
-    GENERAL = "general"      # Text generation, Q&A, summarization
+    VISION = "vision"  # Image understanding, visual analysis, OCR
+    VOICE = "voice"  # Speech recognition, audio processing
+    AGENTIC = "agentic"  # Workflow planning, task decomposition, orchestration
+    GENERAL = "general"  # Text generation, Q&A, summarization
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ModelInfo:
     """Information about a registered model."""
+
     name: str
     capabilities: List[ModelCapability]
     primary_capability: ModelCapability
@@ -59,6 +61,7 @@ class ModelInfo:
 @dataclass
 class RoutingDecision:
     """Result of routing decision."""
+
     model: ModelInfo
     capability_match: ModelCapability
     confidence: float  # 0.0-1.0, how confident in this choice
@@ -69,6 +72,7 @@ class RoutingDecision:
 @dataclass
 class MultiModalConfig:
     """Configuration for multi-modal routing."""
+
     model_registry: Dict[str, ModelInfo] = field(default_factory=dict)
 
     # Default backend endpoints
@@ -84,6 +88,7 @@ class MultiModalConfig:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TASK ANALYSIS
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TaskTypeDetector:
     """Detects required capability from input/task."""
@@ -178,6 +183,7 @@ class TaskTypeDetector:
 # MULTI-MODAL ROUTER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class MultiModalRouter:
     """
     Routes tasks to the right local model based on capability requirements.
@@ -237,7 +243,11 @@ class MultiModalRouter:
         # ═══════════════════════════════════════════════════════════════════════════
         self.config.model_registry["agentflow-planner-7b-i1"] = ModelInfo(
             name="agentflow-planner-7b-i1",
-            capabilities=[ModelCapability.AGENTIC, ModelCapability.REASONING, ModelCapability.GENERAL],
+            capabilities=[
+                ModelCapability.AGENTIC,
+                ModelCapability.REASONING,
+                ModelCapability.GENERAL,
+            ],
             primary_capability=ModelCapability.AGENTIC,
             backend="lmstudio",
             endpoint=self.config.lmstudio_endpoint,
@@ -247,7 +257,9 @@ class MultiModalRouter:
             description="AgentFlow Planner: Task decomposition, workflow planning",
         )
 
-        self.config.model_registry["llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"] = ModelInfo(
+        self.config.model_registry[
+            "llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
+        ] = ModelInfo(
             name="llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b",
             capabilities=[ModelCapability.AGENTIC, ModelCapability.GENERAL],
             primary_capability=ModelCapability.AGENTIC,
@@ -316,16 +328,18 @@ class MultiModalRouter:
             description="Qwen 2.5 14B Uncensored: Large general-purpose model",
         )
 
-        self.config.model_registry["chuanli11_-_llama-3.2-3b-instruct-uncensored"] = ModelInfo(
-            name="chuanli11_-_llama-3.2-3b-instruct-uncensored",
-            capabilities=[ModelCapability.GENERAL],
-            primary_capability=ModelCapability.GENERAL,
-            backend="lmstudio",
-            endpoint=self.config.lmstudio_endpoint,
-            params_b=3.0,
-            context_length=8192,
-            speed_tok_per_sec=40.0,
-            description="Llama 3.2 3B Uncensored: Fast general model",
+        self.config.model_registry["chuanli11_-_llama-3.2-3b-instruct-uncensored"] = (
+            ModelInfo(
+                name="chuanli11_-_llama-3.2-3b-instruct-uncensored",
+                capabilities=[ModelCapability.GENERAL],
+                primary_capability=ModelCapability.GENERAL,
+                backend="lmstudio",
+                endpoint=self.config.lmstudio_endpoint,
+                params_b=3.0,
+                context_length=8192,
+                speed_tok_per_sec=40.0,
+                description="Llama 3.2 3B Uncensored: Fast general model",
+            )
         )
 
         # ═══════════════════════════════════════════════════════════════════════════
@@ -438,13 +452,18 @@ class MultiModalRouter:
         """
         # Find exact matches (primary capability)
         exact_matches = [
-            m for m in self.config.model_registry.values()
+            m
+            for m in self.config.model_registry.values()
             if m.primary_capability == capability
         ]
 
         if exact_matches:
             # Prefer faster model for real-time capabilities
-            if capability in [ModelCapability.VISION, ModelCapability.VOICE, ModelCapability.AGENTIC]:
+            if capability in [
+                ModelCapability.VISION,
+                ModelCapability.VOICE,
+                ModelCapability.AGENTIC,
+            ]:
                 best = max(exact_matches, key=lambda m: m.speed_tok_per_sec)
                 confidence = 0.95
             else:
@@ -462,7 +481,8 @@ class MultiModalRouter:
 
         # Find secondary capability matches
         secondary_matches = [
-            m for m in self.config.model_registry.values()
+            m
+            for m in self.config.model_registry.values()
             if capability in m.capabilities
         ]
 
@@ -479,7 +499,8 @@ class MultiModalRouter:
         # Fallback to general model
         if self.config.enable_fallback:
             general_models = [
-                m for m in self.config.model_registry.values()
+                m
+                for m in self.config.model_registry.values()
                 if m.primary_capability == ModelCapability.GENERAL
             ]
 
@@ -560,7 +581,8 @@ class MultiModalRouter:
     def list_by_capability(self, capability: ModelCapability) -> List[ModelInfo]:
         """List all models supporting a capability."""
         return [
-            m for m in self.config.model_registry.values()
+            m
+            for m in self.config.model_registry.values()
             if capability in m.capabilities
         ]
 
@@ -572,7 +594,9 @@ class MultiModalRouter:
 _router_instance: Optional[MultiModalRouter] = None
 
 
-def get_multimodal_router(config: Optional[MultiModalConfig] = None) -> MultiModalRouter:
+def get_multimodal_router(
+    config: Optional[MultiModalConfig] = None,
+) -> MultiModalRouter:
     """Get singleton multi-modal router instance."""
     global _router_instance
     if _router_instance is None:
@@ -594,11 +618,21 @@ if __name__ == "__main__":
     # Test cases
     test_cases = [
         ("What is 2+2?", None, "simple math"),
-        ("Prove that every even number > 2 is the sum of two primes", None, "reasoning"),
+        (
+            "Prove that every even number > 2 is the sum of two primes",
+            None,
+            "reasoning",
+        ),
         ("Describe what you see in this image", True, "vision"),
         ("Transcribe the speech in this audio clip", False, "voice"),
-        ({"text": "Analyze the trade-offs between monolithic vs microservices",
-          "has_image": False}, None, "complex reasoning"),
+        (
+            {
+                "text": "Analyze the trade-offs between monolithic vs microservices",
+                "has_image": False,
+            },
+            None,
+            "complex reasoning",
+        ),
     ]
 
     for task, has_image, description in test_cases:
@@ -608,7 +642,9 @@ if __name__ == "__main__":
             decision = router.route(task, explicit_type=None)
 
         print(f"\n📋 Task: {description}")
-        print(f"   Input: {task if isinstance(task, str) else task.get('text', '')[:50]}")
+        print(
+            f"   Input: {task if isinstance(task, str) else task.get('text', '')[:50]}"
+        )
         print(f"   Detected capability: {decision.capability_match.value}")
         print(f"   Selected model: {decision.model.name}")
         print(f"   Backend: {decision.model.backend} @ {decision.model.endpoint}")

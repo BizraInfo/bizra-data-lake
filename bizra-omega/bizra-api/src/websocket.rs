@@ -30,7 +30,11 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
         "node_id": state.identity.read().await.as_ref().map(|i| i.node_id().0.clone()),
     });
 
-    if socket.send(Message::Text(welcome.to_string())).await.is_err() {
+    if socket
+        .send(Message::Text(welcome.to_string()))
+        .await
+        .is_err()
+    {
         return;
     }
 
@@ -68,7 +72,11 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                                 "uptime_secs": state.uptime_secs(),
                                 "requests": state.get_request_count(),
                             });
-                            if socket.send(Message::Text(status.to_string())).await.is_err() {
+                            if socket
+                                .send(Message::Text(status.to_string()))
+                                .await
+                                .is_err()
+                            {
                                 break;
                             }
                         }

@@ -11,12 +11,12 @@ Standing on Giants: Fisher (Statistics) + SDPO Paper
 Genesis Strict Synthesis v2.2.2
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
-from datetime import datetime, timezone
-from enum import Enum
 import math
 import random
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -27,6 +27,7 @@ from core.sdpo import SDPO_ADVANTAGE_THRESHOLD
 
 class ExperimentStatus(Enum):
     """Status of an A/B experiment."""
+
     DRAFT = "draft"
     RUNNING = "running"
     PAUSED = "paused"
@@ -37,6 +38,7 @@ class ExperimentStatus(Enum):
 @dataclass
 class ABTestConfig:
     """Configuration for A/B testing."""
+
     min_samples_per_arm: int = 100
     confidence_level: float = 0.95
     power: float = 0.80
@@ -50,6 +52,7 @@ class ABTestConfig:
 @dataclass
 class ExperimentArm:
     """A single arm in an A/B experiment."""
+
     name: str
     description: str
     is_control: bool = False
@@ -93,6 +96,7 @@ class ExperimentArm:
 @dataclass
 class StatisticalAnalysis:
     """Statistical analysis results."""
+
     t_statistic: float
     p_value: float
     effect_size: float  # Cohen's d
@@ -114,6 +118,7 @@ class StatisticalAnalysis:
 @dataclass
 class ABTestResult:
     """Result from an A/B test."""
+
     experiment_id: str
     status: ExperimentStatus
     control_arm: ExperimentArm
@@ -137,7 +142,8 @@ class ABTestResult:
             "recommendation": self.recommendation,
             "duration_hours": (
                 (self.end_time - self.start_time).total_seconds() / 3600
-                if self.end_time else None
+                if self.end_time
+                else None
             ),
         }
 
@@ -234,7 +240,10 @@ class SDPOABTestFramework:
         experiment_id: Optional[str] = None,
     ) -> str:
         """Create a new A/B experiment."""
-        exp_id = experiment_id or f"exp_{len(self._experiments) + 1}_{int(datetime.now().timestamp())}"
+        exp_id = (
+            experiment_id
+            or f"exp_{len(self._experiments) + 1}_{int(datetime.now().timestamp())}"
+        )
 
         self._experiments[exp_id] = {
             "name": name,
@@ -314,8 +323,8 @@ class SDPOABTestFramework:
 
         # Check sample size
         has_min_samples = (
-            control.n >= self.config.min_samples_per_arm and
-            treatment.n >= self.config.min_samples_per_arm
+            control.n >= self.config.min_samples_per_arm
+            and treatment.n >= self.config.min_samples_per_arm
         )
 
         if not has_min_samples and not force_complete:
@@ -348,7 +357,9 @@ class SDPOABTestFramework:
             if treatment.mean > control.mean:
                 if treatment_valid:
                     winner = "treatment"
-                    recommendation = f"Treatment wins with effect size {analysis.effect_size:.3f}"
+                    recommendation = (
+                        f"Treatment wins with effect size {analysis.effect_size:.3f}"
+                    )
                 else:
                     recommendation = "Treatment better but fails Ihsān gate"
             else:
@@ -374,7 +385,9 @@ class SDPOABTestFramework:
         exp["status"] = ExperimentStatus.COMPLETED
         exp["end_time"] = datetime.now(timezone.utc)
 
-        ihsan_compliant = (winner == "treatment" and treatment_valid) or (winner == "control" and control_valid)
+        ihsan_compliant = (winner == "treatment" and treatment_valid) or (
+            winner == "control" and control_valid
+        )
 
         return ABTestResult(
             experiment_id=experiment_id,
@@ -411,18 +424,27 @@ class SDPOABTestFramework:
             )
 
         # Welch's t-test
-        se1 = s1 ** 2 / n1 if n1 > 0 else 0
-        se2 = s2 ** 2 / n2 if n2 > 0 else 0
+        se1 = s1**2 / n1 if n1 > 0 else 0
+        se2 = s2**2 / n2 if n2 > 0 else 0
         se_diff = math.sqrt(se1 + se2) if (se1 + se2) > 0 else 1e-10
 
         t_stat = (m2 - m1) / se_diff
 
         # Degrees of freedom (Welch-Satterthwaite)
         if se1 + se2 > 0:
-            df = ((se1 + se2) ** 2) / (
-                (se1 ** 2 / (n1 - 1) if n1 > 1 else 0) +
-                (se2 ** 2 / (n2 - 1) if n2 > 1 else 0)
-            ) if ((se1 ** 2 / (n1 - 1) if n1 > 1 else 0) + (se2 ** 2 / (n2 - 1) if n2 > 1 else 0)) > 0 else 1
+            df = (
+                ((se1 + se2) ** 2)
+                / (
+                    (se1**2 / (n1 - 1) if n1 > 1 else 0)
+                    + (se2**2 / (n2 - 1) if n2 > 1 else 0)
+                )
+                if (
+                    (se1**2 / (n1 - 1) if n1 > 1 else 0)
+                    + (se2**2 / (n2 - 1) if n2 > 1 else 0)
+                )
+                > 0
+                else 1
+            )
         else:
             df = n1 + n2 - 2
 
@@ -430,19 +452,23 @@ class SDPOABTestFramework:
         p_value = self._approx_p_value(t_stat, df)
 
         # Cohen's d effect size
-        pooled_std = math.sqrt(
-            ((n1 - 1) * s1 ** 2 + (n2 - 1) * s2 ** 2) / (n1 + n2 - 2)
-        ) if (n1 + n2 - 2) > 0 else 1.0
+        pooled_std = (
+            math.sqrt(((n1 - 1) * s1**2 + (n2 - 1) * s2**2) / (n1 + n2 - 2))
+            if (n1 + n2 - 2) > 0
+            else 1.0
+        )
         effect_size = (m2 - m1) / pooled_std if pooled_std > 0 else 0.0
 
         # Confidence interval for difference
-        alpha = 1 - self.config.confidence_level
+        1 - self.config.confidence_level
         z_crit = 1.96  # Approximate for 95% CI
         ci_lower = (m2 - m1) - z_crit * se_diff
         ci_upper = (m2 - m1) + z_crit * se_diff
 
         # Achieved power (simplified)
-        power_achieved = min(1.0, abs(effect_size) / self.config.min_effect_size * self.config.power)
+        power_achieved = min(
+            1.0, abs(effect_size) / self.config.min_effect_size * self.config.power
+        )
 
         return StatisticalAnalysis(
             t_statistic=t_stat,
@@ -465,7 +491,7 @@ class SDPOABTestFramework:
         else:
             # Crude approximation for small df
             # More accurate would use scipy.stats.t.sf
-            z = abs(t) * math.sqrt(df / (df + t ** 2))
+            z = abs(t) * math.sqrt(df / (df + t**2))
             return 2 * (1 - self._normal_cdf(z))
 
     def _normal_cdf(self, x: float) -> float:
@@ -492,10 +518,7 @@ class SDPOABTestFramework:
 
     def list_experiments(self) -> List[Dict[str, Any]]:
         """List all experiments."""
-        return [
-            self.get_experiment_status(exp_id)
-            for exp_id in self._experiments
-        ]
+        return [self.get_experiment_status(exp_id) for exp_id in self._experiments]
 
     def simulate_experiment(
         self,
@@ -517,7 +540,9 @@ class SDPOABTestFramework:
 
         # Generate samples
         control_samples = [random.gauss(control_mean, std) for _ in range(n_samples)]
-        treatment_samples = [random.gauss(treatment_mean, std) for _ in range(n_samples)]
+        treatment_samples = [
+            random.gauss(treatment_mean, std) for _ in range(n_samples)
+        ]
 
         self.add_samples_batch(exp_id, control_samples, treatment_samples)
 

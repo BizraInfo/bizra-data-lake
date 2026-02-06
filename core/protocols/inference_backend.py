@@ -18,13 +18,14 @@ Created: 2026-02-05 | SAPE Elite Analysis Implementation
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Optional, Set, Dict, Any, AsyncIterator
 from datetime import datetime
+from enum import Enum, auto
+from typing import Any, AsyncIterator, Dict, Optional, Set
 
 
 class BackendCapability(Enum):
     """Capabilities that inference backends may support."""
+
     TEXT_COMPLETION = auto()
     CHAT_COMPLETION = auto()
     EMBEDDINGS = auto()
@@ -43,6 +44,7 @@ class InferenceRequest:
 
     All backends must accept this format and transform it to their native API.
     """
+
     prompt: str
     max_tokens: int = 1024
     temperature: float = 0.7
@@ -76,6 +78,7 @@ class InferenceResponse:
 
     All backends must transform their native response to this format.
     """
+
     text: str
     tokens_used: int
     latency_ms: float
@@ -177,9 +180,7 @@ class InferenceBackend(ABC):
 
     # Optional methods with default implementations
 
-    async def stream(
-        self, request: InferenceRequest
-    ) -> AsyncIterator[str]:
+    async def stream(self, request: InferenceRequest) -> AsyncIterator[str]:
         """
         Stream completion tokens as they're generated.
 

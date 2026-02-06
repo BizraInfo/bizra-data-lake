@@ -23,43 +23,44 @@ Created: 2026-02-05 | SAPE Sovereign Module Decomposition
 Migrated: 2026-02-05 | Files now in dedicated governance package
 """
 
-# Direct imports from local files (not from sovereign for clean separation)
-from .constitutional_gate import (
-    ConstitutionalGate,
-    AdmissionStatus,
-    AdmissionResult,
+from .autonomy import (
+    AutonomousLoop,
+    DecisionGate,
 )
 from .autonomy_matrix import (
-    AutonomyMatrix,
-    AutonomyLevel,
     AutonomyDecision,
+    AutonomyLevel,
+    AutonomyMatrix,
 )
-from .model_license_gate import (
-    ModelLicenseGate,
+from .capability_card import (
+    CapabilityCard,
+    CardIssuer,
+    ModelCapabilities,
+    ModelTier,
+    TaskType,
+)
+
+# Direct imports from local files (not from sovereign for clean separation)
+from .constitutional_gate import (
+    AdmissionResult,
+    AdmissionStatus,
+    ConstitutionalGate,
 )
 from .ihsan_projector import (
     IhsanProjector,
 )
 from .ihsan_vector import (
-    IhsanVector,
     IhsanDimension,
-)
-from .capability_card import (
-    CapabilityCard,
-    ModelCapabilities,
-    CardIssuer,
-    ModelTier,
-    TaskType,
-)
-from .autonomy import (
-    AutonomousLoop,
-    DecisionGate,
+    IhsanVector,
 )
 from .key_registry import (
-    TrustedKeyRegistry,
-    RegisteredKey,
     KeyStatus,
+    RegisteredKey,
+    TrustedKeyRegistry,
     get_key_registry,
+)
+from .model_license_gate import (
+    ModelLicenseGate,
 )
 
 __all__ = [

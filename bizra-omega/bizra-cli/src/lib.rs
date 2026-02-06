@@ -20,14 +20,14 @@
 //! └─────────────────────────────────────────────────────────────────────────┘
 //! ```
 
-pub mod theme;
 pub mod app;
-pub mod widgets;
 pub mod commands;
 pub mod config;
 pub mod inference;
+pub mod theme;
+pub mod widgets;
 
 pub use app::App;
-pub use theme::Theme;
 pub use config::Config;
 pub use inference::LMStudio;
+pub use theme::Theme;

@@ -28,35 +28,31 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-# =============================================================================
-# PUBLIC API - Re-export from modular components
-# =============================================================================
-
-# Types, constants, enums
-from .treasury_types import (
-    # Constants
-    ETHICS_THRESHOLD_HIBERNATION,
-    ETHICS_THRESHOLD_RECOVERY,
-    RESERVES_THRESHOLD_EMERGENCY,
-    RESERVES_THRESHOLD_HIBERNATION,
-    EMERGENCY_TREASURY_UNLOCK_PERCENT,
-    DEFAULT_BURN_RATE,
-    COMPUTE_MULTIPLIERS,
-    # Enums
-    TreasuryMode,
-    TransitionTrigger,
-    TreasuryEvent,
-    # Data classes
-    TreasuryState,
-    TransitionEvent,
-    EthicsAssessment,
-)
+# Controller
+from .treasury_controller import TreasuryController
 
 # Persistence layer
 from .treasury_persistence import TreasuryPersistence
 
-# Controller
-from .treasury_controller import TreasuryController
+# Types, constants, enums
+from .treasury_types import (  # Constants; Enums; Data classes
+    EMERGENCY_TREASURY_UNLOCK_PERCENT,
+    ETHICS_THRESHOLD_HIBERNATION,
+    ETHICS_THRESHOLD_RECOVERY,
+    RESERVES_THRESHOLD_EMERGENCY,
+    RESERVES_THRESHOLD_HIBERNATION,
+    EthicsAssessment,
+    TransitionEvent,
+    TransitionTrigger,
+    TreasuryEvent,
+    TreasuryMode,
+    TreasuryState,
+)
+
+# =============================================================================
+# PUBLIC API - Re-export from modular components
+# =============================================================================
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +60,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # FACTORY FUNCTIONS
 # =============================================================================
+
 
 def create_treasury_controller(
     initial_reserves: float = 10000.0,
@@ -84,6 +81,7 @@ def create_treasury_controller(
     snr_calculator = None
     try:
         from core.iaas.snr_v2 import SNRCalculatorV2
+
         snr_calculator = SNRCalculatorV2()
     except ImportError:
         logger.warning("SNR calculator not available")
@@ -143,14 +141,14 @@ if __name__ == "__main__":
             db_path=db_path,
         )
 
-        print(f"\n[Initial State]")
+        print("\n[Initial State]")
         status = controller.get_status()
         print(f"  Mode: {status['state']['mode']}")
         print(f"  Reserves: {status['state']['reserves_days']:.1f} days")
         print(f"  Ethical Score: {status['state']['ethical_score']:.3f}")
         print(f"  Burn Rate: {status['state']['burn_rate_seed_per_day']:.1f} SEED/day")
 
-        print(f"\n[Simulating Market Ethics Degradation]")
+        print("\n[Simulating Market Ethics Degradation]")
         market_data = {
             "transparency_score": 0.40,
             "fairness_score": 0.35,
@@ -164,16 +162,18 @@ if __name__ == "__main__":
         print(f"  Should Hibernate: {controller.should_hibernate()}")
 
         if controller.should_hibernate():
-            print(f"\n[Transitioning to Hibernation]")
+            print("\n[Transitioning to Hibernation]")
             success, msg = controller.transition_mode(
                 TreasuryMode.HIBERNATION,
                 "Market ethics below threshold",
                 TransitionTrigger.MARKET_ETHICS_DEGRADED,
             )
             print(f"  Result: {msg}")
-            print(f"  New Burn Rate: {controller.state.burn_rate_seed_per_day:.1f} SEED/day")
+            print(
+                f"  New Burn Rate: {controller.state.burn_rate_seed_per_day:.1f} SEED/day"
+            )
 
-        print(f"\n[Health Check]")
+        print("\n[Health Check]")
         health = controller.health_check()
         print(f"  Healthy: {health['healthy']}")
         for warning in health.get("warnings", []):

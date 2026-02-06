@@ -62,9 +62,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import math
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
@@ -76,9 +74,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Protocol,
     Tuple,
-    TypeVar,
     Union,
 )
 
@@ -89,7 +85,6 @@ from core.integration.constants import (
     IHSAN_WEIGHTS,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
 )
 
 logger = logging.getLogger(__name__)
@@ -126,6 +121,7 @@ LANDAUER_LIMIT_JOULES: Final[float] = 2.87e-21  # kT ln 2 at 300K
 # GAP-C1: IHSAN PROJECTOR (8D -> 3D in O(1))
 # =============================================================================
 
+
 class IhsanVector(NamedTuple):
     """
     8-dimensional Ihsan constitutional vector.
@@ -133,6 +129,7 @@ class IhsanVector(NamedTuple):
     Each dimension is in [0, 1] range.
     The weighted sum yields the overall Ihsan score.
     """
+
     correctness: float
     safety: float
     user_benefit: float
@@ -166,16 +163,18 @@ class IhsanVector(NamedTuple):
 
         score = sum(w_i * d_i) for all dimensions
         """
-        weights = np.array([
-            IHSAN_WEIGHTS["correctness"],
-            IHSAN_WEIGHTS["safety"],
-            IHSAN_WEIGHTS["user_benefit"],
-            IHSAN_WEIGHTS["efficiency"],
-            IHSAN_WEIGHTS["auditability"],
-            IHSAN_WEIGHTS["anti_centralization"],
-            IHSAN_WEIGHTS["robustness"],
-            IHSAN_WEIGHTS["adl_fairness"],
-        ])
+        weights = np.array(
+            [
+                IHSAN_WEIGHTS["correctness"],
+                IHSAN_WEIGHTS["safety"],
+                IHSAN_WEIGHTS["user_benefit"],
+                IHSAN_WEIGHTS["efficiency"],
+                IHSAN_WEIGHTS["auditability"],
+                IHSAN_WEIGHTS["anti_centralization"],
+                IHSAN_WEIGHTS["robustness"],
+                IHSAN_WEIGHTS["adl_fairness"],
+            ]
+        )
         return float(np.dot(self.to_array(), weights))
 
 
@@ -185,9 +184,10 @@ class NTUState(NamedTuple):
 
     This is the projected space for real-time decision making.
     """
-    belief: float      # Confidence in current state [0, 1]
-    entropy: float     # Uncertainty measure [0, 1] (Shannon-normalized)
-    lambda_lr: float   # Learning rate adaptation [0, 1]
+
+    belief: float  # Confidence in current state [0, 1]
+    entropy: float  # Uncertainty measure [0, 1] (Shannon-normalized)
+    lambda_lr: float  # Learning rate adaptation [0, 1]
 
     def to_array(self) -> np.ndarray:
         """Convert to numpy array."""
@@ -229,12 +229,17 @@ class IhsanProjector:
     # Row 0: Belief (confidence) - weights correctness, safety, user_benefit high
     # Row 1: Entropy (uncertainty) - inversely weights auditability, robustness
     # Row 2: Lambda (adaptability) - weights efficiency, anti_centralization
-    projection_matrix: np.ndarray = field(default_factory=lambda: np.array([
-        # correctness, safety, user_benefit, efficiency, auditability, anti_central, robustness, adl
-        [0.35, 0.30, 0.15, 0.05, 0.05, 0.02, 0.05, 0.03],  # Belief
-        [0.05, 0.10, 0.05, 0.10, 0.30, 0.10, 0.25, 0.05],  # Entropy (inverted)
-        [0.10, 0.05, 0.10, 0.25, 0.10, 0.20, 0.10, 0.10],  # Lambda
-    ], dtype=np.float64))
+    projection_matrix: np.ndarray = field(
+        default_factory=lambda: np.array(
+            [
+                # correctness, safety, user_benefit, efficiency, auditability, anti_central, robustness, adl
+                [0.35, 0.30, 0.15, 0.05, 0.05, 0.02, 0.05, 0.03],  # Belief
+                [0.05, 0.10, 0.05, 0.10, 0.30, 0.10, 0.25, 0.05],  # Entropy (inverted)
+                [0.10, 0.05, 0.10, 0.25, 0.10, 0.20, 0.10, 0.10],  # Lambda
+            ],
+            dtype=np.float64,
+        )
+    )
 
     # Normalization parameters (learned from data)
     belief_bias: float = 0.1
@@ -299,7 +304,9 @@ class IhsanProjector:
             for b, e, l in zip(belief, entropy, lambda_lr)
         ]
 
-    def inverse_project(self, ntu: NTUState, prior: Optional[IhsanVector] = None) -> IhsanVector:
+    def inverse_project(
+        self, ntu: NTUState, prior: Optional[IhsanVector] = None
+    ) -> IhsanVector:
         """
         Approximate inverse projection (NTU -> Ihsan).
 
@@ -310,11 +317,13 @@ class IhsanProjector:
         pinv = np.linalg.pinv(self.projection_matrix)  # 8x3
 
         # Unapply activation (approximate)
-        raw = np.array([
-            self._logit(ntu.belief) - self.belief_bias,
-            self._logit(1.0 - ntu.entropy) / self.entropy_scale,
-            self._logit(ntu.lambda_lr) / self.lambda_scale,
-        ])
+        raw = np.array(
+            [
+                self._logit(ntu.belief) - self.belief_bias,
+                self._logit(1.0 - ntu.entropy) / self.entropy_scale,
+                self._logit(ntu.lambda_lr) / self.lambda_scale,
+            ]
+        )
 
         # Inverse project
         ihsan_approx = pinv @ raw
@@ -361,10 +370,7 @@ class IhsanProjector:
                 predicted = self.project(ihsan)
 
                 # Compute loss
-                loss = sum(
-                    (p - t) ** 2
-                    for p, t in zip(predicted, target_ntu)
-                )
+                loss = sum((p - t) ** 2 for p, t in zip(predicted, target_ntu))
                 total_loss += loss
 
                 # Backward pass (simplified gradient descent)
@@ -377,8 +383,7 @@ class IhsanProjector:
 
                 # Renormalize rows
                 self.projection_matrix = (
-                    self.projection_matrix.T /
-                    self.projection_matrix.sum(axis=1)
+                    self.projection_matrix.T / self.projection_matrix.sum(axis=1)
                 ).T
 
             avg_loss = total_loss / len(samples)
@@ -393,18 +398,21 @@ class IhsanProjector:
 # GAP-C2: ADL INVARIANT (Protocol-Level Rejection Gate)
 # =============================================================================
 
+
 class AdlViolationType(Enum):
     """Types of Adl (Justice) violations."""
-    GINI_EXCEEDED = auto()           # Gini coefficient above threshold
-    CONCENTRATION_DETECTED = auto()   # Resource concentration in few hands
-    MONOPOLY_ATTEMPT = auto()         # Attempt to acquire majority control
-    FAIRNESS_BREACH = auto()          # General fairness constraint violation
+
+    GINI_EXCEEDED = auto()  # Gini coefficient above threshold
+    CONCENTRATION_DETECTED = auto()  # Resource concentration in few hands
+    MONOPOLY_ATTEMPT = auto()  # Attempt to acquire majority control
+    FAIRNESS_BREACH = auto()  # General fairness constraint violation
     REDISTRIBUTION_REQUIRED = auto()  # System requires redistribution
 
 
 @dataclass
 class AdlViolation:
     """Record of an Adl invariant violation."""
+
     violation_type: AdlViolationType
     gini_actual: float
     gini_threshold: float
@@ -426,6 +434,7 @@ class AdlViolation:
 
 class AdlInvariantResult(NamedTuple):
     """Result of Adl invariant check."""
+
     passed: bool
     gini: float
     violations: List[AdlViolation]
@@ -493,20 +502,16 @@ class AdlInvariant:
         # O(n^2) naive algorithm (fine for n < 1000)
         if n < 1000:
             sum_diff = sum(
-                abs(values[i] - values[j])
-                for i in range(n)
-                for j in range(n)
+                abs(values[i] - values[j]) for i in range(n) for j in range(n)
             )
             return sum_diff / (2 * n * total)
 
         # O(n log n) sorted algorithm for large n
         sorted_values = sorted(values)
-        cumsum = np.cumsum(sorted_values)
-        gini = (
-            (2 * sum((i + 1) * v for i, v in enumerate(sorted_values)))
-            / (n * total)
-            - (n + 1) / n
-        )
+        np.cumsum(sorted_values)
+        gini = (2 * sum((i + 1) * v for i, v in enumerate(sorted_values))) / (
+            n * total
+        ) - (n + 1) / n
         return max(0.0, min(1.0, gini))
 
     def check(
@@ -533,12 +538,14 @@ class AdlInvariant:
 
         # Check current distribution
         if current_gini > self.gini_threshold:
-            violations.append(AdlViolation(
-                violation_type=AdlViolationType.GINI_EXCEEDED,
-                gini_actual=current_gini,
-                gini_threshold=self.gini_threshold,
-                details=f"Current Gini {current_gini:.4f} exceeds threshold {self.gini_threshold}",
-            ))
+            violations.append(
+                AdlViolation(
+                    violation_type=AdlViolationType.GINI_EXCEEDED,
+                    gini_actual=current_gini,
+                    gini_threshold=self.gini_threshold,
+                    details=f"Current Gini {current_gini:.4f} exceeds threshold {self.gini_threshold}",
+                )
+            )
 
         # Check for concentration (any entity > 50%)
         total = sum(distribution.values())
@@ -546,13 +553,15 @@ class AdlInvariant:
             for holder_id, value in distribution.items():
                 share = value / total
                 if share > 0.5:
-                    violations.append(AdlViolation(
-                        violation_type=AdlViolationType.CONCENTRATION_DETECTED,
-                        gini_actual=current_gini,
-                        gini_threshold=self.gini_threshold,
-                        violator_id=holder_id,
-                        details=f"Holder {holder_id} controls {share:.1%} of resources",
-                    ))
+                    violations.append(
+                        AdlViolation(
+                            violation_type=AdlViolationType.CONCENTRATION_DETECTED,
+                            gini_actual=current_gini,
+                            gini_threshold=self.gini_threshold,
+                            violator_id=holder_id,
+                            details=f"Holder {holder_id} controls {share:.1%} of resources",
+                        )
+                    )
 
         # Preemptive check on proposed changes
         if self.enable_preemptive_check and proposed_change:
@@ -563,12 +572,14 @@ class AdlInvariant:
             proposed_gini = self.compute_gini(proposed_dist)
 
             if proposed_gini > self.gini_threshold:
-                violations.append(AdlViolation(
-                    violation_type=AdlViolationType.MONOPOLY_ATTEMPT,
-                    gini_actual=proposed_gini,
-                    gini_threshold=self.gini_threshold,
-                    details=f"Proposed change would result in Gini {proposed_gini:.4f}",
-                ))
+                violations.append(
+                    AdlViolation(
+                        violation_type=AdlViolationType.MONOPOLY_ATTEMPT,
+                        gini_actual=proposed_gini,
+                        gini_threshold=self.gini_threshold,
+                        details=f"Proposed change would result in Gini {proposed_gini:.4f}",
+                    )
+                )
 
         # Record violations
         for v in violations:
@@ -661,7 +672,7 @@ class AdlInvariant:
         """Record violation for pattern detection."""
         self._violation_history.append(violation)
         if len(self._violation_history) > self._max_history:
-            self._violation_history = self._violation_history[-self._max_history // 2:]
+            self._violation_history = self._violation_history[-self._max_history // 2 :]
 
     def get_violation_stats(self) -> Dict[str, Any]:
         """Get violation statistics."""
@@ -675,7 +686,9 @@ class AdlInvariant:
         return {
             "total": len(self._violation_history),
             "by_type": by_type,
-            "recent_gini_avg": np.mean([v.gini_actual for v in self._violation_history[-10:]]),
+            "recent_gini_avg": np.mean(
+                [v.gini_actual for v in self._violation_history[-10:]]
+            ),
         }
 
 
@@ -692,10 +705,12 @@ class AdlViolationError(Exception):
 # GAP-C3: BYZANTINE CONSENSUS WITH ED25519
 # =============================================================================
 
+
 class ByzantineVoteType(Enum):
     """Types of votes in Byzantine consensus."""
-    PREPARE = auto()    # Phase 1: Prepare vote
-    COMMIT = auto()     # Phase 2: Commit vote
+
+    PREPARE = auto()  # Phase 1: Prepare vote
+    COMMIT = auto()  # Phase 2: Commit vote
     VIEW_CHANGE = auto()  # View change request
 
 
@@ -708,6 +723,7 @@ class SignedVote:
     "A Byzantine fault tolerant system can reach consensus if
     n >= 3f + 1, where f is the number of faulty nodes."
     """
+
     vote_type: ByzantineVoteType
     proposal_id: str
     voter_id: str
@@ -740,6 +756,7 @@ class SignedVote:
 
 class ConsensusState(Enum):
     """State of a consensus proposal."""
+
     PENDING = auto()
     PREPARING = auto()
     PREPARED = auto()
@@ -752,6 +769,7 @@ class ConsensusState(Enum):
 @dataclass
 class ConsensusProposal:
     """A proposal undergoing Byzantine consensus."""
+
     proposal_id: str
     proposer_id: str
     value: bytes
@@ -844,7 +862,9 @@ class ByzantineConsensus:
             raise ValueError(f"Invalid public key for peer {peer_id}")
         self._peer_keys[peer_id] = public_key
 
-    def create_proposal(self, value: bytes, ihsan_score: float) -> Optional[ConsensusProposal]:
+    def create_proposal(
+        self, value: bytes, ihsan_score: float
+    ) -> Optional[ConsensusProposal]:
         """
         Create a new consensus proposal.
 
@@ -917,6 +937,7 @@ class ByzantineConsensus:
         digest = vote.digest()
         try:
             from core.pci.crypto import sign_message
+
             vote.signature = sign_message(digest, self.private_key)
         except ImportError:
             # Fallback: simple hash-based signature (NOT for production)
@@ -952,6 +973,7 @@ class ByzantineConsensus:
         digest = vote.digest()
         try:
             from core.pci.crypto import verify_signature
+
             if not verify_signature(digest, vote.signature, registered_key):
                 logger.error(f"Invalid signature from {vote.voter_id}")
                 return False
@@ -1036,6 +1058,7 @@ class ByzantineConsensus:
 # GAP-C4: TREASURY MODE (Ethical Degradation)
 # =============================================================================
 
+
 class TreasuryMode(Enum):
     """
     Treasury operating modes with graceful degradation.
@@ -1048,19 +1071,21 @@ class TreasuryMode(Enum):
     We apply this to resource allocation: operations have a cost,
     and under resource constraints, we must degrade gracefully.
     """
-    ETHICAL = auto()      # Full capacity, all constraints enforced
+
+    ETHICAL = auto()  # Full capacity, all constraints enforced
     HIBERNATION = auto()  # Reduced capacity, relaxed thresholds
-    EMERGENCY = auto()    # Minimal operations, survival mode
+    EMERGENCY = auto()  # Minimal operations, survival mode
 
 
 @dataclass
 class TreasuryModeConfig:
     """Configuration for a treasury mode."""
+
     mode: TreasuryMode
     compute_budget_percent: float  # % of normal compute
-    gini_threshold: float          # Relaxed Gini threshold
-    ihsan_threshold: float         # Relaxed Ihsan threshold
-    max_concurrent_ops: int        # Max concurrent operations
+    gini_threshold: float  # Relaxed Gini threshold
+    ihsan_threshold: float  # Relaxed Ihsan threshold
+    max_concurrent_ops: int  # Max concurrent operations
     description: str
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1144,7 +1169,9 @@ class TreasuryController:
         ]
 
         # Callbacks for mode changes
-        self._mode_change_callbacks: List[Callable[[TreasuryMode, TreasuryMode], None]] = []
+        self._mode_change_callbacks: List[
+            Callable[[TreasuryMode, TreasuryMode], None]
+        ] = []
 
     @property
     def mode(self) -> TreasuryMode:
@@ -1171,7 +1198,9 @@ class TreasuryController:
             return self._treasury
 
         self._treasury += amount
-        logger.info(f"Treasury deposit: +{amount:.2f} from {source} (balance: {self._treasury:.2f})")
+        logger.info(
+            f"Treasury deposit: +{amount:.2f} from {source} (balance: {self._treasury:.2f})"
+        )
 
         # Check for mode upgrade
         self._evaluate_mode_transition()
@@ -1188,11 +1217,15 @@ class TreasuryController:
             return 0.0
 
         if amount > self._treasury:
-            logger.warning(f"Insufficient treasury for withdrawal: {amount:.2f} > {self._treasury:.2f}")
+            logger.warning(
+                f"Insufficient treasury for withdrawal: {amount:.2f} > {self._treasury:.2f}"
+            )
             return None
 
         self._treasury -= amount
-        logger.info(f"Treasury withdrawal: -{amount:.2f} for {purpose} (balance: {self._treasury:.2f})")
+        logger.info(
+            f"Treasury withdrawal: -{amount:.2f} for {purpose} (balance: {self._treasury:.2f})"
+        )
 
         # Check for mode downgrade
         self._evaluate_mode_transition()
@@ -1208,7 +1241,10 @@ class TreasuryController:
         """
         # Check concurrent operations limit
         if self._active_operations >= self._config.max_concurrent_ops:
-            return False, f"Max concurrent operations reached ({self._config.max_concurrent_ops})"
+            return (
+                False,
+                f"Max concurrent operations reached ({self._config.max_concurrent_ops})",
+            )
 
         # Check treasury for operation cost
         if cost > 0 and cost > self._treasury:
@@ -1269,7 +1305,10 @@ class TreasuryController:
             # Validate transition
             valid_transitions = {
                 TreasuryMode.ETHICAL: [TreasuryMode.HIBERNATION],
-                TreasuryMode.HIBERNATION: [TreasuryMode.ETHICAL, TreasuryMode.EMERGENCY],
+                TreasuryMode.HIBERNATION: [
+                    TreasuryMode.ETHICAL,
+                    TreasuryMode.EMERGENCY,
+                ],
                 TreasuryMode.EMERGENCY: [TreasuryMode.HIBERNATION],
             }
 
@@ -1350,6 +1389,7 @@ class TreasuryController:
 # =============================================================================
 # UNIFIED CONSTITUTIONAL ENGINE
 # =============================================================================
+
 
 class ConstitutionalEngine:
     """
@@ -1433,7 +1473,9 @@ class ConstitutionalEngine:
         ntu_state = self.projector.project(ihsan_vector)
         ihsan_score = ihsan_vector.weighted_score()
 
-        effective_threshold = self.treasury.get_effective_thresholds()["ihsan_threshold"]
+        effective_threshold = self.treasury.get_effective_thresholds()[
+            "ihsan_threshold"
+        ]
 
         details["ihsan"] = {
             "score": ihsan_score,
@@ -1447,7 +1489,9 @@ class ConstitutionalEngine:
         }
 
         if ihsan_score < effective_threshold:
-            details["rejection_reason"] = f"Ihsan {ihsan_score:.3f} < {effective_threshold}"
+            details["rejection_reason"] = (
+                f"Ihsan {ihsan_score:.3f} < {effective_threshold}"
+            )
             return False, details
 
         # 2. Check Adl invariant
@@ -1560,6 +1604,7 @@ class ConstitutionalEngine:
 # FACTORY FUNCTIONS
 # =============================================================================
 
+
 def create_constitutional_engine(
     node_id: str,
     private_key: str,
@@ -1637,7 +1682,7 @@ def demonstrate_omega_point():
     print(f"Weighted Score: {ihsan.weighted_score():.4f}")
 
     ntu = engine.projector.project(ihsan)
-    print(f"Projected NTU State:")
+    print("Projected NTU State:")
     print(f"  - Belief: {ntu.belief:.4f}")
     print(f"  - Entropy: {ntu.entropy:.4f}")
     print(f"  - Lambda: {ntu.lambda_lr:.4f}")
@@ -1683,12 +1728,16 @@ def demonstrate_omega_point():
     # Drain treasury to trigger hibernation
     engine.treasury.withdraw(3000.0, "mode_test")
     print(f"After withdrawal - Mode: {engine.treasury.mode.name}")
-    print(f"Effective Gini Threshold: {engine.treasury.get_effective_thresholds()['gini_threshold']}")
+    print(
+        f"Effective Gini Threshold: {engine.treasury.get_effective_thresholds()['gini_threshold']}"
+    )
 
     # Drain further to trigger emergency
     engine.treasury.withdraw(1500.0, "emergency_test")
     print(f"After emergency - Mode: {engine.treasury.mode.name}")
-    print(f"Effective Ihsan Threshold: {engine.treasury.get_effective_thresholds()['ihsan_threshold']}")
+    print(
+        f"Effective Ihsan Threshold: {engine.treasury.get_effective_thresholds()['ihsan_threshold']}"
+    )
 
     print("\n" + "=" * 70)
     print("OMEGA POINT DEMONSTRATION COMPLETE")

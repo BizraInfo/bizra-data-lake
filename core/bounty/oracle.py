@@ -16,15 +16,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.proof_engine.canonical import blake3_digest, canonical_bytes
-from core.proof_engine.receipt import SovereignSigner
 from core.bounty import (
     BASE_PAYOUT_PER_DELTA_E,
-    SEVERITY_LEVELS,
-    BOUNTY_SNR_THRESHOLD,
     BOUNTY_IHSAN_THRESHOLD,
+    BOUNTY_SNR_THRESHOLD,
+    SEVERITY_LEVELS,
 )
 from core.bounty.impact_proof import ImpactProof, Severity
+from core.proof_engine.canonical import blake3_digest, canonical_bytes
+from core.proof_engine.receipt import SovereignSigner
 
 
 @dataclass
@@ -34,6 +34,7 @@ class BountyCalculation:
 
     Provides full transparency on how payout was determined.
     """
+
     calculation_id: str
     proof_id: str
 
@@ -85,6 +86,7 @@ class BountyPayout:
 
     Signed and ready for smart contract execution.
     """
+
     payout_id: str
     calculation: BountyCalculation
     hunter_address: str  # Wallet/account to receive payout
@@ -174,7 +176,9 @@ class BountyOracle:
         self._payout_counter += 1
         return f"pay_{self._payout_counter:08d}_{int(time.time() * 1000)}"
 
-    def calculate_bounty(self, proof: ImpactProof) -> Tuple[BountyCalculation, Optional[str]]:
+    def calculate_bounty(
+        self, proof: ImpactProof
+    ) -> Tuple[BountyCalculation, Optional[str]]:
         """
         Calculate bounty payout for an impact proof.
 
@@ -203,7 +207,9 @@ class BountyOracle:
         risk_bonus = min(proof.funds_at_risk * 0.10, self.max_payout * 0.5)
 
         # 4. Quality bonus (SNR and Ihsān above threshold)
-        snr_bonus = (proof.snr_score - self.snr_threshold) * 1000  # $1000 per 0.01 above threshold
+        snr_bonus = (
+            proof.snr_score - self.snr_threshold
+        ) * 1000  # $1000 per 0.01 above threshold
         ihsan_bonus = (proof.ihsan_score - self.ihsan_threshold) * 500
         quality_bonus = max(0, snr_bonus + ihsan_bonus)
 
@@ -346,5 +352,6 @@ class BountyOracle:
                 "risk_bonus": risk_bonus,
                 "quality_bonus": quality_bonus,
             },
-            "meets_thresholds": snr_score >= self.snr_threshold and ihsan_score >= self.ihsan_threshold,
+            "meets_thresholds": snr_score >= self.snr_threshold
+            and ihsan_score >= self.ihsan_threshold,
         }

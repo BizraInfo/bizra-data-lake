@@ -10,16 +10,14 @@ Standing on Giants:
 - CERT/CC: CWE-208 Observable Timing Discrepancy
 """
 
-import json
 import hmac
-import re
-from decimal import Decimal
-from typing import Any, Dict, List, Tuple, Union
+import json
+from typing import Any, Dict, Tuple, Union
 
 import blake3
-from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 PCI_DOMAIN_PREFIX = "bizra-pci-v1:"
 
@@ -28,18 +26,22 @@ PCI_DOMAIN_PREFIX = "bizra-pci-v1:"
 # RFC8785 CANONICALIZATION ERROR TYPES
 # =============================================================================
 
+
 class CanonicalizationError(Exception):
     """Base error for RFC8785 canonicalization failures."""
+
     pass
 
 
 class NonAsciiError(CanonicalizationError):
     """Raised when canonicalized output contains non-ASCII characters."""
+
     pass
 
 
 class NonCanonicalInputError(CanonicalizationError):
     """Raised when input JSON is detected as non-canonical."""
+
     pass
 
 
@@ -47,6 +49,7 @@ class NonCanonicalInputError(CanonicalizationError):
 # TIMING-SAFE COMPARISON UTILITIES (Security Hardening S-2)
 # Standing on Giants: Kocher (1996) - "Timing Attacks on Implementations"
 # =============================================================================
+
 
 def timing_safe_compare(a: Union[str, bytes], b: Union[str, bytes]) -> bool:
     """
@@ -72,9 +75,9 @@ def timing_safe_compare(a: Union[str, bytes], b: Union[str, bytes]) -> bool:
     """
     # Convert to bytes for consistent comparison
     if isinstance(a, str):
-        a = a.encode('utf-8')
+        a = a.encode("utf-8")
     if isinstance(b, str):
-        b = b.encode('utf-8')
+        b = b.encode("utf-8")
 
     # hmac.compare_digest requires both to be bytes or both str
     # We've normalized to bytes above
@@ -109,6 +112,7 @@ def timing_safe_compare_hex(a: str, b: str) -> bool:
 # - RFC8785 (2020): JSON Canonicalization Scheme
 # - RFC8259 (2017): JSON Data Interchange Format
 # =============================================================================
+
 
 def canonicalize_json(data: Dict[str, Any], ensure_ascii: bool = True) -> bytes:
     """
@@ -149,7 +153,7 @@ def canonicalize_json(data: Dict[str, Any], ensure_ascii: bool = True) -> bytes:
     canonical = json.dumps(
         data,
         sort_keys=True,
-        separators=(',', ':'),
+        separators=(",", ":"),
         ensure_ascii=ensure_ascii,
         allow_nan=False,  # RFC8785: NaN/Infinity not allowed
     )
@@ -158,13 +162,13 @@ def canonicalize_json(data: Dict[str, Any], ensure_ascii: bool = True) -> bytes:
     if ensure_ascii:
         if not canonical.isascii():
             raise NonAsciiError(
-                f"Canonicalized JSON must be ASCII-only for cross-repo compatibility. "
-                f"Found non-ASCII characters in output."
+                "Canonicalized JSON must be ASCII-only for cross-repo compatibility. "
+                "Found non-ASCII characters in output."
             )
         # Encode as ASCII for maximum cross-platform compatibility
-        return canonical.encode('ascii')
+        return canonical.encode("ascii")
 
-    return canonical.encode('utf-8')
+    return canonical.encode("utf-8")
 
 
 def canonical_json(data: Dict[str, Any]) -> bytes:
@@ -214,9 +218,12 @@ def validate_canonical_format(json_bytes: bytes) -> Tuple[bool, str]:
     """
     # Check ASCII-only
     try:
-        json_str = json_bytes.decode('ascii')
+        json_str = json_bytes.decode("ascii")
     except UnicodeDecodeError as e:
-        return False, f"Non-ASCII byte at position {e.start}: {json_bytes[e.start:e.start+1]!r}"
+        return (
+            False,
+            f"Non-ASCII byte at position {e.start}: {json_bytes[e.start:e.start+1]!r}",
+        )
 
     # Check for whitespace between tokens (not inside strings)
     # RFC8785 requires no whitespace outside of string values
@@ -260,7 +267,7 @@ def _has_non_string_whitespace(json_str: str) -> bool:
             escape_next = False
             continue
 
-        if char == '\\' and in_string:
+        if char == "\\" and in_string:
             escape_next = True
             continue
 
@@ -268,7 +275,7 @@ def _has_non_string_whitespace(json_str: str) -> bool:
             in_string = not in_string
             continue
 
-        if not in_string and char in ' \t\n\r':
+        if not in_string and char in " \t\n\r":
             return True
 
     return False
@@ -329,15 +336,17 @@ def canonicalize_and_validate(data: Dict[str, Any]) -> bytes:
 
     return canonical
 
+
 def domain_separated_digest(canonical_data: bytes) -> str:
     """
     Compute domain-separated BLAKE3 digest.
     Prefix: bizra-pci-v1:
     """
     hasher = blake3.blake3()
-    hasher.update(PCI_DOMAIN_PREFIX.encode('utf-8'))
+    hasher.update(PCI_DOMAIN_PREFIX.encode("utf-8"))
     hasher.update(canonical_data)
     return hasher.hexdigest()
+
 
 def sign_message(digest_hex: str, private_key_hex: str) -> str:
     """
@@ -347,11 +356,11 @@ def sign_message(digest_hex: str, private_key_hex: str) -> str:
     """
     priv_bytes = bytes.fromhex(private_key_hex)
     digest_bytes = bytes.fromhex(digest_hex)
-    
-    start_time = 0
+
     private_key = ed25519.Ed25519PrivateKey.from_private_bytes(priv_bytes)
     signature = private_key.sign(digest_bytes)
     return signature.hex()
+
 
 def verify_signature(digest_hex: str, signature_hex: str, public_key_hex: str) -> bool:
     """
@@ -403,20 +412,20 @@ def verify_digest_match(computed_digest: str, expected_digest: str) -> bool:
     """
     return timing_safe_compare_hex(computed_digest, expected_digest)
 
+
 def generate_keypair() -> Tuple[str, str]:
     """Generates (private_key_hex, public_key_hex)."""
     priv = ed25519.Ed25519PrivateKey.generate()
     pub = priv.public_key()
-    
+
     priv_hex = priv.private_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.NoEncryption(),
     ).hex()
-    
+
     pub_hex = pub.public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw
+        encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
     ).hex()
-    
+
     return priv_hex, pub_hex

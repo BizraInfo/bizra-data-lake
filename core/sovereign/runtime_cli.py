@@ -15,10 +15,9 @@ import argparse
 import asyncio
 import json
 import logging
-from typing import Optional
 
-from .runtime_types import RuntimeConfig, RuntimeMode
 from .runtime_core import SovereignRuntime
+from .runtime_types import RuntimeConfig, RuntimeMode
 
 logger = logging.getLogger("sovereign.cli")
 
@@ -33,36 +32,23 @@ Examples:
   python -m core.sovereign.runtime query "What is sovereignty?"
   python -m core.sovereign.runtime status
   python -m core.sovereign.runtime --mode AUTONOMOUS run
-        """
+        """,
     )
 
     parser.add_argument(
         "command",
         choices=["query", "status", "run", "version"],
-        help="Command to execute"
+        help="Command to execute",
     )
-    parser.add_argument(
-        "args",
-        nargs="*",
-        help="Command arguments"
-    )
+    parser.add_argument("args", nargs="*", help="Command arguments")
     parser.add_argument(
         "--mode",
         choices=["MINIMAL", "STANDARD", "AUTONOMOUS", "DEBUG"],
         default="STANDARD",
-        help="Runtime mode"
+        help="Runtime mode",
     )
-    parser.add_argument(
-        "--snr",
-        type=float,
-        default=0.95,
-        help="SNR threshold"
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output as JSON"
-    )
+    parser.add_argument("--snr", type=float, default=0.95, help="SNR threshold")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
 
@@ -92,13 +78,18 @@ async def _handle_query(runtime: SovereignRuntime, args) -> None:
     result = await runtime.query(query_text)
 
     if args.json:
-        print(json.dumps({
-            "success": result.success,
-            "response": result.response,
-            "snr": result.snr_score,
-            "ihsan": result.ihsan_score,
-            "time_ms": result.processing_time_ms,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "success": result.success,
+                    "response": result.response,
+                    "snr": result.snr_score,
+                    "ihsan": result.ihsan_score,
+                    "time_ms": result.processing_time_ms,
+                },
+                indent=2,
+            )
+        )
     else:
         print(f"\n{'─' * 60}")
         print(f"Query: {query_text}")

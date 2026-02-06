@@ -50,18 +50,19 @@ pub fn validate_gates_batch(contexts: &[GateContext]) -> BatchGateResult {
 #[inline(always)]
 fn validate_single_branchless(ctx: &GateContext) -> GateResult {
     // SNR check (branchless)
-    let snr_ok = ctx.snr_score
+    let snr_ok = ctx
+        .snr_score
         .map(|s| (s >= SNR_THRESHOLD) as u8)
         .unwrap_or(1); // Skip if not provided
 
     // Ihsān check (branchless)
-    let ihsan_ok = ctx.ihsan_score
+    let ihsan_ok = ctx
+        .ihsan_score
         .map(|i| (i >= IHSAN_THRESHOLD) as u8)
         .unwrap_or(1); // Skip if not provided
 
     // Schema check (must be valid JSON)
-    let schema_ok = serde_json::from_slice::<serde_json::Value>(&ctx.content)
-        .is_ok() as u8;
+    let schema_ok = serde_json::from_slice::<serde_json::Value>(&ctx.content).is_ok() as u8;
 
     // Combine masks (branchless AND)
     let all_ok = snr_ok & ihsan_ok & schema_ok;

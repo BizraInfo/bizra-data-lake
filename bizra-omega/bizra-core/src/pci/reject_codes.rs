@@ -46,10 +46,15 @@ impl RejectCode {
         }
     }
 
-    pub fn is_success(&self) -> bool { matches!(self, Self::Success) }
+    pub fn is_success(&self) -> bool {
+        matches!(self, Self::Success)
+    }
 
     pub fn is_retryable(&self) -> bool {
-        matches!(self, Self::RejectGateRate | Self::RejectQuota | Self::RejectTimeout)
+        matches!(
+            self,
+            Self::RejectGateRate | Self::RejectQuota | Self::RejectTimeout
+        )
     }
 }
 

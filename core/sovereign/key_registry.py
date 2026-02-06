@@ -22,25 +22,23 @@ Created: 2026-02-05 | SAPE Elite Analysis - P1 Implementation
 
 import hashlib
 import json
-import os
-import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 # Import unified thresholds
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 
 class KeyStatus(Enum):
     """Status of a registered key."""
-    ACTIVE = "active"           # Key is trusted and valid
-    PENDING = "pending"         # Key awaiting verification
-    REVOKED = "revoked"         # Key has been revoked
-    EXPIRED = "expired"         # Key validity period has ended
-    ROTATED = "rotated"         # Key replaced by newer key
+
+    ACTIVE = "active"  # Key is trusted and valid
+    PENDING = "pending"  # Key awaiting verification
+    REVOKED = "revoked"  # Key has been revoked
+    EXPIRED = "expired"  # Key validity period has ended
+    ROTATED = "rotated"  # Key replaced by newer key
 
 
 @dataclass
@@ -48,18 +46,19 @@ class RegisteredKey:
     """
     A trusted public key entry in the registry.
     """
-    key_id: str                           # Unique identifier (hash of public key)
-    public_key_hex: str                   # 64-char hex Ed25519 public key
-    issuer_name: str                      # Human-readable issuer name
+
+    key_id: str  # Unique identifier (hash of public key)
+    public_key_hex: str  # 64-char hex Ed25519 public key
+    issuer_name: str  # Human-readable issuer name
     status: KeyStatus = KeyStatus.ACTIVE
 
     # Validity period
-    registered_at: str = ""               # ISO 8601 timestamp
-    expires_at: Optional[str] = None      # ISO 8601 timestamp
-    revoked_at: Optional[str] = None      # ISO 8601 timestamp
+    registered_at: str = ""  # ISO 8601 timestamp
+    expires_at: Optional[str] = None  # ISO 8601 timestamp
+    revoked_at: Optional[str] = None  # ISO 8601 timestamp
 
     # Audit trail
-    registered_by: str = "system"         # Who registered this key
+    registered_by: str = "system"  # Who registered this key
     revocation_reason: Optional[str] = None
 
     # Key rotation
@@ -67,7 +66,7 @@ class RegisteredKey:
     predecessor_key_id: Optional[str] = None  # Previous key this replaces
 
     # Trust level
-    trust_level: float = 1.0              # 0.0 - 1.0, affects verification weight
+    trust_level: float = 1.0  # 0.0 - 1.0, affects verification weight
 
     def __post_init__(self):
         """Validate and set defaults."""
@@ -98,7 +97,7 @@ class RegisteredKey:
             return False, "Key has expired"
 
         if self.expires_at:
-            expiry = datetime.fromisoformat(self.expires_at.replace('Z', '+00:00'))
+            expiry = datetime.fromisoformat(self.expires_at.replace("Z", "+00:00"))
             if datetime.now(timezone.utc) > expiry:
                 return False, "Key has expired"
 
@@ -170,7 +169,7 @@ class TrustedKeyRegistry:
                     self._keys[key.key_id] = key
                     self._public_key_index[key.public_key_hex] = key.key_id
 
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
+            except (json.JSONDecodeError, KeyError, ValueError):
                 # Corrupted registry - start fresh but log error
                 self._keys = {}
                 self._public_key_index = {}
@@ -185,7 +184,7 @@ class TrustedKeyRegistry:
             "keys": [key.to_dict() for key in self._keys.values()],
         }
 
-        with open(self._registry_path, 'w') as f:
+        with open(self._registry_path, "w") as f:
             json.dump(data, f, indent=2)
 
     def register(
@@ -213,16 +212,24 @@ class TrustedKeyRegistry:
             ValueError: If key format is invalid or already registered
         """
         # Validate key format
-        if len(public_key_hex) != 64 or not all(c in '0123456789abcdef' for c in public_key_hex.lower()):
+        if len(public_key_hex) != 64 or not all(
+            c in "0123456789abcdef" for c in public_key_hex.lower()
+        ):
             raise ValueError("Invalid public key format: must be 64-char hex")
 
         # Check for duplicate
         if public_key_hex in self._public_key_index:
-            raise ValueError(f"Key already registered with ID: {self._public_key_index[public_key_hex]}")
+            raise ValueError(
+                f"Key already registered with ID: {self._public_key_index[public_key_hex]}"
+            )
 
         # Create entry
         now = datetime.now(timezone.utc)
-        expires_at = (now + timedelta(days=expires_in_days)).isoformat() if expires_in_days > 0 else None
+        expires_at = (
+            (now + timedelta(days=expires_in_days)).isoformat()
+            if expires_in_days > 0
+            else None
+        )
 
         key = RegisteredKey(
             key_id="",  # Will be computed in __post_init__
@@ -280,10 +287,7 @@ class TrustedKeyRegistry:
         return is_valid
 
     def revoke(
-        self,
-        public_key_hex: str,
-        reason: str,
-        revoked_by: str = "system"
+        self, public_key_hex: str, reason: str, revoked_by: str = "system"
     ) -> bool:
         """
         Revoke a registered key.
@@ -350,10 +354,7 @@ class TrustedKeyRegistry:
 
     def list_active(self) -> List[RegisteredKey]:
         """Get all active (trusted) keys."""
-        return [
-            key for key in self._keys.values()
-            if key.is_valid()[0]
-        ]
+        return [key for key in self._keys.values() if key.is_valid()[0]]
 
     def list_all(self) -> List[RegisteredKey]:
         """Get all registered keys (including revoked)."""

@@ -10,18 +10,15 @@ Implements proactive information engineering:
 Standing on Giants: Shannon (Information Theory) + Attention Mechanisms
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import numpy as np
 
 from core.living_memory.core import (
     LivingMemoryCore,
     MemoryEntry,
     MemoryType,
-    MemoryState,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PredictionContext:
     """Context for proactive prediction."""
+
     current_query: Optional[str] = None
     recent_queries: List[str] = field(default_factory=list)
     active_topics: Set[str] = field(default_factory=set)
@@ -40,6 +38,7 @@ class PredictionContext:
 @dataclass
 class ProactiveSuggestion:
     """A proactive knowledge suggestion."""
+
     memory: MemoryEntry
     reason: str
     confidence: float
@@ -49,6 +48,7 @@ class ProactiveSuggestion:
 @dataclass
 class KnowledgeGap:
     """Identified gap in knowledge."""
+
     topic: str
     description: str
     suggested_sources: List[str]
@@ -79,7 +79,9 @@ class ProactiveRetriever:
         self._suggestion_cache: List[ProactiveSuggestion] = []
 
         # Topic tracking
-        self._topic_transitions: Dict[str, Dict[str, int]] = {}  # topic -> next_topic -> count
+        self._topic_transitions: Dict[str, Dict[str, int]] = (
+            {}
+        )  # topic -> next_topic -> count
 
     def update_context(
         self,
@@ -112,11 +114,47 @@ class ProactiveRetriever:
         """Extract topic keywords from text."""
         # Simple keyword extraction (could be enhanced with NER)
         words = text.lower().split()
-        stopwords = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
-                     'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-                     'would', 'could', 'should', 'may', 'might', 'must', 'can',
-                     'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
-                     'as', 'into', 'through', 'during', 'before', 'after'}
+        stopwords = {
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "can",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+        }
 
         topics = {w for w in words if len(w) > 3 and w not in stopwords}
         return topics
@@ -175,12 +213,14 @@ class ProactiveRetriever:
                 min_score=0.3,
             )
             for mem in memories:
-                suggestions.append(ProactiveSuggestion(
-                    memory=mem,
-                    reason=f"Related to predicted topic: {topic}",
-                    confidence=prob * 0.8,
-                    urgency=0.3,
-                ))
+                suggestions.append(
+                    ProactiveSuggestion(
+                        memory=mem,
+                        reason=f"Related to predicted topic: {topic}",
+                        confidence=prob * 0.8,
+                        urgency=0.3,
+                    )
+                )
 
         # 2. Retrieve based on recent queries pattern
         if len(self._context.recent_queries) >= 3:
@@ -191,12 +231,14 @@ class ProactiveRetriever:
                 min_score=0.4,
             )
             for mem in pattern_memories:
-                suggestions.append(ProactiveSuggestion(
-                    memory=mem,
-                    reason="Related to recent conversation pattern",
-                    confidence=0.7,
-                    urgency=0.5,
-                ))
+                suggestions.append(
+                    ProactiveSuggestion(
+                        memory=mem,
+                        reason="Related to recent conversation pattern",
+                        confidence=0.7,
+                        urgency=0.5,
+                    )
+                )
 
         # 3. Check for prospective memories (time-sensitive)
         prospective = await self.memory.retrieve(
@@ -206,15 +248,19 @@ class ProactiveRetriever:
         )
         for mem in prospective:
             # Check if this prospective memory is becoming urgent
-            age_hours = (datetime.now(timezone.utc) - mem.created_at).total_seconds() / 3600
+            age_hours = (
+                datetime.now(timezone.utc) - mem.created_at
+            ).total_seconds() / 3600
             urgency = min(age_hours / 24, 1.0)  # Increase urgency over time
 
-            suggestions.append(ProactiveSuggestion(
-                memory=mem,
-                reason="Upcoming goal or plan",
-                confidence=mem.confidence,
-                urgency=urgency,
-            ))
+            suggestions.append(
+                ProactiveSuggestion(
+                    memory=mem,
+                    reason="Upcoming goal or plan",
+                    confidence=mem.confidence,
+                    urgency=urgency,
+                )
+            )
 
         # Deduplicate and sort
         seen_ids = set()
@@ -227,7 +273,7 @@ class ProactiveRetriever:
         # Sort by urgency * confidence
         unique_suggestions.sort(key=lambda x: x.urgency * x.confidence, reverse=True)
 
-        self._suggestion_cache = unique_suggestions[:self.max_suggestions]
+        self._suggestion_cache = unique_suggestions[: self.max_suggestions]
         return self._suggestion_cache
 
     async def identify_knowledge_gaps(self) -> List[KnowledgeGap]:
@@ -249,12 +295,14 @@ class ProactiveRetriever:
                 min_score=0.5,
             )
             if len(memories) < 2:
-                gaps.append(KnowledgeGap(
-                    topic=topic,
-                    description=f"Limited knowledge about: {topic}",
-                    suggested_sources=["web search", "documentation", "user input"],
-                    priority=0.7,
-                ))
+                gaps.append(
+                    KnowledgeGap(
+                        topic=topic,
+                        description=f"Limited knowledge about: {topic}",
+                        suggested_sources=["web search", "documentation", "user input"],
+                        priority=0.7,
+                    )
+                )
 
         # Check for low-confidence memories in active topics
         for topic in self._context.active_topics:
@@ -265,12 +313,14 @@ class ProactiveRetriever:
             )
             low_confidence = [m for m in memories if m.confidence < 0.5]
             if low_confidence:
-                gaps.append(KnowledgeGap(
-                    topic=topic,
-                    description=f"Uncertain knowledge about: {topic}",
-                    suggested_sources=["verification", "authoritative source"],
-                    priority=0.5,
-                ))
+                gaps.append(
+                    KnowledgeGap(
+                        topic=topic,
+                        description=f"Uncertain knowledge about: {topic}",
+                        suggested_sources=["verification", "authoritative source"],
+                        priority=0.5,
+                    )
+                )
 
         # Sort by priority
         gaps.sort(key=lambda x: x.priority, reverse=True)
@@ -304,7 +354,8 @@ class ProactiveRetriever:
             "user_intent": self._context.user_intent,
             "session_duration_minutes": (
                 datetime.now(timezone.utc) - self._context.session_start
-            ).total_seconds() / 60,
+            ).total_seconds()
+            / 60,
             "predicted_topics": self.predict_next_topics(3),
             "cached_suggestions": len(self._suggestion_cache),
         }

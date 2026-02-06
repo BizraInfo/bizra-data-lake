@@ -4,9 +4,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::RejectCode;
 use crate::identity::{domain_separated_digest, NodeId, NodeIdentity};
 use crate::MAX_TTL_SECONDS;
-use super::RejectCode;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PCIEnvelope<T> {
@@ -33,23 +33,35 @@ impl<T: Serialize + for<'de> Deserialize<'de>> PCIEnvelope<T> {
         let timestamp = Utc::now();
         let ttl = ttl.min(MAX_TTL_SECONDS);
 
-        let payload_json = serde_json::to_string(&payload)
-            .map_err(|_| RejectCode::RejectSchema)?;
+        let payload_json = serde_json::to_string(&payload).map_err(|_| RejectCode::RejectSchema)?;
         let content_hash = domain_separated_digest(payload_json.as_bytes());
 
         let signable = SignableEnvelope {
-            id: &id, version: "1.0", sender: identity.node_id(),
-            timestamp, ttl, content_hash: &content_hash, provenance: &provenance,
+            id: &id,
+            version: "1.0",
+            sender: identity.node_id(),
+            timestamp,
+            ttl,
+            content_hash: &content_hash,
+            provenance: &provenance,
         };
-        let signable_json = serde_json::to_string(&signable)
-            .map_err(|_| RejectCode::RejectSchema)?;
+        let signable_json =
+            serde_json::to_string(&signable).map_err(|_| RejectCode::RejectSchema)?;
 
         let signature = identity.sign(signable_json.as_bytes());
         let public_key = identity.public_key_hex();
 
         Ok(Self {
-            id, version: "1.0".into(), sender: identity.node_id().clone(),
-            timestamp, ttl, content_hash, signature, public_key, provenance, payload,
+            id,
+            version: "1.0".into(),
+            sender: identity.node_id().clone(),
+            timestamp,
+            ttl,
+            content_hash,
+            signature,
+            public_key,
+            provenance,
+            payload,
         })
     }
 
@@ -60,22 +72,30 @@ impl<T: Serialize + for<'de> Deserialize<'de>> PCIEnvelope<T> {
             return Err(RejectCode::RejectExpired);
         }
 
-        let payload_json = serde_json::to_string(&self.payload)
-            .map_err(|_| RejectCode::RejectSchema)?;
+        let payload_json =
+            serde_json::to_string(&self.payload).map_err(|_| RejectCode::RejectSchema)?;
         let computed_hash = domain_separated_digest(payload_json.as_bytes());
         if computed_hash != self.content_hash {
             return Err(RejectCode::RejectHashMismatch);
         }
 
         let signable = SignableEnvelope {
-            id: &self.id, version: &self.version, sender: &self.sender,
-            timestamp: self.timestamp, ttl: self.ttl,
-            content_hash: &self.content_hash, provenance: &self.provenance,
+            id: &self.id,
+            version: &self.version,
+            sender: &self.sender,
+            timestamp: self.timestamp,
+            ttl: self.ttl,
+            content_hash: &self.content_hash,
+            provenance: &self.provenance,
         };
-        let signable_json = serde_json::to_string(&signable)
-            .map_err(|_| RejectCode::RejectSchema)?;
+        let signable_json =
+            serde_json::to_string(&signable).map_err(|_| RejectCode::RejectSchema)?;
 
-        if !NodeIdentity::verify_with_hex(signable_json.as_bytes(), &self.signature, &self.public_key) {
+        if !NodeIdentity::verify_with_hex(
+            signable_json.as_bytes(),
+            &self.signature,
+            &self.public_key,
+        ) {
             return Err(RejectCode::RejectSignature);
         }
         Ok(())

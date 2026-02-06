@@ -20,24 +20,23 @@ Protocol Patterns:
 - DTLS 1.3: Standards-compliant alternative (simpler but less modern)
 """
 
+import hashlib
+import hmac
 import os
 import struct
 import time
-import hashlib
-import hmac
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum, IntEnum
-from typing import Dict, List, Optional, Tuple, Callable, Any, Union
 from collections import OrderedDict
+from dataclasses import dataclass, field
+from enum import IntEnum
+from typing import Any, Callable, Dict, Optional, Tuple
 
-from cryptography.hazmat.primitives.asymmetric import x25519, ed25519
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305, AESGCM
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidTag
-
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import x25519
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 # =============================================================================
 # CONSTANTS
@@ -72,33 +71,40 @@ MAX_CLOCK_SKEW_SECONDS = 300  # 5 minute clock skew tolerance
 # ERROR TYPES
 # =============================================================================
 
+
 class SecureTransportError(Exception):
     """Base error for secure transport operations."""
+
     pass
 
 
 class HandshakeError(SecureTransportError):
     """Error during handshake."""
+
     pass
 
 
 class DecryptionError(SecureTransportError):
     """Error during decryption (authentication failure)."""
+
     pass
 
 
 class ReplayError(SecureTransportError):
     """Replay attack detected."""
+
     pass
 
 
 class SessionError(SecureTransportError):
     """Session management error."""
+
     pass
 
 
 class NonceExhaustionError(SecureTransportError):
     """Nonce space exhausted, rekey required."""
+
     pass
 
 
@@ -106,8 +112,10 @@ class NonceExhaustionError(SecureTransportError):
 # HANDSHAKE STATE
 # =============================================================================
 
+
 class HandshakeState(IntEnum):
     """Handshake state machine states."""
+
     INITIAL = 0
     AWAITING_RESPONSE = 1
     AWAITING_FINAL = 2
@@ -117,6 +125,7 @@ class HandshakeState(IntEnum):
 
 class MessageType(IntEnum):
     """Secure transport message types."""
+
     HANDSHAKE_INIT = 0x01
     HANDSHAKE_RESPONSE = 0x02
     HANDSHAKE_FINAL = 0x03
@@ -131,6 +140,7 @@ class MessageType(IntEnum):
 # DATA STRUCTURES
 # =============================================================================
 
+
 @dataclass
 class CipherState:
     """
@@ -139,6 +149,7 @@ class CipherState:
     Tracks encryption key and nonce counter for a single direction
     of communication (either sending or receiving).
     """
+
     key: bytes  # 32 bytes for ChaCha20-Poly1305
     nonce: int = 0  # 64-bit counter
 
@@ -160,13 +171,15 @@ class CipherState:
             raise NonceExhaustionError("Nonce exhausted, rekey required")
 
         # Construct 12-byte nonce: 4 bytes zeros + 8 bytes counter (big-endian)
-        nonce_bytes = b'\x00\x00\x00\x00' + struct.pack('>Q', self.nonce)
+        nonce_bytes = b"\x00\x00\x00\x00" + struct.pack(">Q", self.nonce)
         self.nonce += 1
 
         cipher = ChaCha20Poly1305(self.key)
         return cipher.encrypt(nonce_bytes, plaintext, associated_data)
 
-    def decrypt(self, ciphertext: bytes, nonce: int, associated_data: bytes = b"") -> bytes:
+    def decrypt(
+        self, ciphertext: bytes, nonce: int, associated_data: bytes = b""
+    ) -> bytes:
         """
         Decrypt ciphertext with AEAD.
 
@@ -181,7 +194,7 @@ class CipherState:
         Raises:
             DecryptionError: If authentication fails
         """
-        nonce_bytes = b'\x00\x00\x00\x00' + struct.pack('>Q', nonce)
+        nonce_bytes = b"\x00\x00\x00\x00" + struct.pack(">Q", nonce)
 
         cipher = ChaCha20Poly1305(self.key)
         try:
@@ -198,14 +211,15 @@ class SymmetricState:
     Maintains the chaining key (ck) and handshake hash (h) during
     the handshake protocol, deriving session keys upon completion.
     """
+
     ck: bytes  # Chaining key (32 bytes)
-    h: bytes   # Handshake hash (32 bytes)
+    h: bytes  # Handshake hash (32 bytes)
 
     @classmethod
     def initialize(cls, protocol_name: bytes) -> "SymmetricState":
         """Initialize symmetric state with protocol name."""
         if len(protocol_name) <= 32:
-            h = protocol_name.ljust(32, b'\x00')
+            h = protocol_name.ljust(32, b"\x00")
         else:
             h = hashlib.blake2b(protocol_name, digest_size=32).digest()
         return cls(ck=h, h=h)
@@ -227,10 +241,12 @@ class SymmetricState:
         temp_key = hmac.new(self.ck, input_key_material, hashlib.blake2b).digest()[:32]
 
         # HKDF-Expand for new chaining key
-        self.ck = hmac.new(temp_key, b'\x01', hashlib.blake2b).digest()[:32]
+        self.ck = hmac.new(temp_key, b"\x01", hashlib.blake2b).digest()[:32]
 
         # HKDF-Expand for derived key
-        derived_key = hmac.new(temp_key, self.ck + b'\x02', hashlib.blake2b).digest()[:32]
+        derived_key = hmac.new(temp_key, self.ck + b"\x02", hashlib.blake2b).digest()[
+            :32
+        ]
 
         return derived_key
 
@@ -241,13 +257,13 @@ class SymmetricState:
         Returns:
             Tuple of (initiator_cipher, responder_cipher)
         """
-        temp_key = hmac.new(self.ck, b'', hashlib.blake2b).digest()[:32]
+        temp_key = hmac.new(self.ck, b"", hashlib.blake2b).digest()[:32]
 
         # Derive initiator key
-        k1 = hmac.new(temp_key, b'\x01', hashlib.blake2b).digest()[:32]
+        k1 = hmac.new(temp_key, b"\x01", hashlib.blake2b).digest()[:32]
 
         # Derive responder key
-        k2 = hmac.new(temp_key, k1 + b'\x02', hashlib.blake2b).digest()[:32]
+        k2 = hmac.new(temp_key, k1 + b"\x02", hashlib.blake2b).digest()[:32]
 
         return CipherState(key=k1), CipherState(key=k2)
 
@@ -259,6 +275,7 @@ class ReplayWindow:
 
     Standing on Giants: RFC 4303 (IPsec anti-replay)
     """
+
     highest_seen: int = 0
     window: int = 0  # Bitmap of received nonces
 
@@ -302,6 +319,7 @@ class SecureSession:
     Tracks cipher states, replay windows, and session metadata
     for an authenticated peer connection.
     """
+
     session_id: str
     peer_id: str
     peer_static_public: bytes  # Ed25519 public key
@@ -322,8 +340,8 @@ class SecureSession:
     def needs_rekey(self) -> bool:
         """Check if session needs rekeying."""
         return (
-            time.time() - self.created_at > SESSION_REKEY_INTERVAL or
-            self.send_cipher.nonce > MAX_NONCE_VALUE // 2
+            time.time() - self.created_at > SESSION_REKEY_INTERVAL
+            or self.send_cipher.nonce > MAX_NONCE_VALUE // 2
         )
 
     def touch(self) -> None:
@@ -335,6 +353,7 @@ class SecureSession:
 # SECURE CHANNEL INTERFACE
 # =============================================================================
 
+
 class SecureChannel(ABC):
     """
     Abstract interface for secure communication channels.
@@ -344,9 +363,7 @@ class SecureChannel(ABC):
 
     @abstractmethod
     async def handshake_initiator(
-        self,
-        peer_address: str,
-        peer_static_public: Optional[bytes] = None
+        self, peer_address: str, peer_static_public: Optional[bytes] = None
     ) -> SecureSession:
         """
         Initiate handshake as the initiator.
@@ -365,9 +382,7 @@ class SecureChannel(ABC):
 
     @abstractmethod
     async def handshake_responder(
-        self,
-        handshake_init: bytes,
-        peer_address: str
+        self, handshake_init: bytes, peer_address: str
     ) -> Tuple[SecureSession, bytes]:
         """
         Respond to handshake as the responder.
@@ -434,6 +449,7 @@ class SecureChannel(ABC):
 # NOISE PROTOCOL TRANSPORT (Noise_XX Pattern)
 # =============================================================================
 
+
 class NoiseTransport(SecureChannel):
     """
     Noise Protocol Framework implementation using the XX handshake pattern.
@@ -456,7 +472,7 @@ class NoiseTransport(SecureChannel):
         static_private_key: bytes,
         static_public_key: bytes,
         node_id: str,
-        send_callback: Optional[Callable[[str, bytes], None]] = None
+        send_callback: Optional[Callable[[str, bytes], None]] = None,
     ):
         """
         Initialize Noise transport.
@@ -486,16 +502,14 @@ class NoiseTransport(SecureChannel):
         self._x25519_private = x25519.X25519PrivateKey.generate()
         self._x25519_public = self._x25519_private.public_key()
         self._x25519_public_bytes = self._x25519_public.public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
     def _generate_ephemeral(self) -> Tuple[x25519.X25519PrivateKey, bytes]:
         """Generate ephemeral X25519 keypair."""
         private = x25519.X25519PrivateKey.generate()
         public_bytes = private.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
         return private, public_bytes
 
@@ -505,26 +519,18 @@ class NoiseTransport(SecureChannel):
         return private.exchange(peer_public)
 
     def _encrypt_with_ad(
-        self,
-        key: bytes,
-        nonce: int,
-        plaintext: bytes,
-        ad: bytes
+        self, key: bytes, nonce: int, plaintext: bytes, ad: bytes
     ) -> bytes:
         """Encrypt with additional authenticated data."""
-        nonce_bytes = b'\x00\x00\x00\x00' + struct.pack('>Q', nonce)
+        nonce_bytes = b"\x00\x00\x00\x00" + struct.pack(">Q", nonce)
         cipher = ChaCha20Poly1305(key)
         return cipher.encrypt(nonce_bytes, plaintext, ad)
 
     def _decrypt_with_ad(
-        self,
-        key: bytes,
-        nonce: int,
-        ciphertext: bytes,
-        ad: bytes
+        self, key: bytes, nonce: int, ciphertext: bytes, ad: bytes
     ) -> bytes:
         """Decrypt with additional authenticated data."""
-        nonce_bytes = b'\x00\x00\x00\x00' + struct.pack('>Q', nonce)
+        nonce_bytes = b"\x00\x00\x00\x00" + struct.pack(">Q", nonce)
         cipher = ChaCha20Poly1305(key)
         try:
             return cipher.decrypt(nonce_bytes, ciphertext, ad)
@@ -532,9 +538,7 @@ class NoiseTransport(SecureChannel):
             raise DecryptionError("AEAD authentication failed during handshake")
 
     async def handshake_initiator(
-        self,
-        peer_address: str,
-        peer_static_public: Optional[bytes] = None
+        self, peer_address: str, peer_static_public: Optional[bytes] = None
     ) -> SecureSession:
         """
         Initiate Noise_XX handshake.
@@ -551,16 +555,16 @@ class NoiseTransport(SecureChannel):
         state.mix_hash(e_public)
 
         # Create handshake init message
-        msg = struct.pack('!B', MessageType.HANDSHAKE_INIT) + e_public
+        msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + e_public
 
         # Store pending handshake state
         handshake_id = hashlib.sha256(e_public).hexdigest()[:16]
         self._pending_handshakes[peer_address] = {
-            'state': state,
-            'e_private': e_private,
-            'e_public': e_public,
-            'handshake_id': handshake_id,
-            'initiated_at': time.time(),
+            "state": state,
+            "e_private": e_private,
+            "e_public": e_public,
+            "handshake_id": handshake_id,
+            "initiated_at": time.time(),
         }
 
         if self.send_callback:
@@ -587,22 +591,20 @@ class NoiseTransport(SecureChannel):
         state.mix_hash(e_public)
 
         # Create message
-        msg = struct.pack('!B', MessageType.HANDSHAKE_INIT) + e_public
+        msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + e_public
 
         # Return state for continuation
         handshake_state = {
-            'state': state,
-            'e_private': e_private,
-            'e_public': e_public,
-            'phase': 'init_sent',
+            "state": state,
+            "e_private": e_private,
+            "e_public": e_public,
+            "phase": "init_sent",
         }
 
         return msg, handshake_state
 
     async def handshake_responder(
-        self,
-        handshake_init: bytes,
-        peer_address: str
+        self, handshake_init: bytes, peer_address: str
     ) -> Tuple[SecureSession, bytes]:
         """
         Respond to Noise_XX handshake.
@@ -618,7 +620,9 @@ class NoiseTransport(SecureChannel):
         if msg_type != MessageType.HANDSHAKE_INIT:
             raise HandshakeError(f"Expected HANDSHAKE_INIT, got {msg_type}")
 
-        re_public = handshake_init[1:1 + NOISE_DH_SIZE]  # Remote ephemeral (initiator's e)
+        re_public = handshake_init[
+            1 : 1 + NOISE_DH_SIZE
+        ]  # Remote ephemeral (initiator's e)
 
         # Initialize symmetric state (same as initiator)
         state = SymmetricState.initialize(NOISE_PROTOCOL_NAME)
@@ -650,7 +654,7 @@ class NoiseTransport(SecureChannel):
         initiator_cipher, responder_cipher = state.split()
 
         # Create response message
-        response = struct.pack('!B', MessageType.HANDSHAKE_RESPONSE)
+        response = struct.pack("!B", MessageType.HANDSHAKE_RESPONSE)
         response += e_public
         response += encrypted_s
 
@@ -658,24 +662,21 @@ class NoiseTransport(SecureChannel):
         session_id = hashlib.sha256(e_public + re_public).hexdigest()[:16]
 
         self._pending_handshakes[peer_address] = {
-            'state': state,
-            'e_private': e_private,
-            'e_public': e_public,
-            're_public': re_public,
+            "state": state,
+            "e_private": e_private,
+            "e_public": e_public,
+            "re_public": re_public,
             # Responder sends with responder_cipher, receives with initiator_cipher
-            'send_cipher': responder_cipher,
-            'recv_cipher': initiator_cipher,
-            'session_id': session_id,
-            'phase': 'response_sent',
+            "send_cipher": responder_cipher,
+            "recv_cipher": initiator_cipher,
+            "session_id": session_id,
+            "phase": "response_sent",
         }
 
         return None, response  # Session not yet complete
 
     def process_handshake_response(
-        self,
-        response: bytes,
-        handshake_state: dict,
-        peer_address: str
+        self, response: bytes, handshake_state: dict, peer_address: str
     ) -> Tuple[Optional[SecureSession], bytes]:
         """
         Process handshake response and create final message.
@@ -691,14 +692,14 @@ class NoiseTransport(SecureChannel):
             raise HandshakeError(f"Expected HANDSHAKE_RESPONSE, got {msg_type}")
 
         offset = 1
-        re_public = response[offset:offset + NOISE_DH_SIZE]  # Responder's ephemeral
+        re_public = response[offset : offset + NOISE_DH_SIZE]  # Responder's ephemeral
         offset += NOISE_DH_SIZE
 
-        encrypted_rs = response[offset:offset + NOISE_DH_SIZE + NOISE_TAG_SIZE]
+        encrypted_rs = response[offset : offset + NOISE_DH_SIZE + NOISE_TAG_SIZE]
         offset += NOISE_DH_SIZE + NOISE_TAG_SIZE
 
-        state: SymmetricState = handshake_state['state']
-        e_private: x25519.X25519PrivateKey = handshake_state['e_private']
+        state: SymmetricState = handshake_state["state"]
+        e_private: x25519.X25519PrivateKey = handshake_state["e_private"]
 
         # Mix responder's ephemeral (same as responder did)
         state.mix_hash(re_public)
@@ -723,12 +724,12 @@ class NoiseTransport(SecureChannel):
         recv_cipher = responder_cipher
 
         # Create final message (simplified - just acknowledge)
-        final_msg = struct.pack('!B', MessageType.HANDSHAKE_FINAL)
-        final_msg += handshake_state['e_public']  # Echo our ephemeral as confirmation
+        final_msg = struct.pack("!B", MessageType.HANDSHAKE_FINAL)
+        final_msg += handshake_state["e_public"]  # Echo our ephemeral as confirmation
 
         # Create session
         session_id = hashlib.sha256(
-            handshake_state['e_public'] + re_public
+            handshake_state["e_public"] + re_public
         ).hexdigest()[:16]
 
         session = SecureSession(
@@ -744,9 +745,7 @@ class NoiseTransport(SecureChannel):
         return session, final_msg
 
     def process_handshake_final(
-        self,
-        final_msg: bytes,
-        peer_address: str
+        self, final_msg: bytes, peer_address: str
     ) -> SecureSession:
         """
         Process final handshake message and establish session.
@@ -766,20 +765,22 @@ class NoiseTransport(SecureChannel):
             raise HandshakeError(f"Expected HANDSHAKE_FINAL, got {msg_type}")
 
         # Verify the echoed ephemeral matches what we received
-        echoed_e = final_msg[1:1 + NOISE_DH_SIZE]
-        if echoed_e != pending['re_public']:
+        echoed_e = final_msg[1 : 1 + NOISE_DH_SIZE]
+        if echoed_e != pending["re_public"]:
             raise HandshakeError("Handshake final: ephemeral key mismatch")
 
         # Use pre-computed cipher states from handshake_responder
         # Responder sends with responder_cipher, receives with initiator_cipher
-        send_cipher = pending['send_cipher']
-        recv_cipher = pending['recv_cipher']
+        send_cipher = pending["send_cipher"]
+        recv_cipher = pending["recv_cipher"]
 
         # Create session
         session = SecureSession(
-            session_id=pending['session_id'],
+            session_id=pending["session_id"],
             peer_id=peer_address,
-            peer_static_public=pending['re_public'],  # Initiator's ephemeral as identity proxy
+            peer_static_public=pending[
+                "re_public"
+            ],  # Initiator's ephemeral as identity proxy
             send_cipher=send_cipher,
             recv_cipher=recv_cipher,
         )
@@ -804,8 +805,8 @@ class NoiseTransport(SecureChannel):
         session.touch()
 
         # Build message
-        msg = struct.pack('!B', MessageType.APPLICATION_DATA)
-        msg += struct.pack('>Q', nonce)
+        msg = struct.pack("!B", MessageType.APPLICATION_DATA)
+        msg += struct.pack(">Q", nonce)
         msg += ciphertext
 
         return msg
@@ -821,7 +822,7 @@ class NoiseTransport(SecureChannel):
         if msg_type != MessageType.APPLICATION_DATA:
             raise DecryptionError(f"Expected APPLICATION_DATA, got {msg_type}")
 
-        nonce = struct.unpack('>Q', message[1:9])[0]
+        nonce = struct.unpack(">Q", message[1:9])[0]
         ciphertext = message[9:]
 
         # Check for replay
@@ -837,7 +838,7 @@ class NoiseTransport(SecureChannel):
 
     def close(self, session: SecureSession) -> bytes:
         """Create close notification message."""
-        close_payload = struct.pack('>Q', int(time.time()))
+        close_payload = struct.pack(">Q", int(time.time()))
         return self.encrypt(session, close_payload)
 
     def get_session(self, peer_address: str) -> Optional[SecureSession]:
@@ -850,8 +851,7 @@ class NoiseTransport(SecureChannel):
     def cleanup_expired_sessions(self) -> int:
         """Remove expired sessions. Returns count of removed sessions."""
         expired = [
-            addr for addr, session in self._sessions.items()
-            if session.is_expired
+            addr for addr, session in self._sessions.items() if session.is_expired
         ]
         for addr in expired:
             del self._sessions[addr]
@@ -861,6 +861,7 @@ class NoiseTransport(SecureChannel):
 # =============================================================================
 # DTLS TRANSPORT (Alternative Implementation)
 # =============================================================================
+
 
 class DTLSTransport(SecureChannel):
     """
@@ -880,7 +881,7 @@ class DTLSTransport(SecureChannel):
         static_private_key: bytes,
         static_public_key: bytes,
         node_id: str,
-        cipher_suite: str = "chacha20-poly1305"
+        cipher_suite: str = "chacha20-poly1305",
     ):
         """
         Initialize DTLS transport.
@@ -908,14 +909,20 @@ class DTLSTransport(SecureChannel):
     def _generate_cookie(self, client_address: str, client_random: bytes) -> bytes:
         """Generate DTLS cookie for HelloRetryRequest."""
         data = client_address.encode() + client_random
-        return hmac.new(self._cookie_secret, data, hashlib.sha256).digest()[:DTLS_COOKIE_LENGTH]
+        return hmac.new(self._cookie_secret, data, hashlib.sha256).digest()[
+            :DTLS_COOKIE_LENGTH
+        ]
 
-    def _verify_cookie(self, client_address: str, client_random: bytes, cookie: bytes) -> bool:
+    def _verify_cookie(
+        self, client_address: str, client_random: bytes, cookie: bytes
+    ) -> bool:
         """Verify DTLS cookie."""
         expected = self._generate_cookie(client_address, client_random)
         return hmac.compare_digest(expected, cookie)
 
-    def _derive_keys(self, shared_secret: bytes, client_random: bytes, server_random: bytes) -> Tuple[bytes, bytes]:
+    def _derive_keys(
+        self, shared_secret: bytes, client_random: bytes, server_random: bytes
+    ) -> Tuple[bytes, bytes]:
         """Derive encryption keys from shared secret."""
         # Use HKDF for key derivation
         hkdf = HKDF(
@@ -923,7 +930,7 @@ class DTLSTransport(SecureChannel):
             length=64,  # 2 keys * 32 bytes
             salt=client_random + server_random,
             info=b"dtls13 key expansion",
-            backend=default_backend()
+            backend=default_backend(),
         )
         key_material = hkdf.derive(shared_secret)
 
@@ -933,9 +940,7 @@ class DTLSTransport(SecureChannel):
         return client_key, server_key
 
     async def handshake_initiator(
-        self,
-        peer_address: str,
-        peer_static_public: Optional[bytes] = None
+        self, peer_address: str, peer_static_public: Optional[bytes] = None
     ) -> SecureSession:
         """Initiate DTLS handshake."""
         # Generate client random
@@ -944,26 +949,25 @@ class DTLSTransport(SecureChannel):
         # Generate ephemeral X25519 key
         e_private = x25519.X25519PrivateKey.generate()
         e_public = e_private.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
         # Create ClientHello
-        hello = struct.pack('!H', DTLS_VERSION)  # Version
+        hello = struct.pack("!H", DTLS_VERSION)  # Version
         hello += client_random  # Client random
-        hello += struct.pack('!B', 0)  # Session ID length (0 for new session)
-        hello += struct.pack('!B', 0)  # Cookie length (0 for initial hello)
+        hello += struct.pack("!B", 0)  # Session ID length (0 for new session)
+        hello += struct.pack("!B", 0)  # Cookie length (0 for initial hello)
         hello += e_public  # Key share
 
-        msg = struct.pack('!B', MessageType.HANDSHAKE_INIT) + hello
+        struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
 
         # Store pending state
         self._pending_handshakes[peer_address] = {
-            'client_random': client_random,
-            'e_private': e_private,
-            'e_public': e_public,
-            'phase': 'hello_sent',
-            'initiated_at': time.time(),
+            "client_random": client_random,
+            "e_private": e_private,
+            "e_public": e_public,
+            "phase": "hello_sent",
+            "initiated_at": time.time(),
         }
 
         raise HandshakeError("DTLS handshake initiated, awaiting ServerHello")
@@ -974,31 +978,28 @@ class DTLSTransport(SecureChannel):
 
         e_private = x25519.X25519PrivateKey.generate()
         e_public = e_private.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
-        hello = struct.pack('!H', DTLS_VERSION)
+        hello = struct.pack("!H", DTLS_VERSION)
         hello += client_random
-        hello += struct.pack('!B', 0)  # Session ID length
-        hello += struct.pack('!B', 0)  # Cookie length
+        hello += struct.pack("!B", 0)  # Session ID length
+        hello += struct.pack("!B", 0)  # Cookie length
         hello += e_public
 
-        msg = struct.pack('!B', MessageType.HANDSHAKE_INIT) + hello
+        msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
 
         handshake_state = {
-            'client_random': client_random,
-            'e_private': e_private,
-            'e_public': e_public,
-            'phase': 'hello_sent',
+            "client_random": client_random,
+            "e_private": e_private,
+            "e_public": e_public,
+            "phase": "hello_sent",
         }
 
         return msg, handshake_state
 
     async def handshake_responder(
-        self,
-        handshake_init: bytes,
-        peer_address: str
+        self, handshake_init: bytes, peer_address: str
     ) -> Tuple[SecureSession, bytes]:
         """Respond to DTLS handshake."""
         if len(handshake_init) < 1 + 2 + 32 + 1 + 1 + NOISE_DH_SIZE:
@@ -1009,13 +1010,13 @@ class DTLSTransport(SecureChannel):
             raise HandshakeError(f"Expected HANDSHAKE_INIT, got {msg_type}")
 
         offset = 1
-        version = struct.unpack('!H', handshake_init[offset:offset+2])[0]
+        version = struct.unpack("!H", handshake_init[offset : offset + 2])[0]
         offset += 2
 
         if version != DTLS_VERSION:
             raise HandshakeError(f"Unsupported DTLS version: {version}")
 
-        client_random = handshake_init[offset:offset+32]
+        client_random = handshake_init[offset : offset + 32]
         offset += 32
 
         session_id_len = handshake_init[offset]
@@ -1026,19 +1027,18 @@ class DTLSTransport(SecureChannel):
 
         # TODO: Implement cookie verification for DoS protection
         if cookie_len > 0:
-            cookie = handshake_init[offset:offset+cookie_len]
+            cookie = handshake_init[offset : offset + cookie_len]
             offset += cookie_len
             if not self._verify_cookie(peer_address, client_random, cookie):
                 raise HandshakeError("Invalid cookie")
 
-        client_e_public = handshake_init[offset:offset+NOISE_DH_SIZE]
+        client_e_public = handshake_init[offset : offset + NOISE_DH_SIZE]
 
         # Generate server random and ephemeral key
         server_random = os.urandom(32)
         e_private = x25519.X25519PrivateKey.generate()
         e_public = e_private.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
         # Compute shared secret
@@ -1051,13 +1051,13 @@ class DTLSTransport(SecureChannel):
         )
 
         # Create ServerHello
-        hello = struct.pack('!H', DTLS_VERSION)
+        hello = struct.pack("!H", DTLS_VERSION)
         hello += server_random
-        hello += struct.pack('!B', 16)  # Session ID length
+        hello += struct.pack("!B", 16)  # Session ID length
         hello += os.urandom(16)  # Session ID
         hello += e_public
 
-        response = struct.pack('!B', MessageType.HANDSHAKE_RESPONSE) + hello
+        response = struct.pack("!B", MessageType.HANDSHAKE_RESPONSE) + hello
 
         # Create session
         session_id = hashlib.sha256(client_random + server_random).hexdigest()[:16]
@@ -1076,10 +1076,7 @@ class DTLSTransport(SecureChannel):
         return session, response
 
     def process_handshake_response(
-        self,
-        response: bytes,
-        handshake_state: dict,
-        peer_address: str
+        self, response: bytes, handshake_state: dict, peer_address: str
     ) -> Tuple[SecureSession, bytes]:
         """Process ServerHello and complete handshake."""
         if len(response) < 1 + 2 + 32 + 1 + NOISE_DH_SIZE:
@@ -1090,24 +1087,24 @@ class DTLSTransport(SecureChannel):
             raise HandshakeError(f"Expected HANDSHAKE_RESPONSE, got {msg_type}")
 
         offset = 1
-        version = struct.unpack('!H', response[offset:offset+2])[0]
+        struct.unpack("!H", response[offset : offset + 2])[0]
         offset += 2
 
-        server_random = response[offset:offset+32]
+        server_random = response[offset : offset + 32]
         offset += 32
 
         session_id_len = response[offset]
         offset += 1 + session_id_len
 
-        server_e_public = response[offset:offset+NOISE_DH_SIZE]
+        server_e_public = response[offset : offset + NOISE_DH_SIZE]
 
         # Compute shared secret
-        e_private = handshake_state['e_private']
+        e_private = handshake_state["e_private"]
         server_key = x25519.X25519PublicKey.from_public_bytes(server_e_public)
         shared_secret = e_private.exchange(server_key)
 
         # Derive keys
-        client_random = handshake_state['client_random']
+        client_random = handshake_state["client_random"]
         client_key_bytes, server_key_bytes = self._derive_keys(
             shared_secret, client_random, server_random
         )
@@ -1127,7 +1124,7 @@ class DTLSTransport(SecureChannel):
         self._sessions[peer_address] = session
 
         # DTLS completes in 2 messages (simplified without certificate exchange)
-        return session, b''
+        return session, b""
 
     def encrypt(self, session: SecureSession, plaintext: bytes) -> bytes:
         """Encrypt message using DTLS record layer."""
@@ -1140,10 +1137,10 @@ class DTLSTransport(SecureChannel):
         session.touch()
 
         # DTLS record header
-        record = struct.pack('!B', MessageType.APPLICATION_DATA)
-        record += struct.pack('!H', DTLS_VERSION)
-        record += struct.pack('>Q', nonce)
-        record += struct.pack('!H', len(ciphertext))
+        record = struct.pack("!B", MessageType.APPLICATION_DATA)
+        record += struct.pack("!H", DTLS_VERSION)
+        record += struct.pack(">Q", nonce)
+        record += struct.pack("!H", len(ciphertext))
         record += ciphertext
 
         return record
@@ -1158,16 +1155,16 @@ class DTLSTransport(SecureChannel):
             raise DecryptionError(f"Expected APPLICATION_DATA, got {msg_type}")
 
         offset = 1
-        version = struct.unpack('!H', message[offset:offset+2])[0]
+        struct.unpack("!H", message[offset : offset + 2])[0]
         offset += 2
 
-        nonce = struct.unpack('>Q', message[offset:offset+8])[0]
+        nonce = struct.unpack(">Q", message[offset : offset + 8])[0]
         offset += 8
 
-        length = struct.unpack('!H', message[offset:offset+2])[0]
+        length = struct.unpack("!H", message[offset : offset + 2])[0]
         offset += 2
 
-        ciphertext = message[offset:offset+length]
+        ciphertext = message[offset : offset + length]
 
         # Replay check
         if not session.replay_window.check_and_update(nonce):
@@ -1181,7 +1178,7 @@ class DTLSTransport(SecureChannel):
 
     def close(self, session: SecureSession) -> bytes:
         """Create DTLS close_notify alert."""
-        alert = struct.pack('!BB', 1, 0)  # Warning level, close_notify
+        alert = struct.pack("!BB", 1, 0)  # Warning level, close_notify
         return self.encrypt(session, alert)
 
     def get_session(self, peer_address: str) -> Optional[SecureSession]:
@@ -1196,6 +1193,7 @@ class DTLSTransport(SecureChannel):
 # SECURE TRANSPORT MANAGER
 # =============================================================================
 
+
 class SecureTransportManager:
     """
     Unified manager for secure transport operations.
@@ -1209,7 +1207,7 @@ class SecureTransportManager:
         static_private_key: bytes,
         static_public_key: bytes,
         node_id: str,
-        transport_type: str = "noise"
+        transport_type: str = "noise",
     ):
         """
         Initialize secure transport manager.
@@ -1234,13 +1232,13 @@ class SecureTransportManager:
             self.transport: SecureChannel = NoiseTransport(
                 static_private_key=static_private_key,
                 static_public_key=static_public_key,
-                node_id=node_id
+                node_id=node_id,
             )
         elif transport_type == "dtls":
             self.transport = DTLSTransport(
                 static_private_key=static_private_key,
                 static_public_key=static_public_key,
-                node_id=node_id
+                node_id=node_id,
             )
         else:
             raise ValueError(f"Unknown transport type: {transport_type}")
@@ -1268,9 +1266,7 @@ class SecureTransportManager:
         return msg
 
     def process_handshake(
-        self,
-        message: bytes,
-        peer_address: str
+        self, message: bytes, peer_address: str
     ) -> Tuple[Optional[SecureSession], Optional[bytes]]:
         """
         Process incoming handshake message.
@@ -1290,6 +1286,7 @@ class SecureTransportManager:
         if msg_type == MessageType.HANDSHAKE_INIT:
             # We're the responder
             import asyncio
+
             loop = asyncio.new_event_loop()
             try:
                 session, response = loop.run_until_complete(
@@ -1409,8 +1406,7 @@ class SecureTransportManager:
     def cleanup_expired(self) -> int:
         """Remove expired sessions. Returns count removed."""
         expired = [
-            addr for addr, session in self._session_cache.items()
-            if session.is_expired
+            addr for addr, session in self._session_cache.items() if session.is_expired
         ]
         for addr in expired:
             del self._session_cache[addr]
@@ -1420,21 +1416,21 @@ class SecureTransportManager:
         """Get transport statistics."""
         active_sessions = [
             {
-                'peer': addr,
-                'session_id': session.session_id,
-                'messages_sent': session.messages_sent,
-                'messages_received': session.messages_received,
-                'age_seconds': time.time() - session.created_at,
+                "peer": addr,
+                "session_id": session.session_id,
+                "messages_sent": session.messages_sent,
+                "messages_received": session.messages_received,
+                "age_seconds": time.time() - session.created_at,
             }
             for addr, session in self._session_cache.items()
             if not session.is_expired
         ]
 
         return {
-            'transport_type': self.transport_type,
-            'active_sessions': len(active_sessions),
-            'pending_handshakes': len(self._pending_handshakes),
-            'sessions': active_sessions,
+            "transport_type": self.transport_type,
+            "active_sessions": len(active_sessions),
+            "pending_handshakes": len(self._pending_handshakes),
+            "sessions": active_sessions,
         }
 
 
@@ -1442,11 +1438,12 @@ class SecureTransportManager:
 # INTEGRATION WITH GOSSIP ENGINE
 # =============================================================================
 
+
 def create_secure_gossip_transport(
     private_key_hex: str,
     public_key_hex: str,
     node_id: str,
-    transport_type: str = "noise"
+    transport_type: str = "noise",
 ) -> SecureTransportManager:
     """
     Factory function to create secure transport for gossip protocol.
@@ -1469,7 +1466,7 @@ def create_secure_gossip_transport(
         static_private_key=private_key_hex,
         static_public_key=public_key_hex,
         node_id=node_id,
-        transport_type=transport_type
+        transport_type=transport_type,
     )
 
 
@@ -1479,34 +1476,29 @@ def create_secure_gossip_transport(
 
 __all__ = [
     # Error types
-    'SecureTransportError',
-    'HandshakeError',
-    'DecryptionError',
-    'ReplayError',
-    'SessionError',
-    'NonceExhaustionError',
-
+    "SecureTransportError",
+    "HandshakeError",
+    "DecryptionError",
+    "ReplayError",
+    "SessionError",
+    "NonceExhaustionError",
     # Data structures
-    'CipherState',
-    'SymmetricState',
-    'ReplayWindow',
-    'SecureSession',
-    'HandshakeState',
-    'MessageType',
-
+    "CipherState",
+    "SymmetricState",
+    "ReplayWindow",
+    "SecureSession",
+    "HandshakeState",
+    "MessageType",
     # Transport implementations
-    'SecureChannel',
-    'NoiseTransport',
-    'DTLSTransport',
-
+    "SecureChannel",
+    "NoiseTransport",
+    "DTLSTransport",
     # Manager
-    'SecureTransportManager',
-
+    "SecureTransportManager",
     # Factory
-    'create_secure_gossip_transport',
-
+    "create_secure_gossip_transport",
     # Constants
-    'NOISE_PROTOCOL_NAME',
-    'SESSION_TIMEOUT_SECONDS',
-    'REPLAY_WINDOW_SIZE',
+    "NOISE_PROTOCOL_NAME",
+    "SESSION_TIMEOUT_SECONDS",
+    "REPLAY_WINDOW_SIZE",
 ]

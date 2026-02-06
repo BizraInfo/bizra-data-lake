@@ -13,26 +13,26 @@ Integration Points:
 Created: 2026-01-30
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable, Any, Awaitable
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from .constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    DEFAULT_FEDERATION_BIND,
-    A2A_PORT_OFFSET,
-)
-
-# Core module imports
-from core.pci import generate_keypair, PCIEnvelope
-from core.pci.gates import PCIGateKeeper
+from core.a2a.engine import A2AEngine
+from core.a2a.schema import AgentCard, Capability, CapabilityType, TaskCard
+from core.a2a.transport import A2ATransport, HybridTransport
 from core.federation.node import FederationNode
 from core.federation.propagation import ElevatedPattern
-from core.a2a.engine import A2AEngine
-from core.a2a.schema import AgentCard, Capability, CapabilityType, TaskCard, MessageType
-from core.a2a.transport import A2ATransport, HybridTransport
+
+# Core module imports
+from core.pci import PCIEnvelope, generate_keypair
+from core.pci.gates import PCIGateKeeper
+
+from .constants import (
+    A2A_PORT_OFFSET,
+    DEFAULT_FEDERATION_BIND,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 logger = logging.getLogger("INTEGRATION")
 
@@ -40,6 +40,7 @@ logger = logging.getLogger("INTEGRATION")
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class BridgeConfig:
@@ -77,6 +78,7 @@ class BridgeConfig:
 # ═══════════════════════════════════════════════════════════════════════════════
 # INTEGRATION BRIDGE
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class IntegrationBridge:
     """
@@ -131,7 +133,9 @@ class IntegrationBridge:
 
         # Callbacks for external integration
         self._on_task_completed: Optional[Callable[[TaskCard], Awaitable[None]]] = None
-        self._on_pattern_elevated: Optional[Callable[[ElevatedPattern], Awaitable[None]]] = None
+        self._on_pattern_elevated: Optional[
+            Callable[[ElevatedPattern], Awaitable[None]]
+        ] = None
 
     # ─────────────────────────────────────────────────────────────────────────
     # LIFECYCLE
@@ -187,7 +191,7 @@ class IntegrationBridge:
                 type=CapabilityType(c.get("type", "custom")),
                 description=c.get("description", ""),
                 parameters=c.get("parameters", {}),
-                ihsan_floor=c.get("ihsan_floor", self.config.ihsan_threshold)
+                ihsan_floor=c.get("ihsan_floor", self.config.ihsan_threshold),
             )
             for c in self.config.capabilities
         ]
@@ -236,10 +240,12 @@ class IntegrationBridge:
 
         # Check for applicable federation patterns
         if self._federation:
-            patterns = self._federation.get_applicable_patterns({
-                "capability": task.capability_required,
-                "prompt": task.prompt,
-            })
+            patterns = self._federation.get_applicable_patterns(
+                {
+                    "capability": task.capability_required,
+                    "prompt": task.prompt,
+                }
+            )
             if patterns:
                 logger.info(f"Found {len(patterns)} applicable patterns")
                 # Patterns can inform execution strategy
@@ -385,6 +391,7 @@ class IntegrationBridge:
 # ═══════════════════════════════════════════════════════════════════════════════
 # FACTORY
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def create_integrated_system(
     node_id: Optional[str] = None,

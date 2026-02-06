@@ -35,9 +35,11 @@ except ImportError:
 
 # Treasury mode thresholds
 ETHICS_THRESHOLD_HIBERNATION: float = 0.60  # Below this -> hibernate
-ETHICS_THRESHOLD_RECOVERY: float = 0.75     # Above this -> return to ethical mode
-RESERVES_THRESHOLD_EMERGENCY: float = 7.0   # Days - below this -> emergency
-RESERVES_THRESHOLD_HIBERNATION: float = 30.0  # Days - below this -> consider hibernation
+ETHICS_THRESHOLD_RECOVERY: float = 0.75  # Above this -> return to ethical mode
+RESERVES_THRESHOLD_EMERGENCY: float = 7.0  # Days - below this -> emergency
+RESERVES_THRESHOLD_HIBERNATION: float = (
+    30.0  # Days - below this -> consider hibernation
+)
 
 # Emergency treasury unlock percentage
 EMERGENCY_TREASURY_UNLOCK_PERCENT: float = 0.10  # 10%
@@ -47,15 +49,16 @@ DEFAULT_BURN_RATE: float = 100.0
 
 # Mode-specific compute multipliers
 COMPUTE_MULTIPLIERS: Dict[str, float] = {
-    "ethical": 1.0,       # Full URP access
+    "ethical": 1.0,  # Full URP access
     "hibernation": 0.25,  # EDGE compute only
-    "emergency": 0.10,    # Minimal essential operations
+    "emergency": 0.10,  # Minimal essential operations
 }
 
 
 # =============================================================================
 # ENUMS
 # =============================================================================
+
 
 class TreasuryMode(Enum):
     """
@@ -65,6 +68,7 @@ class TreasuryMode(Enum):
     HIBERNATION: Minimal compute, preserve reserves
     EMERGENCY: Community funding, treasury unlock
     """
+
     ETHICAL = "ethical"
     HIBERNATION = "hibernation"
     EMERGENCY = "emergency"
@@ -72,6 +76,7 @@ class TreasuryMode(Enum):
 
 class TransitionTrigger(Enum):
     """Triggers for mode transitions."""
+
     MARKET_ETHICS_DEGRADED = "market_ethics_degraded"
     MARKET_ETHICS_RECOVERED = "market_ethics_recovered"
     RESERVES_DEPLETED = "reserves_depleted"
@@ -83,6 +88,7 @@ class TransitionTrigger(Enum):
 
 class TreasuryEvent(Enum):
     """Events emitted by the treasury controller."""
+
     MODE_TRANSITION = "mode_transition"
     ETHICS_SCORE_UPDATE = "ethics_score_update"
     RESERVES_UPDATE = "reserves_update"
@@ -97,9 +103,11 @@ class TreasuryEvent(Enum):
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class TreasuryState:
     """Current state of the treasury system."""
+
     mode: TreasuryMode
     reserves_days: float
     ethical_score: float
@@ -133,7 +141,9 @@ class TreasuryState:
             ethical_score=data["ethical_score"],
             last_transition=datetime.fromisoformat(data["last_transition"]),
             transition_reason=data["transition_reason"],
-            burn_rate_seed_per_day=data.get("burn_rate_seed_per_day", DEFAULT_BURN_RATE),
+            burn_rate_seed_per_day=data.get(
+                "burn_rate_seed_per_day", DEFAULT_BURN_RATE
+            ),
             total_reserves_seed=data.get("total_reserves_seed", 0.0),
             locked_treasury_seed=data.get("locked_treasury_seed", 0.0),
             unlocked_treasury_seed=data.get("unlocked_treasury_seed", 0.0),
@@ -152,6 +162,7 @@ class TreasuryState:
 @dataclass
 class TransitionEvent:
     """Record of a mode transition."""
+
     event_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     timestamp: datetime = field(default_factory=datetime.utcnow)
     from_mode: TreasuryMode = TreasuryMode.ETHICAL
@@ -180,6 +191,7 @@ class TransitionEvent:
 @dataclass
 class EthicsAssessment:
     """Result of a market ethics evaluation."""
+
     overall_score: float
     transparency_score: float = 0.0
     fairness_score: float = 0.0

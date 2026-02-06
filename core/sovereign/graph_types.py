@@ -22,47 +22,51 @@ from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 class ThoughtType(Enum):
     """Types of thought nodes in the graph."""
-    HYPOTHESIS = "hypothesis"      # Initial conjectures
-    EVIDENCE = "evidence"          # Supporting/refuting data
-    REASONING = "reasoning"        # Logical deduction steps
-    SYNTHESIS = "synthesis"        # Merged conclusions
-    REFINEMENT = "refinement"      # Improved versions
-    VALIDATION = "validation"      # Quality checks
-    CONCLUSION = "conclusion"      # Final answers
-    QUESTION = "question"          # Sub-questions to explore
+
+    HYPOTHESIS = "hypothesis"  # Initial conjectures
+    EVIDENCE = "evidence"  # Supporting/refuting data
+    REASONING = "reasoning"  # Logical deduction steps
+    SYNTHESIS = "synthesis"  # Merged conclusions
+    REFINEMENT = "refinement"  # Improved versions
+    VALIDATION = "validation"  # Quality checks
+    CONCLUSION = "conclusion"  # Final answers
+    QUESTION = "question"  # Sub-questions to explore
     COUNTERPOINT = "counterpoint"  # Alternative perspectives
 
 
 class EdgeType(Enum):
     """Types of edges connecting thoughts."""
-    SUPPORTS = "supports"          # Evidence supports hypothesis
-    REFUTES = "refutes"            # Evidence contradicts
-    DERIVES = "derives"            # Logical derivation
-    SYNTHESIZES = "synthesizes"    # Aggregation relationship
-    REFINES = "refines"            # Improvement relationship
-    QUESTIONS = "questions"        # Raises question
-    VALIDATES = "validates"        # Quality check relationship
+
+    SUPPORTS = "supports"  # Evidence supports hypothesis
+    REFUTES = "refutes"  # Evidence contradicts
+    DERIVES = "derives"  # Logical derivation
+    SYNTHESIZES = "synthesizes"  # Aggregation relationship
+    REFINES = "refines"  # Improvement relationship
+    QUESTIONS = "questions"  # Raises question
+    VALIDATES = "validates"  # Quality check relationship
 
 
 class ReasoningStrategy(Enum):
     """High-level reasoning strategies."""
-    BREADTH_FIRST = "breadth_first"    # Explore widely first
-    DEPTH_FIRST = "depth_first"        # Explore deeply first
-    BEST_FIRST = "best_first"          # Follow highest SNR paths
-    BEAM_SEARCH = "beam_search"        # Keep top-k paths
-    MCTS = "mcts"                      # Monte Carlo Tree Search
-    ADAPTIVE = "adaptive"              # Switch strategies dynamically
+
+    BREADTH_FIRST = "breadth_first"  # Explore widely first
+    DEPTH_FIRST = "depth_first"  # Explore deeply first
+    BEST_FIRST = "best_first"  # Follow highest SNR paths
+    BEAM_SEARCH = "beam_search"  # Keep top-k paths
+    MCTS = "mcts"  # Monte Carlo Tree Search
+    ADAPTIVE = "adaptive"  # Switch strategies dynamically
 
 
 @dataclass
 class ThoughtNode:
     """A node in the Graph of Thoughts."""
+
     id: str
     content: str
     thought_type: ThoughtType
-    confidence: float = 0.5         # 0-1 confidence score
-    snr_score: float = 0.5          # Signal-to-noise ratio
-    depth: int = 0                  # Depth in reasoning tree
+    confidence: float = 0.5  # 0-1 confidence score
+    snr_score: float = 0.5  # Signal-to-noise ratio
+    depth: int = 0  # Depth in reasoning tree
     created_at: float = field(default_factory=time.time)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -90,7 +94,9 @@ class ThoughtNode:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "content": self.content[:200] + "..." if len(self.content) > 200 else self.content,
+            "content": (
+                self.content[:200] + "..." if len(self.content) > 200 else self.content
+            ),
             "type": self.thought_type.value,
             "confidence": self.confidence,
             "snr": self.snr_score,
@@ -102,11 +108,12 @@ class ThoughtNode:
 @dataclass
 class ThoughtEdge:
     """An edge connecting thought nodes."""
+
     source_id: str
     target_id: str
     edge_type: EdgeType
-    weight: float = 1.0             # Edge importance
-    reasoning: str = ""             # Why this connection exists
+    weight: float = 1.0  # Edge importance
+    reasoning: str = ""  # Why this connection exists
 
     def to_dict(self) -> dict:
         return {
@@ -120,7 +127,8 @@ class ThoughtEdge:
 @dataclass
 class ReasoningPath:
     """A path through the thought graph."""
-    nodes: List[str]                # Node IDs in order
+
+    nodes: List[str]  # Node IDs in order
     total_snr: float = 0.0
     total_confidence: float = 0.0
 
@@ -136,6 +144,7 @@ class ReasoningPath:
 @dataclass
 class ReasoningResult:
     """Result from the high-level reason() method."""
+
     thoughts: List[str]
     conclusion: str
     confidence: float

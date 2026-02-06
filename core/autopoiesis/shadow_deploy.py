@@ -16,11 +16,6 @@ Standing on Giants: Netflix (Chaos Engineering) + Amazon (Canary) + Anthropic (C
 Genesis Strict Synthesis v2.2.2
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from abc import ABC, abstractmethod
 import asyncio
 import copy
 import hashlib
@@ -29,11 +24,14 @@ import math
 import random
 import statistics
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,17 +41,20 @@ logger = logging.getLogger(__name__)
 # ENUMS AND CONSTANTS
 # =============================================================================
 
+
 class DeploymentVerdict(Enum):
     """Verdict for shadow deployment evaluation."""
-    PENDING = "pending"          # Still evaluating
-    PROMOTE = "promote"          # Shadow is better, promote to production
-    REJECT = "reject"            # Shadow is worse or unsafe, reject
-    EXTEND = "extend"            # Need more data, extend evaluation
-    ROLLBACK = "rollback"        # Regression detected, rollback immediately
+
+    PENDING = "pending"  # Still evaluating
+    PROMOTE = "promote"  # Shadow is better, promote to production
+    REJECT = "reject"  # Shadow is worse or unsafe, reject
+    EXTEND = "extend"  # Need more data, extend evaluation
+    ROLLBACK = "rollback"  # Regression detected, rollback immediately
 
 
 class ComparisonStatus(Enum):
     """Status of metric comparison."""
+
     SIGNIFICANT_IMPROVEMENT = "significant_improvement"
     MARGINAL_IMPROVEMENT = "marginal_improvement"
     NO_SIGNIFICANT_DIFFERENCE = "no_significant_difference"
@@ -63,16 +64,18 @@ class ComparisonStatus(Enum):
 
 class IsolationLevel(Enum):
     """Level of isolation for shadow environment."""
-    SOFT = "soft"      # Shared resources, logical isolation
+
+    SOFT = "soft"  # Shared resources, logical isolation
     MEDIUM = "medium"  # Separate processes, shared storage
-    HARD = "hard"      # Full containerization
+    HARD = "hard"  # Full containerization
 
 
 class TrafficMode(Enum):
     """Traffic mirroring mode."""
-    FULL_MIRROR = "full_mirror"      # Mirror all traffic
-    SAMPLED = "sampled"              # Sample percentage of traffic
-    TARGETED = "targeted"            # Specific traffic patterns only
+
+    FULL_MIRROR = "full_mirror"  # Mirror all traffic
+    SAMPLED = "sampled"  # Sample percentage of traffic
+    TARGETED = "targeted"  # Specific traffic patterns only
 
 
 # Shadow deployment constants
@@ -88,6 +91,7 @@ MAX_ERROR_RATE_INCREASE = 0.01  # Max 1% error rate increase allowed
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class ShadowHypothesis:
     """
@@ -100,6 +104,7 @@ class ShadowHypothesis:
     which is used for the general autopoietic improvement loop.
     ShadowHypothesis is specifically for shadow deployment testing.
     """
+
     id: str = ""
     name: str = ""
     description: str = ""
@@ -133,6 +138,7 @@ Hypothesis = ShadowHypothesis
 @dataclass
 class MetricSample:
     """A single metric measurement."""
+
     value: float
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -141,6 +147,7 @@ class MetricSample:
 @dataclass
 class MetricComparison:
     """Comparison result between production and shadow metrics."""
+
     metric_name: str
     production_mean: float
     shadow_mean: float
@@ -191,6 +198,7 @@ class MetricComparison:
 @dataclass
 class ComparisonResult:
     """Aggregated comparison results."""
+
     comparisons: List[MetricComparison] = field(default_factory=list)
     overall_verdict: DeploymentVerdict = DeploymentVerdict.PENDING
     ihsan_score_prod: float = 1.0
@@ -200,7 +208,9 @@ class ComparisonResult:
     fate_passed: bool = True
     regression_detected: bool = False
     improvement_detected: bool = False
-    evaluation_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    evaluation_timestamp: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -224,6 +234,7 @@ class ShadowDeployment:
     Maintains state for comparing production and shadow behavior
     over the deployment duration.
     """
+
     deployment_id: str = ""
     hypothesis: Hypothesis = field(default_factory=Hypothesis)
     start_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -300,6 +311,7 @@ class ShadowDeployment:
 @dataclass
 class ShadowRequest:
     """A request to be processed by both production and shadow."""
+
     request_id: str = ""
     payload: Dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -313,6 +325,7 @@ class ShadowRequest:
 @dataclass
 class ShadowResponse:
     """Response from either production or shadow."""
+
     request_id: str
     result: Any
     latency_ms: float
@@ -325,8 +338,9 @@ class ShadowResponse:
 @dataclass
 class ResourceLimits:
     """Resource limits for shadow environment."""
-    max_cpu_percent: float = 50.0    # Max CPU usage
-    max_memory_mb: int = 1024        # Max memory in MB
+
+    max_cpu_percent: float = 50.0  # Max CPU usage
+    max_memory_mb: int = 1024  # Max memory in MB
     max_requests_per_second: float = 100.0
     max_concurrent_requests: int = 10
     timeout_seconds: float = 30.0
@@ -335,6 +349,7 @@ class ResourceLimits:
 @dataclass
 class AuditEntry:
     """Audit log entry for shadow deployment operations."""
+
     entry_id: str = ""
     deployment_id: str = ""
     operation: str = ""
@@ -349,6 +364,7 @@ class AuditEntry:
 # =============================================================================
 # SHADOW ENVIRONMENT
 # =============================================================================
+
 
 class ShadowEnvironment:
     """
@@ -405,7 +421,9 @@ class ShadowEnvironment:
         self._resource_usage: Dict[str, float] = {}
 
         # Concurrency control
-        self._semaphore = asyncio.Semaphore(self.resource_limits.max_concurrent_requests)
+        self._semaphore = asyncio.Semaphore(
+            self.resource_limits.max_concurrent_requests
+        )
         self._rate_limiter = _TokenBucket(
             rate=self.resource_limits.max_requests_per_second,
             capacity=self.resource_limits.max_concurrent_requests,
@@ -420,7 +438,9 @@ class ShadowEnvironment:
         if self._initialized:
             return True
 
-        logger.info(f"Initializing shadow environment {self.env_id} for hypothesis {self.hypothesis.id}")
+        logger.info(
+            f"Initializing shadow environment {self.env_id} for hypothesis {self.hypothesis.id}"
+        )
 
         try:
             # Clone production configuration
@@ -434,7 +454,9 @@ class ShadowEnvironment:
             self._isolation_verified = await self._verify_isolation()
 
             if not self._isolation_verified:
-                logger.error(f"Isolation verification failed for environment {self.env_id}")
+                logger.error(
+                    f"Isolation verification failed for environment {self.env_id}"
+                )
                 return False
 
             self._initialized = True
@@ -524,7 +546,9 @@ class ShadowEnvironment:
                     timeout=self.resource_limits.timeout_seconds,
                 )
 
-                latency_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+                latency_ms = (
+                    datetime.now(timezone.utc) - start_time
+                ).total_seconds() * 1000
                 self._request_count += 1
                 self._latency_samples.append(latency_ms)
 
@@ -557,7 +581,9 @@ class ShadowEnvironment:
 
             except Exception as e:
                 self._error_count += 1
-                latency_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+                latency_ms = (
+                    datetime.now(timezone.utc) - start_time
+                ).total_seconds() * 1000
                 self._latency_samples.append(latency_ms)
 
                 return ShadowResponse(
@@ -575,18 +601,40 @@ class ShadowEnvironment:
             "error_count": self._error_count,
             "error_rate": self._error_count / max(1, self._request_count),
             "latency": {
-                "mean": statistics.mean(self._latency_samples) if self._latency_samples else 0,
-                "p50": self._percentile(self._latency_samples, 50) if self._latency_samples else 0,
-                "p95": self._percentile(self._latency_samples, 95) if self._latency_samples else 0,
-                "p99": self._percentile(self._latency_samples, 99) if self._latency_samples else 0,
+                "mean": (
+                    statistics.mean(self._latency_samples)
+                    if self._latency_samples
+                    else 0
+                ),
+                "p50": (
+                    self._percentile(self._latency_samples, 50)
+                    if self._latency_samples
+                    else 0
+                ),
+                "p95": (
+                    self._percentile(self._latency_samples, 95)
+                    if self._latency_samples
+                    else 0
+                ),
+                "p99": (
+                    self._percentile(self._latency_samples, 99)
+                    if self._latency_samples
+                    else 0
+                ),
             },
             "ihsan": {
-                "mean": statistics.mean(self._ihsan_samples) if self._ihsan_samples else 1.0,
+                "mean": (
+                    statistics.mean(self._ihsan_samples) if self._ihsan_samples else 1.0
+                ),
                 "min": min(self._ihsan_samples) if self._ihsan_samples else 1.0,
-                "count_below_threshold": sum(1 for s in self._ihsan_samples if s < UNIFIED_IHSAN_THRESHOLD),
+                "count_below_threshold": sum(
+                    1 for s in self._ihsan_samples if s < UNIFIED_IHSAN_THRESHOLD
+                ),
             },
             "snr": {
-                "mean": statistics.mean(self._snr_samples) if self._snr_samples else 1.0,
+                "mean": (
+                    statistics.mean(self._snr_samples) if self._snr_samples else 1.0
+                ),
                 "min": min(self._snr_samples) if self._snr_samples else 1.0,
             },
             "isolation_verified": self._isolation_verified,
@@ -603,7 +651,9 @@ class ShadowEnvironment:
         upper = lower + 1
         if upper >= len(sorted_data):
             return sorted_data[-1]
-        return sorted_data[lower] + (sorted_data[upper] - sorted_data[lower]) * (idx - lower)
+        return sorted_data[lower] + (sorted_data[upper] - sorted_data[lower]) * (
+            idx - lower
+        )
 
     async def teardown(self):
         """Tear down the shadow environment."""
@@ -616,6 +666,7 @@ class ShadowEnvironment:
 # =============================================================================
 # STATISTICAL ANALYSIS
 # =============================================================================
+
 
 class StatisticalAnalyzer:
     """
@@ -662,16 +713,16 @@ class StatisticalAnalyzer:
 
         prod_mean = statistics.mean(production_samples)
         shadow_mean = statistics.mean(shadow_samples)
-        prod_std = statistics.stdev(production_samples) if len(production_samples) > 1 else 0
+        prod_std = (
+            statistics.stdev(production_samples) if len(production_samples) > 1 else 0
+        )
         shadow_std = statistics.stdev(shadow_samples) if len(shadow_samples) > 1 else 0
 
         delta = shadow_mean - prod_mean
         delta_percent = (delta / prod_mean * 100) if prod_mean != 0 else 0
 
         # Welch's t-test for unequal variances
-        p_value = StatisticalAnalyzer._welch_t_test(
-            production_samples, shadow_samples
-        )
+        p_value = StatisticalAnalyzer._welch_t_test(production_samples, shadow_samples)
 
         # Confidence interval for the difference
         ci = StatisticalAnalyzer._confidence_interval(
@@ -679,9 +730,7 @@ class StatisticalAnalyzer:
         )
 
         # Determine status
-        status = StatisticalAnalyzer._determine_status(
-            delta, p_value, higher_is_better
-        )
+        status = StatisticalAnalyzer._determine_status(delta, p_value, higher_is_better)
 
         return MetricComparison(
             metric_name=metric_name,
@@ -752,7 +801,7 @@ class StatisticalAnalyzer:
             return 0.5 * (1 + math.erf(-t / math.sqrt(2)))
 
         # Hill's approximation for Student's t CDF
-        x = df / (df + t * t)
+        df / (df + t * t)
 
         # Incomplete beta function approximation
         # Using a simplified series expansion
@@ -825,6 +874,7 @@ class StatisticalAnalyzer:
 # =============================================================================
 # SHADOW DEPLOYER
 # =============================================================================
+
 
 class ShadowDeployer:
     """
@@ -914,10 +964,14 @@ class ShadowDeployer:
         Returns:
             ShadowDeployment tracking the deployment
         """
-        self._log_audit("deploy_shadow_start", "", {
-            "hypothesis_id": hypothesis.id,
-            "hypothesis_name": hypothesis.name,
-        })
+        self._log_audit(
+            "deploy_shadow_start",
+            "",
+            {
+                "hypothesis_id": hypothesis.id,
+                "hypothesis_name": hypothesis.name,
+            },
+        )
 
         # Create shadow environment
         env = ShadowEnvironment(
@@ -928,11 +982,17 @@ class ShadowDeployer:
         )
 
         if not await env.initialize():
-            self._log_audit("deploy_shadow_failed", "", {
-                "hypothesis_id": hypothesis.id,
-                "reason": "Environment initialization failed",
-            })
-            raise RuntimeError(f"Failed to initialize shadow environment for {hypothesis.id}")
+            self._log_audit(
+                "deploy_shadow_failed",
+                "",
+                {
+                    "hypothesis_id": hypothesis.id,
+                    "reason": "Environment initialization failed",
+                },
+            )
+            raise RuntimeError(
+                f"Failed to initialize shadow environment for {hypothesis.id}"
+            )
 
         # Create deployment
         deployment = ShadowDeployment(
@@ -947,12 +1007,18 @@ class ShadowDeployer:
         self._environments[deployment.deployment_id] = env
         self._total_deployments += 1
 
-        self._log_audit("deploy_shadow_success", deployment.deployment_id, {
-            "hypothesis_id": hypothesis.id,
-            "duration_seconds": duration.total_seconds(),
-        })
+        self._log_audit(
+            "deploy_shadow_success",
+            deployment.deployment_id,
+            {
+                "hypothesis_id": hypothesis.id,
+                "duration_seconds": duration.total_seconds(),
+            },
+        )
 
-        logger.info(f"Shadow deployment {deployment.deployment_id} started for hypothesis {hypothesis.name}")
+        logger.info(
+            f"Shadow deployment {deployment.deployment_id} started for hypothesis {hypothesis.name}"
+        )
 
         return deployment
 
@@ -975,13 +1041,17 @@ class ShadowDeployer:
             Shadow response is None if not mirrored (sampling)
         """
         if deployment.kill_switch_triggered:
-            logger.warning(f"Deployment {deployment.deployment_id} kill switch active, skipping mirror")
+            logger.warning(
+                f"Deployment {deployment.deployment_id} kill switch active, skipping mirror"
+            )
             return (production_response, None) if production_response else (None, None)
 
         # Check if we should mirror this request (sampling)
         if deployment.traffic_mode == TrafficMode.SAMPLED:
             if random.random() > deployment.sample_rate:
-                return (production_response, None) if production_response else (None, None)
+                return (
+                    (production_response, None) if production_response else (None, None)
+                )
 
         env = self._environments.get(deployment.deployment_id)
         if not env:
@@ -991,8 +1061,12 @@ class ShadowDeployer:
         if production_response is None and self.production_handler:
             prod_start = datetime.now(timezone.utc)
             try:
-                prod_result = await self.production_handler(request, self.production_config)
-                prod_latency = (datetime.now(timezone.utc) - prod_start).total_seconds() * 1000
+                prod_result = await self.production_handler(
+                    request, self.production_config
+                )
+                prod_latency = (
+                    datetime.now(timezone.utc) - prod_start
+                ).total_seconds() * 1000
                 production_response = ShadowResponse(
                     request_id=request.request_id,
                     result=prod_result,
@@ -1019,9 +1093,24 @@ class ShadowDeployer:
 
         # Record metrics
         if production_response:
-            self._record_metric(deployment, "latency", production_response.latency_ms, shadow_response.latency_ms)
-            self._record_metric(deployment, "ihsan", production_response.ihsan_score, shadow_response.ihsan_score)
-            self._record_metric(deployment, "snr", production_response.snr_score, shadow_response.snr_score)
+            self._record_metric(
+                deployment,
+                "latency",
+                production_response.latency_ms,
+                shadow_response.latency_ms,
+            )
+            self._record_metric(
+                deployment,
+                "ihsan",
+                production_response.ihsan_score,
+                shadow_response.ihsan_score,
+            )
+            self._record_metric(
+                deployment,
+                "snr",
+                production_response.snr_score,
+                shadow_response.snr_score,
+            )
 
             if production_response.error:
                 deployment.errors_prod += 1
@@ -1055,9 +1144,7 @@ class ShadowDeployer:
         deployment.production_metrics[metric_name].append(
             MetricSample(value=prod_value)
         )
-        deployment.shadow_metrics[metric_name].append(
-            MetricSample(value=shadow_value)
-        )
+        deployment.shadow_metrics[metric_name].append(MetricSample(value=shadow_value))
 
     async def _check_kill_switch(self, deployment: ShadowDeployment):
         """Check if kill switch should be triggered."""
@@ -1072,12 +1159,18 @@ class ShadowDeployer:
                 deployment.kill_switch_reason = f"Ihsan below threshold: {current_ihsan:.4f} < {IHSAN_KILL_THRESHOLD}"
                 deployment.verdict = DeploymentVerdict.REJECT
 
-                self._log_audit("kill_switch_triggered", deployment.deployment_id, {
-                    "reason": deployment.kill_switch_reason,
-                    "ihsan_score": current_ihsan,
-                })
+                self._log_audit(
+                    "kill_switch_triggered",
+                    deployment.deployment_id,
+                    {
+                        "reason": deployment.kill_switch_reason,
+                        "ihsan_score": current_ihsan,
+                    },
+                )
 
-                logger.warning(f"Kill switch triggered for deployment {deployment.deployment_id}: {deployment.kill_switch_reason}")
+                logger.warning(
+                    f"Kill switch triggered for deployment {deployment.deployment_id}: {deployment.kill_switch_reason}"
+                )
 
     async def evaluate(self, deployment: ShadowDeployment) -> DeploymentVerdict:
         """
@@ -1095,10 +1188,14 @@ class ShadowDeployer:
         if not deployment.has_sufficient_data:
             if deployment.is_expired:
                 # Not enough data even after duration expired
-                self._log_audit("evaluate_insufficient_data", deployment.deployment_id, {
-                    "samples": deployment.requests_compared,
-                    "required": MIN_SAMPLE_SIZE,
-                })
+                self._log_audit(
+                    "evaluate_insufficient_data",
+                    deployment.deployment_id,
+                    {
+                        "samples": deployment.requests_compared,
+                        "required": MIN_SAMPLE_SIZE,
+                    },
+                )
                 return DeploymentVerdict.EXTEND
             return DeploymentVerdict.PENDING
 
@@ -1134,8 +1231,16 @@ class ShadowDeployer:
         # Build comparison result
         comparison_result = ComparisonResult(
             comparisons=comparisons,
-            ihsan_score_prod=statistics.mean(deployment.ihsan_samples_prod) if deployment.ihsan_samples_prod else 1.0,
-            ihsan_score_shadow=statistics.mean(deployment.ihsan_samples_shadow) if deployment.ihsan_samples_shadow else 1.0,
+            ihsan_score_prod=(
+                statistics.mean(deployment.ihsan_samples_prod)
+                if deployment.ihsan_samples_prod
+                else 1.0
+            ),
+            ihsan_score_shadow=(
+                statistics.mean(deployment.ihsan_samples_shadow)
+                if deployment.ihsan_samples_shadow
+                else 1.0
+            ),
             snr_score_prod=self._get_metric_mean(deployment.production_metrics, "snr"),
             snr_score_shadow=self._get_metric_mean(deployment.shadow_metrics, "snr"),
         )
@@ -1144,11 +1249,17 @@ class ShadowDeployer:
         verdict = self._determine_verdict(comparison_result)
 
         comparison_result.overall_verdict = verdict
-        comparison_result.regression_detected = any(c.is_regression for c in comparisons)
-        comparison_result.improvement_detected = any(c.is_improvement for c in comparisons)
+        comparison_result.regression_detected = any(
+            c.is_regression for c in comparisons
+        )
+        comparison_result.improvement_detected = any(
+            c.is_improvement for c in comparisons
+        )
 
         # FATE validation
-        comparison_result.fate_passed = await self._validate_fate(deployment, comparison_result)
+        comparison_result.fate_passed = await self._validate_fate(
+            deployment, comparison_result
+        )
 
         if not comparison_result.fate_passed:
             verdict = DeploymentVerdict.REJECT
@@ -1156,12 +1267,16 @@ class ShadowDeployer:
         deployment.comparison = comparison_result
         deployment.verdict = verdict
 
-        self._log_audit("evaluate_complete", deployment.deployment_id, {
-            "verdict": verdict.value,
-            "comparisons": len(comparisons),
-            "regression": comparison_result.regression_detected,
-            "improvement": comparison_result.improvement_detected,
-        })
+        self._log_audit(
+            "evaluate_complete",
+            deployment.deployment_id,
+            {
+                "verdict": verdict.value,
+                "comparisons": len(comparisons),
+                "regression": comparison_result.regression_detected,
+                "improvement": comparison_result.improvement_detected,
+            },
+        )
 
         return verdict
 
@@ -1182,11 +1297,17 @@ class ShadowDeployer:
             return DeploymentVerdict.REJECT
 
         # Check for significant regressions
-        regressions = [c for c in comparison.comparisons if c.status == ComparisonStatus.SIGNIFICANT_REGRESSION]
+        regressions = [
+            c
+            for c in comparison.comparisons
+            if c.status == ComparisonStatus.SIGNIFICANT_REGRESSION
+        ]
         if regressions:
             # Check if any critical metrics regressed
             critical_metrics = {"ihsan", "snr", "error_rate"}
-            critical_regressions = [r for r in regressions if r.metric_name in critical_metrics]
+            critical_regressions = [
+                r for r in regressions if r.metric_name in critical_metrics
+            ]
             if critical_regressions:
                 return DeploymentVerdict.REJECT
 
@@ -1196,12 +1317,20 @@ class ShadowDeployer:
                 return DeploymentVerdict.REJECT
 
         # Check for significant improvements
-        improvements = [c for c in comparison.comparisons if c.status == ComparisonStatus.SIGNIFICANT_IMPROVEMENT]
+        improvements = [
+            c
+            for c in comparison.comparisons
+            if c.status == ComparisonStatus.SIGNIFICANT_IMPROVEMENT
+        ]
         if improvements and not regressions:
             return DeploymentVerdict.PROMOTE
 
         # Marginal cases
-        marginal_improvements = [c for c in comparison.comparisons if c.status == ComparisonStatus.MARGINAL_IMPROVEMENT]
+        marginal_improvements = [
+            c
+            for c in comparison.comparisons
+            if c.status == ComparisonStatus.MARGINAL_IMPROVEMENT
+        ]
         if marginal_improvements and not regressions:
             # Need more data or can extend
             return DeploymentVerdict.EXTEND
@@ -1243,7 +1372,9 @@ class ShadowDeployer:
 
         # Ethics (Ihsan): Does it meet ethical threshold?
         if comparison.ihsan_score_shadow < self.ihsan_threshold:
-            logger.warning(f"FATE: Ethics check failed - Ihsan {comparison.ihsan_score_shadow:.4f} < {self.ihsan_threshold}")
+            logger.warning(
+                f"FATE: Ethics check failed - Ihsan {comparison.ihsan_score_shadow:.4f} < {self.ihsan_threshold}"
+            )
             return False
 
         return True
@@ -1259,12 +1390,18 @@ class ShadowDeployer:
             True if promotion succeeded
         """
         if deployment.verdict != DeploymentVerdict.PROMOTE:
-            logger.warning(f"Cannot promote deployment {deployment.deployment_id} with verdict {deployment.verdict}")
+            logger.warning(
+                f"Cannot promote deployment {deployment.deployment_id} with verdict {deployment.verdict}"
+            )
             return False
 
-        self._log_audit("promote_start", deployment.deployment_id, {
-            "hypothesis_id": deployment.hypothesis.id,
-        })
+        self._log_audit(
+            "promote_start",
+            deployment.deployment_id,
+            {
+                "hypothesis_id": deployment.hypothesis.id,
+            },
+        )
 
         try:
             # Apply hypothesis changes to production config
@@ -1273,9 +1410,13 @@ class ShadowDeployer:
 
             self._promoted_count += 1
 
-            self._log_audit("promote_success", deployment.deployment_id, {
-                "changes": deployment.hypothesis.proposed_change,
-            })
+            self._log_audit(
+                "promote_success",
+                deployment.deployment_id,
+                {
+                    "changes": deployment.hypothesis.proposed_change,
+                },
+            )
 
             logger.info(f"Deployment {deployment.deployment_id} promoted to production")
 
@@ -1285,10 +1426,16 @@ class ShadowDeployer:
             return True
 
         except Exception as e:
-            self._log_audit("promote_failed", deployment.deployment_id, {
-                "error": str(e),
-            })
-            logger.error(f"Failed to promote deployment {deployment.deployment_id}: {e}")
+            self._log_audit(
+                "promote_failed",
+                deployment.deployment_id,
+                {
+                    "error": str(e),
+                },
+            )
+            logger.error(
+                f"Failed to promote deployment {deployment.deployment_id}: {e}"
+            )
             return False
 
     async def rollback(self, deployment: ShadowDeployment) -> bool:
@@ -1301,10 +1448,14 @@ class ShadowDeployer:
         Returns:
             True if rollback succeeded
         """
-        self._log_audit("rollback", deployment.deployment_id, {
-            "reason": deployment.kill_switch_reason or "Verdict: reject",
-            "verdict": deployment.verdict.value,
-        })
+        self._log_audit(
+            "rollback",
+            deployment.deployment_id,
+            {
+                "reason": deployment.kill_switch_reason or "Verdict: reject",
+                "verdict": deployment.verdict.value,
+            },
+        )
 
         deployment.verdict = DeploymentVerdict.ROLLBACK
         self._rollback_count += 1
@@ -1353,9 +1504,7 @@ class ShadowDeployer:
     async def start_monitoring(self, interval_seconds: float = 10.0):
         """Start background monitoring of active deployments."""
         self._running = True
-        self._monitor_task = asyncio.create_task(
-            self._monitor_loop(interval_seconds)
-        )
+        self._monitor_task = asyncio.create_task(self._monitor_loop(interval_seconds))
 
     async def stop_monitoring(self):
         """Stop background monitoring."""
@@ -1373,11 +1522,17 @@ class ShadowDeployer:
             for deployment_id, deployment in list(self._deployments.items()):
                 try:
                     # Check for expired deployments
-                    if deployment.is_expired and deployment.verdict == DeploymentVerdict.PENDING:
+                    if (
+                        deployment.is_expired
+                        and deployment.verdict == DeploymentVerdict.PENDING
+                    ):
                         verdict = await self.evaluate(deployment)
                         if verdict == DeploymentVerdict.PROMOTE:
                             await self.promote(deployment)
-                        elif verdict in (DeploymentVerdict.REJECT, DeploymentVerdict.ROLLBACK):
+                        elif verdict in (
+                            DeploymentVerdict.REJECT,
+                            DeploymentVerdict.ROLLBACK,
+                        ):
                             await self.rollback(deployment)
 
                     # Check kill switch conditions
@@ -1433,6 +1588,7 @@ class ShadowDeployer:
 # =============================================================================
 # CANARY DEPLOYMENT SUPPORT
 # =============================================================================
+
 
 class CanaryDeployer(ShadowDeployer):
     """
@@ -1491,12 +1647,18 @@ class CanaryDeployer(ShadowDeployer):
         deployment.sample_rate = new_traffic / 100.0
         self._canary_traffic[deployment.deployment_id] = new_traffic
 
-        self._log_audit("canary_traffic_increase", deployment.deployment_id, {
-            "previous_percent": current,
-            "new_percent": new_traffic,
-        })
+        self._log_audit(
+            "canary_traffic_increase",
+            deployment.deployment_id,
+            {
+                "previous_percent": current,
+                "new_percent": new_traffic,
+            },
+        )
 
-        logger.info(f"Canary {deployment.deployment_id} traffic increased to {new_traffic}%")
+        logger.info(
+            f"Canary {deployment.deployment_id} traffic increased to {new_traffic}%"
+        )
 
         return new_traffic >= 100.0  # Returns True if fully rolled out
 
@@ -1504,6 +1666,7 @@ class CanaryDeployer(ShadowDeployer):
 # =============================================================================
 # UTILITIES
 # =============================================================================
+
 
 class _TokenBucket:
     """Simple token bucket rate limiter."""

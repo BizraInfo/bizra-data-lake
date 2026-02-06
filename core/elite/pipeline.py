@@ -10,20 +10,18 @@ Implements DevOps/GitOps practices with Ihsān principles:
 Standing on Giants: GitOps + SRE + Constitutional AI
 """
 
-import asyncio
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
-import uuid
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.elite.quality_gates import (
-    QualityGate,
-    QualityGateChain,
+    GateLevel,
     GateResult,
     GateStatus,
-    GateLevel,
+    QualityGate,
 )
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -34,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class PipelineStage(str, Enum):
     """CI/CD pipeline stages."""
+
     SOURCE = "source"
     BUILD = "build"
     TEST = "test"
@@ -45,6 +44,7 @@ class PipelineStage(str, Enum):
 
 class PipelineStatus(str, Enum):
     """Pipeline execution status."""
+
     PENDING = "pending"
     RUNNING = "running"
     PASSED = "passed"
@@ -56,6 +56,7 @@ class PipelineStatus(str, Enum):
 @dataclass
 class StageResult:
     """Result of a pipeline stage."""
+
     stage: PipelineStage
     status: PipelineStatus
     duration_ms: float
@@ -79,6 +80,7 @@ class StageResult:
 @dataclass
 class PipelineRun:
     """A complete pipeline execution."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     status: PipelineStatus = PipelineStatus.PENDING
     started_at: Optional[datetime] = None
@@ -99,7 +101,9 @@ class PipelineRun:
             "id": self.id,
             "status": self.status.value,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "duration_ms": self.duration_ms,
             "stages": {k: v.to_dict() for k, v in self.stages.items()},
             "ihsan_score": self.ihsan_score,
@@ -170,16 +174,26 @@ class SourceStageHandler(PipelineStageHandler):
         output["snr_threshold"] = 0.90  # Source layer SNR
 
         # Ihsān dimensions for source (all 8 required)
-        output["ihsan_correctness"] = context.get("ihsan_correctness", context.get("lint_score", 0.95))
-        output["ihsan_safety"] = context.get("ihsan_safety", context.get("security_score", 0.95))
+        output["ihsan_correctness"] = context.get(
+            "ihsan_correctness", context.get("lint_score", 0.95)
+        )
+        output["ihsan_safety"] = context.get(
+            "ihsan_safety", context.get("security_score", 0.95)
+        )
         output["ihsan_user_benefit"] = context.get("ihsan_user_benefit", 0.95)
         output["ihsan_efficiency"] = context.get("ihsan_efficiency", 0.95)
-        output["ihsan_auditability"] = context.get("ihsan_auditability", context.get("documentation_score", 0.85))
-        output["ihsan_anti_centralization"] = context.get("ihsan_anti_centralization", 0.95)
+        output["ihsan_auditability"] = context.get(
+            "ihsan_auditability", context.get("documentation_score", 0.85)
+        )
+        output["ihsan_anti_centralization"] = context.get(
+            "ihsan_anti_centralization", 0.95
+        )
         output["ihsan_robustness"] = context.get("ihsan_robustness", 0.95)
         output["ihsan_adl_justice"] = context.get("ihsan_adl_justice", 0.95)
 
-        logs.append(f"Source analysis complete. Coverage: {output['code_coverage']:.2%}")
+        logs.append(
+            f"Source analysis complete. Coverage: {output['code_coverage']:.2%}"
+        )
 
         return output, logs
 
@@ -243,7 +257,9 @@ class TestStageHandler(PipelineStageHandler):
         output["ihsan_correctness"] = output["test_success_rate"]
         output["ihsan_robustness"] = context.get("edge_case_coverage", 0.85)
 
-        logs.append(f"Tests: {tests_passed}/{tests_total} passed ({output['test_success_rate']:.2%})")
+        logs.append(
+            f"Tests: {tests_passed}/{tests_total} passed ({output['test_success_rate']:.2%})"
+        )
 
         return output, logs
 
@@ -282,10 +298,16 @@ class SecurityStageHandler(PipelineStageHandler):
         output["snr_threshold"] = 0.99  # Knowledge layer SNR
 
         # Ihsān safety dimension
-        total_vulns = output["critical_vulns"] + output["high_vulns"] + output["medium_vulns"]
-        output["ihsan_safety"] = 1.0 if total_vulns == 0 else max(0, 1.0 - total_vulns * 0.1)
+        total_vulns = (
+            output["critical_vulns"] + output["high_vulns"] + output["medium_vulns"]
+        )
+        output["ihsan_safety"] = (
+            1.0 if total_vulns == 0 else max(0, 1.0 - total_vulns * 0.1)
+        )
 
-        logs.append(f"Security scan: {output['critical_vulns']} critical, {output['high_vulns']} high, {output['medium_vulns']} medium")
+        logs.append(
+            f"Security scan: {output['critical_vulns']} critical, {output['high_vulns']} high, {output['medium_vulns']} medium"
+        )
 
         return output, logs
 
@@ -323,7 +345,9 @@ class QualityStageHandler(PipelineStageHandler):
         ]
         output["ihsan_overall"] = sum(ihsan_scores) / len(ihsan_scores)
 
-        logs.append(f"Quality score: {output['code_quality_score']:.2%}, Ihsān: {output['ihsan_overall']:.2%}")
+        logs.append(
+            f"Quality score: {output['code_quality_score']:.2%}, Ihsān: {output['ihsan_overall']:.2%}"
+        )
 
         return output, logs
 
@@ -391,6 +415,7 @@ class ElitePipeline:
             )
 
         import time
+
         start = time.time()
 
         try:
@@ -403,7 +428,8 @@ class ElitePipeline:
             duration = (time.time() - start) * 1000
 
             status = (
-                PipelineStatus.PASSED if gate_result.status == GateStatus.PASSED
+                PipelineStatus.PASSED
+                if gate_result.status == GateStatus.PASSED
                 else PipelineStatus.FAILED
             )
 
@@ -506,8 +532,12 @@ class ElitePipeline:
     def get_stats(self) -> Dict[str, Any]:
         """Get pipeline statistics."""
         total = len(self._runs)
-        passed = sum(1 for r in self._runs.values() if r.status == PipelineStatus.PASSED)
-        failed = sum(1 for r in self._runs.values() if r.status == PipelineStatus.FAILED)
+        passed = sum(
+            1 for r in self._runs.values() if r.status == PipelineStatus.PASSED
+        )
+        failed = sum(
+            1 for r in self._runs.values() if r.status == PipelineStatus.FAILED
+        )
 
         avg_ihsan = 0.0
         avg_snr = 0.0

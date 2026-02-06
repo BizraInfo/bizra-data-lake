@@ -25,7 +25,6 @@ Principle: "Security violations escalate. Other errors self-heal."
 import asyncio
 import logging
 import re
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -36,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 class RecoveryAction(str, Enum):
     """Recovery actions for self-healing."""
+
     RETRY = "retry"
     REINSTALL_DEP = "reinstall_dep"
     ROLLBACK = "rollback"
@@ -46,6 +46,7 @@ class RecoveryAction(str, Enum):
 
 class ErrorSeverity(str, Enum):
     """Error severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -56,18 +57,22 @@ class ErrorSeverity(str, Enum):
 @dataclass
 class ErrorContext:
     """Context about an error occurrence."""
+
     error_type: str
     message: str
     source: str  # file:line or module
     stack_trace: Optional[str] = None
     tool_name: Optional[str] = None
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class RecoveryResult:
     """Result of a recovery attempt."""
+
     action: RecoveryAction
     success: bool
     message: str
@@ -101,7 +106,6 @@ ERROR_RECOVERY_MAP: Dict[str, Dict[str, Any]] = {
         "severity": ErrorSeverity.MEDIUM,
         "max_retries": 2,
     },
-
     # Connection errors
     r"ConnectionRefusedError": {
         "action": RecoveryAction.RETRY,
@@ -119,14 +123,12 @@ ERROR_RECOVERY_MAP: Dict[str, Dict[str, Any]] = {
         "severity": ErrorSeverity.LOW,
         "max_retries": 3,
     },
-
     # Service errors
     r"ServiceUnavailable": {
         "action": RecoveryAction.RESTART_SERVICE,
         "severity": ErrorSeverity.HIGH,
         "max_retries": 1,
     },
-
     # File system errors
     r"FileNotFoundError": {
         "action": RecoveryAction.ESCALATE,
@@ -138,14 +140,12 @@ ERROR_RECOVERY_MAP: Dict[str, Dict[str, Any]] = {
         "severity": ErrorSeverity.HIGH,
         "max_retries": 0,
     },
-
     # Transient errors
     r"OSError.*Temporary failure": {
         "action": RecoveryAction.RETRY,
         "severity": ErrorSeverity.LOW,
         "max_retries": 3,
     },
-
     # Out of resources
     r"MemoryError": {
         "action": RecoveryAction.RESTART_SERVICE,
@@ -165,7 +165,9 @@ class SelfHealingEngine:
 
     def __init__(
         self,
-        guardian_validator: Optional[Callable[[RecoveryAction, ErrorContext], bool]] = None,
+        guardian_validator: Optional[
+            Callable[[RecoveryAction, ErrorContext], bool]
+        ] = None,
         max_consecutive_failures: int = 5,
     ):
         self.guardian_validator = guardian_validator
@@ -204,7 +206,9 @@ class SelfHealingEngine:
 
         # Match against known error patterns
         for pattern, strategy in ERROR_RECOVERY_MAP.items():
-            if re.search(pattern, error.message) or re.search(pattern, error.error_type):
+            if re.search(pattern, error.message) or re.search(
+                pattern, error.error_type
+            ):
                 return dict(strategy)
 
         # Unknown errors escalate by default
@@ -226,7 +230,9 @@ class SelfHealingEngine:
         # Check for consecutive failure limit
         self._consecutive_failures += 1
         if self._consecutive_failures >= self.max_consecutive_failures:
-            logger.error(f"Max consecutive failures ({self.max_consecutive_failures}) reached - escalating")
+            logger.error(
+                f"Max consecutive failures ({self.max_consecutive_failures}) reached - escalating"
+            )
             return RecoveryResult(
                 action=RecoveryAction.ESCALATE,
                 success=False,
@@ -240,7 +246,9 @@ class SelfHealingEngine:
         max_retries = strategy.get("max_retries", 0)
 
         # Log the error
-        logger.warning(f"[{severity.value.upper()}] {error.error_type}: {error.message}")
+        logger.warning(
+            f"[{severity.value.upper()}] {error.error_type}: {error.message}"
+        )
 
         # Check retry count
         error_key = f"{error.error_type}:{error.source}"
@@ -283,10 +291,7 @@ class SelfHealingEngine:
         return result
 
     async def _execute_recovery(
-        self,
-        action: RecoveryAction,
-        error: ErrorContext,
-        strategy: Dict[str, Any]
+        self, action: RecoveryAction, error: ErrorContext, strategy: Dict[str, Any]
     ) -> RecoveryResult:
         """Execute a recovery action."""
 
@@ -318,7 +323,7 @@ class SelfHealingEngine:
         error_key = f"{error.error_type}:{error.source}"
         current_retry = self._retry_counts.get(error_key, 1)
 
-        wait_time = backoff_base ** current_retry
+        wait_time = backoff_base**current_retry
         logger.info(f"Retry {current_retry}/{max_retries} - waiting {wait_time:.1f}s")
 
         await asyncio.sleep(wait_time)
@@ -441,7 +446,7 @@ if __name__ == "__main__":
             error_type="SANDBOX_VIOLATION",
             message="Refusing execution: BIZRA_SANDBOX not set",
             source="sandbox/inference_worker.py:487",
-            metadata={"code": "SANDBOX_VIOLATION", "fatal": True}
+            metadata={"code": "SANDBOX_VIOLATION", "fatal": True},
         )
         result1 = await engine.handle_error(error1)
         print(f"  Action: {result1.action.value}")

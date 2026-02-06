@@ -11,18 +11,19 @@ and include expiration dates.
 import hashlib
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 # Try to import cryptography for Ed25519 signatures
 try:
+    from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (
         Ed25519PrivateKey,
         Ed25519PublicKey,
     )
-    from cryptography.hazmat.primitives import serialization
+
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -43,13 +44,15 @@ CARD_VALIDITY_DAYS = 90
 
 class ModelTier(Enum):
     """Model capability tiers."""
-    EDGE = "EDGE"      # 0.5B-1.5B, CPU-capable
-    LOCAL = "LOCAL"    # 7B-13B, GPU-recommended
-    POOL = "POOL"      # 70B+, federation-capable
+
+    EDGE = "EDGE"  # 0.5B-1.5B, CPU-capable
+    LOCAL = "LOCAL"  # 7B-13B, GPU-recommended
+    POOL = "POOL"  # 70B+, federation-capable
 
 
 class TaskType(Enum):
     """Supported task types."""
+
     REASONING = "reasoning"
     CHAT = "chat"
     SUMMARIZATION = "summarization"
@@ -62,6 +65,7 @@ class TaskType(Enum):
 @dataclass
 class ModelCapabilities:
     """Validated capabilities from challenge."""
+
     max_context: int
     ihsan_score: float
     snr_score: float
@@ -77,6 +81,7 @@ class CapabilityCard:
     Every model that passes the Constitution Challenge receives a
     CapabilityCard certifying its capabilities.
     """
+
     model_id: str
     model_name: str
     parameter_count: Optional[int]
@@ -101,14 +106,16 @@ class CapabilityCard:
 
     def canonical_bytes(self) -> bytes:
         """Get canonical bytes for signing."""
-        data = "|".join([
-            self.model_id,
-            self.tier.value,
-            str(self.capabilities.ihsan_score),
-            str(self.capabilities.snr_score),
-            self.issued_at,
-            self.expires_at,
-        ])
+        data = "|".join(
+            [
+                self.model_id,
+                self.tier.value,
+                str(self.capabilities.ihsan_score),
+                str(self.capabilities.snr_score),
+                self.issued_at,
+                self.expires_at,
+            ]
+        )
         return data.encode("utf-8")
 
     def is_valid(self) -> tuple[bool, Optional[str]]:
@@ -250,13 +257,9 @@ def create_capability_card(
         ValueError: If scores don't meet thresholds
     """
     if ihsan_score < IHSAN_THRESHOLD:
-        raise ValueError(
-            f"Ihsān score {ihsan_score} < threshold {IHSAN_THRESHOLD}"
-        )
+        raise ValueError(f"Ihsān score {ihsan_score} < threshold {IHSAN_THRESHOLD}")
     if snr_score < SNR_THRESHOLD:
-        raise ValueError(
-            f"SNR score {snr_score} < threshold {SNR_THRESHOLD}"
-        )
+        raise ValueError(f"SNR score {snr_score} < threshold {SNR_THRESHOLD}")
 
     capabilities = ModelCapabilities(
         max_context=max_context,
@@ -306,9 +309,9 @@ class CardIssuer:
             self._public_key = self._private_key.public_key()
         else:
             # Simulation mode - use hash-based pseudo-signatures
-            self._sim_secret = private_key_bytes or hashlib.sha256(
-                str(time.time()).encode()
-            ).digest()
+            self._sim_secret = (
+                private_key_bytes or hashlib.sha256(str(time.time()).encode()).digest()
+            )
 
     def public_key_hex(self) -> str:
         """Get the issuer's public key as hex string."""
@@ -366,6 +369,7 @@ class CardIssuer:
             # SECURITY: Simulation mode ONLY allowed in development/testing
             # Production environments MUST set BIZRA_ENV=production to disable
             import os
+
             if os.environ.get("BIZRA_ENV", "development").lower() == "production":
                 # Reject simulation signatures in production
                 return False
@@ -414,6 +418,7 @@ def verify_capability_card(card: CapabilityCard) -> Dict[str, Any]:
             if card.signature.startswith("sim:"):
                 # Allow simulation signatures only outside production
                 import os
+
                 if os.environ.get("BIZRA_ENV", "development").lower() != "production":
                     signature_valid = True
             else:

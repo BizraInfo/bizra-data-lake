@@ -25,7 +25,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional
 
 # Try aiohttp, fallback to httpx or basic urllib
 _AIOHTTP_AVAILABLE = False
@@ -33,10 +33,12 @@ _HTTPX_AVAILABLE = False
 
 try:
     import aiohttp
+
     _AIOHTTP_AVAILABLE = True
 except ImportError:
     try:
         import httpx
+
         _HTTPX_AVAILABLE = True
     except ImportError:
         pass
@@ -48,8 +50,10 @@ logger = logging.getLogger(__name__)
 # RUST SERVICE STATUS
 # =============================================================================
 
+
 class RustServiceStatus(Enum):
     """Status of Rust services."""
+
     UNKNOWN = auto()
     STARTING = auto()
     HEALTHY = auto()
@@ -61,6 +65,7 @@ class RustServiceStatus(Enum):
 @dataclass
 class RustServiceHealth:
     """Health information for a Rust service."""
+
     service: str
     status: RustServiceStatus
     version: Optional[str] = None
@@ -76,6 +81,7 @@ class RustServiceHealth:
 # =============================================================================
 # RUST API CLIENT
 # =============================================================================
+
 
 class RustAPIClient:
     """
@@ -124,7 +130,7 @@ class RustAPIClient:
                 )
                 self._session = aiohttp.ClientSession(
                     connector=self._connector,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
                 )
             return self._session
         elif self._client_type == "httpx":
@@ -172,15 +178,18 @@ class RustAPIClient:
             return resp.status_code, None
         else:
             # Sync fallback using urllib
-            import urllib.request
             import json
+            import urllib.request
+
             try:
                 with urllib.request.urlopen(url, timeout=self.timeout) as resp:
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
                 return 0, None
 
-    async def _post(self, path: str, json_data: Dict[str, Any], timeout: Optional[float] = None) -> tuple[int, Optional[Dict[str, Any]]]:
+    async def _post(
+        self, path: str, json_data: Dict[str, Any], timeout: Optional[float] = None
+    ) -> tuple[int, Optional[Dict[str, Any]]]:
         """Make POST request."""
         url = f"{self.base_url}{path}"
         actual_timeout = timeout or self.timeout
@@ -203,8 +212,9 @@ class RustAPIClient:
             return resp.status_code, None
         else:
             # Sync fallback using urllib
-            import urllib.request
             import json
+            import urllib.request
+
             try:
                 req = urllib.request.Request(
                     url,
@@ -322,6 +332,7 @@ class RustAPIClient:
 # RUST PROCESS MANAGER
 # =============================================================================
 
+
 class RustProcessManager:
     """
     Manages Rust service processes.
@@ -385,8 +396,10 @@ class RustProcessManager:
             self._process = subprocess.Popen(
                 [
                     binary_path,
-                    "--port", str(self.api_port),
-                    "--host", "0.0.0.0",
+                    "--port",
+                    str(self.api_port),
+                    "--host",
+                    "0.0.0.0",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -443,6 +456,7 @@ class RustProcessManager:
 # RUST LIFECYCLE MANAGER
 # =============================================================================
 
+
 class RustLifecycleManager:
     """
     Manages the complete Rust integration lifecycle.
@@ -491,6 +505,7 @@ class RustLifecycleManager:
         try:
             # Try installed package first
             import bizra
+
             self._pyo3_module = bizra
             self._pyo3_available = True
             logger.info("PyO3 bindings loaded (10-100x faster crypto)")
@@ -498,9 +513,10 @@ class RustLifecycleManager:
             # Try from rust_bridge fallback
             try:
                 from core.sovereign.rust_bridge import (
-                    is_rust_available,
                     _rust_bizra,
+                    is_rust_available,
                 )
+
                 if is_rust_available():
                     self._pyo3_module = _rust_bizra
                     self._pyo3_available = True
@@ -587,7 +603,9 @@ class RustLifecycleManager:
 
             await asyncio.sleep(self.health_check_interval)
 
-    def set_health_callback(self, callback: Callable[[RustServiceHealth], None]) -> None:
+    def set_health_callback(
+        self, callback: Callable[[RustServiceHealth], None]
+    ) -> None:
         """Set callback for health status changes."""
         self._on_health_change = callback
 
@@ -615,6 +633,7 @@ class RustLifecycleManager:
         """Compute domain-separated digest using PyO3 (20x faster)."""
         if not self._pyo3_available:
             import hashlib
+
             return hashlib.blake2b(b"bizra-pci-v1:" + message).hexdigest()
 
         return self._pyo3_module.domain_separated_digest(message)
@@ -653,9 +672,7 @@ class RustLifecycleManager:
         tier: str = "local",
     ) -> Dict[str, Any]:
         """Generate inference via REST API."""
-        return await self._api_client.inference_generate(
-            prompt, system_prompt, tier
-        )
+        return await self._api_client.inference_generate(prompt, system_prompt, tier)
 
     async def api_federation_status(self) -> Dict[str, Any]:
         """Get federation status via REST API."""
@@ -673,7 +690,9 @@ class RustLifecycleManager:
             "api_port": self.api_port,
             "process_running": self._process_manager.is_running(),
             "process_uptime": self._process_manager.uptime(),
-            "last_health": self._last_health.status.name if self._last_health else "UNKNOWN",
+            "last_health": (
+                self._last_health.status.name if self._last_health else "UNKNOWN"
+            ),
             "running": self._running,
         }
 
@@ -681,6 +700,7 @@ class RustLifecycleManager:
 # =============================================================================
 # FACTORY FUNCTION
 # =============================================================================
+
 
 async def create_rust_lifecycle(
     api_port: int = 3001,
@@ -719,6 +739,7 @@ RustLifecycle = RustLifecycleManager
 # =============================================================================
 # INTEGRATION WITH OPPORTUNITY PIPELINE
 # =============================================================================
+
 
 def create_rust_gate_filter(
     lifecycle: RustLifecycleManager,
@@ -762,8 +783,7 @@ def create_rust_gate_filter(
                 )
                 if result.get("error"):
                     return FilterResult(
-                        passed=False,
-                        reason=f"Rust API error: {result['error']}"
+                        passed=False, reason=f"Rust API error: {result['error']}"
                     )
                 return FilterResult(
                     passed=result.get("passed", False),
@@ -772,8 +792,7 @@ def create_rust_gate_filter(
 
             # Python fallback
             return FilterResult(
-                passed=True,
-                reason="Rust unavailable, skipping accelerated check"
+                passed=True, reason="Rust unavailable, skipping accelerated check"
             )
 
     return RustGateFilter(lifecycle)

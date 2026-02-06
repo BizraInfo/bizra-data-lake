@@ -12,7 +12,6 @@ The iterative feedback system that drives the manifold toward singularity:
 The loop continues until H(residual) → 0
 """
 
-import asyncio
 import logging
 import time
 import uuid
@@ -21,15 +20,15 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from core.uers import CONVERGENCE_STATES, PROOF_OF_IMPACT
-from core.uers.entropy import EntropyCalculator, ManifoldState
-from core.uers.vectors import AnalyticalManifold, VectorType, Probe, ProbeResult
+from core.uers.entropy import EntropyCalculator
+from core.uers.vectors import AnalyticalManifold, Probe, ProbeResult, VectorType
 
 logger = logging.getLogger(__name__)
 
 
 class LoopStage(str, Enum):
     """Stages of the convergence loop."""
+
     INGESTION = "ingestion"
     HYPOTHESIS = "hypothesis"
     PROBING = "probing"
@@ -40,6 +39,7 @@ class LoopStage(str, Enum):
 
 class ConvergenceState(str, Enum):
     """State of the convergence process."""
+
     INITIALIZING = "initializing"
     RUNNING = "running"
     CONVERGING = "converging"
@@ -52,6 +52,7 @@ class ConvergenceState(str, Enum):
 @dataclass
 class Hypothesis:
     """A hypothesis about the target system."""
+
     id: str
     description: str
     source_vector: VectorType
@@ -79,6 +80,7 @@ class Hypothesis:
 @dataclass
 class LoopIteration:
     """Record of a single loop iteration."""
+
     iteration: int
     stage: LoopStage
     entropy_before: float
@@ -111,6 +113,7 @@ class LoopIteration:
 @dataclass
 class ConvergenceResult:
     """Complete result of a convergence run."""
+
     id: str
     initial_entropy: float
     final_entropy: float
@@ -263,7 +266,8 @@ class ConvergenceLoop:
                 description=f"Probe {source.value}→{target.value} via {operation}",
                 source_vector=source,
                 target_vector=target,
-                confidence=1 - source_entropy,  # Higher confidence if source is resolved
+                confidence=1
+                - source_entropy,  # Higher confidence if source is resolved
                 predicted_delta_e=predicted_delta_e,
                 probe_operations=[operation],
             )
@@ -409,7 +413,7 @@ class ConvergenceLoop:
             probes, delta_e = await self._execute_probes(hypotheses)
 
             # Evaluate results
-            productive = await self._evaluate(hypotheses, probes, delta_e)
+            await self._evaluate(hypotheses, probes, delta_e)
 
             entropy_after = self._manifold.get_average_entropy()
 
@@ -512,9 +516,12 @@ class ConvergenceLoop:
             "singularities_achieved": sum(
                 1 for r in self._results if r.singularity_achieved
             ),
-            "avg_delta_e": sum(r.total_delta_e for r in self._results) / len(self._results),
-            "avg_iterations": sum(r.iterations for r in self._results) / len(self._results),
-            "avg_efficiency": sum(r.efficiency for r in self._results) / len(self._results),
+            "avg_delta_e": sum(r.total_delta_e for r in self._results)
+            / len(self._results),
+            "avg_iterations": sum(r.iterations for r in self._results)
+            / len(self._results),
+            "avg_efficiency": sum(r.efficiency for r in self._results)
+            / len(self._results),
             "current_state": self._state.value,
             "current_entropy": self.get_current_entropy(),
         }

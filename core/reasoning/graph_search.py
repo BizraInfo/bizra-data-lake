@@ -18,10 +18,10 @@ import logging
 from typing import Dict, List, Optional
 
 from .graph_types import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
     ReasoningPath,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,9 @@ class GraphSearchMixin:
         # Priority = negative SNR (for max-heap behavior)
         pq = [(-self.nodes[start_id].snr_score, [start_id])]
         visited = set()
-        best_path = ReasoningPath(nodes=[start_id], total_snr=self.nodes[start_id].snr_score)
+        best_path = ReasoningPath(
+            nodes=[start_id], total_snr=self.nodes[start_id].snr_score
+        )
 
         while pq:
             neg_snr, path = heapq.heappop(pq)
@@ -95,9 +97,9 @@ class GraphSearchMixin:
     def get_conclusions(self, min_snr: float = 0.7) -> List[ThoughtNode]:
         """Get all conclusion nodes above SNR threshold."""
         return [
-            node for node in self.nodes.values()
-            if node.thought_type == ThoughtType.CONCLUSION
-            and node.snr_score >= min_snr
+            node
+            for node in self.nodes.values()
+            if node.thought_type == ThoughtType.CONCLUSION and node.snr_score >= min_snr
         ]
 
     def get_frontier(self) -> List[ThoughtNode]:
@@ -105,7 +107,8 @@ class GraphSearchMixin:
         # Find nodes that have no outgoing edges (no children)
         parent_ids = set(self.adjacency.keys())
         leaf_ids = [
-            node_id for node_id in self.nodes.keys()
+            node_id
+            for node_id in self.nodes.keys()
             if node_id not in parent_ids or not self.adjacency[node_id]
         ]
         return [self.nodes[nid] for nid in leaf_ids if nid in self.nodes]
@@ -140,7 +143,8 @@ class GraphSearchMixin:
         # - Not VALIDATION (already checked)
         # - Has no children (is a true leaf, not just low-connectivity)
         unexplored = [
-            node for node in frontier
+            node
+            for node in frontier
             if node.thought_type not in (ThoughtType.CONCLUSION, ThoughtType.VALIDATION)
             and len(self.adjacency.get(node.id, [])) == 0
         ]
@@ -182,7 +186,9 @@ class GraphSearchMixin:
             conclusions = self.get_conclusions(min_snr=target_snr)
             if conclusions:
                 best = max(conclusions, key=lambda n: n.snr_score)
-                logger.info(f"Exploration succeeded at iteration {i+1}: SNR={best.snr_score:.3f}")
+                logger.info(
+                    f"Exploration succeeded at iteration {i+1}: SNR={best.snr_score:.3f}"
+                )
                 return best
 
             # No good conclusion yet - backtrack and continue
@@ -193,7 +199,9 @@ class GraphSearchMixin:
 
             # The caller should use backtrack_node to generate new thoughts
             # This method just identifies the node to explore from
-            logger.debug(f"Iteration {i+1}: backtracking to explore from {backtrack_node.id}")
+            logger.debug(
+                f"Iteration {i+1}: backtracking to explore from {backtrack_node.id}"
+            )
 
         # Return best available conclusion even if below threshold
         conclusions = self.get_conclusions(min_snr=0.0)

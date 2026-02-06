@@ -35,12 +35,12 @@ PROOF_ENGINE_VERSION = "1.0.0"
 
 # The 6 Gates
 GATE_CHAIN = [
-    "schema",      # Input validation
+    "schema",  # Input validation
     "provenance",  # Source verification
-    "snr",         # Signal-to-noise gate
+    "snr",  # Signal-to-noise gate
     "constraint",  # Z3 + Ihsān constraints
-    "safety",      # Constitutional safety check
-    "commit",      # Final commit gate
+    "safety",  # Constitutional safety check
+    "commit",  # Final commit gate
 ]
 
 # The 9 KPIs
@@ -76,70 +76,89 @@ DEFAULT_SNR_POLICY = {
 
 # Lazy imports
 if TYPE_CHECKING:
-    from .canonical import CanonQuery, canonical_json
-    from .snr import SNREngine, SNRTrace, SNRPolicy
-    from .receipt import Receipt, ReceiptStatus, SovereignSigner
     from .bench import BenchReceipt, bench_to_receipt
+    from .canonical import CanonQuery, canonical_json
     from .gates import GateChain, GateResult
+    from .receipt import Receipt, ReceiptStatus, SovereignSigner
+    from .snr import SNREngine, SNRPolicy, SNRTrace
 
 
 def __getattr__(name: str):
     if name == "CanonQuery":
         from .canonical import CanonQuery
+
         return CanonQuery
     elif name == "CanonPolicy":
         from .canonical import CanonPolicy
+
         return CanonPolicy
     elif name == "canonical_bytes":
         from .canonical import canonical_bytes
+
         return canonical_bytes
     elif name == "blake3_digest":
         from .canonical import blake3_digest
+
         return blake3_digest
     elif name == "SNREngine":
         from .snr import SNREngine
+
         return SNREngine
     elif name == "SNRPolicy":
         from .snr import SNRPolicy
+
         return SNRPolicy
     elif name == "SNRTrace":
         from .snr import SNRTrace
+
         return SNRTrace
     elif name == "SNRInput":
         from .snr import SNRInput
+
         return SNRInput
     elif name == "Receipt":
         from .receipt import Receipt
+
         return Receipt
     elif name == "ReceiptStatus":
         from .receipt import ReceiptStatus
+
         return ReceiptStatus
     elif name == "ReceiptBuilder":
         from .receipt import ReceiptBuilder
+
         return ReceiptBuilder
     elif name == "SimpleSigner":
         from .receipt import SimpleSigner
+
         return SimpleSigner
     elif name == "GateChain":
         from .gates import GateChain
+
         return GateChain
     elif name == "GateResult":
         from .gates import GateResult
+
         return GateResult
     elif name == "GateChainResult":
         from .gates import GateChainResult
+
         return GateChainResult
     elif name == "BenchReceipt":
         from .bench import BenchReceipt
+
         return BenchReceipt
     elif name == "BenchHarness":
         from .bench import BenchHarness
+
         return BenchHarness
     elif name == "BenchResult":
         from .bench import BenchResult
+
         return BenchResult
     elif name == "bench_to_receipt":
         from .bench import bench_to_receipt
+
         return bench_to_receipt
     raise AttributeError(f"module 'core.proof_engine' has no attribute '{name}'")
 

@@ -15,26 +15,26 @@ Genesis Strict Synthesis v2.2.2
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 from enum import Enum
-import math
+from typing import Any, Callable, Dict, List, Optional
 
+from core.autopoiesis import (
+    FITNESS_EFFICIENCY_WEIGHT,
+    FITNESS_IHSAN_WEIGHT,
+    FITNESS_NOVELTY_WEIGHT,
+    FITNESS_SNR_WEIGHT,
+)
+from core.autopoiesis.genome import AgentGenome
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-from core.autopoiesis import (
-    FITNESS_IHSAN_WEIGHT,
-    FITNESS_SNR_WEIGHT,
-    FITNESS_NOVELTY_WEIGHT,
-    FITNESS_EFFICIENCY_WEIGHT,
-)
-from core.autopoiesis.genome import AgentGenome
 
 
 class FitnessComponent(Enum):
     """Components of the fitness function."""
+
     IHSAN = "ihsan"
     SNR = "snr"
     NOVELTY = "novelty"
@@ -46,6 +46,7 @@ class FitnessComponent(Enum):
 @dataclass
 class FitnessResult:
     """Result of fitness evaluation."""
+
     genome_id: str
     overall_fitness: float
     component_scores: Dict[FitnessComponent, float]
@@ -70,6 +71,7 @@ class FitnessResult:
 @dataclass
 class EvaluationContext:
     """Context for fitness evaluation."""
+
     task_history: List[Dict[str, Any]] = field(default_factory=list)
     peer_genomes: List[AgentGenome] = field(default_factory=list)
     environment_metrics: Dict[str, float] = field(default_factory=dict)
@@ -126,8 +128,12 @@ class FitnessEvaluator:
         # Evaluate each component
         component_scores[FitnessComponent.IHSAN] = self._evaluate_ihsan(genome, context)
         component_scores[FitnessComponent.SNR] = self._evaluate_snr(genome, context)
-        component_scores[FitnessComponent.NOVELTY] = self._evaluate_novelty(genome, context)
-        component_scores[FitnessComponent.EFFICIENCY] = self._evaluate_efficiency(genome, context)
+        component_scores[FitnessComponent.NOVELTY] = self._evaluate_novelty(
+            genome, context
+        )
+        component_scores[FitnessComponent.EFFICIENCY] = self._evaluate_efficiency(
+            genome, context
+        )
 
         # Task success (if evaluator provided)
         if self.task_evaluator and context.task_history:
@@ -175,8 +181,7 @@ class FitnessEvaluator:
         # Adjust based on task history
         if context.task_history:
             recent_scores = [
-                t.get("ihsan_score", 0.95)
-                for t in context.task_history[-10:]
+                t.get("ihsan_score", 0.95) for t in context.task_history[-10:]
             ]
             if recent_scores:
                 base_score = (base_score + sum(recent_scores) / len(recent_scores)) / 2
@@ -298,8 +303,7 @@ class FitnessEvaluator:
         for component in FitnessComponent:
             # Sort by this component
             sorted_by_comp = sorted(
-                results,
-                key=lambda r: r.component_scores.get(component, 0)
+                results, key=lambda r: r.component_scores.get(component, 0)
             )
 
             # Boundary points get infinite distance
@@ -346,13 +350,12 @@ class SelectionPressure:
 
         if not compliant:
             # Emergency: relax constraint if no compliant individuals
-            compliant = results[:max(1, len(results) // 2)]
+            compliant = results[: max(1, len(results) // 2)]
 
         for _ in range(n_select):
             # Random tournament
             tournament = random.sample(
-                compliant,
-                min(self.tournament_size, len(compliant))
+                compliant, min(self.tournament_size, len(compliant))
             )
 
             # Select best from tournament
@@ -375,9 +378,7 @@ class SelectionPressure:
 
         # Sort by fitness and take top n
         sorted_results = sorted(
-            compliant,
-            key=lambda r: r.overall_fitness,
-            reverse=True
+            compliant, key=lambda r: r.overall_fitness, reverse=True
         )
 
         return sorted_results[:n_elite]
@@ -396,9 +397,7 @@ class SelectionPressure:
 
         # Sort by crowding distance (higher = more diverse)
         sorted_results = sorted(
-            compliant,
-            key=lambda r: r.crowding_distance,
-            reverse=True
+            compliant, key=lambda r: r.crowding_distance, reverse=True
         )
 
         return sorted_results[:n_select]

@@ -17,10 +17,10 @@ fn main() -> anyhow::Result<()> {
         cpu: "Intel i9-14900HX".to_string(),
         cpu_cores: 24,
         gpu: "NVIDIA RTX 4090 (MSI Titan GT77 HX)".to_string(),
-        gpu_vram: 16 * 1024 * 1024 * 1024, // 16 GB
-        ram: 128 * 1024 * 1024 * 1024,     // 128 GB
+        gpu_vram: 16 * 1024 * 1024 * 1024,      // 16 GB
+        ram: 128 * 1024 * 1024 * 1024,          // 128 GB
         storage: 4 * 1024 * 1024 * 1024 * 1024, // 4 TB
-        network_bps: 1000 * 1024 * 1024,   // 1 Gbps
+        network_bps: 1000 * 1024 * 1024,        // 1 Gbps
         compute_units_per_day: 100_000,
     };
 
@@ -45,12 +45,7 @@ fn main() -> anyhow::Result<()> {
 
     // Execute the Genesis ceremony
     let mut engine = GenesisEngine::new();
-    let genesis = engine.execute_genesis(
-        "MoMo (محمد)",
-        "Dubai, UAE (GMT+4)",
-        hardware,
-        knowledge,
-    );
+    let genesis = engine.execute_genesis("MoMo (محمد)", "Dubai, UAE (GMT+4)", hardware, knowledge);
 
     // Save the genesis record
     let genesis_json = serde_json::to_string_pretty(&genesis)?;
@@ -68,11 +63,14 @@ fn main() -> anyhow::Result<()> {
 
     // Write genesis hash for quick verification
     let hash_path = state_dir.join("genesis_hash.txt");
-    fs::write(&hash_path, hex::encode(&genesis.genesis_hash))?;
+    fs::write(&hash_path, hex::encode(genesis.genesis_hash))?;
     println!("✓ Genesis hash saved to: {}", hash_path.display());
 
     // Write PAT team roster
-    let pat_roster = genesis.pat_team.agents.iter()
+    let pat_roster = genesis
+        .pat_team
+        .agents
+        .iter()
         .map(|a| format!("{}: {} ({})", a.role, a.agent_id, &a.public_key[..16]))
         .collect::<Vec<_>>()
         .join("\n");
@@ -81,7 +79,10 @@ fn main() -> anyhow::Result<()> {
     println!("✓ PAT roster saved to: {}", pat_path.display());
 
     // Write SAT team roster
-    let sat_roster = genesis.sat_team.agents.iter()
+    let sat_roster = genesis
+        .sat_team
+        .agents
+        .iter()
         .map(|a| format!("{}: {} ({})", a.role, a.agent_id, &a.public_key[..16]))
         .collect::<Vec<_>>()
         .join("\n");
@@ -94,7 +95,7 @@ fn main() -> anyhow::Result<()> {
     println!("                    NODE0 IS NOW LIVE");
     println!("═══════════════════════════════════════════════════════════════════");
     println!();
-    println!("  Genesis Hash: {}", hex::encode(&genesis.genesis_hash));
+    println!("  Genesis Hash: {}", hex::encode(genesis.genesis_hash));
     println!("  Node ID: {}", genesis.identity.node_id);
     println!("  Timestamp: {}", genesis.timestamp);
     println!();

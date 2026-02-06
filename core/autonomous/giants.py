@@ -12,20 +12,21 @@ This module implements formal attribution and methodology inheritance,
 ensuring every reasoning step can trace its intellectual provenance.
 """
 
+import hashlib
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
-import hashlib
+from typing import Any, Callable, Dict, List, Optional
 
-from core.autonomous import GIANTS_PROTOCOL, CONSTITUTIONAL_CONSTRAINTS
+from core.autonomous import CONSTITUTIONAL_CONSTRAINTS, GIANTS_PROTOCOL
 
 logger = logging.getLogger(__name__)
 
 
 class Giant(str, Enum):
     """The giants upon whose shoulders we stand."""
+
     SHANNON = "shannon"
     LAMPORT = "lamport"
     VASWANI = "vaswani"
@@ -35,6 +36,7 @@ class Giant(str, Enum):
 
 class MethodologyType(str, Enum):
     """Types of inherited methodologies."""
+
     INFORMATION_THEORY = "information_theory"
     DISTRIBUTED_SYSTEMS = "distributed_systems"
     ATTENTION_MECHANISM = "attention_mechanism"
@@ -45,6 +47,7 @@ class MethodologyType(str, Enum):
 @dataclass
 class MethodologyInheritance:
     """A single methodology inheritance from a giant."""
+
     giant: Giant
     methodology: MethodologyType
     technique: str
@@ -66,6 +69,7 @@ class MethodologyInheritance:
 @dataclass
 class ProvenanceRecord:
     """Complete provenance for a reasoning output."""
+
     output_hash: str
     inheritances: List[MethodologyInheritance]
     snr_score: float
@@ -132,7 +136,9 @@ class GiantsProtocol:
         self._techniques["besta_backtrack"] = self._besta_backtrack_technique
 
         # Anthropic: Constitutional AI
-        self._techniques["anthropic_constitutional"] = self._anthropic_constitutional_technique
+        self._techniques["anthropic_constitutional"] = (
+            self._anthropic_constitutional_technique
+        )
         self._techniques["anthropic_ihsan"] = self._anthropic_ihsan_technique
 
     # =========================================================================
@@ -162,17 +168,17 @@ class GiantsProtocol:
         # Signal metrics
         unique_ratio = len(set(words)) / len(words)
         avg_word_len = sum(len(w) for w in words) / len(words)
-        structure_ratio = min(signal.count('.') / max(len(words) / 10, 1), 1.0)
+        structure_ratio = min(signal.count(".") / max(len(words) / 10, 1), 1.0)
 
         # Information density (Shannon-inspired)
         char_entropy = len(set(signal)) / max(len(signal), 1)
 
         # Combine into SNR score
         snr = (
-            0.3 * unique_ratio +
-            0.2 * min(avg_word_len / 8, 1.0) +
-            0.2 * structure_ratio +
-            0.3 * char_entropy
+            0.3 * unique_ratio
+            + 0.2 * min(avg_word_len / 8, 1.0)
+            + 0.2 * structure_ratio
+            + 0.3 * char_entropy
         )
 
         return min(max(snr, 0.0), 1.0)
@@ -365,7 +371,11 @@ class GiantsProtocol:
         return {
             "nodes": nodes,
             "edges": edges,
-            "root_ids": [nid for nid, n in nodes.items() if not any(nid in nodes[p]["children"] for p in nodes if p != nid)],
+            "root_ids": [
+                nid
+                for nid, n in nodes.items()
+                if not any(nid in nodes[p]["children"] for p in nodes if p != nid)
+            ],
         }
 
     def _besta_backtrack_technique(
@@ -412,8 +422,13 @@ class GiantsProtocol:
         # Use word-boundary-aware matching to avoid false positives
         # (e.g., "harmless" should not match "harm")
         harmful_patterns = [
-            r"\bharm\b", r"\battack\b", r"\bexploit\b", r"\bbypass\b", r"\boverride\b",
-            "ignore constraint", "disable safety",
+            r"\bharm\b",
+            r"\battack\b",
+            r"\bexploit\b",
+            r"\bbypass\b",
+            r"\boverride\b",
+            "ignore constraint",
+            "disable safety",
         ]
 
         import re as _re
@@ -449,7 +464,7 @@ class GiantsProtocol:
             return 0.0
 
         words = output.split()
-        sentences = output.split('.')
+        sentences = output.split(".")
 
         # Dimensions
         correctness = 1.0  # Assume correct unless proven otherwise
@@ -459,14 +474,14 @@ class GiantsProtocol:
 
         # Weighted combination (matching IHSAN_DIMENSIONS weights)
         ihsan = (
-            0.22 * correctness +
-            0.22 * clarity +  # Using clarity as safety proxy
-            0.14 * completeness +
-            0.12 * structure +
-            0.12 * clarity +  # Auditability
-            0.08 * 1.0 +  # Anti-centralization (always passes)
-            0.06 * completeness +  # Robustness
-            0.04 * 1.0  # Adl (justice)
+            0.22 * correctness
+            + 0.22 * clarity  # Using clarity as safety proxy
+            + 0.14 * completeness
+            + 0.12 * structure
+            + 0.12 * clarity  # Auditability
+            + 0.08 * 1.0  # Anti-centralization (always passes)
+            + 0.06 * completeness  # Robustness
+            + 0.04 * 1.0  # Adl (justice)
         )
 
         return min(ihsan, 1.0)
@@ -538,7 +553,7 @@ class GiantsProtocol:
         """List available techniques, optionally filtered by giant."""
         if giant:
             prefix = f"{giant.value}_"
-            return [t[len(prefix):] for t in self._techniques if t.startswith(prefix)]
+            return [t[len(prefix) :] for t in self._techniques if t.startswith(prefix)]
         return list(self._techniques.keys())
 
     def get_provenance_chain(self) -> List[Dict[str, Any]]:

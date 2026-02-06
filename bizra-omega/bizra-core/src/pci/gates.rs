@@ -1,9 +1,9 @@
 //! PCI Gate Chain — Tiered verification
 
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
 use super::RejectCode;
 use crate::constitution::Constitution;
@@ -18,18 +18,28 @@ pub struct GateResult {
 
 impl GateResult {
     pub fn pass(gate: &str, duration: Duration) -> Self {
-        Self { gate: gate.into(), passed: true, code: RejectCode::Success, duration }
+        Self {
+            gate: gate.into(),
+            passed: true,
+            code: RejectCode::Success,
+            duration,
+        }
     }
     pub fn fail(gate: &str, code: RejectCode, duration: Duration) -> Self {
-        Self { gate: gate.into(), passed: false, code, duration }
+        Self {
+            gate: gate.into(),
+            passed: false,
+            code,
+            duration,
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GateTier {
-    Cheap,    // <10ms
-    Medium,   // <150ms
-    Expensive // <2000ms
+    Cheap,     // <10ms
+    Medium,    // <150ms
+    Expensive, // <2000ms
 }
 
 impl GateTier {
@@ -67,7 +77,10 @@ pub struct GateChain {
 
 impl GateChain {
     pub fn new() -> Self {
-        Self { gates: Vec::new(), seen_ids: Arc::new(RwLock::new(HashSet::new())) }
+        Self {
+            gates: Vec::new(),
+            seen_ids: Arc::new(RwLock::new(HashSet::new())),
+        }
     }
 
     pub fn add<G: Gate + 'static>(&mut self, gate: G) -> &mut Self {
@@ -81,7 +94,9 @@ impl GateChain {
             let result = gate.verify(ctx);
             let passed = result.passed;
             results.push(result);
-            if !passed { break; }
+            if !passed {
+                break;
+            }
         }
         results
     }
@@ -92,14 +107,20 @@ impl GateChain {
 }
 
 impl Default for GateChain {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // Built-in Gates
 pub struct SchemaGate;
 impl Gate for SchemaGate {
-    fn name(&self) -> &'static str { "Schema" }
-    fn tier(&self) -> GateTier { GateTier::Cheap }
+    fn name(&self) -> &'static str {
+        "Schema"
+    }
+    fn tier(&self) -> GateTier {
+        GateTier::Cheap
+    }
     fn verify(&self, ctx: &GateContext) -> GateResult {
         let start = Instant::now();
         if let Ok(s) = std::str::from_utf8(&ctx.content) {
@@ -113,8 +134,12 @@ impl Gate for SchemaGate {
 
 pub struct SNRGate;
 impl Gate for SNRGate {
-    fn name(&self) -> &'static str { "SNR" }
-    fn tier(&self) -> GateTier { GateTier::Medium }
+    fn name(&self) -> &'static str {
+        "SNR"
+    }
+    fn tier(&self) -> GateTier {
+        GateTier::Medium
+    }
     fn verify(&self, ctx: &GateContext) -> GateResult {
         let start = Instant::now();
         // SECURITY: Fail-closed semantics - missing SNR score = rejection
@@ -123,9 +148,7 @@ impl Gate for SNRGate {
             Some(snr) if ctx.constitution.check_snr(snr) => {
                 GateResult::pass(self.name(), start.elapsed())
             }
-            Some(_) => {
-                GateResult::fail(self.name(), RejectCode::RejectGateSNR, start.elapsed())
-            }
+            Some(_) => GateResult::fail(self.name(), RejectCode::RejectGateSNR, start.elapsed()),
             None => {
                 // Missing score fails-closed (SEC-020: Shannon signal quality)
                 GateResult::fail(self.name(), RejectCode::RejectGateSNR, start.elapsed())
@@ -136,8 +159,12 @@ impl Gate for SNRGate {
 
 pub struct IhsanGate;
 impl Gate for IhsanGate {
-    fn name(&self) -> &'static str { "Ihsan" }
-    fn tier(&self) -> GateTier { GateTier::Expensive }
+    fn name(&self) -> &'static str {
+        "Ihsan"
+    }
+    fn tier(&self) -> GateTier {
+        GateTier::Expensive
+    }
     fn verify(&self, ctx: &GateContext) -> GateResult {
         let start = Instant::now();
         // SECURITY: Fail-closed semantics - missing Ihsān score = rejection
@@ -146,9 +173,7 @@ impl Gate for IhsanGate {
             Some(ihsan) if ctx.constitution.check_ihsan(ihsan) => {
                 GateResult::pass(self.name(), start.elapsed())
             }
-            Some(_) => {
-                GateResult::fail(self.name(), RejectCode::RejectGateIhsan, start.elapsed())
-            }
+            Some(_) => GateResult::fail(self.name(), RejectCode::RejectGateIhsan, start.elapsed()),
             None => {
                 // Missing score fails-closed (Ihsān = 1.0 for Runtime tier)
                 GateResult::fail(self.name(), RejectCode::RejectGateIhsan, start.elapsed())

@@ -4,8 +4,8 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use bizra_core::{IHSAN_THRESHOLD, SNR_THRESHOLD};
 use crate::state::AppState;
+use bizra_core::{IHSAN_THRESHOLD, SNR_THRESHOLD};
 
 #[derive(Serialize)]
 pub struct ConstitutionResponse {
@@ -32,9 +32,7 @@ pub struct PenaltyInfo {
 }
 
 /// Get constitution
-pub async fn get_constitution(
-    State(state): State<Arc<AppState>>,
-) -> Json<ConstitutionResponse> {
+pub async fn get_constitution(State(state): State<Arc<AppState>>) -> Json<ConstitutionResponse> {
     let c = &state.constitution;
 
     Json(ConstitutionResponse {
@@ -126,7 +124,9 @@ pub async fn check_compliance(
     // Check Ihsan
     if let Some(score) = req.ihsan_score {
         let passed = state.constitution.check_ihsan(score);
-        if !passed { all_passed = false; }
+        if !passed {
+            all_passed = false;
+        }
         checks.push(ComplianceCheck {
             rule: "Ihsan Constraint".into(),
             passed,
@@ -138,7 +138,9 @@ pub async fn check_compliance(
     // Check SNR
     if let Some(score) = req.snr_score {
         let passed = state.constitution.check_snr(score);
-        if !passed { all_passed = false; }
+        if !passed {
+            all_passed = false;
+        }
         checks.push(ComplianceCheck {
             rule: "SNR Minimum".into(),
             passed,

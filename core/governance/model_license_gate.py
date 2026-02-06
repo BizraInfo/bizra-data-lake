@@ -51,15 +51,14 @@ See also: core/pci/gates.py for the PCI Gate rationale.
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Dict, Any, Protocol
+from typing import Any, Dict, Optional, Protocol
 
 from .capability_card import (
+    IHSAN_THRESHOLD,
+    SNR_THRESHOLD,
     CapabilityCard,
     ModelTier,
     TaskType,
-    IHSAN_THRESHOLD,
-    SNR_THRESHOLD,
-    verify_capability_card,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +66,7 @@ logger = logging.getLogger(__name__)
 
 class GateResult(Enum):
     """Result of a gate check."""
+
     PASSED = "passed"
     FAILED = "failed"
     SKIPPED = "skipped"
@@ -75,6 +75,7 @@ class GateResult(Enum):
 @dataclass
 class LicenseCheckResult:
     """Result of a license check."""
+
     allowed: bool
     model_id: str
     tier: Optional[ModelTier]
@@ -339,50 +340,62 @@ class GateChain:
 
         # SCHEMA gate
         schema_passed = bool(output.get("content") and output.get("model_id"))
-        results.append({
-            "gate": "SCHEMA",
-            "passed": schema_passed,
-            "score": 1.0 if schema_passed else 0.0,
-            "reason": None if schema_passed else "Missing required fields",
-        })
+        results.append(
+            {
+                "gate": "SCHEMA",
+                "passed": schema_passed,
+                "score": 1.0 if schema_passed else 0.0,
+                "reason": None if schema_passed else "Missing required fields",
+            }
+        )
 
         # SNR gate
         snr_score = output.get("snr_score", 0.0)
         snr_passed = snr_score >= SNR_THRESHOLD
-        results.append({
-            "gate": "SNR",
-            "passed": snr_passed,
-            "score": snr_score,
-            "reason": None if snr_passed else f"Below threshold {SNR_THRESHOLD}",
-        })
+        results.append(
+            {
+                "gate": "SNR",
+                "passed": snr_passed,
+                "score": snr_score,
+                "reason": None if snr_passed else f"Below threshold {SNR_THRESHOLD}",
+            }
+        )
 
         # IHSAN gate
         ihsan_score = output.get("ihsan_score", 0.0)
         ihsan_passed = ihsan_score >= IHSAN_THRESHOLD
-        results.append({
-            "gate": "IHSAN",
-            "passed": ihsan_passed,
-            "score": ihsan_score,
-            "reason": None if ihsan_passed else f"Below threshold {IHSAN_THRESHOLD}",
-        })
+        results.append(
+            {
+                "gate": "IHSAN",
+                "passed": ihsan_passed,
+                "score": ihsan_score,
+                "reason": (
+                    None if ihsan_passed else f"Below threshold {IHSAN_THRESHOLD}"
+                ),
+            }
+        )
 
         # LICENSE gate
         model_id = output.get("model_id", "")
         if model_id:
             license_result = self.license_gate.check(model_id)
-            results.append({
-                "gate": "LICENSE",
-                "passed": license_result.allowed,
-                "score": 1.0 if license_result.allowed else 0.0,
-                "reason": license_result.reason,
-            })
+            results.append(
+                {
+                    "gate": "LICENSE",
+                    "passed": license_result.allowed,
+                    "score": 1.0 if license_result.allowed else 0.0,
+                    "reason": license_result.reason,
+                }
+            )
         else:
-            results.append({
-                "gate": "LICENSE",
-                "passed": False,
-                "score": 0.0,
-                "reason": "No model ID provided",
-            })
+            results.append(
+                {
+                    "gate": "LICENSE",
+                    "passed": False,
+                    "score": 0.0,
+                    "reason": "No model ID provided",
+                }
+            )
 
         return results
 

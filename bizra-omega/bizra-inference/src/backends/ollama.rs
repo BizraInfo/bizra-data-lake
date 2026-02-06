@@ -1,10 +1,10 @@
 //! Ollama Backend
 
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use super::{Backend, BackendConfig, BackendError};
 use crate::gateway::{InferenceRequest, InferenceResponse};
 use crate::selector::ModelTier;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct OllamaRequest {
@@ -45,9 +45,14 @@ impl OllamaBackend {
 
 #[async_trait]
 impl Backend for OllamaBackend {
-    fn name(&self) -> &str { &self.config.name }
+    fn name(&self) -> &str {
+        &self.config.name
+    }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         let url = format!("{}/api/generate", self.base_url);
 
         let req = OllamaRequest {
@@ -60,14 +65,24 @@ impl Backend for OllamaBackend {
             },
         };
 
-        let response = self.client.post(&url).json(&req).send().await
+        let response = self
+            .client
+            .post(&url)
+            .json(&req)
+            .send()
+            .await
             .map_err(|e| BackendError::Connection(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(BackendError::Generation(format!("Status: {}", response.status())));
+            return Err(BackendError::Generation(format!(
+                "Status: {}",
+                response.status()
+            )));
         }
 
-        let resp: OllamaResponse = response.json().await
+        let resp: OllamaResponse = response
+            .json()
+            .await
             .map_err(|e| BackendError::Generation(e.to_string()))?;
 
         Ok(InferenceResponse {
@@ -82,6 +97,10 @@ impl Backend for OllamaBackend {
     }
 
     async fn health_check(&self) -> bool {
-        self.client.get(format!("{}/api/tags", self.base_url)).send().await.is_ok()
+        self.client
+            .get(format!("{}/api/tags", self.base_url))
+            .send()
+            .await
+            .is_ok()
     }
 }

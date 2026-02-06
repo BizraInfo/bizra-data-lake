@@ -4,8 +4,8 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::{error::ApiError, state::AppState};
 use bizra_core::NodeIdentity;
-use crate::{state::AppState, error::ApiError};
 
 #[derive(Serialize)]
 pub struct GenerateResponse {
@@ -73,11 +73,8 @@ pub async fn verify_signature(
     Json(req): Json<VerifyRequest>,
 ) -> Result<Json<VerifyResponse>, ApiError> {
     // Use verify_with_hex which takes hex strings directly
-    let valid = NodeIdentity::verify_with_hex(
-        req.message.as_bytes(),
-        &req.signature,
-        &req.public_key,
-    );
+    let valid =
+        NodeIdentity::verify_with_hex(req.message.as_bytes(), &req.signature, &req.public_key);
 
     Ok(Json(VerifyResponse { valid }))
 }

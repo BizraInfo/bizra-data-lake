@@ -23,10 +23,10 @@ Genesis Strict Synthesis v2.2.2
 """
 
 from core.integration.constants import (
+    IHSAN_WEIGHTS,
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
-    IHSAN_WEIGHTS,
 )
 
 # SDPO-specific constants
@@ -44,31 +44,32 @@ SAPE_DATA_SNR: float = 0.90
 
 __version__ = "1.0.0"
 
+
 # Re-export core components for convenient access
 # Note: Lazy imports to avoid circular dependencies
 def _lazy_import():
     """Lazy import of submodules to prevent circular imports."""
+    from .agents import (
+        ContextCompressionEngine,
+        PAT_SDPO_Config,
+        PAT_SDPO_Learner,
+    )
+    from .cosmos import (
+        ImplicitPRM,
+        SAPE_SDPO_Fusion,
+        SAPELayerOutput,
+        SDPO_SAPE_Result,
+    )
+    from .discovery import (
+        DiscoveryConfig,
+        DiscoveryResult,
+        SDPOTestTimeDiscovery,
+    )
     from .optimization import (
+        BIZRAFeedbackGenerator,
         SDPOAdvantage,
         SDPOAdvantageCalculator,
         SDPOFeedback,
-        BIZRAFeedbackGenerator,
-    )
-    from .cosmos import (
-        SAPE_SDPO_Fusion,
-        SDPO_SAPE_Result,
-        SAPELayerOutput,
-        ImplicitPRM,
-    )
-    from .agents import (
-        PAT_SDPO_Learner,
-        PAT_SDPO_Config,
-        ContextCompressionEngine,
-    )
-    from .discovery import (
-        SDPOTestTimeDiscovery,
-        DiscoveryConfig,
-        DiscoveryResult,
     )
     from .training import (
         BIZRASDPOTrainer,
@@ -76,10 +77,11 @@ def _lazy_import():
         TrainingResult,
     )
     from .validation import (
-        SDPOABTestFramework,
         ABTestConfig,
         ABTestResult,
+        SDPOABTestFramework,
     )
+
     return {
         "SDPOAdvantage": SDPOAdvantage,
         "SDPOAdvantageCalculator": SDPOAdvantageCalculator,

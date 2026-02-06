@@ -15,8 +15,11 @@ pub struct HardwareProfile {
 impl Default for HardwareProfile {
     fn default() -> Self {
         Self {
-            cpu_cores: 4, ram_gb: 8.0, gpu_name: None,
-            vram_gb: 0.0, disk_free_gb: 50.0,
+            cpu_cores: 4,
+            ram_gb: 8.0,
+            gpu_name: None,
+            vram_gb: 0.0,
+            disk_free_gb: 50.0,
             os: std::env::consts::OS.into(),
         }
     }
@@ -24,16 +27,25 @@ impl Default for HardwareProfile {
 
 impl HardwareProfile {
     pub fn recommended_tier(&self) -> &'static str {
-        if self.vram_gb >= 8.0 { "LOCAL" }
-        else if self.vram_gb >= 4.0 { "EDGE+" }
-        else { "EDGE" }
+        if self.vram_gb >= 8.0 {
+            "LOCAL"
+        } else if self.vram_gb >= 4.0 {
+            "EDGE+"
+        } else {
+            "EDGE"
+        }
     }
 
     pub fn recommended_model(&self) -> &'static str {
-        if self.vram_gb >= 8.0 { "Qwen2.5-7B-Q4" }
-        else if self.vram_gb >= 4.0 { "Qwen2.5-3B-Q4" }
-        else if self.ram_gb >= 8.0 { "Qwen2.5-1.5B-Q4" }
-        else { "Qwen2.5-0.5B-Q4" }
+        if self.vram_gb >= 8.0 {
+            "Qwen2.5-7B-Q4"
+        } else if self.vram_gb >= 4.0 {
+            "Qwen2.5-3B-Q4"
+        } else if self.ram_gb >= 8.0 {
+            "Qwen2.5-1.5B-Q4"
+        } else {
+            "Qwen2.5-0.5B-Q4"
+        }
     }
 }
 

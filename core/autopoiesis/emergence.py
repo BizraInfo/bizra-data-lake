@@ -12,36 +12,39 @@ Standing on Giants: Maturana (Emergence) + Holland (Complex Adaptive Systems)
 Genesis Strict Synthesis v2.2.2
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from datetime import datetime, timezone
-from enum import Enum
 import hashlib
 import math
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.autopoiesis.genome import AgentGenome, GeneType
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 
 class EmergenceType(Enum):
     """Types of emergent properties."""
-    CAPABILITY = "capability"      # New functional ability
-    STRATEGY = "strategy"          # Novel decision pattern
+
+    CAPABILITY = "capability"  # New functional ability
+    STRATEGY = "strategy"  # Novel decision pattern
     COLLABORATION = "collaboration"  # Inter-agent cooperation
-    EFFICIENCY = "efficiency"      # Resource optimization
-    RESILIENCE = "resilience"      # Fault tolerance
+    EFFICIENCY = "efficiency"  # Resource optimization
+    RESILIENCE = "resilience"  # Fault tolerance
 
 
 class NoveltyLevel(Enum):
     """Levels of novelty."""
-    INCREMENTAL = "incremental"    # Small improvement
-    SIGNIFICANT = "significant"    # Notable change
+
+    INCREMENTAL = "incremental"  # Small improvement
+    SIGNIFICANT = "significant"  # Notable change
     BREAKTHROUGH = "breakthrough"  # Major new capability
 
 
 @dataclass
 class EmergentProperty:
     """A detected emergent property."""
+
     id: str
     emergence_type: EmergenceType
     novelty_level: NoveltyLevel
@@ -68,6 +71,7 @@ class EmergentProperty:
 @dataclass
 class EmergenceReport:
     """Report of detected emergent properties."""
+
     generation: int
     properties: List[EmergentProperty]
     novel_genomes: List[str]
@@ -115,8 +119,7 @@ class BehaviorSignature:
             return 1.0
 
         total_diff = sum(
-            abs(self.traits[t] - other.traits.get(t, 0))
-            for t in common_traits
+            abs(self.traits[t] - other.traits.get(t, 0)) for t in common_traits
         )
 
         return total_diff / len(common_traits)
@@ -243,8 +246,7 @@ class EmergenceDetector:
 
             # Find minimum distance to any archived signature
             min_distance = min(
-                sig.distance(archived)
-                for archived in self._signature_archive
+                sig.distance(archived) for archived in self._signature_archive
             )
 
             if min_distance > self.novelty_threshold:
@@ -278,24 +280,36 @@ class EmergenceDetector:
 
             if all(isinstance(v, (int, float)) for v in values):
                 mean_val = sum(values) / len(values)
-                std_val = math.sqrt(sum((v - mean_val) ** 2 for v in values) / len(values))
+                std_val = math.sqrt(
+                    sum((v - mean_val) ** 2 for v in values) / len(values)
+                )
 
                 # Check for significant outliers
                 outliers = [
-                    i for i, v in enumerate(values)
-                    if abs(v - mean_val) > 2 * std_val
+                    i for i, v in enumerate(values) if abs(v - mean_val) > 2 * std_val
                 ]
 
                 if outliers:
-                    emergences.append(EmergentProperty(
-                        id=hashlib.md5(f"{gene_name}_cap_{len(outliers)}".encode()).hexdigest()[:8],
-                        emergence_type=EmergenceType.CAPABILITY,
-                        novelty_level=NoveltyLevel.SIGNIFICANT if len(outliers) > 2 else NoveltyLevel.INCREMENTAL,
-                        description=f"Unusual {gene_name} values detected in {len(outliers)} genomes",
-                        genome_ids=[population[i].id for i in outliers],
-                        confidence=0.7 + 0.1 * min(len(outliers), 3),
-                        evidence={"gene": gene_name, "outlier_count": len(outliers)},
-                    ))
+                    emergences.append(
+                        EmergentProperty(
+                            id=hashlib.md5(
+                                f"{gene_name}_cap_{len(outliers)}".encode()
+                            ).hexdigest()[:8],
+                            emergence_type=EmergenceType.CAPABILITY,
+                            novelty_level=(
+                                NoveltyLevel.SIGNIFICANT
+                                if len(outliers) > 2
+                                else NoveltyLevel.INCREMENTAL
+                            ),
+                            description=f"Unusual {gene_name} values detected in {len(outliers)} genomes",
+                            genome_ids=[population[i].id for i in outliers],
+                            confidence=0.7 + 0.1 * min(len(outliers), 3),
+                            evidence={
+                                "gene": gene_name,
+                                "outlier_count": len(outliers),
+                            },
+                        )
+                    )
 
         return emergences
 
@@ -311,9 +325,7 @@ class EmergenceDetector:
 
         for genome in population:
             strategy_genes = genome.get_genes_by_type(GeneType.STRATEGY)
-            pattern = tuple(
-                (g.name, g.value) for g in strategy_genes
-            )
+            pattern = tuple((g.name, g.value) for g in strategy_genes)
 
             if pattern not in strategy_patterns:
                 strategy_patterns[pattern] = []
@@ -325,15 +337,21 @@ class EmergenceDetector:
             ratio = len(genome_ids) / total
 
             if ratio > 0.3:  # More than 30% share this strategy
-                emergences.append(EmergentProperty(
-                    id=hashlib.md5(str(pattern).encode()).hexdigest()[:8],
-                    emergence_type=EmergenceType.STRATEGY,
-                    novelty_level=NoveltyLevel.SIGNIFICANT if ratio > 0.5 else NoveltyLevel.INCREMENTAL,
-                    description=f"Strategy pattern adopted by {ratio:.0%} of population",
-                    genome_ids=genome_ids,
-                    confidence=ratio,
-                    evidence={"pattern": [dict(pattern)], "adoption_rate": ratio},
-                ))
+                emergences.append(
+                    EmergentProperty(
+                        id=hashlib.md5(str(pattern).encode()).hexdigest()[:8],
+                        emergence_type=EmergenceType.STRATEGY,
+                        novelty_level=(
+                            NoveltyLevel.SIGNIFICANT
+                            if ratio > 0.5
+                            else NoveltyLevel.INCREMENTAL
+                        ),
+                        description=f"Strategy pattern adopted by {ratio:.0%} of population",
+                        genome_ids=genome_ids,
+                        confidence=ratio,
+                        evidence={"pattern": [dict(pattern)], "adoption_rate": ratio},
+                    )
+                )
 
         return emergences
 
@@ -362,16 +380,28 @@ class EmergenceDetector:
             previous_avg = sum(previous_collab) / len(previous_collab)
 
             if current_avg > previous_avg + 0.1:
-                emergences.append(EmergentProperty(
-                    id=hashlib.md5(f"collab_{current_avg}".encode()).hexdigest()[:8],
-                    emergence_type=EmergenceType.COLLABORATION,
-                    novelty_level=NoveltyLevel.SIGNIFICANT,
-                    description=f"Collaboration tendency increased from {previous_avg:.2f} to {current_avg:.2f}",
-                    genome_ids=[g.id for g in current if g.get_gene("collaboration_tendency")
-                                and g.get_gene("collaboration_tendency").value > previous_avg],
-                    confidence=0.8,
-                    evidence={"previous_avg": previous_avg, "current_avg": current_avg},
-                ))
+                emergences.append(
+                    EmergentProperty(
+                        id=hashlib.md5(f"collab_{current_avg}".encode()).hexdigest()[
+                            :8
+                        ],
+                        emergence_type=EmergenceType.COLLABORATION,
+                        novelty_level=NoveltyLevel.SIGNIFICANT,
+                        description=f"Collaboration tendency increased from {previous_avg:.2f} to {current_avg:.2f}",
+                        genome_ids=[
+                            g.id
+                            for g in current
+                            if g.get_gene("collaboration_tendency")
+                            and g.get_gene("collaboration_tendency").value
+                            > previous_avg
+                        ],
+                        confidence=0.8,
+                        evidence={
+                            "previous_avg": previous_avg,
+                            "current_avg": current_avg,
+                        },
+                    )
+                )
 
         return emergences
 
@@ -415,7 +445,7 @@ class EmergenceDetector:
         count = 0
 
         for i, sig1 in enumerate(signatures):
-            for sig2 in signatures[i + 1:]:
+            for sig2 in signatures[i + 1 :]:
                 total_distance += sig1.distance(sig2)
                 count += 1
 
@@ -447,7 +477,8 @@ class EmergenceDetector:
             "archive_size": len(self._signature_archive),
             "generations_analyzed": len(self._generation_history),
             "breakthroughs": sum(
-                1 for p in self._detected_properties
+                1
+                for p in self._detected_properties
                 if p.novelty_level == NoveltyLevel.BREAKTHROUGH
             ),
             "by_type": {

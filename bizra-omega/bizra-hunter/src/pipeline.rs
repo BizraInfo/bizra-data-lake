@@ -181,8 +181,13 @@ impl<const N: usize> SNRPipeline<N> {
         }
 
         // Check invariant deduplication
-        if !self.invariant_cache.check_and_insert(&contract_addr, bytecode) {
-            self.stats.duplicates_filtered.fetch_add(1, Ordering::Relaxed);
+        if !self
+            .invariant_cache
+            .check_and_insert(&contract_addr, bytecode)
+        {
+            self.stats
+                .duplicates_filtered
+                .fetch_add(1, Ordering::Relaxed);
             return None;
         }
 
@@ -191,8 +196,8 @@ impl<const N: usize> SNRPipeline<N> {
         // Estimate bounty based on complexity
         let complexity = Complexity::from_entropy(&entropy);
         let bounty_estimate = match complexity {
-            Complexity::Simple => 500_00,   // $500
-            Complexity::Medium => 2500_00,  // $2,500
+            Complexity::Simple => 500_00,    // $500
+            Complexity::Medium => 2500_00,   // $2,500
             Complexity::Complex => 10000_00, // $10,000
             Complexity::Expert => 50000_00,  // $50,000
         };
@@ -225,11 +230,7 @@ impl<const N: usize> SNRPipeline<N> {
     }
 
     /// Create proof job for Lane 2
-    pub fn create_proof_job(
-        &self,
-        result: &HeuristicResult,
-        bytecode: Vec<u8>,
-    ) -> ProofJob {
+    pub fn create_proof_job(&self, result: &HeuristicResult, bytecode: Vec<u8>) -> ProofJob {
         let vuln_type = self.detect_vuln_type(&result.entropy);
 
         ProofJob {

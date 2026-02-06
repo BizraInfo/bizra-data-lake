@@ -16,11 +16,10 @@ import hashlib
 import json
 import random
 import time
-import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Set, Callable, Any
+from typing import Any, Callable, Dict, List, Optional, Set
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -111,7 +110,11 @@ class GossipMessage:
     def _signable_dict(self) -> Dict[str, Any]:
         """Return dict of fields to be signed (excludes signature itself)."""
         return {
-            "msg_type": self.msg_type.value if isinstance(self.msg_type, MessageType) else self.msg_type,
+            "msg_type": (
+                self.msg_type.value
+                if isinstance(self.msg_type, MessageType)
+                else self.msg_type
+            ),
             "sender_id": self.sender_id,
             "sender_address": self.sender_address,
             "sequence": self.sequence,
@@ -126,7 +129,12 @@ class GossipMessage:
 
         Returns self for method chaining.
         """
-        from core.pci.crypto import sign_message, domain_separated_digest, canonical_json
+        from core.pci.crypto import (
+            canonical_json,
+            domain_separated_digest,
+            sign_message,
+        )
+
         digest = domain_separated_digest(canonical_json(self._signable_dict()))
         self.signature = sign_message(digest, private_key_hex)
         return self
@@ -137,13 +145,18 @@ class GossipMessage:
 
         Returns True if signature is valid, False otherwise.
         """
-        from core.pci.crypto import verify_signature, domain_separated_digest, canonical_json
+        from core.pci.crypto import (
+            canonical_json,
+            domain_separated_digest,
+            verify_signature,
+        )
+
         if not self.signature or not public_key_hex:
             return False
         try:
             digest = domain_separated_digest(canonical_json(self._signable_dict()))
             return verify_signature(digest, self.signature, public_key_hex)
-        except (ValueError, TypeError, KeyError) as e:
+        except (ValueError, TypeError, KeyError):
             # Signature verification failed - reject message
             # ValueError: Invalid signature format
             # TypeError: Invalid key type
@@ -356,7 +369,8 @@ class GossipEngine:
         # Periodic cleanup of stale sender entries (every 100 checks)
         if len(self._rate_limit_window) > 1000:
             stale_senders = [
-                sid for sid, times in self._rate_limit_window.items()
+                sid
+                for sid, times in self._rate_limit_window.items()
                 if not times or max(times) < window_start
             ]
             for sid in stale_senders[:100]:  # Limit cleanup per call
@@ -392,9 +406,9 @@ class GossipEngine:
         # SECURITY (S-1): Validate timestamp FIRST - prevents replay attacks
         # This MUST happen before signature verification to avoid wasting CPU
         # on replayed messages with valid signatures
-        if hasattr(msg, 'timestamp') and msg.timestamp:
+        if hasattr(msg, "timestamp") and msg.timestamp:
             try:
-                msg_time = datetime.fromisoformat(msg.timestamp.replace('Z', '+00:00'))
+                msg_time = datetime.fromisoformat(msg.timestamp.replace("Z", "+00:00"))
                 now = datetime.now(timezone.utc)
                 age_seconds = (now - msg_time).total_seconds()
 
@@ -723,7 +737,7 @@ class GossipEngine:
         if hasattr(self, "_transport") and self._transport:
             self._transport.close()
 
-        print(f"🔌 GossipEngine stopped")
+        print("🔌 GossipEngine stopped")
 
     async def join_network(self, host: str, port: int):
         """

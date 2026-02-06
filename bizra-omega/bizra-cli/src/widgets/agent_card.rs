@@ -5,13 +5,12 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::app::{AgentState, AgentStatus, PATRole};
-use crate::theme::{borders, colors, symbols, Theme};
+use crate::app::{AgentState, AgentStatus};
+use crate::theme::{borders, symbols, Theme};
 
 pub struct AgentCard<'a> {
     state: &'a AgentState,
@@ -68,19 +67,18 @@ impl Widget for AgentCard<'_> {
         };
 
         // Title with icon and status
-        let title = format!(
-            " {} {} {} ",
-            role.icon(),
-            role.name(),
-            status_symbol
-        );
+        let title = format!(" {} {} {} ", role.icon(), role.name(), status_symbol);
 
         let block = Block::default()
             .title(Span::styled(title, Theme::pat_agent(role.name())))
             .borders(Borders::ALL)
             .border_style(border_style)
             .border_set(border_set)
-            .style(if self.selected { Theme::panel_focused() } else { Theme::panel() });
+            .style(if self.selected {
+                Theme::panel_focused()
+            } else {
+                Theme::panel()
+            });
 
         let inner = block.inner(area);
         block.render(area, buf);
@@ -102,7 +100,10 @@ impl Widget for AgentCard<'_> {
             let giants: String = role.giants().join(" • ");
             lines.push(Line::from(vec![
                 Span::styled("Giants: ", Theme::muted()),
-                Span::styled(truncate(&giants, inner.width as usize - 8), Theme::highlight()),
+                Span::styled(
+                    truncate(&giants, inner.width as usize - 8),
+                    Theme::highlight(),
+                ),
             ]));
 
             // Current task

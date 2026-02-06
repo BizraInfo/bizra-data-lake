@@ -38,7 +38,7 @@ impl Default for LlamaCppConfig {
     fn default() -> Self {
         Self {
             model_path: String::new(),
-            n_gpu_layers: -1,  // All layers on GPU
+            n_gpu_layers: -1, // All layers on GPU
             n_ctx: 4096,
             n_batch: 512,
             n_threads: 4,
@@ -94,9 +94,10 @@ pub struct LlamaCppBackend {
 impl LlamaCppBackend {
     /// Create new backend (model not loaded yet)
     pub fn new(config: LlamaCppConfig) -> Self {
-        let name = config.model_path
+        let name = config
+            .model_path
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or("llamacpp")
             .to_string();
 
@@ -169,7 +170,9 @@ impl LlamaCppBackend {
             quantization: "Q4_K_M".into(),
         };
 
-        *state = BackendState::Ready { model_info: model_info.clone() };
+        *state = BackendState::Ready {
+            model_info: model_info.clone(),
+        };
 
         tracing::info!(
             model = %model_info.name,
@@ -210,7 +213,10 @@ impl Backend for LlamaCppBackend {
         &self.name
     }
 
-    async fn generate(&self, request: &InferenceRequest) -> Result<InferenceResponse, BackendError> {
+    async fn generate(
+        &self,
+        request: &InferenceRequest,
+    ) -> Result<InferenceResponse, BackendError> {
         let state = self.state.lock().await;
 
         let model_info = match &*state {

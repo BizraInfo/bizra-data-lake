@@ -14,27 +14,30 @@ and coordinates the flow of information with SNR maximization.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Callable, Optional
-from datetime import datetime
+
 import asyncio
-import uuid
 import heapq
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum, auto
+from typing import Any, Optional
 
 
 class TaskComplexity(Enum):
     """Complexity levels for task classification."""
-    TRIVIAL = auto()      # Single-step, no decomposition needed
-    SIMPLE = auto()       # 2-3 steps, linear execution
-    MODERATE = auto()     # 4-7 steps, some parallelization
-    COMPLEX = auto()      # 8-15 steps, significant parallelization
-    RESEARCH = auto()     # Open-ended, iterative refinement
-    SOVEREIGN = auto()    # Multi-domain, requires full council
+
+    TRIVIAL = auto()  # Single-step, no decomposition needed
+    SIMPLE = auto()  # 2-3 steps, linear execution
+    MODERATE = auto()  # 4-7 steps, some parallelization
+    COMPLEX = auto()  # 8-15 steps, significant parallelization
+    RESEARCH = auto()  # Open-ended, iterative refinement
+    SOVEREIGN = auto()  # Multi-domain, requires full council
 
 
 class TaskStatus(Enum):
     """Status of a task in the orchestration pipeline."""
+
     PENDING = auto()
     QUEUED = auto()
     ASSIGNED = auto()
@@ -47,29 +50,32 @@ class TaskStatus(Enum):
 
 class AgentType(Enum):
     """Types of specialized agents in the swarm."""
-    RESEARCHER = auto()       # Information gathering, RAG queries
-    ANALYST = auto()          # Data analysis, pattern recognition
-    SYNTHESIZER = auto()      # Combining information, summarization
-    CREATOR = auto()          # Content generation, code writing
-    VALIDATOR = auto()        # Quality assurance, fact-checking
-    PLANNER = auto()          # Strategic planning, goal decomposition
-    EXECUTOR = auto()         # Action execution, tool usage
-    COMMUNICATOR = auto()     # User interaction, clarification
-    SPECIALIST = auto()       # Domain-specific expertise
+
+    RESEARCHER = auto()  # Information gathering, RAG queries
+    ANALYST = auto()  # Data analysis, pattern recognition
+    SYNTHESIZER = auto()  # Combining information, summarization
+    CREATOR = auto()  # Content generation, code writing
+    VALIDATOR = auto()  # Quality assurance, fact-checking
+    PLANNER = auto()  # Strategic planning, goal decomposition
+    EXECUTOR = auto()  # Action execution, tool usage
+    COMMUNICATOR = auto()  # User interaction, clarification
+    SPECIALIST = auto()  # Domain-specific expertise
 
 
 class RoutingStrategy(Enum):
     """Strategies for routing tasks to agents."""
-    ROUND_ROBIN = auto()      # Equal distribution
-    LOAD_BALANCED = auto()    # Based on current workload
-    EXPERTISE_MATCHED = auto() # Based on task requirements
-    PRIORITY_QUEUE = auto()   # Based on task urgency
-    ADAPTIVE = auto()         # ML-based dynamic routing
+
+    ROUND_ROBIN = auto()  # Equal distribution
+    LOAD_BALANCED = auto()  # Based on current workload
+    EXPERTISE_MATCHED = auto()  # Based on task requirements
+    PRIORITY_QUEUE = auto()  # Based on task urgency
+    ADAPTIVE = auto()  # ML-based dynamic routing
 
 
 @dataclass
 class TaskNode:
     """A single task in the decomposition graph."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     title: str = ""
     description: str = ""
@@ -93,6 +99,7 @@ class TaskNode:
 @dataclass
 class AgentCapability:
     """Describes an agent's capabilities and current state."""
+
     agent_type: AgentType
     name: str
     expertise_domains: list[str]
@@ -114,6 +121,7 @@ class AgentCapability:
 @dataclass
 class DecompositionResult:
     """Result of task decomposition."""
+
     root_task: TaskNode
     subtasks: list[TaskNode]
     dependency_graph: dict[str, list[str]]  # task_id -> [dependent_task_ids]
@@ -125,6 +133,7 @@ class DecompositionResult:
 @dataclass
 class RoutingDecision:
     """Decision about how to route a task."""
+
     task_id: str
     selected_agent: AgentType
     reasoning: str
@@ -183,14 +192,14 @@ class TaskDecomposer:
         for i, template in enumerate(subtask_templates[:target_count]):
             subtask = TaskNode(
                 title=f"{task.title} — Step {i+1}: {template['name']}",
-                description=template['description'],
-                complexity=template['complexity'],
-                priority=task.priority * template.get('priority_factor', 1.0),
-                assigned_agent=template.get('suggested_agent'),
+                description=template["description"],
+                complexity=template["complexity"],
+                priority=task.priority * template.get("priority_factor", 1.0),
+                assigned_agent=template.get("suggested_agent"),
                 metadata={
                     "parent_task": task.id,
                     "step_index": i,
-                    "template": template['name'],
+                    "template": template["name"],
                 },
             )
             subtasks.append(subtask)
@@ -198,8 +207,8 @@ class TaskDecomposer:
 
         # Establish dependencies (linear by default, override with graph analysis)
         for i in range(1, len(subtasks)):
-            subtasks[i].dependencies.append(subtasks[i-1].id)
-            dependency_graph[subtasks[i-1].id].append(subtasks[i].id)
+            subtasks[i].dependencies.append(subtasks[i - 1].id)
+            dependency_graph[subtasks[i - 1].id].append(subtasks[i].id)
 
         # Identify parallelizable tasks
         parallelism = self._calculate_parallelism(subtasks, dependency_graph)
@@ -220,39 +229,106 @@ class TaskDecomposer:
         return result
 
     def _get_subtask_templates(
-        self,
-        complexity: TaskComplexity
+        self, complexity: TaskComplexity
     ) -> list[dict[str, Any]]:
         """Get subtask templates based on complexity."""
         base_templates = [
-            {"name": "Understand", "description": "Analyze and understand the requirements", "complexity": TaskComplexity.SIMPLE, "suggested_agent": AgentType.ANALYST},
-            {"name": "Research", "description": "Gather relevant information and context", "complexity": TaskComplexity.SIMPLE, "suggested_agent": AgentType.RESEARCHER},
-            {"name": "Plan", "description": "Create execution strategy", "complexity": TaskComplexity.SIMPLE, "suggested_agent": AgentType.PLANNER},
-            {"name": "Execute", "description": "Perform the core task", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.EXECUTOR},
-            {"name": "Validate", "description": "Verify outputs meet requirements", "complexity": TaskComplexity.SIMPLE, "suggested_agent": AgentType.VALIDATOR},
-            {"name": "Synthesize", "description": "Combine results into coherent output", "complexity": TaskComplexity.SIMPLE, "suggested_agent": AgentType.SYNTHESIZER},
+            {
+                "name": "Understand",
+                "description": "Analyze and understand the requirements",
+                "complexity": TaskComplexity.SIMPLE,
+                "suggested_agent": AgentType.ANALYST,
+            },
+            {
+                "name": "Research",
+                "description": "Gather relevant information and context",
+                "complexity": TaskComplexity.SIMPLE,
+                "suggested_agent": AgentType.RESEARCHER,
+            },
+            {
+                "name": "Plan",
+                "description": "Create execution strategy",
+                "complexity": TaskComplexity.SIMPLE,
+                "suggested_agent": AgentType.PLANNER,
+            },
+            {
+                "name": "Execute",
+                "description": "Perform the core task",
+                "complexity": TaskComplexity.MODERATE,
+                "suggested_agent": AgentType.EXECUTOR,
+            },
+            {
+                "name": "Validate",
+                "description": "Verify outputs meet requirements",
+                "complexity": TaskComplexity.SIMPLE,
+                "suggested_agent": AgentType.VALIDATOR,
+            },
+            {
+                "name": "Synthesize",
+                "description": "Combine results into coherent output",
+                "complexity": TaskComplexity.SIMPLE,
+                "suggested_agent": AgentType.SYNTHESIZER,
+            },
         ]
 
-        if complexity in [TaskComplexity.COMPLEX, TaskComplexity.RESEARCH, TaskComplexity.SOVEREIGN]:
-            base_templates.extend([
-                {"name": "Deep Research", "description": "Extended information gathering", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.RESEARCHER},
-                {"name": "Cross-Reference", "description": "Validate across multiple sources", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.VALIDATOR},
-                {"name": "Iterate", "description": "Refine based on intermediate results", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.CREATOR},
-                {"name": "Expert Review", "description": "Domain specialist evaluation", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.SPECIALIST},
-            ])
+        if complexity in [
+            TaskComplexity.COMPLEX,
+            TaskComplexity.RESEARCH,
+            TaskComplexity.SOVEREIGN,
+        ]:
+            base_templates.extend(
+                [
+                    {
+                        "name": "Deep Research",
+                        "description": "Extended information gathering",
+                        "complexity": TaskComplexity.MODERATE,
+                        "suggested_agent": AgentType.RESEARCHER,
+                    },
+                    {
+                        "name": "Cross-Reference",
+                        "description": "Validate across multiple sources",
+                        "complexity": TaskComplexity.MODERATE,
+                        "suggested_agent": AgentType.VALIDATOR,
+                    },
+                    {
+                        "name": "Iterate",
+                        "description": "Refine based on intermediate results",
+                        "complexity": TaskComplexity.MODERATE,
+                        "suggested_agent": AgentType.CREATOR,
+                    },
+                    {
+                        "name": "Expert Review",
+                        "description": "Domain specialist evaluation",
+                        "complexity": TaskComplexity.MODERATE,
+                        "suggested_agent": AgentType.SPECIALIST,
+                    },
+                ]
+            )
 
         if complexity == TaskComplexity.SOVEREIGN:
-            base_templates.extend([
-                {"name": "Council Review", "description": "Guardian Council deliberation", "complexity": TaskComplexity.COMPLEX, "suggested_agent": AgentType.VALIDATOR, "priority_factor": 1.2},
-                {"name": "Ethical Audit", "description": "Ihsān compliance verification", "complexity": TaskComplexity.MODERATE, "suggested_agent": AgentType.VALIDATOR, "priority_factor": 1.3},
-            ])
+            base_templates.extend(
+                [
+                    {
+                        "name": "Council Review",
+                        "description": "Guardian Council deliberation",
+                        "complexity": TaskComplexity.COMPLEX,
+                        "suggested_agent": AgentType.VALIDATOR,
+                        "priority_factor": 1.2,
+                    },
+                    {
+                        "name": "Ethical Audit",
+                        "description": "Ihsān compliance verification",
+                        "complexity": TaskComplexity.MODERATE,
+                        "suggested_agent": AgentType.VALIDATOR,
+                        "priority_factor": 1.3,
+                    },
+                ]
+            )
 
         return base_templates
 
     def _calculate_parallelism(
-        self,
-        subtasks: list[TaskNode],
-        dependency_graph: dict[str, list[str]]
+        self, subtasks: list[TaskNode], dependency_graph: dict[str, list[str]]
     ) -> float:
         """Calculate the degree of parallelism possible."""
         if not subtasks:
@@ -267,9 +343,7 @@ class TaskDecomposer:
         return max_level_size / len(subtasks) if subtasks else 1.0
 
     def _topological_levels(
-        self,
-        subtasks: list[TaskNode],
-        dependency_graph: dict[str, list[str]]
+        self, subtasks: list[TaskNode], dependency_graph: dict[str, list[str]]
     ) -> list[list[str]]:
         """Group tasks into parallel execution levels."""
         task_ids = {t.id for t in subtasks}
@@ -301,15 +375,13 @@ class TaskDecomposer:
         return levels
 
     def _find_critical_path(
-        self,
-        subtasks: list[TaskNode],
-        dependency_graph: dict[str, list[str]]
+        self, subtasks: list[TaskNode], dependency_graph: dict[str, list[str]]
     ) -> list[str]:
         """Find the longest path through the dependency graph."""
         if not subtasks:
             return []
 
-        task_map = {t.id: t for t in subtasks}
+        {t.id: t for t in subtasks}
 
         # Dynamic programming for longest path
         def dfs(task_id: str, memo: dict) -> tuple[int, list[str]]:
@@ -368,11 +440,7 @@ class AgentRouter:
             self.agents[capability.agent_type] = []
         self.agents[capability.agent_type].append(capability)
 
-    def _match_expertise(
-        self,
-        task: TaskNode,
-        agent: AgentCapability
-    ) -> float:
+    def _match_expertise(self, task: TaskNode, agent: AgentCapability) -> float:
         """Calculate expertise match score between task and agent."""
         task_domains = task.metadata.get("domains", [])
         if not task_domains:
@@ -499,11 +567,14 @@ class AgentRouter:
             # High priority — find fastest available agent
             fastest = None
             fastest_type = None
-            fastest_latency = float('inf')
+            fastest_latency = float("inf")
 
             for agent_type, agents in self.agents.items():
                 for agent in agents:
-                    if agent.available_capacity > 0 and agent.average_latency_ms < fastest_latency:
+                    if (
+                        agent.available_capacity > 0
+                        and agent.average_latency_ms < fastest_latency
+                    ):
                         fastest = agent
                         fastest_type = agent_type
                         fastest_latency = agent.average_latency_ms
@@ -541,10 +612,10 @@ class AgentRouter:
                 # Weighted combination
                 w1, w2, w3, w4 = 0.35, 0.25, 0.25, 0.15
                 total_score = (
-                    w1 * expertise_score +
-                    w2 * load_score +
-                    w3 * success_score +
-                    w4 * latency_score
+                    w1 * expertise_score
+                    + w2 * load_score
+                    + w3 * success_score
+                    + w4 * latency_score
                 )
 
                 candidates.append((total_score, agent_type, agent))
@@ -595,14 +666,30 @@ class SovereignOrchestrator:
     def register_default_agents(self):
         """Register a default set of agents."""
         default_agents = [
-            AgentCapability(AgentType.RESEARCHER, "Researcher-1", ["information", "rag", "web"], 5),
-            AgentCapability(AgentType.ANALYST, "Analyst-1", ["data", "patterns", "metrics"], 3),
-            AgentCapability(AgentType.SYNTHESIZER, "Synthesizer-1", ["summary", "integration"], 3),
-            AgentCapability(AgentType.CREATOR, "Creator-1", ["code", "content", "design"], 3),
-            AgentCapability(AgentType.VALIDATOR, "Validator-1", ["quality", "testing", "review"], 4),
-            AgentCapability(AgentType.PLANNER, "Planner-1", ["strategy", "goals", "roadmap"], 2),
-            AgentCapability(AgentType.EXECUTOR, "Executor-1", ["tools", "actions", "automation"], 5),
-            AgentCapability(AgentType.SPECIALIST, "Specialist-1", ["domain", "expert"], 2),
+            AgentCapability(
+                AgentType.RESEARCHER, "Researcher-1", ["information", "rag", "web"], 5
+            ),
+            AgentCapability(
+                AgentType.ANALYST, "Analyst-1", ["data", "patterns", "metrics"], 3
+            ),
+            AgentCapability(
+                AgentType.SYNTHESIZER, "Synthesizer-1", ["summary", "integration"], 3
+            ),
+            AgentCapability(
+                AgentType.CREATOR, "Creator-1", ["code", "content", "design"], 3
+            ),
+            AgentCapability(
+                AgentType.VALIDATOR, "Validator-1", ["quality", "testing", "review"], 4
+            ),
+            AgentCapability(
+                AgentType.PLANNER, "Planner-1", ["strategy", "goals", "roadmap"], 2
+            ),
+            AgentCapability(
+                AgentType.EXECUTOR, "Executor-1", ["tools", "actions", "automation"], 5
+            ),
+            AgentCapability(
+                AgentType.SPECIALIST, "Specialist-1", ["domain", "expert"], 2
+            ),
         ]
 
         for agent in default_agents:
@@ -655,16 +742,12 @@ class SovereignOrchestrator:
 
         while self._running:
             # Check for available capacity
-            while (
-                self.task_queue and
-                len(self.active_tasks) < self.max_concurrent
-            ):
+            while self.task_queue and len(self.active_tasks) < self.max_concurrent:
                 task = heapq.heappop(self.task_queue)
 
                 # Check dependencies
                 deps_satisfied = all(
-                    dep_id in self.completed_tasks
-                    for dep_id in task.dependencies
+                    dep_id in self.completed_tasks for dep_id in task.dependencies
                 )
 
                 if deps_satisfied:

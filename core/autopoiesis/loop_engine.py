@@ -31,14 +31,13 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,34 +55,37 @@ class AutopoieticState(Enum):
     The loop progresses: DORMANT -> OBSERVING -> ... -> REFLECTING -> DORMANT
     Emergency states bypass normal flow for safety.
     """
-    DORMANT = "dormant"              # Not running, awaiting activation
-    OBSERVING = "observing"          # Collecting system metrics
+
+    DORMANT = "dormant"  # Not running, awaiting activation
+    OBSERVING = "observing"  # Collecting system metrics
     HYPOTHESIZING = "hypothesizing"  # Generating improvement candidates
-    VALIDATING = "validating"        # Z3 FATE gate verification
-    IMPLEMENTING = "implementing"    # Shadow deployment of validated hypothesis
-    INTEGRATING = "integrating"      # Learning from outcome, consolidating
-    REFLECTING = "reflecting"        # Meta-analysis of loop performance
+    VALIDATING = "validating"  # Z3 FATE gate verification
+    IMPLEMENTING = "implementing"  # Shadow deployment of validated hypothesis
+    INTEGRATING = "integrating"  # Learning from outcome, consolidating
+    REFLECTING = "reflecting"  # Meta-analysis of loop performance
     EMERGENCY_ROLLBACK = "emergency_rollback"  # Safety-triggered rollback
-    HALTED = "halted"               # Human intervention required
+    HALTED = "halted"  # Human intervention required
 
 
 class HypothesisCategory(Enum):
     """Categories of improvement hypotheses."""
-    PERFORMANCE = "performance"           # Latency, throughput optimization
-    QUALITY = "quality"                   # SNR, Ihsan improvement
-    EFFICIENCY = "efficiency"             # Resource utilization
-    ROBUSTNESS = "robustness"             # Error handling, fault tolerance
-    CAPABILITY = "capability"             # New features or abilities
-    STRUCTURAL = "structural"             # Architecture changes (requires approval)
+
+    PERFORMANCE = "performance"  # Latency, throughput optimization
+    QUALITY = "quality"  # SNR, Ihsan improvement
+    EFFICIENCY = "efficiency"  # Resource utilization
+    ROBUSTNESS = "robustness"  # Error handling, fault tolerance
+    CAPABILITY = "capability"  # New features or abilities
+    STRUCTURAL = "structural"  # Architecture changes (requires approval)
 
 
 class RiskLevel(Enum):
     """Risk levels for hypotheses."""
-    NEGLIGIBLE = 1    # No observable impact on failure
-    LOW = 2           # Minor degradation, auto-recoverable
-    MODERATE = 3      # Noticeable impact, requires monitoring
-    HIGH = 4          # Significant impact, requires human approval
-    CRITICAL = 5      # System-wide impact, forbidden without council approval
+
+    NEGLIGIBLE = 1  # No observable impact on failure
+    LOW = 2  # Minor degradation, auto-recoverable
+    MODERATE = 3  # Noticeable impact, requires monitoring
+    HIGH = 4  # Significant impact, requires human approval
+    CRITICAL = 5  # System-wide impact, forbidden without council approval
 
 
 # =============================================================================
@@ -94,6 +96,7 @@ class RiskLevel(Enum):
 @dataclass
 class SystemObservation:
     """Snapshot of system metrics at observation time."""
+
     observation_id: str
     timestamp: datetime
 
@@ -141,6 +144,7 @@ class SystemObservation:
 @dataclass
 class ActivationGuardrails:
     """Guardrails that must pass before autopoiesis can activate."""
+
     enabled: bool = True
     require_live_sensors: bool = True
     allow_mock_sensors: bool = False
@@ -159,6 +163,7 @@ class ActivationGuardrails:
 @dataclass
 class ActivationReport:
     """Outcome of activation guardrail evaluation."""
+
     activated: bool
     reasons: List[str] = field(default_factory=list)
     observation: Optional[SystemObservation] = None
@@ -181,6 +186,7 @@ class Hypothesis:
     Represents a potential change that could improve system behavior,
     with associated risk assessment and reversibility plan.
     """
+
     id: str
     description: str
     category: HypothesisCategory
@@ -188,18 +194,18 @@ class Hypothesis:
 
     # Change specification
     required_changes: List[Dict[str, Any]]  # List of changes to apply
-    affected_components: List[str]          # Components that will be modified
+    affected_components: List[str]  # Components that will be modified
 
     # Risk and safety
     risk_level: RiskLevel
-    reversibility_plan: Dict[str, Any]      # How to undo if needed
-    ihsan_impact_estimate: float            # Expected Ihsan delta (-/+)
-    snr_impact_estimate: float              # Expected SNR delta (-/+)
+    reversibility_plan: Dict[str, Any]  # How to undo if needed
+    ihsan_impact_estimate: float  # Expected Ihsan delta (-/+)
+    snr_impact_estimate: float  # Expected SNR delta (-/+)
 
     # Validation requirements
     requires_human_approval: bool = False
     requires_shadow_deployment: bool = True
-    min_observation_duration_s: int = 300   # 5 minutes default
+    min_observation_duration_s: int = 300  # 5 minutes default
 
     # Metadata
     source_observation_id: Optional[str] = None
@@ -231,6 +237,7 @@ class Hypothesis:
 @dataclass
 class ValidationResult:
     """Result of Z3 FATE gate verification."""
+
     hypothesis_id: str
     is_valid: bool
 
@@ -267,6 +274,7 @@ class ValidationResult:
 @dataclass
 class ImplementationResult:
     """Result of shadow deployment implementation."""
+
     hypothesis_id: str
     success: bool
 
@@ -304,6 +312,7 @@ class ImplementationResult:
 @dataclass
 class IntegrationResult:
     """Result of learning and consolidation phase."""
+
     hypothesis_id: str
     integrated: bool
 
@@ -336,6 +345,7 @@ class IntegrationResult:
 @dataclass
 class AutopoieticResult:
     """Complete result of one autopoietic cycle."""
+
     cycle_id: str
     state: AutopoieticState
 
@@ -365,7 +375,11 @@ class AutopoieticResult:
             "state": self.state.value,
             "observation": self.observation.to_dict() if self.observation else None,
             "hypotheses_generated": self.hypotheses_generated,
-            "hypothesis_validated": self.hypothesis_validated.to_dict() if self.hypothesis_validated else None,
+            "hypothesis_validated": (
+                self.hypothesis_validated.to_dict()
+                if self.hypothesis_validated
+                else None
+            ),
             "improvements_integrated": self.improvements_integrated,
             "cycle_duration_ms": self.cycle_duration_ms,
             "rollbacks_triggered": self.rollbacks_triggered,
@@ -375,6 +389,7 @@ class AutopoieticResult:
 @dataclass
 class AuditLogEntry:
     """Audit log entry for all autopoietic modifications."""
+
     entry_id: str
     timestamp: datetime
     action: str
@@ -447,7 +462,10 @@ class RateLimiter:
 
         # Check improvements per cycle
         if self._improvements_this_cycle >= self.max_improvements_per_cycle:
-            return False, f"Max improvements ({self.max_improvements_per_cycle}) reached this cycle"
+            return (
+                False,
+                f"Max improvements ({self.max_improvements_per_cycle}) reached this cycle",
+            )
 
         return True, "Allowed"
 
@@ -463,7 +481,9 @@ class RateLimiter:
     def trigger_rollback_cooldown(self):
         """Trigger cooldown after a rollback."""
         self._rollback_cooldown_until = time.time() + self.cooldown_after_rollback_s
-        logger.warning(f"Rollback cooldown activated for {self.cooldown_after_rollback_s}s")
+        logger.warning(
+            f"Rollback cooldown activated for {self.cooldown_after_rollback_s}s"
+        )
 
 
 # =============================================================================
@@ -490,11 +510,13 @@ class RollbackManager:
 
     def save_state(self, state: Dict[str, Any], hypothesis_id: str):
         """Save state before applying a change."""
-        self._state_stack.append({
-            "hypothesis_id": hypothesis_id,
-            "state": state,
-            "saved_at": datetime.now(timezone.utc).isoformat(),
-        })
+        self._state_stack.append(
+            {
+                "hypothesis_id": hypothesis_id,
+                "state": state,
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     def should_rollback(
         self,
@@ -508,16 +530,22 @@ class RollbackManager:
 
         # Ihsan drop
         if current_ihsan < self.ihsan_floor:
-            reasons.append(f"Ihsan dropped below floor: {current_ihsan:.3f} < {self.ihsan_floor}")
+            reasons.append(
+                f"Ihsan dropped below floor: {current_ihsan:.3f} < {self.ihsan_floor}"
+            )
 
         # SNR drop
         if current_snr < self.snr_floor:
-            reasons.append(f"SNR dropped below floor: {current_snr:.3f} < {self.snr_floor}")
+            reasons.append(
+                f"SNR dropped below floor: {current_snr:.3f} < {self.snr_floor}"
+            )
 
         # Error spike
         error_delta = current_error_rate - baseline_error_rate
         if error_delta > self.error_spike_threshold:
-            reasons.append(f"Error spike detected: {error_delta:.3f} > {self.error_spike_threshold}")
+            reasons.append(
+                f"Error spike detected: {error_delta:.3f} > {self.error_spike_threshold}"
+            )
 
         if reasons:
             return True, "; ".join(reasons)
@@ -532,11 +560,13 @@ class RollbackManager:
 
     def record_rollback(self, hypothesis_id: str, reason: str):
         """Record a rollback event."""
-        self._rollback_history.append({
-            "hypothesis_id": hypothesis_id,
-            "reason": reason,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._rollback_history.append(
+            {
+                "hypothesis_id": hypothesis_id,
+                "reason": reason,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
 
 # =============================================================================
@@ -547,6 +577,7 @@ class RollbackManager:
 @dataclass
 class ApprovalRequest:
     """Request for human approval of a structural change."""
+
     request_id: str
     hypothesis: Hypothesis
     requested_at: datetime
@@ -601,7 +632,9 @@ class HumanApprovalQueue:
         )
 
         self._pending[request_id] = request
-        logger.info(f"Submitted hypothesis {hypothesis.id} for human approval: {request_id}")
+        logger.info(
+            f"Submitted hypothesis {hypothesis.id} for human approval: {request_id}"
+        )
 
         return request
 
@@ -760,6 +793,7 @@ class AutopoieticLoop:
         if self._fate_gate is None:
             try:
                 from core.sovereign.z3_fate_gate import Z3FATEGate
+
                 self._fate_gate = Z3FATEGate()
             except ImportError:
                 logger.warning("Z3FATEGate not available, using mock verification")
@@ -772,6 +806,7 @@ class AutopoieticLoop:
         if self._sensor_hub is None:
             try:
                 from core.sovereign.muraqabah_sensors import MuraqabahSensorHub
+
                 self._sensor_hub = MuraqabahSensorHub(snr_threshold=self.snr_floor)
             except ImportError:
                 logger.warning("MuraqabahSensorHub not available, using mock sensors")
@@ -806,10 +841,18 @@ class AutopoieticLoop:
 
         reasons: List[str] = []
 
-        if guard.require_live_sensors and self._is_mock_sensor_hub() and not guard.allow_mock_sensors:
+        if (
+            guard.require_live_sensors
+            and self._is_mock_sensor_hub()
+            and not guard.allow_mock_sensors
+        ):
             reasons.append("mock_sensor_hub_detected")
 
-        if guard.require_fate_gate and self._is_mock_fate_gate() and not guard.allow_mock_fate_gate:
+        if (
+            guard.require_fate_gate
+            and self._is_mock_fate_gate()
+            and not guard.allow_mock_fate_gate
+        ):
             reasons.append("mock_fate_gate_detected")
 
         observation = await self.observe()
@@ -832,13 +875,18 @@ class AutopoieticLoop:
             reasons.append(f"latency_p99_high:{observation.latency_p99_ms:.1f}")
         if observation.throughput_qps < guard.min_throughput_qps:
             reasons.append(f"throughput_low:{observation.throughput_qps:.2f}")
-        if guard.require_stable_or_improving and observation.trend_direction == "degrading":
+        if (
+            guard.require_stable_or_improving
+            and observation.trend_direction == "degrading"
+        ):
             reasons.append("degrading_trend")
         if len(observation.anomalies_detected) > guard.max_anomalies:
             reasons.append("anomalies_detected")
 
         fate_proof_id: Optional[str] = None
-        if guard.require_fate_gate and not (self._is_mock_fate_gate() and not guard.allow_mock_fate_gate):
+        if guard.require_fate_gate and not (
+            self._is_mock_fate_gate() and not guard.allow_mock_fate_gate
+        ):
             try:
                 action_context = {
                     "ihsan": observation.ihsan_score,
@@ -852,7 +900,9 @@ class AutopoieticLoop:
                 proof = self.fate_gate.generate_proof(action_context)
                 fate_proof_id = getattr(proof, "proof_id", None)
                 if not getattr(proof, "satisfiable", False):
-                    reasons.append(f"fate_gate_failed:{getattr(proof, 'counterexample', '')}")
+                    reasons.append(
+                        f"fate_gate_failed:{getattr(proof, 'counterexample', '')}"
+                    )
             except Exception as e:
                 reasons.append(f"fate_gate_exception:{e}")
 
@@ -971,23 +1021,31 @@ class AutopoieticLoop:
             result.state = AutopoieticState.VALIDATING
 
             if not validation.is_valid:
-                logger.info(f"Hypothesis {best_hypothesis.id} failed validation: {validation.violations}")
+                logger.info(
+                    f"Hypothesis {best_hypothesis.id} failed validation: {validation.violations}"
+                )
                 result.state = AutopoieticState.REFLECTING
                 await self._reflect_on_cycle(result)
                 return self._finalize_result(result, start_time)
 
             # Check human approval if needed
             if best_hypothesis.requires_human_approval:
-                approval_status = self._approval_queue.check_approval(best_hypothesis.id)
+                approval_status = self._approval_queue.check_approval(
+                    best_hypothesis.id
+                )
                 if approval_status is None:
                     # Submit for approval
-                    self._approval_queue.submit_for_approval(best_hypothesis, result.observation)
+                    self._approval_queue.submit_for_approval(
+                        best_hypothesis, result.observation
+                    )
                     result.human_approvals_pending = 1
                     result.state = AutopoieticState.HALTED
                     return self._finalize_result(result, start_time)
                 elif not approval_status:
                     # Rejected
-                    logger.info(f"Hypothesis {best_hypothesis.id} was rejected by human review")
+                    logger.info(
+                        f"Hypothesis {best_hypothesis.id} was rejected by human review"
+                    )
                     result.state = AutopoieticState.REFLECTING
                     await self._reflect_on_cycle(result)
                     return self._finalize_result(result, start_time)
@@ -1000,7 +1058,9 @@ class AutopoieticLoop:
             result.improvements_attempted = 1
 
             if implementation.needs_rollback:
-                await self._execute_rollback(best_hypothesis, implementation.rollback_reason or "Unknown")
+                await self._execute_rollback(
+                    best_hypothesis, implementation.rollback_reason or "Unknown"
+                )
                 result.rollbacks_triggered = 1
                 result.state = AutopoieticState.EMERGENCY_ROLLBACK
                 self._rate_limiter.trigger_rollback_cooldown()
@@ -1026,7 +1086,9 @@ class AutopoieticLoop:
 
         return self._finalize_result(result, start_time)
 
-    def _finalize_result(self, result: AutopoieticResult, start_time_ns: int) -> AutopoieticResult:
+    def _finalize_result(
+        self, result: AutopoieticResult, start_time_ns: int
+    ) -> AutopoieticResult:
         """Finalize and store cycle result."""
         result.completed_at = datetime.now(timezone.utc)
         result.cycle_duration_ms = (time.perf_counter_ns() - start_time_ns) // 1_000_000
@@ -1034,7 +1096,10 @@ class AutopoieticLoop:
         self._cycle_results.append(result)
 
         # Return to dormant
-        if result.state not in (AutopoieticState.HALTED, AutopoieticState.EMERGENCY_ROLLBACK):
+        if result.state not in (
+            AutopoieticState.HALTED,
+            AutopoieticState.EMERGENCY_ROLLBACK,
+        ):
             self._state = AutopoieticState.DORMANT
         else:
             self._state = result.state
@@ -1084,7 +1149,9 @@ class AutopoieticLoop:
                 constitutional_compliance=metrics.get("constitutional_compliance", 1.0),
                 trend_direction=trend,
                 anomalies_detected=anomalies,
-                sensor_readings={r.sensor_id: r.value for r in readings} if readings else {},
+                sensor_readings=(
+                    {r.sensor_id: r.value for r in readings} if readings else {}
+                ),
             )
 
             self._observation_history.append(observation)
@@ -1112,114 +1179,132 @@ class AutopoieticLoop:
 
         # Performance hypotheses based on latency
         if observation.latency_p99_ms > 100:
-            hypotheses.append(Hypothesis(
-                id=f"hyp_{uuid.uuid4().hex[:8]}",
-                description="Optimize inference batching to reduce P99 latency",
-                category=HypothesisCategory.PERFORMANCE,
-                predicted_improvement=0.15,  # 15% improvement
-                required_changes=[{
-                    "component": "inference.gateway",
-                    "parameter": "batch_size",
-                    "action": "increase",
-                    "from_value": 8,
-                    "to_value": 16,
-                }],
-                affected_components=["inference.gateway"],
-                risk_level=RiskLevel.LOW,
-                reversibility_plan={
-                    "action": "restore_parameter",
-                    "parameter": "batch_size",
-                    "restore_value": 8,
-                },
-                ihsan_impact_estimate=0.0,
-                snr_impact_estimate=0.01,
-                source_observation_id=observation.observation_id,
-                confidence=0.7,
-            ))
+            hypotheses.append(
+                Hypothesis(
+                    id=f"hyp_{uuid.uuid4().hex[:8]}",
+                    description="Optimize inference batching to reduce P99 latency",
+                    category=HypothesisCategory.PERFORMANCE,
+                    predicted_improvement=0.15,  # 15% improvement
+                    required_changes=[
+                        {
+                            "component": "inference.gateway",
+                            "parameter": "batch_size",
+                            "action": "increase",
+                            "from_value": 8,
+                            "to_value": 16,
+                        }
+                    ],
+                    affected_components=["inference.gateway"],
+                    risk_level=RiskLevel.LOW,
+                    reversibility_plan={
+                        "action": "restore_parameter",
+                        "parameter": "batch_size",
+                        "restore_value": 8,
+                    },
+                    ihsan_impact_estimate=0.0,
+                    snr_impact_estimate=0.01,
+                    source_observation_id=observation.observation_id,
+                    confidence=0.7,
+                )
+            )
 
         # Quality hypotheses based on SNR
         if observation.snr_score < 0.92:
-            hypotheses.append(Hypothesis(
-                id=f"hyp_{uuid.uuid4().hex[:8]}",
-                description="Increase SNR filtering threshold for embeddings",
-                category=HypothesisCategory.QUALITY,
-                predicted_improvement=0.08,
-                required_changes=[{
-                    "component": "vector_engine",
-                    "parameter": "snr_filter_threshold",
-                    "action": "increase",
-                    "from_value": 0.80,
-                    "to_value": 0.85,
-                }],
-                affected_components=["vector_engine"],
-                risk_level=RiskLevel.LOW,
-                reversibility_plan={
-                    "action": "restore_parameter",
-                    "parameter": "snr_filter_threshold",
-                    "restore_value": 0.80,
-                },
-                ihsan_impact_estimate=0.02,
-                snr_impact_estimate=0.05,
-                source_observation_id=observation.observation_id,
-                confidence=0.65,
-            ))
+            hypotheses.append(
+                Hypothesis(
+                    id=f"hyp_{uuid.uuid4().hex[:8]}",
+                    description="Increase SNR filtering threshold for embeddings",
+                    category=HypothesisCategory.QUALITY,
+                    predicted_improvement=0.08,
+                    required_changes=[
+                        {
+                            "component": "vector_engine",
+                            "parameter": "snr_filter_threshold",
+                            "action": "increase",
+                            "from_value": 0.80,
+                            "to_value": 0.85,
+                        }
+                    ],
+                    affected_components=["vector_engine"],
+                    risk_level=RiskLevel.LOW,
+                    reversibility_plan={
+                        "action": "restore_parameter",
+                        "parameter": "snr_filter_threshold",
+                        "restore_value": 0.80,
+                    },
+                    ihsan_impact_estimate=0.02,
+                    snr_impact_estimate=0.05,
+                    source_observation_id=observation.observation_id,
+                    confidence=0.65,
+                )
+            )
 
         # Efficiency hypotheses based on resource usage
         if observation.memory_usage > 0.8:
-            hypotheses.append(Hypothesis(
-                id=f"hyp_{uuid.uuid4().hex[:8]}",
-                description="Enable aggressive cache eviction to reduce memory pressure",
-                category=HypothesisCategory.EFFICIENCY,
-                predicted_improvement=0.10,
-                required_changes=[{
-                    "component": "cache_manager",
-                    "parameter": "eviction_policy",
-                    "action": "set",
-                    "to_value": "lru_aggressive",
-                }],
-                affected_components=["cache_manager"],
-                risk_level=RiskLevel.MODERATE,
-                reversibility_plan={
-                    "action": "restore_parameter",
-                    "parameter": "eviction_policy",
-                    "restore_value": "lru_standard",
-                },
-                ihsan_impact_estimate=-0.01,  # Slight quality impact
-                snr_impact_estimate=0.0,
-                source_observation_id=observation.observation_id,
-                confidence=0.6,
-            ))
+            hypotheses.append(
+                Hypothesis(
+                    id=f"hyp_{uuid.uuid4().hex[:8]}",
+                    description="Enable aggressive cache eviction to reduce memory pressure",
+                    category=HypothesisCategory.EFFICIENCY,
+                    predicted_improvement=0.10,
+                    required_changes=[
+                        {
+                            "component": "cache_manager",
+                            "parameter": "eviction_policy",
+                            "action": "set",
+                            "to_value": "lru_aggressive",
+                        }
+                    ],
+                    affected_components=["cache_manager"],
+                    risk_level=RiskLevel.MODERATE,
+                    reversibility_plan={
+                        "action": "restore_parameter",
+                        "parameter": "eviction_policy",
+                        "restore_value": "lru_standard",
+                    },
+                    ihsan_impact_estimate=-0.01,  # Slight quality impact
+                    snr_impact_estimate=0.0,
+                    source_observation_id=observation.observation_id,
+                    confidence=0.6,
+                )
+            )
 
         # Error rate hypotheses
         if observation.error_rate > 0.02:
-            hypotheses.append(Hypothesis(
-                id=f"hyp_{uuid.uuid4().hex[:8]}",
-                description="Add retry logic with exponential backoff for transient failures",
-                category=HypothesisCategory.ROBUSTNESS,
-                predicted_improvement=0.20,
-                required_changes=[{
-                    "component": "http_client",
-                    "parameter": "retry_config",
-                    "action": "update",
-                    "to_value": {"max_retries": 3, "backoff": "exponential"},
-                }],
-                affected_components=["http_client"],
-                risk_level=RiskLevel.LOW,
-                reversibility_plan={
-                    "action": "restore_parameter",
-                    "parameter": "retry_config",
-                    "restore_value": {"max_retries": 0},
-                },
-                ihsan_impact_estimate=0.01,
-                snr_impact_estimate=0.02,
-                source_observation_id=observation.observation_id,
-                confidence=0.75,
-            ))
+            hypotheses.append(
+                Hypothesis(
+                    id=f"hyp_{uuid.uuid4().hex[:8]}",
+                    description="Add retry logic with exponential backoff for transient failures",
+                    category=HypothesisCategory.ROBUSTNESS,
+                    predicted_improvement=0.20,
+                    required_changes=[
+                        {
+                            "component": "http_client",
+                            "parameter": "retry_config",
+                            "action": "update",
+                            "to_value": {"max_retries": 3, "backoff": "exponential"},
+                        }
+                    ],
+                    affected_components=["http_client"],
+                    risk_level=RiskLevel.LOW,
+                    reversibility_plan={
+                        "action": "restore_parameter",
+                        "parameter": "retry_config",
+                        "restore_value": {"max_retries": 0},
+                    },
+                    ihsan_impact_estimate=0.01,
+                    snr_impact_estimate=0.02,
+                    source_observation_id=observation.observation_id,
+                    confidence=0.75,
+                )
+            )
 
         # Store hypotheses for history
         self._hypothesis_history.extend(hypotheses)
 
-        logger.info(f"Generated {len(hypotheses)} hypotheses from observation {observation.observation_id}")
+        logger.info(
+            f"Generated {len(hypotheses)} hypotheses from observation {observation.observation_id}"
+        )
 
         return hypotheses
 
@@ -1262,20 +1347,31 @@ class AutopoieticLoop:
             violations.append(f"Z3 verification exception: {str(e)}")
 
         # Constitutional checks
-        ihsan_gate_passed = (self.ihsan_floor + hypothesis.ihsan_impact_estimate) >= self.ihsan_floor
-        snr_gate_passed = (self.snr_floor + hypothesis.snr_impact_estimate) >= self.snr_floor
+        ihsan_gate_passed = (
+            self.ihsan_floor + hypothesis.ihsan_impact_estimate
+        ) >= self.ihsan_floor
+        snr_gate_passed = (
+            self.snr_floor + hypothesis.snr_impact_estimate
+        ) >= self.snr_floor
         reversibility_verified = bool(hypothesis.reversibility_plan)
 
         if not ihsan_gate_passed:
-            violations.append(f"Ihsan impact would drop below floor")
+            violations.append("Ihsan impact would drop below floor")
         if not snr_gate_passed:
-            violations.append(f"SNR impact would drop below floor")
+            violations.append("SNR impact would drop below floor")
         if not reversibility_verified:
             violations.append("No reversibility plan provided")
 
-        is_valid = z3_satisfiable and ihsan_gate_passed and snr_gate_passed and reversibility_verified
+        is_valid = (
+            z3_satisfiable
+            and ihsan_gate_passed
+            and snr_gate_passed
+            and reversibility_verified
+        )
 
-        recommendation = "proceed" if is_valid else ("review" if len(violations) == 1 else "reject")
+        recommendation = (
+            "proceed" if is_valid else ("review" if len(violations) == 1 else "reject")
+        )
 
         result = ValidationResult(
             hypothesis_id=hypothesis.id,
@@ -1320,8 +1416,12 @@ class AutopoieticLoop:
         start_time = time.perf_counter_ns()
 
         # Save state for potential rollback
-        baseline_observation = self._observation_history[-1] if self._observation_history else None
-        baseline_metrics = baseline_observation.to_dict() if baseline_observation else {}
+        baseline_observation = (
+            self._observation_history[-1] if self._observation_history else None
+        )
+        baseline_metrics = (
+            baseline_observation.to_dict() if baseline_observation else {}
+        )
 
         self._rollback_manager.save_state(baseline_metrics, hypothesis.id)
 
@@ -1334,20 +1434,27 @@ class AutopoieticLoop:
             await asyncio.sleep(0.1)  # Simulate deployment time
 
             # Collect shadow metrics
-            await asyncio.sleep(hypothesis.min_observation_duration_s / 100)  # Accelerated for demo
+            await asyncio.sleep(
+                hypothesis.min_observation_duration_s / 100
+            )  # Accelerated for demo
 
             # Simulate shadow metrics (in production, collect from shadow instance)
             shadow_metrics = {
-                "ihsan_score": baseline_metrics.get("ihsan_score", 0.95) + hypothesis.ihsan_impact_estimate,
-                "snr_score": baseline_metrics.get("snr_score", 0.90) + hypothesis.snr_impact_estimate,
-                "latency_p50_ms": baseline_metrics.get("latency_p50_ms", 10.0) * (1 - hypothesis.predicted_improvement),
+                "ihsan_score": baseline_metrics.get("ihsan_score", 0.95)
+                + hypothesis.ihsan_impact_estimate,
+                "snr_score": baseline_metrics.get("snr_score", 0.90)
+                + hypothesis.snr_impact_estimate,
+                "latency_p50_ms": baseline_metrics.get("latency_p50_ms", 10.0)
+                * (1 - hypothesis.predicted_improvement),
                 "error_rate": baseline_metrics.get("error_rate", 0.01) * 0.9,
             }
 
             deployment_time_ms = (time.perf_counter_ns() - start_time) // 1_000_000
 
             # Calculate improvement
-            improvement_observed = hypothesis.predicted_improvement * 0.8  # Conservative estimate
+            improvement_observed = (
+                hypothesis.predicted_improvement * 0.8
+            )  # Conservative estimate
 
             # Check safety conditions
             current_ihsan = shadow_metrics.get("ihsan_score", 0.95)
@@ -1378,7 +1485,11 @@ class AutopoieticLoop:
             self._log_audit_entry(
                 action="implement",
                 hypothesis_id=hypothesis.id,
-                component_affected=hypothesis.affected_components[0] if hypothesis.affected_components else "unknown",
+                component_affected=(
+                    hypothesis.affected_components[0]
+                    if hypothesis.affected_components
+                    else "unknown"
+                ),
                 change_type="shadow_deployment",
                 before_state=baseline_metrics,
                 after_state=shadow_metrics,
@@ -1421,11 +1532,17 @@ class AutopoieticLoop:
             )
 
         # Successful implementation
-        ihsan_delta = result.shadow_metrics.get("ihsan_score", 0.95) - result.baseline_metrics.get("ihsan_score", 0.95)
-        snr_delta = result.shadow_metrics.get("snr_score", 0.90) - result.baseline_metrics.get("snr_score", 0.90)
+        ihsan_delta = result.shadow_metrics.get(
+            "ihsan_score", 0.95
+        ) - result.baseline_metrics.get("ihsan_score", 0.95)
+        snr_delta = result.shadow_metrics.get(
+            "snr_score", 0.90
+        ) - result.baseline_metrics.get("snr_score", 0.90)
 
         # Archive the pattern for future reference
-        pattern_id = hashlib.md5(json.dumps(result.shadow_metrics, sort_keys=True).encode()).hexdigest()[:12]
+        pattern_id = hashlib.md5(
+            json.dumps(result.shadow_metrics, sort_keys=True).encode()
+        ).hexdigest()[:12]
 
         integration_result = IntegrationResult(
             hypothesis_id=result.hypothesis_id,
@@ -1464,6 +1581,7 @@ class AutopoieticLoop:
 
     def _select_best_hypothesis(self, hypotheses: List[Hypothesis]) -> Hypothesis:
         """Select the best hypothesis based on expected value and risk."""
+
         def score(h: Hypothesis) -> float:
             # Higher improvement, lower risk, higher confidence = better
             risk_penalty = h.risk_level.value * 0.1
@@ -1488,18 +1606,18 @@ class AutopoieticLoop:
 
         if readings:
             for reading in readings:
-                sensor_id = getattr(reading, 'sensor_id', '')
-                value = getattr(reading, 'value', 0)
+                sensor_id = getattr(reading, "sensor_id", "")
+                value = getattr(reading, "value", 0)
 
-                if 'ihsan' in sensor_id.lower():
+                if "ihsan" in sensor_id.lower():
                     metrics["ihsan_score"] = value
-                elif 'snr' in sensor_id.lower():
+                elif "snr" in sensor_id.lower():
                     metrics["snr_score"] = value
-                elif 'latency' in sensor_id.lower():
+                elif "latency" in sensor_id.lower():
                     metrics["latency_p50_ms"] = value
-                elif 'cpu' in sensor_id.lower():
+                elif "cpu" in sensor_id.lower():
                     metrics["cpu_usage"] = value
-                elif 'memory' in sensor_id.lower():
+                elif "memory" in sensor_id.lower():
                     metrics["memory_usage"] = value
 
         return metrics
@@ -1551,7 +1669,11 @@ class AutopoieticLoop:
             self._log_audit_entry(
                 action="rollback",
                 hypothesis_id=hypothesis.id,
-                component_affected=hypothesis.affected_components[0] if hypothesis.affected_components else "unknown",
+                component_affected=(
+                    hypothesis.affected_components[0]
+                    if hypothesis.affected_components
+                    else "unknown"
+                ),
                 change_type="emergency_rollback",
                 before_state={"hypothesis": hypothesis.to_dict()},
                 after_state=saved_state,
@@ -1564,9 +1686,13 @@ class AutopoieticLoop:
         """Reflect on cycle performance and adjust parameters."""
         # Analyze cycle outcome
         if result.improvements_integrated > 0:
-            logger.info(f"Cycle {result.cycle_id} successful: {result.improvements_integrated} improvements integrated")
+            logger.info(
+                f"Cycle {result.cycle_id} successful: {result.improvements_integrated} improvements integrated"
+            )
         elif result.rollbacks_triggered > 0:
-            logger.warning(f"Cycle {result.cycle_id} had {result.rollbacks_triggered} rollbacks")
+            logger.warning(
+                f"Cycle {result.cycle_id} had {result.rollbacks_triggered} rollbacks"
+            )
         else:
             logger.debug(f"Cycle {result.cycle_id} completed with no changes")
 
@@ -1593,8 +1719,16 @@ class AutopoieticLoop:
             before_state=before_state,
             after_state=after_state,
             verified_by=verified_by,
-            ihsan_score_at_action=self._observation_history[-1].ihsan_score if self._observation_history else 0.95,
-            snr_score_at_action=self._observation_history[-1].snr_score if self._observation_history else 0.90,
+            ihsan_score_at_action=(
+                self._observation_history[-1].ihsan_score
+                if self._observation_history
+                else 0.95
+            ),
+            snr_score_at_action=(
+                self._observation_history[-1].snr_score
+                if self._observation_history
+                else 0.90
+            ),
             outcome=outcome,
             rollback_triggered=rollback_triggered,
         )
@@ -1603,7 +1737,7 @@ class AutopoieticLoop:
 
         # Persist to file
         try:
-            with open(self._audit_log_path, 'a') as f:
+            with open(self._audit_log_path, "a") as f:
                 f.write(json.dumps(entry.to_dict()) + "\n")
         except Exception as e:
             logger.error(f"Failed to persist audit log: {e}")
@@ -1670,13 +1804,19 @@ class AutopoieticLoop:
             "running": self._running,
             "activated": self._activated,
             "activation_failures": self._activation_failures,
-            "activation_report": self._activation_report.to_dict() if self._activation_report else None,
+            "activation_report": (
+                self._activation_report.to_dict() if self._activation_report else None
+            ),
             "cycle_count": self._cycle_count,
             "ihsan_floor": self.ihsan_floor,
             "snr_floor": self.snr_floor,
             "total_improvements": self._total_improvements,
             "total_rollbacks": self._total_rollbacks,
-            "last_improvement": self._last_improvement_time.isoformat() if self._last_improvement_time else None,
+            "last_improvement": (
+                self._last_improvement_time.isoformat()
+                if self._last_improvement_time
+                else None
+            ),
             "pending_approvals": len(self._approval_queue.get_pending()),
             "observation_history_size": len(self._observation_history),
             "audit_log_size": len(self._audit_log),
@@ -1724,8 +1864,8 @@ class MockFATEGate:
 
         # Simulate validation
         satisfiable = (
-            action_context.get("ihsan", 0) >= UNIFIED_IHSAN_THRESHOLD and
-            action_context.get("snr", 0) >= UNIFIED_SNR_THRESHOLD
+            action_context.get("ihsan", 0) >= UNIFIED_IHSAN_THRESHOLD
+            and action_context.get("snr", 0) >= UNIFIED_SNR_THRESHOLD
         )
 
         return MockProof(satisfiable=satisfiable)

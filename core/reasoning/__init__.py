@@ -27,34 +27,39 @@ Migrated: 2026-02-05 | Files now in dedicated reasoning package
 # PHASE 1: Safe imports (no cross-package dependencies)
 # --------------------------------------------------------------------------
 
-# graph_types: Enums and data classes
-from .graph_types import (
-    ThoughtType,
-    EdgeType,
-    ReasoningStrategy,
-    ThoughtNode,
-    ThoughtEdge,
-    ReasoningPath,
-    ReasoningResult,
-)
-# graph_operations / graph_search / graph_reasoning: Mixins (composed in GraphOfThoughts)
-from .graph_operations import GraphOperationsMixin
-from .graph_search import GraphSearchMixin
-from .graph_reasoning import GraphReasoningMixin
+# Bicameral Engine
+from .bicameral_engine import BicameralReasoningEngine
+
 # graph_core: Main composed class
 from .graph_core import GraphOfThoughts
+
+# graph_operations / graph_search / graph_reasoning: Mixins (composed in GraphOfThoughts)
+from .graph_operations import GraphOperationsMixin
+from .graph_reasoning import GraphReasoningMixin
+from .graph_search import GraphSearchMixin
+
+# graph_types: Enums and data classes
+from .graph_types import (
+    EdgeType,
+    ReasoningPath,
+    ReasoningResult,
+    ReasoningStrategy,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
+)
+
 # Guardian council
 from .guardian_council import (
-    GuardianCouncil,
-    Guardian,
     CouncilVerdict,
+    Guardian,
+    GuardianCouncil,
 )
+
 # SNR Maximizer
 from .snr_maximizer import (
     SNRMaximizer,
 )
-# Bicameral Engine
-from .bicameral_engine import BicameralReasoningEngine
 
 # --------------------------------------------------------------------------
 # PHASE 2: Lazy imports for modules with cross-package dependencies.
@@ -71,6 +76,7 @@ def __getattr__(name: str):
     if name in _LAZY_MODULES:
         module_path, attr_name = _LAZY_MODULES[name]
         import importlib
+
         mod = importlib.import_module(module_path, __name__)
         value = getattr(mod, attr_name)
         globals()[name] = value  # Cache for subsequent access

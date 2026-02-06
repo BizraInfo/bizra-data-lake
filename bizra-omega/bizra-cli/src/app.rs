@@ -2,9 +2,9 @@
 //!
 //! Central state management for the TUI application.
 
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// PAT Agent roles
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -307,7 +307,8 @@ impl App {
             selected_task: None,
             node_id: "node0_ce5af35c848ce889".to_string(),
             node_name: "MoMo (محمد)".to_string(),
-            genesis_hash: "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b".to_string(),
+            genesis_hash: "a7f68f1f74f2c0898cb1f1db6e83633674f17ee1c0161704ac8d85f8a773c25b"
+                .to_string(),
             lmstudio_connected: false,
             lmstudio_model: None,
             voice_active: false,
@@ -334,14 +335,20 @@ impl App {
     /// Switch to next view
     pub fn next_view(&mut self) {
         let views = ActiveView::all();
-        let current_idx = views.iter().position(|v| *v == self.active_view).unwrap_or(0);
+        let current_idx = views
+            .iter()
+            .position(|v| *v == self.active_view)
+            .unwrap_or(0);
         self.active_view = views[(current_idx + 1) % views.len()];
     }
 
     /// Switch to previous view
     pub fn prev_view(&mut self) {
         let views = ActiveView::all();
-        let current_idx = views.iter().position(|v| *v == self.active_view).unwrap_or(0);
+        let current_idx = views
+            .iter()
+            .position(|v| *v == self.active_view)
+            .unwrap_or(0);
         self.active_view = views[(current_idx + views.len() - 1) % views.len()];
     }
 
@@ -368,7 +375,12 @@ impl App {
     }
 
     /// Add chat message
-    pub fn add_message(&mut self, role: impl Into<String>, content: impl Into<String>, agent: Option<PATRole>) {
+    pub fn add_message(
+        &mut self,
+        role: impl Into<String>,
+        content: impl Into<String>,
+        agent: Option<PATRole>,
+    ) {
         self.chat_messages.push(ChatMessage {
             role: role.into(),
             content: content.into(),
@@ -403,11 +415,7 @@ impl App {
                 let agent_name = agent.name().to_lowercase();
                 let response = self.call_llm(&agent_name, &input);
 
-                self.add_message(
-                    agent.name(),
-                    &response,
-                    Some(agent),
-                );
+                self.add_message(agent.name(), &response, Some(agent));
                 self.set_status("Ready");
             }
         }
@@ -418,7 +426,7 @@ impl App {
     /// Process slash command
     fn process_command(&mut self, cmd: &str) {
         let parts: Vec<&str> = cmd.split_whitespace().collect();
-        match parts.first().map(|s| *s) {
+        match parts.first().copied() {
             Some("/quit") | Some("/q") => {
                 self.should_quit = true;
             }
@@ -438,7 +446,11 @@ impl App {
             }
             Some("/voice") | Some("/v") => {
                 self.voice_active = !self.voice_active;
-                self.set_status(if self.voice_active { "Voice enabled" } else { "Voice disabled" });
+                self.set_status(if self.voice_active {
+                    "Voice enabled"
+                } else {
+                    "Voice disabled"
+                });
             }
             Some("/clear") => {
                 self.chat_messages.clear();

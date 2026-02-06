@@ -14,35 +14,35 @@ pub mod colors {
     use super::Color;
 
     // Primary Colors
-    pub const GOLD: Color = Color::Rgb(212, 175, 55);        // إحسان - Excellence
-    pub const EMERALD: Color = Color::Rgb(80, 200, 120);     // Success, Active
-    pub const AZURE: Color = Color::Rgb(0, 127, 255);        // Information
-    pub const PEARL: Color = Color::Rgb(234, 234, 234);      // Text, Borders
+    pub const GOLD: Color = Color::Rgb(212, 175, 55); // إحسان - Excellence
+    pub const EMERALD: Color = Color::Rgb(80, 200, 120); // Success, Active
+    pub const AZURE: Color = Color::Rgb(0, 127, 255); // Information
+    pub const PEARL: Color = Color::Rgb(234, 234, 234); // Text, Borders
 
     // Background Colors
-    pub const DEEP_SPACE: Color = Color::Rgb(10, 10, 20);    // Main background
-    pub const MIDNIGHT: Color = Color::Rgb(20, 20, 35);      // Panel background
-    pub const TWILIGHT: Color = Color::Rgb(30, 30, 50);      // Highlighted background
+    pub const DEEP_SPACE: Color = Color::Rgb(10, 10, 20); // Main background
+    pub const MIDNIGHT: Color = Color::Rgb(20, 20, 35); // Panel background
+    pub const TWILIGHT: Color = Color::Rgb(30, 30, 50); // Highlighted background
 
     // Semantic Colors
-    pub const IHSAN: Color = GOLD;                           // Excellence threshold met
-    pub const ACTIVE: Color = EMERALD;                       // Active, success
-    pub const WARNING: Color = Color::Rgb(255, 191, 0);      // Amber warning
-    pub const DANGER: Color = Color::Rgb(220, 53, 69);       // Error, violation
-    pub const MUTED: Color = Color::Rgb(108, 117, 125);      // Inactive, disabled
+    pub const IHSAN: Color = GOLD; // Excellence threshold met
+    pub const ACTIVE: Color = EMERALD; // Active, success
+    pub const WARNING: Color = Color::Rgb(255, 191, 0); // Amber warning
+    pub const DANGER: Color = Color::Rgb(220, 53, 69); // Error, violation
+    pub const MUTED: Color = Color::Rgb(108, 117, 125); // Inactive, disabled
 
     // PAT Agent Colors (each agent has a signature color)
-    pub const PAT_STRATEGIST: Color = Color::Rgb(147, 112, 219);  // Purple - Strategy
-    pub const PAT_RESEARCHER: Color = Color::Rgb(70, 130, 180);   // Steel Blue - Knowledge
-    pub const PAT_DEVELOPER: Color = Color::Rgb(34, 139, 34);     // Forest Green - Code
-    pub const PAT_ANALYST: Color = Color::Rgb(255, 140, 0);       // Dark Orange - Data
-    pub const PAT_REVIEWER: Color = Color::Rgb(178, 34, 34);      // Firebrick - Quality
-    pub const PAT_EXECUTOR: Color = Color::Rgb(70, 70, 70);       // Dark Gray - Action
-    pub const PAT_GUARDIAN: Color = GOLD;                         // Gold - Protection
+    pub const PAT_STRATEGIST: Color = Color::Rgb(147, 112, 219); // Purple - Strategy
+    pub const PAT_RESEARCHER: Color = Color::Rgb(70, 130, 180); // Steel Blue - Knowledge
+    pub const PAT_DEVELOPER: Color = Color::Rgb(34, 139, 34); // Forest Green - Code
+    pub const PAT_ANALYST: Color = Color::Rgb(255, 140, 0); // Dark Orange - Data
+    pub const PAT_REVIEWER: Color = Color::Rgb(178, 34, 34); // Firebrick - Quality
+    pub const PAT_EXECUTOR: Color = Color::Rgb(70, 70, 70); // Dark Gray - Action
+    pub const PAT_GUARDIAN: Color = GOLD; // Gold - Protection
 
     // Voice indicator
-    pub const VOICE_ACTIVE: Color = Color::Rgb(138, 43, 226);    // BlueViolet - Speaking
-    pub const VOICE_LISTENING: Color = Color::Rgb(0, 191, 255);  // DeepSkyBlue - Listening
+    pub const VOICE_ACTIVE: Color = Color::Rgb(138, 43, 226); // BlueViolet - Speaking
+    pub const VOICE_LISTENING: Color = Color::Rgb(0, 191, 255); // DeepSkyBlue - Listening
 }
 
 /// BIZRA Border Styles — Inspired by Arabic Geometry
@@ -122,15 +122,11 @@ impl Theme {
     // === Panel Styles ===
 
     pub fn panel() -> Style {
-        Style::default()
-            .bg(colors::MIDNIGHT)
-            .fg(colors::PEARL)
+        Style::default().bg(colors::MIDNIGHT).fg(colors::PEARL)
     }
 
     pub fn panel_focused() -> Style {
-        Style::default()
-            .bg(colors::TWILIGHT)
-            .fg(colors::PEARL)
+        Style::default().bg(colors::TWILIGHT).fg(colors::PEARL)
     }
 
     pub fn panel_border() -> Style {
@@ -261,7 +257,11 @@ pub mod symbols {
 
 /// Format a metric value with color based on threshold
 pub fn metric_style(value: f64, threshold: f64, inverse: bool) -> Style {
-    let passes = if inverse { value <= threshold } else { value >= threshold };
+    let passes = if inverse {
+        value <= threshold
+    } else {
+        value >= threshold
+    };
     if passes {
         Theme::ihsan()
     } else if (value - threshold).abs() < 0.05 {

@@ -5,13 +5,12 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, Gauge, Paragraph, Widget},
 };
 
 use crate::app::FATEGates;
-use crate::theme::{colors, ihsan_style, metric_style, symbols, Theme};
+use crate::theme::{metric_style, symbols, Theme};
 
 pub struct FateGauge<'a> {
     gates: &'a FATEGates,
@@ -38,11 +37,26 @@ impl Widget for FateGauge<'_> {
 
         let block = Block::default()
             .title(Span::styled(
-                format!(" {} FATE Gates ", if all_pass { symbols::GATE_PASS } else { symbols::GATE_PENDING }),
-                if all_pass { Theme::ihsan() } else { Theme::warning() },
+                format!(
+                    " {} FATE Gates ",
+                    if all_pass {
+                        symbols::GATE_PASS
+                    } else {
+                        symbols::GATE_PENDING
+                    }
+                ),
+                if all_pass {
+                    Theme::ihsan()
+                } else {
+                    Theme::warning()
+                },
             ))
             .borders(Borders::ALL)
-            .border_style(if all_pass { Theme::panel_border_focused() } else { Theme::panel_border() })
+            .border_style(if all_pass {
+                Theme::panel_border_focused()
+            } else {
+                Theme::panel_border()
+            })
             .style(Theme::panel());
 
         let inner = block.inner(area);
@@ -73,13 +87,28 @@ impl Widget for FateGauge<'_> {
     }
 }
 
-fn render_gate(buf: &mut Buffer, area: Rect, name: &str, value: f64, threshold: f64, inverse: bool) {
+fn render_gate(
+    buf: &mut Buffer,
+    area: Rect,
+    name: &str,
+    value: f64,
+    threshold: f64,
+    inverse: bool,
+) {
     if area.height < 1 {
         return;
     }
 
-    let passes = if inverse { value <= threshold } else { value >= threshold };
-    let symbol = if passes { symbols::GATE_PASS } else { symbols::GATE_FAIL };
+    let passes = if inverse {
+        value <= threshold
+    } else {
+        value >= threshold
+    };
+    let symbol = if passes {
+        symbols::GATE_PASS
+    } else {
+        symbols::GATE_FAIL
+    };
     let style = metric_style(value, threshold, inverse);
 
     // Label

@@ -36,14 +36,12 @@ Created: 2026-02-03 | BIZRA Elite Integration v1.1.0
 from __future__ import annotations
 
 import logging
-import math
-import time
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import uuid
+from typing import Any, Dict, List, Optional, Set
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -79,12 +77,14 @@ MAX_LICENSE_DURATION_HOURS = 24
 # RESOURCE TYPES
 # ============================================================================
 
+
 class ResourceType(str, Enum):
     """Types of compute resources."""
-    CPU = "cpu"           # CPU cycles
-    GPU = "gpu"           # GPU compute units
-    MEMORY = "memory"     # RAM allocation
-    STORAGE = "storage"   # Disk space
+
+    CPU = "cpu"  # CPU cycles
+    GPU = "gpu"  # GPU compute units
+    MEMORY = "memory"  # RAM allocation
+    STORAGE = "storage"  # Disk space
     BANDWIDTH = "bandwidth"  # Network bandwidth
     INFERENCE = "inference"  # LLM inference slots
     CONSENSUS = "consensus"  # Consensus participation slots
@@ -97,9 +97,10 @@ class ResourceUnit:
 
     Represents a quantifiable resource with pricing.
     """
+
     resource_type: ResourceType
     quantity: float  # Amount in resource-specific units
-    unit_name: str   # e.g., "cores", "GB", "TFLOPS"
+    unit_name: str  # e.g., "cores", "GB", "TFLOPS"
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize resource unit."""
@@ -114,12 +115,14 @@ class ResourceUnit:
 # LICENSE
 # ============================================================================
 
+
 class LicenseStatus(str, Enum):
     """License lifecycle status."""
-    ACTIVE = "active"       # Currently held and valid
-    EXPIRED = "expired"     # Tax period expired
-    PURCHASED = "purchased" # Just purchased, pending activation
-    REVOKED = "revoked"     # Revoked due to non-payment
+
+    ACTIVE = "active"  # Currently held and valid
+    EXPIRED = "expired"  # Tax period expired
+    PURCHASED = "purchased"  # Just purchased, pending activation
+    REVOKED = "revoked"  # Revoked due to non-payment
     TRANSFERRED = "transferred"  # Transferred to new holder
 
 
@@ -131,13 +134,14 @@ class ComputeLicense:
     The holder self-assesses value and pays continuous tax.
     Anyone can purchase at the self-assessed price.
     """
+
     # Identity
     license_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
 
     # Resource
-    resource: ResourceUnit = field(default_factory=lambda: ResourceUnit(
-        ResourceType.INFERENCE, 1.0, "slots"
-    ))
+    resource: ResourceUnit = field(
+        default_factory=lambda: ResourceUnit(ResourceType.INFERENCE, 1.0, "slots")
+    )
 
     # Ownership
     holder_id: str = ""
@@ -149,7 +153,9 @@ class ComputeLicense:
 
     # Timing
     issued_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_tax_payment: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_tax_payment: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     expires_at: Optional[datetime] = None
 
     # Status
@@ -206,9 +212,11 @@ class ComputeLicense:
 # MARKET
 # ============================================================================
 
+
 @dataclass
 class MarketTransaction:
     """A market transaction record."""
+
     transaction_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -306,7 +314,8 @@ class ComputeMarket:
             holder_ihsan=holder_ihsan,
             self_assessed_value=value,
             tax_rate=self.tax_rate,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=MAX_LICENSE_DURATION_HOURS),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(hours=MAX_LICENSE_DURATION_HOURS),
         )
 
         # Register
@@ -323,7 +332,9 @@ class ComputeMarket:
         # Check Gini after issuance
         gini = self.compute_gini()
         if gini > self.gini_threshold:
-            logger.warning(f"Gini coefficient {gini:.3f} exceeds threshold {self.gini_threshold}")
+            logger.warning(
+                f"Gini coefficient {gini:.3f} exceeds threshold {self.gini_threshold}"
+            )
 
         return license
 
@@ -462,7 +473,9 @@ class ComputeMarket:
 
         # Reactivate
         license.status = LicenseStatus.ACTIVE
-        license.expires_at = datetime.now(timezone.utc) + timedelta(hours=MAX_LICENSE_DURATION_HOURS)
+        license.expires_at = datetime.now(timezone.utc) + timedelta(
+            hours=MAX_LICENSE_DURATION_HOURS
+        )
 
         return transaction
 
@@ -485,7 +498,9 @@ class ComputeMarket:
         self._treasury += total_collected
         self._total_tax_collected += total_collected
 
-        logger.info(f"Tax collection: {total_collected:.2f} from {len(self._licenses)} licenses")
+        logger.info(
+            f"Tax collection: {total_collected:.2f} from {len(self._licenses)} licenses"
+        )
 
         return total_collected
 
@@ -522,7 +537,10 @@ class ComputeMarket:
         revoked = []
 
         for license in self._licenses.values():
-            if license.tax_debt > debt_threshold and license.status == LicenseStatus.ACTIVE:
+            if (
+                license.tax_debt > debt_threshold
+                and license.status == LicenseStatus.ACTIVE
+            ):
                 license.status = LicenseStatus.REVOKED
                 self._holder_licenses[license.holder_id].discard(license.license_id)
                 revoked.append(license.license_id)
@@ -566,11 +584,7 @@ class ComputeMarket:
             return 0.0
 
         # Mean absolute difference
-        sum_diff = sum(
-            abs(values[i] - values[j])
-            for i in range(n)
-            for j in range(n)
-        )
+        sum_diff = sum(abs(values[i] - values[j]) for i in range(n) for j in range(n))
 
         gini = sum_diff / (2 * n * total)
         return gini
@@ -609,7 +623,9 @@ class ComputeMarket:
             return report
 
         report["action_taken"] = True
-        logger.warning(f"Gini enforcement triggered: {gini:.3f} > {self.gini_threshold}")
+        logger.warning(
+            f"Gini enforcement triggered: {gini:.3f} > {self.gini_threshold}"
+        )
 
         # Get distribution
         distribution = self.get_distribution()
@@ -624,7 +640,8 @@ class ComputeMarket:
 
         # Find over-allocated holders
         over_allocated = {
-            h: v for h, v in distribution.items()
+            h: v
+            for h, v in distribution.items()
             if v > target_per_holder * 1.5  # 50% over fair share
         }
 
@@ -644,11 +661,13 @@ class ComputeMarket:
                 license.self_assessed_value *= 0.5
                 license.status = LicenseStatus.EXPIRED  # Available for purchase
 
-                report["forced_sales"].append({
-                    "license_id": license.license_id,
-                    "holder_id": holder_id,
-                    "new_value": license.self_assessed_value,
-                })
+                report["forced_sales"].append(
+                    {
+                        "license_id": license.license_id,
+                        "holder_id": holder_id,
+                        "new_value": license.self_assessed_value,
+                    }
+                )
 
                 report["redistributed_value"] += license.self_assessed_value
                 current_value -= license.self_assessed_value
@@ -714,7 +733,9 @@ class ComputeMarket:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get market statistics."""
-        active_licenses = [l for l in self._licenses.values() if l.status == LicenseStatus.ACTIVE]
+        active_licenses = [
+            l for l in self._licenses.values() if l.status == LicenseStatus.ACTIVE
+        ]
         total_value = sum(l.self_assessed_value for l in active_licenses)
 
         return {
@@ -750,7 +771,9 @@ class ComputeMarket:
         else:
             gini_status = "critical"
 
-        active = len([l for l in self._licenses.values() if l.status == LicenseStatus.ACTIVE])
+        active = len(
+            [l for l in self._licenses.values() if l.status == LicenseStatus.ACTIVE]
+        )
         purchasable = len([l for l in self._licenses.values() if l.is_purchasable()])
 
         return {
@@ -766,6 +789,7 @@ class ComputeMarket:
 # ============================================================================
 # NTU INTEGRATION
 # ============================================================================
+
 
 class NTUMarketAdapter:
     """
@@ -787,6 +811,7 @@ class NTUMarketAdapter:
         if self._ntu is None:
             try:
                 from core.ntu import NTU, NTUConfig
+
                 self._ntu = NTU(NTUConfig())
             except ImportError:
                 logger.warning("NTU not available")
@@ -844,16 +869,20 @@ class NTUMarketAdapter:
         else:
             signal = 0.2  # Failed transaction = negative signal
 
-        self.ntu.observe(signal, {
-            "source": "market_transaction",
-            "success": transaction.success,
-            "value": transaction.price,
-        })
+        self.ntu.observe(
+            signal,
+            {
+                "source": "market_transaction",
+                "success": transaction.success,
+                "value": transaction.price,
+            },
+        )
 
 
 # ============================================================================
 # FACTORY FUNCTIONS
 # ============================================================================
+
 
 def create_market(
     tax_rate: float = DEFAULT_TAX_RATE,
