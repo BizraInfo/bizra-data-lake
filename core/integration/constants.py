@@ -27,6 +27,7 @@ Cross-repo alignment:
 Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
 """
 
+import os
 from typing import Final
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -163,14 +164,16 @@ MAX_RETRY_ATTEMPTS = 3
 # INFERENCE CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Primary LLM backend
-LMSTUDIO_URL = "http://192.168.56.1:1234"
+# Primary LLM backend (env override: LMSTUDIO_URL or LMSTUDIO_HOST + LMSTUDIO_PORT)
+_lmstudio_host = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+_lmstudio_port = os.getenv("LMSTUDIO_PORT", "1234")
+LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", f"http://{_lmstudio_host}:{_lmstudio_port}")
 
-# Fallback LLM backend
-OLLAMA_URL = "http://localhost:11434"
+# Fallback LLM backend (env override: OLLAMA_URL or OLLAMA_HOST)
+OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434"))
 
 # Model directory (unified path)
-MODEL_DIR = "/mnt/c/BIZRA-DATA-LAKE/models"
+MODEL_DIR = os.getenv("BIZRA_MODELS_DIR", "/mnt/c/BIZRA-DATA-LAKE/models")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

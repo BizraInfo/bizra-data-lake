@@ -28,6 +28,7 @@ Principle: لا نفترض — We do not assume.
 import asyncio
 import hashlib
 import json
+import os
 import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -852,9 +853,9 @@ class InferenceConfig:
     # Fail-closed: deny if no local model available
     require_local: bool = True
 
-    # External endpoints (for fallbacks)
-    ollama_url: str = "http://localhost:11434"
-    lmstudio_url: str = "http://192.168.56.1:1234"
+    # External endpoints (env vars override defaults)
+    ollama_url: str = field(default_factory=lambda: os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")))
+    lmstudio_url: str = field(default_factory=lambda: os.getenv("LMSTUDIO_URL", f"http://{os.getenv('LMSTUDIO_HOST', '192.168.56.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}"))
 
     # Batching settings (P0-P1 optimization)
     enable_batching: bool = True
