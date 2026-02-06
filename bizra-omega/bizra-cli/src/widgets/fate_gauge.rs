@@ -14,6 +14,8 @@ use crate::theme::{metric_style, symbols, Theme};
 
 pub struct FateGauge<'a> {
     gates: &'a FATEGates,
+    // TUI scaffolding -- used when label toggle is wired to UI settings
+    #[allow(dead_code)]
     show_labels: bool,
 }
 
@@ -25,6 +27,8 @@ impl<'a> FateGauge<'a> {
         }
     }
 
+    // TUI scaffolding -- builder method used when label toggle is wired
+    #[allow(dead_code)]
     pub fn show_labels(mut self, show: bool) -> Self {
         self.show_labels = show;
         self

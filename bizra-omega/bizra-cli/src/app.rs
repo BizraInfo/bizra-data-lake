@@ -247,15 +247,21 @@ pub struct App {
     /// FATE gate metrics
     pub fate_gates: FATEGates,
 
+    // TUI scaffolding -- fields used when system metrics panel is fully wired
+    #[allow(dead_code)]
     /// System metrics
     pub system_metrics: SystemMetrics,
 
     /// Chat messages
     pub chat_messages: Vec<ChatMessage>,
+    // TUI scaffolding -- used when manual scroll control is wired
+    #[allow(dead_code)]
     pub chat_scroll: usize,
 
     /// Tasks
     pub tasks: Vec<TaskItem>,
+    // TUI scaffolding -- used when task selection UI is wired
+    #[allow(dead_code)]
     pub selected_task: Option<usize>,
 
     /// Node info
@@ -265,10 +271,14 @@ pub struct App {
 
     /// LM Studio status
     pub lmstudio_connected: bool,
+    // TUI scaffolding -- used when model display widget is wired
+    #[allow(dead_code)]
     pub lmstudio_model: Option<String>,
 
     /// Voice status
     pub voice_active: bool,
+    // TUI scaffolding -- used when voice listening indicator is wired
+    #[allow(dead_code)]
     pub voice_listening: bool,
 
     /// Should quit

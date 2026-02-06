@@ -69,7 +69,6 @@ jobs:
       - name: Type check with MyPy
         run: |
           mypy core/ --ignore-missing-imports --no-error-summary
-        continue-on-error: true  # Non-blocking until strict mode baseline established
 
   lint-rust:
     name: Lint Rust
@@ -102,7 +101,6 @@ jobs:
 
       - name: Run Clippy
         run: cargo clippy --workspace --lib --bins --tests -- -D warnings
-        continue-on-error: true  # Non-blocking until warning baseline established
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Test Matrix (Python + Rust)
@@ -364,7 +362,6 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    continue-on-error: true  # Non-blocking until baseline established
     needs: [quality-gates]
     steps:
       - uses: actions/checkout@v4

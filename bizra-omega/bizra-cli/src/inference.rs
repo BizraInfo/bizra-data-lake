@@ -2,6 +2,9 @@
 //!
 //! Connects to LM Studio's v1 REST API for local inference.
 //! Supports both native `/api/v1/chat` and OpenAI-compatible endpoints.
+//!
+//! TUI scaffolding -- used when direct Rust-to-LMStudio inference replaces
+//! the Python bridge. All types and methods are intentionally retained.
 
 use anyhow::{anyhow, Result};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};

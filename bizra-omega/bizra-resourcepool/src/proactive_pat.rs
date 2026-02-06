@@ -380,7 +380,8 @@ pub struct ProactivePATEngine {
     agents: HashMap<String, ProactivePATAgent>,
     /// Shared user profile
     user_profile: UserProfile,
-    /// Action queue
+    /// Action queue — consumed when proactive loop executor is wired
+    #[allow(dead_code)]
     action_queue: Vec<ProactiveAction>,
     /// Rate limiter state
     actions_this_hour: u32,
