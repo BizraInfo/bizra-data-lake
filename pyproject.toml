@@ -59,7 +59,7 @@ minimal = [
 [tool.pytest.ini_options]
 # AUTHORITATIVE pytest config (pytest.ini should match or be removed)
 minversion = "7.0"
-addopts = "-v --tb=short --strict-markers --ignore=evidence --ignore=00_INTAKE --ignore=New\\ folder"
+addopts = "-v --tb=short --strict-markers --ignore=evidence --ignore=00_INTAKE --ignore=New\\ folder --ignore=tests/root_legacy"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]

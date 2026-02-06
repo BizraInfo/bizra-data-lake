@@ -1,9 +1,8 @@
 <div align="center">
 
-# بذرة
+# BIZRA
 
-**The Memory of Node₀**<br>
-*ذاكرة العقدة الأولى*
+**Sovereign Agentic Infrastructure for the Next Internet**
 
 <br>
 
@@ -12,192 +11,214 @@
 <br><br>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-[![Constitution](https://img.shields.io/badge/Constitution-v1.1.0--FINAL-gold?style=for-the-badge)](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md)
-[![Status](https://img.shields.io/badge/Status-ACTIVE-success?style=for-the-badge)](#)
-[![Rust Tests](https://img.shields.io/badge/Rust_Tests-282_passing-blue?style=for-the-badge)](#)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Rust](https://img.shields.io/badge/Rust-stable-DEA584?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Tests](https://img.shields.io/badge/Tests-1952_passing-success?style=for-the-badge)](#testing)
 
 <br>
 
-**This is not a folder. This is Node₀'s long-term memory.**
+BIZRA is a decentralized agentic system where every human is a node, every node is sovereign, and every action is ethically constrained. Built on **Proof-Carrying Inference**, **FATE gates**, and **constitutional AI governance**.
+
+[Architecture](#architecture) | [Quick Start](#quick-start) | [Documentation](#documentation) | [Contributing](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## The Purpose
+## What is BIZRA?
 
-**Doc Status:** OPERATIONAL (verified pipeline + metrics; see AUDIT_REPORT.md)
+**BIZRA** (Arabic: بذرة, "seed") is an open-source framework for building sovereign AI agents that operate under constitutional constraints. It combines:
 
-The BIZRA Data Lake is the **persistent memory** of the Genesis Node.
+- **Proof-Carrying Inference (PCI):** Every AI inference carries a cryptographic proof of its inputs, model, and ethical compliance
+- **FATE Gates:** Fairness, Accountability, Transparency, and Ethics gates that constrain all agent actions
+- **Ihsan Constraint:** A quality threshold (Signal-to-Noise Ratio >= 0.95) that enforces excellence as a hard requirement, not a suggestion
+- **Federation Protocol:** Byzantine fault-tolerant gossip protocol for peer-to-peer agent coordination
+- **Constitutional Governance:** Agents are bound by an immutable constitution that cannot be overridden at runtime
 
-While compute runs in WSL (`bizra-genesis`), knowledge lives here. Both are organs of the same organism.
+### Design Philosophy
 
-Every conversation, every document, every insight — indexed, embedded, retrievable.
+> **We do not assume.** Every claim has provenance. Every inference has proof. Every agent has a constitution.
 
----
-
-## The Law
-
-<div align="center">
-
-### لا نفترض
-
-**We do not assume.**
-
-</div>
-
-This Data Lake embodies THE LAW:
-- Every chunk has provenance
-- Every embedding has a source
-- Every fact can be traced to evidence
+BIZRA stands on the shoulders of giants: Shannon (information theory), Lamport (distributed consensus), Vaswani (attention mechanisms), Al-Ghazali (ethical reasoning), and General Magic (mobile agents, 1990).
 
 ---
 
-## Structure
+## Architecture
 
 ```
-BIZRA-DATA-LAKE/
-│
-├── 00_INTAKE/          ⚡ Drop zone — files auto-process on arrival
-│
-├── 01_RAW/             📦 Timestamped originals (immutable)
-│
-├── 02_PROCESSED/       ✨ Organized by type
-│   ├── images/         🖼️  Visual assets
-│   ├── documents/      📄 PDFs, docs, presentations
-│   ├── code/           💻 Source code (all languages)
-│   ├── text/           📝 Markdown, logs, conversations
-│   ├── data/           📊 JSON, YAML, CSV, databases
-│   ├── models/         🤖 ML models, weights
-│   ├── media/          🎬 Audio, video
-│   └── archives/       📦 Compressed files
-│
-├── 03_INDEXED/         🔍 Vector embeddings + graph
-│   ├── graph/          Knowledge graph (nodes.jsonl, edges.jsonl)
-│   ├── embeddings/     Per-document embeddings
-│   └── chat_history/   Conversation graphs
-│
-├── 04_GOLD/            ⭐ Curated production assets
-│   ├── chunks.parquet        267MB — 84,795 embedded chunks
-│   ├── documents.parquet     51MB — 1,437 documents
-│   ├── sacred_wisdom_*.npy   Sacred embeddings
-│   └── poi_ledger.jsonl      Proof-of-Impact attestations
-│
-└── 99_QUARANTINE/      🗑️ Duplicates, corrupted files
+                         BIZRA Sovereign Architecture
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │                        Constitutional Layer                          │
+ │   Immutable rules ─ FATE gates ─ Ihsan threshold ─ ADL invariants   │
+ └──────────────────────────────┬───────────────────────────────────────┘
+                                │
+ ┌──────────────────────────────┴───────────────────────────────────────┐
+ │                        Sovereign Runtime                             │
+ │   Graph-of-Thoughts ─ SNR Maximizer ─ Omega Engine ─ Treasury       │
+ └──────────────┬───────────────────────────────────┬───────────────────┘
+                │                                   │
+ ┌──────────────┴───────────┐       ┌───────────────┴───────────────────┐
+ │   Inference Gateway      │       │   Federation Layer                │
+ │   Local-first ─ Tiered   │       │   Gossip ─ Consensus ─ PCI       │
+ │   Edge/Local/Pool        │       │   BFT ─ Propagation              │
+ └──────────────────────────┘       └───────────────────────────────────┘
 ```
 
----
+### Core Modules
 
-## The Numbers
-
-| Asset | Value |
-|:------|------:|
-| Embedded chunks | 84,795 |
-| Documents | 1,437 |
-| Graph nodes | 56,358 |
-| Graph edges | 88,649 |
-| Embedding dimensions | 384 |
-| Total size | 5.7 GB |
+| Module | Purpose | Language |
+|--------|---------|----------|
+| `core/pci/` | Proof-Carrying Inference protocol (Ed25519 signatures, envelopes, gates) | Python |
+| `core/federation/` | P2P federation (gossip, BFT consensus, secure transport) | Python |
+| `core/inference/` | Tiered inference gateway (edge/local/pool backends) | Python |
+| `core/sovereign/` | Sovereign runtime (Graph-of-Thoughts, treasury, autonomy) | Python |
+| `bizra-omega/` | High-performance core (13 Rust crates) | Rust |
+| `bizra-omega/bizra-core/` | Constitution, identity, FATE gates, Islamic finance | Rust |
+| `bizra-omega/bizra-federation/` | Federation protocol with gossip and signed messages | Rust |
+| `bizra-omega/bizra-cli/` | Terminal UI with real-time dashboards | Rust |
 
 ---
 
 ## Quick Start
 
-### Process Files
+### Prerequisites
 
-```powershell
-# Process existing files
-.\DataLakeProcessor.ps1 -ProcessOnce
+- Python 3.11+ with pip
+- Rust stable toolchain (for the Omega workspace)
+- An LLM backend: [LM Studio](https://lmstudio.ai/), [Ollama](https://ollama.ai/), or any OpenAI-compatible API
 
-# Start continuous monitoring
-.\DataLakeProcessor.ps1 -Watch
+### Install
+
+```bash
+# Clone the repository
+git clone https://github.com/BizraInfo/bizra-data-lake.git
+cd bizra-data-lake
+
+# Create a Python virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install core dependencies
+pip install -e ".[dev]"
+
+# Build Rust workspace (optional, for high-performance features)
+cd bizra-omega && cargo build --release && cd ..
 ```
 
-### Drop Files
+### Configure
 
-Simply copy files to `00_INTAKE/`. The pipeline will:
-1. Back up to `01_RAW/` (immutable)
-2. Organize into `02_PROCESSED/`
-3. Generate embeddings in `03_INDEXED/`
-4. Curate into `04_GOLD/` when ready
+```bash
+# Copy the example environment file
+cp .env.example .env
 
-### Query from bizra-genesis
-
-```python
-from data_plane import DataLakeConnector, RetrievalEngine
-
-# Connect to the lake
-connector = DataLakeConnector()
-print(f"Loaded {connector.stats['chunks_loaded']:,} chunks")
-
-# Semantic search
-engine = RetrievalEngine(connector=connector)
-results = engine.retrieve("sovereignty and consent", top_k=10)
-
-for r in results.results:
-    print(f"{r.score:.3f} | {r.chunk.text[:80]}...")
+# Edit .env with your LLM backend settings:
+#   LM_STUDIO_API_KEY=your_key
+#   LM_STUDIO_BASE_URL=http://localhost:1234
 ```
 
----
+### Run
 
-## Integration with bizra-genesis
+```bash
+# Start the sovereign runtime
+python -m core.sovereign
 
-The Data Lake is bridged to bizra-genesis via the `data_plane` module:
-
-```
-BIZRA-DATA-LAKE                     bizra-genesis
-(Windows: C:\)                      (WSL: /root/)
-                                    
-04_GOLD/chunks.parquet ────────────► data_plane/lake_connector.py
-                                           │
-                                           ▼
-                                    RetrievalEngine (FAISS)
-                                           │
-                                           ▼
-                                    api/v2/main.py
-                                           │
-                                           ▼
-                                    /api/v2/retrieve
+# Run the CLI (Rust)
+cd bizra-omega && cargo run --release --bin bizra
 ```
 
 ---
 
-## Key Files
+## Testing
 
-| File | Purpose |
-|:-----|:--------|
-| [`docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md`](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | The sealed constitution |
-| [`docs/BIZRA_STRATEGY_DECK_2026.md`](docs/BIZRA_STRATEGY_DECK_2026.md) | Strategic vision |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Technical architecture |
-| [`docs/NODE0_GENESIS_COVENANT.md`](docs/NODE0_GENESIS_COVENANT.md) | Genesis node covenant |
-| [`docs/SOVEREIGNTY.md`](docs/SOVEREIGNTY.md) | Sovereignty specification |
+```bash
+# Run all tests (Python)
+pytest tests/ -m "not requires_ollama and not requires_gpu and not slow"
+
+# Run Rust tests
+cd bizra-omega && cargo test --workspace
+
+# Run with coverage
+pytest tests/ --cov=core --cov-report=term-missing
+```
+
+### Test Markers
+
+| Marker | Description |
+|--------|-------------|
+| `@pytest.mark.slow` | Long-running tests (>30s) |
+| `@pytest.mark.integration` | Requires external services |
+| `@pytest.mark.requires_ollama` | Requires Ollama running |
+| `@pytest.mark.requires_gpu` | Requires CUDA GPU |
 
 ---
 
-## The Genesis Context
+## Constitutional Thresholds
 
-This machine is **Node₀** — the first seed.
+BIZRA enforces quality and ethics as hard constraints, not optional checks:
 
-- **Hardware:** i9-14900HX, 128GB RAM, RTX 4090, 3TB storage
-- **OS:** Windows 11 Enterprise + Ubuntu 24.04 (WSL2)
-- **Role:** Genesis node for 8 billion future nodes
+| Threshold | Value | Purpose |
+|-----------|-------|---------|
+| Ihsan (Excellence) | >= 0.95 | Minimum quality for any output |
+| SNR (Signal-to-Noise) | >= 0.85 | Information quality filter |
+| ADL (Justice) Gini | <= 0.40 | Resource distribution fairness |
+| Harm Score | <= 0.30 | Maximum allowable harm potential |
+| Confidence | >= 0.80 | Minimum inference confidence |
 
-Every file here is part of the proof that one seed can grow into a forest.
+These thresholds are defined in [`core/integration/constants.py`](core/integration/constants.py) as the single source of truth.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture Blueprint](docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md) | Full system architecture |
+| [Constitution](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Immutable constitutional rules |
+| [Strategy Deck](docs/BIZRA_STRATEGY_DECK_2026.md) | Strategic vision and roadmap |
+| [Security Policy](SECURITY.md) | Vulnerability reporting |
+| [Contributing Guide](CONTRIBUTING.md) | How to contribute |
+
+---
+
+## Project Structure
+
+```
+bizra-data-lake/
+├── core/                   # Python sovereign infrastructure
+│   ├── pci/                # Proof-Carrying Inference protocol
+│   ├── federation/         # P2P federation layer
+│   ├── inference/          # Tiered inference gateway
+│   ├── sovereign/          # Sovereign runtime engine
+│   ├── integration/        # Cross-module integration
+│   └── iaas/               # Information-as-a-Service (SNR)
+├── bizra-omega/            # Rust high-performance workspace
+│   ├── bizra-core/         # Constitution, identity, FATE
+│   ├── bizra-federation/   # Gossip + consensus protocol
+│   ├── bizra-cli/          # Terminal UI dashboard
+│   ├── bizra-api/          # REST API server
+│   ├── bizra-inference/    # Inference backends
+│   └── 8 more crates...   # Telescript, proofspace, etc.
+├── tests/                  # Comprehensive test suite
+├── docs/                   # Architecture and specifications
+├── deploy/                 # Docker and Kubernetes configs
+└── .github/workflows/      # CI/CD pipelines
+```
+
+---
+
+## License
+
+[MIT](LICENSE) -- Copyright 2026 BIZRA Sovereign
 
 ---
 
 <div align="center">
+<br>
+
+*Every seed carries within it the memory of the forest it will become.*
 
 <br>
 
-*الْحَمْدُ لِلَّهِ الَّذِي هَدَانَا لِهَٰذَا*
-
-**84,795 memories. One query away.**
-
-<br>
-
----
-
-<sub>Built with إحسان in Dubai 🇦🇪</sub>
+Built with Ihsan in Dubai
 
 </div>
