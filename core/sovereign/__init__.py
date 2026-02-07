@@ -128,6 +128,17 @@ from .api import (
     SovereignAPIServer,
 )
 
+# Genesis Identity (Persistent Node0 Identity)
+# Standing on Giants: Al-Ghazali (1095), Lamport (1982), Nakamoto (2008)
+from .genesis_identity import (
+    AgentIdentity,
+    GenesisState,
+    NodeIdentity,
+    load_and_validate_genesis,
+    load_genesis,
+    validate_genesis_hash,
+)
+
 # Autonomy module (pure Python)
 from .autonomy import (
     AutonomousLoop,
@@ -702,6 +713,13 @@ except ImportError as e:
 # =============================================================================
 
 __all__ = [
+    # Genesis Identity (Persistent Node0 Identity)
+    "AgentIdentity",
+    "NodeIdentity",
+    "GenesisState",
+    "load_genesis",
+    "validate_genesis_hash",
+    "load_and_validate_genesis",
     # Core Engine (requires numpy)
     "SovereignEngine",
     "SovereignConfig",
