@@ -6,6 +6,10 @@
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
+use bizra_autopoiesis::{
+    pattern_memory::PatternMemory,
+    preference_tracker::{PreferenceTracker, PreferenceType},
+};
 use bizra_core::{
     domain_separated_digest as rust_domain_digest, Constitution as RustConstitution,
     NodeId as RustNodeId, NodeIdentity as RustNodeIdentity, PCIEnvelope as RustPCIEnvelope,
@@ -396,6 +400,113 @@ impl PyGateChain {
     }
 }
 
+// =============================================================================
+// Autopoiesis Bindings (10-100x faster pattern learning)
+// =============================================================================
+
+/// Python wrapper for PatternMemory (autopoiesis)
+#[pyclass(name = "PatternMemory")]
+pub struct PyPatternMemory {
+    inner: PatternMemory,
+}
+
+#[pymethods]
+impl PyPatternMemory {
+    /// Create a new in-memory pattern store for a node
+    #[new]
+    fn new(node_id: &str) -> Self {
+        let nid = RustNodeId(node_id.to_string());
+        Self {
+            inner: PatternMemory::in_memory(nid),
+        }
+    }
+
+    /// Learn a new pattern from content, embedding, and tags
+    ///
+    /// Returns the pattern ID on success.
+    fn learn(
+        &mut self,
+        content: &str,
+        embedding: Vec<f32>,
+        tags: Vec<String>,
+    ) -> PyResult<String> {
+        self.inner
+            .learn(content.to_string(), embedding, tags)
+            .map_err(|e| PyRuntimeError::new_err(format!("Pattern learn error: {}", e)))
+    }
+
+    /// Recall patterns similar to the given embedding
+    ///
+    /// Returns list of (content, confidence, tags) tuples.
+    fn recall(&self, embedding: Vec<f32>, limit: usize) -> Vec<(String, f64, Vec<String>)> {
+        self.inner
+            .recall(&embedding, limit)
+            .into_iter()
+            .map(|p| (p.content.clone(), p.confidence, p.tags.clone()))
+            .collect()
+    }
+
+    /// Get the number of stored patterns
+    fn pattern_count(&self) -> usize {
+        self.inner.count()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("PatternMemory(count={})", self.inner.count())
+    }
+}
+
+/// Python wrapper for PreferenceTracker (autopoiesis)
+#[pyclass(name = "PreferenceTracker")]
+pub struct PyPreferenceTracker {
+    inner: PreferenceTracker,
+}
+
+#[pymethods]
+impl PyPreferenceTracker {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: PreferenceTracker::new(),
+        }
+    }
+
+    /// Observe a user preference (pref_type, key, value)
+    ///
+    /// pref_type: "style", "verbosity", "code_style", "language", or custom string
+    fn observe(&mut self, pref_type: &str, key: &str, value: &str) {
+        let pt = match pref_type.to_lowercase().as_str() {
+            "style" => PreferenceType::Style,
+            "verbosity" => PreferenceType::Verbosity,
+            "code_style" => PreferenceType::CodeStyle,
+            "language" => PreferenceType::Language,
+            other => PreferenceType::Custom(other.to_string()),
+        };
+        self.inner.observe(pt, key, value);
+    }
+
+    /// Get the current value for a preference (returns None if below confidence threshold)
+    fn get_strength(&self, pref_type: &str, key: &str) -> Option<String> {
+        let pt = match pref_type.to_lowercase().as_str() {
+            "style" => PreferenceType::Style,
+            "verbosity" => PreferenceType::Verbosity,
+            "code_style" => PreferenceType::CodeStyle,
+            "language" => PreferenceType::Language,
+            other => PreferenceType::Custom(other.to_string()),
+        };
+        self.inner.get(&pt, key).map(|s| s.to_string())
+    }
+
+    /// Apply learned preferences to a prompt
+    fn apply_to_prompt(&self, prompt: &str) -> String {
+        self.inner.apply_to_prompt(prompt)
+    }
+
+    fn __repr__(&self) -> String {
+        "PreferenceTracker()".to_string()
+    }
+}
+
 /// BIZRA Python Module
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -412,6 +523,10 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Gate chain
     m.add_class::<PyGateChain>()?;
+
+    // Autopoiesis (pattern learning + preference tracking)
+    m.add_class::<PyPatternMemory>()?;
+    m.add_class::<PyPreferenceTracker>()?;
 
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;
