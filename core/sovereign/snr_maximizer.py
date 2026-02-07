@@ -532,7 +532,9 @@ class SNRMaximizer:
     ):
         from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
-        self.ihsan_threshold = ihsan_threshold if ihsan_threshold is not None else UNIFIED_IHSAN_THRESHOLD
+        self.ihsan_threshold = (
+            ihsan_threshold if ihsan_threshold is not None else UNIFIED_IHSAN_THRESHOLD
+        )
         self.auto_filter = auto_filter
         self.auto_amplify = auto_amplify
 

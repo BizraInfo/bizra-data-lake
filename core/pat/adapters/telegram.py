@@ -215,7 +215,9 @@ class TelegramAdapter(ChannelAdapter):
         while self._send_timestamps and self._send_timestamps[0] < now - 1.0:
             self._send_timestamps.popleft()
         if len(self._send_timestamps) >= _SEND_RATE_LIMIT:
-            logger.warning(f"Rate limit reached ({_SEND_RATE_LIMIT}/s), dropping send to {platform_user_id}")
+            logger.warning(
+                f"Rate limit reached ({_SEND_RATE_LIMIT}/s), dropping send to {platform_user_id}"
+            )
             return False
         self._send_timestamps.append(now)
 

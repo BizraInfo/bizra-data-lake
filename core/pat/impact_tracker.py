@@ -38,13 +38,15 @@ logger = logging.getLogger(__name__)
 # UERS DIMENSIONS — Article IX § 9.7
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class UERSDimension(str, Enum):
     """Five dimensions of impact measurement."""
-    UTILITY = "utility"           # Practical value delivered
-    EFFICIENCY = "efficiency"     # Resource optimization
-    RESILIENCE = "resilience"     # System strengthening
+
+    UTILITY = "utility"  # Practical value delivered
+    EFFICIENCY = "efficiency"  # Resource optimization
+    RESILIENCE = "resilience"  # System strengthening
     SUSTAINABILITY = "sustainability"  # Long-term viability
-    ETHICS = "ethics"             # Ethical alignment
+    ETHICS = "ethics"  # Ethical alignment
 
 
 # Weights for each UERS dimension (must sum to 1.0)
@@ -64,10 +66,17 @@ BLOOM_SCORE_CEILING = 10_000.0
 MIN_BLOOM_DELTA = 0.01
 
 # Metadata safety: whitelist of allowed keys and max serialized size (bytes)
-SAFE_METADATA_KEYS = frozenset({
-    "query_id", "processing_time_ms", "reasoning_depth",
-    "snr_score", "ihsan_score", "source", "event_type",
-})
+SAFE_METADATA_KEYS = frozenset(
+    {
+        "query_id",
+        "processing_time_ms",
+        "reasoning_depth",
+        "snr_score",
+        "ihsan_score",
+        "source",
+        "event_type",
+    }
+)
 MAX_METADATA_SIZE = 1024  # 1 KB per event
 
 # Achievement thresholds
@@ -83,8 +92,10 @@ TIER_THRESHOLDS = {
 # ACHIEVEMENT SYSTEM
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class Achievement(str, Enum):
     """Milestone achievements for sovereignty progression."""
+
     FIRST_QUERY = "first_query"
     FIRST_DAY = "first_day"
     WEEK_STREAK = "week_streak"
@@ -103,7 +114,7 @@ ACHIEVEMENT_BONUSES: Dict[str, float] = {
     Achievement.FIRST_DAY: 0.02,
     Achievement.WEEK_STREAK: 0.03,
     Achievement.MONTH_STREAK: 0.05,
-    Achievement.SPROUT_REACHED: 0.0,   # Tier transitions are natural, no bonus
+    Achievement.SPROUT_REACHED: 0.0,  # Tier transitions are natural, no bonus
     Achievement.TREE_REACHED: 0.0,
     Achievement.FOREST_REACHED: 0.0,
     Achievement.FIRST_HARVEST: 0.02,
@@ -116,9 +127,11 @@ ACHIEVEMENT_BONUSES: Dict[str, float] = {
 # DATA STRUCTURES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class UERSScore:
     """Scores across all five UERS dimensions."""
+
     utility: float = 0.0
     efficiency: float = 0.0
     resilience: float = 0.0
@@ -144,6 +157,7 @@ class UERSScore:
 @dataclass
 class ImpactEvent:
     """A recorded impact event with UERS scoring."""
+
     event_id: str
     contributor: str
     category: str
@@ -164,6 +178,7 @@ class ImpactEvent:
 @dataclass
 class ProgressSnapshot:
     """Current sovereignty progression state."""
+
     node_id: str
     sovereignty_score: float
     sovereignty_tier: str
@@ -183,6 +198,7 @@ class ProgressSnapshot:
 # ═══════════════════════════════════════════════════════════════════════════════
 # IMPACT TRACKER — The Growth Engine
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def compute_query_bloom(
     processing_time_ms: float,
@@ -304,12 +320,16 @@ class ImpactTracker:
             unsafe_keys = set(metadata.keys()) - SAFE_METADATA_KEYS
             if unsafe_keys:
                 logger.debug(f"Removing non-whitelisted metadata keys: {unsafe_keys}")
-                metadata = {k: v for k, v in metadata.items() if k in SAFE_METADATA_KEYS}
+                metadata = {
+                    k: v for k, v in metadata.items() if k in SAFE_METADATA_KEYS
+                }
             # Enforce size cap
             try:
                 meta_json = json.dumps(metadata)
                 if len(meta_json) > MAX_METADATA_SIZE:
-                    logger.warning(f"Metadata truncated: {len(meta_json)} > {MAX_METADATA_SIZE}")
+                    logger.warning(
+                        f"Metadata truncated: {len(meta_json)} > {MAX_METADATA_SIZE}"
+                    )
                     metadata = {}
             except (TypeError, ValueError):
                 metadata = {}
@@ -424,11 +444,11 @@ class ImpactTracker:
 
     # Class-level UERS weight templates — avoids dict allocation per call
     _UERS_TEMPLATES: Dict[str, tuple] = {
-        "computation":   (0.7, 0.8, 0.3, 0.4, 0.5),
-        "knowledge":     (0.8, 0.5, 0.6, 0.7, 0.6),
-        "code":          (0.9, 0.7, 0.7, 0.6, 0.5),
-        "ethics":        (0.5, 0.4, 0.6, 0.8, 0.9),
-        "community":     (0.8, 0.5, 0.7, 0.8, 0.7),
+        "computation": (0.7, 0.8, 0.3, 0.4, 0.5),
+        "knowledge": (0.8, 0.5, 0.6, 0.7, 0.6),
+        "code": (0.9, 0.7, 0.7, 0.6, 0.5),
+        "ethics": (0.5, 0.4, 0.6, 0.8, 0.9),
+        "community": (0.8, 0.5, 0.7, 0.8, 0.7),
         "orchestration": (0.7, 0.8, 0.5, 0.5, 0.5),
     }
     _UERS_DEFAULT = (0.5, 0.5, 0.5, 0.5, 0.5)
@@ -438,8 +458,11 @@ class ImpactTracker:
         bf = min(1.0, bloom / 10.0)
         w = self._UERS_TEMPLATES.get(category, self._UERS_DEFAULT)
         return UERSScore(
-            utility=w[0] * bf, efficiency=w[1] * bf,
-            resilience=w[2] * bf, sustainability=w[3] * bf, ethics=w[4] * bf,
+            utility=w[0] * bf,
+            efficiency=w[1] * bf,
+            resilience=w[2] * bf,
+            sustainability=w[3] * bf,
+            ethics=w[4] * bf,
         )
 
     # ─── Achievements ─────────────────────────────────────────────────
@@ -450,25 +473,40 @@ class ImpactTracker:
             self._achievements.append(Achievement.FIRST_QUERY)
             logger.info(f"Achievement unlocked: {Achievement.FIRST_QUERY}")
 
-        if Achievement.SPROUT_REACHED not in self._achievements and self._sovereignty_score >= 0.25:
+        if (
+            Achievement.SPROUT_REACHED not in self._achievements
+            and self._sovereignty_score >= 0.25
+        ):
             self._achievements.append(Achievement.SPROUT_REACHED)
             logger.info(f"Achievement unlocked: {Achievement.SPROUT_REACHED}")
 
-        if Achievement.TREE_REACHED not in self._achievements and self._sovereignty_score >= 0.50:
+        if (
+            Achievement.TREE_REACHED not in self._achievements
+            and self._sovereignty_score >= 0.50
+        ):
             self._achievements.append(Achievement.TREE_REACHED)
             logger.info(f"Achievement unlocked: {Achievement.TREE_REACHED}")
 
-        if Achievement.FOREST_REACHED not in self._achievements and self._sovereignty_score >= 0.75:
+        if (
+            Achievement.FOREST_REACHED not in self._achievements
+            and self._sovereignty_score >= 0.75
+        ):
             self._achievements.append(Achievement.FOREST_REACHED)
             logger.info(f"Achievement unlocked: {Achievement.FOREST_REACHED}")
 
         # Community helper: 10+ community events (O(1) via incremental counter)
-        if Achievement.COMMUNITY_HELPER not in self._achievements and self._category_counts.get("community", 0) >= 10:
+        if (
+            Achievement.COMMUNITY_HELPER not in self._achievements
+            and self._category_counts.get("community", 0) >= 10
+        ):
             self._achievements.append(Achievement.COMMUNITY_HELPER)
             logger.info(f"Achievement unlocked: {Achievement.COMMUNITY_HELPER}")
 
         # Ethics guardian: 5+ ethics events (O(1) via incremental counter)
-        if Achievement.ETHICS_GUARDIAN not in self._achievements and self._category_counts.get("ethics", 0) >= 5:
+        if (
+            Achievement.ETHICS_GUARDIAN not in self._achievements
+            and self._category_counts.get("ethics", 0) >= 5
+        ):
             self._achievements.append(Achievement.ETHICS_GUARDIAN)
             logger.info(f"Achievement unlocked: {Achievement.ETHICS_GUARDIAN}")
 
@@ -523,7 +561,9 @@ class ImpactTracker:
 
         current_threshold = TIER_THRESHOLDS[current]
         tier_range = next_threshold - current_threshold
-        progress_in_tier = (score - current_threshold) / tier_range if tier_range > 0 else 1.0
+        progress_in_tier = (
+            (score - current_threshold) / tier_range if tier_range > 0 else 1.0
+        )
 
         return {
             "current_tier": current.value,
@@ -531,7 +571,9 @@ class ImpactTracker:
             "next_tier": next_tier.value if next_tier else None,
             "next_threshold": next_threshold,
             "progress_percent": round(min(100.0, progress_in_tier * 100), 1),
-            "bloom_to_next": max(0, (next_threshold - score) * BLOOM_SCORE_CEILING / 0.6),
+            "bloom_to_next": max(
+                0, (next_threshold - score) * BLOOM_SCORE_CEILING / 0.6
+            ),
         }
 
     # ─── Identity Card Integration ───────────────────────────────────
@@ -593,21 +635,25 @@ class ImpactTracker:
             # Reconstruct events
             for ev in data.get("events", []):
                 uers_data = ev.get("uers_scores", {})
-                self._events.append(ImpactEvent(
-                    event_id=ev["event_id"],
-                    contributor=ev["contributor"],
-                    category=ev["category"],
-                    action=ev["action"],
-                    bloom_amount=ev["bloom_amount"],
-                    uers_scores=UERSScore(**uers_data),
-                    timestamp=ev.get("timestamp", ""),
-                    metadata=ev.get("metadata", {}),
-                ))
+                self._events.append(
+                    ImpactEvent(
+                        event_id=ev["event_id"],
+                        contributor=ev["contributor"],
+                        category=ev["category"],
+                        action=ev["action"],
+                        bloom_amount=ev["bloom_amount"],
+                        uers_scores=UERSScore(**uers_data),
+                        timestamp=ev.get("timestamp", ""),
+                        metadata=ev.get("metadata", {}),
+                    )
+                )
 
             # Rebuild counters from events if not persisted (backwards compat)
             if not self._category_counts and self._events:
                 for ev in self._events:
-                    self._category_counts[ev.category] = self._category_counts.get(ev.category, 0) + 1
+                    self._category_counts[ev.category] = (
+                        self._category_counts.get(ev.category, 0) + 1
+                    )
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning(f"Failed to load impact tracker state: {e}")
 
@@ -621,7 +667,9 @@ class ImpactTracker:
         self._state_dir.mkdir(parents=True, exist_ok=True)
 
         # Keep only the last 1000 events in the persisted file
-        recent_events = self._events[-1000:] if len(self._events) > 1000 else self._events
+        recent_events = (
+            self._events[-1000:] if len(self._events) > 1000 else self._events
+        )
 
         data = {
             "node_id": self._node_id,

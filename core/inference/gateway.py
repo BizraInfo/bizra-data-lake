@@ -854,8 +854,17 @@ class InferenceConfig:
     require_local: bool = True
 
     # External endpoints (env vars override defaults)
-    ollama_url: str = field(default_factory=lambda: os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")))
-    lmstudio_url: str = field(default_factory=lambda: os.getenv("LMSTUDIO_URL", f"http://{os.getenv('LMSTUDIO_HOST', '192.168.56.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}"))
+    ollama_url: str = field(
+        default_factory=lambda: os.getenv(
+            "OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        )
+    )
+    lmstudio_url: str = field(
+        default_factory=lambda: os.getenv(
+            "LMSTUDIO_URL",
+            f"http://{os.getenv('LMSTUDIO_HOST', '192.168.56.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
+        )
+    )
 
     # Batching settings (P0-P1 optimization)
     enable_batching: bool = True
@@ -2238,7 +2247,9 @@ class LMStudioBackend(InferenceBackendBase):
             lms_config = LMStudioConfig(
                 host=self.config.lmstudio_url.replace("http://", "").split(":")[0],
                 port=int(self.config.lmstudio_url.split(":")[-1]),
-                api_key=os.getenv("LM_API_TOKEN") or os.getenv("LMSTUDIO_API_KEY") or os.getenv("LM_STUDIO_API_KEY"),
+                api_key=os.getenv("LM_API_TOKEN")
+                or os.getenv("LMSTUDIO_API_KEY")
+                or os.getenv("LM_STUDIO_API_KEY"),
                 use_native_api=True,
                 enable_mcp=True,
             )
