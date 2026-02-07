@@ -85,6 +85,9 @@ cuda-keyring_*.deb
 sovereign_state/
 checkpoints/
 
+# ── BIZRA Identity & Vault ───────────────────────────────────
+.bizra/
+
 # ── Claude / AI Tooling ──────────────────────────────────────
 .claude-flow/
 .swarm/
