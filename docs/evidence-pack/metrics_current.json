@@ -10,6 +10,11 @@
   "coverage_pct": 51.21,
   "coverage_threshold": 30,
   "rust_crates": 14,
-  "commits_on_main": 17,
-  "note": "Counts from wc -l on core/*.py, bizra-omega/**/*.rs, tests/*.py. Test counts verified 2026-02-07."
+  "commits_on_main": 59,
+  "live_demo_verified": true,
+  "demo_pipeline_stages": ["GoT_Reasoning", "LLM_Inference", "SNR_Optimization", "Constitutional_Validation", "Attestation"],
+  "demo_latency_ms": 4078,
+  "demo_snr_score": 46.6,
+  "ollama_models": ["phi3:mini", "mistral:latest", "nomic-embed-text:latest", "llama3.1:8b", "deepseek-r1:14b"],
+  "note": "Counts from wc -l on core/*.py, bizra-omega/**/*.rs, tests/*.py. Live demo verified 2026-02-07 with Ollama backend."
 }
