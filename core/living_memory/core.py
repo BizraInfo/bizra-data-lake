@@ -203,6 +203,41 @@ class MemoryStats:
         }
 
 
+# Stopwords for keyword extraction (common English words that add noise)
+_STOPWORDS = frozenset(
+    "a an the is was were be been being have has had do does did will would "
+    "shall should can could may might must need dare to of in for on with at "
+    "by from up about into over after i me my we our you your he she it they "
+    "them his her its their this that these those and but or nor not so yet "
+    "if then else when while as than both each few more most other some such "
+    "no nor only own same too very just don doesn didn wasn weren isn aren "
+    "what which who whom how all any".split()
+)
+
+
+def _extract_keywords(text: str) -> Set[str]:
+    """Extract meaningful keywords from text for retrieval matching."""
+    import re
+
+    words = re.findall(r"[a-zA-Z\u0600-\u06FF]{3,}", text.lower())
+    return {w for w in words if w not in _STOPWORDS}
+
+
+def _keyword_relevance(query_keywords: Set[str], content: str) -> float:
+    """Compute keyword overlap relevance between query and content (0.0-1.0)."""
+    if not query_keywords:
+        return 0.0
+    import re
+
+    content_words = set(re.findall(r"[a-zA-Z\u0600-\u06FF]{3,}", content.lower()))
+    overlap = query_keywords & content_words
+    if not overlap:
+        return 0.0
+    # Jaccard-like but weighted toward query coverage
+    coverage = len(overlap) / len(query_keywords)
+    return min(1.0, coverage)
+
+
 class LivingMemoryCore:
     """
     The central living memory system.
@@ -391,7 +426,7 @@ class LivingMemoryCore:
         """
         Retrieve relevant memories.
 
-        Uses embedding similarity + retrieval scoring.
+        Uses embedding similarity when available, falls back to keyword matching.
         """
         candidates = []
 
@@ -399,6 +434,11 @@ class LivingMemoryCore:
         query_embedding = None
         if query and self.embedding_fn:
             query_embedding = await self._compute_embedding(query)
+
+        # Build keyword set for text-based retrieval fallback
+        query_keywords = set()
+        if query and not self.embedding_fn:
+            query_keywords = _extract_keywords(query)
 
         # Filter by type if specified
         if memory_type:
@@ -411,6 +451,17 @@ class LivingMemoryCore:
             entry = self._memories.get(entry_id)
             if entry and entry.state == MemoryState.ACTIVE:
                 score = entry.compute_retrieval_score(query_embedding)
+
+                # Keyword boost when no embeddings available
+                if query_keywords and not self.embedding_fn:
+                    keyword_score = _keyword_relevance(
+                        query_keywords, entry.content
+                    )
+                    # Replace the default 0.5 relevance with keyword score
+                    # Retrieval formula: 0.3*recency + 0.1*freq + 0.2*imp + 0.4*rel
+                    # Default rel=0.5 contributes 0.2 → replace with keyword score
+                    score = score - 0.4 * 0.5 + 0.4 * keyword_score
+
                 if score >= min_score:
                     candidates.append((entry, score))
 

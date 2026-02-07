@@ -6,13 +6,15 @@ Living Memory system so your PAT team can reason over your 3 years of work.
 
 Supports:
 - ChatGPT exports (tree-format mapping with parent/children)
+- Claude.ai exports (flat chat_messages with sender/content)
 - DeepSeek exports (same OpenAI mapping format)
-- ChatGPT memories.json (AI's memory of the user)
+- AI memories.json (ChatGPT/Claude memory of the user)
+- Claude projects.json (project definitions and instructions)
 - Plain text files (.txt, .md)
 - Individual conversation JSONs
 
 Each conversation is:
-1. Parsed from tree/mapping to flat message list
+1. Parsed from tree/mapping/flat format to message list
 2. Chunked into conversation segments (groups of turns)
 3. Stored as EPISODIC memory in Living Memory
 4. Key insights extracted as SEMANTIC memory
@@ -140,6 +142,58 @@ def parse_chatgpt_bulk(data: list) -> List[Dict[str, Any]]:
     return conversations
 
 
+def parse_claude_bulk(data: list) -> List[Dict[str, Any]]:
+    """
+    Parse Claude.ai bulk export (conversations.json).
+
+    Claude format uses flat chat_messages with sender field and content array:
+    {uuid, name, chat_messages: [{sender: "human"|"assistant", text, content: [{type, text}]}]}
+    """
+    conversations = []
+    for conv in data:
+        title = conv.get("name") or "Untitled"
+        created = conv.get("created_at")
+
+        chat_msgs = conv.get("chat_messages", [])
+        if not chat_msgs:
+            continue
+
+        messages = []
+        for m in chat_msgs:
+            sender = m.get("sender", "unknown")
+            if sender not in ("human", "assistant"):
+                continue
+
+            # Claude stores text in both "text" field and "content" array
+            text = m.get("text", "")
+            if not text:
+                # Fall back to content array
+                content_arr = m.get("content", [])
+                text_parts = []
+                for c in content_arr:
+                    if isinstance(c, dict) and c.get("type") == "text":
+                        text_parts.append(c.get("text", ""))
+                    elif isinstance(c, str):
+                        text_parts.append(c)
+                text = "\n".join(text_parts)
+
+            if text and len(text.strip()) > 5:
+                messages.append({
+                    "role": sender,
+                    "content": text.strip(),
+                    "timestamp": m.get("created_at"),
+                })
+
+        if messages:
+            conversations.append({
+                "title": title,
+                "created": created,
+                "messages": messages,
+            })
+
+    return conversations
+
+
 def chunk_conversation(
     title: str, messages: List[Dict[str, str]], chunk_size: int = 6
 ) -> List[str]:
@@ -227,6 +281,139 @@ class DataImporter:
                         results[subdir.name] = sub_total
 
         return results
+
+    async def import_claude_export(self, export_dir: Path) -> Dict[str, int]:
+        """
+        Import a Claude.ai data export directory.
+
+        Handles:
+        - conversations.json (Claude conversations with chat_messages)
+        - memories.json (Claude's memory of the user)
+        - projects.json (Claude project definitions)
+        - users.json (user profile info)
+        """
+        results = {}
+
+        # 1. Import memories.json (Claude's accumulated memory)
+        memories_file = export_dir / "memories.json"
+        if memories_file.exists():
+            count = await self._import_claude_memories(memories_file)
+            results["memories.json"] = count
+
+        # 2. Import projects.json (project definitions as semantic memory)
+        projects_file = export_dir / "projects.json"
+        if projects_file.exists():
+            count = await self._import_claude_projects(projects_file)
+            results["projects.json"] = count
+
+        # 3. Import conversations.json (the main data)
+        convos_file = export_dir / "conversations.json"
+        if convos_file.exists():
+            count = await self._import_claude_conversations(convos_file)
+            results["conversations.json"] = count
+
+        return results
+
+    async def _import_claude_memories(self, file_path: Path) -> int:
+        """Import Claude's memory (conversations_memory field)."""
+        from core.living_memory.core import MemoryType
+
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+        if not isinstance(data, list) or not data:
+            return 0
+
+        imported = 0
+        for memory_block in data:
+            conv_memory = memory_block.get("conversations_memory", "")
+            if not conv_memory:
+                continue
+
+            # Split into sections by double newlines or ** headers
+            sections = conv_memory.split("\n\n")
+            for section in sections:
+                section = section.strip()
+                if len(section) > 30:
+                    entry = await self._memory.encode(
+                        content=section,
+                        memory_type=MemoryType.SEMANTIC,
+                        source="claude_memory",
+                        importance=0.95,
+                        emotional_weight=0.8,
+                    )
+                    if entry:
+                        imported += 1
+
+        self._stats["memories_imported"] += imported
+        logger.info(f"Imported {imported} memory entries from Claude memories")
+        return imported
+
+    async def _import_claude_projects(self, file_path: Path) -> int:
+        """Import Claude project definitions as semantic memory."""
+        from core.living_memory.core import MemoryType
+
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            return 0
+
+        imported = 0
+        for project in data:
+            name = project.get("name", "Untitled Project")
+            description = project.get("description", "")
+            if description and len(description) > 30:
+                content = f"[Claude Project: {name}]\n{description}"
+                # Truncate very long project descriptions
+                if len(content) > 4000:
+                    content = content[:4000] + "..."
+                entry = await self._memory.encode(
+                    content=content,
+                    memory_type=MemoryType.SEMANTIC,
+                    source=f"claude_project:{name[:50]}",
+                    importance=0.85,
+                )
+                if entry:
+                    imported += 1
+
+        self._stats["memories_imported"] += imported
+        logger.info(f"Imported {imported} project definitions from Claude projects")
+        return imported
+
+    async def _import_claude_conversations(self, file_path: Path) -> int:
+        """Import Claude conversations.json (flat chat_messages format)."""
+        from core.living_memory.core import MemoryType
+
+        logger.info(f"Loading Claude conversations from {file_path.name}...")
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+
+        if not isinstance(data, list):
+            return 0
+
+        conversations = parse_claude_bulk(data)
+        logger.info(f"Parsed {len(conversations)} Claude conversations with content")
+
+        total_chunks = 0
+        for conv in conversations:
+            title = conv["title"]
+            messages = conv["messages"]
+            self._stats["conversations"] += 1
+            self._stats["messages"] += len(messages)
+
+            chunks = chunk_conversation(title, messages)
+            for chunk in chunks:
+                if len(chunk) > 50:
+                    entry = await self._memory.encode(
+                        content=chunk,
+                        memory_type=MemoryType.EPISODIC,
+                        source=f"claude:{title[:50]}",
+                        importance=0.7,
+                    )
+                    if entry:
+                        total_chunks += 1
+                        self._stats["chunks_stored"] += 1
+                    else:
+                        self._stats["skipped"] += 1
+
+        logger.info(f"Stored {total_chunks} chunks from {len(conversations)} Claude conversations")
+        return total_chunks
 
     async def import_deepseek_export(self, export_dir: Path) -> Dict[str, int]:
         """Import a DeepSeek data export directory."""
@@ -456,18 +643,27 @@ async def ingest_chat_history(
     all_results: Dict[str, int] = {}
 
     # Walk the directory tree looking for data sources
-    for item in import_dir.rglob("*"):
-        if not item.is_dir():
+    # Check the root directory itself + all subdirectories
+    dirs_to_check = [import_dir]
+    dirs_to_check.extend(d for d in import_dir.rglob("*") if d.is_dir())
+
+    for item in dirs_to_check:
+
+        # Claude.ai export (has conversations.json + users.json)
+        if (item / "conversations.json").exists() and (item / "users.json").exists():
+            logger.info(f"Found Claude.ai export: {item.name}")
+            results = await importer.import_claude_export(item)
+            all_results.update({f"claude/{k}": v for k, v in results.items()})
             continue
 
-        # ChatGPT bulk export (has conversations.json + memories.json)
+        # ChatGPT bulk export (has conversations.json + memories.json, no users.json)
         if (item / "conversations.json").exists() and (item / "memories.json").exists():
             logger.info(f"Found ChatGPT export: {item.name}")
             results = await importer.import_chatgpt_export(item)
             all_results.update({f"chatgpt/{k}": v for k, v in results.items()})
             continue
 
-        # DeepSeek export (has conversations.json + user.json)
+        # DeepSeek export (has conversations.json + user.json — singular)
         if (item / "conversations.json").exists() and (item / "user.json").exists():
             logger.info(f"Found DeepSeek export: {item.name}")
             results = await importer.import_deepseek_export(item)
@@ -504,7 +700,7 @@ async def run_import_wizard(runtime: Any) -> None:
     living_memory = getattr(runtime, "_living_memory", None)
     if not living_memory:
         living_memory = LivingMemoryCore(
-            memory_dir=Path("sovereign_state/living_memory")
+            storage_path=Path("sovereign_state/living_memory")
         )
         await living_memory.initialize()
         runtime._living_memory = living_memory
