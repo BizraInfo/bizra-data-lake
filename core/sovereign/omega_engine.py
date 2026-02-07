@@ -35,6 +35,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
+try:
+    from core.integration.constants import ADL_GINI_THRESHOLD
+except ImportError:
+    ADL_GINI_THRESHOLD = 0.40
+
 logger = logging.getLogger(__name__)
 
 
@@ -289,7 +294,7 @@ class AdlInvariant:
     SECURITY: This is a HARD GATE, not a warning. Violations are REJECTED.
     """
 
-    GINI_THRESHOLD: float = 0.40
+    GINI_THRESHOLD: float = ADL_GINI_THRESHOLD
     GINI_EMERGENCY: float = 0.60
     HARBERGER_TAX_RATE: float = 0.05  # 5% annual
 

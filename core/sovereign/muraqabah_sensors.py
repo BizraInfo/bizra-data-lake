@@ -37,11 +37,20 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .event_bus import EventBus, EventPriority, get_event_bus
 
+try:
+    from core.integration.constants import (
+        UNIFIED_IHSAN_THRESHOLD,
+        UNIFIED_SNR_THRESHOLD,
+    )
+except ImportError:
+    UNIFIED_IHSAN_THRESHOLD = 0.95
+    UNIFIED_SNR_THRESHOLD = 0.85
+
 logger = logging.getLogger(__name__)
 
-# SNR thresholds (Shannon-inspired)
-SNR_FLOOR: float = 0.85
-SNR_HIGH: float = 0.95
+# SNR thresholds (Shannon-inspired) — sourced from centralized constants
+SNR_FLOOR: float = UNIFIED_SNR_THRESHOLD
+SNR_HIGH: float = UNIFIED_IHSAN_THRESHOLD
 
 
 class SensorDomain(str, Enum):
