@@ -190,7 +190,11 @@ class SovereignRuntime:
         try:
             from core.inference.gateway import InferenceGateway
 
-            self._gateway = InferenceGateway()
+            from core.inference.gateway import InferenceConfig
+
+            self._gateway = InferenceGateway(
+                config=InferenceConfig(require_local=False)
+            )
             try:
                 await asyncio.wait_for(self._gateway.initialize(), timeout=5.0)
                 self.logger.info("✓ InferenceGateway loaded and initialized")
@@ -420,7 +424,7 @@ class SovereignRuntime:
         snr_score = UNIFIED_SNR_THRESHOLD
 
         if self._snr_optimizer:
-            snr_result = self._snr_optimizer.optimize(content)
+            snr_result = await self._snr_optimizer.optimize(content)
             snr_score = snr_result.get("snr_score", UNIFIED_SNR_THRESHOLD)
 
         self.metrics.current_snr_score = snr_score
