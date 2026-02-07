@@ -64,6 +64,86 @@ def print_banner() -> None:
     print(BANNER)
 
 
+def _handle_profile_command(runtime: object) -> None:
+    """Interactive profile editor — teach your PAT who you are."""
+    uc = getattr(runtime, "_user_context", None)
+    if not uc:
+        print("User context not initialized.")
+        return
+
+    profile = uc.profile
+    if profile.is_populated():
+        print(f"\n{'=' * 50}")
+        print("YOUR PROFILE")
+        print(f"{'=' * 50}")
+        print(profile.summary_for_prompt())
+        print(f"{'=' * 50}")
+        print("\nTo update, type 'profile set' and follow prompts.")
+    else:
+        print("\nYour profile is empty. Let's set it up.")
+        print("Your PAT team needs to know who they serve.\n")
+
+    update = input("Update profile? (y/n): ").strip().lower()
+    if update != "y":
+        return
+
+    fields = [
+        ("name", "Your name"),
+        ("bio", "Brief bio (who are you, what do you do)"),
+        ("mission", "Your mission (why does this matter to you)"),
+        ("active_focus", "What are you working on right now"),
+    ]
+
+    for field_name, prompt_text in fields:
+        current = getattr(profile, field_name, "")
+        display = f" [{current}]" if current else ""
+        value = input(f"  {prompt_text}{display}: ").strip()
+        if value:
+            setattr(profile, field_name, value)
+
+    list_fields = [
+        ("expertise", "Your expertise areas (comma-separated)"),
+        ("values", "Your core values (comma-separated)"),
+        ("pain_points", "Your biggest pain points (comma-separated)"),
+        ("goals_short", "Goals for next 1-3 months (comma-separated)"),
+        ("goals_long", "Goals for next 1-3 years (comma-separated)"),
+        ("dreams", "Your life vision/dreams (comma-separated)"),
+    ]
+
+    for field_name, prompt_text in list_fields:
+        current = getattr(profile, field_name, [])
+        display = f" [{', '.join(current)}]" if current else ""
+        value = input(f"  {prompt_text}{display}: ").strip()
+        if value:
+            setattr(profile, field_name, [v.strip() for v in value.split(",")])
+
+    uc.save()
+    print("\nProfile saved. Your PAT team now knows who they serve.")
+
+
+def _handle_memory_command(runtime: object) -> None:
+    """Show conversation memory stats."""
+    uc = getattr(runtime, "_user_context", None)
+    if not uc:
+        print("User context not initialized.")
+        return
+
+    turns = uc.conversation.get_turn_count()
+    print(f"\nConversation Memory: {turns} turns")
+
+    if turns > 0:
+        recent = uc.conversation.get_recent_context(max_turns=5)
+        print(f"\nLast {min(5, turns)} exchanges:")
+        print(f"{'─' * 50}")
+        print(recent)
+        print(f"{'─' * 50}")
+
+    if uc.profile.is_populated():
+        print(f"Profile: {uc.profile.name}")
+    else:
+        print("Profile: Not yet populated (use 'profile' command)")
+
+
 async def run_repl() -> None:
     """Run interactive REPL mode."""
     from ..inference.local_first import LocalBackend, get_local_first_backend
@@ -105,17 +185,28 @@ Commands:
   onboard   - Create sovereign identity (if not yet onboarded)
   dashboard - View node identity and agents
   impact    - Sovereignty progression and UERS scores
+  profile   - View/set your personal profile
   status    - Show system status
   metrics   - Show performance metrics
+  memory    - Show conversation memory stats
   clear     - Clear screen
   exit      - Exit REPL
 
 Or type any query to get a sovereign response.
+Your PAT team remembers the conversation and learns who you are.
                     """)
                     continue
 
                 if query.lower() == "onboard":
                     run_onboard()
+                    continue
+
+                if query.lower() == "profile":
+                    _handle_profile_command(runtime)
+                    continue
+
+                if query.lower() == "memory":
+                    _handle_memory_command(runtime)
                     continue
 
                 if query.lower() == "dashboard":
@@ -154,12 +245,20 @@ Or type any query to get a sovereign response.
                     print_banner()
                     continue
 
-                # Process query
+                # Process query through PAT pipeline
                 result = await runtime.query(query)
 
                 print(f"\n{'─' * 60}")
                 if result.success:
-                    print(f"Answer: {result.response}")
+                    # Show which PAT agent responded
+                    uc = getattr(runtime, "_user_context", None)
+                    if uc and uc.conversation.get_turn_count() > 0:
+                        last_turns = list(uc.conversation._turns)
+                        if last_turns and last_turns[-1].agent_role:
+                            print(
+                                f"[PAT {last_turns[-1].agent_role.upper()}]"
+                            )
+                    print(f"{result.response}")
                     print(f"{'─' * 60}")
                     print(
                         f"SNR: {result.snr_score:.3f} | Ihsān: {result.ihsan_score:.3f}"
