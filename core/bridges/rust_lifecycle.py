@@ -653,6 +653,87 @@ class RustLifecycleManager:
         return signature, identity.public_key
 
     # -------------------------------------------------------------------------
+    # PyO3 Autopoiesis Operations (In-Process, 10-100x Faster)
+    # -------------------------------------------------------------------------
+
+    def pyo3_pattern_memory_learn(
+        self,
+        node_id: str,
+        content: str,
+        embedding: list[float],
+        tags: list[str] | None = None,
+    ) -> str | None:
+        """Learn a pattern using Rust PatternMemory (10-100x faster).
+
+        Returns pattern ID on success, None if PyO3 unavailable.
+        """
+        if not self._pyo3_available:
+            return None
+
+        try:
+            memory = self._pyo3_module.PatternMemory(node_id)
+            return memory.learn(content, embedding, tags or [])
+        except Exception as e:
+            logger.warning("PyO3 pattern learn failed: %s", e)
+            return None
+
+    def pyo3_pattern_memory_recall(
+        self,
+        node_id: str,
+        embedding: list[float],
+        limit: int = 5,
+    ) -> list[tuple[str, float, list[str]]] | None:
+        """Recall similar patterns using Rust PatternMemory.
+
+        Returns list of (content, confidence, tags) tuples, or None if unavailable.
+        """
+        if not self._pyo3_available:
+            return None
+
+        try:
+            memory = self._pyo3_module.PatternMemory(node_id)
+            return memory.recall(embedding, limit)
+        except Exception as e:
+            logger.warning("PyO3 pattern recall failed: %s", e)
+            return None
+
+    def pyo3_preference_observe(
+        self,
+        pref_type: str,
+        key: str,
+        value: str,
+    ) -> bool:
+        """Observe a preference using Rust PreferenceTracker.
+
+        Returns True on success, False if PyO3 unavailable.
+        """
+        if not self._pyo3_available:
+            return False
+
+        try:
+            if not hasattr(self, "_pyo3_pref_tracker"):
+                self._pyo3_pref_tracker = self._pyo3_module.PreferenceTracker()
+            self._pyo3_pref_tracker.observe(pref_type, key, value)
+            return True
+        except Exception as e:
+            logger.warning("PyO3 preference observe failed: %s", e)
+            return False
+
+    def pyo3_preference_apply(self, prompt: str) -> str:
+        """Apply learned preferences to a prompt using Rust PreferenceTracker.
+
+        Returns modified prompt, or original if PyO3 unavailable.
+        """
+        if not self._pyo3_available or not hasattr(self, "_pyo3_pref_tracker"):
+            return prompt
+
+        try:
+            return self._pyo3_pref_tracker.apply_to_prompt(prompt)
+        except Exception as e:
+            logger.warning("PyO3 preference apply failed: %s", e)
+            return prompt
+
+    # -------------------------------------------------------------------------
     # REST API Operations (Inter-Process)
     # -------------------------------------------------------------------------
 
