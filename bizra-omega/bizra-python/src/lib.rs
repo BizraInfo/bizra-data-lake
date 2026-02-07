@@ -424,12 +424,7 @@ impl PyPatternMemory {
     /// Learn a new pattern from content, embedding, and tags
     ///
     /// Returns the pattern ID on success.
-    fn learn(
-        &mut self,
-        content: &str,
-        embedding: Vec<f32>,
-        tags: Vec<String>,
-    ) -> PyResult<String> {
+    fn learn(&mut self, content: &str, embedding: Vec<f32>, tags: Vec<String>) -> PyResult<String> {
         self.inner
             .learn(content.to_string(), embedding, tags)
             .map_err(|e| PyRuntimeError::new_err(format!("Pattern learn error: {}", e)))

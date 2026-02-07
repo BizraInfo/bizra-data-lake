@@ -303,10 +303,8 @@ async fn e2e_gossip_membership() {
         .register_peer_pubkey(peer3_id.clone(), peer3_key.verifying_key().to_bytes())
         .await;
     let new_member = Member::new(peer3_id, "192.168.1.3:7946".parse().unwrap());
-    let join_msg = SignedGossipMessage::sign(
-        GossipMessage::Join { member: new_member },
-        &peer3_key,
-    );
+    let join_msg =
+        SignedGossipMessage::sign(GossipMessage::Join { member: new_member }, &peer3_key);
     gossip.handle_signed_message(join_msg).await.unwrap();
     assert_eq!(gossip.member_count().await, 4);
     println!("✓ Handled signed join, total: 4");
@@ -316,10 +314,8 @@ async fn e2e_gossip_membership() {
     gossip
         .register_peer_pubkey(peer1_id.clone(), peer1_key.verifying_key().to_bytes())
         .await;
-    let leave_msg = SignedGossipMessage::sign(
-        GossipMessage::Leave { node_id: peer1_id },
-        &peer1_key,
-    );
+    let leave_msg =
+        SignedGossipMessage::sign(GossipMessage::Leave { node_id: peer1_id }, &peer1_key);
     gossip.handle_signed_message(leave_msg).await.unwrap();
     let alive = gossip.alive_members().await;
     assert_eq!(alive.len(), 3); // peer_1 is now Left, not Alive
