@@ -3,13 +3,13 @@
   "python_loc_core": 129819,
   "rust_loc_bizra_omega": 137527,
   "python_loc_tests": 39156,
-  "python_tests_passed": 2148,
+  "python_tests_passed": 2202,
   "python_tests_skipped": 13,
   "rust_tests_passed": 281,
   "rust_warnings": 0,
   "coverage_pct": 51.21,
   "coverage_threshold": 30,
   "rust_crates": 14,
-  "commits_on_main": 12,
+  "commits_on_main": 14,
   "note": "Counts from wc -l on core/*.py, bizra-omega/**/*.rs, tests/*.py. Test counts verified 2026-02-07."
 }
