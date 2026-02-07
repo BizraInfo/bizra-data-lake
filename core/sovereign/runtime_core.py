@@ -25,6 +25,7 @@ from typing import (
     Optional,
 )
 
+from .genesis_identity import GenesisState, load_and_validate_genesis
 from .runtime_stubs import (
     StubFactory,
 )
@@ -77,6 +78,9 @@ class SovereignRuntime:
         self._autonomous_loop: Optional[AutonomousLoopProtocol] = None
         self._orchestrator: Optional[object] = None
 
+        # Genesis Identity (persistent across restarts)
+        self._genesis: Optional[GenesisState] = None
+
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
         self._omega: Optional[object] = None  # OmegaEngine
@@ -112,9 +116,25 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME INITIALIZING")
         self.logger.info("=" * 60)
+
+        # Load genesis identity (persistent node_id from ceremony)
+        self._load_genesis_identity()
+
         self.logger.info(f"Node ID: {self.config.node_id}")
         self.logger.info(f"Mode: {self.config.mode.name}")
         self.logger.info(f"Ihsan Threshold: {self.config.ihsan_threshold}")
+
+        if self._genesis:
+            self.logger.info(f"Node Name: {self._genesis.node_name}")
+            self.logger.info(f"Location: {self._genesis.identity.location}")
+            self.logger.info(
+                f"PAT Team: {len(self._genesis.pat_team)} agents — "
+                f"{', '.join(a.role for a in self._genesis.pat_team)}"
+            )
+            self.logger.info(
+                f"SAT Team: {len(self._genesis.sat_team)} agents — "
+                f"{', '.join(a.role for a in self._genesis.sat_team)}"
+            )
 
         await self._init_components()
 
@@ -130,6 +150,21 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
         self.logger.info("=" * 60)
+
+    def _load_genesis_identity(self) -> None:
+        """Load persistent genesis identity if available."""
+        try:
+            genesis = load_and_validate_genesis(self.config.state_dir)
+            if genesis is not None:
+                self._genesis = genesis
+                self.config.node_id = genesis.node_id
+                self.logger.info(
+                    f"Genesis identity loaded: {genesis.node_id} ({genesis.node_name})"
+                )
+            else:
+                self.logger.info("No genesis — running as ephemeral node")
+        except ValueError as e:
+            self.logger.error(f"Genesis identity corrupted: {e}")
 
     async def _init_components(self) -> None:
         """Initialize components with graceful fallback."""
@@ -591,11 +626,20 @@ class SovereignRuntime:
         else:
             omega_status.setdefault("gateway", {"connected": False})
 
+        identity_info: Dict[str, Any] = {
+            "node_id": self.config.node_id,
+            "version": "1.0.0",
+        }
+        if self._genesis:
+            identity_info["node_name"] = self._genesis.node_name
+            identity_info["location"] = self._genesis.identity.location
+            identity_info["public_key"] = self._genesis.identity.public_key[:16] + "..."
+            identity_info["pat_agents"] = len(self._genesis.pat_team)
+            identity_info["sat_agents"] = len(self._genesis.sat_team)
+            identity_info["genesis_hash"] = self._genesis.genesis_hash.hex()[:16] + "..." if self._genesis.genesis_hash else "none"
+
         return {
-            "identity": {
-                "node_id": self.config.node_id,
-                "version": "1.0.0",
-            },
+            "identity": identity_info,
             "state": {
                 "initialized": self._initialized,
                 "running": self._running,
@@ -648,7 +692,7 @@ class SovereignRuntime:
 
             import json
 
-            state = {
+            state: Dict[str, Any] = {
                 "metrics": self.metrics.to_dict(),
                 "config": {
                     "node_id": self.config.node_id,
@@ -656,6 +700,8 @@ class SovereignRuntime:
                 },
                 "timestamp": datetime.now().isoformat(),
             }
+            if self._genesis:
+                state["genesis"] = self._genesis.summary()
 
             state_file = self.config.state_dir / "checkpoint.json"
             state_file.write_text(json.dumps(state, indent=2))

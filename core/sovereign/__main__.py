@@ -113,12 +113,14 @@ Or type any query to get a sovereign response.
 
                 if query.lower() == "status":
                     status = runtime.status()
-                    print(f"\nNode: {status['identity'].get('node_name', status['identity']['node_id'])}")
+                    ident = status['identity']
+                    node_label = ident.get('node_name', ident['node_id'])
+                    print(f"\nNode: {node_label} ({ident['node_id']})")
+                    if ident.get('pat_agents'):
+                        print(f"PAT: {ident['pat_agents']} agents | SAT: {ident['sat_agents']} agents")
                     print(
                         f"Health: {status['health']['status']} ({status['health']['score']})"
                     )
-                    print(f"SNR: {status['health']['snr']}")
-                    print(f"Ihsān: {status['health']['ihsan']}")
                     continue
 
                 if query.lower() == "metrics":
@@ -228,9 +230,15 @@ async def run_status(json_output: bool = False):
             print_banner()
             print("System Status")
             print("=" * 60)
-            print(f"Node ID:    {status['identity']['node_id']}")
-            print(f"Node Name:  {status['identity'].get('node_name', status['identity']['node_id'])}")
-            print(f"Version:    {status['identity']['version']}")
+            ident = status['identity']
+            print(f"Node ID:    {ident['node_id']}")
+            if ident.get('node_name'):
+                print(f"Node Name:  {ident['node_name']}")
+                print(f"Location:   {ident.get('location', 'unknown')}")
+                print(f"Genesis:    {ident.get('genesis_hash', 'none')}")
+                print(f"PAT Team:   {ident.get('pat_agents', 0)} agents")
+                print(f"SAT Team:   {ident.get('sat_agents', 0)} agents")
+            print(f"Version:    {ident['version']}")
             print(f"Mode:       {status['state']['mode']}")
             print("-" * 60)
             health = status.get('health', {})
