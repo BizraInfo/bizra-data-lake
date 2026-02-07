@@ -89,6 +89,9 @@ class BizraDoctor:
         await self.check_python()
         await self.check_dependencies()
 
+        # Genesis identity
+        await self.check_genesis()
+
         # LLM backends
         await self.check_lmstudio()
         await self.check_ollama()
@@ -196,23 +199,124 @@ class BizraDoctor:
                 )
             )
 
-    async def check_lmstudio(self) -> None:
-        """Check LM Studio availability."""
-        url = "http://192.168.56.1:1234/v1/models"
+    async def check_genesis(self) -> None:
+        """Check genesis identity state."""
+        state_dir = Path("sovereign_state")
+        genesis_file = state_dir / "node0_genesis.json"
+
+        if not genesis_file.exists():
+            self.report.add(
+                CheckResult(
+                    name="Genesis Identity",
+                    status=CheckStatus.WARN,
+                    message="No genesis file — running as ephemeral node",
+                    details={"path": str(genesis_file)},
+                )
+            )
+            return
 
         try:
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            from .genesis_identity import load_and_validate_genesis
+
+            genesis = load_and_validate_genesis(state_dir)
+            if genesis is None:
+                self.report.add(
+                    CheckResult(
+                        name="Genesis Identity",
+                        status=CheckStatus.FAIL,
+                        message="Genesis file exists but failed to load",
+                        details={"path": str(genesis_file)},
+                    )
+                )
+                return
+
+            self.report.add(
+                CheckResult(
+                    name="Genesis Identity",
+                    status=CheckStatus.OK,
+                    message=(
+                        f"{genesis.node_id} ({genesis.node_name}) — "
+                        f"{len(genesis.pat_team)} PAT + {len(genesis.sat_team)} SAT"
+                    ),
+                    details={
+                        "node_id": genesis.node_id,
+                        "name": genesis.node_name,
+                        "location": genesis.identity.location,
+                        "pat_agents": len(genesis.pat_team),
+                        "sat_agents": len(genesis.sat_team),
+                        "genesis_hash": genesis.genesis_hash.hex()[:16] + "...",
+                    },
+                )
+            )
+        except ValueError as e:
+            self.report.add(
+                CheckResult(
+                    name="Genesis Identity",
+                    status=CheckStatus.FAIL,
+                    message=f"Genesis corrupted: {e}",
+                    details={"path": str(genesis_file), "error": str(e)},
+                )
+            )
+        except ImportError:
+            self.report.add(
+                CheckResult(
+                    name="Genesis Identity",
+                    status=CheckStatus.SKIP,
+                    message="Genesis loader not available",
+                )
+            )
+
+    async def check_lmstudio(self) -> None:
+        """Check LM Studio availability (v1 API with auth)."""
+        import os
+
+        host = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+        port = os.getenv("LMSTUDIO_PORT", "1234")
+        url = f"http://{host}:{port}/api/v1/models"
+
+        api_key = (
+            os.getenv("LM_API_TOKEN")
+            or os.getenv("LMSTUDIO_API_KEY")
+            or os.getenv("LM_STUDIO_API_KEY")
+        )
+
+        try:
+            headers = {"Accept": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode())
-                models = data.get("data", [])
-                model_ids = [m.get("id", "unknown") for m in models[:3]]
+                models = data.get("models", data.get("data", []))
+                loaded = [m for m in models if m.get("loaded_instances")]
+                model_ids = [m.get("key", m.get("id", "unknown")) for m in models[:5]]
 
                 self.report.add(
                     CheckResult(
                         name="LM Studio",
                         status=CheckStatus.OK,
-                        message=f"Connected at 192.168.56.1:1234 ({len(models)} models)",
-                        details={"url": url, "models": model_ids, "count": len(models)},
+                        message=f"Connected at {host}:{port} ({len(models)} models, {len(loaded)} loaded)",
+                        details={"url": url, "models": model_ids, "count": len(models), "loaded": len(loaded)},
+                    )
+                )
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                self.report.add(
+                    CheckResult(
+                        name="LM Studio",
+                        status=CheckStatus.WARN,
+                        message=f"Auth required at {host}:{port} — set LM_API_TOKEN env var",
+                        details={"url": url, "error": "401 Unauthorized"},
+                    )
+                )
+            else:
+                self.report.add(
+                    CheckResult(
+                        name="LM Studio",
+                        status=CheckStatus.WARN,
+                        message=f"HTTP {e.code} at {host}:{port}",
+                        details={"url": url, "error": str(e)},
                     )
                 )
         except urllib.error.URLError as e:

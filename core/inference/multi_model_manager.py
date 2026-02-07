@@ -23,6 +23,7 @@ Updated: 2026-02-05 | P0-1: HTTP Client Connection Pooling
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -435,11 +436,22 @@ class MultiModelManager:
             f"http2={pool_cfg.http2}, timeout={pool_cfg.read_timeout}s"
         )
 
+        # Auth token for LM Studio v1 API
+        headers: Dict[str, str] = {}
+        api_key = (
+            os.getenv("LM_API_TOKEN")
+            or os.getenv("LMSTUDIO_API_KEY")
+            or os.getenv("LM_STUDIO_API_KEY")
+        )
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
         return httpx.AsyncClient(
             base_url=self.config.base_url,
             timeout=timeout,
             limits=limits,
             http2=pool_cfg.http2,
+            headers=headers,
         )
 
     async def initialize(self) -> bool:
