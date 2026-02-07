@@ -247,6 +247,13 @@ async def run_status(json_output: bool = False):
             print(f"SNR:        {health.get('snr', 'N/A')}")
             print(f"Ihsan:      {health.get('ihsan', 'N/A')}")
             print("-" * 60)
+            mem = status.get('memory', {})
+            if mem.get('running'):
+                print(f"Memory:     Auto-save active ({mem.get('save_count', 0)} saves)")
+                print(f"Providers:  {', '.join(mem.get('providers', []))}")
+            else:
+                print("Memory:     Auto-save inactive")
+            print("-" * 60)
             print("Local Backends (Zero-Token Operation):")
             for b in backends:
                 status_str = "READY" if b.available else "offline"
