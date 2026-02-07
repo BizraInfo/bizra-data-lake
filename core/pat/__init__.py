@@ -107,10 +107,17 @@ def __getattr__(name: str):
 
         return PATMessage
     elif name == "ChannelAdapter":
-        # TODO: core/pat/channels.py does not exist yet -- create it or remove this lazy import
-        raise ImportError(
-            "ChannelAdapter requires core.pat.channels which has not been created yet"
-        )
+        from .channels import ChannelAdapter
+
+        return ChannelAdapter
+    elif name == "GatewayState":
+        from .channels import GatewayState
+
+        return GatewayState
+    elif name == "GatewayMetrics":
+        from .channels import GatewayMetrics
+
+        return GatewayMetrics
 
     # Identity Card module
     elif name == "IdentityCard":
@@ -186,6 +193,54 @@ def __getattr__(name: str):
 
         return generate_and_onboard
 
+    # Onboarding module
+    elif name == "OnboardingWizard":
+        from .onboarding import OnboardingWizard
+
+        return OnboardingWizard
+    elif name == "NodeCredentials":
+        from .onboarding import NodeCredentials
+
+        return NodeCredentials
+    elif name == "quick_onboard":
+        from .onboarding import quick_onboard
+
+        return quick_onboard
+    elif name == "is_onboarded":
+        from .onboarding import is_onboarded
+
+        return is_onboarded
+    elif name == "get_node_credentials":
+        from .onboarding import get_node_credentials
+
+        return get_node_credentials
+
+    # Impact Tracker module
+    elif name == "ImpactTracker":
+        from .impact_tracker import ImpactTracker
+
+        return ImpactTracker
+    elif name == "UERSScore":
+        from .impact_tracker import UERSScore
+
+        return UERSScore
+    elif name == "UERSDimension":
+        from .impact_tracker import UERSDimension
+
+        return UERSDimension
+    elif name == "ImpactEvent":
+        from .impact_tracker import ImpactEvent
+
+        return ImpactEvent
+    elif name == "ProgressSnapshot":
+        from .impact_tracker import ProgressSnapshot
+
+        return ProgressSnapshot
+    elif name == "Achievement":
+        from .impact_tracker import Achievement
+
+        return Achievement
+
     # Genesis Block module
     elif name == "GENESIS_NODE_ID":
         from .minting import GENESIS_NODE_ID
@@ -232,6 +287,8 @@ __all__ = [
     "PATBridge",
     "PATMessage",
     "ChannelAdapter",
+    "GatewayState",
+    "GatewayMetrics",
     "PAT_GATEWAY_WS",
     "PAT_CHANNELS",
     # Identity Card
@@ -264,6 +321,19 @@ __all__ = [
     "is_genesis_block",
     "mint_genesis_node",
     "get_genesis_info",
+    # Impact Tracker
+    "ImpactTracker",
+    "UERSScore",
+    "UERSDimension",
+    "ImpactEvent",
+    "ProgressSnapshot",
+    "Achievement",
+    # Onboarding
+    "OnboardingWizard",
+    "NodeCredentials",
+    "quick_onboard",
+    "is_onboarded",
+    "get_node_credentials",
     # Constants
     "PAT_AGENT_COUNT",
     "SAT_AGENT_COUNT",

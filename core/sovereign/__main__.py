@@ -102,6 +102,9 @@ async def run_repl():
                 if query.lower() == "help":
                     print("""
 Commands:
+  onboard   - Create sovereign identity (if not yet onboarded)
+  dashboard - View node identity and agents
+  impact    - Sovereignty progression and UERS scores
   status    - Show system status
   metrics   - Show performance metrics
   clear     - Clear screen
@@ -109,6 +112,18 @@ Commands:
 
 Or type any query to get a sovereign response.
                     """)
+                    continue
+
+                if query.lower() == "onboard":
+                    run_onboard()
+                    continue
+
+                if query.lower() == "dashboard":
+                    run_dashboard()
+                    continue
+
+                if query.lower() in ("impact", "progress"):
+                    run_impact()
                     continue
 
                 if query.lower() == "status":
@@ -282,6 +297,218 @@ async def run_doctor(verbose: bool = False, json_output: bool = False):
     sys.exit(await doctor_check(verbose, json_output))
 
 
+def run_onboard(name: Optional[str] = None, node_dir: Optional[str] = None, json_output: bool = False):
+    """Run node onboarding wizard."""
+    from pathlib import Path
+
+    from ..pat.onboarding import OnboardingWizard
+
+    dir_path = Path(node_dir) if node_dir else None
+    wizard = OnboardingWizard(node_dir=dir_path)
+
+    if json_output:
+        import json as json_mod
+
+        # Non-interactive mode
+        existing = wizard.load_existing_credentials()
+        if existing is not None:
+            print(json_mod.dumps({"status": "already_onboarded", **existing.to_dict()}, indent=2))
+            return
+
+        try:
+            credentials = wizard.onboard(name=name)
+            print(json_mod.dumps({"status": "success", **credentials.to_dict()}, indent=2))
+        except (RuntimeError, FileExistsError) as e:
+            print(json_mod.dumps({"status": "error", "error": str(e)}, indent=2))
+            sys.exit(1)
+    else:
+        # Interactive mode
+        wizard.run_interactive()
+
+
+def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
+    """Show node identity dashboard."""
+    import json as json_mod
+    from pathlib import Path
+
+    from ..pat.onboarding import OnboardingWizard
+
+    dir_path = Path(node_dir) if node_dir else None
+    wizard = OnboardingWizard(node_dir=dir_path)
+
+    credentials = wizard.load_existing_credentials()
+    if credentials is None:
+        if json_output:
+            print(json_mod.dumps({"status": "not_onboarded"}, indent=2))
+        else:
+            print("\n  No node identity found.")
+            print("  Run 'bizra onboard' to create your sovereign identity.\n")
+        sys.exit(1)
+
+    if json_output:
+        # Full JSON output
+        identity_data = {}
+        if wizard.identity_file.exists():
+            identity_data = json_mod.loads(wizard.identity_file.read_text())
+        agents_data = {}
+        if wizard.agents_file.exists():
+            agents_data = json_mod.loads(wizard.agents_file.read_text())
+        print(json_mod.dumps({
+            "credentials": credentials.to_dict(),
+            "identity": identity_data,
+            "agents": agents_data,
+        }, indent=2))
+        return
+
+    # Terminal dashboard
+    tier = credentials.sovereignty_tier.upper()
+    tier_bars = {
+        "SEED": "[#---]",
+        "SPROUT": "[##--]",
+        "TREE": "[###-]",
+        "FOREST": "[####]",
+    }
+    bar = tier_bars.get(tier, "[----]")
+
+    print()
+    print("=" * 60)
+    print("  BIZRA NODE DASHBOARD")
+    print("=" * 60)
+    print()
+    print(f"  Node ID:          {credentials.node_id}")
+    print(f"  Sovereignty:      {tier} {bar}  ({credentials.sovereignty_score:.2f})")
+    print(f"  Created:          {credentials.created_at[:19]}")
+    print(f"  Public Key:       {credentials.public_key[:16]}...{credentials.public_key[-8:]}")
+    print()
+    print("  PERSONAL AGENTIC TEAM (PAT)")
+    print("  " + "-" * 40)
+    for agent_id in credentials.pat_agent_ids:
+        parts = agent_id.split("-")
+        agent_type = parts[2] if len(parts) >= 3 else "???"
+        idx = parts[3] if len(parts) >= 4 else "?"
+        type_names = {
+            "WRK": "Worker",
+            "RSC": "Researcher",
+            "GRD": "Guardian",
+            "SYN": "Synthesizer",
+            "VAL": "Validator",
+            "CRD": "Coordinator",
+            "EXC": "Executor",
+        }
+        type_name = type_names.get(agent_type, agent_type)
+        print(f"    {agent_id}  {type_name}")
+    print()
+    print("  SYSTEM AGENTIC TEAM (SAT)")
+    print("  " + "-" * 40)
+    for agent_id in credentials.sat_agent_ids:
+        parts = agent_id.split("-")
+        agent_type = parts[2] if len(parts) >= 3 else "???"
+        type_names = {
+            "WRK": "Worker",
+            "RSC": "Researcher",
+            "GRD": "Guardian",
+            "SYN": "Synthesizer",
+            "VAL": "Validator",
+            "CRD": "Coordinator",
+            "EXC": "Executor",
+        }
+        type_name = type_names.get(agent_type, agent_type)
+        print(f"    {agent_id}  {type_name}")
+    print()
+    print(f"  Data: {wizard.node_dir}")
+    print("=" * 60)
+    print()
+
+
+def run_impact(node_dir: Optional[str] = None, json_output: bool = False):
+    """Show sovereignty progression and impact history."""
+    import json as json_mod
+    from pathlib import Path
+
+    from ..pat.impact_tracker import ImpactTracker
+    from ..pat.onboarding import OnboardingWizard
+
+    dir_path = Path(node_dir) if node_dir else None
+    wizard = OnboardingWizard(node_dir=dir_path)
+
+    credentials = wizard.load_existing_credentials()
+    if credentials is None:
+        if json_output:
+            print(json_mod.dumps({"status": "not_onboarded"}, indent=2))
+        else:
+            print("\n  No node identity found.")
+            print("  Run 'bizra onboard' to create your sovereign identity.\n")
+        sys.exit(1)
+
+    tracker = ImpactTracker(
+        node_id=credentials.node_id,
+        state_dir=dir_path or Path.home() / ".bizra-node",
+    )
+
+    progress = tracker.get_progress()
+    tier_info = tracker.get_tier_progress()
+
+    if json_output:
+        print(json_mod.dumps({
+            "progress": progress.to_dict(),
+            "tier_progress": tier_info,
+        }, indent=2))
+        return
+
+    # Terminal display
+    tier = tier_info["current_tier"].upper()
+    pct = tier_info["progress_percent"]
+    bar_len = 20
+    filled = int(bar_len * pct / 100)
+    bar = "#" * filled + "-" * (bar_len - filled)
+
+    print()
+    print("=" * 60)
+    print("  BIZRA SOVEREIGNTY PROGRESSION")
+    print("=" * 60)
+    print()
+    print(f"  Node:             {progress.node_id}")
+    print(f"  Tier:             {tier}")
+    print(f"  Score:            {progress.sovereignty_score:.4f}")
+    print(f"  Progress:         [{bar}] {pct}%")
+    if tier_info["next_tier"]:
+        print(f"  Next Tier:        {tier_info['next_tier'].upper()} at {tier_info['next_threshold']:.2f}")
+    print()
+    print(f"  Total Bloom:      {progress.total_bloom:.2f}")
+    print(f"  Impact Events:    {progress.total_events}")
+    print(f"  Streak:           {progress.streak_days} days")
+    print()
+
+    # UERS breakdown
+    uers = progress.uers_aggregate
+    print("  UERS DIMENSIONS")
+    print("  " + "-" * 40)
+    for dim, score in [
+        ("Utility", uers.utility),
+        ("Efficiency", uers.efficiency),
+        ("Resilience", uers.resilience),
+        ("Sustainability", uers.sustainability),
+        ("Ethics", uers.ethics),
+    ]:
+        dim_bar_len = 15
+        dim_filled = int(dim_bar_len * min(1.0, score))
+        dim_bar = "#" * dim_filled + "-" * (dim_bar_len - dim_filled)
+        print(f"    {dim:18s} [{dim_bar}] {score:.3f}")
+    print()
+
+    # Achievements
+    if progress.achievements:
+        print("  ACHIEVEMENTS")
+        print("  " + "-" * 40)
+        for ach in progress.achievements:
+            print(f"    {ach}")
+    else:
+        print("  No achievements yet. Keep contributing!")
+    print()
+    print("=" * 60)
+    print()
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -290,8 +517,12 @@ def main():
         epilog="""
 Examples:
   python -m core.sovereign                          # Interactive REPL
+  python -m core.sovereign onboard                  # Create sovereign identity
+  python -m core.sovereign dashboard                # View node identity
+  python -m core.sovereign impact                   # Sovereignty progression
   python -m core.sovereign query "Your question"    # Single query
   python -m core.sovereign serve --port 8080        # Start API server
+  python -m core.sovereign gateway telegram          # Run Telegram gateway
   python -m core.sovereign status                   # Check status
   python -m core.sovereign test                     # Run tests
         """,
@@ -324,6 +555,31 @@ Examples:
     )
     doctor_parser.add_argument("--json", action="store_true", help="JSON output")
 
+    # Onboard command
+    onboard_parser = subparsers.add_parser("onboard", help="Create sovereign identity")
+    onboard_parser.add_argument("--name", help="Display name (optional)")
+    onboard_parser.add_argument("--node-dir", help="Node data directory")
+    onboard_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Dashboard command
+    dashboard_parser = subparsers.add_parser("dashboard", help="View node identity")
+    dashboard_parser.add_argument("--node-dir", help="Node data directory")
+    dashboard_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Impact / Progress command
+    impact_parser = subparsers.add_parser("impact", help="Sovereignty progression")
+    impact_parser.add_argument("--node-dir", help="Node data directory")
+    impact_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Gateway command
+    gateway_parser = subparsers.add_parser("gateway", help="Run messaging gateway")
+    gateway_parser.add_argument(
+        "platform", choices=["telegram"], help="Messaging platform"
+    )
+    gateway_parser.add_argument("--token", help="Bot token (or use env var)")
+    gateway_parser.add_argument("--webhook", help="Webhook URL (for production)")
+    gateway_parser.add_argument("--node-dir", help="Node data directory")
+
     # Version command
     subparsers.add_parser("version", help="Show version")
 
@@ -353,6 +609,32 @@ Examples:
         run_tests()
     elif args.command == "doctor":
         asyncio.run(run_doctor(args.verbose, args.json))
+    elif args.command == "onboard":
+        run_onboard(args.name, args.node_dir, args.json)
+    elif args.command == "dashboard":
+        run_dashboard(args.node_dir, args.json)
+    elif args.command == "impact":
+        run_impact(args.node_dir, args.json)
+    elif args.command == "gateway":
+        from ..pat.gateway import run_telegram_gateway
+
+        node_id = ""
+        if getattr(args, "node_dir", None):
+            from ..pat.onboarding import get_node_credentials
+            from pathlib import Path
+
+            creds = get_node_credentials(node_dir=Path(args.node_dir))
+            if creds:
+                node_id = creds.node_id
+
+        if args.platform == "telegram":
+            asyncio.run(
+                run_telegram_gateway(
+                    token=args.token or "",
+                    node_id=node_id,
+                    webhook_url=args.webhook or "",
+                )
+            )
     elif args.command == "version":
         print("BIZRA Sovereign Engine v1.0.0")
         print("Codename: Genesis")

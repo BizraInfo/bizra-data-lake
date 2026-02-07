@@ -114,6 +114,34 @@ class AutonomousLoopProtocol(Protocol):
     def status(self) -> LoopStatus: ...
 
 
+@runtime_checkable
+class ImpactTrackerProtocol(Protocol):
+    """Protocol for impact tracking and sovereignty growth."""
+
+    @property
+    def node_id(self) -> str: ...
+    @property
+    def sovereignty_score(self) -> float: ...
+    @property
+    def sovereignty_tier(self) -> Any: ...
+    @property
+    def total_bloom(self) -> float: ...
+    @property
+    def achievements(self) -> List[str]: ...
+
+    def record_event(
+        self,
+        category: str,
+        action: str,
+        bloom: float,
+        uers: Any = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Any: ...
+
+    def get_progress(self) -> Any: ...
+    def flush(self) -> None: ...
+
+
 # =============================================================================
 # ENUMS
 # =============================================================================
