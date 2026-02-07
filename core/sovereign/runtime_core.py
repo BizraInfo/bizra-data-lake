@@ -26,7 +26,7 @@ from typing import (
 )
 
 from .genesis_identity import GenesisState, load_and_validate_genesis
-from .memory_coordinator import MemoryCoordinator, MemoryCoordinatorConfig
+from .memory_coordinator import MemoryCoordinator, MemoryCoordinatorConfig, RestorePriority
 from .runtime_stubs import (
     StubFactory,
 )
@@ -174,54 +174,73 @@ class SovereignRuntime:
             self.logger.error(f"Genesis identity corrupted: {e}")
 
     async def _init_components(self) -> None:
-        """Initialize components with graceful fallback."""
-        # Try full GraphOfThoughts
-        try:
-            from .graph_reasoner import GraphOfThoughts
+        """Initialize components with graceful fallback.
 
-            self._graph_reasoner = GraphOfThoughts()
-            self.logger.info("✓ GraphOfThoughts loaded (full)")
-        except ImportError:
-            self._graph_reasoner = StubFactory.create_graph_reasoner("Import failed")
-            self.logger.warning("⚠ GraphOfThoughts unavailable, using stub")
+        RFC-01 FIX: Respects feature flags from RuntimeConfig.
+        """
+        # Try full GraphOfThoughts (only if flag enabled)
+        if self.config.enable_graph_reasoning:
+            try:
+                from .graph_reasoner import GraphOfThoughts
 
-        # Try full SNRMaximizer
-        try:
-            from .snr_maximizer import SNRMaximizer
+                self._graph_reasoner = GraphOfThoughts()
+                self.logger.info("✓ GraphOfThoughts loaded (full)")
+            except ImportError:
+                self._graph_reasoner = StubFactory.create_graph_reasoner("Import failed")
+                self.logger.warning("⚠ GraphOfThoughts unavailable, using stub")
+        else:
+            self._graph_reasoner = StubFactory.create_graph_reasoner("Disabled by config")
+            self.logger.info("○ GraphOfThoughts disabled by config")
 
-            self._snr_optimizer = SNRMaximizer(
-                ihsan_threshold=self.config.snr_threshold
-            )
-            self.logger.info("✓ SNRMaximizer loaded (full)")
-        except ImportError:
-            self._snr_optimizer = StubFactory.create_snr_optimizer("Import failed")
-            self.logger.warning("⚠ SNRMaximizer unavailable, using stub")
+        # Try full SNRMaximizer (only if flag enabled)
+        if self.config.enable_snr_optimization:
+            try:
+                from .snr_maximizer import SNRMaximizer
 
-        # Try full GuardianCouncil
-        try:
-            from .guardian_council import GuardianCouncil
+                self._snr_optimizer = SNRMaximizer(
+                    ihsan_threshold=self.config.snr_threshold
+                )
+                self.logger.info("✓ SNRMaximizer loaded (full)")
+            except ImportError:
+                self._snr_optimizer = StubFactory.create_snr_optimizer("Import failed")
+                self.logger.warning("⚠ SNRMaximizer unavailable, using stub")
+        else:
+            self._snr_optimizer = StubFactory.create_snr_optimizer("Disabled by config")
+            self.logger.info("○ SNRMaximizer disabled by config")
 
-            self._guardian_council = GuardianCouncil()
-            self.logger.info("✓ GuardianCouncil loaded (full)")
-        except ImportError:
-            self._guardian_council = StubFactory.create_guardian("Import failed")
-            self.logger.warning("⚠ GuardianCouncil unavailable, using stub")
+        # Try full GuardianCouncil (only if flag enabled)
+        if self.config.enable_guardian_validation:
+            try:
+                from .guardian_council import GuardianCouncil
 
-        # Try full AutonomousLoop
-        try:
-            from .autonomy import AutonomousLoop, DecisionGate
+                self._guardian_council = GuardianCouncil()
+                self.logger.info("✓ GuardianCouncil loaded (full)")
+            except ImportError:
+                self._guardian_council = StubFactory.create_guardian("Import failed")
+                self.logger.warning("⚠ GuardianCouncil unavailable, using stub")
+        else:
+            self._guardian_council = StubFactory.create_guardian("Disabled by config")
+            self.logger.info("○ GuardianCouncil disabled by config")
 
-            gate = DecisionGate(ihsan_threshold=self.config.ihsan_threshold)
-            self._autonomous_loop = AutonomousLoop(
-                decision_gate=gate,
-                snr_threshold=self.config.snr_threshold,
-                ihsan_threshold=self.config.ihsan_threshold,
-                cycle_interval=self.config.loop_interval_seconds,
-            )
-            self.logger.info("✓ AutonomousLoop loaded (full)")
-        except ImportError:
-            self._autonomous_loop = StubFactory.create_autonomous_loop("Import failed")
-            self.logger.warning("⚠ AutonomousLoop unavailable, using stub")
+        # Try full AutonomousLoop (only if flag enabled)
+        if self.config.enable_autonomous_loop:
+            try:
+                from .autonomy import AutonomousLoop, DecisionGate
+
+                gate = DecisionGate(ihsan_threshold=self.config.ihsan_threshold)
+                self._autonomous_loop = AutonomousLoop(
+                    decision_gate=gate,
+                    snr_threshold=self.config.snr_threshold,
+                    ihsan_threshold=self.config.ihsan_threshold,
+                    cycle_interval=self.config.loop_interval_seconds,
+                )
+                self.logger.info("✓ AutonomousLoop loaded (full)")
+            except ImportError:
+                self._autonomous_loop = StubFactory.create_autonomous_loop("Import failed")
+                self.logger.warning("⚠ AutonomousLoop unavailable, using stub")
+        else:
+            self._autonomous_loop = StubFactory.create_autonomous_loop("Disabled by config")
+            self.logger.info("○ AutonomousLoop disabled by config")
 
         # Omega Point Integration
         await self._init_omega_components()
@@ -271,8 +290,11 @@ class SovereignRuntime:
 
             # Register runtime state provider
             self._memory_coordinator.register_state_provider(
-                "runtime", self._get_runtime_state
+                "runtime", self._get_runtime_state, RestorePriority.CORE
             )
+
+            # Register proactive component providers (if available)
+            self._register_proactive_providers()
 
             # Register living memory if available
             try:
@@ -319,6 +341,54 @@ class SovereignRuntime:
             state["genesis"] = self._genesis.summary()
         return state
 
+    def _register_proactive_providers(self) -> None:
+        """Register proactive component state providers for persistence.
+
+        Wraps each provider in try/except so unavailable components
+        don't block the memory coordinator.
+        """
+        # OpportunityPipeline — SAFETY priority (rate limiter must survive restarts)
+        try:
+            from .opportunity_pipeline import OpportunityPipeline
+
+            pipeline = OpportunityPipeline()
+            self._memory_coordinator.register_state_provider(
+                "opportunity_pipeline",
+                pipeline.get_persistable_state,
+                RestorePriority.SAFETY,
+            )
+            self.logger.debug("Registered opportunity_pipeline state provider")
+        except (ImportError, AttributeError):
+            pass
+
+        # ProactiveScheduler — QUALITY priority (job stats are nice-to-have)
+        try:
+            from .proactive_scheduler import ProactiveScheduler
+
+            scheduler = ProactiveScheduler()
+            self._memory_coordinator.register_state_provider(
+                "scheduler",
+                scheduler.get_persistable_state,
+                RestorePriority.QUALITY,
+            )
+            self.logger.debug("Registered scheduler state provider")
+        except (ImportError, AttributeError):
+            pass
+
+        # PredictiveMonitor — QUALITY priority (trend baselines)
+        try:
+            from .predictive_monitor import PredictiveMonitor
+
+            monitor = PredictiveMonitor()
+            self._memory_coordinator.register_state_provider(
+                "predictive_monitor",
+                monitor.get_persistable_state,
+                RestorePriority.QUALITY,
+            )
+            self.logger.debug("Registered predictive_monitor state provider")
+        except (ImportError, AttributeError):
+            pass
+
     async def _start_autonomous_loop(self) -> None:
         """Start the autonomous operation loop."""
         if self._autonomous_loop:
@@ -347,12 +417,11 @@ class SovereignRuntime:
         if self._autonomous_loop:
             self._autonomous_loop.stop()
 
-        # Stop memory coordinator (performs final save)
+        # Stop memory coordinator (performs final save including all providers)
+        # LCT-01 FIX: MemoryCoordinator.stop() already checkpoints all state.
+        # The old _checkpoint() was a redundant second save of the same data.
         if self._memory_coordinator:
             await self._memory_coordinator.stop()
-
-        if self.config.enable_persistence:
-            await self._checkpoint()
 
         self._shutdown_event.set()
         self.logger.info("Sovereign Runtime shutdown complete")
@@ -381,7 +450,8 @@ class SovereignRuntime:
         )
 
         start_time = time.perf_counter()
-        self.metrics.queries_processed += 1
+        # RFC-03 FIX: Don't manually increment here — update_query_stats() is
+        # the single source of truth for all query counters.
 
         # Check cache
         cache_key = self._cache_key(query)
@@ -401,18 +471,19 @@ class SovereignRuntime:
             if result.success and self.config.enable_cache:
                 self._update_cache(cache_key, result)
 
-            self.metrics.queries_succeeded += 1
             return result
 
         except asyncio.TimeoutError:
-            self.metrics.queries_failed += 1
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self.metrics.update_query_stats(False, duration_ms)
             return SovereignResult(
                 query_id=query.id,
                 success=False,
                 error=f"Query timeout after {query.timeout}s",
             )
         except Exception as e:
-            self.metrics.queries_failed += 1
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self.metrics.update_query_stats(False, duration_ms)
             self.logger.error(f"Query error: {e}")
             return SovereignResult(
                 query_id=query.id,
@@ -443,8 +514,8 @@ class SovereignRuntime:
         )
         result.response = answer
 
-        # Update reasoning metrics
-        (time.perf_counter() - reasoning_start) * 1000
+        # Update reasoning metrics (RFC-05 FIX: store the computed value)
+        reasoning_time_ms = (time.perf_counter() - reasoning_start) * 1000
         self.metrics.update_reasoning_stats(result.reasoning_depth)
 
         # STAGE 3: Optimize SNR
@@ -535,6 +606,13 @@ class SovereignRuntime:
         if self._snr_optimizer:
             snr_result = await self._snr_optimizer.optimize(content)
             snr_score = snr_result.get("snr_score", UNIFIED_SNR_THRESHOLD)
+            # RFC-04 FIX: Actually use the optimized content from SNR pipeline
+            optimized_content = snr_result.get("optimized") or content
+            # Track SNR improvement
+            if optimized_content != content:
+                original_len = len(content)
+                improvement = (original_len - len(optimized_content)) / max(1, original_len)
+                self.metrics.update_snr_stats(improvement)
 
         self.metrics.current_snr_score = snr_score
         return optimized_content, snr_score

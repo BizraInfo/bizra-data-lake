@@ -18,12 +18,26 @@ import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import IntEnum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .state_checkpointer import StateCheckpointer, StorageBackend
 
 logger = logging.getLogger(__name__)
+
+
+class RestorePriority(IntEnum):
+    """Priority for state restoration ordering.
+
+    Safety-critical state restores first (lower number = higher priority).
+    Cherry-picked from Proposal 3 (AMNESTIA) — priority-aware warm-start.
+    """
+
+    SAFETY = 0  # Rate limiters, constitutional filters (MUST restore first)
+    CORE = 1  # Runtime metrics, component state
+    QUALITY = 2  # Trend baselines, predictions, optimizations
+    AUXILIARY = 3  # Preferences, cosmetic state
 
 
 @dataclass
@@ -71,7 +85,8 @@ class MemoryCoordinator:
         self._node_name: Optional[str] = None
 
         # State providers (registered by runtime components)
-        self._state_providers: Dict[str, Callable[[], Dict[str, Any]]] = {}
+        # Maps name -> (provider_fn, priority)
+        self._state_providers: Dict[str, Tuple[Callable[[], Dict[str, Any]], RestorePriority]] = {}
 
         # State
         self._running = False
@@ -99,11 +114,20 @@ class MemoryCoordinator:
         )
 
     def register_state_provider(
-        self, name: str, provider: Callable[[], Dict[str, Any]]
+        self,
+        name: str,
+        provider: Callable[[], Dict[str, Any]],
+        priority: RestorePriority = RestorePriority.CORE,
     ) -> None:
-        """Register a state provider for checkpoint collection."""
-        self._state_providers[name] = provider
-        logger.debug(f"Registered state provider: {name}")
+        """Register a state provider for checkpoint collection.
+
+        Args:
+            name: Unique provider name (e.g. "runtime", "scheduler")
+            provider: Callable returning state dict
+            priority: Restore priority — SAFETY restores first
+        """
+        self._state_providers[name] = (provider, priority)
+        logger.debug(f"Registered state provider: {name} (priority={priority.name})")
 
     def register_living_memory(self, living_memory: object) -> None:
         """Register the LivingMemoryCore instance for auto-save."""
@@ -128,9 +152,10 @@ class MemoryCoordinator:
                 },
             }
 
-            for name, provider in self._state_providers.items():
+            for name, (provider, priority) in self._state_providers.items():
                 try:
                     state[name] = provider()
+                    state[name]["_restore_priority"] = priority.value
                 except Exception as e:
                     logger.warning(f"State provider '{name}' failed: {e}")
                     state[name] = {"error": str(e)}
@@ -226,6 +251,29 @@ class MemoryCoordinator:
         self._checkpointer.close()
         logger.info("MemoryCoordinator stopped (final save complete)")
 
+    def restore_by_priority(
+        self, state: Dict[str, Any]
+    ) -> List[Tuple[RestorePriority, str, Dict[str, Any]]]:
+        """Return state sections sorted by restore priority (SAFETY first).
+
+        Args:
+            state: Full state dict from restore_latest()
+
+        Returns:
+            List of (priority, name, state_dict) sorted by priority
+        """
+        prioritized: List[Tuple[RestorePriority, str, Dict[str, Any]]] = []
+        for name, section in state.items():
+            if isinstance(section, dict):
+                prio_val = section.pop("_restore_priority", RestorePriority.CORE.value)
+                try:
+                    prio = RestorePriority(prio_val)
+                except ValueError:
+                    prio = RestorePriority.CORE
+                prioritized.append((prio, name, section))
+        prioritized.sort(key=lambda x: x[0].value)
+        return prioritized
+
     def stats(self) -> Dict[str, Any]:
         """Get coordinator statistics."""
         return {
@@ -243,4 +291,5 @@ class MemoryCoordinator:
 __all__ = [
     "MemoryCoordinator",
     "MemoryCoordinatorConfig",
+    "RestorePriority",
 ]

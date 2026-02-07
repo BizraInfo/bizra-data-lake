@@ -297,6 +297,47 @@ class ProactiveScheduler:
         """Get recent results for a job."""
         return self._results.get(job_id, [])[-limit:]
 
+    def get_persistable_state(self) -> Dict[str, Any]:
+        """Get serializable state for checkpoint persistence.
+
+        Captures job metadata (names, types, run counts) but NOT callable handlers
+        since those cannot be serialized. On restore, jobs must be re-registered
+        with their handlers — but run_count/error_count survive restarts.
+        """
+        jobs_state = {}
+        for job_id, job in self._jobs.items():
+            jobs_state[job_id] = {
+                "name": job.name,
+                "schedule_type": job.schedule_type.name,
+                "priority": job.priority.name,
+                "enabled": job.enabled,
+                "run_count": job.run_count,
+                "error_count": job.error_count,
+                "interval_seconds": job.interval_seconds,
+                "last_run": job.last_run.isoformat() if job.last_run else None,
+                "created_at": job.created_at.isoformat(),
+            }
+        return {
+            "jobs": jobs_state,
+            "total_jobs": len(self._jobs),
+            "running": self._running,
+        }
+
+    def restore_persistable_state(self, state: Dict[str, Any]) -> int:
+        """Restore run counts from persisted state into matching jobs.
+
+        Jobs must be re-registered with handlers before calling this.
+        Returns count of jobs whose stats were restored.
+        """
+        restored = 0
+        jobs_state = state.get("jobs", {})
+        for job_id, saved in jobs_state.items():
+            if job_id in self._jobs:
+                self._jobs[job_id].run_count = saved.get("run_count", 0)
+                self._jobs[job_id].error_count = saved.get("error_count", 0)
+                restored += 1
+        return restored
+
     def stats(self) -> Dict[str, Any]:
         """Get scheduler statistics."""
         total_runs = sum(j.run_count for j in self._jobs.values())

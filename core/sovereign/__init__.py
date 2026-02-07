@@ -143,6 +143,7 @@ from .genesis_identity import (
 from .memory_coordinator import (
     MemoryCoordinator,
     MemoryCoordinatorConfig,
+    RestorePriority,
 )
 
 # Autonomy module (pure Python)
@@ -729,6 +730,7 @@ __all__ = [
     # Memory Coordinator (Unified Auto-Save)
     "MemoryCoordinator",
     "MemoryCoordinatorConfig",
+    "RestorePriority",
     # Core Engine (requires numpy)
     "SovereignEngine",
     "SovereignConfig",
