@@ -35,6 +35,7 @@ from .runtime_types import (
     GraphReasonerProtocol,
     GuardianProtocol,
     HealthStatus,
+    ImpactTrackerProtocol,
     RuntimeConfig,
     RuntimeMetrics,
     SNROptimizerProtocol,
@@ -84,6 +85,9 @@ class SovereignRuntime:
 
         # Unified Memory Coordinator (auto-save + persistence)
         self._memory_coordinator: Optional[MemoryCoordinator] = None
+
+        # Impact Tracker (sovereignty growth engine)
+        self._impact_tracker: Optional[ImpactTrackerProtocol] = None
 
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
@@ -147,6 +151,9 @@ class SovereignRuntime:
 
         # Initialize unified memory coordinator with auto-save
         await self._init_memory_coordinator()
+
+        # Initialize impact tracker (sovereignty growth engine)
+        self._init_impact_tracker()
 
         self._setup_signal_handlers()
 
@@ -319,6 +326,84 @@ class SovereignRuntime:
         except Exception as e:
             self.logger.warning(f"⚠ MemoryCoordinator init failed: {e}")
 
+    def _init_impact_tracker(self) -> None:
+        """Initialize the impact tracker for sovereignty progression."""
+        try:
+            from core.pat.impact_tracker import ImpactTracker
+
+            self._impact_tracker = ImpactTracker(
+                node_id=self.config.node_id,
+                state_dir=self.config.state_dir,
+            )
+
+            # Register as memory coordinator state provider
+            if self._memory_coordinator:
+                self._memory_coordinator.register_state_provider(
+                    "impact_tracker",
+                    self._get_impact_state,
+                    RestorePriority.QUALITY,
+                )
+
+            self.logger.info(
+                f"✓ ImpactTracker active "
+                f"(tier: {self._impact_tracker.sovereignty_tier.value}, "
+                f"score: {self._impact_tracker.sovereignty_score:.4f})"
+            )
+        except ImportError:
+            self.logger.warning("⚠ ImpactTracker unavailable")
+        except Exception as e:
+            self.logger.warning(f"⚠ ImpactTracker init failed: {e}")
+
+    def _get_impact_state(self) -> Dict[str, Any]:
+        """Provide impact tracker state for memory coordinator."""
+        if not self._impact_tracker:
+            return {}
+        try:
+            progress = self._impact_tracker.get_progress()
+            return progress.to_dict()
+        except Exception:
+            return {}
+
+    def _record_query_impact(self, result: "SovereignResult") -> None:
+        """Record a successful query as an impact event (fire-and-forget)."""
+        if not self._impact_tracker:
+            return
+        try:
+            from core.pat.impact_tracker import UERSScore, compute_query_bloom
+
+            # Bloom from single source of truth (DRY)
+            bloom = compute_query_bloom(
+                processing_time_ms=result.processing_time_ms,
+                reasoning_depth=result.reasoning_depth,
+                validated=getattr(result, "validation_passed", False),
+            )
+
+            # Derive UERS from query quality signals
+            uers = UERSScore(
+                utility=min(1.0, len(result.response or "") / 500),
+                efficiency=min(1.0, 1.0 - (result.processing_time_ms / 10000)),
+                resilience=result.snr_score,
+                sustainability=0.5,  # Base for runtime queries
+                ethics=result.ihsan_score,
+            )
+
+            self._impact_tracker.record_event(
+                category="computation",
+                action="sovereign_query",
+                bloom=bloom,
+                uers=uers,
+                metadata={
+                    "query_id": result.query_id,
+                    "processing_time_ms": result.processing_time_ms,
+                    "reasoning_depth": result.reasoning_depth,
+                    "snr_score": result.snr_score,
+                    "ihsan_score": result.ihsan_score,
+                },
+            )
+        except Exception as e:
+            # Impact recording should never break queries
+            self.logger.debug(f"Impact recording failed: {e}")
+
     def _get_runtime_state(self) -> Dict[str, Any]:
         """Provide runtime state snapshot for memory coordinator."""
         state: Dict[str, Any] = {
@@ -416,6 +501,13 @@ class SovereignRuntime:
 
         if self._autonomous_loop:
             self._autonomous_loop.stop()
+
+        # Flush impact tracker dirty state before memory coordinator stop
+        if self._impact_tracker and hasattr(self._impact_tracker, "flush"):
+            try:
+                self._impact_tracker.flush()
+            except Exception:
+                pass
 
         # Stop memory coordinator (performs final save including all providers)
         # LCT-01 FIX: MemoryCoordinator.stop() already checkpoints all state.
@@ -539,6 +631,9 @@ class SovereignRuntime:
         # Update timing metrics
         self._query_times.append(result.processing_time_ms)
         self.metrics.update_query_stats(True, result.processing_time_ms)
+
+        # Record impact for sovereignty progression (fire-and-forget)
+        self._record_query_impact(result)
 
         return result
 
@@ -796,6 +891,20 @@ class SovereignRuntime:
             else {"running": False}
         )
 
+        # Impact / sovereignty progression
+        sovereignty_info: Dict[str, Any] = {"tracking": False}
+        if self._impact_tracker:
+            try:
+                sovereignty_info = {
+                    "tracking": True,
+                    "score": self._impact_tracker.sovereignty_score,
+                    "tier": self._impact_tracker.sovereignty_tier.value,
+                    "total_bloom": self._impact_tracker.total_bloom,
+                    "achievements": len(self._impact_tracker.achievements),
+                }
+            except Exception:
+                pass
+
         return {
             "identity": identity_info,
             "state": {
@@ -810,6 +919,7 @@ class SovereignRuntime:
             "autonomous": loop_status,
             "omega_point": omega_status,
             "memory": memory_status,
+            "sovereignty": sovereignty_info,
             "metrics": self.metrics.to_dict(),
         }
 
