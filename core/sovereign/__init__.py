@@ -128,24 +128,6 @@ from .api import (
     SovereignAPIServer,
 )
 
-# Genesis Identity (Persistent Node0 Identity)
-# Standing on Giants: Al-Ghazali (1095), Lamport (1982), Nakamoto (2008)
-from .genesis_identity import (
-    AgentIdentity,
-    GenesisState,
-    NodeIdentity,
-    load_and_validate_genesis,
-    load_genesis,
-    validate_genesis_hash,
-)
-
-# Memory Coordinator (Unified Auto-Save)
-from .memory_coordinator import (
-    MemoryCoordinator,
-    MemoryCoordinatorConfig,
-    RestorePriority,
-)
-
 # Autonomy module (pure Python)
 from .autonomy import (
     AutonomousLoop,
@@ -265,6 +247,17 @@ from .event_bus import (
     get_event_bus,
 )
 
+# Genesis Identity (Persistent Node0 Identity)
+# Standing on Giants: Al-Ghazali (1095), Lamport (1982), Nakamoto (2008)
+from .genesis_identity import (
+    AgentIdentity,
+    GenesisState,
+    NodeIdentity,
+    load_and_validate_genesis,
+    load_genesis,
+    validate_genesis_hash,
+)
+
 # Iceoryx2 Zero-Copy IPC Bridge (v3.1-OMEGA L2 Synapse Protocol)
 # Standing on Giants: iceoryx2 (Eclipse Foundation, 2024)
 from .iceoryx2_bridge import (
@@ -333,6 +326,13 @@ from .mcp_disclosure import (
     SkillContext,
     SkillIndex,
     create_mcp_disclosure,
+)
+
+# Memory Coordinator (Unified Auto-Save)
+from .memory_coordinator import (
+    MemoryCoordinator,
+    MemoryCoordinatorConfig,
+    RestorePriority,
 )
 
 # Metrics module (pure Python)

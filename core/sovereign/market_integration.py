@@ -46,9 +46,9 @@ logger = logging.getLogger(__name__)
 
 
 from core.integration.constants import (
-    UNIFIED_SNR_THRESHOLD,
     SNR_THRESHOLD_T1_HIGH,
     STRICT_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 # Shannon-inspired SNR thresholds (from single source of truth)

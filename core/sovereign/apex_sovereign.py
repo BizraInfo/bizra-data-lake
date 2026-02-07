@@ -50,6 +50,7 @@ from statistics import mean
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from core.apex import ApexSystem
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.market_integration import (
     SNR_FLOOR,
@@ -59,8 +60,6 @@ from core.sovereign.market_integration import (
 )
 from core.sovereign.social_integration import ScoredAgent, SociallyAwareBridge
 from core.sovereign.swarm_integration import HybridSwarmOrchestrator
-
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 # Lazy imports for runtime_engines to avoid circular dependencies
 if TYPE_CHECKING:
