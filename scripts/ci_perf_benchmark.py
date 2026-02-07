@@ -441,7 +441,7 @@ class CIPerfBenchmark:
 
             # Initialize runtime (this is where memory spikes)
             config = RuntimeConfig(
-                mode=RuntimeMode.PRODUCTION,
+                mode=RuntimeMode.STANDARD,
                 autonomous_enabled=False,
                 enable_cache=True,
             )
