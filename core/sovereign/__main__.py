@@ -140,13 +140,13 @@ Or type any query to get a sovereign response.
 
                 print(f"\n{'─' * 60}")
                 if result.success:
-                    print(f"Answer: {result.answer}")
+                    print(f"Answer: {result.response}")
                     print(f"{'─' * 60}")
                     print(
-                        f"Confidence: {result.confidence:.1%} | SNR: {result.snr_score:.3f} | Ihsān: {result.ihsan_score:.3f}"
+                        f"SNR: {result.snr_score:.3f} | Ihsān: {result.ihsan_score:.3f}"
                     )
                     print(
-                        f"Time: {result.total_time_ms:.1f}ms | Verdict: {result.guardian_verdict}"
+                        f"Time: {result.processing_time_ms:.1f}ms | Depth: {result.reasoning_depth}"
                     )
                 else:
                     print(f"Error: {result.error}")
@@ -173,23 +173,21 @@ async def run_query(query: str, json_output: bool = False):
                 json.dumps(
                     {
                         "success": result.success,
-                        "answer": result.answer,
-                        "confidence": result.confidence,
+                        "response": result.response,
                         "snr": result.snr_score,
                         "ihsan": result.ihsan_score,
-                        "time_ms": result.total_time_ms,
-                        "verdict": result.guardian_verdict,
+                        "time_ms": result.processing_time_ms,
+                        "reasoning_depth": result.reasoning_depth,
                     },
                     indent=2,
                 )
             )
         else:
             if result.success:
-                print(f"\nAnswer: {result.answer}")
-                print(f"\nConfidence: {result.confidence:.1%}")
-                print(f"SNR: {result.snr_score:.3f}")
+                print(f"\nAnswer: {result.response}")
+                print(f"\nSNR: {result.snr_score:.3f}")
                 print(f"Ihsān: {result.ihsan_score:.3f}")
-                print(f"Time: {result.total_time_ms:.1f}ms")
+                print(f"Time: {result.processing_time_ms:.1f}ms")
             else:
                 print(f"Error: {result.error}")
                 sys.exit(1)
