@@ -59,12 +59,12 @@ BANNER = """
 """
 
 
-def print_banner():
+def print_banner() -> None:
     """Print the startup banner."""
     print(BANNER)
 
 
-async def run_repl():
+async def run_repl() -> None:
     """Run interactive REPL mode."""
     from ..inference.local_first import LocalBackend, get_local_first_backend
     from .runtime import RuntimeConfig, SovereignRuntime
@@ -176,7 +176,7 @@ Or type any query to get a sovereign response.
                 break
 
 
-async def run_query(query: str, json_output: bool = False):
+async def run_query(query: str, json_output: bool = False) -> None:
     """Run a single query."""
     from .runtime import RuntimeConfig, SovereignRuntime
 
@@ -212,14 +212,14 @@ async def run_query(query: str, json_output: bool = False):
                 sys.exit(1)
 
 
-async def run_server(host: str, port: int, api_keys: Optional[list] = None):
+async def run_server(host: str, port: int, api_keys: Optional[list] = None) -> None:
     """Run API server."""
     from .api import serve
 
     await serve(host, port, api_keys)
 
 
-async def run_status(json_output: bool = False):
+async def run_status(json_output: bool = False) -> None:
     """Show system status."""
     from ..inference.local_first import LocalFirstDetector
     from .runtime import RuntimeConfig, SovereignRuntime
@@ -282,7 +282,7 @@ async def run_status(json_output: bool = False):
             print("=" * 60)
 
 
-def run_tests():
+def run_tests() -> None:
     """Run integration tests."""
     try:
         from .tests.test_integration import run_all_tests
@@ -294,7 +294,7 @@ def run_tests():
     sys.exit(run_all_tests())
 
 
-async def run_doctor(verbose: bool = False, json_output: bool = False):
+async def run_doctor(verbose: bool = False, json_output: bool = False) -> None:
     """Run system health check."""
     from .doctor import run_doctor as doctor_check
 
@@ -305,7 +305,7 @@ def run_onboard(
     name: Optional[str] = None,
     node_dir: Optional[str] = None,
     json_output: bool = False,
-):
+) -> None:
     """Run node onboarding wizard."""
     from pathlib import Path
 
@@ -340,7 +340,7 @@ def run_onboard(
         wizard.run_interactive()
 
 
-def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
+def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False) -> None:
     """Show node identity dashboard."""
     import json as json_mod
     from pathlib import Path
@@ -440,7 +440,7 @@ def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
     print()
 
 
-def run_impact(node_dir: Optional[str] = None, json_output: bool = False):
+def run_impact(node_dir: Optional[str] = None, json_output: bool = False) -> None:
     """Show sovereignty progression and impact history."""
     import json as json_mod
     from pathlib import Path
@@ -536,7 +536,7 @@ def run_impact(node_dir: Optional[str] = None, json_output: bool = False):
     print()
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="BIZRA Sovereign Engine",
