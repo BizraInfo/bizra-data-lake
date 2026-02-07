@@ -12,7 +12,6 @@ Usage:
 Standing on Giants: Hexagonal Architecture (Cockburn) + Constitutional AI (Anthropic)
 """
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict, Optional
@@ -71,7 +70,7 @@ async def run_telegram_gateway(
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning(f"Failed to load credentials for gateway: {e}")
 
-    print(f"\n  Starting BIZRA Telegram Gateway...")
+    print("\n  Starting BIZRA Telegram Gateway...")
     if node_id:
         print(f"  Node: {node_id}")
 
@@ -87,7 +86,7 @@ async def run_telegram_gateway(
         )
 
         print(f"  Mode: {'webhook' if webhook_url else 'long-polling'}")
-        print(f"  Connecting to Telegram...\n")
+        print("  Connecting to Telegram...\n")
 
         await adapter.start()
 

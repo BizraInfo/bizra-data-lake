@@ -2,11 +2,3 @@
 
 # Canonical implementation is in core/sovereign/ (uses centralized constants)
 from core.sovereign.muraqabah_sensors import *  # noqa: F401,F403
-from core.sovereign.muraqabah_sensors import (
-    SNR_FLOOR,
-    SNR_HIGH,
-    MuraqabahSensorHub,
-    SensorDomain,
-    SensorReading,
-    SignificantChange,
-)

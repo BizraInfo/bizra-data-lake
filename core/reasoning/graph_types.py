@@ -2,12 +2,3 @@
 
 # Canonical implementation is in core/sovereign/ (uses centralized constants)
 from core.sovereign.graph_types import *  # noqa: F401,F403
-from core.sovereign.graph_types import (
-    EdgeType,
-    ReasoningPath,
-    ReasoningResult,
-    ReasoningStrategy,
-    ThoughtEdge,
-    ThoughtNode,
-    ThoughtType,
-)

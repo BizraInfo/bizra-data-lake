@@ -382,7 +382,6 @@ class ImpactTracker:
             ) / n
 
         # Compute new sovereignty score
-        old_score = self._sovereignty_score
         old_tier = self.sovereignty_tier
         self._sovereignty_score = self._compute_sovereignty()
 

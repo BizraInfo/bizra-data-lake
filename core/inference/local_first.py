@@ -121,7 +121,7 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="LM Studio v1 API responsive",
                     )
-        except Exception as exc:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
@@ -152,7 +152,7 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="Ollama API responsive",
                     )
-        except Exception as exc:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
@@ -189,7 +189,7 @@ class LocalFirstDetector:
                     else "llama.cpp unavailable"
                 ),
             )
-        except Exception as exc:
+        except Exception:
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
