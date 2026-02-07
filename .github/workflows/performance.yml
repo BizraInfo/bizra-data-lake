@@ -456,14 +456,15 @@ jobs:
         run: |
           python << 'EOF'
           import json
-          from datetime import datetime
+          import os
+          from datetime import datetime, timezone
           from pathlib import Path
 
           results_dir = Path("results")
           report_lines = [
               "# BIZRA Performance Benchmark Report",
               "",
-              f"**Generated**: {datetime.utcnow().isoformat()}Z",
+              f"**Generated**: {datetime.now(timezone.utc).isoformat()}",
               f"**Commit**: ${{ github.sha }}",
               f"**Branch**: ${{ github.ref_name }}",
               "",

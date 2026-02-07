@@ -11,15 +11,14 @@ build, operate, or customize one."
 Standing on Giants: Adapter Pattern (GoF) + Hexagonal Architecture (Cockburn)
 """
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from typing import Any, Callable, Coroutine, Dict, Optional
 
-from .bridge import ChannelType, MessageType, PATMessage, PATSession
+from .bridge import ChannelType, PATSession
 
 logger = logging.getLogger(__name__)
 

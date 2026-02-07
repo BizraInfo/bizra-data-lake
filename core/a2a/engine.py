@@ -15,7 +15,6 @@ from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from core.integration.constants import (
-    MAX_RETRY_ATTEMPTS,
     UNIFIED_AGENT_TIMEOUT_MS,
     UNIFIED_IHSAN_THRESHOLD,
 )

@@ -618,8 +618,7 @@ class SovereignRuntime:
         )
         result.response = answer
 
-        # Update reasoning metrics (RFC-05 FIX: store the computed value)
-        reasoning_time_ms = (time.perf_counter() - reasoning_start) * 1000
+        # Update reasoning metrics
         self.metrics.update_reasoning_stats(result.reasoning_depth)
 
         # STAGE 3: Optimize SNR

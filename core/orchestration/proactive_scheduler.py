@@ -2,10 +2,3 @@
 
 # Canonical implementation is in core/sovereign/ (uses centralized constants)
 from core.sovereign.proactive_scheduler import *  # noqa: F401,F403
-from core.sovereign.proactive_scheduler import (
-    JobPriority,
-    JobResult,
-    ProactiveScheduler,
-    ScheduledJob,
-    ScheduleType,
-)

@@ -14,7 +14,6 @@ Standing on Giants: Event Sourcing + Living Memory + Checkpointing
 """
 
 import asyncio
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone

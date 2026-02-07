@@ -406,7 +406,6 @@ def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
     for agent_id in credentials.pat_agent_ids:
         parts = agent_id.split("-")
         agent_type = parts[2] if len(parts) >= 3 else "???"
-        idx = parts[3] if len(parts) >= 4 else "?"
         type_names = {
             "WRK": "Worker",
             "RSC": "Researcher",
