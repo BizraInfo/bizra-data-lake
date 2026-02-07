@@ -46,6 +46,7 @@ from .runtime_types import (
     SovereignQuery,
     SovereignResult,
 )
+from .user_context import UserContextManager, select_pat_agent
 
 logger = logging.getLogger("sovereign.runtime")
 
@@ -103,6 +104,9 @@ class SovereignRuntime:
         # Cache
         self._cache: Dict[str, SovereignResult] = {}
 
+        # User Context (the system knows its human)
+        self._user_context: Optional[UserContextManager] = None
+
     # -------------------------------------------------------------------------
     # LIFECYCLE
     # -------------------------------------------------------------------------
@@ -153,6 +157,9 @@ class SovereignRuntime:
         if self.config.autonomous_enabled:
             await self._start_autonomous_loop()
 
+        # Initialize user context (the system knows its human)
+        self._init_user_context()
+
         # Initialize unified memory coordinator with auto-save
         await self._init_memory_coordinator()
 
@@ -168,6 +175,32 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
         self.logger.info("=" * 60)
+
+    def _init_user_context(self) -> None:
+        """Initialize user context — the system knows its human."""
+        self._user_context = UserContextManager(self.config.state_dir)
+        self._user_context.load()
+
+        # Wire genesis identity into user profile
+        if self._genesis and not self._user_context.profile.node_id:
+            self._user_context.profile.node_id = self._genesis.node_id
+            self._user_context.profile.node_name = self._genesis.node_name
+
+        if self._user_context.profile.is_populated():
+            self.logger.info(
+                f"User context loaded: {self._user_context.profile.name} "
+                f"({self._user_context.conversation.get_turn_count()} turns)"
+            )
+        else:
+            self.logger.info("User context: new session (profile not yet populated)")
+
+        # Register with memory coordinator for auto-save
+        if self._memory_coordinator:
+            self._memory_coordinator.register_state_provider(
+                "user_context",
+                self._user_context.get_persistable_state,
+                priority=RestorePriority.CORE,
+            )
 
     def _load_genesis_identity(self) -> None:
         """Load persistent genesis identity if available."""
@@ -514,6 +547,13 @@ class SovereignRuntime:
         if self._autonomous_loop:
             self._autonomous_loop.stop()
 
+        # Save user context (conversation history + profile)
+        if self._user_context:
+            try:
+                self._user_context.save()
+            except Exception:
+                pass
+
         # Flush impact tracker dirty state before memory coordinator stop
         if self._impact_tracker and hasattr(self._impact_tracker, "flush"):
             try:
@@ -566,6 +606,10 @@ class SovereignRuntime:
 
         self.metrics.cache_misses += 1
 
+        # Record human turn in conversation memory
+        if self._user_context:
+            self._user_context.conversation.add_human_turn(content)
+
         try:
             result = await asyncio.wait_for(
                 self._process_query(query, start_time),
@@ -574,6 +618,16 @@ class SovereignRuntime:
 
             if result.success and self.config.enable_cache:
                 self._update_cache(cache_key, result)
+
+            # Record PAT response in conversation memory
+            if self._user_context and result.success:
+                agent_role = query.context.get("_responding_agent")
+                self._user_context.conversation.add_pat_turn(
+                    content=result.response or "",
+                    agent_role=agent_role,
+                    snr_score=result.snr_score,
+                    ihsan_score=result.ihsan_score,
+                )
 
             return result
 
@@ -680,16 +734,56 @@ class SovereignRuntime:
 
         return reasoning_path, confidence, thought_prompt
 
+    def _build_contextual_prompt(
+        self, thought_prompt: str, query: SovereignQuery
+    ) -> str:
+        """Build a prompt enriched with user context, PAT identity, and memory."""
+        if not self._user_context:
+            return thought_prompt
+
+        # Build PAT team info from genesis
+        pat_info = ""
+        selected_agent = None
+        if self._genesis and self._genesis.pat_team:
+            roles = [a.role for a in self._genesis.pat_team]
+            pat_info = f"Available agents: {', '.join(roles)}"
+
+            # Route to best agent
+            selected_agent = select_pat_agent(query.text, self._genesis.pat_team)
+            if selected_agent:
+                pat_info += f"\nResponding as: {selected_agent.upper()}"
+
+        # Get relevant memories from living memory (if available)
+        memory_context = ""
+        living_memory = getattr(self, "_living_memory", None)
+        if living_memory:
+            memory_context = living_memory.get_working_context(max_entries=5)
+
+        # Build system prompt
+        system_prompt = self._user_context.build_system_prompt(
+            pat_team_info=pat_info,
+            memory_context=memory_context,
+        )
+
+        # Store agent routing in query context for downstream use
+        if selected_agent:
+            query.context["_responding_agent"] = selected_agent
+
+        return f"{system_prompt}\n\n--- QUERY ---\n{thought_prompt}"
+
     async def _perform_llm_inference(
         self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
     ) -> tuple[str, str]:
-        """STAGE 2: LLM inference via gateway."""
+        """STAGE 2: LLM inference via gateway with user context."""
+        # Build contextual prompt with user profile, memory, and PAT routing
+        contextual_prompt = self._build_contextual_prompt(thought_prompt, query)
+
         if self._gateway:
             try:
                 infer_method = getattr(self._gateway, "infer", None)
                 if infer_method is not None:
                     inference_result = await infer_method(
-                        thought_prompt,
+                        contextual_prompt,
                         tier=compute_tier,
                         max_tokens=1024,
                     )
