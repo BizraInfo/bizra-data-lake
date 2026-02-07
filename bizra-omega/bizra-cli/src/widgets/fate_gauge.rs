@@ -136,7 +136,7 @@ fn render_gate(
         };
 
         let gauge = Gauge::default()
-            .ratio(ratio.max(0.0).min(1.0))
+            .ratio(ratio.clamp(0.0, 1.0))
             .gauge_style(style)
             .use_unicode(true);
         gauge.render(chunks[1], buf);

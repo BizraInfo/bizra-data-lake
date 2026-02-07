@@ -139,7 +139,7 @@ class NoveltyScorer:
 
     def add_to_archive(self, solution: str):
         """Add solution to novelty archive."""
-        solution_hash = hashlib.md5(solution.encode()).hexdigest()
+        solution_hash = hashlib.md5(solution.encode(), usedforsecurity=False).hexdigest()
 
         if solution_hash in self._archive_hashes:
             return  # Already archived
@@ -401,7 +401,7 @@ Generate a DIFFERENT approach that solves the same problem but uses alternative 
         feedback_applied: bool = False,
     ) -> ExplorationPath:
         """Create a new exploration path."""
-        path_id = hashlib.md5(f"{solution}{parent_id}{depth}".encode()).hexdigest()[:12]
+        path_id = hashlib.md5(f"{solution}{parent_id}{depth}".encode(), usedforsecurity=False).hexdigest()[:12]
 
         novelty = self.novelty_scorer.score_novelty(solution)
         quality = self._estimate_quality(solution)

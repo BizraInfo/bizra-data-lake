@@ -1,21 +1,20 @@
 # BIZRA Unified Multi-Stage Docker Build
 # Combines Python Elite + Rust Omega + PyO3 Bindings
 #
-# Standing on Giants: Docker BuildKit • PyO3 • Rust
+# Standing on Giants: Docker BuildKit, PyO3, Rust, Python 3.12
 # Constitutional: Security-hardened, minimal attack surface
 #
-# Build stages:
-# 1. rust-builder  - Compile Rust binaries and PyO3 wheels
-# 2. python-builder - Install Python dependencies
-# 3. runtime - Minimal production image
-#
+# Build context: repository root (BIZRA-DATA-LAKE/)
 # Usage:
-#   docker build -t bizra:unified .
-#   docker build -t bizra:unified-cuda --build-arg CUDA=1 .
+#   docker build -f deploy/Dockerfile.unified -t bizra:unified .
+#
+# Build stages:
+# 1. rust-builder   — Compile Rust binaries and PyO3 wheels
+# 2. python-builder — Install Python dependencies + PyO3 wheel
+# 3. runtime        — Minimal production image
 
 ARG PYTHON_VERSION=3.12
 ARG RUST_VERSION=1.75
-ARG CUDA=0
 
 # =============================================================================
 # Stage 1: Rust Builder
@@ -24,32 +23,88 @@ FROM rust:${RUST_VERSION}-bookworm AS rust-builder
 
 WORKDIR /build
 
-# Install build dependencies
+# Install build dependencies (including Python dev headers for PyO3)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
     libssl-dev \
     cmake \
     python3-dev \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Rust workspace
+# Install maturin for PyO3 wheel building
+RUN pip3 install --no-cache-dir --break-system-packages maturin
+
+# Copy workspace manifests (from repo root, context is BIZRA-DATA-LAKE/)
 COPY bizra-omega/Cargo.toml bizra-omega/Cargo.lock ./
-COPY bizra-omega/bizra-core bizra-core/
-COPY bizra-omega/bizra-inference bizra-inference/
-COPY bizra-omega/bizra-federation bizra-federation/
-COPY bizra-omega/bizra-autopoiesis bizra-autopoiesis/
-COPY bizra-omega/bizra-api bizra-api/
-COPY bizra-omega/bizra-installer bizra-installer/
-COPY bizra-omega/bizra-python bizra-python/
-COPY bizra-omega/bizra-tests bizra-tests/
+
+# Copy all 13 workspace member Cargo.toml files
+COPY bizra-omega/bizra-core/Cargo.toml bizra-core/
+COPY bizra-omega/bizra-inference/Cargo.toml bizra-inference/
+COPY bizra-omega/bizra-federation/Cargo.toml bizra-federation/
+COPY bizra-omega/bizra-autopoiesis/Cargo.toml bizra-autopoiesis/
+COPY bizra-omega/bizra-api/Cargo.toml bizra-api/
+COPY bizra-omega/bizra-installer/Cargo.toml bizra-installer/
+COPY bizra-omega/bizra-python/Cargo.toml bizra-python/
+COPY bizra-omega/bizra-tests/Cargo.toml bizra-tests/
+COPY bizra-omega/bizra-hunter/Cargo.toml bizra-hunter/
+COPY bizra-omega/bizra-telescript/Cargo.toml bizra-telescript/
+COPY bizra-omega/bizra-proofspace/Cargo.toml bizra-proofspace/
+COPY bizra-omega/bizra-resourcepool/Cargo.toml bizra-resourcepool/
+COPY bizra-omega/bizra-cli/Cargo.toml bizra-cli/
+
+# Create dummy sources for dependency caching
+RUN set -eux && \
+    for crate in bizra-core bizra-inference bizra-federation bizra-autopoiesis \
+                 bizra-python bizra-hunter bizra-telescript bizra-proofspace; do \
+        mkdir -p "$crate/src" && \
+        echo "pub fn _dummy() {}" > "$crate/src/lib.rs"; \
+    done && \
+    mkdir -p bizra-api/src && \
+    echo "pub fn _dummy() {}" > bizra-api/src/lib.rs && \
+    echo "fn main() {}" > bizra-api/src/main.rs && \
+    mkdir -p bizra-installer/src && \
+    echo "fn main() {}" > bizra-installer/src/main.rs && \
+    mkdir -p bizra-cli/src && \
+    echo "fn main() {}" > bizra-cli/src/main.rs && \
+    mkdir -p bizra-resourcepool/src/bin && \
+    echo "pub fn _dummy() {}" > bizra-resourcepool/src/lib.rs && \
+    echo "fn main() {}" > bizra-resourcepool/src/main.rs && \
+    echo "fn main() {}" > bizra-resourcepool/src/bin/node0_genesis.rs && \
+    mkdir -p bizra-tests/tests bizra-tests/benches && \
+    echo "fn main() {}" > bizra-tests/benches/performance.rs && \
+    for t in e2e integration got_properties federation_security inference_fallback; do \
+        echo "#[test] fn dummy() {}" > "bizra-tests/tests/$t.rs"; \
+    done
+
+# Pre-compile dependencies
+RUN cargo build --release --workspace 2>&1 || true
+
+# Copy actual source code
+COPY bizra-omega/bizra-core/src bizra-core/src/
+COPY bizra-omega/bizra-inference/src bizra-inference/src/
+COPY bizra-omega/bizra-federation/src bizra-federation/src/
+COPY bizra-omega/bizra-autopoiesis/src bizra-autopoiesis/src/
+COPY bizra-omega/bizra-api/src bizra-api/src/
+COPY bizra-omega/bizra-installer/src bizra-installer/src/
+COPY bizra-omega/bizra-python/src bizra-python/src/
+COPY bizra-omega/bizra-hunter/src bizra-hunter/src/
+COPY bizra-omega/bizra-cli/src bizra-cli/src/
+COPY bizra-omega/bizra-telescript/src bizra-telescript/src/
+COPY bizra-omega/bizra-proofspace/src bizra-proofspace/src/
+COPY bizra-omega/bizra-resourcepool/src bizra-resourcepool/src/
+COPY bizra-omega/bizra-tests/tests bizra-tests/tests/
+COPY bizra-omega/bizra-tests/benches bizra-tests/benches/
+
+# Touch to invalidate dummy cache
+RUN find /build -name "*.rs" -newer /build/Cargo.lock -exec touch {} +
 
 # Build release binaries
-RUN cargo build --release -p bizra-api -p bizra-installer
+RUN cargo build --release -p bizra-api -p bizra-installer -p bizra-cli -p bizra-resourcepool
 
 # Build PyO3 wheel
-RUN pip3 install maturin && \
-    cd bizra-python && \
+RUN cd bizra-python && \
     maturin build --release --out /wheels
 
 # =============================================================================
@@ -65,17 +120,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python package
-COPY pyproject.toml .
+# Copy Python package definition and source
+COPY pyproject.toml ./
 COPY core/ core/
 
-# Create virtual environment
+# Create virtual environment and install
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e ".[dev]" || pip install --no-cache-dir .
+    pip install --no-cache-dir ".[full]"
 
 # Install PyO3 wheel from rust-builder
 COPY --from=rust-builder /wheels/*.whl /wheels/
@@ -84,13 +138,13 @@ RUN pip install --no-cache-dir /wheels/*.whl
 # =============================================================================
 # Stage 3: Runtime (CPU)
 # =============================================================================
-FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime-cpu
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
 LABEL org.opencontainers.image.title="BIZRA Unified"
 LABEL org.opencontainers.image.description="BIZRA Sovereign Organism - Unified Runtime"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="1.1.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
-LABEL org.opencontainers.image.source="https://github.com/bizra/bizra-data-lake"
+LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -111,12 +165,16 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy Rust binaries from rust-builder
 COPY --from=rust-builder /build/target/release/bizra-api /usr/local/bin/
 COPY --from=rust-builder /build/target/release/bizra /usr/local/bin/
+COPY --from=rust-builder /build/target/release/bizra-install /usr/local/bin/
+COPY --from=rust-builder /build/target/release/node0-genesis /usr/local/bin/
+COPY --from=rust-builder /build/target/release/resourcepool-node /usr/local/bin/
 
 WORKDIR /app
 
 # Copy application code
 COPY --chown=bizra:bizra core/ core/
 COPY --chown=bizra:bizra tests/ tests/
+COPY --chown=bizra:bizra pyproject.toml ./
 
 # Create directories
 RUN mkdir -p /app/data /app/cache /app/logs && \
@@ -125,14 +183,14 @@ RUN mkdir -p /app/data /app/cache /app/logs && \
 # Switch to non-root user
 USER bizra
 
-# Environment
+# Environment — no secrets
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     BIZRA_ENV=production \
     IHSAN_THRESHOLD=0.95 \
     SNR_THRESHOLD=0.85
 
-# Expose ports
+# Expose ports: Rust API, Python API, Gossip UDP, Federation
 EXPOSE 3001 8000 7946/udp 7654
 
 # Health check
@@ -145,61 +203,3 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Default command (can be overridden)
 CMD ["bizra-api", "--host", "0.0.0.0", "--port", "3001"]
-
-# =============================================================================
-# Stage 4: Runtime (CUDA)
-# =============================================================================
-FROM nvidia/cuda:12.2-runtime-ubuntu22.04 AS runtime-cuda
-
-# Install Python and dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3-pip \
-    ca-certificates \
-    libssl3 \
-    curl \
-    tini \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r bizra && useradd -r -g bizra -d /home/bizra -m bizra
-
-# Copy virtual environment
-COPY --from=python-builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy Rust binaries
-COPY --from=rust-builder /build/target/release/bizra-api /usr/local/bin/
-COPY --from=rust-builder /build/target/release/bizra /usr/local/bin/
-
-WORKDIR /app
-COPY --chown=bizra:bizra core/ core/
-COPY --chown=bizra:bizra tests/ tests/
-
-RUN mkdir -p /app/data /app/cache /app/logs && \
-    chown -R bizra:bizra /app
-
-USER bizra
-
-# CUDA environment
-ENV NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-    PYTHONUNBUFFERED=1 \
-    BIZRA_ENV=production
-
-EXPOSE 3001 8000 7946/udp 7654
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3001/api/v1/health
-
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["bizra-api", "--host", "0.0.0.0", "--port", "3001"]
-
-# =============================================================================
-# Final Stage Selection
-# =============================================================================
-FROM runtime-cpu AS final-cpu
-FROM runtime-cuda AS final-cuda
-
-# Default to CPU build
-FROM final-cpu

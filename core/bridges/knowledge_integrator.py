@@ -400,7 +400,8 @@ class KnowledgeIntegrator:
 
         # Check cache
         cache_key = hashlib.md5(
-            f"{query.query}:{query.categories}".encode()
+            f"{query.query}:{query.categories}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
         if self.cache_enabled and cache_key in self._cache:
             self._cache_hits += 1

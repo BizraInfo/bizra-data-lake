@@ -196,10 +196,10 @@ impl<const N: usize> SNRPipeline<N> {
         // Estimate bounty based on complexity
         let complexity = Complexity::from_entropy(&entropy);
         let bounty_estimate = match complexity {
-            Complexity::Simple => 500_00,    // $500
-            Complexity::Medium => 2500_00,   // $2,500
-            Complexity::Complex => 10000_00, // $10,000
-            Complexity::Expert => 50000_00,  // $50,000
+            Complexity::Simple => 50_000,      // $500.00 in cents
+            Complexity::Medium => 250_000,    // $2,500.00 in cents
+            Complexity::Complex => 1_000_000, // $10,000.00 in cents
+            Complexity::Expert => 5_000_000,  // $50,000.00 in cents
         };
 
         Some(HeuristicResult {
@@ -350,7 +350,7 @@ mod tests {
 
         // High entropy bytecode should pass
         let high_entropy: Vec<u8> = (0..100).map(|i| (i * 7 % 256) as u8).collect();
-        let result = pipeline.process_lane1([1u8; 20], &high_entropy, &mut calc);
+        let _result = pipeline.process_lane1([1u8; 20], &high_entropy, &mut calc);
         // May or may not pass depending on exact entropy calculation
     }
 

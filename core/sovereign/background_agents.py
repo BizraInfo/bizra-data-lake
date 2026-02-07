@@ -678,7 +678,7 @@ class FileOrganizer(BackgroundAgent):
 
         for f in all_files:
             name = f.get("name", "")
-            h = hashlib.md5(name.encode()).hexdigest()[:8]
+            h = hashlib.md5(name.encode(), usedforsecurity=False).hexdigest()[:8]
             if h in seen_hashes:
                 duplicates.append(f)
             seen_hashes[h] = f

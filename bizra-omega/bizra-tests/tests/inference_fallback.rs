@@ -70,12 +70,14 @@ impl Backend for MockSuccessBackend {
 }
 
 /// Mock backend that always fails
+#[allow(dead_code)]
 struct MockFailingBackend {
     name: String,
     error_message: String,
     call_count: AtomicUsize,
 }
 
+#[allow(dead_code)]
 impl MockFailingBackend {
     fn new(name: &str, error_message: &str) -> Self {
         Self {
@@ -110,11 +112,13 @@ impl Backend for MockFailingBackend {
 }
 
 /// Mock backend that times out (sleeps forever)
+#[allow(dead_code)]
 struct MockTimeoutBackend {
     name: String,
     call_count: AtomicUsize,
 }
 
+#[allow(dead_code)]
 impl MockTimeoutBackend {
     fn new(name: &str) -> Self {
         Self {
@@ -150,6 +154,7 @@ impl Backend for MockTimeoutBackend {
 }
 
 /// Mock backend that fails N times then succeeds
+#[allow(dead_code)]
 struct MockRetryBackend {
     name: String,
     fail_count: AtomicUsize,
@@ -157,6 +162,7 @@ struct MockRetryBackend {
     call_count: AtomicUsize,
 }
 
+#[allow(dead_code)]
 impl MockRetryBackend {
     fn new(name: &str, max_failures: usize) -> Self {
         Self {

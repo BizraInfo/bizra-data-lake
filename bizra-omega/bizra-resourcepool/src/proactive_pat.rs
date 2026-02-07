@@ -389,8 +389,10 @@ pub struct ProactivePATEngine {
 impl ProactivePATEngine {
     /// Create a new proactive PAT engine
     pub fn new(user_node: &str) -> Self {
-        let mut profile = UserProfile::default();
-        profile.user_node = user_node.to_string();
+        let profile = UserProfile {
+            user_node: user_node.to_string(),
+            ..Default::default()
+        };
 
         ProactivePATEngine {
             agents: HashMap::new(),

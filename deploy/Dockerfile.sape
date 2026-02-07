@@ -1,65 +1,79 @@
-# BIZRA Elite Framework — Production Dockerfile
-# DevOps v1.0.0 | Constitutional Build
+# BIZRA SAPE Analysis Framework — Production Dockerfile
+# DevOps v1.1.0 | Constitutional Build
 #
 # Multi-stage build for minimal attack surface
-# No secrets in image, injected at runtime
+# No secrets in image — injected at runtime via environment variables
+#
+# Build context: repository root (BIZRA-DATA-LAKE/)
+# CI usage:  docker build -f deploy/Dockerfile.sape -t bizra-sape .
+#
+# Standing on Giants: Docker BuildKit, Python 3.12, Ihsan >= 0.95
 
 # =============================================================================
-# Stage 1: Builder
+# Stage 1: Builder — install dependencies into isolated venv
 # =============================================================================
 FROM python:3.12-slim-bookworm AS builder
 
 WORKDIR /build
 
-# Install build dependencies
+# Install build dependencies (C extensions, git for VCS installs)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY pyproject.toml .
+# Copy package definition first (layer cache: only rebuilds when deps change)
+COPY pyproject.toml ./
+
+# Copy core package source (needed for setuptools to resolve the package)
 COPY core/ core/
 
-# Create virtual environment and install
+# Create isolated virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Install dependencies — non-editable install for Docker reproducibility
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e . || pip install --no-cache-dir .
+    pip install --no-cache-dir .
 
 # =============================================================================
-# Stage 2: Runtime
+# Stage 2: Runtime — minimal production image
 # =============================================================================
 FROM python:3.12-slim-bookworm AS runtime
 
-LABEL org.opencontainers.image.title="BIZRA Elite Framework"
-LABEL org.opencontainers.image.description="Constitutional CI/CD with Ihsān enforcement"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.title="BIZRA SAPE Analysis"
+LABEL org.opencontainers.image.description="Symbolic-Neural bridge analysis framework"
+LABEL org.opencontainers.image.version="1.1.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
+LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
-# Create non-root user for security
-RUN groupadd -r bizra && useradd -r -g bizra bizra
+# Create non-root user
+RUN groupadd -r bizra && useradd -r -g bizra -d /home/bizra -m bizra
 
 WORKDIR /app
 
-# Copy virtual environment from builder
+# Copy virtual environment from builder (contains all installed packages)
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy application code
-COPY core/ core/
-COPY tests/ tests/
+# Copy application code and tests
+COPY --chown=bizra:bizra core/ core/
+COPY --chown=bizra:bizra tests/ tests/
+COPY --chown=bizra:bizra pyproject.toml ./
 
-# Set ownership
-RUN chown -R bizra:bizra /app
+# Environment — no secrets, only operational config
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    BIZRA_ENV=production \
+    IHSAN_THRESHOLD=0.95 \
+    SNR_THRESHOLD=0.85
 
 # Switch to non-root user
 USER bizra
 
-# Health check
+# Health check — validates core module loads successfully
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "from core.elite import ELITE_VERSION; print(f'Elite v{ELITE_VERSION} healthy')"
 
 # Default command
-CMD ["python", "-c", "from core.elite import ElitePipeline; print('Elite Pipeline Ready')"]
+CMD ["python", "-c", "from core.elite import ElitePipeline; print('SAPE Analysis Ready')"]

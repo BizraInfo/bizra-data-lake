@@ -202,7 +202,7 @@ class SovereignAPIServer:
     def __init__(
         self,
         runtime: Any,  # SovereignRuntime
-        host: str = "0.0.0.0",
+        host: str = "0.0.0.0",  # nosec B104 — intentional: API server must be reachable from containers/WSL
         port: int = 8080,
         api_keys: Optional[Set[str]] = None,
     ):
@@ -551,7 +551,7 @@ def create_fastapi_app(runtime: Any) -> Any:
 
 
 async def serve(
-    host: str = "0.0.0.0",
+    host: str = "0.0.0.0",  # nosec B104 — intentional: server default for local network access
     port: int = 8080,
     api_keys: Optional[List[str]] = None,
 ) -> None:
@@ -624,7 +624,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Sovereign API Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for API server
     parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     parser.add_argument("--api-key", action="append", help="API keys (can repeat)")
 

@@ -1,73 +1,79 @@
 # BIZRA-DATA-LAKE Docker Image
-# Version: 1.0.0 | Phase 11 - Public Launch
+# Version: 1.1.0 | Phase 11 - Public Launch
 # Multi-modal memory system with vector embeddings
 #
-# Ihsan >= 0.95 | SNR >= 0.99 | Fail-Closed Enforcement
+# Build context: repository root (BIZRA-DATA-LAKE/)
+# Usage:  docker build -t bizra-data-lake .
+#
+# Ihsan >= 0.95 | SNR >= 0.85 | Fail-Closed Enforcement
 
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+# =============================================================================
+# Stage 1: Builder — install Python dependencies into isolated venv
+# =============================================================================
+FROM python:3.12-slim-bookworm AS builder
+
+WORKDIR /build
+
+# Install build dependencies for native extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package definition first (layer cache optimization)
+COPY pyproject.toml ./
+COPY core/ core/
+
+# Create isolated virtual environment and install dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir ".[full]"
+
+# =============================================================================
+# Stage 2: Runtime — minimal production image with CUDA support
+# =============================================================================
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS runtime
 
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System dependencies
+# Install Python 3.12 and runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.11 \
-    python3.11-venv \
-    python3-pip \
+    python3.12 \
+    python3.12-venv \
     curl \
-    git \
-    libpq-dev \
+    libpq5 \
     libmagic1 \
     poppler-utils \
     tesseract-ocr \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Python 3.11 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+# Set Python 3.12 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-# Create app directory
-WORKDIR /app
+LABEL org.opencontainers.image.title="BIZRA Data Lake"
+LABEL org.opencontainers.image.description="Multi-modal memory system with vector embeddings"
+LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.vendor="BIZRA"
+LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
 # Create non-root user
-RUN useradd --create-home --shell /bin/bash bizra \
-    && chown -R bizra:bizra /app
+RUN useradd --create-home --shell /bin/bash bizra
 
-# Copy requirements first for caching
-COPY --chown=bizra:bizra requirements.txt ./
+WORKDIR /app
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir --upgrade pip \
-    && pip3 install --no-cache-dir -r requirements.txt
-
-# Install additional dependencies for the unified system
-RUN pip3 install --no-cache-dir \
-    fastapi[all]==0.109.0 \
-    uvicorn[standard]==0.27.0 \
-    python-multipart==0.0.6 \
-    aiofiles==23.2.1 \
-    psycopg2-binary==2.9.9 \
-    redis==5.0.1 \
-    chromadb==0.4.22 \
-    sentence-transformers==2.2.2 \
-    transformers==4.36.2 \
-    torch==2.1.2 \
-    torchvision==0.16.2 \
-    pillow==10.2.0 \
-    openai-whisper==20231117 \
-    unstructured[all-docs]==0.12.0 \
-    python-magic==0.4.27 \
-    pyarrow==15.0.0 \
-    pandas==2.1.4 \
-    numpy==1.26.3 \
-    faiss-cpu==1.7.4 \
-    pydantic==2.5.3 \
-    httpx==0.26.0 \
-    prometheus-client==0.19.0
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
-COPY --chown=bizra:bizra . .
+COPY --chown=bizra:bizra core/ core/
+COPY --chown=bizra:bizra pyproject.toml ./
 
 # Create data directories
 RUN mkdir -p 00_INTAKE 01_RAW 02_PROCESSED 03_INDEXED 04_GOLD 99_QUARANTINE \
@@ -76,20 +82,21 @@ RUN mkdir -p 00_INTAKE 01_RAW 02_PROCESSED 03_INDEXED 04_GOLD 99_QUARANTINE \
 # Switch to non-root user
 USER bizra
 
-# Environment variables
+# Environment variables — no secrets, only operational config
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    SNR_THRESHOLD=0.99 \
+    BIZRA_ENV=production \
+    SNR_THRESHOLD=0.85 \
     IHSAN_THRESHOLD=0.95 \
     BATCH_SIZE=128 \
     MAX_SEQ_LENGTH=512
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health/live || exit 1
+    CMD python -c "from core.sovereign import __main__; print('healthy')" || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Entry point
-CMD ["python", "-m", "uvicorn", "bizra_api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Entry point — sovereign REPL or API server
+CMD ["python", "-m", "core.sovereign"]

@@ -889,7 +889,7 @@ class HypothesisGenerator:
         """Generate a unique hypothesis ID."""
         timestamp = datetime.now(timezone.utc).isoformat()
         content = f"{prefix}_{timestamp}_{self._total_generated}"
-        return hashlib.md5(content.encode()).hexdigest()[:12]
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
     def generate(self, observation: SystemObservation) -> List[Hypothesis]:
         """

@@ -102,8 +102,8 @@ impl EntropyCalculator {
     /// Create new calculator with pre-computed tables
     pub fn new() -> Self {
         let mut log2_table = [0.0f32; 256];
-        for i in 1..256 {
-            log2_table[i] = (i as f32).ln() / LN_2;
+        for (i, entry) in log2_table.iter_mut().enumerate().skip(1) {
+            *entry = (i as f32).ln() / LN_2;
         }
 
         Self {
