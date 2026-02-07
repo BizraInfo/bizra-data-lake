@@ -743,5 +743,114 @@ class TestPipelineE2E:
             await pipeline.stop()
 
 
+# =============================================================================
+# BOUNDED QUEUE TESTS (S-10)
+# =============================================================================
+
+def _make_opportunity(domain: str = "test", opp_id: str = None) -> PipelineOpportunity:
+    """Create a test opportunity."""
+    return PipelineOpportunity(
+        id=opp_id or f"opp-test-{time.time_ns()}",
+        domain=domain,
+        description="Test opportunity",
+        source="unit_test",
+        detected_at=time.time(),
+        snr_score=0.9,
+        ihsan_score=0.96,
+    )
+
+
+class TestBoundedQueue:
+    """S-10: Bounded queue prevents OOM under sustained load."""
+
+    def test_queue_has_maxsize(self):
+        """Queue must be bounded to 1000 items."""
+        pipeline = OpportunityPipeline()
+        assert pipeline._queue.maxsize == 1000
+
+    @pytest.mark.asyncio
+    async def test_queue_full_raises(self):
+        """Filling the queue must raise asyncio.QueueFull."""
+        pipeline = OpportunityPipeline()
+        # Use a small maxsize to test quickly
+        pipeline._queue = asyncio.Queue(maxsize=3)
+
+        for i in range(3):
+            await pipeline.submit(_make_opportunity(opp_id=f"opp-fill-{i}"))
+
+        with pytest.raises(asyncio.QueueFull):
+            await pipeline.submit(_make_opportunity(opp_id="opp-overflow"))
+
+    @pytest.mark.asyncio
+    async def test_dropped_metric(self):
+        """dropped_opportunities counter must increment on QueueFull."""
+        pipeline = OpportunityPipeline()
+        pipeline._queue = asyncio.Queue(maxsize=2)
+
+        for i in range(2):
+            await pipeline.submit(_make_opportunity(opp_id=f"opp-dm-{i}"))
+
+        assert pipeline._metrics["dropped_opportunities"] == 0
+
+        with pytest.raises(asyncio.QueueFull):
+            await pipeline.submit(_make_opportunity(opp_id="opp-dm-drop"))
+
+        assert pipeline._metrics["dropped_opportunities"] == 1
+
+        with pytest.raises(asyncio.QueueFull):
+            await pipeline.submit(_make_opportunity(opp_id="opp-dm-drop2"))
+
+        assert pipeline._metrics["dropped_opportunities"] == 2
+
+    def test_queue_health_in_stats(self):
+        """stats() must include queue_maxsize and queue_utilization."""
+        pipeline = OpportunityPipeline()
+        s = pipeline.stats()
+
+        assert "queue_maxsize" in s
+        assert s["queue_maxsize"] == 1000
+        assert "queue_utilization" in s
+        assert s["queue_utilization"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_muraqabah_handles_backpressure(self):
+        """Muraqabah connector must not crash when pipeline queue is full."""
+        event_bus = EventBus()
+        pipeline = OpportunityPipeline(event_bus=event_bus)
+        pipeline._queue = asyncio.Queue(maxsize=1)
+
+        # Fill the queue
+        await pipeline.submit(_make_opportunity(opp_id="opp-bp-fill"))
+
+        # Create a mock muraqabah engine with the event_bus
+        class MockMuraqabah:
+            def __init__(self, eb):
+                self.event_bus = eb
+
+        muraqabah = MockMuraqabah(event_bus)
+        connect_muraqabah_to_pipeline(muraqabah, pipeline)
+
+        # Directly invoke the registered handler (EventBus.publish only queues;
+        # handlers run when bus loop processes them, so invoke directly for test)
+        event = Event(
+            topic="muraqabah.opportunity",
+            payload={
+                "domain": "test",
+                "description": "Backpressure test",
+                "source": "muraqabah",
+                "snr_score": 0.9,
+                "urgency": 0.5,
+            },
+        )
+        # Dispatch to all handlers for this topic — should not raise
+        handlers = event_bus._get_handlers(event.topic)
+        assert len(handlers) >= 1, "Connector handler should be registered"
+        for handler in handlers:
+            await handler(event)  # must not raise
+
+        # submit() increments dropped_opportunities before the connector catches QueueFull
+        assert pipeline._metrics["dropped_opportunities"] >= 1
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
