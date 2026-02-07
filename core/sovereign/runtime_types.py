@@ -182,7 +182,7 @@ class RuntimeConfig:
     # Cache
     enable_cache: bool = True
     max_cache_entries: int = 1000
-    query_timeout_ms: int = 30000
+    query_timeout_ms: int = 120000
 
     # Feature flags
     enable_graph_reasoning: bool = True

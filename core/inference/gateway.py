@@ -2238,6 +2238,7 @@ class LMStudioBackend(InferenceBackendBase):
             lms_config = LMStudioConfig(
                 host=self.config.lmstudio_url.replace("http://", "").split(":")[0],
                 port=int(self.config.lmstudio_url.split(":")[-1]),
+                api_key=os.getenv("LM_API_TOKEN") or os.getenv("LMSTUDIO_API_KEY") or os.getenv("LM_STUDIO_API_KEY"),
                 use_native_api=True,
                 enable_mcp=True,
             )

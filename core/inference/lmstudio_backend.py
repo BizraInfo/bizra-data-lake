@@ -61,7 +61,9 @@ class LMStudioConfig:
 
     host: str = field(default_factory=lambda: os.getenv("LMSTUDIO_HOST", "192.168.56.1"))
     port: int = field(default_factory=lambda: int(os.getenv("LMSTUDIO_PORT", "1234")))
-    api_key: Optional[str] = None
+    api_key: Optional[str] = field(
+        default_factory=lambda: os.getenv("LM_API_TOKEN") or os.getenv("LMSTUDIO_API_KEY") or os.getenv("LM_STUDIO_API_KEY")
+    )
     timeout: float = 120.0
     use_native_api: bool = True  # Use /api/v1/* instead of OpenAI-compat
     context_length: Optional[int] = None
@@ -181,14 +183,28 @@ class LMStudioBackend:
         data = response.json()
 
         models = []
-        for model_data in data.get("data", []):
+        # v1 API uses "models" key; OpenAI-compat uses "data"
+        model_list = data.get("models", data.get("data", []))
+        for model_data in model_list:
+            # v1 API: loaded_instances list; OpenAI-compat: "loaded" bool
+            loaded_instances = model_data.get("loaded_instances", [])
+            is_loaded = bool(loaded_instances) or model_data.get("loaded", False)
+            # v1 API uses "key" for model ID
+            model_id = model_data.get("key", model_data.get("id", ""))
+            ctx_len = model_data.get("max_context_length", model_data.get("context_length", 4096))
+            # If loaded, use the instance's context_length if available
+            if loaded_instances:
+                inst_ctx = loaded_instances[0].get("config", {}).get("context_length")
+                if inst_ctx:
+                    ctx_len = inst_ctx
             models.append(
                 ModelInfo(
-                    id=model_data.get("id", ""),
-                    name=model_data.get("id", "").split("/")[-1],
+                    id=model_id,
+                    name=model_data.get("display_name", model_id.split("/")[-1]),
                     path=model_data.get("path"),
-                    loaded=model_data.get("loaded", False),
-                    context_length=model_data.get("context_length", 4096),
+                    loaded=is_loaded,
+                    context_length=ctx_len,
+                    quantization=model_data.get("quantization", {}).get("name") if isinstance(model_data.get("quantization"), dict) else None,
                 )
             )
 
@@ -308,44 +324,101 @@ class LMStudioBackend:
         if not model_id:
             raise ValueError("No model specified or loaded")
 
-        # Build payload for native API
-        payload = {
-            "model": model_id,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": stream,
-        }
+        if self.config.use_native_api:
+            # v1 Native API: uses "input" string, returns "output" array
+            # Combine messages into single input string
+            input_text = "\n".join(
+                f"{m.role}: {m.content}" if m.role != "user" else m.content
+                for m in messages
+            )
+            if len(messages) == 1:
+                input_text = messages[0].content
 
-        # Native API features
-        if context_length:
-            payload["context_length"] = context_length
+            payload: Dict[str, Any] = {
+                "model": model_id,
+                "input": input_text,
+                "temperature": temperature,
+            }
 
-        if mcp_servers and self.config.enable_mcp:
-            payload["mcp_servers"] = mcp_servers
+            # v1 API uses context_length (not max_tokens)
+            payload["context_length"] = context_length or self.config.context_length or 8000
 
-        # Use stateful chat if we have a chat_id
-        if self._chat_id:
-            payload["chat_id"] = self._chat_id
+            # MCP integrations
+            if mcp_servers and self.config.enable_mcp:
+                payload["integrations"] = mcp_servers
 
-        if stream:
-            return await self._stream_chat(payload)
+            # Stateful chat continuation
+            if self._chat_id:
+                payload["chat_id"] = self._chat_id
 
-        response = await self._client.post(LMStudioEndpoint.CHAT.value, json=payload)
-        response.raise_for_status()
-        data = response.json()
+            if stream:
+                payload["stream"] = True
+                return await self._stream_chat(payload)
 
-        # Store chat_id for stateful conversations
-        if "chat_id" in data:
-            self._chat_id = data["chat_id"]
+            response = await self._client.post(LMStudioEndpoint.CHAT.value, json=payload)
+            response.raise_for_status()
+            data = response.json()
 
-        return ChatResponse(
-            content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
-            model=data.get("model", model_id),
-            finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
-            usage=data.get("usage", {}),
-            raw_response=data,
-        )
+            # Store response_id for stateful conversations
+            if "response_id" in data:
+                self._response_id = data["response_id"]
+
+            # Extract content from v1 output array
+            content_parts = []
+            for output_item in data.get("output", []):
+                if output_item.get("type") == "message":
+                    content_parts.append(output_item.get("content", ""))
+
+            content = "\n".join(content_parts) if content_parts else ""
+
+            # Extract stats
+            stats = data.get("stats", {})
+            usage = {
+                "input_tokens": stats.get("input_tokens", 0),
+                "output_tokens": stats.get("total_output_tokens", 0),
+                "reasoning_tokens": stats.get("reasoning_output_tokens", 0),
+            }
+
+            return ChatResponse(
+                content=content,
+                model=data.get("model_instance_id", model_id),
+                finish_reason="stop",
+                usage=usage,
+                raw_response=data,
+            )
+        else:
+            # OpenAI-compat fallback: uses "messages" array, returns "choices"
+            payload = {
+                "model": model_id,
+                "messages": [{"role": m.role, "content": m.content} for m in messages],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": stream,
+            }
+
+            if context_length:
+                payload["context_length"] = context_length
+
+            if self._chat_id:
+                payload["chat_id"] = self._chat_id
+
+            if stream:
+                return await self._stream_chat(payload)
+
+            response = await self._client.post("/v1/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+            if "chat_id" in data:
+                self._chat_id = data["chat_id"]
+
+            return ChatResponse(
+                content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
+                model=data.get("model", model_id),
+                finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
+                usage=data.get("usage", {}),
+                raw_response=data,
+            )
 
     async def _stream_chat(self, payload: Dict) -> AsyncGenerator[str, None]:
         """Stream chat response."""
