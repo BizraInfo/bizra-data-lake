@@ -330,8 +330,8 @@ jobs:
           print(f"  SNR Score: {snr_score:.4f}")
           print(f"  Ihsan Score: {ihsan_score:.4f}")
 
-          # Quality gate check (use CI threshold which is more lenient)
-          gate = IhsanGate(snr_threshold=IHSAN_THRESHOLD_CI)
+          # Quality gate check (SNR uses SNR threshold, not Ihsan threshold)
+          gate = IhsanGate(snr_threshold=UNIFIED_SNR_THRESHOLD)
           passed, violations = gate.check(components)
 
           print(f"\nQuality Gate: {'PASSED' if passed else 'FAILED'}")
