@@ -347,7 +347,101 @@ class SovereignRuntime:
             self._federation_node = None
 
     def _load_or_generate_keypair(self) -> tuple:
-        """Load keypair from disk or generate a new one."""
+        """Load keypair from encrypted vault or generate a new one.
+
+        Security (S-5): Private keys are encrypted at rest using SovereignVault
+        (Fernet + PBKDF2 with per-entry salts). Plaintext keypair files from
+        older versions are automatically migrated into the vault and deleted.
+
+        Vault secret is read from BIZRA_VAULT_SECRET env var. If unset, a
+        deterministic fallback is derived from the keypair path (so the same
+        node always derives the same secret without user configuration).
+        """
+        import os as _os
+
+        from core.pci import generate_keypair
+
+        keypair_path = self.config.keypair_path
+        vault_dir = keypair_path.parent / ".vault"
+
+        # Derive vault secret: env var preferred, deterministic fallback
+        vault_secret = _os.environ.get("BIZRA_VAULT_SECRET")
+        if not vault_secret:
+            vault_secret = hashlib.sha256(
+                f"bizra-vault-{keypair_path.resolve()}".encode()
+            ).hexdigest()
+
+        # Try loading from encrypted vault
+        try:
+            from core.vault.vault import CRYPTO_AVAILABLE, SovereignVault
+
+            if not CRYPTO_AVAILABLE:
+                logger.warning("cryptography package not installed — vault unavailable, using plaintext fallback")
+                return self._load_or_generate_keypair_plaintext()
+
+            vault = SovereignVault(vault_path=vault_dir, master_secret=vault_secret)
+
+            # Harden vault index file permissions (owner-only read/write)
+            vault_idx = vault_dir / "vault.idx"
+            if vault_idx.exists():
+                try:
+                    _os.chmod(vault_idx, 0o600)
+                except OSError:
+                    pass  # Windows or permission-restricted filesystem
+
+            # Attempt to load from vault
+            try:
+                data = vault.get("sovereign_keypair")
+                if data and data.get("private_key") and data.get("public_key"):
+                    if len(data["public_key"]) >= 64:
+                        logger.info("Keypair loaded from encrypted vault")
+                        return data["private_key"], data["public_key"]
+            except ValueError as e:
+                raise RuntimeError(
+                    f"Cannot decrypt keypair vault — wrong BIZRA_VAULT_SECRET? ({e}). "
+                    f"Set the correct secret or delete {vault_dir} to regenerate."
+                ) from e
+
+            # Migrate plaintext keypair if it exists
+            if keypair_path.exists():
+                try:
+                    with open(keypair_path) as f:
+                        old_data = json.load(f)
+                    pk = old_data.get("private_key", "")
+                    pub = old_data.get("public_key", "")
+                    if pk and pub and len(pub) >= 64:
+                        vault.put("sovereign_keypair", {"private_key": pk, "public_key": pub})
+                        keypair_path.unlink()
+                        logger.info("Migrated plaintext keypair into encrypted vault (old file deleted)")
+                        # Re-harden after migration write
+                        if vault_idx.exists():
+                            try:
+                                _os.chmod(vault_idx, 0o600)
+                            except OSError:
+                                pass
+                        return pk, pub
+                except Exception as e:
+                    logger.warning(f"Failed to migrate plaintext keypair: {e}")
+
+            # Generate fresh keypair and store in vault
+            private_key, public_key = generate_keypair()
+            keypair_path.parent.mkdir(parents=True, exist_ok=True)
+            vault.put("sovereign_keypair", {"private_key": private_key, "public_key": public_key})
+            # Harden after initial write
+            if vault_idx.exists():
+                try:
+                    _os.chmod(vault_idx, 0o600)
+                except OSError:
+                    pass
+            logger.info("Generated new keypair and stored in encrypted vault")
+            return private_key, public_key
+
+        except ImportError:
+            logger.warning("core.vault.vault not available — falling back to plaintext")
+            return self._load_or_generate_keypair_plaintext()
+
+    def _load_or_generate_keypair_plaintext(self) -> tuple:
+        """Legacy plaintext keypair loading (fallback when vault unavailable)."""
         from core.pci import generate_keypair
 
         keypair_path = self.config.keypair_path
