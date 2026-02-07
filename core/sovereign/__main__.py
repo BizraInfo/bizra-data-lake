@@ -144,6 +144,13 @@ def _handle_memory_command(runtime: object) -> None:
         print("Profile: Not yet populated (use 'profile' command)")
 
 
+async def _handle_import_command(runtime: object) -> None:
+    """Import external data into Living Memory."""
+    from .data_import import run_import_wizard
+
+    await run_import_wizard(runtime)
+
+
 async def run_repl() -> None:
     """Run interactive REPL mode."""
     from ..inference.local_first import LocalBackend, get_local_first_backend
@@ -186,6 +193,7 @@ Commands:
   dashboard - View node identity and agents
   impact    - Sovereignty progression and UERS scores
   profile   - View/set your personal profile
+  import    - Import your data (chat history, notes, documents)
   status    - Show system status
   metrics   - Show performance metrics
   memory    - Show conversation memory stats
@@ -207,6 +215,10 @@ Your PAT team remembers the conversation and learns who you are.
 
                 if query.lower() == "memory":
                     _handle_memory_command(runtime)
+                    continue
+
+                if query.lower() in ("import", "load"):
+                    await _handle_import_command(runtime)
                     continue
 
                 if query.lower() == "dashboard":
