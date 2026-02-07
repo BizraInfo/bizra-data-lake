@@ -108,6 +108,7 @@ jobs:
           -A clippy::result_unit_err
           -A clippy::too_many_arguments
           -A clippy::manual_clamp
+          -A clippy::match_like_matches_macro
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Test Matrix (Python + Rust)

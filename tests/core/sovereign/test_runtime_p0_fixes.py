@@ -268,17 +268,17 @@ class TestStartedAtDeclared:
 
 
 class TestReasoningTimeAssigned:
-    """Verify computed reasoning time is assigned to a variable."""
+    """Verify reasoning metrics are tracked (not bare expressions)."""
 
-    def test_runtime_core_source_has_assignment(self):
-        """Check the source code has `reasoning_time_ms = ...` not bare expression."""
+    def test_runtime_core_tracks_reasoning_stats(self):
+        """Check that reasoning stats are recorded via metrics API."""
         import inspect
 
         from core.sovereign.runtime_core import SovereignRuntime
 
         source = inspect.getsource(SovereignRuntime._process_query)
-        assert "reasoning_time_ms" in source, (
-            "reasoning time should be assigned to reasoning_time_ms variable"
+        assert "update_reasoning_stats" in source, (
+            "reasoning stats should be tracked via metrics.update_reasoning_stats()"
         )
 
 
