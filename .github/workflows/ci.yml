@@ -203,15 +203,21 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
-      - name: Install maturin
-        run: pip install maturin pytest
+      - name: Create virtualenv and install tools
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install maturin pytest
 
       - name: Build PyO3 bindings
         working-directory: bizra-omega/bizra-python
-        run: maturin develop --release
+        run: |
+          . ${{ github.workspace }}/.venv/bin/activate
+          maturin develop --release
 
       - name: Test PyO3 bindings
         run: |
+          . .venv/bin/activate
           python -c "
           import bizra
           print(f'BIZRA Python bindings v{bizra.__version__}')
