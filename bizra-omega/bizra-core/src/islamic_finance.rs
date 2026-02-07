@@ -1120,6 +1120,8 @@ impl WaqfEndowment {
     /// - Principal is positive
     /// - Administrative overhead within limits
     /// - Founder cannot be sole beneficiary
+    // TODO: Refactor to use a WaqfEndowmentBuilder pattern
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         waqf_id: String,
         name: String,

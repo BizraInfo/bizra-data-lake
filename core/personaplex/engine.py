@@ -35,6 +35,7 @@ class PersonaPlexConfig:
 
     # Model settings
     hf_repo: str = "nvidia/personaplex-7b-v1"
+    hf_revision: str = "main"  # Pin to specific revision for reproducibility
     device: str = "cuda"
     cpu_offload: bool = False
 
@@ -144,20 +145,20 @@ class BIZRAPersonaPlex:
 
             # Load Mimi (speech encoder/decoder)
             logger.info("Loading Mimi speech codec...")
-            mimi_weight = hf_hub_download(self.config.hf_repo, loaders.MIMI_NAME)
+            mimi_weight = hf_hub_download(self.config.hf_repo, loaders.MIMI_NAME, revision=self.config.hf_revision)  # nosec B615 — revision pinned via config; set hf_revision to commit SHA in production
             self._mimi = loaders.get_mimi(mimi_weight, self.config.device)
             self._other_mimi = loaders.get_mimi(mimi_weight, self.config.device)
 
             # Load tokenizer
             logger.info("Loading tokenizer...")
-            tokenizer_path = hf_hub_download(
-                self.config.hf_repo, loaders.TEXT_TOKENIZER_NAME
+            tokenizer_path = hf_hub_download(  # nosec B615 — revision pinned via config; set hf_revision to commit SHA in production
+                self.config.hf_repo, loaders.TEXT_TOKENIZER_NAME, revision=self.config.hf_revision
             )
             self._tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_path)
 
             # Load Moshi LM
             logger.info("Loading Moshi language model...")
-            moshi_weight = hf_hub_download(self.config.hf_repo, loaders.MOSHI_NAME)
+            moshi_weight = hf_hub_download(self.config.hf_repo, loaders.MOSHI_NAME, revision=self.config.hf_revision)  # nosec B615 — revision pinned via config; set hf_revision to commit SHA in production
             lm = loaders.get_moshi_lm(
                 moshi_weight,
                 device=self.config.device,

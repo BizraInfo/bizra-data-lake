@@ -1,5 +1,8 @@
 # BIZRA Inference Sandbox - Isolated Container Environment
 #
+# Build context: sandbox/ directory
+# Usage:  docker build -f sandbox/Dockerfile.sandbox -t bizra-sandbox sandbox/
+#
 # This Dockerfile creates a quarantined environment for LLM inference:
 # - No network access (--network=none)
 # - Limited filesystem access
@@ -8,7 +11,7 @@
 #
 # "We do not assume. We verify with formal proofs."
 
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \

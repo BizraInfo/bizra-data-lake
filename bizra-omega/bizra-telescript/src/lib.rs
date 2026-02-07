@@ -529,20 +529,20 @@ impl Agent {
 
     /// Transition agent state
     pub fn transition(&mut self, new_state: AgentState) -> Result<()> {
-        let valid = match (self.state, new_state) {
-            (AgentState::Created, AgentState::Active) => true,
-            (AgentState::Active, AgentState::Traveling) => true,
-            (AgentState::Active, AgentState::Meeting) => true,
-            (AgentState::Active, AgentState::Frozen) => true,
-            (AgentState::Active, AgentState::Terminated) => true,
-            (AgentState::Traveling, AgentState::Active) => true,
-            (AgentState::Traveling, AgentState::Terminated) => true,
-            (AgentState::Meeting, AgentState::Active) => true,
-            (AgentState::Meeting, AgentState::Terminated) => true,
-            (AgentState::Frozen, AgentState::Active) => true,
-            (AgentState::Frozen, AgentState::Terminated) => true,
-            _ => false,
-        };
+        let valid = matches!(
+            (self.state, new_state),
+            (AgentState::Created, AgentState::Active)
+                | (AgentState::Active, AgentState::Traveling)
+                | (AgentState::Active, AgentState::Meeting)
+                | (AgentState::Active, AgentState::Frozen)
+                | (AgentState::Active, AgentState::Terminated)
+                | (AgentState::Traveling, AgentState::Active)
+                | (AgentState::Traveling, AgentState::Terminated)
+                | (AgentState::Meeting, AgentState::Active)
+                | (AgentState::Meeting, AgentState::Terminated)
+                | (AgentState::Frozen, AgentState::Active)
+                | (AgentState::Frozen, AgentState::Terminated)
+        );
 
         if !valid {
             return Err(TelescriptError::InvalidStateTransition {

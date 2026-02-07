@@ -64,6 +64,8 @@ pub struct IhsanVector {
 
 impl IhsanVector {
     /// Create from individual dimensions.
+    // TODO: Consider using a builder or struct for IhsanVector construction
+    #[allow(clippy::too_many_arguments)]
     #[inline]
     pub fn new(
         correctness: f64,
@@ -324,7 +326,7 @@ impl AdlInvariant {
 
         let gini = (2.0 * weighted_sum) / (n as f64 * total) - (n as f64 + 1.0) / n as f64;
 
-        gini.max(0.0).min(1.0)
+        gini.clamp(0.0, 1.0)
     }
 
     /// Check Adl invariant against distribution.

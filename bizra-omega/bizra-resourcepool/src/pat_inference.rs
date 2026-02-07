@@ -11,6 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
 
 /// PAT Agent roles
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -24,18 +26,39 @@ pub enum PATRole {
     Guardian,
 }
 
-impl PATRole {
-    pub fn from_str(s: &str) -> Option<Self> {
+/// Error type for parsing a PATRole from a string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsePATRoleError(String);
+
+impl fmt::Display for ParsePATRoleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "unknown PAT role: '{}'", self.0)
+    }
+}
+
+impl std::error::Error for ParsePATRoleError {}
+
+impl FromStr for PATRole {
+    type Err = ParsePATRoleError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "strategist" => Some(Self::Strategist),
-            "researcher" => Some(Self::Researcher),
-            "developer" => Some(Self::Developer),
-            "analyst" => Some(Self::Analyst),
-            "reviewer" => Some(Self::Reviewer),
-            "executor" => Some(Self::Executor),
-            "guardian" => Some(Self::Guardian),
-            _ => None,
+            "strategist" => Ok(Self::Strategist),
+            "researcher" => Ok(Self::Researcher),
+            "developer" => Ok(Self::Developer),
+            "analyst" => Ok(Self::Analyst),
+            "reviewer" => Ok(Self::Reviewer),
+            "executor" => Ok(Self::Executor),
+            "guardian" => Ok(Self::Guardian),
+            _ => Err(ParsePATRoleError(s.to_string())),
         }
+    }
+}
+
+impl PATRole {
+    /// Parse a role name, returning None for unknown roles.
+    pub fn parse_role(s: &str) -> Option<Self> {
+        s.parse().ok()
     }
 }
 
@@ -271,10 +294,17 @@ mod tests {
 
     #[test]
     fn test_role_parsing() {
-        assert_eq!(PATRole::from_str("strategist"), Some(PATRole::Strategist));
-        assert_eq!(PATRole::from_str("DEVELOPER"), Some(PATRole::Developer));
-        assert_eq!(PATRole::from_str("Guardian"), Some(PATRole::Guardian));
-        assert_eq!(PATRole::from_str("unknown"), None);
+        assert_eq!(PATRole::parse_role("strategist"), Some(PATRole::Strategist));
+        assert_eq!(PATRole::parse_role("DEVELOPER"), Some(PATRole::Developer));
+        assert_eq!(PATRole::parse_role("Guardian"), Some(PATRole::Guardian));
+        assert_eq!(PATRole::parse_role("unknown"), None);
+    }
+
+    #[test]
+    fn test_role_from_str_trait() {
+        assert_eq!("strategist".parse::<PATRole>(), Ok(PATRole::Strategist));
+        assert_eq!("DEVELOPER".parse::<PATRole>(), Ok(PATRole::Developer));
+        assert!("unknown".parse::<PATRole>().is_err());
     }
 
     #[test]

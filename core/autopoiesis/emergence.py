@@ -293,7 +293,8 @@ class EmergenceDetector:
                     emergences.append(
                         EmergentProperty(
                             id=hashlib.md5(
-                                f"{gene_name}_cap_{len(outliers)}".encode()
+                                f"{gene_name}_cap_{len(outliers)}".encode(),
+                                usedforsecurity=False,
                             ).hexdigest()[:8],
                             emergence_type=EmergenceType.CAPABILITY,
                             novelty_level=(
@@ -339,7 +340,7 @@ class EmergenceDetector:
             if ratio > 0.3:  # More than 30% share this strategy
                 emergences.append(
                     EmergentProperty(
-                        id=hashlib.md5(str(pattern).encode()).hexdigest()[:8],
+                        id=hashlib.md5(str(pattern).encode(), usedforsecurity=False).hexdigest()[:8],
                         emergence_type=EmergenceType.STRATEGY,
                         novelty_level=(
                             NoveltyLevel.SIGNIFICANT
@@ -382,7 +383,7 @@ class EmergenceDetector:
             if current_avg > previous_avg + 0.1:
                 emergences.append(
                     EmergentProperty(
-                        id=hashlib.md5(f"collab_{current_avg}".encode()).hexdigest()[
+                        id=hashlib.md5(f"collab_{current_avg}".encode(), usedforsecurity=False).hexdigest()[
                             :8
                         ],
                         emergence_type=EmergenceType.COLLABORATION,

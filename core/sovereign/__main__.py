@@ -564,7 +564,7 @@ Examples:
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Run API server")
-    serve_parser.add_argument("--host", default="0.0.0.0", help="Host to bind")
+    serve_parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for server mode
     serve_parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     serve_parser.add_argument("--api-key", action="append", help="API keys")
 

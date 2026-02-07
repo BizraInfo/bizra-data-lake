@@ -1,21 +1,21 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-#    BIZRA FLYWHEEL — Dockerfile
-#    
-#    Self-contained autopoietic core with:
-#    - Local LLM inference (via Ollama client)
-#    - Moshi audio streaming (when available)
-#    - Fail-closed authentication
-#    - State persistence
-#    
-#    Created: 2026-01-29 | BIZRA Sovereignty
-# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA FLYWHEEL — Dockerfile
+#
+# Self-contained autopoietic core with:
+# - Local LLM inference (via Ollama client)
+# - Fail-closed authentication
+# - State persistence
+#
+# Build context: repository root (BIZRA-DATA-LAKE/)
+# Usage:  docker build -f Dockerfile.flywheel -t bizra-flywheel .
+#
+# Created: 2026-01-29 | BIZRA Sovereignty
 
 FROM python:3.11-slim AS base
 
 # Metadata
 LABEL org.opencontainers.image.title="BIZRA Flywheel"
 LABEL org.opencontainers.image.description="Autopoietic self-sustaining cognitive core"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="1.1.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
 
 # Environment
@@ -39,9 +39,9 @@ RUN mkdir -p /var/lib/bizra /var/log/bizra/flywheel /var/run/bizra \
 
 WORKDIR /app
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # DEPENDENCIES
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 FROM base AS dependencies
 
@@ -51,15 +51,17 @@ COPY requirements.flywheel.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # PRODUCTION IMAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 FROM dependencies AS production
 
 # Copy application code
-COPY flywheel.py flywheel_api.py /app/
+# Note: flywheel modules live inside core/ — the standalone flywheel.py and
+# flywheel_api.py entry points are generated or may be provided at runtime.
 COPY core/ /app/core/
+COPY pyproject.toml /app/
 
 # Switch to non-root user
 USER bizra
@@ -71,5 +73,5 @@ EXPOSE 8100 8101
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8100/health || exit 1
 
-# Entry point — run the API server
-ENTRYPOINT ["python", "flywheel_api.py"]
+# Entry point — run the sovereign module (flywheel mode)
+ENTRYPOINT ["python", "-m", "core.sovereign"]

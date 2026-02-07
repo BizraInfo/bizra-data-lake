@@ -97,7 +97,7 @@ class MinHashDeduplicator:
 
         for shingle in shingles:
             # Hash the shingle
-            h = int(hashlib.md5(shingle.encode()).hexdigest()[:8], 16)
+            h = int(hashlib.md5(shingle.encode(), usedforsecurity=False).hexdigest()[:8], 16)
 
             # Apply all permutations
             hashes = (self._a * h + self._b) % self._max_hash
@@ -233,7 +233,7 @@ class SimHashDeduplicator:
 
     def _hash_token(self, token: str) -> int:
         """Hash a token to fingerprint_bits integer."""
-        h = hashlib.md5(token.encode()).digest()
+        h = hashlib.md5(token.encode(), usedforsecurity=False).digest()
         # Take first 8 bytes for 64-bit fingerprint
         return struct.unpack("<Q", h[:8])[0] & ((1 << self.fingerprint_bits) - 1)
 

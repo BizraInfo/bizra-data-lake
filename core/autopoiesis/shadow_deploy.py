@@ -117,7 +117,8 @@ class ShadowHypothesis:
     def __post_init__(self):
         if not self.id:
             self.id = hashlib.md5(
-                f"{self.name}{datetime.now().isoformat()}{random.random()}".encode()
+                f"{self.name}{datetime.now().isoformat()}{random.random()}".encode(),
+                usedforsecurity=False,
             ).hexdigest()[:12]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -430,7 +431,8 @@ class ShadowEnvironment:
         )
 
         self.env_id = hashlib.md5(
-            f"{hypothesis.id}{datetime.now().isoformat()}".encode()
+            f"{hypothesis.id}{datetime.now().isoformat()}".encode(),
+            usedforsecurity=False,
         ).hexdigest()[:8]
 
     async def initialize(self) -> bool:

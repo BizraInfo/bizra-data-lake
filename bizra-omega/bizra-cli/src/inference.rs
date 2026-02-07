@@ -391,7 +391,7 @@ Focus on efficient execution, continuous improvement, and delivering results.
 Be action-oriented, efficient, and results-focused."#
             .to_string(),
 
-        "guardian" | _ => r#"You are the Guardian of a Personal Agentic Team (PAT).
+        _ => r#"You are the Guardian of a Personal Agentic Team (PAT).
 Your role is ethical oversight and protective guidance.
 Standing on the shoulders of: Al-Ghazali, John Rawls, Anthropic.
 Focus on beneficial outcomes, ethical considerations, and harm prevention.

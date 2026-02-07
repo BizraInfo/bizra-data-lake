@@ -104,6 +104,8 @@ class RustAPIClient:
         max_connections: int = 100,  # PERF: Connection pool limit
         max_connections_per_host: int = 20,  # PERF: Per-host limit
     ):
+        if not base_url.startswith(("http://", "https://")):
+            raise ValueError(f"base_url must use http:// or https:// scheme, got: {base_url}")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_connections = max_connections
@@ -182,7 +184,7 @@ class RustAPIClient:
             import urllib.request
 
             try:
-                with urllib.request.urlopen(url, timeout=self.timeout) as resp:
+                with urllib.request.urlopen(url, timeout=self.timeout) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
                 return 0, None
@@ -222,7 +224,7 @@ class RustAPIClient:
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=actual_timeout) as resp:
+                with urllib.request.urlopen(req, timeout=actual_timeout) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
                 return 0, None
@@ -399,7 +401,7 @@ class RustProcessManager:
                     "--port",
                     str(self.api_port),
                     "--host",
-                    "0.0.0.0",
+                    "0.0.0.0",  # nosec B104 — intentional: Rust API must be reachable from containers/WSL
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

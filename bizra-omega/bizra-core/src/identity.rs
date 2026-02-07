@@ -126,6 +126,8 @@ pub fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
+// TODO: Replace () with a proper HexDecodeError type
+#[allow(clippy::result_unit_err)]
 pub fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {
     if !s.len().is_multiple_of(2) {
         return Err(());

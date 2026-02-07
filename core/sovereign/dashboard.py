@@ -27,26 +27,26 @@ logger = logging.getLogger(__name__)
 try:
     from rich.console import Console
     from rich.layout import Layout
-    from rich.live import Live
+    from rich.live import Live  # noqa: F401
     from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, TextColumn
-    from rich.style import Style
+    from rich.progress import Progress, SpinnerColumn, TextColumn  # noqa: F401
+    from rich.style import Style  # noqa: F401
     from rich.table import Table
     from rich.text import Text
 
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
-    Console = None
-    Table = None
-    Panel = None
-    Layout = None
-    Live = None
-    Progress = None
-    SpinnerColumn = None
-    TextColumn = None
-    Text = None
-    Style = None
+    Console = None  # type: ignore[assignment, misc]
+    Table = None  # type: ignore[assignment, misc]
+    Panel = None  # type: ignore[assignment, misc]
+    Layout = None  # type: ignore[assignment, misc]
+    Live = None  # type: ignore[assignment, misc]
+    Progress = None  # type: ignore[assignment, misc]
+    SpinnerColumn = None  # type: ignore[assignment, misc]
+    TextColumn = None  # type: ignore[assignment, misc]
+    Text = None  # type: ignore[assignment, misc]
+    Style = None  # type: ignore[assignment, misc]
     logger.warning("Rich library not available. Install with: pip install rich")
 
 
@@ -96,18 +96,18 @@ class ProactiveDashboard:
         self._console = Console() if RICH_AVAILABLE else None
 
         # Callback handlers
-        self._approval_callback: Optional[Callable] = None
-        self._rejection_callback: Optional[Callable] = None
+        self._approval_callback: Optional[Callable[[], None]] = None
+        self._rejection_callback: Optional[Callable[[], None]] = None
 
     def set_entity(self, entity: Any) -> None:
         """Set the entity to monitor."""
         self.entity = entity
 
-    def set_approval_callback(self, callback: Callable) -> None:
+    def set_approval_callback(self, callback: Callable[[], None]) -> None:
         """Set callback for action approvals."""
         self._approval_callback = callback
 
-    def set_rejection_callback(self, callback: Callable) -> None:
+    def set_rejection_callback(self, callback: Callable[[], None]) -> None:
         """Set callback for action rejections."""
         self._rejection_callback = callback
 
@@ -144,7 +144,7 @@ class ProactiveDashboard:
 
         return Panel(header_text, border_style="cyan")
 
-    def _create_status_table(self, stats: Dict) -> Optional[Any]:
+    def _create_status_table(self, stats: Dict[str, Any]) -> Optional[Any]:
         """Create the main status table."""
         if not RICH_AVAILABLE:
             return None
@@ -181,7 +181,7 @@ class ProactiveDashboard:
 
         return table
 
-    def _create_autonomy_table(self, stats: Dict) -> Optional[Any]:
+    def _create_autonomy_table(self, stats: Dict[str, Any]) -> Optional[Any]:
         """Create the autonomy status table."""
         if not RICH_AVAILABLE:
             return None
@@ -214,7 +214,7 @@ class ProactiveDashboard:
 
         return table
 
-    def _create_agent_table(self, stats: Dict) -> Optional[Any]:
+    def _create_agent_table(self, stats: Dict[str, Any]) -> Optional[Any]:
         """Create the agent performance table."""
         if not RICH_AVAILABLE:
             return None
@@ -247,7 +247,7 @@ class ProactiveDashboard:
 
         return table
 
-    def _create_knowledge_table(self, stats: Dict) -> Optional[Any]:
+    def _create_knowledge_table(self, stats: Dict[str, Any]) -> Optional[Any]:
         """Create the knowledge integration table."""
         if not RICH_AVAILABLE:
             return None
@@ -271,7 +271,7 @@ class ProactiveDashboard:
 
         return table
 
-    def _create_approval_queue(self, stats: Dict) -> Optional[Any]:
+    def _create_approval_queue(self, stats: Dict[str, Any]) -> Optional[Any]:
         """Create the approval queue table."""
         if not RICH_AVAILABLE:
             return None
@@ -334,6 +334,7 @@ class ProactiveDashboard:
             self._render_plain_overview()
             return
 
+        assert self._console is not None
         stats = self._get_entity_stats()
 
         self._console.clear()
@@ -391,6 +392,7 @@ class ProactiveDashboard:
             print("Approvals mode (requires rich library for full display)")
             return
 
+        assert self._console is not None
         stats = self._get_entity_stats()
 
         self._console.clear()
@@ -408,6 +410,7 @@ class ProactiveDashboard:
             print("Agents mode (requires rich library for full display)")
             return
 
+        assert self._console is not None
         stats = self._get_entity_stats()
 
         self._console.clear()
@@ -445,6 +448,7 @@ class ProactiveDashboard:
             print("Autonomy mode (requires rich library for full display)")
             return
 
+        assert self._console is not None
         stats = self._get_entity_stats()
 
         self._console.clear()
@@ -495,6 +499,7 @@ class ProactiveDashboard:
             print("Knowledge mode (requires rich library for full display)")
             return
 
+        assert self._console is not None
         stats = self._get_entity_stats()
 
         self._console.clear()
@@ -538,6 +543,7 @@ class ProactiveDashboard:
             )
             return
 
+        assert self._console is not None
         self._console.clear()
         self._console.print(self._create_header())
         self._console.print()
@@ -621,7 +627,7 @@ class ProactiveDashboard:
             pass
         finally:
             self._running = False
-            if RICH_AVAILABLE:
+            if RICH_AVAILABLE and self._console is not None:
                 self._console.print("\n[yellow]Dashboard stopped[/yellow]")
             else:
                 print("\nDashboard stopped")
@@ -640,7 +646,7 @@ def create_dashboard(
 
 
 # CLI entry point
-async def main():
+async def main() -> None:
     """CLI entry point for standalone dashboard."""
 
     print("╔══════════════════════════════════════════════════════════════╗")

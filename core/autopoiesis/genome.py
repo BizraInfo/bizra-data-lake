@@ -132,7 +132,7 @@ class AgentGenome:
     def _generate_id(self) -> str:
         """Generate unique genome ID."""
         content = f"{datetime.now().isoformat()}{random.random()}"
-        return hashlib.md5(content.encode()).hexdigest()[:12]
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
     def _initialize_default_genes(self):
         """Initialize with default gene set."""

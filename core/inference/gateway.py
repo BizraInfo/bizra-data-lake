@@ -60,9 +60,9 @@ try:
     LMSTUDIO_AVAILABLE = True
 except ImportError:
     LMSTUDIO_AVAILABLE = False
-    LMStudioClient = None
-    LMStudioConfig = None
-    ChatMessage = None
+    LMStudioClient = None  # type: ignore[assignment, misc]
+    LMStudioConfig = None  # type: ignore[assignment, misc]
+    ChatMessage = None  # type: ignore[assignment, misc]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -809,7 +809,7 @@ class PooledHttpClient:
 
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
-                    None, lambda: urllib.request.urlopen(req, timeout=timeout)
+                    None, lambda: urllib.request.urlopen(req, timeout=timeout)  # nosec B310 — URL from trusted connection pool config
                 )
                 with response as resp:
                     result: Dict[str, Any] = json.loads(resp.read().decode())
@@ -2071,7 +2071,7 @@ class OllamaBackend(InferenceBackendBase):
                 f"{self.config.ollama_url}/api/tags",
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 data = json.loads(resp.read().decode())
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
@@ -2143,7 +2143,7 @@ class OllamaBackend(InferenceBackendBase):
         timeout = self.config.circuit_breaker.request_timeout
 
         def make_request():
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 data = json.loads(resp.read().decode())
                 return data.get("response", "")
 
@@ -2178,7 +2178,7 @@ class OllamaBackend(InferenceBackendBase):
 
         try:
             req = urllib.request.Request(f"{self.config.ollama_url}/api/tags")
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 return resp.status == 200
         except Exception:
             return False

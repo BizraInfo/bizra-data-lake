@@ -35,8 +35,10 @@ impl ConfigPaths {
             base,
         }
     }
+}
 
-    pub fn default() -> Self {
+impl Default for ConfigPaths {
+    fn default() -> Self {
         let base = std::env::current_dir()
             .unwrap_or_else(|_| PathBuf::from("."))
             .join("config");

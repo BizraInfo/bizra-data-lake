@@ -11,7 +11,7 @@ use clap::{Args, Parser, Subcommand};
 use hardware_detect::detect_hardware;
 use model_cache::ModelSpec;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_DATA_DIR: &str = ".bizra";
@@ -290,17 +290,17 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn expand_home(path: &PathBuf) -> PathBuf {
+fn expand_home(path: &Path) -> PathBuf {
     let path_str = path.to_string_lossy();
     if path_str.starts_with("~/") || path_str == "~" {
         if let Some(home) = dirs::home_dir() {
             return home.join(path_str.trim_start_matches("~/"));
         }
     }
-    path.clone()
+    path.to_path_buf()
 }
 
-async fn cmd_init(data_dir: &PathBuf, force: bool) -> anyhow::Result<()> {
+async fn cmd_init(data_dir: &Path, force: bool) -> anyhow::Result<()> {
     println!(
         r#"
     ╔══════════════════════════════════════════════════════════════╗
@@ -383,7 +383,7 @@ constitution:
     Ok(())
 }
 
-async fn cmd_serve(data_dir: &PathBuf, args: ServeArgs) -> anyhow::Result<()> {
+async fn cmd_serve(data_dir: &Path, args: ServeArgs) -> anyhow::Result<()> {
     println!("🚀 Starting BIZRA API Server...\n");
 
     let identity_file = data_dir.join("identity.key");
@@ -418,7 +418,7 @@ async fn cmd_serve(data_dir: &PathBuf, args: ServeArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_join(_data_dir: &PathBuf, seed: &str, port: u16) -> anyhow::Result<()> {
+async fn cmd_join(_data_dir: &Path, seed: &str, port: u16) -> anyhow::Result<()> {
     println!("🔗 Joining federation...\n");
     println!("   Seed node: {}", seed);
     println!("   Local port: {}", port);
@@ -433,7 +433,7 @@ async fn cmd_join(_data_dir: &PathBuf, seed: &str, port: u16) -> anyhow::Result<
     Ok(())
 }
 
-async fn cmd_status(data_dir: &PathBuf, detailed: bool) -> anyhow::Result<()> {
+async fn cmd_status(data_dir: &Path, detailed: bool) -> anyhow::Result<()> {
     let identity_file = data_dir.join("identity.key");
 
     println!("📊 BIZRA Node Status\n");
@@ -527,7 +527,7 @@ async fn cmd_models(action: ModelCommands) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn cmd_inference(_data_dir: &PathBuf, args: InferenceArgs) -> anyhow::Result<()> {
+async fn cmd_inference(_data_dir: &Path, args: InferenceArgs) -> anyhow::Result<()> {
     println!("🧠 Running Inference\n");
     println!("   Tier:        {}", args.tier);
     println!("   Max Tokens:  {}", args.max_tokens);
@@ -547,7 +547,7 @@ async fn cmd_inference(_data_dir: &PathBuf, args: InferenceArgs) -> anyhow::Resu
     Ok(())
 }
 
-async fn cmd_federation(_data_dir: &PathBuf, action: FederationCommands) -> anyhow::Result<()> {
+async fn cmd_federation(_data_dir: &Path, action: FederationCommands) -> anyhow::Result<()> {
     match action {
         FederationCommands::Status => {
             println!("🌐 Federation Status\n");
@@ -571,7 +571,7 @@ async fn cmd_federation(_data_dir: &PathBuf, action: FederationCommands) -> anyh
     Ok(())
 }
 
-async fn cmd_identity(data_dir: &PathBuf, action: IdentityCommands) -> anyhow::Result<()> {
+async fn cmd_identity(data_dir: &Path, action: IdentityCommands) -> anyhow::Result<()> {
     use bizra_core::NodeIdentity;
 
     match action {
@@ -650,7 +650,7 @@ async fn cmd_identity(data_dir: &PathBuf, action: IdentityCommands) -> anyhow::R
     Ok(())
 }
 
-async fn cmd_pci(_data_dir: &PathBuf, action: PCICommands) -> anyhow::Result<()> {
+async fn cmd_pci(_data_dir: &Path, action: PCICommands) -> anyhow::Result<()> {
     match action {
         PCICommands::Create { payload, ttl } => {
             println!("📦 Creating PCI Envelope\n");

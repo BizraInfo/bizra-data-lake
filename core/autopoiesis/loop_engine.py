@@ -26,6 +26,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import tempfile
 import time
 import uuid
 from collections import deque
@@ -775,7 +776,7 @@ class AutopoieticLoop:
         self._cycle_results: Deque[AutopoieticResult] = deque(maxlen=50)
 
         # Audit log persistence
-        self._audit_log_path = audit_log_path or Path("/tmp/autopoietic_audit.jsonl")
+        self._audit_log_path = audit_log_path or Path(tempfile.gettempdir()) / "autopoietic_audit.jsonl"
 
         # Metrics
         self._total_improvements = 0
@@ -1541,7 +1542,8 @@ class AutopoieticLoop:
 
         # Archive the pattern for future reference
         pattern_id = hashlib.md5(
-            json.dumps(result.shadow_metrics, sort_keys=True).encode()
+            json.dumps(result.shadow_metrics, sort_keys=True).encode(),
+            usedforsecurity=False,
         ).hexdigest()[:12]
 
         integration_result = IntegrationResult(
