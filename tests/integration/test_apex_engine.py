@@ -276,7 +276,10 @@ class TestLocalFirstModel:
     async def test_lm_studio_connection(self):
         """Test LM Studio connection (requires LM Studio running)."""
         # Check if LM Studio is reachable first
-        import aiohttp
+        try:
+            import aiohttp
+        except ImportError:
+            pytest.skip("aiohttp not installed")
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{LMSTUDIO_URL}/v1/models", timeout=aiohttp.ClientTimeout(total=5)) as resp:
