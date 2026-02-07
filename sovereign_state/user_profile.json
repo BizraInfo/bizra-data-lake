@@ -1,9 +1,12 @@
 {
   "name": "Mohammed Beshr",
-  "node_id": "",
-  "node_name": "Node0",
+  "node_id": "node0_ce5af35c848ce889",
+  "node_name": "MoMo (\u0645\u062d\u0645\u062f)",
   "bio": "Founder of BIZRA. 3 years building a decentralized agentic ecosystem where every human is a node and every node is a seed. Full-stack architect across Python, Rust, TypeScript. RTX 4090 + 128GB RAM sovereign development node.",
-  "languages": ["en", "ar"],
+  "languages": [
+    "en",
+    "ar"
+  ],
   "expertise": [
     "AI/ML systems",
     "distributed systems",
@@ -21,11 +24,11 @@
     "transparency (proof-carrying inference)",
     "decentralization (no single point of control)"
   ],
-  "mission": "If the system fails to empower one user, one node, one human — then how will it serve 8 billion. Build AI that serves the human, not the corporation.",
+  "mission": "If the system fails to empower one user, one node, one human \u2014 then how will it serve 8 billion. Build AI that serves the human, not the corporation.",
   "pain_points": [
     "Centralized AI serves corporations, not humans",
     "3 years of work across 300K+ lines of code needs to come alive",
-    "Limited budget ($12 remaining) — system must prove itself locally first",
+    "Limited budget ($12 remaining) \u2014 system must prove itself locally first",
     "Infrastructure is built but the user-facing layer was missing",
     "Chat history and work artifacts not yet integrated into PAT memory"
   ],
@@ -45,7 +48,7 @@
   "dreams": [
     "A world where technology serves human flourishing, not corporate extraction",
     "Every seed (bizra) grows into a forest of sovereign intelligence",
-    "The MMRPG of real life — where everyone levels up through genuine contribution"
+    "The MMRPG of real life \u2014 where everyone levels up through genuine contribution"
   ],
   "current_projects": [
     "BIZRA-DATA-LAKE (persistent memory + knowledge layer)",
@@ -53,7 +56,7 @@
     "BIZRA-OS (React agent dashboard)",
     "Sovereign Engine (PAT runtime)"
   ],
-  "active_focus": "Making PAT system work for Node0 — proving one sovereign node can serve its human",
+  "active_focus": "Making PAT system work for Node0 \u2014 proving one sovereign node can serve its human",
   "communication_style": "direct",
   "preferred_depth": "deep"
 }

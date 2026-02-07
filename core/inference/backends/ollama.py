@@ -60,17 +60,27 @@ class OllamaBackend(InferenceBackendBase):
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> str:
         """Generate via Ollama API."""
-        payload = json.dumps(
-            {
-                "model": self._current_model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": max_tokens,
-                    "temperature": temperature,
-                },
-            }
-        ).encode()
+        # Separate system prompt from user query if delimiter present
+        system_prompt = None
+        user_prompt = prompt
+        if "--- QUERY ---" in prompt:
+            parts = prompt.split("--- QUERY ---", 1)
+            system_prompt = parts[0].strip()
+            user_prompt = parts[1].strip()
+
+        payload_dict = {
+            "model": self._current_model,
+            "prompt": user_prompt,
+            "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+                "temperature": temperature,
+            },
+        }
+        if system_prompt:
+            payload_dict["system"] = system_prompt
+
+        payload = json.dumps(payload_dict).encode()
 
         req = urllib.request.Request(
             f"{self.config.ollama_url}/api/generate",
@@ -79,7 +89,7 @@ class OllamaBackend(InferenceBackendBase):
             method="POST",
         )
 
-        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+        with urllib.request.urlopen(req, timeout=180) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
             data = json.loads(resp.read().decode())
             return data.get("response", "")
 

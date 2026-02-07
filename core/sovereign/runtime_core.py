@@ -111,6 +111,21 @@ class SovereignRuntime:
     # LIFECYCLE
     # -------------------------------------------------------------------------
 
+    def _load_env_vars(self) -> None:
+        """Load environment variables from sovereign_state/.env if present."""
+        import os
+        env_file = self.config.state_dir / ".env"
+        if env_file.exists():
+            for line in env_file.read_text().strip().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, value = line.partition("=")
+                    key = key.strip()
+                    value = value.strip().strip("'\"")
+                    if key and not os.getenv(key):
+                        os.environ[key] = value
+            self.logger.info(f"✓ Loaded env vars from {env_file}")
+
     @classmethod
     @asynccontextmanager
     async def create(
@@ -128,6 +143,9 @@ class SovereignRuntime:
         """Initialize all components."""
         if self._initialized:
             return
+
+        # Load env vars from sovereign_state/.env (API keys, endpoints)
+        self._load_env_vars()
 
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME INITIALIZING")
@@ -301,13 +319,20 @@ class SovereignRuntime:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
         try:
-            from core.inference.gateway import InferenceConfig, InferenceGateway
+            from core.inference.gateway import CircuitBreakerConfig, InferenceConfig, InferenceGateway
 
             self._gateway = InferenceGateway(
-                config=InferenceConfig(require_local=False)
+                config=InferenceConfig(
+                    require_local=False,
+                    circuit_breaker=CircuitBreakerConfig(
+                        request_timeout=180.0,  # Local models need time for long prompts
+                        failure_threshold=3,
+                        recovery_timeout=30.0,
+                    ),
+                )
             )
             try:
-                await asyncio.wait_for(self._gateway.initialize(), timeout=5.0)
+                await asyncio.wait_for(self._gateway.initialize(), timeout=30.0)
                 self.logger.info("✓ InferenceGateway loaded and initialized")
             except (asyncio.TimeoutError, Exception) as init_err:
                 self.logger.warning(
@@ -785,7 +810,7 @@ class SovereignRuntime:
                     inference_result = await infer_method(
                         contextual_prompt,
                         tier=compute_tier,
-                        max_tokens=1024,
+                        max_tokens=512,
                     )
                     answer = getattr(inference_result, "content", str(inference_result))
                     model_used = getattr(inference_result, "model", "unknown")
