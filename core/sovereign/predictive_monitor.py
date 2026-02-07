@@ -285,6 +285,53 @@ class PredictiveMonitor:
         # Assume ~1 reading per minute
         return current + analysis.slope * (hours * 60)
 
+    def get_persistable_state(self) -> Dict[str, Any]:
+        """Get serializable state for checkpoint persistence.
+
+        Captures trend baselines and recent metric summaries so the monitor
+        doesn't start cold after restart. Full readings are NOT persisted
+        (too large); instead we persist the analysis results and recent
+        summary statistics per metric.
+        """
+        baselines: Dict[str, Any] = {}
+        for name, readings in self._metrics.items():
+            if readings:
+                values = [r.value for r in readings]
+                baselines[name] = {
+                    "count": len(values),
+                    "mean": sum(values) / len(values),
+                    "min": min(values),
+                    "max": max(values),
+                    "latest": values[-1],
+                }
+
+        analyses: Dict[str, Any] = {}
+        for name, analysis in self._analyses.items():
+            analyses[name] = {
+                "direction": analysis.direction.name,
+                "slope": analysis.slope,
+                "confidence": analysis.confidence,
+                "anomaly_score": analysis.anomaly_score,
+                "forecast_1h": analysis.forecast_1h,
+                "forecast_24h": analysis.forecast_24h,
+            }
+
+        return {
+            "baselines": baselines,
+            "analyses": analyses,
+            "alert_count": self._alert_count,
+            "tracked_metrics": list(self._metrics.keys()),
+        }
+
+    def restore_persistable_state(self, state: Dict[str, Any]) -> int:
+        """Restore alert count from persisted state.
+
+        Baselines are informational (used for warm-start logging).
+        Returns count of restored metrics.
+        """
+        self._alert_count = state.get("alert_count", 0)
+        return len(state.get("baselines", {}))
+
     def stats(self) -> Dict[str, Any]:
         """Get monitor statistics."""
         return {

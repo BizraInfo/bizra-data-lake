@@ -44,6 +44,7 @@ class SNRResult(TypedDict, total=False):
     original_length: int
     snr_score: float
     meets_threshold: bool
+    optimized: Optional[str]  # RFC-04: Optimized content from SNR pipeline
 
 
 class ValidationResult(TypedDict, total=False):
@@ -90,7 +91,7 @@ class GraphReasonerProtocol(Protocol):
 class SNROptimizerProtocol(Protocol):
     """Protocol for SNR maximizer."""
 
-    def optimize(self, text: str) -> SNRResult: ...
+    async def optimize(self, text: str) -> SNRResult: ...
 
 
 @runtime_checkable
@@ -254,6 +255,7 @@ class RuntimeMetrics:
     # Timing
     avg_query_time_ms: float = 0.0
     total_uptime_seconds: float = 0.0
+    started_at: Optional[datetime] = None  # RFC-02 FIX: Declared so runtime can set it
 
     # Quality
     current_ihsan_score: float = 0.0
