@@ -174,7 +174,8 @@ impl PATInferenceConfig {
             }
         }
         self.models
-            .get(&InferenceCapability::Chat).cloned()
+            .get(&InferenceCapability::Chat)
+            .cloned()
             .unwrap_or_default()
     }
 

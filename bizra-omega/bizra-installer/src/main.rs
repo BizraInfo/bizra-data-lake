@@ -503,10 +503,7 @@ async fn cmd_models(action: ModelCommands) -> anyhow::Result<()> {
     match action {
         ModelCommands::List => {
             println!("📋 Available Models\n");
-            println!(
-                "   {:20} {:10} {:8} DESCRIPTION",
-                "NAME", "TIER", "SIZE"
-            );
+            println!("   {:20} {:10} {:8} DESCRIPTION", "NAME", "TIER", "SIZE");
             println!("   {}", "-".repeat(60));
             for m in ModelSpec::available() {
                 println!(

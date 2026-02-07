@@ -51,9 +51,7 @@ impl<const N: usize> Hunter<N> {
 
     /// Health check: pipeline gates open + recent tick
     pub fn health_check(&self) -> bool {
-        
-        self
-            .pipeline
+        self.pipeline
             .cascade
             .is_open(crate::cascade::GateType::Technical)
             && self

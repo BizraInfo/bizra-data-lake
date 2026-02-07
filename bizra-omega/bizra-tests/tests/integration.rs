@@ -7,9 +7,8 @@ use bizra_core::{
     domain_separated_digest,
     // Sovereign module imports
     sovereign::{
-        CircuitState, GiantRegistry, OmegaConfig, OmegaEngine,
-        SNRConfig, SNREngine, SovereignError, ThoughtGraph,
-        ThoughtNode,
+        CircuitState, GiantRegistry, OmegaConfig, OmegaEngine, SNRConfig, SNREngine,
+        SovereignError, ThoughtGraph, ThoughtNode,
     },
     Constitution,
     GateContext,

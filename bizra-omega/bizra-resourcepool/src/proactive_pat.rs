@@ -65,17 +65,15 @@ pub struct UserProfile {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum CommunicationStyle {
-    Concise,        // Brief, to the point
-    Detailed,       // Comprehensive explanations
-    Technical,      // Code and specs preferred
+    Concise,   // Brief, to the point
+    Detailed,  // Comprehensive explanations
+    Technical, // Code and specs preferred
     #[default]
     Conversational, // Natural dialogue
-    Formal,         // Professional tone
+    Formal,    // Professional tone
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserGoal {
