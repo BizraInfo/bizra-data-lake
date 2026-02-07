@@ -26,7 +26,11 @@ from typing import (
 )
 
 from .genesis_identity import GenesisState, load_and_validate_genesis
-from .memory_coordinator import MemoryCoordinator, MemoryCoordinatorConfig, RestorePriority
+from .memory_coordinator import (
+    MemoryCoordinator,
+    MemoryCoordinatorConfig,
+    RestorePriority,
+)
 from .runtime_stubs import (
     StubFactory,
 )
@@ -193,10 +197,14 @@ class SovereignRuntime:
                 self._graph_reasoner = GraphOfThoughts()
                 self.logger.info("✓ GraphOfThoughts loaded (full)")
             except ImportError:
-                self._graph_reasoner = StubFactory.create_graph_reasoner("Import failed")
+                self._graph_reasoner = StubFactory.create_graph_reasoner(
+                    "Import failed"
+                )
                 self.logger.warning("⚠ GraphOfThoughts unavailable, using stub")
         else:
-            self._graph_reasoner = StubFactory.create_graph_reasoner("Disabled by config")
+            self._graph_reasoner = StubFactory.create_graph_reasoner(
+                "Disabled by config"
+            )
             self.logger.info("○ GraphOfThoughts disabled by config")
 
         # Try full SNRMaximizer (only if flag enabled)
@@ -243,10 +251,14 @@ class SovereignRuntime:
                 )
                 self.logger.info("✓ AutonomousLoop loaded (full)")
             except ImportError:
-                self._autonomous_loop = StubFactory.create_autonomous_loop("Import failed")
+                self._autonomous_loop = StubFactory.create_autonomous_loop(
+                    "Import failed"
+                )
                 self.logger.warning("⚠ AutonomousLoop unavailable, using stub")
         else:
-            self._autonomous_loop = StubFactory.create_autonomous_loop("Disabled by config")
+            self._autonomous_loop = StubFactory.create_autonomous_loop(
+                "Disabled by config"
+            )
             self.logger.info("○ AutonomousLoop disabled by config")
 
         # Omega Point Integration
@@ -267,7 +279,9 @@ class SovereignRuntime:
                 await asyncio.wait_for(self._gateway.initialize(), timeout=5.0)
                 self.logger.info("✓ InferenceGateway loaded and initialized")
             except (asyncio.TimeoutError, Exception) as init_err:
-                self.logger.warning(f"⚠ InferenceGateway init timeout/error: {init_err}, gateway available but uninitialized")
+                self.logger.warning(
+                    f"⚠ InferenceGateway init timeout/error: {init_err}, gateway available but uninitialized"
+                )
         except ImportError as e:
             self._gateway = None
             self.logger.warning(f"⚠ InferenceGateway unavailable: {e}")
@@ -706,7 +720,9 @@ class SovereignRuntime:
             # Track SNR improvement
             if optimized_content != content:
                 original_len = len(content)
-                improvement = (original_len - len(optimized_content)) / max(1, original_len)
+                improvement = (original_len - len(optimized_content)) / max(
+                    1, original_len
+                )
                 self.metrics.update_snr_stats(improvement)
 
         self.metrics.current_snr_score = snr_score
@@ -883,7 +899,11 @@ class SovereignRuntime:
             identity_info["public_key"] = self._genesis.identity.public_key[:16] + "..."
             identity_info["pat_agents"] = len(self._genesis.pat_team)
             identity_info["sat_agents"] = len(self._genesis.sat_team)
-            identity_info["genesis_hash"] = self._genesis.genesis_hash.hex()[:16] + "..." if self._genesis.genesis_hash else "none"
+            identity_info["genesis_hash"] = (
+                self._genesis.genesis_hash.hex()[:16] + "..."
+                if self._genesis.genesis_hash
+                else "none"
+            )
 
         memory_status = (
             self._memory_coordinator.stats()

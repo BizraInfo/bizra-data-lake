@@ -376,7 +376,9 @@ class SovereignRuntime:
             from core.vault.vault import CRYPTO_AVAILABLE, SovereignVault
 
             if not CRYPTO_AVAILABLE:
-                logger.warning("cryptography package not installed — vault unavailable, using plaintext fallback")
+                logger.warning(
+                    "cryptography package not installed — vault unavailable, using plaintext fallback"
+                )
                 return self._load_or_generate_keypair_plaintext()
 
             vault = SovereignVault(vault_path=vault_dir, master_secret=vault_secret)
@@ -410,9 +412,13 @@ class SovereignRuntime:
                     pk = old_data.get("private_key", "")
                     pub = old_data.get("public_key", "")
                     if pk and pub and len(pub) >= 64:
-                        vault.put("sovereign_keypair", {"private_key": pk, "public_key": pub})
+                        vault.put(
+                            "sovereign_keypair", {"private_key": pk, "public_key": pub}
+                        )
                         keypair_path.unlink()
-                        logger.info("Migrated plaintext keypair into encrypted vault (old file deleted)")
+                        logger.info(
+                            "Migrated plaintext keypair into encrypted vault (old file deleted)"
+                        )
                         # Re-harden after migration write
                         if vault_idx.exists():
                             try:
@@ -426,7 +432,10 @@ class SovereignRuntime:
             # Generate fresh keypair and store in vault
             private_key, public_key = generate_keypair()
             keypair_path.parent.mkdir(parents=True, exist_ok=True)
-            vault.put("sovereign_keypair", {"private_key": private_key, "public_key": public_key})
+            vault.put(
+                "sovereign_keypair",
+                {"private_key": private_key, "public_key": public_key},
+            )
             # Harden after initial write
             if vault_idx.exists():
                 try:

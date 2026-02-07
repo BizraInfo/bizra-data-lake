@@ -298,7 +298,12 @@ class BizraDoctor:
                         name="LM Studio",
                         status=CheckStatus.OK,
                         message=f"Connected at {host}:{port} ({len(models)} models, {len(loaded)} loaded)",
-                        details={"url": url, "models": model_ids, "count": len(models), "loaded": len(loaded)},
+                        details={
+                            "url": url,
+                            "models": model_ids,
+                            "count": len(models),
+                            "loaded": len(loaded),
+                        },
                     )
                 )
         except urllib.error.HTTPError as e:
@@ -506,7 +511,6 @@ class BizraDoctor:
                     details={"error": str(e)},
                 )
             )
-
 
     async def check_memory_persistence(self) -> None:
         """Check memory persistence state."""

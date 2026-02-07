@@ -32,7 +32,9 @@ from typing import Callable, Dict, List
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
 ELEVATION_THRESHOLD = 3  # Min repetitions to elevate
-MIN_SNR_FOR_ELEVATION = UNIFIED_SNR_THRESHOLD  # Minimum SNR to consider for elevation (SEC-020 aligned)
+MIN_SNR_FOR_ELEVATION = (
+    UNIFIED_SNR_THRESHOLD  # Minimum SNR to consider for elevation (SEC-020 aligned)
+)
 MIN_SNR_DELTA_FOR_ELEVATION = 0.10  # Minimum SNR improvement required for elevation
 MIN_IHSAN_FOR_PROPAGATION = UNIFIED_IHSAN_THRESHOLD  # Ihsān floor for network sharing
 PATTERN_TTL_HOURS = 168  # 7 days

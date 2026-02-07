@@ -128,11 +128,13 @@ Or type any query to get a sovereign response.
 
                 if query.lower() == "status":
                     status = runtime.status()
-                    ident = status['identity']
-                    node_label = ident.get('node_name', ident['node_id'])
+                    ident = status["identity"]
+                    node_label = ident.get("node_name", ident["node_id"])
                     print(f"\nNode: {node_label} ({ident['node_id']})")
-                    if ident.get('pat_agents'):
-                        print(f"PAT: {ident['pat_agents']} agents | SAT: {ident['sat_agents']} agents")
+                    if ident.get("pat_agents"):
+                        print(
+                            f"PAT: {ident['pat_agents']} agents | SAT: {ident['sat_agents']} agents"
+                        )
                     print(
                         f"Health: {status['health']['status']} ({status['health']['score']})"
                     )
@@ -245,9 +247,9 @@ async def run_status(json_output: bool = False):
             print_banner()
             print("System Status")
             print("=" * 60)
-            ident = status['identity']
+            ident = status["identity"]
             print(f"Node ID:    {ident['node_id']}")
-            if ident.get('node_name'):
+            if ident.get("node_name"):
                 print(f"Node Name:  {ident['node_name']}")
                 print(f"Location:   {ident.get('location', 'unknown')}")
                 print(f"Genesis:    {ident.get('genesis_hash', 'none')}")
@@ -256,15 +258,17 @@ async def run_status(json_output: bool = False):
             print(f"Version:    {ident['version']}")
             print(f"Mode:       {status['state']['mode']}")
             print("-" * 60)
-            health = status.get('health', {})
+            health = status.get("health", {})
             print(f"Health:     {health.get('status', 'unknown')}")
             print(f"Score:      {health.get('score', 'N/A')}")
             print(f"SNR:        {health.get('snr', 'N/A')}")
             print(f"Ihsan:      {health.get('ihsan', 'N/A')}")
             print("-" * 60)
-            mem = status.get('memory', {})
-            if mem.get('running'):
-                print(f"Memory:     Auto-save active ({mem.get('save_count', 0)} saves)")
+            mem = status.get("memory", {})
+            if mem.get("running"):
+                print(
+                    f"Memory:     Auto-save active ({mem.get('save_count', 0)} saves)"
+                )
                 print(f"Providers:  {', '.join(mem.get('providers', []))}")
             else:
                 print("Memory:     Auto-save inactive")
@@ -297,7 +301,11 @@ async def run_doctor(verbose: bool = False, json_output: bool = False):
     sys.exit(await doctor_check(verbose, json_output))
 
 
-def run_onboard(name: Optional[str] = None, node_dir: Optional[str] = None, json_output: bool = False):
+def run_onboard(
+    name: Optional[str] = None,
+    node_dir: Optional[str] = None,
+    json_output: bool = False,
+):
     """Run node onboarding wizard."""
     from pathlib import Path
 
@@ -312,12 +320,18 @@ def run_onboard(name: Optional[str] = None, node_dir: Optional[str] = None, json
         # Non-interactive mode
         existing = wizard.load_existing_credentials()
         if existing is not None:
-            print(json_mod.dumps({"status": "already_onboarded", **existing.to_dict()}, indent=2))
+            print(
+                json_mod.dumps(
+                    {"status": "already_onboarded", **existing.to_dict()}, indent=2
+                )
+            )
             return
 
         try:
             credentials = wizard.onboard(name=name)
-            print(json_mod.dumps({"status": "success", **credentials.to_dict()}, indent=2))
+            print(
+                json_mod.dumps({"status": "success", **credentials.to_dict()}, indent=2)
+            )
         except (RuntimeError, FileExistsError) as e:
             print(json_mod.dumps({"status": "error", "error": str(e)}, indent=2))
             sys.exit(1)
@@ -353,11 +367,16 @@ def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
         agents_data = {}
         if wizard.agents_file.exists():
             agents_data = json_mod.loads(wizard.agents_file.read_text())
-        print(json_mod.dumps({
-            "credentials": credentials.to_dict(),
-            "identity": identity_data,
-            "agents": agents_data,
-        }, indent=2))
+        print(
+            json_mod.dumps(
+                {
+                    "credentials": credentials.to_dict(),
+                    "identity": identity_data,
+                    "agents": agents_data,
+                },
+                indent=2,
+            )
+        )
         return
 
     # Terminal dashboard
@@ -378,7 +397,9 @@ def run_dashboard(node_dir: Optional[str] = None, json_output: bool = False):
     print(f"  Node ID:          {credentials.node_id}")
     print(f"  Sovereignty:      {tier} {bar}  ({credentials.sovereignty_score:.2f})")
     print(f"  Created:          {credentials.created_at[:19]}")
-    print(f"  Public Key:       {credentials.public_key[:16]}...{credentials.public_key[-8:]}")
+    print(
+        f"  Public Key:       {credentials.public_key[:16]}...{credentials.public_key[-8:]}"
+    )
     print()
     print("  PERSONAL AGENTIC TEAM (PAT)")
     print("  " + "-" * 40)
@@ -449,10 +470,15 @@ def run_impact(node_dir: Optional[str] = None, json_output: bool = False):
     tier_info = tracker.get_tier_progress()
 
     if json_output:
-        print(json_mod.dumps({
-            "progress": progress.to_dict(),
-            "tier_progress": tier_info,
-        }, indent=2))
+        print(
+            json_mod.dumps(
+                {
+                    "progress": progress.to_dict(),
+                    "tier_progress": tier_info,
+                },
+                indent=2,
+            )
+        )
         return
 
     # Terminal display
@@ -472,7 +498,9 @@ def run_impact(node_dir: Optional[str] = None, json_output: bool = False):
     print(f"  Score:            {progress.sovereignty_score:.4f}")
     print(f"  Progress:         [{bar}] {pct}%")
     if tier_info["next_tier"]:
-        print(f"  Next Tier:        {tier_info['next_tier'].upper()} at {tier_info['next_threshold']:.2f}")
+        print(
+            f"  Next Tier:        {tier_info['next_tier'].upper()} at {tier_info['next_threshold']:.2f}"
+        )
     print()
     print(f"  Total Bloom:      {progress.total_bloom:.2f}")
     print(f"  Impact Events:    {progress.total_events}")

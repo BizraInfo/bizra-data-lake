@@ -59,10 +59,14 @@ class LMStudioEndpoint(Enum):
 class LMStudioConfig:
     """Configuration for LM Studio backend."""
 
-    host: str = field(default_factory=lambda: os.getenv("LMSTUDIO_HOST", "192.168.56.1"))
+    host: str = field(
+        default_factory=lambda: os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+    )
     port: int = field(default_factory=lambda: int(os.getenv("LMSTUDIO_PORT", "1234")))
     api_key: Optional[str] = field(
-        default_factory=lambda: os.getenv("LM_API_TOKEN") or os.getenv("LMSTUDIO_API_KEY") or os.getenv("LM_STUDIO_API_KEY")
+        default_factory=lambda: os.getenv("LM_API_TOKEN")
+        or os.getenv("LMSTUDIO_API_KEY")
+        or os.getenv("LM_STUDIO_API_KEY")
     )
     timeout: float = 120.0
     use_native_api: bool = True  # Use /api/v1/* instead of OpenAI-compat
@@ -191,7 +195,9 @@ class LMStudioBackend:
             is_loaded = bool(loaded_instances) or model_data.get("loaded", False)
             # v1 API uses "key" for model ID
             model_id = model_data.get("key", model_data.get("id", ""))
-            ctx_len = model_data.get("max_context_length", model_data.get("context_length", 4096))
+            ctx_len = model_data.get(
+                "max_context_length", model_data.get("context_length", 4096)
+            )
             # If loaded, use the instance's context_length if available
             if loaded_instances:
                 inst_ctx = loaded_instances[0].get("config", {}).get("context_length")
@@ -204,7 +210,11 @@ class LMStudioBackend:
                     path=model_data.get("path"),
                     loaded=is_loaded,
                     context_length=ctx_len,
-                    quantization=model_data.get("quantization", {}).get("name") if isinstance(model_data.get("quantization"), dict) else None,
+                    quantization=(
+                        model_data.get("quantization", {}).get("name")
+                        if isinstance(model_data.get("quantization"), dict)
+                        else None
+                    ),
                 )
             )
 
@@ -341,7 +351,9 @@ class LMStudioBackend:
             }
 
             # v1 API uses context_length (not max_tokens)
-            payload["context_length"] = context_length or self.config.context_length or 8000
+            payload["context_length"] = (
+                context_length or self.config.context_length or 8000
+            )
 
             # MCP integrations
             if mcp_servers and self.config.enable_mcp:
@@ -355,7 +367,9 @@ class LMStudioBackend:
                 payload["stream"] = True
                 return await self._stream_chat(payload)
 
-            response = await self._client.post(LMStudioEndpoint.CHAT.value, json=payload)
+            response = await self._client.post(
+                LMStudioEndpoint.CHAT.value, json=payload
+            )
             response.raise_for_status()
             data = response.json()
 
@@ -413,7 +427,9 @@ class LMStudioBackend:
                 self._chat_id = data["chat_id"]
 
             return ChatResponse(
-                content=data.get("choices", [{}])[0].get("message", {}).get("content", ""),
+                content=data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", ""),
                 model=data.get("model", model_id),
                 finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
                 usage=data.get("usage", {}),

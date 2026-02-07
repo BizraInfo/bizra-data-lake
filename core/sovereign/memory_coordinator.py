@@ -86,7 +86,9 @@ class MemoryCoordinator:
 
         # State providers (registered by runtime components)
         # Maps name -> (provider_fn, priority)
-        self._state_providers: Dict[str, Tuple[Callable[[], Dict[str, Any]], RestorePriority]] = {}
+        self._state_providers: Dict[
+            str, Tuple[Callable[[], Dict[str, Any]], RestorePriority]
+        ] = {}
 
         # State
         self._running = False
@@ -220,9 +222,7 @@ class MemoryCoordinator:
 
         self._running = True
         self._auto_save_task = asyncio.create_task(self._auto_save_loop())
-        logger.info(
-            f"Auto-save started (interval: {self.config.auto_save_interval}s)"
-        )
+        logger.info(f"Auto-save started (interval: {self.config.auto_save_interval}s)")
 
     async def _auto_save_loop(self) -> None:
         """Background loop that periodically saves all memory."""

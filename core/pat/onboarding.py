@@ -216,7 +216,9 @@ class OnboardingWizard:
         # Use os.open() with mode to avoid TOCTOU race between write and chmod
         cred_path = self.credentials_file
         cred_data = json.dumps(credentials.to_dict(), indent=2)
-        fd = os.open(str(cred_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, _CREDENTIAL_FILE_MODE)
+        fd = os.open(
+            str(cred_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, _CREDENTIAL_FILE_MODE
+        )
         try:
             os.write(fd, cred_data.encode("utf-8"))
         finally:
@@ -224,9 +226,7 @@ class OnboardingWizard:
 
         # Identity card (public — shareable)
         identity_path = self.identity_file
-        identity_path.write_text(
-            json.dumps(result.identity_card.to_dict(), indent=2)
-        )
+        identity_path.write_text(json.dumps(result.identity_card.to_dict(), indent=2))
 
         # Agent manifest
         agents_data = {
@@ -301,7 +301,7 @@ class OnboardingWizard:
         print("  Your 12 agents are active and ready to serve.")
         print()
         print("  Next steps:")
-        print("    bizra query \"What can you do for me?\"")
+        print('    bizra query "What can you do for me?"')
         print("    bizra status")
         print("    bizra dashboard")
         print("=" * 60)
