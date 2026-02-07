@@ -648,8 +648,9 @@ Examples:
 
         node_id = ""
         if getattr(args, "node_dir", None):
-            from ..pat.onboarding import get_node_credentials
             from pathlib import Path
+
+            from ..pat.onboarding import get_node_credentials
 
             creds = get_node_credentials(node_dir=Path(args.node_dir))
             if creds:

@@ -62,7 +62,7 @@ from enum import Enum
 from statistics import mean, stdev
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
-from core.integration.constants import UNIFIED_SNR_THRESHOLD, SNR_THRESHOLD_T1_HIGH
+from core.integration.constants import SNR_THRESHOLD_T1_HIGH, UNIFIED_SNR_THRESHOLD
 
 logger = logging.getLogger(__name__)
 

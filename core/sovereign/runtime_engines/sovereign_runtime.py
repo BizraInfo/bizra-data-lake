@@ -71,6 +71,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.integration.constants import (
+    STRICT_IHSAN_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+)
+
 # Runtime components
 from .giants_registry import (
     attribute,
@@ -86,11 +91,6 @@ from .snr_maximizer import (
     Signal,
     SignalQuality,
     SNRMaximizer,
-)
-
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)

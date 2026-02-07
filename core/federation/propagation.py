@@ -25,11 +25,12 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Dict, List
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
 ELEVATION_THRESHOLD = 3  # Min repetitions to elevate
 MIN_SNR_FOR_ELEVATION = (

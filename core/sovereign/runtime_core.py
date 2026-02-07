@@ -268,9 +268,7 @@ class SovereignRuntime:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
         try:
-            from core.inference.gateway import InferenceGateway
-
-            from core.inference.gateway import InferenceConfig
+            from core.inference.gateway import InferenceConfig, InferenceGateway
 
             self._gateway = InferenceGateway(
                 config=InferenceConfig(require_local=False)
