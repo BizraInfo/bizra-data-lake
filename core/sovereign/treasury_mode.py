@@ -36,6 +36,8 @@ from .treasury_persistence import TreasuryPersistence
 
 # Types, constants, enums
 from .treasury_types import (  # Constants; Enums; Data classes
+    COMPUTE_MULTIPLIERS,
+    DEFAULT_BURN_RATE,
     EMERGENCY_TREASURY_UNLOCK_PERCENT,
     ETHICS_THRESHOLD_HIBERNATION,
     ETHICS_THRESHOLD_RECOVERY,
@@ -113,6 +115,8 @@ __all__ = [
     # Factory
     "create_treasury_controller",
     # Constants
+    "COMPUTE_MULTIPLIERS",
+    "DEFAULT_BURN_RATE",
     "ETHICS_THRESHOLD_HIBERNATION",
     "ETHICS_THRESHOLD_RECOVERY",
     "RESERVES_THRESHOLD_EMERGENCY",
