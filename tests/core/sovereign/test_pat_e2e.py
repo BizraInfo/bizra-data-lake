@@ -70,7 +70,7 @@ class TestPATEndToEnd:
             )
 
             query = SovereignQuery(text="What should I focus on?")
-            prompt = runtime._build_contextual_prompt("What should I focus on?", query)
+            prompt = await runtime._build_contextual_prompt("What should I focus on?", query)
 
             assert "Mohammed" in prompt
             assert "Empower 8 billion humans" in prompt
@@ -92,7 +92,7 @@ class TestPATEndToEnd:
             runtime._user_context.conversation.add_pat_turn("PAT has 7 agents...")
 
             query = SovereignQuery(text="Which agent handles strategy?")
-            prompt = runtime._build_contextual_prompt("Which agent handles strategy?", query)
+            prompt = await runtime._build_contextual_prompt("Which agent handles strategy?", query)
 
             assert "Tell me about PAT" in prompt
             assert "PAT has 7 agents" in prompt
@@ -154,7 +154,7 @@ class TestPATEndToEnd:
             )
 
             query = SovereignQuery(text="What should our strategy be?")
-            prompt = runtime._build_contextual_prompt("What should our strategy be?", query)
+            prompt = await runtime._build_contextual_prompt("What should our strategy be?", query)
 
             assert "STRATEGIST" in prompt
             assert query.context.get("_responding_agent") == "strategist"

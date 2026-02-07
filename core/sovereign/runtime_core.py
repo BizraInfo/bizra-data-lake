@@ -759,10 +759,10 @@ class SovereignRuntime:
 
         return reasoning_path, confidence, thought_prompt
 
-    def _build_contextual_prompt(
+    async def _build_contextual_prompt(
         self, thought_prompt: str, query: SovereignQuery
     ) -> str:
-        """Build a prompt enriched with user context, PAT identity, and memory."""
+        """Build a prompt enriched with user context, PAT identity, and memory retrieval."""
         if not self._user_context:
             return thought_prompt
 
@@ -778,11 +778,32 @@ class SovereignRuntime:
             if selected_agent:
                 pat_info += f"\nResponding as: {selected_agent.upper()}"
 
-        # Get relevant memories from living memory (if available)
+        # RAG retrieval from living memory
         memory_context = ""
         living_memory = getattr(self, "_living_memory", None)
         if living_memory:
-            memory_context = living_memory.get_working_context(max_entries=5)
+            try:
+                # Retrieve memories relevant to the query
+                memories = await living_memory.retrieve(
+                    query=query.text, top_k=5, min_score=0.15
+                )
+                if memories:
+                    parts = []
+                    for mem in memories:
+                        label = mem.memory_type.value.upper()
+                        # Truncate long memories to keep prompt manageable
+                        content = mem.content
+                        if len(content) > 800:
+                            content = content[:800] + "..."
+                        parts.append(f"[{label}] {content}")
+                    memory_context = "\n\n".join(parts)
+                    self.logger.debug(
+                        f"RAG: retrieved {len(memories)} memories for query"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Memory retrieval failed: {e}")
+                # Fall back to working context
+                memory_context = living_memory.get_working_context(max_entries=5)
 
         # Build system prompt
         system_prompt = self._user_context.build_system_prompt(
@@ -801,7 +822,7 @@ class SovereignRuntime:
     ) -> tuple[str, str]:
         """STAGE 2: LLM inference via gateway with user context."""
         # Build contextual prompt with user profile, memory, and PAT routing
-        contextual_prompt = self._build_contextual_prompt(thought_prompt, query)
+        contextual_prompt = await self._build_contextual_prompt(thought_prompt, query)
 
         if self._gateway:
             try:
@@ -828,7 +849,14 @@ class SovereignRuntime:
         snr_score = UNIFIED_SNR_THRESHOLD
 
         if self._snr_optimizer:
-            snr_result = await self._snr_optimizer.optimize(content)
+            import inspect
+
+            result_or_coro = self._snr_optimizer.optimize(content)
+            snr_result = (
+                await result_or_coro
+                if inspect.isawaitable(result_or_coro)
+                else result_or_coro
+            )
             snr_score = snr_result.get("snr_score", UNIFIED_SNR_THRESHOLD)
             # RFC-04 FIX: Actually use the optimized content from SNR pipeline
             optimized_content = snr_result.get("optimized") or content
