@@ -139,6 +139,12 @@ from .genesis_identity import (
     validate_genesis_hash,
 )
 
+# Memory Coordinator (Unified Auto-Save)
+from .memory_coordinator import (
+    MemoryCoordinator,
+    MemoryCoordinatorConfig,
+)
+
 # Autonomy module (pure Python)
 from .autonomy import (
     AutonomousLoop,
@@ -720,6 +726,9 @@ __all__ = [
     "load_genesis",
     "validate_genesis_hash",
     "load_and_validate_genesis",
+    # Memory Coordinator (Unified Auto-Save)
+    "MemoryCoordinator",
+    "MemoryCoordinatorConfig",
     # Core Engine (requires numpy)
     "SovereignEngine",
     "SovereignConfig",

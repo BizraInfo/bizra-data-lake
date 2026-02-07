@@ -26,6 +26,7 @@ from typing import (
 )
 
 from .genesis_identity import GenesisState, load_and_validate_genesis
+from .memory_coordinator import MemoryCoordinator, MemoryCoordinatorConfig
 from .runtime_stubs import (
     StubFactory,
 )
@@ -80,6 +81,9 @@ class SovereignRuntime:
 
         # Genesis Identity (persistent across restarts)
         self._genesis: Optional[GenesisState] = None
+
+        # Unified Memory Coordinator (auto-save + persistence)
+        self._memory_coordinator: Optional[MemoryCoordinator] = None
 
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
@@ -140,6 +144,9 @@ class SovereignRuntime:
 
         if self.config.autonomous_enabled:
             await self._start_autonomous_loop()
+
+        # Initialize unified memory coordinator with auto-save
+        await self._init_memory_coordinator()
 
         self._setup_signal_handlers()
 
@@ -249,6 +256,69 @@ class SovereignRuntime:
             self._omega = None
             self.logger.warning(f"⚠ OmegaEngine unavailable: {e}")
 
+    async def _init_memory_coordinator(self) -> None:
+        """Initialize the unified memory coordinator with auto-save."""
+        try:
+            config = MemoryCoordinatorConfig(
+                state_dir=self.config.state_dir,
+                auto_save_interval=120.0,
+            )
+            self._memory_coordinator = MemoryCoordinator(config)
+            self._memory_coordinator.initialize(
+                node_id=self.config.node_id,
+                node_name=self._genesis.node_name if self._genesis else None,
+            )
+
+            # Register runtime state provider
+            self._memory_coordinator.register_state_provider(
+                "runtime", self._get_runtime_state
+            )
+
+            # Register living memory if available
+            try:
+                from core.living_memory.core import LivingMemoryCore
+
+                living_memory = LivingMemoryCore(
+                    storage_path=self.config.state_dir / "living_memory",
+                )
+                await living_memory.initialize()
+                self._memory_coordinator.register_living_memory(living_memory)
+                self.logger.info("✓ LivingMemory connected to auto-save")
+            except ImportError:
+                self.logger.warning("⚠ LivingMemory unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ LivingMemory init failed: {e}")
+
+            # Start auto-save background loop
+            if self.config.enable_persistence:
+                await self._memory_coordinator.start_auto_save()
+                self.logger.info("✓ MemoryCoordinator auto-save active")
+
+        except Exception as e:
+            self.logger.warning(f"⚠ MemoryCoordinator init failed: {e}")
+
+    def _get_runtime_state(self) -> Dict[str, Any]:
+        """Provide runtime state snapshot for memory coordinator."""
+        state: Dict[str, Any] = {
+            "metrics": self.metrics.to_dict(),
+            "config": {
+                "node_id": self.config.node_id,
+                "mode": self.config.mode.name,
+            },
+            "components": {
+                "graph_reasoner": self._graph_reasoner is not None,
+                "snr_optimizer": self._snr_optimizer is not None,
+                "guardian_council": self._guardian_council is not None,
+                "autonomous_loop": self._autonomous_loop is not None,
+                "gateway": self._gateway is not None,
+                "omega": self._omega is not None,
+            },
+            "cache_size": len(self._cache),
+        }
+        if self._genesis:
+            state["genesis"] = self._genesis.summary()
+        return state
+
     async def _start_autonomous_loop(self) -> None:
         """Start the autonomous operation loop."""
         if self._autonomous_loop:
@@ -276,6 +346,10 @@ class SovereignRuntime:
 
         if self._autonomous_loop:
             self._autonomous_loop.stop()
+
+        # Stop memory coordinator (performs final save)
+        if self._memory_coordinator:
+            await self._memory_coordinator.stop()
 
         if self.config.enable_persistence:
             await self._checkpoint()
@@ -638,6 +712,12 @@ class SovereignRuntime:
             identity_info["sat_agents"] = len(self._genesis.sat_team)
             identity_info["genesis_hash"] = self._genesis.genesis_hash.hex()[:16] + "..." if self._genesis.genesis_hash else "none"
 
+        memory_status = (
+            self._memory_coordinator.stats()
+            if self._memory_coordinator
+            else {"running": False}
+        )
+
         return {
             "identity": identity_info,
             "state": {
@@ -651,6 +731,7 @@ class SovereignRuntime:
             },
             "autonomous": loop_status,
             "omega_point": omega_status,
+            "memory": memory_status,
             "metrics": self.metrics.to_dict(),
         }
 

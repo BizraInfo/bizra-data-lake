@@ -101,6 +101,7 @@ class BizraDoctor:
         await self.check_gpu()
         await self.check_filesystem()
         await self.check_constants()
+        await self.check_memory_persistence()
 
         return self.report
 
@@ -503,6 +504,60 @@ class BizraDoctor:
                     status=CheckStatus.FAIL,
                     message=f"Cannot import constants: {e}",
                     details={"error": str(e)},
+                )
+            )
+
+
+    async def check_memory_persistence(self) -> None:
+        """Check memory persistence state."""
+        state_dir = Path("sovereign_state")
+        checkpoints_dir = state_dir / "checkpoints"
+        living_memory_dir = state_dir / "living_memory"
+
+        details: Dict[str, Any] = {}
+        issues = []
+
+        # Check checkpoint directory
+        if checkpoints_dir.exists():
+            cp_files = list(checkpoints_dir.glob("cp-*.json"))
+            details["checkpoints"] = len(cp_files)
+        else:
+            details["checkpoints"] = 0
+            issues.append("no checkpoints yet")
+
+        # Check living memory
+        memory_file = living_memory_dir / "memories.jsonl"
+        if memory_file.exists():
+            line_count = sum(1 for _ in open(memory_file))
+            details["living_memory_entries"] = line_count
+        else:
+            details["living_memory_entries"] = 0
+
+        # Check coordinator module
+        try:
+            from .memory_coordinator import MemoryCoordinator
+
+            details["coordinator_available"] = True
+        except ImportError:
+            details["coordinator_available"] = False
+            issues.append("MemoryCoordinator not importable")
+
+        if issues:
+            self.report.add(
+                CheckResult(
+                    name="Memory Persistence",
+                    status=CheckStatus.WARN,
+                    message=f"Issues: {', '.join(issues)}",
+                    details=details,
+                )
+            )
+        else:
+            self.report.add(
+                CheckResult(
+                    name="Memory Persistence",
+                    status=CheckStatus.OK,
+                    message=f"{details['checkpoints']} checkpoints, {details['living_memory_entries']} memories",
+                    details=details,
                 )
             )
 
