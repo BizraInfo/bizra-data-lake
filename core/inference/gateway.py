@@ -2076,8 +2076,18 @@ class OllamaBackend(InferenceBackendBase):
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
                 if self._available_models:
+                    # Prefer capable models over tiny ones
+                    preferred = ["deepseek-r1", "llama3.1", "llama3", "mistral", "qwen"]
                     self._current_model = self._available_models[0]
+                    for pref in preferred:
+                        for model in self._available_models:
+                            if pref in model and "embed" not in model:
+                                self._current_model = model
+                                break
+                        if self._current_model != self._available_models[0]:
+                            break
                     print(f"[Ollama] Available models: {self._available_models}")
+                    print(f"[Ollama] Selected model: {self._current_model}")
 
                     # Start connection pool if enabled
                     if self._connection_pool:
@@ -2119,17 +2129,27 @@ class OllamaBackend(InferenceBackendBase):
         """Internal generate method (unprotected)."""
         import urllib.request
 
-        payload = json.dumps(
-            {
-                "model": self._current_model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": max_tokens,
-                    "temperature": temperature,
-                },
-            }
-        ).encode()
+        # Separate system prompt from user query if delimiter present
+        system_prompt = None
+        user_prompt = prompt
+        if "--- QUERY ---" in prompt:
+            parts = prompt.split("--- QUERY ---", 1)
+            system_prompt = parts[0].strip()
+            user_prompt = parts[1].strip()
+
+        payload_dict = {
+            "model": self._current_model,
+            "prompt": user_prompt,
+            "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+                "temperature": temperature,
+            },
+        }
+        if system_prompt:
+            payload_dict["system"] = system_prompt
+
+        payload = json.dumps(payload_dict).encode()
 
         req = urllib.request.Request(
             f"{self.config.ollama_url}/api/generate",
@@ -2289,8 +2309,17 @@ class LMStudioBackend(InferenceBackendBase):
         if not self._client or not self._available:
             raise RuntimeError("LM Studio not initialized")
 
+        # Separate system prompt from user query if delimiter present
+        messages = []
+        if "--- QUERY ---" in prompt:
+            parts = prompt.split("--- QUERY ---", 1)
+            messages.append(ChatMessage(role="system", content=parts[0].strip()))
+            messages.append(ChatMessage(role="user", content=parts[1].strip()))
+        else:
+            messages.append(ChatMessage(role="user", content=prompt))
+
         response = await self._client.chat(
-            messages=[ChatMessage(role="user", content=prompt)],
+            messages=messages,
             model=self._current_model,
             max_tokens=max_tokens,
             temperature=temperature,
