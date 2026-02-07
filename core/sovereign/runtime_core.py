@@ -600,7 +600,6 @@ class SovereignRuntime:
     ) -> SovereignResult:
         """Internal query processing pipeline."""
         result = SovereignResult(query_id=query.id)
-        reasoning_start = time.perf_counter()
 
         # STAGE 0: Select compute tier
         compute_tier = await self._select_compute_tier(query)
