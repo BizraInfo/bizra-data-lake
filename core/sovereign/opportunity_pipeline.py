@@ -306,7 +306,7 @@ class OpportunityPipeline:
 
         # Pipeline state
         self._running = False
-        self._queue: asyncio.Queue[PipelineOpportunity] = asyncio.Queue()
+        self._queue: asyncio.Queue[PipelineOpportunity] = asyncio.Queue(maxsize=1000)
         self._active: Dict[str, PipelineOpportunity] = {}
         # PERF FIX: Use deque with maxlen for O(1) bounded storage
         self._completed: Deque[PipelineOpportunity] = deque(maxlen=1000)
@@ -335,6 +335,7 @@ class OpportunityPipeline:
             "total_executed": 0,
             "total_failed": 0,
             "total_deferred": 0,
+            "dropped_opportunities": 0,
             "by_domain": {},
             "by_autonomy": {},
         }
@@ -391,7 +392,11 @@ class OpportunityPipeline:
     # -------------------------------------------------------------------------
 
     async def submit(self, opportunity: PipelineOpportunity) -> str:
-        """Submit an opportunity to the pipeline."""
+        """Submit an opportunity to the pipeline.
+
+        Raises:
+            asyncio.QueueFull: If the bounded queue (maxsize=1000) is at capacity.
+        """
         self._metrics["total_received"] += 1
 
         # Track by domain
@@ -400,7 +405,18 @@ class OpportunityPipeline:
             self._metrics["by_domain"][domain] = {"received": 0, "executed": 0}
         self._metrics["by_domain"][domain]["received"] += 1
 
-        await self._queue.put(opportunity)
+        try:
+            self._queue.put_nowait(opportunity)
+        except asyncio.QueueFull:
+            self._metrics["dropped_opportunities"] += 1
+            logger.warning(
+                "Queue full (%d/%d) — dropped opportunity %s [domain=%s]",
+                self._queue.qsize(),
+                self._queue.maxsize,
+                opportunity.id,
+                domain,
+            )
+            raise
 
         if self.event_bus:
             await self.event_bus.publish(
@@ -765,11 +781,64 @@ class OpportunityPipeline:
         # PERF FIX: deque with maxlen auto-discards oldest (O(1))
         self._completed.append(opp)
 
+    def get_persistable_state(self) -> Dict[str, Any]:
+        """Get serializable state for checkpoint persistence.
+
+        SAFETY-CRITICAL: Rate limiter counts must survive restarts to prevent
+        action flooding after crash-restart cycles. Without this, a restart
+        resets all hourly/daily counters, allowing unbounded actions.
+        """
+        # Extract rate limiter state
+        rate_limiter_state: Dict[str, Any] = {}
+        for f in self._filters:
+            if isinstance(f, RateLimitFilter):
+                rate_limiter_state = {
+                    "hourly_counts": dict(f._hourly_counts),
+                    "daily_counts": dict(f._daily_counts),
+                    "last_reset_hour": f._last_reset_hour,
+                    "last_reset_day": f._last_reset_day,
+                }
+                break
+
+        return {
+            "metrics": dict(self._metrics),
+            "rate_limiter": rate_limiter_state,
+            "pending_approval_count": len(self._pending_approval),
+            "completed_count": len(self._completed),
+        }
+
+    def restore_persistable_state(self, state: Dict[str, Any]) -> bool:
+        """Restore rate limiter state from persisted checkpoint.
+
+        Returns True if rate limiter was restored.
+        """
+        rate_state = state.get("rate_limiter", {})
+        if not rate_state:
+            return False
+
+        for f in self._filters:
+            if isinstance(f, RateLimitFilter):
+                f._hourly_counts = rate_state.get("hourly_counts", {})
+                f._daily_counts = rate_state.get("daily_counts", {})
+                f._last_reset_hour = rate_state.get("last_reset_hour", time.time())
+                f._last_reset_day = rate_state.get("last_reset_day", time.time())
+                logger.info(
+                    "Rate limiter restored: %d hourly, %d daily domains",
+                    len(f._hourly_counts),
+                    len(f._daily_counts),
+                )
+                return True
+        return False
+
     def stats(self) -> Dict[str, Any]:
         """Get pipeline statistics."""
+        maxsize = self._queue.maxsize
+        qsize = self._queue.qsize()
         return {
             **self._metrics,
-            "queue_size": self._queue.qsize(),
+            "queue_size": qsize,
+            "queue_maxsize": maxsize,
+            "queue_utilization": qsize / maxsize if maxsize > 0 else 0.0,
             "active_count": len(self._active),
             "pending_approval": len(self._pending_approval),
             "completed_count": len(self._completed),
@@ -838,16 +907,23 @@ def connect_muraqabah_to_pipeline(
     """
 
     async def forward_to_pipeline(event: Event) -> None:
-        if event.event_type == "muraqabah.opportunity":
-            await pipeline.submit_from_muraqabah(
-                domain=event.data.get("domain", "unknown"),
-                description=event.data.get("description", ""),
-                source=event.data.get("source", "muraqabah"),
-                snr_score=event.data.get("snr_score", 0.0),
-                urgency=event.data.get("urgency", 0.5),
-                estimated_value=event.data.get("estimated_value", 0.0),
-                context=event.data.get("context"),
-            )
+        # RFC-06 FIX: Event uses .topic and .payload (not .event_type / .data)
+        if event.topic == "muraqabah.opportunity":
+            try:
+                await pipeline.submit_from_muraqabah(
+                    domain=event.payload.get("domain", "unknown"),
+                    description=event.payload.get("description", ""),
+                    source=event.payload.get("source", "muraqabah"),
+                    snr_score=event.payload.get("snr_score", 0.0),
+                    urgency=event.payload.get("urgency", 0.5),
+                    estimated_value=event.payload.get("estimated_value", 0.0),
+                    context=event.payload.get("context"),
+                )
+            except asyncio.QueueFull:
+                logger.warning(
+                    "Pipeline queue full — muraqabah opportunity dropped [domain=%s]",
+                    event.payload.get("domain", "unknown"),
+                )
 
     # Subscribe to muraqabah opportunities
     if hasattr(muraqabah_engine, "event_bus") and muraqabah_engine.event_bus:
