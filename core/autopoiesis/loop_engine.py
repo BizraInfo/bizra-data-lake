@@ -776,7 +776,9 @@ class AutopoieticLoop:
         self._cycle_results: Deque[AutopoieticResult] = deque(maxlen=50)
 
         # Audit log persistence
-        self._audit_log_path = audit_log_path or Path(tempfile.gettempdir()) / "autopoietic_audit.jsonl"
+        self._audit_log_path = (
+            audit_log_path or Path(tempfile.gettempdir()) / "autopoietic_audit.jsonl"
+        )
 
         # Metrics
         self._total_improvements = 0

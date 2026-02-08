@@ -97,7 +97,9 @@ class MinHashDeduplicator:
 
         for shingle in shingles:
             # Hash the shingle
-            h = int(hashlib.md5(shingle.encode(), usedforsecurity=False).hexdigest()[:8], 16)
+            h = int(
+                hashlib.md5(shingle.encode(), usedforsecurity=False).hexdigest()[:8], 16
+            )
 
             # Apply all permutations
             hashes = (self._a * h + self._b) % self._max_hash

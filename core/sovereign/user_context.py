@@ -346,7 +346,9 @@ class UserContextManager:
 
         # Section 2: Who is the human
         if self.profile.is_populated():
-            sections.append(f"\n--- WHO YOU SERVE ---\n{self.profile.summary_for_prompt()}")
+            sections.append(
+                f"\n--- WHO YOU SERVE ---\n{self.profile.summary_for_prompt()}"
+            )
         else:
             sections.append(
                 "\n--- WHO YOU SERVE ---\n"
@@ -366,9 +368,7 @@ class UserContextManager:
         # Section 5: Conversation context
         conversation_context = self.conversation.get_recent_context()
         if conversation_context:
-            sections.append(
-                f"\n--- RECENT CONVERSATION ---\n{conversation_context}"
-            )
+            sections.append(f"\n--- RECENT CONVERSATION ---\n{conversation_context}")
 
         # Section 6: Operating principles
         sections.append(
@@ -413,44 +413,109 @@ def select_pat_agent(query_text: str, pat_team: list) -> Optional[str]:
 
     # Strategy/planning/decision keywords
     strategy_keywords = {
-        "plan", "strategy", "decide", "prioritize", "roadmap", "direction",
-        "tradeoff", "should i", "what if", "next step", "approach",
+        "plan",
+        "strategy",
+        "decide",
+        "prioritize",
+        "roadmap",
+        "direction",
+        "tradeoff",
+        "should i",
+        "what if",
+        "next step",
+        "approach",
     }
 
     # Research/analysis keywords
     research_keywords = {
-        "research", "find", "search", "compare", "analyze", "investigate",
-        "explore", "study", "benchmark", "review", "evaluate", "assess",
+        "research",
+        "find",
+        "search",
+        "compare",
+        "analyze",
+        "investigate",
+        "explore",
+        "study",
+        "benchmark",
+        "review",
+        "evaluate",
+        "assess",
     }
 
     # Development/coding keywords
     dev_keywords = {
-        "code", "implement", "build", "develop", "fix", "debug", "deploy",
-        "test", "refactor", "architect", "design", "program", "api",
+        "code",
+        "implement",
+        "build",
+        "develop",
+        "fix",
+        "debug",
+        "deploy",
+        "test",
+        "refactor",
+        "architect",
+        "design",
+        "program",
+        "api",
     }
 
     # Analysis/data keywords
     analyst_keywords = {
-        "data", "metrics", "measure", "dashboard", "report", "trend",
-        "performance", "statistics", "forecast", "model", "predict",
+        "data",
+        "metrics",
+        "measure",
+        "dashboard",
+        "report",
+        "trend",
+        "performance",
+        "statistics",
+        "forecast",
+        "model",
+        "predict",
     }
 
     # Review/quality keywords
     review_keywords = {
-        "review", "audit", "quality", "check", "validate", "verify",
-        "security", "compliance", "standard", "best practice",
+        "review",
+        "audit",
+        "quality",
+        "check",
+        "validate",
+        "verify",
+        "security",
+        "compliance",
+        "standard",
+        "best practice",
     }
 
     # Execution/action keywords
     executor_keywords = {
-        "execute", "run", "do", "send", "create", "setup", "configure",
-        "install", "migrate", "automate", "schedule",
+        "execute",
+        "run",
+        "do",
+        "send",
+        "create",
+        "setup",
+        "configure",
+        "install",
+        "migrate",
+        "automate",
+        "schedule",
     }
 
     # Guardian/safety keywords
     guardian_keywords = {
-        "risk", "threat", "protect", "secure", "guard", "monitor",
-        "alert", "prevent", "safety", "ethical", "harm",
+        "risk",
+        "threat",
+        "protect",
+        "secure",
+        "guard",
+        "monitor",
+        "alert",
+        "prevent",
+        "safety",
+        "ethical",
+        "harm",
     }
 
     words = set(text.split())
