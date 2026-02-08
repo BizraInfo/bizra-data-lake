@@ -267,9 +267,7 @@ Your PAT team remembers the conversation and learns who you are.
                     if uc and uc.conversation.get_turn_count() > 0:
                         last_turns = list(uc.conversation._turns)
                         if last_turns and last_turns[-1].agent_role:
-                            print(
-                                f"[PAT {last_turns[-1].agent_role.upper()}]"
-                            )
+                            print(f"[PAT {last_turns[-1].agent_role.upper()}]")
                     print(f"{result.response}")
                     print(f"{'─' * 60}")
                     print(
@@ -675,7 +673,9 @@ Examples:
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Run API server")
-    serve_parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for server mode
+    serve_parser.add_argument(
+        "--host", default="0.0.0.0", help="Host to bind"
+    )  # nosec B104 — intentional: CLI default for server mode
     serve_parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     serve_parser.add_argument("--api-key", action="append", help="API keys")
 

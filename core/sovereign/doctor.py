@@ -287,7 +287,9 @@ class BizraDoctor:
                 headers["Authorization"] = f"Bearer {api_key}"
 
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted config (local LM Studio)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted config (local LM Studio)
                 data = json.loads(resp.read().decode())
                 models = data.get("models", data.get("data", []))
                 loaded = [m for m in models if m.get("loaded_instances")]
@@ -350,7 +352,9 @@ class BizraDoctor:
 
         try:
             req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted config (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted config (localhost Ollama)
                 data = json.loads(resp.read().decode())
                 models = data.get("models", [])
                 model_names = [m.get("name", "unknown") for m in models[:3]]

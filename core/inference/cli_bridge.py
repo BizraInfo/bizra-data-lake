@@ -270,7 +270,9 @@ async def cmd_serve(port: int = 8765):
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)  # nosec B104 — intentional: inference bridge serves local network
+    site = web.TCPSite(
+        runner, "0.0.0.0", port
+    )  # nosec B104 — intentional: inference bridge serves local network
     await site.start()
 
     # Keep running

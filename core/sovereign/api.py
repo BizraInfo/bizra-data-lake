@@ -624,7 +624,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Sovereign API Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for API server
+    parser.add_argument(
+        "--host", default="0.0.0.0", help="Host to bind"
+    )  # nosec B104 — intentional: CLI default for API server
     parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     parser.add_argument("--api-key", action="append", help="API keys (can repeat)")
 
