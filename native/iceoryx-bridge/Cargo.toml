@@ -7,7 +7,7 @@ license = "MIT"
 authors = ["BIZRA Collective"]
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Iceoryx2 for zero-copy IPC (250ns latency target)
@@ -35,5 +35,12 @@ tracing = "0.1"
 # Shared memory utilities
 memmap2 = "0.9"
 
+[dev-dependencies]
+criterion = "0.5"
+
 [build-dependencies]
 napi-build = "2.1"
+
+[[bench]]
+name = "ipc_latency"
+harness = false

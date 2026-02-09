@@ -48,6 +48,7 @@ hex = "0.4"
 
 [dev-dependencies]
 tokio-test = "0.4"
+criterion = "0.5"
 
 [[bin]]
 name = "proofspace-validator"
@@ -63,3 +64,7 @@ parallel = ["rayon"]
 [dependencies.rayon]
 version = "1.8"
 optional = true
+
+[[bench]]
+name = "proofspace_benchmark"
+harness = false
