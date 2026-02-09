@@ -405,6 +405,16 @@ class EpigeneticLayer:
 
         secret = os.environ.get("BIZRA_EPIGENOME_SECRET")
         if not secret:
+            # Check if running in production mode
+            is_production = os.environ.get("BIZRA_ENV", "").lower() == "production" or \
+                            os.environ.get("BIZRA_PRODUCTION_MODE", "0") == "1"
+            
+            if is_production:
+                raise RuntimeError(
+                    "BIZRA_EPIGENOME_SECRET must be set in production. "
+                    "Set this environment variable with a cryptographically secure key."
+                )
+            
             # For testing only: derive ephemeral key from node identity
             # This ensures tests work but production MUST set the env var
             import warnings

@@ -16,6 +16,7 @@ Standing on Giants: Shannon + Besta + Anthropic + SAPE Framework
 
 import asyncio
 import time
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -216,6 +217,9 @@ class TestFeatureFlagsRespected:
         assert config.enable_snr_optimization is False
         assert config.enable_guardian_validation is False
         assert config.enable_autonomous_loop is False
+        assert config.enable_proactive_kernel is False
+        assert config.enable_zpk_preflight is False
+        assert config.zpk_emit_bootstrap_events is False
 
         runtime = SovereignRuntime(config)
         await runtime._init_components()
@@ -339,3 +343,127 @@ class TestSNRResultType:
     def test_snr_result_optimized_optional(self):
         result: SNRResult = {"snr_score": 0.90}
         assert "optimized" not in result  # total=False makes it optional
+
+
+# =============================================================================
+# ZPK Preflight: Fail-Closed Bootstrap Gate
+# =============================================================================
+
+
+class TestZPKPreflight:
+    """Verify runtime ZPK preflight gate behavior."""
+
+    @pytest.mark.asyncio
+    async def test_zpk_preflight_disabled_noop(self):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        runtime = SovereignRuntime(RuntimeConfig.minimal())
+        await runtime._run_zpk_preflight()
+        assert runtime._zpk_bootstrap_result is None
+
+    @pytest.mark.asyncio
+    async def test_zpk_preflight_fail_closed(self):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        config = RuntimeConfig.minimal()
+        config.enable_zpk_preflight = True
+        config.zpk_manifest_uri = "/tmp/non-existent-manifest.json"
+        config.zpk_release_public_key = "11" * 32
+        runtime = SovereignRuntime(config)
+
+        with patch("core.zpk.ZeroPointKernel") as mock_zpk_cls:
+            mock_zpk = mock_zpk_cls.return_value
+            mock_zpk.bootstrap = AsyncMock(
+                return_value=SimpleNamespace(
+                    success=False,
+                    executed_version=None,
+                    rollback_used=False,
+                    reason="policy_denied",
+                )
+            )
+            with pytest.raises(RuntimeError, match="ZPK preflight failed"):
+                await runtime._run_zpk_preflight()
+
+    @pytest.mark.asyncio
+    async def test_zpk_preflight_success_sets_runtime_state(self):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        config = RuntimeConfig.minimal()
+        config.enable_zpk_preflight = True
+        config.zpk_manifest_uri = "/tmp/manifest.json"
+        config.zpk_release_public_key = "22" * 32
+        runtime = SovereignRuntime(config)
+
+        with patch("core.zpk.ZeroPointKernel") as mock_zpk_cls:
+            mock_zpk = mock_zpk_cls.return_value
+            mock_zpk.bootstrap = AsyncMock(
+                return_value=SimpleNamespace(
+                    success=True,
+                    executed_version="1.2.3",
+                    rollback_used=False,
+                    reason="executed",
+                )
+            )
+            await runtime._run_zpk_preflight()
+
+        state = runtime._get_runtime_state()
+        assert state["zpk_preflight"]["success"] is True
+        assert state["zpk_preflight"]["executed_version"] == "1.2.3"
+
+
+class TestRuntimeEnvOverrides:
+    """Verify runtime picks ZPK config from environment."""
+
+    def test_apply_env_overrides_for_zpk(self, monkeypatch):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        runtime = SovereignRuntime(RuntimeConfig.minimal())
+        monkeypatch.setenv("ZPK_PREFLIGHT_ENABLED", "true")
+        monkeypatch.setenv("ZPK_MANIFEST_URI", "/tmp/manifest.json")
+        monkeypatch.setenv("ZPK_RELEASE_PUBLIC_KEY", "ab" * 32)
+        monkeypatch.setenv("ZPK_ALLOWED_VERSIONS", "1.0.0,2.0.0")
+        monkeypatch.setenv("ZPK_MIN_POLICY_VERSION", "3")
+        monkeypatch.setenv("ZPK_MIN_IHSAN_POLICY", "0.97")
+        monkeypatch.setenv("ZPK_EMIT_BOOTSTRAP_EVENTS", "1")
+        monkeypatch.setenv("ZPK_EVENT_TOPIC", "federation.zpk.receipt")
+
+        runtime._apply_env_overrides()
+
+        assert runtime.config.enable_zpk_preflight is True
+        assert runtime.config.zpk_manifest_uri == "/tmp/manifest.json"
+        assert runtime.config.zpk_release_public_key == "ab" * 32
+        assert runtime.config.zpk_allowed_versions == ["1.0.0", "2.0.0"]
+        assert runtime.config.zpk_min_policy_version == 3
+        assert runtime.config.zpk_min_ihsan_policy == 0.97
+        assert runtime.config.zpk_emit_bootstrap_events is True
+        assert runtime.config.zpk_event_topic == "federation.zpk.receipt"
+
+    def test_apply_env_overrides_for_pek(self, monkeypatch):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        runtime = SovereignRuntime(RuntimeConfig.minimal())
+        monkeypatch.setenv("PEK_ENABLED", "true")
+        monkeypatch.setenv("PEK_CYCLE_SECONDS", "2.5")
+        monkeypatch.setenv("PEK_MIN_CONFIDENCE", "0.62")
+        monkeypatch.setenv("PEK_MIN_AUTO_CONFIDENCE", "0.81")
+        monkeypatch.setenv("PEK_BASE_TAU", "0.51")
+        monkeypatch.setenv("PEK_AUTO_EXECUTE_TAU", "0.79")
+        monkeypatch.setenv("PEK_QUEUE_SILENT_TAU", "0.31")
+        monkeypatch.setenv("PEK_ATTENTION_BUDGET_CAPACITY", "10.0")
+        monkeypatch.setenv("PEK_ATTENTION_BUDGET_RECOVERY_PER_CYCLE", "1.25")
+        monkeypatch.setenv("PEK_EMIT_PROOF_EVENTS", "1")
+        monkeypatch.setenv("PEK_PROOF_EVENT_TOPIC", "pek.proof.runtime")
+
+        runtime._apply_env_overrides()
+
+        assert runtime.config.enable_proactive_kernel is True
+        assert runtime.config.proactive_kernel_cycle_seconds == 2.5
+        assert runtime.config.proactive_kernel_min_confidence == 0.62
+        assert runtime.config.proactive_kernel_min_auto_confidence == 0.81
+        assert runtime.config.proactive_kernel_base_tau == 0.51
+        assert runtime.config.proactive_kernel_auto_execute_tau == 0.79
+        assert runtime.config.proactive_kernel_queue_silent_tau == 0.31
+        assert runtime.config.proactive_kernel_attention_budget_capacity == 10.0
+        assert runtime.config.proactive_kernel_attention_recovery_per_cycle == 1.25
+        assert runtime.config.proactive_kernel_emit_events is True
+        assert runtime.config.proactive_kernel_event_topic == "pek.proof.runtime"

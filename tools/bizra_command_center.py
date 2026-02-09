@@ -206,8 +206,8 @@ class BIZRACommandCenter:
             try:
                 count = sum(1 for _ in open(ddagi_path))
                 return True, f"{count} consciousness events"
-            except:
-                pass
+            except (IOError, OSError) as e:
+                logger.debug(f"DDAGI check failed: {e}")
         return False, "No consciousness data"
 
     def get_system_status(self) -> SystemStatus:
@@ -230,8 +230,10 @@ class BIZRACommandCenter:
             if torch.cuda.is_available():
                 gpu_available = True
                 gpu_memory = torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated() * 100 if torch.cuda.max_memory_allocated() > 0 else 0
-        except:
-            pass
+        except ImportError:
+            logger.debug("PyTorch not available for GPU check")
+        except Exception as e:
+            logger.debug(f"GPU check failed: {e}")
 
         # CPU/Memory
         cpu_percent = 0.0
@@ -240,8 +242,10 @@ class BIZRACommandCenter:
             import psutil
             cpu_percent = psutil.cpu_percent()
             memory_percent = psutil.virtual_memory().percent
-        except:
-            pass
+        except ImportError:
+            logger.debug("psutil not available for CPU/memory check")
+        except Exception as e:
+            logger.debug(f"CPU/memory check failed: {e}")
 
         # Circuit breakers
         active_breakers = 0
@@ -261,8 +265,8 @@ class BIZRACommandCenter:
                     stats = json.load(f)
                 nodes = stats.get("total_nodes", 0)
                 edges = stats.get("total_edges", 0)
-            except:
-                pass
+            except (json.JSONDecodeError, IOError) as e:
+                logger.debug(f"Graph stats read failed: {e}")
 
         # Chunks
         chunks = 0
@@ -272,8 +276,10 @@ class BIZRACommandCenter:
                 import pandas as pd
                 df = pd.read_parquet(chunks_path)
                 chunks = len(df)
-            except:
-                pass
+            except ImportError:
+                logger.debug("pandas not available for chunks count")
+            except Exception as e:
+                logger.debug(f"Chunks count failed: {e}")
 
         # Determine overall status
         if error_rate > 0.1 or active_breakers > 0:

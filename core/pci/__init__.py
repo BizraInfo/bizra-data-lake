@@ -7,6 +7,7 @@ from .crypto import (
     CanonicalizationError,
     NonAsciiError,
     NonCanonicalInputError,
+    PrivateKeyWrapper,
     canonical_json,
     canonicalize_and_validate,
     canonicalize_json,
@@ -28,4 +29,5 @@ from .gates import (
     VerificationResult,
 )
 from .reject_codes import RejectCode
-from .types import *
+
+# Note: types.py is currently empty - reserved for future type definitions

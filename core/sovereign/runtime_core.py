@@ -10,6 +10,8 @@ Standing on Giants: Besta (GoT) + Shannon (SNR) + Anthropic (Constitutional AI)
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import inspect
 import logging
 import signal
 import time
@@ -97,6 +99,9 @@ class SovereignRuntime:
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
         self._omega: Optional[object] = None  # OmegaEngine
+        self._living_memory: Optional[object] = None  # LivingMemoryCore
+        self._pek: Optional[object] = None  # ProactiveExecutionKernel
+        self._zpk_bootstrap_result: Optional[object] = None
 
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
@@ -126,6 +131,111 @@ class SovereignRuntime:
                         os.environ[key] = value
             self.logger.info(f"✓ Loaded env vars from {env_file}")
 
+    @staticmethod
+    def _parse_env_bool(value: str, default: bool = False) -> bool:
+        """Parse a boolean environment value with a safe default."""
+        if value is None:
+            return default
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        return default
+
+    def _apply_env_overrides(self) -> None:
+        """Apply runtime config overrides from environment variables."""
+        import os
+
+        def _set_float(env_name: str, attr_name: str) -> None:
+            raw = os.getenv(env_name)
+            if not raw:
+                return
+            try:
+                setattr(self.config, attr_name, float(raw))
+            except ValueError:
+                self.logger.warning("Invalid %s: %s", env_name, raw)
+
+        def _set_bool(env_name: str, attr_name: str) -> None:
+            raw = os.getenv(env_name)
+            if raw is None:
+                return
+            current = getattr(self.config, attr_name)
+            setattr(self.config, attr_name, self._parse_env_bool(raw, current))
+
+        manifest_uri = os.getenv("ZPK_MANIFEST_URI")
+        if manifest_uri:
+            self.config.zpk_manifest_uri = manifest_uri
+
+        release_pubkey = os.getenv("ZPK_RELEASE_PUBLIC_KEY")
+        if release_pubkey:
+            self.config.zpk_release_public_key = release_pubkey
+
+        enabled = os.getenv("ZPK_PREFLIGHT_ENABLED")
+        if enabled is not None:
+            self.config.enable_zpk_preflight = self._parse_env_bool(
+                enabled, self.config.enable_zpk_preflight
+            )
+
+        emit_events = os.getenv("ZPK_EMIT_BOOTSTRAP_EVENTS")
+        if emit_events is not None:
+            self.config.zpk_emit_bootstrap_events = self._parse_env_bool(
+                emit_events, self.config.zpk_emit_bootstrap_events
+            )
+
+        event_topic = os.getenv("ZPK_EVENT_TOPIC")
+        if event_topic:
+            self.config.zpk_event_topic = event_topic
+
+        allowed_versions = os.getenv("ZPK_ALLOWED_VERSIONS")
+        if allowed_versions:
+            self.config.zpk_allowed_versions = [
+                part.strip()
+                for part in allowed_versions.split(",")
+                if part.strip()
+            ]
+
+        min_policy_version = os.getenv("ZPK_MIN_POLICY_VERSION")
+        if min_policy_version:
+            try:
+                self.config.zpk_min_policy_version = int(min_policy_version)
+            except ValueError:
+                self.logger.warning(
+                    "Invalid ZPK_MIN_POLICY_VERSION: %s", min_policy_version
+                )
+
+        min_ihsan_policy = os.getenv("ZPK_MIN_IHSAN_POLICY")
+        if min_ihsan_policy:
+            try:
+                self.config.zpk_min_ihsan_policy = float(min_ihsan_policy)
+            except ValueError:
+                self.logger.warning(
+                    "Invalid ZPK_MIN_IHSAN_POLICY: %s", min_ihsan_policy
+                )
+
+        # Proactive Execution Kernel (PEK) overrides
+        _set_bool("PEK_ENABLED", "enable_proactive_kernel")
+        _set_bool("PEK_EMIT_PROOF_EVENTS", "proactive_kernel_emit_events")
+
+        pek_topic = os.getenv("PEK_PROOF_EVENT_TOPIC")
+        if pek_topic:
+            self.config.proactive_kernel_event_topic = pek_topic
+
+        _set_float("PEK_CYCLE_SECONDS", "proactive_kernel_cycle_seconds")
+        _set_float("PEK_MIN_CONFIDENCE", "proactive_kernel_min_confidence")
+        _set_float("PEK_MIN_AUTO_CONFIDENCE", "proactive_kernel_min_auto_confidence")
+        _set_float("PEK_BASE_TAU", "proactive_kernel_base_tau")
+        _set_float("PEK_AUTO_EXECUTE_TAU", "proactive_kernel_auto_execute_tau")
+        _set_float("PEK_QUEUE_SILENT_TAU", "proactive_kernel_queue_silent_tau")
+        _set_float(
+            "PEK_ATTENTION_BUDGET_CAPACITY",
+            "proactive_kernel_attention_budget_capacity",
+        )
+        _set_float(
+            "PEK_ATTENTION_BUDGET_RECOVERY_PER_CYCLE",
+            "proactive_kernel_attention_recovery_per_cycle",
+        )
+
     @classmethod
     @asynccontextmanager
     async def create(
@@ -146,6 +256,7 @@ class SovereignRuntime:
 
         # Load env vars from sovereign_state/.env (API keys, endpoints)
         self._load_env_vars()
+        self._apply_env_overrides()
 
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME INITIALIZING")
@@ -169,6 +280,9 @@ class SovereignRuntime:
                 f"SAT Team: {len(self._genesis.sat_team)} agents — "
                 f"{', '.join(a.role for a in self._genesis.sat_team)}"
             )
+
+        # Trusted bootstrap gate (optional fail-closed preflight)
+        await self._run_zpk_preflight()
 
         await self._init_components()
 
@@ -315,6 +429,70 @@ class SovereignRuntime:
         # Omega Point Integration
         await self._init_omega_components()
 
+        # PEK Integration (optional proactive kernel)
+        await self._init_proactive_execution_kernel()
+
+    async def _run_zpk_preflight(self) -> None:
+        """Run Zero Point Kernel bootstrap preflight when enabled.
+
+        Fail-closed: if enabled and preflight fails, runtime initialization aborts.
+        """
+        if not self.config.enable_zpk_preflight:
+            self._zpk_bootstrap_result = None
+            return
+
+        if not self.config.zpk_manifest_uri or not self.config.zpk_release_public_key:
+            raise RuntimeError(
+                "ZPK preflight enabled but zpk_manifest_uri/zpk_release_public_key missing"
+            )
+
+        try:
+            from core.zpk import ZeroPointKernel, ZPKPolicy
+        except Exception as e:
+            raise RuntimeError(f"ZPK preflight unavailable: {e}") from e
+
+        allowed_versions = (
+            set(self.config.zpk_allowed_versions)
+            if self.config.zpk_allowed_versions
+            else None
+        )
+        policy = ZPKPolicy(
+            allowed_versions=allowed_versions,
+            min_policy_version=self.config.zpk_min_policy_version,
+            min_ihsan_policy=self.config.zpk_min_ihsan_policy,
+        )
+
+        event_bus = None
+        if self.config.zpk_emit_bootstrap_events:
+            try:
+                from .event_bus import get_event_bus
+
+                event_bus = get_event_bus()
+            except Exception as e:
+                self.logger.warning("ZPK event bus unavailable: %s", e)
+
+        zpk = ZeroPointKernel(
+            state_dir=self.config.state_dir,
+            release_public_key_hex=self.config.zpk_release_public_key,
+            event_bus=event_bus,
+            event_topic=self.config.zpk_event_topic,
+        )
+        result = await zpk.bootstrap(
+            self.config.zpk_manifest_uri,
+            policy=policy,
+        )
+        self._zpk_bootstrap_result = result
+
+        if not getattr(result, "success", False):
+            reason = getattr(result, "reason", "unknown")
+            raise RuntimeError(f"ZPK preflight failed: {reason}")
+
+        self.logger.info(
+            "✓ ZPK preflight passed (version=%s, rollback=%s)",
+            getattr(result, "executed_version", "unknown"),
+            getattr(result, "rollback_used", False),
+        )
+
     async def _init_omega_components(self) -> None:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
@@ -352,6 +530,76 @@ class SovereignRuntime:
             self._omega = None
             self.logger.warning(f"⚠ OmegaEngine unavailable: {e}")
 
+    async def _init_proactive_execution_kernel(self) -> None:
+        """Initialize Proactive Execution Kernel (PEK) when enabled."""
+        if not self.config.enable_proactive_kernel:
+            self._pek = None
+            self.logger.info("○ ProactiveExecutionKernel disabled by config")
+            return
+
+        try:
+            from core.pek.kernel import (
+                ProactiveExecutionKernel,
+                ProactiveExecutionKernelConfig,
+            )
+            from .opportunity_pipeline import OpportunityPipeline
+
+            pipeline = OpportunityPipeline(
+                snr_threshold=self.config.snr_threshold,
+                ihsan_threshold=self.config.ihsan_threshold,
+            )
+            await pipeline.start()
+
+            event_bus = None
+            if self.config.proactive_kernel_emit_events:
+                try:
+                    from .event_bus import get_event_bus
+
+                    event_bus = get_event_bus()
+                except Exception as event_err:
+                    self.logger.warning("⚠ PEK event bus unavailable: %s", event_err)
+
+            pek_config = ProactiveExecutionKernelConfig(
+                cycle_interval_seconds=self.config.proactive_kernel_cycle_seconds,
+                min_confidence=self.config.proactive_kernel_min_confidence,
+                min_auto_confidence=self.config.proactive_kernel_min_auto_confidence,
+                base_tau=self.config.proactive_kernel_base_tau,
+                auto_execute_tau=self.config.proactive_kernel_auto_execute_tau,
+                queue_silent_tau=self.config.proactive_kernel_queue_silent_tau,
+                attention_budget_capacity=(
+                    self.config.proactive_kernel_attention_budget_capacity
+                ),
+                attention_budget_recovery_per_cycle=(
+                    self.config.proactive_kernel_attention_recovery_per_cycle
+                ),
+                emit_proof_events=self.config.proactive_kernel_emit_events,
+                proof_event_topic=self.config.proactive_kernel_event_topic,
+            )
+            self._pek = ProactiveExecutionKernel(
+                opportunity_pipeline=pipeline,
+                inference_gateway=self._gateway,
+                living_memory=self._living_memory,
+                state_dir=self.config.state_dir,
+                config=pek_config,
+                event_bus=event_bus,
+            )
+
+            # Optional formal verification hook (soft fallback when unavailable).
+            try:
+                from .z3_fate_gate import Z3FATEGate, Z3_AVAILABLE
+
+                if Z3_AVAILABLE:
+                    self._pek.set_fate_gate(Z3FATEGate())
+                    self.logger.info("✓ PEK FATE gate enabled (Z3)")
+            except Exception as fate_err:
+                self.logger.warning(f"⚠ PEK FATE gate unavailable: {fate_err}")
+
+            await self._pek.start()
+            self.logger.info("✓ ProactiveExecutionKernel started")
+        except Exception as e:
+            self._pek = None
+            self.logger.warning(f"⚠ ProactiveExecutionKernel init failed: {e}")
+
     async def _init_memory_coordinator(self) -> None:
         """Initialize the unified memory coordinator with auto-save."""
         try:
@@ -381,7 +629,10 @@ class SovereignRuntime:
                     storage_path=self.config.state_dir / "living_memory",
                 )
                 await living_memory.initialize()
+                self._living_memory = living_memory
                 self._memory_coordinator.register_living_memory(living_memory)
+                if self._pek and hasattr(self._pek, "set_living_memory"):
+                    self._pek.set_living_memory(living_memory)
                 self.logger.info("✓ LivingMemory connected to auto-save")
             except ImportError:
                 self.logger.warning("⚠ LivingMemory unavailable")
@@ -489,9 +740,21 @@ class SovereignRuntime:
                 "autonomous_loop": self._autonomous_loop is not None,
                 "gateway": self._gateway is not None,
                 "omega": self._omega is not None,
+                "pek": self._pek is not None,
             },
             "cache_size": len(self._cache),
         }
+        if self._zpk_bootstrap_result is not None:
+            state["zpk_preflight"] = {
+                "success": bool(getattr(self._zpk_bootstrap_result, "success", False)),
+                "executed_version": getattr(
+                    self._zpk_bootstrap_result, "executed_version", None
+                ),
+                "rollback_used": bool(
+                    getattr(self._zpk_bootstrap_result, "rollback_used", False)
+                ),
+                "reason": getattr(self._zpk_bootstrap_result, "reason", ""),
+            }
         if self._genesis:
             state["genesis"] = self._genesis.summary()
         return state
@@ -502,6 +765,18 @@ class SovereignRuntime:
         Wraps each provider in try/except so unavailable components
         don't block the memory coordinator.
         """
+        # PEK (kernel state + proof counters) — SAFETY priority
+        if self._pek and hasattr(self._pek, "get_persistable_state"):
+            try:
+                self._memory_coordinator.register_state_provider(
+                    "pek",
+                    self._pek.get_persistable_state,
+                    RestorePriority.SAFETY,
+                )
+                self.logger.debug("Registered PEK state provider")
+            except Exception:
+                pass
+
         # OpportunityPipeline — SAFETY priority (rate limiter must survive restarts)
         try:
             from .opportunity_pipeline import OpportunityPipeline
@@ -571,6 +846,12 @@ class SovereignRuntime:
 
         if self._autonomous_loop:
             self._autonomous_loop.stop()
+
+        if self._pek and hasattr(self._pek, "stop"):
+            try:
+                await self._pek.stop()
+            except Exception:
+                pass
 
         # Save user context (conversation history + profile)
         if self._user_context:
@@ -849,8 +1130,6 @@ class SovereignRuntime:
         snr_score = UNIFIED_SNR_THRESHOLD
 
         if self._snr_optimizer:
-            import inspect
-
             result_or_coro = self._snr_optimizer.optimize(content)
             snr_result = (
                 await result_or_coro
@@ -922,8 +1201,6 @@ class SovereignRuntime:
 
     def _cache_key(self, query: SovereignQuery) -> str:
         """Generate cache key for a query."""
-        import hashlib
-
         content = f"{query.text}:{query.require_reasoning}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 

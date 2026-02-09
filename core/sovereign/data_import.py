@@ -379,16 +379,30 @@ class DataImporter:
 
     async def _import_claude_conversations(self, file_path: Path) -> int:
         """Import Claude conversations.json (flat chat_messages format)."""
-        from core.living_memory.core import MemoryType
-
         logger.info(f"Loading Claude conversations from {file_path.name}...")
         data = json.loads(file_path.read_text(encoding="utf-8"))
-
         if not isinstance(data, list):
             return 0
-
         conversations = parse_claude_bulk(data)
         logger.info(f"Parsed {len(conversations)} Claude conversations with content")
+        return await self._store_conversations(conversations, source_prefix="claude")
+
+    async def import_deepseek_export(self, export_dir: Path) -> Dict[str, int]:
+        """Import a DeepSeek data export directory."""
+        results = {}
+
+        convos_file = export_dir / "conversations.json"
+        if convos_file.exists():
+            count = await self._import_conversations_file(convos_file)
+            results["conversations.json"] = count
+
+        return results
+
+    async def _store_conversations(
+        self, conversations: List[Dict[str, Any]], source_prefix: str = "chat"
+    ) -> int:
+        """Chunk and store parsed conversations into episodic memory."""
+        from core.living_memory.core import MemoryType
 
         total_chunks = 0
         for conv in conversations:
@@ -403,7 +417,7 @@ class DataImporter:
                     entry = await self._memory.encode(
                         content=chunk,
                         memory_type=MemoryType.EPISODIC,
-                        source=f"claude:{title[:50]}",
+                        source=f"{source_prefix}:{title[:50]}",
                         importance=0.7,
                     )
                     if entry:
@@ -412,19 +426,10 @@ class DataImporter:
                     else:
                         self._stats["skipped"] += 1
 
-        logger.info(f"Stored {total_chunks} chunks from {len(conversations)} Claude conversations")
+        logger.info(
+            f"Stored {total_chunks} chunks from {len(conversations)} conversations"
+        )
         return total_chunks
-
-    async def import_deepseek_export(self, export_dir: Path) -> Dict[str, int]:
-        """Import a DeepSeek data export directory."""
-        results = {}
-
-        convos_file = export_dir / "conversations.json"
-        if convos_file.exists():
-            count = await self._import_conversations_file(convos_file)
-            results["conversations.json"] = count
-
-        return results
 
     async def _import_chatgpt_memories(self, file_path: Path) -> int:
         """
@@ -480,42 +485,13 @@ class DataImporter:
 
     async def _import_conversations_file(self, file_path: Path) -> int:
         """Import a conversations.json file (ChatGPT or DeepSeek format)."""
-        from core.living_memory.core import MemoryType
-
         logger.info(f"Loading conversations from {file_path.name}...")
         data = json.loads(file_path.read_text(encoding="utf-8"))
-
         if not isinstance(data, list):
             return 0
-
         conversations = parse_chatgpt_bulk(data)
         logger.info(f"Parsed {len(conversations)} conversations with content")
-
-        total_chunks = 0
-        for conv in conversations:
-            title = conv["title"]
-            messages = conv["messages"]
-            self._stats["conversations"] += 1
-            self._stats["messages"] += len(messages)
-
-            # Chunk and store
-            chunks = chunk_conversation(title, messages)
-            for chunk in chunks:
-                if len(chunk) > 50:
-                    entry = await self._memory.encode(
-                        content=chunk,
-                        memory_type=MemoryType.EPISODIC,
-                        source=f"chat:{title[:50]}",
-                        importance=0.7,
-                    )
-                    if entry:
-                        total_chunks += 1
-                        self._stats["chunks_stored"] += 1
-                    else:
-                        self._stats["skipped"] += 1
-
-        logger.info(f"Stored {total_chunks} chunks from {len(conversations)} conversations")
-        return total_chunks
+        return await self._store_conversations(conversations, source_prefix="chat")
 
     async def _import_single_conversation(self, file_path: Path) -> int:
         """Import a single conversation JSON file (ChatGPT individual export)."""

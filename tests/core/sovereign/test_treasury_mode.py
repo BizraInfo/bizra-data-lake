@@ -10,7 +10,6 @@ GAP-C4: Ensures the Wealth Engine can survive unethical market conditions.
 """
 
 import pytest
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -39,10 +38,13 @@ from core.sovereign.treasury_mode import (
 # =============================================================================
 
 @pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir) / "test_memory.db"
+def temp_db(tmp_path):
+    """Create a temporary database path for testing.
+
+    Uses pytest's tmp_path (managed cleanup) instead of tempfile.TemporaryDirectory
+    to avoid Windows PermissionError when SQLite file locks race with __exit__ cleanup.
+    """
+    return tmp_path / "test_memory.db"
 
 
 @pytest.fixture

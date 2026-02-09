@@ -135,7 +135,12 @@ class SovereignVault:
         self._load_index()
 
     def _load_index(self):
-        """Load vault index (encrypted entry metadata)."""
+        """Load vault index (encrypted entry metadata).
+
+        Fail-closed: A corrupted/tampered vault index raises rather than
+        silently proceeding with empty state. An absent index is normal
+        for a new vault.
+        """
         if self._index_path.exists():
             try:
                 with open(self._index_path, "r") as f:
@@ -143,8 +148,16 @@ class SovereignVault:
                 for entry_data in data.get("entries", []):
                     entry = VaultEntry.from_dict(entry_data)
                     self._entries[entry.key] = entry
-            except Exception as e:
-                print(f"⚠️ Failed to load vault index: {e}")
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"Vault index corrupted (invalid JSON): {self._index_path}. "
+                    f"Refusing to proceed with empty vault. Error: {e}"
+                ) from e
+            except (KeyError, TypeError) as e:
+                raise RuntimeError(
+                    f"Vault index malformed (missing fields): {self._index_path}. "
+                    f"Refusing to proceed. Error: {e}"
+                ) from e
 
     def _save_index(self):
         """Save vault index."""
@@ -266,35 +279,63 @@ class SovereignVault:
         """
         Re-encrypt all entries with a new master secret.
 
+        Uses a two-phase commit pattern to prevent partial corruption:
+        Phase 1: Decrypt ALL entries with old secret (fail-fast on any error)
+        Phase 2: Re-encrypt ALL entries with new secret and commit atomically
+
+        Standing on Giants: Gray & Reuter (1993) — Transaction Processing
+
         Returns:
             Number of entries rotated
+
+        Raises:
+            RuntimeError: If any decryption fails (atomic rollback)
         """
         if not CRYPTO_AVAILABLE:
             raise RuntimeError("cryptography package not installed")
 
+        import logging
+        _logger = logging.getLogger(__name__)
+
+        # Phase 1: Decrypt ALL entries with old secret (fail-fast)
         self._master_secret = old_secret
-        count = 0
+        decrypted: dict[str, tuple[Any, dict[str, Any]]] = {}
 
         for key in list(self._entries.keys()):
             try:
-                # Decrypt with old secret
                 value = self.get(key)
                 metadata = self._entries[key].metadata
+                decrypted[key] = (value, metadata)
+            except Exception as e:
+                # Atomic rollback — restore original secret, raise
+                self._master_secret = old_secret
+                _logger.error(f"Rotation Phase 1 FAILED at key '{key}': {e}")
+                raise RuntimeError(
+                    f"Vault rotation aborted: decryption failed for key '{key}'. "
+                    f"All entries remain encrypted with old secret. Error: {e}"
+                ) from e
 
-                # Switch to new secret
-                self._master_secret = new_secret
+        # Phase 2: Re-encrypt ALL entries with new secret
+        self._master_secret = new_secret
+        count = 0
 
-                # Re-encrypt with new secret
+        for key, (value, metadata) in decrypted.items():
+            try:
                 self.put(key, value, metadata)
                 count += 1
-
-                # Reset for next iteration
-                self._master_secret = old_secret
             except Exception as e:
-                print(f"⚠️ Failed to rotate {key}: {e}")
+                # Phase 2 failure is critical — log and raise
+                _logger.critical(
+                    f"Rotation Phase 2 FAILED at key '{key}' ({count}/{len(decrypted)} "
+                    f"re-encrypted). Manual recovery required. Error: {e}"
+                )
+                raise RuntimeError(
+                    f"Vault rotation partially committed ({count}/{len(decrypted)}). "
+                    f"Keys 0..{count-1} use new secret, remainder use old secret. "
+                    f"Manual recovery required."
+                ) from e
 
-        # Final switch to new secret
-        self._master_secret = new_secret
+        _logger.info(f"Vault rotation complete: {count} entries re-encrypted")
         return count
 
     def get_stats(self) -> Dict:
@@ -339,50 +380,53 @@ if __name__ == "__main__":
         print("❌ cryptography package not installed")
         exit(1)
 
-    # Create vault with test secret
-    vault = SovereignVault(vault_path="./test_vault", master_secret="test_secret_123")
-
-    # Store some data
-    print("\n[1] Storing encrypted data...")
-    vault.put("api_key", {"service": "openai", "key": "sk-test-12345"})
-    vault.put(
-        "node_identity",
-        {"node_id": "node0", "private_key": "ed25519_private_key_here"},
-        metadata={"type": "identity"},
-    )
-
-    print(f"  Stored {len(vault.list_keys())} entries")
-
-    # Retrieve data
-    print("\n[2] Retrieving encrypted data...")
-    api_key = vault.get("api_key")
-    print(f"  API Key: {api_key}")
-
-    # List keys
-    print("\n[3] Vault contents:")
-    for key in vault.list_keys():
-        meta = vault.get_metadata(key)
-        print(f"  - {key}: {meta}")
-
-    # Stats
-    print("\n[4] Vault stats:")
-    stats = vault.get_stats()
-    print(f"  Entries: {stats['entry_count']}")
-    print(f"  Size: {stats['total_size_bytes']} bytes")
-
-    # Test wrong password
-    print("\n[5] Testing wrong password...")
-    vault.set_master_secret("wrong_password")
-    try:
-        vault.get("api_key")
-        print("  ❌ Should have failed!")
-    except ValueError as e:
-        print(f"  ✅ Correctly rejected: {e}")
-
-    # Cleanup
     import shutil
 
-    shutil.rmtree("./test_vault", ignore_errors=True)
+    _demo_path = "./test_vault"
+    try:
+        # Create vault with test secret
+        vault = SovereignVault(vault_path=_demo_path, master_secret="test_secret_123")
+
+        # Store some data
+        print("\n[1] Storing encrypted data...")
+        vault.put("api_key", {"service": "openai", "key": "sk-test-12345"})
+        vault.put(
+            "node_identity",
+            {"node_id": "node0", "private_key": "ed25519_private_key_here"},
+            metadata={"type": "identity"},
+        )
+
+        print(f"  Stored {len(vault.list_keys())} entries")
+
+        # Retrieve data
+        print("\n[2] Retrieving encrypted data...")
+        api_key = vault.get("api_key")
+        print(f"  API Key: {api_key}")
+
+        # List keys
+        print("\n[3] Vault contents:")
+        for key in vault.list_keys():
+            meta = vault.get_metadata(key)
+            print(f"  - {key}: {meta}")
+
+        # Stats
+        print("\n[4] Vault stats:")
+        stats = vault.get_stats()
+        print(f"  Entries: {stats['entry_count']}")
+        print(f"  Size: {stats['total_size_bytes']} bytes")
+
+        # Test wrong password
+        print("\n[5] Testing wrong password...")
+        vault.set_master_secret("wrong_password")
+        try:
+            vault.get("api_key")
+            print("  ❌ Should have failed!")
+        except ValueError as e:
+            print(f"  ✅ Correctly rejected: {e}")
+
+    finally:
+        # Guaranteed cleanup of test artifacts
+        shutil.rmtree(_demo_path, ignore_errors=True)
 
     print("\n" + "=" * 70)
     print("✅ Sovereign Vault Demo Complete")

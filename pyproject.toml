@@ -44,6 +44,7 @@ dev = [
     "isort>=5.12.0",
     "mypy>=1.5.0",
     "ruff>=0.1.0",
+    "hypothesis>=6.100.0",
 ]
 full = [
     "torch>=2.0.0",
@@ -114,9 +115,9 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 30% floor enforced in CI (ratchet upward as tests improve)
-# Target: 95% (Ihsan threshold) — reached incrementally
-fail_under = 30
+# Coverage gate: 50% floor enforced in CI (ratcheted from 30% after Tier 2)
+# Target: 95% (Ihsān threshold) — reached incrementally
+fail_under = 50
 show_missing = true
 precision = 2
 

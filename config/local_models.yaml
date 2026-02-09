@@ -1,0 +1,88 @@
+# BIZRA Local Model Configuration
+# Your LM Studio setup at 192.168.56.1:1234
+
+# API Configuration
+LM_STUDIO_URL: "http://192.168.56.1:1234"
+LM_API_TOKEN: "sk-lm-tf1GexG6:INN5TbySSqMbbGjILrkA"
+
+# Model Routing by Task Type
+models:
+  # Primary Reasoning Model (DeepSeek R1 8B)
+  reasoning:
+    id: "deepseek/deepseek-r1-0528-qwen3-8b"
+    role: "Deep reasoning, complex analysis, multi-step thinking"
+    parameters: 8B
+    
+  # Planning Model (AgentFlow 7B)
+  planning:
+    id: "agentflow-planner-7b-i1"
+    role: "Task decomposition, strategy, coordination"
+    parameters: 7B
+    
+  # Vision Models
+  vision_large:
+    id: "qwen/qwen3-vl-8b"
+    role: "Complex visual analysis, document understanding"
+    parameters: 8B
+    
+  vision_fast:
+    id: "qwen/qwen3-vl-4b"
+    role: "Quick visual checks, simple image processing"
+    parameters: 4B
+    
+  # Fast/Lightweight Models
+  fast:
+    id: "liquid/lfm2.5-1.2b"
+    role: "Quick responses, simple tasks, low latency"
+    parameters: 1.2B
+    
+  nano:
+    id: "nvidia/nemotron-3-nano"
+    role: "Ultra-fast, edge inference"
+    parameters: ~1B
+    
+  # Additional Models
+  uncensored:
+    id: "qwen2.5-14b_uncensored_instruct"
+    role: "Unrestricted generation, creative tasks"
+    parameters: 14B
+    
+  moe_champion:
+    id: "llama-3.2-8x3b-moe-dark-champion-instruct-uncensored-abliterated-18.4b"
+    role: "MoE for diverse tasks"
+    parameters: "18.4B (8x3B MoE)"
+    
+  thinking:
+    id: "qwen/qwen3-4b-thinking-2507"
+    role: "Explicit thinking/reasoning traces"
+    parameters: 4B
+    
+  embedding:
+    id: "text-embedding-nomic-embed-text-v1.5"
+    role: "Text embeddings for RAG/search"
+    type: "embedding"
+
+# Task-to-Model Routing
+routing:
+  # Query complexity → model selection
+  trivial: "fast"           # Simple queries → liquid 1.2B
+  simple: "fast"            # Basic questions → liquid 1.2B
+  moderate: "reasoning"     # Analysis → DeepSeek R1 8B
+  complex: "reasoning"      # Deep thinking → DeepSeek R1 8B
+  frontier: "moe_champion"  # Hardest tasks → MoE 18.4B
+  
+  # Intent-based routing
+  planning: "planning"      # Task planning → AgentFlow 7B
+  creative: "uncensored"    # Creative → Qwen 14B uncensored
+  vision: "vision_large"    # Image analysis → Qwen VL 8B
+  embedding: "embedding"    # Vector search → Nomic
+
+# PAT Team Agent Assignments
+pat_agents:
+  strategist: "planning"    # AgentFlow for strategy
+  researcher: "reasoning"   # DeepSeek for research
+  analyst: "reasoning"      # DeepSeek for analysis
+  creator: "uncensored"     # Qwen 14B for creation
+  executor: "fast"          # Liquid for quick execution
+  guardian: "reasoning"     # DeepSeek for safety checks
+  coordinator: "planning"   # AgentFlow for coordination

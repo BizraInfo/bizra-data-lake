@@ -221,6 +221,29 @@ class SNREngine:
 
         return grounding_ratio
 
+    def calculate_snr_normalized(self, **kwargs) -> "SNRResult":
+        """
+        SNRProtocol conformance adapter.
+
+        Wraps calculate_snr() and returns a canonical SNRResult.
+        This allows art_engine.SNREngine to be used interchangeably with
+        any SNRProtocol-conforming engine.
+        """
+        from core.snr_protocol import SNRResult
+
+        score, metrics = self.calculate_snr(
+            query_embedding=kwargs["query_embedding"],
+            context_embeddings=kwargs["context_embeddings"],
+            symbolic_facts=kwargs.get("symbolic_facts", []),
+            neural_results=kwargs.get("neural_results", []),
+        )
+        return SNRResult(
+            score=float(score),
+            ihsan_achieved=metrics.get("ihsan_achieved", False),
+            engine="embedding",
+            metrics=metrics,
+        )
+
 
 class GraphOfThoughts:
     """

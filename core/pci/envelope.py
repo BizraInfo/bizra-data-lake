@@ -42,8 +42,13 @@ MAX_MESSAGE_AGE_SECONDS: Final[int] = 300
 MAX_FUTURE_TIMESTAMP_SECONDS: Final[int] = 30
 
 # Nonce tracking for replay prevention
-_seen_nonces: Set[str] = set()
+# Uses a dict with timestamps for TTL-based eviction (thread-safe under GIL)
+# Standing on Giants: Lamport (1978) — "Time, Clocks, and the Ordering of Events"
+import threading
+_nonce_lock = threading.Lock()
+_seen_nonces: Dict[str, float] = {}  # nonce -> timestamp
 _nonce_max_size: Final[int] = 100000
+_nonce_ttl_seconds: Final[int] = 600  # 10 minutes
 
 
 # =============================================================================
@@ -101,35 +106,49 @@ class EnvelopeDict(TypedDict, total=False):
 FreshnessResult = Tuple[bool, str]
 
 
-def _timing_safe_nonce_lookup(nonce: str, seen_nonces: Set[str]) -> bool:
+def _nonce_exists_and_record(nonce: str) -> bool:
     """
-    Timing-safe lookup of a nonce in the seen set.
+    Thread-safe nonce check and registration with TTL-based eviction.
 
-    SECURITY: Standard `in` operator returns early on match, which
-    creates timing variations that could leak information about stored
-    nonces. This function iterates through ALL nonces to ensure
-    constant-time behavior regardless of whether the nonce exists.
+    Unlike the previous O(n) timing-safe iteration, nonces are PUBLIC
+    random values — there is no secret to protect via constant-time
+    comparison. A dict lookup is correct and O(1).
 
-    Standing on Giants: Kocher (1996) - Timing Attacks on Implementations
+    Standing on Giants:
+    - Lamport (1978): Time-based ordering
+    - Kocher (1996): Timing attacks (NOT applicable to public nonces)
 
-    Note: For very large nonce sets, this has O(n) performance.
-    The _nonce_max_size limit (100,000) bounds the worst case.
-
-    Args:
-        nonce: The nonce to look up
-        seen_nonces: Set of previously seen nonces
+    Thread-safety: Protected by _nonce_lock for concurrent access.
 
     Returns:
-        True if nonce was found, False otherwise (constant time for set size)
+        True if this nonce was already seen (replay detected).
     """
-    found: bool = False
-    # Iterate through ALL nonces to ensure constant time
-    for seen in seen_nonces:
-        # Use timing-safe comparison for each check
-        if timing_safe_compare(nonce, seen):
-            found = True
-            # Continue iterating to maintain constant time
-    return found
+    import time as _time
+
+    now = _time.time()
+
+    with _nonce_lock:
+        # Check existence
+        if nonce in _seen_nonces:
+            return True
+
+        # Register nonce
+        _seen_nonces[nonce] = now
+
+        # TTL-based eviction when over capacity
+        if len(_seen_nonces) > _nonce_max_size:
+            cutoff = now - _nonce_ttl_seconds
+            expired = [k for k, ts in _seen_nonces.items() if ts < cutoff]
+            for k in expired:
+                del _seen_nonces[k]
+
+            # If still over limit after TTL eviction, remove oldest 10%
+            if len(_seen_nonces) > _nonce_max_size:
+                sorted_nonces = sorted(_seen_nonces.items(), key=lambda x: x[1])
+                for k, _ in sorted_nonces[: _nonce_max_size // 10]:
+                    del _seen_nonces[k]
+
+    return False
 
 
 class AgentType(str, Enum):
@@ -232,34 +251,14 @@ class PCIEnvelope:
         Check if this nonce has been seen before.
 
         SECURITY: Prevents replay attacks by tracking seen nonces.
-        Uses timing-safe comparison to prevent timing attacks that
-        could leak information about stored nonces.
+        Uses O(1) dict lookup with TTL-based eviction and thread-safety.
 
-        Standing on Giants: Kocher (1996) - Timing Attacks
+        Standing on Giants: Lamport (1978) — Ordering
 
         Returns:
             True if this is a replayed message
         """
-        global _seen_nonces
-
-        # SECURITY: Use timing-safe comparison to prevent timing attacks
-        # that could reveal information about stored nonces
-        is_seen = _timing_safe_nonce_lookup(self.nonce, _seen_nonces)
-
-        if is_seen:
-            return True
-
-        # Add to seen nonces
-        _seen_nonces.add(self.nonce)
-
-        # Evict oldest if over limit (simple size-based eviction)
-        if len(_seen_nonces) > _nonce_max_size:
-            # Remove ~10% of oldest entries
-            to_remove = list(_seen_nonces)[: _nonce_max_size // 10]
-            for nonce in to_remove:
-                _seen_nonces.discard(nonce)
-
-        return False
+        return _nonce_exists_and_record(self.nonce)
 
     def validate_freshness(self) -> FreshnessResult:
         """

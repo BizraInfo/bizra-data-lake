@@ -229,6 +229,29 @@ class RuntimeConfig:
     enable_autonomous_loop: bool = False
     autonomous_enabled: bool = False  # Alias for enable_autonomous_loop
 
+    # Proactive Execution Kernel (PEK)
+    enable_proactive_kernel: bool = False
+    proactive_kernel_cycle_seconds: float = 5.0
+    proactive_kernel_min_confidence: float = 0.58
+    proactive_kernel_min_auto_confidence: float = 0.74
+    proactive_kernel_base_tau: float = 0.55
+    proactive_kernel_auto_execute_tau: float = 0.75
+    proactive_kernel_queue_silent_tau: float = 0.35
+    proactive_kernel_attention_budget_capacity: float = 8.0
+    proactive_kernel_attention_recovery_per_cycle: float = 0.75
+    proactive_kernel_emit_events: bool = False
+    proactive_kernel_event_topic: str = "pek.proof.block"
+
+    # Zero Point Kernel (trusted bootstrap preflight)
+    enable_zpk_preflight: bool = False
+    zpk_manifest_uri: str = ""
+    zpk_release_public_key: str = ""
+    zpk_allowed_versions: List[str] = field(default_factory=list)
+    zpk_min_policy_version: int = 1
+    zpk_min_ihsan_policy: float = 0.95
+    zpk_emit_bootstrap_events: bool = False
+    zpk_event_topic: str = "zpk.bootstrap.receipt"
+
     @classmethod
     def minimal(cls) -> "RuntimeConfig":
         """Create minimal configuration."""
@@ -238,6 +261,8 @@ class RuntimeConfig:
             enable_snr_optimization=False,
             enable_guardian_validation=False,
             enable_autonomous_loop=False,
+            enable_proactive_kernel=False,
+            enable_zpk_preflight=False,
         )
 
     @classmethod
@@ -251,6 +276,7 @@ class RuntimeConfig:
         return cls(
             mode=RuntimeMode.AUTONOMOUS,
             enable_autonomous_loop=True,
+            enable_proactive_kernel=True,
         )
 
 

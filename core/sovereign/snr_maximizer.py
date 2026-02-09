@@ -688,3 +688,30 @@ class SNRMaximizer:
             "ihsan_fails": 0,
             "avg_snr": 0.0,
         }
+
+    def calculate_snr_normalized(self, **kwargs) -> "SNRResult":
+        """
+        SNRProtocol conformance adapter.
+
+        Wraps analyze() and returns a canonical SNRResult.
+        This allows SNRMaximizer to be used interchangeably with
+        any SNRProtocol-conforming engine.
+        """
+        from core.snr_protocol import SNRResult
+
+        text = kwargs.get("text", "")
+        query = kwargs.get("query")
+        sources = kwargs.get("sources")
+
+        analysis = self.analyze(text, query, sources)
+
+        # Normalize: snr_linear is already signal/noise ratio; clamp to [0, 1]
+        normalized = min(max(analysis.snr_linear, 0.0), 1.0)
+
+        return SNRResult(
+            score=round(normalized, 4),
+            ihsan_achieved=analysis.ihsan_achieved,
+            engine="text",
+            metrics=analysis.to_dict(),
+            recommendations=analysis.recommendations,
+        )

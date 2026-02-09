@@ -153,3 +153,6 @@ research_archive/
 
 # ── Misc ──────────────────────────────────────────────────────
 C:/
+
+# Hypothesis test database
+.hypothesis/

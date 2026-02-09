@@ -315,13 +315,13 @@ class KnowledgeIntegrator:
 
     def _load_json_sync(self, path: Path) -> Any:
         """Synchronous JSON loading for thread pool executor."""
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     def _load_jsonl_sync(self, path: Path) -> List[Dict[str, Any]]:
         """Synchronous JSONL loading for thread pool executor."""
         lines = []
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     lines.append(json.loads(line))
