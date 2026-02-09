@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -435,7 +435,7 @@ class StateCheckpointer:
 
     async def auto_checkpoint_loop(
         self,
-        state_provider: callable,
+        state_provider: Callable[..., Any],
     ) -> None:
         """Background loop for automatic checkpoints."""
         self._running = True

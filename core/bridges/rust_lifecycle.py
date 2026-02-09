@@ -514,7 +514,7 @@ class RustLifecycleManager:
         except ImportError:
             # Try from rust_bridge fallback
             try:
-                from core.sovereign.rust_bridge import (
+                from core.sovereign.rust_bridge import (  # type: ignore[import-untyped]
                     _rust_bizra,
                     is_rust_available,
                 )

@@ -209,6 +209,7 @@ class UnifiedInferenceSystem:
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        assert isinstance(result, InferenceResult)  # sync path returns InferenceResult
         inference_time = time.time() - start_time
 
         # Generate receipt
@@ -416,6 +417,7 @@ async def main():
 
         await system.initialize()
         result = await system.infer(args.prompt, force_model=args.model)
+        assert isinstance(result, UnifiedInferenceResult)  # sync path
 
         print(f"\n{'='*60}")
         print(f"Model: {result.model_name} ({result.model_params_b}B)")
@@ -444,6 +446,7 @@ async def main():
 
         for prompt in prompts:
             result = await system.infer(prompt)
+            assert isinstance(result, UnifiedInferenceResult)  # sync path
 
             status = "✅" if result.tokens_per_second > 10 else "⚠️"
             print(f"\n{status} {prompt[:40]}...")

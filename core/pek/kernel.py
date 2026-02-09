@@ -25,7 +25,7 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Union
 
 from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.opportunity_pipeline import OpportunityPipeline, PipelineOpportunity
@@ -33,7 +33,7 @@ from core.sovereign.proactive_scheduler import JobPriority, ProactiveScheduler, 
 
 logger = logging.getLogger("pek.kernel")
 
-SensorCallback = Callable[[], Awaitable[Dict[str, Any]] | Dict[str, Any]]
+SensorCallback = Callable[[], "Union[Awaitable[Dict[str, Any]], Dict[str, Any]]"]
 
 
 @dataclass

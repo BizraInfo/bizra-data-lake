@@ -34,7 +34,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 # Import unified thresholds from authoritative source
 
@@ -631,7 +631,7 @@ class AdlGate:
 
     def __init__(
         self,
-        holdings_provider: callable,
+        holdings_provider: Callable[..., Any],
         gini_threshold: float = ADL_GINI_THRESHOLD,
     ):
         """
@@ -713,7 +713,7 @@ class AdlGate:
 
 def create_adl_extended_gatekeeper(
     base_gatekeeper: Any,
-    holdings_provider: callable,
+    holdings_provider: Callable[..., Any],
     gini_threshold: float = ADL_GINI_THRESHOLD,
 ) -> Any:
     """
