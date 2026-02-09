@@ -21,7 +21,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 class TaskComplexity(Enum):
@@ -180,8 +180,8 @@ class TaskDecomposer:
         Returns:
             DecompositionResult with subtasks and dependency graph
         """
-        subtasks = []
-        dependency_graph = {}
+        subtasks: List[TaskNode] = []
+        dependency_graph: Dict[str, List[str]] = {}
 
         # Determine target subtask count based on complexity
         target_count = self.DECOMPOSITION_PATTERNS.get(task.complexity, 5)

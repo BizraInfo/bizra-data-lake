@@ -114,7 +114,7 @@ class TelegramAdapter(ChannelAdapter):
                     "httpx is required for Telegram adapter. "
                     "Install with: pip install httpx"
                 )
-            self._http_client = httpx.AsyncClient(timeout=60.0)
+            self._http_client = httpx.AsyncClient(timeout=60.0)  # type: ignore[assignment]
 
     async def _api_call(
         self, method: str, data: Optional[Dict[str, Any]] = None
@@ -125,9 +125,9 @@ class TelegramAdapter(ChannelAdapter):
 
         try:
             if data:
-                resp = await self._http_client.post(url, json=data)
+                resp = await self._http_client.post(url, json=data)  # type: ignore[union-attr,attr-defined]
             else:
-                resp = await self._http_client.get(url)
+                resp = await self._http_client.get(url)  # type: ignore[union-attr,attr-defined]
 
             result = resp.json()
 

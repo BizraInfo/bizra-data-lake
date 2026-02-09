@@ -14,7 +14,7 @@ Formula:
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from core.bounty import (
     BASE_PAYOUT_PER_DELTA_E,
@@ -178,7 +178,7 @@ class BountyOracle:
 
     def calculate_bounty(
         self, proof: ImpactProof
-    ) -> Tuple[BountyCalculation, Optional[str]]:
+    ) -> Tuple[Optional[BountyCalculation], Optional[str]]:
         """
         Calculate bounty payout for an impact proof.
 
@@ -199,7 +199,7 @@ class BountyOracle:
         base = self.base_payout * proof.delta_e
 
         # 2. Severity multiplier
-        severity_config = SEVERITY_LEVELS.get(proof.severity.value, {})
+        severity_config: Dict[str, Any] = cast(Dict[str, Any], SEVERITY_LEVELS.get(proof.severity.value, {}))
         severity_mult = severity_config.get("multiplier", 1)
         min_payout = severity_config.get("min_payout", 0)
 
@@ -278,7 +278,7 @@ class BountyOracle:
         """
         # Calculate bounty
         calculation, error = self.calculate_bounty(proof)
-        if error:
+        if error or calculation is None:
             return None, error
 
         # Create payout
@@ -301,7 +301,7 @@ class BountyOracle:
         for c in self._calculations:
             sev = c.severity.value
             if sev not in by_severity:
-                by_severity[sev] = {"count": 0, "total": 0}
+                by_severity[sev] = {"count": 0, "total": 0.0}
             by_severity[sev]["count"] += 1
             by_severity[sev]["total"] += c.total_payout
 
@@ -332,7 +332,7 @@ class BountyOracle:
 
         Useful for hunters to evaluate targets.
         """
-        severity_config = SEVERITY_LEVELS.get(severity, {})
+        severity_config: Dict[str, Any] = cast(Dict[str, Any], SEVERITY_LEVELS.get(severity, {}))
         severity_mult = severity_config.get("multiplier", 1)
         min_payout = severity_config.get("min_payout", 0)
 

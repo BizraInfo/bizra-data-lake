@@ -89,8 +89,8 @@ try:
         UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    UNIFIED_SNR_THRESHOLD = 0.85
+    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
+    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
 
 # Peak Masterpiece targets (highest tier)
 PEAK_SNR_TARGET: Final[float] = 0.99       # Ultimate excellence
@@ -230,7 +230,7 @@ class InterdisciplinaryMatrix:
         """Synthesize insights from multiple disciplines."""
         active = active_disciplines or list(self.lenses.keys())[:10]  # Top 10 by default
         
-        synthesis = {
+        synthesis: Dict[str, Any] = {
             "disciplines_consulted": len(active),
             "cross_links_used": 0,
             "synthesis_score": 0.0,
@@ -610,7 +610,7 @@ class CLEARScore:
             "assurance": self.assurance,
             "reliability": self.reliability,
         }
-        return min(scores, key=scores.get)
+        return min(scores, key=lambda k: scores[k])
 
 
 # ════════════════════════════════════════════════════════════════════════════════

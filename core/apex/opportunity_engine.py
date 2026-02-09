@@ -422,7 +422,7 @@ class SignalGenerator:
         self, symbol: str, analysis: MarketAnalysis, price_history: List[float]
     ) -> List[TradingSignal]:
         """Generate trading signals for symbol."""
-        signals = []
+        signals: List[TradingSignal] = []
 
         if len(price_history) < 20:
             return signals

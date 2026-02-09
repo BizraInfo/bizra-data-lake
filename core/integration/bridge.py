@@ -24,7 +24,7 @@ from core.federation.node import FederationNode
 from core.federation.propagation import ElevatedPattern
 
 # Core module imports
-from core.pci import PCIEnvelope, generate_keypair
+from core.pci import PCIEnvelope, generate_keypair  # type: ignore[attr-defined]
 from core.pci.gates import PCIGateKeeper
 
 from .constants import (
@@ -249,7 +249,7 @@ class IntegrationBridge:
             if patterns:
                 logger.info(f"Found {len(patterns)} applicable patterns")
                 # Patterns can inform execution strategy
-                task.parameters["_patterns"] = [p.trigger for p in patterns]
+                task.parameters["_patterns"] = [p.trigger for p in patterns]  # type: ignore[attr-defined]
 
         # Execute via callback or return placeholder
         if self._on_task_completed:
@@ -371,7 +371,7 @@ class IntegrationBridge:
 
     def get_health(self) -> Dict:
         """Quick health check across all subsystems."""
-        health = {
+        health: Dict[str, Any] = {
             "status": "healthy" if self._running else "stopped",
             "node_id": self.node_id,
         }

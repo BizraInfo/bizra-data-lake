@@ -208,7 +208,7 @@ async def cmd_agent(agent: str, message: str):
 async def cmd_serve(port: int = 8765):
     """Start HTTP server for Rust CLI."""
     try:
-        from aiohttp import web
+        from aiohttp import web  # type: ignore[import-untyped]
     except ImportError:
         print(json.dumps({"error": "aiohttp not installed. Run: pip install aiohttp"}))
         return 1

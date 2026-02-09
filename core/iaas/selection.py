@@ -551,7 +551,7 @@ class DataSelectionPipeline:
 
         elif method == "ensemble":
             # Combine all methods with weighted voting
-            all_scores = {}
+            all_scores: dict[int, float] = {}
 
             # Similarity (weight: 0.3)
             if target:

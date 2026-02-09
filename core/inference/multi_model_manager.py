@@ -626,6 +626,7 @@ class MultiModelManager:
         """
         start_time = time.perf_counter()
         success = False
+        assert self._client is not None, "Client not initialized"
 
         try:
             if method.upper() == "GET":
@@ -727,7 +728,7 @@ class MultiModelManager:
         model.status = ModelStatus.LOADING
 
         try:
-            payload = {"model": model_id}
+            payload: Dict[str, Any] = {"model": model_id}
             if context_length:
                 payload["context_length"] = context_length
             if gpu_layers is not None:
@@ -824,13 +825,13 @@ class MultiModelManager:
             return {"error": f"No loaded model available for {purpose.value}"}
 
         # Build messages
-        messages = []
+        messages: List[Dict[str, Any]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
 
         # Handle vision content
         if images and model.supports_vision:
-            content = [{"type": "text", "text": message}]
+            content: List[Dict[str, Any]] = [{"type": "text", "text": message}]
             for img in images:
                 content.append(
                     {

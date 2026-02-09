@@ -129,7 +129,7 @@ class NoiseAnalysis:
             NoiseType.AMBIGUITY: self.ambiguity_score,
             NoiseType.IRRELEVANCE: self.irrelevance_score,
         }
-        return max(scores, key=scores.get)
+        return max(scores, key=lambda k: scores[k])
 
 
 @dataclass
@@ -585,14 +585,14 @@ class SNRCalculatorV2:
             return 0.0, 0.0, 1.0
 
         # Compute redundancy (pairwise similarity)
-        redundancy = 0.0
+        redundancy: float = 0.0
         if embeddings is not None and len(embeddings) > 1:
             pairwise_sims = []
             for i in range(len(embeddings)):
                 for j in range(i + 1, len(embeddings)):
                     sim = self._cosine_similarity(embeddings[i], embeddings[j])
                     pairwise_sims.append(sim)
-            redundancy = np.mean(pairwise_sims) if pairwise_sims else 0.0
+            redundancy = float(np.mean(pairwise_sims)) if pairwise_sims else 0.0
 
         # Compute entropy (vocabulary diversity)
         all_words = []
@@ -603,7 +603,7 @@ class SNRCalculatorV2:
             return 0.0, 0.0, redundancy
 
         # Word frequency distribution
-        word_counts = {}
+        word_counts: Dict[str, int] = {}
         for word in all_words:
             word_counts[word] = word_counts.get(word, 0) + 1
 
@@ -611,7 +611,7 @@ class SNRCalculatorV2:
         probs = np.array([count / total for count in word_counts.values()])
 
         # Shannon entropy (normalized)
-        entropy = -np.sum(probs * np.log2(probs + 1e-10))
+        entropy: float = float(-np.sum(probs * np.log2(probs + 1e-10)))
         max_entropy = np.log2(len(word_counts)) if word_counts else 1.0
         normalized_entropy = entropy / max(max_entropy, 1.0)
 

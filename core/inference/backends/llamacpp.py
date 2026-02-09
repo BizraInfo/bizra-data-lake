@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, AsyncIterator, Optional
 from .base import InferenceBackend, InferenceBackendBase
 
 if TYPE_CHECKING:
-    from ..gateway import InferenceConfig
+    from ..gateway import InferenceConfig  # type: ignore[attr-defined]
 
 
 class LlamaCppBackend(InferenceBackendBase):
@@ -82,7 +82,7 @@ class LlamaCppBackend(InferenceBackendBase):
 
         return result["choices"][0]["text"]
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore[override]
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate completion with streaming."""

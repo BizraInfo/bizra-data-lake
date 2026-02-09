@@ -28,8 +28,8 @@ try:
         UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
-    UNIFIED_SNR_THRESHOLD = 0.85
-    PILLAR_3_SANDBOX_SNR_FLOOR = 0.70
+    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
+    PILLAR_3_SANDBOX_SNR_FLOOR = 0.70  # type: ignore[misc]
 
 from core.pci.crypto import canonical_json, verify_signature
 
@@ -99,9 +99,9 @@ class ConstitutionalGate:
         try:
             from core.iaas.snr_v2 import SNRCalculatorV2
 
-            self.calculator = SNRCalculatorV2()
+            self.calculator = SNRCalculatorV2()  # type: ignore[assignment]
         except ImportError:
-            self.calculator = None
+            self.calculator = None  # type: ignore[assignment]
             logger.warning("SNR v2 calculator not available, using fallback")
 
     async def admit(

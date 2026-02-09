@@ -329,7 +329,7 @@ class AutopoieticLoop:
                     fitness=genome.fitness,
                     novelty_score=novelty_score,
                     ihsan_score=(
-                        genome.get_gene("ihsan_threshold").value
+                        genome.get_gene("ihsan_threshold").value  # type: ignore[union-attr]
                         if genome.get_gene("ihsan_threshold")
                         else 0.95
                     ),
@@ -416,7 +416,7 @@ class AutopoieticLoop:
 
         for i, g1 in enumerate(population):
             for g2 in population[i + 1 :]:
-                total_distance += g1.distance(g2)
+                total_distance += g1.distance(g2)  # type: ignore[assignment]
                 count += 1
 
         return total_distance / count if count > 0 else 0.0

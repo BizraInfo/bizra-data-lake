@@ -610,7 +610,7 @@ class GiantsRegistry:
         """Get registry summary."""
         return {
             "total_giants": len(self._giants),
-            "categories": {
+            "categories": {  # type: ignore[dict-item]
                 cat.value: len(keys)
                 for cat, keys in self._category_index.items()
                 if keys

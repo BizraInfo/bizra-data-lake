@@ -29,7 +29,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.backends import default_backend
@@ -383,7 +383,7 @@ class SecureChannel(ABC):
     @abstractmethod
     async def handshake_responder(
         self, handshake_init: bytes, peer_address: str
-    ) -> Tuple[SecureSession, bytes]:
+    ) -> Tuple[Optional[SecureSession], bytes]:
         """
         Respond to handshake as the responder.
 
@@ -605,7 +605,7 @@ class NoiseTransport(SecureChannel):
 
     async def handshake_responder(
         self, handshake_init: bytes, peer_address: str
-    ) -> Tuple[SecureSession, bytes]:
+    ) -> Tuple[Optional[SecureSession], bytes]:
         """
         Respond to Noise_XX handshake.
 
@@ -1204,8 +1204,8 @@ class SecureTransportManager:
 
     def __init__(
         self,
-        static_private_key: bytes,
-        static_public_key: bytes,
+        static_private_key: Union[str, bytes],
+        static_public_key: Union[str, bytes],
         node_id: str,
         transport_type: str = "noise",
     ):
@@ -1258,9 +1258,9 @@ class SecureTransportManager:
             Handshake init message to send to peer
         """
         if self.transport_type == "noise":
-            msg, state = self.transport.create_handshake_init()
+            msg, state = self.transport.create_handshake_init()  # type: ignore[attr-defined]
         else:
-            msg, state = self.transport.create_handshake_init()
+            msg, state = self.transport.create_handshake_init()  # type: ignore[attr-defined]
 
         self._pending_handshakes[peer_address] = state
         return msg
@@ -1304,7 +1304,7 @@ class SecureTransportManager:
                 raise HandshakeError("No pending handshake for response")
 
             state = self._pending_handshakes[peer_address]
-            session, final_msg = self.transport.process_handshake_response(
+            session, final_msg = self.transport.process_handshake_response(  # type: ignore[attr-defined]
                 message, state, peer_address
             )
 
@@ -1316,7 +1316,7 @@ class SecureTransportManager:
 
         elif msg_type == MessageType.HANDSHAKE_FINAL:
             # We're the responder, finalize
-            session = self.transport.process_handshake_final(message, peer_address)
+            session = self.transport.process_handshake_final(message, peer_address)  # type: ignore[attr-defined]
             self._cache_session(peer_address, session)
             return session, None
 

@@ -207,7 +207,7 @@ class UDPTransport(A2ATransport):
                 except Exception as e:
                     print(f"⚠️ UDP message error: {e}")
 
-        self._transport, self._protocol = await loop.create_datagram_endpoint(
+        self._transport, self._protocol = await loop.create_datagram_endpoint(  # type: ignore[assignment]
             lambda: A2AProtocol(self), local_addr=(host, port)
         )
 

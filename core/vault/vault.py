@@ -27,8 +27,8 @@ try:
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
-    Fernet = None
-    InvalidToken = Exception
+    Fernet = None  # type: ignore[misc, assignment]
+    InvalidToken = Exception  # type: ignore[misc, assignment]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -123,7 +123,7 @@ class SovereignVault:
     Sovereignty: All data encrypted at rest with user-controlled keys.
     """
 
-    def __init__(self, vault_path: Union[str, Path] = None, master_secret: str = None):
+    def __init__(self, vault_path: Optional[Union[str, Path]] = None, master_secret: Optional[str] = None):
         self.vault_path = Path(vault_path or DEFAULT_VAULT_DIR)
         self.vault_path.mkdir(parents=True, exist_ok=True)
 
@@ -177,7 +177,7 @@ class SovereignVault:
         if not self._master_secret:
             raise ValueError("Master secret not set. Call set_master_secret() first.")
 
-    def put(self, key: str, value: Any, metadata: Dict = None) -> bool:
+    def put(self, key: str, value: Any, metadata: Optional[Dict] = None) -> bool:
         """
         Encrypt and store a value.
 
@@ -201,6 +201,7 @@ class SovereignVault:
         salt = generate_salt()
 
         # Derive key and encrypt
+        assert self._master_secret is not None
         derived_key = derive_key(self._master_secret, salt)
         fernet = Fernet(derived_key)
         ciphertext = fernet.encrypt(plaintext)
@@ -244,6 +245,7 @@ class SovereignVault:
 
         try:
             # Derive key and decrypt
+            assert self._master_secret is not None
             derived_key = derive_key(self._master_secret, entry.salt)
             fernet = Fernet(derived_key)
             plaintext = fernet.decrypt(entry.ciphertext)
@@ -355,7 +357,7 @@ class SovereignVault:
 _default_vault: Optional[SovereignVault] = None
 
 
-def get_vault(vault_path: str = None, master_secret: str = None) -> SovereignVault:
+def get_vault(vault_path: Optional[str] = None, master_secret: Optional[str] = None) -> SovereignVault:
     """Get or create the default vault instance."""
     global _default_vault
 

@@ -333,7 +333,7 @@ class AutonomousLoop:
         """Predict future trends and opportunities based on current metrics."""
         self.state = LoopState.PREDICTING
 
-        predictions = {
+        predictions: Dict[str, Any] = {
             "trends": {},
             "opportunities": [],
             "risks": [],
@@ -413,7 +413,7 @@ class AutonomousLoop:
         """Coordinate team resources based on predictions."""
         self.state = LoopState.COORDINATING
 
-        coordination = {
+        coordination: Dict[str, Any] = {
             "resource_allocation": {},
             "team_assignments": [],
             "priority_adjustments": [],
@@ -588,7 +588,7 @@ class AutonomousLoop:
         successful = sum(1 for o in outcomes if o.success)
         total = len(outcomes)
 
-        reflection = {
+        reflection: Dict[str, Any] = {
             "cycle": self.cycle_count,
             "decisions_made": total,
             "successful": successful,
@@ -618,7 +618,7 @@ class AutonomousLoop:
         """Learn from outcomes to improve future decisions."""
         self.state = LoopState.LEARNING
 
-        learning = {
+        learning: Dict[str, Any] = {
             "patterns_detected": [],
             "threshold_adjustments": [],
             "strategy_updates": [],

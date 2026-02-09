@@ -69,8 +69,8 @@ try:
         UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    UNIFIED_SNR_THRESHOLD = 0.85
+    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
+    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
 
 # Apex-level thresholds (higher than standard)
 APEX_SNR_TARGET: Final[float] = 0.99  # Ihsān Excellence
@@ -90,7 +90,7 @@ logger = logging.getLogger("SNRApexEngine")
 # ════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # type: ignore[call-overload]
 class Giant:
     """
     A foundational intellectual contributor to this system.

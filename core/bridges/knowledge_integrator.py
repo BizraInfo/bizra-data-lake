@@ -459,7 +459,7 @@ class KnowledgeIntegrator:
         source: KnowledgeSource,
     ) -> List[Dict[str, Any]]:
         """Search within a single source."""
-        matches = []
+        matches: List[Dict[str, Any]] = []
         data = self._loaded_data.get(source.name)
 
         if not data:

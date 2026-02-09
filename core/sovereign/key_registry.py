@@ -136,6 +136,7 @@ class TrustedKeyRegistry:
 
     _instance: Optional["TrustedKeyRegistry"] = None
     _registry_path: Path = Path("sovereign_state/key_registry.json")
+    _initialized: bool = False
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern."""

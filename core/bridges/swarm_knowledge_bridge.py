@@ -17,7 +17,7 @@ Standing on Giants: RAG + Multi-Agent Systems + Knowledge Graphs
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
 from core.orchestration.event_bus import EventBus, EventPriority, get_event_bus
 from core.orchestration.team_planner import AgentRole
@@ -174,7 +174,7 @@ class SwarmKnowledgeBridge:
             access = ROLE_KNOWLEDGE_ACCESS.get(role, {})
             self._agent_contexts[role] = AgentKnowledgeContext(
                 agent_role=role,
-                accessible_categories=access.get("categories", set()),
+                accessible_categories=cast(Set[str], access.get("categories", set())),
             )
             self._injection_queue[role] = []
 
@@ -192,6 +192,7 @@ class SwarmKnowledgeBridge:
 
     async def _preload_priority_knowledge(self) -> None:
         """Preload knowledge for priority access agents."""
+        assert self.integrator is not None
         # Load MoMo context for all agents
         momo_context = self.integrator.get_momo_context()
         giants = self.integrator.get_standing_on_giants()
@@ -244,7 +245,7 @@ class SwarmKnowledgeBridge:
 
         # Get agent's accessible categories
         access = ROLE_KNOWLEDGE_ACCESS.get(role, {})
-        categories = list(access.get("categories", []))
+        categories = list(cast(Set[str], access.get("categories", set())))
 
         kq = KnowledgeQuery(
             query=query,
@@ -261,6 +262,7 @@ class SwarmKnowledgeBridge:
             if len(ctx.query_history) > 100:
                 ctx.query_history = ctx.query_history[-50:]
 
+        assert self.integrator is not None
         result = await self.integrator.query(kq)
         return result
 
@@ -366,6 +368,7 @@ class SwarmKnowledgeBridge:
             return False
 
         # Reload MoMo context
+        assert self.integrator is not None
         ctx.preloaded_knowledge["momo_context"] = self.integrator.get_momo_context()
         ctx.last_refresh = datetime.now(timezone.utc)
 
@@ -373,6 +376,7 @@ class SwarmKnowledgeBridge:
 
     def get_momo_context(self) -> Dict[str, Any]:
         """Get MoMo's R&D context for agents."""
+        assert self.integrator is not None
         return self.integrator.get_momo_context()
 
     def stats(self) -> Dict[str, Any]:

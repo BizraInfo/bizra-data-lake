@@ -106,6 +106,7 @@ class LocalFirstDetector:
         import time
 
         start = time.perf_counter()
+        _err_reason = "non-200 response"
         try:
             import httpx
 
@@ -121,14 +122,15 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="LM Studio v1 API responsive",
                     )
-        except Exception:
+        except Exception as _e:
+            _err_reason = str(_e)[:40]
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.LMSTUDIO,
             available=False,
             latency_ms=latency,
-            reason=f"LM Studio unreachable ({str(exc)[:40]})",
+            reason=f"LM Studio unreachable ({_err_reason})",
         )
 
     @classmethod
@@ -137,6 +139,7 @@ class LocalFirstDetector:
         import time
 
         start = time.perf_counter()
+        _err_reason = "non-200 response"
         try:
             import httpx
 
@@ -152,14 +155,15 @@ class LocalFirstDetector:
                         latency_ms=latency,
                         reason="Ollama API responsive",
                     )
-        except Exception:
+        except Exception as exc:
+            _err_reason = str(exc)[:40]
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.OLLAMA,
             available=False,
             latency_ms=latency,
-            reason=f"Ollama unreachable ({str(exc)[:40]})",
+            reason=f"Ollama unreachable ({_err_reason})",
         )
 
     @classmethod
@@ -168,10 +172,11 @@ class LocalFirstDetector:
         import time
 
         start = time.perf_counter()
+        _err_reason = "init failed"
         try:
             # Try to import and initialize llama.cpp
-            from .backends.llamacpp import LlamaCppBackend
-            from .gateway import InferenceConfig
+            from .backends.llamacpp import LlamaCppBackend  # type: ignore[attr-defined]
+            from .gateway import InferenceConfig  # type: ignore[attr-defined]
 
             config = InferenceConfig()
             backend = LlamaCppBackend(config)
@@ -189,14 +194,15 @@ class LocalFirstDetector:
                     else "llama.cpp unavailable"
                 ),
             )
-        except Exception:
+        except Exception as exc:
+            _err_reason = str(exc)[:40]
             latency = (time.perf_counter() - start) * 1000
 
         return BackendStatus(
             backend=LocalBackend.LLAMACPP,
             available=False,
             latency_ms=latency,
-            reason=f"llama.cpp check failed ({str(exc)[:40]})",
+            reason=f"llama.cpp check failed ({_err_reason})",
         )
 
 

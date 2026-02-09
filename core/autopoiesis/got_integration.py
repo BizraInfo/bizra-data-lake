@@ -105,6 +105,9 @@ DEFAULT_BREADTH_FIRST_DEPTH: int = 2
 DEFAULT_MCTS_ITERATIONS: int = 100
 DEFAULT_EXPLORATION_CONSTANT: float = 1.414  # sqrt(2) for UCB1
 
+# Numeric mapping for RiskLevel (str enum) for arithmetic operations
+_RISK_LEVEL_NUMERIC: Dict[str, int] = {"low": 1, "medium": 2, "high": 3}
+
 # SNR/Ihsan thresholds for hypothesis exploration
 HYPOTHESIS_SNR_FLOOR: float = 0.70
 HYPOTHESIS_IHSAN_FLOOR: float = 0.90
@@ -719,8 +722,8 @@ class GoTHypothesisExplorer:
         risk_similarity = (
             1.0
             - abs(
-                (node1.risk_level.value if node1.risk_level else 0)
-                - (node2.risk_level.value if node2.risk_level else 0)
+                (_RISK_LEVEL_NUMERIC.get(node1.risk_level.value, 0) if node1.risk_level else 0)
+                - (_RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0) if node2.risk_level else 0)
             )
             / 4
         )
@@ -757,8 +760,8 @@ class GoTHypothesisExplorer:
             risk_level=(
                 node1.risk_level
                 if node1.risk_level
-                and node1.risk_level.value
-                <= (node2.risk_level.value if node2.risk_level else 3)
+                and _RISK_LEVEL_NUMERIC.get(node1.risk_level.value, 0)
+                <= (_RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0) if node2.risk_level else 3)
                 else node2.risk_level
             ),
             ihsan_impact=(node1.ihsan_impact + node2.ihsan_impact) / 2,
@@ -801,7 +804,7 @@ class GoTHypothesisExplorer:
                 root_node = path[0]
                 explored_hyp = ExploredHypothesis(
                     hypothesis=self._node_to_hypothesis(root_node),
-                    exploration_path=refined_path,
+                    exploration_path=list(refined_path),  # type: ignore[arg-type]
                     exploration_depth=max(n.depth for n in refined_path),
                 )
 
@@ -1139,7 +1142,7 @@ class GoTHypothesisExplorer:
             uncertainty = 1.0 - node.confidence
             risk = 0.0
             if isinstance(node, HypothesisThoughtNode) and node.risk_level:
-                risk = node.risk_level.value * 0.1
+                risk = _RISK_LEVEL_NUMERIC.get(node.risk_level.value, 0) * 0.1
             noise = uncertainty + risk
             total_noise += noise
 

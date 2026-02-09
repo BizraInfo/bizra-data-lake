@@ -76,7 +76,7 @@ class SovereignConfig:
     # Network
     network_mode: NetworkMode = NetworkMode.HYBRID
     discovery_timeout_ms: int = 5000
-    bootstrap_nodes: List[str] = None
+    bootstrap_nodes: Optional[List[str]] = None
 
     # Model Store
     model_store_path: Optional[Path] = None

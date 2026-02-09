@@ -107,7 +107,7 @@ class MinHashDeduplicator:
 
     def _jaccard_from_signatures(self, sig1: np.ndarray, sig2: np.ndarray) -> float:
         """Estimate Jaccard similarity from MinHash signatures."""
-        return np.mean(sig1 == sig2)
+        return float(np.mean(sig1 == sig2))
 
     def _lsh_hash(self, signature: np.ndarray, band_idx: int) -> int:
         """Hash a band of the signature for LSH bucketing."""

@@ -183,7 +183,7 @@ class SequentialAttention:
         if not candidate_embeddings:
             return []
         
-        selected = []
+        selected: list = []
         remaining = list(candidate_embeddings)
         
         while len(selected) < k and remaining:

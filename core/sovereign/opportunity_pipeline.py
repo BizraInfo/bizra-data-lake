@@ -555,11 +555,12 @@ class OpportunityPipeline:
         filter_notes = []
 
         for i, result in enumerate(results):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.error("Filter %s error: %s", self._filters[i].name, result)
                 all_passed = False
                 filter_notes.append(f"{self._filters[i].name}: Error - {result}")
-            elif not result.passed:
+                continue
+            if not result.passed:
                 all_passed = False
                 filter_notes.append(f"{self._filters[i].name}: {result.reason}")
                 logger.info(

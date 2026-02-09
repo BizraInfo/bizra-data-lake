@@ -137,7 +137,7 @@ class SNRFacade:
 
         if has_embeddings and has_text:
             return self._ensemble(
-                text=text, query=query, sources=sources,
+                text=text or "", query=query, sources=sources,
                 query_embedding=query_embedding,
                 context_embeddings=context_embeddings,
                 symbolic_facts=symbolic_facts or [],
@@ -151,7 +151,7 @@ class SNRFacade:
                 neural_results=neural_results or [],
             )
         elif has_text:
-            return self._from_text_engine(text=text, query=query, sources=sources)
+            return self._from_text_engine(text=text or "", query=query, sources=sources)
         else:
             logger.warning("SNRFacade: No valid inputs — returning baseline")
             return SNRResult(
@@ -161,6 +161,7 @@ class SNRFacade:
 
     def _from_embedding_engine(self, **kwargs: Any) -> SNRResult:
         """Delegate to arte_engine.SNREngine and normalize."""
+        assert self.embedding_engine is not None
         score, metrics = self.embedding_engine.calculate_snr(**kwargs)
         return SNRResult(
             score=float(score),
@@ -173,6 +174,8 @@ class SNRFacade:
         self, text: str, query: Optional[str] = None, sources: Optional[List[str]] = None,
     ) -> SNRResult:
         """Delegate to snr_maximizer.SNRMaximizer and normalize."""
+        if self.text_engine is None:
+            return SNRResult(score=0.0, ihsan_achieved=False, engine="text", recommendations=["Text engine not available"])
         analysis = self.text_engine.analyze(text, query, sources)
 
         # Normalize dB-scale to [0, 1] via sigmoid-like mapping

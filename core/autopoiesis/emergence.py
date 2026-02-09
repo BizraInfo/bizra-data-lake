@@ -366,14 +366,14 @@ class EmergenceDetector:
 
         # Check for increased collaboration tendency
         current_collab = [
-            g.get_gene("collaboration_tendency").value
+            gene.value
             for g in current
-            if g.get_gene("collaboration_tendency")
+            if (gene := g.get_gene("collaboration_tendency"))
         ]
         previous_collab = [
-            g.get_gene("collaboration_tendency").value
+            gene.value
             for g in previous
-            if g.get_gene("collaboration_tendency")
+            if (gene := g.get_gene("collaboration_tendency"))
         ]
 
         if current_collab and previous_collab:
@@ -392,8 +392,8 @@ class EmergenceDetector:
                         genome_ids=[
                             g.id
                             for g in current
-                            if g.get_gene("collaboration_tendency")
-                            and g.get_gene("collaboration_tendency").value
+                            if (ct := g.get_gene("collaboration_tendency"))
+                            and ct.value
                             > previous_avg
                         ],
                         confidence=0.8,
@@ -417,7 +417,7 @@ class EmergenceDetector:
         convergent = []
 
         # Get all trait names
-        all_traits = set()
+        all_traits: set[str] = set()
         for sig in signatures:
             all_traits.update(sig.traits.keys())
 
@@ -442,7 +442,7 @@ class EmergenceDetector:
             return 1.0
 
         # Pairwise distance average
-        total_distance = 0
+        total_distance: float = 0.0
         count = 0
 
         for i, sig1 in enumerate(signatures):

@@ -155,13 +155,13 @@ class BicameralReasoningEngine:
         elif self.api_client:  # Fallback to API
             self._metrics["fallbacks"] += 1
             try:
-                result = await self.api_client.analyze(problem, {"mode": "solve"})
+                api_result = await self.api_client.analyze(problem, {"mode": "solve"})
                 candidates.append(
                     ReasoningCandidate(
                         str(uuid.uuid4())[:8],
-                        result.get("answer", str(result)),
+                        api_result.get("answer", str(api_result)),
                         "claude",
-                        result.get("confidence", 0.7),
+                        api_result.get("confidence", 0.7),
                         "[FALLBACK]",
                     )
                 )

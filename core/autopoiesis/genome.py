@@ -337,8 +337,8 @@ class AgentGenome:
         snr_gene = self.get_gene("snr_threshold")
         fate_gene = self.get_gene("fate_compliance")
 
-        return (
-            ihsan_gene
+        return (  # type: ignore[return-value]
+            ihsan_gene  # type: ignore[return-value]
             and ihsan_gene.value >= UNIFIED_IHSAN_THRESHOLD
             and snr_gene
             and snr_gene.value >= UNIFIED_SNR_THRESHOLD

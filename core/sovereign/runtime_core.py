@@ -359,7 +359,7 @@ class SovereignRuntime:
             try:
                 from .graph_reasoner import GraphOfThoughts
 
-                self._graph_reasoner = GraphOfThoughts()
+                self._graph_reasoner = GraphOfThoughts()  # type: ignore[assignment]
                 self.logger.info("✓ GraphOfThoughts loaded (full)")
             except ImportError:
                 self._graph_reasoner = StubFactory.create_graph_reasoner(
@@ -377,15 +377,15 @@ class SovereignRuntime:
             try:
                 from .snr_maximizer import SNRMaximizer
 
-                self._snr_optimizer = SNRMaximizer(
+                self._snr_optimizer = SNRMaximizer(  # type: ignore[assignment]
                     ihsan_threshold=self.config.snr_threshold
                 )
                 self.logger.info("✓ SNRMaximizer loaded (full)")
             except ImportError:
-                self._snr_optimizer = StubFactory.create_snr_optimizer("Import failed")
+                self._snr_optimizer = StubFactory.create_snr_optimizer("Import failed")  # type: ignore[assignment]
                 self.logger.warning("⚠ SNRMaximizer unavailable, using stub")
         else:
-            self._snr_optimizer = StubFactory.create_snr_optimizer("Disabled by config")
+            self._snr_optimizer = StubFactory.create_snr_optimizer("Disabled by config")  # type: ignore[assignment]
             self.logger.info("○ SNRMaximizer disabled by config")
 
         # Try full GuardianCouncil (only if flag enabled)
@@ -393,7 +393,7 @@ class SovereignRuntime:
             try:
                 from .guardian_council import GuardianCouncil
 
-                self._guardian_council = GuardianCouncil()
+                self._guardian_council = GuardianCouncil()  # type: ignore[assignment]
                 self.logger.info("✓ GuardianCouncil loaded (full)")
             except ImportError:
                 self._guardian_council = StubFactory.create_guardian("Import failed")
@@ -408,7 +408,7 @@ class SovereignRuntime:
                 from .autonomy import AutonomousLoop, DecisionGate
 
                 gate = DecisionGate(ihsan_threshold=self.config.ihsan_threshold)
-                self._autonomous_loop = AutonomousLoop(
+                self._autonomous_loop = AutonomousLoop(  # type: ignore[assignment]
                     decision_gate=gate,
                     snr_threshold=self.config.snr_threshold,
                     ihsan_threshold=self.config.ihsan_threshold,
@@ -497,7 +497,7 @@ class SovereignRuntime:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
         try:
-            from core.inference.gateway import CircuitBreakerConfig, InferenceConfig, InferenceGateway
+            from core.inference.gateway import CircuitBreakerConfig, InferenceConfig, InferenceGateway  # type: ignore[attr-defined]
 
             self._gateway = InferenceGateway(
                 config=InferenceConfig(
@@ -768,6 +768,8 @@ class SovereignRuntime:
         # PEK (kernel state + proof counters) — SAFETY priority
         if self._pek and hasattr(self._pek, "get_persistable_state"):
             try:
+                if self._memory_coordinator is None:
+                    return
                 self._memory_coordinator.register_state_provider(
                     "pek",
                     self._pek.get_persistable_state,
@@ -782,6 +784,8 @@ class SovereignRuntime:
             from .opportunity_pipeline import OpportunityPipeline
 
             pipeline = OpportunityPipeline()
+            if self._memory_coordinator is None:
+                return
             self._memory_coordinator.register_state_provider(
                 "opportunity_pipeline",
                 pipeline.get_persistable_state,
@@ -796,6 +800,8 @@ class SovereignRuntime:
             from .proactive_scheduler import ProactiveScheduler
 
             scheduler = ProactiveScheduler()
+            if self._memory_coordinator is None:
+                return
             self._memory_coordinator.register_state_provider(
                 "scheduler",
                 scheduler.get_persistable_state,
@@ -810,6 +816,8 @@ class SovereignRuntime:
             from .predictive_monitor import PredictiveMonitor
 
             monitor = PredictiveMonitor()
+            if self._memory_coordinator is None:
+                return
             self._memory_coordinator.register_state_provider(
                 "predictive_monitor",
                 monitor.get_persistable_state,
@@ -822,7 +830,7 @@ class SovereignRuntime:
     async def _start_autonomous_loop(self) -> None:
         """Start the autonomous operation loop."""
         if self._autonomous_loop:
-            self._autonomous_loop.start()
+            await self._autonomous_loop.start()
             self.logger.info("Autonomous loop started")
 
     def _setup_signal_handlers(self) -> None:
@@ -1215,7 +1223,7 @@ class SovereignRuntime:
     def _mode_to_tier(self, mode: object) -> Optional[object]:
         """Map TreasuryMode to ComputeTier."""
         try:
-            from core.inference.gateway import ComputeTier
+            from core.inference.gateway import ComputeTier  # type: ignore[attr-defined]
 
             from .omega_engine import TreasuryMode
 
@@ -1224,7 +1232,9 @@ class SovereignRuntime:
                 TreasuryMode.HIBERNATION: ComputeTier.EDGE,
                 TreasuryMode.EMERGENCY: ComputeTier.EDGE,
             }
-            return mapping.get(mode, ComputeTier.LOCAL)
+            if isinstance(mode, TreasuryMode):
+                return mapping.get(mode, ComputeTier.LOCAL)
+            return None
         except ImportError:
             return None
 
@@ -1290,10 +1300,12 @@ class SovereignRuntime:
             else {"running": False}
         )
 
-        omega_status = {"version": "2.2.3"}
+        omega_status: Dict[str, Any] = {"version": "2.2.3"}
         if self._omega:
             try:
-                omega_status.update(self._omega.get_status() or {})
+                _get_status = getattr(self._omega, "get_status", None)
+                if _get_status is not None:
+                    omega_status.update(_get_status() or {})
             except Exception:
                 omega_status["connected"] = True
 
@@ -1307,7 +1319,7 @@ class SovereignRuntime:
                 "status": getattr(self._gateway, "status", "unknown"),
             }
         else:
-            omega_status.setdefault("gateway", {"connected": False})
+            omega_status.setdefault("gateway", {"connected": False})  # type: ignore[arg-type]
 
         identity_info: Dict[str, Any] = {
             "node_id": self.config.node_id,

@@ -443,7 +443,7 @@ class CLEARFramework:
                 m.dimension_scores()[dim] for m in agent_metrics
             ])
         
-        weakest = min(avg_scores, key=avg_scores.get)
+        weakest = min(avg_scores, key=lambda k: avg_scores[k])
         dimension_map = {
             "cost": CLEARDimension.COST,
             "latency": CLEARDimension.LATENCY,

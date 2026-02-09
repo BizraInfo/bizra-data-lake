@@ -120,7 +120,7 @@ class VoiceBackend:
 
     def __init__(self, config: Optional[VoiceConfig] = None):
         self.config = config or VoiceConfig()
-        self._personaplex = None
+        self._personaplex: Any = None
         self._initialized = False
         self._guardians_registered = False
 
@@ -201,11 +201,11 @@ class VoiceBackend:
             elif request.mode == "tts":
                 # Text-to-speech only
                 result = await self._personaplex.synthesize(
-                    text=request.text,
+                    text=request.text or "",
                     guardian_name=request.guardian,
                 )
                 return VoiceResponse(
-                    text=request.text,
+                    text=request.text or "",
                     audio=result.audio if hasattr(result, "audio") else None,
                     guardian=request.guardian,
                     latency_ms=(time.time() - start) * 1000,

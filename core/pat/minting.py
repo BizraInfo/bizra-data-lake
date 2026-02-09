@@ -639,8 +639,8 @@ class IdentityMinter:
             if auto_activate:
                 for agent in pat_agents:
                     agent.activate()
-                for agent in sat_agents:
-                    agent.activate()
+                for sat_agent in sat_agents:
+                    sat_agent.activate()
 
             result = OnboardingResult(
                 success=True,
@@ -675,7 +675,7 @@ class IdentityMinter:
         Returns:
             Verification report
         """
-        report = {
+        report: Dict[str, Any] = {
             "identity_card_valid": False,
             "pat_agents_valid": [],
             "sat_agents_valid": [],

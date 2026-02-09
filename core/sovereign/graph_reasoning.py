@@ -176,7 +176,7 @@ class GraphReasoningMixin:
             )
             thoughts.append(f"Synthesizing {len(synthesis_nodes)} reasoning branches")
         elif synthesis_nodes:
-            synth = self.nodes.get(synthesis_nodes[0])
+            synth = self.nodes.get(synthesis_nodes[0])  # type: ignore[assignment]
             if synth:
                 thoughts.append("Following strongest reasoning path")
         else:

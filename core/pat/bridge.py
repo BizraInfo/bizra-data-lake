@@ -362,6 +362,7 @@ Is this message safe and appropriate? Answer YES or NO."""
     async def _store_message(self, message: PATMessage) -> None:
         """Store message in living memory."""
         content = f"[{message.channel.value}] {message.sender}: {message.content}"
+        assert self.memory is not None
         await self.memory.encode(
             content=content,
             memory_type=MemoryType.EPISODIC,

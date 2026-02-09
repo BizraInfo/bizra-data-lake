@@ -111,7 +111,7 @@ class MuraqabahEngine:
             domain: {} for domain in MonitorDomain
         }
         self._sensor_states: Dict[str, SensorState] = {}
-        self._intervals: Dict[MonitorDomain, float] = self.DEFAULT_INTERVALS.copy()
+        self._intervals: Dict[MonitorDomain, float] = self.DEFAULT_INTERVALS.copy()  # type: ignore[assignment]
 
         # PERF FIX: Use deque with maxlen for O(1) bounded storage
         # instead of list trimming which is O(n)

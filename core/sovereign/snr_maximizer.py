@@ -689,7 +689,7 @@ class SNRMaximizer:
             "avg_snr": 0.0,
         }
 
-    def calculate_snr_normalized(self, **kwargs) -> "SNRResult":
+    def calculate_snr_normalized(self, **kwargs) -> "SNRResult":  # type: ignore[name-defined]
         """
         SNRProtocol conformance adapter.
 

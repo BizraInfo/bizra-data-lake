@@ -492,7 +492,7 @@ class ReasoningGraph:
 
     def find_all_paths(self, max_paths: int = 10) -> List[ReasoningPath]:
         """Find all paths through the graph (up to max_paths)."""
-        paths = []
+        paths: List[ReasoningPath] = []
 
         for root_id in self._root_ids:
             self._collect_paths(root_id, [], 0.0, 0.0, 0, paths, max_paths)
@@ -567,8 +567,8 @@ class ReasoningGraph:
         nodes = list(self._nodes.values())
         active_nodes = [n for n in nodes if n.state == NodeState.ACTIVE]
 
-        by_type = {}
-        by_state = {}
+        by_type: Dict[str, int] = {}
+        by_state: Dict[str, int] = {}
         for node in nodes:
             by_type[node.node_type.value] = by_type.get(node.node_type.value, 0) + 1
             by_state[node.state.value] = by_state.get(node.state.value, 0) + 1

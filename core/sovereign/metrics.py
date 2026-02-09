@@ -68,7 +68,7 @@ class MetricSeries:
     points: Deque[MetricPoint] = field(default_factory=lambda: deque(maxlen=1000))
     unit: str = ""
 
-    def add(self, value: float, labels: Dict[str, str] = None) -> None:
+    def add(self, value: float, labels: Optional[Dict[str, str]] = None) -> None:
         """Add a data point."""
         self.points.append(
             MetricPoint(

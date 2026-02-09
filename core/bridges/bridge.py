@@ -522,7 +522,7 @@ class MemoryConnector(SubsystemConnector):
 
         # Try to connect to vault
         try:
-            from core.vault import Vault
+            from core.vault import Vault  # type: ignore[attr-defined]
 
             self._vault_available = True
             logger.info("Vault connected")

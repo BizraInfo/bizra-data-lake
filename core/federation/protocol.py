@@ -10,7 +10,7 @@ from typing import Dict, List
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from core.pci import EnvelopeBuilder, PCIEnvelope
+from core.pci import EnvelopeBuilder, PCIEnvelope  # type: ignore[attr-defined]
 from core.pci.gates import DEFAULT_CONSTITUTION_HASH, PCIGateKeeper
 
 

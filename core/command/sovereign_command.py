@@ -172,10 +172,9 @@ class LMStudioBackend(LLMBackend):
                 headers = {}
                 if self.token:
                     headers["Authorization"] = f"Bearer {self.token}"
-                self._client = httpx.AsyncClient(timeout=120.0, headers=headers)
+                self._client = httpx.AsyncClient(timeout=120.0, headers=headers)  # type: ignore[assignment]
             except ImportError:
                 raise RuntimeError("httpx required: pip install httpx")
-        return self._client
         return self._client
     
     async def generate(self, prompt: str, system: Optional[str] = None,
@@ -222,7 +221,7 @@ class OllamaBackend(LLMBackend):
         if self._client is None:
             try:
                 import httpx
-                self._client = httpx.AsyncClient(timeout=120.0)
+                self._client = httpx.AsyncClient(timeout=120.0)  # type: ignore[assignment]
             except ImportError:
                 raise RuntimeError("httpx required")
         return self._client
@@ -321,6 +320,7 @@ class InferenceGateway:
                        max_tokens: int = 2048, complexity: ComplexityTier = ComplexityTier.MODERATE) -> Tuple[str, str]:
         if not self._active:
             await self.select_backend()
+        assert self._active is not None
         
         if complexity == ComplexityTier.TRIVIAL:
             max_tokens = min(max_tokens, 100)
@@ -509,7 +509,7 @@ Core Principles:
         
         return CommandResult(
             query=query, response=response, snr_score=metrics["snr"],
-            ihsan_compliant=ihsan_ok, backend_used=backend,
+            ihsan_compliant=bool(ihsan_ok), backend_used=backend,
             complexity=analysis.complexity.name, intent=analysis.intent.name,
             latency_ms=latency, provenance=prov, metrics=metrics,
         )

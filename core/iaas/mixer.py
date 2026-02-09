@@ -435,7 +435,7 @@ class DistributionallyRobustOptimizer:
             loss_array = np.array([losses[d] for d in domains])
 
             # Compute weighted average loss
-            weighted_loss = np.sum(weights * loss_array)
+            weighted_loss: float = np.sum(weights * loss_array)
 
             # Update weights using exponentiated gradient
             # Domains with higher loss get more weight

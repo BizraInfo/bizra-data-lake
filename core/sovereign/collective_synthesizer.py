@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from .social_integration import SociallyAwareBridge
@@ -98,7 +98,9 @@ class CollectiveSynthesizer:
             )
 
         # Group outputs by content with weighted votes
-        votes, agents, original = {}, {}, {}
+        votes: Dict[str, float] = {}
+        agents: Dict[str, List[str]] = {}
+        original: Dict[str, Any] = {}
         for out in agent_outputs:
             key = str(out.content)
             weight = self._get_trust(out.agent_id) * out.confidence * out.snr_score
@@ -106,7 +108,7 @@ class CollectiveSynthesizer:
             agents.setdefault(key, []).append(out.agent_id)
             original[key] = out.content
         total = sum(votes.values())
-        winner = max(votes, key=votes.get)
+        winner = max(votes, key=lambda k: votes[k])
 
         dissent = (
             [
@@ -141,7 +143,7 @@ class CollectiveSynthesizer:
         """Calculate how well agents agree (0-1)."""
         if len(agent_outputs) < 2:
             return 1.0
-        weights = {}
+        weights: Dict[str, float] = {}
         for o in agent_outputs:
             k = str(o.content)
             weights[k] = (
@@ -166,13 +168,15 @@ class CollectiveSynthesizer:
         return resolvers.get(strategy, self._resolve_trust)(outputs)
 
     def _resolve_trust(self, outputs: List[AgentOutput]) -> ResolvedOutput:
-        scores, agents, original = {}, {}, {}
+        scores: Dict[str, float] = {}
+        agents: Dict[str, List[str]] = {}
+        original: Dict[str, Any] = {}
         for o in outputs:
             k = str(o.content)
             scores[k] = scores.get(k, 0.0) + self._get_trust(o.agent_id) * o.confidence
             agents.setdefault(k, []).append(o.agent_id)
             original[k] = o.content
-        winner, total = max(scores, key=scores.get), sum(scores.values())
+        winner, total = max(scores, key=lambda k: scores[k]), sum(scores.values())
         dissent = [a for k, al in agents.items() if k != winner for a in al]
         return ResolvedOutput(
             original[winner],
@@ -196,7 +200,7 @@ class CollectiveSynthesizer:
         )
 
     def _resolve_consensus(self, outputs: List[AgentOutput]) -> ResolvedOutput:
-        counts = {}
+        counts: Dict[str, int] = {}
         for o in outputs:
             counts[str(o.content)] = counts.get(str(o.content), 0) + 1
         total = len(outputs)

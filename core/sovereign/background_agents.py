@@ -145,7 +145,7 @@ class ProactiveAction:
             action_type=self.action_type.value,
             description=self.description,
             risk_score=1.0 - self.ihsan_score,
-            cost_estimate=self.financial_impact,
+            cost_percent=self.financial_impact,
             ihsan_score=self.ihsan_score,
             is_reversible=self.reversibility
             in [Reversibility.INSTANT, Reversibility.WITHIN_HOUR],
@@ -153,8 +153,8 @@ class ProactiveAction:
 
         decision = autonomy_matrix.determine_autonomy(context)
 
-        if not decision.allowed:
-            logger.warning(f"Constitutional check failed: {decision.reason}")
+        if not decision.can_execute:
+            logger.warning(f"Constitutional check failed: {decision.reasoning}")
             return False
 
         self.requires_approval = not decision.can_execute

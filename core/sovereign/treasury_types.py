@@ -25,8 +25,8 @@ try:
         UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    UNIFIED_SNR_THRESHOLD = 0.85
+    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
+    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
 
 
 # =============================================================================

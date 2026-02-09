@@ -165,7 +165,7 @@ class ChannelAdapter(ABC):
             "message_count": session.message_count,
         }
         if metadata:
-            context["platform"] = metadata
+            context["platform"] = metadata  # type: ignore[assignment]
 
         try:
             response = await self._query_fn(content, context)

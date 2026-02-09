@@ -155,6 +155,11 @@ class SovereignLoop:
         self._snr_thresholds = SNR_THRESHOLDS
         self._constitutional = CONSTITUTIONAL_CONSTRAINTS
 
+    def _ensure_graph(self) -> ReasoningGraph:
+        """Return the reasoning graph, asserting it is initialized."""
+        assert self._graph is not None, "ReasoningGraph not initialized"
+        return self._graph
+
     # =========================================================================
     # PHASE IMPLEMENTATIONS
     # =========================================================================
@@ -172,7 +177,7 @@ class SovereignLoop:
         snr, _ = self._giants.invoke(Giant.SHANNON, "snr", content)
 
         # Create observation node
-        node = self._graph.add_node(
+        node = self._ensure_graph().add_node(
             content=content,
             node_type=NodeType.OBSERVATION,
             technique="snr",
@@ -228,7 +233,7 @@ class SovereignLoop:
             orientation_content += f". Relevant: {context_summary}"
 
         # Create orientation node
-        node = self._graph.add_node(
+        node = self._ensure_graph().add_node(
             content=orientation_content,
             node_type=NodeType.ORIENTATION,
             parent_ids={observation.node_id} if observation.node_id else None,
@@ -279,7 +284,7 @@ Focus on the most relevant patterns and implications."""
             reasoning_content = f"Analysis of: {orientation.content[:100]}. Key patterns identified through structured examination."
 
         # Create reasoning node
-        node = self._graph.add_node(
+        node = self._ensure_graph().add_node(
             content=reasoning_content,
             node_type=NodeType.ANALYSIS,
             parent_ids={orientation.node_id} if orientation.node_id else None,
@@ -289,10 +294,10 @@ Focus on the most relevant patterns and implications."""
         )
 
         # Check if backtracking needed
-        should_bt, reason = self._graph.should_backtrack(node.id)
+        should_bt, reason = self._ensure_graph().should_backtrack(node.id)
         if should_bt and self._backtrack_count < self.max_backtrack:
             logger.info(f"Backtracking: {reason}")
-            backtrack_node = self._graph.backtrack(node.id, reason)
+            backtrack_node = self._ensure_graph().backtrack(node.id, reason)
             self._backtrack_count += 1
 
             if backtrack_node:
@@ -348,14 +353,14 @@ Provide an integrated conclusion that captures the key insights."""
             synthesis_content = f"Synthesis of {len(phases)} reasoning phases. Integrated conclusion based on observation, orientation, and analysis."
 
         # Create synthesis node
-        synthesis_node = self._graph.synthesize(
+        synthesis_node = self._ensure_graph().synthesize(
             node_ids=node_ids,
             synthesis_content=synthesis_content,
             target_type=NodeType.SYNTHESIS,
         )
 
         if not synthesis_node:
-            synthesis_node = self._graph.add_node(
+            synthesis_node = self._ensure_graph().add_node(
                 content=synthesis_content,
                 node_type=NodeType.SYNTHESIS,
                 parent_ids=node_ids,
@@ -417,7 +422,7 @@ Provide a clear, actionable response that:
         )
 
         # Create action node
-        node = self._graph.add_node(
+        node = self._ensure_graph().add_node(
             content=action_content,
             node_type=NodeType.CONCLUSION,
             parent_ids={synthesis.node_id} if synthesis.node_id else None,
@@ -476,7 +481,7 @@ Provide a clear, actionable response that:
 - Quality threshold: {self._snr_thresholds['reflection']:.3f}"""
 
         # Create reflection node
-        node = self._graph.add_node(
+        node = self._ensure_graph().add_node(
             content=reflection_content,
             node_type=NodeType.META,
             parent_ids={phases[-1].node_id} if phases and phases[-1].node_id else None,

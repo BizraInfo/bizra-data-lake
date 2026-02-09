@@ -261,6 +261,7 @@ class AgentOrchestrator:
         if task.error:
             content += f"Error: {task.error}"
 
+        assert self.memory is not None
         await self.memory.encode(
             content=content,
             memory_type=MemoryType.EPISODIC,

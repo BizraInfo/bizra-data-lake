@@ -375,7 +375,7 @@ class InferenceGateway:
         if stream:
             # For streaming, we cannot easily failover mid-stream
             # Return generator from primary backend (circuit breaker will raise on open)
-            return primary_backend.generate_stream(prompt, max_tokens, temperature)
+            return primary_backend.generate_stream(prompt, max_tokens, temperature)  # type: ignore[return-value]
 
         # Try each backend in order until one succeeds
         last_error: Optional[Exception] = None
@@ -461,7 +461,7 @@ class InferenceGateway:
             # Collect circuit breaker metrics
             cb_metrics = backend.get_circuit_metrics()
             if cb_metrics:
-                circuit_breakers[f"{tier_name}_{backend.backend_type.value}"] = (
+                circuit_breakers[f"{tier_name}_{backend.backend_type.value}"] = dict(
                     cb_metrics
                 )
 
@@ -470,7 +470,7 @@ class InferenceGateway:
         if self._active_backend and hasattr(
             self._active_backend, "get_batching_metrics"
         ):
-            batching_metrics = self._active_backend.get_batching_metrics()
+            batching_metrics = self._active_backend.get_batching_metrics()  # type: ignore[union-attr]
 
         health_data: Dict[str, Any] = {
             "status": self.status.value,
@@ -665,6 +665,7 @@ async def main():
         tier = ComputeTier(args.tier) if args.tier else None
 
         result = await gateway.infer(args.prompt, tier=tier)
+        assert isinstance(result, InferenceResult), "Expected InferenceResult, not stream"
         print(f"\n{'='*60}")
         print(f"Model: {result.model}")
         print(f"Backend: {result.backend.value}")

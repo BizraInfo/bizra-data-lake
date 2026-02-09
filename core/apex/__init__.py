@@ -311,12 +311,12 @@ class ApexSystem:
 
         await asyncio.gather(
             (
-                self.social.stop()
+                self.social.stop()  # type: ignore[attr-defined]
                 if self._social and hasattr(self._social, "stop")
                 else asyncio.sleep(0)
             ),
             (
-                self.opportunity.stop()
+                self.opportunity.stop()  # type: ignore[attr-defined]
                 if self._opportunity and hasattr(self._opportunity, "stop")
                 else asyncio.sleep(0)
             ),

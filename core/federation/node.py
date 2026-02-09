@@ -67,7 +67,7 @@ class FederationNode:
 
         # Generate keypair if not provided (SEC-016/017 compliance)
         if not public_key or not private_key or len(public_key) < 64:
-            from core.pci import generate_keypair
+            from core.pci import generate_keypair  # type: ignore[attr-defined]
 
             private_key, public_key = generate_keypair()
             print(f"[FederationNode] Generated Ed25519 keypair for {self.node_id}")
@@ -284,7 +284,7 @@ class FederationNode:
             self._pending_votes.clear()
 
             # Check for completed rounds
-            results = self.consensus.check_and_finalize()
+            results = self.consensus.check_and_finalize()  # type: ignore[attr-defined]
 
             for pattern_id, accepted, impact in results:
                 if accepted:
@@ -324,7 +324,7 @@ class FederationNode:
             "network_multiplier": self.get_network_multiplier(),
             "gossip": self.gossip.get_stats(),
             "patterns": self.pattern_store.get_stats(),
-            "consensus": self.consensus.get_stats(),
+            "consensus": self.consensus.get_stats(),  # type: ignore[attr-defined]
             "uptime_seconds": 0,  # Simplified for now
         }
 

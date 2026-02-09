@@ -300,8 +300,8 @@ class IhsanProjector:
         lambda_lr = self._sigmoid(raw[:, 2] * self.lambda_scale)
 
         return [
-            NTUState(belief=float(b), entropy=float(e), lambda_lr=float(l))
-            for b, e, l in zip(belief, entropy, lambda_lr)
+            NTUState(belief=float(b), entropy=float(e), lambda_lr=float(lr))
+            for b, e, lr in zip(belief, entropy, lambda_lr)  # type: ignore[arg-type]
         ]
 
     def inverse_project(

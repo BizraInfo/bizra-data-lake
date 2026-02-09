@@ -328,7 +328,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         # Check Python agents via base class
         # (simplified - would check actual agent health)
         for swarm_id, swarm in self._swarms.items():
-            for agent in swarm.agents:
+            for agent in swarm.agents.values():
                 if not agent.id.startswith("rust:"):
                     health_results[agent.id] = HealthStatus.HEALTHY
 
@@ -344,7 +344,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         healthy_count = 0
         total_count = 0
 
-        for agent in swarm.agents:
+        for agent in swarm.agents.values():
             total_count += 1
             if agent.id.startswith("rust:"):
                 service_name = agent.id.replace("rust:", "")
@@ -353,7 +353,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
             else:
                 health = HealthStatus.HEALTHY  # Simplified
 
-            all_health[agent.id] = health.name
+            all_health[agent.id] = health.value
             if health == HealthStatus.HEALTHY:
                 healthy_count += 1
 
@@ -385,8 +385,8 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
             return
 
         # Partition instances by type
-        python_agents = [a for a in swarm.agents if not a.id.startswith("rust:")]
-        rust_services = [a for a in swarm.agents if a.id.startswith("rust:")]
+        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        rust_services = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         if decision.action == ScalingAction.SCALE_UP:
             delta = decision.target_count - decision.current_count
@@ -437,7 +437,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
                 status=AgentStatus.RUNNING,
                 started_at=datetime.now(timezone.utc),
             )
-            swarm.agents.append(agent)
+            swarm.agents[agent_id] = agent
             logger.debug(f"Spawned Python agent: {agent_id}")
 
     async def _scale_up_rust(self, swarm_id: str, count: int) -> None:
@@ -464,7 +464,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
                     status=AgentStatus.RUNNING,
                     started_at=datetime.now(timezone.utc),
                 )
-                swarm.agents.append(agent)
+                swarm.agents[agent.id] = agent
 
             logger.debug(f"Spawned Rust service: {service_name}")
 
@@ -474,12 +474,12 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         if not swarm:
             return
 
-        python_agents = [a for a in swarm.agents if not a.id.startswith("rust:")]
+        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
 
         # Remove oldest first (FIFO)
         to_remove = python_agents[:count]
         for agent in to_remove:
-            swarm.agents.remove(agent)
+            del swarm.agents[agent.id]
             logger.debug(f"Removed Python agent: {agent.id}")
 
     async def _scale_down_rust(self, swarm_id: str, count: int) -> None:
@@ -488,14 +488,14 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         if not swarm:
             return
 
-        rust_agents = [a for a in swarm.agents if a.id.startswith("rust:")]
+        rust_agents = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         # Remove oldest first
         to_remove = rust_agents[:count]
         for agent in to_remove:
             service_name = agent.id.replace("rust:", "")
             self.unregister_rust_service(service_name)
-            swarm.agents.remove(agent)
+            del swarm.agents[agent.id]
             logger.debug(f"Removed Rust service: {service_name}")
 
     async def _self_heal_loop(self) -> None:
@@ -518,7 +518,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         for service_name, adapter in list(self.rust_adapters.items()):
             health = await adapter.health_check()
 
-            if health in (HealthStatus.UNHEALTHY, HealthStatus.CRITICAL):
+            if health in (HealthStatus.UNHEALTHY, HealthStatus.UNKNOWN):
                 logger.warning(f"Unhealthy Rust service detected: {service_name}")
 
                 success = await adapter.restart()
@@ -535,7 +535,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         # Find which swarm this service belongs to
         swarm_id = None
         for sid, swarm in self._swarms.items():
-            if any(a.id == f"rust:{old_service}" for a in swarm.agents):
+            if any(a.id == f"rust:{old_service}" for a in swarm.agents.values()):
                 swarm_id = sid
                 break
 
@@ -544,7 +544,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
 
         if swarm_id:
             swarm = self._swarms[swarm_id]
-            swarm.agents = [a for a in swarm.agents if a.id != f"rust:{old_service}"]
+            swarm.agents = {k: a for k, a in swarm.agents.items() if a.id != f"rust:{old_service}"}
 
             # Add new
             new_service = f"{swarm_id}-rust-{uuid.uuid4().hex[:8]}"
@@ -560,7 +560,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
                 status=AgentStatus.RUNNING,
                 started_at=datetime.now(timezone.utc),
             )
-            swarm.agents.append(agent)
+            swarm.agents[agent.id] = agent
 
             logger.info(f"Replaced {old_service} with {new_service}")
 

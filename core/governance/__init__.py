@@ -41,7 +41,7 @@ from .capability_card import (
 )
 
 # Direct imports from local files (not from sovereign for clean separation)
-from .constitutional_gate import (
+from .constitutional_gate import (  # type: ignore[attr-defined]
     AdmissionResult,
     AdmissionStatus,
     ConstitutionalGate,

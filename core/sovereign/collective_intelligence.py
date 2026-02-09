@@ -206,7 +206,7 @@ class CollectiveIntelligence:
             votes[key] = votes.get(key, 0) + c.confidence
 
         # Find winner
-        winner_key = max(votes, key=votes.get)
+        winner_key = max(votes, key=lambda k: votes[k])
         winner_weight = votes[winner_key]
         total_weight = sum(votes.values())
 

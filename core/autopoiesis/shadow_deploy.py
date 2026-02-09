@@ -1027,7 +1027,7 @@ class ShadowDeployer:
         deployment: ShadowDeployment,
         request: ShadowRequest,
         production_response: Optional[ShadowResponse] = None,
-    ) -> Tuple[ShadowResponse, Optional[ShadowResponse]]:
+    ) -> Tuple[Optional[ShadowResponse], Optional[ShadowResponse]]:
         """
         Mirror a request to the shadow environment.
 
@@ -1674,7 +1674,7 @@ class _TokenBucket:
     def __init__(self, rate: float, capacity: int):
         self.rate = rate
         self.capacity = capacity
-        self.tokens = capacity
+        self.tokens: float = float(capacity)
         self.last_update = datetime.now(timezone.utc)
         self._lock = asyncio.Lock()
 

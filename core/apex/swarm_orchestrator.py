@@ -160,7 +160,7 @@ class AgentInstance:
     """A deployed agent instance."""
 
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
-    config: AgentConfig = field(default_factory=AgentConfig)
+    config: AgentConfig = field(default_factory=AgentConfig)  # type: ignore[arg-type]
     status: AgentStatus = AgentStatus.PENDING
 
     # Process info
