@@ -9,7 +9,7 @@
 
 use blake3::Hasher;
 use rustc_hash::FxHashMap;
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 /// Metadata for cached invariants
 #[derive(Debug, Clone, Copy)]
@@ -59,7 +59,7 @@ impl InvariantCache {
 
         // Fast path: read lock check
         {
-            let cache = self.cache.read().unwrap();
+            let cache = self.cache.read();
             if cache.contains_key(&hash) {
                 return false; // Duplicate
             }
@@ -67,7 +67,7 @@ impl InvariantCache {
 
         // Slow path: write lock insert
         {
-            let mut cache = self.cache.write().unwrap();
+            let mut cache = self.cache.write();
 
             // Double-check after acquiring write lock
             if cache.contains_key(&hash) {
@@ -98,19 +98,19 @@ impl InvariantCache {
 
     /// Check if hash exists (read-only)
     pub fn contains(&self, hash: &[u8; 32]) -> bool {
-        let cache = self.cache.read().unwrap();
+        let cache = self.cache.read();
         cache.contains_key(hash)
     }
 
     /// Get metadata for hash
     pub fn get(&self, hash: &[u8; 32]) -> Option<InvariantMeta> {
-        let cache = self.cache.read().unwrap();
+        let cache = self.cache.read();
         cache.get(hash).copied()
     }
 
     /// Update metadata for hash
     pub fn update(&self, hash: &[u8; 32], f: impl FnOnce(&mut InvariantMeta)) {
-        let mut cache = self.cache.write().unwrap();
+        let mut cache = self.cache.write();
         if let Some(meta) = cache.get_mut(hash) {
             f(meta);
         }
@@ -126,7 +126,7 @@ impl InvariantCache {
 
     /// Get current size
     pub fn len(&self) -> usize {
-        let cache = self.cache.read().unwrap();
+        let cache = self.cache.read();
         cache.len()
     }
 
@@ -137,13 +137,13 @@ impl InvariantCache {
 
     /// Clear all entries
     pub fn clear(&self) {
-        let mut cache = self.cache.write().unwrap();
+        let mut cache = self.cache.write();
         cache.clear();
     }
 
     /// Get all hashes (for export)
     pub fn get_all_hashes(&self) -> Vec<[u8; 32]> {
-        let cache = self.cache.read().unwrap();
+        let cache = self.cache.read();
         cache.keys().copied().collect()
     }
 }

@@ -203,7 +203,8 @@ impl PyPCIEnvelope {
             content_hash: envelope.content_hash,
             signature: envelope.signature,
             public_key: envelope.public_key,
-            payload_json: serde_json::to_string(&envelope.payload).unwrap(),
+            payload_json: serde_json::to_string(&envelope.payload)
+                .map_err(|e| PyRuntimeError::new_err(format!("Payload serialization failed: {}", e)))?,
             ttl: envelope.ttl,
         })
     }

@@ -10,7 +10,7 @@
 //! This prevents spam by making memory usage economically expensive.
 
 use std::collections::BTreeMap;
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 /// Rent slot containing data and payment info
 #[derive(Debug, Clone)]
@@ -112,7 +112,7 @@ impl HarbergerRent {
             created_at: now,
         };
 
-        let mut slots = self.slots.write().unwrap();
+        let mut slots = self.slots.write();
         slots.insert(id, slot);
 
         Ok(id)
@@ -125,7 +125,7 @@ impl HarbergerRent {
         additional_secs: u64,
         payment: u64,
     ) -> Result<(), RentError> {
-        let mut slots = self.slots.write().unwrap();
+        let mut slots = self.slots.write();
         let slot = slots.get_mut(&slot_id).ok_or(RentError::SlotNotFound)?;
 
         let rent_cost = self.calculate_rent(slot.data.len(), additional_secs);
@@ -142,7 +142,7 @@ impl HarbergerRent {
 
     /// Check if slot is expired (past grace period)
     pub fn is_expired(&self, slot_id: u32) -> bool {
-        let slots = self.slots.read().unwrap();
+        let slots = self.slots.read();
         if let Some(slot) = slots.get(&slot_id) {
             let now = now_secs();
             now > slot.rent_paid_until + self.grace_period
@@ -157,14 +157,14 @@ impl HarbergerRent {
             return None;
         }
 
-        let mut slots = self.slots.write().unwrap();
+        let mut slots = self.slots.write();
         slots.remove(&slot_id).map(|slot| slot.owner)
     }
 
     /// Run eviction pass on all slots
     pub fn evict_all_expired(&self) -> Vec<(u32, [u8; 20])> {
         let expired: Vec<u32> = {
-            let slots = self.slots.read().unwrap();
+            let slots = self.slots.read();
             let now = now_secs();
             slots
                 .iter()
@@ -189,7 +189,7 @@ impl HarbergerRent {
             return None;
         }
 
-        let slots = self.slots.read().unwrap();
+        let slots = self.slots.read();
         slots.get(&slot_id).map(|slot| slot.data.clone())
     }
 
@@ -200,7 +200,7 @@ impl HarbergerRent {
         new_owner: [u8; 20],
         payment: u64,
     ) -> Result<[u8; 20], RentError> {
-        let mut slots = self.slots.write().unwrap();
+        let mut slots = self.slots.write();
         let slot = slots.get_mut(&slot_id).ok_or(RentError::SlotNotFound)?;
 
         // Payment must be >= assessed value
@@ -218,7 +218,7 @@ impl HarbergerRent {
 
     /// Get statistics
     pub fn stats(&self) -> HarbergerStats {
-        let slots = self.slots.read().unwrap();
+        let slots = self.slots.read();
         let now = now_secs();
 
         let total_slots = slots.len();

@@ -423,6 +423,7 @@ dependencies = [
  "crossbeam",
  "crossbeam-queue",
  "ed25519-dalek",
+ "parking_lot",
  "proptest",
  "rand 0.8.5",
  "rayon",
@@ -478,6 +479,7 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bizra-core",
  "blake3",
  "chrono",
  "criterion",
@@ -547,6 +549,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bizra-core",
  "blake3",
  "chrono",
  "criterion",
