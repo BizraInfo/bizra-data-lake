@@ -165,7 +165,7 @@ def load_genesis(state_dir: Path) -> Optional[GenesisState]:
         return None
 
     try:
-        with open(genesis_path) as f:
+        with open(genesis_path, encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         raise ValueError(f"Genesis file corrupted: {e}") from e

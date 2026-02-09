@@ -33,8 +33,9 @@ from core.pci.crypto import (
 from core.pci.envelope import (
     PCIEnvelope,
     EnvelopeBuilder,
-    _timing_safe_nonce_lookup,
+    _nonce_exists_and_record,
     _seen_nonces,
+    _nonce_lock,
 )
 
 
@@ -135,29 +136,34 @@ class TestVerifyDigestMatch:
         assert verify_digest_match(digest, digest_upper) is True
 
 
-class TestTimingSafeNonceLookup:
-    """Tests for _timing_safe_nonce_lookup function."""
+class TestNonceExistsAndRecord:
+    """Tests for _nonce_exists_and_record function (thread-safe dict+TTL replacement)."""
 
-    def test_empty_set(self):
-        """Empty set should return False."""
-        assert _timing_safe_nonce_lookup("any_nonce", set()) is False
+    def setup_method(self):
+        """Clear global nonce cache before each test."""
+        with _nonce_lock:
+            _seen_nonces.clear()
 
-    def test_nonce_found(self):
-        """Present nonce should return True."""
-        nonces = {"nonce1", "nonce2", "nonce3"}
-        assert _timing_safe_nonce_lookup("nonce2", nonces) is True
+    def test_empty_cache(self):
+        """First-ever nonce should return False (not seen) and record it."""
+        assert _nonce_exists_and_record("any_nonce") is False
+
+    def test_nonce_found_after_record(self):
+        """Nonce should be found after first recording."""
+        _nonce_exists_and_record("nonce2")  # records it
+        assert _nonce_exists_and_record("nonce2") is True
 
     def test_nonce_not_found(self):
         """Absent nonce should return False."""
-        nonces = {"nonce1", "nonce2", "nonce3"}
-        assert _timing_safe_nonce_lookup("nonce4", nonces) is False
+        _nonce_exists_and_record("nonce1")
+        assert _nonce_exists_and_record("nonce4") is False
 
     def test_similar_nonces(self):
         """Similar but different nonces should not match."""
-        nonces = {"nonce_abc"}
-        assert _timing_safe_nonce_lookup("nonce_abd", nonces) is False
-        assert _timing_safe_nonce_lookup("nonce_ab", nonces) is False
-        assert _timing_safe_nonce_lookup("nonce_abcd", nonces) is False
+        _nonce_exists_and_record("nonce_abc")
+        assert _nonce_exists_and_record("nonce_abd") is False
+        assert _nonce_exists_and_record("nonce_ab") is False
+        assert _nonce_exists_and_record("nonce_abcd") is False
 
 
 class TestTimingAttackResistance:
@@ -254,21 +260,25 @@ class TestTimingAttackResistance:
     @pytest.mark.slow
     def test_nonce_lookup_timing_consistency(self):
         """
-        Verify nonce lookup takes similar time for found vs not found.
+        Verify nonce lookup is O(1) with dict-based cache.
 
-        This tests that the lookup iterates through all nonces
-        regardless of whether a match is found early.
+        The new dict+TTL implementation is inherently O(1) per lookup,
+        replacing the O(n) timing-safe set iteration. This test verifies
+        consistent performance regardless of cache size.
         """
-        # Create a set with 100 nonces
-        nonces = {f"nonce_{i:04d}" for i in range(100)}
+        # Pre-populate cache with 100 nonces
+        with _nonce_lock:
+            _seen_nonces.clear()
+        for i in range(100):
+            _nonce_exists_and_record(f"nonce_{i:04d}")
 
-        # Time lookups for existing nonce (first in set iteration)
-        existing_nonce = list(nonces)[0]
+        # Time lookups for existing nonce
+        existing_nonce = "nonce_0000"
         found_times = []
 
         for _ in range(500):
             start = time.perf_counter_ns()
-            _timing_safe_nonce_lookup(existing_nonce, nonces)
+            _nonce_exists_and_record(existing_nonce)
             end = time.perf_counter_ns()
             found_times.append(end - start)
 
@@ -278,19 +288,18 @@ class TestTimingAttackResistance:
 
         for _ in range(500):
             start = time.perf_counter_ns()
-            _timing_safe_nonce_lookup(missing_nonce, nonces)
+            _nonce_exists_and_record(missing_nonce)
             end = time.perf_counter_ns()
             not_found_times.append(end - start)
 
         found_median = statistics.median(found_times)
         not_found_median = statistics.median(not_found_times)
 
-        # Both should take similar time since we iterate all nonces
-        # Widened bounds (0.3-3.0) to accommodate WSL/VM timing jitter
+        # O(1) dict lookups should have very similar timing
         ratio = found_median / not_found_median if not_found_median > 0 else 1.0
 
         assert 0.3 < ratio < 3.0, (
-            f"Nonce lookup timing ratio {ratio:.2f} suggests timing leak. "
+            f"Nonce lookup timing ratio {ratio:.2f} unexpected for O(1) dict. "
             f"Found: {found_median}ns, Not found: {not_found_median}ns"
         )
 
@@ -337,7 +346,8 @@ class TestEnvelopeReplayProtection:
 
     def setup_method(self):
         """Clear seen nonces before each test."""
-        _seen_nonces.clear()
+        with _nonce_lock:
+            _seen_nonces.clear()
 
     def test_replay_detection(self):
         """Replayed envelope should be detected."""

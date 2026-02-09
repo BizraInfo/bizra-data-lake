@@ -117,6 +117,28 @@ from core.apex.swarm_orchestrator import (  # Enums; Data classes; Component cla
 )
 
 # =============================================================================
+# SNR Apex Engine — Autonomous Signal Optimization (v2.0)
+# =============================================================================
+from core.apex.snr_apex_engine import (
+    APEX_SNR_FLOOR,
+    APEX_SNR_TARGET,
+    ApexReasoningEngine,
+    CognitiveGenerator,
+    CognitiveLayer,
+    DisciplineSynthesis,
+    Giant,
+    GiantsRegistry,
+    GraphOfThoughts,
+    NoiseComponent,
+    SignalComponent,
+    SNRAnalysis,
+    SNRApexEngine,
+    ThoughtNode,
+    ThoughtStatus,
+    ThoughtType,
+)
+
+# =============================================================================
 # Convenience Exports
 # =============================================================================
 __all__ = [
@@ -160,6 +182,23 @@ __all__ = [
     "HealthMonitor",
     "ScalingManager",
     "SwarmOrchestrator",
+    # SNR Apex Engine (v2.0)
+    "SNRApexEngine",
+    "ApexReasoningEngine",
+    "GraphOfThoughts",
+    "ThoughtNode",
+    "ThoughtType",
+    "ThoughtStatus",
+    "SNRAnalysis",
+    "GiantsRegistry",
+    "Giant",
+    "SignalComponent",
+    "NoiseComponent",
+    "CognitiveGenerator",
+    "CognitiveLayer",
+    "DisciplineSynthesis",
+    "APEX_SNR_TARGET",
+    "APEX_SNR_FLOOR",
 ]
 
 

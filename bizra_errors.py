@@ -315,8 +315,12 @@ class VectorSearchError(RetrievalError):
         self.query_dim = query_dim
 
 
-class IndexError(RetrievalError):
-    """Raised when index operation fails"""
+class BIZRAIndexError(RetrievalError):
+    """Raised when index operation fails.
+
+    Named BIZRAIndexError to avoid shadowing Python's builtin IndexError.
+    Standing on Giants: Liskov (1987) — Substitution Principle preservation.
+    """
 
     def __init__(self, message: str, index_type: str = "unknown", **kwargs):
         super().__init__(
@@ -327,6 +331,10 @@ class IndexError(RetrievalError):
             **kwargs
         )
         self.index_type = index_type
+
+
+# Preserve backward compatibility without shadowing builtins
+IndexError_ = BIZRAIndexError
 
 
 # ============================================================================
@@ -463,8 +471,12 @@ class ResourceError(BIZRAError):
         )
 
 
-class MemoryError(ResourceError):
-    """Raised when memory is exhausted"""
+class BIZRAMemoryError(ResourceError):
+    """Raised when memory is exhausted.
+
+    Named BIZRAMemoryError to avoid shadowing Python's builtin MemoryError.
+    Standing on Giants: Liskov (1987) — Substitution Principle preservation.
+    """
 
     def __init__(self, required_mb: float, available_mb: float, **kwargs):
         super().__init__(
@@ -476,6 +488,10 @@ class MemoryError(ResourceError):
         )
         self.required_mb = required_mb
         self.available_mb = available_mb
+
+
+# Preserve backward compatibility without shadowing builtins
+MemoryError_ = BIZRAMemoryError
 
 
 class GPUMemoryError(ResourceError):
@@ -493,8 +509,12 @@ class GPUMemoryError(ResourceError):
         self.available_mb = available_mb
 
 
-class FileNotFoundError(ResourceError):
-    """Raised when required file is not found"""
+class BIZRAFileNotFoundError(ResourceError):
+    """Raised when required file is not found.
+
+    Named BIZRAFileNotFoundError to avoid shadowing Python's builtin FileNotFoundError.
+    Standing on Giants: Liskov (1987) — Substitution Principle preservation.
+    """
 
     def __init__(self, file_path: str, **kwargs):
         super().__init__(
@@ -505,6 +525,10 @@ class FileNotFoundError(ResourceError):
             **kwargs
         )
         self.file_path = file_path
+
+
+# Preserve backward compatibility without shadowing builtins
+FileNotFoundError_ = BIZRAFileNotFoundError
 
 
 # ============================================================================

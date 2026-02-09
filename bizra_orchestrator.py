@@ -190,16 +190,9 @@ class BIZRAOrchestrator:
         if enable_pat:
             try:
                 # Try LM Studio first, fall back to Ollama
+                # NOTE: No event loop creation in __init__ — deferred to initialize()
+                # Standing on Giants: Fowler (2004) — "Lazy Initialization" pattern
                 lm_backend = LMStudioBackend()
-                # Check synchronously by creating event loop if needed
-                import asyncio
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                
-                # Use LM Studio backend (it will be checked during first call)
                 self.pat = PATOrchestrator(lm_backend, model=ollama_model)
                 logger.info(f"PAT Engine initialized with LM Studio (model: {ollama_model})")
             except Exception as e:
@@ -463,16 +456,16 @@ class BIZRAOrchestrator:
         symbolic_facts = self._extract_symbolic_facts(context)
         neural_results = self._extract_neural_results(context)
 
+        # Batch-fetch all context embeddings ONCE to avoid N+1 lookups
+        # Standing on Giants: Fowler (2003) — "Avoid the N+1 Selects Problem"
+        context_embeddings = self._batch_get_embeddings(context.results)
+
         arte_result = self.arte.resolve_tension(
             query=query.text,
             symbolic_facts=symbolic_facts,
             neural_results=neural_results,
             query_embedding=context.query_embedding,
-            context_embeddings=np.array([
-                self.hypergraph.index.get_chunk_embedding(r.chunk_id)
-                for r in context.results
-                if self.hypergraph.index.get_chunk_embedding(r.chunk_id) is not None
-            ]) if context.results else np.zeros((1, 384))
+            context_embeddings=context_embeddings if context_embeddings.size > 0 else np.zeros((1, 384))
         )
 
         reasoning_trace.append(f"ARTE SNR: {arte_result['snr_score']}")
@@ -480,16 +473,15 @@ class BIZRAOrchestrator:
 
         # Step 4: KEP Processing (synergy detection + compound discovery)
         if query.enable_kep and self.kep_enabled and self.kep:
-            # Prepare retrieval results for KEP
+            # Reuse batch-fetched embeddings for KEP (no second N+1)
+            embedding_map = self._batch_get_embedding_map(context.results)
             kep_retrieval_results = [
                 {
                     "doc_id": r.doc_id,
                     "chunk_id": r.chunk_id,
                     "text": r.text,
                     "score": r.score,
-                    "embedding": self.hypergraph.index.get_chunk_embedding(r.chunk_id).tolist()
-                    if self.hypergraph.index.get_chunk_embedding(r.chunk_id) is not None
-                    else None
+                    "embedding": embedding_map.get(r.chunk_id, {}).get("list")
                 }
                 for r in context.results
             ]
@@ -978,6 +970,39 @@ class BIZRAOrchestrator:
             status["dual_agentic_status"] = self.dual_agentic.get_status()
 
         return status
+
+    # ── Batch Embedding Helpers ─────────────────────────────────────────
+    # Standing on Giants: Fowler (2003) — "Avoid the N+1 Selects Problem"
+    # Fetch ALL embeddings in a single pass, then hand the collection to
+    # every downstream consumer (ARTE, KEP, SNR) instead of re-querying.
+
+    def _batch_get_embeddings(self, results) -> np.ndarray:
+        """Batch-fetch all chunk embeddings for retrieval results in one pass.
+
+        Returns an (N, D) numpy array where N = number of results with valid
+        embeddings and D = embedding dimensionality.  Empty array when no
+        embeddings are found.
+        """
+        embeddings = []
+        for r in results:
+            emb = self.hypergraph.index.get_chunk_embedding(r.chunk_id)
+            if emb is not None:
+                embeddings.append(emb)
+        return np.array(embeddings) if embeddings else np.array([])
+
+    def _batch_get_embedding_map(self, results) -> Dict[str, Dict]:
+        """Build a chunk_id → embedding map for reuse across pipeline stages.
+
+        Returns ``{chunk_id: {"array": np.ndarray, "list": List[float]}}``
+        so callers can pick the representation they need without repeated
+        conversions.
+        """
+        mapping: Dict[str, Dict] = {}
+        for r in results:
+            emb = self.hypergraph.index.get_chunk_embedding(r.chunk_id)
+            if emb is not None:
+                mapping[r.chunk_id] = {"array": emb, "list": emb.tolist()}
+        return mapping
 
 
 async def main():

@@ -16,6 +16,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -215,11 +216,13 @@ _STOPWORDS = frozenset(
 )
 
 
+# Pre-compiled regex for keyword extraction (Arabic + Latin, 3+ chars)
+_KEYWORD_RE = re.compile(r"[a-zA-Z\u0600-\u06FF]{3,}")
+
+
 def _extract_keywords(text: str) -> Set[str]:
     """Extract meaningful keywords from text for retrieval matching."""
-    import re
-
-    words = re.findall(r"[a-zA-Z\u0600-\u06FF]{3,}", text.lower())
+    words = _KEYWORD_RE.findall(text.lower())
     return {w for w in words if w not in _STOPWORDS}
 
 
@@ -227,9 +230,7 @@ def _keyword_relevance(query_keywords: Set[str], content: str) -> float:
     """Compute keyword overlap relevance between query and content (0.0-1.0)."""
     if not query_keywords:
         return 0.0
-    import re
-
-    content_words = set(re.findall(r"[a-zA-Z\u0600-\u06FF]{3,}", content.lower()))
+    content_words = set(_KEYWORD_RE.findall(content.lower()))
     overlap = query_keywords & content_words
     if not overlap:
         return 0.0

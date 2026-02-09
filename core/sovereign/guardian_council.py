@@ -6,6 +6,7 @@ Standing on the Shoulders of:
 - Byzantine Fault Tolerance (Lamport et al., 1982)
 - Weighted Voting Systems (Shapley-Shubik Index)
 - Ensemble Methods (Breiman, 1996)
+- Ed25519 Signatures (Bernstein et al., 2012) — provable vote authenticity
 
 The Council ensures no single agent can compromise the system.
 Every significant decision requires multi-guardian consensus.
@@ -15,10 +16,20 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from typing import Any, Callable, Optional
+
+from core.pci.crypto import (
+    domain_separated_digest,
+    generate_keypair,
+    sign_message,
+    verify_signature,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class GuardianRole(Enum):
@@ -103,7 +114,15 @@ class IhsanVector:
 
 @dataclass
 class GuardianVote:
-    """A single Guardian's vote on a proposal."""
+    """
+    A single Guardian's vote on a proposal.
+
+    Security model (Standing on Giants: Bernstein et al., 2012 — Ed25519):
+    - Each Guardian holds a unique Ed25519 keypair provisioned at init.
+    - Votes are signed with the guardian's private key via domain-separated BLAKE3 digest.
+    - Verification uses only the public key — private keys never leave the Guardian.
+    - Legacy HMAC-SHA256 fallback preserved for backward compatibility.
+    """
 
     guardian: GuardianRole
     vote_type: VoteType
@@ -111,12 +130,61 @@ class GuardianVote:
     reasoning: str
     ihsan_assessment: IhsanVector
     timestamp: datetime = field(default_factory=datetime.now)
-    signature: str = ""  # Cryptographic signature for audit
+    signature: str = ""  # Ed25519 signature (hex) or HMAC fallback
+    signer_public_key: str = ""  # Ed25519 public key (hex) of the signing guardian
 
-    def __post_init__(self):
-        # Generate vote signature for tamper detection
-        vote_data = f"{self.guardian.name}:{self.vote_type.name}:{self.confidence}:{self.timestamp.isoformat()}"
-        self.signature = hashlib.sha256(vote_data.encode()).hexdigest()[:16]
+    def __post_init__(self) -> None:
+        # If no signature set yet, generate HMAC fallback for backward compat.
+        # Ed25519 signing is performed via .sign() after construction.
+        if not self.signature:
+            import hmac as _hmac
+
+            vote_data = self._canonical_data_str()
+            domain_key = b"bizra-guardian-vote-v1"
+            self.signature = _hmac.new(
+                domain_key, vote_data.encode(), hashlib.sha256
+            ).hexdigest()
+
+    def _canonical_data_str(self) -> str:
+        """Canonical string representation of vote data for signing."""
+        return (
+            f"{self.guardian.name}:{self.vote_type.name}"
+            f":{self.confidence}:{self.timestamp.isoformat()}"
+        )
+
+    def sign(self, private_key_hex: str, public_key_hex: str) -> None:
+        """
+        Sign this vote with an Ed25519 keypair, replacing the HMAC fallback.
+
+        Args:
+            private_key_hex: Guardian's Ed25519 private key (hex).
+            public_key_hex: Guardian's Ed25519 public key (hex), stored for verification.
+        """
+        digest = domain_separated_digest(self._canonical_data_str().encode())
+        self.signature = sign_message(digest, private_key_hex)
+        self.signer_public_key = public_key_hex
+
+    def verify(self) -> bool:
+        """
+        Verify the vote signature.
+
+        Uses Ed25519 if the vote was signed (signer_public_key present),
+        otherwise falls back to HMAC-SHA256 verification.
+        """
+        if self.signer_public_key:
+            # Ed25519 verification — provable authenticity
+            digest = domain_separated_digest(self._canonical_data_str().encode())
+            return verify_signature(digest, self.signature, self.signer_public_key)
+        else:
+            # Legacy HMAC verification — integrity check only
+            import hmac as _hmac
+
+            vote_data = self._canonical_data_str()
+            domain_key = b"bizra-guardian-vote-v1"
+            expected = _hmac.new(
+                domain_key, vote_data.encode(), hashlib.sha256
+            ).hexdigest()
+            return _hmac.compare_digest(self.signature, expected)
 
     @property
     def numeric_value(self) -> float:
@@ -255,6 +323,9 @@ class Guardian:
         self.role = role
         self.evaluate_fn = evaluate_fn or self._default_evaluate
         self.vote_history: list[GuardianVote] = []
+        # Ed25519 keypair provisioned at init — each guardian has unique identity.
+        # Standing on Giants: Bernstein et al. (2012) — high-speed high-security sigs
+        self.private_key, self.public_key = generate_keypair()
 
     def _default_evaluate(self, proposal: Proposal) -> IhsanVector:
         """Default evaluation — override with LLM-based evaluation in production."""
@@ -303,6 +374,8 @@ class Guardian:
             reasoning=reasoning,
             ihsan_assessment=ihsan,
         )
+        # Ed25519 sign — replaces HMAC fallback with provable authenticity
+        vote.sign(self.private_key, self.public_key)
 
         self.vote_history.append(vote)
         return vote
@@ -393,6 +466,18 @@ class GuardianCouncil:
             valid_votes = [v for v in votes if isinstance(v, GuardianVote)]
         except asyncio.TimeoutError:
             valid_votes = []
+
+        # Ed25519 signature verification — reject tampered votes (BFT enforcement)
+        verified_votes: list[GuardianVote] = []
+        for vote in valid_votes:
+            if vote.verify():
+                verified_votes.append(vote)
+            else:
+                logger.warning(
+                    "REJECTED tampered vote from %s — signature verification failed",
+                    vote.guardian.name,
+                )
+        valid_votes = verified_votes
 
         # Check for hard vetoes
         hard_vetoes = [v for v in valid_votes if v.vote_type == VoteType.REJECT_HARD]

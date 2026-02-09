@@ -109,6 +109,16 @@ services:
     container_name: bizra-flywheel
     restart: unless-stopped
     
+    # Resource limits — prevent runaway memory/CPU (Sustainability dimension)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
     depends_on:
       ollama:
         condition: service_healthy

@@ -46,6 +46,74 @@ class NonCanonicalInputError(CanonicalizationError):
 
 
 # =============================================================================
+# SECURE KEY WRAPPER (Security Hardening S-3)
+# Prevents accidental serialization of private key material
+# =============================================================================
+
+
+class PrivateKeyWrapper:
+    """
+    Secure wrapper for Ed25519 private keys.
+
+    SECURITY: Prevents accidental serialization or logging of private key material.
+    - __repr__ and __str__ return masked values
+    - No direct hex access via properties
+    - sign() method encapsulates all private key usage
+
+    Usage:
+        key = PrivateKeyWrapper.generate()
+        signature = key.sign(digest_hex)
+        public_hex = key.public_key_hex
+    """
+
+    __slots__ = ("_private_bytes", "_public_bytes")
+
+    def __init__(self, private_key_hex: str):
+        """Initialize from hex-encoded private key."""
+        self._private_bytes = bytes.fromhex(private_key_hex)
+        private_key = ed25519.Ed25519PrivateKey.from_private_bytes(self._private_bytes)
+        self._public_bytes = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+
+    @classmethod
+    def generate(cls) -> "PrivateKeyWrapper":
+        """Generate a new Ed25519 keypair."""
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        private_bytes = private_key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        return cls(private_bytes.hex())
+
+    @property
+    def public_key_hex(self) -> str:
+        """Return hex-encoded public key (safe to expose)."""
+        return self._public_bytes.hex()
+
+    def sign(self, digest_hex: str) -> str:
+        """Sign a digest and return hex-encoded signature."""
+        digest_bytes = bytes.fromhex(digest_hex)
+        private_key = ed25519.Ed25519PrivateKey.from_private_bytes(self._private_bytes)
+        signature = private_key.sign(digest_bytes)
+        return signature.hex()
+
+    def __repr__(self) -> str:
+        """Masked representation to prevent accidental logging."""
+        return f"<PrivateKeyWrapper pub={self.public_key_hex[:16]}...>"
+
+    def __str__(self) -> str:
+        """Masked string to prevent accidental exposure."""
+        return f"[REDACTED:pub={self.public_key_hex[:16]}...]"
+
+    def __reduce__(self):
+        """Prevent pickle serialization of private key material."""
+        raise TypeError("PrivateKeyWrapper cannot be pickled for security reasons")
+
+
+# =============================================================================
 # TIMING-SAFE COMPARISON UTILITIES (Security Hardening S-2)
 # Standing on Giants: Kocher (1996) - "Timing Attacks on Implementations"
 # =============================================================================

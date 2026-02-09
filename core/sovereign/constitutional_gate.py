@@ -76,6 +76,25 @@ class ConstitutionalGate:
             os.getenv("BIZRA_Z3_CERT_ALLOW_SELF_SIGNED", "0") == "1"
         )
 
+        # Production security enforcement — fail-closed by default
+        # Standing on Giants: Saltzer & Schroeder (1975) — "Fail-safe defaults"
+        is_production = os.getenv("BIZRA_ENV", "").lower() == "production"
+        allow_override = os.getenv("BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE", "0") == "1"
+
+        if is_production and (self._allow_unsigned_z3 or self._allow_self_signed_z3):
+            if not allow_override:
+                raise RuntimeError(
+                    "SECURITY HALT: BIZRA_Z3_CERT_ALLOW_UNSIGNED and BIZRA_Z3_CERT_ALLOW_SELF_SIGNED "
+                    "are forbidden in production. This is a fail-closed default. "
+                    "Set BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE=1 to explicitly accept this risk."
+                )
+            else:
+                logger.warning(
+                    "SECURITY WARNING: Unsigned/self-signed Z3 certificates explicitly "
+                    "overridden in production via BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE=1. "
+                    "This bypasses cryptographic verification."
+                )
+
         # Try to import SNR v2 calculator
         try:
             from core.iaas.snr_v2 import SNRCalculatorV2
