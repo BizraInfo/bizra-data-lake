@@ -104,9 +104,8 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Run Clippy
-        continue-on-error: true  # Pre-existing style lints from Rust 1.88 upgrade
-        run: cargo clippy --workspace --lib --bins --tests -- -D warnings
+      - name: Run Clippy (zero warnings enforced)
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Test Matrix (Python + Rust)

@@ -481,6 +481,7 @@ dependencies = [
  "async-trait",
  "blake3",
  "chrono",
+ "criterion",
  "ed25519-dalek",
  "hex",
  "json-canon",
