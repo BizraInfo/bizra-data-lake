@@ -5,7 +5,7 @@
 //! mathematically proven.
 
 use napi::bindgen_prelude::*;
-use z3::{Config, Context, Solver, ast::{Ast, Real}};
+use z3::{Config, Context, Solver, ast::Real};
 
 use crate::IHSAN_THRESHOLD;
 
@@ -105,7 +105,7 @@ impl IhsanVerifier {
         let mut hasher = Sha256::new();
         hasher.update(score.to_le_bytes());
         hasher.update(IHSAN_THRESHOLD.to_le_bytes());
-        hasher.update(&[verified as u8]);
+        hasher.update([verified as u8]);
 
         hex::encode(hasher.finalize())
     }

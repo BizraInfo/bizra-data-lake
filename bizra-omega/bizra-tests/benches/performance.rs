@@ -364,7 +364,9 @@ pub fn estimate_memory_usage() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    #[allow(unused_imports)]
+    use super::{estimate_memory_usage, run_all_benchmarks};
+    #[allow(unused_imports)]
     use std::time::Duration;
 
     #[test]

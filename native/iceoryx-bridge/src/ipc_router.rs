@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, RwLock};
 
 use crate::{
     BridgeConfig, BridgeStats, GateResponse, InferenceRequest, InferenceResponse,
-    MessageEnvelope, MessageType, GateResultDetail,
+    MessageEnvelope, GateResultDetail,
 };
 
 /// Statistics tracker
@@ -37,6 +37,7 @@ impl StatsTracker {
         self.messages_received.fetch_add(1, Ordering::Relaxed);
     }
 
+    #[allow(dead_code)] // Scaffolding: used when error reporting is wired up
     fn record_error(&self) {
         self.errors.fetch_add(1, Ordering::Relaxed);
     }
@@ -63,7 +64,7 @@ impl StatsTracker {
         } else {
             let mut sorted = latencies.clone();
             sorted.sort();
-            sorted[(sorted.len() as f64 * 0.99) as usize.min(sorted.len() - 1)]
+            sorted[((sorted.len() as f64 * 0.99) as usize).min(sorted.len() - 1)]
         };
 
         BridgeStats {
@@ -78,6 +79,7 @@ impl StatsTracker {
 }
 
 /// Pending request tracker
+#[allow(dead_code)] // Scaffolding: fields used when response routing is wired up
 struct PendingRequest {
     request_id: String,
     sender: tokio::sync::oneshot::Sender<InferenceResponse>,
@@ -85,6 +87,7 @@ struct PendingRequest {
 }
 
 /// IPC Router handles message routing between components
+#[allow(dead_code)] // Scaffolding: fields used when Iceoryx2 pub/sub is wired up
 pub struct IpcRouter {
     config: BridgeConfig,
     stats: Arc<StatsTracker>,
@@ -146,7 +149,7 @@ impl IpcRouter {
         let start = std::time::Instant::now();
         self.stats.record_send();
 
-        let (tx, rx) = tokio::sync::oneshot::channel();
+        let (tx, _rx) = tokio::sync::oneshot::channel();
 
         // Register pending request
         {

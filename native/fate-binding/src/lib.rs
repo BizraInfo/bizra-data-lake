@@ -26,7 +26,7 @@ pub const SNR_THRESHOLD: f64 = 0.85;
 
 /// Model capability tiers
 #[napi]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModelTier {
     /// 0.5B-1.5B models, CPU-capable, always-on
     Edge,
@@ -38,7 +38,7 @@ pub enum ModelTier {
 
 /// Task types supported by models
 #[napi]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskType {
     Reasoning,
     Chat,
@@ -104,7 +104,7 @@ impl FateValidator {
 
     /// Run a model through the constitution challenge
     #[napi]
-    pub async fn run_challenge(
+    pub fn run_challenge(
         &self,
         model_id: String,
         ihsan_response: String,
@@ -178,7 +178,7 @@ impl FateValidator {
         ];
 
         let response_lower = response.to_lowercase();
-        let mut score = 0.85; // Base score
+        let mut score: f64 = 0.85; // Base score
 
         for indicator in positive_indicators {
             if response_lower.contains(indicator) {
@@ -220,7 +220,7 @@ impl FateValidator {
         let filler_penalty = filler_count as f64 * 0.05;
 
         // Conciseness bonus (ideal length 50-200 words)
-        let conciseness = if word_count >= 50 && word_count <= 200 {
+        let conciseness = if (50..=200).contains(&word_count) {
             1.0
         } else if word_count < 50 {
             word_count as f64 / 50.0

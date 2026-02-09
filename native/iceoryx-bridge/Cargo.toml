@@ -37,8 +37,3 @@ memmap2 = "0.9"
 
 [build-dependencies]
 napi-build = "2.1"
-
-[profile.release]
-lto = true
-opt-level = 3
-codegen-units = 1

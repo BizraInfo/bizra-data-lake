@@ -1,12 +1,11 @@
 //! Predefined IPC Channels for BIZRA Sovereign LLM
 
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 
 /// Channel definitions for the BIZRA IPC topology
 #[napi]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Channel {
     /// Orchestrator → Sandbox: Inference requests
     InferenceRequest,
@@ -95,7 +94,7 @@ pub struct ChannelInfo {
 impl ChannelTopology {
     /// Calculate the required topology for sovereign runtime
     pub fn sovereign_runtime() -> Self {
-        let channels = vec![
+        let channels = [
             Channel::InferenceRequest,
             Channel::InferenceResponse,
             Channel::GateRequest,
