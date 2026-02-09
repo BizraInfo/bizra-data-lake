@@ -8,21 +8,42 @@ use super::RejectCode;
 use crate::identity::{domain_separated_digest, NodeId, NodeIdentity};
 use crate::MAX_TTL_SECONDS;
 
+/// A cryptographically signed PCI envelope carrying an arbitrary payload.
+///
+/// Every inter-node message is wrapped in an envelope that provides:
+/// * Ed25519 signature over the canonical fields
+/// * BLAKE3 content hash for tamper detection
+/// * TTL-based expiry
+/// * Provenance chain for auditing
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PCIEnvelope<T> {
+    /// Unique envelope identifier (e.g. `pci_a1b2c3d4e5f6g7h8`).
     pub id: String,
+    /// Protocol version (currently `"1.0"`).
     pub version: String,
+    /// Identity of the sending node.
     pub sender: NodeId,
+    /// UTC timestamp of envelope creation.
     pub timestamp: DateTime<Utc>,
+    /// Time-to-live in seconds (capped at [`MAX_TTL_SECONDS`]).
     pub ttl: u64,
+    /// Domain-separated BLAKE3 hash of the serialised payload.
     pub content_hash: String,
+    /// Ed25519 signature over the canonical signable fields.
     pub signature: String,
+    /// Sender's public key in hexadecimal.
     pub public_key: String,
+    /// Ordered list of upstream envelope IDs for provenance tracking.
     pub provenance: Vec<String>,
+    /// The application-level payload.
     pub payload: T,
 }
 
 impl<T: Serialize + for<'de> Deserialize<'de>> PCIEnvelope<T> {
+    /// Creates a signed envelope for the given payload.
+    ///
+    /// Signs the canonical fields with the node's Ed25519 key and
+    /// computes a domain-separated BLAKE3 content hash.
     pub fn create(
         identity: &NodeIdentity,
         payload: T,
@@ -65,6 +86,9 @@ impl<T: Serialize + for<'de> Deserialize<'de>> PCIEnvelope<T> {
         })
     }
 
+    /// Verifies envelope integrity: TTL, content hash, and signature.
+    ///
+    /// Returns `Ok(())` on success, or the appropriate [`RejectCode`].
     pub fn verify(&self) -> Result<(), RejectCode> {
         let now = Utc::now();
         let age = now.signed_duration_since(self.timestamp);

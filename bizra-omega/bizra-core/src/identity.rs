@@ -13,6 +13,7 @@ use crate::DOMAIN_PREFIX;
 pub struct NodeId(pub String);
 
 impl NodeId {
+    /// Derives a `NodeId` from the first 16 bytes of a public verifying key.
     pub fn from_verifying_key(key: &VerifyingKey) -> Self {
         let bytes = key.as_bytes();
         Self(hex_encode(&bytes[..16]))
@@ -55,21 +56,27 @@ impl NodeIdentity {
         }
     }
 
+    /// Returns the node's unique identifier.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
+    /// Returns the Ed25519 public verifying key.
     pub fn verifying_key(&self) -> &VerifyingKey {
         &self.verifying_key
     }
+    /// Returns the public key as a lowercase hex string.
     pub fn public_key_hex(&self) -> String {
         hex_encode(self.verifying_key.as_bytes())
     }
+    /// Returns the raw 32-byte public key.
     pub fn public_key_bytes(&self) -> [u8; 32] {
         *self.verifying_key.as_bytes()
     }
+    /// Returns the raw 32-byte secret key (**sensitive**).
     pub fn secret_bytes(&self) -> [u8; 32] {
         self.signing_key.to_bytes()
     }
+    /// Returns a reference to the Ed25519 signing key.
     pub fn signing_key(&self) -> &SigningKey {
         &self.signing_key
     }
@@ -122,10 +129,14 @@ pub fn domain_separated_digest(message: &[u8]) -> String {
     hasher.finalize().to_hex().to_string()
 }
 
+/// Encodes a byte slice as a lowercase hexadecimal string.
 pub fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
+/// Decodes a hexadecimal string into bytes.
+///
+/// Returns `Err(())` if the input has odd length or contains non-hex characters.
 // TODO: Replace () with a proper HexDecodeError type
 #[allow(clippy::result_unit_err)]
 pub fn hex_decode(s: &str) -> Result<Vec<u8>, ()> {

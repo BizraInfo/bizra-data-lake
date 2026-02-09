@@ -24,6 +24,7 @@ pub type SovereignResult<T> = Result<T, SovereignError>;
 
 /// Comprehensive error type for sovereign operations
 #[derive(Error, Debug, Clone)]
+#[allow(missing_docs)] // Variant fields documented by #[error("...")]
 pub enum SovereignError {
     // ═══════════════════════════════════════════════════════════════════════
     // SNR Errors (Shannon-inspired)

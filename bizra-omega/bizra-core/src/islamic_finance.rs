@@ -66,50 +66,66 @@ pub const MIN_WAQF_BENEFICIARIES: usize = 3;
 // ERROR TYPES
 // =============================================================================
 
+/// Errors arising from Shariah compliance violations.
 #[derive(Error, Debug, Clone, Serialize, Deserialize)]
+#[allow(missing_docs)] // Variant fields documented by #[error("...")]
 pub enum IslamicFinanceError {
+    /// Interest (riba) was detected in a transaction.
     #[error("Riba (interest) detected: {details}")]
     RibaDetected { details: String },
 
+    /// Excessive uncertainty (gharar) found in a contract.
     #[error("Gharar (excessive uncertainty) in contract: {details}")]
     GhararDetected { details: String },
 
+    /// Gambling or speculation (maysir) was detected.
     #[error("Maysir (gambling/speculation) detected: {details}")]
     MaysirDetected { details: String },
 
+    /// A haram activity was attempted.
     #[error("Haram activity: {activity}")]
     HaramActivity { activity: String },
 
+    /// Error computing Zakat obligations.
     #[error("Zakat calculation error: {reason}")]
     ZakatError { reason: String },
 
+    /// Mudarabah (profit-sharing) contract rule violated.
     #[error("Mudarabah violation: {reason}")]
     MudarabahViolation { reason: String },
 
+    /// Musharakah (partnership) contract rule violated.
     #[error("Musharakah violation: {reason}")]
     MusharakahViolation { reason: String },
 
+    /// Waqf (endowment) governance rule violated.
     #[error("Waqf violation: {reason}")]
     WaqfViolation { reason: String },
 
+    /// Operation did not meet the Ihsan excellence threshold.
     #[error("Ihsan threshold not met: {score:.3} < {threshold:.3}")]
     IhsanViolation { score: f64, threshold: f64 },
 
+    /// Justice (Adl) principle violated.
     #[error("Adl (justice) violation: {reason}")]
     AdlViolation { reason: String },
 
+    /// Wealth is below the nisab threshold for Zakat.
     #[error("Insufficient nisab: {balance:.2} < {nisab:.2}")]
     InsufficientNisab { balance: f64, nisab: f64 },
 
+    /// A financial contract has passed its expiry.
     #[error("Contract expired at {expiry_ms}")]
     ContractExpired { expiry_ms: u64 },
 
+    /// Investor and entrepreneur profit shares do not sum to 1.0.
     #[error(
         "Invalid profit ratio: investor {investor:.2} + entrepreneur {entrepreneur:.2} != 1.0"
     )]
     InvalidProfitRatio { investor: f64, entrepreneur: f64 },
 }
 
+/// Convenience alias for Islamic finance operations.
 pub type IslamicFinanceResult<T> = Result<T, IslamicFinanceError>;
 
 // =============================================================================
@@ -395,6 +411,7 @@ pub enum MudarabahStatus {
 
 /// Mudarabah loss type (losses borne by capital provider)
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(missing_docs)] // Variant fields are self-descriptive
 pub enum MudarabahLoss {
     /// Capital loss due to market conditions
     MarketLoss { amount: f64, reason: String },

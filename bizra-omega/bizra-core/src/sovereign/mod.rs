@@ -39,11 +39,17 @@
 //! └─────────────────────────────────────────────────────────────────┘
 //! ```
 
+/// Sovereign error types and `Result` alias.
 pub mod error;
+/// Standing on Giants — attribution registry.
 pub mod giants;
+/// Graph-of-Thoughts reasoning engine.
 pub mod graph_of_thoughts;
+/// Omega circuit breaker — resilience and metrics.
 pub mod omega;
+/// Top-level reasoning orchestrator.
 pub mod orchestrator;
+/// Signal-to-Noise Ratio measurement engine.
 pub mod snr_engine;
 
 pub use error::{ErrorContext, SovereignError, SovereignResult};

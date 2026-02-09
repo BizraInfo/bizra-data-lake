@@ -526,10 +526,15 @@ impl SNREngine {
 /// SNR Engine statistics
 #[derive(Debug)]
 pub struct SNRStats {
+    /// Measurements recorded since engine creation.
     pub total_measurements: u64,
+    /// Number of measurements currently in the history window.
     pub history_size: usize,
+    /// Rolling average SNR across the history window.
     pub average_snr: f64,
+    /// Configured SNR floor threshold.
     pub snr_floor: f64,
+    /// Configured Ihsan target threshold.
     pub ihsan_target: f64,
 }
 

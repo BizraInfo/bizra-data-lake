@@ -186,9 +186,13 @@ impl SovereignOrchestrator {
 /// Orchestrator statistics
 #[derive(Debug)]
 pub struct OrchestratorStats {
+    /// Total operations executed since creation.
     pub total_operations: u64,
+    /// Current orchestrator configuration snapshot.
     pub config: OrchestratorConfig,
+    /// Active SNR floor threshold.
     pub snr_floor: f64,
+    /// Active Ihsan target threshold.
     pub ihsan_target: f64,
 }
 

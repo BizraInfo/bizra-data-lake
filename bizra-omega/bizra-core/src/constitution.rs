@@ -4,9 +4,15 @@ use crate::{IHSAN_THRESHOLD, SNR_THRESHOLD};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Excellence threshold configuration for the Ihsan governance framework.
+///
+/// Defines the minimum acceptable and optimal target scores for Ihsan
+/// (pursuit of excellence) across all system operations.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IhsanThreshold {
+    /// Minimum acceptable Ihsan score (hard floor, e.g. 0.95).
     pub minimum: f64,
+    /// Target Ihsan score for optimal operation (aspirational, e.g. 0.99).
     pub target: f64,
 }
 
@@ -19,36 +25,60 @@ impl Default for IhsanThreshold {
     }
 }
 
+/// A single constitutional rule with enforcement policy and penalty.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Rule {
+    /// Unique rule identifier (e.g. `"IHSAN_001"`).
     pub id: String,
+    /// Human-readable rule name.
     pub name: String,
+    /// Full description of the rule's intent and scope.
     pub description: String,
+    /// How strictly this rule is enforced.
     pub enforcement: Enforcement,
+    /// Consequence applied when the rule is violated.
     pub penalty: Penalty,
 }
 
+/// Enforcement level for a constitutional rule.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Enforcement {
+    /// Hard enforcement — violations cause immediate rejection.
     Strict,
+    /// Soft enforcement — violations produce warnings but allow processing.
     Advisory,
+    /// Observation only — violations are logged for analysis.
     Monitoring,
 }
 
+/// Penalty applied when a constitutional rule is violated.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Penalty {
+    /// Immediate rejection of the operation.
     Reject,
+    /// Trust score reduction by the specified amount.
     TrustPenalty(f64),
+    /// Temporary cooldown period in seconds.
     Cooldown(u64),
+    /// No penalty (informational only).
     None,
 }
 
+/// The BIZRA Constitution — root governance document.
+///
+/// Defines all operational rules, thresholds, and enforcement policies.
+/// Every PCI envelope and Omega operation is validated against this.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Constitution {
+    /// Semantic version of this constitution (e.g. `"1.0.0"`).
     pub version: String,
+    /// Ihsan excellence thresholds.
     pub ihsan: IhsanThreshold,
+    /// Minimum acceptable Signal-to-Noise Ratio.
     pub snr_threshold: f64,
+    /// Active governance rules keyed by rule ID.
     pub rules: HashMap<String, Rule>,
+    /// Whether this constitution is currently enforced.
     pub active: bool,
 }
 
@@ -96,12 +126,15 @@ impl Default for Constitution {
 }
 
 impl Constitution {
+    /// Returns `true` if the given score meets the Ihsan minimum threshold.
     pub fn check_ihsan(&self, score: f64) -> bool {
         score >= self.ihsan.minimum
     }
+    /// Returns `true` if the given SNR meets the signal quality threshold.
     pub fn check_snr(&self, snr: f64) -> bool {
         snr >= self.snr_threshold
     }
+    /// Looks up a rule by its unique identifier.
     pub fn get_rule(&self, id: &str) -> Option<&Rule> {
         self.rules.get(id)
     }

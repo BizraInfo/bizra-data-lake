@@ -9,8 +9,11 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 /// Batch signature verification result
 #[derive(Debug)]
 pub struct BatchVerifyResult {
+    /// Total signatures checked.
     pub total: usize,
+    /// Number of valid signatures.
     pub valid: usize,
+    /// Number of invalid signatures.
     pub invalid: usize,
     /// Indices of invalid signatures
     pub invalid_indices: Vec<usize>,
@@ -18,8 +21,11 @@ pub struct BatchVerifyResult {
 
 /// Verification request for batch processing
 pub struct VerifyRequest<'a> {
+    /// Raw message bytes to verify.
     pub message: &'a [u8],
+    /// Ed25519 signature in hex encoding.
     pub signature_hex: &'a str,
+    /// Ed25519 public key of the signer.
     pub public_key: &'a VerifyingKey,
 }
 
