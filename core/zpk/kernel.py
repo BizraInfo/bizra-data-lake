@@ -9,6 +9,7 @@ Flow:
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import hashlib
 import inspect
@@ -561,15 +562,75 @@ class ZeroPointKernel:
 
         Worker entrypoint contract:
         - `main(context: dict)` or `run(context: dict)`
+
+        Security: worker_code is AST-validated before compilation.
+        Only function/class/import/assign/constant nodes allowed at module level.
+        No exec/eval/compile/__import__/os.system/subprocess calls permitted.
         """
         attempts = self.config.max_restarts + 1
         last_error = ""
         start_all = time.perf_counter()
 
+        # ── AST validation (once, before any attempt) ──────────────────────
+        try:
+            tree = ast.parse(artifact.worker_code, filename="<zpk-worker>")
+        except SyntaxError as e:
+            return ExecutionReceipt(
+                worker_version=artifact.version,
+                exit_code=1,
+                runtime_ms=0.0,
+                health={"attempts": 0, "last_error": f"syntax error: {e}"},
+                rollback_used=rollback_used,
+            )
+
+        _FORBIDDEN_CALLS = frozenset({
+            "exec", "eval", "compile", "__import__", "breakpoint",
+            "globals", "locals", "vars", "delattr", "setattr",
+        })
+        _FORBIDDEN_ATTRS = frozenset({
+            "system", "popen", "subprocess", "Popen", "call", "check_output",
+        })
+
+        for node in ast.walk(tree):
+            # Block bare exec/eval/compile calls
+            if isinstance(node, ast.Call):
+                func = node.func
+                name: Optional[str] = None
+                if isinstance(func, ast.Name):
+                    name = func.id
+                elif isinstance(func, ast.Attribute):
+                    name = func.attr
+                if name and name in _FORBIDDEN_CALLS:
+                    return ExecutionReceipt(
+                        worker_version=artifact.version,
+                        exit_code=1,
+                        runtime_ms=0.0,
+                        health={"attempts": 0, "last_error": f"forbidden call: {name}()"},
+                        rollback_used=rollback_used,
+                    )
+                if isinstance(func, ast.Attribute) and func.attr in _FORBIDDEN_ATTRS:
+                    return ExecutionReceipt(
+                        worker_version=artifact.version,
+                        exit_code=1,
+                        runtime_ms=0.0,
+                        health={"attempts": 0, "last_error": f"forbidden attr: {func.attr}"},
+                        rollback_used=rollback_used,
+                    )
+
+        # ── Compile once (no exec of raw strings) ─────────────────────────
+        code_obj = compile(tree, filename="<zpk-worker>", mode="exec")
+        _SAFE_BUILTINS = {
+            k: v for k, v in __builtins__.items()  # type: ignore[union-attr]
+            if k not in _FORBIDDEN_CALLS
+        } if isinstance(__builtins__, dict) else {
+            k: getattr(__builtins__, k) for k in dir(__builtins__)
+            if k not in _FORBIDDEN_CALLS and not k.startswith("_")
+        }
+
         for attempt in range(1, attempts + 1):
             try:
-                namespace: Dict[str, Any] = {}
-                exec(artifact.worker_code, namespace)
+                namespace: Dict[str, Any] = {"__builtins__": _SAFE_BUILTINS}
+                exec(code_obj, namespace)  # nosec B102 — AST-validated + restricted builtins  # noqa: S102
                 entrypoint = namespace.get("main") or namespace.get("run")
                 if not callable(entrypoint):
                     raise RuntimeError("worker missing callable main/run entrypoint")

@@ -29,8 +29,8 @@ logger = logging.getLogger("bizra.mcp_gateway")
 # Configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-SNR_THRESHOLD = float(os.getenv("SNR_THRESHOLD", "0.99"))
-IHSAN_THRESHOLD = float(os.getenv("IHSAN_THRESHOLD", "0.95"))
+SNR_THRESHOLD = float(os.getenv("SNR_THRESHOLD", "0.85"))  # canonical: core.integration.constants
+IHSAN_THRESHOLD = float(os.getenv("IHSAN_THRESHOLD", "0.95"))  # canonical: core.integration.constants
 
 
 # ============================================================================

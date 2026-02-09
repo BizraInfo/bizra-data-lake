@@ -6,6 +6,7 @@ Tests the flywheel components locally before Docker deployment.
 
 import asyncio
 import os
+import subprocess
 import sys
 
 # Add parent to path
@@ -189,7 +190,7 @@ if __name__ == "__main__":
         import httpx
     except ImportError:
         print("Installing httpx...")
-        os.system("pip install httpx")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "httpx"])  # noqa: S603
         import httpx
     
     sys.exit(asyncio.run(main()))
