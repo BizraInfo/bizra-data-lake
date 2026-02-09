@@ -372,7 +372,7 @@ class AgenticCleaner:
             execution_scope = _create_safe_execution_scope()
             
             # Execute in restricted scope
-            exec(cleaning_code, execution_scope, execution_scope)
+            exec(cleaning_code, execution_scope, execution_scope)  # nosec B102 — AST-validated + restricted builtins
             clean_func = execution_scope.get('clean_record')
             
             # Sanity Check: Test on sample
@@ -393,7 +393,7 @@ class AgenticCleaner:
             logger.info("📎 Using fallback cleaning function")
             fallback_code = self._get_fallback_cleaning_code()
             local_scope = _create_safe_execution_scope()  # FIX: Initialize local_scope
-            exec(fallback_code, local_scope, local_scope)
+            exec(fallback_code, local_scope, local_scope)  # nosec B102 — hardcoded safe fallback
             clean_func = local_scope.get('clean_record')
 
         # 4. Process Full File

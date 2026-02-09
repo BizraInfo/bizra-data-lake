@@ -99,7 +99,7 @@ class Node0AssetIndexer:
                 "os": platform.platform(),
                 "python": platform.python_version(),
             }
-        except:
+        except Exception:
             return {"os": platform.platform(), "python": platform.python_version()}
     
     def _get_cpu_info(self) -> Dict[str, Any]:
@@ -114,7 +114,7 @@ class Node0AssetIndexer:
                 "cores": data.get("NumberOfCores", 0),
                 "threads": data.get("NumberOfLogicalProcessors", 0),
             }
-        except:
+        except Exception:
             return {"cores": os.cpu_count()}
     
     def _get_gpu_info(self) -> List[Dict[str, Any]]:
@@ -134,7 +134,7 @@ class Node0AssetIndexer:
                 }
                 for gpu in data
             ]
-        except:
+        except Exception:
             return []
     
     def _get_memory_info(self) -> Dict[str, Any]:
@@ -148,7 +148,7 @@ class Node0AssetIndexer:
                 "total_gb": round(total_bytes / (1024**3), 2),
                 "total_bytes": total_bytes,
             }
-        except:
+        except Exception:
             return {}
     
     def _get_storage_info(self) -> Dict[str, Any]:
@@ -171,7 +171,7 @@ class Node0AssetIndexer:
                     for v in data
                 ]
             }
-        except:
+        except Exception:
             return {}
     
     def index_software(self) -> Dict[str, Any]:
@@ -189,7 +189,7 @@ class Node0AssetIndexer:
             if isinstance(data, dict):
                 data = [data]
             programs = [p.get("DisplayName", "") for p in data if p.get("DisplayName")]
-        except:
+        except Exception:
             pass
         
         # Get WSL distros

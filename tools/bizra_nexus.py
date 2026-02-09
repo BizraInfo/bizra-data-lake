@@ -631,7 +631,7 @@ class ResourcePool(Generic[T]):
             if resource is not None and self._validate(resource):
                 try:
                     self._pool.put_nowait(resource)
-                except:
+                except Exception:
                     if self._cleanup:
                         self._cleanup(resource)
                     with self._lock:
@@ -962,7 +962,7 @@ class KnowledgeGraphAdapter(EngineAdapter):
                             self._nodes.extend(data["nodes"])
                         if "edges" in data:
                             self._edges.extend(data["edges"])
-                except:
+                except Exception:
                     pass
             log.info(f"Loaded graph: {len(self._nodes)} nodes, {len(self._edges)} edges")
     
@@ -1025,7 +1025,7 @@ class ChatHistoryAdapter(EngineAdapter):
                                 "file": chat_file.name,
                                 "messages": data
                             })
-                except:
+                except Exception:
                     pass
             log.info(f"Loaded {len(self._conversations)} conversations")
     
@@ -1092,7 +1092,7 @@ class EmbeddingsAdapter(EngineAdapter):
                             self._metadata.extend(meta)
                         elif isinstance(meta, dict):
                             self._metadata.append(meta)
-                except:
+                except Exception:
                     pass
             
             # Check for .npy or .pkl files
@@ -1151,7 +1151,7 @@ class AssertionsAdapter(EngineAdapter):
                         if line:
                             try:
                                 self._assertions.append(json.loads(line))
-                            except:
+                            except Exception:
                                 pass
                 log.info(f"Loaded {len(self._assertions)} assertions")
             except Exception as e:
@@ -1167,9 +1167,9 @@ class AssertionsAdapter(EngineAdapter):
                         if line:
                             try:
                                 self._assertions.append(json.loads(line))
-                            except:
+                            except Exception:
                                 pass
-            except:
+            except Exception:
                 pass
     
     def _do_query(self, query: str, **kwargs) -> QueryResult:

@@ -124,9 +124,9 @@ class GPUProfiler:
                     temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
                     metrics.temperature_c = temp
                     pynvml.nvmlShutdown()
-                except:
+                except Exception:
                     pass
-        except:
+        except Exception:
             pass
 
         return metrics
@@ -224,7 +224,7 @@ class Benchmark:
         try:
             import psutil
             return psutil.Process().memory_info().rss / 1e6
-        except:
+        except Exception:
             return 0
 
     def _get_gpu_memory_mb(self) -> float:
@@ -233,7 +233,7 @@ class Benchmark:
             import torch
             if torch.cuda.is_available():
                 return torch.cuda.memory_allocated(0) / 1e6
-        except:
+        except Exception:
             pass
         return 0
 
@@ -485,7 +485,7 @@ class BenchmarkSuite:
             info["cpu_count"] = psutil.cpu_count()
             info["memory_total_gb"] = psutil.virtual_memory().total / 1e9
             info["memory_available_gb"] = psutil.virtual_memory().available / 1e9
-        except:
+        except Exception:
             pass
 
         return info

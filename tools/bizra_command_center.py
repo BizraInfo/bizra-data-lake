@@ -149,7 +149,7 @@ class BIZRACommandCenter:
         try:
             import bizra_config
             return True, f"IHSAN={IHSAN_CONSTRAINT}, SNR={SNR_THRESHOLD}"
-        except:
+        except Exception:
             return False, "Using defaults"
 
     def _check_metrics(self) -> Tuple[bool, str]:
@@ -183,7 +183,7 @@ class BIZRACommandCenter:
                 nodes = stats.get("total_nodes", 0)
                 edges = stats.get("total_edges", 0)
                 return True, f"{nodes:,} nodes, {edges:,} edges"
-            except:
+            except Exception:
                 pass
         return False, "No graph data"
 
@@ -195,7 +195,7 @@ class BIZRACommandCenter:
                 import pandas as pd
                 df = pd.read_parquet(chunks_path)
                 return True, f"{len(df):,} embedded chunks"
-            except:
+            except Exception:
                 pass
         return False, "No embeddings"
 
@@ -392,7 +392,7 @@ class BIZRACommandCenter:
                         [{"text": "result", "score": 0.9}]
                     )
                     snr_values.append(result.get("snr", 0))
-                except:
+                except Exception:
                     snr_values.append(0)
 
             elif name == "embedding_generation":
@@ -403,7 +403,7 @@ class BIZRACommandCenter:
                     text = "This is a sample text for embedding generation benchmark."
                     embedding = model.encode([text])
                     snr_values.append(0.95)
-                except:
+                except Exception:
                     snr_values.append(0)
 
             elif name == "graph_traversal":
@@ -413,7 +413,7 @@ class BIZRACommandCenter:
                     G = nx.gnm_random_graph(1000, 5000)
                     _ = nx.shortest_path(G, 0, 500)
                     snr_values.append(0.98)
-                except:
+                except Exception:
                     snr_values.append(0)
 
             elapsed = (time.perf_counter() - start) * 1000
