@@ -611,7 +611,7 @@ class ComputeMarket:
         Returns enforcement report.
         """
         gini = self.compute_gini()
-        report = {
+        report: Dict[str, Any] = {
             "gini_before": gini,
             "threshold": self.gini_threshold,
             "action_taken": False,
@@ -812,7 +812,7 @@ class NTUMarketAdapter:
             try:
                 from core.ntu import NTU, NTUConfig
 
-                self._ntu = NTU(NTUConfig())
+                self._ntu = NTU(NTUConfig())  # type: ignore[assignment]
             except ImportError:
                 logger.warning("NTU not available")
         return self._ntu

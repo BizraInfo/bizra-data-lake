@@ -395,6 +395,7 @@ Feedback:
 Please provide a corrected, improved response:"""
 
         # Call LLM for correction
+        assert self.llm_callback is not None
         corrected_text = self.llm_callback(correction_prompt)
 
         # Create corrected wisdom output

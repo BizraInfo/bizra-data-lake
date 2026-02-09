@@ -216,10 +216,10 @@ class EnhancedTeamPlanner(TeamPlanner):
             if not plan:
                 plan = await self.plan_goal(goal)
 
-            result.autonomy_used = plan.autonomy_decision.determined_level
+            result.autonomy_used = plan.autonomy_decision.determined_level if plan.autonomy_decision else None  # type: ignore[assignment]
 
             # Check if we can execute automatically
-            if not plan.autonomy_decision.can_execute:
+            if plan.autonomy_decision and not plan.autonomy_decision.can_execute:
                 # Need approval
                 approved = await self._request_approval(goal, plan)
                 if not approved:
@@ -252,7 +252,7 @@ class EnhancedTeamPlanner(TeamPlanner):
             for task in plan.tasks:
                 try:
                     # Notify before if required
-                    if plan.autonomy_decision.notify_before:
+                    if plan.autonomy_decision and plan.autonomy_decision.notify_before:
                         await self.event_bus.emit(
                             topic="proactive.task.starting",
                             payload={
@@ -273,7 +273,7 @@ class EnhancedTeamPlanner(TeamPlanner):
                         result.tasks_failed += 1
 
                     # Notify after if required
-                    if plan.autonomy_decision.notify_after:
+                    if plan.autonomy_decision and plan.autonomy_decision.notify_after:
                         await self.event_bus.emit(
                             topic="proactive.task.completed",
                             payload={

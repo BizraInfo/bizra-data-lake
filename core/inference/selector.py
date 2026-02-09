@@ -521,7 +521,7 @@ class TaskAnalyzer:
 
         # Adjust for code requests (usually longer)
         if any(p in prompt_lower for p in self.CODE_PATTERNS):
-            tokens *= 1.5
+            tokens = int(tokens * 1.5)
 
         return int(tokens)
 

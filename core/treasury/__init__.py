@@ -22,21 +22,21 @@ Created: 2026-02-05 | SAPE Sovereign Module Decomposition
 Migrated: 2026-02-05 | Files now in dedicated treasury package
 """
 
-from .adl_invariant import (
+from .adl_invariant import (  # type: ignore[attr-defined]
     AdlGate,
     AdlInvariant,
     calculate_gini,
 )
-from .adl_kernel import (
+from .adl_kernel import (  # type: ignore[attr-defined]
     AdlEnforcer,
 )
-from .adl_kernel import AdlInvariant as AdlInvariantKernel
-from .adl_kernel import (
+from .adl_kernel import AdlInvariant as AdlInvariantKernel  # type: ignore[attr-defined]
+from .adl_kernel import (  # type: ignore[attr-defined]
     IncrementalGini,
     NetworkGiniTracker,
 )
-from .adl_kernel import calculate_gini as calculate_gini_kernel
-from .market_integration import (
+from .adl_kernel import calculate_gini as calculate_gini_kernel  # type: ignore[attr-defined]
+from .market_integration import (  # type: ignore[attr-defined]
     MarketAwareMuraqabah,
 )
 from .treasury_controller import TreasuryController

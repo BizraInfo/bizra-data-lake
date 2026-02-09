@@ -16,7 +16,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from core.orchestration.team_planner import AgentRole, TeamTask
 
@@ -84,7 +84,7 @@ class ConsensusOutcome:
 
 
 # Validator functions type
-ValidatorFn = Callable[[ActionProposal], Tuple[bool, Optional[VetoReason], float]]
+ValidatorFn = Callable[[ActionProposal], Awaitable[Tuple[bool, Optional[VetoReason], float]]]
 
 
 class DualAgenticBridge:
@@ -217,10 +217,13 @@ class DualAgenticBridge:
             role: AgentRole, validator_fn: ValidatorFn
         ) -> Vote:
             try:
-                approve, veto_reason, confidence = await asyncio.wait_for(
+                result: Tuple[bool, Optional[VetoReason], float] = await asyncio.wait_for(
                     validator_fn(proposal),
                     timeout=self.vote_timeout,
                 )
+                approve: bool = result[0]
+                confidence: float = result[2]
+                veto_reason: Optional[VetoReason] = result[1]
                 return Vote(
                     validator_role=role,
                     approve=approve,

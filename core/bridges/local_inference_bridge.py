@@ -135,8 +135,8 @@ class LocalInferenceBridge:
                 auto_load_on_demand=self.auto_load,
             )
 
-            self._manager = MultiModelManager(config=config)
-            await self._manager.initialize()
+            self._manager = MultiModelManager(config=config)  # type: ignore[assignment]
+            await self._manager.initialize()  # type: ignore[attr-defined]
 
             self._initialized = True
             logger.info(f"LocalInferenceBridge initialized | {self.host}:{self.port}")
@@ -268,7 +268,7 @@ class LocalInferenceBridge:
         Returns:
             Dict with final_answer, candidates, scores, consensus
         """
-        candidates = []
+        candidates: List[Dict[str, Any]] = []
 
         # Default system prompt for reasoning
         if not system_prompt:
@@ -403,8 +403,8 @@ Respond with ONLY a number between 0.0 and 1.0."""
         Returns:
             Dict with conclusion, explored_nodes, best_path
         """
-        thoughts = []
-        current_thoughts = [{"depth": 0, "content": query, "score": 1.0}]
+        thoughts: List[Dict[str, Any]] = []
+        current_thoughts: List[Dict[str, Any]] = [{"depth": 0, "content": query, "score": 1.0}]
 
         for depth in range(max_depth):
             next_thoughts = []

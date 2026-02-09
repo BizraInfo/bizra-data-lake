@@ -793,7 +793,7 @@ class ConsensusEngine:
         """Get all registered peer_id -> public_key mappings."""
         return self._peer_keys.copy()
 
-    def propose_pattern(self, pattern: Dict) -> Proposal:
+    def propose_pattern(self, pattern: Dict) -> Optional[Proposal]:
         """
         Initiate a consensus round for an elevated pattern.
 
@@ -942,7 +942,7 @@ class ConsensusEngine:
         )
 
         if self.on_commit_broadcast:
-            commit_payload = {
+            commit_payload: Dict[str, Any] = {
                 "proposal_id": proposal_id,
                 "pattern": proposal.pattern_data,
                 "signatures": [v.signature for v in self.votes[proposal_id]],

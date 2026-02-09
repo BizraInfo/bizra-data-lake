@@ -475,7 +475,7 @@ class CoevolutionEngine:
                     name: engine._get_best_genome()
                     for name, engine in self.engines.items()
                 }
-                interaction_scores = interaction_fn(representatives)
+                interaction_scores = interaction_fn(representatives)  # type: ignore[arg-type]
 
                 # Apply interaction bonuses to fitness
                 for name, bonus in interaction_scores.items():

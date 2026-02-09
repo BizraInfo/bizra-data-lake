@@ -553,9 +553,9 @@ class MultiModalRouter:
             has_image = False
             has_audio = False
         elif isinstance(task, dict):
-            text = task.get("text", task.get("query", ""))
-            has_image = task.get("has_image", False)
-            has_audio = task.get("has_audio", False)
+            text = str(task.get("text", task.get("query", "")))
+            has_image = bool(task.get("has_image", False))
+            has_audio = bool(task.get("has_audio", False))
         else:
             raise TypeError(f"Task must be str or dict, got {type(task)}")
 
@@ -639,11 +639,11 @@ if __name__ == "__main__":
         if isinstance(task, dict):
             decision = router.route(task)
         else:
-            decision = router.route(task, explicit_type=None)
+            decision = router.route(task, explicit_type=None)  # type: ignore[arg-type]
 
         print(f"\n📋 Task: {description}")
         print(
-            f"   Input: {task if isinstance(task, str) else task.get('text', '')[:50]}"
+            f"   Input: {task if isinstance(task, str) else task.get('text', '')[:50]}"  # type: ignore[attr-defined]
         )
         print(f"   Detected capability: {decision.capability_match.value}")
         print(f"   Selected model: {decision.model.name}")

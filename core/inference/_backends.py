@@ -248,7 +248,7 @@ class LlamaCppBackend(InferenceBackendBase):
                 prompt, max_tokens, temperature, **kwargs
             )
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore[override, misc]
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate completion with streaming."""
@@ -307,7 +307,7 @@ class LlamaCppBackend(InferenceBackendBase):
     def get_batching_metrics(self) -> Optional[Dict[str, Any]]:
         """Get batching metrics if batching is enabled."""
         if self._batch_queue:
-            return self._batch_queue.get_metrics()
+            return self._batch_queue.get_metrics()  # type: ignore[return-value]
         return None
 
     def _resolve_model_path(self) -> Optional[Path]:
@@ -497,11 +497,12 @@ class OllamaBackend(InferenceBackendBase):
         Raises:
             CircuitBreakerError: If circuit is open
         """
+        assert self._circuit_breaker is not None
         return await self._circuit_breaker.execute(
             self._generate_internal, prompt, max_tokens, temperature
         )
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore[override, misc]
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate with streaming via Ollama API."""
@@ -544,7 +545,7 @@ class LMStudioBackend(InferenceBackendBase):
 
     def __init__(self, config: InferenceConfig):
         self.config = config
-        self._client = None
+        self._client: Any = None
         self._current_model: Optional[str] = None
         self._available = False
 
@@ -582,6 +583,9 @@ class LMStudioBackend(InferenceBackendBase):
             print("[LMStudio] lmstudio_backend module not available")
             return False
 
+        assert LMStudioConfig is not None  # guarded by LMSTUDIO_AVAILABLE
+        assert LMStudioClient is not None  # guarded by LMSTUDIO_AVAILABLE
+
         try:
             lms_config = LMStudioConfig(
                 host=self.config.lmstudio_url.replace("http://", "").split(":")[0],
@@ -593,6 +597,7 @@ class LMStudioBackend(InferenceBackendBase):
                 enable_mcp=True,
             )
             self._client = LMStudioClient(lms_config)
+            assert self._client is not None
 
             if await self._client.connect():
                 # Check for loaded models - REQUIRED for successful initialization
@@ -654,11 +659,12 @@ class LMStudioBackend(InferenceBackendBase):
         Raises:
             CircuitBreakerError: If circuit is open
         """
+        assert self._circuit_breaker is not None
         return await self._circuit_breaker.execute(
             self._generate_internal, prompt, max_tokens, temperature
         )
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore[override, misc]
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate with streaming."""

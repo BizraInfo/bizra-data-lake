@@ -146,7 +146,7 @@ class IhsanVector:
         """Return the weakest dimension (constitutional bottleneck)."""
         arr = self.as_array
         min_idx = int(np.argmin(arr))
-        return IhsanDimension(min_idx), arr[min_idx]
+        return IhsanDimension(min_idx), arr[min_idx]  # type: ignore[return-value]
 
     @property
     def aggregate_score(self) -> float:
@@ -414,7 +414,7 @@ class IhsanProjector:
         wisdom_patience_effect = (ihsan.wisdom + ihsan.patience) / 2.0
         entropy = entropy * (1.5 - wisdom_patience_effect)
 
-        return belief, entropy, potential
+        return belief, entropy, potential  # type: ignore[return-value]
 
     def project_batch(
         self,

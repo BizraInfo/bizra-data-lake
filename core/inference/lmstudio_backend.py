@@ -144,6 +144,12 @@ class LMStudioBackend:
         self._chat_id: Optional[str] = None  # For native /api/v1/chat stateful sessions
         self._response_id: Optional[str] = None  # For /v1/responses stateful sessions
 
+    def _require_client(self) -> "httpx.AsyncClient":
+        """Return the HTTP client, raising if not connected."""
+        if self._client is None:
+            raise RuntimeError("Not connected to LM Studio")
+        return self._client
+
     async def connect(self) -> bool:
         """Connect to LM Studio server."""
         try:
@@ -182,7 +188,7 @@ class LMStudioBackend:
         if not self._connected:
             raise RuntimeError("Not connected to LM Studio")
 
-        response = await self._client.get(LMStudioEndpoint.MODELS.value)
+        response = await self._require_client().get(LMStudioEndpoint.MODELS.value)
         response.raise_for_status()
         data = response.json()
 
@@ -237,14 +243,14 @@ class LMStudioBackend:
         if not self._connected:
             raise RuntimeError("Not connected to LM Studio")
 
-        payload = {"model": model_id}
+        payload: Dict[str, Any] = {"model": model_id}
 
         if context_length:
             payload["context_length"] = context_length
         if gpu_layers is not None:
             payload["gpu_layers"] = gpu_layers
 
-        response = await self._client.post(LMStudioEndpoint.LOAD.value, json=payload)
+        response = await self._require_client().post(LMStudioEndpoint.LOAD.value, json=payload)
         response.raise_for_status()
 
         self._current_model = model_id
@@ -260,7 +266,7 @@ class LMStudioBackend:
         if not model_to_unload:
             raise ValueError("No model specified to unload")
 
-        response = await self._client.post(
+        response = await self._require_client().post(
             LMStudioEndpoint.UNLOAD.value, json={"model": model_to_unload}
         )
         response.raise_for_status()
@@ -286,7 +292,7 @@ class LMStudioBackend:
         if quantization:
             payload["quantization"] = quantization
 
-        response = await self._client.post(
+        response = await self._require_client().post(
             LMStudioEndpoint.DOWNLOAD.value, json=payload
         )
         response.raise_for_status()
@@ -301,7 +307,7 @@ class LMStudioBackend:
         if not self._connected:
             raise RuntimeError("Not connected to LM Studio")
 
-        response = await self._client.get(
+        response = await self._require_client().get(
             LMStudioEndpoint.DOWNLOAD_STATUS.value, params={"task_id": task_id}
         )
         response.raise_for_status()
@@ -365,9 +371,9 @@ class LMStudioBackend:
 
             if stream:
                 payload["stream"] = True
-                return await self._stream_chat(payload)
+                return self._stream_chat(payload)  # type: ignore[return-value]
 
-            response = await self._client.post(
+            response = await self._require_client().post(
                 LMStudioEndpoint.CHAT.value, json=payload
             )
             response.raise_for_status()
@@ -417,9 +423,9 @@ class LMStudioBackend:
                 payload["chat_id"] = self._chat_id
 
             if stream:
-                return await self._stream_chat(payload)
+                return self._stream_chat(payload)  # type: ignore[return-value]
 
-            response = await self._client.post("/v1/chat/completions", json=payload)
+            response = await self._require_client().post("/v1/chat/completions", json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -438,7 +444,7 @@ class LMStudioBackend:
 
     async def _stream_chat(self, payload: Dict) -> AsyncGenerator[str, None]:
         """Stream chat response."""
-        async with self._client.stream(
+        async with self._require_client().stream(
             "POST", LMStudioEndpoint.CHAT.value, json=payload
         ) as response:
             response.raise_for_status()
@@ -485,7 +491,7 @@ class LMStudioBackend:
         if tools:
             payload["tools"] = tools
 
-        response = await self._client.post(
+        response = await self._require_client().post(
             LMStudioEndpoint.CHAT_COMPLETIONS.value, json=payload
         )
         response.raise_for_status()
@@ -556,7 +562,7 @@ class LMStudioBackend:
         if mcp_servers and self.config.enable_mcp:
             payload["mcp_servers"] = mcp_servers
 
-        response = await self._client.post(
+        response = await self._require_client().post(
             LMStudioEndpoint.RESPONSES.value, json=payload
         )
         response.raise_for_status()
@@ -619,7 +625,7 @@ class LMStudioBackend:
         if tools:
             payload["tools"] = tools
 
-        response = await self._client.post(
+        response = await self._require_client().post(
             LMStudioEndpoint.MESSAGES.value, json=payload
         )
         response.raise_for_status()

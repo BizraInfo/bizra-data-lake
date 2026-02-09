@@ -179,13 +179,16 @@ class MarketSensorAdapter:
 
         # 1. Get market analysis readings
         for symbol in self._watched_symbols:
-            analysis = self.opportunity_engine.market_analyzer.get_analysis(symbol)
+            analysis = self.opportunity_engine.analyzer.analyze(symbol)
 
             if analysis is None:
                 continue
 
             is_stale = self._check_staleness(analysis.timestamp)
-            effective_snr = analysis.snr_score * (0.7 if is_stale else 1.0)
+            # MarketAnalysis has no snr_score; derive from efficiency_score
+            # Lower market efficiency → higher signal (Lo's AMH)
+            base_snr = 1.0 - analysis.efficiency_score
+            effective_snr = base_snr * (0.7 if is_stale else 1.0)
 
             reading = MarketSensorReading(
                 sensor_id=f"analysis:{symbol}",
@@ -210,7 +213,18 @@ class MarketSensorAdapter:
             readings.append(reading)
 
         # 2. Get trading signals
-        active_signals = self.opportunity_engine.signal_generator.get_active_signals()
+        active_signals: List[Any] = []
+        for symbol in self._watched_symbols:
+            analysis = self.opportunity_engine.analyzer.analyze(symbol)
+            history = [
+                d.price
+                for d in self.opportunity_engine.analyzer._price_history.get(symbol, [])
+            ]
+            active_signals.extend(
+                self.opportunity_engine.signal_generator.generate_signals(
+                    symbol, analysis, history
+                )
+            )
 
         for signal in active_signals:
             # Filter by SNR
@@ -245,18 +259,18 @@ class MarketSensorAdapter:
 
         for arb in arb_opportunities:
             reading = MarketSensorReading(
-                sensor_id=f"arb:{arb.symbol}:{arb.buy_market}-{arb.sell_market}",
+                sensor_id=f"arb:{arb.symbol}:{arb.market_a}-{arb.market_b}",
                 sensor_type=MarketSensorType.ARBITRAGE,
                 symbol=arb.symbol,
                 value={
-                    "buy_market": arb.buy_market,
-                    "sell_market": arb.sell_market,
-                    "profit_pct": arb.profit_percentage,
+                    "buy_market": arb.market_a,
+                    "sell_market": arb.market_b,
+                    "profit_pct": arb.spread_pct,
                     "volume_available": getattr(arb, "volume_available", 0.0),
                 },
-                snr_score=arb.confidence,
-                confidence=arb.confidence,
-                timestamp=arb.detected_at,
+                snr_score=1.0 - arb.execution_risk,
+                confidence=1.0 - arb.execution_risk,
+                timestamp=arb.timestamp,
                 is_stale=False,  # Arbitrage is always time-sensitive
             )
             readings.append(reading)

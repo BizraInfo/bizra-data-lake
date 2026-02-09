@@ -684,12 +684,12 @@ class SovereignNexus:
         self.state = NexusState.INITIALIZING
 
         # Core components (lazy loaded)
-        self._skill_registry = None
-        self._skill_router = None
-        self._a2a_engine = None
-        self._hook_registry = None
-        self._fate_gate = None
-        self._mcp_bridge = None
+        self._skill_registry: Optional[Any] = None
+        self._skill_router: Optional[Any] = None
+        self._a2a_engine: Optional[Any] = None
+        self._hook_registry: Optional[Any] = None
+        self._fate_gate: Optional[Any] = None
+        self._mcp_bridge: Optional[Any] = None
         self._snr_gate = SNRGate(self.config.snr_threshold)
 
         # Current task
@@ -715,7 +715,8 @@ class SovereignNexus:
         try:
             from core.skills.registry import get_skill_registry
             self._skill_registry = get_skill_registry()
-            logger.info(f"Loaded {len(self._skill_registry.get_all())} skills")
+            registry = self._skill_registry
+            logger.info(f"Loaded {len(registry.get_all()) if registry else 0} skills")
         except ImportError:
             logger.warning("Skill registry not available")
 
@@ -903,6 +904,7 @@ class SovereignNexus:
             if handler:
                 try:
                     response = await handler(task.prompt, task.context)
+                    assert self._thought_graph is not None
                     thought = self._thought_graph.add_thought(
                         content=response,
                         thought_type=ThoughtType.ANALYSIS,
@@ -922,6 +924,7 @@ class SovereignNexus:
                     logger.warning(f"Agent {role.value} failed: {e}")
             else:
                 # No handler - create placeholder thought
+                assert self._thought_graph is not None
                 thought = self._thought_graph.add_thought(
                     content=f"[{role.value}]: Analysis pending for: {task.prompt[:50]}...",
                     thought_type=ThoughtType.HYPOTHESIS,
@@ -931,6 +934,7 @@ class SovereignNexus:
                 )
 
         # If we have validated thoughts, create a conclusion
+        assert self._thought_graph is not None
         validated = [
             t for t in self._thought_graph.nodes.values()
             if t.validated and t.depth == depth
@@ -938,6 +942,7 @@ class SovereignNexus:
 
         if validated:
             conclusion_content = " | ".join([t.content[:100] for t in validated[:3]])
+            assert self._thought_graph is not None
             self._thought_graph.add_thought(
                 content=f"Synthesis: {conclusion_content}",
                 thought_type=ThoughtType.CONCLUSION,
@@ -968,6 +973,7 @@ class SovereignNexus:
 
         # Add metrics
         parts.append("\n## Metrics")
+        assert self._thought_graph is not None
         parts.append(f"- SNR: {self._thought_graph.compute_graph_confidence():.4f}")
         parts.append(f"- Depth: {self._thought_graph.max_depth_reached}")
         parts.append(f"- Thoughts: {self._thought_graph.total_thoughts}")

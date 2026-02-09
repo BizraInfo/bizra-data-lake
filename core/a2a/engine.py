@@ -18,7 +18,7 @@ from core.integration.constants import (
     UNIFIED_AGENT_TIMEOUT_MS,
     UNIFIED_IHSAN_THRESHOLD,
 )
-from core.pci import (
+from core.pci import (  # type: ignore[attr-defined]
     domain_separated_digest,
     generate_keypair,
     sign_message,

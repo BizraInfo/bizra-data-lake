@@ -150,7 +150,7 @@ class FATEScore:
             FATEDimension.TRANSPARENCY: self.transparency,
             FATEDimension.ETHICS: self.ethics,
         }
-        return min(scores, key=scores.get)
+        return min(scores, key=lambda k: scores[k])
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize score."""
@@ -368,7 +368,7 @@ class HookRegistry:
         }
 
         for phase, hooks in self._hooks.items():
-            stats["by_phase"][phase.value] = {
+            stats["by_phase"][phase.value] = {  # type: ignore[index]
                 "count": len(hooks),
                 "enabled": len([h for h in hooks if h.enabled]),
                 "hooks": [
@@ -759,7 +759,7 @@ class HookExecutor:
                 }
 
                 if hook.is_async:
-                    result = await hook.function(data)
+                    result = await hook.function(data)  # type: ignore[misc]
                 else:
                     result = hook.function(data)
 

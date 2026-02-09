@@ -27,7 +27,7 @@ def _detect_platform() -> str:
         return "linux"
     elif sys.platform == "darwin":
         return "macos"
-    return "unknown"
+    return "unknown"  # type: ignore[unreachable]
 
 PLATFORM = _detect_platform()
 
@@ -231,7 +231,7 @@ WARP_USE_GPU = GPU_ENABLED  # Prefer GPU for indexing
 WARP_RUNTIME = "onnx"  # Options: "onnx", "openvino", "coreml" (macOS only)
 WARP_FUSED_EXT = True  # Fused decompression + merge for multi-threaded
 
-def initialize_directories():
+def initialize_directories() -> None:
     """Ensure all BIZRA infrastructure directories exist."""
     dirs = [INTAKE_PATH, RAW_PATH, PROCESSED_PATH, INDEXED_PATH, GOLD_PATH,
             GRAPH_PATH, EMBEDDINGS_PATH, VECTORS_PATH, LOG_DIR,

@@ -546,9 +546,9 @@ class SovereignRuntime:
         )
 
         return RuntimeDecision(
-            id=decision_dict["id"],
-            action=decision_dict["action"],
-            confidence=decision_dict["confidence"],
+            id=str(decision_dict["id"]),
+            action=str(decision_dict["action"]),
+            confidence=float(decision_dict["confidence"]),  # type: ignore[arg-type]
             ihsan_score=ihsan_score,
             snr_score=snr_result.signal.snr,
             reasoning_path=reasoning_result.best_path,

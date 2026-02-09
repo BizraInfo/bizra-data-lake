@@ -46,7 +46,7 @@ import hmac
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (
@@ -73,7 +73,7 @@ class VerificationResult:
     passed: bool
     reject_code: RejectCode
     details: str = ""
-    gate_passed: List[str] = None
+    gate_passed: Optional[List[str]] = None
 
 
 # Default constitution hash (should be set from NODE0_IDENTITY)
@@ -91,8 +91,8 @@ class PCIGateKeeper:
 
     def __init__(
         self,
-        seen_nonces_cache: Dict[str, float] = None,
-        constitution_hash: str = None,
+        seen_nonces_cache: Optional[Dict[str, float]] = None,
+        constitution_hash: Optional[str] = None,
         policy_enforcement: bool = True,
     ):
         self.seen_nonces = seen_nonces_cache if seen_nonces_cache is not None else {}

@@ -25,13 +25,23 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from core.agentic.orchestrator import AgentOrchestrator
+    from core.autopoiesis.loop import AutopoieticLoop
+    from core.living_memory.core import LivingMemoryCore
+    from core.living_memory.healing import MemoryHealer
+    from core.living_memory.proactive import ProactiveRetriever
+    from core.pat.bridge import PATBridge
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -133,12 +143,12 @@ class LivingEcosystem:
         self._health = EcosystemHealth()
 
         # Subsystems (lazy initialized)
-        self._memory = None
-        self._memory_healer = None
-        self._proactive_retriever = None
-        self._orchestrator = None
-        self._autopoietic_loop = None
-        self._pat_bridge = None
+        self._memory: Optional["LivingMemoryCore"] = None
+        self._memory_healer: Optional["MemoryHealer"] = None
+        self._proactive_retriever: Optional["ProactiveRetriever"] = None
+        self._orchestrator: Optional["AgentOrchestrator"] = None
+        self._autopoietic_loop: Optional["AutopoieticLoop"] = None
+        self._pat_bridge: Optional["PATBridge"] = None
 
         # Background tasks
         self._tasks: List[asyncio.Task] = []
@@ -166,7 +176,8 @@ class LivingEcosystem:
             max_entries=self.config.max_memory_entries,
             ihsan_threshold=self.config.ihsan_threshold,
         )
-        await self._memory.initialize()
+        if self._memory is not None:
+            await self._memory.initialize()
 
         # Initialize Memory Healer
         from core.living_memory.healing import MemoryHealer
@@ -196,7 +207,8 @@ class LivingEcosystem:
             max_agents=self.config.max_agents,
             ihsan_threshold=self.config.ihsan_threshold,
         )
-        await self._orchestrator.initialize()
+        if self._orchestrator is not None:
+            await self._orchestrator.initialize()
 
         # Initialize Autopoietic Loop
         if self.config.enable_evolution:
@@ -356,7 +368,7 @@ class LivingEcosystem:
         self.state = EcosystemState.EVOLVING
 
         try:
-            await self._autopoietic_loop.run_cycle()
+            await self._autopoietic_loop._run_cycle()
             self._health.evolution_health = 1.0
         except Exception as e:
             logger.error(f"Evolution cycle failed: {e}")
@@ -390,7 +402,7 @@ class LivingEcosystem:
             self._proactive_retriever.update_context(query=query)
 
         # Retrieve relevant memories
-        memories = []
+        memories: List[Any] = []
         if self._memory:
             memories = await self._memory.retrieve(
                 query=query,
@@ -401,7 +413,7 @@ class LivingEcosystem:
         memory_context = "\n".join(m.content for m in memories)
 
         # Get proactive suggestions
-        suggestions = []
+        suggestions: List[Any] = []
         if self._proactive_retriever:
             suggestions = await self._proactive_retriever.get_proactive_suggestions()
 
@@ -434,15 +446,17 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
 
         # Store interaction in memory
         if self._memory:
+            from core.living_memory.core import MemoryType
+
             await self._memory.encode(
                 content=f"Q: {query[:200]}",
-                memory_type="episodic",
+                memory_type=MemoryType.EPISODIC,
                 source="user",
                 importance=0.7,
             )
             await self._memory.encode(
                 content=f"A: {response[:500]}",
-                memory_type="episodic",
+                memory_type=MemoryType.EPISODIC,
                 source="bizra",
                 importance=0.6,
             )
@@ -483,10 +497,11 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
             except ValueError:
                 channel_type = ChannelType.INTERNAL
 
-            return await self._pat_bridge.process_local(
+            result = await self._pat_bridge.process_local(
                 content=message,
                 channel=channel_type,
             )
+            return result or await self.think(message)
         else:
             return await self.think(message)
 

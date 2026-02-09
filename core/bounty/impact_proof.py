@@ -167,7 +167,7 @@ class ImpactProof:
     @property
     def multiplier(self) -> int:
         """Get severity multiplier."""
-        return SEVERITY_LEVELS.get(self.severity.value, {}).get("multiplier", 1)
+        return SEVERITY_LEVELS.get(self.severity.value, {}).get("multiplier", 1)  # type: ignore[attr-defined]
 
     def body_bytes(self) -> bytes:
         """Get proof body for signing."""

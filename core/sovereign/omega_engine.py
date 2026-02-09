@@ -38,7 +38,7 @@ import numpy as np
 try:
     from core.integration.constants import ADL_GINI_THRESHOLD
 except ImportError:
-    ADL_GINI_THRESHOLD = 0.40
+    ADL_GINI_THRESHOLD = 0.40  # type: ignore[misc]
 
 logger = logging.getLogger(__name__)
 

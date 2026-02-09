@@ -335,10 +335,10 @@ class ClusterComplexityFilter:
                 )
                 avg_inter = np.mean(inter_distances)
             else:
-                avg_inter = 1.0
+                avg_inter = 1.0  # type: ignore[assignment]
 
             # Complexity = intra × inter (high when spread out AND distinct)
-            complexities[k] = avg_intra * avg_inter
+            complexities[k] = avg_intra * avg_inter  # type: ignore[assignment]
 
         # Normalize to [0, 1]
         if complexities:
@@ -371,7 +371,7 @@ class ClusterComplexityFilter:
         complexities = self.compute_cluster_complexity(embeddings, labels, centroids)
 
         # Assign complexity score to each sample
-        sample_scores = {i: complexities.get(labels[i], 0.0) for i in range(n)}
+        sample_scores = {i: complexities.get(labels[i], 0.0) for i in range(n)}  # type: ignore[call-overload]
 
         # Filter low-complexity samples
         keep_mask = np.array(

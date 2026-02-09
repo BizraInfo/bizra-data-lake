@@ -379,7 +379,7 @@ class SkillRegistry:
     def get_stats(self) -> Dict[str, Any]:
         """Get registry statistics."""
         total = len(self._skills)
-        by_status = {}
+        by_status: Dict[str, int] = {}
         for skill in self._skills.values():
             status = skill.status.value
             by_status[status] = by_status.get(status, 0) + 1

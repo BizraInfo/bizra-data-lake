@@ -473,7 +473,7 @@ class ElitePipeline:
         )
         self._runs[run.id] = run
 
-        artifacts = {}
+        artifacts: dict[str, Any] = {}
         all_passed = True
 
         for stage in self._stage_order:

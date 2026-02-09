@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, AsyncIterator, List, Optional
 from .base import InferenceBackend, InferenceBackendBase
 
 if TYPE_CHECKING:
-    from ..gateway import InferenceConfig
+    from ..gateway import InferenceConfig  # type: ignore[attr-defined]
 
 
 class OllamaBackend(InferenceBackendBase):
@@ -93,7 +93,7 @@ class OllamaBackend(InferenceBackendBase):
             data = json.loads(resp.read().decode())
             return data.get("response", "")
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore[override]
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
     ) -> AsyncIterator[str]:
         """Generate with streaming via Ollama API."""

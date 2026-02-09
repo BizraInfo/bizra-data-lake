@@ -620,6 +620,7 @@ class RustLifecycleManager:
         if not self._pyo3_available:
             return score >= 0.95  # Python fallback
 
+        assert self._pyo3_module is not None
         constitution = self._pyo3_module.Constitution()
         return constitution.check_ihsan(score)
 
@@ -628,6 +629,7 @@ class RustLifecycleManager:
         if not self._pyo3_available:
             return score >= 0.85  # Python fallback
 
+        assert self._pyo3_module is not None
         constitution = self._pyo3_module.Constitution()
         return constitution.check_snr(score)
 
@@ -638,6 +640,7 @@ class RustLifecycleManager:
 
             return hashlib.blake2b(b"bizra-pci-v1:" + message).hexdigest()
 
+        assert self._pyo3_module is not None
         return self._pyo3_module.domain_separated_digest(message)
 
     def pyo3_sign(self, message: bytes) -> tuple[str, str]:
@@ -650,6 +653,7 @@ class RustLifecycleManager:
         if not self._pyo3_available:
             raise RuntimeError("PyO3 bindings not available for signing")
 
+        assert self._pyo3_module is not None
         identity = self._pyo3_module.NodeIdentity()
         signature = identity.sign(message)
         return signature, identity.public_key
@@ -673,6 +677,7 @@ class RustLifecycleManager:
             return None
 
         try:
+            assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.learn(content, embedding, tags or [])
         except Exception as e:
@@ -693,6 +698,7 @@ class RustLifecycleManager:
             return None
 
         try:
+            assert self._pyo3_module is not None
             memory = self._pyo3_module.PatternMemory(node_id)
             return memory.recall(embedding, limit)
         except Exception as e:
@@ -714,8 +720,9 @@ class RustLifecycleManager:
 
         try:
             if not hasattr(self, "_pyo3_pref_tracker"):
+                assert self._pyo3_module is not None
                 self._pyo3_pref_tracker = self._pyo3_module.PreferenceTracker()
-            self._pyo3_pref_tracker.observe(pref_type, key, value)
+            self._pyo3_pref_tracker.observe(pref_type, key, value)  # type: ignore[has-type]
             return True
         except Exception as e:
             logger.warning("PyO3 preference observe failed: %s", e)
@@ -730,7 +737,7 @@ class RustLifecycleManager:
             return prompt
 
         try:
-            return self._pyo3_pref_tracker.apply_to_prompt(prompt)
+            return self._pyo3_pref_tracker.apply_to_prompt(prompt)  # type: ignore[has-type]
         except Exception as e:
             logger.warning("PyO3 preference apply failed: %s", e)
             return prompt
@@ -826,7 +833,7 @@ RustLifecycle = RustLifecycleManager
 
 def create_rust_gate_filter(
     lifecycle: RustLifecycleManager,
-) -> "ConstitutionalFilter":
+) -> "ConstitutionalFilter":  # type: ignore[name-defined]
     """
     Create a constitutional filter that uses Rust for validation.
 

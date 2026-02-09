@@ -255,7 +255,7 @@ class CompositeBridge(BridgeProtocol[TInput, TOutput]):
         current = input
         for bridge in self._bridges:
             current = await bridge.translate(current)
-        return current
+        return current  # type: ignore[return-value]
 
     async def health_check(self) -> BridgeHealth:
         """Check health of all bridges in the chain."""

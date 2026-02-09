@@ -385,7 +385,7 @@ class NTU:
             hist, _ = np.histogram(values, bins=3, range=(0, 1), density=True)
             hist = hist + 1e-10  # Avoid log(0)
             hist = hist / hist.sum()
-            entropy_bits = -np.sum(hist * np.log2(hist))
+            entropy_bits: float = -np.sum(hist * np.log2(hist))
             max_entropy = np.log2(3)  # 3 bins
             posterior_entropy = entropy_bits / max_entropy
         else:

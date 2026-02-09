@@ -553,7 +553,7 @@ class TreasuryController:
 
     def health_check(self) -> Dict[str, Any]:
         """Perform a health check on the treasury system."""
-        health = {
+        health: Dict[str, Any] = {
             "healthy": True,
             "mode": self._state.mode.value,
             "reserves_days": self._state.reserves_days,

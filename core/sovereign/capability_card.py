@@ -27,8 +27,8 @@ try:
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
-    Ed25519PrivateKey = None
-    Ed25519PublicKey = None
+    Ed25519PrivateKey = None  # type: ignore[misc, assignment]
+    Ed25519PublicKey = None  # type: ignore[misc, assignment]
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (

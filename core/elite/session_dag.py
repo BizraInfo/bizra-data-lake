@@ -507,7 +507,7 @@ class MerkleDAG:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get DAG statistics."""
-        states_count = defaultdict(int)
+        states_count: dict[str, int] = defaultdict(int)
         for node in self._nodes.values():
             states_count[node.state.value] += 1
 
@@ -619,7 +619,7 @@ class SessionStateMachine:
             try:
                 from core.ntu import NTU, NTUConfig
 
-                self._ntu = NTU(NTUConfig(ihsan_threshold=self.ihsan_threshold))
+                self._ntu = NTU(NTUConfig(ihsan_threshold=self.ihsan_threshold))  # type: ignore[assignment]
             except ImportError:
                 logger.warning("NTU not available")
         return self._ntu

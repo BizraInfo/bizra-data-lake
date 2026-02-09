@@ -220,6 +220,8 @@ class Iceoryx2Bridge(IPCBridge):
         try:
             # Create iceoryx2 node
             # Note: Actual API may vary based on iceoryx2-python version
+            if _iceoryx2_module is None:
+                raise ImportError("iceoryx2 module is not available")
             self._node = _iceoryx2_module.Node.new(self._service_name)
 
             # Create publisher for sending messages

@@ -368,6 +368,8 @@ class LeaderboardManager:
         
         submission = self._submissions[submission_id]
         config = submission.config
+        if config is None:
+            raise ValueError(f"Submission {submission_id} has no config")
         
         # Normalize score (0-100 → 0-1 if needed)
         normalized = raw_score if raw_score <= 1.0 else raw_score / 100.0
@@ -456,8 +458,8 @@ class LeaderboardManager:
         
         completed = [s for s in agent_submissions if s.result]
         
-        benchmarks_attempted = set(s.config.benchmark for s in agent_submissions)
-        sota_achieved = [s for s in completed if s.result.is_sota]
+        benchmarks_attempted = set(s.config.benchmark for s in agent_submissions if s.config is not None)
+        sota_achieved = [s for s in completed if s.result is not None and s.result.is_sota]
         
         return {
             "agent_id": agent_id,
@@ -465,10 +467,10 @@ class LeaderboardManager:
             "completed": len(completed),
             "benchmarks_attempted": [b.key for b in benchmarks_attempted],
             "sota_count": len(sota_achieved),
-            "sota_benchmarks": [s.config.benchmark.key for s in sota_achieved],
-            "total_cost_usd": sum(s.result.cost_usd for s in completed),
+            "sota_benchmarks": [s.config.benchmark.key for s in sota_achieved if s.config is not None],
+            "total_cost_usd": sum(s.result.cost_usd for s in completed if s.result is not None),
             "avg_kami_score": (
-                statistics.mean(s.result.kami_score for s in completed)
+                statistics.mean(s.result.kami_score for s in completed if s.result is not None)
                 if completed else 0.0
             ),
             "submissions": [
@@ -479,6 +481,7 @@ class LeaderboardManager:
                     "kami": s.result.kami_score,
                 }
                 for s in completed
+                if s.config is not None and s.result is not None
             ],
         }
     

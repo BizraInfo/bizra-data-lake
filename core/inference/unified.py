@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Dict, Optional, Union
 
-from .gateway import (
+from .gateway import (  # type: ignore[attr-defined]
     InferenceConfig,
     InferenceGateway,
     InferenceResult,
@@ -261,12 +261,14 @@ class UnifiedInferenceSystem:
         temperature: float,
     ) -> AsyncIterator[str]:
         """Stream inference results."""
-        async for chunk in await gateway.infer(
+        stream_result = await gateway.infer(
             prompt,
             max_tokens=max_tokens,
             temperature=temperature,
             stream=True,
-        ):
+        )
+        assert not isinstance(stream_result, InferenceResult), "Expected stream"
+        async for chunk in stream_result:
             yield chunk
 
     async def _get_or_create_gateway(

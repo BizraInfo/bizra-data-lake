@@ -411,7 +411,7 @@ class RiskManager:
 
     def get_risk_matrix(self) -> Dict[str, Any]:
         """Generate risk matrix for visualization."""
-        matrix = {
+        matrix: Dict[str, List[str]] = {
             "high_high": [],
             "high_low": [],
             "low_high": [],
@@ -437,9 +437,9 @@ class RiskManager:
         """Get risk management summary."""
         risks = list(self._risks.values())
 
-        by_category = {}
-        by_severity = {}
-        by_status = {}
+        by_category: Dict[str, int] = {}
+        by_severity: Dict[str, int] = {}
+        by_status: Dict[str, int] = {}
 
         for risk in risks:
             cat = risk.category.value

@@ -73,7 +73,7 @@ def example_3_dict_specification():
     decision = router.route(task)
 
     print("\nTask specification:")
-    print(f"  Text: {task['text'][:50]}...")
+    print(f"  Text: {task['text'][:50]}...")  # type: ignore[index]
     print(f"  Has image: {task['has_image']}")
     print(f"  Has audio: {task['has_audio']}")
     print(f"  Selected model: {decision.model.name}")

@@ -233,7 +233,7 @@ def validate_cross_repo_consistency() -> dict:
 
         results[repo] = {
             "status": "synced" if drift_count == 0 else "drift_detected",
-            "drift_count": drift_count,
+            "drift_count": drift_count,  # type: ignore[dict-item]
             "path": path,
         }
 

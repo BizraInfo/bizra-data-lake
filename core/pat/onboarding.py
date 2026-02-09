@@ -160,6 +160,9 @@ class OnboardingWizard:
         if not result.success:
             raise RuntimeError(f"Minting failed: {result.error}")
 
+        if result.identity_card is None:
+            raise RuntimeError("Minting succeeded but no identity card returned")
+
         # Step 3: Self-sign the identity card
         result.identity_card.sign_as_owner(private_key)
 
@@ -223,7 +226,8 @@ class OnboardingWizard:
 
         # Identity card (public — shareable)
         identity_path = self.identity_file
-        identity_path.write_text(json.dumps(result.identity_card.to_dict(), indent=2))
+        if result.identity_card is not None:
+            identity_path.write_text(json.dumps(result.identity_card.to_dict(), indent=2))
 
         # Agent manifest
         agents_data = {
@@ -266,9 +270,8 @@ class OnboardingWizard:
         print("  cryptographic keypair. The private key never leaves")
         print("  this device.")
         print()
-        name = input("  Display name (optional, press Enter to skip): ").strip()
-        if not name:
-            name = None
+        name_input = input("  Display name (optional, press Enter to skip): ").strip()
+        name: Optional[str] = name_input if name_input else None
 
         # Step 2: Generate and mint
         print()

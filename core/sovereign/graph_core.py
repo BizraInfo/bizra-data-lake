@@ -61,7 +61,7 @@ from .graph_types import (
 logger = logging.getLogger(__name__)
 
 
-class GraphOfThoughts(GraphOperationsMixin, GraphSearchMixin, GraphReasoningMixin):
+class GraphOfThoughts(GraphOperationsMixin, GraphSearchMixin, GraphReasoningMixin):  # type: ignore[misc]
     """
     Graph-of-Thoughts Reasoning Engine.
 

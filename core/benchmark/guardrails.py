@@ -199,8 +199,8 @@ class LeakageScanner:
                 test_grams = self._compute_n_grams(test_item)
                 overlap = response_grams & test_grams
                 if len(overlap) > 5:  # Suspicious overlap
-                    evidence["overlap_count"] = len(overlap)
-                    evidence["sample_overlap"] = list(overlap)[:3]
+                    evidence["overlap_count"] = len(overlap)  # type: ignore[assignment]
+                    evidence["sample_overlap"] = list(overlap)[:3]  # type: ignore[assignment]
                     return GuardrailResult(
                         guardrail=GuardrailType.LEAKAGE_SCAN,
                         status=GuardrailStatus.FAILED,
@@ -308,7 +308,7 @@ class NullModelProbe:
         FAIL-CLOSED: Returns FAILED if null model detected.
         """
         start = time.perf_counter()
-        evidence = {}
+        evidence: Dict[str, Any] = {}
         
         # Check 1: Empty or too short
         words = response.split()

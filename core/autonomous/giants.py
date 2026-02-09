@@ -191,7 +191,7 @@ class GiantsProtocol:
         import math
 
         # Character frequency
-        freq = {}
+        freq: Dict[str, int] = {}
         for char in text:
             freq[char] = freq.get(char, 0) + 1
 
@@ -350,8 +350,8 @@ class GiantsProtocol:
 
         Builds a reasoning graph from thought nodes.
         """
-        nodes = {}
-        edges = []
+        nodes: Dict[str, Dict[str, Any]] = {}
+        edges: List[Any] = []
 
         for thought in thoughts:
             node_id = thought.get("id", str(len(nodes)))

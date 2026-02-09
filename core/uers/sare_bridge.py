@@ -307,7 +307,7 @@ class SAREUERSBridge:
             # Convert SARE reasoning to UERS hypotheses
             from core.uers.convergence import Hypothesis
 
-            hypotheses = []
+            hypotheses: list = []
 
             suggestions = manifold.suggest_probes()
             for source, target, operation in suggestions:

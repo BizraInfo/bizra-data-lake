@@ -659,7 +659,7 @@ async def ingest_chat_history(
                     logger.warning(f"Skipping {jf.name}: {e}")
 
     stats = importer.get_stats()
-    stats["sources"] = all_results
+    stats["sources"] = all_results  # type: ignore[assignment]
     return stats
 
 

@@ -164,7 +164,7 @@ class GraphSearchMixin:
     def explore_with_backtrack(
         self,
         max_iterations: int = 10,
-        target_snr: float = None,
+        target_snr: Optional[float] = None,
     ) -> Optional[ThoughtNode]:
         """
         Iteratively explore the graph with backtracking until target SNR is reached.

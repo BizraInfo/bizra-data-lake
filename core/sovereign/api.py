@@ -261,8 +261,8 @@ class SovereignAPIServer:
             if not request_line:
                 return
 
-            request_line = request_line.decode().strip()
-            parts = request_line.split()
+            request_str = request_line.decode().strip()
+            parts = request_str.split()
             if len(parts) < 2:
                 return
 
@@ -296,7 +296,8 @@ class SovereignAPIServer:
             response = await self._route(method, path, headers, body)
 
             # Send response
-            writer.write(response.encode() if isinstance(response, str) else response)
+            resp_bytes = response.encode() if isinstance(response, str) else response
+            writer.write(resp_bytes)  # type: ignore[arg-type]
             await writer.drain()
 
         except Exception as e:

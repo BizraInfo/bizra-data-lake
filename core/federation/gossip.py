@@ -236,7 +236,7 @@ class GossipEngine:
     # MEMBERSHIP
     # ─────────────────────────────────────────────────────────────────────────
 
-    def add_seed_node(self, address: str, node_id: str = None, public_key: str = ""):
+    def add_seed_node(self, address: str, node_id: Optional[str] = None, public_key: str = ""):
         """
         Add a bootstrap/seed node to connect to.
 
@@ -460,11 +460,13 @@ class GossipEngine:
         if msg.msg_type == MessageType.PING:
             return self._handle_ping(msg)
         elif msg.msg_type == MessageType.PING_ACK:
-            return self._handle_ping_ack(msg)
+            self._handle_ping_ack(msg)
+            return None
         elif msg.msg_type == MessageType.ANNOUNCE:
             return self._handle_announce(msg)
         elif msg.msg_type == MessageType.LEAVE:
-            return self._handle_leave(msg)
+            self._handle_leave(msg)
+            return None
         elif msg.msg_type == MessageType.PATTERN_SHARE:
             return self._handle_pattern_share(msg)
         elif msg.msg_type in [
@@ -814,7 +816,7 @@ if __name__ == "__main__":
     import sys
 
     sys.path.insert(0, "c:\\BIZRA-DATA-LAKE")
-    from core.pci import generate_keypair
+    from core.pci import generate_keypair  # type: ignore[attr-defined]
 
     print("=" * 70)
     print("BIZRA GOSSIP PROTOCOL — Simulation")
@@ -844,7 +846,7 @@ if __name__ == "__main__":
     announce = nodes[1].create_announce_message()
     response = asyncio.run(nodes[0].handle_message(announce))
 
-    print(f"  Node 0 received announcement, responded with {len(response)} bytes")
+    print(f"  Node 0 received announcement, responded with {len(response or b'')} bytes")
 
     # Node 0 processes response
     if response:

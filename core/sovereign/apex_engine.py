@@ -472,13 +472,13 @@ class ApexSovereignEngine:
         self._running = False
 
         # Component placeholders (lazy-initialized)
-        self._snr_maximizer = None
-        self._got_engine = None
-        self._bicameral_engine = None
-        self._constitutional_gate = None
-        self._autopoietic_loop = None
-        self._proactive_entity = None
-        self._multi_model_manager = None
+        self._snr_maximizer: Optional[Any] = None
+        self._got_engine: Optional[Any] = None
+        self._bicameral_engine: Optional[Any] = None
+        self._constitutional_gate: Optional[Any] = None
+        self._autopoietic_loop: Optional[Any] = None
+        self._proactive_entity: Optional[Any] = None
+        self._multi_model_manager: Optional[Any] = None
 
         # State
         self._request_count = 0

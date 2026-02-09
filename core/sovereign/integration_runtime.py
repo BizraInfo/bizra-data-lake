@@ -93,6 +93,8 @@ class SovereignRuntime:
         if self._started:
             return
 
+        assert self.config.model_store_path is not None
+        assert self.config.keypair_path is not None
         self.config.model_store_path.mkdir(parents=True, exist_ok=True)
         self.config.keypair_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -214,6 +216,7 @@ class SovereignRuntime:
             raise ValueError(f"Model not licensed: {license_result.reason}")
 
         card = license_result.card
+        assert card is not None
 
         start_time = time.perf_counter()
 
@@ -253,7 +256,7 @@ class SovereignRuntime:
     def get_status(self) -> Dict[str, Any]:
         """Get runtime status."""
         valid_cards = self.registry.list_valid()
-        status = {
+        status: Dict[str, Any] = {
             "started": self._started,
             "network_mode": self.config.network_mode.value,
             "registered_models": len(self.registry.list_all()),
@@ -287,6 +290,7 @@ class SovereignRuntime:
 
     async def _load_registry(self) -> None:
         """Load registry from disk."""
+        assert self.config.model_store_path is not None
         registry_path = self.config.model_store_path / "registry.json"
         if registry_path.exists():
             try:
@@ -304,6 +308,7 @@ class SovereignRuntime:
 
     async def _save_registry(self) -> None:
         """Save registry to disk."""
+        assert self.config.model_store_path is not None
         registry_path = self.config.model_store_path / "registry.json"
         try:
             cards = [c.to_dict() for c in self.registry.list_all()]
@@ -321,7 +326,7 @@ class SovereignRuntime:
         """Start federation layer for P2P pattern propagation."""
         try:
             from core.federation.node import FederationNode
-            from core.pci import generate_keypair
+            from core.pci import generate_keypair  # type: ignore[attr-defined]
 
             private_key, public_key = self._load_or_generate_keypair()
 
@@ -363,9 +368,10 @@ class SovereignRuntime:
         """
         import os as _os
 
-        from core.pci import generate_keypair
+        from core.pci import generate_keypair  # type: ignore[attr-defined]
 
         keypair_path = self.config.keypair_path
+        assert keypair_path is not None
         vault_dir = keypair_path.parent / ".vault"
 
         # Derive vault secret: env var preferred, deterministic fallback
@@ -455,9 +461,10 @@ class SovereignRuntime:
 
     def _load_or_generate_keypair_plaintext(self) -> tuple:
         """Legacy plaintext keypair loading (fallback when vault unavailable)."""
-        from core.pci import generate_keypair
+        from core.pci import generate_keypair  # type: ignore[attr-defined]
 
         keypair_path = self.config.keypair_path
+        assert keypair_path is not None
 
         if keypair_path.exists():
             try:

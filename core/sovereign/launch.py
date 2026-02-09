@@ -36,7 +36,13 @@ import asyncio
 import logging
 import signal
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
+if TYPE_CHECKING:
+    from .api import SovereignAPIServer
+    from .bridge import SovereignBridge
+    from .metrics import MetricsCollector
+    from .runtime import SovereignRuntime
 
 # Configure logging
 logging.basicConfig(
@@ -98,10 +104,10 @@ class SovereignLauncher:
         self.ihsan_threshold = ihsan_threshold
 
         # Components (initialized in start())
-        self.runtime = None
-        self.bridge = None
-        self.metrics = None
-        self.api_server = None
+        self.runtime: Optional[SovereignRuntime] = None
+        self.bridge: Optional[SovereignBridge] = None
+        self.metrics: Optional[MetricsCollector] = None
+        self.api_server: Optional[SovereignAPIServer] = None
 
         # State
         self._running = False
@@ -127,27 +133,30 @@ class SovereignLauncher:
             ihsan_threshold=self.ihsan_threshold,
             autonomous_enabled=self.enable_autonomy,
         )
-        self.runtime = SovereignRuntime(config)
-        await self.runtime.initialize()
+        runtime = SovereignRuntime(config)
+        self.runtime = runtime
+        await runtime.initialize()
         logger.info(f"  ✓ Runtime initialized: {config.node_id}")
 
         # 2. Connect Bridge
         logger.info("[2/5] Connecting Bridge...")
         from .bridge import SovereignBridge
 
-        self.bridge = SovereignBridge(
+        bridge = SovereignBridge(
             node_id=config.node_id,
             state_dir=self.state_dir,
         )
-        bridge_status = await self.bridge.connect_all()
+        self.bridge = bridge
+        bridge_status = await bridge.connect_all()
         logger.info(f"  ✓ Bridge connected: {bridge_status}")
 
         # 3. Start Metrics Collector
         logger.info("[3/5] Starting Metrics...")
         from .metrics import MetricsCollector
 
-        self.metrics = MetricsCollector(collection_interval=1.0)
-        await self.metrics.start()
+        metrics = MetricsCollector(collection_interval=1.0)
+        self.metrics = metrics
+        await metrics.start()
         logger.info("  ✓ Metrics collector started")
 
         # 4. Wire Autonomy
@@ -163,11 +172,12 @@ class SovereignLauncher:
             logger.info("[5/5] Starting API Server...")
             from .api import SovereignAPIServer
 
-            self.api_server = SovereignAPIServer(
+            api_server = SovereignAPIServer(
                 runtime=self.runtime,
                 port=self.api_port,
             )
-            await self.api_server.start()
+            self.api_server = api_server
+            await api_server.start()
             logger.info(f"  ✓ API server on port {self.api_port}")
         else:
             logger.info("[5/5] API disabled")
@@ -195,7 +205,9 @@ class SovereignLauncher:
         from .metrics import create_autonomy_analyzer, create_autonomy_observer
 
         # Get autonomy loop from runtime
-        autonomy = self.runtime._autonomous_loop
+        if self.runtime is None or self.metrics is None:
+            return
+        autonomy: Any = self.runtime._autonomous_loop
         if autonomy is None:
             return
 

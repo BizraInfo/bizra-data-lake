@@ -794,7 +794,7 @@ class NTUBudgetAdapter:
             try:
                 from core.ntu import NTU, NTUConfig
 
-                self._ntu = NTU(
+                self._ntu = NTU(  # type: ignore[assignment]
                     NTUConfig(ihsan_threshold=self.allocator.ihsan_threshold)
                 )
             except ImportError:

@@ -55,7 +55,7 @@ class ScanTarget:
     name: Optional[str] = None
     tvl: float = 0.0  # Total value locked
     bytecode: Optional[bytes] = None
-    abi: Optional[Dict[str, Any]] = None
+    abi: Optional[List[Dict[str, Any]]] = None
     source_code: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -126,7 +126,7 @@ class SurfaceAnalyzer(VectorAnalyzer):
 
     async def analyze(self, target: ScanTarget) -> Tuple[float, List[Dict[str, Any]]]:
         """Analyze bytecode for entropy anomalies."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         if not target.bytecode:
             return 0.5, findings
@@ -177,7 +177,7 @@ class StructuralAnalyzer(VectorAnalyzer):
 
     async def analyze(self, target: ScanTarget) -> Tuple[float, List[Dict[str, Any]]]:
         """Analyze control flow for vulnerability patterns."""
-        findings = []
+        findings: List[Dict[str, Any]] = []
 
         if not target.bytecode:
             return 0.5, findings
@@ -391,11 +391,11 @@ class HunterAgent:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Collect results
-            for (name, analyzer), result in zip(self._analyzers.items(), results):
-                if isinstance(result, Exception):
+            for (name, _analyzer), analysis in zip(self._analyzers.items(), results):
+                if isinstance(analysis, BaseException):
                     continue
 
-                e, findings = result
+                e, findings = analysis
 
                 # Store entropy
                 if name == "surface":
@@ -510,7 +510,7 @@ class HunterAgent:
         total_findings = sum(len(s.vulnerabilities) for s in self._scan_history)
         total_proofs = len(self._proofs)
 
-        by_severity = {}
+        by_severity: Dict[str, int] = {}
         for scan in self._scan_history:
             for finding in scan.vulnerabilities:
                 sev = finding.get("severity", "unknown")
@@ -555,7 +555,7 @@ class HunterSwarm:
         Distributes targets across agents.
         """
         # Distribute targets round-robin
-        agent_tasks = [[] for _ in self.agents]
+        agent_tasks: List[List[ScanTarget]] = [[] for _ in self.agents]
         for i, target in enumerate(targets):
             agent_idx = i % len(self.agents)
             agent_tasks[agent_idx].append(target)

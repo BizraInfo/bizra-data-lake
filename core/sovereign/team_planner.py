@@ -307,7 +307,7 @@ class TeamPlanner:
         }.get(task.complexity, 1)
 
         # Apply load balancing
-        selected_roles = []
+        selected_roles: List[Any] = []
         for role, score in matched_roles[: role_count * 2]:  # Consider more candidates
             if len(selected_roles) >= role_count:
                 break

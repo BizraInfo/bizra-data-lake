@@ -30,7 +30,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TypedDict
 
 # ════════════════════════════════════════════════════════════════════════════════
 # CONSTANTS — Authoritative Thresholds
@@ -223,7 +223,7 @@ class CircuitBreaker:
     def state(self) -> CircuitState:
         """Get current state, checking for recovery timeout."""
         if self._state == CircuitState.OPEN:
-            if time.time() - self._last_failure_time >= self.recovery_timeout:
+            if self._last_failure_time is not None and time.time() - self._last_failure_time >= self.recovery_timeout:
                 self._transition_to(CircuitState.HALF_OPEN)
         return self._state
     

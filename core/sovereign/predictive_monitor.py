@@ -269,7 +269,7 @@ class PredictiveMonitor:
         metric_thresholds = defaults.get(
             metric_name, {"high": float("inf"), "low": float("-inf")}
         )
-        return metric_thresholds.get(threshold_type, 0)
+        return metric_thresholds.get(threshold_type, 0)  # type: ignore[attr-defined]
 
     def get_forecast(self, name: str, hours: float = 1.0) -> Optional[float]:
         """Get forecast for a metric at specified hours ahead."""

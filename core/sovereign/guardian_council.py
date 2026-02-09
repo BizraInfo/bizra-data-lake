@@ -20,7 +20,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from core.pci.crypto import (
     domain_separated_digest,
@@ -533,10 +533,10 @@ class GuardianCouncil:
             nucleus_vote = next(
                 (v for v in votes if v.guardian == GuardianRole.NUCLEUS), None
             )
-            approved = nucleus_vote and nucleus_vote.vote_type in [
+            approved = bool(nucleus_vote and nucleus_vote.vote_type in [
                 VoteType.APPROVE,
                 VoteType.APPROVE_WITH_CONCERNS,
-            ]
+            ])
         else:
             approved = aggregate_score > 0
 
@@ -622,7 +622,7 @@ class GuardianCouncil:
         recommendations = []
 
         # Find weakest dimensions across all assessments
-        dimension_scores = {
+        dimension_scores: Dict[str, List[float]] = {
             "correctness": [],
             "safety": [],
             "beneficence": [],
@@ -743,4 +743,4 @@ async def _guardian_council_validate(
 
 
 # Monkey-patch the validate method onto GuardianCouncil
-GuardianCouncil.validate = _guardian_council_validate
+GuardianCouncil.validate = _guardian_council_validate  # type: ignore[attr-defined]

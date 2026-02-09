@@ -115,6 +115,7 @@ class SQLiteCheckpointStore:
 
     def save(self, checkpoint: Checkpoint) -> None:
         """Save a checkpoint to SQLite."""
+        assert self._conn is not None
         self._conn.execute(
             """
             INSERT OR REPLACE INTO checkpoints
@@ -135,6 +136,7 @@ class SQLiteCheckpointStore:
 
     def load(self, checkpoint_id: str) -> Optional[Checkpoint]:
         """Load a specific checkpoint."""
+        assert self._conn is not None
         cursor = self._conn.execute(
             "SELECT * FROM checkpoints WHERE id = ?", (checkpoint_id,)
         )
@@ -143,6 +145,7 @@ class SQLiteCheckpointStore:
 
     def load_latest(self) -> Optional[Checkpoint]:
         """Load the most recent checkpoint."""
+        assert self._conn is not None
         cursor = self._conn.execute(
             "SELECT * FROM checkpoints ORDER BY version DESC LIMIT 1"
         )
@@ -151,6 +154,7 @@ class SQLiteCheckpointStore:
 
     def list_checkpoints(self, limit: int = 100) -> List[Checkpoint]:
         """List recent checkpoints."""
+        assert self._conn is not None
         cursor = self._conn.execute(
             "SELECT * FROM checkpoints ORDER BY version DESC LIMIT ?", (limit,)
         )
@@ -158,11 +162,13 @@ class SQLiteCheckpointStore:
 
     def count(self) -> int:
         """Count total checkpoints."""
+        assert self._conn is not None
         cursor = self._conn.execute("SELECT COUNT(*) FROM checkpoints")
         return cursor.fetchone()[0]
 
     def delete_old(self, keep_count: int) -> int:
         """Delete old checkpoints, keeping the most recent N."""
+        assert self._conn is not None
         cursor = self._conn.execute(
             """
             DELETE FROM checkpoints WHERE id NOT IN (
@@ -195,6 +201,7 @@ class SQLiteCheckpointStore:
 
     def vacuum(self) -> None:
         """Compact the database."""
+        assert self._conn is not None
         self._conn.execute("VACUUM")
 
 
@@ -281,6 +288,7 @@ class StateCheckpointer:
         """Save checkpoint using configured backend."""
         if self.backend == StorageBackend.SQLITE:
             # Use SQLite backend
+            assert self._sqlite_store is not None
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self._sqlite_store.save, cp)
         else:
@@ -316,6 +324,7 @@ class StateCheckpointer:
         """Remove old checkpoints beyond max_checkpoints."""
         if self.backend == StorageBackend.SQLITE:
             # SQLite handles rotation
+            assert self._sqlite_store is not None
             loop = asyncio.get_event_loop()
             deleted = await loop.run_in_executor(
                 None, self._sqlite_store.delete_old, self.max_checkpoints
@@ -345,6 +354,7 @@ class StateCheckpointer:
         self, checkpoint_id: Optional[str] = None
     ) -> Optional[Checkpoint]:
         """Restore from SQLite backend."""
+        assert self._sqlite_store is not None
         loop = asyncio.get_event_loop()
 
         if checkpoint_id:
@@ -419,6 +429,7 @@ class StateCheckpointer:
     async def list_checkpoints(self, limit: int = 100) -> List[Checkpoint]:
         """List recent checkpoints."""
         if self.backend == StorageBackend.SQLITE:
+            assert self._sqlite_store is not None
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(
                 None, self._sqlite_store.list_checkpoints, limit
@@ -461,6 +472,7 @@ class StateCheckpointer:
     def stats(self) -> Dict[str, Any]:
         """Get checkpointer statistics."""
         if self.backend == StorageBackend.SQLITE:
+            assert self._sqlite_store is not None
             checkpoint_count = self._sqlite_store.count()
         else:
             checkpoint_count = len(list(self.checkpoint_dir.glob("cp-*.json")))
@@ -487,6 +499,7 @@ class StateCheckpointer:
     async def vacuum(self) -> None:
         """Compact SQLite database (no-op for file backend)."""
         if self.backend == StorageBackend.SQLITE:
+            assert self._sqlite_store is not None
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self._sqlite_store.vacuum)
             logger.info("SQLite database vacuumed")

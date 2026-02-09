@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 logger = logging.getLogger("PROPAGATION")
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
@@ -337,7 +337,7 @@ class PropagationEngine:
     def __init__(
         self,
         store: PatternStore,
-        broadcast_fn: Callable[[bytes], None] = None,
+        broadcast_fn: Optional[Callable[[bytes], None]] = None,
         node_id: str = "",
         private_key: str = "",
         public_key: str = "",
@@ -364,11 +364,11 @@ class PropagationEngine:
         """
         if self._pci_gatekeeper is None:
             try:
-                from core.pci import PCIGateKeeper
+                from core.pci import PCIGateKeeper  # type: ignore[attr-defined]
 
                 # Disable policy enforcement for pattern propagation
                 # Patterns are self-validating via Ed25519 signature
-                self._pci_gatekeeper = PCIGateKeeper(policy_enforcement=False)
+                self._pci_gatekeeper = PCIGateKeeper(policy_enforcement=False)  # type: ignore[assignment]
             except ImportError:
                 logger.warning("PCI module not available, signatures disabled")
         return self._pci_gatekeeper
@@ -423,7 +423,7 @@ class PropagationEngine:
         - Capped at 1.0
         """
         try:
-            from core.pci import EnvelopeBuilder
+            from core.pci import EnvelopeBuilder  # type: ignore[attr-defined]
 
             if self._private_key and self._public_key:
                 # Calculate pattern SNR: base + scaled improvement
@@ -504,7 +504,7 @@ class PropagationEngine:
             # Use PCI gatekeeper for full verification
             gatekeeper = self._get_pci_gatekeeper()
             if gatekeeper:
-                from core.pci import PCIEnvelope
+                from core.pci import PCIEnvelope  # type: ignore[attr-defined]
 
                 # Reconstruct envelope and verify through gate chain
                 envelope = PCIEnvelope.from_dict(envelope_data)
