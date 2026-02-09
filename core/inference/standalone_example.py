@@ -10,7 +10,7 @@ from pathlib import Path
 # Add just the multimodal module
 sys.path.insert(0, str(Path(__file__).parent))
 
-from multimodal import (
+from multimodal import (  # type: ignore[import-not-found]
     ModelCapability,
     get_multimodal_router,
 )

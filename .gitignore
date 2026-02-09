@@ -93,6 +93,7 @@ checkpoints/
 .swarm/
 .claude/logs/
 .claude/state/
+.claude/settings.local.json
 
 # ── IDE & Editors ─────────────────────────────────────────────
 .vscode/
@@ -150,6 +151,19 @@ research_archive/
 
 # ── Gemini ────────────────────────────────────────────────────
 .gemini/
+
+# ── Build / Benchmark Output ──────────────────────────────────
+out/
+
+# ── One-off Noise (untracked root artifacts) ─────────────────
+mypy_full.txt
+analyze_mypy.py
+fix_mypy_batch.py
+DATA4LLM_full_extract.txt
+
+# ── Raw Agent / Session Dumps ────────────────────────────────
+docs/SAPE_AGENT_FULL_OUTPUT.jsonl
+**/memory.db
 
 # ── Misc ──────────────────────────────────────────────────────
 C:/

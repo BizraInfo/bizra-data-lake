@@ -61,10 +61,10 @@ except ImportError:
     if str(benchmark_dir) not in sys.path:
         sys.path.insert(0, str(benchmark_dir))
     
-    from clear_framework import CLEARFramework, CLEARMetrics, MetricWeight
-    from ablation_engine import AblationEngine, AblationStudy, AblationType, ComponentCategory
-    from moe_router import MoERouter, ExpertTier, RoutingDecision
-    from leaderboard import LeaderboardManager, Benchmark, SubmissionConfig, SubmissionResult
+    from clear_framework import CLEARFramework, CLEARMetrics, MetricWeight  # type: ignore[import-not-found]
+    from ablation_engine import AblationEngine, AblationStudy, AblationType, ComponentCategory  # type: ignore[import-not-found]
+    from moe_router import MoERouter, ExpertTier, RoutingDecision  # type: ignore[import-not-found]
+    from leaderboard import LeaderboardManager, Benchmark, SubmissionConfig, SubmissionResult  # type: ignore[import-not-found]
 
 logger = logging.getLogger(__name__)
 

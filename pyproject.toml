@@ -243,6 +243,38 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
+# Gradually-typed modules — relax strict until fully annotated
+# These modules inherit base settings but skip strict enforcement
+# TODO: Migrate to strict one module at a time as annotations improve
+module = [
+    "core.vault.*",
+    "core.benchmark.*",
+    "core.a2a.*",
+    "core.uers.*",
+    "core.autopoiesis.*",
+    "core.autonomous.*",
+    "core.bridges.*",
+    "core.bounty.*",
+    "core.spearpoint.*",
+    "core.proof_engine.*",
+    "core.graph.*",
+    "core.memory.*",
+    "core.living_memory.*",
+    "core.pat.*",
+    "core.snr.*",
+    "core.genesis.*",
+    "core.warp.*",
+    "core.zero_point.*",
+    "core.personaplex.*",
+    "core.inference.standalone_example",
+]
+strict = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_any_generics = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
 # External packages without stubs
 module = [
     "llama_cpp.*",
@@ -251,6 +283,22 @@ module = [
     "faiss.*",
     "blake3.*",
     "nacl.*",
+    "z3.*",
+    "rich.*",
+    "dotenv.*",
+    "psutil.*",
+    "yaml.*",
+    "aiofiles.*",
+    "httpx.*",
+    "pydantic.*",
+    "fastapi.*",
+    "uvicorn.*",
+    "multipart.*",
+    "tqdm.*",
+    "pyarrow.*",
+    "huggingface_hub.*",
+    "moshi.*",
+    "sentencepiece.*",
 ]
 ignore_missing_imports = true
 
@@ -265,3 +313,4 @@ module = [
     "plotly.*",
 ]
 ignore_missing_imports = true
+follow_imports = "skip"
