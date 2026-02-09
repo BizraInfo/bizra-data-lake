@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
@@ -133,7 +133,7 @@ class EpigeneticLayer:
     def __init__(
         self,
         storage_path: Optional[Path] = None,
-        ihsan_validator: Optional[callable] = None,
+        ihsan_validator: Optional[Callable[..., Any]] = None,
     ):
         self.storage_path = storage_path or Path("/var/lib/bizra/epigenome.json")
         self.ihsan_validator = ihsan_validator or self._default_ihsan_validator
@@ -151,7 +151,7 @@ class EpigeneticLayer:
         new_context: str,
         interpretation_type: InterpretationType = InterpretationType.RECONTEXTUALIZED,
         evidence_hash: Optional[str] = None,
-        signer: Optional[callable] = None,
+        signer: Optional[Callable[..., Any]] = None,
     ) -> Optional[Interpretation]:
         """
         Add a new interpretation to an immutable receipt.

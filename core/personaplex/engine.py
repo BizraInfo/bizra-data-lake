@@ -20,7 +20,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -41,7 +41,7 @@ class PersonaPlexConfig:
 
     # Audio settings
     sample_rate: int = 24000
-    frame_rate: int = 12.5  # Moshi default
+    frame_rate: float = 12.5  # Moshi default
 
     # Voice prompts directory
     voice_dir: Path = field(
@@ -107,11 +107,11 @@ class BIZRAPersonaPlex:
         self._initialized = False
 
         # Model components (lazy loaded)
-        self._mimi = None
-        self._other_mimi = None
-        self._lm_gen = None
-        self._tokenizer = None
-        self._voice_prompt_dir = None
+        self._mimi: Any = None
+        self._other_mimi: Any = None
+        self._lm_gen: Any = None
+        self._tokenizer: Any = None
+        self._voice_prompt_dir: Any = None
 
         # Register default guardians
         for name, guardian in BIZRA_GUARDIANS.items():

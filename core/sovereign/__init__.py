@@ -600,113 +600,113 @@ except ImportError as e:
                 f"{cls.__name__} requires numpy. Install with: pip install numpy"
             )
 
-    class SovereignEngine(metaclass=_PlaceholderMeta):
+    class SovereignEngine(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class SovereignConfig(metaclass=_PlaceholderMeta):
+    class SovereignConfig(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class SovereignResponse(metaclass=_PlaceholderMeta):
+    class SovereignResponse(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class GraphOfThoughts(metaclass=_PlaceholderMeta):
+    class GraphOfThoughts(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class ThoughtNode(metaclass=_PlaceholderMeta):
+    class ThoughtNode(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class ThoughtEdge(metaclass=_PlaceholderMeta):
+    class ThoughtEdge(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class ReasoningStrategy(metaclass=_PlaceholderMeta):
+    class ReasoningStrategy(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class SNRMaximizer(metaclass=_PlaceholderMeta):
+    class SNRMaximizer(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class SignalAmplifier(metaclass=_PlaceholderMeta):
+    class SignalAmplifier(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class NoiseFilter(metaclass=_PlaceholderMeta):
+    class NoiseFilter(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class GuardianCouncil(metaclass=_PlaceholderMeta):
+    class GuardianCouncil(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class CouncilVerdict(metaclass=_PlaceholderMeta):
+    class CouncilVerdict(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class ConsensusMode(metaclass=_PlaceholderMeta):
+    class ConsensusMode(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class SovereignOrchestrator(metaclass=_PlaceholderMeta):
+    class SovereignOrchestrator(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class TaskDecomposer(metaclass=_PlaceholderMeta):
+    class TaskDecomposer(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class AgentRouter(metaclass=_PlaceholderMeta):
+    class AgentRouter(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class IhsanProjector(metaclass=_PlaceholderMeta):
+    class IhsanProjector(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class IhsanVector(metaclass=_PlaceholderMeta):
+    class IhsanVector(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class IhsanDimension(metaclass=_PlaceholderMeta):
+    class IhsanDimension(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    class ProjectorConfig(metaclass=_PlaceholderMeta):
+    class ProjectorConfig(metaclass=_PlaceholderMeta):  # type: ignore[no-redef]
         """Placeholder - requires numpy."""
 
         pass
 
-    def project_ihsan_to_ntu(*args, **kwargs):
+    def project_ihsan_to_ntu(*args, **kwargs):  # type: ignore[misc]
         """Placeholder - requires numpy."""
         raise ImportError(
             "project_ihsan_to_ntu requires numpy. Install with: pip install numpy"
         )
 
-    def create_ihsan_from_scores(*args, **kwargs):
+    def create_ihsan_from_scores(*args, **kwargs):  # type: ignore[misc]
         """Placeholder - requires numpy."""
         raise ImportError(
             "create_ihsan_from_scores requires numpy. Install with: pip install numpy"

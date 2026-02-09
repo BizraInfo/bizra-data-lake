@@ -25,8 +25,8 @@ try:
         UNIFIED_SNR_THRESHOLD,
     )
 except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95
-    UNIFIED_SNR_THRESHOLD = 0.85
+    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
+    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
 
 from .capability_card import (
     CapabilityCard,
@@ -73,7 +73,11 @@ class SovereignRuntime:
         self.card_issuer = CardIssuer()
         self._inference_fn: Optional[Callable] = None
         self._started = False
-        self._federation_node = None
+        self._federation_node: Any = None
+
+        # Ensure paths are not None before using
+        assert self.config.model_store_path is not None, "model_store_path required"
+        assert self.config.keypair_path is not None, "keypair_path required"
 
         self.constitutional_gate = ConstitutionalGate(
             z3_certificates_path=self.config.model_store_path.parent / "proofs",

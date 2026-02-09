@@ -327,7 +327,7 @@ class OpportunityPipeline:
         self._approval_callback: Optional[Callable] = None
 
         # Metrics
-        self._metrics = {
+        self._metrics: Dict[str, Any] = {
             "total_received": 0,
             "total_filtered": 0,
             "total_approved": 0,

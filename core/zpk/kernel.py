@@ -18,7 +18,7 @@ import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Union
 from urllib.parse import urljoin, urlparse
 from urllib.request import urlopen
 
@@ -32,7 +32,7 @@ from core.pci.crypto import (
 
 logger = logging.getLogger("zpk.kernel")
 
-TPMQuoteProvider = Callable[[], Dict[str, Any] | Awaitable[Dict[str, Any]]]
+TPMQuoteProvider = Callable[[], "Union[Dict[str, Any], Awaitable[Dict[str, Any]]]"]
 
 
 @dataclass
