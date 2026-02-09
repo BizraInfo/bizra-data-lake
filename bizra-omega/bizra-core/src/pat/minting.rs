@@ -17,42 +17,56 @@ use crate::identity::{hex_encode, NodeId, NodeIdentity};
 // ERROR TYPES
 // =============================================================================
 
+/// Errors that can occur during agent minting.
 #[derive(Error, Debug)]
+#[allow(missing_docs)] // Variant fields documented by #[error("...")]
 pub enum MintingError {
+    /// The minter's Ihsan score does not meet the required threshold.
     #[error("Ihsan threshold not met: {actual:.3} < {required:.3}")]
     IhsanViolation { actual: f64, required: f64 },
 
+    /// Ed25519 signature verification failed during minting.
     #[error("Invalid signature")]
     InvalidSignature,
 
+    /// An agent with the given identifier already exists.
     #[error("Agent already exists: {0}")]
     AgentAlreadyExists(String),
 
+    /// The PAT or SAT team has reached its maximum capacity.
     #[error("Team already complete")]
     TeamComplete,
 
+    /// The requested capability is not permitted for the given role.
     #[error("Invalid capability for role: {capability:?} not allowed for {role}")]
     InvalidCapability { capability: String, role: String },
 
+    /// The minter's stake is below the required minimum.
     #[error("Insufficient stake: {actual} < {required}")]
     InsufficientStake { actual: u64, required: u64 },
 
+    /// No Standing-on-Giants attestation was provided.
     #[error("Missing giants attestation")]
     MissingGiantsAttestation,
 
+    /// Agent delegation exceeds the maximum allowed chain depth.
     #[error("Delegation depth exceeded: {depth} > {max}")]
     DelegationDepthExceeded { depth: u8, max: u8 },
 
+    /// The authority chain could not be verified end-to-end.
     #[error("Authority chain verification failed")]
     AuthorityChainInvalid,
 
+    /// SAT agents must be registered with the Resource Pool.
     #[error("Pool registration required for SAT agents")]
     PoolRegistrationRequired,
 
+    /// An opaque internal error.
     #[error("Internal error: {0}")]
     Internal(String),
 }
 
+/// Convenience alias for minting operations.
 pub type MintingResult<T> = Result<T, MintingError>;
 
 // =============================================================================

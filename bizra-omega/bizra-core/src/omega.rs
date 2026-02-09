@@ -240,29 +240,43 @@ fn sigmoid(x: f64) -> f64 {
 /// Types of Adl (Justice) violations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AdlViolationType {
+    /// Gini coefficient exceeds the configured threshold.
     GiniExceeded,
+    /// A single entity controls a disproportionate share of resources.
     ConcentrationDetected,
+    /// An attempt to establish monopoly control.
     MonopolyAttempt,
+    /// Generic fairness constraint breach.
     FairnessBreach,
+    /// Wealth must be redistributed to restore Adl.
     RedistributionRequired,
 }
 
 /// Record of an Adl violation.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AdlViolation {
+    /// Category of the violation.
     pub violation_type: AdlViolationType,
+    /// Observed Gini coefficient at the time of violation.
     pub gini_actual: f64,
+    /// Gini threshold that was exceeded.
     pub gini_threshold: f64,
+    /// Identity of the node responsible, if identifiable.
     pub violator_id: Option<String>,
+    /// Human-readable description of the violation.
     pub details: String,
+    /// Wall-clock timestamp in milliseconds since UNIX epoch.
     pub timestamp_ms: u64,
 }
 
 /// Result of Adl invariant check.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AdlInvariantResult {
+    /// Whether the distribution satisfies Adl constraints.
     pub passed: bool,
+    /// Computed Gini coefficient.
     pub gini: f64,
+    /// List of violations detected (empty when `passed` is true).
     pub violations: Vec<AdlViolation>,
 }
 
@@ -271,7 +285,9 @@ pub struct AdlInvariantResult {
 /// This is NOT just validation - it is a REJECTION gate.
 #[derive(Clone, Debug)]
 pub struct AdlInvariant {
+    /// Gini coefficient above which operations are rejected.
     pub gini_threshold: f64,
+    /// Emergency Gini threshold triggering forced redistribution.
     pub gini_emergency: f64,
     enable_preemptive_check: bool,
 }
@@ -426,26 +442,37 @@ impl AdlInvariant {
 /// Vote types in Byzantine consensus.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ByzantineVoteType {
+    /// First-phase agreement to process a proposal.
     Prepare,
+    /// Second-phase confirmation to finalise a proposal.
     Commit,
+    /// Request to change the current leader/view.
     ViewChange,
 }
 
 /// Consensus proposal state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConsensusState {
+    /// Proposal created, awaiting votes.
     Pending,
+    /// Prepare phase in progress.
     Preparing,
+    /// Quorum reached in prepare phase.
     Prepared,
+    /// Commit phase in progress.
     Committing,
+    /// Proposal fully committed.
     Committed,
+    /// Proposal rejected by consensus.
     Rejected,
+    /// View change requested.
     ViewChange,
 }
 
 /// Byzantine consensus parameters.
 #[derive(Clone, Debug)]
 pub struct ByzantineParams {
+    /// Total number of nodes in the consensus group.
     pub total_nodes: usize,
 }
 
@@ -493,10 +520,15 @@ pub enum TreasuryMode {
 /// Configuration for a treasury mode.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TreasuryModeConfig {
+    /// Active operating mode.
     pub mode: TreasuryMode,
+    /// Percentage of compute budget available (0–100).
     pub compute_budget_percent: f64,
+    /// Gini threshold for this mode.
     pub gini_threshold: f64,
+    /// Ihsan threshold for this mode.
     pub ihsan_threshold: f64,
+    /// Maximum concurrent operations permitted.
     pub max_concurrent_ops: u32,
 }
 
@@ -646,16 +678,21 @@ impl TreasuryController {
 
 /// Error types for the Constitutional Engine.
 #[derive(Error, Debug)]
+#[allow(missing_docs)] // Variant fields documented by #[error("...")]
 pub enum ConstitutionalError {
+    /// An operation's Ihsan score is below the required threshold.
     #[error("Ihsan threshold not met: {score:.3} < {threshold:.3}")]
     IhsanViolation { score: f64, threshold: f64 },
 
+    /// Resource distribution violates the Adl (justice) invariant.
     #[error("Adl invariant violated: Gini {gini:.4} > {threshold:.3}")]
     AdlViolation { gini: f64, threshold: f64 },
 
+    /// The treasury lacks sufficient funds for the requested operation.
     #[error("Treasury insufficient: {required:.2} > {available:.2}")]
     TreasuryInsufficient { required: f64, available: f64 },
 
+    /// Byzantine consensus could not be reached.
     #[error("Byzantine consensus failed: {reason}")]
     ConsensusFailed { reason: String },
 }
@@ -665,9 +702,13 @@ pub enum ConstitutionalError {
 /// Integrates all four gap solutions into a cohesive system.
 #[derive(Clone)]
 pub struct ConstitutionalEngine {
+    /// Ihsan excellence score projector.
     pub projector: IhsanProjector,
+    /// Adl (justice) Gini coefficient enforcement.
     pub adl_invariant: AdlInvariant,
+    /// Byzantine fault tolerance parameters.
     pub bft_params: ByzantineParams,
+    /// Treasury mode and budget controller.
     pub treasury: TreasuryController,
 }
 

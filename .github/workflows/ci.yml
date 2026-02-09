@@ -189,6 +189,19 @@ jobs:
       - name: Run doc tests
         run: cargo test --doc --workspace
 
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate Rust coverage
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+
+      - name: Upload Rust coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: bizra-omega/lcov.info
+          flags: rust
+          name: rust-coverage
+
   test-pyo3-bindings:
     name: Test PyO3 Bindings
     runs-on: ubuntu-latest

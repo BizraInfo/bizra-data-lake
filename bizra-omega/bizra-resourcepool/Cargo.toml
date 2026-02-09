@@ -47,9 +47,6 @@ tracing-subscriber.workspace = true
 # Decimal arithmetic for financial calculations (no floating point errors)
 rust_decimal = { version = "1.34", features = ["serde", "serde-with-str"] }
 
-# Persistent storage
-sled = "0.34"
-
 # Hex encoding
 hex = "0.4"
 

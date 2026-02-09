@@ -582,20 +582,29 @@ impl Default for ThoughtGraph {
 }
 
 /// Aggregated result from multiple reasoning paths
+/// Aggregated outcome from parallel reasoning path exploration.
 #[derive(Debug)]
 pub struct AggregateResult {
+    /// Total paths evaluated.
     pub total_paths: usize,
+    /// Paths that completed all thoughts.
     pub complete_paths: usize,
+    /// Paths that completed successfully.
     pub successful_paths: usize,
+    /// Mean confidence across all paths.
     pub average_confidence: f64,
+    /// Whether a majority of paths agree.
     pub consensus: bool,
 }
 
 /// Graph statistics
 #[derive(Debug)]
 pub struct GraphStats {
+    /// Number of thought nodes in the graph.
     pub total_thoughts: usize,
+    /// Number of registered reasoning paths.
     pub total_paths: usize,
+    /// Number of root (parentless) thoughts.
     pub root_count: usize,
 }
 

@@ -8,15 +8,21 @@ use std::time::{Duration, Instant};
 use super::RejectCode;
 use crate::constitution::Constitution;
 
+/// Outcome of a single gate verification pass.
 #[derive(Clone, Debug)]
 pub struct GateResult {
+    /// Name of the gate that produced this result.
     pub gate: String,
+    /// Whether the gate check passed.
     pub passed: bool,
+    /// Reject code (`Success` when passed).
     pub code: RejectCode,
+    /// Wall-clock time spent in this gate.
     pub duration: Duration,
 }
 
 impl GateResult {
+    /// Creates a passing `GateResult` for the named gate.
     pub fn pass(gate: &str, duration: Duration) -> Self {
         Self {
             gate: gate.into(),
@@ -25,6 +31,7 @@ impl GateResult {
             duration,
         }
     }
+    /// Creates a failing `GateResult` with the given reject code.
     pub fn fail(gate: &str, code: RejectCode, duration: Duration) -> Self {
         Self {
             gate: gate.into(),
@@ -35,14 +42,19 @@ impl GateResult {
     }
 }
 
+/// Cost tier governing a gate's maximum allowed execution time.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GateTier {
+    /// Fast gate, must complete in <10 ms.
     Cheap,     // <10ms
+    /// Moderate gate, must complete in <150 ms.
     Medium,    // <150ms
+    /// Heavyweight gate, must complete in <2000 ms.
     Expensive, // <2000ms
 }
 
 impl GateTier {
+    /// Returns the maximum wall-clock duration allowed for this tier.
     pub fn max_duration(&self) -> Duration {
         match self {
             Self::Cheap => Duration::from_millis(10),
@@ -52,22 +64,40 @@ impl GateTier {
     }
 }
 
+/// Input context supplied to every gate in the chain.
 #[derive(Clone, Debug)]
 pub struct GateContext {
+    /// Identity of the envelope sender.
     pub sender_id: String,
+    /// Unique PCI envelope identifier.
     pub envelope_id: String,
+    /// Raw payload bytes to validate.
     pub content: Vec<u8>,
+    /// Active constitution for threshold lookups.
     pub constitution: Constitution,
+    /// Pre-computed Signal-to-Noise Ratio (if available).
     pub snr_score: Option<f64>,
+    /// Pre-computed Ihsan excellence score (if available).
     pub ihsan_score: Option<f64>,
 }
 
+/// A verification gate in the PCI pipeline.
+///
+/// Implementors perform a single validation check (e.g. schema, SNR, Ihsan)
+/// and return a [`GateResult`] indicating pass or fail.
 pub trait Gate: Send + Sync {
+    /// Human-readable gate name used in [`GateResult::gate`].
     fn name(&self) -> &'static str;
+    /// Cost tier governing the gate's execution budget.
     fn tier(&self) -> GateTier;
+    /// Execute the gate check against the given context.
     fn verify(&self, ctx: &GateContext) -> GateResult;
 }
 
+/// Ordered sequence of gates executed in fail-fast order.
+///
+/// The chain short-circuits on the first failing gate, ensuring cheap
+/// checks (e.g. schema) run before expensive ones (e.g. Ihsan ML).
 pub struct GateChain {
     gates: Vec<Box<dyn Gate>>,
     /// Reserved for deduplication in future
@@ -76,6 +106,7 @@ pub struct GateChain {
 }
 
 impl GateChain {
+    /// Creates an empty gate chain.
     pub fn new() -> Self {
         Self {
             gates: Vec::new(),
@@ -83,11 +114,13 @@ impl GateChain {
         }
     }
 
+    /// Appends a gate to the end of the chain.
     pub fn add<G: Gate + 'static>(&mut self, gate: G) -> &mut Self {
         self.gates.push(Box::new(gate));
         self
     }
 
+    /// Runs all gates in order, stopping at the first failure.
     pub fn verify(&self, ctx: &GateContext) -> Vec<GateResult> {
         let mut results = Vec::new();
         for gate in &self.gates {
@@ -101,6 +134,7 @@ impl GateChain {
         results
     }
 
+    /// Returns `true` if every result in the slice is a pass.
     pub fn all_passed(results: &[GateResult]) -> bool {
         results.iter().all(|r| r.passed)
     }
@@ -112,7 +146,7 @@ impl Default for GateChain {
     }
 }
 
-// Built-in Gates
+/// Built-in gate: validates that the payload is well-formed JSON.
 pub struct SchemaGate;
 impl Gate for SchemaGate {
     fn name(&self) -> &'static str {
@@ -132,6 +166,9 @@ impl Gate for SchemaGate {
     }
 }
 
+/// Built-in gate: checks Signal-to-Noise Ratio against the constitution.
+///
+/// Fail-closed: missing SNR score results in rejection.
 pub struct SNRGate;
 impl Gate for SNRGate {
     fn name(&self) -> &'static str {
@@ -157,6 +194,9 @@ impl Gate for SNRGate {
     }
 }
 
+/// Built-in gate: checks Ihsan excellence score against the constitution.
+///
+/// Fail-closed: missing Ihsan score results in rejection.
 pub struct IhsanGate;
 impl Gate for IhsanGate {
     fn name(&self) -> &'static str {
@@ -182,6 +222,10 @@ impl Gate for IhsanGate {
     }
 }
 
+/// Returns the default gate chain: `Schema → Ihsan → SNR`.
+///
+/// Ethics before efficiency: Ihsan rejects unethical content before
+/// wasting compute on SNR analysis (fail-fast-on-ethics).
 pub fn default_gate_chain() -> GateChain {
     let mut chain = GateChain::new();
     // Ethics before efficiency: Ihsan gate rejects unethical content

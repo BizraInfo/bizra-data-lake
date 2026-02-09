@@ -12,9 +12,13 @@ use std::time::Duration;
 /// Batch gate validation results
 #[derive(Debug)]
 pub struct BatchGateResult {
+    /// Number of contexts evaluated.
     pub total: usize,
+    /// Number that passed all checks.
     pub passed: usize,
+    /// Number that failed at least one check.
     pub failed: usize,
+    /// Per-context gate results.
     pub results: Vec<GateResult>,
 }
 

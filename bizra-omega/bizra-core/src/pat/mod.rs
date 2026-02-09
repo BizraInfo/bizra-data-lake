@@ -21,8 +21,11 @@ mod attestation;
 mod minting;
 mod types;
 
+/// Agent attestation — action proofs and attestation registry.
 pub use attestation::*;
+/// Agent minting engine — PAT/SAT creation with full verification.
 pub use minting::*;
+/// Core agent types — roles, capabilities, identity blocks.
 pub use types::*;
 
 /// PAT team size — 7 personal agents (mastermind council)

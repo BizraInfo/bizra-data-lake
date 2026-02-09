@@ -9,7 +9,9 @@ use blake3::Hasher;
 /// Batch hash result
 #[derive(Debug)]
 pub struct BatchHashResult {
+    /// Hex-encoded BLAKE3 digests, one per input message.
     pub digests: Vec<String>,
+    /// Total bytes processed across all messages.
     pub total_bytes: usize,
 }
 

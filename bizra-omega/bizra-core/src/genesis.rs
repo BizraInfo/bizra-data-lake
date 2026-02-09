@@ -29,6 +29,7 @@ use crate::IHSAN_THRESHOLD;
 
 /// Errors that can occur during genesis receipt operations
 #[derive(Error, Debug, Clone)]
+#[allow(missing_docs)] // Variant fields documented by #[error("...")]
 pub enum GenesisError {
     /// Invalid chain ID format
     #[error("Invalid chain ID: {0}")]

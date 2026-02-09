@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! BIZRA Core — The Sovereign Kernel
 //!
 //! Identity, PCI Protocol, and Constitutional Governance.
@@ -19,14 +20,23 @@
 //! - 5 SAT agents (Shared Agentic Team) — Public utility in Resource Pool
 //! - Standing on Giants protocol — Mandatory attribution chain
 
+/// Constitutional governance — Ihsan thresholds, SNR rules, enforcement policies.
 pub mod constitution;
+/// Genesis primitives — BLAKE3 hashing, cryptographic manifests, execution receipts.
 pub mod genesis;
+/// Node identity — Ed25519 key management, domain-separated signing.
 pub mod identity;
+/// Islamic finance protocol — Zakat, Mudarabah, Musharakah, Waqf, Shariah compliance.
 pub mod islamic_finance;
+/// Omega governance engine — Adl invariant, Byzantine consensus, treasury, Ihsan projector.
 pub mod omega;
+/// PAT/SAT agent minting — Personal and Shared Agentic Teams with attestation.
 pub mod pat;
+/// Proof-Carrying Inference — Envelopes, gate chains, reject codes.
 pub mod pci;
+/// SIMD-accelerated operations — Parallel hashing, batch signature verification.
 pub mod simd;
+/// Sovereign reasoning — Graph-of-Thoughts, SNR engine, Giants protocol, Omega circuit.
 pub mod sovereign;
 
 pub use constitution::{Constitution, IhsanThreshold};
