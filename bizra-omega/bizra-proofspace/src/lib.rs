@@ -32,8 +32,8 @@ use thiserror::Error;
 /// Current schema version
 pub const SCHEMA_VERSION: &str = "1.0.0";
 
-/// Ihsān threshold: 0.95 excellence constraint
-pub const IHSAN_THRESHOLD: f64 = 0.95;
+/// Ihsān threshold: 0.95 excellence constraint (canonical: bizra_core)
+pub use bizra_core::IHSAN_THRESHOLD;
 
 /// Maximum Adl Gini coefficient
 pub const ADL_GINI_MAX: f64 = 0.35;

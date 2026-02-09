@@ -43,8 +43,8 @@ use uuid::Uuid;
 // CONSTANTS - Single Source of Truth
 // =============================================================================
 
-/// Ihsān threshold: 950/1000 = 0.95 excellence constraint
-pub const IHSAN_THRESHOLD: u32 = 950;
+/// Ihsān threshold scaled to 1000 (derived from bizra_core::IHSAN_THRESHOLD = 0.95)
+pub const IHSAN_THRESHOLD: u32 = (bizra_core::IHSAN_THRESHOLD * 1000.0) as u32;
 
 /// Maximum Gini coefficient for Adl (justice) enforcement
 pub const ADL_GINI_MAX: f64 = 0.35;

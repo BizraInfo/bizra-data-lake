@@ -203,7 +203,7 @@ class LMStudioBackend(LLMBackend):
             client = await self._get_client()
             resp = await client.get(f"{self.base_url}/v1/models", timeout=5.0)
             return resp.status_code == 200
-        except:
+        except Exception:
             return False
     
     @property
@@ -252,7 +252,7 @@ class OllamaBackend(LLMBackend):
             client = await self._get_client()
             resp = await client.get(f"{self.base_url}/api/tags", timeout=5.0)
             return resp.status_code == 200
-        except:
+        except Exception:
             return False
     
     @property
@@ -311,7 +311,7 @@ class InferenceGateway:
                     self._active = backend
                     logger.info(f"Selected backend: {backend.name}")
                     return backend
-            except:
+            except Exception:
                 pass
         self._active = self.backends[-1]
         return self._active

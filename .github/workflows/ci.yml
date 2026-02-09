@@ -391,21 +391,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Python Security Scan (Bandit)
-        continue-on-error: true  # Pre-existing findings — tracked for remediation
         run: |
-          pip install bandit safety
-          bandit -r core/ -f json -o bandit-report.json
-          # SECURITY: Report high/medium severity issues
-          bandit -r core/ -ll --exit-zero-if-skipped
+          pip install bandit
+          # Generate full report (informational — low/medium tracked separately)
+          bandit -r core/ -f json -o bandit-report.json --exit-zero
+          # GATE: Fail CI on HIGH severity + HIGH confidence findings
+          bandit -r core/ -ll --confidence-level high
 
-      - name: Python Dependency Scan (Safety)
-        continue-on-error: true  # Pre-existing dependency advisories
+      - name: Python Dependency Scan (pip-audit)
         run: |
           pip install -e ".[dev]"
-          safety check --full-report
+          pip-audit --strict --desc --ignore-vuln PYSEC-2024-48
 
       - name: Rust Security Audit
-        continue-on-error: true  # Pre-existing advisories
         working-directory: bizra-omega
         run: |
           cargo install cargo-audit

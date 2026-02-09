@@ -57,7 +57,8 @@ pub use pat_inference::*;
 // CONSTANTS - Single Source of Truth (locked)
 // =============================================================================
 
-/// Ihsan threshold: 0.95 excellence constraint
+/// Ihsan threshold: 0.95 excellence constraint (Decimal precision for Islamic finance)
+/// Canonical source: bizra_core::IHSAN_THRESHOLD (f64 = 0.95)
 pub const IHSAN_THRESHOLD: Decimal = Decimal::from_parts(95, 0, 0, false, 2); // 0.95
 
 /// Zakat threshold: 2.5% of wealth above nisab

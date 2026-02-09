@@ -49,6 +49,9 @@ chrono = "0.4"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
+# Synchronization (non-poisoning RwLock — eliminates panic cascades)
+parking_lot = "0.12"
+
 # Error handling
 thiserror = "1.0"
 anyhow = "1.0"

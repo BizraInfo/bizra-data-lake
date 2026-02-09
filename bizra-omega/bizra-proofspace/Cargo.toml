@@ -9,6 +9,9 @@ keywords = ["proof", "validation", "smt", "z3", "sovereignty"]
 categories = ["cryptography", "science"]
 
 [dependencies]
+# BIZRA core — canonical constants (IHSAN_THRESHOLD, etc.)
+bizra-core = { path = "../bizra-core" }
+
 # Cryptography - workspace inherited
 blake3.workspace = true
 ed25519-dalek = { workspace = true, features = ["serde", "rand_core"] }

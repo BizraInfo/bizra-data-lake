@@ -9,6 +9,9 @@ keywords = ["agents", "mobile-code", "telescript", "sovereignty", "ihsan"]
 categories = ["network-programming", "cryptography"]
 
 [dependencies]
+# BIZRA core — canonical constants (IHSAN_THRESHOLD, etc.)
+bizra-core = { path = "../bizra-core" }
+
 # Cryptography - workspace inherited
 blake3.workspace = true
 ed25519-dalek.workspace = true

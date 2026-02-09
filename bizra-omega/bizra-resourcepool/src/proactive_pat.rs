@@ -35,8 +35,8 @@ pub const MAX_PROACTIVE_ACTIONS_PER_HOUR: u32 = 10;
 /// User preference learning rate
 pub const LEARNING_RATE: f64 = 0.1;
 
-/// Ihsān threshold for proactive suggestions
-pub const PROACTIVE_IHSAN_THRESHOLD: f64 = 0.95;
+/// Ihsān threshold for proactive suggestions (canonical: bizra_core::IHSAN_THRESHOLD)
+pub const PROACTIVE_IHSAN_THRESHOLD: f64 = bizra_core::IHSAN_THRESHOLD;
 
 // =============================================================================
 // USER PROFILE - Personalization Core
