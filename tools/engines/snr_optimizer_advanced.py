@@ -12,8 +12,9 @@ import logging
 from pathlib import Path
 import json
 
-# Configuration
-IHSAN_THRESHOLD = 0.99
+# Configuration — canonical source: core.integration.constants
+# NOTE: Uses STRICT threshold (0.99) intentionally for optimizer convergence
+from core.integration.constants import STRICT_IHSAN_THRESHOLD as IHSAN_THRESHOLD  # type: ignore[import-untyped]
 ACCEPTABLE_THRESHOLD = 0.95
 MAX_OPTIMIZATION_ROUNDS = 5
 

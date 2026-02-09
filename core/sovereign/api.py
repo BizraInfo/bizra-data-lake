@@ -41,6 +41,15 @@ from typing import Any, Dict, List, Optional, Set
 logger = logging.getLogger("sovereign.api")
 
 # =============================================================================
+# SECURITY LIMITS
+# =============================================================================
+MAX_BODY_SIZE: int = 1_048_576  # 1 MiB — reject payloads above this
+MAX_QUERY_LENGTH: int = 10_000  # characters
+MAX_CONTEXT_KEYS: int = 50
+MAX_DEPTH_LIMIT: int = 10
+MAX_TIMEOUT_MS: int = 120_000  # 2 minutes
+
+# =============================================================================
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
@@ -269,9 +278,17 @@ class SovereignAPIServer:
                     key, value = line.decode().strip().split(":", 1)
                     headers[key.lower().strip()] = value.strip()
 
-            # Read body if present
+            # Read body if present — enforce MAX_BODY_SIZE to prevent OOM
             body = b""
             content_length = int(headers.get("content-length", 0))
+            if content_length > MAX_BODY_SIZE:
+                writer.write(
+                    self._json_response(
+                        {"error": f"Payload too large (max {MAX_BODY_SIZE} bytes)"}, 413
+                    ).encode()
+                )
+                await writer.drain()
+                return
             if content_length > 0:
                 body = await reader.read(content_length)
 
@@ -372,13 +389,33 @@ class SovereignAPIServer:
         return self._text_response("\n".join(lines), content_type="text/plain")
 
     async def _handle_query(self, body: bytes) -> str:
-        """Handle query request."""
+        """Handle query request with input validation."""
         try:
             data = json.loads(body.decode()) if body else {}
+            if not isinstance(data, dict):
+                return self._json_response({"error": "Request body must be a JSON object"}, 400)
+
             request = QueryRequest.from_dict(data)
 
+            # ── Input validation ───────────────────────────────────────────
             if not request.query:
                 return self._json_response({"error": "Query required"}, 400)
+            if len(request.query) > MAX_QUERY_LENGTH:
+                return self._json_response(
+                    {"error": f"Query too long (max {MAX_QUERY_LENGTH} chars)"}, 400
+                )
+            if len(request.context) > MAX_CONTEXT_KEYS:
+                return self._json_response(
+                    {"error": f"Too many context keys (max {MAX_CONTEXT_KEYS})"}, 400
+                )
+            if not (1 <= request.max_depth <= MAX_DEPTH_LIMIT):
+                return self._json_response(
+                    {"error": f"max_depth must be 1-{MAX_DEPTH_LIMIT}"}, 400
+                )
+            if not (1000 <= request.timeout_ms <= MAX_TIMEOUT_MS):
+                return self._json_response(
+                    {"error": f"timeout_ms must be 1000-{MAX_TIMEOUT_MS}"}, 400
+                )
 
             result = await self.runtime.query(
                 request.query,

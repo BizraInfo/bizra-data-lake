@@ -516,7 +516,7 @@ class PATOrchestrator:
         self.profile = user_profile
         self.agents: Dict[str, BaseAgent] = {}
         self.reasoning_mode = "graph-of-thoughts"
-        self.snr_threshold = 0.99
+        self.snr_threshold = 0.85  # canonical: core.integration.constants.SNR_THRESHOLD
 
         # Assemble the team
         self._assemble_team()

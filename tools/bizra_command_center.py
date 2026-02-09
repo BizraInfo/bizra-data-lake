@@ -24,7 +24,7 @@ sys.path.insert(0, str(BIZRA_ROOT))
 try:
     from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT, BATCH_SIZE
 except ImportError:
-    SNR_THRESHOLD = 0.95
+    SNR_THRESHOLD = 0.85  # canonical: core.integration.constants
     IHSAN_CONSTRAINT = 0.99
     BATCH_SIZE = 128
 
