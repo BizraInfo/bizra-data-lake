@@ -38,7 +38,7 @@ def _table_counts(conn: sqlite3.Connection, tables: Iterable[str]) -> Dict[str, 
     counts: Dict[str, int] = {}
     for table in tables:
         try:
-            row = conn.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()
+            row = conn.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()  # nosec B608 — table names from sqlite_master
             counts[table] = int(row["count"]) if row else 0
         except sqlite3.Error:
             counts[table] = -1
@@ -107,7 +107,7 @@ def _memory_entries_query(
         "SELECT id, key, namespace, type, content, tags, metadata, owner_id, "
         "created_at, updated_at, expires_at, last_accessed_at, access_count, status "
         "FROM memory_entries "
-        f"{where} "
+        f"{where} "  # nosec B608 — where clause uses ? params
         "ORDER BY updated_at DESC "
         "LIMIT ?"
     )
@@ -127,7 +127,7 @@ def _memory_entries_iter(
         "SELECT id, key, namespace, type, content, tags, metadata, owner_id, "
         "created_at, updated_at, expires_at, last_accessed_at, access_count, status "
         "FROM memory_entries "
-        f"{where} "
+        f"{where} "  # nosec B608 — where clause uses ? params
         "ORDER BY updated_at DESC"
     )
     for row in conn.execute(sql, params):
@@ -179,7 +179,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         if "memory_entries" in tables:
             for field, key in (("namespace", "by_namespace"), ("type", "by_type"), ("status", "by_status")):
                 rows = conn.execute(
-                    f"SELECT {field} AS label, COUNT(*) AS count FROM memory_entries GROUP BY {field} ORDER BY count DESC"
+                    f"SELECT {field} AS label, COUNT(*) AS count FROM memory_entries GROUP BY {field} ORDER BY count DESC"  # nosec B608 — field is internal literal
                 ).fetchall()
                 data.setdefault("memory_entries", {})[key] = {r["label"]: int(r["count"]) for r in rows}
 

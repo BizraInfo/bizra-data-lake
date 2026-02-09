@@ -153,7 +153,7 @@ class XTREncoder:
         dense_path = hf_hub_download(repo_id=model_name, filename="2_Dense/pytorch_model.bin")
         
         self.linear = torch.nn.Linear(768, 128, bias=False).to(self.device)
-        self.linear.load_state_dict(torch.load(dense_path, map_location=self.device))
+        self.linear.load_state_dict(torch.load(dense_path, map_location=self.device, weights_only=True))
         
         self.encoder.eval()
         self.linear.eval()

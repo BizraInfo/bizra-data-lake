@@ -130,9 +130,9 @@ class AgentGenome:
             self._initialize_default_genes()
 
     def _generate_id(self) -> str:
-        """Generate unique genome ID."""
-        content = f"{datetime.now().isoformat()}{random.random()}"
-        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
+        """Generate unique genome ID (CSPRNG)."""
+        import secrets
+        return secrets.token_hex(6)  # 12 hex chars, unpredictable
 
     def _initialize_default_genes(self):
         """Initialize with default gene set."""

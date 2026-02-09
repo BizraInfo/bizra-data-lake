@@ -62,7 +62,7 @@ STATE_PERSIST_INTERVAL_SECONDS = 300
 
 # Auth settings (fail-closed)
 AUTH_MODE = os.getenv("BIZRA_AUTH_MODE", "FAIL_CLOSED")
-AUTH_TOKEN_ENV = "BIZRA_API_TOKEN"
+AUTH_TOKEN_ENV = "BIZRA_API_TOKEN"  # nosec B105 — env var name, not a password value
 AUTH_REQUIRED_ENDPOINTS = ["inference", "audio", "state", "config"]
 
 

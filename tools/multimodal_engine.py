@@ -160,7 +160,7 @@ class ImageProcessor:
                     data = json.load(f)
                     if data.get('source_path') == image_path:
                         return np.array(data['embedding'])
-            except:
+            except Exception:
                 pass
         return None
 
@@ -174,7 +174,7 @@ class ImageProcessor:
                     'embedding': embedding.tolist(),
                     'cached_at': datetime.now().isoformat()
                 }, f)
-        except:
+        except Exception:
             pass
 
     def extract_embedding(self, image_path: str, use_cache: bool = True) -> Optional[np.ndarray]:
@@ -290,7 +290,7 @@ class ImageProcessor:
                 with Image.open(image_path) as img:
                     info['width'], info['height'] = img.size
                     info['format'] = img.format or ''
-        except:
+        except Exception:
             pass
 
         return info
@@ -517,7 +517,7 @@ class AudioProcessor:
                     data = json.load(f)
                     if data.get('source_path') == audio_path:
                         return data
-            except:
+            except Exception:
                 pass
         return None
 
@@ -527,7 +527,7 @@ class AudioProcessor:
         try:
             with open(cache_path, 'w') as f:
                 json.dump(transcript_data, f, indent=2)
-        except:
+        except Exception:
             pass
 
     def transcribe(self, audio_path: str, use_cache: bool = True) -> Optional[Dict]:
@@ -594,7 +594,7 @@ class AudioProcessor:
                 capture_output=True, text=True
             )
             return float(result.stdout.strip())
-        except:
+        except Exception:
             return 0.0
 
     def process_audio(self, audio_path: str) -> AudioContent:

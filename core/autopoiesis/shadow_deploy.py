@@ -116,10 +116,8 @@ class ShadowHypothesis:
 
     def __post_init__(self):
         if not self.id:
-            self.id = hashlib.md5(
-                f"{self.name}{datetime.now().isoformat()}{random.random()}".encode(),
-                usedforsecurity=False,
-            ).hexdigest()[:12]
+            import secrets
+            self.id = secrets.token_hex(6)  # 12 hex chars, CSPRNG
 
     def to_dict(self) -> Dict[str, Any]:
         return {

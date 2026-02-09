@@ -32,7 +32,7 @@ Updated: 2026-02-05 | Added Bicameral Mind local-first config
 Updated: 2026-02-05 | Added response_utils for DeepSeek R1 think token stripping
 """
 
-from .backends import LlamaCppBackend, OllamaBackend
+from ._backends import LlamaCppBackend, OllamaBackend
 from .gateway import ComputeTier, InferenceConfig, InferenceGateway, InferenceResult
 from .local_first import (
     BackendStatus,

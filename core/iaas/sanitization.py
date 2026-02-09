@@ -35,8 +35,8 @@ class PIIType(Enum):
     PASSPORT = "passport"
     DRIVER_LICENSE = "driver_license"
     BANK_ACCOUNT = "bank_account"
-    API_KEY = "api_key"
-    PASSWORD = "password"
+    API_KEY = "api_key"  # nosec B105 — PII category enum, not an actual key
+    PASSWORD = "password"  # nosec B105 — PII category enum, not an actual password
 
 
 class ToxicityType(Enum):
