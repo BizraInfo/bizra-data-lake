@@ -56,11 +56,17 @@ pub struct SnrGate {
     pub threshold: f64,
 }
 
-impl SnrGate {
-    pub fn new() -> Self {
+impl Default for SnrGate {
+    fn default() -> Self {
         Self {
             threshold: SNR_THRESHOLD,
         }
+    }
+}
+
+impl SnrGate {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn with_threshold(threshold: f64) -> Self {
@@ -106,11 +112,17 @@ pub struct IhsanGate {
     pub threshold: f64,
 }
 
-impl IhsanGate {
-    pub fn new() -> Self {
+impl Default for IhsanGate {
+    fn default() -> Self {
         Self {
             threshold: IHSAN_THRESHOLD,
         }
+    }
+}
+
+impl IhsanGate {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn with_threshold(threshold: f64) -> Self {
@@ -186,8 +198,8 @@ pub struct GateChain {
     gates: Vec<Box<dyn Gate + Send + Sync>>,
 }
 
-impl GateChain {
-    pub fn new() -> Self {
+impl Default for GateChain {
+    fn default() -> Self {
         Self {
             gates: vec![
                 Box::new(SchemaGate),
@@ -196,6 +208,12 @@ impl GateChain {
                 Box::new(LicenseGate),
             ],
         }
+    }
+}
+
+impl GateChain {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create a minimal chain (SCHEMA + SNR + IHSAN only, no LICENSE)

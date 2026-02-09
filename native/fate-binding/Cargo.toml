@@ -17,8 +17,8 @@ napi-derive = "2.14"
 # Z3 SMT solver for formal verification
 z3 = "0.12"
 
-# Post-quantum cryptography (Dilithium-5)
-pqcrypto-dilithium = "0.5"
+# Post-quantum cryptography (ML-DSA-87, NIST standardized successor to Dilithium-5)
+pqcrypto-mldsa = "0.1"
 pqcrypto-traits = "0.3"
 
 # Ed25519 for CapabilityCard signatures
@@ -40,13 +40,11 @@ anyhow = "1.0"
 sha2 = "0.10"
 blake3 = "1.5"
 
+# Hex encoding/decoding
+hex = "0.4"
+
 # Timestamp handling
 chrono = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]
 napi-build = "2.1"
-
-[profile.release]
-lto = true
-opt-level = 3
-codegen-units = 1

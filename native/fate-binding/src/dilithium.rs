@@ -1,13 +1,13 @@
-//! Dilithium-5 Post-Quantum Signatures for BIZRA
+//! ML-DSA-87 Post-Quantum Signatures for BIZRA
 //!
 //! Provides post-quantum cryptographic signatures for CapabilityCards
-//! and other sovereignty-critical operations. Dilithium is NIST's
-//! selected post-quantum signature algorithm.
+//! and other sovereignty-critical operations. ML-DSA-87 is NIST's
+//! standardized post-quantum signature algorithm (successor to Dilithium-5).
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use pqcrypto_dilithium::dilithium5;
-use pqcrypto_traits::sign::{PublicKey, SecretKey, SignedMessage, DetachedSignature};
+use pqcrypto_mldsa::mldsa87;
+use pqcrypto_traits::sign::{PublicKey, SecretKey, DetachedSignature};
 use serde::{Deserialize, Serialize};
 
 /// Dilithium-5 keypair for post-quantum signatures
@@ -20,10 +20,10 @@ pub struct DilithiumKeypair {
 
 #[napi]
 impl DilithiumKeypair {
-    /// Generate a new Dilithium-5 keypair
+    /// Generate a new ML-DSA-87 keypair
     #[napi(factory)]
     pub fn generate() -> Result<Self> {
-        let (pk, sk) = dilithium5::keypair();
+        let (pk, sk) = mldsa87::keypair();
 
         Ok(Self {
             public_key: pk.as_bytes().to_vec(),
@@ -43,13 +43,13 @@ impl DilithiumKeypair {
         hex::encode(&self.public_key)
     }
 
-    /// Sign a message using Dilithium-5
+    /// Sign a message using ML-DSA-87
     #[napi]
     pub fn sign(&self, message: &[u8]) -> Result<Vec<u8>> {
-        let sk = dilithium5::SecretKey::from_bytes(&self.secret_key)
+        let sk = mldsa87::SecretKey::from_bytes(&self.secret_key)
             .map_err(|_| Error::from_reason("Invalid secret key"))?;
 
-        let signature = dilithium5::detached_sign(message, &sk);
+        let signature = mldsa87::detached_sign(message, &sk);
 
         Ok(signature.as_bytes().to_vec())
     }
@@ -57,20 +57,20 @@ impl DilithiumKeypair {
     /// Verify a signature
     #[napi]
     pub fn verify(&self, message: &[u8], signature: &[u8]) -> Result<bool> {
-        let pk = dilithium5::PublicKey::from_bytes(&self.public_key)
+        let pk = mldsa87::PublicKey::from_bytes(&self.public_key)
             .map_err(|_| Error::from_reason("Invalid public key"))?;
 
-        let sig = dilithium5::DetachedSignature::from_bytes(signature)
+        let sig = mldsa87::DetachedSignature::from_bytes(signature)
             .map_err(|_| Error::from_reason("Invalid signature format"))?;
 
-        Ok(dilithium5::verify_detached_signature(&sig, message, &pk).is_ok())
+        Ok(mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
     }
 
     /// Export keypair to JSON
     #[napi]
     pub fn to_json(&self) -> Result<String> {
         let keypair_data = KeypairData {
-            algorithm: "Dilithium-5".to_string(),
+            algorithm: "ML-DSA-87".to_string(),
             public_key: hex::encode(&self.public_key),
             secret_key: hex::encode(&self.secret_key),
         };
@@ -85,8 +85,8 @@ impl DilithiumKeypair {
         let data: KeypairData = serde_json::from_str(&json)
             .map_err(|e| Error::from_reason(format!("Parse error: {}", e)))?;
 
-        if data.algorithm != "Dilithium-5" {
-            return Err(Error::from_reason("Algorithm mismatch: expected Dilithium-5"));
+        if data.algorithm != "ML-DSA-87" && data.algorithm != "Dilithium-5" {
+            return Err(Error::from_reason("Algorithm mismatch: expected ML-DSA-87 or Dilithium-5"));
         }
 
         Ok(Self {
@@ -112,13 +112,13 @@ pub fn verify_dilithium_signature(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool> {
-    let pk = dilithium5::PublicKey::from_bytes(public_key)
+    let pk = mldsa87::PublicKey::from_bytes(public_key)
         .map_err(|_| Error::from_reason("Invalid public key"))?;
 
-    let sig = dilithium5::DetachedSignature::from_bytes(signature)
+    let sig = mldsa87::DetachedSignature::from_bytes(signature)
         .map_err(|_| Error::from_reason("Invalid signature format"))?;
 
-    Ok(dilithium5::verify_detached_signature(&sig, message, &pk).is_ok())
+    Ok(mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
 }
 
 /// Signed message container
@@ -141,7 +141,7 @@ impl SignedData {
             message: message.to_string(),
             signature: hex::encode(&signature),
             public_key: keypair.public_key_hex(),
-            algorithm: "Dilithium-5".to_string(),
+            algorithm: "ML-DSA-87".to_string(),
             timestamp: chrono::Utc::now().to_rfc3339(),
         })
     }

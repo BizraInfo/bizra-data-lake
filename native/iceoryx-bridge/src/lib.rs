@@ -56,6 +56,7 @@ impl Default for BridgeConfig {
 /// The main IPC bridge
 #[napi]
 pub struct IceoryxBridge {
+    #[allow(dead_code)] // Scaffolding: config read when bridge ops are extended
     config: BridgeConfig,
     router: Arc<RwLock<IpcRouter>>,
     started: bool,
@@ -82,8 +83,11 @@ impl IceoryxBridge {
     }
 
     /// Start the IPC bridge
+    ///
+    /// # Safety
+    /// Requires exclusive access via `&mut self` in async NAPI context.
     #[napi]
-    pub async fn start(&mut self) -> Result<()> {
+    pub async unsafe fn start(&mut self) -> Result<()> {
         let mut router = self.router.write().await;
         router.start().await?;
         self.started = true;
@@ -91,8 +95,11 @@ impl IceoryxBridge {
     }
 
     /// Stop the IPC bridge
+    ///
+    /// # Safety
+    /// Requires exclusive access via `&mut self` in async NAPI context.
     #[napi]
-    pub async fn stop(&mut self) -> Result<()> {
+    pub async unsafe fn stop(&mut self) -> Result<()> {
         let mut router = self.router.write().await;
         router.stop().await?;
         self.started = false;
