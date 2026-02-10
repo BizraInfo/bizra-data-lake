@@ -1,0 +1,22 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.1 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: C:\BIZRA-DATA-LAKE
+configfile: pyproject.toml
+plugins: Faker-38.2.0, asyncio-1.2.0, benchmark-5.2.1, cov-7.0.0, timeout-2.4.0, anyio-4.11.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 10.0s
+timeout method: thread
+timeout func_only: False
+collected 168 items
+
+tests\core\a2a\test_a2a_engine.py .............                          [  7%]
+tests\core\vault\test_sovereign_vault.py ....................            [ 19%]
+tests\core\zpk\test_zero_point_kernel.py ......                          [ 23%]
+tests\core\sovereign\test_capability_card.py .....................       [ 35%]
+tests\core\sovereign\test_tamper_evident_log.py ........................ [ 50%]
+..............................                                           [ 67%]
+tests\core\sovereign\test_snr_maximizer.py ............................. [ 85%]
+.........................                                                [100%]
+
+============================= 168 passed in 5.85s =============================
