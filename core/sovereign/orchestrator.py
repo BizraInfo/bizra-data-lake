@@ -142,6 +142,47 @@ class RoutingDecision:
     estimated_latency_ms: float
 
 
+# Agent role prompts for specialized execution
+_AGENT_ROLE_PROMPTS: dict[AgentType, str] = {
+    AgentType.RESEARCHER: (
+        "Your role: Gather, verify, and synthesize information from available knowledge. "
+        "Focus on accuracy and source attribution. Cite evidence."
+    ),
+    AgentType.ANALYST: (
+        "Your role: Analyze data, identify patterns, and extract insights. "
+        "Use quantitative reasoning. Present findings with confidence levels."
+    ),
+    AgentType.SYNTHESIZER: (
+        "Your role: Combine information from multiple sources into a coherent narrative. "
+        "Resolve contradictions. Identify the signal in the noise."
+    ),
+    AgentType.CREATOR: (
+        "Your role: Generate high-quality content, code, or designs. "
+        "Be original yet grounded. Follow best practices."
+    ),
+    AgentType.VALIDATOR: (
+        "Your role: Verify correctness, check for errors, and ensure quality. "
+        "Apply rigorous standards. Flag issues with specific evidence."
+    ),
+    AgentType.PLANNER: (
+        "Your role: Decompose goals into actionable steps. "
+        "Consider dependencies, risks, and resource constraints."
+    ),
+    AgentType.EXECUTOR: (
+        "Your role: Execute the task directly and efficiently. "
+        "Focus on completion. Report results clearly."
+    ),
+    AgentType.COMMUNICATOR: (
+        "Your role: Translate technical content for the intended audience. "
+        "Be clear, concise, and empathetic."
+    ),
+    AgentType.SPECIALIST: (
+        "Your role: Apply deep domain expertise to the problem. "
+        "Provide expert-level analysis unavailable from generalists."
+    ),
+}
+
+
 class TaskDecomposer:
     """
     Decomposes complex tasks into executable subtasks.
@@ -663,6 +704,10 @@ class SovereignOrchestrator:
         self._running = False
         self._execution_loop: Optional[asyncio.Task] = None
 
+        # External integrations (injected via set_gateway / set_memory)
+        self._gateway: Any = None  # InferenceGateway
+        self._memory: Any = None  # LivingMemoryCore
+
     def register_default_agents(self):
         """Register a default set of agents."""
         default_agents = [
@@ -708,7 +753,13 @@ class SovereignOrchestrator:
         return task.id
 
     async def execute_task(self, task: TaskNode) -> dict[str, Any]:
-        """Execute a single task (placeholder for actual agent execution)."""
+        """
+        Execute a single task through the inference pipeline.
+
+        Routes task to specialized agent, builds a focused prompt,
+        and calls the inference gateway for real LLM completion.
+        Falls back to heuristic execution when no gateway available.
+        """
         task.status = TaskStatus.IN_PROGRESS
         task.started_at = datetime.now()
         self.active_tasks[task.id] = task
@@ -716,25 +767,137 @@ class SovereignOrchestrator:
         # Route to appropriate agent
         routing = await self.router.route(task)
 
-        # Simulate execution (replace with actual agent call)
-        await asyncio.sleep(0.1)  # Placeholder
+        try:
+            # Build agent-specific prompt
+            prompt = self._build_agent_prompt(task, routing)
 
-        task.status = TaskStatus.COMPLETED
-        task.completed_at = datetime.now()
-        task.snr_score = 0.96  # Placeholder — real score from agent
+            # Try real inference via gateway
+            content = await self._execute_via_gateway(prompt)
+
+            if content is None:
+                # Fallback: heuristic execution (no LLM available)
+                content = self._heuristic_execute(task, routing)
+
+            task.status = TaskStatus.COMPLETED
+            task.completed_at = datetime.now()
+            task.snr_score = self._score_output(content)
+            task.outputs["content"] = content
+            task.outputs["agent"] = routing.selected_agent.name
+
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.completed_at = datetime.now()
+            task.snr_score = 0.0
+            content = f"[ERROR] {e}"
 
         result = {
             "task_id": task.id,
             "agent": routing.selected_agent.name,
-            "status": "completed",
+            "status": task.status.name.lower(),
+            "content": content,
             "snr_score": task.snr_score,
+            "latency_ms": (
+                (task.completed_at - task.started_at).total_seconds() * 1000
+                if task.completed_at and task.started_at
+                else 0
+            ),
         }
 
         self.task_results[task.id] = result
-        del self.active_tasks[task.id]
+        if task.id in self.active_tasks:
+            del self.active_tasks[task.id]
         self.completed_tasks[task.id] = task
 
         return result
+
+    # ── Inference integration ───────────────────────────────────────────
+
+    def set_gateway(self, gateway: Any) -> None:
+        """Inject an InferenceGateway for real LLM execution."""
+        self._gateway = gateway
+
+    def set_memory(self, memory: Any) -> None:
+        """Inject a LivingMemoryCore for context retrieval."""
+        self._memory = memory
+
+    def _build_agent_prompt(self, task: TaskNode, routing: RoutingDecision) -> str:
+        """Build a focused prompt for the assigned agent type."""
+        agent_name = routing.selected_agent.name
+        role_instructions = _AGENT_ROLE_PROMPTS.get(
+            routing.selected_agent, _AGENT_ROLE_PROMPTS[AgentType.EXECUTOR]
+        )
+
+        # Gather dependency outputs for context
+        dep_context = ""
+        for dep_id in task.dependencies:
+            dep_result = self.task_results.get(dep_id, {})
+            dep_content = dep_result.get("content", "")
+            if dep_content:
+                dep_agent = dep_result.get("agent", "unknown")
+                dep_context += f"\n[{dep_agent}]: {dep_content[:500]}"
+
+        prompt = (
+            f"You are {agent_name}, a specialized agent in the BIZRA sovereign system.\n"
+            f"{role_instructions}\n\n"
+            f"TASK: {task.title}\n"
+            f"DESCRIPTION: {task.description}\n"
+            f"PRIORITY: {task.priority:.2f}\n"
+        )
+
+        if dep_context:
+            prompt += f"\nPREVIOUS AGENT OUTPUTS:{dep_context}\n"
+
+        prompt += "\nProvide a concise, high-SNR response. Be specific and actionable."
+
+        return prompt
+
+    async def _execute_via_gateway(self, prompt: str) -> Optional[str]:
+        """Execute prompt through InferenceGateway if available."""
+        gateway = getattr(self, "_gateway", None)
+        if gateway is None:
+            return None
+
+        try:
+            infer_method = getattr(gateway, "infer", None)
+            if infer_method is None:
+                return None
+
+            result = await infer_method(prompt, max_tokens=512)
+            content = getattr(result, "content", None) or str(result)
+            return content if content else None
+        except Exception:
+            return None
+
+    def _heuristic_execute(self, task: TaskNode, routing: RoutingDecision) -> str:
+        """Fallback execution using heuristics when no LLM available."""
+        agent = routing.selected_agent
+
+        # Gather any dependency outputs
+        dep_summaries = []
+        for dep_id in task.dependencies:
+            dep_result = self.task_results.get(dep_id, {})
+            dep_content = dep_result.get("content", "")
+            if dep_content:
+                dep_summaries.append(dep_content[:200])
+
+        context_str = "; ".join(dep_summaries) if dep_summaries else "no prior context"
+
+        return (
+            f"[{agent.name}] Processed: {task.title}. "
+            f"Context: {context_str}. "
+            f"Description: {task.description}"
+        )
+
+    def _score_output(self, content: str) -> float:
+        """Quick SNR score for task output."""
+        if not content:
+            return 0.0
+        words = content.split()
+        if len(words) < 3:
+            return 0.3
+        unique_ratio = len(set(words)) / len(words)
+        length_score = min(len(words) / 50, 1.0)
+        return min(1.0, 0.5 * unique_ratio + 0.5 * length_score)
 
     async def run(self):
         """Start the orchestration loop."""

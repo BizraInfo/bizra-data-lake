@@ -505,6 +505,7 @@ def create_fastapi_app(runtime: Any) -> Any:
         from fastapi import FastAPI, Header, HTTPException, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse, PlainTextResponse
+        from fastapi.staticfiles import StaticFiles
         from pydantic import BaseModel
     except ImportError:
         raise ImportError("FastAPI not installed. Run: pip install fastapi uvicorn")
@@ -579,6 +580,19 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "total_ms": result.total_time_ms,
             },
         }
+
+    # Static file serving for Node0 Console
+    import pathlib
+
+    static_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "static"
+    if static_dir.is_dir():
+        from fastapi.responses import FileResponse
+
+        @app.get("/")
+        async def root():
+            return FileResponse(static_dir / "console.html")
+
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     return app
 

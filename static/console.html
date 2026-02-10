@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA Node0 — Sovereign Console</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --text: #e0e0e8;
+    --muted: #6a6a8a;
+    --accent: #c8a040;
+    --accent2: #40a0c8;
+    --success: #40c880;
+    --error: #c84040;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .status-bar {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+    animation: pulse 2s ease infinite;
+  }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.err { background: var(--error); animation: none; }
+  .status-dot.warn { background: var(--accent); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Main layout */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Chat panel */
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+  }
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .msg {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: #1a2a3a;
+    border: 1px solid #2a3a5a;
+    color: var(--accent2);
+  }
+  .msg.system {
+    align-self: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .msg.error {
+    border-color: var(--error);
+    color: var(--error);
+  }
+  .msg-meta {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  /* Input area */
+  .input-area {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .input-area textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.4;
+    outline: none;
+    min-height: 44px;
+    max-height: 120px;
+  }
+  .input-area textarea:focus { border-color: var(--accent); }
+  .input-area button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+  }
+  .input-area button:hover { opacity: 0.85; }
+  .input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Sidebar */
+  .sidebar {
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--surface);
+    font-size: 13px;
+  }
+  .sidebar h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .metric {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-label { color: var(--muted); }
+  .metric-value { font-family: var(--mono); color: var(--accent2); }
+  .metric-value.good { color: var(--success); }
+  .metric-value.bad { color: var(--error); }
+
+  .section { margin-bottom: 24px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  .typing { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BIZRA <span>Node0 Console</span></div>
+  <div class="status-bar">
+    <div><span class="status-dot" id="dot-api"></span><span id="lbl-api">API</span></div>
+    <div><span class="status-dot" id="dot-gw"></span><span id="lbl-gw">Gateway</span></div>
+    <div><span class="status-dot" id="dot-mem"></span><span id="lbl-mem">Memory</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="chat-panel">
+    <div class="messages" id="messages">
+      <div class="msg system">
+        بسم الله الرحمن الرحيم
+
+BIZRA Node0 Sovereign Console — Ready.
+Type a query to interact with the sovereign engine.
+
+Every human is a node. Every node is a seed. بذرة
+        <div class="msg-meta">system | boot</div>
+      </div>
+    </div>
+    <div class="input-area">
+      <textarea id="input" rows="1" placeholder="Ask the sovereign engine..." autofocus></textarea>
+      <button id="send" onclick="sendQuery()">SEND</button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="section">
+      <h3>System Health</h3>
+      <div class="metric"><span class="metric-label">Status</span><span class="metric-value" id="m-status">--</span></div>
+      <div class="metric"><span class="metric-label">Uptime</span><span class="metric-value" id="m-uptime">--</span></div>
+      <div class="metric"><span class="metric-label">Version</span><span class="metric-value" id="m-version">--</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Quality Metrics</h3>
+      <div class="metric"><span class="metric-label">SNR Score</span><span class="metric-value" id="m-snr">--</span></div>
+      <div class="metric"><span class="metric-label">Ihsan Score</span><span class="metric-value" id="m-ihsan">--</span></div>
+      <div class="metric"><span class="metric-label">Queries</span><span class="metric-value" id="m-queries">0</span></div>
+      <div class="metric"><span class="metric-label">Avg Latency</span><span class="metric-value" id="m-latency">--</span></div>
+      <div class="metric"><span class="metric-label">Success Rate</span><span class="metric-value" id="m-success">--</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Components</h3>
+      <div class="metric"><span class="metric-label">Gateway</span><span class="metric-value" id="m-gateway">--</span></div>
+      <div class="metric"><span class="metric-label">Reasoner</span><span class="metric-value" id="m-reasoner">--</span></div>
+      <div class="metric"><span class="metric-label">Guardian</span><span class="metric-value" id="m-guardian">--</span></div>
+      <div class="metric"><span class="metric-label">Memory</span><span class="metric-value" id="m-memory">--</span></div>
+      <div class="metric"><span class="metric-label">Orchestrator</span><span class="metric-value" id="m-orchestrator">--</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Session</h3>
+      <div class="metric"><span class="metric-label">Messages</span><span class="metric-value" id="m-msgs">0</span></div>
+      <div class="metric"><span class="metric-label">Endpoint</span><span class="metric-value" id="m-endpoint">--</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const API_BASE = window.location.origin;
+
+let msgCount = 0;
+let queryCount = 0;
+
+// ── DOM refs ────────────────────────────────────────────────────────────────
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+
+// ── Input handling ──────────────────────────────────────────────────────────
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendQuery();
+  }
+});
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+
+// ── Send query ──────────────────────────────────────────────────────────────
+async function sendQuery() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  addMessage(text, 'user');
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  // Show typing indicator
+  const typingId = addMessage('Reasoning...', 'system', null, true);
+
+  try {
+    const resp = await fetch(`${API_BASE}/v1/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: text,
+        require_reasoning: true,
+        require_validation: false,
+        max_depth: 3,
+        timeout_ms: 30000,
+      }),
+    });
+
+    // Remove typing indicator
+    removeMessage(typingId);
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      addMessage(`Error ${resp.status}: ${errText}`, 'system error');
+      return;
+    }
+
+    const data = await resp.json();
+    queryCount++;
+
+    const answer = data.answer || data.response || data.error || 'No response';
+    const meta = [];
+    if (data.quality?.snr) meta.push(`SNR: ${data.quality.snr.toFixed(3)}`);
+    if (data.quality?.ihsan) meta.push(`Ihsan: ${data.quality.ihsan.toFixed(3)}`);
+    if (data.timing?.total_ms) meta.push(`${data.timing.total_ms.toFixed(0)}ms`);
+    if (data.metadata?.model) meta.push(data.metadata.model);
+
+    addMessage(answer, data.success === false ? 'system error' : 'system', meta.join(' | '));
+
+    // Update sidebar
+    updateMetric('m-snr', data.quality?.snr, v => v >= 0.95 ? 'good' : v >= 0.8 ? '' : 'bad');
+    updateMetric('m-ihsan', data.quality?.ihsan, v => v >= 0.95 ? 'good' : v >= 0.8 ? '' : 'bad');
+    updateMetric('m-latency', data.timing?.total_ms ? `${data.timing.total_ms.toFixed(0)}ms` : null);
+    document.getElementById('m-queries').textContent = queryCount;
+
+  } catch (err) {
+    removeMessage(typingId);
+    addMessage(`Connection error: ${err.message}\n\nIs the API server running?\n  python -m core.sovereign.api --port 8080`, 'system error');
+  } finally {
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+// ── Message rendering ───────────────────────────────────────────────────────
+function addMessage(text, cls, meta, isTyping) {
+  const id = 'msg-' + (++msgCount);
+  const div = document.createElement('div');
+  div.className = `msg ${cls}`;
+  div.id = id;
+  if (isTyping) div.classList.add('typing');
+  div.textContent = text;
+
+  if (meta) {
+    const metaEl = document.createElement('div');
+    metaEl.className = 'msg-meta';
+    metaEl.textContent = meta;
+    div.appendChild(metaEl);
+  }
+
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  document.getElementById('m-msgs').textContent = msgCount;
+  return id;
+}
+
+function removeMessage(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ── Metrics helpers ─────────────────────────────────────────────────────────
+function updateMetric(id, value, classFn) {
+  if (value === null || value === undefined) return;
+  const el = document.getElementById(id);
+  const display = typeof value === 'number' ? value.toFixed(3) : value;
+  el.textContent = display;
+  el.className = 'metric-value';
+  if (classFn) {
+    const cls = classFn(typeof value === 'number' ? value : 0);
+    if (cls) el.classList.add(cls);
+  }
+}
+
+function setDot(id, state) {
+  const dot = document.getElementById(id);
+  dot.className = `status-dot ${state}`;
+}
+
+// ── Health check polling ────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const resp = await fetch(`${API_BASE}/v1/health`, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    setDot('dot-api', 'ok');
+    document.getElementById('m-status').textContent = data.status || 'healthy';
+    document.getElementById('m-version').textContent = data.version || '--';
+
+    if (data.uptime_seconds) {
+      const mins = Math.floor(data.uptime_seconds / 60);
+      document.getElementById('m-uptime').textContent = mins > 60
+        ? `${Math.floor(mins/60)}h ${mins%60}m`
+        : `${mins}m`;
+    }
+
+    // Checks
+    if (data.checks) {
+      setDot('dot-gw', data.checks.runtime ? 'ok' : 'warn');
+      setDot('dot-mem', data.checks.autonomous !== false ? 'ok' : 'warn');
+    }
+
+    document.getElementById('m-endpoint').textContent = API_BASE.replace(/^https?:\/\//, '');
+
+  } catch {
+    setDot('dot-api', 'err');
+    setDot('dot-gw', 'err');
+    setDot('dot-mem', 'err');
+    document.getElementById('m-status').textContent = 'offline';
+  }
+}
+
+async function checkStatus() {
+  try {
+    const resp = await fetch(`${API_BASE}/v1/status`, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Components
+    const comps = data.state?.components || {};
+    for (const [key, label] of [['gateway','m-gateway'],['graph_reasoner','m-reasoner'],['guardian_council','m-guardian'],['living_memory','m-memory'],['orchestrator','m-orchestrator']]) {
+      const el = document.getElementById(label);
+      if (key in comps) {
+        el.textContent = comps[key] ? '✓' : '✗';
+        el.className = `metric-value ${comps[key] ? 'good' : 'bad'}`;
+      }
+    }
+
+    // Metrics
+    if (data.metrics) {
+      const m = data.metrics;
+      if (m.success_rate !== undefined) updateMetric('m-success', `${(m.success_rate * 100).toFixed(0)}%`, v => v >= 90 ? 'good' : 'bad');
+    }
+
+  } catch { /* silent */ }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+checkHealth();
+checkStatus();
+setInterval(checkHealth, 10000);
+setInterval(checkStatus, 15000);
+
+// Set initial dots
+setDot('dot-api', 'warn');
+setDot('dot-gw', 'warn');
+setDot('dot-mem', 'warn');
+</script>
+</body>
+</html>
