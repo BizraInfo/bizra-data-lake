@@ -511,6 +511,8 @@ dependencies = [
  "pyo3",
  "pyo3-build-config",
  "serde_json",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

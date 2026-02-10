@@ -203,8 +203,9 @@ impl PyPCIEnvelope {
             content_hash: envelope.content_hash,
             signature: envelope.signature,
             public_key: envelope.public_key,
-            payload_json: serde_json::to_string(&envelope.payload)
-                .map_err(|e| PyRuntimeError::new_err(format!("Payload serialization failed: {}", e)))?,
+            payload_json: serde_json::to_string(&envelope.payload).map_err(|e| {
+                PyRuntimeError::new_err(format!("Payload serialization failed: {}", e))
+            })?,
             ttl: envelope.ttl,
         })
     }
@@ -402,6 +403,225 @@ impl PyGateChain {
 }
 
 // =============================================================================
+// Inference Gateway Bindings (Python↔Rust unified inference path)
+// =============================================================================
+
+/// Python wrapper for InferenceResponse
+#[pyclass(name = "InferenceResponse")]
+#[derive(Clone)]
+pub struct PyInferenceResponse {
+    #[pyo3(get)]
+    request_id: String,
+    #[pyo3(get)]
+    text: String,
+    #[pyo3(get)]
+    model: String,
+    #[pyo3(get)]
+    tier: String,
+    #[pyo3(get)]
+    completion_tokens: usize,
+    #[pyo3(get)]
+    duration_ms: u64,
+    #[pyo3(get)]
+    tokens_per_second: f32,
+}
+
+#[pymethods]
+impl PyInferenceResponse {
+    fn __repr__(&self) -> String {
+        format!(
+            "InferenceResponse(model='{}', tier='{}', tokens={}, {:.1} tok/s)",
+            self.model, self.tier, self.completion_tokens, self.tokens_per_second
+        )
+    }
+}
+
+impl From<bizra_inference::InferenceResponse> for PyInferenceResponse {
+    fn from(r: bizra_inference::InferenceResponse) -> Self {
+        Self {
+            request_id: r.request_id,
+            text: r.text,
+            model: r.model,
+            tier: format!("{:?}", r.tier),
+            completion_tokens: r.completion_tokens,
+            duration_ms: r.duration_ms,
+            tokens_per_second: r.tokens_per_second,
+        }
+    }
+}
+
+/// Python wrapper for InferenceGateway — the unified Python↔Rust inference path.
+///
+/// This bridges the gap: Python code can now call Rust's SIMD-accelerated
+/// inference gateway with constitutional gate enforcement.
+#[pyclass(name = "InferenceGateway")]
+pub struct PyInferenceGateway {
+    gateway: std::sync::Arc<tokio::sync::Mutex<bizra_inference::InferenceGateway>>,
+    runtime: std::sync::Arc<tokio::runtime::Runtime>,
+}
+
+#[pymethods]
+impl PyInferenceGateway {
+    /// Create a new InferenceGateway with identity and constitution.
+    ///
+    /// The gateway starts with no backends. Register backends with
+    /// `register_ollama()` or `register_lmstudio()` before calling `infer()`.
+    #[new]
+    fn new(identity: &PyNodeIdentity, constitution: &PyConstitution) -> PyResult<Self> {
+        // NodeIdentity doesn't implement Clone (Ed25519 secret key security).
+        // Reconstruct from secret bytes, matching the pattern in bizra-api/src/main.rs.
+        let secret = identity.inner.secret_bytes();
+        let gateway_identity = RustNodeIdentity::from_secret_bytes(&secret);
+        let gateway =
+            bizra_inference::InferenceGateway::new(gateway_identity, constitution.inner.clone());
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| PyRuntimeError::new_err(format!("Tokio runtime error: {}", e)))?;
+        Ok(Self {
+            gateway: std::sync::Arc::new(tokio::sync::Mutex::new(gateway)),
+            runtime: std::sync::Arc::new(runtime),
+        })
+    }
+
+    /// Register an Ollama backend at the given URL and tier.
+    ///
+    /// Args:
+    ///     model: Model name (e.g. "llama3.2", "qwen2.5:7b")
+    ///     tier: "edge", "local", or "pool"
+    ///     base_url: Ollama URL (default: "http://localhost:11434")
+    fn register_ollama(&self, model: &str, tier: &str, base_url: Option<&str>) -> PyResult<()> {
+        let model_tier = parse_tier(tier)?;
+        let config = bizra_inference::BackendConfig {
+            name: format!("ollama-{}", tier),
+            model: model.to_string(),
+            context_length: 4096,
+            gpu_layers: -1,
+        };
+        let backend = std::sync::Arc::new(bizra_inference::backends::ollama::OllamaBackend::new(
+            config, base_url,
+        ));
+        let gw = self.gateway.clone();
+        self.runtime.block_on(async move {
+            gw.lock().await.register_backend(model_tier, backend).await;
+        });
+        Ok(())
+    }
+
+    /// Register an LM Studio backend with default configuration.
+    ///
+    /// Args:
+    ///     tier: "edge", "local", or "pool"
+    ///     host: LM Studio host (default: env LMSTUDIO_HOST or "192.168.56.1")
+    ///     port: LM Studio port (default: env LMSTUDIO_PORT or 1234)
+    fn register_lmstudio(&self, tier: &str, host: Option<&str>, port: Option<u16>) -> PyResult<()> {
+        let model_tier = parse_tier(tier)?;
+        let mut lms_config = bizra_inference::LMStudioConfig::default();
+        if let Some(h) = host {
+            lms_config.host = h.to_string();
+        }
+        if let Some(p) = port {
+            lms_config.port = p;
+        }
+        let backend = std::sync::Arc::new(bizra_inference::LMStudioBackend::new(lms_config));
+        let gw = self.gateway.clone();
+        self.runtime.block_on(async move {
+            gw.lock().await.register_backend(model_tier, backend).await;
+        });
+        Ok(())
+    }
+
+    /// Run inference through the Rust gateway with constitutional gate enforcement.
+    ///
+    /// This is the critical path: Python → Rust gateway → backend → response.
+    ///
+    /// Args:
+    ///     prompt: The input prompt
+    ///     system: Optional system message
+    ///     max_tokens: Maximum tokens to generate (default: 1024)
+    ///     temperature: Sampling temperature (default: 0.7)
+    ///     tier: Optional preferred tier ("edge", "local", "pool")
+    ///
+    /// Returns:
+    ///     InferenceResponse with text, model, tier, timing, and token metrics.
+    ///
+    /// Raises:
+    ///     RuntimeError: If no backend is registered for the selected tier,
+    ///                   the backend fails, or the request times out.
+    #[pyo3(signature = (prompt, system=None, max_tokens=1024, temperature=0.7, tier=None))]
+    fn infer(
+        &self,
+        prompt: &str,
+        system: Option<&str>,
+        max_tokens: usize,
+        temperature: f32,
+        tier: Option<&str>,
+    ) -> PyResult<PyInferenceResponse> {
+        let preferred_tier = tier.map(parse_tier).transpose()?;
+        let complexity = bizra_inference::TaskComplexity::estimate(prompt, max_tokens);
+
+        let request = bizra_inference::InferenceRequest {
+            id: uuid::Uuid::new_v4().to_string(),
+            prompt: prompt.to_string(),
+            system: system.map(|s| s.to_string()),
+            max_tokens,
+            temperature,
+            complexity,
+            preferred_tier,
+        };
+
+        let gw = self.gateway.clone();
+        let result = self
+            .runtime
+            .block_on(async move { gw.lock().await.infer(request).await });
+
+        match result {
+            Ok(response) => Ok(PyInferenceResponse::from(response)),
+            Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {}", e))),
+        }
+    }
+
+    /// Check health of a specific backend tier.
+    ///
+    /// Returns True if the backend for the given tier is reachable.
+    fn health_check(&self, tier: &str) -> PyResult<bool> {
+        // Health check goes through the backend directly, not the gateway.
+        // For now, we attempt a minimal infer and check for connection errors.
+        let preferred_tier = parse_tier(tier)?;
+        let request = bizra_inference::InferenceRequest {
+            id: "health_check".to_string(),
+            prompt: "ping".to_string(),
+            system: None,
+            max_tokens: 1,
+            temperature: 0.0,
+            complexity: bizra_inference::TaskComplexity::Simple,
+            preferred_tier: Some(preferred_tier),
+        };
+        let gw = self.gateway.clone();
+        let result = self
+            .runtime
+            .block_on(async move { gw.lock().await.infer(request).await });
+        Ok(result.is_ok())
+    }
+
+    fn __repr__(&self) -> String {
+        "InferenceGateway(rust_native=True)".to_string()
+    }
+}
+
+/// Parse a tier string into ModelTier. Shared by gateway methods.
+fn parse_tier(tier: &str) -> PyResult<bizra_inference::ModelTier> {
+    match tier.to_lowercase().as_str() {
+        "edge" | "nano" => Ok(bizra_inference::ModelTier::Edge),
+        "local" | "medium" => Ok(bizra_inference::ModelTier::Local),
+        "pool" | "large" => Ok(bizra_inference::ModelTier::Pool),
+        _ => Err(PyValueError::new_err(
+            "Tier must be 'edge', 'local', or 'pool'",
+        )),
+    }
+}
+
+// =============================================================================
 // Autopoiesis Bindings (10-100x faster pattern learning)
 // =============================================================================
 
@@ -519,6 +739,10 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Gate chain
     m.add_class::<PyGateChain>()?;
+
+    // Inference gateway (Python↔Rust unified path)
+    m.add_class::<PyInferenceGateway>()?;
+    m.add_class::<PyInferenceResponse>()?;
 
     // Autopoiesis (pattern learning + preference tracking)
     m.add_class::<PyPatternMemory>()?;
