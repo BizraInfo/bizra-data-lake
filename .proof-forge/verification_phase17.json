@@ -1,0 +1,31 @@
+{
+  "verification_id": "verify-1770684366",
+  "timestamp": "2026-02-10T00:46:06.707235+00:00",
+  "ecosystems": [
+    "python"
+  ],
+  "checks": [
+    {
+      "type": "test_suite",
+      "command": "python -m pytest",
+      "exit_code": 2,
+      "passed": false,
+      "duration_ms": 5376,
+      "summary": "======================== 1 warning, 4 errors in 2.65s =========================",
+      "output_excerpt": "============================= test session starts =============================\nplatform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0 -- C:\\Program Files\\Python313\\python.exe\ncachedir: .pytest_cache\nbenchmark: 5.2.1 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: C:\\BIZRA-DATA-LAKE\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: Faker-38.2.0, asyncio-1.2.0, benchmark-5.2.1, cov-7.0.0, timeout-2.4.0, anyio-4.11.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ntimeout: 60.0s\ntimeout method: thread\ntimeout func_only: False\ncollecting ... collected 2691 items / 4 errors\n\n=================================== ERRORS ====================================\n___________ ERROR collecting tests/core/inference/test_batching.py ____________\n'requires_llama_cpp' not found in `markers` configuration option\n_______ ERROR collecting tests/property_based/test_crypto_properties.py _______\nImportError while importing test module 'C:\\BIZRA-DATA-LAKE\\tests\\property_based\\test_crypto_properties.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Program Files\\Python313\\Lib\\importlib\\__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests\\property_based\\test_crypto_properties.py:21: in <module>\n    from hypothesis import given, settings, assume, HealthCheck\nE   ModuleNotFoundError: No module named 'hypothesis'\n______ ERROR collecting tests/property_based/test_guardian_properties.py ______\nImportError while importing test module 'C:\\BIZRA-DATA-LAKE\\tests\\property_based\\test_guardian_properties.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Program Files\\Python313\\Lib\\importlib\\__init__.py:88: in import_modu"
+    },
+    {
+      "type": "static_analysis",
+      "command": "python -m ruff check .",
+      "exit_code": -1,
+      "passed": false,
+      "duration_ms": 795,
+      "summary": "Execution error: unsupported operand type(s) for +: 'NoneType' and 'str'",
+      "output_excerpt": ""
+    }
+  ],
+  "checks_run": 2,
+  "checks_passed": 0,
+  "checks_failed": 2,
+  "overall_pass": false
+}

@@ -1,0 +1,348 @@
+{
+  "receipt_id": "receipt-1770686106",
+  "timestamp": "2026-02-10T01:15:06.460894+00:00",
+  "description": "Phase 17.5: Elite Hardening Sprint + Proof Forge Genesis. Exception discipline (3 security-critical + 8 core sites), dead code purge (Rust), cargo-deny supply chain config, coverage ratchet 55->60%, 33 new security tests (vault 20 + a2a 13), proof-forge evidence system integrated. 454 Rust + 2096 Python tests passing. 0 clippy warnings.",
+  "project_dir": "C:\\BIZRA-DATA-LAKE",
+  "chain_position": 0,
+  "confidence": {
+    "level": 4,
+    "label": "Proven",
+    "criteria": "Automated tests pass, static analysis clean, verification report attached."
+  },
+  "artifacts": {
+    "count": 875,
+    "summary": {
+      "py": 561,
+      "typed": 1,
+      "md": 56,
+      "json": 6,
+      "txt": 5,
+      "other": 2,
+      "ts": 16,
+      "zip": 1,
+      "bat": 7,
+      "toml": 20,
+      "yml": 3,
+      "rs": 126,
+      "yaml": 35,
+      "sh": 21,
+      "ps1": 3,
+      "example": 1,
+      "elite": 1,
+      "gate": 1,
+      "risk": 1,
+      "sape": 1,
+      "unified": 1,
+      "template": 2,
+      "service": 4
+    },
+    "details": [
+      {
+        "path": "core\\living_ecosystem.py",
+        "size_bytes": 20149,
+        "sha256": "3e233bc249bbf8fba9f4e5713a237a60fc2d344ff4b5f49c91740f5ffab9fecf"
+      },
+      {
+        "path": "core\\py.typed",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "core\\snr_protocol.py",
+        "size_bytes": 9838,
+        "sha256": "32e171f922497255c5a2904fafa71fd834d4fd2cbd12321582ec9f3e2182d34a"
+      },
+      {
+        "path": "core\\__init__.py",
+        "size_bytes": 1710,
+        "sha256": "6bdf38c52ca3e95098c719fd7850dbec1c5820fc75e9ec11bfdc4ba607f745fd"
+      },
+      {
+        "path": "core\\a2a\\engine.py",
+        "size_bytes": 21185,
+        "sha256": "1727e40b9a65723cc2e8da89f37e36852e90b49a0543b4b74c044d261a125005"
+      },
+      {
+        "path": "core\\a2a\\schema.py",
+        "size_bytes": 15264,
+        "sha256": "49e2966ab902221d5588e7d02f249c42b1ae2f82df2104f01840b5dccafa1fe8"
+      },
+      {
+        "path": "core\\a2a\\tasks.py",
+        "size_bytes": 18447,
+        "sha256": "719a8c714056c2f2e93ce023f14897db7b2ace985842be733f4a1eb6f36a173b"
+      },
+      {
+        "path": "core\\a2a\\transport.py",
+        "size_bytes": 11928,
+        "sha256": "2c015e423249a73964eddc6251f565e152e22a83d9d5ddf839f9d5c459d46d46"
+      },
+      {
+        "path": "core\\a2a\\__init__.py",
+        "size_bytes": 1697,
+        "sha256": "307c3ac6fe0a81fe29dafe06e2f7ccffa73f5e42d59d63294f14f28623005d09"
+      },
+      {
+        "path": "core\\agentic\\agent.py",
+        "size_bytes": 14887,
+        "sha256": "245314c816c31ba61daa8cd34c058f3d2096a4be271a642fde5239218eeb91dc"
+      },
+      {
+        "path": "core\\agentic\\orchestrator.py",
+        "size_bytes": 14282,
+        "sha256": "f43f21bf3a0b14a5b02c5f636436d52907317d5e078151548ff8e1be6cf070e0"
+      },
+      {
+        "path": "core\\agentic\\__init__.py",
+        "size_bytes": 3243,
+        "sha256": "72c9ec8af0de534a681fccccc6c5c342b40b4bf7f6c138c7eb26d6caa34e7ad2"
+      },
+      {
+        "path": "core\\apex\\opportunity_engine.py",
+        "size_bytes": 27411,
+        "sha256": "eacecf9dce9089341b6a7243793bce322ecc7b51039d2392abf79a21977316b5"
+      },
+      {
+        "path": "core\\apex\\peak_masterpiece.py",
+        "size_bytes": 47694,
+        "sha256": "279950cac979e7220de1f9e25ccfab5d2f5ce988a1c97c635e5d71b87beb35ab"
+      },
+      {
+        "path": "core\\apex\\snr_apex_engine.py",
+        "size_bytes": 47497,
+        "sha256": "c01ee5fc89c7dbe9b0c4ad6e432b3921f3ee068d731c12b06d9c7c7845351971"
+      },
+      {
+        "path": "core\\apex\\social_graph.py",
+        "size_bytes": 29425,
+        "sha256": "048bc3feac89895ff508573b0d0d16a3c76f88f915de352df76868e5679371f2"
+      },
+      {
+        "path": "core\\apex\\swarm_orchestrator.py",
+        "size_bytes": 29206,
+        "sha256": "f9f6ca72ec35a6a224b3963c10cd54e54d3416232ec35dc75f8880851ccd6e6a"
+      },
+      {
+        "path": "core\\apex\\__init__.py",
+        "size_bytes": 13619,
+        "sha256": "46c6edf25d6d9d28c3419416660615a798a0160419d616394510a6519c9ba353"
+      },
+      {
+        "path": "core\\autonomous\\engine.py",
+        "size_bytes": 17408,
+        "sha256": "832d23ddbd777b7aebbe9d1ef2947287f8235591b18c224df6c39ac8b99514f4"
+      },
+      {
+        "path": "core\\autonomous\\giants.py",
+        "size_bytes": 18271,
+        "sha256": "7ec386c5cf22665b50121358ac7c82947227e42c642df297a1958bcb07a2ddc6"
+      },
+      {
+        "path": "core\\autonomous\\loop.py",
+        "size_bytes": 21317,
+        "sha256": "0d36f1d7e874de30ab0bcbf6f056e1b97533b4a48830f040b8c6a1851cc58aec"
+      },
+      {
+        "path": "core\\autonomous\\nodes.py",
+        "size_bytes": 20405,
+        "sha256": "dbacf531ffb6ae2a02a3ce04a30cdebf4a3378b31a6ee6a39421fd0a0a245cc5"
+      },
+      {
+        "path": "core\\autonomous\\__init__.py",
+        "size_bytes": 7314,
+        "sha256": "ef5cd33d79261f78201d4f13ff7fff0d6a5aa0b7d238fec327138ed75528e12d"
+      },
+      {
+        "path": "core\\autopoiesis\\emergence.py",
+        "size_bytes": 17956,
+        "sha256": "52ea46e3c93fe77359d51e6d0a9542c46ae9ca41237d7cecf3b2f1cb9da0e5dd"
+      },
+      {
+        "path": "core\\autopoiesis\\evolution.py",
+        "size_bytes": 17374,
+        "sha256": "5ed16ee53be84235eaa5deff694f556d7347ec660c99cab8292b2301c17aa1ad"
+      },
+      {
+        "path": "core\\autopoiesis\\fitness.py",
+        "size_bytes": 13650,
+        "sha256": "c64e7bc13e77c492eb978be6a32400fd5f5bee2010fca1f3d6b98616bc09152f"
+      },
+      {
+        "path": "core\\autopoiesis\\genome.py",
+        "size_bytes": 14969,
+        "sha256": "16151d2ec47cdbbdff6629d961899a4828e011d0a062b5fbcc0d6163b8ec95c7"
+      },
+      {
+        "path": "core\\autopoiesis\\got_integration.py",
+        "size_bytes": 53688,
+        "sha256": "14f9ea45f0d1f3181dd9049c8732245e10e4c2e1b8d318ca258ad39ddbe9e788"
+      },
+      {
+        "path": "core\\autopoiesis\\hypothesis_generator.py",
+        "size_bytes": 53235,
+        "sha256": "b28bb90684db7c8f78feb17c156d0166867b26586d703e4b38f1c568d5c63b25"
+      },
+      {
+        "path": "core\\autopoiesis\\loop.py",
+        "size_bytes": 16406,
+        "sha256": "949afb9015e56f48144f6acc1bac634655d51dbdab12293b10b219d03f4d636e"
+      },
+      {
+        "path": "core\\autopoiesis\\loop_engine.py",
+        "size_bytes": 72537,
+        "sha256": "e3719e2ec693540212c43596a2ab1f4489637f9fea8c07261d308c54e7ec8ee2"
+      },
+      {
+        "path": "core\\autopoiesis\\shadow_deploy.py",
+        "size_bytes": 60475,
+        "sha256": "d1b3174e19525b452664169d2c9f0f730d609362b5f362ec262767cb971686ba"
+      },
+      {
+        "path": "core\\autopoiesis\\__init__.py",
+        "size_bytes": 7972,
+        "sha256": "7c2743b5e0acf601cda4eb0288bada4daa137646eda7e5d1631d043135935915"
+      },
+      {
+        "path": "core\\benchmark\\ablation_engine.py",
+        "size_bytes": 20547,
+        "sha256": "96b41c347de979a69e244d71af472ac3624dd4ddcde63877f85149153ecccf3b"
+      },
+      {
+        "path": "core\\benchmark\\clear_framework.py",
+        "size_bytes": 25421,
+        "sha256": "94f3c9694ed339c408c13508008e331598b74f59526bc3dbce00579cb3783ad8"
+      },
+      {
+        "path": "core\\benchmark\\dominance_loop.py",
+        "size_bytes": 31775,
+        "sha256": "5ea636deaa63dda583809695a77b9c5d40bf653e4952816b90a98ce99bf0b290"
+      },
+      {
+        "path": "core\\benchmark\\guardrails.py",
+        "size_bytes": 35338,
+        "sha256": "ebddb055fdfcaca8a23ffdfd9934f44408532ea3131cafe7163b0ad97fdd7dfa"
+      },
+      {
+        "path": "core\\benchmark\\leaderboard.py",
+        "size_bytes": 22720,
+        "sha256": "36fe27fcb1ef93796842e522cc98ad8fd28271c14da20d2894e90f0b507eed94"
+      },
+      {
+        "path": "core\\benchmark\\moe_router.py",
+        "size_bytes": 26474,
+        "sha256": "13a64b66fa08ed00a2dba7a8bf60d058eb8fa2b144246f4b2fcd0f400dcbb81b"
+      },
+      {
+        "path": "core\\benchmark\\__init__.py",
+        "size_bytes": 4579,
+        "sha256": "55eaeb303cb03446867da8dcbc34a7a3343d9b32da6fa9d795ed567bd1baf67e"
+      },
+      {
+        "path": "core\\bounty\\bridge.py",
+        "size_bytes": 16113,
+        "sha256": "f0b79f32897472cdbdf8734c2bce2bd8d1d3cf067d07f5985433e8d4760061ef"
+      },
+      {
+        "path": "core\\bounty\\hunter.py",
+        "size_bytes": 20776,
+        "sha256": "93a964ca2104ff5b97f9781413bb27f1ac6ad3da0bcf4c00250cf1953efbe208"
+      },
+      {
+        "path": "core\\bounty\\impact_proof.py",
+        "size_bytes": 15949,
+        "sha256": "4381ee5ef716fae56357b5f7b60fe75e5c982ccbc37c4878cb23e2affca3c147"
+      },
+      {
+        "path": "core\\bounty\\oracle.py",
+        "size_bytes": 11925,
+        "sha256": "07ebbc39c898edf12b32ed2989aca69c39c73f06ac8e6d0096d2a9744aa1010f"
+      },
+      {
+        "path": "core\\bounty\\__init__.py",
+        "size_bytes": 4737,
+        "sha256": "de9efc71bc5da965637dbd859198cadd656dc54baafc8d7629bcd66d0c4692cd"
+      },
+      {
+        "path": "core\\bridges\\bridge.py",
+        "size_bytes": 29763,
+        "sha256": "bf888c11a3642620372235e3f7fcd0ffccb8e00f58c51570a4e01af4b9754cf3"
+      },
+      {
+        "path": "core\\bridges\\dual_agentic_bridge.py",
+        "size_bytes": 13011,
+        "sha256": "7efe6850bbd353191c039f534070d0a0c243a5e0fe487c7cefb16b43ef4dae0b"
+      },
+      {
+        "path": "core\\bridges\\iceoryx2_bridge.py",
+        "size_bytes": 19897,
+        "sha256": "b65699316588158224456c9239f963e524f0989581d6d6d9940e892fef4f7ebc"
+      },
+      {
+        "path": "core\\bridges\\knowledge_integrator.py",
+        "size_bytes": 19466,
+        "sha256": "37b8b5111c11394db2f8dddec63ca57b25af7d9414bb55b0098a139ca628e32e"
+      },
+      {
+        "path": "core\\bridges\\local_inference_bridge.py",
+        "size_bytes": 18989,
+        "sha256": "b869bf1a3ef9cacc6baf072fd246eeedf97ac7d2039598f1153b30c38073ae5a"
+      }
+    ]
+  },
+  "hashes": {
+    "evidence_hash": "643b71420d3cb8f71e7e3de1a4d78b8e5e29914b9e6914d0e33a713ce5a153a0",
+    "chain_hash": "5aa9996c2e878adcd06dc97db984e80516320d7ebdf01fbfdfb65cb66ed70cf2",
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "chain": {
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "chain_hash": "5aa9996c2e878adcd06dc97db984e80516320d7ebdf01fbfdfb65cb66ed70cf2",
+    "sequence": 0,
+    "is_genesis": true
+  },
+  "verification": {
+    "checks_run": 4,
+    "checks_passed": 4,
+    "overall_pass": true,
+    "report_ref": ".proof-forge/verification_phase17_final.json",
+    "checks": [
+      {
+        "type": "test_suite",
+        "command": "cargo test --workspace (bizra-omega)",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 15000,
+        "summary": "test result: ok. 454 passed; 0 failed",
+        "output_excerpt": "454 Rust tests all passing"
+      },
+      {
+        "type": "test_suite",
+        "command": "python -m pytest tests/core/ (targeted)",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 9200,
+        "summary": "168 passed in 9.20s",
+        "output_excerpt": "168 targeted module tests passing"
+      },
+      {
+        "type": "static_analysis",
+        "command": "cargo clippy --workspace --all-targets",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 45000,
+        "summary": "0 warnings",
+        "output_excerpt": "Clippy clean across 13 crates"
+      },
+      {
+        "type": "test_suite",
+        "command": "python -m pytest tests/ (broad)",
+        "exit_code": 0,
+        "passed": true,
+        "duration_ms": 35000,
+        "summary": "2096 passed, 0 new regressions",
+        "output_excerpt": "2096+ Python tests, 0 new regressions from Phase 17"
+      }
+    ]
+  },
+  "total_size_bytes": 11803937
+}

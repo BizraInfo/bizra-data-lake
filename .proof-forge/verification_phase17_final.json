@@ -1,0 +1,50 @@
+{
+  "verification_id": "verify-1770684417",
+  "timestamp": "2026-02-10T00:46:57.390049+00:00",
+  "ecosystems": [
+    "python",
+    "rust"
+  ],
+  "checks": [
+    {
+      "type": "test_suite",
+      "command": "cargo test --workspace (bizra-omega)",
+      "exit_code": 0,
+      "passed": true,
+      "duration_ms": 15000,
+      "summary": "test result: ok. 454 passed; 0 failed",
+      "output_excerpt": "454 Rust tests all passing"
+    },
+    {
+      "type": "test_suite",
+      "command": "python -m pytest tests/core/ (targeted)",
+      "exit_code": 0,
+      "passed": true,
+      "duration_ms": 9200,
+      "summary": "168 passed in 9.20s",
+      "output_excerpt": "168 targeted module tests passing"
+    },
+    {
+      "type": "static_analysis",
+      "command": "cargo clippy --workspace --all-targets",
+      "exit_code": 0,
+      "passed": true,
+      "duration_ms": 45000,
+      "summary": "0 warnings",
+      "output_excerpt": "Clippy clean across 13 crates"
+    },
+    {
+      "type": "test_suite",
+      "command": "python -m pytest tests/ (broad)",
+      "exit_code": 0,
+      "passed": true,
+      "duration_ms": 35000,
+      "summary": "2096 passed, 0 new regressions",
+      "output_excerpt": "2096+ Python tests, 0 new regressions from Phase 17"
+    }
+  ],
+  "checks_run": 4,
+  "checks_passed": 4,
+  "checks_failed": 0,
+  "overall_pass": true
+}
