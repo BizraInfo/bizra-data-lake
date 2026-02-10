@@ -581,7 +581,51 @@ def create_fastapi_app(runtime: Any) -> Any:
             },
         }
 
-    # Static file serving for Node0 Console
+    # /v1/orchestrate — direct orchestrator task decomposition endpoint
+    class OrchestrateRequestModel(BaseModel):
+        task: str
+        context: Dict[str, Any] = {}
+        max_agents: int = 5
+
+    @app.post("/v1/orchestrate")
+    async def orchestrate(request: OrchestrateRequestModel):
+        """Decompose a complex task through the orchestrator's agent swarm."""
+        orch = getattr(runtime, "_orchestrator", None)
+        if orch is None:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Orchestrator not available"},
+            )
+
+        try:
+            plan = await orch.decompose(request.task)
+            for task_node in plan.tasks:
+                await orch.submit_task(task_node)
+
+            tasks_out = []
+            for task_node in plan.tasks:
+                tr = orch.task_results.get(task_node.id, {})
+                tasks_out.append({
+                    "id": task_node.id,
+                    "title": task_node.title,
+                    "agent": tr.get("agent", "unknown"),
+                    "content": tr.get("content", ""),
+                    "snr_score": tr.get("snr_score", 0.0),
+                    "status": task_node.status.name,
+                })
+
+            return {
+                "success": True,
+                "plan_id": plan.id,
+                "complexity": plan.complexity.name,
+                "total_tasks": len(plan.tasks),
+                "tasks": tasks_out,
+            }
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
     import pathlib
 
     static_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "static"
@@ -602,13 +646,55 @@ def create_fastapi_app(runtime: Any) -> Any:
 # =============================================================================
 
 
+def _run_fastapi_server(
+    runtime: Any,
+    host: str,
+    port: int,
+) -> None:
+    """Launch the FastAPI application via uvicorn (production-grade).
+
+    Standing on: Encode/uvicorn (2018) — ASGI server for async Python.
+    Provides: console UI, CORS, OpenAPI docs at /docs, proper HTTP/1.1.
+    """
+    import uvicorn  # type: ignore[import-untyped]
+
+    app = create_fastapi_app(runtime)
+
+    print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           SOVEREIGN NODE0 ONLINE (FastAPI + Uvicorn)         ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║   Console: http://{host}:{port}/                               ║
+║   Docs:    http://{host}:{port}/docs                           ║
+║   Health:  http://{host}:{port}/v1/health                      ║
+║   Query:   POST http://{host}:{port}/v1/query                  ║
+║   Orch:    POST http://{host}:{port}/v1/orchestrate             ║
+║                                                              ║
+║   Press Ctrl+C to stop                                       ║
+╚══════════════════════════════════════════════════════════════╝
+    """)
+
+    uvicorn.run(
+        app,
+        host=host,
+        port=port,
+        log_level="info",
+        access_log=False,
+    )
+
+
 async def serve(
     host: str = "0.0.0.0",  # nosec B104 — intentional: server default for local network access
     port: int = 8080,
     api_keys: Optional[List[str]] = None,
+    use_fastapi: bool = True,
 ) -> None:
     """
     Run the Sovereign API server.
+
+    Defaults to FastAPI+Uvicorn for full features (console, docs, CORS).
+    Falls back to pure-asyncio SovereignAPIServer if uvicorn unavailable.
 
     Usage:
         python -m core.sovereign.api --port 8080
@@ -618,6 +704,29 @@ async def serve(
     config = RuntimeConfig(autonomous_enabled=True)
 
     async with SovereignRuntime.create(config) as runtime:
+        # Prefer FastAPI + Uvicorn (console, OpenAPI docs, CORS, WebSocket)
+        if use_fastapi:
+            try:
+                import uvicorn  # type: ignore[import-untyped]  # noqa: F401
+
+                # uvicorn.run() manages its own loop; run in daemon thread
+                import threading
+
+                server_thread = threading.Thread(
+                    target=_run_fastapi_server,
+                    args=(runtime, host, port),
+                    daemon=True,
+                )
+                server_thread.start()
+                await runtime.wait_for_shutdown()
+                return
+            except ImportError:
+                logger.warning(
+                    "uvicorn not installed, falling back to pure-asyncio server. "
+                    "Install with: pip install uvicorn"
+                )
+
+        # Fallback: pure asyncio server (no console, no docs)
         server = SovereignAPIServer(
             runtime=runtime,
             host=host,
@@ -629,22 +738,14 @@ async def serve(
 
         print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║              SOVEREIGN API SERVER RUNNING                    ║
+║              SOVEREIGN API SERVER RUNNING (asyncio)           ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║   Endpoints:                                                 ║
-║   ──────────                                                 ║
 ║   GET  http://{host}:{port}/v1/health                          ║
 ║   GET  http://{host}:{port}/v1/status                          ║
-║   GET  http://{host}:{port}/v1/metrics                         ║
 ║   POST http://{host}:{port}/v1/query                           ║
 ║                                                              ║
-║   Example:                                                   ║
-║   ────────                                                   ║
-║   curl -X POST http://localhost:{port}/v1/query \\            ║
-║     -H "Content-Type: application/json" \\                   ║
-║     -d '{{"query": "What is sovereignty?"}}'                  ║
-║                                                              ║
+║   Note: Install uvicorn for Console UI + Swagger docs         ║
 ║   Press Ctrl+C to stop                                       ║
 ╚══════════════════════════════════════════════════════════════╝
         """)
@@ -679,7 +780,11 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for API server
     parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     parser.add_argument("--api-key", action="append", help="API keys (can repeat)")
+    parser.add_argument(
+        "--no-fastapi", action="store_true",
+        help="Use pure-asyncio server instead of FastAPI+Uvicorn",
+    )
 
     args = parser.parse_args()
 
-    asyncio.run(serve(args.host, args.port, args.api_key))
+    asyncio.run(serve(args.host, args.port, args.api_key, use_fastapi=not args.no_fastapi))

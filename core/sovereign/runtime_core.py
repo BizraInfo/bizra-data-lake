@@ -530,6 +530,23 @@ class SovereignRuntime:
             self._omega = None
             self.logger.warning(f"⚠ OmegaEngine unavailable: {e}")
 
+        # SovereignOrchestrator — task decomposition + agent routing
+        try:
+            from .orchestrator import SovereignOrchestrator, RoutingStrategy
+
+            orch = SovereignOrchestrator(routing_strategy=RoutingStrategy.ADAPTIVE)
+            orch.register_default_agents()
+            if self._gateway:
+                orch.set_gateway(self._gateway)
+            self._orchestrator = orch
+            self.logger.info("✓ SovereignOrchestrator loaded (Adaptive routing)")
+        except ImportError as e:
+            self._orchestrator = None
+            self.logger.warning(f"⚠ SovereignOrchestrator unavailable: {e}")
+        except Exception as e:
+            self._orchestrator = None
+            self.logger.warning(f"⚠ SovereignOrchestrator init failed: {e}")
+
     async def _init_proactive_execution_kernel(self) -> None:
         """Initialize Proactive Execution Kernel (PEK) when enabled."""
         if not self.config.enable_proactive_kernel:
@@ -633,6 +650,9 @@ class SovereignRuntime:
                 self._memory_coordinator.register_living_memory(living_memory)
                 if self._pek and hasattr(self._pek, "set_living_memory"):
                     self._pek.set_living_memory(living_memory)
+                # Wire memory into orchestrator for context-aware task execution
+                if self._orchestrator and hasattr(self._orchestrator, "set_memory"):
+                    self._orchestrator.set_memory(living_memory)
                 self.logger.info("✓ LivingMemory connected to auto-save")
             except ImportError:
                 self.logger.warning("⚠ LivingMemory unavailable")
@@ -963,10 +983,124 @@ class SovereignRuntime:
                 error=str(e),
             )
 
+    def _estimate_complexity(self, query: SovereignQuery) -> float:
+        """Estimate query complexity on 0.0-1.0 scale for orchestrator routing.
+
+        Standing on: DSPy (Stanford, 2024) — self-optimizing prompt complexity.
+        Signals: word count, sub-question markers, domain breadth, explicit hints.
+        """
+        text = query.text
+        words = text.split()
+        word_count = len(words)
+
+        # Length signal (long queries tend to be complex)
+        length_score = min(word_count / 80, 1.0)
+
+        # Sub-question markers
+        sub_q_keywords = {
+            "and also", "additionally", "furthermore", "then",
+            "compare", "contrast", "analyze", "evaluate",
+            "step by step", "multi", "comprehensive", "full",
+        }
+        sub_q_score = sum(
+            0.15 for kw in sub_q_keywords if kw in text.lower()
+        )
+
+        # Question count
+        q_count = text.count("?")
+        q_score = min(q_count * 0.2, 0.6)
+
+        # Explicit complexity hint from context
+        hint = query.context.get("complexity_hint", 0.0)
+
+        score = min(1.0, 0.3 * length_score + 0.3 * min(sub_q_score, 1.0) + 0.2 * q_score + 0.2 * float(hint))
+        return score
+
+    async def _orchestrate_complex_query(
+        self, query: SovereignQuery, start_time: float
+    ) -> SovereignResult:
+        """Route complex queries through orchestrator for task decomposition.
+
+        Standing on: Crew AI (2024) — role-based agent collaboration.
+        The orchestrator decomposes the query into sub-tasks, routes each to
+        a specialized agent, executes them (with real LLM or heuristic fallback),
+        and synthesizes the results.
+        """
+        result = SovereignResult(query_id=query.id)
+
+        try:
+            from .orchestrator import TaskNode
+
+            plan = await self._orchestrator.decomposer.decompose(  # type: ignore[union-attr]
+                TaskNode(
+                    title=query.text[:120],
+                    description=query.text,
+                )
+            )
+            for task in plan.subtasks:
+                await self._orchestrator.execute_task(task)  # type: ignore[union-attr]
+
+            # Collect all task outputs
+            parts = []
+            for task in plan.subtasks:
+                task_result = self._orchestrator.task_results.get(task.id, {})  # type: ignore[union-attr]
+                content = task_result.get("content", "")
+                if content:
+                    parts.append(content)
+
+            combined = "\n\n".join(parts) if parts else f"Orchestrated analysis of: {query.text}"
+            result.response = combined
+
+            # Run through SNR + Constitutional stages
+            optimized, snr_score = await self._optimize_snr(result.response)
+            result.response = optimized
+            result.snr_score = snr_score
+
+            ihsan_score, verdict = await self._validate_constitutionally(
+                result.response, query.context, query, snr_score
+            )
+            result.ihsan_score = ihsan_score
+            result.validated = query.require_validation
+            result.validation_passed = ihsan_score >= self.config.ihsan_threshold
+
+            result.processing_time_ms = (time.perf_counter() - start_time) * 1000
+            result.success = True
+            result.reasoning_used = True
+            result.reasoning_depth = len(plan.subtasks)
+            result.thoughts = [t.title for t in plan.subtasks]
+
+            self._query_times.append(result.processing_time_ms)
+            self.metrics.update_query_stats(True, result.processing_time_ms)
+            self._record_query_impact(result)
+
+            return result
+
+        except Exception as e:
+            self.logger.warning(f"Orchestrator path failed ({e}), falling back to direct pipeline")
+            return await self._process_query_direct(query, start_time)
+
     async def _process_query(
         self, query: SovereignQuery, start_time: float
     ) -> SovereignResult:
-        """Internal query processing pipeline."""
+        """Internal query processing — routes to orchestrator or direct pipeline.
+
+        Standing on: Besta (GoT, 2024) + Shannon (SNR) + Anthropic (Constitutional AI).
+        Complexity ≥ 0.6 and orchestrator available → decompose via agent swarm.
+        Otherwise → direct 5-stage pipeline (GoT → LLM → SNR → Guardian → Finalize).
+        """
+        complexity = self._estimate_complexity(query)
+        if complexity >= 0.6 and self._orchestrator is not None:
+            self.logger.info(
+                f"Query complexity={complexity:.2f} — routing to orchestrator"
+            )
+            return await self._orchestrate_complex_query(query, start_time)
+
+        return await self._process_query_direct(query, start_time)
+
+    async def _process_query_direct(
+        self, query: SovereignQuery, start_time: float
+    ) -> SovereignResult:
+        """Direct 5-stage query pipeline (bypasses orchestrator)."""
         result = SovereignResult(query_id=query.id)
 
         # STAGE 0: Select compute tier

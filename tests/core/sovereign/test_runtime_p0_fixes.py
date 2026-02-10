@@ -280,7 +280,10 @@ class TestReasoningTimeAssigned:
 
         from core.sovereign.runtime_core import SovereignRuntime
 
-        source = inspect.getsource(SovereignRuntime._process_query)
+        # After Phase 18.1 refactor, _process_query is a router that delegates
+        # to _process_query_direct (direct pipeline) or _orchestrate_complex_query.
+        # The direct pipeline contains the update_reasoning_stats call.
+        source = inspect.getsource(SovereignRuntime._process_query_direct)
         assert "update_reasoning_stats" in source, (
             "reasoning stats should be tracked via metrics.update_reasoning_stats()"
         )
