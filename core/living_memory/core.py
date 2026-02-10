@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -28,6 +29,12 @@ import numpy as np
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
+
+# Windows-compatible default storage path
+if sys.platform == "win32":
+    _DEFAULT_STORAGE = Path.home() / ".bizra" / "memory"
+else:
+    _DEFAULT_STORAGE = Path("/var/lib/bizra/memory")
 
 logger = logging.getLogger(__name__)
 
@@ -258,11 +265,14 @@ class LivingMemoryCore:
         max_entries: int = 100_000,
         ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD,
     ):
-        self.storage_path = storage_path or Path("/var/lib/bizra/memory")
+        self.storage_path = storage_path or _DEFAULT_STORAGE
         self.embedding_fn = embedding_fn
         self.llm_fn = llm_fn
         self.max_entries = max_entries
         self.ihsan_threshold = ihsan_threshold
+
+        # SQLite persistence backend (lazy init)
+        self._store: Optional["SQLiteMemoryStore"] = None
 
         # Memory stores by type
         self._memories: Dict[str, MemoryEntry] = {}
@@ -285,39 +295,61 @@ class LivingMemoryCore:
         # Create storage directory
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-        # Load persisted memories
+        # Initialize SQLite backend
+        from .persistence import SQLiteMemoryStore
+
+        db_path = self.storage_path / "memory.db"
+        self._store = SQLiteMemoryStore(db_path)
+        self._store.initialize()
+
+        # Auto-migrate from JSONL if legacy file exists
+        jsonl_file = self.storage_path / "memories.jsonl"
+        if jsonl_file.exists() and not db_path.exists():
+            logger.info("Migrating from JSONL to SQLite...")
+            self._store.migrate_from_jsonl(jsonl_file)
+
+        # Load persisted memories from SQLite
         await self._load_memories()
 
         self._initialized = True
         logger.info(f"Living Memory initialized with {len(self._memories)} entries")
 
     async def _load_memories(self) -> None:
-        """Load memories from persistent storage."""
-        memory_file = self.storage_path / "memories.jsonl"
-        if not memory_file.exists():
+        """Load memories from SQLite persistent storage."""
+        if self._store is None:
             return
 
         try:
-            with open(memory_file, "r") as f:
-                for line in f:
-                    if line.strip():
-                        data = json.loads(line)
-                        entry = MemoryEntry.from_dict(data)
-                        self._memories[entry.id] = entry
-                        self._type_index[entry.memory_type].add(entry.id)
+            loaded = self._store.load_all()  # Dict[str, MemoryEntry]
+            for entry_id, entry in loaded.items():
+                self._memories[entry_id] = entry
+                self._type_index[entry.memory_type].add(entry_id)
+                if entry.embedding is not None:
+                    self._embedding_index[entry_id] = entry.embedding
         except Exception as e:
-            logger.error(f"Failed to load memories: {e}")
+            logger.error(f"Failed to load memories from SQLite: {e}")
 
     async def _save_memories(self) -> None:
-        """Persist memories to storage."""
-        memory_file = self.storage_path / "memories.jsonl"
+        """Persist memories to SQLite storage."""
+        if self._store is None:
+            return
+
         try:
-            with open(memory_file, "w") as f:
-                for entry in self._memories.values():
-                    if entry.state != MemoryState.DELETED:
-                        f.write(json.dumps(entry.to_dict()) + "\n")
+            active = [
+                e for e in self._memories.values()
+                if e.state != MemoryState.DELETED
+            ]
+            self._store.save_batch(active)
         except Exception as e:
-            logger.error(f"Failed to save memories: {e}")
+            logger.error(f"Failed to save memories to SQLite: {e}")
+
+    async def _save_entry(self, entry: MemoryEntry) -> None:
+        """Persist a single entry (incremental save)."""
+        if self._store is not None:
+            try:
+                self._store.save_entry(entry)
+            except Exception as e:
+                logger.error(f"Failed to save entry {entry.id[:8]}: {e}")
 
     def _generate_id(self, content: str) -> str:
         """Generate unique ID for memory entry."""
@@ -400,6 +432,9 @@ class LivingMemoryCore:
         # Store
         self._memories[entry_id] = entry
         self._type_index[memory_type].add(entry_id)
+
+        # Persist immediately
+        await self._save_entry(entry)
 
         # Add to working memory if episodic or working type
         if memory_type in (MemoryType.EPISODIC, MemoryType.WORKING):
