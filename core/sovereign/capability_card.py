@@ -10,11 +10,14 @@ and include expiration dates.
 
 import hashlib
 import json
+import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # Try to import cryptography for Ed25519 signatures
 try:
@@ -389,6 +392,7 @@ class CardIssuer:
                 public_key.verify(signature, canonical)
                 return True
             except Exception:
+                logger.error("Ed25519 signature verification failed for card %s", card.model_id, exc_info=True)
                 return False
 
         return False

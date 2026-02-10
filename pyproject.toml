@@ -115,9 +115,9 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 55% floor enforced in CI (ratcheted from 50% after P0 security sprint)
+# Coverage gate: 60% floor enforced in CI (ratcheted from 55% after Phase 17 hardening)
 # Target: 95% (Ihsān threshold) — reached incrementally
-fail_under = 55
+fail_under = 60
 show_missing = true
 precision = 2
 

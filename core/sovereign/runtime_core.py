@@ -777,7 +777,7 @@ class SovereignRuntime:
                 )
                 self.logger.debug("Registered PEK state provider")
             except Exception:
-                pass
+                self.logger.warning("Failed to register PEK state provider", exc_info=True)
 
         # OpportunityPipeline — SAFETY priority (rate limiter must survive restarts)
         try:
@@ -859,21 +859,21 @@ class SovereignRuntime:
             try:
                 await self._pek.stop()
             except Exception:
-                pass
+                self.logger.debug("PEK stop failed during shutdown", exc_info=True)
 
         # Save user context (conversation history + profile)
         if self._user_context:
             try:
                 self._user_context.save()
             except Exception:
-                pass
+                self.logger.warning("Failed to save user context during shutdown", exc_info=True)
 
         # Flush impact tracker dirty state before memory coordinator stop
         if self._impact_tracker and hasattr(self._impact_tracker, "flush"):
             try:
                 self._impact_tracker.flush()
             except Exception:
-                pass
+                self.logger.warning("Failed to flush impact tracker during shutdown", exc_info=True)
 
         # Stop memory coordinator (performs final save including all providers)
         # LCT-01 FIX: MemoryCoordinator.stop() already checkpoints all state.
@@ -1355,7 +1355,7 @@ class SovereignRuntime:
                     "achievements": len(self._impact_tracker.achievements),
                 }
             except Exception:
-                pass
+                self.logger.debug("Failed to collect sovereignty info", exc_info=True)
 
         return {
             "identity": identity_info,

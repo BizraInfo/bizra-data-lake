@@ -81,7 +81,7 @@ enum BackendState {
         model_info: LoadedModelInfo,
         // In real implementation: llama_model, llama_context
     },
-    #[allow(dead_code)] // Valid error state for model loading failures
+    #[allow(dead_code)] // Scaffolded for model-loading error propagation
     Error(String),
 }
 

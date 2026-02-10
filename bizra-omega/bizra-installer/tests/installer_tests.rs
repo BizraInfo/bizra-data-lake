@@ -13,7 +13,7 @@ mod hardware {
     // This is a common pattern for binary-only crates.
 
     #[derive(Clone, Debug)]
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Fields used via construction; methods read derived state
     struct HardwareProfile {
         cpu_cores: usize,
         ram_gb: f64,
@@ -180,7 +180,7 @@ mod hardware {
 
 mod model_cache {
     #[derive(Clone, Debug)]
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Fields used via construction; methods read derived state
     struct ModelSpec {
         name: String,
         desc: String,

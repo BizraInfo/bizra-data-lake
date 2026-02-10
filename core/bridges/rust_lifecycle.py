@@ -187,6 +187,7 @@ class RustAPIClient:
                 with urllib.request.urlopen(url, timeout=self.timeout) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
+                logger.warning("GET %s failed (urllib fallback)", url, exc_info=True)
                 return 0, None
 
     async def _post(
@@ -227,6 +228,7 @@ class RustAPIClient:
                 with urllib.request.urlopen(req, timeout=actual_timeout) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
+                logger.warning("POST %s failed (urllib fallback)", url, exc_info=True)
                 return 0, None
 
     async def health_check(self) -> RustServiceHealth:

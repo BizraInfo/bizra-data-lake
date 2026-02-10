@@ -600,7 +600,7 @@ class TestBizraNexusIntegration:
             # Trigger a query (may fail, but should still emit event)
             try:
                 nexus.query("test query", engines=["FileIndex"])
-            except:
+            except Exception:
                 pass
         
         # Should have received query start event
