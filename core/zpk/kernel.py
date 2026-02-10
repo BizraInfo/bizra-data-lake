@@ -702,6 +702,7 @@ class ZeroPointKernel:
                 source_uri=str(manifest.get("source_uri", "lkg")),
             )
         except Exception:
+            logger.warning("LKG manifest load failed from %s", self._lkg_manifest_path, exc_info=True)
             return None
 
     def _load_or_create_identity(self) -> tuple[str, str]:

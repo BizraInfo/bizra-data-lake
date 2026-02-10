@@ -152,7 +152,7 @@ class SingularityQueryEngine:
                     with open(processed_file, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
                     return content[:max_chars] + "..." if len(content) > max_chars else content
-                except:
+                except Exception:
                     pass
         
         return "[Content stored in embedding index]"

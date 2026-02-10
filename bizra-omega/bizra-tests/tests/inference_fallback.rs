@@ -70,14 +70,12 @@ impl Backend for MockSuccessBackend {
 }
 
 /// Mock backend that always fails
-#[allow(dead_code)]
 struct MockFailingBackend {
     name: String,
     error_message: String,
     call_count: AtomicUsize,
 }
 
-#[allow(dead_code)]
 impl MockFailingBackend {
     fn new(name: &str, error_message: &str) -> Self {
         Self {
@@ -87,6 +85,7 @@ impl MockFailingBackend {
         }
     }
 
+    #[allow(dead_code)] // Test utility for call-count verification
     fn calls(&self) -> usize {
         self.call_count.load(Ordering::SeqCst)
     }
@@ -112,13 +111,11 @@ impl Backend for MockFailingBackend {
 }
 
 /// Mock backend that times out (sleeps forever)
-#[allow(dead_code)]
 struct MockTimeoutBackend {
     name: String,
     call_count: AtomicUsize,
 }
 
-#[allow(dead_code)]
 impl MockTimeoutBackend {
     fn new(name: &str) -> Self {
         Self {
@@ -127,6 +124,7 @@ impl MockTimeoutBackend {
         }
     }
 
+    #[allow(dead_code)] // Test utility for call-count verification
     fn calls(&self) -> usize {
         self.call_count.load(Ordering::SeqCst)
     }
@@ -150,64 +148,6 @@ impl Backend for MockTimeoutBackend {
 
     async fn health_check(&self) -> bool {
         true
-    }
-}
-
-/// Mock backend that fails N times then succeeds
-#[allow(dead_code)]
-struct MockRetryBackend {
-    name: String,
-    fail_count: AtomicUsize,
-    max_failures: usize,
-    call_count: AtomicUsize,
-}
-
-#[allow(dead_code)]
-impl MockRetryBackend {
-    fn new(name: &str, max_failures: usize) -> Self {
-        Self {
-            name: name.to_string(),
-            fail_count: AtomicUsize::new(0),
-            max_failures,
-            call_count: AtomicUsize::new(0),
-        }
-    }
-
-    fn calls(&self) -> usize {
-        self.call_count.load(Ordering::SeqCst)
-    }
-}
-
-#[async_trait]
-impl Backend for MockRetryBackend {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    async fn generate(
-        &self,
-        request: &InferenceRequest,
-    ) -> Result<InferenceResponse, BackendError> {
-        self.call_count.fetch_add(1, Ordering::SeqCst);
-        let failures = self.fail_count.fetch_add(1, Ordering::SeqCst);
-
-        if failures < self.max_failures {
-            Err(BackendError::Connection("Transient failure".into()))
-        } else {
-            Ok(InferenceResponse {
-                request_id: request.id.clone(),
-                text: "Success after retries".into(),
-                model: self.name.clone(),
-                tier: ModelTier::Edge,
-                completion_tokens: 10,
-                duration_ms: 10,
-                tokens_per_second: 1000.0,
-            })
-        }
-    }
-
-    async fn health_check(&self) -> bool {
-        self.fail_count.load(Ordering::SeqCst) >= self.max_failures
     }
 }
 

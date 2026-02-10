@@ -322,7 +322,7 @@ class ToxicityDetector:
                 score = self.toxicity_fn(text)
                 return score, []
             except Exception:
-                pass
+                logger.warning("Toxicity classifier failed, falling back to heuristic", exc_info=True)
 
         return self._heuristic_toxicity(text)
 

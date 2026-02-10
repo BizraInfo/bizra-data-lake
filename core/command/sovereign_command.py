@@ -312,7 +312,7 @@ class InferenceGateway:
                     logger.info(f"Selected backend: {backend.name}")
                     return backend
             except Exception:
-                pass
+                logger.debug("Backend %s health check failed", backend.name, exc_info=True)
         self._active = self.backends[-1]
         return self._active
     
