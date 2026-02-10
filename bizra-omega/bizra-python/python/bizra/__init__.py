@@ -21,6 +21,19 @@ try:
         NodeIdentity,
         Constitution,
         PCIEnvelope,
+        # Inference gateway (Phase 18: Python↔Rust unified inference path)
+        InferenceGateway,
+        InferenceResponse,
+        # Inference types
+        TaskComplexity,
+        ModelTier,
+        ModelSelector,
+        # Gate chain
+        GateChain,
+        # Autopoiesis
+        PatternMemory,
+        PreferenceTracker,
+        # Functions
         domain_separated_digest,
         get_ihsan_threshold,
         get_snr_threshold,
@@ -103,6 +116,17 @@ __all__ = [
     "NodeIdentity",
     "Constitution",
     "PCIEnvelope",
+    # Inference gateway (Phase 18)
+    "InferenceGateway",
+    "InferenceResponse",
+    "TaskComplexity",
+    "ModelTier",
+    "ModelSelector",
+    "GateChain",
+    # Autopoiesis
+    "PatternMemory",
+    "PreferenceTracker",
+    # Functions
     "domain_separated_digest",
     "get_ihsan_threshold",
     "get_snr_threshold",
