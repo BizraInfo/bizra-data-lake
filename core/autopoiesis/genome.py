@@ -141,7 +141,7 @@ class AgentGenome:
             name="ihsan_threshold",
             gene_type=GeneType.CONSTITUTION,
             value=UNIFIED_IHSAN_THRESHOLD,
-            min_value=0.95,  # Never below 0.95
+            min_value=UNIFIED_IHSAN_THRESHOLD,  # Never below production threshold
             max_value=1.0,
             immutable=True,  # Cannot be mutated
         )
@@ -149,7 +149,7 @@ class AgentGenome:
             name="snr_threshold",
             gene_type=GeneType.CONSTITUTION,
             value=UNIFIED_SNR_THRESHOLD,
-            min_value=0.85,
+            min_value=UNIFIED_SNR_THRESHOLD,
             max_value=1.0,
             immutable=True,
         )
