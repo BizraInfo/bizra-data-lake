@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "envelope_id": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-02-10T19:30:00Z",
+  "nonce": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "expiry": "2026-02-10T20:30:00Z",
+  "sender": {
+    "agent_type": "PAT",
+    "agent_id": "node-genesis-01",
+    "public_key": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  },
+  "payload": {
+    "action": "verify_genesis",
+    "data": {"genesis_block": "block_0"},
+    "policy_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "state_hash": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+  },
+  "metadata": {
+    "ihsan_score": 0.97,
+    "snr_score": 0.95,
+    "urgency": "STANDARD"
+  },
+  "genesis_hash": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+  "signature": {
+    "algorithm": "ed25519",
+    "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "signed_fields": ["version", "envelope_id", "timestamp", "nonce", "sender", "payload", "metadata"]
+  }
+}

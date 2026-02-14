@@ -20,10 +20,9 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass
-from typing import Awaitable, Callable, List, Optional
+from typing import Awaitable, Callable, Optional
 
 from ._types import BatchingMetrics
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # REQUEST BATCHING (P0-P1 OPTIMIZATION)
@@ -83,7 +82,7 @@ class BatchingInferenceQueue:
         self.MAX_BATCH_SIZE: int = max_batch_size
         self.MAX_WAIT_MS: int = max_wait_ms
 
-        self._queue: List[PendingRequest] = []
+        self._queue: list[PendingRequest] = []
         self._lock: asyncio.Lock = asyncio.Lock()
         self._batch_event: asyncio.Event = asyncio.Event()
         self._processor_task: Optional[asyncio.Task[None]] = None
@@ -167,7 +166,7 @@ class BatchingInferenceQueue:
             async with self._lock:
                 if not self._queue:
                     continue
-                batch: List[PendingRequest] = self._queue[: self.MAX_BATCH_SIZE]
+                batch: list[PendingRequest] = self._queue[: self.MAX_BATCH_SIZE]
                 self._queue = self._queue[self.MAX_BATCH_SIZE :]
 
             # Process batch IN PARALLEL (key optimization)

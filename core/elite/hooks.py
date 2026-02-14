@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import asyncio
 import functools
-import hashlib
 import logging
 import time
 import uuid
@@ -40,8 +39,6 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
-    List,
     Optional,
     TypeVar,
     Union,
@@ -54,7 +51,6 @@ from core.integration.constants import (
 
 logger = logging.getLogger(__name__)
 
-
 # ============================================================================
 # TYPES
 # ============================================================================
@@ -63,8 +59,8 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 # Hook function types
-SyncHook = Callable[[Dict[str, Any]], Dict[str, Any]]
-AsyncHook = Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]
+SyncHook = Callable[[dict[str, Any]], dict[str, Any]]
+AsyncHook = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 HookFunction = Union[SyncHook, AsyncHook]
 
 
@@ -76,6 +72,7 @@ class HookPhase(str, Enum):
     EXECUTE = "execute"  # The actual operation
     POST_EXECUTE = "post_execute"  # After execution (cleanup)
     POST_VALIDATE = "post_validate"  # Final validation (quality check)
+    DESKTOP_INVOKE = "desktop_invoke"  # Desktop bridge command (AHK → TCP)
 
 
 class HookPriority(Enum):
@@ -152,7 +149,7 @@ class FATEScore:
         }
         return min(scores, key=lambda k: scores[k])
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize score."""
         return {
             "fidelity": self.fidelity,
@@ -187,20 +184,20 @@ class HookContext:
     operation_type: str = "unknown"
 
     # Input/output data
-    input_data: Dict[str, Any] = field(default_factory=dict)
-    output_data: Dict[str, Any] = field(default_factory=dict)
+    input_data: dict[str, Any] = field(default_factory=dict)
+    output_data: dict[str, Any] = field(default_factory=dict)
 
     # FATE validation
     fate_score: Optional[FATEScore] = None
 
     # Audit trail
-    hook_trace: List[str] = field(default_factory=list)
+    hook_trace: list[str] = field(default_factory=list)
 
     # Error state
     error: Optional[str] = None
 
     # Metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def record_hook(self, hook_name: str, phase: HookPhase) -> None:
         """Record hook execution for audit trail."""
@@ -209,23 +206,23 @@ class HookContext:
         self.hook_trace.append(entry)
 
     def compute_digest(self) -> str:
-        """Compute SHA-256 digest of context for integrity verification."""
+        """Compute BLAKE3 digest of context for integrity verification (SEC-001)."""
         import json
+
+        from core.proof_engine.canonical import hex_digest
 
         content = json.dumps(
             {
                 "execution_id": self.execution_id,
                 "timestamp": self.timestamp.isoformat(),
                 "operation_name": self.operation_name,
-                "input_hash": hashlib.sha256(str(self.input_data).encode()).hexdigest()[
-                    :16
-                ],
+                "input_hash": hex_digest(str(self.input_data).encode())[:16],
             },
             sort_keys=True,
         )
-        return hashlib.sha256(content.encode()).hexdigest()
+        return hex_digest(content.encode())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize context."""
         return {
             "execution_id": self.execution_id,
@@ -246,11 +243,11 @@ class HookResult:
 
     success: bool
     context: HookContext
-    phase_results: Dict[str, bool] = field(default_factory=dict)
+    phase_results: dict[str, bool] = field(default_factory=dict)
     execution_time_ms: float = 0.0
     blocked_by: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize result."""
         return {
             "success": self.success,
@@ -293,7 +290,7 @@ class HookRegistry:
     """
 
     def __init__(self):
-        self._hooks: Dict[HookPhase, List[RegisteredHook]] = {
+        self._hooks: dict[HookPhase, list[RegisteredHook]] = {
             phase: [] for phase in HookPhase
         }
         self._lock = asyncio.Lock()
@@ -342,7 +339,7 @@ class HookRegistry:
             self._hooks[phase] = [h for h in self._hooks[phase] if h.name != name]
         return True
 
-    def get_hooks(self, phase: HookPhase) -> List[RegisteredHook]:
+    def get_hooks(self, phase: HookPhase) -> list[RegisteredHook]:
         """Get all enabled hooks for a phase."""
         return [h for h in self._hooks[phase] if h.enabled]
 
@@ -360,7 +357,7 @@ class HookRegistry:
                 if hook.name == name:
                     hook.enabled = False
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get registry statistics."""
         stats = {
             "total_hooks": sum(len(hooks) for hooks in self._hooks.values()),
@@ -416,7 +413,7 @@ class FATEGate:
         self.snr_threshold = snr_threshold
 
         # Validation history for trend analysis
-        self._history: List[FATEScore] = []
+        self._history: list[FATEScore] = []
         self._max_history = 100
 
         # Statistics
@@ -598,7 +595,7 @@ class FATEGate:
 
         return max(0.0, min(1.0, base_score))
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get gate statistics."""
         avg_score = 0.0
         if self._history:
@@ -644,12 +641,12 @@ class HookExecutor:
     async def execute(
         self,
         operation: Callable[..., Any],
-        input_data: Dict[str, Any],
+        input_data: dict[str, Any],
         operation_name: str = "",
         operation_type: str = "unknown",
         declared_intent: Optional[str] = None,
         snr_score: Optional[float] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> HookResult:
         """
         Execute an operation with full hook chain.
@@ -658,7 +655,7 @@ class HookExecutor:
             operation: The operation to execute (sync or async)
             input_data: Input data for the operation
             operation_name: Name of the operation
-            operation_type: Type classification
+            operation_type: type classification
             declared_intent: Stated purpose
             snr_score: Pre-computed SNR
             metadata: Additional context
@@ -795,7 +792,7 @@ class HookExecutor:
         self,
         success: bool,
         context: HookContext,
-        phase_results: Dict[str, bool],
+        phase_results: dict[str, bool],
         start_time: float,
         blocked_by: Optional[str] = None,
     ) -> HookResult:
@@ -908,7 +905,7 @@ def register_hook(
     _get_global_registry().register(name, phase, function, priority, description)
 
 
-def get_hook_stats() -> Dict[str, Any]:
+def get_hook_stats() -> dict[str, Any]:
     """Get global hook statistics."""
     return _get_global_registry().get_stats()
 
@@ -918,7 +915,7 @@ def get_hook_stats() -> Dict[str, Any]:
 # ============================================================================
 
 
-def _logging_hook(data: Dict[str, Any]) -> Dict[str, Any]:
+def _logging_hook(data: dict[str, Any]) -> dict[str, Any]:
     """Built-in logging hook."""
     context: HookContext = data["context"]
     logger.debug(
@@ -928,7 +925,7 @@ def _logging_hook(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def _metrics_hook(data: Dict[str, Any]) -> Dict[str, Any]:
+def _metrics_hook(data: dict[str, Any]) -> dict[str, Any]:
     """Built-in metrics collection hook."""
     context: HookContext = data["context"]
     context.metadata["_metrics"] = {
@@ -962,7 +959,6 @@ def _register_builtin_hooks():
 
 # Auto-register on import
 _register_builtin_hooks()
-
 
 # ============================================================================
 # INTEGRATION WITH NTU

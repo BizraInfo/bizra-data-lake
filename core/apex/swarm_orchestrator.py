@@ -41,10 +41,9 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Deque, Dict, List, Optional, Set
+from typing import Any, Callable, Deque, Optional
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTANTS (Standing on Giants)
@@ -78,7 +77,6 @@ CPU_SCALE_DOWN_THRESHOLD = 0.40
 # Memory threshold for scaling
 MEMORY_SCALE_UP_THRESHOLD = 0.85
 MEMORY_SCALE_DOWN_THRESHOLD = 0.50
-
 
 # =============================================================================
 # ENUMS
@@ -136,7 +134,7 @@ class AgentConfig:
 
     agent_type: str
     name: str
-    capabilities: Set[str] = field(default_factory=set)
+    capabilities: set[str] = field(default_factory=set)
 
     # Resource allocation
     cpu_limit: float = 1.0
@@ -152,7 +150,7 @@ class AgentConfig:
     ihsan_threshold: float = 0.95
 
     # Environment (secrets from env vars, not hardcoded)
-    env_vars: Dict[str, str] = field(default_factory=dict)
+    env_vars: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -233,7 +231,7 @@ class Swarm:
             name="default", agent_config=AgentConfig(agent_type="default", name="agent")
         )
     )
-    agents: Dict[str, AgentInstance] = field(default_factory=dict)
+    agents: dict[str, AgentInstance] = field(default_factory=dict)
 
     # State
     is_running: bool = False
@@ -263,7 +261,7 @@ class ScalingDecision:
     target_count: int
     current_count: int
     reason: str
-    metrics: Dict[str, float] = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -275,9 +273,9 @@ class HealthReport:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     overall_health: HealthStatus = HealthStatus.UNKNOWN
     availability: float = 0.0
-    agent_statuses: Dict[str, HealthStatus] = field(default_factory=dict)
-    issues: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
+    agent_statuses: dict[str, HealthStatus] = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
 
 
 # =============================================================================
@@ -297,8 +295,8 @@ class HealthMonitor:
 
     def __init__(self, check_interval: int = HEALTH_CHECK_INTERVAL):
         self.check_interval = check_interval
-        self._health_history: Dict[str, Deque[HealthStatus]] = {}
-        self._check_callbacks: Dict[str, Callable] = {}
+        self._health_history: dict[str, Deque[HealthStatus]] = {}
+        self._check_callbacks: dict[str, Callable] = {}
 
     def register_health_check(self, agent_id: str, callback: Callable):
         """Register health check callback for agent."""
@@ -399,8 +397,8 @@ class ScalingManager:
     """
 
     def __init__(self):
-        self._last_scale_up: Dict[str, datetime] = {}
-        self._last_scale_down: Dict[str, datetime] = {}
+        self._last_scale_up: dict[str, datetime] = {}
+        self._last_scale_down: dict[str, datetime] = {}
         self._scaling_history: Deque[ScalingDecision] = deque(maxlen=100)
 
     def decide_scaling(self, swarm: Swarm) -> ScalingDecision:
@@ -561,7 +559,7 @@ class SwarmOrchestrator:
         self.health_monitor = HealthMonitor()
         self.scaling_manager = ScalingManager()
 
-        self._swarms: Dict[str, Swarm] = {}
+        self._swarms: dict[str, Swarm] = {}
         self._agent_factory: Optional[Callable[[AgentConfig], AgentInstance]] = None
 
         # Background tasks
@@ -573,7 +571,7 @@ class SwarmOrchestrator:
         logger.info("SwarmOrchestrator initialized")
 
     def set_agent_factory(self, factory: Callable[[AgentConfig], AgentInstance]):
-        """Set the factory function for creating agents."""
+        """set the factory function for creating agents."""
         self._agent_factory = factory
 
     # -------------------------------------------------------------------------
@@ -756,7 +754,7 @@ class SwarmOrchestrator:
     # STATUS & METRICS
     # -------------------------------------------------------------------------
 
-    def get_swarm_status(self, swarm_id: str) -> Optional[Dict[str, Any]]:
+    def get_swarm_status(self, swarm_id: str) -> Optional[dict[str, Any]]:
         """Get status of a swarm."""
         swarm = self._swarms.get(swarm_id)
         if not swarm:
@@ -787,7 +785,7 @@ class SwarmOrchestrator:
             ],
         }
 
-    def get_all_swarms(self) -> List[Dict[str, Any]]:
+    def get_all_swarms(self) -> list[dict[str, Any]]:
         """Get status of all swarms."""
         return [
             {

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import hashlib
 import inspect
 import json
 import logging
@@ -19,7 +18,7 @@ import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Awaitable, Callable, Optional, Union
 from urllib.parse import urljoin, urlparse
 from urllib.request import urlopen
 
@@ -33,7 +32,7 @@ from core.pci.crypto import (
 
 logger = logging.getLogger("zpk.kernel")
 
-TPMQuoteProvider = Callable[[], "Union[Dict[str, Any], Awaitable[Dict[str, Any]]]"]
+TPMQuoteProvider = Callable[[], "Union[dict[str, Any], Awaitable[dict[str, Any]]]"]
 
 
 @dataclass
@@ -52,7 +51,7 @@ class ZPKConfig:
 class ZPKPolicy:
     """Policy gate rules applied before execution."""
 
-    allowed_versions: Optional[Set[str]] = None
+    allowed_versions: Optional[set[str]] = None
     min_policy_version: int = 1
     min_ihsan_policy: float = 0.95
     ruleset_version: str = "zpk-policy-v1"
@@ -76,10 +75,10 @@ class AttestationReceipt:
     device_id: str
     pubkey: str
     tpm_quote: Optional[str]
-    pcrs: Optional[Dict[str, Any]]
+    pcrs: Optional[dict[str, Any]]
     timestamp: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "device_id": self.device_id,
             "pubkey": self.pubkey,
@@ -97,7 +96,7 @@ class AttestationChallenge:
     issued_at: float
     expires_at: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "challenge_id": self.challenge_id,
             "verifier_id": self.verifier_id,
@@ -116,11 +115,11 @@ class AttestationResponse:
     pubkey: str
     timestamp: float
     tpm_quote: Optional[str]
-    pcrs: Optional[Dict[str, Any]]
+    pcrs: Optional[dict[str, Any]]
     digest: str
     signature: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "challenge_id": self.challenge_id,
             "verifier_id": self.verifier_id,
@@ -144,7 +143,7 @@ class FetchReceipt:
     success: bool
     error: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "url": self.url,
             "hash": self.hash,
@@ -159,9 +158,9 @@ class FetchReceipt:
 class PolicyReceipt:
     ruleset_version: str
     decision: str
-    reasons: List[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ruleset_version": self.ruleset_version,
             "decision": self.decision,
@@ -174,10 +173,10 @@ class ExecutionReceipt:
     worker_version: str
     exit_code: int
     runtime_ms: float
-    health: Dict[str, Any]
+    health: dict[str, Any]
     rollback_used: bool
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "worker_version": self.worker_version,
             "exit_code": self.exit_code,
@@ -227,7 +226,9 @@ class ZeroPointKernel:
         self._lkg_manifest_path = self.state_dir / self.config.lkg_manifest_relpath
         self._lkg_worker_path = self.state_dir / self.config.lkg_worker_relpath
 
-        self._identity_private_key, self._identity_public_key = self._load_or_create_identity()
+        self._identity_private_key, self._identity_public_key = (
+            self._load_or_create_identity()
+        )
         self._device_id = self._compute_device_id(self._identity_public_key)
         self._last_receipt_hash = self._load_last_receipt_hash()
 
@@ -302,7 +303,9 @@ class ZeroPointKernel:
             reason="execution_failed",
         )
 
-    async def _collect_tpm_attestation(self) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
+    async def _collect_tpm_attestation(
+        self,
+    ) -> tuple[Optional[str], Optional[dict[str, Any]]]:
         """Collect optional TPM quote/pcrs via pluggable provider."""
         if not self._tpm_quote_provider:
             return None, None
@@ -332,11 +335,11 @@ class ZeroPointKernel:
     ) -> AttestationChallenge:
         """Issue a time-bounded remote attestation challenge."""
         issued_at = now if now is not None else time.time()
+        from core.proof_engine.canonical import hex_digest
+
         nonce_seed = f"{self._device_id}:{verifier_id}:{issued_at}:{self._last_receipt_hash or ''}"
-        nonce = hashlib.sha256(nonce_seed.encode("utf-8")).hexdigest()
-        challenge_id = hashlib.sha256(
-            f"challenge:{nonce}:{issued_at}".encode("utf-8")
-        ).hexdigest()[:24]
+        nonce = hex_digest(nonce_seed.encode("utf-8"))
+        challenge_id = hex_digest(f"challenge:{nonce}:{issued_at}".encode("utf-8"))[:24]
         return AttestationChallenge(
             challenge_id=challenge_id,
             verifier_id=verifier_id,
@@ -423,15 +426,21 @@ class ZeroPointKernel:
 
         return True, "ok"
 
-    async def _fetch_and_verify(self, manifest_uri: str) -> tuple[Optional[WorkerArtifact], FetchReceipt]:
+    async def _fetch_and_verify(
+        self, manifest_uri: str
+    ) -> tuple[Optional[WorkerArtifact], FetchReceipt]:
         """Fetch manifest + worker, then verify digest and detached signature."""
+        from core.proof_engine.canonical import hex_digest
+
         try:
             manifest_bytes = await self._fetch_bytes(manifest_uri)
             manifest = json.loads(manifest_bytes.decode("utf-8"))
 
-            worker_uri = self._resolve_worker_uri(manifest_uri, manifest.get("worker_uri", ""))
+            worker_uri = self._resolve_worker_uri(
+                manifest_uri, manifest.get("worker_uri", "")
+            )
             worker_bytes = await self._fetch_bytes(worker_uri)
-            worker_hash = hashlib.sha256(worker_bytes).hexdigest()
+            worker_hash = hex_digest(worker_bytes)
 
             expected_hash = str(manifest.get("worker_hash", ""))
             if not verify_digest_match(worker_hash, expected_hash):
@@ -445,7 +454,9 @@ class ZeroPointKernel:
                 )
 
             signature = str(manifest.get("worker_signature", ""))
-            signature_ok = verify_signature(worker_hash, signature, self.release_public_key_hex)
+            signature_ok = verify_signature(
+                worker_hash, signature, self.release_public_key_hex
+            )
             if not signature_ok:
                 return None, FetchReceipt(
                     url=worker_uri,
@@ -530,9 +541,11 @@ class ZeroPointKernel:
             manifest_path = Path(manifest_uri)
         return str((manifest_path.parent / worker_uri).resolve())
 
-    def _evaluate_policy(self, artifact: WorkerArtifact, policy: ZPKPolicy) -> PolicyReceipt:
+    def _evaluate_policy(
+        self, artifact: WorkerArtifact, policy: ZPKPolicy
+    ) -> PolicyReceipt:
         """Evaluate policy constraints before execution."""
-        reasons: List[str] = []
+        reasons: list[str] = []
 
         if (
             policy.allowed_versions is not None
@@ -556,7 +569,9 @@ class ZeroPointKernel:
             reasons=reasons,
         )
 
-    async def _execute_worker(self, artifact: WorkerArtifact, rollback_used: bool) -> ExecutionReceipt:
+    async def _execute_worker(
+        self, artifact: WorkerArtifact, rollback_used: bool
+    ) -> ExecutionReceipt:
         """
         Execute worker script with supervision and restart budget.
 
@@ -583,13 +598,30 @@ class ZeroPointKernel:
                 rollback_used=rollback_used,
             )
 
-        _FORBIDDEN_CALLS = frozenset({
-            "exec", "eval", "compile", "__import__", "breakpoint",
-            "globals", "locals", "vars", "delattr", "setattr",
-        })
-        _FORBIDDEN_ATTRS = frozenset({
-            "system", "popen", "subprocess", "Popen", "call", "check_output",
-        })
+        _FORBIDDEN_CALLS = frozenset(
+            {
+                "exec",
+                "eval",
+                "compile",
+                "__import__",
+                "breakpoint",
+                "globals",
+                "locals",
+                "vars",
+                "delattr",
+                "setattr",
+            }
+        )
+        _FORBIDDEN_ATTRS = frozenset(
+            {
+                "system",
+                "popen",
+                "subprocess",
+                "Popen",
+                "call",
+                "check_output",
+            }
+        )
 
         for node in ast.walk(tree):
             # Block bare exec/eval/compile calls
@@ -605,7 +637,10 @@ class ZeroPointKernel:
                         worker_version=artifact.version,
                         exit_code=1,
                         runtime_ms=0.0,
-                        health={"attempts": 0, "last_error": f"forbidden call: {name}()"},
+                        health={
+                            "attempts": 0,
+                            "last_error": f"forbidden call: {name}()",
+                        },
                         rollback_used=rollback_used,
                     )
                 if isinstance(func, ast.Attribute) and func.attr in _FORBIDDEN_ATTRS:
@@ -613,24 +648,35 @@ class ZeroPointKernel:
                         worker_version=artifact.version,
                         exit_code=1,
                         runtime_ms=0.0,
-                        health={"attempts": 0, "last_error": f"forbidden attr: {func.attr}"},
+                        health={
+                            "attempts": 0,
+                            "last_error": f"forbidden attr: {func.attr}",
+                        },
                         rollback_used=rollback_used,
                     )
 
         # ── Compile once (no exec of raw strings) ─────────────────────────
         code_obj = compile(tree, filename="<zpk-worker>", mode="exec")
-        _SAFE_BUILTINS = {
-            k: v for k, v in __builtins__.items()  # type: ignore[union-attr]
-            if k not in _FORBIDDEN_CALLS
-        } if isinstance(__builtins__, dict) else {
-            k: getattr(__builtins__, k) for k in dir(__builtins__)
-            if k not in _FORBIDDEN_CALLS and not k.startswith("_")
-        }
+        _SAFE_BUILTINS = (
+            {
+                k: v
+                for k, v in __builtins__.items()  # type: ignore[union-attr]
+                if k not in _FORBIDDEN_CALLS
+            }
+            if isinstance(__builtins__, dict)
+            else {
+                k: getattr(__builtins__, k)
+                for k in dir(__builtins__)
+                if k not in _FORBIDDEN_CALLS and not k.startswith("_")
+            }
+        )
 
         for attempt in range(1, attempts + 1):
             try:
-                namespace: Dict[str, Any] = {"__builtins__": _SAFE_BUILTINS}
-                exec(code_obj, namespace)  # nosec B102 — AST-validated + restricted builtins  # noqa: S102
+                namespace: dict[str, Any] = {"__builtins__": _SAFE_BUILTINS}
+                exec(
+                    code_obj, namespace
+                )  # nosec B102 — AST-validated + restricted builtins  # noqa: S102
                 entrypoint = namespace.get("main") or namespace.get("run")
                 if not callable(entrypoint):
                     raise RuntimeError("worker missing callable main/run entrypoint")
@@ -642,7 +688,9 @@ class ZeroPointKernel:
                 }
                 result = entrypoint(context)
                 if inspect.isawaitable(result):
-                    await asyncio.wait_for(result, timeout=self.config.worker_timeout_seconds)
+                    await asyncio.wait_for(
+                        result, timeout=self.config.worker_timeout_seconds
+                    )
                 elapsed_ms = (time.perf_counter() - start_all) * 1000
                 return ExecutionReceipt(
                     worker_version=artifact.version,
@@ -702,7 +750,11 @@ class ZeroPointKernel:
                 source_uri=str(manifest.get("source_uri", "lkg")),
             )
         except Exception:
-            logger.warning("LKG manifest load failed from %s", self._lkg_manifest_path, exc_info=True)
+            logger.warning(
+                "LKG manifest load failed from %s",
+                self._lkg_manifest_path,
+                exc_info=True,
+            )
             return None
 
     def _load_or_create_identity(self) -> tuple[str, str]:
@@ -728,8 +780,10 @@ class ZeroPointKernel:
 
     @staticmethod
     def _compute_device_id(public_key_hex: str) -> str:
+        from core.proof_engine.canonical import hex_digest
+
         host = socket.gethostname()
-        digest = hashlib.sha256(f"{public_key_hex}:{host}".encode("utf-8")).hexdigest()
+        digest = hex_digest(f"{public_key_hex}:{host}".encode("utf-8"))
         return f"zpk-{digest[:16]}"
 
     def _load_last_receipt_hash(self) -> Optional[str]:
@@ -750,7 +804,7 @@ class ZeroPointKernel:
                     continue
         return last_hash
 
-    async def _append_receipt(self, receipt_type: str, body: Dict[str, Any]) -> None:
+    async def _append_receipt(self, receipt_type: str, body: dict[str, Any]) -> None:
         """Append signed receipt to JSONL chain."""
         record = {
             "type": receipt_type,
@@ -787,6 +841,8 @@ class ZeroPointKernel:
                 logger.debug("Receipt event publish failed: %s", e)
 
     @staticmethod
-    def _digest_record(record: Dict[str, Any]) -> str:
+    def _digest_record(record: dict[str, Any]) -> str:
+        from core.proof_engine.canonical import hex_digest
+
         canonical = canonicalize_json(record, ensure_ascii=True)
-        return hashlib.sha256(canonical).hexdigest()
+        return hex_digest(canonical)

@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/receipt.schema.json",
+  "title": "BIZRA Receipt",
+  "description": "Universal audit primitive. Every verifier call, query, and tool execution produces a signed receipt. Standing on: Lamport (event ordering), Shannon (SNR).",
+  "type": "object",
+  "required": [
+    "receipt_id",
+    "timestamp",
+    "node_id",
+    "policy_version",
+    "status",
+    "snr",
+    "ihsan",
+    "decision",
+    "seal"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "description": "Unique identifier for this receipt",
+      "pattern": "^[a-f0-9]{8,64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of receipt creation"
+    },
+    "node_id": {
+      "type": "string",
+      "description": "Identifier of the node that produced this receipt"
+    },
+    "policy_version": {
+      "type": "string",
+      "description": "Version of the policy applied during this operation",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["accepted", "rejected", "amber_restricted", "pending", "quarantined"],
+      "description": "Outcome status of the operation"
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Hash digests of all inputs",
+      "properties": {
+        "query_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "policy_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "context_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Hash digests of all outputs",
+      "properties": {
+        "payload_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "graph_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "tool_calls": {
+      "type": "array",
+      "description": "Tool invocations during this operation",
+      "items": {
+        "type": "object",
+        "required": ["tool_name", "status"],
+        "properties": {
+          "tool_name": { "type": "string" },
+          "status": { "type": "string", "enum": ["success", "failed", "denied"] },
+          "duration_ms": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "claim_tags_summary": {
+      "type": "object",
+      "description": "Counts of claim tags by provenance category",
+      "properties": {
+        "design": { "type": "integer", "minimum": 0 },
+        "implemented": { "type": "integer", "minimum": 0 },
+        "measured": { "type": "integer", "minimum": 0 },
+        "target": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "snr": {
+      "type": "object",
+      "required": ["score"],
+      "description": "Signal-to-Noise Ratio computation result",
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "signal_mass": { "type": "number", "minimum": 0 },
+        "noise_mass": { "type": "number", "minimum": 0 },
+        "signal_components": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "noise_components": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      }
+    },
+    "ihsan": {
+      "type": "object",
+      "required": ["score", "threshold", "decision"],
+      "description": "Ihsan (excellence) quality gate result",
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "decision": { "type": "string", "enum": ["APPROVED", "REJECTED", "QUARANTINED"] },
+        "components": {
+          "type": "object",
+          "properties": {
+            "correctness": { "type": "number" },
+            "safety": { "type": "number" },
+            "efficiency": { "type": "number" },
+            "user_benefit": { "type": "number" }
+          }
+        },
+        "version": { "type": "string" }
+      }
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["APPROVED", "REJECTED", "QUARANTINED"],
+      "description": "Final decision. Non-empty reason_codes required on REJECTED/QUARANTINED."
+    },
+    "reason_codes": {
+      "type": "array",
+      "description": "Machine-readable rejection/quarantine reasons. Must be non-empty when decision != APPROVED.",
+      "items": { "type": "string" }
+    },
+    "gate_passed": {
+      "type": "string",
+      "description": "Name of the last gate passed (or the gate that rejected)"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Performance metrics for this operation",
+      "properties": {
+        "duration_ms": { "type": "number", "minimum": 0 },
+        "memory_bytes": { "type": "integer", "minimum": 0 },
+        "p99_us": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "seal": {
+      "type": "object",
+      "required": ["algorithm", "digest"],
+      "description": "Content-addressed seal of the receipt body",
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["blake3", "sha256"] },
+        "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "required": ["algorithm", "value", "public_key"],
+      "description": "Ed25519 signature over the seal digest",
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "value": { "type": "string", "pattern": "^[a-f0-9]{128}$" },
+        "public_key": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  },
+  "if": {
+    "properties": { "decision": { "enum": ["REJECTED", "QUARANTINED"] } }
+  },
+  "then": {
+    "required": ["reason_codes"],
+    "properties": {
+      "reason_codes": { "minItems": 1 }
+    }
+  }
+}

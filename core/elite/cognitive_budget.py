@@ -40,14 +40,13 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ============================================================================
 # DNA SIGNATURE CONSTANTS
@@ -62,7 +61,6 @@ DNA_COMPLETE = 9  # Completion/finalization
 # DNA-derived constants
 DNA_RATIO = (7 * 9) / (3 * 6)  # = 3.5 - depth amplification ratio
 DNA_HARMONY = (7 + 3 + 6 + 9) / 4  # = 6.25 - harmonic mean for budget scaling
-
 
 # ============================================================================
 # BUDGET CATEGORIES
@@ -113,7 +111,7 @@ class BudgetAllocation:
     # NTU integration
     ntu_window_size: int = 5
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize allocation."""
         return {
             "tier": self.tier.value,
@@ -129,7 +127,7 @@ class BudgetAllocation:
 
 
 # Tier specifications
-TIER_SPECS: Dict[BudgetTier, Dict[str, Any]] = {
+TIER_SPECS: dict[BudgetTier, dict[str, Any]] = {
     BudgetTier.NANO: {
         "time_budget_s": 1.0,
         "token_budget": 100,
@@ -182,7 +180,6 @@ TIER_SPECS: Dict[BudgetTier, Dict[str, Any]] = {
     },
 }
 
-
 # ============================================================================
 # TASK TYPES
 # ============================================================================
@@ -220,7 +217,7 @@ class TaskType(str, Enum):
 
 
 # Task type to tier mapping
-TASK_TIER_MAP: Dict[TaskType, BudgetTier] = {
+TASK_TIER_MAP: dict[TaskType, BudgetTier] = {
     # NANO
     TaskType.ECHO: BudgetTier.NANO,
     TaskType.CLASSIFY: BudgetTier.NANO,
@@ -244,7 +241,6 @@ TASK_TIER_MAP: Dict[TaskType, BudgetTier] = {
     TaskType.PROOF: BudgetTier.MEGA,
     TaskType.CONSENSUS: BudgetTier.MEGA,
 }
-
 
 # ============================================================================
 # COMPLEXITY ESTIMATION
@@ -274,7 +270,7 @@ class ComplexitySignal:
 
     # History signals
     previous_attempts: int = 0  # Failed attempts
-    snr_history: List[float] = field(default_factory=list)
+    snr_history: list[float] = field(default_factory=list)
 
     def compute_complexity_score(self) -> float:
         """
@@ -316,7 +312,7 @@ class ComplexitySignal:
 
         return max(0.0, min(1.0, score))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize signals."""
         return {
             "input_length": self.input_length,
@@ -361,24 +357,24 @@ class CognitiveBudgetAllocator:
         self.enable_adaptive = enable_adaptive
 
         # Allocation history for adaptation
-        self._history: List[Dict[str, Any]] = []
+        self._history: list[dict[str, Any]] = []
         self._max_history = 100
 
         # Statistics
         self._total_allocations = 0
-        self._tier_distribution: Dict[BudgetTier, int] = {t: 0 for t in BudgetTier}
+        self._tier_distribution: dict[BudgetTier, int] = {t: 0 for t in BudgetTier}
 
     def estimate_complexity(
         self,
         task_type: TaskType,
         input_text: str = "",
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> ComplexitySignal:
         """
         Estimate task complexity.
 
         Args:
-            task_type: Type of task
+            task_type: type of task
             input_text: Input text (for entropy calculation)
             context: Additional context
 
@@ -432,14 +428,14 @@ class CognitiveBudgetAllocator:
         self,
         task_type: TaskType,
         input_text: str = "",
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
         override_tier: Optional[BudgetTier] = None,
     ) -> BudgetAllocation:
         """
         Allocate cognitive budget for a task.
 
         Args:
-            task_type: Type of task
+            task_type: type of task
             input_text: Input text
             context: Additional context
             override_tier: Force specific tier
@@ -525,9 +521,9 @@ class CognitiveBudgetAllocator:
 
     def _modulate_by_dna(
         self,
-        specs: Dict[str, Any],
+        specs: dict[str, Any],
         complexity: ComplexitySignal,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Modulate budget specs using DNA pattern.
 
@@ -595,7 +591,7 @@ class CognitiveBudgetAllocator:
             f"token_eff={efficiency['token_efficiency']:.2f}, success={success}"
         )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get allocator statistics."""
         total = self._total_allocations or 1
 
@@ -711,7 +707,7 @@ class BudgetUsage:
             self.early_exit = True
             logger.info(f"Confidence threshold reached: {confidence:.4f}")
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get usage summary."""
         return {
             "tier": self.allocation.tier.value,
@@ -805,7 +801,7 @@ class NTUBudgetAdapter:
         self,
         task_type: TaskType,
         input_text: str = "",
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> BudgetAllocation:
         """
         Allocate budget with NTU-informed adjustments.
@@ -882,7 +878,7 @@ def create_allocator(
 def allocate_budget(
     task_type: TaskType,
     input_text: str = "",
-    context: Optional[Dict[str, Any]] = None,
+    context: Optional[dict[str, Any]] = None,
 ) -> BudgetAllocation:
     """
     Quick budget allocation using default allocator.

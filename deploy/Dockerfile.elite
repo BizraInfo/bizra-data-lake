@@ -61,6 +61,9 @@ COPY --chown=bizra:bizra core/ core/
 COPY --chown=bizra:bizra tests/ tests/
 COPY --chown=bizra:bizra pyproject.toml ./
 
+# Copy static data assets (Sci-Reasoning patterns for RDVE)
+COPY --chown=bizra:bizra data/sci_reasoning/ data/sci_reasoning/
+
 # Environment — no secrets, only operational config
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

@@ -52,8 +52,16 @@ for cat, exts in FILE_CATEGORIES.items():
 
 
 def get_file_hash(file_path: Path) -> str:
-    """Generate SHA-256 hash for deduplication."""
-    hasher = hashlib.sha256()
+    """Generate BLAKE3 hash for deduplication.
+
+    SEC-001 FIX: Migrated from SHA-256 to BLAKE3 for Rust interop.
+    Standing on Giants: O'Connor et al. (BLAKE3, 2020)
+    """
+    try:
+        import blake3
+        hasher = blake3.blake3()
+    except ImportError:
+        hasher = hashlib.sha256()  # Graceful fallback
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             hasher.update(chunk)
@@ -108,7 +116,7 @@ def save_checkpoint(full_hashes: Set[str], prefix8_hashes: Set[str], prefix16_ha
         "processed_hashes_full": list(full_hashes),
         "processed_hashes_prefix8": list(prefix8_hashes),
         "processed_hashes_prefix16": list(prefix16_hashes),
-        "hash_algo": "sha256",
+        "hash_algo": "blake3",
         "last_updated": datetime.now().isoformat(),
         "stats": stats
     }

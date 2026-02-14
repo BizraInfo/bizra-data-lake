@@ -1,0 +1,210 @@
+# BIZRA Node0 — Local Development Stack
+# Spins up all services for local development and testing.
+#
+# Usage:
+#   docker compose up              # Start all services
+#   docker compose up -d           # Detached mode
+#   docker compose up python-api   # Start Python API only
+#   docker compose logs -f         # Follow logs
+#   docker compose down            # Stop and remove containers
+#
+# Standing on Giants: Docker Compose v2, 12-Factor App
+# Constitutional Constraint: Ihsan >= 0.95, SNR >= 0.85
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # Python Sovereign API (Port 8000)
+  # ═══════════════════════════════════════════════════════════════
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bizra-python-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source for hot-reload in development
+      - ./core:/app/core:ro
+      - ./tests:/app/tests:ro
+      # Persistent data directories
+      - bizra-intake:/app/00_INTAKE
+      - bizra-gold:/app/04_GOLD
+    environment:
+      - BIZRA_ENV=development
+      - BIZRA_NODE_ID=node0-genesis-dev
+      - IHSAN_THRESHOLD=0.95
+      - SNR_THRESHOLD=0.85
+      - REDIS_URL=redis://redis:6379
+      - LLM_PRIMARY_HOST=${LLM_PRIMARY_HOST:-192.168.56.1}
+      - LLM_PRIMARY_PORT=${LLM_PRIMARY_PORT:-1234}
+      - LLM_FALLBACK_HOST=host.docker.internal
+      - LLM_FALLBACK_PORT=11434
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import core; print('ok')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - bizra-net
+
+  # ═══════════════════════════════════════════════════════════════
+  # Rust Omega API (Port 3001)
+  # ═══════════════════════════════════════════════════════════════
+  rust-api:
+    build:
+      context: bizra-omega
+      dockerfile: Dockerfile
+    container_name: bizra-rust-api
+    ports:
+      - "3001:3001"
+      - "7946:7946/udp"   # Federation gossip
+      - "8946:8946/tcp"   # Federation sync
+    environment:
+      - BIZRA_ENV=development
+      - BIZRA_NODE_ID=node0-genesis-dev
+      - RUST_LOG=info,bizra=debug
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - bizra-net
+
+  # ═══════════════════════════════════════════════════════════════
+  # Desktop Bridge (TCP JSON-RPC on Port 9742)
+  # ═══════════════════════════════════════════════════════════════
+  desktop-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bizra-desktop-bridge
+    command: ["python", "-m", "core.bridges.desktop_bridge"]
+    ports:
+      - "9742:9742"
+    volumes:
+      - ./core:/app/core:ro
+      - ./data:/app/data:ro
+      - bridge-receipts:/app/sovereign_state/bridge_receipts
+    environment:
+      - BIZRA_ENV=development
+      - BIZRA_NODE_ID=node0-genesis-dev
+      - IHSAN_THRESHOLD=0.95
+      - SNR_THRESHOLD=0.85
+      - BIZRA_RECEIPT_PRIVATE_KEY_HEX=${BIZRA_RECEIPT_PRIVATE_KEY_HEX:-}
+      - LLM_PRIMARY_HOST=${LLM_PRIMARY_HOST:-192.168.56.1}
+      - LLM_PRIMARY_PORT=${LLM_PRIMARY_PORT:-1234}
+    depends_on:
+      python-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,json;s=socket.socket();s.settimeout(3);s.connect(('127.0.0.1',9742));s.sendall(json.dumps({'jsonrpc':'2.0','method':'ping','id':1}).encode()+b'\\n');d=s.recv(4096);s.close();r=json.loads(d);assert r.get('result',{}).get('status')=='alive'"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - bizra-net
+
+  # ═══════════════════════════════════════════════════════════════
+  # Redis (Cache + Message Broker)
+  # ═══════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine@sha256:b9f6cf0cab55fdd102fd2182deeae150457943d33439d18c6e2fc5666d3228c1
+    container_name: bizra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bizra-net
+
+  # ═══════════════════════════════════════════════════════════════
+  # Prometheus (Metrics Collection)
+  # ═══════════════════════════════════════════════════════════════
+  prometheus:
+    image: prom/prometheus:v2.51.0@sha256:3005d32e0f508451439b3ac9281c56553220ab5076a59fbb26323798cfc17b13
+    container_name: bizra-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/monitoring/prometheus-config.yaml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerting-rules.yaml:/etc/prometheus/alerting-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - python-api
+      - rust-api
+    restart: unless-stopped
+    networks:
+      - bizra-net
+    profiles:
+      - monitoring
+
+  # ═══════════════════════════════════════════════════════════════
+  # Grafana (Dashboards)
+  # ═══════════════════════════════════════════════════════════════
+  grafana:
+    image: grafana/grafana:10.4.1@sha256:c8120ee3d81b231be764e6ecac48d0c703845c2e054998c358eac15ef35e0955
+    container_name: bizra-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./deploy/monitoring/grafana-dashboard.json:/var/lib/grafana/dashboards/bizra.json:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - bizra-net
+    profiles:
+      - monitoring
+
+# ═══════════════════════════════════════════════════════════════
+# Volumes
+# ═══════════════════════════════════════════════════════════════
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  bizra-intake:
+    driver: local
+  bizra-gold:
+    driver: local
+  bridge-receipts:
+    driver: local
+
+# ═══════════════════════════════════════════════════════════════
+# Networks
+# ═══════════════════════════════════════════════════════════════
+networks:
+  bizra-net:
+    driver: bridge

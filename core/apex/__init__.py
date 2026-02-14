@@ -84,6 +84,28 @@ from core.apex.opportunity_engine import (  # Enums; Data classes; Component cla
 )
 
 # =============================================================================
+# SNR Apex Engine — Autonomous Signal Optimization (v2.0)
+# =============================================================================
+from core.apex.snr_apex_engine import (
+    APEX_SNR_FLOOR,
+    APEX_SNR_TARGET,
+    ApexReasoningEngine,
+    CognitiveGenerator,
+    CognitiveLayer,
+    DisciplineSynthesis,
+    Giant,
+    GiantsRegistry,
+    GraphOfThoughts,
+    NoiseComponent,
+    SignalComponent,
+    SNRAnalysis,
+    SNRApexEngine,
+    ThoughtNode,
+    ThoughtStatus,
+    ThoughtType,
+)
+
+# =============================================================================
 # Social Graph — Relationship Intelligence
 # =============================================================================
 from core.apex.social_graph import (  # Enums; Data classes; Main class
@@ -114,28 +136,6 @@ from core.apex.swarm_orchestrator import (  # Enums; Data classes; Component cla
     SwarmConfig,
     SwarmOrchestrator,
     SwarmTopology,
-)
-
-# =============================================================================
-# SNR Apex Engine — Autonomous Signal Optimization (v2.0)
-# =============================================================================
-from core.apex.snr_apex_engine import (
-    APEX_SNR_FLOOR,
-    APEX_SNR_TARGET,
-    ApexReasoningEngine,
-    CognitiveGenerator,
-    CognitiveLayer,
-    DisciplineSynthesis,
-    Giant,
-    GiantsRegistry,
-    GraphOfThoughts,
-    NoiseComponent,
-    SignalComponent,
-    SNRAnalysis,
-    SNRApexEngine,
-    ThoughtNode,
-    ThoughtStatus,
-    ThoughtType,
 )
 
 # =============================================================================

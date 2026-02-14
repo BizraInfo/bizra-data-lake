@@ -26,7 +26,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +41,13 @@ class AgentIdentity:
     agent_id: str
     role: str
     public_key: str
-    capabilities: List[str]
-    giants: List[str]
+    capabilities: list[str]
+    giants: list[str]
     created_at: int
     agent_hash: bytes
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AgentIdentity":
+    def from_dict(cls, data: dict[str, Any]) -> "AgentIdentity":
         return cls(
             agent_id=data["agent_id"],
             role=data["role"],
@@ -71,7 +71,7 @@ class NodeIdentity:
     identity_hash: bytes
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "NodeIdentity":
+    def from_dict(cls, data: dict[str, Any]) -> "NodeIdentity":
         return cls(
             node_id=data["node_id"],
             public_key=data["public_key"],
@@ -90,8 +90,8 @@ class GenesisState:
     identity: NodeIdentity
 
     # Agent teams
-    pat_team: List[AgentIdentity] = field(default_factory=list)
-    sat_team: List[AgentIdentity] = field(default_factory=list)
+    pat_team: list[AgentIdentity] = field(default_factory=list)
+    sat_team: list[AgentIdentity] = field(default_factory=list)
 
     # Cryptographic roots
     pat_team_hash: bytes = b""
@@ -105,10 +105,10 @@ class GenesisState:
     upgrade_threshold: float = 0.8
 
     # Hardware attestation
-    hardware: Dict[str, Any] = field(default_factory=dict)
+    hardware: dict[str, Any] = field(default_factory=dict)
 
     # Knowledge attestation
-    knowledge: Dict[str, Any] = field(default_factory=dict)
+    knowledge: dict[str, Any] = field(default_factory=dict)
 
     # Genesis timestamp
     timestamp: int = 0
@@ -122,11 +122,11 @@ class GenesisState:
         return self.identity.name
 
     @property
-    def pat_agent_ids(self) -> List[str]:
+    def pat_agent_ids(self) -> list[str]:
         return [a.agent_id for a in self.pat_team]
 
     @property
-    def sat_agent_ids(self) -> List[str]:
+    def sat_agent_ids(self) -> list[str]:
         return [a.agent_id for a in self.sat_team]
 
     def get_agent(self, agent_id: str) -> Optional[AgentIdentity]:
@@ -136,11 +136,11 @@ class GenesisState:
                 return agent
         return None
 
-    def get_agents_by_role(self, role: str) -> List[AgentIdentity]:
+    def get_agents_by_role(self, role: str) -> list[AgentIdentity]:
         """Get agents by role name."""
         return [a for a in self.pat_team + self.sat_team if a.role == role]
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         """Human-readable summary of genesis state."""
         return {
             "node_id": self.identity.node_id,

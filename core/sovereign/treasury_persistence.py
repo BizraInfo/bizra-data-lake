@@ -13,7 +13,7 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from .treasury_types import (
     DEFAULT_BURN_RATE,
@@ -203,7 +203,7 @@ class TreasuryPersistence:
             )
             conn.commit()
 
-    def get_transition_history(self, limit: int = 100) -> List[TransitionEvent]:
+    def get_transition_history(self, limit: int = 100) -> list[TransitionEvent]:
         """Get recent transition history."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()

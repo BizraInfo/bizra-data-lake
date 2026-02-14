@@ -22,7 +22,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,6 @@ except ImportError:
         "iceoryx2 not available, falling back to asyncio.Queue. "
         "For zero-copy IPC, install: pip install iceoryx2"
     )
-
 
 # =============================================================================
 # ENUMS & DATA CLASSES
@@ -115,7 +114,7 @@ class LatencyStats:
     total_latency_ns: int = 0
     min_latency_ns: int = 0
     max_latency_ns: int = 0
-    latencies: List[int] = field(default_factory=list)
+    latencies: list[int] = field(default_factory=list)
 
     def record(self, latency_ns: int) -> None:
         """Record a latency measurement."""
@@ -175,7 +174,7 @@ class IPCBridge(ABC):
         pass
 
     @abstractmethod
-    def get_latency_stats(self) -> Dict[str, Any]:
+    def get_latency_stats(self) -> dict[str, Any]:
         """Return latency metrics."""
         pass
 
@@ -325,7 +324,7 @@ class Iceoryx2Bridge(IPCBridge):
         """Check if iceoryx2 bridge is operational."""
         return self._connected and ICEORYX2_AVAILABLE
 
-    def get_latency_stats(self) -> Dict[str, Any]:
+    def get_latency_stats(self) -> dict[str, Any]:
         """Return latency metrics."""
         return {
             "bridge_type": "iceoryx2_zero_copy",
@@ -433,7 +432,7 @@ class AsyncFallbackBridge(IPCBridge):
         """Asyncio fallback is always available."""
         return True
 
-    def get_latency_stats(self) -> Dict[str, Any]:
+    def get_latency_stats(self) -> dict[str, Any]:
         """Return latency metrics."""
         return {
             "bridge_type": "asyncio_fallback",
@@ -516,7 +515,6 @@ __all__ = [
     "create_ipc_bridge",
 ]
 
-
 # =============================================================================
 # SELF-TEST (when run directly)
 # =============================================================================
@@ -548,7 +546,7 @@ if __name__ == "__main__":
         )
         print("Created message:")
         print(f"  ID: {msg.message_id}")
-        print(f"  Type: {msg.payload_type.name}")
+        print(f"  type: {msg.payload_type.name}")
         print(f"  Size: {len(msg.payload_bytes)} bytes")
         print(f"  Timestamp: {msg.timestamp_ns} ns")
         print()

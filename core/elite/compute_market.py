@@ -41,14 +41,13 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ============================================================================
 # CONSTANTS
@@ -71,7 +70,6 @@ MIN_LICENSE_VALUE = 1.0
 
 # Maximum license duration without re-assessment
 MAX_LICENSE_DURATION_HOURS = 24
-
 
 # ============================================================================
 # RESOURCE TYPES
@@ -102,7 +100,7 @@ class ResourceUnit:
     quantity: float  # Amount in resource-specific units
     unit_name: str  # e.g., "cores", "GB", "TFLOPS"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize resource unit."""
         return {
             "type": self.resource_type.value,
@@ -189,7 +187,7 @@ class ComputeLicense:
             return self.expires_at - datetime.now(timezone.utc)
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize license."""
         return {
             "license_id": self.license_id,
@@ -235,7 +233,7 @@ class MarketTransaction:
     success: bool = True
     reason: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize transaction."""
         return {
             "transaction_id": self.transaction_id,
@@ -269,13 +267,13 @@ class ComputeMarket:
         self.gini_emergency = gini_emergency
 
         # License registry: license_id -> ComputeLicense
-        self._licenses: Dict[str, ComputeLicense] = {}
+        self._licenses: dict[str, ComputeLicense] = {}
 
         # Holder index: holder_id -> set of license_ids
-        self._holder_licenses: Dict[str, Set[str]] = defaultdict(set)
+        self._holder_licenses: dict[str, set[str]] = defaultdict(set)
 
         # Transaction history
-        self._transactions: List[MarketTransaction] = []
+        self._transactions: list[MarketTransaction] = []
 
         # Treasury (collected taxes)
         self._treasury: float = 0.0
@@ -342,7 +340,7 @@ class ComputeMarket:
         """Get license by ID."""
         return self._licenses.get(license_id)
 
-    def get_holder_licenses(self, holder_id: str) -> List[ComputeLicense]:
+    def get_holder_licenses(self, holder_id: str) -> list[ComputeLicense]:
         """Get all licenses held by an entity."""
         return [
             self._licenses[lid]
@@ -524,7 +522,7 @@ class ComputeMarket:
 
         return False
 
-    def revoke_delinquent(self, debt_threshold: float = 0.0) -> List[str]:
+    def revoke_delinquent(self, debt_threshold: float = 0.0) -> list[str]:
         """
         Revoke licenses with excessive tax debt.
 
@@ -532,7 +530,7 @@ class ComputeMarket:
             debt_threshold: Debt level that triggers revocation
 
         Returns:
-            List of revoked license IDs
+            list of revoked license IDs
         """
         revoked = []
 
@@ -566,7 +564,7 @@ class ComputeMarket:
         - 1 = perfect inequality
         """
         # Aggregate value per holder
-        holder_values: Dict[str, float] = defaultdict(float)
+        holder_values: dict[str, float] = defaultdict(float)
 
         for license in self._licenses.values():
             if license.status == LicenseStatus.ACTIVE:
@@ -589,9 +587,9 @@ class ComputeMarket:
         gini = sum_diff / (2 * n * total)
         return gini
 
-    def get_distribution(self) -> Dict[str, float]:
+    def get_distribution(self) -> dict[str, float]:
         """Get current resource distribution by holder."""
-        distribution: Dict[str, float] = defaultdict(float)
+        distribution: dict[str, float] = defaultdict(float)
 
         for license in self._licenses.values():
             if license.status == LicenseStatus.ACTIVE:
@@ -599,7 +597,7 @@ class ComputeMarket:
 
         return dict(distribution)
 
-    def enforce_gini(self) -> Dict[str, Any]:
+    def enforce_gini(self) -> dict[str, Any]:
         """
         Enforce Gini coefficient threshold.
 
@@ -611,7 +609,7 @@ class ComputeMarket:
         Returns enforcement report.
         """
         gini = self.compute_gini()
-        report: Dict[str, Any] = {
+        report: dict[str, Any] = {
             "gini_before": gini,
             "threshold": self.gini_threshold,
             "action_taken": False,
@@ -691,8 +689,8 @@ class ComputeMarket:
     def distribute_treasury(
         self,
         amount: float,
-        recipients: Optional[List[str]] = None,
-    ) -> Dict[str, float]:
+        recipients: Optional[list[str]] = None,
+    ) -> dict[str, float]:
         """
         Distribute treasury funds.
 
@@ -731,7 +729,7 @@ class ComputeMarket:
     # STATISTICS
     # ========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get market statistics."""
         active_licenses = [
             l for l in self._licenses.values() if l.status == LicenseStatus.ACTIVE
@@ -753,7 +751,7 @@ class ComputeMarket:
             "tax_rate": self.tax_rate,
         }
 
-    def get_market_health(self) -> Dict[str, Any]:
+    def get_market_health(self) -> dict[str, Any]:
         """
         Assess market health.
 
@@ -820,7 +818,7 @@ class NTUMarketAdapter:
     def recommend_valuation(
         self,
         resource: ResourceUnit,
-        holder_history: Optional[List[float]] = None,
+        holder_history: Optional[list[float]] = None,
     ) -> float:
         """
         Recommend license valuation based on NTU patterns.

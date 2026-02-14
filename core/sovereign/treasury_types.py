@@ -1,7 +1,7 @@
 """
 Treasury Types — Data Classes, Enums, and Constants
 ====================================================
-Type definitions for the Treasury Mode system.
+type definitions for the Treasury Mode system.
 
 Standing on Giants:
 - Shannon (1948): SNR for market quality assessment
@@ -16,18 +16,9 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 # Import unified thresholds from authoritative source
-try:
-    from core.integration.constants import (
-        UNIFIED_IHSAN_THRESHOLD,
-        UNIFIED_SNR_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
-    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
-
 
 # =============================================================================
 # CONSTANTS
@@ -48,12 +39,11 @@ EMERGENCY_TREASURY_UNLOCK_PERCENT: float = 0.10  # 10%
 DEFAULT_BURN_RATE: float = 100.0
 
 # Mode-specific compute multipliers
-COMPUTE_MULTIPLIERS: Dict[str, float] = {
+COMPUTE_MULTIPLIERS: dict[str, float] = {
     "ethical": 1.0,  # Full URP access
     "hibernation": 0.25,  # EDGE compute only
     "emergency": 0.10,  # Minimal essential operations
 }
-
 
 # =============================================================================
 # ENUMS
@@ -118,7 +108,7 @@ class TreasuryState:
     locked_treasury_seed: float = 0.0
     unlocked_treasury_seed: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "mode": self.mode.value,
@@ -133,7 +123,7 @@ class TreasuryState:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TreasuryState":
+    def from_dict(cls, data: dict[str, Any]) -> "TreasuryState":
         """Deserialize from dictionary."""
         return cls(
             mode=TreasuryMode(data["mode"]),
@@ -171,9 +161,9 @@ class TransitionEvent:
     ethical_score_at_transition: float = 0.0
     reserves_days_at_transition: float = 0.0
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "event_id": self.event_id,
@@ -199,10 +189,10 @@ class EthicsAssessment:
     compliance_score: float = 0.0
     ihsan_alignment: float = 0.0
     assessment_timestamp: datetime = field(default_factory=datetime.utcnow)
-    data_sources: List[str] = field(default_factory=list)
+    data_sources: list[str] = field(default_factory=list)
     confidence: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "overall_score": self.overall_score,

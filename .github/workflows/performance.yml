@@ -72,7 +72,8 @@ jobs:
   # ===========================================================================
   inference-latency:
     name: Inference Latency (P50/P95/P99)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     outputs:
       p50_ms: ${{ steps.benchmark.outputs.p50_ms }}
       p95_ms: ${{ steps.benchmark.outputs.p95_ms }}
@@ -80,10 +81,10 @@ jobs:
       mean_ms: ${{ steps.benchmark.outputs.mean_ms }}
       gate_passed: ${{ steps.benchmark.outputs.gate_passed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -96,7 +97,7 @@ jobs:
 
       - name: Download baseline (if exists)
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: perf-baseline-inference
           path: .perf-baseline
@@ -117,7 +118,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-results-inference-latency
           path: results/inference-latency.json
@@ -128,16 +129,17 @@ jobs:
   # ===========================================================================
   apex-throughput:
     name: Apex Throughput (req/s)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     outputs:
       qps: ${{ steps.benchmark.outputs.qps }}
       batch_efficiency: ${{ steps.benchmark.outputs.batch_efficiency }}
       gate_passed: ${{ steps.benchmark.outputs.gate_passed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -150,7 +152,7 @@ jobs:
 
       - name: Download baseline (if exists)
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: perf-baseline-throughput
           path: .perf-baseline
@@ -171,7 +173,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-results-apex-throughput
           path: results/apex-throughput.json
@@ -182,16 +184,17 @@ jobs:
   # ===========================================================================
   memory-usage:
     name: Memory Usage (Peak MB)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     outputs:
       peak_memory_mb: ${{ steps.benchmark.outputs.peak_memory_mb }}
       avg_memory_mb: ${{ steps.benchmark.outputs.avg_memory_mb }}
       gate_passed: ${{ steps.benchmark.outputs.gate_passed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -204,7 +207,7 @@ jobs:
 
       - name: Download baseline (if exists)
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: perf-baseline-memory
           path: .perf-baseline
@@ -225,7 +228,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-results-memory-usage
           path: results/memory-usage.json
@@ -236,16 +239,17 @@ jobs:
   # ===========================================================================
   startup-time:
     name: Cold Start Latency
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       cold_start_ms: ${{ steps.benchmark.outputs.cold_start_ms }}
       warm_start_ms: ${{ steps.benchmark.outputs.warm_start_ms }}
       gate_passed: ${{ steps.benchmark.outputs.gate_passed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -258,7 +262,7 @@ jobs:
 
       - name: Download baseline (if exists)
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: perf-baseline-startup
           path: .perf-baseline
@@ -279,7 +283,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-results-startup-time
           path: results/startup-time.json
@@ -290,24 +294,25 @@ jobs:
   # ===========================================================================
   performance-gate:
     name: Performance Gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     needs: [inference-latency, apex-throughput, memory-usage, startup-time]
     if: always()
     outputs:
       overall_passed: ${{ steps.gate.outputs.overall_passed }}
       summary: ${{ steps.gate.outputs.summary }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Download all results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           pattern: perf-results-*
           path: results
           merge-multiple: true
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -434,21 +439,22 @@ jobs:
   # ===========================================================================
   generate-report:
     name: Generate Report
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     needs: [performance-gate]
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Download all results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           pattern: perf-results-*
           path: results
           merge-multiple: true
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -575,14 +581,14 @@ jobs:
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
 
       - name: Upload Performance Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: performance-report
           path: results/PERFORMANCE_REPORT.md
           retention-days: 90
 
       - name: Upload Combined Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: performance-results-combined
           path: results/
@@ -593,21 +599,22 @@ jobs:
   # ===========================================================================
   update-baseline:
     name: Update Baseline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     needs: [performance-gate]
     if: github.ref == 'refs/heads/main' && needs.performance-gate.outputs.overall_passed == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Download all results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           pattern: perf-results-*
           path: results
           merge-multiple: true
 
       - name: Upload as new baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-baseline-inference
           path: results/inference-latency.json
@@ -615,7 +622,7 @@ jobs:
           overwrite: true
 
       - name: Upload throughput baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-baseline-throughput
           path: results/apex-throughput.json
@@ -623,7 +630,7 @@ jobs:
           overwrite: true
 
       - name: Upload memory baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-baseline-memory
           path: results/memory-usage.json
@@ -631,7 +638,7 @@ jobs:
           overwrite: true
 
       - name: Upload startup baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: perf-baseline-startup
           path: results/startup-time.json

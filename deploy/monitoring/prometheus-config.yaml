@@ -205,3 +205,69 @@ spec:
               (sovereign_snr_score >= 0.85) * 0.4 +
               (sovereign_ihsan_score >= 0.95) * 0.6
             )
+
+    # Desktop Bridge metrics
+    - name: bizra.bridge.recording
+      interval: 30s
+      rules:
+        # Bridge request rate (5m window)
+        - record: bizra:bridge_requests:rate5m
+          expr: rate(bridge_requests_total[5m])
+
+        # Bridge FATE gate pass rate
+        - record: bizra:bridge_fate_pass_rate:avg5m
+          expr: |
+            avg_over_time(
+              (bridge_requests_total{fate_result="passed"} /
+               bridge_requests_total)[5m]
+            )
+
+        # Bridge receipt generation rate
+        - record: bizra:bridge_receipts:rate5m
+          expr: rate(bridge_receipts_total[5m])
+
+        # Bridge latency percentiles
+        - record: bizra:bridge_latency_ms:p95
+          expr: histogram_quantile(0.95, rate(bridge_request_duration_seconds_bucket[5m])) * 1000
+
+        - record: bizra:bridge_latency_ms:p99
+          expr: histogram_quantile(0.99, rate(bridge_request_duration_seconds_bucket[5m])) * 1000
+
+        # Bridge error rate
+        - record: bizra:bridge_error_rate:5m
+          expr: |
+            rate(bridge_requests_total{status="error"}[5m])
+            /
+            (rate(bridge_requests_total[5m]) > 0)
+
+        # Bridge active connections
+        - record: bizra:bridge_connections:current
+          expr: bridge_active_connections
+
+    # RDVE (Recursive Discovery & Verification Engine) metrics
+    - name: bizra.rdve.recording
+      interval: 60s
+      rules:
+        # RDVE mission rate (5m window)
+        - record: bizra:rdve_missions:rate5m
+          expr: rate(rdve_missions_total[5m])
+
+        # RDVE mission success rate
+        - record: bizra:rdve_success_rate:avg5m
+          expr: |
+            avg_over_time(
+              (rdve_missions_total{outcome="approved"} /
+               rdve_missions_total)[5m]
+            )
+
+        # RDVE pattern usage distribution
+        - record: bizra:rdve_pattern_usage:rate5m
+          expr: rate(rdve_pattern_invocations_total[5m])
+
+        # RDVE hypothesis evaluation rate
+        - record: bizra:rdve_hypotheses:rate5m
+          expr: rate(rdve_hypotheses_evaluated_total[5m])
+
+        # RDVE circuit breaker trips
+        - record: bizra:rdve_breaker_trips:total
+          expr: rdve_circuit_breaker_trips_total

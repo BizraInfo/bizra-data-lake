@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Final, Iterator, List, Optional, Tuple
+from typing import Any, Final, Iterator, Optional
 
 from core.integration.constants import (
     UNIFIED_CLOCK_SKEW_SECONDS,
@@ -47,8 +47,8 @@ from core.integration.constants import (
 # Domain separator for HMAC to prevent cross-protocol attacks
 HMAC_DOMAIN_PREFIX: Final[str] = "bizra-audit-v1:"
 
-# Hash algorithm used for chain linking
-CHAIN_HASH_ALGO: Final[str] = "sha256"
+# Hash algorithm used for chain linking — SEC-001: migrated to BLAKE3
+CHAIN_HASH_ALGO: Final[str] = "blake3"
 
 # Genesis block hash (used for first entry in chain)
 GENESIS_HASH: Final[str] = "0" * 64
@@ -61,7 +61,6 @@ MIN_KEY_LENGTH: Final[int] = 32
 
 # Maximum allowed timestamp drift (nanoseconds)
 MAX_TIMESTAMP_DRIFT_NS: Final[int] = UNIFIED_CLOCK_SKEW_SECONDS * 1_000_000_000
-
 
 # =============================================================================
 # ENUMS
@@ -82,7 +81,7 @@ class VerificationStatus(Enum):
 
 
 class TamperType(Enum):
-    """Type of tampering detected."""
+    """type of tampering detected."""
 
     CONTENT_MODIFIED = "content_modified"
     ENTRY_DELETED = "entry_deleted"
@@ -117,7 +116,7 @@ class TamperEvidentEntry:
 
     sequence: int
     timestamp_ns: int
-    content: Dict[str, Any]
+    content: dict[str, Any]
     content_hash: str  # SHA-256 of canonicalized content
     prev_hash: str  # Hash of previous entry (chain link)
     hmac_signature: str  # HMAC-SHA256 with secret key
@@ -179,7 +178,7 @@ class TamperEvidentEntry:
 
         return VerificationStatus.VALID
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize entry to dictionary."""
         return {
             "sequence": self.sequence,
@@ -191,7 +190,7 @@ class TamperEvidentEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TamperEvidentEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "TamperEvidentEntry":
         """Deserialize entry from dictionary."""
         return cls(
             sequence=data["sequence"],
@@ -217,13 +216,13 @@ class TamperingReport:
 
     is_tampered: bool
     tamper_type: Optional[TamperType]
-    affected_sequences: List[int]
+    affected_sequences: list[int]
     first_invalid_sequence: Optional[int]
     details: str
     verified_count: int
     total_count: int
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize report to dictionary."""
         return {
             "is_tampered": self.is_tampered,
@@ -249,7 +248,7 @@ class KeyRotationEvent:
     sequence_at_rotation: int
     reason: str = "scheduled"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "old_key_id": self.old_key_id,
@@ -283,8 +282,8 @@ class AuditKeyManager:
 
     _master_key: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     _key_id: str = field(default_factory=lambda: secrets.token_hex(8))
-    _rotation_history: List[KeyRotationEvent] = field(default_factory=list)
-    _derived_keys: Dict[str, bytes] = field(default_factory=dict)
+    _rotation_history: list[KeyRotationEvent] = field(default_factory=list)
+    _derived_keys: dict[str, bytes] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate key length."""
@@ -372,7 +371,7 @@ class AuditKeyManager:
 
         return event
 
-    def get_rotation_history(self) -> List[KeyRotationEvent]:
+    def get_rotation_history(self) -> list[KeyRotationEvent]:
         """Get key rotation history."""
         return list(self._rotation_history)
 
@@ -437,7 +436,7 @@ class TamperEvidentLog:
         """
         self._key_manager = key_manager
         self._persist_path = persist_path
-        self._entries: List[TamperEvidentEntry] = []
+        self._entries: list[TamperEvidentEntry] = []
         self._last_hash: str = GENESIS_HASH
         self._next_sequence: int = 0
 
@@ -447,7 +446,7 @@ class TamperEvidentLog:
 
     def append(
         self,
-        content: Dict[str, Any],
+        content: dict[str, Any],
         timestamp_ns: Optional[int] = None,
     ) -> TamperEvidentEntry:
         """
@@ -533,9 +532,9 @@ class TamperEvidentLog:
 
     def verify_chain(
         self,
-        entries: Optional[List[TamperEvidentEntry]] = None,
+        entries: Optional[list[TamperEvidentEntry]] = None,
         secret_key: Optional[bytes] = None,
-    ) -> Tuple[bool, List[Tuple[int, VerificationStatus]]]:
+    ) -> tuple[bool, list[tuple[int, VerificationStatus]]]:
         """
         Verify integrity of entire chain or subset.
 
@@ -544,7 +543,7 @@ class TamperEvidentLog:
             secret_key: Optional key override
 
         Returns:
-            Tuple of (all_valid, list of (sequence, status) for invalid entries)
+            tuple of (all_valid, list of (sequence, status) for invalid entries)
         """
         if entries is None:
             entries = self._entries
@@ -555,7 +554,7 @@ class TamperEvidentLog:
         if not entries:
             return True, []
 
-        invalid_entries: List[Tuple[int, VerificationStatus]] = []
+        invalid_entries: list[tuple[int, VerificationStatus]] = []
         prev_entry: Optional[TamperEvidentEntry] = None
 
         for entry in sorted(entries, key=lambda e: e.sequence):
@@ -568,7 +567,7 @@ class TamperEvidentLog:
 
     def detect_tampering(
         self,
-        entries: Optional[List[TamperEvidentEntry]] = None,
+        entries: Optional[list[TamperEvidentEntry]] = None,
         secret_key: Optional[bytes] = None,
     ) -> TamperingReport:
         """
@@ -602,7 +601,7 @@ class TamperEvidentLog:
         # Sort by sequence
         sorted_entries = sorted(entries, key=lambda e: e.sequence)
 
-        affected_sequences: List[int] = []
+        affected_sequences: list[int] = []
         first_invalid: Optional[int] = None
         tamper_type: Optional[TamperType] = None
         prev_entry: Optional[TamperEvidentEntry] = None
@@ -661,7 +660,7 @@ class TamperEvidentLog:
         self,
         is_tampered: bool,
         tamper_type: Optional[TamperType],
-        affected: List[int],
+        affected: list[int],
         first_invalid: Optional[int],
     ) -> str:
         """Generate human-readable tampering details."""
@@ -679,7 +678,7 @@ class TamperEvidentLog:
                 TamperType.TIMESTAMP_ANOMALY: "Timestamp ordering violation detected",
                 TamperType.SEQUENCE_GAP: "Sequence number gap indicates missing entries",
             }
-            details.append(f"Type: {type_descriptions.get(tamper_type, 'Unknown')}")
+            details.append(f"type: {type_descriptions.get(tamper_type, 'Unknown')}")
 
         details.append(f"Affected entries: {len(affected)}")
         if len(affected) <= 10:
@@ -700,7 +699,7 @@ class TamperEvidentLog:
         self,
         start_sequence: int = 0,
         end_sequence: Optional[int] = None,
-    ) -> List[TamperEvidentEntry]:
+    ) -> list[TamperEvidentEntry]:
         """Get entries in sequence range."""
         result = []
         for entry in self._entries:
@@ -760,7 +759,7 @@ class TamperEvidentLog:
             self._last_hash = _compute_entry_hash(last_entry)
             self._next_sequence = last_entry.sequence + 1
 
-    def export_chain(self) -> List[Dict[str, Any]]:
+    def export_chain(self) -> list[dict[str, Any]]:
         """Export entire chain as list of dictionaries."""
         return [
             entry.to_dict() for entry in sorted(self._entries, key=lambda e: e.sequence)
@@ -768,21 +767,21 @@ class TamperEvidentLog:
 
     def import_chain(
         self,
-        chain_data: List[Dict[str, Any]],
+        chain_data: list[dict[str, Any]],
         verify: bool = True,
-    ) -> Tuple[int, List[Tuple[int, VerificationStatus]]]:
+    ) -> tuple[int, list[tuple[int, VerificationStatus]]]:
         """
         Import entries from exported chain data.
 
         Args:
-            chain_data: List of entry dictionaries
+            chain_data: list of entry dictionaries
             verify: Whether to verify entries during import
 
         Returns:
-            Tuple of (imported_count, invalid_entries)
+            tuple of (imported_count, invalid_entries)
         """
         entries = [TamperEvidentEntry.from_dict(d) for d in chain_data]
-        invalid: List[Tuple[int, VerificationStatus]] = []
+        invalid: list[tuple[int, VerificationStatus]] = []
 
         if verify:
             secret_key = self._key_manager.get_signing_key()
@@ -808,7 +807,7 @@ class TamperEvidentLog:
 # =============================================================================
 
 
-def _compute_content_hash(content: Dict[str, Any]) -> str:
+def _compute_content_hash(content: dict[str, Any]) -> str:
     """
     Compute SHA-256 hash of canonicalized content.
 
@@ -821,14 +820,18 @@ def _compute_content_hash(content: Dict[str, Any]) -> str:
         ensure_ascii=True,
     ).encode("utf-8")
 
-    return hashlib.sha256(canonical).hexdigest()
+    # SEC-001 FIX: Use BLAKE3 for Rust interop, graceful fallback
+    from core.proof_engine.canonical import hex_digest
+
+    return hex_digest(canonical)
 
 
 def _compute_entry_hash(entry: TamperEvidentEntry) -> str:
     """
     Compute hash of entire entry for chain linking.
 
-    Includes all fields to ensure full entry integrity.
+    SEC-001: Migrated to BLAKE3 for cross-language compatibility.
+    Standing on Giants: O'Connor et al. (BLAKE3, 2020)
     """
     # Create deterministic representation
     hash_input = (
@@ -839,7 +842,9 @@ def _compute_entry_hash(entry: TamperEvidentEntry) -> str:
         f"{entry.hmac_signature}"
     ).encode("utf-8")
 
-    return hashlib.sha256(hash_input).hexdigest()
+    from core.proof_engine.canonical import hex_digest
+
+    return hex_digest(hash_input)
 
 
 def _compute_entry_hmac(
@@ -874,7 +879,7 @@ def _compute_entry_hmac(
 def create_audit_log(
     persist_path: Optional[Path] = None,
     key_hex: Optional[str] = None,
-) -> Tuple[TamperEvidentLog, AuditKeyManager]:
+) -> tuple[TamperEvidentLog, AuditKeyManager]:
     """
     Create a new tamper-evident audit log with key manager.
 
@@ -883,7 +888,7 @@ def create_audit_log(
         key_hex: Optional hex-encoded key (generates new if None)
 
     Returns:
-        Tuple of (TamperEvidentLog, AuditKeyManager)
+        tuple of (TamperEvidentLog, AuditKeyManager)
     """
     if key_hex:
         key_manager = AuditKeyManager.from_hex(key_hex)
@@ -914,14 +919,14 @@ def verify_entry(
 
 
 def verify_chain(
-    entries: List[TamperEvidentEntry],
+    entries: list[TamperEvidentEntry],
     secret_key: bytes,
 ) -> bool:
     """
     Convenience function to verify a chain of entries.
 
     Args:
-        entries: List of entries to verify
+        entries: list of entries to verify
         secret_key: HMAC key
 
     Returns:
@@ -943,14 +948,14 @@ def verify_chain(
 
 
 def detect_tampering(
-    entries: List[TamperEvidentEntry],
+    entries: list[TamperEvidentEntry],
     secret_key: bytes,
 ) -> TamperingReport:
     """
     Convenience function to detect tampering in entries.
 
     Args:
-        entries: List of entries to check
+        entries: list of entries to check
         secret_key: HMAC key
 
     Returns:

@@ -156,9 +156,10 @@ pub use pat::{
 pub use pci::{Gate, GateChain, GateContext, GateResult, PCIEnvelope, RejectCode};
 pub use simd::{blake3_parallel, validate_gates_batch, verify_signatures_batch};
 pub use sovereign::{
-    CircuitState, ErrorContext, GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics,
-    OrchestratorConfig, ReasoningPath, SNRConfig, SNREngine, SignalMetrics, SovereignError,
-    SovereignOrchestrator, SovereignResult, ThoughtGraph, ThoughtNode,
+    CircuitState, Episode, EpisodeAction, EpisodeImpact, ErrorContext, ExperienceLedger,
+    GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics, OrchestratorConfig, RIRConfig,
+    ReasoningPath, SNRConfig, SNREngine, SignalMetrics, SovereignError, SovereignOrchestrator,
+    SovereignResult, ThoughtGraph, ThoughtNode,
 };
 
 /// Domain separation prefix for all cryptographic operations

@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 import time
 from functools import lru_cache
-from typing import Any, Dict, Optional, Pattern
+from typing import Any, Optional, Pattern
 
 # =============================================================================
 # PRE-COMPILED REGEX PATTERNS
@@ -93,7 +93,7 @@ _ALL_CLOSE_REASONING_PATTERN: Pattern[str] = re.compile(
 )
 
 # Pre-compiled patterns lookup for known tags
-_KNOWN_TAG_PATTERNS: Dict[str, tuple[Pattern[str], Pattern[str], Pattern[str]]] = {
+_KNOWN_TAG_PATTERNS: dict[str, tuple[Pattern[str], Pattern[str], Pattern[str]]] = {
     "think": (_THINK_PATTERN, _UNCLOSED_THINK_PATTERN, _CLOSE_THINK_TAG_PATTERN),
     "thinking": (
         _THINKING_PATTERN,
@@ -117,7 +117,6 @@ _KNOWN_TAG_PATTERNS: Dict[str, tuple[Pattern[str], Pattern[str], Pattern[str]]] 
     ),
 }
 
-
 # =============================================================================
 # CACHED PATTERN GENERATION
 # =============================================================================
@@ -136,7 +135,7 @@ def _get_custom_pattern(
         tag_name: The tag name to create patterns for
 
     Returns:
-        Tuple of three compiled patterns
+        tuple of three compiled patterns
     """
     tag_escaped = re.escape(tag_name)
 
@@ -162,7 +161,7 @@ def _get_patterns_for_tag(
         tag_name: The tag name
 
     Returns:
-        Tuple of (complete_pattern, unclosed_pattern, close_pattern)
+        tuple of (complete_pattern, unclosed_pattern, close_pattern)
     """
     # Normalize tag name
     tag_lower = tag_name.lower()
@@ -387,7 +386,7 @@ def has_think_tokens(content: str) -> bool:
 
 def benchmark_strip_think_tokens(
     content: str, iterations: int = 1000
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Benchmark the pre-compiled vs runtime-compiled regex performance.
 
@@ -440,7 +439,7 @@ def benchmark_strip_think_tokens(
     }
 
 
-def get_pattern_cache_info() -> Dict[str, Any]:
+def get_pattern_cache_info() -> dict[str, Any]:
     """
     Get information about the LRU cache for custom patterns.
 

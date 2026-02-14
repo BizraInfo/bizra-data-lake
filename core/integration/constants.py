@@ -28,7 +28,54 @@ Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
 """
 
 import os
+from pathlib import Path
 from typing import Final
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTO-LOAD .env — Ensures LM Studio token (and all secrets) are available
+# to every module that imports from constants.py.
+#
+# Root cause: .env defines LM_STUDIO_API_KEY but os.getenv() only reads
+# shell environment variables, not .env files. This bridge closes the gap.
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    from dotenv import load_dotenv
+
+    # Walk up from this file to find the repo root .env
+    _constants_dir = Path(__file__).resolve().parent  # core/integration/
+    _repo_root = _constants_dir.parent.parent  # BIZRA-DATA-LAKE/
+    _env_path = _repo_root / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)  # Don't clobber existing env vars
+except ImportError:
+    pass  # dotenv not installed — rely on shell exports
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LM STUDIO API TOKEN UNIFICATION
+# ═══════════════════════════════════════════════════════════════════════════════
+# The codebase reads 4 different env var names for the same token:
+#   LM_API_TOKEN        — node0_activate.py, scripts, nexus, e2e_pipeline
+#   LMSTUDIO_API_KEY    — lmstudio_backend.py (fallback 1), Rust CLI
+#   LM_STUDIO_API_KEY   — .env file, bizra_cli_bridge.py
+#   LM_STUDIO_TOKEN     — sovereign_command.py
+#
+# This block resolves the canonical token ONCE and propagates it to all names,
+# so every consumer finds it regardless of which name they query.
+_lm_token = (
+    os.getenv("LM_API_TOKEN")
+    or os.getenv("LMSTUDIO_API_KEY")
+    or os.getenv("LM_STUDIO_API_KEY")
+    or os.getenv("LM_STUDIO_TOKEN")
+    or ""
+)
+if _lm_token:
+    os.environ.setdefault("LM_API_TOKEN", _lm_token)
+    os.environ.setdefault("LMSTUDIO_API_KEY", _lm_token)
+    os.environ.setdefault("LM_STUDIO_API_KEY", _lm_token)
+    os.environ.setdefault("LM_STUDIO_TOKEN", _lm_token)
+
+# Canonical export for direct import
+LM_API_TOKEN: Final[str] = os.getenv("LM_API_TOKEN", "")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IHSĀN (إحسان) CONSTITUTIONAL THRESHOLDS

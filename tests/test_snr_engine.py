@@ -40,19 +40,19 @@ class TestSNREngine:
 
     def test_snr_calculation_returns_valid_range(self, snr_engine, sample_embeddings):
         """Test SNR value is within valid range [0, 1]"""
-        result = snr_engine.calculate_snr(
+        snr_score, metrics = snr_engine.calculate_snr(
             query_embedding=sample_embeddings["query"],
             context_embeddings=sample_embeddings["context"],
             symbolic_facts=["fact1", "fact2"],
             neural_results=[{"text": "result", "score": 0.8}]
         )
 
-        assert "snr" in result
-        assert 0.0 <= result["snr"] <= 1.0
+        assert isinstance(snr_score, float)
+        assert 0.0 <= snr_score <= 1.0
 
     def test_snr_components_present(self, snr_engine, sample_embeddings):
         """Test all SNR components are calculated"""
-        result = snr_engine.calculate_snr(
+        snr_score, metrics = snr_engine.calculate_snr(
             query_embedding=sample_embeddings["query"],
             context_embeddings=sample_embeddings["context"],
             symbolic_facts=["fact1", "fact2"],
@@ -66,26 +66,25 @@ class TestSNREngine:
             "coverage_balance"
         ]
 
-        if "components" in result:
-            for component in expected_components:
-                assert component in result["components"], f"Missing component: {component}"
+        for component in expected_components:
+            assert component in metrics, f"Missing component: {component}"
 
     def test_snr_with_empty_context(self, snr_engine, sample_embeddings):
         """Test SNR handles empty context gracefully"""
-        result = snr_engine.calculate_snr(
+        snr_score, metrics = snr_engine.calculate_snr(
             query_embedding=sample_embeddings["query"],
             context_embeddings=[],
             symbolic_facts=[],
             neural_results=[]
         )
 
-        assert "snr" in result
+        assert isinstance(snr_score, float)
         # Empty context should result in lower SNR
-        assert result["snr"] < 0.5
+        assert snr_score < 0.5
 
     def test_snr_ihsan_threshold(self, snr_engine, sample_embeddings):
         """Test Ihsān threshold detection"""
-        result = snr_engine.calculate_snr(
+        snr_score, metrics = snr_engine.calculate_snr(
             query_embedding=sample_embeddings["query"],
             context_embeddings=sample_embeddings["context"],
             symbolic_facts=["fact1", "fact2", "fact3"],
@@ -96,8 +95,8 @@ class TestSNREngine:
         )
 
         # Check if ihsan_achieved flag is present
-        if result.get("snr", 0) >= 0.99:
-            assert result.get("ihsan_achieved", False) is True
+        if snr_score >= 0.99:
+            assert metrics.get("ihsan_achieved", False) is True
 
     def test_snr_weighted_calculation(self, snr_engine, sample_embeddings):
         """Test that weights sum to 1.0"""
@@ -159,10 +158,10 @@ class TestSNRMathematicalProperties:
         facts = ["fact1", "fact2"]
         results = [{"text": "result", "score": 0.8}]
 
-        snr1 = snr_engine.calculate_snr(query, context, facts, results)
-        snr2 = snr_engine.calculate_snr(query, context, facts, results)
+        snr1, _ = snr_engine.calculate_snr(query, context, facts, results)
+        snr2, _ = snr_engine.calculate_snr(query, context, facts, results)
 
-        assert abs(snr1["snr"] - snr2["snr"]) < 0.001, "SNR should be deterministic"
+        assert abs(snr1 - snr2) < 0.001, "SNR should be deterministic"
 
     def test_snr_monotonicity(self, snr_engine):
         """Test SNR increases with better context"""
@@ -171,13 +170,13 @@ class TestSNRMathematicalProperties:
 
         # Low quality context
         low_context = [np.random.rand(384).astype(np.float32) for _ in range(2)]
-        low_result = snr_engine.calculate_snr(
+        low_snr, _ = snr_engine.calculate_snr(
             query, low_context, ["fact"], [{"text": "r", "score": 0.3}]
         )
 
         # High quality context (more items, higher scores)
         high_context = [np.random.rand(384).astype(np.float32) for _ in range(10)]
-        high_result = snr_engine.calculate_snr(
+        high_snr, _ = snr_engine.calculate_snr(
             query, high_context,
             ["fact1", "fact2", "fact3", "fact4", "fact5"],
             [{"text": "r1", "score": 0.9}, {"text": "r2", "score": 0.95}]
@@ -185,8 +184,8 @@ class TestSNRMathematicalProperties:
 
         # More context should generally yield higher SNR (not always guaranteed)
         # This is a weak test - just verify both are valid
-        assert 0 <= low_result["snr"] <= 1
-        assert 0 <= high_result["snr"] <= 1
+        assert 0 <= low_snr <= 1
+        assert 0 <= high_snr <= 1
 
 
 if __name__ == "__main__":

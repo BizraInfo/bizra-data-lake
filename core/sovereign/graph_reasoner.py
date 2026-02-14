@@ -44,7 +44,6 @@ from .graph_types import (  # Enums; Data classes
 # PUBLIC API - Re-export from modular components
 # =============================================================================
 
-
 logger = logging.getLogger(__name__)
 
 # =============================================================================

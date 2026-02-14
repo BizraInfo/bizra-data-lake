@@ -2,10 +2,10 @@
 //!
 //! Phase 13: Test Sprint
 
-use bizra_api::{AppState, ServerConfig, API_VERSION};
-use bizra_api::error::ApiError;
-use axum::response::IntoResponse;
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use bizra_api::error::ApiError;
+use bizra_api::{AppState, ServerConfig, API_VERSION};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
@@ -174,8 +174,8 @@ async fn health_check_returns_healthy() {
 
 #[tokio::test]
 async fn system_status_no_identity() {
-    use bizra_api::handlers::status::system_status;
     use axum::extract::State;
+    use bizra_api::handlers::status::system_status;
 
     let state = Arc::new(AppState::default());
     let resp = system_status(State(state)).await;
@@ -187,9 +187,9 @@ async fn system_status_no_identity() {
 
 #[tokio::test]
 async fn system_status_with_identity() {
+    use axum::extract::State;
     use bizra_api::handlers::status::system_status;
     use bizra_core::NodeIdentity;
-    use axum::extract::State;
 
     let state = AppState::default();
     let identity = NodeIdentity::generate();

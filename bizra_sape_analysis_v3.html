@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIZRA NODE0 — SAPE-Activate Analysis v3 (Post-Phase 18.1)</title>
+  <style>
+    :root {
+      --gold-500: #C9A962;
+      --gold-600: #B08D45;
+      --navy-900: #050B14;
+      --navy-850: #07101e;
+      --navy-800: #0A1628;
+      --navy-700: #122743;
+      --ink: #F8F6F1;
+      --muted: rgba(248, 246, 241, 0.72);
+      --faint: rgba(248, 246, 241, 0.12);
+      --border: rgba(255, 255, 255, 0.10);
+      --shadow: rgba(0,0,0,0.35);
+      --danger: #ff4d4d;
+      --warn: #ffcc66;
+      --ok: #4cd964;
+      --info: #5ac8fa;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 900px at 15% 10%, rgba(201, 169, 98, 0.06) 0%, transparent 60%),
+                  radial-gradient(900px 700px at 70% 35%, rgba(90, 200, 250, 0.05) 0%, transparent 60%),
+                  linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+
+    a { color: var(--gold-500); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 300px;
+      background: rgba(10, 22, 40, 0.92);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 18px 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 14px;
+    }
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(201, 169, 98, 0.25) 0%, rgba(201, 169, 98, 0.08) 100%);
+      border: 1px solid rgba(201, 169, 98, 0.28);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      color: var(--gold-500);
+      font-weight: 800;
+    }
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .brand-title .name {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand-title .meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .nav {
+      margin-top: 10px;
+    }
+    .nav .nav-title {
+      color: rgba(248, 246, 241, 0.55);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 14px 10px 8px;
+    }
+    .nav a {
+      display: block;
+      padding: 10px 12px;
+      margin: 4px 6px;
+      border-radius: 10px;
+      border-left: 2px solid transparent;
+      color: rgba(248, 246, 241, 0.82);
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .nav a:hover {
+      background: rgba(201, 169, 98, 0.10);
+      color: var(--ink);
+    }
+    .nav a.active {
+      background: rgba(201, 169, 98, 0.16);
+      border-left-color: var(--gold-500);
+      color: var(--gold-500);
+    }
+    .sidebar .footnote {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.22);
+      border-radius: 12px;
+      color: rgba(248, 246, 241, 0.72);
+      font-size: 12px;
+    }
+    .sidebar .footnote b {
+      color: var(--ink);
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      min-width: 0;
+      overflow: auto;
+      padding: 32px 36px 80px;
+    }
+
+    .hero {
+      border: 1px solid rgba(201, 169, 98, 0.16);
+      background: linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(10,22,40,0.35) 100%);
+      box-shadow: 0 18px 55px rgba(0,0,0,0.40);
+      border-radius: 18px;
+      padding: 22px 22px 18px;
+    }
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .hero h1 {
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      letter-spacing: 0.2px;
+    }
+    .hero .subtitle {
+      margin: 0;
+      color: var(--muted);
+      max-width: 920px;
+      font-size: 14px;
+    }
+    .hero .meta-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+      border-radius: 999px;
+      color: rgba(248, 246, 241, 0.86);
+      font-size: 12px;
+    }
+    .chip strong { color: var(--gold-500); font-weight: 700; }
+    .chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--gold-500);
+      opacity: 0.85;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    @media (max-width: 1100px) {
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sidebar { display: none; }
+      .content { padding: 18px; }
+    }
+    @media (max-width: 620px) {
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+    .metric-card {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card:before {
+      content: "";
+      position: absolute;
+      inset: -40% -40% auto auto;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle at 30% 30%, rgba(201,169,98,0.20), transparent 62%);
+      transform: rotate(18deg);
+      pointer-events: none;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      margin-bottom: 3px;
+    }
+    .metric-label {
+      color: rgba(248, 246, 241, 0.70);
+      font-size: 12px;
+    }
+    .metric-sub {
+      margin-top: 8px;
+      color: rgba(248, 246, 241, 0.70);
+      font-size: 12px;
+    }
+    .kpi {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(201,169,98,0.22);
+      color: rgba(201,169,98,0.95);
+      background: rgba(201,169,98,0.10);
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    /* Sections */
+    .section {
+      margin-top: 26px;
+      padding-top: 10px;
+    }
+    .section h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      letter-spacing: 0.15px;
+    }
+    .section .section-sub {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.22);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .callout:before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: rgba(201,169,98,0.65);
+    }
+    .callout h3 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+    }
+    .callout p {
+      margin: 0;
+      color: rgba(248, 246, 241, 0.78);
+      font-size: 13px;
+    }
+    .callout.critical:before { background: rgba(255,77,77,0.8); }
+    .callout.warn:before { background: rgba(255,204,102,0.85); }
+    .callout.ok:before { background: rgba(76,217,100,0.85); }
+    .callout.info:before { background: rgba(90,200,250,0.9); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: top;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(248, 246, 241, 0.68);
+      background: rgba(255,255,255,0.03);
+    }
+    tr:last-child td { border-bottom: 0; }
+    .small { font-size: 12px; color: rgba(248,246,241,0.72); }
+
+    /* Grades / statuses */
+    .grade {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.02);
+    }
+    .grade.a-plus { color: #1ee9a8; border-color: rgba(30,233,168,0.25); background: rgba(30,233,168,0.06); }
+    .grade.a { color: #5ad0ff; border-color: rgba(90,208,255,0.25); background: rgba(90,208,255,0.06); }
+    .grade.a-minus { color: #ffd27a; border-color: rgba(255,210,122,0.25); background: rgba(255,210,122,0.06); }
+    .grade.b-plus { color: #ffb3ff; border-color: rgba(255,179,255,0.25); background: rgba(255,179,255,0.06); }
+    .grade.b { color: #ff9b7a; border-color: rgba(255,155,122,0.25); background: rgba(255,155,122,0.06); }
+    .delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(248,246,241,0.78);
+    }
+    .delta .up { color: var(--ok); }
+    .delta .down { color: var(--warn); }
+    .delta .flat { color: rgba(248,246,241,0.55); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.02);
+      color: rgba(248,246,241,0.78);
+    }
+    .status.open { border-color: rgba(255,77,77,0.25); background: rgba(255,77,77,0.07); color: rgba(255,207,207,0.95); }
+    .status.mitigated { border-color: rgba(255,204,102,0.25); background: rgba(255,204,102,0.07); color: rgba(255,235,200,0.95); }
+    .status.closed { border-color: rgba(76,217,100,0.25); background: rgba(76,217,100,0.07); color: rgba(214,255,224,0.95); }
+
+    /* Code */
+    pre {
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.35);
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(248,246,241,0.86);
+      white-space: pre;
+    }
+    code { font-family: var(--mono); }
+    .code-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 6px;
+    }
+    .code-head .label {
+      font-size: 12px;
+      color: rgba(248,246,241,0.70);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .copy-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: rgba(248,246,241,0.80);
+      border-radius: 10px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+    .copy-btn:hover {
+      border-color: rgba(201,169,98,0.28);
+      background: rgba(201,169,98,0.08);
+      color: var(--ink);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .hr {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 16px 0;
+    }
+
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">N0</div>
+        <div class="brand-title">
+          <div class="name">BIZRA NODE0</div>
+          <div class="meta">SAPE-Activate • v3 • Phase 18.1</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="nav-title">Navigation</div>
+        <a href="#sec-01" class="nav-item">1. Header & Metrics</a>
+        <a href="#sec-02" class="nav-item">2. Executive Summary</a>
+        <a href="#sec-03" class="nav-item">3. Codebase Topology</a>
+        <a href="#sec-04" class="nav-item">4. Quality Scorecard</a>
+        <a href="#sec-05" class="nav-item">5. Security Analysis</a>
+        <a href="#sec-06" class="nav-item">6. Phase 18.1 Integration</a>
+        <a href="#sec-07" class="nav-item">7. Rarely Fired Circuits</a>
+        <a href="#sec-08" class="nav-item">8. Symbolic–Neural Bridges</a>
+        <a href="#sec-09" class="nav-item">9. Higher-Order Abstractions</a>
+        <a href="#sec-10" class="nav-item">10. Logical–Creative Tensions</a>
+        <a href="#sec-11" class="nav-item">11. Ihsan Compliance</a>
+        <a href="#sec-12" class="nav-item">12. Performance Analysis</a>
+        <a href="#sec-13" class="nav-item">13. Rust Workspace Health</a>
+        <a href="#sec-14" class="nav-item">14. Constitutional Enforcement</a>
+        <a href="#sec-15" class="nav-item">15. CI/CD Pipeline</a>
+        <a href="#sec-16" class="nav-item">16. Inference Architecture</a>
+        <a href="#sec-17" class="nav-item">17. Development Velocity</a>
+        <a href="#sec-18" class="nav-item">18. Findings & Phase 19 Roadmap</a>
+        <a href="#sec-19" class="nav-item">19. Bottom Line</a>
+      </div>
+
+      <div class="footnote">
+        <b>Generation date:</b> Tuesday, 2026-02-10 (Asia/Dubai (UTC+04:00))<br/>
+        <b>Scope:</b> Post‑Phase 18.1 assessment (orchestrator wiring + FastAPI + SQLite + Console + E2E).<br/>
+        <b>Evidence inputs:</b> SAPE v2 (Phase 18), Copilot deep audit (CRIT/HIGH/PERF), Z.ai SAPE v1.∞ synthesis.
+      </div>
+    </aside>
+
+    <main class="content">
+      <section id="sec-01" class="hero">
+        <div class="hero-top">
+          <div>
+            <h1>BIZRA NODE0 — SAPE‑Activate Analysis v3</h1>
+            <p class="subtitle">
+              Definitive post‑Phase 18.1 assessment of <b>architecture</b>, <b>security discipline</b>, <b>integration maturity</b>, and <b>Ihsān compliance</b>.
+              This report consolidates three evidence streams: <span class="kpi">SAPE v2</span>, <span class="kpi">Copilot deep audit</span>, and <span class="kpi">Z.ai SAPE v1.∞ framework</span>,
+              and maps them onto the current codebase state.
+            </p>
+            <div class="meta-row">
+              <span class="chip"><span class="dot"></span>Phase <strong>18.1</strong> (Orchestrator + FastAPI + SQLite + Console + E2E)</span>
+              <span class="chip"><span class="dot"></span>Overall posture: <strong>Elite</strong> with <strong>honest downgrades</strong> where warranted</span>
+              <span class="chip"><span class="dot"></span>Composite Ihsān (v3): <strong>~0.85</strong></span>
+            </div>
+          </div>
+          <div class="chip">
+            <span class="dot"></span>
+            <div>
+              <div style="font-weight:700">Report ID</div>
+              <div class="muted" style="font-size:12px;font-family:var(--mono)">bizra_sape_analysis_v3.html</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-value">~220K+</div>
+            <div class="metric-label">Total LoC</div>
+            <div class="metric-sub"><span class="kpi">~177K</span> Python · <span class="kpi">~37K</span> Rust · + Phase 18.1 additions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">~560+</div>
+            <div class="metric-label">Source files (Py + Rs)</div>
+            <div class="metric-sub">Workspace size stable, growth controlled</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">3,300+</div>
+            <div class="metric-label">Total tests</div>
+            <div class="metric-sub"><span class="kpi">2,715+</span> Python passed · <span class="kpi">~199</span> Rust · + 14 new E2E</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">13</div>
+            <div class="metric-label">Workspace crates</div>
+            <div class="metric-sub">Rust surface area is modular and testable</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">~107</div>
+            <div class="metric-label">Commits (tracked)</div>
+            <div class="metric-sub">+4 since SAPE v2</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">6</div>
+            <div class="metric-label">CI workflows</div>
+            <div class="metric-sub">Coverage floor raised to <span class="kpi">60%</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">6</div>
+            <div class="metric-label">FastAPI endpoints</div>
+            <div class="metric-sub">Query + orchestrate + observability + docs</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">Phase 18.1</div>
+            <div class="metric-label">Current milestone</div>
+            <div class="metric-sub">Orchestrator wiring · SQLite WAL · Node0 Console</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2 -->
+      <section id="sec-02" class="section">
+        <h2>2. Executive Summary</h2>
+        <p class="section-sub">
+          What materially changed since SAPE v2 (Phase 18), and what the evidence now says about BIZRA NODE0’s maturity.
+        </p>
+
+        <div class="panel">
+          <div class="callout ok">
+            <h3>Phase 18.1 delivered real integration—not just architecture</h3>
+            <p>
+              NODE0 crossed the line from “strong sovereign core + aspirational integrations” into a verifiable, callable surface:
+              orchestrator wiring and routing, FastAPI endpoints, SQLite persistence, a Node0 Console UI, and 14 new E2E tests.
+            </p>
+          </div>
+
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Evidence Sources Consolidated</h3>
+              <p>
+                <b>SAPE v2 (Phase 18)</b> captured the PyO3 bridge and sovereign‑core security patterns.<br/>
+                <b>Copilot deep audit</b> surfaced 3 critical security gaps, 5 high findings, and 5 performance anti‑patterns.<br/>
+                <b>Z.ai synthesis</b> produced SAPE v1.∞ (7 modules, 3 passes, 6 checks, 9 probes) and identified “rarely fired circuits”.
+              </p>
+            </div>
+            <div class="callout warn">
+              <h3>Honest downgrades (new evidence)</h3>
+              <p>
+                Security discipline is downgraded from A+ to A due to <b>CRIT‑01/02/03</b> (vault atomicity, env bypass, demo secrets).
+                Integration maturity rises from B+ to A‑ due to <b>FastAPI + SQLite + Console</b> shipping and being test‑covered.
+              </p>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Phase 18.1 gap closures</h3>
+            <p>
+              <b>G1:</b> Orchestration was theoretical → now wired via a complexity router (>= 0.6 triggers orchestration).<br/>
+              <b>G2:</b> Persistence was aspirational → now SQLite WAL persistence + JSONL migration.<br/>
+              <b>G3:</b> Observability was partial → now Node0 Console with health polling + metrics sidebar.<br/>
+              <b>G4:</b> E2E confidence was weak → now 14 new E2E tests covering orchestration path and API surface.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section id="sec-03" class="section">
+        <h2>3. Codebase Topology</h2>
+        <p class="section-sub">
+          Updated topology reflecting Phase 18.1: orchestrator wiring, FastAPI interface, SQLite persistence, and the Node0 Console.
+        </p>
+
+        <div class="panel">
+          <div class="callout info">
+            <h3>Key Phase 18.1 additions (Python surface)</h3>
+            <p>
+              Orchestrator routing and service wiring introduced three “production surface” modules: <code>orchestrator.py</code>, <code>api.py</code> (FastAPI),
+              and <code>persistence.py</code> (SQLite). These convert NODE0 from a “library architecture” into a service boundary.
+            </p>
+          </div>
+
+          <h3 style="margin:14px 0 8px 0; font-size:14px;">Python Stack Additions (Phase 18.1)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Module</th>
+                <th>Role</th>
+                <th>Key Interfaces</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>orchestrator.py</code></td>
+                <td>Complexity estimation + routing + multi-step orchestration</td>
+                <td>ComplexityRouter, OrchestratorPipeline</td>
+                <td>Threshold routing: ≥0.6 → orchestration, else direct pipeline</td>
+              </tr>
+              <tr>
+                <td><code>api.py</code> (FastAPI)</td>
+                <td>HTTP boundary for query/orchestrate + telemetry</td>
+                <td>/v1/query, /v1/orchestrate, /v1/health…</td>
+                <td>Enables external tooling + Node0 Console consumption</td>
+              </tr>
+              <tr>
+                <td><code>persistence.py</code> (SQLite)</td>
+                <td>Local-first state persistence (WAL) + indexed retrieval</td>
+                <td>Store interfaces, migrations</td>
+                <td>Bridges “memory as concept” to “memory as artifact”</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="hr"></div>
+
+          <div class="two-col">
+            <div>
+              <h3 style="margin:0 0 8px 0; font-size:14px;">Test Surface (Updated)</h3>
+              <table>
+                <thead>
+                  <tr><th>Metric</th><th>Value</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Python test files</td><td><b>142</b></td><td>Includes new E2E + orchestrator coverage</td></tr>
+                  <tr><td>Python test functions</td><td><b>2,715+</b></td><td>Passing count per Phase 18.1 snapshot</td></tr>
+                  <tr><td>Rust tests</td><td><b>~199</b></td><td>Workspace tests across 13 crates</td></tr>
+                  <tr><td>E2E tests added</td><td><b>14</b></td><td>Phase 18.1 integration and API path</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 style="margin:0 0 8px 0; font-size:14px;">Node0 Console + Persistence (New)</h3>
+              <div class="callout">
+                <h3>Node0 Console</h3>
+                <p>
+                  <code>static/console.html</code> provides a minimal “truth surface”: health polling, metrics sidebar, and operator visibility.
+                  This is a UX milestone because it exposes live system reality, not aspirational dashboards.
+                </p>
+              </div>
+              <div class="callout">
+                <h3>SQLite Persistence Layer</h3>
+                <p>
+                  Phase 18.1 uses SQLite in WAL mode, enabling safe concurrent reads and durable append‑style writes,
+                  with indexed retrieval and a JSONL migration path for legacy artifacts.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-head">
+            <div class="label">Architecture Diagram (Post‑18.1)</div>
+            <button class="copy-btn" data-copy="diag-03">Copy</button>
+          </div>
+          <pre id="diag-03">┌──────────────────────────────────────────────────────────────────────────┐
+│                             BIZRA NODE0 (Phase 18.1)                     │
+├──────────────────────────────────────────────────────────────────────────┤
+│  Client / Operator                                                        │
+│   ├─ Node0 Console (static/console.html)                                   │
+│   └─ CLI / HTTP Tools                                                      │
+│                                                                            │
+│  FastAPI Boundary (api.py)                                                 │
+│   ├─ POST /v1/query            (direct pipeline)                           │
+│   ├─ POST /v1/orchestrate      (orchestrator path)                         │
+│   ├─ GET  /v1/health           (liveness)                                  │
+│   ├─ GET  /v1/status           (readiness)                                 │
+│   ├─ GET  /v1/metrics          (telemetry)                                 │
+│   └─ GET  /docs                (API docs, if enabled)                      │
+│                                                                            │
+│  Orchestrator (orchestrator.py)                                            │
+│   ├─ Complexity Estimator  → Route Decision                                │
+│   ├─ Multi-step Planner     → Tool/Model Calls                             │
+│   └─ Gate Chain             → Ihsān & SNR thresholds enforced              │
+│                                                                            │
+│  Sovereign Core (core/sovereign/*)                                         │
+│   ├─ PyO3 Bridge             ↔ Rust Workspace (13 crates)                  │
+│   ├─ Constitutional Gates    (fail-closed numeric gates)                   │
+│   └─ Crypto / Attestation    (Ed25519, BLAKE3, timing-safe)                │
+│                                                                            │
+│  Persistence (persistence.py)                                              │
+│   └─ SQLite (WAL) + indexes + JSONL migration                              │
+└──────────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </section>
+
+      <!-- Section 4 -->
+      <section id="sec-04" class="section">
+        <h2>4. Quality Scorecard (v2 → v3)</h2>
+        <p class="section-sub">
+          A dimension-by-dimension delta view integrating Phase 18.1 implementation progress and Copilot audit findings.
+        </p>
+
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>v2 Grade</th>
+                <th>v3 Grade</th>
+                <th>Delta</th>
+                <th>Evidence (v3)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Security Discipline</b></td>
+                <td><span class="grade a-plus">A+</span></td>
+                <td><span class="grade a">A</span></td>
+                <td><span class="delta"><span class="down">▼</span>-1</span></td>
+                <td>Copilot CRIT‑01/02/03: vault atomicity gap, env bypass, demo secrets</td>
+              </tr>
+              <tr>
+                <td><b>Architecture</b></td>
+                <td><span class="grade a-plus">A+</span></td>
+                <td><span class="grade a-plus">A+</span></td>
+                <td><span class="delta"><span class="flat">●</span>=</span></td>
+                <td>Orchestrator DI pattern, Protocol-based stubs, clean module boundaries</td>
+              </tr>
+              <tr>
+                <td><b>Configuration</b></td>
+                <td><span class="grade a-plus">A+</span></td>
+                <td><span class="grade a-plus">A+</span></td>
+                <td><span class="delta"><span class="flat">●</span>=</span></td>
+                <td><code>constants.py</code> remains single source of truth</td>
+              </tr>
+              <tr>
+                <td><b>Test Coverage</b></td>
+                <td><span class="grade a">A</span></td>
+                <td><span class="grade a-plus">A++</span></td>
+                <td><span class="delta"><span class="up">▲</span>+1</span></td>
+                <td>2,715+ tests passing + 14 new E2E + orchestrator coverage</td>
+              </tr>
+              <tr>
+                <td><b>Documentation</b></td>
+                <td><span class="grade a">A</span></td>
+                <td><span class="grade a">A</span></td>
+                <td><span class="delta"><span class="flat">●</span>=</span></td>
+                <td><code>ARCHITECTURE.md</code> honest self-assessment maintained</td>
+              </tr>
+              <tr>
+                <td><b>Exception Handling</b></td>
+                <td><span class="grade a">A</span></td>
+                <td><span class="grade a-minus">A-</span></td>
+                <td><span class="delta"><span class="down">▼</span>-1</span></td>
+                <td>Copilot found builtin shadowing in <code>bizra_errors.py</code></td>
+              </tr>
+              <tr>
+                <td><b>Type Safety</b></td>
+                <td><span class="grade b-plus">B+</span></td>
+                <td><span class="grade b-plus">B+</span></td>
+                <td><span class="delta"><span class="flat">●</span>=</span></td>
+                <td>~61.5% annotated; no meaningful delta yet</td>
+              </tr>
+              <tr>
+                <td><b>Integration Maturity</b></td>
+                <td><span class="grade b-plus">B+</span></td>
+                <td><span class="grade a-minus">A-</span></td>
+                <td><span class="delta"><span class="up">▲</span>+1</span></td>
+                <td>FastAPI endpoints live, SQLite persistence, Node0 Console</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout">
+            <h3>Interpretation</h3>
+            <p>
+              v3 is “more real” than v2: it ships callable interfaces and persistence, but the audit evidence forces
+              a principled downgrade in security discipline until P0 items are closed. This is healthy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5 -->
+      <section id="sec-05" class="section">
+        <h2>5. Security Analysis (Major Update)</h2>
+        <p class="section-sub">
+          Retains v2 elite crypto patterns, but integrates Copilot audit’s critical/high findings and their remediation status.
+        </p>
+
+        <div class="panel">
+          <div class="callout ok">
+            <h3>What remains elite (v2 patterns retained)</h3>
+            <p>
+              The sovereign core continues to demonstrate strong security engineering: Ed25519 signing, BLAKE3 hashing, timing-safe comparisons,
+              content-addressed artifacts, fail-closed constitutional gates, and explicit threat modeling discipline.
+            </p>
+          </div>
+
+          <div class="callout critical">
+            <h3>Security Grade Update: A+ → A (evidence-based downgrade)</h3>
+            <p>
+              Three critical issues (CRIT‑01/02/03) materially weaken “secure-by-default” guarantees. The system is still strong,
+              but the gaps are real until closed.
+            </p>
+          </div>
+
+          <h3 style="margin:14px 0 8px 0; font-size:14px;">Critical Findings (Copilot Audit)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Finding</th>
+                <th>Why It Matters</th>
+                <th>Status</th>
+                <th>Remediation (Phase 19)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>CRIT‑01</b></td>
+                <td>Vault key rotation not atomic (crash ⇒ data loss)</td>
+                <td>Can permanently corrupt or strand encrypted material during rotation</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Implement two-phase commit rotation (write-new, verify, swap, fsync) + rollback journal</td>
+              </tr>
+              <tr>
+                <td><b>CRIT‑02</b></td>
+                <td><code>BIZRA_Z3_CERT_ALLOW_UNSIGNED=1</code> bypasses signature verification</td>
+                <td>Allows unsigned certificates, undermining root-of-trust guarantees</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Remove bypass in prod; gate behind explicit “dev mode” compile flag + red banner + audit log</td>
+              </tr>
+              <tr>
+                <td><b>CRIT‑03</b></td>
+                <td>Hardcoded demo secrets in vault <code>__main__</code></td>
+                <td>Risk of secret leakage and bad operator habits</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Delete demo secrets; replace with generated ephemeral secrets; add secret-scanner CI gate</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="hr"></div>
+
+          <h3 style="margin:0 0 8px 0; font-size:14px;">High Findings (Copilot Audit)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Finding</th>
+                <th>Risk</th>
+                <th>Status</th>
+                <th>Fix Pattern</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>HIGH‑01</b></td>
+                <td>Global mutable nonce cache not thread-safe</td>
+                <td>Race conditions → replay acceptance or inconsistent checks</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Move to lock-free or RWLock + bounded TTL map; add concurrency tests</td>
+              </tr>
+              <tr>
+                <td><b>HIGH‑02</b></td>
+                <td>Timing-safe nonce lookup is <code>O(100K)</code> → DoS amplifier</td>
+                <td>Attacker forces expensive scans</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Use constant-time hash set membership; pre-hash + fixed bucket scan</td>
+              </tr>
+              <tr>
+                <td><b>HIGH‑03</b></td>
+                <td><code>sign_message()</code> bypasses <code>PrivateKeyWrapper</code></td>
+                <td>Key handling invariants bypassed</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Force all signing through wrapper; make bypass path impossible by type</td>
+              </tr>
+              <tr>
+                <td><b>HIGH‑04</b></td>
+                <td>Vault index stored as plaintext JSON</td>
+                <td>Metadata leaks (file names, sizes, timing)</td>
+                <td><span class="status mitigated">MITIGATED</span></td>
+                <td>Encrypt index or store hashes only; add padding; redact sensitive fields</td>
+              </tr>
+              <tr>
+                <td><b>HIGH‑05</b></td>
+                <td>Guardian vote “signature” is truncated SHA‑256</td>
+                <td>Not a real signature; weak integrity</td>
+                <td><span class="status open">OPEN</span></td>
+                <td>Replace with Ed25519 signature over canonical payload; add verification tests</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <h3>Security posture takeaway</h3>
+            <p>
+              The deepest security strength still lives in the <b>sovereign core</b>. The main risk is “edge erosion”:
+              demo shortcuts, bypass flags, and cache patterns sitting outside the core. Phase 19 should harden the perimeter.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6 -->
+      <section id="sec-06" class="section">
+        <h2>6. Phase 18.1 Integration Analysis (New)</h2>
+        <p class="section-sub">
+          Concrete integration details added in Phase 18.1: complexity router, FastAPI boundary, SQLite persistence, Node0 Console.
+        </p>
+
+        <div class="panel">
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Complexity Estimator (wired)</h3>
+              <p>
+                Phase 18.1 implements a deterministic heuristic estimator:
+                <code>score = 0.3·length + 0.3·keywords + 0.2·questions + 0.2·hint</code>.
+                Routing rule: <b>score ≥ 0.6</b> triggers orchestrator path; otherwise, direct pipeline.
+              </p>
+            </div>
+            <div class="callout ok">
+              <h3>Gate Chain now enforced on orchestrated outputs</h3>
+              <p>
+                The orchestrator path now inherits the same constitutional gate chain:
+                Ihsān thresholds + SNR thresholds → <b>fail-closed</b> behavior. This prevents orchestration from becoming a bypass lane.
+              </p>
+            </div>
+          </div>
+
+          <h3 style="margin:14px 0 8px 0; font-size:14px;">FastAPI Endpoints (Service Boundary)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Purpose</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>POST</code></td><td><code>/v1/query</code></td><td>Direct inference pipeline</td><td>Fast path (low complexity)</td></tr>
+              <tr><td><code>POST</code></td><td><code>/v1/orchestrate</code></td><td>Orchestrated multi-step routing</td><td>Invokes complexity router + planner</td></tr>
+              <tr><td><code>GET</code></td><td><code>/v1/health</code></td><td>Liveness</td><td>Used by console + automation</td></tr>
+              <tr><td><code>GET</code></td><td><code>/v1/status</code></td><td>Readiness / config state</td><td>Expose safe, non-secret config summary</td></tr>
+              <tr><td><code>GET</code></td><td><code>/v1/metrics</code></td><td>Telemetry</td><td>Counts, timings, gates, errors</td></tr>
+              <tr><td><code>GET</code></td><td><code>/docs</code></td><td>Interactive docs</td><td>FastAPI Swagger UI (if enabled)</td></tr>
+            </tbody>
+          </table>
+
+          <div class="hr"></div>
+
+          <div class="two-col">
+            <div>
+              <div class="callout">
+                <h3>SQLite Persistence (WAL)</h3>
+                <p>
+                  SQLite is configured for WAL mode (write-ahead log) with indexed retrieval paths.
+                  A JSONL migration path preserves legacy artifacts while centralizing “memory as state” into a durable store.
+                </p>
+              </div>
+            </div>
+            <div>
+              <div class="callout">
+                <h3>Node0 Console</h3>
+                <p>
+                  Static console UI (<code>static/console.html</code>) polls health/status and visualizes core metrics.
+                  This functions as an operator-grade “truth surface,” especially during early pilot deployment.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-head">
+            <div class="label">Tokio ↔ Python Async Bridge Pattern (Illustrative)</div>
+            <button class="copy-btn" data-copy="code-06">Copy</button>
+          </div>
+          <pre id="code-06"># Goal: run Rust async (Tokio) behind a Python-facing API without spawning new event loops per call.
+
+# Python side (FastAPI):
+@app.post("/v1/orchestrate")
+async def orchestrate(req: QueryRequest):
+    # call into a PyO3-exposed Rust gateway that uses a shared Tokio runtime
+    result = await gateway.orchestrate_async(req.payload)
+    return result
+
+// Rust side (PyO3):
+#[pyclass]
+pub struct InferenceGateway {
+  rt: tokio::runtime::Runtime, // initialized once (singleton / lazy_static)
+}
+
+#[pymethods]
+impl InferenceGateway {
+  #[pyo3(name="orchestrate_async")]
+  fn orchestrate_async(&self, py: Python<'_>, payload: String) -> PyResult<&PyAny> {
+    let fut = self.rt.spawn(async move {
+      // do async work: IO, model calls, BLAKE3 hashing, signature verification, etc.
+      orchestrate(payload).await
+    });
+
+    pyo3_asyncio::tokio::future_into_py(py, async move {
+      let out = fut.await.map_err(|e| anyhow::anyhow!(e))??;
+      Ok(out)
+    })
+  }
+}</pre>
+
+          <div class="callout warn">
+            <h3>Integration warning (watchlist)</h3>
+            <p>
+              Copilot PERF‑01 flags creating <code>asyncio.new_event_loop()</code> in init paths. The bridge pattern above avoids that by
+              making event loop ownership explicit and stable.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7 -->
+      <section id="sec-07" class="section">
+        <h2>7. Rarely Fired Circuits (SAPE v1.∞ Module 3)</h2>
+        <p class="section-sub">
+          “Dormant superpowers” identified by Z.ai: capabilities that exist in architecture but are infrequently exercised in production flows.
+        </p>
+
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Circuit</th>
+                <th>v2 Status</th>
+                <th>v3 Status</th>
+                <th>Why It Matters</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>SNR Pipeline</b></td>
+                <td>Dead / RFC‑04</td>
+                <td>Active (Phase 18.1), but dual implementations unreconciled</td>
+                <td>Quality gating; prevents low-signal outputs from leaking</td>
+                <td>Reconcile <code>arte_engine</code> (geometric mean) vs <code>snr_maximizer</code> (Shannon entropy)</td>
+              </tr>
+              <tr>
+                <td><b>Graph Reasoning</b></td>
+                <td>Wired but rarely invoked</td>
+                <td>Still rarely invoked in main query path</td>
+                <td>Unlocks GoT synthesis and better multi-hop correctness</td>
+                <td>Define “graph‑first triggers” and add E2E tests covering invocation</td>
+              </tr>
+              <tr>
+                <td><b>Vector Sharding</b></td>
+                <td>Built for federation</td>
+                <td>Not exercised in live deployment</td>
+                <td>Scale-out RAG and memory across nodes</td>
+                <td>Phase 19: implement a minimal shard driver + demo peer</td>
+              </tr>
+              <tr>
+                <td><b>Cross‑Pollination</b></td>
+                <td>Theoretical protocol</td>
+                <td>No live peers</td>
+                <td>Enables federated learning / knowledge exchange</td>
+                <td>Stand up a “peer‑sim” harness to validate federation protocol without internet</td>
+              </tr>
+              <tr>
+                <td><b>SQLite Checkpoints</b></td>
+                <td>Active (Phase 18)</td>
+                <td>Active (Phase 18.1) with WAL</td>
+                <td>Durable state; recovery behavior</td>
+                <td>Measure checkpoint time + add crash-consistency tests</td>
+              </tr>
+              <tr>
+                <td><b>Missing stubs</b></td>
+                <td>Known stubs</td>
+                <td>Still missing: <code>elite.metrics</code>, <code>elite.ihsan</code>, <code>living_memory.consolidation</code>, <code>living_memory.graph</code></td>
+                <td>Lazy imports raise ImportError; undermines “complete architecture” claim</td>
+                <td>Phase 19 P1: implement minimal stubs + tests (even if no-op)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout">
+            <h3>Strategic implication</h3>
+            <p>
+              The difference between a masterpiece and a blueprint is <b>activation frequency</b>.
+              Phase 19 should increase “rare-path exercise” through targeted E2E tests and production triggers.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 8 -->
+      <section id="sec-08" class="section">
+        <h2>8. Symbolic–Neural Bridges (SAPE v1.∞ Module 4)</h2>
+        <p class="section-sub">
+          Four bridges where BIZRA uniquely fuses symbolic governance with neural inference—where most systems stay purely neural.
+        </p>
+
+        <div class="panel">
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Bridge 1 — IhsanProjector</h3>
+              <p>
+                An 8D ethical vector is projected to a 3D NTU state via <code>W@I + b</code>.
+                This is the most sophisticated symbolic→neural bridge: ethics becomes a measurable control signal, not a slogan.
+                <span class="small">Source: <code>core/sovereign/ihsan_projector.py</code></span>
+              </p>
+            </div>
+            <div class="callout info">
+              <h3>Bridge 2 — PyO3 Type System</h3>
+              <p>
+                12 Python classes bridge to Rust types (e.g., InferenceGateway, NodeIdentity, Constitution, PCIEnvelope, GateChain…),
+                establishing typed interface contracts across the language boundary.
+              </p>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="callout ok">
+              <h3>Bridge 3 — Constitutional Gate Chain</h3>
+              <p>
+                Symbolic rules enforced as fail‑closed numeric gates (e.g., Ihsān ≥ 0.95, SNR ≥ 0.85).
+                No bypass, no defaults: if a gate fails, output is refused or down‑tiered.
+              </p>
+            </div>
+            <div class="callout ok">
+              <h3>Bridge 4 — Protocol‑Based DI</h3>
+              <p>
+                Python Protocol classes define structural typing contracts that Rust implementations satisfy through PyO3.
+                This supports testable stubs and clean dependency inversion.
+                <span class="small">Source: <code>core/sovereign/runtime_types.py</code></span>
+              </p>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Why this matters</h3>
+            <p>
+              These bridges make “ethically grounded reasoning” operational: the system can refuse outputs that violate defined constraints,
+              and can prove which gates were evaluated. This is the kernel of a formal safety case.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 9 -->
+      <section id="sec-09" class="section">
+        <h2>9. Higher‑Order Abstractions (SAPE v1.∞ Module 5)</h2>
+        <p class="section-sub">
+          Three-level abstraction analysis from micro dataflows to macro governance—where Node0 shows unusual maturity.
+        </p>
+
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Scope</th>
+                <th>What’s present in Node0</th>
+                <th>Risk / Opportunity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Micro</b></td>
+                <td>Data flows & primitives</td>
+                <td>query → complexity → route → infer → gate → respond; SQLite WAL writes; BLAKE3 hashing</td>
+                <td>Performance hotspots (async blocking, regex churn)</td>
+              </tr>
+              <tr>
+                <td><b>Meso</b></td>
+                <td>Module boundaries & contracts</td>
+                <td>Protocol-based DI, gateway interfaces, orchestrator pipeline, dual server concept (FastAPI ↔ Axum)</td>
+                <td>Keep “root engines” aligned with sovereign-core discipline</td>
+              </tr>
+              <tr>
+                <td><b>Macro</b></td>
+                <td>Governance & civilization layer</td>
+                <td>Ihsān 8D scoring, ADL Gini justice constraint, PoI + federation topology, autopoiesis self-evolution (design)</td>
+                <td>Must separate [DESIGN] vs [IMPLEMENTED] claims clearly to preserve trust</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <h3>Macro-level honesty is a trust mechanism</h3>
+            <p>
+              BIZRA’s lexicon approach (“claim-tagging”) is essential here: keep aspirational statements labeled as [DESIGN],
+              and only claim [IMPLEMENTED]/[MEASURED] when evidence exists.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 10 -->
+      <section id="sec-10" class="section">
+        <h2>10. Logical–Creative Tensions (SAPE v1.∞ Module 6)</h2>
+        <p class="section-sub">
+          These tensions are not defects—they are the creative pressure gradients that define Phase 19 decisions.
+        </p>
+
+        <div class="panel">
+          <div class="callout warn">
+            <h3>Tension 1 — Sovereignty vs Federation</h3>
+            <p>
+              Node0 runs standalone today, but federation protocols exist for multi-node operation.
+              The architecture supports both; the operational reality is still “solo mode.”
+            </p>
+          </div>
+          <div class="callout warn">
+            <h3>Tension 2 — Dual SNR Implementations</h3>
+            <p>
+              <code>arte_engine</code> uses geometric mean, <code>snr_maximizer</code> uses Shannon entropy.
+              Both are valid but diverge. Without reconciliation, “SNR score” becomes ambiguous.
+            </p>
+          </div>
+          <div class="callout warn">
+            <h3>Tension 3 — Proactivity vs Consent</h3>
+            <p>
+              Orchestrator auto-routes complex queries without explicit user opt-in.
+              Gates enforce quality but not consent. Consider Phase 19: add an “explain + opt-in” mode for high-cost orchestration.
+            </p>
+          </div>
+          <div class="callout warn">
+            <h3>Tension 4 — Root Engines vs Sovereign Core</h3>
+            <p>
+              Copilot audit describes a two-speed system: <code>core/sovereign/</code> is A-grade, while root engines
+              (<code>bizra_orchestrator.py</code>, <code>arte_engine.py</code>) carry design debt (God object, loop patterns, hardcoded paths).
+            </p>
+          </div>
+
+          <div class="callout">
+            <h3>Phase 19 interpretation</h3>
+            <p>
+              Resolve tensions by adding <b>reconciliation layers</b> (SNR normalization), <b>consent UX</b> (orchestrator opt-in),
+              and <b>refactors</b> that bring root engines up to sovereign-core standards.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 11 -->
+      <section id="sec-11" class="section">
+        <h2>11. Ihsan Compliance Verification (Updated)</h2>
+        <p class="section-sub">
+          Updated 5-dimension scorecard incorporating Phase 18.1 improvements and Copilot audit findings.
+        </p>
+
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>v2 Score</th>
+                <th>v3 Score</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Correctness (Ṣidq)</b></td>
+                <td>implicit A</td>
+                <td><b>0.82</b></td>
+                <td>Builtin shadowing + dual SNR unreconciled; orchestrator routing verified</td>
+              </tr>
+              <tr>
+                <td><b>Safety (Amānah)</b></td>
+                <td>implicit A+</td>
+                <td><b>0.85</b></td>
+                <td>Elite crypto offset by CRIT‑01/02/03; SQLite WAL safety helps durability</td>
+              </tr>
+              <tr>
+                <td><b>Beneficence (Raḥmah)</b></td>
+                <td>N/A</td>
+                <td><b>0.90</b></td>
+                <td>Zakat accumulator, Proof-of-Impact, Islamic finance protocol types in Rust</td>
+              </tr>
+              <tr>
+                <td><b>Transparency (Ḥikmah)</b></td>
+                <td>N/A</td>
+                <td><b>0.92</b></td>
+                <td>Honest docs + GENESIS_MANIFEST separation of verified vs aspirational claims</td>
+              </tr>
+              <tr>
+                <td><b>Sustainability (Ṣabr)</b></td>
+                <td>N/A</td>
+                <td><b>0.75</b></td>
+                <td>6 CI workflows active + coverage floor; missing stubs + no Docker compose remain</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout ok">
+            <h3>Composite Ihsān (v3): ~0.85</h3>
+            <p>
+              Up from Copilot’s earlier ~0.78 due to Phase 18.1 integration and stronger durability/observability, while honestly
+              accounting for security and performance gaps that remain.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 12 -->
+      <section id="sec-12" class="section">
+        <h2>12. Performance Analysis (New)</h2>
+        <p class="section-sub">
+          Performance issues identified by Copilot audit, plus positive patterns already present.
+        </p>
+
+        <div class="panel">
+          <h3 style="margin:0 0 8px 0; font-size:14px;">Performance Findings (Copilot)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Finding</th>
+                <th>Impact</th>
+                <th>Fix Strategy</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>PERF‑01</b></td>
+                <td><code>asyncio.new_event_loop()</code> in init</td>
+                <td>Corrupts existing loops; breaks async apps / FastAPI</td>
+                <td>Use existing loop; centralize runtime management; never create loop in library init</td>
+                <td><span class="status open">OPEN</span></td>
+              </tr>
+              <tr>
+                <td><b>PERF‑02</b></td>
+                <td><code>pd.read_parquet()</code> in async paths</td>
+                <td>Blocks event loop; latency spikes</td>
+                <td>Move to thread pool; cache; pre-load offline; or switch to async IO format</td>
+                <td><span class="status open">OPEN</span></td>
+              </tr>
+              <tr>
+                <td><b>PERF‑03</b></td>
+                <td>N+1 embedding lookups</td>
+                <td>Superlinear latency at scale</td>
+                <td>Batch retrieval; vector index prefetch; caching</td>
+                <td><span class="status open">OPEN</span></td>
+              </tr>
+              <tr>
+                <td><b>PERF‑04</b></td>
+                <td>72 regex compilations per evaluation in <code>probe_defense.py</code></td>
+                <td>CPU churn; avoidable overhead</td>
+                <td>Precompile regex; memoize patterns; compile once at import time</td>
+                <td><span class="status open">OPEN</span></td>
+              </tr>
+              <tr>
+                <td><b>PERF‑05</b></td>
+                <td>Full parquet load + <code>iterrows()</code> for image search</td>
+                <td>Slow scans; memory heavy</td>
+                <td>Use columnar filters; vector DB; streaming; avoid iterrows</td>
+                <td><span class="status open">OPEN</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="hr"></div>
+
+          <div class="callout ok">
+            <h3>Positive performance patterns already present</h3>
+            <p>
+              Adaptive top‑k, bounded dequeues, tiered GPU execution, circuit breaker patterns, and early SNR aborts.
+              Phase 19 should remove the five anti‑patterns so the existing good design can dominate runtime behavior.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 13 -->
+      <section id="sec-13" class="section">
+        <h2>13. Rust Workspace Health (Updated)</h2>
+        <p class="section-sub">
+          Updated Rust footprint and capability claims: tests, SIMD acceleration, and domain-specific protocol types.
+        </p>
+
+        <div class="panel">
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Workspace Snapshot</h3>
+              <p>
+                <b>149</b> Rust source files · <b>~199</b> tests · <b>13</b> workspace crates.
+                Rust continues to be the “high-assurance nucleus.”
+              </p>
+            </div>
+            <div class="callout ok">
+              <h3>Acceleration Wins</h3>
+              <p>
+                SIMD acceleration improvements reported: <b>4×</b> batch verification, <b>2×</b> parallel BLAKE3 throughput.
+                (Treat as “measured pending benchmark artifact publication.”)
+              </p>
+            </div>
+          </div>
+
+          <h3 style="margin:14px 0 8px 0; font-size:14px;">Domain Types & Protocols (Highlights)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Types / Modules</th>
+                <th>Why It Matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Islamic Finance Protocol</td>
+                <td><code>ZakatCalculator</code>, <code>MudarabahContract</code>, etc.</td>
+                <td>Encodes beneficence in executable protocol form</td>
+              </tr>
+              <tr>
+                <td>PAT/SAT Agent Minting</td>
+                <td>Agent identity + attestation plumbing</td>
+                <td>Links the agent layer to PoI economics and governance</td>
+              </tr>
+              <tr>
+                <td>Consensus / Finality</td>
+                <td>WQ‑refs gadgets, header schemas</td>
+                <td>Anchors trust; supports light-client verification</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 14 -->
+      <section id="sec-14" class="section">
+        <h2>14. Constitutional Enforcement (Retained + Updated)</h2>
+        <p class="section-sub">
+          v2’s constitutional enforcement remains the backbone; Phase 18.1 adds gate-chain enforcement to orchestrated outputs.
+        </p>
+
+        <div class="panel">
+          <div class="callout ok">
+            <h3>Key invariant: fail‑closed gates</h3>
+            <p>
+              Constitutional constraints are not advisory. They are evaluated as numeric gates; failing gates prevents or down-tiers output.
+              Phase 18.1 ensures orchestrator outputs cannot bypass this chain.
+            </p>
+          </div>
+
+          <div class="code-head">
+            <div class="label">Gate Chain Diagram</div>
+            <button class="copy-btn" data-copy="diag-14">Copy</button>
+          </div>
+          <pre id="diag-14">Input
+  ↓
+[Probe Defense] ──(adversarial / prompt injection checks)
+  ↓
+[SNR Gate]        ── require SNR ≥ 0.85 (or route to safer tier)
+  ↓
+[Ihsān Gate]      ── require Ihsān ≥ 0.95 (8D → NTU projection)
+  ↓
+[Policy Gate]     ── content / constitutional constraints
+  ↓
+[Output Commit]   ── persist artifact + metrics (SQLite WAL)
+  ↓
+Response</pre>
+
+          <div class="callout warn">
+            <h3>Phase 19 note</h3>
+            <p>
+              Ensure the gate chain is also applied to auxiliary pathways (console-triggered actions, federation inputs, any “dev bypass” modes).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 15 -->
+      <section id="sec-15" class="section">
+        <h2>15. CI/CD Pipeline (Retained, minor update)</h2>
+        <p class="section-sub">
+          The pipeline remains disciplined; Phase 18.1 raises the coverage floor to 60% and adds integration confidence via E2E.
+        </p>
+
+        <div class="panel">
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Workflows</h3>
+              <p>
+                6 CI workflows cover multi-platform validation, test gating, and artifact discipline.
+                Coverage floor raised from 30% (audit-era) to <b>60%</b>.
+              </p>
+            </div>
+            <div class="callout ok">
+              <h3>Why this matters</h3>
+              <p>
+                Raising the floor reduces “silent decay” in peripheral modules and makes it harder for root engines to diverge from core quality.
+              </p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Stage</th>
+                <th>Primary Gates</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Pre-merge</td>
+                <td>Lint + unit tests + type checks</td>
+                <td>Fast feedback for contributors</td>
+              </tr>
+              <tr>
+                <td>Post-merge</td>
+                <td>Integration + E2E + coverage floor</td>
+                <td>Phase 18.1 strengthened this layer</td>
+              </tr>
+              <tr>
+                <td>Release</td>
+                <td>Artifact signing / provenance (planned hardening)</td>
+                <td>Align with SPS and “golden artifact” concept</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 16 -->
+      <section id="sec-16" class="section">
+        <h2>16. Inference Architecture (Retained + Orchestrator Routing)</h2>
+        <p class="section-sub">
+          The three-tier inference architecture is preserved; Phase 18.1 adds automatic tier selection via complexity router.
+        </p>
+
+        <div class="panel">
+          <div class="callout info">
+            <h3>Automatic tier selection</h3>
+            <p>
+              Complexity router selects between direct pipeline (fast) and orchestrated path (multi-step). This is the beginning of an “adaptive serving plane.”
+            </p>
+          </div>
+
+          <div class="code-head">
+            <div class="label">3‑Tier Inference + Router (Concept)</div>
+            <button class="copy-btn" data-copy="diag-16">Copy</button>
+          </div>
+          <pre id="diag-16">            ┌─────────────────────────────┐
+Request ───▶│ Complexity Estimator (18.1) │
+            └──────────────┬──────────────┘
+                           │ score < 0.6
+                           ▼
+                ┌───────────────────────┐
+                │ Tier 1: Direct Path   │  (fast, low-cost)
+                └───────────────────────┘
+                           │ score ≥ 0.6
+                           ▼
+                ┌───────────────────────┐
+                │ Tier 2/3: Orchestrate │  (multi-step, tools, routing)
+                └───────────────────────┘
+                           ▼
+                  [Gate Chain + Persist]
+                           ▼
+                        Response</pre>
+
+          <div class="callout warn">
+            <h3>Open question</h3>
+            <p>
+              Phase 19 should define a user-visible contract: how routing decisions are explained, how costs are controlled,
+              and how consent is obtained for heavy orchestration.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 17 -->
+      <section id="sec-17" class="section">
+        <h2>17. Development Velocity (Updated)</h2>
+        <p class="section-sub">
+          Phase 18.1 marks a stable acceleration: new surface area shipped while increasing test confidence.
+        </p>
+
+        <div class="panel">
+          <div class="two-col">
+            <div class="callout info">
+              <h3>Velocity Snapshot</h3>
+              <p>
+                ~18.1 phases completed, ~107 commits total. Latest notable Phase 18.1 commit: <code>46f5655</code>.
+                Growth continues without uncontrolled entropy because the quality gates are active.
+              </p>
+            </div>
+            <div class="callout ok">
+              <h3>What changed vs earlier phases</h3>
+              <p>
+                Shipping integration features (API + persistence) often reduces quality. Here, tests expanded and coverage floor rose,
+                suggesting the team is “building forward without debt compounding.”
+              </p>
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>Continuous acceleration—if P0 items close fast</h3>
+            <p>
+              The strongest predictor of Phase 19 success is whether P0 security gaps are closed early (week 1–2).
+              If not, velocity will create an expanding insecure perimeter.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 18 -->
+      <section id="sec-18" class="section">
+        <h2>18. Findings & Recommendations — Phase 19 Roadmap (Major Update)</h2>
+        <p class="section-sub">
+          Strengths retained from v2 plus new Phase 18.1 strengths. Open items prioritized and mapped to evidence sources.
+        </p>
+
+        <div class="panel">
+          <h3 style="margin:0 0 8px 0; font-size:14px;">Strengths (v3)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Strength</th>
+                <th>Why It Matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><b>S01</b></td><td>Elite sovereign-core cryptography & attestations</td><td>Trust anchor remains strong</td></tr>
+              <tr><td><b>S02</b></td><td>Protocol-based DI and clean module boundaries</td><td>Testability + replaceable components</td></tr>
+              <tr><td><b>S03</b></td><td>Constitutional gate chain (fail-closed)</td><td>Ethics & safety become enforceable</td></tr>
+              <tr><td><b>S04</b></td><td>Honest documentation posture</td><td>Credibility scales with transparency</td></tr>
+              <tr><td><b>S05</b></td><td>Rust nucleus remains high assurance</td><td>Performance + correctness foundation</td></tr>
+              <tr><td><b>S06</b></td><td>Large passing test suite</td><td>Regression resistance</td></tr>
+              <tr><td><b>S07</b></td><td><b>FastAPI + Orchestrator integration</b> (Phase 18.1)</td><td>External interface now exists</td></tr>
+              <tr><td><b>S08</b></td><td><b>SQLite persistence with WAL + JSONL migration</b> (Phase 18.1)</td><td>Durability and repeatability improved</td></tr>
+            </tbody>
+          </table>
+
+          <div class="hr"></div>
+
+          <h3 style="margin:0 0 8px 0; font-size:14px;">Open Items (Priority‑Ordered)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Item</th>
+                <th>Source</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><b>P0</b></td><td>Fix vault key rotation atomicity (CRIT‑01)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P0</b></td><td>Remove/gate env bypass for unsigned certs (CRIT‑02)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P0</b></td><td>Remove demo secrets from vault main (CRIT‑03)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+
+              <tr><td><b>P1</b></td><td>Implement 4 missing module stubs</td><td>SAPE v2</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P1</b></td><td>Reconcile dual SNR implementations</td><td>Copilot + v3</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P1</b></td><td>Fix guardian vote signatures (HIGH‑05)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P1</b></td><td>Thread‑safe nonce cache (HIGH‑01)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+
+              <tr><td><b>P2</b></td><td>Fix event loop creation pattern (PERF‑01)</td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P2</b></td><td>Type hint coverage to 85%+</td><td>SAPE v2</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P2</b></td><td>Cookie verification in federation</td><td>SAPE v2</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P2</b></td><td>Live demo recording</td><td>SAPE v2</td><td><span class="status open">OPEN</span></td></tr>
+
+              <tr><td><b>P3</b></td><td>Docker compose for full-stack dev</td><td>SAPE v2</td><td><span class="status open">OPEN</span></td></tr>
+              <tr><td><b>P3</b></td><td>Rename shadowed builtins in <code>bizra_errors.py</code></td><td>Copilot</td><td><span class="status open">OPEN</span></td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout ok">
+            <h3>Phase 19 “professional elite” next step</h3>
+            <p>
+              Close P0 security gaps first, then remove ambiguity (SNR reconciliation, guardian signature correctness),
+              then stabilize performance & developer experience (event loop fix, Docker compose, type coverage).
+              This ordering preserves trust and prevents technical excellence from being undermined by avoidable perimeter flaws.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 19 -->
+      <section id="sec-19" class="section">
+        <h2>19. Bottom Line (Updated)</h2>
+        <p class="section-sub">
+          A crisp conclusion that matches the evidence: Phase 18.1 made NODE0 real, but security/perf debt must be closed to claim “state-of-the-art”.
+        </p>
+
+        <div class="panel">
+          <div class="callout ok">
+            <h3>What’s true now</h3>
+            <p>
+              NODE0 is in an “elite-but-honest” state: orchestration + API + persistence + console exist and are test-covered.
+              The sovereign core remains unusually strong. This is a legitimate foundation for pilots.
+            </p>
+          </div>
+
+          <div class="callout critical">
+            <h3>What blocks “ultimate implementation”</h3>
+            <p>
+              Three P0 security items (vault atomicity, env bypass, demo secrets) must close. Five perf anti-patterns should be removed
+              so the good architecture can dominate runtime behavior. Without these, the system risks “high-grade core, fragile edge.”
+            </p>
+          </div>
+
+          <div class="callout">
+            <h3>Phase 19 vision</h3>
+            <p>
+              Close P0 security items, implement missing stubs, reconcile SNR, ship a live demo, and publish benchmark artifacts for SIMD/throughput claims.
+              That sequence yields a defensible “shoulders of giants” implementation: provable security, measurable performance, and visible operator truth.
+            </p>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="small">
+            <b>Footer</b><br/>
+            Generated: Tuesday, 2026-02-10 (Asia/Dubai (UTC+04:00))<br/>
+            Ihsān composite (v3): ~0.85 • Security grade (v3): A • Integration maturity (v3): A‑<br/>
+            File: <code>bizra_sape_analysis_v3.html</code>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Active nav highlighting
+    const navLinks = Array.from(document.querySelectorAll('.nav a.nav-item'));
+    const sections = navLinks
+      .map(a => document.querySelector(a.getAttribute('href')))
+      .filter(Boolean);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(a => a.classList.remove('active'));
+          const active = navLinks.find(a => a.getAttribute('href') === '#' + entry.target.id);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, {
+      root: null,
+      threshold: 0.14,
+      rootMargin: '-10% 0px -72% 0px'
+    });
+
+    sections.forEach(sec => observer.observe(sec));
+
+    // Copy buttons
+    function copyText(text) {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(() => {});
+    }
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-copy');
+        const el = document.getElementById(id);
+        if (!el) return;
+        copyText(el.innerText);
+        const old = btn.innerText;
+        btn.innerText = 'Copied';
+        setTimeout(() => btn.innerText = old, 900);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+# BIZRA .dockerignore — Minimize build context
+# Without this, Docker sends 40GB+ (Rust target/, .venv, data dirs)
+
+# ═══════════════════════════════════════════════════════════════════
+# Rust build artifacts (42GB+)
+# ═══════════════════════════════════════════════════════════════════
+bizra-omega/target/
+*.rs.bk
+
+# ═══════════════════════════════════════════════════════════════════
+# Python virtual environments
+# ═══════════════════════════════════════════════════════════════════
+.venv/
+.venv-linux/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ═══════════════════════════════════════════════════════════════════
+# Data pipeline directories (large, runtime-generated)
+# ═══════════════════════════════════════════════════════════════════
+00_INTAKE/
+01_RAW/
+02_PROCESSED/
+03_INDEXED/
+04_GOLD/
+99_QUARANTINE/
+
+# ═══════════════════════════════════════════════════════════════════
+# Extracted/temporary data
+# ═══════════════════════════════════════════════════════════════════
+_unzipped_files/
+_unzipped_spearpoint/
+out/
+
+# ═══════════════════════════════════════════════════════════════════
+# Version control
+# ═══════════════════════════════════════════════════════════════════
+.git/
+.gitignore
+.gitattributes
+
+# ═══════════════════════════════════════════════════════════════════
+# IDE and editor files
+# ═══════════════════════════════════════════════════════════════════
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ═══════════════════════════════════════════════════════════════════
+# CI/CD and tooling (not needed in container)
+# ═══════════════════════════════════════════════════════════════════
+.github/
+.claude/
+.claude-flow/
+.proof-forge/
+.bizra-kernel/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ═══════════════════════════════════════════════════════════════════
+# Documentation (not needed in runtime)
+# ═══════════════════════════════════════════════════════════════════
+docs/
+*.md
+!pyproject.toml
+LICENSE
+
+# ═══════════════════════════════════════════════════════════════════
+# Logs and temporary files
+# ═══════════════════════════════════════════════════════════════════
+*.log
+*.tmp
+*.bak
+*.backup
+
+# ═══════════════════════════════════════════════════════════════════
+# Secrets (NEVER include)
+# ═══════════════════════════════════════════════════════════════════
+.env
+.env.local
+.env.production
+*.pem
+*.key
+sovereign_state/
+
+# ═══════════════════════════════════════════════════════════════════
+# External/vendored projects
+# ═══════════════════════════════════════════════════════════════════
+personaplex/
+xtr-warp/
+node_modules/
+
+# ═══════════════════════════════════════════════════════════════════
+# Test fixtures and reports (included separately for test images)
+# ═══════════════════════════════════════════════════════════════════
+junit-*.xml
+*.sarif
+bandit-report.json

@@ -25,9 +25,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
-import json
 import logging
 import math
 import time
@@ -35,7 +32,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Optional
 
 # Core imports
 from core.integration.constants import (
@@ -44,7 +41,6 @@ from core.integration.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ════════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -57,7 +53,6 @@ SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD  # 0.85
 GOT_MAX_BRANCHES = 5
 GOT_MAX_DEPTH = 4
 GOT_CONVERGENCE_THRESHOLD = 0.90
-
 
 # ════════════════════════════════════════════════════════════════════════════════
 # ENUMS
@@ -146,8 +141,8 @@ class ThoughtNode:
     )
 
     # Graph structure
-    parent_ids: List[str] = field(default_factory=list)
-    child_ids: List[str] = field(default_factory=list)
+    parent_ids: list[str] = field(default_factory=list)
+    child_ids: list[str] = field(default_factory=list)
     depth: int = 0
 
     # Validation
@@ -156,14 +151,16 @@ class ThoughtNode:
     validation_notes: str = ""
 
     # Metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dict."""
         return {
             "id": self.id,
             "thought_type": self.thought_type.value,
-            "content": self.content[:200] + "..." if len(self.content) > 200 else self.content,
+            "content": (
+                self.content[:200] + "..." if len(self.content) > 200 else self.content
+            ),
             "confidence": self.confidence,
             "source_agent": self.source_agent,
             "depth": self.depth,
@@ -192,8 +189,8 @@ class ThoughtGraph:
     Implements Besta et al. (2024) Graph-of-Thoughts methodology.
     """
 
-    nodes: Dict[str, ThoughtNode] = field(default_factory=dict)
-    edges: List[ThoughtEdge] = field(default_factory=list)
+    nodes: dict[str, ThoughtNode] = field(default_factory=dict)
+    edges: list[ThoughtEdge] = field(default_factory=list)
     root_id: Optional[str] = None
 
     # Metrics
@@ -237,7 +234,7 @@ class ThoughtGraph:
             self.nodes[parent_id].child_ids[-1] = node.id
             self.edges.append(ThoughtEdge(from_id=parent_id, to_id=node.id))
 
-        # Set root if first node
+        # set root if first node
         if self.root_id is None:
             self.root_id = node.id
 
@@ -247,18 +244,18 @@ class ThoughtGraph:
         """Get a thought by ID."""
         return self.nodes.get(thought_id)
 
-    def get_children(self, thought_id: str) -> List[ThoughtNode]:
+    def get_children(self, thought_id: str) -> list[ThoughtNode]:
         """Get child thoughts."""
         thought = self.nodes.get(thought_id)
         if not thought:
             return []
         return [self.nodes[cid] for cid in thought.child_ids if cid in self.nodes]
 
-    def get_leaves(self) -> List[ThoughtNode]:
+    def get_leaves(self) -> list[ThoughtNode]:
         """Get leaf thoughts (no children)."""
         return [n for n in self.nodes.values() if not n.child_ids]
 
-    def get_best_path(self) -> List[ThoughtNode]:
+    def get_best_path(self) -> list[ThoughtNode]:
         """
         Get the highest-confidence path from root to leaf.
 
@@ -268,7 +265,7 @@ class ThoughtGraph:
             return []
 
         # BFS with confidence tracking
-        best_paths: Dict[str, Tuple[float, List[str]]] = {
+        best_paths: dict[str, tuple[float, list[str]]] = {
             self.root_id: (self.nodes[self.root_id].confidence, [self.root_id])
         }
 
@@ -299,10 +296,11 @@ class ThoughtGraph:
 
         return [self.nodes[nid] for nid in path if nid in self.nodes]
 
-    def get_conclusions(self) -> List[ThoughtNode]:
+    def get_conclusions(self) -> list[ThoughtNode]:
         """Get all validated conclusions."""
         return [
-            n for n in self.nodes.values()
+            n
+            for n in self.nodes.values()
             if n.thought_type == ThoughtType.CONCLUSION and n.validated
         ]
 
@@ -318,7 +316,7 @@ class ThoughtGraph:
 
         return math.pow(product, 1.0 / len(path))
 
-    def to_summary(self) -> Dict[str, Any]:
+    def to_summary(self) -> dict[str, Any]:
         """Summarize graph state."""
         return {
             "total_thoughts": self.total_thoughts,
@@ -401,7 +399,7 @@ class SNRScore:
         """Check if SNR passes threshold."""
         return self.snr >= SNR_THRESHOLD
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dict."""
         return {
             "signal_power": self.signal_power,
@@ -433,13 +431,13 @@ class SNRGate:
 
     def __init__(self, threshold: float = SNR_THRESHOLD):
         self.threshold = threshold
-        self._history: List[SNRScore] = []
+        self._history: list[SNRScore] = []
 
     def validate(
         self,
         content: str,
         context: Optional[str] = None,
-        sources: Optional[List[str]] = None,
+        sources: Optional[list[str]] = None,
     ) -> SNRScore:
         """
         Validate content against SNR criteria.
@@ -478,7 +476,9 @@ class SNRGate:
         # Noise estimation
         score.inconsistency = 0.1  # Assume low
         score.redundancy = 1.0 - score.novelty
-        score.ambiguity = 0.2 if "maybe" in content.lower() or "might" in content.lower() else 0.1
+        score.ambiguity = (
+            0.2 if "maybe" in content.lower() or "might" in content.lower() else 0.1
+        )
         score.hallucination_risk = 0.1 if sources else 0.3
 
         self._history.append(score)
@@ -513,7 +513,7 @@ class NexusTask:
 
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     prompt: str = ""
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
     # Constraints
     ihsan_threshold: float = IHSAN_THRESHOLD
@@ -522,8 +522,8 @@ class NexusTask:
     max_branches: int = GOT_MAX_BRANCHES
 
     # Routing
-    required_agents: List[AgentRole] = field(default_factory=list)
-    required_skills: List[str] = field(default_factory=list)
+    required_agents: list[AgentRole] = field(default_factory=list)
+    required_skills: list[str] = field(default_factory=list)
 
     # Metadata
     created_at: str = field(
@@ -531,11 +531,13 @@ class NexusTask:
     )
     priority: int = 5  # 1-10
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dict."""
         return {
             "id": self.id,
-            "prompt": self.prompt[:100] + "..." if len(self.prompt) > 100 else self.prompt,
+            "prompt": (
+                self.prompt[:100] + "..." if len(self.prompt) > 100 else self.prompt
+            ),
             "ihsan_threshold": self.ihsan_threshold,
             "snr_threshold": self.snr_threshold,
             "required_agents": [a.value for a in self.required_agents],
@@ -557,12 +559,12 @@ class NexusResult:
 
     # Output
     response: str = ""
-    artifacts: List[Dict[str, Any]] = field(default_factory=list)
+    artifacts: list[dict[str, Any]] = field(default_factory=list)
 
     # Reasoning
     thought_graph: Optional[ThoughtGraph] = None
-    best_path: List[ThoughtNode] = field(default_factory=list)
-    conclusions: List[str] = field(default_factory=list)
+    best_path: list[ThoughtNode] = field(default_factory=list)
+    conclusions: list[str] = field(default_factory=list)
 
     # Metrics
     snr_score: float = 0.0
@@ -571,10 +573,10 @@ class NexusResult:
     reasoning_depth: int = 0
 
     # Execution
-    phases_completed: List[NexusPhase] = field(default_factory=list)
-    agents_used: List[str] = field(default_factory=list)
-    skills_invoked: List[str] = field(default_factory=list)
-    tools_used: List[str] = field(default_factory=list)
+    phases_completed: list[NexusPhase] = field(default_factory=list)
+    agents_used: list[str] = field(default_factory=list)
+    skills_invoked: list[str] = field(default_factory=list)
+    tools_used: list[str] = field(default_factory=list)
 
     # Timing
     started_at: str = ""
@@ -584,12 +586,16 @@ class NexusResult:
     # Error
     error: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dict."""
         return {
             "task_id": self.task_id,
             "success": self.success,
-            "response": self.response[:500] + "..." if len(self.response) > 500 else self.response,
+            "response": (
+                self.response[:500] + "..."
+                if len(self.response) > 500
+                else self.response
+            ),
             "snr_score": self.snr_score,
             "ihsan_score": self.ihsan_score,
             "total_thoughts": self.total_thoughts,
@@ -622,7 +628,7 @@ class NexusConfig:
     got_convergence_threshold: float = GOT_CONVERGENCE_THRESHOLD
 
     # Agents
-    default_agents: List[AgentRole] = field(
+    default_agents: list[AgentRole] = field(
         default_factory=lambda: [
             AgentRole.STRATEGIST,
             AgentRole.GUARDIAN,
@@ -697,7 +703,7 @@ class SovereignNexus:
         self._thought_graph: Optional[ThoughtGraph] = None
 
         # Agent handlers
-        self._agent_handlers: Dict[AgentRole, Callable] = {}
+        self._agent_handlers: dict[AgentRole, Callable] = {}
 
         # Statistics
         self._total_tasks = 0
@@ -714,6 +720,7 @@ class SovereignNexus:
         # Load skill registry
         try:
             from core.skills.registry import get_skill_registry
+
             self._skill_registry = get_skill_registry()
             registry = self._skill_registry
             logger.info(f"Loaded {len(registry.get_all()) if registry else 0} skills")
@@ -723,6 +730,7 @@ class SovereignNexus:
         # Load skill router
         try:
             from core.skills.router import SkillRouter
+
             self._skill_router = SkillRouter(registry=self._skill_registry)
         except ImportError:
             logger.warning("Skill router not available")
@@ -730,6 +738,7 @@ class SovereignNexus:
         # Load MCP bridge
         try:
             from core.skills.mcp_bridge import MCPBridge
+
             self._mcp_bridge = MCPBridge()
         except ImportError:
             logger.warning("MCP bridge not available")
@@ -737,6 +746,7 @@ class SovereignNexus:
         # Load FATE gate
         try:
             from core.elite.hooks import FATEGate, HookRegistry
+
             self._hook_registry = HookRegistry()
             self._fate_gate = FATEGate(
                 ihsan_threshold=self.config.ihsan_threshold,
@@ -751,7 +761,7 @@ class SovereignNexus:
     def register_agent_handler(
         self,
         role: AgentRole,
-        handler: Callable[[str, Dict[str, Any]], str],
+        handler: Callable[[str, dict[str, Any]], str],
     ):
         """
         Register a handler for an agent role.
@@ -904,7 +914,8 @@ class SovereignNexus:
             if handler:
                 try:
                     response = await handler(task.prompt, task.context)
-                    assert self._thought_graph is not None
+                    if self._thought_graph is None:
+                        raise RuntimeError("ThoughtGraph not initialized")
                     thought = self._thought_graph.add_thought(
                         content=response,
                         thought_type=ThoughtType.ANALYSIS,
@@ -924,7 +935,8 @@ class SovereignNexus:
                     logger.warning(f"Agent {role.value} failed: {e}")
             else:
                 # No handler - create placeholder thought
-                assert self._thought_graph is not None
+                if self._thought_graph is None:
+                    raise RuntimeError("ThoughtGraph not initialized")
                 thought = self._thought_graph.add_thought(
                     content=f"[{role.value}]: Analysis pending for: {task.prompt[:50]}...",
                     thought_type=ThoughtType.HYPOTHESIS,
@@ -934,15 +946,18 @@ class SovereignNexus:
                 )
 
         # If we have validated thoughts, create a conclusion
-        assert self._thought_graph is not None
+        if self._thought_graph is None:
+            raise RuntimeError("ThoughtGraph not initialized")
         validated = [
-            t for t in self._thought_graph.nodes.values()
+            t
+            for t in self._thought_graph.nodes.values()
             if t.validated and t.depth == depth
         ]
 
         if validated:
             conclusion_content = " | ".join([t.content[:100] for t in validated[:3]])
-            assert self._thought_graph is not None
+            if self._thought_graph is None:
+                raise RuntimeError("ThoughtGraph not initialized")
             self._thought_graph.add_thought(
                 content=f"Synthesis: {conclusion_content}",
                 thought_type=ThoughtType.CONCLUSION,
@@ -953,8 +968,8 @@ class SovereignNexus:
 
     def _synthesize_response(
         self,
-        conclusions: List[ThoughtNode],
-        path: List[ThoughtNode],
+        conclusions: list[ThoughtNode],
+        path: list[ThoughtNode],
     ) -> str:
         """Synthesize final response from conclusions and reasoning path."""
         parts = []
@@ -973,14 +988,15 @@ class SovereignNexus:
 
         # Add metrics
         parts.append("\n## Metrics")
-        assert self._thought_graph is not None
+        if self._thought_graph is None:
+            raise RuntimeError("ThoughtGraph not initialized")
         parts.append(f"- SNR: {self._thought_graph.compute_graph_confidence():.4f}")
         parts.append(f"- Depth: {self._thought_graph.max_depth_reached}")
         parts.append(f"- Thoughts: {self._thought_graph.total_thoughts}")
 
         return "\n".join(parts)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get Nexus statistics."""
         return {
             "state": self.state.value,
@@ -990,7 +1006,9 @@ class SovereignNexus:
             "total_thoughts": self._total_thoughts,
             "avg_snr": self._snr_gate.get_avg_snr(),
             "registered_agents": [r.value for r in self._agent_handlers.keys()],
-            "skills_available": len(self._skill_registry.get_all()) if self._skill_registry else 0,
+            "skills_available": (
+                len(self._skill_registry.get_all()) if self._skill_registry else 0
+            ),
             "config": {
                 "ihsan_threshold": self.config.ihsan_threshold,
                 "snr_threshold": self.config.snr_threshold,

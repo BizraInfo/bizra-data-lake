@@ -57,6 +57,8 @@ readonly MIN_DISK_FREE_GB=100
 readonly API_ENDPOINT="http://localhost:3001/health"
 readonly DASHBOARD_ENDPOINT="http://localhost:5173/"
 readonly SOVEREIGN_ENDPOINT="http://localhost:8080/health"
+readonly BRIDGE_HOST="127.0.0.1"
+readonly BRIDGE_PORT=9742
 readonly LMSTUDIO_ENDPOINT="http://192.168.56.1:1234/v1/models"
 readonly OLLAMA_ENDPOINT="http://localhost:11434/api/tags"
 readonly POSTGRES_HOST="localhost"
@@ -269,7 +271,7 @@ check_network() {
     fi
 
     # Check localhost ports are available
-    for port in 3001 5173 8080 11434; do
+    for port in 3001 5173 8080 9742 11434; do
         if ! ss -tlnp 2>/dev/null | grep -q ":$port "; then
             log DEBUG "Port $port is available"
         else
@@ -415,6 +417,51 @@ start_sovereign() {
     log INFO "Sovereign Engine started"
 }
 
+start_bridge() {
+    header "Starting Desktop Bridge"
+
+    log INFO "Starting Desktop Bridge (TCP JSON-RPC on $BRIDGE_HOST:$BRIDGE_PORT)..."
+    if systemctl is-active --quiet bizra-bridge 2>/dev/null; then
+        log INFO "Desktop Bridge already running"
+    elif nc -z "$BRIDGE_HOST" "$BRIDGE_PORT" 2>/dev/null; then
+        log INFO "Desktop Bridge port already active"
+    else
+        # Start bridge as background process if no systemd unit exists
+        sudo systemctl start bizra-bridge 2>/dev/null || \
+            (cd /mnt/c/BIZRA-DATA-LAKE && \
+             PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE \
+             nohup python -m core.bridges.desktop_bridge \
+             >> /var/log/bizra/bridge.log 2>&1 &)
+    fi
+    wait_for_tcp "Desktop Bridge" "$BRIDGE_HOST" "$BRIDGE_PORT" 15
+
+    # Verify with JSON-RPC ping
+    if command -v python3 &>/dev/null; then
+        local ping_ok
+        ping_ok=$(python3 -c "
+import socket, json
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(3)
+    s.connect(('$BRIDGE_HOST', $BRIDGE_PORT))
+    s.sendall(json.dumps({'jsonrpc':'2.0','method':'ping','id':1}).encode() + b'\n')
+    r = json.loads(s.recv(4096).decode())
+    s.close()
+    print('ok' if r.get('result',{}).get('status')=='alive' else 'fail')
+except Exception:
+    print('fail')
+" 2>/dev/null || echo "fail")
+
+        if [[ "$ping_ok" == "ok" ]]; then
+            log INFO "Desktop Bridge: ping verified"
+        else
+            log WARN "Desktop Bridge: ping verification failed"
+        fi
+    fi
+
+    log INFO "Desktop Bridge started"
+}
+
 # ==============================================================================
 # HEALTH VALIDATION
 # ==============================================================================
@@ -462,6 +509,13 @@ validate_health() {
     if [[ "$inference_ok" == "false" ]]; then
         log ERROR "No inference backend available!"
         all_healthy=false
+    fi
+
+    # Desktop Bridge (TCP)
+    if nc -z "$BRIDGE_HOST" "$BRIDGE_PORT" 2>/dev/null; then
+        log INFO "Desktop Bridge: HEALTHY"
+    else
+        log WARN "Desktop Bridge: NOT RUNNING (non-critical)"
     fi
 
     # Sovereign Engine
@@ -512,12 +566,14 @@ print_status() {
     printf "  %-20s %s\n" "API Server:" "$(systemctl is-active bizra-api 2>/dev/null || echo 'unknown')"
     printf "  %-20s %s\n" "Dashboard:" "$(systemctl is-active bizra-dashboard 2>/dev/null || echo 'unknown')"
     printf "  %-20s %s\n" "Sovereign:" "$(systemctl is-active bizra-sovereign 2>/dev/null || echo 'unknown')"
+    printf "  %-20s %s\n" "Desktop Bridge:" "$(nc -z $BRIDGE_HOST $BRIDGE_PORT 2>/dev/null && echo 'active' || echo 'inactive')"
     echo ""
 
     echo -e "${CYAN}Endpoints:${NC}"
     echo "  API Server:   http://localhost:3001"
     echo "  Dashboard:    http://localhost:5173"
     echo "  Sovereign:    http://localhost:8080"
+    echo "  Bridge:       tcp://$BRIDGE_HOST:$BRIDGE_PORT"
     echo "  LM Studio:    http://192.168.56.1:1234"
     echo "  Ollama:       http://localhost:11434"
     echo "  Metrics:      http://localhost:9090"
@@ -571,6 +627,7 @@ main() {
     start_inference
     start_application
     start_sovereign
+    start_bridge
 
     # Validate health
     if ! validate_health; then

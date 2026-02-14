@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from .social_integration import SociallyAwareBridge
@@ -37,8 +37,8 @@ class AgentOutput:
 @dataclass
 class ResolvedOutput:
     content: Any
-    winning_agents: List[str] = field(default_factory=list)
-    dissenting_agents: List[str] = field(default_factory=list)
+    winning_agents: list[str] = field(default_factory=list)
+    dissenting_agents: list[str] = field(default_factory=list)
     resolution_strategy: ConflictStrategy = ConflictStrategy.TRUST_WEIGHTED
     resolution_confidence: float = 0.0
 
@@ -49,9 +49,9 @@ class SynthesizedResult:
     consensus_score: float
     synthesis_score: float
     snr_weighted_confidence: float
-    contributing_agents: List[str] = field(default_factory=list)
+    contributing_agents: list[str] = field(default_factory=list)
     conflicts_resolved: int = 0
-    dissent_summary: List[str] = field(default_factory=list)
+    dissent_summary: list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -82,12 +82,12 @@ class CollectiveSynthesizer:
         self.social_bridge = social_bridge
         self.min_consensus = min_consensus
         self.snr_threshold = snr_threshold
-        self._synthesis_history: List[float] = []
+        self._synthesis_history: list[float] = []
 
     def _get_trust(self, agent_id: str) -> float:
         return self.social_bridge.get_trust(agent_id) if self.social_bridge else 0.5
 
-    def synthesize(self, agent_outputs: List[AgentOutput]) -> SynthesizedResult:
+    def synthesize(self, agent_outputs: list[AgentOutput]) -> SynthesizedResult:
         """Synthesize agent outputs into unified decision using trust-weighted voting."""
         if not agent_outputs:
             return SynthesizedResult(None, 0.0, 0.0, 0.0)
@@ -98,9 +98,9 @@ class CollectiveSynthesizer:
             )
 
         # Group outputs by content with weighted votes
-        votes: Dict[str, float] = {}
-        agents: Dict[str, List[str]] = {}
-        original: Dict[str, Any] = {}
+        votes: dict[str, float] = {}
+        agents: dict[str, list[str]] = {}
+        original: dict[str, Any] = {}
         for out in agent_outputs:
             key = str(out.content)
             weight = self._get_trust(out.agent_id) * out.confidence * out.snr_score
@@ -139,11 +139,11 @@ class CollectiveSynthesizer:
             dissent,
         )
 
-    def calculate_consensus_score(self, agent_outputs: List[AgentOutput]) -> float:
+    def calculate_consensus_score(self, agent_outputs: list[AgentOutput]) -> float:
         """Calculate how well agents agree (0-1)."""
         if len(agent_outputs) < 2:
             return 1.0
-        weights: Dict[str, float] = {}
+        weights: dict[str, float] = {}
         for o in agent_outputs:
             k = str(o.content)
             weights[k] = (
@@ -154,7 +154,7 @@ class CollectiveSynthesizer:
 
     def resolve_conflicts(
         self,
-        outputs: List[AgentOutput],
+        outputs: list[AgentOutput],
         strategy: ConflictStrategy = ConflictStrategy.TRUST_WEIGHTED,
     ) -> ResolvedOutput:
         """Resolve conflicts: TRUST_WEIGHTED, HIERARCHICAL, CONSENSUS_REQUIRED, or SNR_MAXIMIZED."""
@@ -167,10 +167,10 @@ class CollectiveSynthesizer:
         }
         return resolvers.get(strategy, self._resolve_trust)(outputs)
 
-    def _resolve_trust(self, outputs: List[AgentOutput]) -> ResolvedOutput:
-        scores: Dict[str, float] = {}
-        agents: Dict[str, List[str]] = {}
-        original: Dict[str, Any] = {}
+    def _resolve_trust(self, outputs: list[AgentOutput]) -> ResolvedOutput:
+        scores: dict[str, float] = {}
+        agents: dict[str, list[str]] = {}
+        original: dict[str, Any] = {}
         for o in outputs:
             k = str(o.content)
             scores[k] = scores.get(k, 0.0) + self._get_trust(o.agent_id) * o.confidence
@@ -186,7 +186,7 @@ class CollectiveSynthesizer:
             scores[winner] / total if total else 0,
         )
 
-    def _resolve_hierarchical(self, outputs: List[AgentOutput]) -> ResolvedOutput:
+    def _resolve_hierarchical(self, outputs: list[AgentOutput]) -> ResolvedOutput:
         s = sorted(
             outputs, key=lambda o: self.ROLE_HIERARCHY.get(o.role, 0), reverse=True
         )
@@ -199,8 +199,8 @@ class CollectiveSynthesizer:
             w.confidence,
         )
 
-    def _resolve_consensus(self, outputs: List[AgentOutput]) -> ResolvedOutput:
-        counts: Dict[str, int] = {}
+    def _resolve_consensus(self, outputs: list[AgentOutput]) -> ResolvedOutput:
+        counts: dict[str, int] = {}
         for o in outputs:
             counts[str(o.content)] = counts.get(str(o.content), 0) + 1
         total = len(outputs)
@@ -217,7 +217,7 @@ class CollectiveSynthesizer:
         logger.warning("Consensus not reached, falling back to trust-weighted")
         return self._resolve_trust(outputs)
 
-    def _resolve_snr(self, outputs: List[AgentOutput]) -> ResolvedOutput:
+    def _resolve_snr(self, outputs: list[AgentOutput]) -> ResolvedOutput:
         s = sorted(outputs, key=lambda o: o.snr_score, reverse=True)
         w, dissent = s[0], [o.agent_id for o in s[1:] if o.content != s[0].content]
         return ResolvedOutput(

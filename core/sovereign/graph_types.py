@@ -1,7 +1,7 @@
 """
 Graph-of-Thoughts Types — Enums and Data Classes
 =================================================
-Type definitions for the Graph-of-Thoughts reasoning engine.
+type definitions for the Graph-of-Thoughts reasoning engine.
 
 Standing on Giants:
 - Graph of Thoughts (Besta et al., 2024): "Solving elaborate problems with LLMs"
@@ -11,13 +11,15 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import json
 import math
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.proof_engine.canonical import hex_digest
 
 
 class ThoughtType(Enum):
@@ -68,12 +70,30 @@ class ThoughtNode:
     snr_score: float = 0.5  # Signal-to-noise ratio
     depth: int = 0  # Depth in reasoning tree
     created_at: float = field(default_factory=time.time)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # Ihsan dimensions
     correctness: float = 0.5
     groundedness: float = 0.5
     coherence: float = 0.5
+
+    @property
+    def content_hash(self) -> str:
+        """Content-addressed hash (BLAKE3 of canonical content, SEC-001).
+
+        Standing on: Merkle (1979) — content-addressed integrity.
+        Makes each node independently verifiable.
+        """
+        canonical = json.dumps(
+            {
+                "content": self.content,
+                "type": self.thought_type.value,
+                "depth": self.depth,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hex_digest(canonical)  # SEC-001: BLAKE3 for Rust interop
 
     @property
     def ihsan_score(self) -> float:
@@ -102,6 +122,7 @@ class ThoughtNode:
             "snr": self.snr_score,
             "ihsan": self.ihsan_score,
             "depth": self.depth,
+            "content_hash": self.content_hash,
         }
 
 
@@ -128,7 +149,7 @@ class ThoughtEdge:
 class ReasoningPath:
     """A path through the thought graph."""
 
-    nodes: List[str]  # Node IDs in order
+    nodes: list[str]  # Node IDs in order
     total_snr: float = 0.0
     total_confidence: float = 0.0
 
@@ -145,17 +166,19 @@ class ReasoningPath:
 class ReasoningResult:
     """Result from the high-level reason() method."""
 
-    thoughts: List[str]
+    thoughts: list[str]
     conclusion: str
     confidence: float
     depth_reached: int
     snr_score: float
     ihsan_score: float
     passes_threshold: bool
-    graph_stats: Dict[str, int] = field(default_factory=dict)
+    graph_stats: dict[str, int] = field(default_factory=dict)
+    graph_hash: Optional[str] = None  # BLAKE3 hash of the full graph artifact (SEC-001)
+    signature: Optional[str] = None  # Ed25519 signature of graph_hash
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
+    def to_dict(self) -> dict[str, Any]:
+        result = {
             "thoughts": self.thoughts,
             "conclusion": self.conclusion,
             "confidence": self.confidence,
@@ -165,6 +188,11 @@ class ReasoningResult:
             "passes_threshold": self.passes_threshold,
             "graph_stats": self.graph_stats,
         }
+        if self.graph_hash:
+            result["graph_hash"] = self.graph_hash
+        if self.signature:
+            result["signature"] = self.signature
+        return result
 
 
 __all__ = [

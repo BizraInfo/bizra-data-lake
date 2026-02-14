@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from .ntu import NTU, NTUConfig, NTUState
 
@@ -66,7 +66,7 @@ class NTUSNRAdapter:
         self.ntu = NTU(self.config.ntu_config or NTUConfig())
 
         # History for temporal analysis
-        self._snr_history: List[float] = []
+        self._snr_history: list[float] = []
 
     def snr_to_observation(self, snr_components: "SNRComponentsV2") -> float:
         """
@@ -101,7 +101,7 @@ class NTUSNRAdapter:
     def observe_snr(
         self,
         snr_components: "SNRComponentsV2",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> NTUState:
         """
         Process SNR components through NTU.
@@ -249,8 +249,8 @@ class NTUMemoryAdapter:
 
     def observe_memory_entries(
         self,
-        entries: List["MemoryEntry"],
-        relevance_scores: Optional[List[float]] = None,
+        entries: list["MemoryEntry"],
+        relevance_scores: Optional[list[float]] = None,
     ) -> NTUState:
         """
         Process multiple memory entries through NTU.
@@ -345,7 +345,7 @@ class NTUBridge:
     def process_snr(
         self,
         snr_components: "SNRComponentsV2",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> NTUState:
         """
         Process SNR components through unified NTU.
@@ -367,8 +367,8 @@ class NTUBridge:
 
     def process_memory(
         self,
-        entries: List["MemoryEntry"],
-        relevance_scores: Optional[List[float]] = None,
+        entries: list["MemoryEntry"],
+        relevance_scores: Optional[list[float]] = None,
     ) -> NTUState:
         """
         Process memory entries through unified NTU.
@@ -430,12 +430,12 @@ class NTUBridge:
         """
         return self._unified_ntu.state.potential >= threshold
 
-    def get_quality_metrics(self) -> Dict[str, Any]:
+    def get_quality_metrics(self) -> dict[str, Any]:
         """
         Get comprehensive quality metrics from NTU.
 
         Returns:
-            Dict with belief, entropy, potential, and derived metrics
+            dict with belief, entropy, potential, and derived metrics
         """
         state = self._unified_ntu.state
         return {

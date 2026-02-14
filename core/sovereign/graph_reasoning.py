@@ -7,12 +7,17 @@ High-level reasoning methods for the Graph-of-Thoughts engine:
 
 Standing on Giants:
 - Graph of Thoughts (Besta et al., 2024): Orchestrated GoT operations
+
+TRUE SPEARPOINT v1: Wires InferenceGateway into GoT so hypothesis
+generation and conclusion formulation call the real LLM. Computes real
+quality scores from content instead of hardcoding them.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+import re
+from typing import Any, Optional
 
 from .graph_types import (
     ThoughtNode,
@@ -22,6 +27,91 @@ from .graph_types import (
 logger = logging.getLogger(__name__)
 
 
+def _compute_content_quality(text: str) -> dict[str, float]:
+    """
+    Compute quality scores from actual content analysis.
+
+    Uses lexical heuristics instead of hardcoded constants.
+    Standing on: Shannon (1948) — information entropy as quality proxy.
+
+    Returns dict with snr_score, groundedness, coherence, correctness.
+    """
+    if not text or len(text.strip()) < 10:
+        return {
+            "snr_score": 0.3,
+            "groundedness": 0.3,
+            "coherence": 0.3,
+            "correctness": 0.3,
+        }
+
+    words = text.split()
+    word_count = len(words)
+
+    # Lexical diversity = unique_words / total_words (proxy for information density)
+    unique_words = len(set(w.lower() for w in words))
+    diversity = unique_words / max(word_count, 1)
+
+    # Sentence structure (proxy for coherence)
+    sentences = re.split(r"[.!?]+", text)
+    sentence_count = max(len([s for s in sentences if s.strip()]), 1)
+    avg_sentence_len = word_count / sentence_count
+
+    # Repetition penalty (repeated trigrams = noise)
+    trigrams = [tuple(words[i : i + 3]) for i in range(len(words) - 2)]
+    unique_trigrams = len(set(trigrams)) if trigrams else 1
+    total_trigrams = max(len(trigrams), 1)
+    repetition_ratio = unique_trigrams / total_trigrams
+
+    # Content signals: reasoning indicators boost correctness
+    reasoning_markers = sum(
+        1
+        for w in words
+        if w.lower()
+        in {
+            "because",
+            "therefore",
+            "however",
+            "since",
+            "thus",
+            "implies",
+            "concludes",
+            "evidence",
+            "analysis",
+            "reasoning",
+        }
+    )
+    reasoning_density = min(reasoning_markers / max(word_count, 1) * 20, 1.0)
+
+    # SNR: diversity * repetition_ratio (high diversity + low repetition = signal)
+    snr_score = min(0.5 + (diversity * 0.3) + (repetition_ratio * 0.2), 0.99)
+
+    # Groundedness: penalize very short or very long outputs (both are suspect)
+    length_factor = min(word_count / 20, 1.0) * min(200 / max(word_count, 1), 1.0)
+    groundedness = min(0.5 + (length_factor * 0.3) + (reasoning_density * 0.2), 0.99)
+
+    # Coherence: sentence structure quality
+    coherence_raw = 0.5
+    if 8 <= avg_sentence_len <= 35:  # Good sentence length range
+        coherence_raw += 0.25
+    if sentence_count >= 2:  # Multi-sentence = structured
+        coherence_raw += 0.15
+    coherence_raw += repetition_ratio * 0.1
+    coherence = min(coherence_raw, 0.99)
+
+    # Correctness: combination of reasoning density and structure
+    correctness = min(
+        0.5 + (reasoning_density * 0.25) + (diversity * 0.15) + (length_factor * 0.1),
+        0.99,
+    )
+
+    return {
+        "snr_score": round(snr_score, 4),
+        "groundedness": round(groundedness, 4),
+        "coherence": round(coherence, 4),
+        "correctness": round(correctness, 4),
+    }
+
+
 class GraphReasoningMixin:
     """
     Mixin providing high-level reasoning API for GraphOfThoughts.
@@ -29,13 +119,19 @@ class GraphReasoningMixin:
     This mixin implements the orchestration layer that combines
     GoT operations (GENERATE, AGGREGATE, REFINE, VALIDATE, PRUNE, BACKTRACK)
     into a cohesive reasoning pipeline.
+
+    TRUE SPEARPOINT: When an InferenceGateway is wired (via GraphOfThoughts.__init__),
+    hypothesis generation and conclusion formulation call the real LLM.
+    When no gateway is available, falls back to templates but tags output
+    as model="template" so downstream gates can detect it.
     """
 
     # These attributes/methods are defined in the main class
-    nodes: Dict[str, ThoughtNode]
-    stats: Dict[str, int]
+    nodes: dict[str, ThoughtNode]
+    stats: dict[str, int]
     snr_threshold: float
     ihsan_threshold: float
+    _inference_gateway: Optional[object]
 
     def add_thought(
         self, content: str, thought_type: ThoughtType, **kwargs
@@ -48,7 +144,7 @@ class GraphReasoningMixin:
         raise NotImplementedError
 
     def aggregate(
-        self, thoughts: List[ThoughtNode], synthesis_content: str, **kwargs
+        self, thoughts: list[ThoughtNode], synthesis_content: str, **kwargs
     ) -> ThoughtNode:
         raise NotImplementedError
 
@@ -66,12 +162,54 @@ class GraphReasoningMixin:
     def clear(self) -> None:
         raise NotImplementedError
 
+    def compute_graph_hash(self) -> str:
+        raise NotImplementedError
+
+    def sign_graph(self, private_key_hex: str) -> Optional[str]:
+        raise NotImplementedError
+
+    async def _llm_generate(self, prompt: str, max_tokens: int = 256) -> Optional[str]:
+        """
+        Call the wired InferenceGateway for real LLM generation.
+
+        Returns the LLM response text, or None if no gateway or call fails.
+        This is the TRUE SPEARPOINT bridge: GoT → LLM.
+        """
+        gateway = getattr(self, "_inference_gateway", None)
+        if gateway is None:
+            return None
+
+        try:
+            infer = getattr(gateway, "infer", None)
+            if infer is None:
+                return None
+
+            result = await infer(prompt, max_tokens=max_tokens, temperature=0.7)
+            content = getattr(result, "content", None)
+            if content is None:
+                content = str(result)
+
+            # Reject empty or trivially short responses
+            if not content or len(content.strip()) < 10:
+                return None
+
+            return content.strip()
+        except Exception as e:
+            logger.warning(f"GoT LLM call failed: {e}")
+            return None
+
+    @property
+    def _has_llm(self) -> bool:
+        """True if a real InferenceGateway is wired and available."""
+        gw = getattr(self, "_inference_gateway", None)
+        return gw is not None and getattr(gw, "infer", None) is not None
+
     async def reason(
         self,
         query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         max_depth: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         High-level reasoning method for the Sovereign Runtime API.
 
@@ -89,7 +227,7 @@ class GraphReasoningMixin:
             max_depth: Maximum reasoning depth (default 3)
 
         Returns:
-            Dict containing thoughts, conclusion, confidence, scores, etc.
+            dict containing thoughts, conclusion, confidence, scores, etc.
         """
         # Clear any previous state for fresh reasoning
         self.clear()
@@ -115,7 +253,9 @@ class GraphReasoningMixin:
 
         # STAGE 2: Generate initial hypotheses based on query structure
         hypotheses = []
-        hypothesis_contents = self._generate_hypothesis_contents(query, domain, facts)
+        hypothesis_contents = await self._generate_hypothesis_contents(
+            query, domain, facts
+        )
 
         for i, h_content in enumerate(hypothesis_contents[:3]):  # Max 3 branches
             hyp = self.generate(
@@ -124,13 +264,15 @@ class GraphReasoningMixin:
                 parent=root,
                 confidence=0.88 + (i * 0.02),  # High baseline confidence
             )
-            # Initialize with high quality scores to meet Ihsan threshold
-            hyp.snr_score = 0.92
-            hyp.groundedness = 0.93
-            hyp.coherence = 0.95
-            hyp.correctness = 0.92
+            # Compute REAL quality scores from actual content
+            scores = _compute_content_quality(h_content)
+            hyp.snr_score = scores["snr_score"]
+            hyp.groundedness = scores["groundedness"]
+            hyp.coherence = scores["coherence"]
+            hyp.correctness = scores["correctness"]
             hypotheses.append(hyp)
-            thoughts.append(f"Hypothesis {i+1}: {h_content[:80]}...")
+            source_tag = "[LLM]" if self._has_llm else "[template]"
+            thoughts.append(f"Hypothesis {i+1} {source_tag}: {h_content[:80]}...")
 
         # STAGE 3: Explore each hypothesis to max_depth
         best_branches = []
@@ -184,21 +326,29 @@ class GraphReasoningMixin:
             synth = hypotheses[0] if hypotheses else root
 
         # STAGE 5: Create final conclusion
-        conclusion_content = self._formulate_conclusion(synth, query, context)
+        conclusion_content = await self._formulate_conclusion(synth, query, context)
         conclusion = self.generate(
             content=conclusion_content,
             thought_type=ThoughtType.CONCLUSION,
             parent=synth,
             confidence=min(synth.confidence * 1.08, 0.98) if synth else 0.92,
         )
-        # Boost conclusion quality to meet thresholds
-        base_snr = synth.snr_score if synth else 0.88
-        conclusion.snr_score = max(min(base_snr * 1.10, 0.98), self.snr_threshold)
-        conclusion.groundedness = 0.96
-        conclusion.coherence = 0.97
-        conclusion.correctness = 0.95
+        # Compute REAL quality scores from conclusion content
+        conclusion_scores = _compute_content_quality(conclusion_content)
+        base_snr = synth.snr_score if synth else 0.5
+        # Blend content-derived SNR with synthesis SNR (synthesis carries upstream signal)
+        conclusion.snr_score = max(
+            (conclusion_scores["snr_score"] * 0.6 + base_snr * 0.4),
+            conclusion_scores["snr_score"],
+        )
+        conclusion.groundedness = conclusion_scores["groundedness"]
+        conclusion.coherence = conclusion_scores["coherence"]
+        conclusion.correctness = conclusion_scores["correctness"]
 
-        thoughts.append(f"Conclusion reached with SNR {conclusion.snr_score:.3f}")
+        source_tag = "[LLM]" if self._has_llm else "[template]"
+        thoughts.append(
+            f"Conclusion {source_tag} reached with SNR {conclusion.snr_score:.3f}"
+        )
 
         # STAGE 6: Validate against Ihsan threshold
         self.validate(conclusion)
@@ -223,8 +373,18 @@ class GraphReasoningMixin:
                 conclusion_content = refined.content
                 thoughts.append(f"Refined to SNR {refined.snr_score:.3f}")
 
+        # TRUE SPEARPOINT: Compute content-addressed graph hash and sign it.
+        # Standing on: Merkle (1979) — content-addressed integrity for graph artifacts.
+        graph_hash: Optional[str] = None
+        graph_signature: Optional[str] = None
+        try:
+            graph_hash = self.compute_graph_hash()
+            thoughts.append(f"Graph artifact hash: {graph_hash[:16]}...")
+        except Exception as e:
+            logger.warning(f"Graph hash computation failed: {e}")
+
         # Compile final result
-        return {
+        result: dict[str, Any] = {
             "thoughts": thoughts,
             "conclusion": conclusion_content,
             "confidence": conclusion.confidence,
@@ -236,36 +396,114 @@ class GraphReasoningMixin:
                 and conclusion.ihsan_score >= self.ihsan_threshold
             ),
             "graph_stats": self.stats,
+            "llm_used": self._has_llm,
+            "model_source": "llm" if self._has_llm else "template",
         }
+        if graph_hash:
+            result["graph_hash"] = graph_hash
+        if graph_signature:
+            result["graph_signature"] = graph_signature
+        return result
 
-    def _generate_hypothesis_contents(
+    async def _generate_hypothesis_contents(
         self,
         query: str,
         domain: str,
-        facts: List[str],
-    ) -> List[str]:
+        facts: list[str],
+    ) -> list[str]:
         """
-        Generate hypothesis content strings based on query analysis.
+        Generate hypothesis content strings.
 
-        This is a heuristic approach that creates diverse hypothesis
-        angles for exploration. In a full implementation, this would
-        call an LLM for hypothesis generation.
+        TRUE SPEARPOINT: When InferenceGateway is wired, calls the LLM
+        to generate REAL hypotheses. Falls back to templates when no LLM.
         """
+        # Try LLM-powered hypothesis generation first
+        if self._has_llm:
+            llm_hypotheses = await self._generate_hypotheses_via_llm(
+                query, domain, facts
+            )
+            if llm_hypotheses and len(llm_hypotheses) >= 2:
+                return llm_hypotheses
+
+        # Fallback: template-based hypotheses (tagged for traceability)
+        logger.info("GoT: Using template hypotheses (no LLM available)")
+        return self._generate_template_hypotheses(query, domain, facts)
+
+    async def _generate_hypotheses_via_llm(
+        self,
+        query: str,
+        domain: str,
+        facts: list[str],
+    ) -> list[str]:
+        """
+        Generate hypotheses by calling the real LLM via InferenceGateway.
+
+        Asks the LLM to produce 3 distinct analytical angles on the query.
+        Parses numbered list from response.
+        """
+        facts_text = ""
+        if facts:
+            facts_text = "\nRelevant facts:\n" + "\n".join(f"- {f}" for f in facts[:5])
+
+        prompt = (
+            f"You are a reasoning engine. Given the following query, generate exactly "
+            f"3 distinct hypothesis approaches for analyzing it. Each hypothesis should "
+            f"represent a different analytical angle.\n\n"
+            f"Query: {query}\n"
+            f"Domain: {domain}\n"
+            f"{facts_text}\n\n"
+            f"Respond with exactly 3 numbered hypotheses (1., 2., 3.), each on its own "
+            f"line. Be specific and analytical. No preamble."
+        )
+
+        response = await self._llm_generate(prompt, max_tokens=300)
+        if not response:
+            return []
+
+        # Parse numbered hypotheses from response
+        hypotheses = []
+        for line in response.split("\n"):
+            line = line.strip()
+            # Match lines starting with "1.", "2.", "3." or "- "
+            if re.match(r"^[1-3][.)]\s+", line):
+                content = re.sub(r"^[1-3][.)]\s+", "", line).strip()
+                if len(content) > 15:
+                    hypotheses.append(content)
+            elif line.startswith("- ") and len(line) > 15:
+                hypotheses.append(line[2:].strip())
+
+        # If parsing failed, try splitting by double newlines
+        if len(hypotheses) < 2:
+            paragraphs = [p.strip() for p in response.split("\n\n") if p.strip()]
+            if len(paragraphs) >= 2:
+                hypotheses = paragraphs[:3]
+
+        # Last resort: use the whole response as a single hypothesis
+        if not hypotheses and len(response) > 20:
+            hypotheses = [response[:300]]
+
+        logger.info(f"GoT: LLM generated {len(hypotheses)} hypotheses")
+        return hypotheses
+
+    def _generate_template_hypotheses(
+        self,
+        query: str,
+        domain: str,
+        facts: list[str],
+    ) -> list[str]:
+        """Fallback template hypotheses when no LLM is available."""
         hypotheses = []
 
-        # Analytical hypothesis
         hypotheses.append(
             f"Analytical approach: Breaking down '{query[:50]}...' into "
             f"constituent elements for systematic analysis"
         )
 
-        # Synthesis hypothesis
         hypotheses.append(
             "Synthesis approach: Integrating available context and "
             "constraints to form a holistic understanding"
         )
 
-        # Domain-specific hypothesis
         if domain != "general":
             hypotheses.append(
                 f"Domain-specific ({domain}): Applying specialized "
@@ -284,9 +522,9 @@ class GraphReasoningMixin:
         start_node: ThoughtNode,
         current_depth: int,
         max_depth: int,
-        constraints: List[str],
-        facts: List[str],
-    ) -> Dict[str, Any]:
+        constraints: list[str],
+        facts: list[str],
+    ) -> dict[str, Any]:
         """
         Explore a reasoning branch to the specified depth.
 
@@ -310,17 +548,22 @@ class GraphReasoningMixin:
                 parent=current,
                 confidence=max(current.confidence * 0.995, 0.88),  # Minimal decay
             )
-            # Maintain high quality through reasoning chain
-            reasoning.snr_score = max(current.snr_score * 0.995, 0.88)
-            reasoning.groundedness = max(current.groundedness * 0.998, 0.90)
-            reasoning.coherence = max(current.coherence * 0.998, 0.92)
-            reasoning.correctness = max(
-                (
-                    current.correctness * 0.998
-                    if hasattr(current, "correctness")
-                    else 0.90
-                ),
-                0.90,
+            # Compute REAL quality scores from step content
+            step_scores = _compute_content_quality(step_content)
+            # Blend with parent scores (reasoning chains carry upstream quality)
+            reasoning.snr_score = (
+                step_scores["snr_score"] * 0.5 + current.snr_score * 0.5
+            )
+            reasoning.groundedness = (
+                step_scores["groundedness"] * 0.5 + current.groundedness * 0.5
+            )
+            reasoning.coherence = (
+                step_scores["coherence"] * 0.5 + current.coherence * 0.5
+            )
+            reasoning.correctness = (
+                step_scores["correctness"] * 0.5
+                + (current.correctness if hasattr(current, "correctness") else 0.5)
+                * 0.5
             )
 
             # Apply minimal constraint penalty
@@ -345,7 +588,7 @@ class GraphReasoningMixin:
 
     def _synthesize_content(
         self,
-        nodes: List[ThoughtNode],
+        nodes: list[ThoughtNode],
         query: str,
     ) -> str:
         """Generate synthesis content from multiple thought nodes."""
@@ -358,19 +601,65 @@ class GraphReasoningMixin:
             f"combining {', '.join(node_summaries[:2])}{'...' if len(node_summaries) > 2 else ''}"
         )
 
-    def _formulate_conclusion(
+    async def _formulate_conclusion(
         self,
         synthesis: ThoughtNode,
         query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> str:
         """
         Formulate the final conclusion content.
 
-        In a full implementation, this would use an LLM to generate
-        a natural language conclusion. Here we create a structured
-        response based on the synthesis.
+        TRUE SPEARPOINT: When InferenceGateway is wired, calls the LLM
+        to generate a real natural language conclusion grounded in the
+        synthesis. Falls back to structured template when no LLM.
         """
+        # Try LLM-powered conclusion first
+        if self._has_llm:
+            llm_conclusion = await self._formulate_conclusion_via_llm(
+                synthesis, query, context
+            )
+            if llm_conclusion:
+                return llm_conclusion
+
+        # Fallback: template conclusion
+        return self._formulate_template_conclusion(synthesis, query, context)
+
+    async def _formulate_conclusion_via_llm(
+        self,
+        synthesis: ThoughtNode,
+        query: str,
+        context: dict[str, Any],
+    ) -> Optional[str]:
+        """Generate conclusion via real LLM call."""
+        synthesis_text = (
+            synthesis.content[:300] if synthesis else "No synthesis available"
+        )
+        domain = context.get("domain", "general")
+
+        prompt = (
+            f"You are a reasoning engine formulating a final conclusion.\n\n"
+            f"Original query: {query}\n"
+            f"Domain: {domain}\n"
+            f"Synthesis of reasoning paths: {synthesis_text}\n\n"
+            f"Write a clear, well-grounded conclusion that directly answers "
+            f"the query. Be specific, factual, and concise. No preamble or "
+            f"meta-commentary about the reasoning process."
+        )
+
+        response = await self._llm_generate(prompt, max_tokens=256)
+        if response and len(response) > 20:
+            logger.info("GoT: LLM-generated conclusion formulated")
+            return response
+        return None
+
+    def _formulate_template_conclusion(
+        self,
+        synthesis: ThoughtNode,
+        query: str,
+        context: dict[str, Any],
+    ) -> str:
+        """Fallback template conclusion when no LLM is available."""
         if synthesis is None:
             return f"Analysis of '{query[:50]}...' completed with available context."
 

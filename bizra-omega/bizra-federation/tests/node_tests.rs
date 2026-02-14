@@ -25,7 +25,10 @@ fn make_node(name: &str) -> FederationNode {
 fn node_config_default_values() {
     let config = NodeConfig::default();
     assert_eq!(config.name, "bizra-node");
-    assert_eq!(config.gossip_addr.port(), bizra_federation::DEFAULT_GOSSIP_PORT);
+    assert_eq!(
+        config.gossip_addr.port(),
+        bizra_federation::DEFAULT_GOSSIP_PORT
+    );
     assert!(config.seeds.is_empty());
     assert_eq!(config.data_dir, "./data");
 }

@@ -46,26 +46,20 @@ Standing on the Shoulders of Giants:
 Created: 2026-02-08 | BIZRA Sovereign Nexus v1.0.0
 """
 
-from .sovereign_nexus import (
-    # Core classes
-    SovereignNexus,
-    NexusConfig,
-    NexusState,
-    # Thought graph
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtGraph,
-    ThoughtType,
-    # Execution
-    NexusTask,
-    NexusResult,
-    NexusPhase,
-    # Agents
+from .sovereign_nexus import (  # Core classes; Thought graph; Execution; Agents; SNR; Factory
     AgentRole,
-    # SNR
+    NexusConfig,
+    NexusPhase,
+    NexusResult,
+    NexusState,
+    NexusTask,
     SNRGate,
     SNRScore,
-    # Factory
+    SovereignNexus,
+    ThoughtEdge,
+    ThoughtGraph,
+    ThoughtNode,
+    ThoughtType,
     create_nexus,
 )
 

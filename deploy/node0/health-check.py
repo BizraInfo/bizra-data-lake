@@ -104,6 +104,14 @@ SERVICES = {
         "critical": True,
         "timeout": 5,
     },
+    "desktop_bridge": {
+        "name": "Desktop Bridge",
+        "host": "127.0.0.1",
+        "port": 9742,
+        "type": "tcp",
+        "critical": False,
+        "timeout": 3,
+    },
 }
 
 

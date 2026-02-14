@@ -1,10 +1,10 @@
-import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
 from core.pci.crypto import generate_keypair, sign_message
+from core.proof_engine.canonical import hex_digest
 from core.zpk import ZeroPointKernel, ZPKPolicy
 
 
@@ -23,7 +23,7 @@ def _write_worker_bundle(
     worker_bytes = worker_code.encode("utf-8")
     worker_path.write_bytes(worker_bytes)  # write_bytes avoids \r\n conversion on Windows
 
-    worker_hash = hashlib.sha256(worker_bytes).hexdigest()
+    worker_hash = hex_digest(worker_bytes)
     signature = sign_message(worker_hash, release_private_key_hex)
     if not valid_signature:
         signature = "00" * 64

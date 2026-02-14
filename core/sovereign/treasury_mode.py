@@ -55,9 +55,7 @@ from .treasury_types import (  # Constants; Enums; Data classes
 # PUBLIC API - Re-export from modular components
 # =============================================================================
 
-
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # FACTORY FUNCTIONS
@@ -123,7 +121,6 @@ __all__ = [
     "RESERVES_THRESHOLD_HIBERNATION",
     "EMERGENCY_TREASURY_UNLOCK_PERCENT",
 ]
-
 
 # =============================================================================
 # DEMO / SELF-TEST

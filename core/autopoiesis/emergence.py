@@ -340,7 +340,9 @@ class EmergenceDetector:
             if ratio > 0.3:  # More than 30% share this strategy
                 emergences.append(
                     EmergentProperty(
-                        id=hashlib.md5(str(pattern).encode(), usedforsecurity=False).hexdigest()[:8],
+                        id=hashlib.md5(
+                            str(pattern).encode(), usedforsecurity=False
+                        ).hexdigest()[:8],
                         emergence_type=EmergenceType.STRATEGY,
                         novelty_level=(
                             NoveltyLevel.SIGNIFICANT
@@ -383,9 +385,9 @@ class EmergenceDetector:
             if current_avg > previous_avg + 0.1:
                 emergences.append(
                     EmergentProperty(
-                        id=hashlib.md5(f"collab_{current_avg}".encode(), usedforsecurity=False).hexdigest()[
-                            :8
-                        ],
+                        id=hashlib.md5(
+                            f"collab_{current_avg}".encode(), usedforsecurity=False
+                        ).hexdigest()[:8],
                         emergence_type=EmergenceType.COLLABORATION,
                         novelty_level=NoveltyLevel.SIGNIFICANT,
                         description=f"Collaboration tendency increased from {previous_avg:.2f} to {current_avg:.2f}",
@@ -393,8 +395,7 @@ class EmergenceDetector:
                             g.id
                             for g in current
                             if (ct := g.get_gene("collaboration_tendency"))
-                            and ct.value
-                            > previous_avg
+                            and ct.value > previous_avg
                         ],
                         confidence=0.8,
                         evidence={

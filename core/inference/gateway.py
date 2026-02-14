@@ -33,59 +33,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
-
-# ─── Re-exports from submodules (backward-compat) ────────────────────────────
-# Every symbol that was historically importable from ``core.inference.gateway``
-# is re-exported here so that no external ``from core.inference.gateway import X``
-# statement breaks.
-
-from ._types import (  # noqa: F401 — re-exports
-    DEFAULT_MODEL_DIR,
-    CACHE_DIR,
-    TIER_CONFIGS,
-    # TypedDicts
-    BatchingMetrics,
-    CircuitMetrics,
-    GatewayStats,
-    HealthData,
-    RateLimiterMetrics,
-    # Protocol
-    BackendGenerateFn,
-    # Enums
-    CircuitState,
-    ComputeTier,
-    InferenceBackend,
-    InferenceStatus,
-    # Config dataclasses
-    CircuitBreakerConfig,
-    RateLimiterConfig,
-    # Core dataclasses
-    InferenceConfig,
-    InferenceResult,
-    TaskComplexity,
-)
-
-from ._connection_pool import (  # noqa: F401 — re-exports
-    ConnectionPool,
-    ConnectionPoolConfig,
-    ConnectionPoolMetrics,
-    PooledConnection,
-    PooledHttpClient,
-)
-
-from ._resilience import (  # noqa: F401 — re-exports
-    CircuitBreaker,
-    CircuitBreakerError,
-    CircuitBreakerMetrics,
-    RateLimiter,
-    RateLimitError,
-)
-
-from ._batching import (  # noqa: F401 — re-exports
-    BatchingInferenceQueue,
-    PendingRequest,
-)
+from typing import Any, AsyncIterator, Optional, Union
 
 from ._backends import (  # noqa: F401 — re-exports
     LMSTUDIO_AVAILABLE,
@@ -94,6 +42,49 @@ from ._backends import (  # noqa: F401 — re-exports
     LMStudioBackend,
     OllamaBackend,
 )
+from ._batching import (  # noqa: F401 — re-exports
+    BatchingInferenceQueue,
+    PendingRequest,
+)
+from ._connection_pool import (  # noqa: F401 — re-exports
+    ConnectionPool,
+    ConnectionPoolConfig,
+    ConnectionPoolMetrics,
+    PooledConnection,
+    PooledHttpClient,
+)
+from ._resilience import (  # noqa: F401 — re-exports
+    CircuitBreaker,
+    CircuitBreakerError,
+    CircuitBreakerMetrics,
+    RateLimiter,
+    RateLimitError,
+)
+from ._types import (  # noqa: F401 — re-exports; TypedDicts; Protocol; Enums; Config dataclasses; Core dataclasses
+    CACHE_DIR,
+    DEFAULT_MODEL_DIR,
+    TIER_CONFIGS,
+    BackendGenerateFn,
+    BatchingMetrics,
+    CircuitBreakerConfig,
+    CircuitMetrics,
+    CircuitState,
+    ComputeTier,
+    GatewayStats,
+    HealthData,
+    InferenceBackend,
+    InferenceConfig,
+    InferenceResult,
+    InferenceStatus,
+    RateLimiterConfig,
+    RateLimiterMetrics,
+    TaskComplexity,
+)
+
+# ─── Re-exports from submodules (backward-compat) ────────────────────────────
+# Every symbol that was historically importable from ``core.inference.gateway``
+# is re-exported here so that no external ``from core.inference.gateway import X``
+# statement breaks.
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -125,11 +116,11 @@ class InferenceGateway:
         self.status: InferenceStatus = InferenceStatus.COLD
 
         # Backends by tier
-        self._backends: Dict[ComputeTier, InferenceBackendBase] = {}
+        self._backends: dict[ComputeTier, InferenceBackendBase] = {}
         self._active_backend: Optional[InferenceBackendBase] = None
 
         # Fallback chain (ordered list of backends to try)
-        self._fallback_backends: List[InferenceBackendBase] = []
+        self._fallback_backends: list[InferenceBackendBase] = []
 
         # Rate limiter (RFC 6585 / Token Bucket)
         self._rate_limiter: Optional[RateLimiter] = None
@@ -439,7 +430,7 @@ class InferenceGateway:
             latency_ms=round(latency_ms, 2),
         )
 
-    async def health(self) -> Dict[str, Any]:
+    async def health(self) -> dict[str, Any]:
         """
         Get gateway health status including circuit breaker and rate limiter metrics.
 
@@ -451,8 +442,8 @@ class InferenceGateway:
         - Batching metrics (if enabled)
         - Request/token statistics
         """
-        backends_health: Dict[str, bool] = {}
-        circuit_breakers: Dict[str, Dict[str, Any]] = {}
+        backends_health: dict[str, bool] = {}
+        circuit_breakers: dict[str, dict[str, Any]] = {}
 
         for tier, backend in self._backends.items():
             tier_name = tier.value
@@ -466,13 +457,13 @@ class InferenceGateway:
                 )
 
         # P0-P1: Include batching metrics if available
-        batching_metrics: Optional[Dict[str, Any]] = None
+        batching_metrics: Optional[dict[str, Any]] = None
         if self._active_backend and hasattr(
             self._active_backend, "get_batching_metrics"
         ):
             batching_metrics = self._active_backend.get_batching_metrics()  # type: ignore[union-attr]
 
-        health_data: Dict[str, Any] = {
+        health_data: dict[str, Any] = {
             "status": self.status.value,
             "active_backend": (
                 self._active_backend.backend_type.value
@@ -510,7 +501,7 @@ class InferenceGateway:
             health_data["batching"] = batching_metrics
 
         # P1: Include connection pool metrics if available
-        connection_pool_metrics: Dict[str, Any] = {}
+        connection_pool_metrics: dict[str, Any] = {}
         for tier, backend in self._backends.items():
             if hasattr(backend, "get_connection_pool_metrics"):
                 pool_metrics = backend.get_connection_pool_metrics()
@@ -524,14 +515,14 @@ class InferenceGateway:
 
         return health_data
 
-    def get_circuit_breaker_summary(self) -> Dict[str, Dict[str, Any]]:
+    def get_circuit_breaker_summary(self) -> dict[str, dict[str, Any]]:
         """
         Get a summary of all circuit breaker states.
 
         Returns dict mapping backend names to their circuit breaker states.
         Useful for monitoring dashboards and alerting.
         """
-        summary: Dict[str, Dict[str, Any]] = {}
+        summary: dict[str, dict[str, Any]] = {}
         for tier, backend in self._backends.items():
             cb = backend.get_circuit_breaker()
             if cb:
@@ -579,7 +570,7 @@ class InferenceGateway:
 
     async def get_client_rate_status(
         self, client_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """
         Get rate limit status for a specific client.
 
@@ -587,7 +578,7 @@ class InferenceGateway:
             client_id: Client identifier (uses default if None)
 
         Returns:
-            Dict with client's current token count and limits
+            dict with client's current token count and limits
         """
         if self._rate_limiter:
             return await self._rate_limiter.get_client_metrics(client_id)
@@ -665,7 +656,9 @@ async def main():
         tier = ComputeTier(args.tier) if args.tier else None
 
         result = await gateway.infer(args.prompt, tier=tier)
-        assert isinstance(result, InferenceResult), "Expected InferenceResult, not stream"
+        assert isinstance(
+            result, InferenceResult
+        ), "Expected InferenceResult, not stream"
         print(f"\n{'='*60}")
         print(f"Model: {result.model}")
         print(f"Backend: {result.backend.value}")

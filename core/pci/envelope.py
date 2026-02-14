@@ -8,6 +8,7 @@ Standing on Giants:
 - Bernstein (2011): Ed25519 signatures
 """
 
+import os
 import secrets
 import uuid
 from dataclasses import asdict, dataclass
@@ -19,7 +20,6 @@ from typing import (
     Final,
     List,
     Optional,
-    Set,
     Tuple,
     TypedDict,
 )
@@ -28,7 +28,6 @@ from .crypto import (
     canonical_json,
     domain_separated_digest,
     sign_message,
-    timing_safe_compare,
 )
 
 # =============================================================================
@@ -41,14 +40,73 @@ MAX_MESSAGE_AGE_SECONDS: Final[int] = 300
 # Maximum future timestamp tolerance (prevents time-travel attacks)
 MAX_FUTURE_TIMESTAMP_SECONDS: Final[int] = 30
 
+import threading
+
 # Nonce tracking for replay prevention
 # Uses a dict with timestamps for TTL-based eviction (thread-safe under GIL)
+# CRITICAL-7 FIX: Now file-backed so process restarts don't lose nonce history.
 # Standing on Giants: Lamport (1978) — "Time, Clocks, and the Ordering of Events"
-import threading
+import time as _time_module
+from pathlib import Path as _Path
+
 _nonce_lock = threading.Lock()
 _seen_nonces: Dict[str, float] = {}  # nonce -> timestamp
 _nonce_max_size: Final[int] = 100000
 _nonce_ttl_seconds: Final[int] = 600  # 10 minutes
+
+# CRITICAL-7: File-backed nonce persistence
+_NONCE_STORE_PATH = _Path(
+    os.environ.get(
+        "BIZRA_NONCE_STORE",
+        _Path(__file__).resolve().parent.parent.parent
+        / "sovereign_state"
+        / "nonce_store.jsonl",
+    )
+)
+
+
+def _load_persisted_nonces() -> None:
+    """Load non-expired nonces from disk on startup.
+
+    CRITICAL-7 FIX: Without this, process restart clears all nonces,
+    allowing replay of any message seen before the restart.
+    """
+    if not _NONCE_STORE_PATH.exists():
+        return
+    now = _time_module.time()
+    cutoff = now - _nonce_ttl_seconds
+    try:
+        with open(_NONCE_STORE_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split("\t", 1)
+                if len(parts) != 2:
+                    continue
+                nonce, ts_str = parts
+                try:
+                    ts = float(ts_str)
+                except ValueError:
+                    continue
+                if ts >= cutoff:
+                    _seen_nonces[nonce] = ts
+    except OSError:
+        pass  # File may not exist yet — that's fine on first boot
+
+
+def _persist_nonce(nonce: str, ts: float) -> None:
+    """Append a nonce to the persistent store (append-only)."""
+    try:
+        _NONCE_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_NONCE_STORE_PATH, "a", encoding="utf-8") as f:
+            f.write(f"{nonce}\t{ts}\n")
+    except OSError:
+        pass  # Non-fatal: in-memory store still protects this process
+
+
+# Load on module import
+_load_persisted_nonces()
 
 
 # =============================================================================
@@ -123,17 +181,16 @@ def _nonce_exists_and_record(nonce: str) -> bool:
     Returns:
         True if this nonce was already seen (replay detected).
     """
-    import time as _time
-
-    now = _time.time()
+    now = _time_module.time()
 
     with _nonce_lock:
         # Check existence
         if nonce in _seen_nonces:
             return True
 
-        # Register nonce
+        # Register nonce (in-memory + persistent)
         _seen_nonces[nonce] = now
+        _persist_nonce(nonce, now)
 
         # TTL-based eviction when over capacity
         if len(_seen_nonces) > _nonce_max_size:

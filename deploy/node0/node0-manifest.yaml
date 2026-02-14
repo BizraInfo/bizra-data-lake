@@ -284,7 +284,7 @@ services:
     tier: application
     start_order: 5
     type: rust_binary
-    binary: /mnt/c/bizra-genesis-node/target/release/api_server
+    binary: /mnt/c/BIZRA-DATA-LAKE/bizra-omega/target/release/api_server
     port: 3001
     environment:
       RUST_LOG: info

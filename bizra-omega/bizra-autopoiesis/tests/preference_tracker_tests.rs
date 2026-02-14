@@ -153,11 +153,7 @@ fn tracker_multiple_preference_types_independent() {
 fn tracker_custom_preference_type() {
     let mut tracker = PreferenceTracker::new();
     for _ in 0..20 {
-        tracker.observe(
-            PreferenceType::Custom("emoji".into()),
-            "usage",
-            "never",
-        );
+        tracker.observe(PreferenceType::Custom("emoji".into()), "usage", "never");
     }
     let val = tracker.get(&PreferenceType::Custom("emoji".into()), "usage");
     assert_eq!(val, Some("never"));

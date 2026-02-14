@@ -35,23 +35,23 @@ Complexity: O(1) weighted sum, O(n) verification where n = number of dimensions
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, IntEnum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
+
+from core.proof_engine.canonical import hex_digest
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTANTS - CANONICAL WEIGHTS (MUST SUM TO 1.0)
 # =============================================================================
 
 # Dimension weights - constitutional values, do not modify
-CANONICAL_WEIGHTS: Dict[str, float] = {
+CANONICAL_WEIGHTS: dict[str, float] = {
     "correctness": 0.22,
     "safety": 0.22,
     "user_benefit": 0.14,
@@ -63,7 +63,7 @@ CANONICAL_WEIGHTS: Dict[str, float] = {
 }
 
 # Verification method identifiers
-VERIFY_METHODS: Dict[str, str] = {
+VERIFY_METHODS: dict[str, str] = {
     "correctness": "z3_smt_proof",
     "safety": "aegis_lambda_zero_trust",
     "user_benefit": "proof_of_impact_receipt",
@@ -76,7 +76,6 @@ VERIFY_METHODS: Dict[str, str] = {
 
 # Anti-centralization Gini threshold (stricter than ADL invariant's 0.40)
 ANTI_CENTRALIZATION_GINI_THRESHOLD: float = 0.35
-
 
 # =============================================================================
 # EXECUTION CONTEXT
@@ -101,13 +100,12 @@ class ExecutionContext(str, Enum):
 
 
 # Context-specific thresholds: (min_score, min_verified_dims, requires_manual_review)
-CONTEXT_THRESHOLDS: Dict[ExecutionContext, Tuple[float, int, bool]] = {
+CONTEXT_THRESHOLDS: dict[ExecutionContext, tuple[float, int, bool]] = {
     ExecutionContext.DEVELOPMENT: (0.85, 4, False),
     ExecutionContext.STAGING: (0.90, 6, False),
     ExecutionContext.PRODUCTION: (0.95, 8, False),
     ExecutionContext.CRITICAL: (0.99, 8, True),
 }
-
 
 # =============================================================================
 # DIMENSION ID ENUM
@@ -211,7 +209,7 @@ class IhsanDimension:
             verification_proof=proof,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for receipts and persistence."""
         return {
             "id": self.id.name.lower(),
@@ -224,7 +222,7 @@ class IhsanDimension:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "IhsanDimension":
+    def from_dict(cls, data: dict[str, Any]) -> "IhsanDimension":
         """Reconstruct from serialized form."""
         dim_id = DimensionId[data["id"].upper()]
         return cls(
@@ -274,7 +272,7 @@ class IhsanVector:
         receipt = vec.to_receipt()
     """
 
-    dimensions: Dict[DimensionId, IhsanDimension] = field(default_factory=dict)
+    dimensions: dict[DimensionId, IhsanDimension] = field(default_factory=dict)
     created_at: str = ""
     context: Optional[ExecutionContext] = None
 
@@ -502,7 +500,7 @@ class IhsanVector:
 
     def set_score(self, dim_id: DimensionId, score: float) -> "IhsanVector":
         """
-        Set score for a dimension (returns new vector, immutability pattern).
+        set score for a dimension (returns new vector, immutability pattern).
 
         This resets verification state for the dimension.
         """
@@ -528,7 +526,7 @@ class IhsanVector:
         return IhsanVector(dimensions=new_dims, context=self.context)
 
     def verify_all(
-        self, proofs: Optional[Dict[DimensionId, str]] = None
+        self, proofs: Optional[dict[DimensionId, str]] = None
     ) -> "IhsanVector":
         """
         Mark all dimensions as verified (returns new vector).
@@ -547,7 +545,7 @@ class IhsanVector:
     # SERIALIZATION
     # -------------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "created_at": self.created_at,
@@ -561,7 +559,7 @@ class IhsanVector:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "IhsanVector":
+    def from_dict(cls, data: dict[str, Any]) -> "IhsanVector":
         """Reconstruct from serialized form."""
         dimensions = {}
         for key, dim_data in data.get("dimensions", {}).items():
@@ -588,7 +586,7 @@ class IhsanVector:
         """
         receipt_data = self.to_dict()
         receipt_json = json.dumps(receipt_data, sort_keys=True, separators=(",", ":"))
-        receipt_hash = hashlib.sha256(receipt_json.encode()).hexdigest()
+        receipt_hash = hex_digest(receipt_json.encode())
 
         return IhsanReceipt(
             vector=self,
@@ -619,10 +617,10 @@ class ThresholdResult:
     required_verified: int
     requires_manual_review: bool
     manual_review_approved: bool
-    failures: List[str]
-    dimension_summary: Dict[str, Dict[str, Any]]
+    failures: list[str]
+    dimension_summary: dict[str, dict[str, Any]]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for logging and reporting."""
         return {
             "passed": self.passed,
@@ -659,10 +657,10 @@ class IhsanReceipt:
 
     def verify_integrity(self) -> bool:
         """Verify receipt hash matches content."""
-        computed_hash = hashlib.sha256(self.receipt_json.encode()).hexdigest()
+        computed_hash = hex_digest(self.receipt_json.encode())
         return computed_hash == self.receipt_hash
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize receipt for persistence."""
         return {
             "receipt_hash": self.receipt_hash,
@@ -672,7 +670,7 @@ class IhsanReceipt:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "IhsanReceipt":
+    def from_dict(cls, data: dict[str, Any]) -> "IhsanReceipt":
         """Reconstruct receipt from serialized form."""
         vector = IhsanVector.from_dict(data["vector"])
         receipt_json = json.dumps(data["vector"], sort_keys=True, separators=(",", ":"))
@@ -690,7 +688,7 @@ class IhsanReceipt:
 
 
 def create_verifier(
-    verify_func: Callable[[IhsanDimension], Tuple[bool, Optional[str]]],
+    verify_func: Callable[[IhsanDimension], tuple[bool, Optional[str]]],
 ) -> Callable[[IhsanVector, DimensionId], IhsanVector]:
     """
     Create a verifier function for a dimension.

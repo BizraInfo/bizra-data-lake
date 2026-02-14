@@ -396,3 +396,114 @@ spec:
             description: |
               No Guardian Council invocations in 30 minutes for pod {{ $labels.pod }}.
               Validation may be bypassed.
+
+    # =========================================================================
+    # Desktop Bridge Alerts
+    # TCP JSON-RPC on 127.0.0.1:9742
+    # =========================================================================
+    - name: bizra.bridge.alerts
+      rules:
+        # WARNING: Bridge not responding
+        - alert: BizraBridgeDown
+          expr: up{job="bizra-bridge"} == 0
+          for: 2m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Desktop Bridge not responding"
+            description: |
+              Desktop Bridge TCP listener on port 9742 is not responding.
+              AHK client will be unable to connect.
+
+        # WARNING: Bridge FATE gate rejection rate > 20%
+        - alert: BizraBridgeFateRejectionHigh
+          expr: |
+            rate(bridge_requests_total{fate_result="rejected"}[5m])
+            /
+            (rate(bridge_requests_total[5m]) > 0) > 0.2
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "Bridge FATE gate rejection rate high"
+            description: |
+              More than 20% of bridge requests are being rejected by the FATE gate.
+              Review command quality or gate thresholds.
+
+        # WARNING: Bridge latency elevated
+        - alert: BizraBridgeLatencyHigh
+          expr: bizra:bridge_latency_ms:p95 > 200
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "200ms"
+          annotations:
+            summary: "Desktop Bridge P95 latency exceeds 200ms"
+            description: |
+              Bridge command latency P95 {{ $value | printf "%.0f" }}ms exceeds
+              the 200ms SLA. Desktop experience degraded.
+
+        # WARNING: Bridge rate limiter active
+        - alert: BizraBridgeRateLimited
+          expr: rate(bridge_requests_total{status="rate_limited"}[5m]) > 0
+          for: 2m
+          labels:
+            severity: info
+            team: sovereign
+          annotations:
+            summary: "Desktop Bridge rate limiter active"
+            description: |
+              Bridge is rate-limiting requests. This may indicate a
+              misbehaving client or unexpected traffic pattern.
+
+    # =========================================================================
+    # RDVE (Recursive Discovery & Verification Engine) Alerts
+    # =========================================================================
+    - name: bizra.rdve.alerts
+      rules:
+        # WARNING: RDVE circuit breaker tripped
+        - alert: BizraRDVECircuitBreakerTripped
+          expr: increase(rdve_circuit_breaker_trips_total[10m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "RDVE circuit breaker tripped"
+            description: |
+              RDVE circuit breaker tripped for pod {{ $labels.pod }}.
+              3+ consecutive hypothesis rejections detected.
+              Research loop is backing off.
+
+        # WARNING: RDVE high rejection rate
+        - alert: BizraRDVERejectionRateHigh
+          expr: |
+            rate(rdve_missions_total{outcome="rejected"}[15m])
+            /
+            (rate(rdve_missions_total[15m]) > 0) > 0.5
+          for: 15m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "RDVE hypothesis rejection rate above 50%"
+            description: |
+              More than 50% of RDVE hypotheses are being rejected
+              for pod {{ $labels.pod }}. Review hypothesis quality
+              or evaluator thresholds.
+
+        # INFO: RDVE no missions in 30 minutes
+        - alert: BizraRDVEInactive
+          expr: increase(rdve_missions_total[30m]) == 0
+          for: 30m
+          labels:
+            severity: info
+            team: sovereign
+          annotations:
+            summary: "RDVE has not executed any missions in 30 minutes"
+            description: |
+              No RDVE missions recorded for pod {{ $labels.pod }}.
+              Research heartbeat may be stopped or not configured.

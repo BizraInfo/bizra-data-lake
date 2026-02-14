@@ -13,7 +13,6 @@ Genesis Strict Synthesis v2.2.2
 """
 
 import copy
-import hashlib
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -132,6 +131,7 @@ class AgentGenome:
     def _generate_id(self) -> str:
         """Generate unique genome ID (CSPRNG)."""
         import secrets
+
         return secrets.token_hex(6)  # 12 hex chars, unpredictable
 
     def _initialize_default_genes(self):

@@ -52,14 +52,13 @@ Created: 2026-02-05 | BIZRA Node0 Genesis v3.0
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from core.integration.constants import (
     IHSAN_WEIGHTS,
@@ -69,7 +68,6 @@ from core.integration.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION DATA CLASSES
@@ -195,7 +193,7 @@ class GiantsAttribution:
 
 
 # Pre-defined Giants for attribution
-GIANTS_REGISTRY: Dict[str, GiantsAttribution] = {
+GIANTS_REGISTRY: dict[str, GiantsAttribution] = {
     "shannon": GiantsAttribution(
         name="Claude Shannon",
         year=1948,
@@ -262,7 +260,7 @@ class StageMetrics:
     input_snr: float
     output_snr: float
     passed: bool
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -304,12 +302,12 @@ class ApexResult:
     passed_thresholds: bool
 
     # Processing audit trail
-    stages: List[StageMetrics] = field(default_factory=list)
+    stages: list[StageMetrics] = field(default_factory=list)
     total_duration_ms: float = 0.0
 
     # Graph-of-Thoughts results
     got_explored_nodes: int = 0
-    got_best_path: List[str] = field(default_factory=list)
+    got_best_path: list[str] = field(default_factory=list)
     got_depth_reached: int = 0
 
     # Bicameral results
@@ -322,7 +320,7 @@ class ApexResult:
     z3_certificate: Optional[str] = None
 
     # Giants attribution
-    giants_cited: List[GiantsAttribution] = field(default_factory=list)
+    giants_cited: list[GiantsAttribution] = field(default_factory=list)
 
     # Parallel execution metrics (Amdahl 1967)
     parallel_metrics: Optional[ParallelExecutionMetrics] = None
@@ -332,7 +330,7 @@ class ApexResult:
     timestamp: str = ""
     engine_version: str = "3.1.0"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize result for API response."""
         result = {
             "answer": self.answer,
@@ -403,7 +401,7 @@ class EvolutionResult:
     fitness_before: float
     fitness_after: float
     improvement: float
-    patterns_learned: List[str]
+    patterns_learned: list[str]
     mutations_applied: int
     ihsan_compliant: bool
     duration_ms: float
@@ -483,7 +481,7 @@ class ApexSovereignEngine:
         # State
         self._request_count = 0
         self._evolution_cycles = 0
-        self._pattern_memory: Dict[str, float] = {}
+        self._pattern_memory: dict[str, float] = {}
 
         # Metrics
         self._metrics = {
@@ -799,7 +797,7 @@ class ApexSovereignEngine:
     async def process(
         self,
         query: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> ApexResult:
         """
         Process a query through the complete Apex pipeline with parallelization.
@@ -831,12 +829,12 @@ class ApexSovereignEngine:
         self._metrics["total_requests"] += 1
 
         start_time = time.perf_counter()
-        stages: List[StageMetrics] = []
-        giants_cited: List[GiantsAttribution] = []
+        stages: list[StageMetrics] = []
+        giants_cited: list[GiantsAttribution] = []
         parallel_metrics = ParallelExecutionMetrics()
 
         # Active tasks for cancellation handling
-        active_tasks: List[asyncio.Task] = []
+        active_tasks: list[asyncio.Task] = []
 
         logger.info(f"[{request_id}] Processing query (parallelized): {query[:60]}...")
 
@@ -1114,7 +1112,7 @@ class ApexSovereignEngine:
     async def _stage_intake(
         self,
         query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> StageMetrics:
         """
         Stage 1: INTAKE — Validate and prepare input.
@@ -1143,7 +1141,7 @@ class ApexSovereignEngine:
     async def _stage_snr_filter(
         self,
         processed_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         input_snr: float,
     ) -> StageMetrics:
         """
@@ -1172,7 +1170,7 @@ class ApexSovereignEngine:
     async def _stage_got_exploration(
         self,
         processed_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         input_snr: float,
     ) -> StageMetrics:
         """
@@ -1201,8 +1199,8 @@ class ApexSovereignEngine:
     async def _stage_bicameral_reasoning(
         self,
         processed_query: str,
-        context: Dict[str, Any],
-        got_result: Dict[str, Any],
+        context: dict[str, Any],
+        got_result: dict[str, Any],
         input_snr: float,
     ) -> StageMetrics:
         """
@@ -1265,9 +1263,9 @@ class ApexSovereignEngine:
     async def _stage_autopoiesis(
         self,
         processed_query: str,
-        bicameral_result: Dict[str, Any],
-        got_result: Dict[str, Any],
-        fate_result: Dict[str, Any],
+        bicameral_result: dict[str, Any],
+        got_result: dict[str, Any],
+        fate_result: dict[str, Any],
     ) -> StageMetrics:
         """
         Stage 6: AUTOPOIESIS — Learn from this processing.
@@ -1332,8 +1330,8 @@ class ApexSovereignEngine:
     async def _apply_snr_filter(
         self,
         query: str,
-        context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Apply SNR maximization filter (Shannon 1948)."""
         try:
             if hasattr(self.snr_maximizer, "analyze"):
@@ -1365,9 +1363,9 @@ class ApexSovereignEngine:
     async def _explore_thoughts(
         self,
         query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         input_snr: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Explore multiple reasoning paths with Graph-of-Thoughts (Besta 2024)."""
         try:
             if hasattr(self.got_engine, "reason"):
@@ -1412,9 +1410,9 @@ class ApexSovereignEngine:
     async def _bicameral_reason(
         self,
         query: str,
-        context: Dict[str, Any],
-        got_result: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+        got_result: dict[str, Any],
+    ) -> dict[str, Any]:
         """Apply bicameral reasoning: generate-verify loop (Jaynes 1976 + Karpathy 2024)."""
         try:
             if hasattr(self.bicameral_engine, "reason"):
@@ -1476,7 +1474,7 @@ class ApexSovereignEngine:
         self,
         candidate: str,
         query: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Verify through FATE Gate with Z3 constitutional constraints (de Moura 2008)."""
         try:
             if hasattr(self.constitutional_gate, "admit"):
@@ -1504,7 +1502,9 @@ class ApexSovereignEngine:
                 }
             else:
                 # Fallback: simple hash-based verification
-                content_hash = hashlib.sha256(candidate.encode()).hexdigest()[:16]
+                from core.proof_engine.canonical import hex_digest
+
+                content_hash = hex_digest(candidate.encode())[:16]
                 return {
                     "status": "MUSEUM",
                     "passed": True,
@@ -1523,16 +1523,18 @@ class ApexSovereignEngine:
     async def _learn_from_processing(
         self,
         query: str,
-        result: Dict[str, Any],
-        got_result: Dict[str, Any],
-        fate_result: Dict[str, Any],
+        result: dict[str, Any],
+        got_result: dict[str, Any],
+        fate_result: dict[str, Any],
     ) -> None:
         """Autopoietic learning from processing (Maturana & Varela 1972)."""
         try:
             # Extract patterns from successful processing
             if result.get("consensus_score", 0) >= self.config.ihsan_threshold:
                 # Store successful pattern
-                pattern_key = hashlib.sha256(query[:50].encode()).hexdigest()[:8]
+                from core.proof_engine.canonical import hex_digest
+
+                pattern_key = hex_digest(query[:50].encode())[:8]
                 self._pattern_memory[pattern_key] = result.get("consensus_score", 0.0)
                 self._metrics["patterns_learned"] = len(self._pattern_memory)
 
@@ -1694,7 +1696,7 @@ class ApexSovereignEngine:
             + self._metrics["ihsan_average"] * 0.2
         )
 
-    def _self_tune(self) -> Tuple[float, float, List[str], int]:
+    def _self_tune(self) -> tuple[float, float, list[str], int]:
         """Simple self-tuning when full autopoiesis unavailable."""
         patterns = []
         mutations = 0
@@ -1716,7 +1718,7 @@ class ApexSovereignEngine:
     # STATUS & INTROSPECTION
     # ═══════════════════════════════════════════════════════════════════════════
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """
         Get comprehensive engine status.
 
@@ -1776,7 +1778,7 @@ class _FallbackSNRMaximizer:
     def __init__(self, threshold: float = 0.85):
         self.threshold = threshold
 
-    def analyze(self, text: str, context: str = "") -> Dict[str, Any]:
+    def analyze(self, text: str, context: str = "") -> dict[str, Any]:
         words = text.split()
         unique_ratio = len(set(words)) / max(len(words), 1)
         snr = unique_ratio * 0.7 + 0.3
@@ -1791,8 +1793,8 @@ class _FallbackGoTEngine:
     """Fallback GoT implementation."""
 
     async def reason(
-        self, query: str, context: Dict, max_depth: int = 3
-    ) -> Dict[str, Any]:
+        self, query: str, context: dict, max_depth: int = 3
+    ) -> dict[str, Any]:
         return {
             "conclusion": f"Analysis of: {query[:100]}",
             "snr_score": 0.88,
@@ -1811,7 +1813,7 @@ class _FallbackGoTEngine:
 class _FallbackBicameralEngine:
     """Fallback bicameral implementation."""
 
-    async def reason(self, problem: str, context: Dict) -> Dict[str, Any]:
+    async def reason(self, problem: str, context: dict) -> dict[str, Any]:
         return {
             "final_answer": context.get(
                 "got_conclusion", f"Processed: {problem[:100]}"
@@ -1830,11 +1832,13 @@ class _FallbackConstitutionalGate:
         self.snr_threshold = snr_threshold
 
     async def admit(self, candidate: str, query: str) -> Any:
+        from core.proof_engine.canonical import hex_digest
+
         @dataclass
         class FakeResult:
             status: Any
             score: float
-            evidence: Dict[str, Any]
+            evidence: dict[str, Any]
 
         @dataclass
         class FakeStatus:
@@ -1843,9 +1847,7 @@ class _FallbackConstitutionalGate:
         return FakeResult(
             status=FakeStatus(),
             score=0.88,
-            evidence={
-                "certificate_hash": hashlib.sha256(candidate.encode()).hexdigest()[:16]
-            },
+            evidence={"certificate_hash": hex_digest(candidate.encode())[:16]},
         )
 
 
@@ -2037,7 +2039,6 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(_test_apex_engine())
-
 
 __all__ = [
     "ApexSovereignEngine",

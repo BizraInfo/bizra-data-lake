@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from core.apex import (
     Relationship,
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 class NoCapableAgentError(Exception):
     """Raised when no agent with required capabilities is available."""
 
-    def __init__(self, required_capabilities: Set[str]):
+    def __init__(self, required_capabilities: set[str]):
         self.required_capabilities = required_capabilities
         super().__init__(f"No agent capable of: {required_capabilities}")
 
@@ -59,7 +59,7 @@ class ScoredAgent:
     capability_score: float
     trust_score: float
     combined_score: float
-    capabilities: Set[str] = field(default_factory=set)
+    capabilities: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -69,7 +69,7 @@ class CollaborationMatch:
     agent_a: str
     agent_b: str
     synergy_score: float
-    recommended_task_types: Set[str] = field(default_factory=set)
+    recommended_task_types: set[str] = field(default_factory=set)
 
 
 class SociallyAwareBridge(DualAgenticBridge):
@@ -93,7 +93,7 @@ class SociallyAwareBridge(DualAgenticBridge):
     """
 
     # Agent capabilities by role
-    ROLE_CAPABILITIES: Dict[AgentRole, Set[str]] = {
+    ROLE_CAPABILITIES: dict[AgentRole, set[str]] = {
         AgentRole.MASTER_REASONER: {"reasoning", "planning", "strategy"},
         AgentRole.DATA_ANALYZER: {"analysis", "data", "patterns"},
         AgentRole.EXECUTION_PLANNER: {"execution", "workflow", "orchestration"},
@@ -168,7 +168,7 @@ class SociallyAwareBridge(DualAgenticBridge):
     def _calculate_capability_match(
         self,
         role: AgentRole,
-        required_capabilities: Set[str],
+        required_capabilities: set[str],
     ) -> float:
         """Calculate how well an agent's capabilities match requirements."""
         agent_caps = self.ROLE_CAPABILITIES.get(role, set())
@@ -183,8 +183,8 @@ class SociallyAwareBridge(DualAgenticBridge):
 
     def _filter_by_capability(
         self,
-        required_capabilities: Set[str],
-    ) -> List[Tuple[str, AgentRole]]:
+        required_capabilities: set[str],
+    ) -> list[tuple[str, AgentRole]]:
         """Filter agents by required capabilities."""
         capable = []
 
@@ -197,7 +197,7 @@ class SociallyAwareBridge(DualAgenticBridge):
 
     def select_agent_for_task(
         self,
-        required_capabilities: Set[str],
+        required_capabilities: set[str],
         prefer_diversity: bool = False,
     ) -> ScoredAgent:
         """
@@ -210,7 +210,7 @@ class SociallyAwareBridge(DualAgenticBridge):
         4. Select highest scoring agent
 
         Args:
-            required_capabilities: Set of required capabilities
+            required_capabilities: set of required capabilities
             prefer_diversity: If True, bonus for weak ties (Granovetter)
 
         Returns:
@@ -224,7 +224,7 @@ class SociallyAwareBridge(DualAgenticBridge):
         if not capable_agents:
             raise NoCapableAgentError(required_capabilities)
 
-        scored_agents: List[ScoredAgent] = []
+        scored_agents: list[ScoredAgent] = []
 
         for agent_id, role in capable_agents:
             trust = self.get_trust(agent_id)
@@ -278,9 +278,9 @@ class SociallyAwareBridge(DualAgenticBridge):
 
     def find_collaboration_partners(
         self,
-        task_capabilities: Set[str],
+        task_capabilities: set[str],
         min_synergy: float = 0.6,
-    ) -> List[CollaborationMatch]:
+    ) -> list[CollaborationMatch]:
         """
         Find agent pairs that collaborate well for multi-agent tasks.
 
@@ -292,9 +292,9 @@ class SociallyAwareBridge(DualAgenticBridge):
             min_synergy: Minimum synergy score to include pair
 
         Returns:
-            List of CollaborationMatch with agent pairs
+            list of CollaborationMatch with agent pairs
         """
-        matches: List[CollaborationMatch] = []
+        matches: list[CollaborationMatch] = []
 
         # Get all PAT agents
         pat_agents = list(self.ROLE_CAPABILITIES.keys())
@@ -407,7 +407,7 @@ class SociallyAwareBridge(DualAgenticBridge):
         damping = 0.85
 
         for _ in range(iterations):
-            new_scores: Dict[str, float] = {}
+            new_scores: dict[str, float] = {}
 
             for agent_id, rel in self.social_graph._relationships.items():
                 # Simple propagation: weighted average of neighbors
@@ -434,7 +434,7 @@ class SociallyAwareBridge(DualAgenticBridge):
                 if agent_id in self.social_graph._relationships:
                     self.social_graph._relationships[agent_id].trust_score = score
 
-    def get_network_metrics(self) -> Dict[str, Any]:
+    def get_network_metrics(self) -> dict[str, Any]:
         """Get social network metrics."""
         rels = list(self.social_graph._relationships.values())
 

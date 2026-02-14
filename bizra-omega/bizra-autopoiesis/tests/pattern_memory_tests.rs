@@ -189,7 +189,11 @@ fn pattern_memory_in_memory_starts_empty() {
 fn pattern_memory_learn_increases_count() {
     let mut mem = PatternMemory::in_memory(NodeId("learner".into()));
     let id = mem
-        .learn("test data".into(), vec![0.1; EMBEDDING_DIM], vec!["tag1".into()])
+        .learn(
+            "test data".into(),
+            vec![0.1; EMBEDDING_DIM],
+            vec!["tag1".into()],
+        )
         .unwrap();
     assert!(id.starts_with("pat_"));
     assert_eq!(mem.count(), 1);

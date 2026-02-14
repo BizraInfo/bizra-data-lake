@@ -1,0 +1,55 @@
+{
+  "nodes": [
+    {
+      "id": "root-001",
+      "content": "What is sovereignty?",
+      "type": "question",
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "confidence": 0.9,
+      "snr": 0.9,
+      "ihsan": 0.92,
+      "depth": 0
+    },
+    {
+      "id": "hyp-001",
+      "content": "Sovereignty as self-determination",
+      "type": "hypothesis",
+      "claim_tag": "measured",
+      "content_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "confidence": 0.88,
+      "snr": 0.85,
+      "ihsan": 0.9,
+      "depth": 1
+    },
+    {
+      "id": "conc-001",
+      "content": "Sovereignty requires cryptographic identity, verifiable computation, and local-first operation",
+      "type": "conclusion",
+      "claim_tag": "measured",
+      "content_hash": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "confidence": 0.95,
+      "snr": 0.96,
+      "ihsan": 0.97,
+      "depth": 2
+    }
+  ],
+  "edges": [
+    { "source": "root-001", "target": "hyp-001", "type": "derives", "weight": 0.9 },
+    { "source": "hyp-001", "target": "conc-001", "type": "synthesizes", "weight": 0.95 }
+  ],
+  "roots": ["root-001"],
+  "stats": {
+    "nodes_created": 3,
+    "nodes_pruned": 0,
+    "edges_created": 2,
+    "refinements": 0,
+    "aggregations": 1
+  },
+  "config": {
+    "strategy": "best_first",
+    "max_depth": 5,
+    "snr_threshold": 0.85,
+    "ihsan_threshold": 0.95
+  },
+  "graph_hash": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+}

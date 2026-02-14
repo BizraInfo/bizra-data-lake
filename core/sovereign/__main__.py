@@ -144,6 +144,58 @@ def _handle_memory_command(runtime: object) -> None:
         print("Profile: Not yet populated (use 'profile' command)")
 
 
+def _handle_wallet_command() -> None:
+    """Display token balances for all known accounts."""
+    from core.token.ledger import TokenLedger
+    from core.token.types import TokenType
+
+    ledger = TokenLedger()
+    print("=== BIZRA TOKEN WALLET ===")
+    print()
+
+    accounts = ledger.list_accounts()
+    if not accounts:
+        print("No accounts found. Run 'sovereign onboard' to create identity.")
+        return
+
+    for account in sorted(accounts):
+        print(f"  {account}:")
+        for token_type in TokenType:
+            balance = ledger.get_balance(account, token_type)
+            if balance.balance > 0 or balance.staked > 0:
+                print(f"    {token_type.value}: {balance.balance:,.2f}")
+                if balance.staked > 0:
+                    print(f"    {token_type.value} (staked): {balance.staked:,.2f}")
+        print()
+
+    print(f"  Total accounts: {len(accounts)}")
+
+
+def _handle_tokens_command() -> None:
+    """Display token supply statistics and chain validity."""
+    from core.token.ledger import TokenLedger
+    from core.token.types import SEED_SUPPLY_CAP_PER_YEAR, TokenType
+
+    ledger = TokenLedger()
+
+    print("=== BIZRA TOKEN SUPPLY ===")
+    print()
+
+    for token_type in TokenType:
+        supply = ledger.get_total_supply(token_type)
+        if supply > 0:
+            print(f"  {token_type.value}: {supply:,.2f}")
+
+    print()
+    print(f"  Yearly SEED cap: {SEED_SUPPLY_CAP_PER_YEAR:,.0f}")
+
+    # Chain integrity
+    valid, tx_count, error = ledger.verify_chain()
+    status = "VALID" if valid else f"INVALID ({error})"
+    print(f"  Chain status: {status}")
+    print(f"  {tx_count} transactions")
+
+
 async def _handle_import_command(runtime: object) -> None:
     """Import external data into Living Memory."""
     from .data_import import run_import_wizard
@@ -197,6 +249,7 @@ Commands:
   status    - Show system status
   metrics   - Show performance metrics
   memory    - Show conversation memory stats
+  hunter    - Run vulnerability scanner (bounty pipeline)
   clear     - Clear screen
   exit      - Exit REPL
 
@@ -267,9 +320,7 @@ Your PAT team remembers the conversation and learns who you are.
                     if uc and uc.conversation.get_turn_count() > 0:
                         last_turns = list(uc.conversation._turns)
                         if last_turns and last_turns[-1].agent_role:
-                            print(
-                                f"[PAT {last_turns[-1].agent_role.upper()}]"
-                            )
+                            print(f"[PAT {last_turns[-1].agent_role.upper()}]")
                     print(f"{result.response}")
                     print(f"{'─' * 60}")
                     print(
@@ -663,6 +714,11 @@ Examples:
   python -m core.sovereign gateway telegram          # Run Telegram gateway
   python -m core.sovereign status                   # Check status
   python -m core.sovereign test                     # Run tests
+  python -m core.sovereign bridge start              # Start desktop bridge (AHK)
+  python -m core.sovereign bridge ping               # Ping running bridge
+  python -m core.sovereign bridge status             # Bridge status
+  python -m core.sovereign hunter scan 0x...        # Scan contract for vulns
+  python -m core.sovereign hunter report scan.json  # Generate Immunefi report
         """,
     )
 
@@ -675,7 +731,7 @@ Examples:
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Run API server")
-    serve_parser.add_argument("--host", default="0.0.0.0", help="Host to bind")  # nosec B104 — intentional: CLI default for server mode
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
     serve_parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     serve_parser.add_argument("--api-key", action="append", help="API keys")
 
@@ -717,6 +773,64 @@ Examples:
     gateway_parser.add_argument("--token", help="Bot token (or use env var)")
     gateway_parser.add_argument("--webhook", help="Webhook URL (for production)")
     gateway_parser.add_argument("--node-dir", help="Node data directory")
+
+    # Hunter command
+    hunter_parser = subparsers.add_parser("hunter", help="Bounty vulnerability scanner")
+    hunter_sub = hunter_parser.add_subparsers(
+        dest="hunter_command", help="Hunter action"
+    )
+
+    # hunter scan
+    scan_parser = hunter_sub.add_parser(
+        "scan", help="Scan contract for vulnerabilities"
+    )
+    scan_parser.add_argument("address", help="Contract address (0x...)")
+    scan_parser.add_argument(
+        "--chain", default="ethereum", help="Blockchain (default: ethereum)"
+    )
+    scan_parser.add_argument("--name", help="Protocol/contract name")
+    scan_parser.add_argument("--bytecode", help="Path to bytecode file (hex or binary)")
+    scan_parser.add_argument("--source", help="Path to Solidity source file")
+    scan_parser.add_argument("--abi", help="Path to ABI JSON file")
+    scan_parser.add_argument(
+        "--rpc", help="JSON-RPC URL for bytecode fetch (e.g. https://eth.llamarpc.com)"
+    )
+    scan_parser.add_argument("--output-dir", help="Output directory for results")
+    scan_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # hunter report
+    report_parser = hunter_sub.add_parser(
+        "report", help="Generate platform report from scan"
+    )
+    report_parser.add_argument("scan_file", help="Path to scan result JSON")
+    report_parser.add_argument(
+        "--platform", default="immunefi", choices=["immunefi"], help="Target platform"
+    )
+    report_parser.add_argument("--output", help="Output file path")
+
+    # hunter list
+    list_parser = hunter_sub.add_parser("list", help="List previous scan results")
+    list_parser.add_argument("--output-dir", help="Scan output directory")
+
+    # Bridge command (Desktop Bridge — AHK ↔ TCP JSON-RPC)
+    bridge_parser = subparsers.add_parser(
+        "bridge", help="Desktop bridge (AHK ↔ TCP JSON-RPC)"
+    )
+    bridge_sub = bridge_parser.add_subparsers(
+        dest="bridge_command", help="Bridge action"
+    )
+    bridge_start_parser = bridge_sub.add_parser("start", help="Start desktop bridge")
+    bridge_start_parser.add_argument(
+        "--port", type=int, default=9742, help="Bridge port (default: 9742)"
+    )
+    bridge_sub.add_parser("ping", help="Ping the running bridge")
+    bridge_sub.add_parser("status", help="Get bridge status")
+
+    # Wallet command
+    subparsers.add_parser("wallet", help="View token wallet balances")
+
+    # Tokens command
+    subparsers.add_parser("tokens", help="View token supply and stats")
 
     # Version command
     subparsers.add_parser("version", help="Show version")
@@ -774,6 +888,119 @@ Examples:
                     webhook_url=args.webhook or "",
                 )
             )
+    elif args.command == "hunter":
+        from .hunter_cli import run_hunter_list, run_hunter_report, run_hunter_scan
+
+        if args.hunter_command == "scan":
+            sys.exit(
+                asyncio.run(
+                    run_hunter_scan(
+                        address=args.address,
+                        chain=args.chain,
+                        name=args.name,
+                        bytecode_file=args.bytecode,
+                        source_file=args.source,
+                        abi_file=args.abi,
+                        rpc_url=args.rpc,
+                        json_output=args.json,
+                        output_dir=getattr(args, "output_dir", None),
+                    )
+                )
+            )
+        elif args.hunter_command == "report":
+            sys.exit(
+                asyncio.run(
+                    run_hunter_report(
+                        scan_file=args.scan_file,
+                        platform=args.platform,
+                        output_file=args.output,
+                    )
+                )
+            )
+        elif args.hunter_command == "list":
+            sys.exit(asyncio.run(run_hunter_list(getattr(args, "output_dir", None))))
+        else:
+            hunter_parser.print_help()
+    elif args.command == "bridge":
+        if args.bridge_command == "start":
+            from core.bridges.desktop_bridge import DesktopBridge
+
+            async def _run_bridge():
+                import signal as sig
+
+                bridge = DesktopBridge(host="127.0.0.1", port=args.port)
+                stop = asyncio.Event()
+
+                def _stop():
+                    stop.set()
+
+                loop = asyncio.get_running_loop()
+                for s in (sig.SIGINT, sig.SIGTERM):
+                    try:
+                        loop.add_signal_handler(s, _stop)
+                    except NotImplementedError:
+                        pass
+
+                await bridge.start()
+                print(f"Desktop Bridge listening on 127.0.0.1:{args.port}")
+                print("Press Ctrl+C to stop.")
+                await stop.wait()
+                await bridge.stop()
+
+            asyncio.run(_run_bridge())
+        elif args.bridge_command in ("ping", "status"):
+            import json as json_mod
+            import os
+            import socket
+            import time
+            import uuid
+
+            method = args.bridge_command
+            token = os.getenv("BIZRA_BRIDGE_TOKEN", "").strip()
+            if not token:
+                print("Missing bridge auth token: set BIZRA_BRIDGE_TOKEN")
+                sys.exit(1)
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(5.0)
+                s.connect(("127.0.0.1", 9742))
+                headers = {
+                    "X-BIZRA-TOKEN": token,
+                    "X-BIZRA-TS": int(time.time() * 1000),
+                    "X-BIZRA-NONCE": uuid.uuid4().hex,
+                }
+                payload = (
+                    json_mod.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "method": method,
+                            "id": 1,
+                            "headers": headers,
+                        }
+                    ).encode()
+                    + b"\n"
+                )
+                s.sendall(payload)
+                data = s.recv(65536).decode()
+                s.close()
+                resp = json_mod.loads(data)
+                if "result" in resp:
+                    print(json_mod.dumps(resp["result"], indent=2))
+                else:
+                    print(json_mod.dumps(resp, indent=2))
+            except ConnectionRefusedError:
+                print("Bridge not running on 127.0.0.1:9742")
+                print("Start with: python -m core.sovereign bridge start")
+                sys.exit(1)
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+        else:
+            bridge_parser.print_help()
+    elif args.command == "wallet":
+        _handle_wallet_command()
+    elif args.command == "tokens":
+        _handle_tokens_command()
     elif args.command == "version":
         print("BIZRA Sovereign Engine v1.0.0")
         print("Codename: Genesis")

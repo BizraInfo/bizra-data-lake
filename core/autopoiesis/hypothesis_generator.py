@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -39,7 +39,6 @@ from core.integration.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # ENUMS AND TYPES
@@ -133,9 +132,9 @@ class SystemObservation:
     # Context
     observation_window_seconds: float = 60.0
     sample_count: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export as dictionary."""
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -179,7 +178,7 @@ class SystemObservation:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SystemObservation":
+    def from_dict(cls, data: dict[str, Any]) -> "SystemObservation":
         """Reconstruct from dictionary."""
         perf = data.get("performance", {})
         qual = data.get("quality", {})
@@ -235,24 +234,24 @@ class Hypothesis:
     id: str
     category: HypothesisCategory
     description: str
-    predicted_improvement: Dict[str, float]  # metric -> delta (positive = better)
+    predicted_improvement: dict[str, float]  # metric -> delta (positive = better)
     confidence: float  # 0.0 to 1.0
     risk_level: RiskLevel
-    implementation_plan: List[str]
-    rollback_plan: List[str]
+    implementation_plan: list[str]
+    rollback_plan: list[str]
     ihsan_impact: float  # Estimated impact on Ihsan score (-1 to 1)
-    dependencies: List[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
     # Lifecycle tracking
     status: HypothesisStatus = HypothesisStatus.GENERATED
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     validated_at: Optional[datetime] = None
     tested_at: Optional[datetime] = None
-    outcome: Optional[Dict[str, Any]] = None
+    outcome: Optional[dict[str, Any]] = None
 
     # Pattern matching
     trigger_pattern: str = ""  # What observation pattern triggered this
-    similar_past_hypotheses: List[str] = field(default_factory=list)
+    similar_past_hypotheses: list[str] = field(default_factory=list)
 
     def expected_value(self) -> float:
         """
@@ -286,7 +285,7 @@ class Hypothesis:
             and self.status in (HypothesisStatus.GENERATED, HypothesisStatus.VALIDATED)
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export as dictionary."""
         return {
             "id": self.id,
@@ -307,7 +306,7 @@ class Hypothesis:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Hypothesis":
+    def from_dict(cls, data: dict[str, Any]) -> "Hypothesis":
         """Reconstruct from dictionary."""
         return cls(
             id=data["id"],
@@ -394,12 +393,12 @@ class HypothesisGenerator:
         self.snr_threshold = snr_threshold
 
         # Pattern library
-        self._patterns: List[ImprovementPattern] = []
+        self._patterns: list[ImprovementPattern] = []
         self._initialize_patterns()
 
         # Learning from outcomes
-        self._successful_patterns: List[Hypothesis] = []
-        self._failed_patterns: List[Hypothesis] = []
+        self._successful_patterns: list[Hypothesis] = []
+        self._failed_patterns: list[Hypothesis] = []
 
         # Statistics
         self._total_generated: int = 0
@@ -891,7 +890,7 @@ class HypothesisGenerator:
         content = f"{prefix}_{timestamp}_{self._total_generated}"
         return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
-    def generate(self, observation: SystemObservation) -> List[Hypothesis]:
+    def generate(self, observation: SystemObservation) -> list[Hypothesis]:
         """
         Generate hypotheses based on system observation.
 
@@ -906,9 +905,9 @@ class HypothesisGenerator:
             observation: Current system state snapshot
 
         Returns:
-            List of generated hypotheses, ranked by expected value
+            list of generated hypotheses, ranked by expected value
         """
-        hypotheses: List[Hypothesis] = []
+        hypotheses: list[Hypothesis] = []
 
         # Step 1: Match known patterns
         for pattern in self._patterns:
@@ -949,13 +948,13 @@ class HypothesisGenerator:
 
     def _generate_novel_hypotheses(
         self, observation: SystemObservation
-    ) -> List[Hypothesis]:
+    ) -> list[Hypothesis]:
         """
         Generate novel hypotheses using heuristics.
 
         Used when no known patterns match but opportunities exist.
         """
-        novel: List[Hypothesis] = []
+        novel: list[Hypothesis] = []
 
         # Heuristic: Declining trends deserve attention
         if observation.quality_trend < -0.2:
@@ -1044,9 +1043,9 @@ class HypothesisGenerator:
 
         return novel
 
-    def _find_similar(self, hypothesis: Hypothesis) -> List[str]:
+    def _find_similar(self, hypothesis: Hypothesis) -> list[str]:
         """Find similar past hypotheses for learning."""
-        similar: List[str] = []
+        similar: list[str] = []
 
         for past in self._successful_patterns + self._failed_patterns:
             if (
@@ -1058,13 +1057,13 @@ class HypothesisGenerator:
         return similar[:5]  # Limit to 5 most relevant
 
     def rank_hypotheses(
-        self, hypotheses: List[Hypothesis], top_k: Optional[int] = None
-    ) -> List[Hypothesis]:
+        self, hypotheses: list[Hypothesis], top_k: Optional[int] = None
+    ) -> list[Hypothesis]:
         """
         Rank hypotheses by expected value.
 
         Args:
-            hypotheses: List of hypotheses to rank
+            hypotheses: list of hypotheses to rank
             top_k: Optional limit on returned hypotheses
 
         Returns:
@@ -1081,7 +1080,7 @@ class HypothesisGenerator:
         self,
         hypothesis: Hypothesis,
         success: bool,
-        actual_improvement: Optional[Dict[str, float]] = None,
+        actual_improvement: Optional[dict[str, float]] = None,
     ) -> None:
         """
         Update pattern library based on hypothesis outcome.
@@ -1131,15 +1130,15 @@ class HypothesisGenerator:
             f"success={success}, pattern={hypothesis.trigger_pattern}"
         )
 
-    def get_successful_patterns(self) -> List[Hypothesis]:
+    def get_successful_patterns(self) -> list[Hypothesis]:
         """Get list of successful hypotheses."""
         return list(self._successful_patterns)
 
-    def get_failed_patterns(self) -> List[Hypothesis]:
+    def get_failed_patterns(self) -> list[Hypothesis]:
         """Get list of failed hypotheses."""
         return list(self._failed_patterns)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get generator statistics."""
         success_rate = (
             self._total_successful / self._total_tested

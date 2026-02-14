@@ -41,8 +41,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: omega
-          image: bizra-omega:latest
-          imagePullPolicy: Always
+          image: bizra-omega:RELEASE_TAG  # Pin to release tag; kustomize patches override
+          imagePullPolicy: IfNotPresent
           args:
             - "--host"
             - "0.0.0.0"

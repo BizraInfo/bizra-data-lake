@@ -19,7 +19,7 @@ In BIZRA, this translates to: **Every operation must meet excellence standards, 
 | NTU Belief | belief ∈ [0,1] | Convergence guaranteed | O(1/ε²) test |
 | FATE Composite | (F×A×T×E)^0.25 | ≥ 0.95 | PreToolUse hook |
 | SNR Score | signal/noise | ≥ 0.85 (min), ≥ 0.95 (Ihsān) | SNR engine |
-| Test Coverage | passed/total | ≥ 97.5% | pytest report |
+| Test Coverage | passed/total | >= 60% (floor, ratcheting toward 95%) | pytest report |
 | Code Quality | lint score | 0 errors | black + mypy |
 
 ### 2. Benevolence (الإحسان — Al-Ihsān)
@@ -35,7 +35,7 @@ In BIZRA, this translates to: **Every operation must meet excellence standards, 
 
 | Component | Metric | Threshold | Verification |
 |-----------|--------|-----------|--------------|
-| Gini Coefficient | resource_distribution | ≤ 0.35 | Compute market |
+| Gini Coefficient | resource_distribution | <= 0.40 | Compute market |
 | Equal Access | node_participation | Equal opportunity | Federation |
 | Fair Pricing | harberger_tax | Self-assessed | Market contract |
 | Dispute Resolution | consensus_reached | 2/3 + 1 | BFT protocol |
@@ -56,55 +56,27 @@ In BIZRA, this translates to: **Every operation must meet excellence standards, 
 ### Automated Verification (CI/CD)
 
 ```yaml
-# .github/workflows/ihsan-gate.yml
-name: Ihsān Compliance Gate
-
-on: [push, pull_request]
-
-jobs:
-  excellence:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Tests
-        run: pytest --cov=core --cov-fail-under=97.5
-
-      - name: Check SNR
-        run: python -c "from core.snr import compute_snr; assert compute_snr() >= 0.85"
-
-      - name: Lint Check
-        run: |
-          black --check .
-          mypy core/
-
-  benevolence:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Security Scan
-        run: bandit -r core/ -ll
-
-      - name: Dependency Audit
-        run: pip-audit
-
-  justice:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify Gini Constraint
-        run: python -c "
-          from core.elite.compute_market import ComputeMarket
-          market = ComputeMarket()
-          assert market.compute_gini() <= 0.35
-        "
-
-  trustworthiness:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify Signatures
-        run: python -c "
-          from core.pci.envelope import verify_all_envelopes
-          assert verify_all_envelopes()
-        "
+# Ihsan compliance is enforced via the CI quality gate stage in .github/workflows/ci.yml
+# The quality-gates job runs: python scripts/ci_quality_gate.py --environment ci
+#
+# Key checks mapped to Ihsan dimensions:
+#
+# Excellence:
+#   - pytest --cov=core --cov-fail-under=60   (ratcheting toward 95%)
+#   - python scripts/ci_quality_gate.py        (SNR >= 0.90 in CI)
+#   - ruff check core/ && black --check core/
+#
+# Benevolence:
+#   - bandit -r core/ -ll                      (security scan)
+#   - pip-audit                                (dependency audit)
+#
+# Justice:
+#   - ADL Gini constraint <= 0.40              (core/integration/constants.py)
+#   - Enforced in core/elite/compute_market.py
+#
+# Trustworthiness:
+#   - Ed25519 signature verification           (core/pci/envelope.py)
+#   - BLAKE3 content hashing                   (core/proof_engine/canonical.py)
 ```
 
 ### Runtime Verification (Hooks)

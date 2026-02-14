@@ -109,6 +109,8 @@ class TestPATEndToEnd:
             runtime = SovereignRuntime(config)
             runtime._initialized = True
             runtime._user_context = UserContextManager(Path(tmpdir))
+            # CRITICAL-1: Initialize gate chain so queries pass (fail-closed)
+            runtime._init_gate_chain()
 
             result = await runtime.query("What is sovereignty?")
 

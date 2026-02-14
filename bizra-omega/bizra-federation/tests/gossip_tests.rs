@@ -13,7 +13,10 @@ use std::net::SocketAddr;
 
 #[test]
 fn member_new_defaults_to_alive() {
-    let m = Member::new(NodeId("node_abc123".into()), "127.0.0.1:7946".parse().unwrap());
+    let m = Member::new(
+        NodeId("node_abc123".into()),
+        "127.0.0.1:7946".parse().unwrap(),
+    );
     assert_eq!(m.state, NodeState::Alive);
     assert_eq!(m.incarnation, 0);
     assert!(m.is_alive());
@@ -21,7 +24,10 @@ fn member_new_defaults_to_alive() {
 
 #[test]
 fn member_is_alive_false_for_dead() {
-    let mut m = Member::new(NodeId("node_dead".into()), "127.0.0.1:7946".parse().unwrap());
+    let mut m = Member::new(
+        NodeId("node_dead".into()),
+        "127.0.0.1:7946".parse().unwrap(),
+    );
     m.state = NodeState::Dead;
     assert!(!m.is_alive());
 }
@@ -35,7 +41,10 @@ fn member_is_alive_false_for_suspect() {
 
 #[test]
 fn member_is_alive_false_for_left() {
-    let mut m = Member::new(NodeId("node_left".into()), "127.0.0.1:7946".parse().unwrap());
+    let mut m = Member::new(
+        NodeId("node_left".into()),
+        "127.0.0.1:7946".parse().unwrap(),
+    );
     m.state = NodeState::Left;
     assert!(!m.is_alive());
 }

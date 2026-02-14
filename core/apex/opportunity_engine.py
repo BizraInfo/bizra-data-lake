@@ -43,12 +43,11 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Optional
 
 from core.integration.constants import UNIFIED_SNR_THRESHOLD
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTANTS (Standing on Giants — imported from single source of truth)
@@ -74,7 +73,6 @@ SIGNAL_HALFLIFE_MINUTES = 5
 
 # Market efficiency decay (Lo's AMH)
 EFFICIENCY_DECAY_HOURS = 24
-
 
 # =============================================================================
 # ENUMS
@@ -134,7 +132,7 @@ class MarketData:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     bid: Optional[float] = None
     ask: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def spread(self) -> float:
@@ -196,8 +194,8 @@ class TradingSignal:
     )
 
     # Context
-    reasoning: List[str] = field(default_factory=list)
-    indicators_used: List[str] = field(default_factory=list)
+    reasoning: list[str] = field(default_factory=list)
+    indicators_used: list[str] = field(default_factory=list)
 
     @property
     def sharpe_ratio(self) -> float:
@@ -304,8 +302,8 @@ class MarketAnalyzer:
 
     def __init__(self, window_size: int = 100):
         self.window_size = window_size
-        self._price_history: Dict[str, Deque[MarketData]] = {}
-        self._analysis_cache: Dict[str, MarketAnalysis] = {}
+        self._price_history: dict[str, Deque[MarketData]] = {}
+        self._analysis_cache: dict[str, MarketAnalysis] = {}
 
     def update(self, data: MarketData):
         """Update market data."""
@@ -416,13 +414,13 @@ class SignalGenerator:
 
     def __init__(self, snr_threshold: float = SNR_THRESHOLD):
         self.snr_threshold = snr_threshold
-        self._signals: Dict[str, List[TradingSignal]] = {}
+        self._signals: dict[str, list[TradingSignal]] = {}
 
     def generate_signals(
-        self, symbol: str, analysis: MarketAnalysis, price_history: List[float]
-    ) -> List[TradingSignal]:
+        self, symbol: str, analysis: MarketAnalysis, price_history: list[float]
+    ) -> list[TradingSignal]:
         """Generate trading signals for symbol."""
-        signals: List[TradingSignal] = []
+        signals: list[TradingSignal] = []
 
         if len(price_history) < 20:
             return signals
@@ -518,7 +516,7 @@ class SignalGenerator:
 
         return signals
 
-    def _moving_average_signal(self, prices: List[float]) -> Tuple[float, float]:
+    def _moving_average_signal(self, prices: list[float]) -> tuple[float, float]:
         """Moving average crossover signal."""
         if len(prices) < 20:
             return (0.0, 0.0)
@@ -537,7 +535,7 @@ class SignalGenerator:
 
         return (signal * 10, confidence)  # Scale signal
 
-    def _momentum_signal(self, prices: List[float]) -> Tuple[float, float]:
+    def _momentum_signal(self, prices: list[float]) -> tuple[float, float]:
         """Rate of change momentum signal."""
         if len(prices) < 10:
             return (0.0, 0.0)
@@ -554,8 +552,8 @@ class SignalGenerator:
         return (momentum * 5, confidence)
 
     def _mean_reversion_signal(
-        self, prices: List[float], analysis: MarketAnalysis
-    ) -> Tuple[float, float]:
+        self, prices: list[float], analysis: MarketAnalysis
+    ) -> tuple[float, float]:
         """Mean reversion signal for ranging markets."""
         if len(prices) < 20 or analysis.condition != MarketCondition.RANGING:
             return (0.0, 0.3)
@@ -599,7 +597,7 @@ class ArbitrageDetector:
 
     def __init__(self, min_profit: float = ARBITRAGE_MIN_PROFIT):
         self.min_profit = min_profit
-        self._market_prices: Dict[str, Dict[str, float]] = (
+        self._market_prices: dict[str, dict[str, float]] = (
             {}
         )  # symbol -> market -> price
 
@@ -609,7 +607,7 @@ class ArbitrageDetector:
             self._market_prices[symbol] = {}
         self._market_prices[symbol][market] = price
 
-    def detect(self) -> List[ArbitrageOpportunity]:
+    def detect(self) -> list[ArbitrageOpportunity]:
         """Detect arbitrage opportunities."""
         opportunities = []
 
@@ -677,7 +675,7 @@ class OpportunityEngine:
         self.arbitrage_detector = ArbitrageDetector()
 
         # Position tracking
-        self._positions: Dict[str, Position] = {}
+        self._positions: dict[str, Position] = {}
 
         # Performance tracking
         self._total_trades = 0
@@ -686,7 +684,7 @@ class OpportunityEngine:
 
         logger.info("OpportunityEngine initialized")
 
-    def process_market_data(self, data: MarketData) -> Dict[str, Any]:
+    def process_market_data(self, data: MarketData) -> dict[str, Any]:
         """Process market data and return opportunities."""
         # Update analyzers
         self.analyzer.update(data)
@@ -765,7 +763,7 @@ class OpportunityEngine:
         )
         return position
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get trading performance statistics."""
         win_rate = (
             self._winning_trades / self._total_trades if self._total_trades > 0 else 0

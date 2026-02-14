@@ -20,9 +20,9 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Optional
 
 import numpy as np
 
@@ -65,7 +65,10 @@ class SQLiteMemoryStore:
 
     def _create_schema(self) -> None:
         """Create tables and indexes if they don't exist."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INTEGER PRIMARY KEY
@@ -109,7 +112,10 @@ class SQLiteMemoryStore:
 
     def save_entry(self, entry: MemoryEntry) -> None:
         """Insert or update a memory entry."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         embedding_blob = (
             entry.embedding.tobytes() if entry.embedding is not None else None
         )
@@ -143,16 +149,17 @@ class SQLiteMemoryStore:
         )
         self._conn.commit()
 
-    def save_batch(self, entries: List[MemoryEntry]) -> int:
+    def save_batch(self, entries: list[MemoryEntry]) -> int:
         """Batch-save multiple entries in a single transaction."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         saved = 0
         with self._conn:
             for entry in entries:
                 embedding_blob = (
-                    entry.embedding.tobytes()
-                    if entry.embedding is not None
-                    else None
+                    entry.embedding.tobytes() if entry.embedding is not None else None
                 )
                 self._conn.execute(
                     """
@@ -185,10 +192,13 @@ class SQLiteMemoryStore:
                 saved += 1
         return saved
 
-    def load_all(self) -> Dict[str, MemoryEntry]:
+    def load_all(self) -> dict[str, MemoryEntry]:
         """Load all non-deleted memories from database."""
-        assert self._conn is not None
-        memories: Dict[str, MemoryEntry] = {}
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
+        memories: dict[str, MemoryEntry] = {}
         cursor = self._conn.execute(
             "SELECT * FROM memories WHERE state != ?",
             (MemoryState.DELETED.value,),
@@ -199,9 +209,12 @@ class SQLiteMemoryStore:
         logger.info(f"Loaded {len(memories)} memories from SQLite")
         return memories
 
-    def load_by_type(self, memory_type: MemoryType) -> List[MemoryEntry]:
+    def load_by_type(self, memory_type: MemoryType) -> list[MemoryEntry]:
         """Load memories of a specific type."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         cursor = self._conn.execute(
             "SELECT * FROM memories WHERE memory_type = ? AND state != ?",
             (memory_type.value, MemoryState.DELETED.value),
@@ -210,7 +223,10 @@ class SQLiteMemoryStore:
 
     def delete_entry(self, entry_id: str, hard: bool = False) -> bool:
         """Delete a memory entry (soft or hard)."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         if hard:
             self._conn.execute("DELETE FROM memories WHERE id = ?", (entry_id,))
         else:
@@ -223,7 +239,10 @@ class SQLiteMemoryStore:
 
     def count(self, state: Optional[MemoryState] = None) -> int:
         """Count entries, optionally filtered by state."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         if state:
             cursor = self._conn.execute(
                 "SELECT COUNT(*) FROM memories WHERE state = ?", (state.value,)
@@ -232,9 +251,12 @@ class SQLiteMemoryStore:
             cursor = self._conn.execute("SELECT COUNT(*) FROM memories")
         return cursor.fetchone()[0]
 
-    def get_lowest_scored(self, limit: int = 100) -> List[str]:
+    def get_lowest_scored(self, limit: int = 100) -> list[str]:
         """Get IDs of lowest-scored active entries (for cleanup)."""
-        assert self._conn is not None
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
         cursor = self._conn.execute(
             """
             SELECT id FROM memories
@@ -255,7 +277,7 @@ class SQLiteMemoryStore:
             return 0
 
         imported = 0
-        entries: List[MemoryEntry] = []
+        entries: list[MemoryEntry] = []
         with open(jsonl_path, "r", encoding="utf-8") as f:
             for line in f:
                 if line.strip():
@@ -268,9 +290,7 @@ class SQLiteMemoryStore:
 
         if entries:
             imported = self.save_batch(entries)
-            logger.info(
-                f"Migrated {imported} memories from JSONL to SQLite"
-            )
+            logger.info(f"Migrated {imported} memories from JSONL to SQLite")
             # Rename old file as backup
             backup = jsonl_path.with_suffix(".jsonl.bak")
             jsonl_path.rename(backup)

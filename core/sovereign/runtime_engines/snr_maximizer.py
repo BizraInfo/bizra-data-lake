@@ -60,12 +60,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from statistics import mean, stdev
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from typing import Any, Callable, Deque, Optional
 
 from core.integration.constants import SNR_THRESHOLD_T1_HIGH, UNIFIED_SNR_THRESHOLD
 
 logger = logging.getLogger(__name__)
-
 
 # Shannon-inspired constants (from single source of truth)
 SNR_FLOOR: float = UNIFIED_SNR_THRESHOLD  # Minimum acceptable SNR
@@ -153,7 +152,7 @@ class ChannelMetrics:
     latency_ms: float = 0.0  # Channel latency
     error_rate: float = 0.0  # Bit error rate
     utilization: float = 0.0  # Current utilization
-    snr_history: List[float] = field(default_factory=list)
+    snr_history: list[float] = field(default_factory=list)
 
     def average_snr(self) -> float:
         """Get average SNR over history."""
@@ -186,7 +185,7 @@ class NoiseEstimator:
         self._noise_history: Deque[float] = deque(maxlen=window_size)
         self._baseline_noise: float = 0.1
 
-    def estimate_noise(self, signal_values: List[float]) -> float:
+    def estimate_noise(self, signal_values: list[float]) -> float:
         """
         Estimate noise power from signal variance.
 
@@ -230,7 +229,7 @@ class SignalExtractor:
     """
 
     def __init__(self):
-        self._extractors: Dict[str, Callable[[Any], float]] = {
+        self._extractors: dict[str, Callable[[Any], float]] = {
             "confidence": self._extract_confidence,
             "probability": self._extract_probability,
             "score": self._extract_score,
@@ -309,8 +308,8 @@ class SNRCalculator:
         self._noise_estimator = NoiseEstimator()
 
         # Tracking
-        self._signal_history: Dict[str, Deque[Signal]] = {}
-        self._channel_metrics: Dict[str, ChannelMetrics] = {}
+        self._signal_history: dict[str, Deque[Signal]] = {}
+        self._channel_metrics: dict[str, ChannelMetrics] = {}
 
     def calculate(
         self,
@@ -326,7 +325,7 @@ class SNRCalculator:
             data: Input data to analyze
             source: Origin of the signal
             channel: Communication channel
-            metric_type: Type of metric to extract
+            metric_type: type of metric to extract
 
         Returns:
             Signal with SNR metrics
@@ -353,7 +352,7 @@ class SNRCalculator:
 
         return signal
 
-    def _get_channel_history(self, channel: str) -> List[float]:
+    def _get_channel_history(self, channel: str) -> list[float]:
         """Get recent signal powers for a channel."""
         if channel not in self._signal_history:
             return []
@@ -413,12 +412,12 @@ class SNRFilter:
         source: str = "",
         channel: str = "default",
         metric_type: str = "confidence",
-    ) -> Tuple[bool, Signal]:
+    ) -> tuple[bool, Signal]:
         """
         Filter data based on SNR.
 
         Returns:
-            Tuple of (passes_filter, signal)
+            tuple of (passes_filter, signal)
         """
         signal = self._calculator.calculate(data, source, channel, metric_type)
         passes = self._calculator.passes_threshold(signal)
@@ -433,11 +432,11 @@ class SNRFilter:
 
     def batch_filter(
         self,
-        items: List[Any],
+        items: list[Any],
         source: str = "",
         channel: str = "default",
         metric_type: str = "confidence",
-    ) -> List[Tuple[Any, Signal]]:
+    ) -> list[tuple[Any, Signal]]:
         """Filter a batch, returning only those that pass."""
         results = []
         for item in items:
@@ -553,24 +552,24 @@ class SNRMaximizer:
 
     def filter_batch(
         self,
-        items: List[Any],
+        items: list[Any],
         source: str = "",
         channel: str = "default",
         metric_type: str = "confidence",
         min_snr: Optional[float] = None,
-    ) -> List[Signal]:
+    ) -> list[Signal]:
         """
         Filter a batch of items by SNR.
 
         Args:
-            items: List of items to process
+            items: list of items to process
             source: Signal source
             channel: Communication channel
             metric_type: Metric extraction type
             min_snr: Override minimum SNR (default uses snr_floor)
 
         Returns:
-            List of Signals that passed the filter
+            list of Signals that passed the filter
         """
         threshold = min_snr if min_snr is not None else self.snr_floor
         results = []
@@ -602,7 +601,7 @@ class SNRMaximizer:
         """Get metrics for a channel."""
         return self._calculator._channel_metrics.get(channel)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get maximizer statistics."""
         pass_rate = (
             self._total_passed / self._total_processed

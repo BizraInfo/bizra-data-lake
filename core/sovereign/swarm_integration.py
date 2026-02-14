@@ -33,7 +33,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Deque, Optional
 
 from core.apex import (
     AgentConfig,
@@ -49,7 +49,6 @@ from core.sovereign.rust_lifecycle import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # Hamilton's operations principles
 HEALTH_CHECK_INTERVAL: int = 30  # seconds
@@ -244,7 +243,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         super().__init__()
 
         # Rust service adapters
-        self.rust_adapters: Dict[str, RustServiceAdapter] = {}
+        self.rust_adapters: dict[str, RustServiceAdapter] = {}
 
         # Self-healing state
         self._running: bool = False
@@ -316,9 +315,9 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
 
         logger.info("HybridSwarmOrchestrator stopped")
 
-    async def check_all_health(self) -> Dict[str, HealthStatus]:
+    async def check_all_health(self) -> dict[str, HealthStatus]:
         """Check health of all services (Python + Rust)."""
-        health_results: Dict[str, HealthStatus] = {}
+        health_results: dict[str, HealthStatus] = {}
 
         # Check Rust services
         for service_name, adapter in self.rust_adapters.items():
@@ -334,7 +333,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
 
         return health_results
 
-    def get_swarm_health_summary(self, swarm_id: str) -> Dict[str, Any]:
+    def get_swarm_health_summary(self, swarm_id: str) -> dict[str, Any]:
         """Get health summary for a swarm."""
         swarm = self._swarms.get(swarm_id)
         if not swarm:
@@ -385,7 +384,9 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
             return
 
         # Partition instances by type
-        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        python_agents = [
+            a for a in swarm.agents.values() if not a.id.startswith("rust:")
+        ]
         rust_services = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         if decision.action == ScalingAction.SCALE_UP:
@@ -474,7 +475,9 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
         if not swarm:
             return
 
-        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        python_agents = [
+            a for a in swarm.agents.values() if not a.id.startswith("rust:")
+        ]
 
         # Remove oldest first (FIFO)
         to_remove = python_agents[:count]
@@ -544,7 +547,9 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
 
         if swarm_id:
             swarm = self._swarms[swarm_id]
-            swarm.agents = {k: a for k, a in swarm.agents.items() if a.id != f"rust:{old_service}"}
+            swarm.agents = {
+                k: a for k, a in swarm.agents.items() if a.id != f"rust:{old_service}"
+            }
 
             # Add new
             new_service = f"{swarm_id}-rust-{uuid.uuid4().hex[:8]}"
@@ -564,7 +569,7 @@ class HybridSwarmOrchestrator(SwarmOrchestrator):
 
             logger.info(f"Replaced {old_service} with {new_service}")
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get orchestrator metrics."""
         avg_availability = (
             sum(self._availability_history) / len(self._availability_history)

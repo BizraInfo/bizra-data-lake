@@ -46,9 +46,9 @@ impl GateResult {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GateTier {
     /// Fast gate, must complete in <10 ms.
-    Cheap,     // <10ms
+    Cheap, // <10ms
     /// Moderate gate, must complete in <150 ms.
-    Medium,    // <150ms
+    Medium, // <150ms
     /// Heavyweight gate, must complete in <2000 ms.
     Expensive, // <2000ms
 }

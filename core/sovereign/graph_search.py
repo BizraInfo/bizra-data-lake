@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import heapq
 import logging
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .graph_types import (
     ReasoningPath,
@@ -37,11 +37,11 @@ class GraphSearchMixin:
     """
 
     # These attributes are defined in the main class
-    nodes: Dict[str, ThoughtNode]
-    edges: List[ThoughtEdge]
-    adjacency: Dict[str, List[str]]
-    reverse_adj: Dict[str, List[str]]
-    roots: List[str]
+    nodes: dict[str, ThoughtNode]
+    edges: list[ThoughtEdge]
+    adjacency: dict[str, list[str]]
+    reverse_adj: dict[str, list[str]]
+    roots: list[str]
     snr_threshold: float
     ihsan_threshold: float
 
@@ -94,7 +94,7 @@ class GraphSearchMixin:
 
         return best_path
 
-    def get_conclusions(self, min_snr: float = 0.7) -> List[ThoughtNode]:
+    def get_conclusions(self, min_snr: float = 0.7) -> list[ThoughtNode]:
         """Get all conclusion nodes above SNR threshold."""
         return [
             node
@@ -102,7 +102,7 @@ class GraphSearchMixin:
             if node.thought_type == ThoughtType.CONCLUSION and node.snr_score >= min_snr
         ]
 
-    def get_frontier(self) -> List[ThoughtNode]:
+    def get_frontier(self) -> list[ThoughtNode]:
         """Get leaf nodes (nodes with no children) - the current reasoning frontier."""
         # Find nodes that have no outgoing edges (no children)
         parent_ids = set(self.adjacency.keys())
@@ -113,7 +113,7 @@ class GraphSearchMixin:
         ]
         return [self.nodes[nid] for nid in leaf_ids if nid in self.nodes]
 
-    def get_leaves(self) -> List[ThoughtNode]:
+    def get_leaves(self) -> list[ThoughtNode]:
         """Alias for get_frontier."""
         return self.get_frontier()
 

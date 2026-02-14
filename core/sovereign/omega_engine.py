@@ -31,7 +31,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -41,7 +41,6 @@ except ImportError:
     ADL_GINI_THRESHOLD = 0.40  # type: ignore[misc]
 
 logger = logging.getLogger(__name__)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GAP-C1: IHSAN PROJECTOR (8D → 3D in O(1))
@@ -77,7 +76,7 @@ class NTUState:
         """Vector magnitude for comparison."""
         return math.sqrt(self.belief**2 + self.entropy**2 + self.potential**2)
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         return {
             "belief": self.belief,
             "entropy": self.entropy,
@@ -198,11 +197,10 @@ class IhsanProjector:
         self.bias = bias if bias is not None else self.DEFAULT_BIAS.copy()
 
         # Validate dimensions
-        assert self.weights.shape == (
-            3,
-            8,
-        ), f"Weights must be 3x8, got {self.weights.shape}"
-        assert self.bias.shape == (3,), f"Bias must be 3-element, got {self.bias.shape}"
+        if self.weights.shape != (3, 8):
+            raise ValueError(f"Weights must be 3x8, got {self.weights.shape}")
+        if self.bias.shape != (3,):
+            raise ValueError(f"Bias must be 3-element, got {self.bias.shape}")
 
     def project(self, ihsan: IhsanVector) -> NTUState:
         """
@@ -273,7 +271,7 @@ class AdlViolation:
     threshold: float
     transaction_id: str
     timestamp: datetime
-    affected_accounts: List[str]
+    affected_accounts: list[str]
     reason: str
 
 
@@ -315,10 +313,10 @@ class AdlInvariant:
         self.gini_threshold = gini_threshold
         self.harberger_rate = harberger_rate
         self.on_violation = on_violation
-        self._violation_log: List[AdlViolation] = []
+        self._violation_log: list[AdlViolation] = []
 
     @staticmethod
-    def calculate_gini(holdings: Dict[str, float]) -> float:
+    def calculate_gini(holdings: dict[str, float]) -> float:
         """
         Calculate Gini coefficient from holdings distribution.
 
@@ -327,7 +325,7 @@ class AdlInvariant:
         Complexity: O(n log n) for sorting
 
         Args:
-            holdings: Dict mapping account_id → balance
+            holdings: dict mapping account_id → balance
 
         Returns:
             Gini coefficient ∈ [0, 1]
@@ -353,10 +351,10 @@ class AdlInvariant:
 
     def validate_transaction(
         self,
-        pre_state: Dict[str, float],
-        post_state: Dict[str, float],
+        pre_state: dict[str, float],
+        post_state: dict[str, float],
         transaction_id: str = "unknown",
-    ) -> Tuple[bool, Optional[AdlViolation]]:
+    ) -> tuple[bool, Optional[AdlViolation]]:
         """
         Validate transaction against Adl invariant.
 
@@ -408,9 +406,9 @@ class AdlInvariant:
 
     def redistribute_harberger_tax(
         self,
-        holdings: Dict[str, float],
+        holdings: dict[str, float],
         period_days: float = 1.0,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Apply Harberger tax and redistribute to Universal Basic Compute pool.
 
@@ -461,7 +459,7 @@ class AdlInvariant:
             except Exception as e:
                 logger.error(f"Violation callback error: {e}")
 
-    def get_violation_history(self) -> List[AdlViolation]:
+    def get_violation_history(self) -> list[AdlViolation]:
         """Get history of violations."""
         return self._violation_log.copy()
 
@@ -493,7 +491,7 @@ class TreasuryState:
     burn_rate: float  # SEED tokens consumed per day
     last_transition: datetime
     transition_reason: str
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
 
 class TreasuryController:
@@ -541,11 +539,11 @@ class TreasuryController:
             transition_reason="initialization",
         )
         self.on_transition = on_transition
-        self._transition_log: List[Tuple[datetime, TreasuryMode, TreasuryMode, str]] = (
+        self._transition_log: list[tuple[datetime, TreasuryMode, TreasuryMode, str]] = (
             []
         )
 
-    def evaluate_market_ethics(self, market_data: Dict[str, Any]) -> float:
+    def evaluate_market_ethics(self, market_data: dict[str, Any]) -> float:
         """
         Evaluate current market ethics score.
 
@@ -593,7 +591,7 @@ class TreasuryController:
 
     def update(
         self,
-        market_data: Dict[str, Any],
+        market_data: dict[str, Any],
         elapsed_days: float = 1.0,
     ) -> TreasuryState:
         """
@@ -711,7 +709,7 @@ class TreasuryController:
 
     def get_transition_history(
         self,
-    ) -> List[Tuple[datetime, TreasuryMode, TreasuryMode, str]]:
+    ) -> list[tuple[datetime, TreasuryMode, TreasuryMode, str]]:
         """Get history of mode transitions."""
         return self._transition_log.copy()
 
@@ -759,7 +757,7 @@ class OmegaEngine:
         self._initialized_at = datetime.now(timezone.utc)
         logger.info("Omega Engine initialized")
 
-    def evaluate_ihsan(self, ihsan_vector: IhsanVector) -> Tuple[float, NTUState]:
+    def evaluate_ihsan(self, ihsan_vector: IhsanVector) -> tuple[float, NTUState]:
         """
         Evaluate Ihsān score and project to NTU.
 
@@ -776,10 +774,10 @@ class OmegaEngine:
 
     def validate_economic_action(
         self,
-        pre_state: Dict[str, float],
-        post_state: Dict[str, float],
+        pre_state: dict[str, float],
+        post_state: dict[str, float],
         action_id: str = "unknown",
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Validate economic action against Adl invariant.
 
@@ -797,7 +795,7 @@ class OmegaEngine:
 
     def update_treasury(
         self,
-        market_data: Dict[str, Any],
+        market_data: dict[str, Any],
         elapsed_days: float = 1.0,
     ) -> TreasuryState:
         """
@@ -812,7 +810,7 @@ class OmegaEngine:
         """Get current operational mode."""
         return self.treasury.state.mode
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get comprehensive engine status."""
         return {
             "initialized_at": self._initialized_at.isoformat(),

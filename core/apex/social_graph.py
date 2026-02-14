@@ -40,10 +40,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTANTS (Standing on Giants)
@@ -67,7 +66,6 @@ MIN_INTERACTION_COUNT = 3
 
 # Collaboration value threshold (2x cost minimum)
 COLLABORATION_VALUE_RATIO = 2.0
-
 
 # =============================================================================
 # ENUMS
@@ -123,7 +121,7 @@ class Interaction:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     outcome_score: float = 0.5  # [0,1] — success of interaction
     value_exchanged: float = 0.0  # Economic value
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -156,12 +154,12 @@ class Relationship:
     )
 
     # Interaction history (bounded to save memory)
-    interactions: List[Interaction] = field(default_factory=list)
+    interactions: list[Interaction] = field(default_factory=list)
     interaction_count: int = 0
     successful_interactions: int = 0
 
     # Capabilities known about peer
-    known_capabilities: Set[str] = field(default_factory=set)
+    known_capabilities: set[str] = field(default_factory=set)
 
     # Economic metrics
     total_value_given: float = 0.0
@@ -268,8 +266,8 @@ class CollaborationOpportunity:
 
     # Opportunity details
     description: str = ""
-    required_capabilities: Set[str] = field(default_factory=set)
-    complementary_capabilities: Set[str] = field(default_factory=set)
+    required_capabilities: set[str] = field(default_factory=set)
+    complementary_capabilities: set[str] = field(default_factory=set)
 
     # Value assessment
     potential_value: float = 0.0
@@ -310,7 +308,7 @@ class NegotiationOffer:
 
     # Terms
     value_split: float = 0.5  # Offerer's share
-    conditions: List[str] = field(default_factory=list)
+    conditions: list[str] = field(default_factory=list)
     expiry: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Response
@@ -345,25 +343,25 @@ class SocialGraph:
         self.max_relationships = max_relationships
 
         # Relationship storage (peer_id -> Relationship)
-        self._relationships: Dict[str, Relationship] = {}
+        self._relationships: dict[str, Relationship] = {}
 
         # Trust graph for propagation (adjacency list)
-        self._trust_graph: Dict[str, Dict[str, float]] = defaultdict(dict)
+        self._trust_graph: dict[str, dict[str, float]] = defaultdict(dict)
 
         # Capability index (capability -> set of agents)
-        self._capability_index: Dict[str, Set[str]] = defaultdict(set)
+        self._capability_index: dict[str, set[str]] = defaultdict(set)
 
         # Active collaborations
-        self._collaborations: Dict[str, CollaborationOpportunity] = {}
+        self._collaborations: dict[str, CollaborationOpportunity] = {}
 
         # Pending negotiations
-        self._negotiations: Dict[str, List[NegotiationOffer]] = defaultdict(list)
+        self._negotiations: dict[str, list[NegotiationOffer]] = defaultdict(list)
 
         # My capabilities
-        self._my_capabilities: Set[str] = set()
+        self._my_capabilities: set[str] = set()
 
         # PageRank cache
-        self._pagerank_cache: Dict[str, float] = {}
+        self._pagerank_cache: dict[str, float] = {}
         self._pagerank_dirty = True
 
         logger.info(f"SocialGraph initialized for agent {agent_id}")
@@ -399,7 +397,7 @@ class SocialGraph:
         interaction_type: InteractionType,
         outcome_score: float,
         value_exchanged: float = 0.0,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
     ) -> Relationship:
         """Record an interaction and update trust."""
         rel = self.add_relationship(peer_id)
@@ -452,8 +450,8 @@ class SocialGraph:
     # -------------------------------------------------------------------------
 
     def propagate_trust(
-        self, external_graph: Optional[Dict[str, Dict[str, float]]] = None
-    ) -> Dict[str, float]:
+        self, external_graph: Optional[dict[str, dict[str, float]]] = None
+    ) -> dict[str, float]:
         """
         Compute global trust scores using PageRank algorithm.
 
@@ -529,11 +527,11 @@ class SocialGraph:
     # COLLABORATION DISCOVERY (Graph-of-Thoughts)
     # -------------------------------------------------------------------------
 
-    def register_capabilities(self, capabilities: Set[str]):
+    def register_capabilities(self, capabilities: set[str]):
         """Register this agent's capabilities."""
         self._my_capabilities = capabilities
 
-    def learn_peer_capabilities(self, peer_id: str, capabilities: Set[str]):
+    def learn_peer_capabilities(self, peer_id: str, capabilities: set[str]):
         """Learn about a peer's capabilities."""
         rel = self.add_relationship(peer_id)
         rel.known_capabilities.update(capabilities)
@@ -544,10 +542,10 @@ class SocialGraph:
 
     def find_collaborations(
         self,
-        required_capabilities: Set[str],
+        required_capabilities: set[str],
         min_trust: float = WEAK_TIE_THRESHOLD,
         max_results: int = 10,
-    ) -> List[CollaborationOpportunity]:
+    ) -> list[CollaborationOpportunity]:
         """
         Find collaboration opportunities using Graph-of-Thoughts reasoning.
 
@@ -568,7 +566,7 @@ class SocialGraph:
         opportunities = []
 
         # Find agents with needed capabilities
-        candidate_agents: Set[str] = set()
+        candidate_agents: set[str] = set()
         for cap in needed_caps:
             candidate_agents.update(self._capability_index.get(cap, set()))
 
@@ -614,7 +612,7 @@ class SocialGraph:
 
         return opportunities[:max_results]
 
-    def find_weak_tie_opportunities(self) -> List[Tuple[str, Set[str]]]:
+    def find_weak_tie_opportunities(self) -> list[tuple[str, set[str]]]:
         """
         Find valuable weak ties (Granovetter).
 
@@ -673,7 +671,7 @@ class SocialGraph:
         )
         return offer
 
-    def evaluate_offer(self, offer: NegotiationOffer) -> Tuple[bool, Optional[float]]:
+    def evaluate_offer(self, offer: NegotiationOffer) -> tuple[bool, Optional[float]]:
         """
         Evaluate incoming collaboration offer.
 
@@ -723,7 +721,7 @@ class SocialGraph:
     # ANALYTICS
     # -------------------------------------------------------------------------
 
-    def get_network_stats(self) -> Dict[str, Any]:
+    def get_network_stats(self) -> dict[str, Any]:
         """Get social network statistics."""
         if not self._relationships:
             return {"total_relationships": 0}
@@ -764,7 +762,7 @@ class SocialGraph:
             ),
         }
 
-    def get_relationship_summary(self) -> List[Dict[str, Any]]:
+    def get_relationship_summary(self) -> list[dict[str, Any]]:
         """Get summary of all relationships."""
         return [
             {
@@ -787,7 +785,7 @@ class SocialGraph:
 # FACTORY
 # =============================================================================
 
-_social_graph_instances: Dict[str, SocialGraph] = {}
+_social_graph_instances: dict[str, SocialGraph] = {}
 
 
 def get_social_graph(agent_id: str) -> SocialGraph:

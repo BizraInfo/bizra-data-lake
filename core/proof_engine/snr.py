@@ -245,6 +245,42 @@ class SNREngine:
 
         return snr, trace
 
+    def snr_score(
+        self,
+        inputs: SNRInput,
+    ) -> Dict[str, Any]:
+        """
+        Single authoritative SNR scorer — receipt-compatible output shape.
+
+        Returns the canonical dict matching the receipt.snr schema.
+        Parallel to IhsanGate.ihsan_score().
+
+        Standing on: SP-004 (SNR Engine v1 authoritative scorer)
+        """
+        snr, trace = self.compute(inputs)
+
+        return {
+            "score": trace.snr,
+            "signal_mass": trace.signal_mass,
+            "noise_mass": trace.noise_mass,
+            "signal_components": {
+                "provenance": trace.provenance_score,
+                "constraint": trace.constraint_score,
+                "prediction": trace.prediction_score,
+            },
+            "noise_components": {
+                "contradiction": trace.contradiction_mass,
+                "unverifiable": trace.unverifiable_mass,
+            },
+            "claim_tags": {
+                "snr": "measured",
+                "signal_mass": "measured",
+            },
+            "trace_id": trace.computation_id,
+            "policy_digest": trace.policy_digest,
+            "passed": snr >= self.policy.snr_min,
+        }
+
     def check_threshold(
         self,
         inputs: SNRInput,

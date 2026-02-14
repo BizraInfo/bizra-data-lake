@@ -33,12 +33,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol, Tuple, Union, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
-
 # ── Unified Result ──────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class SNRResult:
@@ -49,18 +49,22 @@ class SNRResult:
     Consumers only need to check `score`, `ihsan_achieved`, and optionally
     drill into `metrics` for engine-specific details.
     """
-    score: float                         # Normalized to [0.0, 1.0]
-    ihsan_achieved: bool                 # score >= ihsan_threshold
-    engine: str                          # "embedding" | "text" | "ensemble"
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    recommendations: List[str] = field(default_factory=list)
+
+    score: float  # Normalized to [0.0, 1.0]
+    ihsan_achieved: bool  # score >= ihsan_threshold
+    engine: str  # "embedding" | "text" | "ensemble"
+    metrics: dict[str, Any] = field(default_factory=dict)
+    recommendations: list[str] = field(default_factory=list)
 
     def __repr__(self) -> str:
         status = "PASS" if self.ihsan_achieved else "FAIL"
-        return f"SNRResult(score={self.score:.4f}, ihsan={status}, engine={self.engine})"
+        return (
+            f"SNRResult(score={self.score:.4f}, ihsan={status}, engine={self.engine})"
+        )
 
 
 # ── Protocol ────────────────────────────────────────────────────────────
+
 
 @runtime_checkable
 class SNRProtocol(Protocol):
@@ -83,6 +87,7 @@ class SNRProtocol(Protocol):
 
 
 # ── Facade ──────────────────────────────────────────────────────────────
+
 
 class SNRFacade:
     """
@@ -114,19 +119,18 @@ class SNRFacade:
         # Text engine inputs
         text: Optional[str] = None,
         query: Optional[str] = None,
-        sources: Optional[List[str]] = None,
+        sources: Optional[list[str]] = None,
         # Embedding engine inputs
         query_embedding: Optional[Any] = None,
         context_embeddings: Optional[Any] = None,
-        symbolic_facts: Optional[List[Dict]] = None,
-        neural_results: Optional[List[Dict]] = None,
+        symbolic_facts: Optional[list[dict]] = None,
+        neural_results: Optional[list[dict]] = None,
     ) -> SNRResult:
         """
         Dispatch to the appropriate SNR engine(s) based on available inputs.
 
         Returns a single canonical SNRResult.
         """
-        import numpy as np
 
         has_embeddings = (
             query_embedding is not None
@@ -137,7 +141,9 @@ class SNRFacade:
 
         if has_embeddings and has_text:
             return self._ensemble(
-                text=text or "", query=query, sources=sources,
+                text=text or "",
+                query=query,
+                sources=sources,
                 query_embedding=query_embedding,
                 context_embeddings=context_embeddings,
                 symbolic_facts=symbolic_facts or [],
@@ -155,13 +161,16 @@ class SNRFacade:
         else:
             logger.warning("SNRFacade: No valid inputs — returning baseline")
             return SNRResult(
-                score=0.0, ihsan_achieved=False, engine="none",
+                score=0.0,
+                ihsan_achieved=False,
+                engine="none",
                 recommendations=["Provide text or embeddings for SNR calculation"],
             )
 
     def _from_embedding_engine(self, **kwargs: Any) -> SNRResult:
         """Delegate to arte_engine.SNREngine and normalize."""
-        assert self.embedding_engine is not None
+        if self.embedding_engine is None:
+            raise RuntimeError("Embedding engine not available")
         score, metrics = self.embedding_engine.calculate_snr(**kwargs)
         return SNRResult(
             score=float(score),
@@ -171,11 +180,19 @@ class SNRFacade:
         )
 
     def _from_text_engine(
-        self, text: str, query: Optional[str] = None, sources: Optional[List[str]] = None,
+        self,
+        text: str,
+        query: Optional[str] = None,
+        sources: Optional[list[str]] = None,
     ) -> SNRResult:
         """Delegate to snr_maximizer.SNRMaximizer and normalize."""
         if self.text_engine is None:
-            return SNRResult(score=0.0, ihsan_achieved=False, engine="text", recommendations=["Text engine not available"])
+            return SNRResult(
+                score=0.0,
+                ihsan_achieved=False,
+                engine="text",
+                recommendations=["Text engine not available"],
+            )
         analysis = self.text_engine.analyze(text, query, sources)
 
         # Normalize dB-scale to [0, 1] via sigmoid-like mapping
@@ -190,8 +207,14 @@ class SNRFacade:
             recommendations=analysis.recommendations,
         )
 
-    def _ensemble(self, *, text: str, query: Optional[str], sources: Optional[List[str]],
-                  **embedding_kwargs: Any) -> SNRResult:
+    def _ensemble(
+        self,
+        *,
+        text: str,
+        query: Optional[str],
+        sources: Optional[list[str]],
+        **embedding_kwargs: Any,
+    ) -> SNRResult:
         """
         Ensemble: geometric mean of both engines.
 
@@ -226,3 +249,10 @@ class SNRFacade:
             },
             recommendations=all_recs,
         )
+
+
+__all__ = [
+    "SNRResult",
+    "SNRProtocol",
+    "SNRFacade",
+]

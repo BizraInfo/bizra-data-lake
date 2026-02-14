@@ -17,7 +17,8 @@
 # =============================================================================
 # Stage 1: Build Environment
 # =============================================================================
-FROM rust:1.75-bookworm AS builder
+ARG RUST_VERSION=1.88
+FROM rust:${RUST_VERSION}-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

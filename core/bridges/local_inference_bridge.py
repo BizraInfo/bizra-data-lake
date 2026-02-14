@@ -23,7 +23,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.inference.response_utils import strip_think_tokens
 
@@ -39,8 +39,8 @@ class InferenceRequest:
     system_prompt: Optional[str] = None
     temperature: float = 0.3
     max_tokens: int = 2048
-    images: Optional[List[str]] = None  # Base64 encoded for vision
-    context: Dict[str, Any] = field(default_factory=dict)
+    images: Optional[list[str]] = None  # Base64 encoded for vision
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -248,7 +248,7 @@ class LocalInferenceBridge:
         num_candidates: int = 3,
         consensus_threshold: float = 0.95,
         system_prompt: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Bicameral reasoning: Cold Core generates, Warm Surface verifies.
 
@@ -266,9 +266,9 @@ class LocalInferenceBridge:
             system_prompt: Optional system context
 
         Returns:
-            Dict with final_answer, candidates, scores, consensus
+            dict with final_answer, candidates, scores, consensus
         """
-        candidates: List[Dict[str, Any]] = []
+        candidates: list[dict[str, Any]] = []
 
         # Default system prompt for reasoning
         if not system_prompt:
@@ -388,7 +388,7 @@ Respond with ONLY a number between 0.0 and 1.0."""
         query: str,
         max_depth: int = 3,
         beam_width: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Graph-of-Thoughts exploration using local models.
 
@@ -401,10 +401,12 @@ Respond with ONLY a number between 0.0 and 1.0."""
             beam_width: Number of parallel paths
 
         Returns:
-            Dict with conclusion, explored_nodes, best_path
+            dict with conclusion, explored_nodes, best_path
         """
-        thoughts: List[Dict[str, Any]] = []
-        current_thoughts: List[Dict[str, Any]] = [{"depth": 0, "content": query, "score": 1.0}]
+        thoughts: list[dict[str, Any]] = []
+        current_thoughts: list[dict[str, Any]] = [
+            {"depth": 0, "content": query, "score": 1.0}
+        ]
 
         for depth in range(max_depth):
             next_thoughts = []
@@ -479,7 +481,7 @@ Provide a concise conclusion."""
             "passes_threshold": True,
         }
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get bridge status."""
         if self._manager:
             manager_status = self._manager.get_status()
@@ -560,7 +562,6 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(test())
-
 
 __all__ = [
     "LocalInferenceBridge",

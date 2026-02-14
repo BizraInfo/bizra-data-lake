@@ -166,7 +166,10 @@ class TestQueryPipelineRouting:
         runtime._orchestrator = MagicMock()
 
         result = await runtime.query("Hello")
-        assert result.success or result.error  # Either works; just didn't crash
+        # Either succeeds, returns an error, or rejects via fail-closed gate chain
+        # — we only care that it didn't crash
+        assert result is not None
+        assert result.response or result.error or result.success
 
     @pytest.mark.asyncio
     async def test_complex_query_attempts_orchestrator(self) -> None:
@@ -328,3 +331,251 @@ class TestFullRoundTrip:
             "validation with full SNR optimization."
         )
         assert 0.4 < good <= 1.0, f"Unexpected score: {good}"
+
+
+# ---------------------------------------------------------------------------
+# 6. Cross-System E2E — Full Stack Proof
+# ---------------------------------------------------------------------------
+
+
+class TestCrossSystemE2E:
+    """Prove the full stack works: API → Orchestrator → Gateway → Memory → Response.
+
+    This is the Genesis Proof — if these tests pass, the system is alive.
+    """
+
+    @pytest.mark.asyncio
+    async def test_full_stack_query_pipeline(self) -> None:
+        """Complete round-trip: query → decompose → infer → score → respond."""
+        from core.sovereign.orchestrator import (
+            RoutingStrategy,
+            SovereignOrchestrator,
+            TaskComplexity,
+            TaskNode,
+        )
+        from core.living_memory.core import LivingMemoryCore, MemoryType
+
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        try:
+            # 1. Initialize memory with seed knowledge
+            memory = LivingMemoryCore(storage_path=tmp)
+            await memory.initialize()
+            await memory.encode(
+                "BIZRA is a decentralized sovereign system where every human is a node",
+                MemoryType.SEMANTIC,
+                source="test_seed",
+                importance=0.95,
+            )
+            await memory.encode(
+                "The inference gateway uses circuit breakers for resilience",
+                MemoryType.PROCEDURAL,
+                source="test_seed",
+                importance=0.9,
+            )
+
+            # 2. Create orchestrator with mock LLM gateway
+            orch = SovereignOrchestrator(routing_strategy=RoutingStrategy.ADAPTIVE)
+            orch.register_default_agents()
+
+            mock_result = MagicMock()
+            mock_result.content = (
+                "BIZRA sovereignty ensures data ownership through local inference. "
+                "The circuit breaker pattern protects against cascade failures."
+            )
+            mock_gw = MagicMock()
+            mock_gw.infer = AsyncMock(return_value=mock_result)
+
+            orch.set_gateway(mock_gw)
+            orch.set_memory(memory)
+
+            # 3. Execute a real task through the full pipeline
+            task = TaskNode(
+                title="Explain BIZRA sovereignty model",
+                description="How does BIZRA achieve data sovereignty?",
+                complexity=TaskComplexity.SIMPLE,
+            )
+
+            result = await orch.execute_task(task)
+
+            # 4. Verify complete pipeline
+            assert result["status"] == "completed"
+            assert len(result["content"]) > 20, "Response too short"
+            assert result["snr_score"] > 0.3, f"SNR too low: {result['snr_score']}"
+            assert result["latency_ms"] > 0, "No latency recorded"
+
+            # 5. Verify gateway was called with memory-enriched prompt
+            mock_gw.infer.assert_called_once()
+            call_args = mock_gw.infer.call_args
+            prompt_sent = call_args[0][0] if call_args[0] else call_args[1].get("prompt", "")
+            # Memory context should be included in the prompt
+            assert "BIZRA" in prompt_sent or "sovereignty" in prompt_sent.lower()
+
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    @pytest.mark.asyncio
+    async def test_event_driven_orchestration_loop(self) -> None:
+        """Orchestration loop dispatches via events, not polling."""
+        from core.sovereign.orchestrator import (
+            SovereignOrchestrator,
+            TaskComplexity,
+            TaskNode,
+        )
+
+        orch = SovereignOrchestrator(max_concurrent_tasks=3)
+        orch.register_default_agents()
+
+        mock_result = MagicMock()
+        mock_result.content = "Completed analysis"
+        mock_gw = MagicMock()
+        mock_gw.infer = AsyncMock(return_value=mock_result)
+        orch.set_gateway(mock_gw)
+
+        # Start the run loop in background
+        loop_task = asyncio.create_task(orch.run())
+
+        # Submit a task — should be dispatched via event signal
+        task = TaskNode(
+            title="Test event dispatch",
+            description="Verify event-driven orchestration",
+            complexity=TaskComplexity.TRIVIAL,
+        )
+        await orch.submit(task)
+
+        # Wait for completion (with timeout)
+        for _ in range(50):  # 5 seconds max
+            await asyncio.sleep(0.1)
+            if task.id in orch.completed_tasks:
+                break
+
+        orch.stop()
+        loop_task.cancel()
+        try:
+            await loop_task
+        except asyncio.CancelledError:
+            pass
+
+        assert task.id in orch.completed_tasks, (
+            f"Task not completed. Status: {orch.get_status()}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_proactive_retriever_with_memory(self) -> None:
+        """Proactive retriever surfaces relevant suggestions from memory."""
+        from core.living_memory.core import LivingMemoryCore, MemoryType
+        from core.living_memory.proactive import ProactiveRetriever
+
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        try:
+            memory = LivingMemoryCore(storage_path=tmp)
+            await memory.initialize()
+
+            # Seed with knowledge
+            await memory.encode(
+                "Rust provides zero-cost abstractions for systems programming",
+                MemoryType.SEMANTIC,
+                source="test",
+                importance=0.9,
+            )
+            await memory.encode(
+                "PyO3 bridges Python and Rust for high-performance inference",
+                MemoryType.SEMANTIC,
+                source="test",
+                importance=0.95,
+            )
+
+            retriever = ProactiveRetriever(memory=memory, max_suggestions=3)
+
+            # Update context with relevant queries
+            retriever.update_context(query="How does the Rust bridge work?")
+            retriever.update_context(query="What about PyO3 performance?")
+
+            suggestions = await retriever.get_proactive_suggestions()
+            # Should find at least some relevant memories
+            assert isinstance(suggestions, list)
+            # Context summary should reflect our queries
+            ctx = retriever.get_context_summary()
+            assert ctx["recent_queries_count"] == 2
+
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_fastapi_new_endpoints(self) -> None:
+        """FastAPI app includes WebSocket and suggestions endpoints."""
+        from core.sovereign.api import create_fastapi_app
+
+        mock_runtime = MagicMock()
+        mock_runtime.status.return_value = {
+            "health": {"status": "healthy"},
+            "identity": {"version": "1.0.0", "node_id": "test-node"},
+        }
+
+        app = create_fastapi_app(mock_runtime)
+        routes = [r.path for r in app.routes if hasattr(r, "path")]
+
+        assert "/v1/suggestions" in routes, f"Missing /v1/suggestions: {routes}"
+        # WebSocket route may show differently in FastAPI routing
+        ws_paths = [r.path for r in app.routes if hasattr(r, "path") and "stream" in r.path]
+        assert len(ws_paths) >= 1 or "/v1/stream" in routes, f"Missing /v1/stream: {routes}"
+
+    @pytest.mark.asyncio
+    async def test_a2a_task_manager_event_driven(self) -> None:
+        """A2A TaskManager processes submitted tasks via its queue."""
+        from core.a2a.tasks import TaskManager
+        from core.a2a.schema import TaskCard
+
+        tm = TaskManager(max_concurrent=2)
+
+        # Submit a task and verify it is queued for processing
+        task = TaskCard(
+            prompt="Test task",
+            capability_required="testing",
+        )
+        task_id = tm.submit(task)
+
+        assert task_id == task.task_id, "submit must return the task ID"
+        assert task.task_id in tm.tasks, "Task not stored after submit"
+        assert len(tm.queue) >= 1, "Task not enqueued after submit"
+        assert tm.stats["submitted"] == 1, "Submit counter not incremented"
+
+    @pytest.mark.asyncio
+    async def test_memory_sqlite_persistence_integrity(self) -> None:
+        """Memory persists across instances and maintains data integrity."""
+        from core.living_memory.core import LivingMemoryCore, MemoryType
+
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        try:
+            # Instance 1: Create and encode
+            mem1 = LivingMemoryCore(storage_path=tmp)
+            await mem1.initialize()
+
+            entries = []
+            for i in range(5):
+                entry = await mem1.encode(
+                    f"Test memory entry number {i} with unique content",
+                    MemoryType.EPISODIC,
+                    source="integrity_test",
+                    importance=0.5 + (i * 0.1),
+                )
+                entries.append(entry)
+
+            assert len(mem1._memories) >= 5
+            await mem1._save_memories()
+
+            # Instance 2: Should load all entries
+            mem2 = LivingMemoryCore(storage_path=tmp)
+            await mem2.initialize()
+            assert len(mem2._memories) >= 5, (
+                f"Persistence lost entries: {len(mem2._memories)} < 5"
+            )
+
+            # Verify data integrity
+            for entry in entries:
+                if entry is not None:
+                    assert entry.id in mem2._memories, f"Entry {entry.id} lost"
+
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)

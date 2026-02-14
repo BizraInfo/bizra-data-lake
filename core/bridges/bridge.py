@@ -36,12 +36,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, TypeVar
+from typing import Any, Awaitable, Callable, Optional, TypeVar
 
 logger = logging.getLogger("sovereign.bridge")
 
 T = TypeVar("T")
-
 
 # =============================================================================
 # ENUMS & TYPES
@@ -91,7 +90,7 @@ class SubsystemHealth:
     error_count: int = 0
     last_success: Optional[datetime] = None
     last_error: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def is_healthy(self) -> bool:
         return self.status in (SubsystemStatus.CONNECTED, SubsystemStatus.DEGRADED)
@@ -104,13 +103,13 @@ class BridgeMessage:
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     source: str = ""
     destination: str = ""
-    payload: Dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = field(default_factory=dict)
     priority: MessagePriority = MessagePriority.NORMAL
     timestamp: datetime = field(default_factory=datetime.now)
     ttl_seconds: int = 300
     requires_ack: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "source": self.source,
@@ -122,7 +121,7 @@ class BridgeMessage:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BridgeMessage":
+    def from_dict(cls, data: dict[str, Any]) -> "BridgeMessage":
         return cls(
             id=data.get("id", uuid.uuid4().hex[:12]),
             source=data.get("source", ""),
@@ -140,7 +139,7 @@ class InferenceRequest:
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     prompt: str = ""
     system_prompt: str = ""
-    context: List[Dict[str, str]] = field(default_factory=list)
+    context: list[dict[str, str]] = field(default_factory=list)
 
     # Model selection
     preferred_tier: InferenceTier = InferenceTier.LOCAL
@@ -176,7 +175,7 @@ class InferenceResponse:
 
     # Quality
     snr_score: float = 0.0
-    proof_envelope: Optional[Dict[str, Any]] = None
+    proof_envelope: Optional[dict[str, Any]] = None
 
     # Error
     error: Optional[str] = None
@@ -243,8 +242,8 @@ class InferenceConnector(SubsystemConnector):
         super().__init__("inference")
         self.ollama_url = ollama_url
         self.lmstudio_url = lmstudio_url
-        self._available_models: List[str] = []
-        self._tier_backends: Dict[InferenceTier, str] = {}
+        self._available_models: list[str] = []
+        self._tier_backends: dict[InferenceTier, str] = {}
 
     async def connect(self) -> bool:
         """Connect and discover available models."""
@@ -439,7 +438,7 @@ class FederationConnector(SubsystemConnector):
     def __init__(self, node_id: str = ""):
         super().__init__("federation")
         self.node_id = node_id or f"node-{uuid.uuid4().hex[:8]}"
-        self._peers: Set[str] = set()
+        self._peers: set[str] = set()
         self._gossip_enabled = False
 
     async def connect(self) -> bool:
@@ -479,8 +478,8 @@ class FederationConnector(SubsystemConnector):
         return len(self._peers)
 
     async def request_consensus(
-        self, proposal: Dict[str, Any], timeout_ms: int = 10000
-    ) -> Dict[str, Any]:
+        self, proposal: dict[str, Any], timeout_ms: int = 10000
+    ) -> dict[str, Any]:
         """Request consensus on a proposal."""
         if not self._gossip_enabled:
             return {"approved": True, "votes": {"approve": 1}, "standalone": True}
@@ -511,7 +510,7 @@ class MemoryConnector(SubsystemConnector):
     def __init__(self, state_dir: Path = Path("./sovereign_state")):
         super().__init__("memory")
         self.state_dir = state_dir
-        self._session_memory: Dict[str, Any] = {}
+        self._session_memory: dict[str, Any] = {}
         self._vault_available = False
 
     async def connect(self) -> bool:
@@ -546,7 +545,7 @@ class MemoryConnector(SubsystemConnector):
         return self._session_memory.get(key, default)
 
     async def set(self, key: str, value: Any, persist: bool = False) -> None:
-        """Set value in session memory."""
+        """set value in session memory."""
         self._session_memory[key] = value
 
         if persist:
@@ -577,10 +576,10 @@ class MemoryConnector(SubsystemConnector):
                 logger.error(f"Memory load failed: {e}")
 
     async def _persist(self, key: str, value: Any) -> None:
-        """Persist single key to disk."""
-        key_file = (
-            self.state_dir / f"mem_{hashlib.sha256(key.encode()).hexdigest()[:16]}.json"
-        )
+        """Persist single key to disk (BLAKE3, SEC-001)."""
+        from core.proof_engine.canonical import hex_digest
+
+        key_file = self.state_dir / f"mem_{hex_digest(key.encode())[:16]}.json"
         try:
             key_file.write_text(json.dumps({"key": key, "value": value}, default=str))
         except Exception as e:
@@ -605,7 +604,7 @@ class A2AConnector(SubsystemConnector):
     def __init__(self, agent_id: str = ""):
         super().__init__("a2a")
         self.agent_id = agent_id or f"agent-{uuid.uuid4().hex[:8]}"
-        self._registered_agents: Dict[str, Dict[str, Any]] = {}
+        self._registered_agents: dict[str, dict[str, Any]] = {}
         self._message_queue: asyncio.Queue = asyncio.Queue()
 
     async def connect(self) -> bool:
@@ -634,19 +633,19 @@ class A2AConnector(SubsystemConnector):
     async def register_capability(
         self,
         capability: str,
-        handler: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]],
+        handler: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
     ) -> None:
         """Register a capability that this agent provides."""
         # Stub: would register with A2A discovery
         logger.info(f"Registered capability: {capability}")
 
-    async def discover_agents(self, capability: str = "") -> List[Dict[str, Any]]:
+    async def discover_agents(self, capability: str = "") -> list[dict[str, Any]]:
         """Discover agents with a specific capability."""
         return list(self._registered_agents.values())
 
     async def delegate_task(
-        self, target_agent: str, task: Dict[str, Any], timeout_ms: int = 30000
-    ) -> Dict[str, Any]:
+        self, target_agent: str, task: dict[str, Any], timeout_ms: int = 30000
+    ) -> dict[str, Any]:
         """Delegate a task to another agent."""
         # Stub: would send via A2A protocol
         return {
@@ -695,7 +694,7 @@ class SovereignBridge:
 
         self._connected = False
 
-    async def connect_all(self) -> Dict[str, bool]:
+    async def connect_all(self) -> dict[str, bool]:
         """Connect all subsystems."""
         results = {}
 
@@ -720,7 +719,7 @@ class SovereignBridge:
         await self.a2a.disconnect()
         self._connected = False
 
-    async def health_check(self) -> Dict[str, SubsystemHealth]:
+    async def health_check(self) -> dict[str, SubsystemHealth]:
         """Get health of all subsystems."""
         return {
             "inference": await self.inference.health_check(),
@@ -729,7 +728,7 @@ class SovereignBridge:
             "a2a": await self.a2a.health_check(),
         }
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get bridge status."""
         return {
             "node_id": self.node_id,
@@ -775,7 +774,7 @@ class SovereignBridge:
 
     async def broadcast(
         self,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         priority: MessagePriority = MessagePriority.NORMAL,
     ) -> int:
         """Broadcast to federation peers."""

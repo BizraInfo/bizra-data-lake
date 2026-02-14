@@ -51,7 +51,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # ════════════════════════════════════════════════════════════════════════════════
 
 LM_STUDIO_URL = "http://192.168.56.1:1234"
-LM_STUDIO_TOKEN = os.environ.get("LM_API_TOKEN", "sk-lm-tf1GexG6:INN5TbySSqMbbGjILrkA")
+LM_STUDIO_TOKEN = os.environ.get("LM_API_TOKEN", "")
 
 # Agent system prompts (Giants Protocol)
 AGENT_PROMPTS = {

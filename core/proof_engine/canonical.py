@@ -10,7 +10,6 @@ Key principles:
 - BLAKE3 hashing for determinism
 """
 
-import hashlib
 import json
 import unicodedata
 from dataclasses import dataclass, field
@@ -59,15 +58,14 @@ def blake3_digest(data: bytes) -> bytes:
     """
     Compute BLAKE3 hash of data.
 
-    Falls back to SHA-256 if BLAKE3 not available.
-    """
-    try:
-        import blake3
+    BLAKE3 is a required dependency (pyproject.toml). No SHA-256 fallback —
+    cross-language interop with Rust (bizra-omega) requires identical hashes.
 
-        return blake3.blake3(data).digest()
-    except ImportError:
-        # Fallback to SHA-256
-        return hashlib.sha256(data).digest()
+    Standing on Giants: O'Connor et al. (BLAKE3, 2020)
+    """
+    import blake3
+
+    return blake3.blake3(data).digest()
 
 
 def hex_digest(data: bytes) -> str:

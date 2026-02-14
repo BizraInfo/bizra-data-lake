@@ -123,7 +123,11 @@ class SovereignVault:
     Sovereignty: All data encrypted at rest with user-controlled keys.
     """
 
-    def __init__(self, vault_path: Optional[Union[str, Path]] = None, master_secret: Optional[str] = None):
+    def __init__(
+        self,
+        vault_path: Optional[Union[str, Path]] = None,
+        master_secret: Optional[str] = None,
+    ):
         self.vault_path = Path(vault_path or DEFAULT_VAULT_DIR)
         self.vault_path.mkdir(parents=True, exist_ok=True)
 
@@ -297,6 +301,7 @@ class SovereignVault:
             raise RuntimeError("cryptography package not installed")
 
         import logging
+
         _logger = logging.getLogger(__name__)
 
         # Phase 1: Decrypt ALL entries with old secret (fail-fast)
@@ -357,7 +362,9 @@ class SovereignVault:
 _default_vault: Optional[SovereignVault] = None
 
 
-def get_vault(vault_path: Optional[str] = None, master_secret: Optional[str] = None) -> SovereignVault:
+def get_vault(
+    vault_path: Optional[str] = None, master_secret: Optional[str] = None
+) -> SovereignVault:
     """Get or create the default vault instance."""
     global _default_vault
 

@@ -13,7 +13,6 @@ Principle: لا نفترض — We do not assume.
 Created: 2026-01-29 | BIZRA Sovereignty
 """
 
-import hashlib
 import json
 import threading
 from dataclasses import asdict, dataclass
@@ -23,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.proof_engine.canonical import hex_digest
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPES
@@ -68,7 +68,11 @@ class Interpretation:
         return cls(**data)
 
     def compute_hash(self) -> str:
-        """Compute hash of this interpretation for chaining."""
+        """Compute BLAKE3 hash of this interpretation for chaining.
+
+        SEC-001 remediation: migrated from SHA-256 to BLAKE3 for Rust interop.
+        Standing on Giants: O'Connor et al. (BLAKE3, 2020)
+        """
         content = json.dumps(
             {
                 "receipt_hash": self.receipt_hash,
@@ -78,7 +82,7 @@ class Interpretation:
             },
             sort_keys=True,
         )
-        return hashlib.sha256(content.encode()).hexdigest()
+        return hex_digest(content.encode())
 
 
 @dataclass
@@ -347,7 +351,7 @@ class EpigeneticLayer:
             },
             sort_keys=True,
         )
-        proof_hash = hashlib.sha256(proof_content.encode()).hexdigest()
+        proof_hash = hex_digest(proof_content.encode())
 
         return {
             "period": {
@@ -406,15 +410,17 @@ class EpigeneticLayer:
         secret = os.environ.get("BIZRA_EPIGENOME_SECRET")
         if not secret:
             # Check if running in production mode
-            is_production = os.environ.get("BIZRA_ENV", "").lower() == "production" or \
-                            os.environ.get("BIZRA_PRODUCTION_MODE", "0") == "1"
-            
+            is_production = (
+                os.environ.get("BIZRA_ENV", "").lower() == "production"
+                or os.environ.get("BIZRA_PRODUCTION_MODE", "0") == "1"
+            )
+
             if is_production:
                 raise RuntimeError(
                     "BIZRA_EPIGENOME_SECRET must be set in production. "
                     "Set this environment variable with a cryptographically secure key."
                 )
-            
+
             # For testing only: derive ephemeral key from node identity
             # This ensures tests work but production MUST set the env var
             import warnings
@@ -426,6 +432,8 @@ class EpigeneticLayer:
             )
             # Use process-unique ephemeral key (secure for isolated test runs)
             secret = f"ephemeral-{os.getpid()}-{id(self)}"
+
+        import hashlib
 
         return hmac.new(secret.encode(), content.encode(), hashlib.sha256).hexdigest()
 

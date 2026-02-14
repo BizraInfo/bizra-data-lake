@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Germination — Distributed Consciousness</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; }
+  #info {
+    position: fixed; bottom: 20px; left: 20px;
+    color: rgba(200, 180, 140, 0.6); font-size: 11px;
+    pointer-events: none; z-index: 10; line-height: 1.6;
+  }
+  #title {
+    position: fixed; top: 20px; left: 20px;
+    color: rgba(200, 180, 140, 0.4); font-size: 13px;
+    pointer-events: none; z-index: 10; letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  #philosophy {
+    position: fixed; top: 20px; right: 20px;
+    color: rgba(200, 180, 140, 0.25); font-size: 10px;
+    pointer-events: none; z-index: 10; max-width: 280px;
+    text-align: right; line-height: 1.5; font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div id="title">Infinite Germination</div>
+<div id="philosophy">From one seed, infinite consciousness emerges.<br>بذرة — Every human is a node. Every node is a seed.</div>
+<div id="info">
+  <span id="nodeCount">0</span> nodes &middot;
+  <span id="connCount">0</span> connections &middot;
+  <span id="rippleCount">0</span> ripples &middot;
+  <span id="fps">60</span> fps
+</div>
+<canvas id="canvas"></canvas>
+
+<script>
+// ============================================================
+// INFINITE GERMINATION
+// An Algorithmic Philosophy of Distributed Consciousness
+// BIZRA Node0 — Genesis Visualization
+// ============================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ---- Constants ----
+const PHI = (1 + Math.sqrt(5)) / 2;          // Golden ratio
+const TAU = Math.PI * 2;
+const GOLDEN_ANGLE = TAU / (PHI * PHI);       // ~137.5°
+const MAX_NODES = 512;
+const GERMINATION_INTERVAL = 800;             // ms between new nodes
+const CONNECTION_RADIUS = 180;
+const RIPPLE_SPEED = 1.2;
+const RIPPLE_LIFETIME = 3000;
+const RESOURCE_COUNT = 200;
+const PERLIN_SCALE = 0.003;
+
+// ---- Perlin Noise (2D, multi-octave) ----
+class PerlinNoise {
+  constructor() {
+    this.perm = new Uint8Array(512);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255];
+    this.grad = [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+  }
+
+  _dot(gi, x, y) { const g = this.grad[gi % 8]; return g[0]*x + g[1]*y; }
+  _fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+  _lerp(a, b, t) { return a + t * (b - a); }
+
+  noise(x, y) {
+    const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255;
+    const xf = x - Math.floor(x), yf = y - Math.floor(y);
+    const u = this._fade(xf), v = this._fade(yf);
+    const p = this.perm;
+    const aa = p[p[xi] + yi], ab = p[p[xi] + yi + 1];
+    const ba = p[p[xi + 1] + yi], bb = p[p[xi + 1] + yi + 1];
+    return this._lerp(
+      this._lerp(this._dot(aa, xf, yf), this._dot(ba, xf - 1, yf), u),
+      this._lerp(this._dot(ab, xf, yf - 1), this._dot(bb, xf - 1, yf - 1), u),
+      v
+    );
+  }
+
+  octave(x, y, octaves = 4, persistence = 0.5) {
+    let total = 0, freq = 1, amp = 1, maxVal = 0;
+    for (let i = 0; i < octaves; i++) {
+      total += this.noise(x * freq, y * freq) * amp;
+      maxVal += amp;
+      amp *= persistence;
+      freq *= 2;
+    }
+    return total / maxVal;
+  }
+}
+
+const perlin = new PerlinNoise();
+
+// ---- Color Engine (perceptually uniform transitions) ----
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+// Maturity spectrum: amber(0) → coral(0.3) → teal(0.7) → white(1.0)
+function maturityColor(t, alpha = 1) {
+  t = Math.max(0, Math.min(1, t));
+  let h, s, l;
+  if (t < 0.3) {
+    const p = t / 0.3;
+    h = 35 - p * 25;     // 35° amber → 10° coral
+    s = 85 + p * 5;
+    l = 55 + p * 5;
+  } else if (t < 0.7) {
+    const p = (t - 0.3) / 0.4;
+    h = 10 + p * 170;    // 10° coral → 180° teal
+    s = 90 - p * 30;
+    l = 60 - p * 10;
+  } else {
+    const p = (t - 0.7) / 0.3;
+    h = 180 + p * 20;    // 180° teal → 200° light
+    s = 60 - p * 55;
+    l = 50 + p * 40;
+  }
+  const [r, g, b] = hslToRgb(h, s, l);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ---- Node System ----
+class Node {
+  constructor(x, y, parent = null, generation = 0) {
+    this.x = x;
+    this.y = y;
+    this.parent = parent;
+    this.generation = generation;
+    this.born = performance.now();
+    this.maturity = 0;            // 0..1
+    this.connections = [];
+    this.radius = 3 + Math.random() * 2;
+    this.pulsePhase = Math.random() * TAU;
+    this.contribution = 0.1 + Math.random() * 0.9;
+    this.vx = 0;
+    this.vy = 0;
+  }
+
+  update(dt, time) {
+    const age = (time - this.born) / 1000;
+    this.maturity = Math.min(1, age / 20);  // 20s to full maturity
+
+    // Gentle drift from Perlin field
+    const noiseAngle = perlin.octave(
+      this.x * PERLIN_SCALE + time * 0.00005,
+      this.y * PERLIN_SCALE,
+      3, 0.5
+    ) * TAU;
+    this.vx += Math.cos(noiseAngle) * 0.02;
+    this.vy += Math.sin(noiseAngle) * 0.02;
+    this.vx *= 0.98;
+    this.vy *= 0.98;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // Soft boundary
+    const margin = 50;
+    if (this.x < margin) this.vx += 0.1;
+    if (this.x > W - margin) this.vx -= 0.1;
+    if (this.y < margin) this.vy += 0.1;
+    if (this.y > H - margin) this.vy -= 0.1;
+  }
+
+  draw(ctx, time) {
+    const pulse = Math.sin(time * 0.002 + this.pulsePhase) * 0.3 + 0.7;
+    const r = this.radius * (1 + this.maturity * 0.5) * pulse;
+
+    // Outer glow
+    const glowR = r * 4;
+    const grad = ctx.createRadialGradient(this.x, this.y, r * 0.5, this.x, this.y, glowR);
+    grad.addColorStop(0, maturityColor(this.maturity, 0.3 * pulse));
+    grad.addColorStop(0.5, maturityColor(this.maturity, 0.08));
+    grad.addColorStop(1, maturityColor(this.maturity, 0));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, glowR, 0, TAU);
+    ctx.fill();
+
+    // Core
+    ctx.fillStyle = maturityColor(this.maturity, 0.8 * pulse);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, r, 0, TAU);
+    ctx.fill();
+
+    // Bright center
+    ctx.fillStyle = maturityColor(Math.min(1, this.maturity + 0.3), 0.9);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, r * 0.3, 0, TAU);
+    ctx.fill();
+  }
+}
+
+// ---- Consciousness Ripple ----
+class Ripple {
+  constructor(x, y, time) {
+    this.x = x;
+    this.y = y;
+    this.born = time;
+    this.maxRadius = 120 + Math.random() * 80;
+    this.frequency = 2 + Math.random() * 2;
+  }
+
+  isAlive(time) { return (time - this.born) < RIPPLE_LIFETIME; }
+
+  draw(ctx, time) {
+    const age = (time - this.born) / RIPPLE_LIFETIME;
+    const radius = age * this.maxRadius;
+    const decay = 1 - age;
+
+    // Multiple concentric rings with sinusoidal harmonics
+    for (let i = 0; i < 4; i++) {
+      const ringRadius = radius * (1 - i * 0.15);
+      if (ringRadius <= 0) continue;
+      const harmonic = Math.sin(age * this.frequency * TAU + i * 1.2);
+      const alpha = decay * decay * 0.15 * Math.abs(harmonic);
+
+      ctx.strokeStyle = maturityColor(0.5 + i * 0.1, alpha);
+      ctx.lineWidth = 1.5 - i * 0.3;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, ringRadius, 0, TAU);
+      ctx.stroke();
+    }
+  }
+}
+
+// ---- Resource Flow Particle ----
+class ResourceParticle {
+  constructor() {
+    this.reset();
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+  }
+
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.life = 1;
+    this.speed = 0.5 + Math.random() * 1.5;
+    this.trail = [];
+    this.maxTrail = 12 + Math.floor(Math.random() * 8);
+  }
+
+  update(dt, time, nodes) {
+    // Vector field from node gravity + Perlin turbulence
+    let fx = 0, fy = 0;
+
+    for (const node of nodes) {
+      const dx = node.x - this.x;
+      const dy = node.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+      const force = node.contribution / (dist * 0.1);
+      if (dist < 300) {
+        fx += (dx / dist) * force * 0.3;
+        fy += (dy / dist) * force * 0.3;
+      }
+    }
+
+    // Perlin turbulence
+    const noiseVal = perlin.octave(
+      this.x * PERLIN_SCALE * 2 + time * 0.0001,
+      this.y * PERLIN_SCALE * 2,
+      4, 0.6
+    );
+    const angle = noiseVal * TAU * 2;
+    fx += Math.cos(angle) * 0.8;
+    fy += Math.sin(angle) * 0.8;
+
+    // Normalize and apply
+    const mag = Math.sqrt(fx * fx + fy * fy) + 0.001;
+    this.x += (fx / mag) * this.speed * dt;
+    this.y += (fy / mag) * this.speed * dt;
+
+    // Trail
+    this.trail.push({ x: this.x, y: this.y });
+    if (this.trail.length > this.maxTrail) this.trail.shift();
+
+    this.life -= 0.0005 * dt;
+
+    // Out of bounds or dead
+    if (this.x < -20 || this.x > W + 20 || this.y < -20 || this.y > H + 20 || this.life <= 0) {
+      this.reset();
+    }
+  }
+
+  draw(ctx) {
+    if (this.trail.length < 2) return;
+    for (let i = 1; i < this.trail.length; i++) {
+      const t = i / this.trail.length;
+      const alpha = t * 0.25 * this.life;
+      ctx.strokeStyle = maturityColor(0.4 + t * 0.3, alpha);
+      ctx.lineWidth = t * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+      ctx.lineTo(this.trail[i].x, this.trail[i].y);
+      ctx.stroke();
+    }
+  }
+}
+
+// ---- Connection ----
+function drawConnection(ctx, a, b, time) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const strength = 1 - dist / CONNECTION_RADIUS;
+  if (strength <= 0) return;
+
+  const pulse = Math.sin(time * 0.001 + a.pulsePhase + b.pulsePhase) * 0.15 + 0.85;
+  const alpha = strength * 0.2 * pulse;
+
+  const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+  grad.addColorStop(0, maturityColor(a.maturity, alpha));
+  grad.addColorStop(1, maturityColor(b.maturity, alpha));
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = strength * 1.5;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+}
+
+// ---- World State ----
+const nodes = [];
+const ripples = [];
+const resources = [];
+let lastGermination = 0;
+let frameCount = 0;
+let lastFpsTime = 0;
+let currentFps = 60;
+
+// Initialize resource particles
+for (let i = 0; i < RESOURCE_COUNT; i++) {
+  resources.push(new ResourceParticle());
+}
+
+// Seed the genesis node
+nodes.push(new Node(W / 2, H / 2, null, 0));
+ripples.push(new Ripple(W / 2, H / 2, performance.now()));
+
+// ---- Germination Logic ----
+function germinate(time) {
+  if (nodes.length >= MAX_NODES) return;
+  if (time - lastGermination < GERMINATION_INTERVAL) return;
+  lastGermination = time;
+
+  // Pick a parent — prefer mature nodes
+  let parent = null;
+  let bestScore = -1;
+  for (const n of nodes) {
+    const score = n.maturity * (0.5 + Math.random());
+    if (score > bestScore) {
+      bestScore = score;
+      parent = n;
+    }
+  }
+  if (!parent) return;
+
+  // Golden-ratio angle branching
+  const angle = GOLDEN_ANGLE * nodes.length + (Math.random() - 0.5) * 0.3;
+  const dist = 60 + Math.random() * 80;
+  const nx = parent.x + Math.cos(angle) * dist;
+  const ny = parent.y + Math.sin(angle) * dist;
+
+  // Clamp to canvas
+  const x = Math.max(30, Math.min(W - 30, nx));
+  const y = Math.max(30, Math.min(H - 30, ny));
+
+  const child = new Node(x, y, parent, parent.generation + 1);
+  nodes.push(child);
+
+  // Consciousness ripple at birth point
+  ripples.push(new Ripple(x, y, time));
+}
+
+// ---- Connection Discovery ----
+function updateConnections() {
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].connections = [];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[j].x - nodes[i].x;
+      const dy = nodes[j].y - nodes[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < CONNECTION_RADIUS) {
+        nodes[i].connections.push(j);
+      }
+    }
+  }
+}
+
+// ---- Breathing Background ----
+function drawBackground(ctx, time) {
+  // Deep indigo that pulses with collective heartbeat
+  const density = nodes.length / MAX_NODES;
+  const breathe = Math.sin(time * 0.0005) * 0.02 + Math.sin(time * 0.0013) * 0.01;
+  const baseLum = 0.04 + breathe + density * 0.02;
+
+  const r = Math.round(10 + baseLum * 30);
+  const g = Math.round(10 + baseLum * 20);
+  const b = Math.round(26 + baseLum * 50);
+
+  // Translucent overlay (accumulates traces)
+  ctx.fillStyle = `rgba(${r},${g},${b},0.08)`;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ---- Interference Pattern Overlay ----
+function drawInterference(ctx, time) {
+  const activeRipples = ripples.filter(r => r.isAlive(time));
+  if (activeRipples.length < 2) return;
+
+  // Sample interference at sparse grid points for performance
+  const step = 40;
+  for (let x = 0; x < W; x += step) {
+    for (let y = 0; y < H; y += step) {
+      let wave = 0;
+      for (const rip of activeRipples) {
+        const dx = x - rip.x, dy = y - rip.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const age = (time - rip.born) / RIPPLE_LIFETIME;
+        const ripRadius = age * rip.maxRadius;
+        const diff = Math.abs(dist - ripRadius);
+        if (diff < 30) {
+          const decay = (1 - age);
+          wave += Math.sin(dist * 0.1 - time * 0.003) * decay * 0.5;
+        }
+      }
+      if (Math.abs(wave) > 0.3) {
+        const alpha = Math.min(0.06, Math.abs(wave) * 0.04);
+        ctx.fillStyle = wave > 0
+          ? `rgba(140,200,220,${alpha})`
+          : `rgba(200,140,100,${alpha})`;
+        ctx.fillRect(x - step/2, y - step/2, step, step);
+      }
+    }
+  }
+}
+
+// ---- Main Loop ----
+let lastTime = performance.now();
+
+function frame(time) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(50, time - lastTime) / 16.67;  // normalize to ~60fps
+  lastTime = time;
+
+  // FPS counter
+  frameCount++;
+  if (time - lastFpsTime > 1000) {
+    currentFps = frameCount;
+    frameCount = 0;
+    lastFpsTime = time;
+  }
+
+  // ---- UPDATE ----
+  germinate(time);
+
+  for (const node of nodes) node.update(dt, time);
+  for (const res of resources) res.update(dt, time, nodes);
+
+  // Prune dead ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    if (!ripples[i].isAlive(time)) ripples.splice(i, 1);
+  }
+
+  // Update connections every 30 frames
+  if (frameCount % 30 === 0 || nodes.length < 10) updateConnections();
+
+  // ---- DRAW ----
+
+  // Breathing background (translucent overlay for trace accumulation)
+  drawBackground(ctx, time);
+
+  // Interference patterns
+  drawInterference(ctx, time);
+
+  // Resource flow particles
+  for (const res of resources) res.draw(ctx);
+
+  // Connections (gradient threads)
+  for (const node of nodes) {
+    for (const j of node.connections) {
+      drawConnection(ctx, node, nodes[j], time);
+    }
+  }
+
+  // Consciousness ripples
+  for (const ripple of ripples) ripple.draw(ctx, time);
+
+  // Nodes
+  for (const node of nodes) node.draw(ctx, time);
+
+  // ---- HUD ----
+  let totalConn = 0;
+  for (const n of nodes) totalConn += n.connections.length;
+
+  document.getElementById('nodeCount').textContent = nodes.length;
+  document.getElementById('connCount').textContent = totalConn;
+  document.getElementById('rippleCount').textContent = ripples.length;
+  document.getElementById('fps').textContent = currentFps;
+}
+
+// Initial full clear
+ctx.fillStyle = '#0a0a1a';
+ctx.fillRect(0, 0, W, H);
+
+requestAnimationFrame(frame);
+
+// ---- Click to seed new genesis point ----
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const node = new Node(x, y, null, 0);
+  node.contribution = 1;
+  nodes.push(node);
+  ripples.push(new Ripple(x, y, performance.now()));
+  ripples.push(new Ripple(x, y, performance.now() + 200));
+  ripples.push(new Ripple(x, y, performance.now() + 400));
+});
+</script>
+</body>
+</html>

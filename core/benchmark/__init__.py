@@ -29,62 +29,62 @@ Giants Protocol:
 إحسان — Excellence in all things.
 """
 
-from .clear_framework import (
-    CLEARFramework,
-    CLEARMetrics,
-    CLEARDimension,
-    MetricWeight,
-    AgenticBenchmarkChecklist,
-    EvaluationContext,
-)
 from .ablation_engine import (
     AblationEngine,
-    AblationStudy,
     AblationResult,
-    ComponentContribution,
+    AblationStudy,
     AblationType,
     Component,
     ComponentCategory,
+    ComponentContribution,
 )
-from .moe_router import (
-    MoERouter,
-    ExpertTier,
-    RoutingDecision,
-    FederatedDispatch,
-    SequentialAttention,
-    QueryComplexity,
-)
-from .leaderboard import (
-    LeaderboardManager,
-    Submission,
-    SubmissionResult,
-    SubmissionConfig,
-    SubmissionStatus,
-    Benchmark,
-    AntiGamingValidator,
+from .clear_framework import (
+    AgenticBenchmarkChecklist,
+    CLEARDimension,
+    CLEARFramework,
+    CLEARMetrics,
+    EvaluationContext,
+    MetricWeight,
 )
 from .dominance_loop import (
     BenchmarkDominanceLoop,
+    CycleOutcome,
+    CycleResult,
+    DominanceResult,
     LoopPhase,
     LoopState,
-    CycleResult,
-    CycleOutcome,
-    DominanceResult,
 )
 from .guardrails import (
+    CostCapEnforcer,
+    GuardrailResult,
+    GuardrailStatus,
     GuardrailSuite,
     GuardrailType,
-    GuardrailStatus,
-    GuardrailResult,
     LeakageScanner,
-    PromptInjectionGuard,
     NullModelProbe,
+    PromptInjectionGuard,
+    ProvenanceLogger,
     RegressionGate,
+    RollbackManager,
     SeedSweepValidator,
     ToolSandbox,
-    ProvenanceLogger,
-    CostCapEnforcer,
-    RollbackManager,
+)
+from .leaderboard import (
+    AntiGamingValidator,
+    Benchmark,
+    LeaderboardManager,
+    Submission,
+    SubmissionConfig,
+    SubmissionResult,
+    SubmissionStatus,
+)
+from .moe_router import (
+    ExpertTier,
+    FederatedDispatch,
+    MoERouter,
+    QueryComplexity,
+    RoutingDecision,
+    SequentialAttention,
 )
 
 __all__ = [
@@ -155,7 +155,15 @@ __giants__ = [
 
 # 7-3-6-9 DNA summary
 DNA_739 = {
-    "agents": ["Orchestrator", "Evaluator", "Ablator", "Architect", "Submitter", "Analyst", "Guardian"],
+    "agents": [
+        "Orchestrator",
+        "Evaluator",
+        "Ablator",
+        "Architect",
+        "Submitter",
+        "Analyst",
+        "Guardian",
+    ],
     "gates": ["Reproducibility", "Integrity", "Budget"],
     "stages": ["Setup", "Run", "Validate", "Ablate", "Patch", "Submit"],
     "guardrails": [

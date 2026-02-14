@@ -1,0 +1,12 @@
+config:
+  default: true
+  MD013: false # Line length is intentionally flexible in architecture tables/links.
+  MD033: false # Inline HTML is used in README badge/header blocks.
+  MD041: false # README starts with an HTML container.
+  MD036: false # Legacy emphasis heading style in README.
+  MD040: false # Existing fenced blocks without language in legacy sections.
+  MD060: false # Existing compact table style is accepted in this repository.
+  MD022: false # Legacy docs may omit strict heading spacing.
+  MD031: false # Legacy docs may omit strict fence spacing.
+  MD032: false # Legacy docs may omit strict list spacing.
+  MD012: false # Legacy docs may contain extra blank lines.

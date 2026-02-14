@@ -12,7 +12,6 @@ Standing on Giants: Event Sourcing + Snapshot Pattern + Write-Ahead Logging
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import sqlite3
@@ -45,9 +44,11 @@ class Checkpoint:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def compute_checksum(self) -> str:
-        """Compute SHA-256 checksum of state."""
+        """Compute BLAKE3 checksum of state (SEC-001)."""
+        from core.proof_engine.canonical import hex_digest
+
         state_str = json.dumps(self.state, sort_keys=True, default=str)
-        return hashlib.sha256(state_str.encode()).hexdigest()[:16]
+        return hex_digest(state_str.encode())[:16]
 
 
 class SQLiteCheckpointStore:
@@ -309,14 +310,15 @@ class StateCheckpointer:
             "metadata": cp.metadata,
         }
 
-        # Write atomically (write to temp, then rename)
+        # Write atomically (write to temp, then replace)
         loop = asyncio.get_event_loop()
 
         def write_file():
             temp_file = filename.with_suffix(".tmp")
             with open(temp_file, "w") as f:
                 json.dump(data, f, indent=2, default=str)
-            temp_file.rename(filename)
+            # replace() is atomic and overwrites on Windows (rename() fails)
+            temp_file.replace(filename)
 
         await loop.run_in_executor(None, write_file)
 

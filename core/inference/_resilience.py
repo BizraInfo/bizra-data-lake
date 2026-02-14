@@ -24,7 +24,7 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from ._types import (
     CircuitBreakerConfig,
@@ -32,7 +32,6 @@ from ._types import (
     RateLimiterConfig,
     RateLimiterMetrics,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CIRCUIT BREAKER (NYGARD 2007 / NETFLIX HYSTRIX)
@@ -407,8 +406,8 @@ class RateLimiter:
         self.name = name
 
         # Token bucket state (per-client if per_client=True)
-        self._tokens: Dict[str, float] = {}
-        self._last_refill: Dict[str, float] = {}
+        self._tokens: dict[str, float] = {}
+        self._last_refill: dict[str, float] = {}
 
         # Concurrency control
         self._lock = asyncio.Lock()
@@ -582,7 +581,7 @@ class RateLimiter:
 
     async def get_client_metrics(
         self, client_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get metrics for a specific client.
 
@@ -590,7 +589,7 @@ class RateLimiter:
             client_id: Client identifier
 
         Returns:
-            Dict with client-specific token state
+            dict with client-specific token state
         """
         effective_client = self._get_client_id(client_id)
 

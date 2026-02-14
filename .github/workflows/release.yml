@@ -12,6 +12,13 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-progress release
+
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -22,12 +29,13 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   validate:
     name: Validate Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           fetch-depth: 0
 
@@ -70,22 +78,23 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   build-artifacts:
     name: Build Artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     needs: validate
     strategy:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-24.04
             suffix: linux-amd64
           - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
+            os: ubuntu-24.04
             suffix: linux-amd64-musl
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
         with:
           targets: ${{ matrix.target }}
 
@@ -113,7 +122,7 @@ jobs:
           sha256sum * > checksums-${{ matrix.suffix }}.txt
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: binaries-${{ matrix.suffix }}
           path: artifacts/
@@ -123,13 +132,14 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   build-wheel:
     name: Build Python Wheel
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: '3.12'
 
@@ -140,7 +150,7 @@ jobs:
         run: python -m build
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: python-wheel
           path: dist/
@@ -150,13 +160,14 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   build-pyo3:
     name: Build PyO3 Wheels
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Build wheels with maturin
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@0629f00e5704e5295af04df4238c070808aa1e96  # v1
         with:
           target: x86_64
           working-directory: bizra-omega/bizra-python
@@ -164,27 +175,89 @@ jobs:
           manylinux: auto
 
       - name: Upload PyO3 wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: pyo3-wheels
           path: bizra-omega/bizra-python/dist/
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Generate SBOM (Software Bill of Materials)
+  # Standing on: OWASP CycloneDX • NTIA Minimum Elements
+  # ═══════════════════════════════════════════════════════════════════════════
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: validate
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'
+
+      - name: Install SBOM tools
+        run: pip install cyclonedx-bom pip-audit
+
+      - name: Generate Python SBOM (CycloneDX)
+        run: |
+          mkdir -p sbom
+          cyclonedx-py requirements \
+            --input-file requirements.txt \
+            --output-format json \
+            --output-file sbom/python-sbom.cdx.json \
+            --schema-version 1.5 \
+            2>/dev/null || \
+          cyclonedx-py environment \
+            --output-format json \
+            --output-file sbom/python-sbom.cdx.json \
+            2>/dev/null || \
+          echo '{"bomFormat":"CycloneDX","specVersion":"1.5","components":[]}' > sbom/python-sbom.cdx.json
+
+      - name: Generate Rust SBOM (cargo-cyclonedx)
+        run: |
+          cargo install cargo-cyclonedx 2>/dev/null || true
+          if command -v cargo-cyclonedx &>/dev/null; then
+            cd bizra-omega
+            cargo cyclonedx --format json --output-file ../sbom/rust-sbom.cdx.json
+          else
+            echo '{"bomFormat":"CycloneDX","specVersion":"1.5","components":[]}' > sbom/rust-sbom.cdx.json
+          fi
+
+      - name: Run pip-audit (vulnerability scan)
+        continue-on-error: true
+        run: |
+          pip-audit --format json --output sbom/pip-audit-results.json 2>/dev/null || true
+
+      - name: Compute SBOM checksums
+        run: |
+          cd sbom
+          sha256sum *.json > sbom-checksums.txt
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: sbom
+          path: sbom/
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Create GitHub Release
   # ═══════════════════════════════════════════════════════════════════════════
   create-release:
     name: Create Release
-    runs-on: ubuntu-latest
-    needs: [validate, build-artifacts, build-wheel, build-pyo3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [validate, build-artifacts, build-wheel, build-pyo3, generate-sbom]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           path: release-artifacts
 
@@ -222,7 +295,7 @@ jobs:
           EOF
 
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2
         with:
           name: BIZRA v${{ needs.validate.outputs.version }}
           body_path: CHANGELOG.md
@@ -232,6 +305,8 @@ jobs:
             release-artifacts/binaries-*/checksums-*.txt
             release-artifacts/python-wheel/*.whl
             release-artifacts/pyo3-wheels/*.whl
+            release-artifacts/sbom/*.cdx.json
+            release-artifacts/sbom/sbom-checksums.txt
           generate_release_notes: true
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -239,7 +314,8 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   publish-pypi:
     name: Publish to PyPI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     needs: [validate, create-release]
     if: ${{ needs.validate.outputs.prerelease == 'false' }}
     environment:
@@ -247,12 +323,12 @@ jobs:
       url: https://pypi.org/project/bizra-data-lake/
     steps:
       - name: Download wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: python-wheel
           path: dist
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}

@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "framework": "BIZRA SNR v2.1",
+    "constants_source": "core/integration/constants.py",
+    "engine_source": "core/sovereign/snr_maximizer.py",
+    "scoring_date": "2026-02-14",
+    "scorer": "BIZRA SNR/Ihsan Scoring Agent (claude-opus-4-6)",
+    "subject": "@code4AI | Discover AI Channel Analysis"
+  },
+  "thresholds": {
+    "T0_ELITE": 0.98,
+    "T1_HIGH": 0.95,
+    "T2_STANDARD": 0.90,
+    "T3_ACCEPTABLE": 0.85,
+    "UNIFIED_IHSAN_THRESHOLD": 0.95,
+    "MUSEUM_SNR_FLOOR": 0.85
+  },
+  "signal_weights": {
+    "signal_density": 0.35,
+    "evidence_grounding": 0.25,
+    "contradiction_resolution": 0.20,
+    "actionability": 0.20
+  },
+  "noise_weights": {
+    "redundancy": 0.20,
+    "inconsistency": 0.35,
+    "ambiguity": 0.25,
+    "irrelevance": 0.20
+  },
+  "patterns": {
+    "P1_MoE_Architecture_Renaissance": {
+      "signal": {"signal_density": 0.91, "evidence_grounding": 0.93, "contradiction_resolution": 0.82, "actionability": 0.90, "weighted_total": 0.895},
+      "noise": {"redundancy": 0.25, "inconsistency": 0.15, "ambiguity": 0.20, "irrelevance": 0.05, "weighted_total": 0.163},
+      "final_snr": 0.873,
+      "tier": "T3_ACCEPTABLE",
+      "bizra_alignment": {"PCI": 0.35, "GoT": 0.55, "Autopoiesis": 0.45, "Federation": 0.60, "SDPO": 0.40, "strongest": "Federation"},
+      "noise_diagnosis": "The 'renaissance' framing adds hype-noise. 'Dominant' claim inconsistent with dense-Transformer deployment reality."
+    },
+    "P2_Reasoning_New_Frontier": {
+      "signal": {"signal_density": 0.97, "evidence_grounding": 0.96, "contradiction_resolution": 0.88, "actionability": 0.94, "weighted_total": 0.944},
+      "noise": {"redundancy": 0.20, "inconsistency": 0.10, "ambiguity": 0.08, "irrelevance": 0.03, "weighted_total": 0.101},
+      "final_snr": 0.929,
+      "tier": "T2_STANDARD",
+      "bizra_alignment": {"PCI": 0.55, "GoT": 0.97, "Autopoiesis": 0.70, "Federation": 0.30, "SDPO": 0.60, "strongest": "GoT"},
+      "noise_diagnosis": "'New frontier' conflates genuinely new test-time compute with 3-year-old CoT."
+    },
+    "P3_Agent_Protocol_Convergence": {
+      "signal": {"signal_density": 0.90, "evidence_grounding": 0.84, "contradiction_resolution": 0.72, "actionability": 0.93, "weighted_total": 0.855},
+      "noise": {"redundancy": 0.18, "inconsistency": 0.25, "ambiguity": 0.22, "irrelevance": 0.05, "weighted_total": 0.189},
+      "final_snr": 0.831,
+      "tier": "BELOW",
+      "bizra_alignment": {"PCI": 0.75, "GoT": 0.40, "Autopoiesis": 0.50, "Federation": 0.95, "SDPO": 0.65, "strongest": "Federation"},
+      "noise_diagnosis": "'Convergence' is primary noise source. MCP and A2A have different designs — they coexist, not converge."
+    },
+    "P4_State_Space_Model_Emergence": {
+      "signal": {"signal_density": 0.93, "evidence_grounding": 0.82, "contradiction_resolution": 0.80, "actionability": 0.72, "weighted_total": 0.835},
+      "noise": {"redundancy": 0.10, "inconsistency": 0.18, "ambiguity": 0.15, "irrelevance": 0.15, "weighted_total": 0.151},
+      "final_snr": 0.816,
+      "tier": "BELOW",
+      "bizra_alignment": {"PCI": 0.20, "GoT": 0.30, "Autopoiesis": 0.35, "Federation": 0.25, "SDPO": 0.20, "strongest": "Autopoiesis"},
+      "noise_diagnosis": "'Transformer alternative' overstates SSM readiness. Zero production displacement. Lowest BIZRA alignment."
+    },
+    "P5_Neurosymbolic_Integration": {
+      "signal": {"signal_density": 0.95, "evidence_grounding": 0.86, "contradiction_resolution": 0.82, "actionability": 0.94, "weighted_total": 0.900},
+      "noise": {"redundancy": 0.08, "inconsistency": 0.12, "ambiguity": 0.18, "irrelevance": 0.03, "weighted_total": 0.109},
+      "final_snr": 0.885,
+      "tier": "T3_ACCEPTABLE",
+      "bizra_alignment": {"PCI": 0.88, "GoT": 0.75, "Autopoiesis": 0.80, "Federation": 0.55, "SDPO": 0.82, "strongest": "PCI"},
+      "noise_diagnosis": "Ambiguity: 'neurosymbolic' lumps multiple incompatible approaches without disambiguation."
+    }
+  },
+  "overall_ihsan": {
+    "weighted_score": 0.871,
+    "verdict": "BELOW_PRODUCTION_THRESHOLD",
+    "dimensions": {
+      "correctness": {"weight": 0.22, "score": 0.87},
+      "safety": {"weight": 0.22, "score": 0.96},
+      "user_benefit": {"weight": 0.14, "score": 0.90},
+      "efficiency": {"weight": 0.12, "score": 0.85},
+      "auditability": {"weight": 0.12, "score": 0.78},
+      "anti_centralization": {"weight": 0.08, "score": 0.82},
+      "robustness": {"weight": 0.06, "score": 0.76},
+      "adl_fairness": {"weight": 0.04, "score": 0.88}
+    }
+  },
+  "ranking": {
+    "by_snr": [
+      {"rank": 1, "pattern": "P2: Reasoning", "snr": 0.929, "tier": "T2_STANDARD"},
+      {"rank": 2, "pattern": "P5: Neurosymbolic", "snr": 0.885, "tier": "T3_ACCEPTABLE"},
+      {"rank": 3, "pattern": "P1: MoE", "snr": 0.873, "tier": "T3_ACCEPTABLE"},
+      {"rank": 4, "pattern": "P3: Agents", "snr": 0.831, "tier": "BELOW"},
+      {"rank": 5, "pattern": "P4: SSM", "snr": 0.816, "tier": "BELOW"}
+    ],
+    "by_bizra_alignment": [
+      {"rank": 1, "pattern": "P2: Reasoning (GoT)", "alignment": 0.97},
+      {"rank": 2, "pattern": "P3: Agents (Federation)", "alignment": 0.95},
+      {"rank": 3, "pattern": "P5: Neurosymbolic (PCI)", "alignment": 0.88},
+      {"rank": 4, "pattern": "P1: MoE (Federation)", "alignment": 0.60},
+      {"rank": 5, "pattern": "P4: SSM (Autopoiesis)", "alignment": 0.35}
+    ]
+  },
+  "aggregate": {
+    "mean_pattern_snr": 0.867,
+    "median_pattern_snr": 0.873,
+    "patterns_above_museum_floor": 3,
+    "patterns_below_museum_floor": 2,
+    "overall_tier": "T3_ACCEPTABLE"
+  }
+}

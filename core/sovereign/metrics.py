@@ -31,10 +31,9 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Deque, Dict, List, Optional
+from typing import Any, Callable, Deque, Optional
 
 logger = logging.getLogger("sovereign.metrics")
-
 
 # =============================================================================
 # METRIC TYPES
@@ -48,7 +47,7 @@ class MetricPoint:
     name: str
     value: float
     timestamp: datetime = field(default_factory=datetime.now)
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
     unit: str = ""
 
     def to_prometheus(self) -> str:
@@ -68,7 +67,7 @@ class MetricSeries:
     points: Deque[MetricPoint] = field(default_factory=lambda: deque(maxlen=1000))
     unit: str = ""
 
-    def add(self, value: float, labels: Optional[Dict[str, str]] = None) -> None:
+    def add(self, value: float, labels: Optional[dict[str, str]] = None) -> None:
         """Add a data point."""
         self.points.append(
             MetricPoint(
@@ -166,7 +165,7 @@ class SystemSnapshot:
         ]
         return sum(factors) / len(factors)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export as dictionary."""
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -226,7 +225,7 @@ class MetricsCollector:
         self.retention_seconds = retention_seconds
 
         # Metric series
-        self.series: Dict[str, MetricSeries] = {
+        self.series: dict[str, MetricSeries] = {
             "cpu_percent": MetricSeries("cpu_percent", unit="%"),
             "memory_percent": MetricSeries("memory_percent", unit="%"),
             "gpu_percent": MetricSeries("gpu_percent", unit="%"),
@@ -244,10 +243,10 @@ class MetricsCollector:
         # State
         self._running = False
         self._task: Optional[asyncio.Task] = None
-        self._external_metrics: Dict[str, float] = {}
+        self._external_metrics: dict[str, float] = {}
 
         # Callbacks for external metric sources
-        self._collectors: List[Callable[[], Dict[str, float]]] = []
+        self._collectors: list[Callable[[], dict[str, float]]] = []
 
     async def start(self) -> None:
         """Start collecting metrics."""
@@ -266,7 +265,7 @@ class MetricsCollector:
                 pass
         logger.info("Metrics collector stopped")
 
-    def register_collector(self, collector: Callable[[], Dict[str, float]]) -> None:
+    def register_collector(self, collector: Callable[[], dict[str, float]]) -> None:
         """Register an external metrics collector."""
         self._collectors.append(collector)
 
@@ -428,7 +427,7 @@ class MetricsCollector:
 
         return "\n".join(lines)
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get collector status."""
         return {
             "running": self._running,
@@ -487,7 +486,7 @@ def create_autonomy_analyzer(collector: MetricsCollector):
     """
     from .autonomy import DecisionCandidate, DecisionType
 
-    async def analyzer(metrics) -> List:
+    async def analyzer(metrics) -> list:
         """Analyze metrics and generate decision candidates."""
         candidates = []
         snapshot = await collector.snapshot()

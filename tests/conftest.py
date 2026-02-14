@@ -67,3 +67,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_gpu: marks tests that require GPU"
     )
+    config.addinivalue_line(
+        "markers", "requires_real_data: marks tests that need real parquet/index data"
+    )
