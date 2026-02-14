@@ -4,11 +4,14 @@
 # Implements Graph-of-Thoughts reasoning with Ihsan quality constraints
 
 import json
+import warnings
 import numpy as np
 
-# Monkeypatch for libraries using deprecated np.object
-if not hasattr(np, "object"):
-    np.object = object
+# Monkeypatch for libraries using deprecated np.object (removed in NumPy 1.24)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
+    if not hasattr(np, "object"):
+        np.object = object  # type: ignore[attr-defined]
 import pandas as pd
 import logging
 from pathlib import Path
@@ -135,9 +138,26 @@ class SNREngine:
         """
         metrics = {}
 
+        # Handle empty context early
+        context_arr = np.asarray(context_embeddings)
+        if context_arr.ndim < 2 or context_arr.shape[0] == 0:
+            metrics["signal_strength"] = 0.0
+            metrics["relevant_count"] = 0
+            metrics["total_contexts"] = 0
+            metrics["redundancy"] = 0.0
+            metrics["information_density"] = 0.0
+            grounding = self._calculate_symbolic_grounding(
+                symbolic_facts, neural_results
+            )
+            metrics["symbolic_grounding"] = round(grounding, 4)
+            metrics["coverage_balance"] = 0.0
+            metrics["ihsan_achieved"] = False
+            metrics["ihsan_gap"] = round(IHSAN_CONSTRAINT, 4)
+            return 0.0, metrics
+
         # Normalize embeddings
         query_norm = self._normalize(query_embedding)
-        context_norm = self._normalize_batch(context_embeddings)
+        context_norm = self._normalize_batch(context_arr)
 
         # 1. Semantic Relevance (Cosine similarity distribution)
         similarities = np.dot(context_norm, query_norm)
@@ -204,7 +224,7 @@ class SNREngine:
         return v / (norms + self.epsilon)
 
     def _calculate_symbolic_grounding(
-        self, symbolic_facts: List[Dict], neural_results: List[Dict]
+        self, symbolic_facts: list, neural_results: list
     ) -> float:
         """Calculate how well neural results are grounded in symbolic facts."""
         if not neural_results:
@@ -212,12 +232,17 @@ class SNREngine:
         if not symbolic_facts:
             return 0.3  # Penalty for no grounding, but not zero
 
-        # Count neural results that have symbolic support
-        neural_doc_ids = set(r.get("doc_id", "") for r in neural_results)
-        symbolic_doc_ids = set(f.get("doc_id", "") for f in symbolic_facts)
+        # Extract doc_ids — handle both dict and string inputs
+        def _extract_id(item: object) -> str:
+            if isinstance(item, dict):
+                return item.get("doc_id", "")
+            return str(item)
+
+        neural_doc_ids = set(_extract_id(r) for r in neural_results)
+        symbolic_doc_ids = set(_extract_id(f) for f in symbolic_facts)
 
         grounded = len(neural_doc_ids.intersection(symbolic_doc_ids))
-        grounding_ratio = grounded / len(neural_doc_ids)
+        grounding_ratio = grounded / max(len(neural_doc_ids), 1)
 
         return grounding_ratio
 

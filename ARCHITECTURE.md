@@ -1,10 +1,10 @@
 # BIZRA Data Lake Architecture v2.0
-**Doc Status:** PARTIAL (core pipeline verified; federation networking aspirational — see AUDIT_REPORT.md)
+**Doc Status:** Data pipeline architecture. For the full sovereign runtime architecture, see [ARCHITECTURE_BLUEPRINT_v2.3.0.md](docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md).
 ## Comprehensive Technical Documentation
 
 **Document:** BIZRA-ARCH-002
-**Version:** 2.0.0
-**Updated:** 2026-01-22
+**Version:** 2.1.0
+**Updated:** 2026-02-14
 **Status:** Production
 
 ---
@@ -136,12 +136,12 @@ C:\BIZRA-DATA-LAKE\
 | Corpus Manager | `corpus_manager.py` | Document parsing |
 | Vector Engine | `vector_engine.py` | Embedding generation |
 | ARTE Engine | `arte_engine.py` | SNR calculation, GoT |
-| Hypergraph Engine | `hypergraph_engine.py` | Graph operations |
-| PAT Engine | `pat_engine.py` | Multi-agent coordination |
-| KEP Bridge | `kep_bridge.py` | Cross-domain synergies |
-| **WARP Bridge** | `warp_bridge.py` | **Multi-vector ColBERT retrieval** |
+| Hypergraph Engine | `tools/engines/hypergraph_engine.py` | Graph operations |
+| PAT Engine | `tools/pat_engine.py` | Multi-agent coordination |
+| KEP Bridge | `tools/bridges/kep_bridge.py` | Cross-domain synergies |
+| **WARP Bridge** | `tools/bridges/warp_bridge.py` | **Multi-vector ColBERT retrieval** |
 | Orchestrator | `bizra_orchestrator.py` | Unified query routing |
-| Nexus | `bizra_nexus.py` | Unified engine orchestration |
+| Nexus | `tools/bizra_nexus.py` | Unified engine orchestration |
 
 ### 2.3 Retrieval Engines
 
@@ -210,13 +210,13 @@ Components:
 - coverage_balance:     0.15  # Query coverage
 ```
 
-### 4.3 Ihsān Threshold
+### 4.3 Ihsan Threshold
 
-Excellence gate at SNR ≥ 0.99:
+Excellence gate. Production threshold is 0.95 (defined in `core/integration/constants.py`):
 
 ```python
-IHSAN_CONSTRAINT = 0.99
-ACCEPTABLE_THRESHOLD = 0.95
+IHSAN_CONSTRAINT = 0.95  # Production (UNIFIED_IHSAN_THRESHOLD)
+STRICT_THRESHOLD = 0.99  # Strict/consensus mode
 
 class IhsanGate:
     @classmethod
@@ -555,7 +555,7 @@ record_snr(overall=0.97, signal=0.95, density=0.92,
 ### 10.4 Resilience
 
 ```python
-from bizra_resilience import CircuitBreaker, retry, with_fallback
+from tools.engines.bizra_resilience import CircuitBreaker, retry, with_fallback
 
 breaker = CircuitBreaker("my_service")
 
@@ -598,6 +598,6 @@ unstructured>=0.10.0
 
 ---
 
-*BIZRA Data Lake Architecture v2.0*
-*Generated: 2026-01-22*
-*Ihsān Compliance Target: ≥0.99*
+*BIZRA Data Lake Architecture v2.1*
+*Updated: 2026-02-14*
+*Ihsan Compliance Target: >= 0.95 (production), >= 0.99 (strict)*

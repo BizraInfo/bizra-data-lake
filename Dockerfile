@@ -75,6 +75,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY --chown=bizra:bizra core/ core/
 COPY --chown=bizra:bizra pyproject.toml ./
 
+# Copy static data assets (Sci-Reasoning patterns for RDVE)
+COPY --chown=bizra:bizra data/sci_reasoning/ data/sci_reasoning/
+
 # Create data directories
 RUN mkdir -p 00_INTAKE 01_RAW 02_PROCESSED 03_INDEXED 04_GOLD 99_QUARANTINE \
     && chown -R bizra:bizra /app

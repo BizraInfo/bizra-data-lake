@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Tests](https://img.shields.io/badge/Tests-1952_passing-success?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-CI_Verified-success?style=for-the-badge)](#testing)
 
 <br>
 
@@ -69,10 +69,15 @@ BIZRA stands on the shoulders of giants: Shannon (information theory), Lamport (
 | Module | Purpose | Language |
 |--------|---------|----------|
 | `core/pci/` | Proof-Carrying Inference protocol (Ed25519 signatures, envelopes, gates) | Python |
+| `core/proof_engine/` | Receipt builder, Ed25519 signer, BLAKE3 evidence ledger | Python |
 | `core/federation/` | P2P federation (gossip, BFT consensus, secure transport) | Python |
 | `core/inference/` | Tiered inference gateway (edge/local/pool backends) | Python |
 | `core/sovereign/` | Sovereign runtime (Graph-of-Thoughts, treasury, autonomy) | Python |
-| `bizra-omega/` | High-performance core (13 Rust crates) | Rust |
+| `core/spearpoint/` | Autonomous research engine (15 Sci-Reasoning patterns, RDVE) | Python |
+| `core/bridges/` | Desktop Bridge (TCP 9742), Sci-Reasoning, Rust lifecycle | Python |
+| `core/skills/` | Skill router + registry (Smart Files, RDVE, 43 skills) | Python |
+| `core/token/` | Token ledger, minting, Ed25519-signed transactions | Python |
+| `bizra-omega/` | High-performance core (14 Rust crates) | Rust |
 | `bizra-omega/bizra-core/` | Constitution, identity, FATE gates, Islamic finance | Rust |
 | `bizra-omega/bizra-federation/` | Federation protocol with gossip and signed messages | Rust |
 | `bizra-omega/bizra-cli/` | Terminal UI with real-time dashboards | Rust |
@@ -149,6 +154,7 @@ pytest tests/ --cov=core --cov-report=term-missing
 | `@pytest.mark.integration` | Requires external services |
 | `@pytest.mark.requires_ollama` | Requires Ollama running |
 | `@pytest.mark.requires_gpu` | Requires CUDA GPU |
+| `@pytest.mark.requires_network` | Requires network access |
 
 ---
 
@@ -172,10 +178,16 @@ These thresholds are defined in [`core/integration/constants.py`](core/integrati
 
 | Document | Description |
 |----------|-------------|
+| [Documentation Portal](docs/README.md) | Canonical docs entrypoint (role-based reading paths) |
+| [Quick Start](docs/QUICK-START.md) | First-time setup and data ingestion |
+| [Operations Runbook](docs/OPERATIONS_RUNBOOK.md) | Startup, health checks, incident handling |
+| [Testing Guide](docs/TESTING.md) | Local gates, markers, coverage, CI alignment |
 | [Architecture Blueprint](docs/ARCHITECTURE_BLUEPRINT_v2.3.0.md) | Full system architecture |
+| [Desktop Bridge](docs/DESKTOP_BRIDGE.md) | AHK hotkey integration, JSON-RPC protocol |
+| [Spearpoint (RDVE)](docs/SPEARPOINT.md) | Autonomous research engine, 15 thinking patterns |
+| [DevOps Blueprint](docs/DEVOPS_BLUEPRINT.md) | CI/CD pipeline, K8s deployment, rollback |
 | [Constitution](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Immutable constitutional rules |
-| [Strategy Deck](docs/BIZRA_STRATEGY_DECK_2026.md) | Strategic vision and roadmap |
-| [Security Policy](SECURITY.md) | Vulnerability reporting |
+| [Security Policy](SECURITY.md) | Vulnerability reporting and security architecture |
 | [Contributing Guide](CONTRIBUTING.md) | How to contribute |
 
 ---
@@ -186,10 +198,16 @@ These thresholds are defined in [`core/integration/constants.py`](core/integrati
 bizra-data-lake/
 ├── core/                   # Python sovereign infrastructure
 │   ├── pci/                # Proof-Carrying Inference protocol
+│   ├── proof_engine/       # Receipt builder, Ed25519 signer, evidence ledger
 │   ├── federation/         # P2P federation layer
 │   ├── inference/          # Tiered inference gateway
 │   ├── sovereign/          # Sovereign runtime engine
-│   ├── integration/        # Cross-module integration
+│   ├── spearpoint/         # Autonomous research (RDVE, 15 patterns)
+│   ├── bridges/            # Desktop Bridge, Sci-Reasoning, Rust bridge
+│   ├── skills/             # Skill router + Smart File Management
+│   ├── token/              # Token ledger, minting, transactions
+│   ├── benchmark/          # CLEAR framework, dominance loop, ablation
+│   ├── integration/        # Cross-module constants and bridges
 │   └── iaas/               # Information-as-a-Service (SNR)
 ├── bizra-omega/            # Rust high-performance workspace
 │   ├── bizra-core/         # Constitution, identity, FATE
@@ -197,7 +215,7 @@ bizra-data-lake/
 │   ├── bizra-cli/          # Terminal UI dashboard
 │   ├── bizra-api/          # REST API server
 │   ├── bizra-inference/    # Inference backends
-│   └── 8 more crates...   # Telescript, proofspace, etc.
+│   └── 9 more crates...   # Telescript, proofspace, hunter, etc.
 ├── tests/                  # Comprehensive test suite
 ├── docs/                   # Architecture and specifications
 ├── deploy/                 # Docker and Kubernetes configs

@@ -7,6 +7,7 @@
 import asyncio
 import json
 import logging
+import sys
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -14,16 +15,70 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any, Tuple, Union
 import numpy as np
 
+# ---------------------------------------------------------------------------
+# Path setup: engines live in tools/ subdirectories, not on default sys.path.
+# Add them so bare module imports resolve correctly.
+# ---------------------------------------------------------------------------
+_ROOT = Path(__file__).resolve().parent
+for _subdir in ("tools/engines", "tools/bridges", "tools"):
+    _p = str(_ROOT / _subdir)
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 from bizra_config import (
     CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GRAPH_PATH, GOLD_PATH,
     SNR_THRESHOLD, IHSAN_CONSTRAINT, INDEXED_PATH,
     VISION_ENABLED, AUDIO_ENABLED, IMAGE_EMBEDDINGS_PATH
 )
 
-# Import BIZRA engines
-from hypergraph_engine import HypergraphRAGEngine, RetrievalMode, QueryContext
-from arte_engine import ARTEEngine, ThoughtType, TensionType
-from pat_engine import PATOrchestrator, OllamaBackend, LMStudioBackend, ThinkingMode
+# ---------------------------------------------------------------------------
+# Import BIZRA engines — all conditional for graceful degradation.
+# A missing engine disables its pipeline stage; the system still starts.
+# ---------------------------------------------------------------------------
+
+# Hypergraph RAG (core retrieval)
+try:
+    from hypergraph_engine import HypergraphRAGEngine, RetrievalMode, QueryContext
+    HYPERGRAPH_AVAILABLE = True
+except ImportError:
+    HYPERGRAPH_AVAILABLE = False
+    HypergraphRAGEngine = None  # type: ignore[assignment,misc]
+    QueryContext = None  # type: ignore[assignment,misc]
+
+    # Stub so type annotations and mapping don't crash at class-definition time
+    class RetrievalMode(Enum):  # type: ignore[no-redef]
+        SEMANTIC = "semantic"
+        HYBRID = "hybrid"
+        MULTI_HOP = "multi_hop"
+        WARP = "warp"
+
+# ARTE Symbolic-Neural Bridge
+try:
+    from arte_engine import ARTEEngine, ThoughtType, TensionType
+    ARTE_AVAILABLE = True
+except ImportError:
+    ARTE_AVAILABLE = False
+    ARTEEngine = None  # type: ignore[assignment,misc]
+
+    class ThoughtType(Enum):  # type: ignore[no-redef]
+        HYPOTHESIS = "hypothesis"
+        CONCLUSION = "conclusion"
+
+    class TensionType(Enum):  # type: ignore[no-redef]
+        COHERENT = "coherent"
+
+# PAT Multi-Agent Team
+try:
+    from pat_engine import PATOrchestrator, OllamaBackend, LMStudioBackend, ThinkingMode
+    PAT_AVAILABLE = True
+except ImportError:
+    PAT_AVAILABLE = False
+    PATOrchestrator = None  # type: ignore[assignment,misc]
+    OllamaBackend = None  # type: ignore[assignment,misc]
+    LMStudioBackend = None  # type: ignore[assignment,misc]
+
+    class ThinkingMode(Enum):  # type: ignore[no-redef]
+        STANDARD = "standard"
 
 # Import KEP Bridge
 try:
@@ -180,23 +235,38 @@ class BIZRAOrchestrator:
     ):
         logger.info("Initializing BIZRA Unified Orchestrator v3.0")
 
-        # Initialize engines
-        self.hypergraph = HypergraphRAGEngine()
-        self.arte = ARTEEngine()
+        # Initialize engines — graceful degradation if unavailable
+        self.hypergraph_available = HYPERGRAPH_AVAILABLE
+        self.hypergraph = None
+        if HYPERGRAPH_AVAILABLE:
+            try:
+                self.hypergraph = HypergraphRAGEngine()
+            except Exception as e:
+                logger.warning(f"Hypergraph RAG Engine unavailable: {e}")
+                self.hypergraph_available = False
+        else:
+            logger.warning("Hypergraph RAG Engine module not found — retrieval disabled")
 
-        self.pat_enabled = enable_pat
+        self.arte_available = ARTE_AVAILABLE
+        self.arte = None
+        if ARTE_AVAILABLE:
+            try:
+                self.arte = ARTEEngine()
+            except Exception as e:
+                logger.warning(f"ARTE Engine unavailable: {e}")
+                self.arte_available = False
+        else:
+            logger.warning("ARTE Engine module not found — tension analysis disabled")
+
+        self.pat_enabled = enable_pat and PAT_AVAILABLE
         self.pat: Optional[PATOrchestrator] = None
 
-        if enable_pat:
+        if enable_pat and PAT_AVAILABLE:
             try:
-                # Try LM Studio first, fall back to Ollama
-                # NOTE: No event loop creation in __init__ — deferred to initialize()
-                # Standing on Giants: Fowler (2004) — "Lazy Initialization" pattern
                 lm_backend = LMStudioBackend()
                 self.pat = PATOrchestrator(lm_backend, model=ollama_model)
                 logger.info(f"PAT Engine initialized with LM Studio (model: {ollama_model})")
             except Exception as e:
-                # Fallback to Ollama
                 try:
                     backend = OllamaBackend()
                     self.pat = PATOrchestrator(backend, model=ollama_model)
@@ -204,6 +274,8 @@ class BIZRAOrchestrator:
                 except Exception as e2:
                     logger.warning(f"PAT Engine unavailable: {e2}")
                     self.pat_enabled = False
+        elif enable_pat and not PAT_AVAILABLE:
+            logger.warning("PAT Engine module not found — LLM generation disabled")
 
         # Initialize KEP Bridge
         self.kep_enabled = enable_kep and KEP_AVAILABLE
@@ -292,14 +364,20 @@ class BIZRAOrchestrator:
                 logger.warning(f"Sovereign Bridge initialization failed: {e}")
 
         # Initialize Hypergraph RAG
-        if not self.hypergraph.initialize():
-            logger.error("Failed to initialize Hypergraph RAG")
-            return False
+        if self.hypergraph_available and self.hypergraph:
+            if not self.hypergraph.initialize():
+                logger.error("Failed to initialize Hypergraph RAG")
+                return False
+        else:
+            logger.warning("Hypergraph RAG skipped — retrieval will not be available")
 
         # Check ARTE integrity
-        health = self.arte.check_system_integrity()
-        if health["integration"]["tension_level"] == "critical":
-            logger.warning("ARTE shows critical tension level")
+        if self.arte_available and self.arte:
+            health = self.arte.check_system_integrity()
+            if health["integration"]["tension_level"] == "critical":
+                logger.warning("ARTE shows critical tension level")
+        else:
+            logger.warning("ARTE Engine skipped — tension analysis will not be available")
 
         # Initialize Multi-Modal Engine (lazy load models)
         if self.multimodal_enabled and self.multimodal:
@@ -383,6 +461,20 @@ class BIZRAOrchestrator:
                 reasoning_trace.append(f"Audio: Transcribed with Whisper")
 
         # Step 2: Context Retrieval via Hypergraph RAG
+        if not self.hypergraph_available or not self.hypergraph:
+            execution_time = time.time() - start_time
+            reasoning_trace.append("Hypergraph RAG unavailable — cannot retrieve context")
+            return BIZRAResponse(
+                query=query.text,
+                answer="Retrieval engine not available. Install dependencies: pip install faiss-cpu sentence-transformers",
+                snr_score=0.0,
+                ihsan_achieved=False,
+                sources=[],
+                reasoning_trace=reasoning_trace,
+                tension_analysis={"type": "engine_unavailable"},
+                execution_time=round(execution_time, 3),
+            )
+
         retrieval_mode = self._select_retrieval_mode(query.complexity)
         reasoning_trace.append(f"Retrieval mode: {retrieval_mode.value}")
 
@@ -460,16 +552,24 @@ class BIZRAOrchestrator:
         # Standing on Giants: Fowler (2003) — "Avoid the N+1 Selects Problem"
         context_embeddings = self._batch_get_embeddings(context.results)
 
-        arte_result = self.arte.resolve_tension(
-            query=query.text,
-            symbolic_facts=symbolic_facts,
-            neural_results=neural_results,
-            query_embedding=context.query_embedding,
-            context_embeddings=context_embeddings if context_embeddings.size > 0 else np.zeros((1, 384))
-        )
-
-        reasoning_trace.append(f"ARTE SNR: {arte_result['snr_score']}")
-        reasoning_trace.append(f"Tension: {arte_result['tension_analysis']['type']}")
+        if self.arte_available and self.arte:
+            arte_result = self.arte.resolve_tension(
+                query=query.text,
+                symbolic_facts=symbolic_facts,
+                neural_results=neural_results,
+                query_embedding=context.query_embedding,
+                context_embeddings=context_embeddings if context_embeddings.size > 0 else np.zeros((1, 384))
+            )
+            reasoning_trace.append(f"ARTE SNR: {arte_result['snr_score']}")
+            reasoning_trace.append(f"Tension: {arte_result['tension_analysis']['type']}")
+        else:
+            arte_result = {
+                "snr_score": context.snr_score,
+                "tension_analysis": {"type": "arte_unavailable"},
+                "resolved_facts": [],
+                "thought_chain": [],
+            }
+            reasoning_trace.append("ARTE unavailable — using raw retrieval SNR")
 
         # Step 4: KEP Processing (synergy detection + compound discovery)
         if query.enable_kep and self.kep_enabled and self.kep:
@@ -937,8 +1037,8 @@ class BIZRAOrchestrator:
             "initialized": self._initialized,
             "version": "3.0",
             "engines": {
-                "hypergraph_rag": "ready" if self._initialized else "not_initialized",
-                "arte": "ready",
+                "hypergraph_rag": "ready" if (self.hypergraph_available and self._initialized) else ("unavailable" if not self.hypergraph_available else "not_initialized"),
+                "arte": "ready" if self.arte_available else "unavailable",
                 "pat": "ready" if self.pat_enabled else "disabled",
                 "kep": "ready" if self.kep_enabled else "disabled",
                 "multimodal": "ready" if self.multimodal_enabled else "disabled",
@@ -947,7 +1047,7 @@ class BIZRAOrchestrator:
         }
 
         # Add ARTE health check
-        if self._initialized:
+        if self._initialized and self.arte_available and self.arte:
             arte_health = self.arte.check_system_integrity()
             status["arte_health"] = {
                 "symbolic_nodes": arte_health["symbolic"]["nodes"],

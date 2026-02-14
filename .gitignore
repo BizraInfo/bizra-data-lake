@@ -146,6 +146,8 @@ research_archive/
 .claude/memory/
 .claude/rules/
 .claude/skills/
+!.claude/skills/bizra-node0-proactive-pilot/
+!.claude/skills/bizra-node0-proactive-pilot/**
 .claude/statusline.*
 .mcp.json
 
@@ -170,3 +172,13 @@ C:/
 
 # Hypothesis test database
 .hypothesis/
+
+# ── Worktrees (Claude parallel checkouts) ─────────────────────
+.claude/worktrees/
+
+# ── Runtime SQLite State ──────────────────────────────────────
+tmp_state/
+users.db
+
+# ── MagicMock / pytest file-leak artifacts ────────────────────
+<MagicMock*

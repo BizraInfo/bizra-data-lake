@@ -84,7 +84,7 @@ def _resolve_downloads_path() -> Path:
 DOWNLOADS_PATH = _resolve_downloads_path()
 NODE0_KNOWLEDGE = DATA_LAKE_ROOT / "01_RAW/external_links/knowledge"
 BIZRA_PROJECTS = DATA_LAKE_ROOT / "01_RAW/external_links/BIZRA-PROJECTS"
-GENESIS_NODE = DATA_LAKE_ROOT / "01_RAW/external_links/bizra-genesis-node-repaired"
+GENESIS_NODE = DATA_LAKE_ROOT / "01_RAW/external_links/BIZRA-DATA-LAKE"
 
 # --- KNOWLEDGE KERNEL PATHS ---
 GRAPH_PATH = INDEXED_PATH / "graph"
@@ -230,6 +230,17 @@ WARP_ENABLED = True
 WARP_USE_GPU = GPU_ENABLED  # Prefer GPU for indexing
 WARP_RUNTIME = "onnx"  # Options: "onnx", "openvino", "coreml" (macOS only)
 WARP_FUSED_EXT = True  # Fused decompression + merge for multi-threaded
+
+# ============================================================================
+# SPEARPOINT CONFIGURATION
+# ============================================================================
+
+SPEARPOINT_STATE_DIR = Path(
+    os.getenv("SPEARPOINT_STATE_DIR", str(DATA_LAKE_ROOT / ".spearpoint"))
+)
+SPEARPOINT_EVIDENCE_LEDGER = Path(
+    os.getenv("SPEARPOINT_EVIDENCE_LEDGER", str(SPEARPOINT_STATE_DIR / "evidence.jsonl"))
+)
 
 def initialize_directories() -> None:
     """Ensure all BIZRA infrastructure directories exist."""
