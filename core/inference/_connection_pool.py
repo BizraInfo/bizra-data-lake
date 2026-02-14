@@ -18,14 +18,15 @@ Created: 2026-02-09 | Refactor split from gateway.py
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
+import logging
 import time
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Optional
 
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONNECTION POOLING (P1 OPTIMIZATION)
@@ -142,7 +143,7 @@ class ConnectionPoolMetrics:
         async with self._lock:
             self._acquisition_timeouts += 1
 
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         async with self._lock:
             total_acquisitions = self._pool_hits + self._pool_misses
             return {
@@ -198,7 +199,7 @@ class ConnectionPool:
         Initialize connection pool.
 
         Args:
-            backend_type: Type of backend (ollama, lmstudio)
+            backend_type: type of backend (ollama, lmstudio)
             endpoint: Backend endpoint URL
             config: Pool configuration
             connection_factory: Async callable that creates a new connection
@@ -212,7 +213,7 @@ class ConnectionPool:
 
         # LRU-ordered pool (newest at end)
         self._pool: OrderedDict[str, PooledConnection] = OrderedDict()
-        self._connections: Dict[str, Any] = {}  # Actual connection objects
+        self._connections: dict[str, Any] = {}  # Actual connection objects
 
         # Synchronization
         self._lock = asyncio.Lock()
@@ -269,9 +270,11 @@ class ConnectionPool:
 
     async def _create_connection(self) -> PooledConnection:
         """Create a new pooled connection."""
-        conn_id = hashlib.sha256(
+        from core.proof_engine.canonical import hex_digest
+
+        conn_id = hex_digest(
             f"{self.backend_type}:{self.endpoint}:{time.time()}".encode()
-        ).hexdigest()[:16]
+        )[:16]
 
         now = time.time()
         pooled_conn = PooledConnection(
@@ -324,7 +327,7 @@ class ConnectionPool:
         Acquire a connection from the pool.
 
         Yields:
-            Tuple of (PooledConnection, actual_connection_object)
+            tuple of (PooledConnection, actual_connection_object)
 
         Usage:
             async with pool.acquire() as (pooled, conn):
@@ -450,7 +453,8 @@ class ConnectionPool:
                     try:
                         await self._create_connection()
                         healthy_count += 1
-                    except Exception:
+                    except Exception as e:
+                        logger.debug("Connection pool replenishment failed: %s", e)
                         break
 
             except asyncio.CancelledError:
@@ -492,7 +496,7 @@ class ConnectionPool:
         """Get total number of connections in pool."""
         return len(self._pool)
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Get pool status including metrics."""
         metrics = await self.metrics.get_metrics()
         return {
@@ -526,9 +530,9 @@ class PooledHttpClient:
         self,
         method: str,
         path: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
         timeout: float = 60.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make an HTTP request through the pool."""
         import urllib.error
         import urllib.request
@@ -542,16 +546,19 @@ class PooledHttpClient:
                 req = urllib.request.Request(
                     url,
                     data=payload,
-                    headers={"Content-Type": "application/json"},
+                    headers={"Content-type": "application/json"},
                     method=method,
                 )
 
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
-                    None, lambda: urllib.request.urlopen(req, timeout=timeout)  # nosec B310 — URL from trusted connection pool config
+                    None,
+                    lambda: urllib.request.urlopen(
+                        req, timeout=timeout
+                    ),  # nosec B310 — URL from trusted connection pool config
                 )
                 with response as resp:
-                    result: Dict[str, Any] = json.loads(resp.read().decode())
+                    result: dict[str, Any] = json.loads(resp.read().decode())
 
                 # Record latency
                 latency_ms = (time.time() - start_time) * 1000
@@ -559,7 +566,10 @@ class PooledHttpClient:
 
                 return result
 
-            except Exception:
+            except Exception as e:
                 # Mark connection as unhealthy on error
+                logger.debug(
+                    "Connection %s marked unhealthy: %s", pooled_conn.conn_id, e
+                )
                 pooled_conn.is_healthy = False
                 raise

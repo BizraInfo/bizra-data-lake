@@ -940,7 +940,7 @@ class IA2AEngineProtocol:
 # Quality thresholds
 IHSAN_THRESHOLD: float = 0.95
 SNR_THRESHOLD: float = 0.85
-GINI_CONSTRAINT: float = 0.35
+GINI_CONSTRAINT: float = 0.40  # Must match core/integration/constants.py
 
 # NTU parameters
 NTU_WINDOW_SIZE: int = 5
@@ -952,7 +952,7 @@ NTU_GAMMA: float = 0.25
 GOSSIP_FANOUT: int = 3
 GOSSIP_INTERVAL_SEC: float = 5.0
 BFT_QUORUM: str = "2f+1"
-CLOCK_SKEW_SEC: float = 30.0
+CLOCK_SKEW_SEC: float = 120.0  # 2-minute tolerance window
 
 # PCI parameters
 DOMAIN_PREFIX: bytes = b"bizra-pci-v1:"
@@ -1039,4 +1039,4 @@ breaking_changes:
 
 **END OF CONTRACTS**
 
-*All implementations MUST pass contract conformance tests in `tests/contracts/`*
+*All implementations MUST pass module-level tests in `tests/core/` corresponding to each contract domain.*

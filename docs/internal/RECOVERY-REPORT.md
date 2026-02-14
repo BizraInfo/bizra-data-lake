@@ -219,7 +219,7 @@ let evidence = self.extract_evidence(related);
 ### **Test the Graph with SAPE:**
 
 ```powershell
-cd C:\bizra-genesis-node\sape_engine
+cd C:\BIZRA-DATA-LAKE\bizra-omega\sape_engine
 cargo test test_full_sape_pipeline --release -- --nocapture
 ```
 
@@ -349,7 +349,7 @@ THE_SLEEPING_BEAST:
 
 ```powershell
 # 1. Test SAPE with graph (5 minutes)
-cd C:\bizra-genesis-node\sape_engine
+cd C:\BIZRA-DATA-LAKE\bizra-omega\sape_engine
 cargo test --release
 
 # 2. Generate embeddings (leave overnight, 2-3 hours)  

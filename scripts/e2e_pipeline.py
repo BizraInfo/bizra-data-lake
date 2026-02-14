@@ -60,7 +60,7 @@ class E2EConfig:
     # LLM settings
     lm_studio_url: str = "http://192.168.56.1:1234"
     lm_studio_token: str = field(default_factory=lambda: os.environ.get(
-        "LM_API_TOKEN", "***REDACTED***"
+        "LM_API_TOKEN", ""
     ))
     
     # Thresholds

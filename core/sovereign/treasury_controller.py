@@ -17,7 +17,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 from .treasury_persistence import TreasuryPersistence
 from .treasury_types import (
@@ -50,7 +50,7 @@ class TreasuryController:
     """
 
     # Valid state transitions
-    VALID_TRANSITIONS: Dict[TreasuryMode, List[TreasuryMode]] = {
+    VALID_TRANSITIONS: dict[TreasuryMode, list[TreasuryMode]] = {
         TreasuryMode.ETHICAL: [TreasuryMode.HIBERNATION],
         TreasuryMode.HIBERNATION: [TreasuryMode.ETHICAL, TreasuryMode.EMERGENCY],
         TreasuryMode.EMERGENCY: [TreasuryMode.HIBERNATION, TreasuryMode.ETHICAL],
@@ -62,7 +62,7 @@ class TreasuryController:
         initial_treasury_seed: float = 50000.0,
         db_path: Optional[Path] = None,
         snr_calculator: Optional[Any] = None,
-        federation_broadcast: Optional[Callable[[Dict], None]] = None,
+        federation_broadcast: Optional[Callable[[dict], None]] = None,
     ):
         """
         Initialize the treasury controller.
@@ -77,7 +77,7 @@ class TreasuryController:
         self._persistence = TreasuryPersistence(db_path)
         self._snr_calculator = snr_calculator
         self._federation_broadcast = federation_broadcast
-        self._event_handlers: Dict[TreasuryEvent, List[Callable]] = {
+        self._event_handlers: dict[TreasuryEvent, list[Callable]] = {
             event: [] for event in TreasuryEvent
         }
 
@@ -131,7 +131,7 @@ class TreasuryController:
 
     def evaluate_market_ethics(
         self,
-        market_data: Optional[Dict[str, Any]] = None,
+        market_data: Optional[dict[str, Any]] = None,
     ) -> float:
         """
         Evaluate market ethics score using SNR-inspired methodology.
@@ -192,7 +192,7 @@ class TreasuryController:
         logger.info(f"Market ethics score: {overall_score:.3f}")
         return overall_score
 
-    def _assess_transparency(self, market_data: Dict) -> float:
+    def _assess_transparency(self, market_data: dict) -> float:
         """Assess market transparency."""
         indicators = [
             "price_discovery_quality",
@@ -204,7 +204,7 @@ class TreasuryController:
         ]
         return sum(scores) / len(scores) if scores else 0.75
 
-    def _assess_fairness(self, market_data: Dict) -> float:
+    def _assess_fairness(self, market_data: dict) -> float:
         """Assess market fairness."""
         if market_data.get("manipulation_detected", False):
             return 0.20
@@ -212,21 +212,21 @@ class TreasuryController:
         access_equality = market_data.get("access_equality", 0.85)
         return (spread_fairness + access_equality) / 2
 
-    def _assess_sustainability(self, market_data: Dict) -> float:
+    def _assess_sustainability(self, market_data: dict) -> float:
         """Assess market sustainability."""
         volatility = market_data.get("volatility_index", 0.30)
         liquidity = market_data.get("liquidity_score", 0.75)
         volatility_penalty = max(0, volatility - 0.50) * 0.5
         return max(0.0, min(1.0, liquidity - volatility_penalty))
 
-    def _assess_compliance(self, market_data: Dict) -> float:
+    def _assess_compliance(self, market_data: dict) -> float:
         """Assess regulatory compliance."""
         compliance_flags = market_data.get("compliance_flags", [])
         base_compliance = market_data.get("compliance_score", 0.90)
         penalty = len(compliance_flags) * 0.10
         return max(0.0, base_compliance - penalty)
 
-    def _assess_ihsan_alignment(self, market_data: Dict) -> float:
+    def _assess_ihsan_alignment(self, market_data: dict) -> float:
         """Assess alignment with Ihsan (excellence) principles."""
         if self._snr_calculator:
             try:
@@ -278,7 +278,7 @@ class TreasuryController:
         reason: str,
         trigger: TransitionTrigger = TransitionTrigger.MANUAL_OVERRIDE,
         force: bool = False,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Transition to a new treasury mode."""
         old_mode = self._state.mode
 
@@ -433,7 +433,7 @@ class TreasuryController:
 
     async def evaluate_and_transition(
         self,
-        market_data: Optional[Dict[str, Any]] = None,
+        market_data: Optional[dict[str, Any]] = None,
     ) -> Optional[TransitionEvent]:
         """Evaluate current conditions and transition if necessary."""
         ethics_score = self.evaluate_market_ethics(market_data)
@@ -505,12 +505,12 @@ class TreasuryController:
     # -------------------------------------------------------------------------
 
     def on_event(
-        self, event_type: TreasuryEvent, handler: Callable[[Dict], None]
+        self, event_type: TreasuryEvent, handler: Callable[[dict], None]
     ) -> None:
         """Register an event handler."""
         self._event_handlers[event_type].append(handler)
 
-    def _emit_event(self, event_type: TreasuryEvent, data: Dict) -> None:
+    def _emit_event(self, event_type: TreasuryEvent, data: dict) -> None:
         """Emit an event to registered handlers."""
         for handler in self._event_handlers.get(event_type, []):
             try:
@@ -518,7 +518,7 @@ class TreasuryController:
             except Exception as e:
                 logger.error(f"Event handler error: {e}")
 
-    def _broadcast_to_federation(self, message: Dict) -> None:
+    def _broadcast_to_federation(self, message: dict) -> None:
         """Broadcast message to federation network."""
         if self._federation_broadcast:
             try:
@@ -530,7 +530,7 @@ class TreasuryController:
     # STATUS AND HEALTH
     # -------------------------------------------------------------------------
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get comprehensive treasury status."""
         return {
             "state": self._state.to_dict(),
@@ -551,9 +551,9 @@ class TreasuryController:
             ],
         }
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Perform a health check on the treasury system."""
-        health: Dict[str, Any] = {
+        health: dict[str, Any] = {
             "healthy": True,
             "mode": self._state.mode.value,
             "reserves_days": self._state.reserves_days,

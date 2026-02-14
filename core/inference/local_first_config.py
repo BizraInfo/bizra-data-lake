@@ -39,10 +39,9 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # ENUMS AND TYPES
@@ -115,7 +114,7 @@ class ModelConfig:
     max_tokens: int = 2048
 
     # Capabilities
-    strengths: List[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
     supports_streaming: bool = True
     supports_function_calling: bool = False
     supports_vision: bool = False
@@ -152,7 +151,7 @@ class RoutingDecision:
     model_config: ModelConfig
     confidence: float
     reason: str
-    alternatives: List[str] = field(default_factory=list)
+    alternatives: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -167,15 +166,14 @@ class BicameralResult:
     consensus_reached: bool
     iterations: int
     total_time_ms: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # =============================================================================
 # MODEL REGISTRY
 # =============================================================================
 
-
-LOCAL_MODELS: Dict[str, ModelConfig] = {
+LOCAL_MODELS: dict[str, ModelConfig] = {
     # =========================================================================
     # REASONING MODELS (Cold Core - Logic)
     # =========================================================================
@@ -394,9 +392,8 @@ LOCAL_MODELS: Dict[str, ModelConfig] = {
     ),
 }
 
-
 # Task type to model role mapping
-TASK_TO_ROLE: Dict[TaskType, List[ModelRole]] = {
+TASK_TO_ROLE: dict[TaskType, list[ModelRole]] = {
     TaskType.REASONING: [ModelRole.REASONING, ModelRole.CODING],
     TaskType.CODING: [ModelRole.CODING, ModelRole.REASONING],
     TaskType.CONVERSATION: [ModelRole.CREATIVE, ModelRole.FAST],
@@ -407,7 +404,6 @@ TASK_TO_ROLE: Dict[TaskType, List[ModelRole]] = {
     TaskType.MATH: [ModelRole.REASONING],
     TaskType.PLANNING: [ModelRole.AGENTIC, ModelRole.REASONING],
 }
-
 
 # =============================================================================
 # MODEL ROUTER
@@ -430,7 +426,7 @@ class ModelRouter:
 
     def __init__(
         self,
-        models: Optional[Dict[str, ModelConfig]] = None,
+        models: Optional[dict[str, ModelConfig]] = None,
         health_monitor: Optional["HealthMonitor"] = None,
     ):
         self.models = models or LOCAL_MODELS
@@ -441,7 +437,7 @@ class ModelRouter:
         Select best model for a given task type.
 
         Args:
-            task_type: Type of task to route
+            task_type: type of task to route
 
         Returns:
             RoutingDecision with selected model and reasoning
@@ -547,7 +543,7 @@ class ModelRouter:
             alternatives=[name for name, _ in candidates[1:3]],
         )
 
-    def route_bicameral(self, query: str) -> Tuple[RoutingDecision, RoutingDecision]:
+    def route_bicameral(self, query: str) -> tuple[RoutingDecision, RoutingDecision]:
         """
         Route to bicameral pair: Cold Core (reasoning) + Warm Surface (verification).
 
@@ -559,7 +555,7 @@ class ModelRouter:
             query: Input query to analyze
 
         Returns:
-            Tuple of (cold_decision, warm_decision)
+            tuple of (cold_decision, warm_decision)
         """
         # Cold Core: Select best reasoning model
         cold_candidates = self._get_candidates_by_roles(
@@ -602,8 +598,8 @@ class ModelRouter:
 
     def _get_candidates_by_roles(
         self,
-        roles: List[ModelRole],
-    ) -> List[Tuple[str, ModelConfig]]:
+        roles: list[ModelRole],
+    ) -> list[tuple[str, ModelConfig]]:
         """Get models matching any of the given roles."""
         return [(name, cfg) for name, cfg in self.models.items() if cfg.role in roles]
 
@@ -662,7 +658,7 @@ class HealthMonitor:
 
     def __init__(
         self,
-        models: Optional[Dict[str, ModelConfig]] = None,
+        models: Optional[dict[str, ModelConfig]] = None,
         check_interval_s: float = DEFAULT_CHECK_INTERVAL_S,
         timeout_s: float = DEFAULT_TIMEOUT_S,
         failure_threshold: int = DEFAULT_FAILURE_THRESHOLD,
@@ -672,7 +668,7 @@ class HealthMonitor:
         self.timeout_s = timeout_s
         self.failure_threshold = failure_threshold
 
-        self._health_reports: Dict[str, HealthReport] = {}
+        self._health_reports: dict[str, HealthReport] = {}
         self._monitor_task: Optional[asyncio.Task] = None
         self._running = False
 
@@ -696,12 +692,12 @@ class HealthMonitor:
                 pass
         logger.info("Health monitor stopped")
 
-    async def check_all(self) -> Dict[str, HealthReport]:
+    async def check_all(self) -> dict[str, HealthReport]:
         """
         Check health of all configured models.
 
         Returns:
-            Dict mapping model names to their HealthReport
+            dict mapping model names to their HealthReport
         """
         tasks = [
             self._check_model(name, config) for name, config in self.models.items()
@@ -737,7 +733,7 @@ class HealthMonitor:
         report = self._health_reports.get(model_name)
         return report is not None and report.is_available
 
-    def get_healthy_models(self) -> List[str]:
+    def get_healthy_models(self) -> list[str]:
         """Get list of all healthy models."""
         return [
             name for name, report in self._health_reports.items() if report.is_available
@@ -1010,7 +1006,7 @@ class BicameralOrchestrator:
         cold_decision, warm_decision = self.router.route_bicameral(query)
 
         # Generate candidates
-        candidate_responses: List[str] = []
+        candidate_responses: list[str] = []
         for i in range(candidates):
             # Vary temperature slightly for diversity
             temp_config = ModelConfig(
@@ -1184,8 +1180,10 @@ If something is good, acknowledge it. If it needs work, be specific about why.""
         if match:
             try:
                 return min(1.0, max(0.0, float(match.group(1))))
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.debug(
+                    "Score extraction failed for match %r: %s", match.group(0), e
+                )
 
         # Heuristic scoring based on sentiment
         critique_lower = critique.lower()
@@ -1252,7 +1250,7 @@ class LocalFirstManager:
 
     def __init__(
         self,
-        models: Optional[Dict[str, ModelConfig]] = None,
+        models: Optional[dict[str, ModelConfig]] = None,
         fallback_level: FallbackLevel = FallbackLevel.LOCAL_ONLY,
         enable_health_monitor: bool = True,
     ):
@@ -1373,7 +1371,7 @@ class LocalFirstManager:
         """
         return await self.bicameral.reason(query, context=context)
 
-    async def embed(self, text: str) -> List[float]:
+    async def embed(self, text: str) -> list[float]:
         """
         Generate embeddings for text.
 
@@ -1400,7 +1398,7 @@ class LocalFirstManager:
             data = response.json()
             return data["data"][0]["embedding"]
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         """Get list of available (healthy) models."""
         if self.health_monitor:
             return self.health_monitor.get_healthy_models()
@@ -1410,7 +1408,7 @@ class LocalFirstManager:
         """Get configuration for a specific model."""
         return self.models.get(model_name)
 
-    def get_health_report(self) -> Dict[str, HealthReport]:
+    def get_health_report(self) -> dict[str, HealthReport]:
         """Get health reports for all models."""
         if self.health_monitor:
             return dict(self.health_monitor._health_reports)
@@ -1420,7 +1418,6 @@ class LocalFirstManager:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
-
 
 _manager_instance: Optional[LocalFirstManager] = None
 
@@ -1455,7 +1452,6 @@ def get_bicameral_orchestrator() -> BicameralOrchestrator:
 # =============================================================================
 # EXPORTS
 # =============================================================================
-
 
 __all__ = [
     # Enums

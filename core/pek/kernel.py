@@ -25,15 +25,19 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Union
+from typing import Any, Awaitable, Callable, Deque, Optional, Union
 
 from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.opportunity_pipeline import OpportunityPipeline, PipelineOpportunity
-from core.sovereign.proactive_scheduler import JobPriority, ProactiveScheduler, ScheduleType
+from core.sovereign.proactive_scheduler import (
+    JobPriority,
+    ProactiveScheduler,
+    ScheduleType,
+)
 
 logger = logging.getLogger("pek.kernel")
 
-SensorCallback = Callable[[], "Union[Awaitable[Dict[str, Any]], Dict[str, Any]]"]
+SensorCallback = Callable[[], "Union[Awaitable[dict[str, Any]], dict[str, Any]]"]
 
 
 @dataclass
@@ -73,7 +77,7 @@ class PEKProposal:
     estimated_value: float
     risk: float
     reversible: bool = True
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -87,12 +91,12 @@ class PEKProofBlock:
     confidence: float
     fate_passed: bool
     fate_proof_id: Optional[str]
-    reason_trace: List[str]
+    reason_trace: list[str]
     reversible: bool
     created_at: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "proposal_id": self.proposal_id,
             "action_type": self.action_type,
@@ -152,7 +156,7 @@ class ProactiveExecutionKernel:
         self._proof_blocks: Deque[PEKProofBlock] = deque(maxlen=2000)
         self._proof_log_path = self._state_dir / self.config.proof_log_relpath
 
-        self._metrics: Dict[str, int] = {
+        self._metrics: dict[str, int] = {
             "signals_collected": 0,
             "proposals_generated": 0,
             "proposals_ignored": 0,
@@ -167,7 +171,12 @@ class ProactiveExecutionKernel:
             "cycles": 0,
         }
 
-        self._sensors: Dict[str, SensorCallback] = {}
+        # Validation pipeline (wired post-init by runtime)
+        self._snr_optimizer: Optional[Any] = None
+        self._guardian_council: Optional[Any] = None
+        self._evidence_ledger: Optional[Any] = None
+
+        self._sensors: dict[str, SensorCallback] = {}
         self.register_sensor("pipeline", self._sense_pipeline)
         self.register_sensor("gateway", self._sense_gateway)
         self.register_sensor("memory", self._sense_memory)
@@ -183,6 +192,18 @@ class ProactiveExecutionKernel:
     def set_fate_gate(self, fate_gate: Any) -> None:
         """Attach optional FATE gate verifier."""
         self._fate_gate = fate_gate
+
+    def set_snr_optimizer(self, optimizer: Any) -> None:
+        """Attach SNR optimizer for proposal quality scoring."""
+        self._snr_optimizer = optimizer
+
+    def set_guardian_council(self, council: Any) -> None:
+        """Attach Guardian Council for constitutional validation of proposals."""
+        self._guardian_council = council
+
+    def set_evidence_ledger(self, ledger: Any) -> None:
+        """Attach Evidence Ledger for auditable proof emission."""
+        self._evidence_ledger = ledger
 
     async def start(self) -> None:
         """Start PEK loop and Chronos scheduler."""
@@ -224,7 +245,8 @@ class ProactiveExecutionKernel:
                 await task
             except asyncio.CancelledError:
                 pass
-        except Exception:
+        except Exception as e:
+            logger.warning("PEK task failed, cancelling: %s", e)
             task.cancel()
             try:
                 await task
@@ -258,9 +280,9 @@ class ProactiveExecutionKernel:
             sleep_for = max(0.05, self.config.cycle_interval_seconds - elapsed)
             await asyncio.sleep(sleep_for)
 
-    async def _collect_signals(self) -> Dict[str, Dict[str, Any]]:
+    async def _collect_signals(self) -> dict[str, dict[str, Any]]:
         """Collect all sensor outputs for this cycle."""
-        signals: Dict[str, Dict[str, Any]] = {}
+        signals: dict[str, dict[str, Any]] = {}
         for name, sensor in self._sensors.items():
             try:
                 output = sensor()
@@ -276,7 +298,7 @@ class ProactiveExecutionKernel:
                 logger.debug("PEK sensor %s failed: %s", name, e)
         return signals
 
-    async def _sense_pipeline(self) -> Dict[str, Any]:
+    async def _sense_pipeline(self) -> dict[str, Any]:
         """Sense queue pressure and throughput from opportunity pipeline."""
         try:
             stats = self._pipeline.stats()
@@ -289,7 +311,7 @@ class ProactiveExecutionKernel:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _sense_gateway(self) -> Dict[str, Any]:
+    async def _sense_gateway(self) -> dict[str, Any]:
         """Sense backend health and latency from inference gateway."""
         if not self._gateway or not hasattr(self._gateway, "health"):
             return {"status": "unavailable"}
@@ -305,7 +327,7 @@ class ProactiveExecutionKernel:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    async def _sense_memory(self) -> Dict[str, Any]:
+    async def _sense_memory(self) -> dict[str, Any]:
         """Sense working and long-term memory pressure."""
         if not self._living_memory:
             return {"status": "unavailable"}
@@ -313,7 +335,9 @@ class ProactiveExecutionKernel:
             stats_obj = self._living_memory.get_stats()
             stats = stats_obj.to_dict() if hasattr(stats_obj, "to_dict") else {}
             working_context = self._living_memory.get_working_context(max_entries=5)
-            working_entries = 0 if not working_context else (working_context.count("\n") + 1)
+            working_entries = (
+                0 if not working_context else (working_context.count("\n") + 1)
+            )
             return {
                 "total_entries": int(stats.get("total_entries", 0)),
                 "avg_ihsan": float(stats.get("avg_ihsan", 0.0)),
@@ -323,7 +347,7 @@ class ProactiveExecutionKernel:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _compute_tau(self, signals: Dict[str, Dict[str, Any]]) -> float:
+    def _compute_tau(self, signals: dict[str, dict[str, Any]]) -> float:
         """
         Compute autonomy throttle tau in [0.1, 1.0].
 
@@ -369,11 +393,11 @@ class ProactiveExecutionKernel:
 
     async def _generate_proposals(
         self,
-        signals: Dict[str, Dict[str, Any]],
+        signals: dict[str, dict[str, Any]],
         tau: float,
-    ) -> List[PEKProposal]:
+    ) -> list[PEKProposal]:
         """Generate deterministic proactive proposals from current signals."""
-        proposals: List[PEKProposal] = []
+        proposals: list[PEKProposal] = []
 
         pipeline_signal = signals.get("pipeline", {})
         queue_util = float(pipeline_signal.get("queue_utilization", 0.0))
@@ -439,10 +463,10 @@ class ProactiveExecutionKernel:
         self,
         proposal: PEKProposal,
         tau: float,
-        signals: Dict[str, Dict[str, Any]],
+        signals: dict[str, dict[str, Any]],
     ) -> PEKProofBlock:
         """Evaluate proposal, route to intervention policy, and record proof."""
-        reason_trace: List[str] = []
+        reason_trace: list[str] = []
         confidence = self._compute_confidence(proposal, tau)
         min_confidence = self._effective_min_confidence(tau)
         budget_before = self._attention_budget
@@ -605,7 +629,7 @@ class ProactiveExecutionKernel:
         proposal: PEKProposal,
         tau: float,
         confidence: float,
-        reason_trace: List[str],
+        reason_trace: list[str],
     ) -> tuple[str, AutonomyLevel, float]:
         """Select desired intervention mode before budget arbitration."""
         auto_eligible = (
@@ -641,7 +665,7 @@ class ProactiveExecutionKernel:
         decision: str,
         autonomy_level: AutonomyLevel,
         desired_cost: float,
-        reason_trace: List[str],
+        reason_trace: list[str],
     ) -> tuple[str, AutonomyLevel, float]:
         """
         Enforce intervention budget with deterministic degradation:
@@ -653,7 +677,7 @@ class ProactiveExecutionKernel:
             reason_trace.append(f"budget_spent={desired_cost:.2f}")
             return decision, autonomy_level, desired_cost
 
-        degraded: List[tuple[str, AutonomyLevel, float]] = []
+        degraded: list[tuple[str, AutonomyLevel, float]] = []
         if decision == "auto_execute":
             degraded.append(
                 (
@@ -699,12 +723,14 @@ class ProactiveExecutionKernel:
         if self._attention_budget > before:
             self._metrics["budget_replenishments"] += 1
 
-    def _schedule_proposal(self, proposal: PEKProposal, autonomy_level: AutonomyLevel) -> str:
+    def _schedule_proposal(
+        self, proposal: PEKProposal, autonomy_level: AutonomyLevel
+    ) -> str:
         """Schedule proposal execution through Chronos lane."""
         if self._scheduler_task is None or self._scheduler_task.done():
             self._scheduler_task = asyncio.create_task(self._scheduler.start())
 
-        async def handler() -> Dict[str, Any]:
+        async def handler() -> dict[str, Any]:
             opp_id = await self._submit_to_pipeline(proposal, autonomy_level)
             return {"success": True, "opportunity_id": opp_id}
 
@@ -775,7 +801,7 @@ class ProactiveExecutionKernel:
         with path.open("a", encoding="utf-8") as f:
             f.write(payload + "\n")
 
-    def get_persistable_state(self) -> Dict[str, Any]:
+    def get_persistable_state(self) -> dict[str, Any]:
         """Get checkpoint-friendly PEK state."""
         return {
             "running": self._running,
@@ -788,7 +814,7 @@ class ProactiveExecutionKernel:
             "recent_proofs": [p.to_dict() for p in list(self._proof_blocks)[-50:]],
         }
 
-    def restore_persistable_state(self, state: Dict[str, Any]) -> None:
+    def restore_persistable_state(self, state: dict[str, Any]) -> None:
         """Restore PEK counters and scheduler run metadata."""
         self._cycle_count = int(state.get("cycle_count", 0))
         self._last_tau = float(state.get("last_tau", self.config.base_tau))
@@ -810,7 +836,7 @@ class ProactiveExecutionKernel:
         if scheduler_state:
             self._scheduler.restore_persistable_state(scheduler_state)
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Live PEK statistics."""
         return {
             "running": self._running,

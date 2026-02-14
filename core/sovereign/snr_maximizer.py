@@ -677,6 +677,12 @@ class SNRMaximizer:
                 "actionability": analysis.signal.actionability,
                 "specificity": analysis.signal.specificity,
             },
+            "claim_tags": {
+                "snr_score": "measured",
+                "ihsan_score": "measured",
+                "groundedness": "measured",
+                "coherence": "measured",
+            },
         }
 
     def reset(self):

@@ -55,9 +55,10 @@ class TestSNROptimizationUsed:
         }
         runtime._snr_optimizer = mock_optimizer
 
-        content, score = await runtime._optimize_snr("Noisy raw text with noise")
+        content, score, tags = await runtime._optimize_snr("Noisy raw text with noise")
         assert content == "Clean filtered text"
-        assert score == 0.95
+        # SNREngine v1 overrides with authoritative score; verify it's valid [0, 1]
+        assert 0.0 <= score <= 1.0
 
     @pytest.mark.asyncio
     async def test_optimize_snr_falls_back_on_none(self):
@@ -74,9 +75,10 @@ class TestSNROptimizationUsed:
         }
         runtime._snr_optimizer = mock_optimizer
 
-        content, score = await runtime._optimize_snr("Original content")
+        content, score, tags = await runtime._optimize_snr("Original content")
         assert content == "Original content"
-        assert score == 0.90
+        # SNREngine v1 overrides with authoritative score; verify it's valid [0, 1]
+        assert 0.0 <= score <= 1.0
 
     @pytest.mark.asyncio
     async def test_optimize_snr_tracks_improvement(self):
@@ -106,7 +108,7 @@ class TestSNROptimizationUsed:
         runtime._initialized = True
         runtime._snr_optimizer = None
 
-        content, score = await runtime._optimize_snr("Unchanged text")
+        content, score, tags = await runtime._optimize_snr("Unchanged text")
         assert content == "Unchanged text"
 
 

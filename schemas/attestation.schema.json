@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/attestation.schema.json",
+  "title": "BIZRA Attestation Envelope",
+  "description": "PCI attestation envelope with replay protection. Canonical serialization via RFC 8785 JSON Canonicalization. Standing on: Lamport (event ordering), Bernstein (Ed25519).",
+  "type": "object",
+  "required": [
+    "version", "envelope_id", "timestamp", "nonce",
+    "sender", "payload", "metadata"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Protocol version"
+    },
+    "envelope_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique envelope identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp (UTC, Z suffix)"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "64 hex chars for replay protection"
+    },
+    "expiry": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Envelope expiration time"
+    },
+    "sender": {
+      "type": "object",
+      "required": ["agent_type", "agent_id", "public_key"],
+      "properties": {
+        "agent_type": { "type": "string", "enum": ["PAT", "SAT"] },
+        "agent_id": { "type": "string" },
+        "public_key": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": ["action", "data", "policy_hash"],
+      "properties": {
+        "action": { "type": "string" },
+        "data": { "type": "object" },
+        "policy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "state_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["ihsan_score"],
+      "properties": {
+        "ihsan_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "snr_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "urgency": {
+          "type": "string",
+          "enum": ["REAL_TIME", "URGENT", "STANDARD", "DEFERRED"],
+          "default": "REAL_TIME"
+        }
+      }
+    },
+    "genesis_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Binds this envelope to a specific genesis identity"
+    },
+    "signature": {
+      "type": "object",
+      "required": ["algorithm", "value", "signed_fields"],
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "value": { "type": "string", "pattern": "^[a-f0-9]{128}$" },
+        "signed_fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of fields included in signature computation"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -11,12 +11,13 @@ Standing on Giants:
  toxic content, and ethical violations before training."
 """
 
-import hashlib
 import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+
+from core.proof_engine.canonical import hex_digest
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class PIIAnonymizer:
     def _hash_pii(self, text: str) -> str:
         """Generate deterministic hash for PII."""
         salted = f"{self.hash_salt}:{text}"
-        return hashlib.sha256(salted.encode()).hexdigest()[:12]
+        return hex_digest(salted.encode())[:12]
 
     def _anonymize(self, match: PIIMatch) -> str:
         """Generate replacement for PII match."""
@@ -322,7 +323,10 @@ class ToxicityDetector:
                 score = self.toxicity_fn(text)
                 return score, []
             except Exception:
-                logger.warning("Toxicity classifier failed, falling back to heuristic", exc_info=True)
+                logger.warning(
+                    "Toxicity classifier failed, falling back to heuristic",
+                    exc_info=True,
+                )
 
         return self._heuristic_toxicity(text)
 

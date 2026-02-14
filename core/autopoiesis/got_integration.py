@@ -61,13 +61,7 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
+from typing import Any, Optional
 
 # Import from local autopoiesis modules
 from core.autopoiesis.hypothesis_generator import (
@@ -93,7 +87,6 @@ from core.sovereign.runtime_engines.got_bridge import (
 
 logger = logging.getLogger(__name__)
 
-
 # =============================================================================
 # CONSTANTS
 # =============================================================================
@@ -106,14 +99,13 @@ DEFAULT_MCTS_ITERATIONS: int = 100
 DEFAULT_EXPLORATION_CONSTANT: float = 1.414  # sqrt(2) for UCB1
 
 # Numeric mapping for RiskLevel (str enum) for arithmetic operations
-_RISK_LEVEL_NUMERIC: Dict[str, int] = {"low": 1, "medium": 2, "high": 3}
+_RISK_LEVEL_NUMERIC: dict[str, int] = {"low": 1, "medium": 2, "high": 3}
 
 # SNR/Ihsan thresholds for hypothesis exploration
 HYPOTHESIS_SNR_FLOOR: float = 0.70
 HYPOTHESIS_IHSAN_FLOOR: float = 0.90
 CONVERGENCE_SIMILARITY_THRESHOLD: float = 0.85
 PATH_PRUNE_THRESHOLD: float = 0.40
-
 
 # =============================================================================
 # EXPLORED HYPOTHESIS
@@ -130,12 +122,12 @@ class ExploredHypothesis:
     """
 
     hypothesis: Hypothesis
-    exploration_path: List[ThoughtNode] = field(default_factory=list)
+    exploration_path: list[ThoughtNode] = field(default_factory=list)
     snr_score: float = 0.0
     ihsan_score: float = UNIFIED_IHSAN_THRESHOLD
     confidence: float = 0.5
-    convergence_evidence: List[str] = field(default_factory=list)
-    converged_with: List[str] = field(default_factory=list)
+    convergence_evidence: list[str] = field(default_factory=list)
+    converged_with: list[str] = field(default_factory=list)
     exploration_depth: int = 0
     exploration_time_ms: float = 0.0
     fate_validated: bool = False
@@ -202,7 +194,7 @@ class ExploredHypothesis:
 
         return (base_ev * exploration_boost * snr_weight) - ihsan_penalty
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export as dictionary."""
         return {
             "hypothesis_id": self.hypothesis.id,
@@ -238,8 +230,8 @@ class HypothesisThoughtNode(ThoughtNode):
     risk_level: Optional[RiskLevel] = None
     ihsan_impact: float = 0.0
     snr_contribution: float = 0.0
-    causal_parents: List[str] = field(default_factory=list)
-    causal_children: List[str] = field(default_factory=list)
+    causal_parents: list[str] = field(default_factory=list)
+    causal_children: list[str] = field(default_factory=list)
 
     def calculate_snr(self) -> float:
         """
@@ -320,9 +312,9 @@ class GoTHypothesisExplorer:
         self.snr_threshold = snr_threshold
 
         # Exploration state
-        self._exploration_graph: Dict[str, HypothesisThoughtNode] = {}
-        self._explored_hypotheses: List[ExploredHypothesis] = []
-        self._convergence_map: Dict[str, List[str]] = defaultdict(list)
+        self._exploration_graph: dict[str, HypothesisThoughtNode] = {}
+        self._explored_hypotheses: list[ExploredHypothesis] = []
+        self._convergence_map: dict[str, list[str]] = defaultdict(list)
 
         # Statistics
         self._total_nodes_explored: int = 0
@@ -339,7 +331,7 @@ class GoTHypothesisExplorer:
         observation: SystemObservation,
         num_paths: int = DEFAULT_NUM_PATHS,
         hypothesis_generator: Optional[HypothesisGenerator] = None,
-    ) -> List[ExploredHypothesis]:
+    ) -> list[ExploredHypothesis]:
         """
         Explore multiple improvement hypotheses using GoT.
 
@@ -356,7 +348,7 @@ class GoTHypothesisExplorer:
             hypothesis_generator: Optional generator for initial hypotheses
 
         Returns:
-            List of ExploredHypothesis ordered by expected value
+            list of ExploredHypothesis ordered by expected value
         """
         start_time = time.perf_counter_ns()
 
@@ -377,7 +369,7 @@ class GoTHypothesisExplorer:
         logger.info(f"Generated {len(initial_hypotheses)} initial hypotheses")
 
         # Step 2: Explore each hypothesis path
-        explored_paths: List[List[HypothesisThoughtNode]] = []
+        explored_paths: list[list[HypothesisThoughtNode]] = []
         for hypothesis in initial_hypotheses:
             path = await self._explore_path(hypothesis, observation)
             if path:
@@ -421,9 +413,9 @@ class GoTHypothesisExplorer:
         observation: SystemObservation,
         num_paths: int,
         generator: Optional[HypothesisGenerator],
-    ) -> List[Hypothesis]:
+    ) -> list[Hypothesis]:
         """Generate initial hypotheses from observation."""
-        hypotheses: List[Hypothesis] = []
+        hypotheses: list[Hypothesis] = []
 
         # Use provided generator or create default
         if generator:
@@ -437,9 +429,9 @@ class GoTHypothesisExplorer:
 
     def _generate_default_hypotheses(
         self, observation: SystemObservation, num_paths: int
-    ) -> List[Hypothesis]:
+    ) -> list[Hypothesis]:
         """Generate default hypotheses based on observation metrics."""
-        hypotheses: List[Hypothesis] = []
+        hypotheses: list[Hypothesis] = []
 
         # Performance hypothesis if latency is high
         if observation.avg_latency_ms > 100:
@@ -513,14 +505,14 @@ class GoTHypothesisExplorer:
 
     async def _explore_path(
         self, hypothesis: Hypothesis, observation: SystemObservation
-    ) -> List[HypothesisThoughtNode]:
+    ) -> list[HypothesisThoughtNode]:
         """
         Explore a single hypothesis path using depth-first with MCTS.
 
         Combines breadth-first initial exploration with depth-first
         refinement of promising branches.
         """
-        path: List[HypothesisThoughtNode] = []
+        path: list[HypothesisThoughtNode] = []
 
         # Create root node for this hypothesis
         root = self._create_hypothesis_node(hypothesis, observation, depth=0)
@@ -553,9 +545,9 @@ class GoTHypothesisExplorer:
 
     async def _expand_node(
         self, parent: HypothesisThoughtNode, observation: SystemObservation
-    ) -> List[HypothesisThoughtNode]:
+    ) -> list[HypothesisThoughtNode]:
         """Expand a node by generating child hypotheses."""
-        children: List[HypothesisThoughtNode] = []
+        children: list[HypothesisThoughtNode] = []
 
         # Generate variations based on parent hypothesis
         variations = self._generate_hypothesis_variations(parent, observation)
@@ -594,9 +586,9 @@ class GoTHypothesisExplorer:
 
     def _generate_hypothesis_variations(
         self, parent: HypothesisThoughtNode, observation: SystemObservation
-    ) -> List[Tuple[str, float]]:
+    ) -> list[tuple[str, float]]:
         """Generate variations of a hypothesis node."""
-        variations: List[Tuple[str, float]] = []
+        variations: list[tuple[str, float]] = []
 
         base_content = parent.content
         category = parent.hypothesis_category
@@ -633,9 +625,9 @@ class GoTHypothesisExplorer:
         start_node: HypothesisThoughtNode,
         observation: SystemObservation,
         max_depth: int,
-    ) -> List[HypothesisThoughtNode]:
+    ) -> list[HypothesisThoughtNode]:
         """Depth-first exploration from a promising node."""
-        path: List[HypothesisThoughtNode] = []
+        path: list[HypothesisThoughtNode] = []
         current = start_node
 
         for _ in range(max_depth):
@@ -663,17 +655,17 @@ class GoTHypothesisExplorer:
         return path
 
     def _aggregate_convergent_hypotheses(
-        self, paths: List[List[HypothesisThoughtNode]]
-    ) -> List[HypothesisThoughtNode]:
+        self, paths: list[list[HypothesisThoughtNode]]
+    ) -> list[HypothesisThoughtNode]:
         """
         Detect and aggregate hypotheses that converge on similar solutions.
 
         Returns aggregated nodes representing merged insights.
         """
-        aggregated: List[HypothesisThoughtNode] = []
+        aggregated: list[HypothesisThoughtNode] = []
 
         # Group paths by category
-        category_groups: Dict[HypothesisCategory, List[List[HypothesisThoughtNode]]] = (
+        category_groups: dict[HypothesisCategory, list[list[HypothesisThoughtNode]]] = (
             defaultdict(list)
         )
         for path in paths:
@@ -722,8 +714,16 @@ class GoTHypothesisExplorer:
         risk_similarity = (
             1.0
             - abs(
-                (_RISK_LEVEL_NUMERIC.get(node1.risk_level.value, 0) if node1.risk_level else 0)
-                - (_RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0) if node2.risk_level else 0)
+                (
+                    _RISK_LEVEL_NUMERIC.get(node1.risk_level.value, 0)
+                    if node1.risk_level
+                    else 0
+                )
+                - (
+                    _RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0)
+                    if node2.risk_level
+                    else 0
+                )
             )
             / 4
         )
@@ -761,7 +761,11 @@ class GoTHypothesisExplorer:
                 node1.risk_level
                 if node1.risk_level
                 and _RISK_LEVEL_NUMERIC.get(node1.risk_level.value, 0)
-                <= (_RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0) if node2.risk_level else 3)
+                <= (
+                    _RISK_LEVEL_NUMERIC.get(node2.risk_level.value, 0)
+                    if node2.risk_level
+                    else 3
+                )
                 else node2.risk_level
             ),
             ihsan_impact=(node1.ihsan_impact + node2.ihsan_impact) / 2,
@@ -780,14 +784,14 @@ class GoTHypothesisExplorer:
         return merged
 
     async def _refine_promising_paths(
-        self, paths: List[List[HypothesisThoughtNode]], observation: SystemObservation
-    ) -> List[ExploredHypothesis]:
+        self, paths: list[list[HypothesisThoughtNode]], observation: SystemObservation
+    ) -> list[ExploredHypothesis]:
         """
         Refine the most promising paths through iteration.
 
         Returns ExploredHypothesis instances with refined paths.
         """
-        explored: List[ExploredHypothesis] = []
+        explored: list[ExploredHypothesis] = []
 
         for path in paths:
             if not path:
@@ -821,8 +825,8 @@ class GoTHypothesisExplorer:
         return explored
 
     async def _refine_path(
-        self, path: List[HypothesisThoughtNode], observation: SystemObservation
-    ) -> List[HypothesisThoughtNode]:
+        self, path: list[HypothesisThoughtNode], observation: SystemObservation
+    ) -> list[HypothesisThoughtNode]:
         """Apply iterative refinement to a path."""
         refined_path = list(path)
 
@@ -873,10 +877,10 @@ class GoTHypothesisExplorer:
         )
 
     async def _validate_hypotheses(
-        self, explored: List[ExploredHypothesis]
-    ) -> List[ExploredHypothesis]:
+        self, explored: list[ExploredHypothesis]
+    ) -> list[ExploredHypothesis]:
         """Validate hypotheses via FATE gate."""
-        validated: List[ExploredHypothesis] = []
+        validated: list[ExploredHypothesis] = []
 
         for exp_hyp in explored:
             # Check Ihsan constraint
@@ -906,10 +910,10 @@ class GoTHypothesisExplorer:
         return validated
 
     def _prune_low_value_paths(
-        self, explored: List[ExploredHypothesis]
-    ) -> List[ExploredHypothesis]:
+        self, explored: list[ExploredHypothesis]
+    ) -> list[ExploredHypothesis]:
         """Prune hypotheses with low expected value."""
-        pruned: List[ExploredHypothesis] = []
+        pruned: list[ExploredHypothesis] = []
 
         for exp_hyp in explored:
             ev = exp_hyp.expected_value()
@@ -930,7 +934,7 @@ class GoTHypothesisExplorer:
         observation: SystemObservation,
         iterations: int = DEFAULT_MCTS_ITERATIONS,
         hypothesis_generator: Optional[HypothesisGenerator] = None,
-    ) -> List[ExploredHypothesis]:
+    ) -> list[ExploredHypothesis]:
         """
         Explore hypotheses using Monte Carlo Tree Search.
 
@@ -943,7 +947,7 @@ class GoTHypothesisExplorer:
             hypothesis_generator: Optional hypothesis generator
 
         Returns:
-            List of explored hypotheses
+            list of explored hypotheses
         """
         start_time = time.perf_counter_ns()
 
@@ -956,7 +960,7 @@ class GoTHypothesisExplorer:
             return []
 
         # Create root nodes for MCTS
-        mcts_roots: Dict[str, MCTSNode] = {}
+        mcts_roots: dict[str, MCTSNode] = {}
         for hyp in initial:
             root_node = self._create_hypothesis_node(hyp, observation, depth=0)
             mcts_root = MCTSNode(
@@ -982,7 +986,7 @@ class GoTHypothesisExplorer:
                 self._mcts_backpropagate(expanded, reward)
 
         # Extract best paths from MCTS trees
-        explored: List[ExploredHypothesis] = []
+        explored: list[ExploredHypothesis] = []
         for root_id, root in mcts_roots.items():
             best_path = self._extract_best_mcts_path(root)
             if best_path:
@@ -1065,9 +1069,9 @@ class GoTHypothesisExplorer:
             current.total_reward += reward
             current = current.parent
 
-    def _extract_best_mcts_path(self, root: "MCTSNode") -> List["MCTSNode"]:
+    def _extract_best_mcts_path(self, root: "MCTSNode") -> list["MCTSNode"]:
         """Extract best path from MCTS tree."""
-        path: List[MCTSNode] = [root]
+        path: list[MCTSNode] = [root]
         current = root
 
         while current.children:
@@ -1112,7 +1116,7 @@ class GoTHypothesisExplorer:
     # SNR CALCULATION
     # =========================================================================
 
-    def calculate_path_snr(self, path: List[ThoughtNode]) -> float:
+    def calculate_path_snr(self, path: list[ThoughtNode]) -> float:
         """
         Calculate SNR for an exploration path.
 
@@ -1121,7 +1125,7 @@ class GoTHypothesisExplorer:
         noise = sum(uncertainty + risk_level for each node)
 
         Args:
-            path: List of thought nodes in the path
+            path: list of thought nodes in the path
 
         Returns:
             SNR score for the path
@@ -1153,7 +1157,7 @@ class GoTHypothesisExplorer:
     # STATISTICS AND REPORTING
     # =========================================================================
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get exploration statistics."""
         return {
             "total_nodes_explored": self._total_nodes_explored,
@@ -1228,7 +1232,7 @@ class MCTSNode:
     hypothesis_node: HypothesisThoughtNode
     parent: Optional["MCTSNode"]
     observation: SystemObservation
-    children: List["MCTSNode"] = field(default_factory=list)
+    children: list["MCTSNode"] = field(default_factory=list)
     visits: int = 0
     total_reward: float = 0.0
 
@@ -1284,7 +1288,7 @@ class GoTAutopoieticIntegration:
 
     async def enhanced_hypothesize(
         self, observation: SystemObservation, num_paths: int = DEFAULT_NUM_PATHS
-    ) -> List[Hypothesis]:
+    ) -> list[Hypothesis]:
         """
         Enhanced hypothesis generation using GoT exploration.
 
@@ -1296,7 +1300,7 @@ class GoTAutopoieticIntegration:
             num_paths: Number of paths to explore
 
         Returns:
-            List of hypotheses ranked by exploration-enhanced expected value
+            list of hypotheses ranked by exploration-enhanced expected value
         """
         # Explore hypotheses using GoT
         explored = await self.explorer.explore_hypotheses(
@@ -1306,7 +1310,7 @@ class GoTAutopoieticIntegration:
         )
 
         # Extract hypotheses with enhanced confidence from exploration
-        enhanced_hypotheses: List[Hypothesis] = []
+        enhanced_hypotheses: list[Hypothesis] = []
 
         for exp_hyp in explored:
             # Update hypothesis confidence based on exploration
@@ -1324,7 +1328,7 @@ class GoTAutopoieticIntegration:
         self,
         observation: SystemObservation,
         iterations: int = DEFAULT_MCTS_ITERATIONS,
-    ) -> List[Hypothesis]:
+    ) -> list[Hypothesis]:
         """
         Enhanced hypothesis generation using MCTS exploration.
 
@@ -1336,7 +1340,7 @@ class GoTAutopoieticIntegration:
             iterations: MCTS iterations
 
         Returns:
-            List of hypotheses ranked by MCTS-optimized expected value
+            list of hypotheses ranked by MCTS-optimized expected value
         """
         explored = await self.explorer.explore_with_mcts(
             observation=observation,

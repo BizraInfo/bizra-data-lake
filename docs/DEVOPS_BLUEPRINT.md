@@ -65,41 +65,52 @@ Enterprise-grade CI/CD Pipeline Documentation
 
 ### CI Workflow (`.github/workflows/ci.yml`)
 
-Runs on every push and pull request.
+Runs on every push and pull request. All jobs have `timeout-minutes` set.
 
 ```yaml
 Triggers:
   - push to: main, master, develop
   - pull_request to: main, master
 
+Concurrency: cancel-in-progress per workflow+ref
+Runner OS: ubuntu-24.04 (pinned, no 'latest')
+Actions: SHA-pinned to immutable commit hashes
+
 Jobs:
-  1. lint-python      # Black, isort, ruff, mypy
-  2. lint-rust        # cargo fmt, clippy
-  3. test-python      # pytest matrix (3.10, 3.11, 3.12)
-  4. test-rust        # cargo test
-  5. test-pyo3        # PyO3 binding tests
-  6. quality-gates    # SNR/Ihsan validation
-  7. security-scan    # Bandit, Safety, Trivy
-  8. build-images     # Docker multi-stage build
-  9. integration      # Full stack tests
+  1. lint-python           # ruff, Black, isort, mypy (15m)
+  2. lint-rust             # cargo fmt, clippy (15m)
+  3. validate-schemas      # JSON schema validation (10m)
+  4. test-python           # pytest matrix (3.11, 3.12) (30m)
+  5. test-rust             # cargo test (30m)
+  6. test-pyo3-bindings    # PyO3 binding tests (20m)
+  7. quality-gates         # SNR/Ihsan validation (30m)
+  8. security-scan         # Bandit, pip-audit, Trivy (20m)
+  9. build-python-image    # Docker multi-stage build (20m)
+  10. build-rust-image     # Rust Docker build (30m)
+  11. integration-tests    # Full stack tests with Redis service (20m)
+  12. ci-summary           # Final status report (5m)
 ```
 
 ### Deploy Workflow (`.github/workflows/deploy.yml`)
 
-Runs on release or manual dispatch.
+Runs on release or manual dispatch. Has deployment-level concurrency guard.
 
 ```yaml
 Triggers:
   - release: published
   - workflow_dispatch: staging/production
 
+Concurrency: deploy-{environment}, cancel-in-progress: false
+Runner OS: ubuntu-24.04 (pinned)
+
 Jobs:
-  1. build-push       # Build and push to GHCR
-  2. deploy-staging   # Deploy to staging cluster
-  3. smoke-tests      # Verify staging health
-  4. production-gate  # Constitutional validation
-  5. deploy-production# Canary then full rollout
-  6. verify           # Final health check
+  1. build-push           # Build and push to GHCR (30m)
+  2. deploy-staging       # Deploy to staging cluster (15m)
+  3. smoke-tests          # Verify staging health (10m)
+  4. production-quality-gate  # Constitutional validation (20m)
+  5. deploy-production    # Canary then full rollout (20m)
+  6. verify-production    # Final health check (5m)
+  7. rollback             # Emergency rollback (manual, 10m)
 ```
 
 ### Release Workflow (`.github/workflows/release.yml`)
@@ -110,14 +121,43 @@ Runs on version tags (v*.*.*)
 Triggers:
   - tag: v[0-9]+.[0-9]+.[0-9]+
 
+Concurrency: release-{ref}, cancel-in-progress: false
+Runner OS: ubuntu-24.04 (pinned)
+Permissions: contents: read (least privilege)
+
 Jobs:
-  1. validate         # Version consistency
-  2. build-artifacts  # Multi-platform binaries
-  3. build-wheel      # Python wheel
-  4. build-pyo3       # PyO3 manylinux wheels
-  5. create-release   # GitHub release
-  6. publish-pypi     # PyPI publication
+  1. validate         # Version consistency (5m)
+  2. build-artifacts  # Multi-platform binaries (30m)
+  3. build-wheel      # Python wheel (15m)
+  4. build-pyo3       # PyO3 manylinux wheels (30m)
+  5. generate-sbom    # Software Bill of Materials (15m)
+  6. create-release   # GitHub release (10m)
+  7. publish-pypi     # PyPI publication (10m)
 ```
+
+---
+
+## CI Hardening Standards
+
+All 7 workflows enforce the following security and reliability standards:
+
+| Standard | Enforcement | Details |
+|----------|-------------|---------|
+| SHA-pinned Actions | All `uses:` entries | 40-char hex commit hash, version in comment |
+| Pinned runner OS | `ubuntu-24.04` | No `ubuntu-latest` anywhere |
+| Job timeouts | `timeout-minutes` on every job | Prevents stuck runners |
+| Concurrency groups | Per workflow + ref | Prevents parallel builds on same branch |
+| Docker image pins | SHA256 digest | Redis, Prometheus, Grafana in CI services |
+| Least privilege | `permissions: contents: read` | Added to release workflow |
+
+### Additional Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `tests.yml` | Push/PR | Extended test matrix (unit, integration, token, spearpoint, slow) |
+| `performance.yml` | Push to main | Inference latency, throughput, memory benchmarks |
+| `native-ci.yml` | Push to `native/` | Rust native crates (fate-binding, iceoryx-bridge) |
+| `docs-quality.yml` | Push with doc changes | Markdown lint, link check, policy validation |
 
 ---
 

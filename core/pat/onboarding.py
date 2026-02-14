@@ -227,7 +227,9 @@ class OnboardingWizard:
         # Identity card (public — shareable)
         identity_path = self.identity_file
         if result.identity_card is not None:
-            identity_path.write_text(json.dumps(result.identity_card.to_dict(), indent=2))
+            identity_path.write_text(
+                json.dumps(result.identity_card.to_dict(), indent=2)
+            )
 
         # Agent manifest
         agents_data = {

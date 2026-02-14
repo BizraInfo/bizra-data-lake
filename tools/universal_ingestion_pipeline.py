@@ -40,8 +40,8 @@ OUTPUT_BASE = PROJECT_ROOT / "02_PROCESSED"
 MANIFEST_PATH = PROJECT_ROOT / "04_GOLD" / "universal_ingestion_manifest.jsonl"
 CHECKPOINT_PATH = PROJECT_ROOT / "04_GOLD" / "ingestion_checkpoint.json"
 
-# Hashing configuration
-HASH_ALGO = "sha256"
+# Hashing configuration — SEC-001: BLAKE3 for Rust interop
+HASH_ALGO = "blake3"
 HASH_PREFIX_LEN = 16
 LEGACY_PREFIX_LEN = 8
 
@@ -221,7 +221,11 @@ class UniversalIngestionPipeline:
     def get_file_hash(self, file_path: Path) -> str:
         """Generate hash for deduplication."""
         # Use content-based hashing to prevent collisions and false skips.
-        hasher = hashlib.sha256()
+        try:
+            import blake3
+            hasher = blake3.blake3()
+        except ImportError:
+            hasher = hashlib.sha256()
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(1024 * 1024), b""):
                 hasher.update(chunk)

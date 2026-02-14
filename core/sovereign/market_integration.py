@@ -30,7 +30,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.apex import (
     OpportunityEngine,
@@ -43,7 +43,6 @@ from core.sovereign.muraqabah_engine import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 from core.integration.constants import (
     SNR_THRESHOLD_T1_HIGH,
@@ -79,7 +78,7 @@ class MarketSensorReading:
     sensor_type: MarketSensorType = MarketSensorType.MARKET_ANALYSIS
     domain: MonitorDomain = MonitorDomain.FINANCIAL
     symbol: str = ""
-    value: Dict[str, Any] = field(default_factory=dict)
+    value: dict[str, Any] = field(default_factory=dict)
     snr_score: float = 0.5
     confidence: float = 0.5
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -168,13 +167,13 @@ class MarketSensorAdapter:
         age = datetime.now(timezone.utc) - timestamp
         return age > timedelta(minutes=self.staleness_minutes)
 
-    def scan(self) -> List[MarketSensorReading]:
+    def scan(self) -> list[MarketSensorReading]:
         """
         Scan for market opportunities.
 
         Returns sensor readings compatible with Muraqabah.
         """
-        readings: List[MarketSensorReading] = []
+        readings: list[MarketSensorReading] = []
         self._last_scan = datetime.now(timezone.utc)
 
         # 1. Get market analysis readings
@@ -213,7 +212,7 @@ class MarketSensorAdapter:
             readings.append(reading)
 
         # 2. Get trading signals
-        active_signals: List[Any] = []
+        active_signals: list[Any] = []
         for symbol in self._watched_symbols:
             analysis = self.opportunity_engine.analyzer.analyze(symbol)
             history = [
@@ -320,7 +319,7 @@ class MarketAwareMuraqabah(MuraqabahEngine):
         self._register_market_sensor()
 
         # Goal tracking
-        self._pending_goals: Dict[str, MarketGoal] = {}
+        self._pending_goals: dict[str, MarketGoal] = {}
 
         logger.info(f"MarketAwareMuraqabah initialized: {node_id}")
 
@@ -329,17 +328,17 @@ class MarketAwareMuraqabah(MuraqabahEngine):
         # The market sensor provides financial domain readings
         logger.debug("Registered market sensor for financial domain")
 
-    async def scan_financial_domain(self) -> List[MarketSensorReading]:
+    async def scan_financial_domain(self) -> list[MarketSensorReading]:
         """Scan financial domain using market sensor."""
         return self.market_sensor.scan()
 
-    async def scan_all_domains(self) -> Dict[str, List[SensorReading]]:
+    async def scan_all_domains(self) -> dict[str, list[SensorReading]]:
         """
         Scan all domains including market.
 
         Returns readings organized by domain.
         """
-        readings: Dict[str, List[SensorReading]] = {
+        readings: dict[str, list[SensorReading]] = {
             "financial": [],
             "health": [],
             "social": [],
@@ -524,7 +523,7 @@ class MarketAwareMuraqabah(MuraqabahEngine):
 
         return snr_factor * balance_factor * autonomy_factor
 
-    def get_pending_goals(self) -> List[MarketGoal]:
+    def get_pending_goals(self) -> list[MarketGoal]:
         """Get all pending market goals."""
         return list(self._pending_goals.values())
 

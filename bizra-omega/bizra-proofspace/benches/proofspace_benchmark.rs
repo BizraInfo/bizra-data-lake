@@ -7,19 +7,14 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 use bizra_proofspace::{
-    jcs_canonicalize, compute_block_id,
-    ProofSpaceValidator, BlockBuilder, BlockType, BlockStatus,
-    BizraBlock, BlockCore, BlockBody, UnsignedBlock, BlockCoreUnsigned,
-    Dependencies, Inputs, ExternalRef, ExternalRefType,
-    Assumption, Criticality, Constraint, ConstraintType,
-    ProofPack, ReproductionStep, ValidationMethod, ValidationMethodType,
-    ExpectedOutcome, FailureMode, ConfidenceBounds,
-    ImpactClaim, Beneficiary, BeneficiaryType, Measurement, Uncertainty, UncertaintyType,
-    TimeHorizon,
-    EthicalEnvelope, HarmAnalysis, PotentialHarm, HarmType, Severity,
-    MisuseRisk, MisuseDifficulty, ContextLimits, Reversibility,
-    HumanOverrideConditions,
-    Signatures, VerifierSignature, VerificationType,
+    compute_block_id, jcs_canonicalize, Assumption, Beneficiary, BeneficiaryType, BizraBlock,
+    BlockBody, BlockBuilder, BlockCore, BlockCoreUnsigned, BlockStatus, BlockType,
+    ConfidenceBounds, Constraint, ConstraintType, ContextLimits, Criticality, Dependencies,
+    EthicalEnvelope, ExpectedOutcome, ExternalRef, ExternalRefType, FailureMode, HarmAnalysis,
+    HarmType, HumanOverrideConditions, ImpactClaim, Inputs, Measurement, MisuseDifficulty,
+    MisuseRisk, PotentialHarm, ProofPack, ProofSpaceValidator, ReproductionStep, Reversibility,
+    Severity, Signatures, TimeHorizon, Uncertainty, UncertaintyType, UnsignedBlock,
+    ValidationMethod, ValidationMethodType, VerificationType, VerifierSignature,
 };
 
 // =============================================================================
@@ -488,13 +483,10 @@ fn bench_block_builder(c: &mut Criterion) {
     group.bench_function("build_minimal", |b| {
         b.iter(|| {
             let body = minimal_body();
-            let result = BlockBuilder::new(
-                BlockType::KnowledgeBlock,
-                "a".repeat(64),
-            )
-            .status(BlockStatus::Draft)
-            .body(body)
-            .build_unsigned();
+            let result = BlockBuilder::new(BlockType::KnowledgeBlock, "a".repeat(64))
+                .status(BlockStatus::Draft)
+                .body(body)
+                .build_unsigned();
             black_box(result.unwrap());
         });
     });
@@ -502,14 +494,11 @@ fn bench_block_builder(c: &mut Criterion) {
     group.bench_function("build_full", |b| {
         b.iter(|| {
             let body = full_body();
-            let result = BlockBuilder::new(
-                BlockType::ProofBlock,
-                "a".repeat(64),
-            )
-            .status(BlockStatus::Submitted)
-            .parent_block("9".repeat(64))
-            .body(body)
-            .build_unsigned();
+            let result = BlockBuilder::new(BlockType::ProofBlock, "a".repeat(64))
+                .status(BlockStatus::Submitted)
+                .parent_block("9".repeat(64))
+                .body(body)
+                .build_unsigned();
             black_box(result.unwrap());
         });
     });

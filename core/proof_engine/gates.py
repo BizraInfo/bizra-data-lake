@@ -382,7 +382,10 @@ class ConstraintGate(Gate):
             )
 
         # Check Z3 satisfiability
-        z3_satisfiable = context.get("z3_satisfiable", True)
+        # CRITICAL-3 FIX: Default to False (fail-closed), not True.
+        # Z3 satisfiability must be COMPUTED, not ASSUMED.
+        # Standing on: ZANN_ZERO ("no assumptions")
+        z3_satisfiable = context.get("z3_satisfiable", False)
         if not z3_satisfiable:
             return GateResult(
                 gate_name=self.name,

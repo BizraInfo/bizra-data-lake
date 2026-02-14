@@ -392,7 +392,11 @@ class CardIssuer:
                 public_key.verify(signature, canonical)
                 return True
             except Exception:
-                logger.error("Ed25519 signature verification failed for card %s", card.model_id, exc_info=True)
+                logger.error(
+                    "Ed25519 signature verification failed for card %s",
+                    card.model_id,
+                    exc_info=True,
+                )
                 return False
 
         return False

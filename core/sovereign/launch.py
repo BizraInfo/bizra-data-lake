@@ -36,9 +36,11 @@ import asyncio
 import logging
 import signal
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
+    from core.bridges.desktop_bridge import DesktopBridge
+
     from .api import SovereignAPIServer
     from .bridge import SovereignBridge
     from .metrics import MetricsCollector
@@ -92,6 +94,8 @@ class SovereignLauncher:
         api_port: int = 8080,
         enable_api: bool = True,
         enable_autonomy: bool = True,
+        enable_desktop_bridge: bool = True,
+        desktop_bridge_port: int = 9742,
         snr_threshold: float = 0.95,
         ihsan_threshold: float = 0.95,
     ):
@@ -100,6 +104,8 @@ class SovereignLauncher:
         self.api_port = api_port
         self.enable_api = enable_api
         self.enable_autonomy = enable_autonomy
+        self.enable_desktop_bridge = enable_desktop_bridge
+        self.desktop_bridge_port = desktop_bridge_port
         self.snr_threshold = snr_threshold
         self.ihsan_threshold = ihsan_threshold
 
@@ -108,6 +114,7 @@ class SovereignLauncher:
         self.bridge: Optional[SovereignBridge] = None
         self.metrics: Optional[MetricsCollector] = None
         self.api_server: Optional[SovereignAPIServer] = None
+        self.desktop_bridge: Optional[DesktopBridge] = None
 
         # State
         self._running = False
@@ -123,7 +130,7 @@ class SovereignLauncher:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
         # 1. Initialize Runtime
-        logger.info("[1/5] Initializing Runtime...")
+        logger.info("[1/6] Initializing Runtime...")
         from .runtime import RuntimeConfig, SovereignRuntime
 
         config = RuntimeConfig(
@@ -139,7 +146,7 @@ class SovereignLauncher:
         logger.info(f"  ✓ Runtime initialized: {config.node_id}")
 
         # 2. Connect Bridge
-        logger.info("[2/5] Connecting Bridge...")
+        logger.info("[2/6] Connecting Bridge...")
         from .bridge import SovereignBridge
 
         bridge = SovereignBridge(
@@ -151,7 +158,7 @@ class SovereignLauncher:
         logger.info(f"  ✓ Bridge connected: {bridge_status}")
 
         # 3. Start Metrics Collector
-        logger.info("[3/5] Starting Metrics...")
+        logger.info("[3/6] Starting Metrics...")
         from .metrics import MetricsCollector
 
         metrics = MetricsCollector(collection_interval=1.0)
@@ -161,15 +168,15 @@ class SovereignLauncher:
 
         # 4. Wire Autonomy
         if self.enable_autonomy:
-            logger.info("[4/5] Wiring Autonomy...")
+            logger.info("[4/6] Wiring Autonomy...")
             await self._wire_autonomy()
             logger.info("  ✓ Autonomous loop wired")
         else:
-            logger.info("[4/5] Autonomy disabled")
+            logger.info("[4/6] Autonomy disabled")
 
         # 5. Start API Server
         if self.enable_api:
-            logger.info("[5/5] Starting API Server...")
+            logger.info("[5/6] Starting API Server...")
             from .api import SovereignAPIServer
 
             api_server = SovereignAPIServer(
@@ -180,7 +187,27 @@ class SovereignLauncher:
             await api_server.start()
             logger.info(f"  ✓ API server on port {self.api_port}")
         else:
-            logger.info("[5/5] API disabled")
+            logger.info("[5/6] API disabled")
+
+        # 6. Start Desktop Bridge (AHK ↔ TCP JSON-RPC)
+        if self.enable_desktop_bridge:
+            logger.info("[6/6] Starting Desktop Bridge...")
+            try:
+                from core.bridges.desktop_bridge import DesktopBridge
+
+                desktop_bridge = DesktopBridge(
+                    host="127.0.0.1",
+                    port=self.desktop_bridge_port,
+                )
+                self.desktop_bridge = desktop_bridge
+                await desktop_bridge.start()
+                logger.info(
+                    f"  ✓ Desktop bridge on 127.0.0.1:{self.desktop_bridge_port}"
+                )
+            except Exception as e:
+                logger.warning(f"  ✗ Desktop bridge failed: {e} (non-fatal)")
+        else:
+            logger.info("[6/6] Desktop bridge disabled")
 
         # Setup signal handlers
         self._setup_signals()
@@ -195,7 +222,9 @@ class SovereignLauncher:
         logger.info(f"  SNR Target:  {self.snr_threshold}")
         logger.info(f"  Ihsān Gate:  {self.ihsan_threshold}")
         if self.enable_api:
-            logger.info(f"  API:         http://0.0.0.0:{self.api_port}")
+            logger.info(f"  API:         http://127.0.0.1:{self.api_port}")
+        if self.desktop_bridge and self.desktop_bridge.is_running:
+            logger.info(f"  Bridge:      tcp://127.0.0.1:{self.desktop_bridge_port}")
         logger.info("")
         logger.info("Press Ctrl+C to shutdown gracefully")
         logger.info("=" * 70)
@@ -276,7 +305,11 @@ class SovereignLauncher:
 
         self._running = False
 
-        # Stop in reverse order
+        # Stop in reverse order (LIFO)
+        if self.desktop_bridge:
+            logger.info("Stopping desktop bridge...")
+            await self.desktop_bridge.stop()
+
         if self.api_server:
             logger.info("Stopping API server...")
             await self.api_server.stop()
@@ -308,7 +341,7 @@ class SovereignLauncher:
         await self.start()
         await self.wait()
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get comprehensive status."""
         status = {
             "running": self._running,
@@ -324,6 +357,14 @@ class SovereignLauncher:
 
         if self.metrics:
             status["metrics"] = self.metrics.status()
+
+        if self.desktop_bridge:
+            status["desktop_bridge"] = {
+                "running": self.desktop_bridge.is_running,
+                "port": self.desktop_bridge_port,
+                "uptime_s": round(self.desktop_bridge.uptime_s, 2),
+                "request_count": self.desktop_bridge._request_count,
+            }
 
         return status
 
@@ -360,6 +401,12 @@ Examples:
     )
     parser.add_argument("--snr", type=float, default=0.95, help="SNR threshold")
     parser.add_argument("--ihsan", type=float, default=0.95, help="Ihsān threshold")
+    parser.add_argument(
+        "--no-bridge", action="store_true", help="Disable desktop bridge"
+    )
+    parser.add_argument(
+        "--bridge-port", type=int, default=9742, help="Desktop bridge port"
+    )
     parser.add_argument("--quiet", action="store_true", help="Suppress banner")
 
     args = parser.parse_args()
@@ -373,6 +420,8 @@ Examples:
         api_port=args.port,
         enable_api=not args.no_api,
         enable_autonomy=not args.no_autonomy,
+        enable_desktop_bridge=not args.no_bridge,
+        desktop_bridge_port=args.bridge_port,
         snr_threshold=args.snr,
         ihsan_threshold=args.ihsan,
     )
@@ -385,7 +434,6 @@ Examples:
 # =============================================================================
 
 __all__ = ["SovereignLauncher", "main"]
-
 
 # =============================================================================
 # ENTRY POINT

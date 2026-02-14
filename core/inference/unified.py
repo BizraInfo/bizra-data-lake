@@ -21,7 +21,6 @@ Created: 2026-01-30 | BIZRA Sovereignty
 """
 
 import asyncio
-import hashlib
 import json
 import threading
 import time
@@ -29,6 +28,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Dict, Optional, Union
+
+from core.proof_engine.canonical import hex_digest
 
 from .gateway import (  # type: ignore[attr-defined]
     InferenceConfig,
@@ -315,13 +316,13 @@ class UnifiedInferenceSystem:
             "type": "inference",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "model": model.name,
-            "prompt_hash": hashlib.sha256(prompt.encode()).hexdigest()[:16],
-            "response_hash": hashlib.sha256(response.encode()).hexdigest()[:16],
+            "prompt_hash": hex_digest(prompt.encode())[:16],
+            "response_hash": hex_digest(response.encode())[:16],
             "prev_hash": self._last_receipt_hash or "GENESIS",
         }
 
         receipt_json = json.dumps(receipt_data, sort_keys=True)
-        receipt_hash = hashlib.sha256(receipt_json.encode()).hexdigest()
+        receipt_hash = hex_digest(receipt_json.encode())
 
         self._last_receipt_hash = receipt_hash
         return receipt_hash

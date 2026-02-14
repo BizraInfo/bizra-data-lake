@@ -228,6 +228,9 @@ class TestFullPipeline:
         mock_gateway = MockGateway()
         runtime._gateway = mock_gateway
 
+        # CRITICAL-1: Initialize gate chain so queries aren't rejected (fail-closed)
+        runtime._init_gate_chain()
+
         # Run query
         result = await runtime.query("What is the meaning of life?")
 
@@ -252,6 +255,9 @@ class TestFullPipeline:
         runtime._gateway = MockGateway()
         mock_omega = MockOmegaEngine()
         runtime._omega = mock_omega
+
+        # CRITICAL-1: Initialize gate chain so queries aren't rejected (fail-closed)
+        runtime._init_gate_chain()
 
         # Run query
         result = await runtime.query("Test query", require_validation=False)

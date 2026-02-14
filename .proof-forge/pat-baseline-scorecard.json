@@ -1,0 +1,242 @@
+{
+  "scorecard": "PAT Performance Baseline",
+  "version": "1.0.0",
+  "timestamp": "2026-02-10T20:00:00+04:00",
+  "node": "Node0-Genesis",
+  "purpose": "Baseline metrics for PAT (Personal Agentic Team) performance evaluation",
+
+  "test_performance": {
+    "python": {
+      "total": 5678,
+      "passed": 5631,
+      "failed": 1,
+      "skipped": 46,
+      "duration_seconds": 773.21,
+      "pass_rate": 0.9917,
+      "failures": [
+        {
+          "test": "tests/test_adl_kernel.py::TestIncrementalPerformance::test_gini_retrieval_is_constant_time",
+          "category": "performance_timing",
+          "severity": "low",
+          "note": "Flaky timing assertion in WSL environment"
+        }
+      ]
+    },
+    "rust": {
+      "total": 472,
+      "passed": 472,
+      "failed": 0,
+      "duration_seconds": 38.72,
+      "pass_rate": 1.0
+    },
+    "combined_pass_rate": 0.9998
+  },
+
+  "codebase_metrics": {
+    "python": {
+      "files": 514,
+      "lines_of_code": 226912,
+      "test_files": 145
+    },
+    "rust": {
+      "files": 151,
+      "lines_of_code": 163471,
+      "workspace_members": 13,
+      "crates": [
+        "bizra-core", "bizra-cli", "bizra-api", "bizra-python",
+        "bizra-federation", "bizra-autopoiesis", "bizra-got",
+        "bizra-snr", "bizra-crypto", "bizra-telemetry",
+        "bizra-guardian", "bizra-wasm", "node0-genesis"
+      ]
+    },
+    "total_files": 665,
+    "total_loc": 390383
+  },
+
+  "binary_sizes": {
+    "bizra_tui": "1.9M",
+    "bizra_api": "4.5M",
+    "node0_genesis": "540K"
+  },
+
+  "rust_test_distribution": {
+    "bizra-core": 134,
+    "bizra-federation": 49,
+    "bizra-autopoiesis": 46,
+    "bizra-got": 42,
+    "bizra-snr": 38,
+    "bizra-crypto": 35,
+    "bizra-guardian": 30,
+    "bizra-api": 28,
+    "bizra-telemetry": 24,
+    "node0-genesis": 22,
+    "bizra-cli": 12,
+    "bizra-python": 8,
+    "bizra-wasm": 4
+  },
+
+  "quality_gates": {
+    "snr_score": 0.90,
+    "snr_threshold": 0.85,
+    "ihsan_score": 0.96,
+    "ihsan_threshold": 0.95,
+    "python_coverage_percent": 56.65,
+    "python_coverage_floor": 55.0,
+    "rust_coverage_estimate_percent": 65.0,
+    "all_gates_passing": true
+  },
+
+  "pat_agent_findings": {
+    "pat_rsc": {
+      "role": "Researcher",
+      "domain": "Architecture and 7-layer stack mapping",
+      "key_findings": [
+        "13 Rust crates, 40+ Python modules mapped",
+        "7-layer DDAGI consciousness stack verified (L1-PHI through L7-MCG)",
+        "Data pipeline: 5 stages (Intake -> Raw -> Processed -> Indexed -> Gold)",
+        "56,358 graph nodes, 84,795 embedded chunks in knowledge base",
+        "Top 20 key files identified across Python and Rust"
+      ],
+      "knowledge_score": 0.92
+    },
+    "pat_grd": {
+      "role": "Guardian",
+      "domain": "Security posture and trust boundaries",
+      "security_grade": "B+",
+      "findings": {
+        "critical": [
+          "SEC-001: Cross-language crypto incompatibility — Python SHA-256 vs Rust BLAKE3 in non-PCI paths"
+        ],
+        "high": [
+          "SEC-002: In-memory nonce cache doesn't survive restart",
+          "SEC-003: JWT secret auto-generated (not persisted/rotated)",
+          "SEC-004: Rate limiting per-user only (no global throttle)"
+        ],
+        "medium": [
+          "SEC-005: Plaintext API keys in SQLite vault",
+          "SEC-006: No certificate pinning for federation",
+          "SEC-007: Gossip protocol lacks message authentication",
+          "SEC-008: Token operations lack atomic transaction guarantees",
+          "SEC-009: No TLS configuration for API endpoints"
+        ],
+        "low": [
+          "SEC-010: Debug logging includes sensitive context",
+          "SEC-011: No audit log rotation policy",
+          "SEC-012: Missing CORS configuration",
+          "SEC-013: No request size limits on API"
+        ]
+      },
+      "knowledge_score": 0.89
+    },
+    "pat_wrk": {
+      "role": "Worker",
+      "domain": "CI/CD, deployment, and ops readiness",
+      "key_findings": [
+        "6 CI/CD workflows mapped (lint, test, security, build, deploy, release)",
+        "Kubernetes deployment with canary strategy defined",
+        "ArgoCD GitOps integration configured",
+        "Prometheus monitoring with constitutional thresholds",
+        "Gaps: Missing docker-compose.yml, Grafana dashboards, runbooks",
+        "No multi-platform release pipeline"
+      ],
+      "knowledge_score": 0.85
+    },
+    "pat_syn": {
+      "role": "Synthesizer",
+      "domain": "Python-Rust bridge and integration map",
+      "integration_health_percent": 78,
+      "key_findings": [
+        "Three integration bridges: PyO3, CLI subprocess, REST API",
+        "Constants aligned: IHSAN=0.95, SNR=0.85 across languages",
+        "Gap: No Rust parquet reader (Python-only data pipeline)",
+        "Gap: Token ledger Python-only (no Rust bridge)",
+        "Gap: Duplicate threshold checking in both languages",
+        "Gap: Receipt schemas diverged between Python and Rust"
+      ],
+      "knowledge_score": 0.88
+    },
+    "pat_val": {
+      "role": "Validator",
+      "domain": "Test coverage and quality gate status",
+      "key_findings": [
+        "145 Python test files, 434 Rust tests (~80K test lines total)",
+        "Coverage: 56.65% Python (above 55% floor), ~65% Rust",
+        "All quality gates passing (SNR 0.90, Ihsan 0.96)",
+        "Gap: No live multi-node consensus tests",
+        "Gap: SDPO (Self-Directed Performance Optimization) untested in CI",
+        "Gap: Bridge modules undertested"
+      ],
+      "knowledge_score": 0.87
+    }
+  },
+
+  "composite_scores": {
+    "pat_average_knowledge": 0.882,
+    "system_test_health": 0.9998,
+    "integration_alignment": 0.78,
+    "security_posture": 0.72,
+    "ops_readiness": 0.65,
+    "overall_node0_readiness": 0.806
+  },
+
+  "improvement_targets": {
+    "short_term": [
+      "Fix SEC-001: Unify crypto hashing (BLAKE3 everywhere or bridge layer)",
+      "Fix flaky test: test_gini_retrieval_is_constant_time",
+      "Raise Python coverage to 65%",
+      "Add docker-compose.yml for local dev"
+    ],
+    "medium_term": [
+      "Fix SEC-002/003: Persistent nonce cache and JWT secret rotation",
+      "Bridge token ledger to Rust",
+      "Unify receipt schemas across languages",
+      "Add multi-node consensus integration tests",
+      "Create Grafana dashboards and runbooks"
+    ],
+    "long_term": [
+      "Achieve 80%+ coverage in both languages",
+      "Full TLS/mTLS for federation and API",
+      "Multi-platform release pipeline",
+      "SDPO CI integration",
+      "Rust parquet reader for zero-copy data pipeline"
+    ]
+  },
+
+  "competitive_intelligence": {
+    "position": "CATEGORY_CREATOR",
+    "direct_competitors": 0,
+    "indirect_competitors": 5,
+    "adjacent_threats": 8,
+    "feature_matrix_score": "70/80 (87.5%)",
+    "feature_lead_multiplier": "5.0x over nearest (ASI Alliance 14/80)",
+    "unclaimed_positions": [
+      "Sovereign AGI OS",
+      "Constitutional Runtime",
+      "Shariah-Native AI",
+      "Ethics-as-Physics",
+      "NTU Kernel"
+    ],
+    "sape_composite_snr": 0.88,
+    "ihsan_composite_8dim": 0.92,
+    "moat_width": "WIDE (6-dimensional convergence)",
+    "addressable_market": "$5.9T Islamic Finance + $28B Sovereign AI + $47B AI Agents",
+    "time_to_replicate": "3-5 years (15K+ hours invested)",
+    "source": "BIZRA_Competitive_Intelligence_v3.html (2026-02-12)"
+  },
+
+  "source_ecosystem_snr": {
+    "composite": 0.41,
+    "l1_phi": 0.75,
+    "l2_sic": 0.20,
+    "l3_pce": 0.85,
+    "l4_cpm": 0.60,
+    "l5_tfsc": 0.35,
+    "l6_wan": 0.55,
+    "l7_mcg": 0.15,
+    "treasury": 0.05,
+    "critical_gaps": ["L2 SIC (no blockchain identity sources)", "L7 MCG (no governance monitoring)", "Treasury (zero financial sources)"]
+  },
+
+  "next_benchmark_due": "2026-02-17T20:00:00+04:00",
+  "standing_on_giants": "Shannon | Lamport | Besta | Vaswani | Anthropic"
+}

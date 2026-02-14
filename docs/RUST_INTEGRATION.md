@@ -294,14 +294,21 @@ print(f"API: {stats['api_healthy']}")
 ## Crate Structure
 
 ```
-bizra-omega/
-├── bizra-core/          # Identity, PCI, Constitution
-├── bizra-inference/     # LLM gateway, tier selection
-├── bizra-federation/    # Gossip, BFT consensus
-├── bizra-autopoiesis/   # Pattern memory
-├── bizra-api/           # Axum REST server
-├── bizra-python/        # PyO3 bindings
-└── bizra-installer/     # CLI tools
+bizra-omega/                    # 14-crate Rust workspace
+├── bizra-core/                 # Identity, PCI, Constitution, FATE gates
+├── bizra-inference/            # LLM gateway, tier selection
+├── bizra-federation/           # Gossip, BFT consensus, signed messages
+├── bizra-autopoiesis/          # Pattern memory, preference tracking
+├── bizra-api/                  # Axum REST server (health, metrics, query)
+├── bizra-python/               # PyO3 bindings (GateChain, InferenceGateway)
+├── bizra-installer/            # CLI installer + model cache
+├── bizra-cli/                  # Terminal UI dashboard (ratatui)
+├── bizra-telescript/           # Mobile agent scripts
+├── bizra-resourcepool/         # Compute allocation + genesis ceremony
+├── bizra-hunter/               # Anomaly detection + rent-seeking identification
+├── bizra-proofspace/           # Block validation + RFC 8785 canonicalization
+├── bizra-tests/                # Integration tests + benchmarks
+└── Cargo.toml                  # Workspace root (ed25519-dalek, tokio, blake3)
 ```
 
 ## Troubleshooting

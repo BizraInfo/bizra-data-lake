@@ -199,7 +199,9 @@ class BountyOracle:
         base = self.base_payout * proof.delta_e
 
         # 2. Severity multiplier
-        severity_config: Dict[str, Any] = cast(Dict[str, Any], SEVERITY_LEVELS.get(proof.severity.value, {}))
+        severity_config: Dict[str, Any] = cast(
+            Dict[str, Any], SEVERITY_LEVELS.get(proof.severity.value, {})
+        )
         severity_mult = severity_config.get("multiplier", 1)
         min_payout = severity_config.get("min_payout", 0)
 
@@ -332,7 +334,9 @@ class BountyOracle:
 
         Useful for hunters to evaluate targets.
         """
-        severity_config: Dict[str, Any] = cast(Dict[str, Any], SEVERITY_LEVELS.get(severity, {}))
+        severity_config: Dict[str, Any] = cast(
+            Dict[str, Any], SEVERITY_LEVELS.get(severity, {})
+        )
         severity_mult = severity_config.get("multiplier", 1)
         min_payout = severity_config.get("min_payout", 0)
 

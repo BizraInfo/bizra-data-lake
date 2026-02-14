@@ -30,6 +30,12 @@ from __future__ import annotations
 __version__ = "1.0.0"
 __author__ = "BIZRA Node0"
 
+# Orchestration layer (v1.1) — public API only
+from .config import MissionType, SpearpointConfig
+from .orchestrator import SpearpointMission, SpearpointOrchestrator
+
+# RDVE bridge adapter (v1.2)
+from .rdve_skill import RDVESkillHandler, get_rdve_handler, register_rdve_skill
 from .sovereign_spearpoint import (
     SPEARPOINT_IHSAN_THRESHOLD,
     SPEARPOINT_SNR_FLOOR,
@@ -42,10 +48,20 @@ from .sovereign_spearpoint import (
 __all__ = [
     "__version__",
     "__author__",
+    # Sovereign Spearpoint (original)
     "SovereignSpearpoint",
     "SpearheadConfig",
     "SpearheadResult",
     "SpearheadStatus",
     "SPEARPOINT_SNR_FLOOR",
     "SPEARPOINT_IHSAN_THRESHOLD",
+    # Orchestration layer (public API)
+    "SpearpointOrchestrator",
+    "SpearpointConfig",
+    "MissionType",
+    "SpearpointMission",
+    # RDVE bridge adapter
+    "RDVESkillHandler",
+    "get_rdve_handler",
+    "register_rdve_skill",
 ]

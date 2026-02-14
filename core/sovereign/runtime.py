@@ -24,7 +24,7 @@
 ║   • SovereignOrchestrator (Task Decomposition)                               ║
 ║                                                                              ║
 ║   Module Structure (SPARC refinement):                                       ║
-║   • runtime_types.py  — Type definitions, protocols, configs                 ║
+║   • runtime_types.py  — type definitions, protocols, configs                 ║
 ║   • runtime_stubs.py  — Fallback stub implementations                        ║
 ║   • runtime_core.py   — Main SovereignRuntime class                          ║
 ║   • runtime_cli.py    — Command-line interface                               ║
@@ -65,7 +65,7 @@ from .runtime_stubs import (
     StubFactory,
 )
 
-# Type definitions and protocols
+# type definitions and protocols
 from .runtime_types import (  # TypedDicts; Protocols; Enums; Config; Query/Result
     AutonomousCycleResult,
     AutonomousLoopProtocol,
@@ -97,7 +97,7 @@ __all__ = [
     # Query/Response
     "SovereignQuery",
     "SovereignResult",
-    # Type definitions
+    # type definitions
     "ReasoningResult",
     "SNRResult",
     "ValidationResult",
@@ -120,7 +120,6 @@ __all__ = [
     # CLI
     "cli_main",
 ]
-
 
 # =============================================================================
 # ENTRY POINT

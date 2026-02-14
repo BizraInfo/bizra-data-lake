@@ -297,7 +297,7 @@ async function sendQuery() {
   sendBtn.disabled = true;
 
   // Show typing indicator
-  const typingId = addMessage('Reasoning...', 'system', null, true);
+  const typingId = addMessage('Sovereign engine reasoning...', 'system', null, true);
 
   try {
     const resp = await fetch(`${API_BASE}/v1/query`, {
@@ -305,10 +305,10 @@ async function sendQuery() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: text,
-        require_reasoning: true,
+        require_reasoning: false,
         require_validation: false,
         max_depth: 3,
-        timeout_ms: 30000,
+        timeout_ms: 300000,
       }),
     });
 

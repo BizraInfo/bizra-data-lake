@@ -84,7 +84,9 @@ class ConsensusOutcome:
 
 
 # Validator functions type
-ValidatorFn = Callable[[ActionProposal], Awaitable[Tuple[bool, Optional[VetoReason], float]]]
+ValidatorFn = Callable[
+    [ActionProposal], Awaitable[Tuple[bool, Optional[VetoReason], float]]
+]
 
 
 class DualAgenticBridge:
@@ -217,9 +219,11 @@ class DualAgenticBridge:
             role: AgentRole, validator_fn: ValidatorFn
         ) -> Vote:
             try:
-                result: Tuple[bool, Optional[VetoReason], float] = await asyncio.wait_for(
-                    validator_fn(proposal),
-                    timeout=self.vote_timeout,
+                result: Tuple[bool, Optional[VetoReason], float] = (
+                    await asyncio.wait_for(
+                        validator_fn(proposal),
+                        timeout=self.vote_timeout,
+                    )
                 )
                 approve: bool = result[0]
                 confidence: float = result[2]

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/reasoning_graph.schema.json",
+  "title": "BIZRA Reasoning Graph",
+  "description": "Content-addressed Graph-of-Thoughts artifact. Every complex query produces a verifiable reasoning graph. Standing on: Besta (GoT, 2024), Merkle (1979).",
+  "type": "object",
+  "required": ["nodes", "edges", "roots", "graph_hash"],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "description": "Thought nodes in the reasoning graph",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "content_hash", "snr", "ihsan", "depth"],
+        "properties": {
+          "id": { "type": "string" },
+          "content": { "type": "string", "maxLength": 500 },
+          "type": {
+            "type": "string",
+            "enum": [
+              "hypothesis", "evidence", "reasoning", "synthesis",
+              "refinement", "validation", "conclusion", "question", "counterpoint"
+            ]
+          },
+          "claim_tag": {
+            "type": "string",
+            "enum": ["design", "implemented", "measured", "target"],
+            "description": "Provenance tag for this thought's claim status"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 of canonical content"
+          },
+          "evidence_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Hash of supporting evidence (if any)"
+          },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "snr": { "type": "number", "minimum": 0, "maximum": 1 },
+          "ihsan": { "type": "number", "minimum": 0, "maximum": 1 },
+          "depth": { "type": "integer", "minimum": 0 },
+          "failure_modes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Known failure modes for this thought"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Relationships between thought nodes",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "type"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "supports", "refutes", "derives",
+              "synthesizes", "refines", "questions", "validates"
+            ]
+          },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "roots": {
+      "type": "array",
+      "description": "Entry point node IDs",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "stats": {
+      "type": "object",
+      "description": "Graph construction statistics",
+      "properties": {
+        "nodes_created": { "type": "integer", "minimum": 0 },
+        "nodes_pruned": { "type": "integer", "minimum": 0 },
+        "edges_created": { "type": "integer", "minimum": 0 },
+        "refinements": { "type": "integer", "minimum": 0 },
+        "aggregations": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["breadth_first", "depth_first", "best_first", "beam_search", "mcts", "adaptive"]
+        },
+        "max_depth": { "type": "integer", "minimum": 1 },
+        "snr_threshold": { "type": "number" },
+        "ihsan_threshold": { "type": "number" }
+      }
+    },
+    "graph_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of canonical graph representation (sorted nodes + edges)"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{128}$",
+      "description": "Ed25519 signature of graph_hash"
+    },
+    "build_id": { "type": "string" },
+    "policy_version": { "type": "string" }
+  }
+}

@@ -1,235 +1,183 @@
-# 🚀 DATA LAKE QUICK START GUIDE
+# BIZRA Quick Start
 
-**Goal:** Transform 1.37TB of scattered BIZRA data into organized Single Source of Truth  
-**Time:** 30 minutes initial setup, then automated
+Last updated: 2026-02-14
 
----
-
-## ⚡ IMMEDIATE ACTIONS
-
-### **STEP 1: Test the Processor** (2 minutes)
-
-```powershell
-cd C:\BIZRA-DATA-LAKE
-.\DataLakeProcessor.ps1 -ProcessOnce
-```
-
-**Expected:** Should show "No files found in INTAKE" (good! system working)
+Get from clone to running sovereign runtime in under 10 minutes.
 
 ---
 
-### **STEP 2: Ingest Cloud Drives** (DRY RUN FIRST)
+## 1. Prerequisites
 
-#### **Option A: Test First (Recommended)**
-```powershell
-.\CloudIngestion.ps1 -DryRun
-```
-
-This shows what WOULD be copied without actually copying anything.
-
-#### **Option B: Ingest OneDrive**
-```powershell
-.\CloudIngestion.ps1 -Source OneDrive
-```
-
-#### **Option C: Ingest Google Drive**
-```powershell
-.\CloudIngestion.ps1 -Source GoogleDrive
-```
-
-#### **Option D: Ingest Everything**
-```powershell
-.\CloudIngestion.ps1 -Source Both
-```
+| Dependency | Version | Required |
+|------------|---------|----------|
+| Python | 3.11+ | Yes |
+| pip | Latest | Yes |
+| Rust toolchain | Stable (1.88+) | Optional (for Omega workspace) |
+| LLM backend | LM Studio, Ollama, or OpenAI-compatible | Optional (for live inference) |
+| Docker | 20.10+ | Optional (for containerized deployment) |
 
 ---
 
-### **STEP 3: Process Ingested Files**
+## 2. Clone and Install
 
-After cloud ingestion completes:
+```bash
+git clone https://github.com/BizraInfo/bizra-data-lake.git
+cd bizra-data-lake
 
-```powershell
-.\DataLakeProcessor.ps1 -ProcessOnce
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install core + dev dependencies
+pip install -e ".[dev]"
+
+# Copy environment template
+cp .env.example .env
 ```
 
-Watch the magic:
-- ✅ Deduplication happens automatically
-- ✅ Files sorted by type
-- ✅ Metadata created
-- ✅ Originals backed up
-- ✅ Duplicates quarantined
+Edit `.env` with your LLM backend settings:
 
----
-
-### **STEP 4: Start Continuous Monitoring**
-
-```powershell
-.\DataLakeProcessor.ps1 -Watch
-```
-
-Now ANY file dropped into `00_INTAKE/` gets auto-processed instantly.
-
----
-
-## 📊 MONITORING PROGRESS
-
-### **Check Processing Log**
-```powershell
-Get-Content .\processing.log -Tail 50
-```
-
-### **See What's Been Processed**
-```powershell
-Get-ChildItem .\02_PROCESSED -Recurse -File | Group-Object Directory | Select Name, Count | Sort Count -Desc
-```
-
-### **Check for Duplicates**
-```powershell
-$dups = Get-ChildItem .\99_QUARANTINE -File -Recurse
-Write-Host "Duplicates caught: $($dups.Count) files"
-Write-Host "Space saved: $([math]::Round(($dups | Measure-Object Length -Sum).Sum / 1MB, 2)) MB"
-```
-
-### **View Type Distribution**
-```powershell
-Get-ChildItem .\02_PROCESSED\* -Directory | ForEach-Object {
-    $count = (Get-ChildItem $_.FullName -File -Recurse).Count
-    [PSCustomObject]@{
-        Type = $_.Name
-        Files = $count
-    }
-} | Sort-Object Files -Descending | Format-Table
+```bash
+LM_STUDIO_API_KEY=your_key
+LM_STUDIO_BASE_URL=http://localhost:1234
+# Or for Ollama:
+# OLLAMA_HOST=http://localhost:11434
 ```
 
 ---
 
-## 🎯 RECOMMENDED WORKFLOW
+## 3. Run Tests (Verify Installation)
 
-### **For First-Time Setup:**
+```bash
+# Fast local gate (no GPU, no network, no Ollama required)
+pytest tests/core/ -q --tb=short -m "not requires_ollama and not requires_gpu and not slow and not requires_network"
+```
 
-1. **Dry run to estimate** (understand scope)
-   ```powershell
-   .\CloudIngestion.ps1 -DryRun
-   ```
-
-2. **Ingest clouds** (may take hours for 100GB+)
-   ```powershell
-   .\CloudIngestion.ps1 -Source Both
-   ```
-
-3. **Process everything** (dedup + organize)
-   ```powershell
-   .\DataLakeProcessor.ps1 -ProcessOnce
-   ```
-
-4. **Review results**
-   ```powershell
-   Get-Content .\processing.log | Select-String "COMPLETE"
-   ```
-
-5. **Start continuous mode**
-   ```powershell
-   .\DataLakeProcessor.ps1 -Watch
-   ```
+Expected: 1,600+ tests pass in under 5 minutes.
 
 ---
 
-### **For Ongoing Operations:**
+## 4. Start the Sovereign Runtime
 
-Just leave the processor running in watch mode:
-```powershell
-.\DataLakeProcessor.ps1 -Watch
+```bash
+# Option A: Full launcher (starts all services including Desktop Bridge)
+python -m core.sovereign.launch
+
+# Option B: Sovereign runtime only
+python -m core.sovereign
+
+# Option C: API server only
+python -m core.sovereign.api --host 127.0.0.1 --port 8080
 ```
 
-Then drag/drop ANY file into `00_INTAKE/` folder and it's auto-processed.
+### Verify Health
 
----
-
-## 🚨 TROUBLESHOOTING
-
-### **"Access Denied" on Cloud Files**
-
-Some cloud files might be "online-only". Force download first:
-```powershell
-# For OneDrive
-attrib -U /S "C:\Users\YourName\OneDrive\*"
-```
-
-### **Large Files Taking Forever**
-
-Skip files > 1GB during ingestion:
-```powershell
-.\CloudIngestion.ps1 -SkipLargeFiles
-```
-
-### **Want to Customize File Size Limit**
-
-Example: Only copy files under 500MB:
-```powershell
-.\CloudIngestion.ps1 -MaxFileSizeMB 500
+```bash
+curl -s http://127.0.0.1:8080/v1/health | python -m json.tool
+curl -s http://127.0.0.1:8080/v1/metrics
 ```
 
 ---
 
-## 📈 EXPECTED RESULTS
+## 5. Build Rust Workspace (Optional)
 
-### **After Processing 100GB:**
+For high-performance features (PyO3 bindings, native crypto, CLI dashboard):
 
+```bash
+cd bizra-omega
+cargo build --release
+cargo test --workspace
+
+# Build PyO3 Python bindings
+cd bizra-python
+pip install maturin
+maturin develop --release
 ```
-02_PROCESSED/
-├── text/           ~40GB  (largest - logs, chats, docs)
-├── code/           ~20GB  (all source code)
-├── documents/      ~15GB  (PDFs, Office files)
-├── data/           ~10GB  (JSON, databases)
-├── images/         ~8GB   (screenshots, diagrams)
-├── models/         ~5GB   (AI models)
-├── archives/       ~2GB   (compressed files)
-```
-
-### **Deduplication Savings:**
-
-Typical: 10-30% reduction (10-30GB saved)  
-Conservative estimate: 15GB of duplicates caught
 
 ---
 
-## 🔗 NEXT PHASE: INTELLIGENCE
+## 6. Data Pipeline (Optional)
 
-Once data is organized, we can:
+If you want to use the data ingestion and knowledge pipeline:
 
-1. **Generate Vector Embeddings** (03_INDEXED/)
-   - Semantic search across all text
-   - Find related concepts across files
+```bash
+# Layer 1: Build document corpus
+python corpus_manager.py
 
-2. **Connect to SAPE Knowledge Kernels**
-   - Real data for evidence gathering
-   - No more mock responses
+# Layer 2: Generate vector embeddings
+python vector_engine.py
 
-3. **Train on Real History**
-   - Extract patterns from dev conversations
-   - Build consciousness from actual work
+# Layer 3: LLM extraction
+python langextract_engine.py
 
-4. **Create Knowledge Graph**
-   - Map relationships between concepts
-   - Navigate 15,000 hours of insights
-
----
-
-## 💎 GOLD CORPUS CREATION
-
-Manually curate best files into `04_GOLD/`:
-
-```powershell
-# Example: Promote critical architecture docs
-Copy-Item ".\02_PROCESSED\text\BIZRA_CORE_ARCHITECTURE.md" ".\04_GOLD\"
+# Layer 4: SNR validation
+python arte_engine.py
 ```
 
-Gold corpus used for:
-- Training data
-- Quick reference
-- Documentation generation
-- Pattern extraction
+Files flow through: `00_INTAKE/` -> `01_RAW/` -> `02_PROCESSED/` -> `03_INDEXED/` -> `04_GOLD/`
+
+Duplicates are quarantined to `99_QUARANTINE/` via SHA-256 detection.
 
 ---
 
-**Ready to begin?** Run STEP 1 above! 🚀
+## 7. Desktop Bridge (Optional)
+
+Start the TCP bridge for AHK hotkey integration:
+
+```bash
+export BIZRA_BRIDGE_TOKEN=your_token_here
+export BIZRA_RECEIPT_PRIVATE_KEY_HEX=your_64_hex_key
+python -m core.bridges.desktop_bridge
+```
+
+Bridge listens on `127.0.0.1:9742` (localhost only). See [Desktop Bridge docs](DESKTOP_BRIDGE.md).
+
+---
+
+## 8. What to Read Next
+
+| Your Role | Start Here |
+|-----------|------------|
+| New engineer | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) |
+| Operator / SRE | [Operations Runbook](OPERATIONS_RUNBOOK.md) |
+| Security reviewer | [DDAGI Constitution](DDAGI_CONSTITUTION_v1.1.0-FINAL.md) |
+| Contributor | [Contributing Guide](../CONTRIBUTING.md), [Testing Guide](TESTING.md) |
+
+Full documentation portal: [docs/README.md](README.md)
+
+---
+
+## Troubleshooting
+
+### Import errors after install
+
+```bash
+# Ensure you're in the venv
+which python  # Should show .venv/bin/python
+
+# Reinstall
+pip install -e ".[dev]"
+```
+
+### Rust build fails
+
+```bash
+rustup update stable
+cd bizra-omega && cargo clean && cargo build --release
+```
+
+### Tests fail with missing model
+
+Tests that require a live LLM are marked with `@pytest.mark.requires_ollama`. The default test run excludes them. If you want to run them:
+
+```bash
+# Start Ollama first
+ollama serve
+
+# Then run with the marker included
+pytest tests/ -m "requires_ollama"
+```
+
+---
+
+*Standing on Giants: Shannon, Lamport, Besta, Vaswani, Anthropic*

@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from core.inference.response_utils import strip_think_tokens
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
 logger = logging.getLogger(__name__)
@@ -250,7 +251,9 @@ class LMStudioBackend:
         if gpu_layers is not None:
             payload["gpu_layers"] = gpu_layers
 
-        response = await self._require_client().post(LMStudioEndpoint.LOAD.value, json=payload)
+        response = await self._require_client().post(
+            LMStudioEndpoint.LOAD.value, json=payload
+        )
         response.raise_for_status()
 
         self._current_model = model_id
@@ -390,6 +393,7 @@ class LMStudioBackend:
                     content_parts.append(output_item.get("content", ""))
 
             content = "\n".join(content_parts) if content_parts else ""
+            content = strip_think_tokens(content)
 
             # Extract stats
             stats = data.get("stats", {})
@@ -425,17 +429,20 @@ class LMStudioBackend:
             if stream:
                 return self._stream_chat(payload)  # type: ignore[return-value]
 
-            response = await self._require_client().post("/v1/chat/completions", json=payload)
+            response = await self._require_client().post(
+                "/v1/chat/completions", json=payload
+            )
             response.raise_for_status()
             data = response.json()
 
             if "chat_id" in data:
                 self._chat_id = data["chat_id"]
 
+            raw_content = (
+                data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            )
             return ChatResponse(
-                content=data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", ""),
+                content=strip_think_tokens(raw_content),
                 model=data.get("model", model_id),
                 finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
                 usage=data.get("usage", {}),

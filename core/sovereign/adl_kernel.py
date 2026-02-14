@@ -38,10 +38,9 @@ from bisect import bisect_left
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTITUTIONAL CONSTANTS
@@ -72,7 +71,6 @@ MINIMUM_HOLDING: float = 1e-9
 
 # Universal Basic Compute pool identifier
 UBC_POOL_ID: str = "__UBC_POOL__"
-
 
 # =============================================================================
 # REJECTION CODES
@@ -207,12 +205,12 @@ class BiasParityResult:
     kl_divergence: float
     passes_threshold: bool
     epsilon: float
-    output_distribution: List[float]
-    ideal_distribution: List[float]
-    divergent_indices: List[int]  # Indices where divergence is highest
+    output_distribution: list[float]
+    ideal_distribution: list[float]
+    divergent_indices: list[int]  # Indices where divergence is highest
     max_divergence_at: int
     max_divergence_value: float
-    correction_suggestion: Optional[Dict[str, float]] = None
+    correction_suggestion: Optional[dict[str, float]] = None
 
 
 @dataclass
@@ -247,7 +245,7 @@ class AdlValidationResult:
                 datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for PCI envelope and audit logging."""
         return {
             "passed": self.passed,
@@ -269,7 +267,7 @@ class AdlValidationResult:
 # =============================================================================
 
 
-def calculate_gini(distribution: List[float]) -> float:
+def calculate_gini(distribution: list[float]) -> float:
     """
     Calculate the Gini coefficient for a distribution of values.
 
@@ -284,7 +282,7 @@ def calculate_gini(distribution: List[float]) -> float:
     Complexity: O(n log n) dominated by sort
 
     Args:
-        distribution: List of values (holdings, power, etc.)
+        distribution: list of values (holdings, power, etc.)
 
     Returns:
         Gini coefficient in range [0, 1]
@@ -326,7 +324,7 @@ def calculate_gini(distribution: List[float]) -> float:
 
 
 def calculate_gini_from_holdings(
-    holdings: Dict[str, float],
+    holdings: dict[str, float],
     exclude_pool: bool = True,
 ) -> float:
     """
@@ -348,7 +346,7 @@ def calculate_gini_from_holdings(
 
 
 def calculate_gini_detailed(
-    distribution: List[float],
+    distribution: list[float],
     threshold: float = ADL_GINI_THRESHOLD,
     alert_threshold: float = ADL_GINI_ALERT_THRESHOLD,
 ) -> GiniResult:
@@ -361,7 +359,7 @@ def calculate_gini_detailed(
     - Palma ratio (Top 10% / Bottom 40%)
 
     Args:
-        distribution: List of values
+        distribution: list of values
         threshold: Gini threshold for pass/fail
         alert_threshold: Gini threshold for early warning
 
@@ -499,7 +497,7 @@ class IncrementalGini:
     For n=10,000 nodes, this provides ~10x speedup over full recalculation.
     """
 
-    _sorted_values: List[float] = field(default_factory=list)
+    _sorted_values: list[float] = field(default_factory=list)
     _total: float = 0.0
     _weighted_sum: float = 0.0
     _n: int = 0
@@ -633,7 +631,7 @@ class IncrementalGini:
         self._weighted_sum = 0.0
         self._n = 0
 
-    def bulk_load(self, values: List[float]) -> float:
+    def bulk_load(self, values: list[float]) -> float:
         """
         Efficiently load many values at once.
 
@@ -641,7 +639,7 @@ class IncrementalGini:
         way to initialize the tracker with existing data.
 
         Args:
-            values: List of values to load
+            values: list of values to load
 
         Returns:
             The Gini coefficient after loading
@@ -679,7 +677,7 @@ class IncrementalGini:
         return self._total
 
     @property
-    def values(self) -> List[float]:
+    def values(self) -> list[float]:
         """Return a copy of the sorted values (for debugging)."""
         return self._sorted_values.copy()
 
@@ -728,12 +726,12 @@ class NetworkGiniTracker:
         """
         self._lock = threading.RLock()
         self._tracker = IncrementalGini()
-        self._node_holdings: Dict[str, float] = {}
+        self._node_holdings: dict[str, float] = {}
         self._gini_threshold = gini_threshold
         self._update_count = 0
         self._last_gini = 0.0
 
-    def load_holdings(self, holdings: Dict[str, float]) -> float:
+    def load_holdings(self, holdings: dict[str, float]) -> float:
         """
         Load holdings from a dictionary, replacing any existing state.
 
@@ -883,7 +881,7 @@ class NetworkGiniTracker:
         sender: str,
         recipient: str,
         amount: float,
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """
         Simulate a transfer without applying it.
 
@@ -897,7 +895,7 @@ class NetworkGiniTracker:
             amount: The transfer amount
 
         Returns:
-            Tuple of (passes_threshold, post_transfer_gini)
+            tuple of (passes_threshold, post_transfer_gini)
         """
         with self._lock:
             # Get current values
@@ -948,12 +946,12 @@ class NetworkGiniTracker:
         with self._lock:
             return self._node_holdings.get(node_id, 0.0)
 
-    def get_holdings_snapshot(self) -> Dict[str, float]:
+    def get_holdings_snapshot(self) -> dict[str, float]:
         """Get a thread-safe copy of all holdings."""
         with self._lock:
             return self._node_holdings.copy()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get tracker statistics."""
         with self._lock:
             return {
@@ -1135,10 +1133,10 @@ def harberger_tax(
 
 
 def apply_harberger_redistribution(
-    holdings: Dict[str, float],
+    holdings: dict[str, float],
     tax_rate: float = HARBERGER_TAX_RATE,
     period_days: float = 365.0,
-) -> Tuple[Dict[str, float], float]:
+) -> tuple[dict[str, float], float]:
     """
     Apply Harberger tax redistribution to all holdings.
 
@@ -1153,7 +1151,7 @@ def apply_harberger_redistribution(
         period_days: Tax period in days
 
     Returns:
-        Tuple of (new_holdings, total_tax_collected)
+        tuple of (new_holdings, total_tax_collected)
     """
     # Filter active participants
     participants = {
@@ -1193,8 +1191,8 @@ def apply_harberger_redistribution(
 
 
 def check_bias_parity(
-    output_dist: List[float],
-    ideal_dist: List[float],
+    output_dist: list[float],
+    ideal_dist: list[float],
     epsilon: float = BIAS_EPSILON,
 ) -> BiasParityResult:
     """
@@ -1302,7 +1300,7 @@ def check_bias_parity(
     )
 
 
-def create_uniform_distribution(n: int) -> List[float]:
+def create_uniform_distribution(n: int) -> list[float]:
     """Create a uniform distribution of length n (each element = 1/n)."""
     if n <= 0:
         return []
@@ -1371,11 +1369,11 @@ class AdlEnforcer:
 
     def validate(
         self,
-        holdings: Dict[str, float],
+        holdings: dict[str, float],
         transaction_amount: float = 0.0,
         node_power: float = 0.0,
-        output_dist: Optional[List[float]] = None,
-        ideal_dist: Optional[List[float]] = None,
+        output_dist: Optional[list[float]] = None,
+        ideal_dist: Optional[list[float]] = None,
         check_gini: bool = True,
         check_drag: bool = True,
         check_bias: bool = True,
@@ -1502,7 +1500,7 @@ class AdlEnforcer:
 
     def validate_transaction_impact(
         self,
-        holdings: Dict[str, float],
+        holdings: dict[str, float],
         sender: str,
         recipient: str,
         amount: float,
@@ -1571,7 +1569,7 @@ class AdlEnforcer:
 
         return result
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get enforcer statistics."""
         stats = {
             "validations": self._validation_count,
@@ -1598,7 +1596,7 @@ class AdlEnforcer:
     # Incremental Gini Methods (P0-3 Optimization)
     # -------------------------------------------------------------------------
 
-    def load_holdings_for_tracking(self, holdings: Dict[str, float]) -> float:
+    def load_holdings_for_tracking(self, holdings: dict[str, float]) -> float:
         """
         Load holdings into the incremental Gini tracker.
 
@@ -1804,9 +1802,9 @@ class AdlEnforcer:
 
 
 def quick_adl_check(
-    holdings: Dict[str, float],
+    holdings: dict[str, float],
     threshold: float = ADL_GINI_THRESHOLD,
-) -> Tuple[bool, float]:
+) -> tuple[bool, float]:
     """
     Quick check if holdings pass ADL Gini threshold.
 
@@ -1815,14 +1813,14 @@ def quick_adl_check(
         threshold: Gini threshold
 
     Returns:
-        Tuple of (passes, gini_coefficient)
+        tuple of (passes, gini_coefficient)
     """
     gini = calculate_gini_from_holdings(holdings)
     return gini <= threshold, gini
 
 
 def compute_ihsan_adl_score(
-    holdings: Dict[str, float],
+    holdings: dict[str, float],
     threshold: float = ADL_GINI_THRESHOLD,
 ) -> float:
     """

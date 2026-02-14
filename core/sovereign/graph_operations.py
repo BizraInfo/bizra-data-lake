@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Optional
 
 from .graph_types import (
     EdgeType,
@@ -39,12 +39,12 @@ class GraphOperationsMixin:
     """
 
     # These attributes are defined in the main class
-    nodes: Dict[str, ThoughtNode]
-    edges: List[ThoughtEdge]
-    adjacency: Dict[str, List[str]]
-    reverse_adj: Dict[str, List[str]]
-    roots: List[str]
-    stats: Dict[str, int]
+    nodes: dict[str, ThoughtNode]
+    edges: list[ThoughtEdge]
+    adjacency: dict[str, list[str]]
+    reverse_adj: dict[str, list[str]]
+    roots: list[str]
+    stats: dict[str, int]
     snr_threshold: float
     ihsan_threshold: float
 
@@ -57,7 +57,7 @@ class GraphOperationsMixin:
         content: str,
         thought_type: ThoughtType,
         confidence: float = 0.5,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
         parent_id: Optional[str] = None,
         edge_type: EdgeType = EdgeType.DERIVES,
     ) -> ThoughtNode:
@@ -135,7 +135,7 @@ class GraphOperationsMixin:
 
     def aggregate(
         self,
-        thoughts: List[ThoughtNode],
+        thoughts: list[ThoughtNode],
         synthesis_content: str,
         aggregation_type: ThoughtType = ThoughtType.SYNTHESIS,
     ) -> ThoughtNode:
@@ -196,7 +196,7 @@ class GraphOperationsMixin:
     def validate(
         self,
         thought: ThoughtNode,
-        validator_fn: Optional[Callable[[str], Tuple[bool, float]]] = None,
+        validator_fn: Optional[Callable[[str], tuple[bool, float]]] = None,
     ) -> ThoughtNode:
         """Validate a thought and create validation node."""
         # Default validation: check Ihsan threshold

@@ -18,7 +18,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Optional, Protocol
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
@@ -40,8 +40,8 @@ class AnalyticalClientProtocol(Protocol):
     """Protocol for analytical client (Claude-style verification)."""
 
     async def analyze(
-        self, content: str, criteria: Dict[str, Any]
-    ) -> Dict[str, Any]: ...
+        self, content: str, criteria: dict[str, Any]
+    ) -> dict[str, Any]: ...
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,7 @@ class ReasoningCandidate:
     confidence: float
     reasoning_trace: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "candidate_id": self.candidate_id,
             "content": self.content,
@@ -73,7 +73,7 @@ class VerificationResult:
     critique: str
     adjusted_confidence: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "candidate_id": self.candidate_id,
             "verified": self.verified,
@@ -90,9 +90,9 @@ class BicameralResult:
     consensus_score: float
     candidates_generated: int
     candidates_verified: int
-    reasoning_path: List[Dict[str, Any]] = field(default_factory=list)
+    reasoning_path: list[dict[str, Any]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "final_answer": self.final_answer,
             "consensus_score": self.consensus_score,
@@ -134,14 +134,14 @@ class BicameralReasoningEngine:
         return self.local_endpoint is not None and self.api_client is not None
 
     @property
-    def metrics(self) -> Dict[str, Any]:
+    def metrics(self) -> dict[str, Any]:
         return {**self._metrics, "is_bicameral": self.is_bicameral}
 
     async def generate_candidates(
         self, problem: str, num_candidates: int = DEFAULT_NUM_CANDIDATES
-    ) -> List[ReasoningCandidate]:
+    ) -> list[ReasoningCandidate]:
         """Generate multiple solution candidates using local model (R1-style)."""
-        candidates: List[ReasoningCandidate] = []
+        candidates: list[ReasoningCandidate] = []
         cot_prompt = (
             f"<|reasoning|>\nProblem: {problem}\nThink step by step.\n<|answer|>\n"
         )
@@ -173,7 +173,7 @@ class BicameralReasoningEngine:
         return candidates
 
     async def verify_candidate(
-        self, candidate: ReasoningCandidate, criteria: Dict[str, Any]
+        self, candidate: ReasoningCandidate, criteria: dict[str, Any]
     ) -> VerificationResult:
         """Verify a candidate using analytical model (Claude-style)."""
         if not self.api_client:
@@ -205,10 +205,10 @@ class BicameralReasoningEngine:
                 candidate.confidence * 0.5,
             )
 
-    async def reason(self, problem: str, context: Dict[str, Any]) -> BicameralResult:
+    async def reason(self, problem: str, context: dict[str, Any]) -> BicameralResult:
         """Full bicameral reasoning: generate, verify, select."""
         start = time.monotonic()
-        path: List[Dict[str, Any]] = []
+        path: list[dict[str, Any]] = []
 
         # Phase 1: Generate (Right Hemisphere)
         candidates = await self.generate_candidates(
@@ -275,8 +275,8 @@ class BicameralReasoningEngine:
         )
 
     def _select_best(
-        self, verified: List[Tuple[ReasoningCandidate, VerificationResult]]
-    ) -> Tuple[ReasoningCandidate, VerificationResult]:
+        self, verified: list[tuple[ReasoningCandidate, VerificationResult]]
+    ) -> tuple[ReasoningCandidate, VerificationResult]:
         """Select best candidate by adjusted confidence."""
         return max(
             verified, key=lambda cv: (cv[1].adjusted_confidence, cv[0].confidence)
@@ -284,7 +284,8 @@ class BicameralReasoningEngine:
 
     async def _gen_single(self, prompt: str, idx: int) -> ReasoningCandidate:
         """Generate single candidate with varying temperature."""
-        assert self.local_endpoint
+        if not self.local_endpoint:
+            raise RuntimeError("Local inference endpoint not configured")
         temp = min(0.7 + idx * 0.1, 1.2)
         try:
             resp = await asyncio.wait_for(

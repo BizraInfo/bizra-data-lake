@@ -331,9 +331,7 @@ fn engine_multi_node_quorum() {
     let id2 = make_identity();
     let id3 = make_identity();
 
-    let mut engine = ConsensusEngine::new(
-        NodeIdentity::from_secret_bytes(&id1.secret_bytes()),
-    );
+    let mut engine = ConsensusEngine::new(NodeIdentity::from_secret_bytes(&id1.secret_bytes()));
     engine.register_peer(id2.node_id().clone(), id2.public_key_bytes());
     engine.register_peer(id3.node_id().clone(), id3.public_key_bytes());
     engine.set_node_count(3); // quorum = (2*3/3)+1 = 3
@@ -378,9 +376,7 @@ fn engine_rejection_no_quorum() {
     let id1 = make_identity();
     let id2 = make_identity();
 
-    let mut engine = ConsensusEngine::new(
-        NodeIdentity::from_secret_bytes(&id1.secret_bytes()),
-    );
+    let mut engine = ConsensusEngine::new(NodeIdentity::from_secret_bytes(&id1.secret_bytes()));
     engine.register_peer(id2.node_id().clone(), id2.public_key_bytes());
     engine.set_node_count(2); // quorum = (2*2/3)+1 = 2
 
@@ -428,5 +424,3 @@ fn consensus_error_display_messages() {
         .to_string()
         .contains("signature"));
 }
-
-

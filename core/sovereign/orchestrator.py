@@ -21,7 +21,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class TaskComplexity(Enum):
@@ -221,8 +221,8 @@ class TaskDecomposer:
         Returns:
             DecompositionResult with subtasks and dependency graph
         """
-        subtasks: List[TaskNode] = []
-        dependency_graph: Dict[str, List[str]] = {}
+        subtasks: list[TaskNode] = []
+        dependency_graph: dict[str, list[str]] = {}
 
         # Determine target subtask count based on complexity
         target_count = self.DECOMPOSITION_PATTERNS.get(task.complexity, 5)
@@ -704,6 +704,9 @@ class SovereignOrchestrator:
         self._running = False
         self._execution_loop: Optional[asyncio.Task] = None
 
+        # Event-driven signaling (replaces polling sleep)
+        self._task_available = asyncio.Event()
+
         # External integrations (injected via set_gateway / set_memory)
         self._gateway: Any = None  # InferenceGateway
         self._memory: Any = None  # LivingMemoryCore
@@ -749,6 +752,9 @@ class SovereignOrchestrator:
                 heapq.heappush(self.task_queue, subtask)
         else:
             heapq.heappush(self.task_queue, task)
+
+        # Signal the run loop that work is available (event-driven, not polling)
+        self._task_available.set()
 
         return task.id
 
@@ -852,21 +858,51 @@ class SovereignOrchestrator:
         return prompt
 
     async def _execute_via_gateway(self, prompt: str) -> Optional[str]:
-        """Execute prompt through InferenceGateway if available."""
+        """Execute prompt through InferenceGateway if available.
+
+        Returns the LLM-generated content, or None if no gateway is set.
+        Propagates inference errors so callers can handle them meaningfully
+        (the previous silent swallow made debugging impossible).
+
+        Standing on Giants:
+        - Nygard (2007): Fail-fast over fail-silent
+        """
         gateway = getattr(self, "_gateway", None)
         if gateway is None:
             return None
 
-        try:
-            infer_method = getattr(gateway, "infer", None)
-            if infer_method is None:
-                return None
+        memory = getattr(self, "_memory", None)
+        memory_context = ""
+        if memory is not None:
+            try:
+                # Retrieve relevant memories for context-aware inference
+                retrieve = getattr(memory, "retrieve", None)
+                if retrieve is not None:
+                    # Extract key terms from prompt for memory query
+                    query_text = prompt[:200]
+                    memories = await retrieve(query=query_text, top_k=3)
+                    if memories:
+                        snippets = []
+                        for mem in memories:
+                            content = getattr(mem, "content", str(mem))
+                            snippets.append(content[:150])
+                        memory_context = (
+                            "\n\nRELEVANT CONTEXT FROM MEMORY:\n"
+                            + "\n".join(f"- {s}" for s in snippets)
+                            + "\n"
+                        )
+            except Exception as mem_err:
+                logger.debug("Memory retrieval failed (non-fatal): %s", mem_err)
 
-            result = await infer_method(prompt, max_tokens=512)
-            content = getattr(result, "content", None) or str(result)
-            return content if content else None
-        except Exception:
+        full_prompt = prompt + memory_context if memory_context else prompt
+
+        infer_method = getattr(gateway, "infer", None)
+        if infer_method is None:
             return None
+
+        result = await infer_method(full_prompt, max_tokens=1024)
+        content = getattr(result, "content", None) or str(result)
+        return content if content else None
 
     def _heuristic_execute(self, task: TaskNode, routing: RoutingDecision) -> str:
         """Fallback execution using heuristics when no LLM available."""
@@ -900,11 +936,25 @@ class SovereignOrchestrator:
         return min(1.0, 0.5 * unique_ratio + 0.5 * length_score)
 
     async def run(self):
-        """Start the orchestration loop."""
+        """Start the orchestration loop.
+
+        Uses event-driven dispatch: waits on _task_available signal
+        instead of polling with sleep. Task completion also re-signals
+        the event so dependent tasks are dispatched promptly.
+        """
         self._running = True
 
         while self._running:
-            # Check for available capacity
+            # Wait for tasks to be available (event-driven, not polling)
+            try:
+                await asyncio.wait_for(self._task_available.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                continue  # Periodic wakeup for shutdown checks
+
+            self._task_available.clear()
+
+            # Dispatch all eligible tasks up to concurrency limit
+            requeue = []
             while self.task_queue and len(self.active_tasks) < self.max_concurrent:
                 task = heapq.heappop(self.task_queue)
 
@@ -914,12 +964,20 @@ class SovereignOrchestrator:
                 )
 
                 if deps_satisfied:
-                    asyncio.create_task(self.execute_task(task))
+                    asyncio.create_task(self._execute_and_signal(task))
                 else:
                     task.status = TaskStatus.WAITING_DEPENDENCY
-                    heapq.heappush(self.task_queue, task)
+                    requeue.append(task)
 
-            await asyncio.sleep(0.01)  # Yield control
+            for task in requeue:
+                heapq.heappush(self.task_queue, task)
+
+    async def _execute_and_signal(self, task: TaskNode) -> dict[str, Any]:
+        """Execute task and re-signal event so dependents can dispatch."""
+        result = await self.execute_task(task)
+        # Signal that a task completed — may unblock dependent tasks
+        self._task_available.set()
+        return result
 
     def stop(self):
         """Stop the orchestration loop."""

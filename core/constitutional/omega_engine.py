@@ -60,7 +60,6 @@ License: BIZRA Sovereignty License
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -69,12 +68,9 @@ from enum import Enum, auto
 from typing import (
     Any,
     Callable,
-    Dict,
     Final,
-    List,
     NamedTuple,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -89,13 +85,12 @@ from core.integration.constants import (
 
 logger = logging.getLogger(__name__)
 
-
 # =============================================================================
 # CONSTITUTIONAL CONSTANTS
 # =============================================================================
 
 # Ihsan dimension names (order matters for projection)
-IHSAN_DIMENSIONS: Final[Tuple[str, ...]] = (
+IHSAN_DIMENSIONS: Final[tuple[str, ...]] = (
     "correctness",
     "safety",
     "user_benefit",
@@ -115,7 +110,6 @@ BFT_QUORUM_FRACTION: Final[float] = 2 / 3  # 2f + 1 where f < n/3
 
 # Landauer limit (theoretical minimum energy per bit erasure at 300K)
 LANDAUER_LIMIT_JOULES: Final[float] = 2.87e-21  # kT ln 2 at 300K
-
 
 # =============================================================================
 # GAP-C1: IHSAN PROJECTOR (8D -> 3D in O(1))
@@ -140,7 +134,7 @@ class IhsanVector(NamedTuple):
     adl_fairness: float
 
     @classmethod
-    def from_dict(cls, d: Dict[str, float]) -> "IhsanVector":
+    def from_dict(cls, d: dict[str, float]) -> "IhsanVector":
         """Construct from dictionary."""
         return cls(
             correctness=d.get("correctness", 0.0),
@@ -248,10 +242,14 @@ class IhsanProjector:
 
     def __post_init__(self):
         """Validate projection matrix."""
-        assert self.projection_matrix.shape == (3, 8), "Projection matrix must be 3x8"
+        if self.projection_matrix.shape != (3, 8):
+            raise ValueError(
+                f"Projection matrix must be 3x8, got {self.projection_matrix.shape}"
+            )
         # Each row should sum to 1.0 for proper weighting
         row_sums = self.projection_matrix.sum(axis=1)
-        assert np.allclose(row_sums, 1.0), f"Row sums must equal 1.0: {row_sums}"
+        if not np.allclose(row_sums, 1.0):
+            raise ValueError(f"Row sums must equal 1.0: {row_sums}")
 
     def project(self, ihsan: IhsanVector) -> NTUState:
         """
@@ -282,7 +280,7 @@ class IhsanProjector:
             lambda_lr=float(lambda_lr),
         )
 
-    def project_batch(self, ihsan_batch: List[IhsanVector]) -> List[NTUState]:
+    def project_batch(self, ihsan_batch: list[IhsanVector]) -> list[NTUState]:
         """
         Batch projection for multiple vectors.
 
@@ -351,7 +349,7 @@ class IhsanProjector:
 
     def calibrate(
         self,
-        samples: List[Tuple[IhsanVector, NTUState]],
+        samples: list[tuple[IhsanVector, NTUState]],
         learning_rate: float = 0.01,
         epochs: int = 100,
     ) -> float:
@@ -420,7 +418,7 @@ class AdlViolation:
     details: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize violation."""
         return {
             "type": self.violation_type.name,
@@ -437,7 +435,7 @@ class AdlInvariantResult(NamedTuple):
 
     passed: bool
     gini: float
-    violations: List[AdlViolation]
+    violations: list[AdlViolation]
 
     def __bool__(self) -> bool:
         return self.passed
@@ -479,10 +477,10 @@ class AdlInvariant:
         self.enable_preemptive_check = enable_preemptive_check
 
         # Violation history for pattern detection
-        self._violation_history: List[AdlViolation] = []
+        self._violation_history: list[AdlViolation] = []
         self._max_history = 1000
 
-    def compute_gini(self, distribution: Dict[str, float]) -> float:
+    def compute_gini(self, distribution: dict[str, float]) -> float:
         """
         Compute Gini coefficient from resource distribution.
 
@@ -516,8 +514,8 @@ class AdlInvariant:
 
     def check(
         self,
-        distribution: Dict[str, float],
-        proposed_change: Optional[Dict[str, float]] = None,
+        distribution: dict[str, float],
+        proposed_change: Optional[dict[str, float]] = None,
     ) -> AdlInvariantResult:
         """
         Check Adl invariant against current or proposed distribution.
@@ -531,7 +529,7 @@ class AdlInvariant:
         Returns:
             AdlInvariantResult with pass/fail and violations
         """
-        violations: List[AdlViolation] = []
+        violations: list[AdlViolation] = []
 
         # Compute current Gini
         current_gini = self.compute_gini(distribution)
@@ -601,8 +599,8 @@ class AdlInvariant:
 
     def must_pass(
         self,
-        distribution: Dict[str, float],
-        proposed_change: Optional[Dict[str, float]] = None,
+        distribution: dict[str, float],
+        proposed_change: Optional[dict[str, float]] = None,
     ) -> None:
         """
         Assert that Adl invariant passes.
@@ -616,9 +614,9 @@ class AdlInvariant:
 
     def suggest_redistribution(
         self,
-        distribution: Dict[str, float],
+        distribution: dict[str, float],
         target_gini: float = 0.35,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Suggest redistribution to achieve target Gini.
 
@@ -638,7 +636,7 @@ class AdlInvariant:
         target_per_holder = total / n
 
         # Calculate needed transfers
-        changes: Dict[str, float] = {}
+        changes: dict[str, float] = {}
 
         sorted_holders = sorted(
             distribution.items(),
@@ -674,12 +672,12 @@ class AdlInvariant:
         if len(self._violation_history) > self._max_history:
             self._violation_history = self._violation_history[-self._max_history // 2 :]
 
-    def get_violation_stats(self) -> Dict[str, Any]:
+    def get_violation_stats(self) -> dict[str, Any]:
         """Get violation statistics."""
         if not self._violation_history:
             return {"total": 0, "by_type": {}}
 
-        by_type: Dict[str, int] = {}
+        by_type: dict[str, int] = {}
         for v in self._violation_history:
             by_type[v.violation_type.name] = by_type.get(v.violation_type.name, 0) + 1
 
@@ -695,7 +693,7 @@ class AdlInvariant:
 class AdlViolationError(Exception):
     """Raised when Adl invariant is violated."""
 
-    def __init__(self, violations: List[AdlViolation]):
+    def __init__(self, violations: list[AdlViolation]):
         self.violations = violations
         msg = "; ".join(v.details for v in violations)
         super().__init__(f"Adl invariant violated: {msg}")
@@ -734,7 +732,7 @@ class SignedVote:
     signature: str  # Ed25519 signature
     public_key: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize vote."""
         return {
             "vote_type": self.vote_type.name,
@@ -750,8 +748,10 @@ class SignedVote:
 
     def digest(self) -> str:
         """Compute canonical digest for signing."""
+        from core.proof_engine.canonical import hex_digest
+
         data = f"{self.vote_type.name}|{self.proposal_id}|{self.voter_id}|{self.value.hex()}|{self.view_number}|{self.sequence_number}|{self.timestamp}"
-        return hashlib.sha256(data.encode()).hexdigest()
+        return hex_digest(data.encode())
 
 
 class ConsensusState(Enum):
@@ -776,8 +776,8 @@ class ConsensusProposal:
     view_number: int
     sequence_number: int
     state: ConsensusState = ConsensusState.PENDING
-    prepare_votes: List[SignedVote] = field(default_factory=list)
-    commit_votes: List[SignedVote] = field(default_factory=list)
+    prepare_votes: list[SignedVote] = field(default_factory=list)
+    commit_votes: list[SignedVote] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
 
     def prepare_count(self) -> int:
@@ -823,10 +823,10 @@ class ByzantineConsensus:
         self.total_nodes = total_nodes
 
         # Peer registry (voter_id -> public_key)
-        self._peer_keys: Dict[str, str] = {node_id: public_key}
+        self._peer_keys: dict[str, str] = {node_id: public_key}
 
         # Active proposals
-        self._proposals: Dict[str, ConsensusProposal] = {}
+        self._proposals: dict[str, ConsensusProposal] = {}
 
         # Committed values (for replay detection)
         self._committed_sequences: set = set()
@@ -884,9 +884,11 @@ class ByzantineConsensus:
 
         # Generate proposal ID
         self._sequence_number += 1
-        proposal_id = hashlib.sha256(
+        from core.proof_engine.canonical import hex_digest
+
+        proposal_id = hex_digest(
             f"{self.node_id}:{self._current_view}:{self._sequence_number}".encode()
-        ).hexdigest()[:16]
+        )[:16]
 
         proposal = ConsensusProposal(
             proposal_id=proposal_id,
@@ -941,9 +943,9 @@ class ByzantineConsensus:
             vote.signature = sign_message(digest, self.private_key)
         except ImportError:
             # Fallback: simple hash-based signature (NOT for production)
-            vote.signature = hashlib.sha256(
-                f"{digest}:{self.private_key}".encode()
-            ).hexdigest()
+            from core.proof_engine.canonical import hex_digest
+
+            vote.signature = hex_digest(f"{digest}:{self.private_key}".encode())
 
         return vote
 
@@ -979,15 +981,17 @@ class ByzantineConsensus:
                 return False
         except ImportError:
             # Fallback verification
-            expected = hashlib.sha256(
+            from core.proof_engine.canonical import hex_digest
+
+            expected = hex_digest(
                 f"{digest}:{self._peer_keys.get(vote.voter_id, '')}".encode()
-            ).hexdigest()
+            )
             if vote.signature != expected:
                 return False
 
         return True
 
-    def receive_vote(self, vote: SignedVote) -> Tuple[bool, Optional[ConsensusState]]:
+    def receive_vote(self, vote: SignedVote) -> tuple[bool, Optional[ConsensusState]]:
         """
         Receive and process a vote.
 
@@ -1033,7 +1037,7 @@ class ByzantineConsensus:
         proposal = self._proposals.get(proposal_id)
         return proposal is not None and proposal.state == ConsensusState.COMMITTED
 
-    def get_quorum_certificate(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+    def get_quorum_certificate(self, proposal_id: str) -> Optional[dict[str, Any]]:
         """
         Get quorum certificate for a committed proposal.
 
@@ -1088,7 +1092,7 @@ class TreasuryModeConfig:
     max_concurrent_ops: int  # Max concurrent operations
     description: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "mode": self.mode.name,
             "compute_budget_percent": self.compute_budget_percent,
@@ -1100,7 +1104,7 @@ class TreasuryModeConfig:
 
 
 # Predefined mode configurations
-TREASURY_MODES: Dict[TreasuryMode, TreasuryModeConfig] = {
+TREASURY_MODES: dict[TreasuryMode, TreasuryModeConfig] = {
     TreasuryMode.ETHICAL: TreasuryModeConfig(
         mode=TreasuryMode.ETHICAL,
         compute_budget_percent=100.0,
@@ -1164,12 +1168,12 @@ class TreasuryController:
         self._rejected_operations = 0
 
         # Mode history
-        self._mode_history: List[Tuple[datetime, TreasuryMode]] = [
+        self._mode_history: list[tuple[datetime, TreasuryMode]] = [
             (datetime.now(timezone.utc), initial_mode)
         ]
 
         # Callbacks for mode changes
-        self._mode_change_callbacks: List[
+        self._mode_change_callbacks: list[
             Callable[[TreasuryMode, TreasuryMode], None]
         ] = []
 
@@ -1232,7 +1236,7 @@ class TreasuryController:
 
         return amount
 
-    def can_execute_operation(self, cost: float = 0.0) -> Tuple[bool, str]:
+    def can_execute_operation(self, cost: float = 0.0) -> tuple[bool, str]:
         """
         Check if an operation can be executed under current mode.
 
@@ -1278,7 +1282,7 @@ class TreasuryController:
         if self._active_operations > 0:
             self._active_operations -= 1
 
-    def get_effective_thresholds(self) -> Dict[str, float]:
+    def get_effective_thresholds(self) -> dict[str, float]:
         """Get effective thresholds for current mode."""
         return {
             "gini_threshold": self._config.gini_threshold,
@@ -1289,7 +1293,7 @@ class TreasuryController:
 
     def set_mode(self, new_mode: TreasuryMode, force: bool = False) -> bool:
         """
-        Set treasury mode.
+        set treasury mode.
 
         Args:
             new_mode: Target mode
@@ -1369,7 +1373,7 @@ class TreasuryController:
         """Register callback for mode changes."""
         self._mode_change_callbacks.append(callback)
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get treasury status."""
         return {
             "mode": self._mode.name,
@@ -1449,10 +1453,10 @@ class ConstitutionalEngine:
     def evaluate_action(
         self,
         ihsan_vector: IhsanVector,
-        distribution: Dict[str, float],
-        proposed_change: Optional[Dict[str, float]] = None,
+        distribution: dict[str, float],
+        proposed_change: Optional[dict[str, float]] = None,
         operation_cost: float = 0.0,
-    ) -> Tuple[bool, Dict[str, Any]]:
+    ) -> tuple[bool, dict[str, Any]]:
         """
         Evaluate whether an action is constitutionally permitted.
 
@@ -1464,7 +1468,7 @@ class ConstitutionalEngine:
         Returns:
             (permitted, details)
         """
-        details: Dict[str, Any] = {
+        details: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "treasury_mode": self.treasury.mode.name,
         }
@@ -1530,9 +1534,9 @@ class ConstitutionalEngine:
         self,
         value: bytes,
         ihsan_vector: IhsanVector,
-        distribution: Dict[str, float],
+        distribution: dict[str, float],
         operation_cost: float = 0.0,
-    ) -> Tuple[bool, Optional[str], Dict[str, Any]]:
+    ) -> tuple[bool, Optional[str], dict[str, Any]]:
         """
         Execute an action with full constitutional and consensus checks.
 
@@ -1575,7 +1579,7 @@ class ConstitutionalEngine:
         finally:
             self.treasury.end_operation()
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get comprehensive engine status."""
         return {
             "node_id": self.node_id,
@@ -1781,7 +1785,6 @@ __all__ = [
     "BFT_QUORUM_FRACTION",
     "LANDAUER_LIMIT_JOULES",
 ]
-
 
 # =============================================================================
 # ENTRY POINT

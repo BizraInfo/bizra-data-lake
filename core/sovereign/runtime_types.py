@@ -1,9 +1,9 @@
 """
-Runtime Type Definitions — Protocols and TypedDicts
+Runtime type Definitions — Protocols and TypedDicts
 ===================================================
-Type definitions for Sovereign Runtime components ensuring strict typing.
+type definitions for Sovereign Runtime components ensuring strict typing.
 
-Standing on Giants: Type Theory + Protocol Pattern + Python Typing
+Standing on Giants: type Theory + Protocol Pattern + Python Typing
 """
 
 from __future__ import annotations
@@ -16,8 +16,6 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
-    List,
     Optional,
     Protocol,
     TypedDict,
@@ -30,16 +28,16 @@ from typing import (
 
 
 class ReasoningResult(TypedDict, total=False):
-    """Type definition for reasoning results from GraphOfThoughts."""
+    """type definition for reasoning results from GraphOfThoughts."""
 
-    thoughts: List[str]
+    thoughts: list[str]
     conclusion: str
     confidence: float
     depth_reached: int
 
 
 class SNRResult(TypedDict, total=False):
-    """Type definition for SNR optimization results."""
+    """type definition for SNR optimization results."""
 
     original_length: int
     snr_score: float
@@ -48,15 +46,15 @@ class SNRResult(TypedDict, total=False):
 
 
 class ValidationResult(TypedDict, total=False):
-    """Type definition for Guardian Council validation results."""
+    """type definition for Guardian Council validation results."""
 
     is_valid: bool
     confidence: float
-    issues: List[str]
+    issues: list[str]
 
 
 class AutonomousCycleResult(TypedDict, total=False):
-    """Type definition for autonomous loop cycle results."""
+    """type definition for autonomous loop cycle results."""
 
     cycle: int
     decisions: int
@@ -64,7 +62,7 @@ class AutonomousCycleResult(TypedDict, total=False):
 
 
 class LoopStatus(TypedDict, total=False):
-    """Type definition for autonomous loop status."""
+    """type definition for autonomous loop status."""
 
     running: bool
     cycle: int
@@ -82,7 +80,7 @@ class GraphReasonerProtocol(Protocol):
     async def reason(
         self,
         query: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
         max_depth: int = 5,
     ) -> ReasoningResult: ...
 
@@ -101,7 +99,7 @@ class GuardianProtocol(Protocol):
     async def validate(
         self,
         content: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> ValidationResult: ...
 
 
@@ -127,7 +125,7 @@ class ImpactTrackerProtocol(Protocol):
     @property
     def total_bloom(self) -> float: ...
     @property
-    def achievements(self) -> List[str]: ...
+    def achievements(self) -> list[str]: ...
 
     def record_event(
         self,
@@ -135,7 +133,7 @@ class ImpactTrackerProtocol(Protocol):
         action: str,
         bloom: float,
         uers: Any = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Any: ...
 
     def get_progress(self) -> Any: ...
@@ -220,7 +218,9 @@ class RuntimeConfig:
     # Cache
     enable_cache: bool = True
     max_cache_entries: int = 1000
-    query_timeout_ms: int = 120000
+    query_timeout_ms: int = (
+        300000  # 5 min — reasoning models (R1/QwQ) need extended think time
+    )
 
     # Feature flags
     enable_graph_reasoning: bool = True
@@ -246,7 +246,7 @@ class RuntimeConfig:
     enable_zpk_preflight: bool = False
     zpk_manifest_uri: str = ""
     zpk_release_public_key: str = ""
-    zpk_allowed_versions: List[str] = field(default_factory=list)
+    zpk_allowed_versions: list[str] = field(default_factory=list)
     zpk_min_policy_version: int = 1
     zpk_min_ihsan_policy: float = 0.95
     zpk_emit_bootstrap_events: bool = False
@@ -269,6 +269,20 @@ class RuntimeConfig:
     def standard(cls) -> "RuntimeConfig":
         """Create standard configuration."""
         return cls(mode=RuntimeMode.STANDARD)
+
+    @classmethod
+    def observer(cls) -> "RuntimeConfig":
+        """Create observer configuration — PEK monitors but never auto-executes."""
+        return cls(
+            mode=RuntimeMode.STANDARD,
+            enable_proactive_kernel=True,
+            proactive_kernel_cycle_seconds=10.0,
+            proactive_kernel_min_confidence=0.74,
+            proactive_kernel_min_auto_confidence=0.95,  # Very high → proposals only
+            proactive_kernel_auto_execute_tau=0.99,  # Effectively disables auto-execute
+            proactive_kernel_base_tau=0.55,
+            proactive_kernel_queue_silent_tau=0.35,
+        )
 
     @classmethod
     def autonomous(cls) -> "RuntimeConfig":
@@ -324,6 +338,150 @@ class RuntimeMetrics:
     current_ihsan_score: float = 0.0
     current_snr_score: float = 0.0
 
+    # ── Computed properties ───────────────────────────────────
+    # Standing on: Dijkstra — single source of truth; derived values
+    # MUST NOT be stored, only computed from canonical counters.
+
+    @property
+    def total_queries(self) -> int:
+        """Alias for queries_processed (backward-compat)."""
+        return self.queries_processed
+
+    def success_rate(self) -> float:
+        """Fraction of queries that succeeded, 0.0 when no queries."""
+        if self.queries_processed == 0:
+            return 0.0
+        return self.queries_succeeded / self.queries_processed
+
+    @property
+    def cache_hit_rate(self) -> float:
+        """Fraction of cache lookups that were hits, 0.0 when no lookups."""
+        total_cache_lookups = self.cache_hits + self.cache_misses
+        if total_cache_lookups == 0:
+            return 0.0
+        return self.cache_hits / total_cache_lookups
+
+    @property
+    def health_score(self) -> float:
+        """Composite health: 40% SNR + 40% Ihsan + 20% success rate.
+
+        Standing on: Shannon (SNR) + Ihsan (constitutional quality).
+        """
+        return (
+            0.4 * self.current_snr_score
+            + 0.4 * self.current_ihsan_score
+            + 0.2 * self.success_rate()
+        )
+
+    def to_prometheus(self, include_help: bool = True) -> str:
+        """Render runtime metrics in Prometheus exposition format.
+
+        This is the single source of truth for API metrics serialization.
+        """
+        series = [
+            (
+                "sovereign_queries_total",
+                "counter",
+                "Total queries processed",
+                f"{self.total_queries}",
+            ),
+            (
+                "sovereign_query_success_rate",
+                "gauge",
+                "Query success rate",
+                f"{self.success_rate():.4f}",
+            ),
+            (
+                "sovereign_snr_score",
+                "gauge",
+                "Current SNR score",
+                f"{self.current_snr_score:.4f}",
+            ),
+            (
+                "sovereign_ihsan_score",
+                "gauge",
+                "Current Ihsan score",
+                f"{self.current_ihsan_score:.4f}",
+            ),
+            (
+                "sovereign_avg_query_time_ms",
+                "gauge",
+                "Average query time",
+                f"{self.avg_query_time_ms:.2f}",
+            ),
+            (
+                "sovereign_health_score",
+                "gauge",
+                "System health score",
+                f"{self.health_score:.4f}",
+            ),
+            (
+                "sovereign_reasoning_calls_total",
+                "counter",
+                "Total Graph-of-Thought reasoning calls",
+                f"{self.reasoning_calls}",
+            ),
+            (
+                "sovereign_reasoning_avg_depth",
+                "gauge",
+                "Average Graph-of-Thought depth",
+                f"{self.reasoning_avg_depth:.2f}",
+            ),
+            (
+                "sovereign_validation_pass_rate",
+                "gauge",
+                "Guardian validation pass rate",
+                f"{self.validation_pass_rate:.4f}",
+            ),
+            (
+                "sovereign_autonomous_cycles_total",
+                "counter",
+                "Total autonomous cycles",
+                f"{self.autonomous_cycles}",
+            ),
+            (
+                "sovereign_autonomous_decisions_total",
+                "counter",
+                "Total autonomous decisions",
+                f"{self.autonomous_decisions}",
+            ),
+            (
+                "sovereign_autonomous_actions_total",
+                "counter",
+                "Total autonomous actions",
+                f"{self.autonomous_actions}",
+            ),
+            (
+                "sovereign_cache_hits_total",
+                "counter",
+                "Total cache hits",
+                f"{self.cache_hits}",
+            ),
+            (
+                "sovereign_cache_misses_total",
+                "counter",
+                "Total cache misses",
+                f"{self.cache_misses}",
+            ),
+            (
+                "sovereign_cache_hit_rate",
+                "gauge",
+                "Cache hit rate",
+                f"{self.cache_hit_rate:.4f}",
+            ),
+        ]
+
+        lines: list[str] = []
+        for idx, (name, metric_type, help_text, value) in enumerate(series):
+            if include_help:
+                lines.append(f"# HELP {name} {help_text}")
+                lines.append(f"# TYPE {name} {metric_type}")
+            lines.append(f"{name} {value}")
+            if include_help and idx < len(series) - 1:
+                lines.append("")
+
+        return "\n".join(lines)
+
     def update_query_stats(self, success: bool, duration_ms: float) -> None:
         """Update query statistics."""
         self.queries_processed += 1
@@ -360,7 +518,7 @@ class RuntimeMetrics:
             new_passes = self.validation_pass_rate * (self.validations - 1)
         self.validation_pass_rate = new_passes / self.validations
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metrics to dictionary."""
         return {
             "queries": {
@@ -405,12 +563,15 @@ class SovereignQuery:
 
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     text: str = ""
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     require_reasoning: bool = True
     require_snr: bool = True
     require_validation: bool = False
     timeout: float = 60.0
     created_at: datetime = field(default_factory=datetime.now)
+
+    # Phase 21: Multi-user identity
+    user_id: str = ""  # empty = anonymous / single-user mode
 
 
 @dataclass
@@ -424,25 +585,36 @@ class SovereignResult:
     # Reasoning
     reasoning_used: bool = False
     reasoning_depth: int = 0
-    thoughts: List[str] = field(default_factory=list)
+    thoughts: list[str] = field(default_factory=list)
 
     # Quality scores
     ihsan_score: float = 0.0
     snr_score: float = 0.0
+    snr_ok: bool = False
 
     # Validation
     validated: bool = False
     validation_passed: bool = False
-    validation_issues: List[str] = field(default_factory=list)
+    validation_issues: list[str] = field(default_factory=list)
 
     # Timing
     processing_time_ms: float = 0.0
     created_at: datetime = field(default_factory=datetime.now)
 
+    # Model attribution
+    model_used: Optional[str] = None  # set during query processing; None = no LLM
+
+    # Spearpoint: content-addressed graph artifact + claim provenance
+    graph_hash: Optional[str] = None
+    claim_tags: dict[str, str] = field(default_factory=dict)
+
+    # Phase 21: Multi-user identity
+    user_id: str = ""  # populated when auth middleware resolves user
+
     # Error handling
     error: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         return {
             "query_id": self.query_id,
@@ -456,6 +628,7 @@ class SovereignResult:
             "quality": {
                 "ihsan_score": round(self.ihsan_score, 3),
                 "snr_score": round(self.snr_score, 3),
+                "snr_ok": self.snr_ok,
             },
             "validation": {
                 "performed": self.validated,
@@ -463,6 +636,8 @@ class SovereignResult:
                 "issues": self.validation_issues,
             },
             "processing_time_ms": round(self.processing_time_ms, 2),
+            "graph_hash": self.graph_hash,
+            "user_id": self.user_id,
             "error": self.error,
         }
 

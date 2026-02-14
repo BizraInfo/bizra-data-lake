@@ -117,6 +117,7 @@ class ShadowHypothesis:
     def __post_init__(self):
         if not self.id:
             import secrets
+
             self.id = secrets.token_hex(6)  # 12 hex chars, CSPRNG
 
     def to_dict(self) -> Dict[str, Any]:

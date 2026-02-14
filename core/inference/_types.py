@@ -1,5 +1,5 @@
 """
-BIZRA Inference Gateway — Type Definitions
+BIZRA Inference Gateway — type Definitions
 ═══════════════════════════════════════════════════════════════════════════════
 
 TypedDicts, Enums, Protocols, constants, and config dataclasses used
@@ -21,9 +21,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Dict,
     Final,
-    List,
     Optional,
     Protocol,
     TypedDict,
@@ -33,7 +31,6 @@ from typing import (
 # break a circular import with ``_connection_pool.ConnectionPoolConfig``.
 # The real default is injected lazily in ``InferenceConfig.__post_init__``.
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -42,14 +39,13 @@ from typing import (
 DEFAULT_MODEL_DIR: Final[Path] = Path("/var/lib/bizra/models")
 CACHE_DIR: Final[Path] = Path("/var/lib/bizra/cache")
 
-
 # =============================================================================
 # TYPE PROTOCOLS (mypy --strict compliance)
 # =============================================================================
 
 
 class RateLimiterMetrics(TypedDict):
-    """Type definition for rate limiter metrics."""
+    """type definition for rate limiter metrics."""
 
     requests_allowed: int
     requests_throttled: int
@@ -60,7 +56,7 @@ class RateLimiterMetrics(TypedDict):
 
 
 class BatchingMetrics(TypedDict):
-    """Type definition for batching metrics."""
+    """type definition for batching metrics."""
 
     total_batches: int
     total_requests: int
@@ -70,7 +66,7 @@ class BatchingMetrics(TypedDict):
 
 
 class GatewayStats(TypedDict):
-    """Type definition for gateway statistics."""
+    """type definition for gateway statistics."""
 
     total_requests: int
     total_tokens: int
@@ -78,18 +74,18 @@ class GatewayStats(TypedDict):
 
 
 class HealthData(TypedDict, total=False):
-    """Type definition for gateway health data."""
+    """type definition for gateway health data."""
 
     status: str
     active_backend: Optional[str]
     active_model: Optional[str]
-    backends: Dict[str, bool]
+    backends: dict[str, bool]
     stats: GatewayStats
     batching: BatchingMetrics
 
 
 class CircuitMetrics(TypedDict):
-    """Type definition for circuit breaker metrics as dict."""
+    """type definition for circuit breaker metrics as dict."""
 
     state: str
     failure_count: int
@@ -115,7 +111,7 @@ class BackendGenerateFn(Protocol):
     ) -> str: ...
 
 
-# Type alias for circuit breaker state change callback
+# type alias for circuit breaker state change callback
 CircuitStateChangeCallback = Callable[[str, "CircuitState", "CircuitState"], None]
 
 # Tier definitions
@@ -142,7 +138,6 @@ TIER_CONFIGS = {
         "target_speed": None,  # Varies
     },
 }
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENUMS
@@ -290,7 +285,7 @@ class InferenceConfig:
     default_tier: ComputeTier = ComputeTier.LOCAL
 
     # Fallback chain
-    fallbacks: List[str] = field(default_factory=lambda: ["ollama", "lmstudio"])
+    fallbacks: list[str] = field(default_factory=lambda: ["ollama", "lmstudio"])
 
     # Fail-closed: deny if no local model available
     require_local: bool = True
@@ -318,7 +313,9 @@ class InferenceConfig:
 
     # Connection pool settings (P1 optimization)
     enable_connection_pool: bool = True
-    connection_pool: Any = field(default_factory=lambda: None)  # ConnectionPoolConfig; patched at import time
+    connection_pool: Any = field(
+        default_factory=lambda: None
+    )  # ConnectionPoolConfig; patched at import time
 
     # Rate limiter settings (RFC 6585)
     enable_rate_limiting: bool = True
@@ -328,6 +325,7 @@ class InferenceConfig:
         # Deferred default: replace None with real ConnectionPoolConfig
         if self.connection_pool is None:
             from ._connection_pool import ConnectionPoolConfig
+
             self.connection_pool = ConnectionPoolConfig()
 
 

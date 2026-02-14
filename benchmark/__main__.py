@@ -24,6 +24,7 @@ from benchmark.runner import BenchmarkRunner
 from benchmark.suites.inference import InferenceBenchmark
 from benchmark.suites.security import SecurityBenchmark
 from benchmark.suites.quality import QualityBenchmark
+from benchmark.suites.spearpoint import SpearPointBenchmark
 
 
 def compute_overall_score(
@@ -126,7 +127,7 @@ Examples:
     parser.add_argument(
         "suite",
         nargs="?",
-        choices=["all", "inference", "security", "quality"],
+        choices=["all", "inference", "security", "quality", "spearpoint"],
         default="all",
         help="Which suite to run (default: all)",
     )
@@ -173,6 +174,10 @@ Examples:
     if args.suite in ("all", "quality"):
         quality = QualityBenchmark(runner)
         all_results["quality"] = quality.run_all(args.iterations)
+
+    if args.suite in ("all", "spearpoint"):
+        spearpoint = SpearPointBenchmark(runner)
+        all_results["spearpoint"] = spearpoint.run_all(args.iterations)
 
     # Compute overall score
     overall_score = compute_overall_score(all_results)

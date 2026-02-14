@@ -29,7 +29,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Optional
 
 import numpy as np
 
@@ -54,7 +54,7 @@ class Observation:
     """
 
     value: float
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
     def __post_init__(self):
         """Clamp value to valid range."""
@@ -146,7 +146,7 @@ class NTUState:
         """Check if belief exceeds Ihsan threshold (0.95)."""
         return self.belief >= 0.95
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize state."""
         return {
             "belief": self.belief,
@@ -213,7 +213,7 @@ class NTU:
         - HIGH: High belief, low entropy (certainty-dominant)
         """
 
-        self.embeddings: Dict[ObservationType, np.ndarray] = {
+        self.embeddings: dict[ObservationType, np.ndarray] = {
             ObservationType.LOW: np.array([0.1, 0.2, 0.7]),  # Entropy-heavy
             ObservationType.MEDIUM: np.array([0.4, 0.4, 0.2]),  # Balanced
             ObservationType.HIGH: np.array([0.8, 0.1, 0.1]),  # Belief-heavy
@@ -276,7 +276,7 @@ class NTU:
         return stationary
 
     def observe(
-        self, value: float, metadata: Optional[Dict[str, Any]] = None
+        self, value: float, metadata: Optional[dict[str, Any]] = None
     ) -> NTUState:
         """
         Process a new observation and update state.
@@ -400,7 +400,7 @@ class NTU:
         self.state.entropy = max(0.0, min(1.0, posterior_entropy))
         self.state.potential = max(0.0, min(1.0, posterior_potential))
 
-    def detect_pattern(self, observations: List[float]) -> Tuple[bool, NTUState]:
+    def detect_pattern(self, observations: list[float]) -> tuple[bool, NTUState]:
         """
         Run pattern detection on a sequence of observations.
 
@@ -408,7 +408,7 @@ class NTU:
         Processes all observations and returns final detection result.
 
         Args:
-            observations: List of values in [0, 1]
+            observations: list of values in [0, 1]
 
         Returns:
             (pattern_detected, final_state) where pattern_detected
@@ -430,9 +430,9 @@ class NTU:
 
     def run_until_convergence(
         self,
-        observations: List[float],
+        observations: list[float],
         epsilon: Optional[float] = None,
-    ) -> Tuple[bool, int, NTUState]:
+    ) -> tuple[bool, int, NTUState]:
         """
         Run until belief converges or max iterations reached.
 
@@ -478,7 +478,7 @@ class NTU:
         self.memory.clear()
         self.state = NTUState()
 
-    def get_diagnostics(self) -> Dict[str, Any]:
+    def get_diagnostics(self) -> dict[str, Any]:
         """Get diagnostic information for debugging."""
         return {
             "config": {
@@ -510,21 +510,21 @@ class PatternDetector:
 
     def __init__(
         self,
-        patterns: Optional[Dict[str, Dict[str, Any]]] = None,
+        patterns: Optional[dict[str, dict[str, Any]]] = None,
         default_config: Optional[NTUConfig] = None,
     ):
         """
         Initialize pattern detector.
 
         Args:
-            patterns: Dict of pattern_name -> {threshold, window_size, ...}
+            patterns: dict of pattern_name -> {threshold, window_size, ...}
             default_config: Default NTU configuration
         """
         self.patterns = patterns or {}
         self.default_config = default_config or NTUConfig()
 
         # NTU instances per pattern
-        self._ntus: Dict[str, NTU] = {}
+        self._ntus: dict[str, NTU] = {}
 
     def register_pattern(
         self,
@@ -557,8 +557,8 @@ class PatternDetector:
     def detect(
         self,
         pattern_name: str,
-        observations: List[float],
-    ) -> Tuple[bool, float, Dict[str, Any]]:
+        observations: list[float],
+    ) -> tuple[bool, float, dict[str, Any]]:
         """
         Detect a specific pattern in observations.
 
@@ -579,8 +579,8 @@ class PatternDetector:
 
     def detect_all(
         self,
-        observations: List[float],
-    ) -> Dict[str, Tuple[bool, float]]:
+        observations: list[float],
+    ) -> dict[str, tuple[bool, float]]:
         """
         Detect all registered patterns.
 
@@ -588,7 +588,7 @@ class PatternDetector:
             observations: Observation sequence
 
         Returns:
-            Dict of pattern_name -> (detected, confidence)
+            dict of pattern_name -> (detected, confidence)
         """
         results = {}
         for name in self.patterns:
@@ -599,10 +599,10 @@ class PatternDetector:
 
 # Convenience function for simple usage
 def minimal_ntu_detect(
-    observations: List[float],
+    observations: list[float],
     threshold: float = 0.95,
     window: int = 5,
-) -> Tuple[bool, float]:
+) -> tuple[bool, float]:
     """
     Minimal NTU pattern detection.
 

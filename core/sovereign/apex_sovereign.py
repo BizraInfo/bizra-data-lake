@@ -47,7 +47,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from statistics import mean
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.apex import ApexSystem
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
@@ -70,7 +70,6 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
-
 
 # OODA cycle interval
 CYCLE_INTERVAL_MS: int = 1000
@@ -95,9 +94,9 @@ class ApexOODAState(str, Enum):
 class Observation:
     """Combined observations from all sensors."""
 
-    market_readings: List[MarketSensorReading] = field(default_factory=list)
-    swarm_health: Dict[str, Any] = field(default_factory=dict)
-    social_metrics: Dict[str, Any] = field(default_factory=dict)
+    market_readings: list[MarketSensorReading] = field(default_factory=list)
+    swarm_health: dict[str, Any] = field(default_factory=dict)
+    social_metrics: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -105,22 +104,22 @@ class Observation:
 class Prediction:
     """Predictions based on observations."""
 
-    market_trends: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    workload_forecast: Optional[Dict[str, Any]] = None
+    market_trends: dict[str, dict[str, Any]] = field(default_factory=dict)
+    workload_forecast: Optional[dict[str, Any]] = None
     scaling_recommendation: Optional[str] = None
     confidence: float = 0.5
     # Enhanced fields for GoT integration
     got_result: Optional[Any] = None  # GoTResult when available
-    reasoning_path: List[Any] = field(default_factory=list)  # ThoughtNodes
+    reasoning_path: list[Any] = field(default_factory=list)  # ThoughtNodes
 
 
 @dataclass
 class TeamPlan:
     """Coordination plan for the team."""
 
-    task_assignments: List[Dict[str, Any]] = field(default_factory=list)
-    collaborations: List[Dict[str, Any]] = field(default_factory=list)
-    selected_agents: List[ScoredAgent] = field(default_factory=list)
+    task_assignments: list[dict[str, Any]] = field(default_factory=list)
+    collaborations: list[dict[str, Any]] = field(default_factory=list)
+    selected_agents: list[ScoredAgent] = field(default_factory=list)
 
 
 @dataclass
@@ -142,11 +141,11 @@ class Outcome:
     decision: Decision
     success: bool
     value: float = 0.0
-    agents_used: List[str] = field(default_factory=list)
+    agents_used: list[str] = field(default_factory=list)
     execution_time_ms: float = 0.0
     error: Optional[str] = None
     # Giants attribution for explainability
-    giants_attribution: List[str] = field(default_factory=list)
+    giants_attribution: list[str] = field(default_factory=list)
 
 
 class ApexSovereignEntity:
@@ -219,7 +218,7 @@ class ApexSovereignEntity:
         self._loop_task: Optional[asyncio.Task] = None
 
         # Metrics
-        self.metrics: Dict[str, float] = {
+        self.metrics: dict[str, float] = {
             "cycles": 0,
             "actions_taken": 0,
             "autonomous_actions": 0,
@@ -229,9 +228,9 @@ class ApexSovereignEntity:
         }
 
         # History for averaging
-        self._ihsan_history: List[float] = []
-        self._snr_history: List[float] = []
-        self._success_history: List[bool] = []
+        self._ihsan_history: list[float] = []
+        self._snr_history: list[float] = []
+        self._success_history: list[bool] = []
 
         # Lazy-initialized runtime engine components
         self._snr_maximizer: Optional["SNRMaximizer"] = None
@@ -292,7 +291,7 @@ class ApexSovereignEntity:
 
     def get_giants_attribution(
         self, method_name: str = "ApexSovereignEntity"
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Get Giants attribution for a method or the entity itself.
 
@@ -360,8 +359,8 @@ class ApexSovereignEntity:
         observation: Optional[Observation] = None
         prediction: Optional[Prediction] = None
         team_plan: Optional[TeamPlan] = None
-        decisions: List[Decision] = []
-        outcomes: List[Outcome] = []
+        decisions: list[Decision] = []
+        outcomes: list[Outcome] = []
 
         while self._running:
             try:
@@ -603,13 +602,13 @@ class ApexSovereignEntity:
         observation: Optional[Observation],
         prediction: Optional[Prediction],
         team_plan: Optional[TeamPlan],
-    ) -> List[MarketGoal]:
+    ) -> list[MarketGoal]:
         """
         ANALYZE phase: Process observations into goals.
 
         Converts market readings into actionable goals.
         """
-        goals: List[MarketGoal] = []
+        goals: list[MarketGoal] = []
 
         if not observation:
             return goals
@@ -630,7 +629,7 @@ class ApexSovereignEntity:
         )
         return goals
 
-    async def _decide(self, goals: List[MarketGoal]) -> List[Decision]:
+    async def _decide(self, goals: list[MarketGoal]) -> list[Decision]:
         """
         DECIDE phase: Make decisions based on goals and autonomy levels.
 
@@ -638,7 +637,7 @@ class ApexSovereignEntity:
         - All decisions validated against Ihsan
         - Autonomy level determines approval requirement
         """
-        decisions: List[Decision] = []
+        decisions: list[Decision] = []
 
         for goal in goals:
             # Validate Ihsan
@@ -674,9 +673,9 @@ class ApexSovereignEntity:
 
     async def _act(
         self,
-        decisions: List[Decision],
+        decisions: list[Decision],
         team_plan: Optional[TeamPlan],
-    ) -> List[Outcome]:
+    ) -> list[Outcome]:
         """
         ACT phase: Execute approved decisions via hybrid swarm.
 
@@ -685,7 +684,7 @@ class ApexSovereignEntity:
         Integration: Adds Giants attribution to every outcome for
         explainability and knowledge provenance tracking.
         """
-        outcomes: List[Outcome] = []
+        outcomes: list[Outcome] = []
 
         # Get Giants attribution once for all outcomes
         giants_attribution = self.get_giants_attribution("_act")
@@ -745,7 +744,7 @@ class ApexSovereignEntity:
 
         return outcomes
 
-    async def _learn(self, outcomes: List[Outcome]) -> None:
+    async def _learn(self, outcomes: list[Outcome]) -> None:
         """
         LEARN phase: Update models based on outcomes.
 
@@ -805,7 +804,7 @@ class ApexSovereignEntity:
         # Reset to stable state
         await asyncio.sleep(1)  # Brief pause before retry
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get entity status including runtime_engines components."""
         status_dict = {
             "node_id": self.node_id,

@@ -35,7 +35,9 @@ from .adl_kernel import (  # type: ignore[attr-defined]
     IncrementalGini,
     NetworkGiniTracker,
 )
-from .adl_kernel import calculate_gini as calculate_gini_kernel  # type: ignore[attr-defined]
+from .adl_kernel import (
+    calculate_gini as calculate_gini_kernel,  # type: ignore[attr-defined]
+)
 from .market_integration import (  # type: ignore[attr-defined]
     MarketAwareMuraqabah,
 )

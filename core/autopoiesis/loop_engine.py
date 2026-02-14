@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Optional
 
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
@@ -42,7 +42,6 @@ from core.integration.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # AUTOPOIETIC STATE MACHINE
@@ -115,17 +114,17 @@ class SystemObservation:
     gpu_usage: Optional[float] = None
 
     # Quality metrics
-    agent_performance: Dict[str, float] = field(default_factory=dict)
+    agent_performance: dict[str, float] = field(default_factory=dict)
     constitutional_compliance: float = 1.0
 
     # Trend indicators
     trend_direction: str = "stable"  # improving, degrading, stable
-    anomalies_detected: List[str] = field(default_factory=list)
+    anomalies_detected: list[str] = field(default_factory=list)
 
     # Raw sensor data
-    sensor_readings: Dict[str, Any] = field(default_factory=dict)
+    sensor_readings: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "observation_id": self.observation_id,
             "timestamp": self.timestamp.isoformat(),
@@ -166,11 +165,11 @@ class ActivationReport:
     """Outcome of activation guardrail evaluation."""
 
     activated: bool
-    reasons: List[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
     observation: Optional[SystemObservation] = None
     fate_proof_id: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "activated": self.activated,
             "reasons": self.reasons,
@@ -194,12 +193,12 @@ class Hypothesis:
     predicted_improvement: float  # Expected improvement ratio (e.g., 0.05 = 5%)
 
     # Change specification
-    required_changes: List[Dict[str, Any]]  # List of changes to apply
-    affected_components: List[str]  # Components that will be modified
+    required_changes: list[dict[str, Any]]  # list of changes to apply
+    affected_components: list[str]  # Components that will be modified
 
     # Risk and safety
     risk_level: RiskLevel
-    reversibility_plan: Dict[str, Any]  # How to undo if needed
+    reversibility_plan: dict[str, Any]  # How to undo if needed
     ihsan_impact_estimate: float  # Expected Ihsan delta (-/+)
     snr_impact_estimate: float  # Expected SNR delta (-/+)
 
@@ -220,7 +219,7 @@ class Hypothesis:
         if self.category == HypothesisCategory.STRUCTURAL:
             self.requires_human_approval = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "description": self.description,
@@ -253,7 +252,7 @@ class ValidationResult:
     reversibility_verified: bool = True
 
     # Violations found
-    violations: List[str] = field(default_factory=list)
+    violations: list[str] = field(default_factory=list)
     counterexample: Optional[str] = None
 
     # Recommendation
@@ -261,7 +260,7 @@ class ValidationResult:
 
     validated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,
             "is_valid": self.is_valid,
@@ -284,8 +283,8 @@ class ImplementationResult:
     deployment_time_ms: int = 0
 
     # Observed behavior
-    baseline_metrics: Dict[str, float] = field(default_factory=dict)
-    shadow_metrics: Dict[str, float] = field(default_factory=dict)
+    baseline_metrics: dict[str, float] = field(default_factory=dict)
+    shadow_metrics: dict[str, float] = field(default_factory=dict)
     improvement_observed: float = 0.0
 
     # Safety checks
@@ -299,7 +298,7 @@ class ImplementationResult:
 
     implemented_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,
             "success": self.success,
@@ -319,7 +318,7 @@ class IntegrationResult:
 
     # Learning outcomes
     lesson_learned: str
-    parameters_updated: Dict[str, Any] = field(default_factory=dict)
+    parameters_updated: dict[str, Any] = field(default_factory=dict)
 
     # Impact summary
     final_improvement: float = 0.0
@@ -332,7 +331,7 @@ class IntegrationResult:
 
     integrated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "hypothesis_id": self.hypothesis_id,
             "integrated": self.integrated,
@@ -370,7 +369,7 @@ class AutopoieticResult:
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "cycle_id": self.cycle_id,
             "state": self.state.value,
@@ -399,8 +398,8 @@ class AuditLogEntry:
     # Change details
     component_affected: str
     change_type: str
-    before_state: Dict[str, Any]
-    after_state: Dict[str, Any]
+    before_state: dict[str, Any]
+    after_state: dict[str, Any]
 
     # Verification
     verified_by: str  # "z3_fate", "human", "auto"
@@ -411,7 +410,7 @@ class AuditLogEntry:
     outcome: str  # "success", "rollback", "pending"
     rollback_triggered: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "entry_id": self.entry_id,
             "timestamp": self.timestamp.isoformat(),
@@ -445,7 +444,7 @@ class RateLimiter:
         self._improvements_this_cycle: int = 0
         self._rollback_cooldown_until: Optional[float] = None
 
-    def can_attempt_improvement(self) -> Tuple[bool, str]:
+    def can_attempt_improvement(self) -> tuple[bool, str]:
         """Check if an improvement attempt is allowed."""
         now = time.time()
 
@@ -506,10 +505,10 @@ class RollbackManager:
         self.snr_floor = snr_floor
         self.error_spike_threshold = error_spike_threshold
 
-        self._state_stack: Deque[Dict[str, Any]] = deque(maxlen=max_rollback_history)
-        self._rollback_history: List[Dict[str, Any]] = []
+        self._state_stack: Deque[dict[str, Any]] = deque(maxlen=max_rollback_history)
+        self._rollback_history: list[dict[str, Any]] = []
 
-    def save_state(self, state: Dict[str, Any], hypothesis_id: str):
+    def save_state(self, state: dict[str, Any], hypothesis_id: str):
         """Save state before applying a change."""
         self._state_stack.append(
             {
@@ -525,7 +524,7 @@ class RollbackManager:
         current_snr: float,
         current_error_rate: float,
         baseline_error_rate: float,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Check if rollback should be triggered."""
         reasons = []
 
@@ -552,7 +551,7 @@ class RollbackManager:
             return True, "; ".join(reasons)
         return False, ""
 
-    def get_rollback_state(self, hypothesis_id: str) -> Optional[Dict[str, Any]]:
+    def get_rollback_state(self, hypothesis_id: str) -> Optional[dict[str, Any]]:
         """Get saved state for rollback."""
         for entry in reversed(self._state_stack):
             if entry["hypothesis_id"] == hypothesis_id:
@@ -584,7 +583,7 @@ class ApprovalRequest:
     requested_at: datetime
 
     # Context
-    observation_summary: Dict[str, Any]
+    observation_summary: dict[str, Any]
     risk_assessment: str
     expected_impact: str
 
@@ -594,7 +593,7 @@ class ApprovalRequest:
     approved_at: Optional[datetime] = None
     rejection_reason: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "request_id": self.request_id,
             "hypothesis_id": self.hypothesis.id,
@@ -612,8 +611,8 @@ class HumanApprovalQueue:
 
     def __init__(self, max_pending: int = 10):
         self.max_pending = max_pending
-        self._pending: Dict[str, ApprovalRequest] = {}
-        self._completed: List[ApprovalRequest] = []
+        self._pending: dict[str, ApprovalRequest] = {}
+        self._completed: list[ApprovalRequest] = []
 
     def submit_for_approval(
         self,
@@ -670,7 +669,7 @@ class HumanApprovalQueue:
 
         return True
 
-    def get_pending(self) -> List[ApprovalRequest]:
+    def get_pending(self) -> list[ApprovalRequest]:
         """Get all pending approval requests."""
         return list(self._pending.values())
 
@@ -771,12 +770,14 @@ class AutopoieticLoop:
 
         # History
         self._observation_history: Deque[SystemObservation] = deque(maxlen=100)
-        self._hypothesis_history: List[Hypothesis] = []
-        self._audit_log: List[AuditLogEntry] = []
+        self._hypothesis_history: list[Hypothesis] = []
+        self._audit_log: list[AuditLogEntry] = []
         self._cycle_results: Deque[AutopoieticResult] = deque(maxlen=50)
 
         # Audit log persistence
-        self._audit_log_path = audit_log_path or Path(tempfile.gettempdir()) / "autopoietic_audit.jsonl"
+        self._audit_log_path = (
+            audit_log_path or Path(tempfile.gettempdir()) / "autopoietic_audit.jsonl"
+        )
 
         # Metrics
         self._total_improvements = 0
@@ -840,7 +841,7 @@ class AutopoieticLoop:
             self._activation_report = report
             return report
 
-        reasons: List[str] = []
+        reasons: list[str] = []
 
         if (
             guard.require_live_sensors
@@ -1168,15 +1169,15 @@ class AutopoieticLoop:
             logger.error(f"Observation failed: {e}")
             return None
 
-    async def hypothesize(self, observation: SystemObservation) -> List[Hypothesis]:
+    async def hypothesize(self, observation: SystemObservation) -> list[Hypothesis]:
         """
         HYPOTHESIZE phase: Generate improvement candidates.
 
         Returns:
-            List of hypotheses ordered by potential impact
+            list of hypotheses ordered by potential impact
         """
         self._state = AutopoieticState.HYPOTHESIZING
-        hypotheses: List[Hypothesis] = []
+        hypotheses: list[Hypothesis] = []
 
         # Performance hypotheses based on latency
         if observation.latency_p99_ms > 100:
@@ -1318,7 +1319,7 @@ class AutopoieticLoop:
         """
         self._state = AutopoieticState.VALIDATING
 
-        violations: List[str] = []
+        violations: list[str] = []
 
         # Build action context for Z3 verification
         action_context = {
@@ -1439,23 +1440,22 @@ class AutopoieticLoop:
                 hypothesis.min_observation_duration_s / 100
             )  # Accelerated for demo
 
-            # Simulate shadow metrics (in production, collect from shadow instance)
+            # CRITICAL-8 FIX (ZANN_ZERO): Mark metrics as SIMULATED, not measured.
+            # Previously fabricated improvement as 80% of predicted value.
+            # Standing on: ZANN_ZERO ("no assumptions without evidence").
             shadow_metrics = {
-                "ihsan_score": baseline_metrics.get("ihsan_score", 0.95)
-                + hypothesis.ihsan_impact_estimate,
-                "snr_score": baseline_metrics.get("snr_score", 0.90)
-                + hypothesis.snr_impact_estimate,
-                "latency_p50_ms": baseline_metrics.get("latency_p50_ms", 10.0)
-                * (1 - hypothesis.predicted_improvement),
-                "error_rate": baseline_metrics.get("error_rate", 0.01) * 0.9,
+                "ihsan_score": baseline_metrics.get("ihsan_score", 0.95),
+                "snr_score": baseline_metrics.get("snr_score", 0.90),
+                "latency_p50_ms": baseline_metrics.get("latency_p50_ms", 10.0),
+                "error_rate": baseline_metrics.get("error_rate", 0.01),
+                "_simulated": True,
+                "_disclaimer": "Shadow deployment not yet wired to real infrastructure",
             }
 
             deployment_time_ms = (time.perf_counter_ns() - start_time) // 1_000_000
 
-            # Calculate improvement
-            improvement_observed = (
-                hypothesis.predicted_improvement * 0.8
-            )  # Conservative estimate
+            # HONEST: No improvement claimed without actual measurement
+            improvement_observed = 0.0
 
             # Check safety conditions
             current_ihsan = shadow_metrics.get("ihsan_score", 0.95)
@@ -1581,7 +1581,7 @@ class AutopoieticLoop:
     # HELPER METHODS
     # =========================================================================
 
-    def _select_best_hypothesis(self, hypotheses: List[Hypothesis]) -> Hypothesis:
+    def _select_best_hypothesis(self, hypotheses: list[Hypothesis]) -> Hypothesis:
         """Select the best hypothesis based on expected value and risk."""
 
         def score(h: Hypothesis) -> float:
@@ -1591,7 +1591,7 @@ class AutopoieticLoop:
 
         return max(hypotheses, key=score)
 
-    def _extract_metrics_from_readings(self, readings: List[Any]) -> Dict[str, Any]:
+    def _extract_metrics_from_readings(self, readings: list[Any]) -> dict[str, Any]:
         """Extract metrics from sensor readings."""
         metrics = {
             "ihsan_score": 0.95,
@@ -1638,7 +1638,7 @@ class AutopoieticLoop:
             return "degrading"
         return "stable"
 
-    def _detect_anomalies(self, metrics: Dict[str, Any]) -> List[str]:
+    def _detect_anomalies(self, metrics: dict[str, Any]) -> list[str]:
         """Detect anomalies in current metrics."""
         anomalies = []
 
@@ -1704,8 +1704,8 @@ class AutopoieticLoop:
         hypothesis_id: Optional[str],
         component_affected: str,
         change_type: str,
-        before_state: Dict[str, Any],
-        after_state: Dict[str, Any],
+        before_state: dict[str, Any],
+        after_state: dict[str, Any],
         verified_by: str,
         outcome: str,
         rollback_triggered: bool = False,
@@ -1799,7 +1799,7 @@ class AutopoieticLoop:
     # STATUS AND METRICS
     # =========================================================================
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current status of the autopoietic loop."""
         return {
             "state": self._state.value,
@@ -1824,7 +1824,7 @@ class AutopoieticLoop:
             "audit_log_size": len(self._audit_log),
         }
 
-    def get_pending_approvals(self) -> List[Dict[str, Any]]:
+    def get_pending_approvals(self) -> list[dict[str, Any]]:
         """Get pending human approval requests."""
         return [r.to_dict() for r in self._approval_queue.get_pending()]
 
@@ -1836,11 +1836,11 @@ class AutopoieticLoop:
         """Reject a pending hypothesis."""
         return self._approval_queue.reject(request_id, approver, reason)
 
-    def get_audit_log(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_audit_log(self, limit: int = 100) -> list[dict[str, Any]]:
         """Get recent audit log entries."""
         return [e.to_dict() for e in self._audit_log[-limit:]]
 
-    def get_cycle_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_cycle_history(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get recent cycle results."""
         return [r.to_dict() for r in list(self._cycle_results)[-limit:]]
 
@@ -1853,7 +1853,7 @@ class AutopoieticLoop:
 class MockFATEGate:
     """Mock FATE gate for testing without Z3."""
 
-    def generate_proof(self, action_context: Dict[str, Any]) -> Any:
+    def generate_proof(self, action_context: dict[str, Any]) -> Any:
         """Generate a mock proof."""
         from dataclasses import dataclass
 
@@ -1876,7 +1876,7 @@ class MockFATEGate:
 class MockSensorHub:
     """Mock sensor hub for testing."""
 
-    async def poll_all_sensors(self) -> List[Any]:
+    async def poll_all_sensors(self) -> list[Any]:
         """Return mock sensor readings."""
         from dataclasses import dataclass
 
@@ -1931,7 +1931,6 @@ def create_autopoietic_loop(
 # =============================================================================
 # EXPORTS
 # =============================================================================
-
 
 __all__ = [
     # State enum

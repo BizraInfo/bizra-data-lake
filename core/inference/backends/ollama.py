@@ -40,7 +40,9 @@ class OllamaBackend(InferenceBackendBase):
                 f"{self.config.ollama_url}/api/tags",
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 data = json.loads(resp.read().decode())
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
@@ -89,7 +91,9 @@ class OllamaBackend(InferenceBackendBase):
             method="POST",
         )
 
-        with urllib.request.urlopen(req, timeout=180) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+        with urllib.request.urlopen(
+            req, timeout=180
+        ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
             data = json.loads(resp.read().decode())
             return data.get("response", "")
 
@@ -104,7 +108,9 @@ class OllamaBackend(InferenceBackendBase):
         """Check Ollama health."""
         try:
             req = urllib.request.Request(f"{self.config.ollama_url}/api/tags")
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 return resp.status == 200
         except Exception:
             return False

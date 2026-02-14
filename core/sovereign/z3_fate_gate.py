@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 try:
     from z3 import Bool, Implies, Or, Real, Solver, sat
@@ -41,9 +41,9 @@ class Z3Proof:
     """Z3 proof result: proof_id, constraints_checked, satisfiable, model, generation_time_ms."""
 
     proof_id: str
-    constraints_checked: List[str]
+    constraints_checked: list[str]
     satisfiable: bool
-    model: Optional[Dict[str, Any]] = None
+    model: Optional[dict[str, Any]] = None
     generation_time_ms: int = 0
     counterexample: Optional[str] = None
 
@@ -59,7 +59,7 @@ class Z3FATEGate:
         if not Z3_AVAILABLE:
             raise ImportError("Z3 not available. Install: pip install z3-solver")
 
-        self._constraints: Dict[str, Z3Constraint] = {}
+        self._constraints: dict[str, Z3Constraint] = {}
         self._proof_counter = 0
 
         # Symbolic variables
@@ -97,7 +97,7 @@ class Z3FATEGate:
         """Register a constitutional constraint."""
         self._constraints[name] = Z3Constraint(name, z3_expr, description or name)
 
-    def generate_proof(self, action_context: Dict[str, Any]) -> Z3Proof:
+    def generate_proof(self, action_context: dict[str, Any]) -> Z3Proof:
         """Check if action satisfies all constraints. Returns Z3Proof."""
         start_ns = time.perf_counter_ns()
         self._proof_counter += 1
@@ -147,7 +147,7 @@ class Z3FATEGate:
             self._find_counterexample(action_context),
         )
 
-    def _find_counterexample(self, ctx: Dict[str, Any]) -> str:
+    def _find_counterexample(self, ctx: dict[str, Any]) -> str:
         """Identify which constraint failed."""
         failed = []
         if ctx.get("ihsan", 0) < UNIFIED_IHSAN_THRESHOLD:
@@ -177,7 +177,7 @@ class Z3FATEGate:
         max_risk = {0: 1.0, 1: 0.9, 2: 0.7, 3: 0.5, 4: 0.3}.get(level, 0.0)
         return risk <= max_risk
 
-    def get_constraints(self) -> Dict[str, str]:
+    def get_constraints(self) -> dict[str, str]:
         """Return constraint IDs mapped to descriptions."""
         return {c.constraint_id: c.description for c in self._constraints.values()}
 

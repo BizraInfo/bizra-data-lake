@@ -193,7 +193,7 @@ cd C:\BIZRA-DATA-LAKE
 
 #### **3. Test SAPE with Real Data**
 ```powershell
-cd C:\bizra-genesis-node\sape_engine
+cd C:\BIZRA-DATA-LAKE\bizra-omega\sape_engine
 cargo test test_full_sape_pipeline -- --nocapture
 # Should show real evidence from knowledge base
 ```
@@ -361,7 +361,7 @@ C:\BIZRA-DATA-LAKE\
 ├── IMPLEMENTATION-COMPLETE.md      (368 lines)
 └── SLEEPING-BEAST-STATUS.md        (THIS FILE)
 
-C:\bizra-genesis-node\sape_engine\
+C:\BIZRA-DATA-LAKE\sape_engine\
 └── src\modules\knowledge_kernels.rs (63 → 260 lines)
 
 Total New Code: ~1,950 lines

@@ -62,7 +62,7 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "sovereign-brain-mcp"
 SERVER_VERSION = "1.0.0"
 
-BASE_PATH = Path(__file__).parent
+BASE_PATH = Path(__file__).resolve().parent.parent.parent  # tools/mcp/ → project root
 GOLD_PATH = BASE_PATH / "04_GOLD"
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -594,9 +594,8 @@ def run_stdio():
     logger.info("   🧠 SOVEREIGN MCP SERVER — Stdio Mode")
     logger.info("════════════════════════════════════════════════════════════════")
     logger.info("   Waiting for JSON-RPC messages on stdin...")
-    
-    # Pre-initialize brain
-    brain_interface.initialize()
+
+    # Defer brain initialization to first tool call (avoid crash on missing deps)
     
     for line in sys.stdin:
         line = line.strip()

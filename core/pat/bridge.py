@@ -296,9 +296,7 @@ Is this message safe and appropriate? Answer YES or NO."""
                     return False
             except Exception as e:
                 logger.warning(f"Ihsan validation failed: {e}")
-                # Fail open for simple messages
-                if len(message.content) < 100:
-                    return True
+                message.ihsan_score = 0.0
                 return False
 
         message.ihsan_score = 0.95

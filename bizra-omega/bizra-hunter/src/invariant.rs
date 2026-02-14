@@ -8,8 +8,8 @@
 //! - Bounty estimate (for prioritization)
 
 use blake3::Hasher;
-use rustc_hash::FxHashMap;
 use parking_lot::RwLock;
+use rustc_hash::FxHashMap;
 
 /// Metadata for cached invariants
 #[derive(Debug, Clone, Copy)]

@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 from .mcp_bridge import MCPBridge, MCPPermission
-from .registry import RegisteredSkill, SkillRegistry, SkillStatus, get_skill_registry
+from .registry import SkillRegistry, SkillStatus, get_skill_registry
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,11 @@ class SkillInvocationResult:
         return {
             "success": self.success,
             "skill_name": self.skill_name,
-            "output": self.output if not isinstance(self.output, Exception) else str(self.output),
+            "output": (
+                self.output
+                if not isinstance(self.output, Exception)
+                else str(self.output)
+            ),
             "error": self.error,
             "duration_ms": self.duration_ms,
             "token_count": self.token_count,
@@ -259,11 +263,13 @@ class SkillRouter:
             agent_name = skill.manifest.agent
             result.agent_used = agent_name
 
-            # 7. Execute
+            # 7. Execute (with 60s timeout to prevent runaway handlers)
             handler = self._handlers.get(agent_name)
             if handler:
                 # Use registered handler
-                output = await handler(skill, inputs, context)
+                output = await asyncio.wait_for(
+                    handler(skill, inputs, context), timeout=60.0
+                )
             else:
                 # No handler - return skill info for external execution
                 output = {
@@ -303,7 +309,7 @@ class SkillRouter:
             # Add to history
             self._history.append(result)
             if len(self._history) > self._max_history:
-                self._history = self._history[-self._max_history:]
+                self._history = self._history[-self._max_history :]
 
         return result
 

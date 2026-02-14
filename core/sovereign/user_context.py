@@ -29,7 +29,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger("sovereign.user_context")
 
@@ -51,7 +51,7 @@ class ConversationTurn:
     snr_score: float = 0.0
     ihsan_score: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "role": self.role,
             "content": self.content,
@@ -62,7 +62,7 @@ class ConversationTurn:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ConversationTurn":
+    def from_dict(cls, data: dict[str, Any]) -> "ConversationTurn":
         turn = cls(
             role=data["role"],
             content=data["content"],
@@ -92,26 +92,26 @@ class UserProfile:
 
     # Who they are
     bio: str = ""
-    languages: List[str] = field(default_factory=lambda: ["en", "ar"])
-    expertise: List[str] = field(default_factory=list)
-    values: List[str] = field(default_factory=list)
+    languages: list[str] = field(default_factory=lambda: ["en", "ar"])
+    expertise: list[str] = field(default_factory=list)
+    values: list[str] = field(default_factory=list)
 
     # What drives them
     mission: str = ""
-    pain_points: List[str] = field(default_factory=list)
-    goals_short: List[str] = field(default_factory=list)  # 1-3 months
-    goals_long: List[str] = field(default_factory=list)  # 1-3 years
-    dreams: List[str] = field(default_factory=list)  # Life vision
+    pain_points: list[str] = field(default_factory=list)
+    goals_short: list[str] = field(default_factory=list)  # 1-3 months
+    goals_long: list[str] = field(default_factory=list)  # 1-3 years
+    dreams: list[str] = field(default_factory=list)  # Life vision
 
     # Working context
-    current_projects: List[str] = field(default_factory=list)
+    current_projects: list[str] = field(default_factory=list)
     active_focus: str = ""  # What they're working on right now
 
     # Preferences (learned over time)
     communication_style: str = "direct"  # direct, detailed, casual
     preferred_depth: str = "deep"  # shallow, moderate, deep
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "node_id": self.node_id,
@@ -132,7 +132,7 @@ class UserProfile:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "UserProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "UserProfile":
         return cls(
             name=data.get("name", ""),
             node_id=data.get("node_id", ""),
@@ -240,14 +240,14 @@ class ConversationMemory:
     def get_turn_count(self) -> int:
         return len(self._turns)
 
-    def get_persistable_state(self) -> Dict[str, Any]:
+    def get_persistable_state(self) -> dict[str, Any]:
         """Return state for MemoryCoordinator persistence."""
         return {
             "turns": [t.to_dict() for t in self._turns],
             "total_turns": len(self._turns),
         }
 
-    def restore_persistable_state(self, state: Dict[str, Any]) -> None:
+    def restore_persistable_state(self, state: dict[str, Any]) -> None:
         """Restore from MemoryCoordinator checkpoint."""
         self._turns.clear()
         for turn_data in state.get("turns", []):
@@ -346,7 +346,9 @@ class UserContextManager:
 
         # Section 2: Who is the human
         if self.profile.is_populated():
-            sections.append(f"\n--- WHO YOU SERVE ---\n{self.profile.summary_for_prompt()}")
+            sections.append(
+                f"\n--- WHO YOU SERVE ---\n{self.profile.summary_for_prompt()}"
+            )
         else:
             sections.append(
                 "\n--- WHO YOU SERVE ---\n"
@@ -366,9 +368,7 @@ class UserContextManager:
         # Section 5: Conversation context
         conversation_context = self.conversation.get_recent_context()
         if conversation_context:
-            sections.append(
-                f"\n--- RECENT CONVERSATION ---\n{conversation_context}"
-            )
+            sections.append(f"\n--- RECENT CONVERSATION ---\n{conversation_context}")
 
         # Section 6: Operating principles
         sections.append(
@@ -384,14 +384,14 @@ class UserContextManager:
 
         return "\n".join(sections)
 
-    def get_persistable_state(self) -> Dict[str, Any]:
+    def get_persistable_state(self) -> dict[str, Any]:
         """Return state for MemoryCoordinator."""
         return {
             "profile": self.profile.to_dict(),
             "conversation": self.conversation.get_persistable_state(),
         }
 
-    def restore_persistable_state(self, state: Dict[str, Any]) -> None:
+    def restore_persistable_state(self, state: dict[str, Any]) -> None:
         """Restore from MemoryCoordinator checkpoint."""
         if "profile" in state:
             self.profile = UserProfile.from_dict(state["profile"])
@@ -413,44 +413,109 @@ def select_pat_agent(query_text: str, pat_team: list) -> Optional[str]:
 
     # Strategy/planning/decision keywords
     strategy_keywords = {
-        "plan", "strategy", "decide", "prioritize", "roadmap", "direction",
-        "tradeoff", "should i", "what if", "next step", "approach",
+        "plan",
+        "strategy",
+        "decide",
+        "prioritize",
+        "roadmap",
+        "direction",
+        "tradeoff",
+        "should i",
+        "what if",
+        "next step",
+        "approach",
     }
 
     # Research/analysis keywords
     research_keywords = {
-        "research", "find", "search", "compare", "analyze", "investigate",
-        "explore", "study", "benchmark", "review", "evaluate", "assess",
+        "research",
+        "find",
+        "search",
+        "compare",
+        "analyze",
+        "investigate",
+        "explore",
+        "study",
+        "benchmark",
+        "review",
+        "evaluate",
+        "assess",
     }
 
     # Development/coding keywords
     dev_keywords = {
-        "code", "implement", "build", "develop", "fix", "debug", "deploy",
-        "test", "refactor", "architect", "design", "program", "api",
+        "code",
+        "implement",
+        "build",
+        "develop",
+        "fix",
+        "debug",
+        "deploy",
+        "test",
+        "refactor",
+        "architect",
+        "design",
+        "program",
+        "api",
     }
 
     # Analysis/data keywords
     analyst_keywords = {
-        "data", "metrics", "measure", "dashboard", "report", "trend",
-        "performance", "statistics", "forecast", "model", "predict",
+        "data",
+        "metrics",
+        "measure",
+        "dashboard",
+        "report",
+        "trend",
+        "performance",
+        "statistics",
+        "forecast",
+        "model",
+        "predict",
     }
 
     # Review/quality keywords
     review_keywords = {
-        "review", "audit", "quality", "check", "validate", "verify",
-        "security", "compliance", "standard", "best practice",
+        "review",
+        "audit",
+        "quality",
+        "check",
+        "validate",
+        "verify",
+        "security",
+        "compliance",
+        "standard",
+        "best practice",
     }
 
     # Execution/action keywords
     executor_keywords = {
-        "execute", "run", "do", "send", "create", "setup", "configure",
-        "install", "migrate", "automate", "schedule",
+        "execute",
+        "run",
+        "do",
+        "send",
+        "create",
+        "setup",
+        "configure",
+        "install",
+        "migrate",
+        "automate",
+        "schedule",
     }
 
     # Guardian/safety keywords
     guardian_keywords = {
-        "risk", "threat", "protect", "secure", "guard", "monitor",
-        "alert", "prevent", "safety", "ethical", "harm",
+        "risk",
+        "threat",
+        "protect",
+        "secure",
+        "guard",
+        "monitor",
+        "alert",
+        "prevent",
+        "safety",
+        "ethical",
+        "harm",
     }
 
     words = set(text.split())

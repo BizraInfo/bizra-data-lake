@@ -13,12 +13,11 @@ Standing on Giants: Z3 SMT Solver + Shannon (SNR) + Lamport (BFT)
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import blake3
 
@@ -67,9 +66,9 @@ class ConstitutionalGate:
             z3_certificates_path or Path.home() / ".bizra" / "proofs"
         )
         self.museum_path = museum_path or Path.home() / ".bizra" / "museum"
-        self.museum_queue: List[Tuple[str, float]] = []
-        self.runtime_agents: List[str] = []
-        self._z3_cache: Dict[str, Z3Certificate] = {}
+        self.museum_queue: list[tuple[str, float]] = []
+        self.runtime_agents: list[str] = []
+        self._z3_cache: dict[str, Z3Certificate] = {}
         self._trusted_z3_pubkey = self._load_trusted_z3_pubkey()
         self._allow_unsigned_z3 = os.getenv("BIZRA_Z3_CERT_ALLOW_UNSIGNED", "0") == "1"
         self._allow_self_signed_z3 = (
@@ -79,14 +78,16 @@ class ConstitutionalGate:
         # Production security enforcement — fail-closed by default
         # Standing on Giants: Saltzer & Schroeder (1975) — "Fail-safe defaults"
         is_production = os.getenv("BIZRA_ENV", "").lower() == "production"
-        allow_override = os.getenv("BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE", "0") == "1"
+        allow_override = (
+            os.getenv("BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE", "0") == "1"
+        )
 
         if is_production and (self._allow_unsigned_z3 or self._allow_self_signed_z3):
             if not allow_override:
                 raise RuntimeError(
                     "SECURITY HALT: BIZRA_Z3_CERT_ALLOW_UNSIGNED and BIZRA_Z3_CERT_ALLOW_SELF_SIGNED "
                     "are forbidden in production. This is a fail-closed default. "
-                    "Set BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE=1 to explicitly accept this risk."
+                    "set BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE=1 to explicitly accept this risk."
                 )
             else:
                 logger.warning(
@@ -191,8 +192,10 @@ class ConstitutionalGate:
         )
 
     def _compute_hash(self, content: str) -> str:
-        """Compute content hash for identification."""
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+        """Compute content hash for identification (SEC-001: BLAKE3)."""
+        from core.proof_engine.canonical import hex_digest
+
+        return hex_digest(content.encode())[:16]
 
     def _load_trusted_z3_pubkey(self) -> str:
         """Load trusted public key for Z3 certificate verification."""
@@ -214,8 +217,8 @@ class ConstitutionalGate:
         return ""
 
     def _z3_signable_dict(
-        self, data: Dict[str, Any], candidate_id: str
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], candidate_id: str
+    ) -> dict[str, Any]:
         """Build canonical signable fields for Z3 certificate."""
         return {
             "hash": data.get("hash", candidate_id),
@@ -224,7 +227,7 @@ class ConstitutionalGate:
             "verified_at": data.get("verified_at", ""),
         }
 
-    def _z3_digest(self, signable: Dict[str, Any]) -> str:
+    def _z3_digest(self, signable: dict[str, Any]) -> str:
         """Domain-separated digest for Z3 certificate signatures."""
         canonical = canonical_json(signable)
         hasher = blake3.blake3()
@@ -233,7 +236,7 @@ class ConstitutionalGate:
         return hasher.hexdigest()
 
     def _verify_z3_certificate_signature(
-        self, data: Dict[str, Any], candidate_id: str
+        self, data: dict[str, Any], candidate_id: str
     ) -> bool:
         """Verify signed Z3 certificate metadata."""
         signature = data.get("signature", "").strip()
@@ -257,7 +260,7 @@ class ConstitutionalGate:
             if not self._allow_self_signed_z3:
                 logger.warning(
                     "Z3 certificate rejected: no trusted pubkey. "
-                    "Set BIZRA_Z3_CERT_PUBKEY or allow self-signed with BIZRA_Z3_CERT_ALLOW_SELF_SIGNED=1"
+                    "set BIZRA_Z3_CERT_PUBKEY or allow self-signed with BIZRA_Z3_CERT_ALLOW_SELF_SIGNED=1"
                 )
                 return False
             if not cert_pubkey:
@@ -314,7 +317,9 @@ class ConstitutionalGate:
                 self._z3_cache[candidate_id] = cert
                 return cert
         except ImportError:
-            pass
+            logger.debug(
+                "bizra_omega.z3_verify not available — Rust FFI Z3 verification skipped"
+            )
 
         return None
 
@@ -322,7 +327,7 @@ class ConstitutionalGate:
         self,
         query: str,
         candidate: str,
-    ) -> Tuple[float, Dict[str, Any]]:
+    ) -> tuple[float, dict[str, Any]]:
         """Calculate SNR v2 score for candidate."""
         if self.calculator:
             components = self.calculator.calculate_simple(

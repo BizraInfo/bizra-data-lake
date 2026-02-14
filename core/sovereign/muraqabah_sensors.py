@@ -33,7 +33,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from .event_bus import EventBus, EventPriority, get_event_bus
 
@@ -72,7 +72,7 @@ class SensorReading:
     value: float
     snr_score: float
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -89,7 +89,7 @@ class SignificantChange:
 
 
 # Sensor function type
-SensorFn = Callable[[], Dict[str, float]]
+SensorFn = Callable[[], dict[str, float]]
 
 
 class MuraqabahSensorHub:
@@ -116,12 +116,12 @@ class MuraqabahSensorHub:
         self.event_bus = event_bus or get_event_bus()
 
         # Sensors by domain
-        self._sensors: Dict[SensorDomain, Dict[str, SensorFn]] = {
+        self._sensors: dict[SensorDomain, dict[str, SensorFn]] = {
             d: {} for d in SensorDomain
         }
 
         # Last readings for change detection
-        self._last_readings: Dict[str, SensorReading] = {}
+        self._last_readings: dict[str, SensorReading] = {}
 
         # Register default sensors
         self._register_default_sensors()
@@ -132,7 +132,7 @@ class MuraqabahSensorHub:
         """Register default sensors for all domains."""
 
         # System Health Sensors
-        def cpu_sensor() -> Dict[str, float]:
+        def cpu_sensor() -> dict[str, float]:
             try:
                 import psutil
 
@@ -140,7 +140,7 @@ class MuraqabahSensorHub:
             except ImportError:
                 return {"cpu_usage": 0.5}
 
-        def memory_sensor() -> Dict[str, float]:
+        def memory_sensor() -> dict[str, float]:
             try:
                 import psutil
 
@@ -148,7 +148,7 @@ class MuraqabahSensorHub:
             except ImportError:
                 return {"memory_usage": 0.5}
 
-        def latency_sensor() -> Dict[str, float]:
+        def latency_sensor() -> dict[str, float]:
             start = time.perf_counter()
             _ = sum(i * i for i in range(1000))
             elapsed_ms = (time.perf_counter() - start) * 1000
@@ -157,25 +157,25 @@ class MuraqabahSensorHub:
             return {"latency_ms": elapsed_ms, "latency_snr": latency_snr}
 
         # SNR Quality Sensors
-        def inference_snr_sensor() -> Dict[str, float]:
+        def inference_snr_sensor() -> dict[str, float]:
             # Placeholder - would integrate with actual inference system
             return {"inference_snr": 0.92, "embedding_snr": 0.94}
 
-        def knowledge_snr_sensor() -> Dict[str, float]:
+        def knowledge_snr_sensor() -> dict[str, float]:
             return {"retrieval_snr": 0.90, "grounding_snr": 0.88}
 
         # Agent Performance Sensors
-        def task_completion_sensor() -> Dict[str, float]:
+        def task_completion_sensor() -> dict[str, float]:
             return {"completion_rate": 0.95, "success_rate": 0.92}
 
-        def response_quality_sensor() -> Dict[str, float]:
+        def response_quality_sensor() -> dict[str, float]:
             return {"ihsan_score": 0.96, "coherence_score": 0.93}
 
         # Constitutional Compliance Sensors
-        def ihsan_compliance_sensor() -> Dict[str, float]:
+        def ihsan_compliance_sensor() -> dict[str, float]:
             return {"ihsan_compliance": 0.97, "adl_compliance": 0.98}
 
-        def boundary_sensor() -> Dict[str, float]:
+        def boundary_sensor() -> dict[str, float]:
             return {"boundary_adherence": 1.0, "ethics_score": 0.99}
 
         # Register all sensors
@@ -204,7 +204,7 @@ class MuraqabahSensorHub:
         self._sensors[domain][name] = sensor_fn
         logger.debug(f"Registered sensor: {domain.value}:{name}")
 
-    def _calculate_snr(self, domain: SensorDomain, metrics: Dict[str, float]) -> float:
+    def _calculate_snr(self, domain: SensorDomain, metrics: dict[str, float]) -> float:
         """Calculate SNR score for a set of metrics."""
         if not metrics:
             return 0.0
@@ -268,10 +268,10 @@ class MuraqabahSensorHub:
             metadata=metrics,
         )
 
-    async def poll_all_sensors(self) -> List[SensorReading]:
+    async def poll_all_sensors(self) -> list[SensorReading]:
         """Poll all sensors and return filtered readings."""
-        readings: List[SensorReading] = []
-        changes: List[SignificantChange] = []
+        readings: list[SensorReading] = []
+        changes: list[SignificantChange] = []
 
         for domain in SensorDomain:
             for name in self._sensors[domain]:
@@ -341,7 +341,7 @@ class MuraqabahSensorHub:
             f"({change.delta_pct:.1%})"
         )
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get sensor hub statistics."""
         return {
             "snr_threshold": self.snr_threshold,

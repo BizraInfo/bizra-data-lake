@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 
@@ -72,7 +72,7 @@ class IhsanDimension(IntEnum):
 
 
 # Arabic names for documentation and display
-IHSAN_ARABIC_NAMES: Dict[IhsanDimension, str] = {
+IHSAN_ARABIC_NAMES: dict[IhsanDimension, str] = {
     IhsanDimension.TRUTHFULNESS: "صدق",
     IhsanDimension.TRUSTWORTHINESS: "أمانة",
     IhsanDimension.JUSTICE: "عدل",
@@ -142,7 +142,7 @@ class IhsanVector:
         )
 
     @property
-    def min_dimension(self) -> Tuple[IhsanDimension, float]:
+    def min_dimension(self) -> tuple[IhsanDimension, float]:
         """Return the weakest dimension (constitutional bottleneck)."""
         arr = self.as_array
         min_idx = int(np.argmin(arr))
@@ -165,7 +165,7 @@ class IhsanVector:
         """Check if any dimension is below minimum threshold (0.5)."""
         return bool(np.any(self.as_array < 0.5))
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Serialize to dictionary."""
         return {
             "truthfulness": self.truthfulness,
@@ -180,7 +180,7 @@ class IhsanVector:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "IhsanVector":
+    def from_dict(cls, data: dict[str, float]) -> "IhsanVector":
         """Construct from dictionary."""
         return cls(
             truthfulness=data.get("truthfulness", 0.5),
@@ -237,9 +237,9 @@ class ProjectorConfig:
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD  # 0.95
 
     # Output clamping
-    belief_range: Tuple[float, float] = (0.0, 1.0)
-    entropy_range: Tuple[float, float] = (0.0, 1.0)
-    potential_range: Tuple[float, float] = (-1.0, 1.0)
+    belief_range: tuple[float, float] = (0.0, 1.0)
+    entropy_range: tuple[float, float] = (0.0, 1.0)
+    potential_range: tuple[float, float] = (-1.0, 1.0)
 
     # Learned vs fixed weights
     use_learned_weights: bool = False
@@ -370,7 +370,7 @@ class IhsanProjector:
         self,
         raw: np.ndarray,
         ihsan: IhsanVector,
-    ) -> Tuple[float, float, float]:
+    ) -> tuple[float, float, float]:
         """
         Apply constitutional invariants to raw projection.
 
@@ -418,18 +418,18 @@ class IhsanProjector:
 
     def project_batch(
         self,
-        ihsan_vectors: List[IhsanVector],
-    ) -> List[NTUState]:
+        ihsan_vectors: list[IhsanVector],
+    ) -> list[NTUState]:
         """
         Project multiple Ihsan vectors efficiently.
 
         Uses vectorized operations for O(n) total, O(1) per vector.
 
         Args:
-            ihsan_vectors: List of Ihsan vectors
+            ihsan_vectors: list of Ihsan vectors
 
         Returns:
-            List of NTU states
+            list of NTU states
         """
         return [self.project(v) for v in ihsan_vectors]
 
@@ -492,7 +492,7 @@ class IhsanProjector:
         ihsan: IhsanVector,
         dimension: IhsanDimension,
         delta: float = 0.01,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Compute sensitivity of NTU outputs to a single Ihsan dimension.
 
@@ -504,7 +504,7 @@ class IhsanProjector:
             delta: Perturbation size
 
         Returns:
-            Dict with d_belief/d_dim, d_entropy/d_dim, d_potential/d_dim
+            dict with d_belief/d_dim, d_entropy/d_dim, d_potential/d_dim
         """
         arr = ihsan.as_array.copy()
         idx = dimension.value
@@ -531,7 +531,7 @@ class IhsanProjector:
 
     def calibrate_from_examples(
         self,
-        examples: List[Tuple[IhsanVector, NTUState]],
+        examples: list[tuple[IhsanVector, NTUState]],
         learning_rate: float = 0.01,
         iterations: int = 100,
     ) -> float:
@@ -541,7 +541,7 @@ class IhsanProjector:
         Uses gradient descent to minimize MSE between projected and target NTU states.
 
         Args:
-            examples: List of (ihsan_vector, target_ntu_state) pairs
+            examples: list of (ihsan_vector, target_ntu_state) pairs
             learning_rate: Gradient descent step size
             iterations: Number of optimization iterations
 
@@ -585,7 +585,7 @@ class IhsanProjector:
         logger.info(f"Calibration complete: final MSE = {final_mse:.6f}")
         return final_mse
 
-    def get_diagnostics(self) -> Dict[str, Any]:
+    def get_diagnostics(self) -> dict[str, Any]:
         """Get diagnostic information about the projector."""
         return {
             "config": {

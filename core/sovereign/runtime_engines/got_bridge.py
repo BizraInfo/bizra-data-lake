@@ -54,10 +54,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from heapq import heappop, heappush
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
-
 
 # GoT constants
 MAX_DEPTH: int = 10
@@ -108,14 +107,14 @@ class ThoughtNode:
     relevance: float = 0.5  # Relevance to goal
 
     # Graph structure
-    parent_ids: List[str] = field(default_factory=list)
-    child_ids: List[str] = field(default_factory=list)
+    parent_ids: list[str] = field(default_factory=list)
+    child_ids: list[str] = field(default_factory=list)
     depth: int = 0
 
     # Metadata
     status: ThoughtStatus = ThoughtStatus.ACTIVE
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __lt__(self, other):
         """For heap comparison (higher score = higher priority)."""
@@ -146,8 +145,8 @@ class GoTResult:
     explored_nodes: int
     pruned_nodes: int
     max_depth_reached: int
-    best_path: List[ThoughtNode]
-    all_solutions: List[ThoughtNode]
+    best_path: list[ThoughtNode]
+    all_solutions: list[ThoughtNode]
     execution_time_ms: float
     success: bool
 
@@ -189,29 +188,29 @@ class ThoughtGraph:
         self.prune_threshold = prune_threshold
 
         # Graph storage
-        self._nodes: Dict[str, ThoughtNode] = {}
-        self._edges: List[ThoughtEdge] = []
+        self._nodes: dict[str, ThoughtNode] = {}
+        self._edges: list[ThoughtEdge] = []
         self._root: Optional[ThoughtNode] = None
 
         # Exploration state
-        self._frontier: List[ThoughtNode] = []  # Priority queue
-        self._explored: Set[str] = set()
-        self._solutions: List[ThoughtNode] = []
+        self._frontier: list[ThoughtNode] = []  # Priority queue
+        self._explored: set[str] = set()
+        self._solutions: list[ThoughtNode] = []
 
         # Scoring function (can be overridden)
         self._scorer: Optional[Callable[[ThoughtNode], float]] = None
 
         # Generation function (can be overridden)
-        self._generator: Optional[Callable[[ThoughtNode, str], List[str]]] = None
+        self._generator: Optional[Callable[[ThoughtNode, str], list[str]]] = None
 
         logger.debug("ThoughtGraph initialized")
 
     def set_scorer(self, scorer: Callable[[ThoughtNode], float]) -> None:
-        """Set custom scoring function."""
+        """set custom scoring function."""
         self._scorer = scorer
 
-    def set_generator(self, generator: Callable[[ThoughtNode, str], List[str]]) -> None:
-        """Set custom thought generation function."""
+    def set_generator(self, generator: Callable[[ThoughtNode, str], list[str]]) -> None:
+        """set custom thought generation function."""
         self._generator = generator
 
     def _default_scorer(self, node: ThoughtNode) -> float:
@@ -220,7 +219,7 @@ class ThoughtGraph:
         depth_penalty = 0.95**node.depth  # Prefer shallower solutions
         return node.combined_score() * depth_penalty
 
-    def _default_generator(self, parent: ThoughtNode, goal: str) -> List[str]:
+    def _default_generator(self, parent: ThoughtNode, goal: str) -> list[str]:
         """Default thought generator (returns placeholder thoughts)."""
         # In production, this would call an LLM
         base_thoughts = [
@@ -248,7 +247,7 @@ class ThoughtGraph:
         logger.debug(f"Created root node: {root.id}")
         return root
 
-    def generate(self, parent: ThoughtNode, goal: str) -> List[ThoughtNode]:
+    def generate(self, parent: ThoughtNode, goal: str) -> list[ThoughtNode]:
         """
         GENERATE: Create new thought nodes from a parent.
 
@@ -293,7 +292,7 @@ class ThoughtGraph:
         logger.debug(f"Generated {len(new_nodes)} thoughts from {parent.id}")
         return new_nodes
 
-    def aggregate(self, nodes: List[ThoughtNode]) -> ThoughtNode:
+    def aggregate(self, nodes: list[ThoughtNode]) -> ThoughtNode:
         """
         AGGREGATE: Combine multiple thoughts into one.
 
@@ -445,7 +444,7 @@ class ThoughtGraph:
         node.thought_type = ThoughtType.SOLUTION
         self._solutions.append(node)
 
-    def get_best_path(self) -> List[ThoughtNode]:
+    def get_best_path(self) -> list[ThoughtNode]:
         """Get the path from root to best solution."""
         if not self._solutions:
             return []
@@ -453,7 +452,7 @@ class ThoughtGraph:
         best_solution = max(self._solutions, key=lambda n: n.score)
         return self._trace_path(best_solution)
 
-    def _trace_path(self, node: ThoughtNode) -> List[ThoughtNode]:
+    def _trace_path(self, node: ThoughtNode) -> list[ThoughtNode]:
         """Trace path from root to given node."""
         path = [node]
         current = node
@@ -633,7 +632,7 @@ class GoTBridge:
         goal: str,
         max_iterations: int = 50,
         scorer: Optional[Callable[[ThoughtNode], float]] = None,
-        generator: Optional[Callable[[ThoughtNode, str], List[str]]] = None,
+        generator: Optional[Callable[[ThoughtNode, str], list[str]]] = None,
     ) -> GoTResult:
         """
         Perform Graph-of-Thoughts reasoning.

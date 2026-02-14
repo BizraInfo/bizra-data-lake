@@ -76,8 +76,57 @@ class SimpleSigner:
         return hmac_module.compare_digest(expected, signature)
 
     def public_key_bytes(self) -> bytes:
-        """Return hash of secret as 'public key'."""
-        return hashlib.sha256(self.secret).digest()
+        """Return BLAKE3 hash of secret as 'public key'."""
+        return blake3_digest(self.secret)
+
+
+class Ed25519Signer:
+    """
+    Production Ed25519 signer implementing SovereignSigner protocol.
+
+    Uses BLAKE3 for message hashing (SEC-001 compliant).
+    Wraps core.pci.crypto — zero duplication of Ed25519 math.
+
+    Standing on: Bernstein et al. (2012) — Ed25519 high-speed signatures
+    """
+
+    def __init__(self, private_key_hex: str, public_key_hex: str):
+        self._private_key_hex = private_key_hex
+        self._public_key_hex = public_key_hex
+
+    @classmethod
+    def generate(cls) -> "Ed25519Signer":
+        """Generate fresh Ed25519 keypair and return initialized signer."""
+        from core.pci.crypto import generate_keypair
+
+        private, public = generate_keypair()
+        return cls(private_key_hex=private, public_key_hex=public)
+
+    @property
+    def public_key_hex(self) -> str:
+        """Hex-encoded public key (64 chars = 32 bytes)."""
+        return self._public_key_hex
+
+    def sign(self, msg: bytes) -> bytes:
+        """Sign msg using BLAKE3 + Ed25519. Returns 64 raw signature bytes."""
+        from core.pci.crypto import sign_message
+        from core.proof_engine.canonical import hex_digest
+
+        digest_hex = hex_digest(msg)
+        signature_hex = sign_message(digest_hex, self._private_key_hex)
+        return bytes.fromhex(signature_hex)
+
+    def verify(self, msg: bytes, signature: bytes) -> bool:
+        """Verify signature against msg using BLAKE3 + Ed25519."""
+        from core.pci.crypto import verify_signature
+        from core.proof_engine.canonical import hex_digest
+
+        digest_hex = hex_digest(msg)
+        return verify_signature(digest_hex, signature.hex(), self._public_key_hex)
+
+    def public_key_bytes(self) -> bytes:
+        """Return raw 32-byte public key."""
+        return bytes.fromhex(self._public_key_hex)
 
 
 @dataclass

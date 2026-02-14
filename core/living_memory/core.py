@@ -13,8 +13,6 @@ With self-healing at each stage.
 """
 
 import asyncio
-import hashlib
-import json
 import logging
 import re
 import sys
@@ -29,6 +27,7 @@ import numpy as np
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
 )
+from core.proof_engine.canonical import hex_digest
 
 # Windows-compatible default storage path
 if sys.platform == "win32":
@@ -336,8 +335,7 @@ class LivingMemoryCore:
 
         try:
             active = [
-                e for e in self._memories.values()
-                if e.state != MemoryState.DELETED
+                e for e in self._memories.values() if e.state != MemoryState.DELETED
             ]
             self._store.save_batch(active)
         except Exception as e:
@@ -355,7 +353,7 @@ class LivingMemoryCore:
         """Generate unique ID for memory entry."""
         timestamp = datetime.now(timezone.utc).isoformat()
         hash_input = f"{content[:100]}_{timestamp}"
-        return hashlib.sha256(hash_input.encode()).hexdigest()[:16]
+        return hex_digest(hash_input.encode())[:16]
 
     async def _compute_embedding(self, content: str) -> Optional[np.ndarray]:
         """Compute embedding for content."""
@@ -490,9 +488,7 @@ class LivingMemoryCore:
 
                 # Keyword boost when no embeddings available
                 if query_keywords and not self.embedding_fn:
-                    keyword_score = _keyword_relevance(
-                        query_keywords, entry.content
-                    )
+                    keyword_score = _keyword_relevance(query_keywords, entry.content)
                     # Replace the default 0.5 relevance with keyword score
                     # Retrieval formula: 0.3*recency + 0.1*freq + 0.2*imp + 0.4*rel
                     # Default rel=0.5 contributes 0.2 → replace with keyword score

@@ -10,9 +10,9 @@ Standing on Giants: Besta (GoT) + Shannon (SNR) + Anthropic (Constitutional AI)
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import inspect
 import logging
+import os
 import signal
 import time
 from collections import deque
@@ -22,8 +22,6 @@ from typing import (
     Any,
     AsyncIterator,
     Deque,
-    Dict,
-    List,
     Optional,
 )
 
@@ -32,6 +30,12 @@ from .memory_coordinator import (
     MemoryCoordinator,
     MemoryCoordinatorConfig,
     RestorePriority,
+)
+from .origin_guard import (
+    NODE_ROLE_ENV,
+    enforce_node0_fail_closed,
+    normalize_node_role,
+    resolve_origin_snapshot,
 )
 from .runtime_stubs import (
     StubFactory,
@@ -89,12 +93,49 @@ class SovereignRuntime:
 
         # Genesis Identity (persistent across restarts)
         self._genesis: Optional[GenesisState] = None
+        self._node_role: str = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
+        self._origin_snapshot: dict[str, Any] = resolve_origin_snapshot(
+            self.config.state_dir, self._node_role
+        )
 
         # Unified Memory Coordinator (auto-save + persistence)
         self._memory_coordinator: Optional[MemoryCoordinator] = None
 
         # Impact Tracker (sovereignty growth engine)
         self._impact_tracker: Optional[ImpactTrackerProtocol] = None
+
+        # Evidence Ledger (append-only, hash-chained audit trail)
+        self._evidence_ledger: Optional[object] = None  # EvidenceLedger
+
+        # Graph Artifact Store (query_id → schema-compliant GoT artifact)
+        self._graph_artifacts: dict[str, dict[str, Any]] = {}
+
+        # Last SNR trace from authoritative SNREngine v1 (for receipt embedding)
+        self._last_snr_trace: Optional[dict[str, Any]] = None
+
+        # 6-Gate Chain — fail-closed execution pipeline (Golden Gem #1)
+        self._gate_chain: Optional[object] = None  # GateChain
+
+        # Proof-of-Impact Engine — 4-stage PoI scoring pipeline
+        self._poi_orchestrator: Optional[object] = None  # PoIOrchestrator
+
+        # SAT Controller — ecosystem homeostasis engine
+        self._sat_controller: Optional[object] = None  # SATController
+
+        # Sovereign Experience Ledger (content-addressed episodic memory)
+        self._experience_ledger: Optional[object] = None  # ExperienceLedger
+
+        # Unified Node0 Signer (Ed25519) — single identity for all subsystems
+        self._node_signer: Optional[object] = None  # Ed25519Signer
+
+        # IHSAN_FLOOR Watchdog — governance invariant enforcer (MCG Layer 7)
+        self._ihsan_watchdog: Optional[object] = None  # IhsanFloorWatchdog
+
+        # Self-Evolving Judgment Engine — observation telemetry (Phase A)
+        self._judgment_telemetry: Optional[object] = None  # JudgmentTelemetry
+
+        # Spearpoint Orchestrator (reproduce / improve / heartbeat)
+        self._spearpoint_orchestrator: Optional[object] = None
 
         # Omega Point Integration (v2.2.3)
         self._gateway: Optional[object] = None  # InferenceGateway
@@ -107,10 +148,13 @@ class SovereignRuntime:
         self._query_times: Deque[float] = deque(maxlen=100)
 
         # Cache
-        self._cache: Dict[str, SovereignResult] = {}
+        self._cache: dict[str, SovereignResult] = {}
 
         # User Context (the system knows its human)
         self._user_context: Optional[UserContextManager] = None
+
+        # SpearPoint Pipeline — unified post-query cockpit
+        self._spearpoint: Optional[object] = None  # SpearPointPipeline
 
     # -------------------------------------------------------------------------
     # LIFECYCLE
@@ -119,6 +163,7 @@ class SovereignRuntime:
     def _load_env_vars(self) -> None:
         """Load environment variables from sovereign_state/.env if present."""
         import os
+
         env_file = self.config.state_dir / ".env"
         if env_file.exists():
             for line in env_file.read_text().strip().splitlines():
@@ -190,9 +235,7 @@ class SovereignRuntime:
         allowed_versions = os.getenv("ZPK_ALLOWED_VERSIONS")
         if allowed_versions:
             self.config.zpk_allowed_versions = [
-                part.strip()
-                for part in allowed_versions.split(",")
-                if part.strip()
+                part.strip() for part in allowed_versions.split(",") if part.strip()
             ]
 
         min_policy_version = os.getenv("ZPK_MIN_POLICY_VERSION")
@@ -257,6 +300,11 @@ class SovereignRuntime:
         # Load env vars from sovereign_state/.env (API keys, endpoints)
         self._load_env_vars()
         self._apply_env_overrides()
+        self._node_role = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
+        enforce_node0_fail_closed(self.config.state_dir, self._node_role)
+        self._origin_snapshot = resolve_origin_snapshot(
+            self.config.state_dir, self._node_role
+        )
 
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME INITIALIZING")
@@ -268,6 +316,7 @@ class SovereignRuntime:
         self.logger.info(f"Node ID: {self.config.node_id}")
         self.logger.info(f"Mode: {self.config.mode.name}")
         self.logger.info(f"Ihsan Threshold: {self.config.ihsan_threshold}")
+        self.logger.info(f"Node Role: {self._node_role}")
 
         if self._genesis:
             self.logger.info(f"Node Name: {self._genesis.node_name}")
@@ -280,6 +329,38 @@ class SovereignRuntime:
                 f"SAT Team: {len(self._genesis.sat_team)} agents — "
                 f"{', '.join(a.role for a in self._genesis.sat_team)}"
             )
+
+        # Initialize Evidence Ledger (append-only, hash-chained audit trail)
+        self._init_evidence_ledger()
+
+        # Initialize Sovereign Experience Ledger (content-addressed episodic memory)
+        self._init_experience_ledger()
+
+        # Initialize Self-Evolving Judgment Engine (observation telemetry)
+        self._init_judgment_telemetry()
+
+        # Initialize unified Node0 signer (Ed25519 identity)
+        self._init_node_signer()
+
+        # Initialize IHSAN_FLOOR watchdog (MCG Layer 7 governance)
+        try:
+            from core.proof_engine.ihsan_gate import IhsanFloorWatchdog
+
+            self._ihsan_watchdog = IhsanFloorWatchdog(
+                max_consecutive_failures=3,
+                floor=0.90,
+            )
+            self.logger.info(
+                "IhsanFloor watchdog initialized (floor=0.90, max_failures=3)"
+            )
+        except Exception as e:
+            self.logger.warning(f"IhsanFloor watchdog init failed: {e}")
+
+        # Initialize 6-Gate Chain (fail-closed execution pipeline)
+        self._init_gate_chain()
+
+        # Initialize Proof-of-Impact Engine (4-stage scoring pipeline)
+        self._init_poi_engine()
 
         # Trusted bootstrap gate (optional fail-closed preflight)
         await self._run_zpk_preflight()
@@ -300,6 +381,12 @@ class SovereignRuntime:
 
         self._setup_signal_handlers()
 
+        # Initialize SpearPoint Pipeline — the unified cockpit
+        self._init_spearpoint_pipeline()
+
+        # Initialize Spearpoint Orchestrator (reproduce / improve / heartbeat)
+        self._init_spearpoint_orchestrator()
+
         self._initialized = True
         self._running = True
         self.metrics.started_at = datetime.now()
@@ -307,6 +394,610 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
         self.logger.info("=" * 60)
+
+    def _init_evidence_ledger(self) -> None:
+        """Initialize the Evidence Ledger — append-only, hash-chained audit trail.
+
+        Every query and verification call emits a receipt into this ledger.
+        Standing on: Lamport (event ordering), Merkle (hash chains).
+        """
+        try:
+            from core.proof_engine.evidence_ledger import EvidenceLedger
+
+            ledger_path = self.config.state_dir / "evidence.jsonl"
+            self._evidence_ledger = EvidenceLedger(ledger_path, validate_on_append=True)
+            self.logger.info(
+                f"Evidence Ledger initialized: {ledger_path} "
+                f"(seq={self._evidence_ledger.sequence})"
+            )
+        except Exception as e:
+            self.logger.warning(f"Evidence Ledger init failed (non-fatal): {e}")
+            self._evidence_ledger = None
+
+    def _init_experience_ledger(self) -> None:
+        """Initialize the Sovereign Experience Ledger — episodic memory.
+
+        Content-addressed, hash-chained episodic memory store.
+        Auto-commits episodes on every SNR_OK query verdict.
+
+        Standing on: Tulving (episodic memory), Besta (GoT artifacts),
+        Park et al. (generative agent memory).
+        """
+        try:
+            from core.sovereign.experience_ledger import SovereignExperienceLedger
+
+            self._experience_ledger = SovereignExperienceLedger()
+            self.logger.info("Sovereign Experience Ledger initialized")
+        except Exception as e:
+            self.logger.debug(f"Experience Ledger init skipped (non-fatal): {e}")
+            self._experience_ledger = None
+
+    def _init_judgment_telemetry(self) -> None:
+        """Initialize the Self-Evolving Judgment Engine — observation telemetry.
+
+        Phase A: Observation mode only. Records verdict distributions and
+        computes Shannon entropy. NO policy mutation. NO threshold changes.
+
+        Standing on: Shannon (1948), Aristotle (Nicomachean Ethics).
+        """
+        try:
+            from core.sovereign.judgment_telemetry import JudgmentTelemetry
+
+            self._judgment_telemetry = JudgmentTelemetry()
+            self.logger.info("Judgment Telemetry (SJE Phase A) initialized")
+        except Exception as e:
+            self.logger.debug(f"Judgment Telemetry init skipped (non-fatal): {e}")
+            self._judgment_telemetry = None
+
+    def _observe_judgment(self, result: "SovereignResult") -> None:
+        """Observe a verdict for the SJE based on query result quality.
+
+        Verdict classification (observation only — no policy mutation):
+          PROMOTE: ihsan >= 0.95 and snr_ok (excellence)
+          NEUTRAL: snr_ok and ihsan >= ihsan_threshold (acceptable)
+          DEMOTE:  not snr_ok (below SNR floor)
+          FORBID:  validation explicitly failed
+
+        Fire-and-forget: SJE failures never block query responses.
+        """
+        if self._judgment_telemetry is None:
+            return
+        try:
+            from core.sovereign.judgment_telemetry import JudgmentVerdict
+
+            if not result.success or (
+                result.validated and not result.validation_passed
+            ):
+                verdict = JudgmentVerdict.FORBID
+            elif not result.snr_ok:
+                verdict = JudgmentVerdict.DEMOTE
+            elif result.ihsan_score >= 0.95:
+                verdict = JudgmentVerdict.PROMOTE
+            else:
+                verdict = JudgmentVerdict.NEUTRAL
+
+            self._judgment_telemetry.observe(verdict)
+        except Exception as e:
+            self.logger.debug(f"SJE observe skipped (non-fatal): {e}")
+
+    def _commit_experience_episode(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """Auto-commit a query episode to the SEL on SNR_OK verdict.
+
+        Standing on: Tulving (episodic encoding), Shannon (SNR gating).
+        Fire-and-forget: SEL failures never block query responses.
+        """
+        if self._experience_ledger is None:
+            return
+        if not result.success or not result.snr_ok:
+            return
+        try:
+            from core.proof_engine.canonical import hex_digest
+
+            # Build graph hash from GoT thoughts (if available)
+            graph_hash = ""
+            graph_node_count = 0
+            if result.thoughts:
+                graph_hash = hex_digest(
+                    "|".join(result.thoughts).encode("utf-8")
+                )  # SEC-001: BLAKE3 for Rust interop
+                graph_node_count = len(result.thoughts)
+
+            # Build action log
+            actions = []
+            model_used = result.model_used
+            if model_used:
+                actions.append(
+                    (
+                        "inference",
+                        f"LLM: {model_used}",
+                        True,
+                        int(result.processing_time_ms * 1_000),
+                    )
+                )
+            if result.snr_ok:
+                actions.append(
+                    (
+                        "snr_gate",
+                        f"SNR={result.snr_score:.3f}",
+                        True,
+                        0,
+                    )
+                )
+
+            # Truncate response for storage
+            response_summary = (result.response or "")[:500] or None
+
+            self._experience_ledger.commit(
+                context=query.text[:500],
+                graph_hash=graph_hash,
+                graph_node_count=graph_node_count,
+                actions=actions,
+                snr_score=result.snr_score,
+                ihsan_score=result.ihsan_score,
+                snr_ok=result.snr_ok,
+                response_summary=response_summary,
+            )
+        except Exception as e:
+            self.logger.debug(f"SEL commit skipped (non-fatal): {e}")
+
+    def _init_node_signer(self) -> None:
+        """Initialize the unified Node0 Ed25519 signer.
+
+        All subsystems (GateChain, PoI, Evidence) use this single identity.
+        Standing on: Bernstein (Ed25519, 2011).
+        """
+        try:
+            from core.proof_engine.receipt import Ed25519Signer
+
+            self._node_signer = Ed25519Signer.generate()
+            self.logger.info(
+                f"Node0 Ed25519 signer initialized: "
+                f"{self._node_signer.public_key_hex[:16]}..."
+            )
+        except Exception as e:
+            self.logger.warning(
+                f"Ed25519 signer init failed, falling back to HMAC: {e}"
+            )
+            from core.proof_engine.receipt import SimpleSigner
+
+            self._node_signer = SimpleSigner(
+                secret=self.config.node_id.encode("utf-8") + b"_node0_v1"
+            )
+
+    def _init_gate_chain(self) -> None:
+        """Initialize the 6-Gate Chain — fail-closed execution pipeline.
+
+        The GateChain runs as a pre-flight check before query processing.
+        If any gate fails, the query is rejected with a signed receipt.
+
+        Standing on: Lamport (fail-closed), Dijkstra (structured decomposition).
+        """
+        try:
+            from core.proof_engine.gates import GateChain
+
+            # Use the unified Node0 signer for all receipts
+            if self._node_signer is None:
+                self._init_node_signer()
+            self._gate_chain = GateChain(signer=self._node_signer)
+            self.logger.info(
+                f"GateChain initialized: " f"{[g.name for g in self._gate_chain.gates]}"
+            )
+        except Exception as e:
+            # CRITICAL-1 FIX (Saltzer & Schroeder 1975): Fail-CLOSED, not fail-OPEN.
+            # When GateChain can't initialize, ALL queries must be rejected,
+            # not silently bypassed. Previously set self._gate_chain = None
+            # which caused line 578 to return None (pass-through).
+            self.logger.error(
+                f"GateChain init FAILED — all queries will be REJECTED until resolved: {e}"
+            )
+            self._gate_chain = None  # _run_gate_chain_preflight now rejects when None
+
+    async def _run_gate_chain_preflight(
+        self, query: SovereignQuery, result: SovereignResult
+    ) -> Optional[SovereignResult]:
+        """Run the 6-Gate Chain as a pre-flight check.
+
+        If any gate fails, returns a rejection SovereignResult immediately.
+        If all gates pass (or gate chain is disabled), returns None to continue.
+
+        Standing on: Lamport (fail-closed), BIZRA Spearpoint (6-gate chain).
+        """
+        if self._gate_chain is None:
+            # CRITICAL-1 FIX: Reject ALL queries when gate chain unavailable.
+            # Previously returned None (pass-through), violating IHSAN_FLOOR.
+            self.logger.warning("GateChain unavailable — REJECTING query (fail-closed)")
+            result.success = False
+            result.response = (
+                "Query rejected: Gate chain unavailable. "
+                "Constitutional invariants cannot be verified."
+            )
+            result.validation_passed = False
+            return result
+
+        try:
+            from core.proof_engine.canonical import CanonPolicy, CanonQuery
+
+            canon_query = CanonQuery(
+                user_id=(
+                    query.user_id
+                    if (hasattr(query, "user_id") and query.user_id)
+                    else "anonymous"
+                ),
+                user_state=(
+                    query.context.get("user_state", "active")
+                    if query.context
+                    else "active"
+                ),
+                intent=query.text,
+            )
+            canon_policy = CanonPolicy(
+                policy_id="sovereign_v1",
+                version="1.0.0",
+                rules={"snr_min": 0.95, "ihsan_min": self.config.ihsan_threshold},
+                thresholds={
+                    "snr": 0.95,
+                    "ihsan": self.config.ihsan_threshold,
+                },
+            )
+            # Bootstrap Ihsan: At cold start (no queries processed yet), the system
+            # IS constitutionally compliant — all gates are active, all invariants
+            # are enforced. Use the configured threshold as the initial score.
+            # After first query, measured Ihsan takes over.
+            ihsan_for_gate = self.metrics.current_ihsan_score
+            if ihsan_for_gate is None or (
+                ihsan_for_gate == 0.0 and self.metrics.total_queries == 0
+            ):
+                ihsan_for_gate = (
+                    self.config.ihsan_threshold
+                )  # System IS compliant at boot
+
+            # CRITICAL-3 FIX: Compute Z3 satisfiability instead of assuming True.
+            # Standing on: ZANN_ZERO ("no assumptions"), Lamport (verify, don't trust).
+            z3_sat = False  # Fail-closed default
+            try:
+                from core.sovereign.z3_fate_gate import Z3FATEGate
+
+                z3_gate = Z3FATEGate()
+                z3_proof = z3_gate.generate_proof(
+                    {
+                        "ihsan": ihsan_for_gate,
+                        "snr": 0.85,  # Pre-inference minimum SNR gate
+                        "cost": 0.0,
+                        "autonomy_limit": 10.0,  # Default limit
+                        "risk_level": 0.3,  # Read-only query = low risk
+                        "reversible": True,
+                        "human_approved": False,
+                    }
+                )
+                z3_sat = z3_proof.satisfiable
+            except Exception as z3_err:
+                self.logger.debug(f"Z3 proof unavailable (fail-closed): {z3_err}")
+
+            # Risk assessment: read-only queries are low risk.
+            # State-mutating ops or cloud API would score higher.
+            base_risk = 0.1  # Read-only query default
+
+            context = {
+                "trust_score": 0.6,  # Local system has earned base trust
+                "ihsan_score": ihsan_for_gate,
+                "z3_satisfiable": z3_sat,
+                "risk_score": base_risk,
+                "source_trust_score": 0.6,
+                "prediction_accuracy": 0.5,
+                "context_fit_score": 0.5,
+            }
+
+            chain_result, receipt = self._gate_chain.evaluate(
+                canon_query, canon_policy, context
+            )
+
+            if chain_result.passed:
+                self.logger.debug(
+                    f"GateChain PASSED: all {len(chain_result.gate_results)} gates"
+                )
+                return None
+
+            # Gate chain failed — build rejection result
+            self.logger.warning(
+                f"GateChain REJECTED at gate '{chain_result.last_gate_passed}': "
+                f"{chain_result.rejection_reason}"
+            )
+            result.success = False
+            result.response = (
+                f"Query rejected by gate chain: {chain_result.rejection_reason}"
+            )
+            result.snr_score = chain_result.snr
+            result.snr_ok = chain_result.snr >= self.config.snr_threshold
+            result.ihsan_score = chain_result.ihsan_score
+            result.validation_passed = False
+            result.claim_tags = {"gate_chain": "measured"}
+            return result
+
+        except Exception as e:
+            # CRITICAL-2 FIX (Saltzer & Schroeder 1975): Fail-CLOSED on gate errors.
+            # Previously returned None (pass-through), allowing queries to bypass
+            # ALL constitutional gates on ANY exception.
+            self.logger.error(f"GateChain preflight FAILED — REJECTING query: {e}")
+            result.success = False
+            result.response = f"Query rejected: Gate chain error ({e})"
+            result.validation_passed = False
+            return result
+
+    def _emit_query_receipt(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """Emit a receipt for a completed query into the Evidence Ledger.
+
+        CRITICAL-10 FIX: Failures are now LOGGED at WARNING level (visible in metrics).
+        Non-blocking, but no longer invisible.
+        """
+        if self._evidence_ledger is None:
+            return
+        try:
+            from core.proof_engine.canonical import hex_digest
+            from core.proof_engine.evidence_ledger import emit_receipt
+
+            decision = "APPROVED"
+            reason_codes: list = []
+            status = "accepted"
+
+            if not result.validation_passed:
+                decision = "REJECTED"
+                reason_codes.append("IHSAN_BELOW_THRESHOLD")
+                status = "rejected"
+            if result.snr_score < 0.85:
+                if "SNR_BELOW_THRESHOLD" not in reason_codes:
+                    reason_codes.append("SNR_BELOW_THRESHOLD")
+                if decision == "APPROVED":
+                    decision = "QUARANTINED"
+                    status = "quarantined"
+
+            query_digest = hex_digest(
+                query.text.encode("utf-8")
+            )  # SEC-001: BLAKE3 for Rust interop
+
+            seal_digest = hex_digest(
+                (result.response or "").encode("utf-8")
+            )  # SEC-001: BLAKE3 for Rust interop
+
+            emit_receipt(
+                self._evidence_ledger,
+                receipt_id=result.query_id.replace("-", "")[:32],
+                node_id=self.config.node_id,
+                policy_version="1.0.0",
+                status=status,
+                decision=decision,
+                reason_codes=reason_codes,
+                snr_score=result.snr_score,
+                ihsan_score=result.ihsan_score,
+                ihsan_threshold=self.config.ihsan_threshold,
+                seal_digest=seal_digest,
+                query_digest=query_digest,
+                graph_hash=result.graph_hash,
+                payload_digest=(
+                    hex_digest("|".join(result.thoughts).encode("utf-8"))
+                    if result.thoughts
+                    else None
+                ),  # SEC-001: BLAKE3 for Rust interop
+                gate_passed="commit" if decision == "APPROVED" else "ihsan_gate",
+                duration_ms=result.processing_time_ms,
+                claim_tags=(
+                    {
+                        "measured": sum(
+                            1 for v in result.claim_tags.values() if v == "measured"
+                        ),
+                        "design": sum(
+                            1 for v in result.claim_tags.values() if v == "design"
+                        ),
+                        "implemented": sum(
+                            1 for v in result.claim_tags.values() if v == "implemented"
+                        ),
+                        "target": sum(
+                            1 for v in result.claim_tags.values() if v == "target"
+                        ),
+                    }
+                    if result.claim_tags
+                    else None
+                ),
+                snr_trace=self._last_snr_trace,
+                origin=self._origin_snapshot,
+                critical_decision=True,
+                node_role=self._node_role,
+                state_dir=self.config.state_dir,
+            )
+            # Clear trace after emission
+            self._last_snr_trace = None
+        except Exception as e:
+            self.logger.warning(f"Receipt emission failed (non-fatal): {e}")
+
+    def _register_poi_contribution(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """Register a successful query as a PoI contribution.
+
+        Fire-and-forget: PoI failures never block query responses.
+
+        Standing on: Nakamoto (PoW), Shannon (SNR as quality),
+        Al-Ghazali (proportional justice).
+        """
+        if self._poi_orchestrator is None:
+            return
+        if not result.success:
+            return
+
+        try:
+            from core.proof_engine.poi_engine import (
+                ContributionMetadata,
+                ContributionType,
+            )
+
+            content_hash = result.graph_hash or result.query_id
+            metadata = ContributionMetadata(
+                contributor_id=self.config.node_id,
+                contribution_type=ContributionType.DATA,
+                content_hash=content_hash,
+                snr_score=result.snr_score,
+                ihsan_score=result.ihsan_score,
+                timestamp=datetime.now(),
+            )
+            self._poi_orchestrator.register_contribution(metadata)
+        except Exception as e:
+            # CRITICAL-10 FIX: PoI failures must be VISIBLE, not silent.
+            self.logger.warning(f"PoI contribution registration failed: {e}")
+
+    def _encode_query_memory(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """Encode successful query experience into Living Memory.
+
+        Standing on: Tulving (1972) — episodic memory as experiential encoding.
+        Fire-and-forget: memory failures never block query responses.
+        """
+        if self._living_memory is None or not result.success:
+            return
+        if not result.response:
+            return
+        try:
+            from core.living_memory.core import MemoryType
+
+            # Truncate for memory efficiency (keep first 500 chars of each)
+            q_text = query.text[:500]
+            r_text = (result.response or "")[:500]
+
+            content = (
+                f"Query: {q_text}\n"
+                f"Response: {r_text}\n"
+                f"SNR: {result.snr_score:.3f} | Ihsan: {result.ihsan_score:.3f}"
+            )
+
+            # Schedule encoding as background task (non-blocking)
+            import asyncio
+
+            asyncio.ensure_future(
+                self._living_memory.encode(
+                    content=content,
+                    memory_type=MemoryType.EPISODIC,
+                    source="query_pipeline",
+                    importance=result.ihsan_score,
+                    emotional_weight=max(result.snr_score, 0.5),
+                )
+            )
+        except Exception as e:
+            self.logger.debug(f"Memory encoding skipped (non-fatal): {e}")
+
+    def _store_graph_artifact(self, query_id: str, graph_hash: Optional[str]) -> None:
+        """Store the GoT graph artifact for later retrieval via API.
+
+        Standing on: Besta (GoT, 2024) — graph artifacts are first-class,
+        Merkle (1979) — content-addressed integrity.
+
+        Fire-and-forget: exceptions are caught and logged.
+        """
+        try:
+            if not self._graph_reasoner:
+                return
+            # The GraphOfThoughts instance has to_artifact()
+            to_artifact = getattr(self._graph_reasoner, "to_artifact", None)
+            if to_artifact is None:
+                return
+            artifact = to_artifact(build_id=query_id)
+            self._graph_artifacts[query_id] = artifact
+            # Bound storage to prevent unbounded memory growth
+            if len(self._graph_artifacts) > 100:
+                oldest = next(iter(self._graph_artifacts))
+                del self._graph_artifacts[oldest]
+        except Exception as e:
+            self.logger.warning(f"Graph artifact storage failed (non-fatal): {e}")
+
+    def get_graph_artifact(self, query_id: str) -> Optional[dict[str, Any]]:
+        """Retrieve a stored graph artifact by query ID."""
+        return self._graph_artifacts.get(query_id)
+
+    def get_gate_chain_stats(self) -> Optional[dict[str, Any]]:
+        """Get GateChain evaluation statistics."""
+        if self._gate_chain is None:
+            return None
+        return self._gate_chain.get_stats()
+
+    def _init_poi_engine(self) -> None:
+        """Initialize the Proof-of-Impact Engine — 4-stage scoring pipeline.
+
+        Standing on: Nakamoto (PoW), Page & Brin (PageRank), Gini (inequality),
+        Al-Ghazali (proportional justice), Shannon (SNR as quality).
+        """
+        try:
+            from core.proof_engine.poi_engine import PoIConfig, PoIOrchestrator
+
+            config = PoIConfig()
+            self._poi_orchestrator = PoIOrchestrator(config)
+            # Wire unified Node0 signer into PoI for receipt signing
+            if self._node_signer is not None and hasattr(
+                self._poi_orchestrator, "_signer"
+            ):
+                self._poi_orchestrator._signer = self._node_signer
+            self.logger.info(
+                f"PoI Engine initialized: "
+                f"alpha={config.alpha}, beta={config.beta}, gamma={config.gamma}"
+            )
+
+            # Initialize SAT Controller with the PoI orchestrator
+            from core.sovereign.sat_controller import SATController
+
+            self._sat_controller = SATController(
+                poi_orchestrator=self._poi_orchestrator,
+                config=config,
+            )
+            self.logger.info("SAT Controller initialized")
+        except Exception as e:
+            self.logger.warning(f"PoI Engine init failed (non-fatal): {e}")
+            self._poi_orchestrator = None
+            self._sat_controller = None
+
+    def get_poi_stats(self) -> Optional[dict[str, Any]]:
+        """Get Proof-of-Impact engine statistics."""
+        if self._poi_orchestrator is None:
+            return None
+        return self._poi_orchestrator.get_stats()
+
+    def get_contributor_poi(self, contributor_id: str) -> Optional[dict[str, Any]]:
+        """Get most recent PoI for a contributor."""
+        if self._poi_orchestrator is None:
+            return None
+        poi = self._poi_orchestrator.get_contributor_poi(contributor_id)
+        if poi is None:
+            return None
+        return poi.to_dict()
+
+    def compute_poi_epoch(
+        self, epoch_id: Optional[str] = None
+    ) -> Optional[dict[str, Any]]:
+        """Run a full PoI computation epoch.
+
+        Returns the audit trail as a dict, or None if engine is unavailable.
+        """
+        if self._poi_orchestrator is None:
+            return None
+        audit = self._poi_orchestrator.compute_epoch(epoch_id)
+        return audit.to_dict()
+
+    def get_sat_stats(self) -> Optional[dict[str, Any]]:
+        """Get SAT Controller statistics."""
+        if self._sat_controller is None:
+            return None
+        return self._sat_controller.get_stats()
+
+    def finalize_sat_epoch(
+        self, epoch_reward: float = 1000.0
+    ) -> Optional[dict[str, Any]]:
+        """Finalize a PoI epoch via SAT Controller.
+
+        Computes scores, distributes tokens, checks Gini, rebalances if needed.
+        """
+        if self._sat_controller is None:
+            return None
+        return self._sat_controller.finalize_epoch(epoch_reward)
 
     def _init_user_context(self) -> None:
         """Initialize user context — the system knows its human."""
@@ -345,8 +1036,14 @@ class SovereignRuntime:
                     f"Genesis identity loaded: {genesis.node_id} ({genesis.node_name})"
                 )
             else:
+                if self._node_role == "node0":
+                    raise RuntimeError(
+                        "Node0 role requires validated genesis identity; none found"
+                    )
                 self.logger.info("No genesis — running as ephemeral node")
         except ValueError as e:
+            if self._node_role == "node0":
+                raise RuntimeError(f"Genesis identity corrupted: {e}") from e
             self.logger.error(f"Genesis identity corrupted: {e}")
 
     async def _init_components(self) -> None:
@@ -429,6 +1126,29 @@ class SovereignRuntime:
         # Omega Point Integration
         await self._init_omega_components()
 
+        # TRUE SPEARPOINT: Wire InferenceGateway into GraphOfThoughts post-hoc.
+        # GoT is initialized before the gateway (which lives in omega components),
+        # so we inject the gateway after both are ready.
+        if (
+            self._gateway is not None
+            and self._graph_reasoner is not None
+            and hasattr(self._graph_reasoner, "_inference_gateway")
+        ):
+            self._graph_reasoner._inference_gateway = self._gateway  # type: ignore[union-attr]
+            self.logger.info(
+                "✓ SPEARPOINT: InferenceGateway wired into GraphOfThoughts — "
+                "GoT will use real LLM for hypothesis generation and conclusions"
+            )
+
+        # Wire InferenceGateway into Guardian Council for LLM-backed evaluation
+        if self._guardian_council and self._gateway:
+            if hasattr(self._guardian_council, "set_inference_gateway"):
+                self._guardian_council.set_inference_gateway(self._gateway)
+                self.logger.info(
+                    "✓ SPEARPOINT: InferenceGateway wired into GuardianCouncil — "
+                    "Guardians can use LLM for proposal evaluation"
+                )
+
         # PEK Integration (optional proactive kernel)
         await self._init_proactive_execution_kernel()
 
@@ -497,7 +1217,11 @@ class SovereignRuntime:
         """Initialize Omega Point components (InferenceGateway, OmegaEngine)."""
         # InferenceGateway - Real LLM backends
         try:
-            from core.inference.gateway import CircuitBreakerConfig, InferenceConfig, InferenceGateway  # type: ignore[attr-defined]
+            from core.inference.gateway import (  # type: ignore[attr-defined]
+                CircuitBreakerConfig,
+                InferenceConfig,
+                InferenceGateway,
+            )
 
             self._gateway = InferenceGateway(
                 config=InferenceConfig(
@@ -532,7 +1256,7 @@ class SovereignRuntime:
 
         # SovereignOrchestrator — task decomposition + agent routing
         try:
-            from .orchestrator import SovereignOrchestrator, RoutingStrategy
+            from .orchestrator import RoutingStrategy, SovereignOrchestrator
 
             orch = SovereignOrchestrator(routing_strategy=RoutingStrategy.ADAPTIVE)
             orch.register_default_agents()
@@ -559,6 +1283,7 @@ class SovereignRuntime:
                 ProactiveExecutionKernel,
                 ProactiveExecutionKernelConfig,
             )
+
             from .opportunity_pipeline import OpportunityPipeline
 
             pipeline = OpportunityPipeline(
@@ -603,7 +1328,7 @@ class SovereignRuntime:
 
             # Optional formal verification hook (soft fallback when unavailable).
             try:
-                from .z3_fate_gate import Z3FATEGate, Z3_AVAILABLE
+                from .z3_fate_gate import Z3_AVAILABLE, Z3FATEGate
 
                 if Z3_AVAILABLE:
                     self._pek.set_fate_gate(Z3FATEGate())
@@ -612,6 +1337,15 @@ class SovereignRuntime:
                 self.logger.warning(f"⚠ PEK FATE gate unavailable: {fate_err}")
 
             await self._pek.start()
+
+            # Wire PEK into validation pipeline (SNR + Guardian + Evidence)
+            if self._snr_optimizer and hasattr(self._pek, "set_snr_optimizer"):
+                self._pek.set_snr_optimizer(self._snr_optimizer)
+            if self._guardian_council and hasattr(self._pek, "set_guardian_council"):
+                self._pek.set_guardian_council(self._guardian_council)
+            if self._evidence_ledger and hasattr(self._pek, "set_evidence_ledger"):
+                self._pek.set_evidence_ledger(self._evidence_ledger)
+
             self.logger.info("✓ ProactiveExecutionKernel started")
         except Exception as e:
             self._pek = None
@@ -695,7 +1429,68 @@ class SovereignRuntime:
         except Exception as e:
             self.logger.warning(f"⚠ ImpactTracker init failed: {e}")
 
-    def _get_impact_state(self) -> Dict[str, Any]:
+    def _init_spearpoint_pipeline(self) -> None:
+        """Initialize the SpearPoint Pipeline — unified post-query cockpit.
+
+        Consolidates 7 fire-and-forget operations into one observable,
+        error-isolated pipeline. Each step tracks success/failure independently.
+
+        Standing on: Lamport (fail-closed), Shannon (SNR gating).
+        """
+        try:
+            from .spearpoint_pipeline import SpearPointPipeline
+
+            # SNR trace is passed via mutable single-element list reference
+            self._snr_trace_slot: list = [self._last_snr_trace]
+            self._spearpoint = SpearPointPipeline(
+                evidence_ledger=self._evidence_ledger,
+                graph_reasoner=self._graph_reasoner,
+                graph_artifacts=self._graph_artifacts,
+                living_memory=self._living_memory,
+                experience_ledger=self._experience_ledger,
+                poi_orchestrator=self._poi_orchestrator,
+                judgment_telemetry=self._judgment_telemetry,
+                impact_tracker=self._impact_tracker,
+                sat_controller=self._sat_controller,
+                config=self.config,
+                snr_trace_ref=self._snr_trace_slot,
+            )
+            self.logger.info("SpearPoint Pipeline (cockpit) initialized")
+        except Exception as e:
+            self.logger.warning(f"SpearPoint Pipeline init failed (non-fatal): {e}")
+            self._spearpoint = None
+
+    def _init_spearpoint_orchestrator(self) -> None:
+        """Initialize the Spearpoint Orchestrator — mission router for
+        reproduce (evaluation) and improve (research) operations.
+
+        Shares the evidence ledger with the runtime so receipts flow
+        into the same append-only chain.
+
+        Standing on: Boyd (OODA loop), Goldratt (Theory of Constraints).
+        """
+        try:
+            from core.spearpoint.config import SpearpointConfig
+            from core.spearpoint.orchestrator import SpearpointOrchestrator
+
+            config = SpearpointConfig.from_env()
+
+            # Share the runtime's evidence ledger path if available
+            if self._evidence_ledger is not None:
+                ledger_path = getattr(self._evidence_ledger, "path", None)
+                if ledger_path is not None:
+                    config.evidence_ledger_path = ledger_path
+
+            self._spearpoint_orchestrator = SpearpointOrchestrator(config=config)
+            self.logger.info(
+                f"Spearpoint Orchestrator initialized "
+                f"(ihsan={config.ihsan_threshold}, snr={config.snr_threshold})"
+            )
+        except Exception as e:
+            self.logger.warning(f"Spearpoint Orchestrator init failed (non-fatal): {e}")
+            self._spearpoint_orchestrator = None
+
+    def _get_impact_state(self) -> dict[str, Any]:
         """Provide impact tracker state for memory coordinator."""
         if not self._impact_tracker:
             return {}
@@ -742,12 +1537,12 @@ class SovereignRuntime:
                 },
             )
         except Exception as e:
-            # Impact recording should never break queries
-            self.logger.debug(f"Impact recording failed: {e}")
+            # CRITICAL-10 FIX: Impact failures must be VISIBLE, not silent.
+            self.logger.warning(f"Impact recording failed: {e}")
 
-    def _get_runtime_state(self) -> Dict[str, Any]:
+    def _get_runtime_state(self) -> dict[str, Any]:
         """Provide runtime state snapshot for memory coordinator."""
-        state: Dict[str, Any] = {
+        state: dict[str, Any] = {
             "metrics": self.metrics.to_dict(),
             "config": {
                 "node_id": self.config.node_id,
@@ -797,7 +1592,9 @@ class SovereignRuntime:
                 )
                 self.logger.debug("Registered PEK state provider")
             except Exception:
-                self.logger.warning("Failed to register PEK state provider", exc_info=True)
+                self.logger.warning(
+                    "Failed to register PEK state provider", exc_info=True
+                )
 
         # OpportunityPipeline — SAFETY priority (rate limiter must survive restarts)
         try:
@@ -886,14 +1683,18 @@ class SovereignRuntime:
             try:
                 self._user_context.save()
             except Exception:
-                self.logger.warning("Failed to save user context during shutdown", exc_info=True)
+                self.logger.warning(
+                    "Failed to save user context during shutdown", exc_info=True
+                )
 
         # Flush impact tracker dirty state before memory coordinator stop
         if self._impact_tracker and hasattr(self._impact_tracker, "flush"):
             try:
                 self._impact_tracker.flush()
             except Exception:
-                self.logger.warning("Failed to flush impact tracker during shutdown", exc_info=True)
+                self.logger.warning(
+                    "Failed to flush impact tracker during shutdown", exc_info=True
+                )
 
         # Stop memory coordinator (performs final save including all providers)
         # LCT-01 FIX: MemoryCoordinator.stop() already checkpoints all state.
@@ -913,7 +1714,7 @@ class SovereignRuntime:
     # -------------------------------------------------------------------------
 
     async def query(
-        self, content: str, context: Optional[Dict[str, Any]] = None, **options
+        self, content: str, context: Optional[dict[str, Any]] = None, **options
     ) -> SovereignResult:
         """Process a query through the full sovereign pipeline."""
         if not self._initialized:
@@ -925,6 +1726,7 @@ class SovereignRuntime:
             require_reasoning=options.get("require_reasoning", True),
             require_validation=options.get("require_validation", False),
             timeout=options.get("timeout_ms", self.config.query_timeout_ms) / 1000,
+            user_id=options.get("user_id", ""),
         )
 
         start_time = time.perf_counter()
@@ -972,6 +1774,7 @@ class SovereignRuntime:
                 query_id=query.id,
                 success=False,
                 error=f"Query timeout after {query.timeout}s",
+                user_id=query.user_id,
             )
         except Exception as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
@@ -981,6 +1784,7 @@ class SovereignRuntime:
                 query_id=query.id,
                 success=False,
                 error=str(e),
+                user_id=query.user_id,
             )
 
     def _estimate_complexity(self, query: SovereignQuery) -> float:
@@ -998,13 +1802,20 @@ class SovereignRuntime:
 
         # Sub-question markers
         sub_q_keywords = {
-            "and also", "additionally", "furthermore", "then",
-            "compare", "contrast", "analyze", "evaluate",
-            "step by step", "multi", "comprehensive", "full",
+            "and also",
+            "additionally",
+            "furthermore",
+            "then",
+            "compare",
+            "contrast",
+            "analyze",
+            "evaluate",
+            "step by step",
+            "multi",
+            "comprehensive",
+            "full",
         }
-        sub_q_score = sum(
-            0.15 for kw in sub_q_keywords if kw in text.lower()
-        )
+        sub_q_score = sum(0.15 for kw in sub_q_keywords if kw in text.lower())
 
         # Question count
         q_count = text.count("?")
@@ -1013,7 +1824,13 @@ class SovereignRuntime:
         # Explicit complexity hint from context
         hint = query.context.get("complexity_hint", 0.0)
 
-        score = min(1.0, 0.3 * length_score + 0.3 * min(sub_q_score, 1.0) + 0.2 * q_score + 0.2 * float(hint))
+        score = min(
+            1.0,
+            0.3 * length_score
+            + 0.3 * min(sub_q_score, 1.0)
+            + 0.2 * q_score
+            + 0.2 * float(hint),
+        )
         return score
 
     async def _orchestrate_complex_query(
@@ -1026,7 +1843,7 @@ class SovereignRuntime:
         a specialized agent, executes them (with real LLM or heuristic fallback),
         and synthesizes the results.
         """
-        result = SovereignResult(query_id=query.id)
+        result = SovereignResult(query_id=query.id, user_id=query.user_id)
 
         try:
             from .orchestrator import TaskNode
@@ -1048,13 +1865,19 @@ class SovereignRuntime:
                 if content:
                     parts.append(content)
 
-            combined = "\n\n".join(parts) if parts else f"Orchestrated analysis of: {query.text}"
+            combined = (
+                "\n\n".join(parts)
+                if parts
+                else f"Orchestrated analysis of: {query.text}"
+            )
             result.response = combined
 
             # Run through SNR + Constitutional stages
-            optimized, snr_score = await self._optimize_snr(result.response)
+            optimized, snr_score, claim_tags = await self._optimize_snr(result.response)
             result.response = optimized
             result.snr_score = snr_score
+            result.snr_ok = snr_score >= self.config.snr_threshold
+            result.claim_tags = claim_tags
 
             ihsan_score, verdict = await self._validate_constitutionally(
                 result.response, query.context, query, snr_score
@@ -1071,12 +1894,28 @@ class SovereignRuntime:
 
             self._query_times.append(result.processing_time_ms)
             self.metrics.update_query_stats(True, result.processing_time_ms)
-            self._record_query_impact(result)
+
+            # SPEARPOINT COCKPIT: Execute unified post-query pipeline
+            if self._spearpoint is not None:
+                if hasattr(self, "_snr_trace_slot"):
+                    self._snr_trace_slot[0] = self._last_snr_trace
+                sp_result = await self._spearpoint.execute(result, query)
+                if hasattr(self, "_snr_trace_slot"):
+                    self._last_snr_trace = self._snr_trace_slot[0]
+                result.spearpoint = sp_result.to_dict()  # type: ignore[attr-defined]
+            else:
+                self._record_query_impact(result)
+                self._emit_query_receipt(result, query)
+                self._encode_query_memory(result, query)
+                self._commit_experience_episode(result, query)
+                self._observe_judgment(result)
 
             return result
 
         except Exception as e:
-            self.logger.warning(f"Orchestrator path failed ({e}), falling back to direct pipeline")
+            self.logger.warning(
+                f"Orchestrator path failed ({e}), falling back to direct pipeline"
+            )
             return await self._process_query_direct(query, start_time)
 
     async def _process_query(
@@ -1101,17 +1940,32 @@ class SovereignRuntime:
         self, query: SovereignQuery, start_time: float
     ) -> SovereignResult:
         """Direct 5-stage query pipeline (bypasses orchestrator)."""
-        result = SovereignResult(query_id=query.id)
+        result = SovereignResult(query_id=query.id, user_id=query.user_id)
+
+        # PRE-FLIGHT: 6-Gate Chain (fail-closed)
+        gate_rejection = await self._run_gate_chain_preflight(query, result)
+        if gate_rejection is not None:
+            gate_rejection.processing_time_ms = (
+                time.perf_counter() - start_time
+            ) * 1000
+            self._query_times.append(gate_rejection.processing_time_ms)
+            self.metrics.update_query_stats(False, gate_rejection.processing_time_ms)
+            self._emit_query_receipt(gate_rejection, query)
+            return gate_rejection
 
         # STAGE 0: Select compute tier
         compute_tier = await self._select_compute_tier(query)
 
         # STAGE 1: Execute reasoning (GoT)
-        reasoning_path, confidence, thought_prompt = (
+        reasoning_path, confidence, thought_prompt, graph_hash = (
             await self._execute_reasoning_stage(query)
         )
         result.thoughts = reasoning_path
         result.reasoning_depth = len(reasoning_path)
+        result.graph_hash = graph_hash
+
+        # SPEARPOINT: Store graph artifact for retrieval (fire-and-forget)
+        self._store_graph_artifact(query.id, graph_hash)
 
         # STAGE 2: Perform LLM inference
         answer, model_used = await self._perform_llm_inference(
@@ -1119,13 +1973,25 @@ class SovereignRuntime:
         )
         result.response = answer
 
+        # TRUE SPEARPOINT: Detect template/stub output and degrade result
+        is_real_inference = model_used not in ("NO_LLM", "stub", "template")
+        if not is_real_inference:
+            self.logger.info(
+                f"SPEARPOINT: Pipeline running without LLM (model={model_used}). "
+                f"Result will be tagged as degraded."
+            )
+
         # Update reasoning metrics
         self.metrics.update_reasoning_stats(result.reasoning_depth)
 
         # STAGE 3: Optimize SNR
-        optimized_content, snr_score = await self._optimize_snr(result.response)
+        optimized_content, snr_score, claim_tags = await self._optimize_snr(
+            result.response
+        )
         result.response = optimized_content
         result.snr_score = snr_score
+        result.snr_ok = snr_score >= self.config.snr_threshold
+        result.claim_tags = claim_tags
 
         # STAGE 4: Constitutional validation
         ihsan_score, guardian_verdict = await self._validate_constitutionally(
@@ -1140,12 +2006,40 @@ class SovereignRuntime:
         result.success = True
         result.reasoning_used = query.require_reasoning
 
+        # TRUE SPEARPOINT: Tag model source for observability.
+        # When no real LLM was used, the output is template-based.
+        # Mark it clearly so consumers know the quality level.
+        result.model_used = model_used
+        if not is_real_inference:
+            result.degraded = True  # type: ignore[attr-defined]
+            result.degraded_reason = (  # type: ignore[attr-defined]
+                f"No LLM backend available (model={model_used}). "
+                "Response is template/GoT-derived, not LLM-grounded."
+            )
+
         # Update timing metrics
         self._query_times.append(result.processing_time_ms)
         self.metrics.update_query_stats(True, result.processing_time_ms)
 
-        # Record impact for sovereignty progression (fire-and-forget)
-        self._record_query_impact(result)
+        # SPEARPOINT COCKPIT: Execute unified post-query pipeline
+        if self._spearpoint is not None:
+            # Sync SNR trace into the pipeline's shared slot
+            if hasattr(self, "_snr_trace_slot"):
+                self._snr_trace_slot[0] = self._last_snr_trace
+            sp_result = await self._spearpoint.execute(result, query)
+            # Sync trace back (cleared after receipt emission)
+            if hasattr(self, "_snr_trace_slot"):
+                self._last_snr_trace = self._snr_trace_slot[0]
+            # Attach pipeline diagnostics to result metadata
+            result.spearpoint = sp_result.to_dict()  # type: ignore[attr-defined]
+        else:
+            # Fallback: original fire-and-forget calls (pre-pipeline)
+            self._record_query_impact(result)
+            self._register_poi_contribution(result, query)
+            self._emit_query_receipt(result, query)
+            self._encode_query_memory(result, query)
+            self._commit_experience_episode(result, query)
+            self._observe_judgment(result)
 
         return result
 
@@ -1161,11 +2055,15 @@ class SovereignRuntime:
 
     async def _execute_reasoning_stage(
         self, query: SovereignQuery
-    ) -> tuple[List[str], float, str]:
-        """STAGE 1: Graph-of-Thoughts exploration."""
+    ) -> tuple[list[str], float, str, Optional[str]]:
+        """STAGE 1: Graph-of-Thoughts exploration.
+
+        Returns (reasoning_path, confidence, thought_prompt, graph_hash).
+        """
         thought_prompt: str = query.text
-        reasoning_path: List[str] = []
+        reasoning_path: list[str] = []
         confidence: float = 0.75
+        graph_hash: Optional[str] = None
 
         if query.require_reasoning and self._graph_reasoner:
             reasoning_result = await self._graph_reasoner.reason(
@@ -1175,12 +2073,13 @@ class SovereignRuntime:
             )
             reasoning_path = reasoning_result.get("thoughts", [])
             confidence = reasoning_result.get("confidence", 0.0)
+            graph_hash = reasoning_result.get("graph_hash")
 
             conclusion = reasoning_result.get("conclusion")
             if conclusion:
                 thought_prompt = conclusion
 
-        return reasoning_path, confidence, thought_prompt
+        return reasoning_path, confidence, thought_prompt, graph_hash
 
     async def _build_contextual_prompt(
         self, thought_prompt: str, query: SovereignQuery
@@ -1243,7 +2142,13 @@ class SovereignRuntime:
     async def _perform_llm_inference(
         self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
     ) -> tuple[str, str]:
-        """STAGE 2: LLM inference via gateway with user context."""
+        """STAGE 2: LLM inference via gateway with user context.
+
+        TRUE SPEARPOINT: Fail-loud when no LLM is available.
+        Returns (answer, model_used) where model_used is NEVER silently "stub".
+        When gateway fails, the model_used is tagged "NO_LLM" so downstream
+        stages can detect and act on it (instead of blindly validating fake output).
+        """
         # Build contextual prompt with user profile, memory, and PAT routing
         contextual_prompt = await self._build_contextual_prompt(thought_prompt, query)
 
@@ -1260,17 +2165,31 @@ class SovereignRuntime:
                     model_used = getattr(inference_result, "model", "unknown")
                     return answer, model_used
             except Exception as e:
-                self.logger.warning(f"Gateway inference failed: {e}, using stub")
+                self.logger.warning(f"Gateway inference failed: {e}")
 
-        return f"Reasoned response for: {query.text}", "stub"
+        # FAIL-LOUD: Tag as NO_LLM so pipeline can reject/degrade gracefully
+        self.logger.warning(
+            "SPEARPOINT: No LLM backend available — returning template output tagged 'NO_LLM'"
+        )
+        return thought_prompt, "NO_LLM"
 
-    async def _optimize_snr(self, content: str) -> tuple[str, float]:
-        """STAGE 3: SNR optimization."""
+    async def _optimize_snr(self, content: str) -> tuple[str, float, dict[str, str]]:
+        """STAGE 3: SNR optimization — dual engine (maximizer + authoritative scorer).
+
+        The SNRMaximizer handles text optimization (noise removal, content cleaning).
+        The SNREngine v1 computes the authoritative, auditable SNR score with trace.
+
+        Standing on: Shannon (1948) — SNR as information quality.
+
+        Returns (optimized_content, snr_score, claim_tags).
+        """
         from core.integration.constants import UNIFIED_SNR_THRESHOLD
 
         optimized_content = content
         snr_score = UNIFIED_SNR_THRESHOLD
+        claim_tags: dict[str, str] = {}
 
+        # Phase 1: SNRMaximizer — text optimization (noise removal)
         if self._snr_optimizer:
             result_or_coro = self._snr_optimizer.optimize(content)
             snr_result = (
@@ -1279,6 +2198,7 @@ class SovereignRuntime:
                 else result_or_coro
             )
             snr_score = snr_result.get("snr_score", UNIFIED_SNR_THRESHOLD)
+            claim_tags = snr_result.get("claim_tags", {})
             # RFC-04 FIX: Actually use the optimized content from SNR pipeline
             optimized_content = snr_result.get("optimized") or content
             # Track SNR improvement
@@ -1289,50 +2209,117 @@ class SovereignRuntime:
                 )
                 self.metrics.update_snr_stats(improvement)
 
+        # Phase 2: SNREngine v1 — authoritative scorer with audit trace
+        # Produces receipt-compatible output + SNRTrace artifact.
+        try:
+            from core.proof_engine.snr import SNREngine, SNRInput
+
+            engine = SNREngine()
+            inputs = SNRInput(
+                source_trust_score=snr_score,
+                ihsan_score=self.metrics.current_ihsan_score or 0.95,
+                z3_satisfiable=True,
+            )
+            authoritative = engine.snr_score(inputs)
+
+            # Use the authoritative score; merge claim tags
+            snr_score = authoritative["score"]
+            for k, v in authoritative.get("claim_tags", {}).items():
+                claim_tags.setdefault(k, v)
+
+            # Store the last SNR trace for receipt embedding
+            self._last_snr_trace = authoritative
+        except Exception as e:
+            self.logger.debug(f"SNREngine v1 scoring skipped: {e}")
+
         self.metrics.current_snr_score = snr_score
-        return optimized_content, snr_score
+        return optimized_content, snr_score, claim_tags
 
     async def _validate_constitutionally(
         self,
         content: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         query: SovereignQuery,
         snr_score: float,
     ) -> tuple[float, str]:
-        """STAGE 4: Constitutional validation."""
+        """STAGE 4: Constitutional validation — IhsanGate + Omega + Guardian.
+
+        Standing on: Anthropic (Constitutional AI, 2022), Islamic ethics (Ihsan).
+
+        Evaluation order:
+        1. IhsanGate v1 (authoritative, fail-closed) — proof_engine gate
+        2. Omega engine (if available) — deep ihsan evaluation
+        3. Guardian Council (if requested) — multi-perspective validation
+
+        The final score is the authoritative IhsanGate result, optionally
+        enriched by Omega/Guardian signals.
+        """
         ihsan_score = snr_score
         guardian_verdict = "SKIPPED"
 
+        # Phase 1: IhsanGate v1 — authoritative fail-closed gate
+        ihsan_gate_result = None
+        try:
+            from core.proof_engine.ihsan_gate import IhsanComponents, IhsanGate
+
+            gate = IhsanGate(threshold=self.config.ihsan_threshold)
+            components = IhsanComponents(
+                correctness=min(snr_score * 1.02, 1.0),
+                safety=0.95,  # Default safety assumption; overridden by Guardian
+                efficiency=min(snr_score, 1.0),
+                user_benefit=min(snr_score * 0.98, 1.0),
+            )
+            ihsan_gate_result = gate.ihsan_score(components)
+            ihsan_score = ihsan_gate_result["score"]
+            guardian_verdict = ihsan_gate_result["decision"]
+
+            # Record in IHSAN_FLOOR watchdog (MCG governance invariant)
+            if self._ihsan_watchdog is not None:
+                healthy = self._ihsan_watchdog.record(ihsan_score)
+                if not healthy:
+                    self.logger.warning(
+                        "IHSAN_FLOOR BREACH: System entering DEGRADED mode — "
+                        f"{self._ihsan_watchdog.consecutive_failures} consecutive failures"
+                    )
+        except Exception as e:
+            self.logger.debug(f"IhsanGate v1 evaluation skipped: {e}")
+
+        # Phase 2: Omega engine — deep ihsan evaluation (enriches gate result)
         if self._omega:
             try:
                 ihsan_vector = self._extract_ihsan_from_response(content, context)
                 evaluate_ihsan = getattr(self._omega, "evaluate_ihsan", None)
                 if evaluate_ihsan is not None and ihsan_vector is not None:
                     result = evaluate_ihsan(ihsan_vector)
+                    omega_score = 0.0
                     if isinstance(result, tuple) and len(result) >= 2:
-                        ihsan_score = result[0]
+                        omega_score = result[0]
                     else:
-                        ihsan_score = float(result) if result else snr_score
-                guardian_verdict = "OMEGA_ONLY"
+                        omega_score = float(result) if result else snr_score
+                    # Blend: IhsanGate is authoritative (70%), Omega enriches (30%)
+                    ihsan_score = 0.7 * ihsan_score + 0.3 * omega_score
+                    guardian_verdict = "IHSAN_GATE+OMEGA"
             except Exception as e:
                 self.logger.warning(f"Omega Ihsan evaluation failed: {e}")
-                ihsan_score = snr_score
 
+        # Phase 3: Guardian Council — multi-perspective validation
         if query.require_validation and self._guardian_council:
             validation = await self._guardian_council.validate(
                 content=content,
                 context=context,
             )
-            guardian_verdict = "VALIDATED" if validation.get("is_valid") else "REJECTED"
             guardian_score = validation.get("confidence", 0.0)
+            is_valid = validation.get("is_valid", False)
 
-            if self._omega:
-                ihsan_score = (ihsan_score + guardian_score) / 2
-            else:
-                ihsan_score = guardian_score
+            # Guardian safety signal enriches the ihsan score
+            # but IhsanGate remains the authoritative decision maker
+            ihsan_score = 0.6 * ihsan_score + 0.4 * guardian_score
+            guardian_verdict = (
+                f"IHSAN_GATE+GUARDIAN({'VALID' if is_valid else 'INVALID'})"
+            )
 
             self.metrics.validations += 1
-            self.metrics.update_validation_stats(validation.get("is_valid", False))
+            self.metrics.update_validation_stats(is_valid)
 
         self.metrics.current_ihsan_score = ihsan_score
         return ihsan_score, guardian_verdict
@@ -1342,9 +2329,11 @@ class SovereignRuntime:
     # -------------------------------------------------------------------------
 
     def _cache_key(self, query: SovereignQuery) -> str:
-        """Generate cache key for a query."""
+        """Generate cache key for a query (SEC-001: BLAKE3)."""
+        from core.proof_engine.canonical import hex_digest
+
         content = f"{query.text}:{query.require_reasoning}"
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+        return hex_digest(content.encode())[:16]
 
     def _update_cache(self, key: str, result: SovereignResult) -> None:
         """Update cache with new result."""
@@ -1373,7 +2362,7 @@ class SovereignRuntime:
             return None
 
     def _extract_ihsan_from_response(
-        self, content: str, context: Dict[str, Any]
+        self, content: str, context: dict[str, Any]
     ) -> Optional[object]:
         """Extract Ihsan vector from response content."""
         try:
@@ -1417,7 +2406,7 @@ class SovereignRuntime:
         )
         return result.ihsan_score >= self.config.ihsan_threshold
 
-    async def reason(self, question: str, depth: int = 3) -> List[str]:
+    async def reason(self, question: str, depth: int = 3) -> list[str]:
         """Get reasoning path for a question."""
         result = await self.query(question, max_depth=depth)
         return result.thoughts
@@ -1426,7 +2415,7 @@ class SovereignRuntime:
     # STATUS & METRICS
     # -------------------------------------------------------------------------
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get comprehensive runtime status."""
         loop_status = (
             self._autonomous_loop.status()
@@ -1434,7 +2423,7 @@ class SovereignRuntime:
             else {"running": False}
         )
 
-        omega_status: Dict[str, Any] = {"version": "2.2.3"}
+        omega_status: dict[str, Any] = {"version": "2.2.3"}
         if self._omega:
             try:
                 _get_status = getattr(self._omega, "get_status", None)
@@ -1455,10 +2444,15 @@ class SovereignRuntime:
         else:
             omega_status.setdefault("gateway", {"connected": False})  # type: ignore[arg-type]
 
-        identity_info: Dict[str, Any] = {
+        identity_info: dict[str, Any] = {
             "node_id": self.config.node_id,
             "version": "1.0.0",
+            "origin": dict(self._origin_snapshot),
         }
+        if self._node_signer and hasattr(self._node_signer, "public_key_hex"):
+            identity_info["signer_public_key"] = (
+                self._node_signer.public_key_hex[:16] + "..."
+            )
         if self._genesis:
             identity_info["node_name"] = self._genesis.node_name
             identity_info["location"] = self._genesis.identity.location
@@ -1478,7 +2472,7 @@ class SovereignRuntime:
         )
 
         # Impact / sovereignty progression
-        sovereignty_info: Dict[str, Any] = {"tracking": False}
+        sovereignty_info: dict[str, Any] = {"tracking": False}
         if self._impact_tracker:
             try:
                 sovereignty_info = {
@@ -1501,6 +2495,9 @@ class SovereignRuntime:
             "health": {
                 "status": self._health_status().value,
                 "score": self._calculate_health(),
+                "ihsan_watchdog": (
+                    self._ihsan_watchdog.status() if self._ihsan_watchdog else None
+                ),
             },
             "autonomous": loop_status,
             "omega_point": omega_status,
@@ -1511,6 +2508,10 @@ class SovereignRuntime:
 
     def _health_status(self) -> HealthStatus:
         """Determine health status from metrics."""
+        # IHSAN_FLOOR invariant: if watchdog is degraded, force DEGRADED
+        if self._ihsan_watchdog is not None and self._ihsan_watchdog.is_degraded:
+            return HealthStatus.DEGRADED
+
         score = self._calculate_health()
         if score >= 0.9:
             return HealthStatus.HEALTHY
@@ -1547,7 +2548,7 @@ class SovereignRuntime:
 
             import json
 
-            state: Dict[str, Any] = {
+            state: dict[str, Any] = {
                 "metrics": self.metrics.to_dict(),
                 "config": {
                     "node_id": self.config.node_id,

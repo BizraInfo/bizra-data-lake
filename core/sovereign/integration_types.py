@@ -1,7 +1,7 @@
 """
 Integration Types — Data Classes and Enums for Integration Module
 =================================================================
-Type definitions for the Sovereign LLM Integration system.
+type definitions for the Sovereign LLM Integration system.
 
 Standing on Giants: Shannon + Lamport + Vaswani + Anthropic
 """
@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .capability_card import ModelTier, TaskType
 
@@ -60,7 +60,7 @@ class AdmissionResult:
 
     status: AdmissionStatus
     score: float
-    evidence: Dict[str, Any] = field(default_factory=dict)
+    evidence: dict[str, Any] = field(default_factory=dict)
     promotion_path: Optional[str] = None
 
 
@@ -76,7 +76,7 @@ class SovereignConfig:
     # Network
     network_mode: NetworkMode = NetworkMode.HYBRID
     discovery_timeout_ms: int = 5000
-    bootstrap_nodes: Optional[List[str]] = None
+    bootstrap_nodes: Optional[list[str]] = None
 
     # Model Store
     model_store_path: Optional[Path] = None

@@ -26,19 +26,17 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger("sovereign.data_import")
-
 
 # =============================================================================
 # CONVERSATION PARSERS
 # =============================================================================
 
 
-def parse_chatgpt_mapping(data: dict) -> List[Dict[str, str]]:
+def parse_chatgpt_mapping(data: dict) -> list[dict[str, str]]:
     """
     Parse ChatGPT tree-format conversation into flat message list.
 
@@ -83,11 +81,13 @@ def parse_chatgpt_mapping(data: dict) -> List[Dict[str, str]]:
 
             if text and len(text) > 5 and author in ("user", "assistant"):
                 timestamp = msg.get("create_time")
-                messages.append({
-                    "role": "human" if author == "user" else "assistant",
-                    "content": text,
-                    "timestamp": timestamp,
-                })
+                messages.append(
+                    {
+                        "role": "human" if author == "user" else "assistant",
+                        "content": text,
+                        "timestamp": timestamp,
+                    }
+                )
 
         # Follow first child
         children = node.get("children", [])
@@ -96,7 +96,7 @@ def parse_chatgpt_mapping(data: dict) -> List[Dict[str, str]]:
     return messages
 
 
-def parse_chatgpt_bulk(data: list) -> List[Dict[str, Any]]:
+def parse_chatgpt_bulk(data: list) -> list[dict[str, Any]]:
     """
     Parse ChatGPT bulk export (conversations.json).
 
@@ -118,31 +118,37 @@ def parse_chatgpt_bulk(data: list) -> List[Dict[str, Any]]:
                     parts = content.get("parts", [])
                     content = "\n".join(p for p in parts if isinstance(p, str))
                 if content and len(content) > 5 and role in ("user", "assistant"):
-                    messages.append({
-                        "role": "human" if role == "user" else "assistant",
-                        "content": content,
-                    })
+                    messages.append(
+                        {
+                            "role": "human" if role == "user" else "assistant",
+                            "content": content,
+                        }
+                    )
             if messages:
-                conversations.append({
-                    "title": title,
-                    "created": created,
-                    "messages": messages,
-                })
+                conversations.append(
+                    {
+                        "title": title,
+                        "created": created,
+                        "messages": messages,
+                    }
+                )
             continue
 
         # Fall back to mapping format (tree structure)
         messages = parse_chatgpt_mapping(conv)
         if messages:
-            conversations.append({
-                "title": title,
-                "created": created,
-                "messages": messages,
-            })
+            conversations.append(
+                {
+                    "title": title,
+                    "created": created,
+                    "messages": messages,
+                }
+            )
 
     return conversations
 
 
-def parse_claude_bulk(data: list) -> List[Dict[str, Any]]:
+def parse_claude_bulk(data: list) -> list[dict[str, Any]]:
     """
     Parse Claude.ai bulk export (conversations.json).
 
@@ -178,25 +184,29 @@ def parse_claude_bulk(data: list) -> List[Dict[str, Any]]:
                 text = "\n".join(text_parts)
 
             if text and len(text.strip()) > 5:
-                messages.append({
-                    "role": sender,
-                    "content": text.strip(),
-                    "timestamp": m.get("created_at"),
-                })
+                messages.append(
+                    {
+                        "role": sender,
+                        "content": text.strip(),
+                        "timestamp": m.get("created_at"),
+                    }
+                )
 
         if messages:
-            conversations.append({
-                "title": title,
-                "created": created,
-                "messages": messages,
-            })
+            conversations.append(
+                {
+                    "title": title,
+                    "created": created,
+                    "messages": messages,
+                }
+            )
 
     return conversations
 
 
 def chunk_conversation(
-    title: str, messages: List[Dict[str, str]], chunk_size: int = 6
-) -> List[str]:
+    title: str, messages: list[dict[str, str]], chunk_size: int = 6
+) -> list[str]:
     """
     Chunk a conversation into segments for memory storage.
 
@@ -238,10 +248,10 @@ class DataImporter:
             "errors": 0,
         }
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         return dict(self._stats)
 
-    async def import_chatgpt_export(self, export_dir: Path) -> Dict[str, int]:
+    async def import_chatgpt_export(self, export_dir: Path) -> dict[str, int]:
         """
         Import a full ChatGPT data export directory.
 
@@ -282,7 +292,7 @@ class DataImporter:
 
         return results
 
-    async def import_claude_export(self, export_dir: Path) -> Dict[str, int]:
+    async def import_claude_export(self, export_dir: Path) -> dict[str, int]:
         """
         Import a Claude.ai data export directory.
 
@@ -387,7 +397,7 @@ class DataImporter:
         logger.info(f"Parsed {len(conversations)} Claude conversations with content")
         return await self._store_conversations(conversations, source_prefix="claude")
 
-    async def import_deepseek_export(self, export_dir: Path) -> Dict[str, int]:
+    async def import_deepseek_export(self, export_dir: Path) -> dict[str, int]:
         """Import a DeepSeek data export directory."""
         results = {}
 
@@ -399,7 +409,7 @@ class DataImporter:
         return results
 
     async def _store_conversations(
-        self, conversations: List[Dict[str, Any]], source_prefix: str = "chat"
+        self, conversations: list[dict[str, Any]], source_prefix: str = "chat"
     ) -> int:
         """Chunk and store parsed conversations into episodic memory."""
         from core.living_memory.core import MemoryType
@@ -540,7 +550,7 @@ class DataImporter:
 
         # Chunk into paragraphs (blank line delimited)
         chunks = []
-        current_chunk: List[str] = []
+        current_chunk: list[str] = []
         for line in lines:
             if line.strip():
                 current_chunk.append(line)
@@ -568,9 +578,9 @@ class DataImporter:
 
     async def import_markdown_notes(self, file_path: Path) -> int:
         """Import Markdown notes as semantic memory."""
-        from core.living_memory.core import MemoryType
-
         import re
+
+        from core.living_memory.core import MemoryType
 
         content = file_path.read_text(encoding="utf-8", errors="ignore")
         sections = re.split(r"\n##+ ", content)
@@ -601,7 +611,7 @@ async def ingest_chat_history(
     import_dir: Path,
     living_memory: Any,
     user_context: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Batch ingest all chat history from an extracted export directory.
 
@@ -613,10 +623,10 @@ async def ingest_chat_history(
         user_context: Optional UserContextManager for profile enrichment
 
     Returns:
-        Dict with ingestion statistics
+        dict with ingestion statistics
     """
     importer = DataImporter(living_memory, user_context)
-    all_results: Dict[str, int] = {}
+    all_results: dict[str, int] = {}
 
     # Walk the directory tree looking for data sources
     # Check the root directory itself + all subdirectories
@@ -649,7 +659,9 @@ async def ingest_chat_history(
         # Directory of individual conversation JSONs
         json_files = list(item.glob("*.json"))
         if len(json_files) > 5:
-            logger.info(f"Found conversation directory: {item.name} ({len(json_files)} files)")
+            logger.info(
+                f"Found conversation directory: {item.name} ({len(json_files)} files)"
+            )
             for jf in json_files:
                 try:
                     count = await importer._import_single_conversation(jf)
@@ -705,7 +717,7 @@ async def run_import_wizard(runtime: Any) -> None:
         print(f"  Chunks stored: {stats['chunks_stored']}")
         print(f"  Memories imported: {stats['memories_imported']}")
         print(f"  Skipped: {stats['skipped']}")
-        if stats['errors']:
+        if stats["errors"]:
             print(f"  Errors: {stats['errors']}")
 
     elif choice == "2":

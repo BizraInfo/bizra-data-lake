@@ -36,6 +36,57 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# ─── Ed25519 Signing (True Spearpoint) ────────────────────────────────────────
+# Standing on: Bernstein (2011) — Ed25519 for tamper-evident evidence.
+
+OPERATOR_KEY_FILE = ".proof-forge/operator_key.json"
+
+
+def _load_or_create_operator_key(project_dir: Path) -> tuple:
+    """Load existing operator Ed25519 keypair, or generate one.
+
+    Returns (private_key_hex, public_key_hex).
+    """
+    key_path = project_dir / OPERATOR_KEY_FILE
+    if key_path.exists():
+        with open(key_path) as f:
+            data = json.load(f)
+        return data["private_key"], data["public_key"]
+
+    try:
+        from core.pci.crypto import generate_keypair
+        private_key, public_key = generate_keypair()
+    except ImportError:
+        # Fallback if core.pci not available
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        sk = Ed25519PrivateKey.generate()
+        private_key = sk.private_bytes_raw().hex()
+        public_key = sk.public_key().public_bytes_raw().hex()
+
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(key_path, "w") as f:
+        json.dump({"private_key": private_key, "public_key": public_key}, f, indent=2)
+    print(f"  🔑 Generated new operator key: {key_path}")
+    return private_key, public_key
+
+
+def _sign_receipt(receipt_body: str, private_key_hex: str) -> str:
+    """Sign receipt body (canonical JSON) with Ed25519.
+
+    Returns hex-encoded signature.
+    """
+    try:
+        from core.pci.crypto import sign_message, domain_separated_digest
+        digest = domain_separated_digest(receipt_body.encode("utf-8"))
+        return sign_message(digest, private_key_hex)
+    except ImportError:
+        # Fallback
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        sk = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(private_key_hex))
+        sig = sk.sign(receipt_body.encode("utf-8"))
+        return sig.hex()
+
+
 # ─── Constants ───────────────────────────────────────────────────────────────
 
 PROOF_DIR = ".proof-forge"
@@ -361,6 +412,23 @@ def forge_receipt(
         },
         "verification": verification,
     }
+
+    # Phase 4: Sign receipt (Ed25519 — True Spearpoint)
+    print(f"\n  ✍️  Phase 4: Signing receipt with Ed25519...")
+    try:
+        private_key, public_key = _load_or_create_operator_key(project_dir)
+        receipt_body = json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+        signature = _sign_receipt(receipt_body, private_key)
+        receipt["signature"] = {
+            "algorithm": "Ed25519",
+            "value": signature,
+            "signer_pubkey": public_key,
+        }
+        print(f"     Signature: {signature[:32]}...")
+        print(f"     Public key: {public_key[:32]}...")
+    except Exception as e:
+        print(f"     ⚠️ Signing skipped: {e}")
+        receipt["signature"] = None
 
     # Write receipt
     receipt_filename = f"{file_timestamp}.json"

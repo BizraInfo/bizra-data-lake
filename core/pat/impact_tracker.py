@@ -19,7 +19,6 @@ Sovereignty Tiers (Constitution Article IX § 9.5):
 Standing on Giants: Al-Khwarizmi (algorithms) + Shannon (information) + Anthropic (alignment)
 """
 
-import hashlib
 import json
 import logging
 import time
@@ -28,6 +27,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from core.proof_engine.canonical import hex_digest
 
 from .identity_card import IdentityCard, IdentityStatus, SovereigntyTier
 
@@ -334,9 +335,9 @@ class ImpactTracker:
             except (TypeError, ValueError):
                 metadata = {}
 
-        event_id = hashlib.sha256(
+        event_id = hex_digest(
             f"{self._node_id}:{category}:{action}:{time.time()}".encode()
-        ).hexdigest()[:16]
+        )[:16]
 
         event = ImpactEvent(
             event_id=event_id,

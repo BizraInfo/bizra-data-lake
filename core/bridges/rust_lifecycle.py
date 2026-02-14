@@ -25,7 +25,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 # Try aiohttp, fallback to httpx or basic urllib
 _AIOHTTP_AVAILABLE = False
@@ -44,7 +44,6 @@ except ImportError:
         pass
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # RUST SERVICE STATUS
@@ -105,7 +104,9 @@ class RustAPIClient:
         max_connections_per_host: int = 20,  # PERF: Per-host limit
     ):
         if not base_url.startswith(("http://", "https://")):
-            raise ValueError(f"base_url must use http:// or https:// scheme, got: {base_url}")
+            raise ValueError(
+                f"base_url must use http:// or https:// scheme, got: {base_url}"
+            )
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_connections = max_connections
@@ -162,7 +163,7 @@ class RustAPIClient:
                 await self._session.aclose()
             self._session = None
 
-    async def _get(self, path: str) -> tuple[int, Optional[Dict[str, Any]]]:
+    async def _get(self, path: str) -> tuple[int, Optional[dict[str, Any]]]:
         """Make GET request."""
         url = f"{self.base_url}{path}"
 
@@ -184,15 +185,17 @@ class RustAPIClient:
             import urllib.request
 
             try:
-                with urllib.request.urlopen(url, timeout=self.timeout) as resp:  # nosec B310 — URL scheme validated in __init__
+                with urllib.request.urlopen(
+                    url, timeout=self.timeout
+                ) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
                 logger.warning("GET %s failed (urllib fallback)", url, exc_info=True)
                 return 0, None
 
     async def _post(
-        self, path: str, json_data: Dict[str, Any], timeout: Optional[float] = None
-    ) -> tuple[int, Optional[Dict[str, Any]]]:
+        self, path: str, json_data: dict[str, Any], timeout: Optional[float] = None
+    ) -> tuple[int, Optional[dict[str, Any]]]:
         """Make POST request."""
         url = f"{self.base_url}{path}"
         actual_timeout = timeout or self.timeout
@@ -222,10 +225,12 @@ class RustAPIClient:
                 req = urllib.request.Request(
                     url,
                     data=json.dumps(json_data).encode(),
-                    headers={"Content-Type": "application/json"},
+                    headers={"Content-type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=actual_timeout) as resp:  # nosec B310 — URL scheme validated in __init__
+                with urllib.request.urlopen(
+                    req, timeout=actual_timeout
+                ) as resp:  # nosec B310 — URL scheme validated in __init__
                     return resp.status, json.loads(resp.read().decode())
             except Exception:
                 logger.warning("POST %s failed (urllib fallback)", url, exc_info=True)
@@ -253,7 +258,7 @@ class RustAPIClient:
                 error=str(e),
             )
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Get full node status."""
         try:
             status, data = await self._get("/api/v1/status")
@@ -268,7 +273,7 @@ class RustAPIClient:
         content: bytes,
         snr_score: float,
         ihsan_score: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Check content through Rust PCI gates.
 
@@ -295,7 +300,7 @@ class RustAPIClient:
         system_prompt: Optional[str] = None,
         tier: str = "local",
         max_tokens: int = 1024,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate inference via Rust gateway.
 
@@ -321,7 +326,7 @@ class RustAPIClient:
         except Exception as e:
             return {"error": str(e)}
 
-    async def get_federation_status(self) -> Dict[str, Any]:
+    async def get_federation_status(self) -> dict[str, Any]:
         """Get federation/P2P status."""
         try:
             status, data = await self._get("/api/v1/federation/status")
@@ -538,7 +543,7 @@ class RustLifecycleManager:
         """Check if REST API is healthy."""
         return self._last_health is not None and self._last_health.is_healthy()
 
-    async def start(self) -> Dict[str, Any]:
+    async def start(self) -> dict[str, Any]:
         """
         Start the Rust lifecycle manager.
 
@@ -610,7 +615,7 @@ class RustLifecycleManager:
     def set_health_callback(
         self, callback: Callable[[RustServiceHealth], None]
     ) -> None:
-        """Set callback for health status changes."""
+        """set callback for health status changes."""
         self._on_health_change = callback
 
     # -------------------------------------------------------------------------
@@ -753,7 +758,7 @@ class RustLifecycleManager:
         content: bytes,
         snr_score: float,
         ihsan_score: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Check gates via REST API."""
         return await self._api_client.check_gates(content, snr_score, ihsan_score)
 
@@ -762,11 +767,11 @@ class RustLifecycleManager:
         prompt: str,
         system_prompt: Optional[str] = None,
         tier: str = "local",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate inference via REST API."""
         return await self._api_client.inference_generate(prompt, system_prompt, tier)
 
-    async def api_federation_status(self) -> Dict[str, Any]:
+    async def api_federation_status(self) -> dict[str, Any]:
         """Get federation status via REST API."""
         return await self._api_client.get_federation_status()
 
@@ -774,7 +779,7 @@ class RustLifecycleManager:
     # Statistics
     # -------------------------------------------------------------------------
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get lifecycle manager statistics."""
         return {
             "pyo3_available": self._pyo3_available,
@@ -826,7 +831,6 @@ async def create_rust_lifecycle(
 
 # Backwards-compatible alias expected by tooling
 RustLifecycle = RustLifecycleManager
-
 
 # =============================================================================
 # INTEGRATION WITH OPPORTUNITY PIPELINE

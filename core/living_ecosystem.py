@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
     from core.agentic.orchestrator import AgentOrchestrator
@@ -77,7 +77,7 @@ class EcosystemHealth:
 
     last_check: Optional[datetime] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "overall_health": self.overall_health,
             "memory_health": self.memory_health,
@@ -151,10 +151,10 @@ class LivingEcosystem:
         self._pat_bridge: Optional["PATBridge"] = None
 
         # Background tasks
-        self._tasks: List[asyncio.Task] = []
+        self._tasks: list[asyncio.Task] = []
 
         # Event handlers
-        self._event_handlers: Dict[str, List[Callable]] = {}
+        self._event_handlers: dict[str, list[Callable]] = {}
 
     async def initialize(self) -> None:
         """Initialize all ecosystem components."""
@@ -402,7 +402,7 @@ class LivingEcosystem:
             self._proactive_retriever.update_context(query=query)
 
         # Retrieve relevant memories
-        memories: List[Any] = []
+        memories: list[Any] = []
         if self._memory:
             memories = await self._memory.retrieve(
                 query=query,
@@ -413,7 +413,7 @@ class LivingEcosystem:
         memory_context = "\n".join(m.content for m in memories)
 
         # Get proactive suggestions
-        suggestions: List[Any] = []
+        suggestions: list[Any] = []
         if self._proactive_retriever:
             suggestions = await self._proactive_retriever.get_proactive_suggestions()
 
@@ -529,7 +529,7 @@ Respond helpfully, drawing on your knowledge and proactive suggestions."""
         )
         return task.id
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get ecosystem status."""
         status = {
             "state": self.state.value,
@@ -565,3 +565,11 @@ def create_living_ecosystem(
         llm_fn=llm_fn,
         embedding_fn=embedding_fn,
     )
+
+
+__all__ = [
+    "EcosystemState",
+    "EcosystemHealth",
+    "EcosystemConfig",
+    "LivingEcosystem",
+]

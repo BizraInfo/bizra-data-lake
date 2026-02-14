@@ -69,7 +69,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from core.integration.constants import (
     STRICT_IHSAN_THRESHOLD,
@@ -94,7 +94,6 @@ from .snr_maximizer import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # Constitutional constants (from single source of truth)
 IHSAN_THRESHOLD: float = UNIFIED_IHSAN_THRESHOLD  # Excellence threshold
@@ -131,7 +130,7 @@ class RuntimeInput:
     """Input to the Sovereign Runtime."""
 
     query: str
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     source: str = "user"
     priority: float = 0.5
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -146,12 +145,12 @@ class RuntimeDecision:
     confidence: float
     ihsan_score: float
     snr_score: float
-    reasoning_path: List[ThoughtNode]
-    giants_attribution: List[str]
+    reasoning_path: list[ThoughtNode]
+    giants_attribution: list[str]
     constitutional_result: ConstitutionalResult
     execution_allowed: bool
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -194,7 +193,7 @@ class ConstitutionalGate:
         self.daughter_test_threshold = daughter_test_threshold
 
         # Track validation history
-        self._validation_history: List[Tuple[str, float, bool]] = []
+        self._validation_history: list[tuple[str, float, bool]] = []
 
         # Register giants
         self._giants = ["Abu Hamid Al-Ghazali", "Anthropic"]
@@ -206,7 +205,7 @@ class ConstitutionalGate:
 
     def calculate_ihsan_score(
         self,
-        decision: Dict[str, Any],
+        decision: dict[str, Any],
         reasoning: Optional[GoTResult] = None,
     ) -> float:
         """
@@ -255,7 +254,7 @@ class ConstitutionalGate:
 
         return min(1.0, max(0.0, ihsan_score))
 
-    def _assess_safety(self, decision: Dict[str, Any]) -> float:
+    def _assess_safety(self, decision: dict[str, Any]) -> float:
         """
         Assess safety of a decision.
 
@@ -283,14 +282,14 @@ class ConstitutionalGate:
 
     def validate(
         self,
-        decision: Dict[str, Any],
+        decision: dict[str, Any],
         reasoning: Optional[GoTResult] = None,
-    ) -> Tuple[ConstitutionalResult, float]:
+    ) -> tuple[ConstitutionalResult, float]:
         """
         Validate a decision against constitutional constraints.
 
         Returns:
-            Tuple of (result, ihsan_score)
+            tuple of (result, ihsan_score)
         """
         ihsan_score = self.calculate_ihsan_score(decision, reasoning)
 
@@ -371,7 +370,7 @@ class SovereignRuntime:
         # State
         self._phase = RuntimePhase.IDLE
         self._metrics = RuntimeMetrics()
-        self._decision_history: List[RuntimeDecision] = []
+        self._decision_history: list[RuntimeDecision] = []
 
         # Configuration
         self.snr_floor = snr_floor
@@ -638,7 +637,7 @@ class SovereignRuntime:
             self._metrics.average_reasoning_time_ms * (n - 1) + elapsed_ms
         ) / n
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get runtime metrics."""
         return {
             "total_inputs": self._metrics.total_inputs,
@@ -666,7 +665,7 @@ class SovereignRuntime:
         """Explain the foundational basis of an algorithm."""
         return self._giants_registry.explain_algorithm(method_name)
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get runtime status."""
         return {
             "phase": self._phase.value,

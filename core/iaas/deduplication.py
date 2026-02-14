@@ -21,6 +21,8 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
+from core.proof_engine.canonical import hex_digest
+
 logger = logging.getLogger(__name__)
 
 
@@ -97,7 +99,9 @@ class MinHashDeduplicator:
 
         for shingle in shingles:
             # Hash the shingle
-            h = int(hashlib.md5(shingle.encode(), usedforsecurity=False).hexdigest()[:8], 16)
+            h = int(
+                hashlib.md5(shingle.encode(), usedforsecurity=False).hexdigest()[:8], 16
+            )
 
             # Apply all permutations
             hashes = (self._a * h + self._b) % self._max_hash
@@ -581,14 +585,14 @@ class DeduplicationEngine:
         self.softdedup = SoftDeDupReweighter() if enable_softdedup else None
 
     def _exact_dedup(self, texts: List[str]) -> DeduplicationResult:
-        """Exact SHA-256 hash deduplication."""
+        """Exact BLAKE3 hash deduplication (SEC-001)."""
         n = len(texts)
         seen: Dict[str, int] = {}
         keep_indices = set()
         duplicate_groups: Dict[str, List[int]] = defaultdict(list)
 
         for idx, text in enumerate(texts):
-            h = hashlib.sha256(text.encode()).hexdigest()
+            h = hex_digest(text.encode())
             if h not in seen:
                 seen[h] = idx
                 keep_indices.add(idx)

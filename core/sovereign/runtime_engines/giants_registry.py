@@ -42,7 +42,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +77,11 @@ class Giant:
     category: GiantCategory
     citation: str
     key_insight: str
-    applications_in_bizra: List[str] = field(default_factory=list)
-    related_giants: List[str] = field(default_factory=list)
+    applications_in_bizra: list[str] = field(default_factory=list)
+    related_giants: list[str] = field(default_factory=list)
 
     def __hash__(self):
-        return hash((self.name, self.year, self.work))
+        return hash((self.name, self.year))
 
     def __eq__(self, other):
         if not isinstance(other, Giant):
@@ -105,7 +105,7 @@ class GiantApplication:
 
     module: str
     method: str
-    giants: List[Giant]
+    giants: list[Giant]
     explanation: str
     performance_impact: Optional[str] = None
 
@@ -128,9 +128,9 @@ class GiantsRegistry:
     """
 
     def __init__(self):
-        self._giants: Dict[str, Giant] = {}
-        self._applications: List[GiantApplication] = []
-        self._category_index: Dict[GiantCategory, List[str]] = {
+        self._giants: dict[str, Giant] = {}
+        self._applications: list[GiantApplication] = []
+        self._category_index: dict[GiantCategory, list[str]] = {
             cat: [] for cat in GiantCategory
         }
 
@@ -539,7 +539,7 @@ class GiantsRegistry:
                 return giant
         return None
 
-    def get_by_category(self, category: GiantCategory) -> List[Giant]:
+    def get_by_category(self, category: GiantCategory) -> list[Giant]:
         """Get all giants in a category."""
         keys = self._category_index.get(category, [])
         return [self._giants[k] for k in keys]
@@ -548,7 +548,7 @@ class GiantsRegistry:
         self,
         module: str,
         method: str,
-        giant_names: List[str],
+        giant_names: list[str],
         explanation: str,
         performance_impact: Optional[str] = None,
     ) -> None:
@@ -565,7 +565,7 @@ class GiantsRegistry:
         )
         self._applications.append(app)
 
-    def get_applications_for(self, giant_name: str) -> List[GiantApplication]:
+    def get_applications_for(self, giant_name: str) -> list[GiantApplication]:
         """Get all applications of a giant's work."""
         return [
             app
@@ -606,7 +606,7 @@ class GiantsRegistry:
 
         return "\n".join(lines)
 
-    def summary(self) -> Dict[str, int]:
+    def summary(self) -> dict[str, int]:
         """Get registry summary."""
         return {
             "total_giants": len(self._giants),
@@ -631,7 +631,7 @@ def get_giants_registry() -> GiantsRegistry:
     return _registry
 
 
-def attribute(giant_names: List[str]) -> str:
+def attribute(giant_names: list[str]) -> str:
     """Quick attribution string for given giants."""
     registry = get_giants_registry()
     giants = [registry.get(name) for name in giant_names]

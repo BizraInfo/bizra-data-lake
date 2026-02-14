@@ -95,7 +95,10 @@ SKILL_TOOL_MAP: Dict[str, SkillToolMapping] = {
     "true-spearpoint": SkillToolMapping(
         skill_name="true-spearpoint",
         required_tools=["bash", "view", "edit", "create"],
-        optional_tools=["github-mcp-server-list_workflows", "github-mcp-server-get_job_logs"],
+        optional_tools=[
+            "github-mcp-server-list_workflows",
+            "github-mcp-server-get_job_logs",
+        ],
         permissions=[MCPPermission.READ, MCPPermission.WRITE, MCPPermission.EXECUTE],
         categories=[MCPToolCategory.CORE, MCPToolCategory.GITHUB],
         estimated_token_cost=5000,
@@ -105,7 +108,10 @@ SKILL_TOOL_MAP: Dict[str, SkillToolMapping] = {
     "deep-research": SkillToolMapping(
         skill_name="deep-research",
         required_tools=["web_search", "web_fetch", "grep", "view"],
-        optional_tools=["github-mcp-server-search_code", "github-mcp-server-search_repositories"],
+        optional_tools=[
+            "github-mcp-server-search_code",
+            "github-mcp-server-search_repositories",
+        ],
         permissions=[MCPPermission.READ, MCPPermission.NETWORK],
         categories=[MCPToolCategory.WEB, MCPToolCategory.CORE, MCPToolCategory.GITHUB],
         estimated_token_cost=3000,
@@ -115,7 +121,10 @@ SKILL_TOOL_MAP: Dict[str, SkillToolMapping] = {
     "guardian-review": SkillToolMapping(
         skill_name="guardian-review",
         required_tools=["view", "grep", "glob"],
-        optional_tools=["github-mcp-server-get_commit", "github-mcp-server-pull_request_read"],
+        optional_tools=[
+            "github-mcp-server-get_commit",
+            "github-mcp-server-pull_request_read",
+        ],
         permissions=[MCPPermission.READ],
         categories=[MCPToolCategory.CORE, MCPToolCategory.GITHUB],
         estimated_token_cost=2000,
@@ -124,7 +133,8 @@ SKILL_TOOL_MAP: Dict[str, SkillToolMapping] = {
     "github-code-review": SkillToolMapping(
         skill_name="github-code-review",
         required_tools=[
-            "view", "grep",
+            "view",
+            "grep",
             "github-mcp-server-pull_request_read",
             "github-mcp-server-get_commit",
         ],
@@ -159,7 +169,11 @@ SKILL_TOOL_MAP: Dict[str, SkillToolMapping] = {
         required_tools=["bash", "task"],
         optional_tools=["flow-nexus-swarm", "ruv-swarm"],
         permissions=[MCPPermission.EXECUTE, MCPPermission.NETWORK],
-        categories=[MCPToolCategory.CORE, MCPToolCategory.AGENT, MCPToolCategory.FLOW_NEXUS],
+        categories=[
+            MCPToolCategory.CORE,
+            MCPToolCategory.AGENT,
+            MCPToolCategory.FLOW_NEXUS,
+        ],
         estimated_token_cost=10000,
         risk_level="high",
     ),
@@ -275,7 +289,8 @@ class MCPBridge:
         for tool in self.get_required_tools(skill_name):
             # Check exact match or pattern match
             available = tool in self.available_tools or any(
-                t.startswith(tool.split("*")[0]) for t in self.available_tools
+                t.startswith(tool.split("*")[0])
+                for t in self.available_tools
                 if "*" in tool
             )
             result[tool] = available
@@ -333,13 +348,15 @@ class MCPBridge:
     def get_skills_by_category(self, category: MCPToolCategory) -> List[str]:
         """Get skills that use tools in a category."""
         return [
-            name for name, mapping in SKILL_TOOL_MAP.items()
+            name
+            for name, mapping in SKILL_TOOL_MAP.items()
             if category in mapping.categories
         ]
 
     def get_high_risk_skills(self) -> List[str]:
         """Get skills with high or critical risk level."""
         return [
-            name for name, mapping in SKILL_TOOL_MAP.items()
+            name
+            for name, mapping in SKILL_TOOL_MAP.items()
             if mapping.risk_level in ("high", "critical")
         ]

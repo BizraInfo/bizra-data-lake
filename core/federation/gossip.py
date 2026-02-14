@@ -236,7 +236,9 @@ class GossipEngine:
     # MEMBERSHIP
     # ─────────────────────────────────────────────────────────────────────────
 
-    def add_seed_node(self, address: str, node_id: Optional[str] = None, public_key: str = ""):
+    def add_seed_node(
+        self, address: str, node_id: Optional[str] = None, public_key: str = ""
+    ):
         """
         Add a bootstrap/seed node to connect to.
 
@@ -846,7 +848,9 @@ if __name__ == "__main__":
     announce = nodes[1].create_announce_message()
     response = asyncio.run(nodes[0].handle_message(announce))
 
-    print(f"  Node 0 received announcement, responded with {len(response or b'')} bytes")
+    print(
+        f"  Node 0 received announcement, responded with {len(response or b'')} bytes"
+    )
 
     # Node 0 processes response
     if response:

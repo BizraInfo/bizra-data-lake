@@ -12,7 +12,6 @@ Standing on Giants:
 """
 
 import logging
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -114,7 +113,9 @@ class SkillManifest:
         }
 
     @classmethod
-    def from_frontmatter(cls, frontmatter: Dict[str, Any], raw: str = "") -> "SkillManifest":
+    def from_frontmatter(
+        cls, frontmatter: Dict[str, Any], raw: str = ""
+    ) -> "SkillManifest":
         """Create manifest from parsed YAML frontmatter."""
         # Parse context
         ctx_str = frontmatter.get("context", "fork")

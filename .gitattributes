@@ -1,0 +1,22 @@
+# BIZRA — Git Attributes
+# Ensure shell scripts keep Unix line endings (LF) on Windows checkouts
+
+# Shell scripts — always LF
+*.sh text eol=lf
+bin/bizra text eol=lf
+
+# Rust source
+*.rs text eol=lf
+
+# Python
+*.py text eol=lf
+
+# Config
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+
+# Binary
+*.wasm binary
+*.parquet binary

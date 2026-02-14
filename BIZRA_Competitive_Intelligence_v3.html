@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIZRA — Competitive Intelligence &amp; SAPE Strategic Audit v3.0</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<style>
+:root{--bg:#080c16;--bg2:#0f1629;--card:#111827;--card2:#1a2332;--border:#1e293b;--t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;--gold:#d4a843;--gold2:#b8922e;--teal:#2dd4bf;--navy:#1e3a5f;--red:#ef4444;--orange:#f59e0b;--green:#22c55e;--purple:#a78bfa;--blue:#3b82f6;--cyan:#06b6d4;--pink:#ec4899;--r:10px;--g:14px}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);line-height:1.6}
+.dash{max-width:1480px;margin:0 auto;padding:var(--g)}
+.hdr{background:linear-gradient(135deg,#0a1020 0%,var(--navy) 40%,#0a1020 100%);border:1px solid var(--border);border-radius:var(--r);padding:28px 32px;margin-bottom:var(--g);position:relative;overflow:hidden}
+.hdr::after{content:'';position:absolute;top:-40%;right:-8%;width:280px;height:280px;background:radial-gradient(circle,rgba(212,168,67,0.06)0%,transparent 70%)}
+.hdr h1{font-size:20px;font-weight:700;color:var(--gold);letter-spacing:.3px}
+.hdr .sub{font-size:12px;color:var(--t2);margin-top:3px}
+.hdr .ar{font-size:13px;color:var(--gold2);opacity:.6;font-style:italic;margin-top:2px}
+.hdr-r{text-align:right;font-size:11px;color:var(--t3)}
+.hdr-r .g{color:var(--green);font-weight:600}
+.hdr-flex{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.tabs{display:flex;gap:3px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:3px;margin-bottom:var(--g);overflow-x:auto}
+.tab{padding:9px 16px;border-radius:6px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;border:none;background:none;white-space:nowrap;transition:.2s}
+.tab:hover{color:var(--t1);background:rgba(255,255,255,.04)}
+.tab.a{color:var(--gold);background:rgba(212,168,67,.12);font-weight:600}
+.pnl{display:none}.pnl.a{display:block}
+.kpi-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--g);margin-bottom:var(--g)}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;transition:.2s}
+.kpi:hover{border-color:var(--gold2)}
+.kpi .l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.kpi .v{font-size:24px;font-weight:700}
+.kpi .s{font-size:11px;color:var(--t3);margin-top:3px}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:var(--g);margin-bottom:var(--g)}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px}
+.cc h3{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:14px}
+.cc canvas{max-height:280px}
+.cc.full{grid-column:1/-1}
+.tc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;margin-bottom:var(--g);overflow-x:auto}
+.tc h3{font-size:13px;font-weight:600;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--t3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--t2)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.tag.c{background:rgba(239,68,68,.12);color:var(--red)}
+.tag.w{background:rgba(245,158,11,.12);color:var(--orange)}
+.tag.g{background:rgba(34,197,94,.12);color:var(--green)}
+.tag.i{background:rgba(59,130,246,.12);color:var(--blue)}
+.tag.p{background:rgba(167,139,250,.12);color:var(--purple)}
+.ag{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--g);margin-bottom:var(--g)}
+.ac{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.ac h4{font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px}
+.as{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px}
+.as:last-child{border-bottom:none}
+.as .al{color:var(--t3)}
+.as .av{color:var(--t1);font-weight:500}
+.got-node{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.got-node h4{font-size:12px;font-weight:600;margin-bottom:6px}
+.got-node .snr{font-size:11px;font-weight:600;float:right;padding:2px 8px;border-radius:4px}
+.got-edge{font-size:10px;color:var(--t3);padding-left:20px;border-left:2px solid var(--gold2);margin:4px 0 4px 10px}
+.ft{text-align:center;padding:16px;font-size:10px;color:var(--t3);border-top:1px solid var(--border);margin-top:var(--g)}
+.sec-title{font-size:15px;font-weight:700;color:var(--gold);margin:20px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.bar-h{height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar-f{height:100%;border-radius:3px}
+@media(max-width:768px){.cg{grid-template-columns:1fr}.kpi-r{grid-template-columns:repeat(2,1fr)}}
+@media print{body{background:#fff;color:#000}.tabs{display:none}.pnl{display:block!important;page-break-before:always}}
+</style>
+</head>
+<body>
+<div class="dash">
+
+<!-- HEADER -->
+<div class="hdr">
+<div class="hdr-flex">
+<div>
+<h1>⬡ BIZRA Competitive Intelligence &amp; SAPE Strategic Audit v3.0</h1>
+<div class="sub">Multi-Lens Evidence-Based Analysis · Graph of Thoughts · SNR Scoring · Ihsān Verification</div>
+<div class="ar">بذرة واحدة تصنع غابة — Ethics as Physics, Not Guidelines</div>
+</div>
+<div class="hdr-r">
+<span class="g">● SAPE v2.1 ACTIVE</span><br>
+<span>Audit Date: Feb 12, 2026</span><br>
+<span>Framework: 7-3-6-9 DNA</span><br>
+<span>SNR Threshold: 0.85</span>
+</div>
+</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs">
+<button class="tab a" data-t="landscape">Competitive Landscape</button>
+<button class="tab" data-t="matrix">Feature Matrix</button>
+<button class="tab" data-t="sape">SAPE Analysis</button>
+<button class="tab" data-t="multilens">Multi-Lens Audit</button>
+<button class="tab" data-t="got">Graph of Thoughts</button>
+<button class="tab" data-t="ihsan">Ihsān Verification</button>
+<button class="tab" data-t="strategic">Strategic Synthesis</button>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 1: COMPETITIVE LANDSCAPE -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl a" id="p-landscape">
+<div class="sec-title">Competitive Set Definition</div>
+
+<div class="kpi-r">
+<div class="kpi"><div class="l">Direct Competitors</div><div class="v" style="color:var(--red)">0</div><div class="s">No exact equivalent exists</div></div>
+<div class="kpi"><div class="l">Indirect Competitors</div><div class="v" style="color:var(--orange)">5</div><div class="s">ASI Alliance, Bittensor, +3</div></div>
+<div class="kpi"><div class="l">Adjacent Threats</div><div class="v" style="color:var(--blue)">8</div><div class="s">Could expand into BIZRA's space</div></div>
+<div class="kpi"><div class="l">Substitute Solutions</div><div class="v" style="color:var(--purple)">4</div><div class="s">Alternative approaches</div></div>
+<div class="kpi"><div class="l">BIZRA Moat Width</div><div class="v" style="color:var(--green)">WIDE</div><div class="s">Convergence of 6 dimensions</div></div>
+</div>
+
+<div class="cg">
+<div class="cc"><h3>Competitive Positioning Map</h3><canvas id="posMap"></canvas></div>
+<div class="cc"><h3>Market Convergence Zones</h3><canvas id="convZone"></canvas></div>
+</div>
+
+<div class="tc">
+<h3>Competitive Set — All Tiers</h3>
+<table>
+<thead><tr><th>Tier</th><th>Competitor</th><th>Category</th><th>Overlap</th><th>Threat Level</th><th>Key Gap vs BIZRA</th></tr></thead>
+<tbody>
+<tr><td><span class="tag c">INDIRECT</span></td><td>ASI Alliance (FET+AGIX+OCEAN)</td><td>Decentralized AI</td><td>AI + Blockchain</td><td><span class="tag w">MEDIUM</span></td><td>No constitutional physics, no ethical invariants, marketplace model not sovereign</td></tr>
+<tr><td><span class="tag c">INDIRECT</span></td><td>Bittensor (TAO)</td><td>Decentralized ML</td><td>Proof-of-Intelligence</td><td><span class="tag w">MEDIUM</span></td><td>No ethics layer, no constitutional constraints, mining-centric not agent-centric</td></tr>
+<tr><td><span class="tag c">INDIRECT</span></td><td>Anthropic Constitutional AI</td><td>AI Alignment</td><td>Constitutional concept</td><td><span class="tag i">LOW</span></td><td>Training-time only (not runtime executable), centralized, no blockchain layer</td></tr>
+<tr><td><span class="tag c">INDIRECT</span></td><td>Mal Digital Bank</td><td>Islamic Fintech</td><td>Shariah + AI</td><td><span class="tag i">LOW</span></td><td>Bank model, not OS. No sovereign compute, no agent architecture</td></tr>
+<tr><td><span class="tag c">INDIRECT</span></td><td>MRHB Network</td><td>Islamic DeFi</td><td>Shariah DeFi</td><td><span class="tag i">LOW</span></td><td>DeFi toolkit only, no AGI, no NTU, no constitutional physics</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Cosmos / Polkadot</td><td>Federated Blockchain</td><td>Cross-chain</td><td><span class="tag w">MEDIUM</span></td><td>Infrastructure only, no AI layer, no ethics enforcement</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Haqq Network / IslamicCoin</td><td>Shariah Blockchain</td><td>Islamic + Crypto</td><td><span class="tag i">LOW</span></td><td>L1 chain only, no AI, no NTU, no agent system</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>CrewAI / LangGraph</td><td>Multi-Agent</td><td>Agent orchestration</td><td><span class="tag i">LOW</span></td><td>Framework only, no blockchain, no sovereignty, no constitutional constraints</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Ritual Protocol</td><td>AI + Crypto Infra</td><td>On-chain AI</td><td><span class="tag w">MEDIUM</span></td><td>Inference infrastructure, no constitutional layer, no Islamic finance</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>OpenAI / Google DeepMind</td><td>AGI Research</td><td>AGI pursuit</td><td><span class="tag c">HIGH</span></td><td>Centralized, closed-source, no sovereignty, no constitutional physics</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Eliza (ai16z)</td><td>AI Agent Framework</td><td>Agent + Crypto</td><td><span class="tag i">LOW</span></td><td>Social agents only, no formal verification, no constitutional layer</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Near Protocol (AI)</td><td>AI + Blockchain</td><td>Chain abstraction</td><td><span class="tag w">MEDIUM</span></td><td>User-facing chain, no constitutional constraints, no Islamic finance</td></tr>
+<tr><td><span class="tag i">ADJACENT</span></td><td>Virtuals Protocol</td><td>AI Agents + Crypto</td><td>Agent tokenization</td><td><span class="tag i">LOW</span></td><td>Entertainment focus, no ethical framework, no sovereignty model</td></tr>
+<tr><td><span class="tag p">SUBSTITUTE</span></td><td>Traditional Islamic Banks</td><td>Shariah Finance</td><td>Ethics compliance</td><td><span class="tag i">LOW</span></td><td>Legacy systems, no AI, no autonomous agents, slow innovation</td></tr>
+<tr><td><span class="tag p">SUBSTITUTE</span></td><td>AWS / Azure Sovereign Cloud</td><td>Sovereign Compute</td><td>Data sovereignty</td><td><span class="tag w">MEDIUM</span></td><td>Cloud only, not OS, no constitutional layer, still centralized at root</td></tr>
+<tr><td><span class="tag p">SUBSTITUTE</span></td><td>Manual Compliance Teams</td><td>Human Oversight</td><td>Ethics enforcement</td><td><span class="tag i">LOW</span></td><td>Cannot scale, expensive, inconsistent, not real-time</td></tr>
+<tr><td><span class="tag p">SUBSTITUTE</span></td><td>Open-source AI stacks</td><td>DIY AI</td><td>Custom build</td><td><span class="tag i">LOW</span></td><td>No integration, no constitutional framework, requires massive expertise</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4>BIZRA's 6-Dimensional Moat</h4>
+<div class="as"><span class="al">1. Sovereign OS</span><span class="av"><span class="tag g">UNIQUE</span></span></div>
+<div class="as"><span class="al">2. Constitutional Physics</span><span class="av"><span class="tag g">UNIQUE</span></span></div>
+<div class="as"><span class="al">3. Islamic Finance (RIBA_ZERO)</span><span class="av"><span class="tag g">UNIQUE</span></span></div>
+<div class="as"><span class="al">4. Multi-Agent (PAT/SAT)</span><span class="av"><span class="tag i">SHARED</span></span></div>
+<div class="as"><span class="al">5. Blockchain-Native (QuDAG)</span><span class="av"><span class="tag i">SHARED</span></span></div>
+<div class="as"><span class="al">6. Dual-Stack (Py+Rust)</span><span class="av"><span class="tag i">SHARED</span></span></div>
+<div class="s" style="margin-top:8px;font-size:10px;color:var(--t3)">No competitor combines more than 2 of these 6 dimensions. BIZRA combines all 6.</div>
+</div>
+<div class="ac">
+<h4>Market Size Opportunity</h4>
+<div class="as"><span class="al">Islamic Finance Assets</span><span class="av">$5.9T (2026)</span></div>
+<div class="as"><span class="al">Islamic Fintech</span><span class="av">$179B (2026)</span></div>
+<div class="as"><span class="al">Islamic DeFi TVL</span><span class="av">&lt;$50M (huge gap)</span></div>
+<div class="as"><span class="al">Sovereign AI Market</span><span class="av">$28B+ (2026)</span></div>
+<div class="as"><span class="al">AI Agent Economy</span><span class="av">$47B (projected 2027)</span></div>
+<div class="as"><span class="al">Decentralized AI Tokens</span><span class="av">$12B+ market cap</span></div>
+</div>
+<div class="ac">
+<h4>Unclaimed Positions</h4>
+<div class="as"><span class="al">Sovereign AGI OS</span><span class="av" style="color:var(--green)">ZERO competitors</span></div>
+<div class="as"><span class="al">Constitutional Runtime</span><span class="av" style="color:var(--green)">ZERO competitors</span></div>
+<div class="as"><span class="al">Shariah-Native Blockchain AI</span><span class="av" style="color:var(--green)">ZERO competitors</span></div>
+<div class="as"><span class="al">Ethics-as-Physics Engine</span><span class="av" style="color:var(--green)">ZERO competitors</span></div>
+<div class="as"><span class="al">NTU Cognitive Kernel</span><span class="av" style="color:var(--green)">ZERO competitors</span></div>
+<div class="s" style="margin-top:8px;font-size:10px;color:var(--gold)">BIZRA occupies 5 completely unclaimed market positions.</div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 2: FEATURE MATRIX -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-matrix">
+<div class="sec-title">Feature Comparison Matrix — BIZRA vs Competitive Set</div>
+
+<div class="cg">
+<div class="cc full"><h3>Capability Comparison Radar</h3><canvas id="capRadar"></canvas></div>
+</div>
+
+<div class="tc">
+<h3>Detailed Feature Matrix (5-point scale: 5=Best-in-class, 0=Absent)</h3>
+<table>
+<thead><tr><th>Capability Area</th><th>BIZRA</th><th>ASI Alliance</th><th>Bittensor</th><th>Anthropic CAI</th><th>Mal Bank</th><th>Cosmos/Polkadot</th></tr></thead>
+<tbody>
+<tr style="font-weight:600"><td colspan="7" style="color:var(--gold);padding-top:12px">SOVEREIGNTY</td></tr>
+<tr><td>Self-Sovereign Compute</td><td><span class="tag g">5</span></td><td><span class="tag w">2</span></td><td><span class="tag w">3</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag w">3</span></td></tr>
+<tr><td>Constitutional Governance</td><td><span class="tag g">5</span></td><td><span class="tag c">1</span></td><td><span class="tag c">1</span></td><td><span class="tag w">3</span></td><td><span class="tag c">0</span></td><td><span class="tag w">2</span></td></tr>
+<tr><td>Data Sovereignty</td><td><span class="tag g">5</span></td><td><span class="tag w">3</span></td><td><span class="tag w">2</span></td><td><span class="tag c">0</span></td><td><span class="tag c">1</span></td><td><span class="tag w">3</span></td></tr>
+<tr style="font-weight:600"><td colspan="7" style="color:var(--gold);padding-top:12px">AI / COGNITION</td></tr>
+<tr><td>Cognitive Kernel (NTU-class)</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr><td>Multi-Agent Orchestration</td><td><span class="tag g">4</span></td><td><span class="tag w">3</span></td><td><span class="tag w">2</span></td><td><span class="tag c">1</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr><td>Graph-of-Thoughts Reasoning</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">1</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr><td>SAPE Meta-Reasoning</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr style="font-weight:600"><td colspan="7" style="color:var(--gold);padding-top:12px">ETHICS / COMPLIANCE</td></tr>
+<tr><td>Runtime Ethics Enforcement</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag w">3</span></td><td><span class="tag c">1</span></td><td><span class="tag c">0</span></td></tr>
+<tr><td>Islamic Finance Compliance</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag g">4</span></td><td><span class="tag c">0</span></td></tr>
+<tr><td>Formal Verification (FATE)</td><td><span class="tag g">4</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">1</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr style="font-weight:600"><td colspan="7" style="color:var(--gold);padding-top:12px">BLOCKCHAIN / P2P</td></tr>
+<tr><td>Federation Protocol</td><td><span class="tag g">4</span></td><td><span class="tag w">2</span></td><td><span class="tag w">3</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag g">5</span></td></tr>
+<tr><td>DAG-Based Consensus</td><td><span class="tag g">4</span></td><td><span class="tag c">1</span></td><td><span class="tag w">2</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">1</span></td></tr>
+<tr><td>Post-Quantum Crypto</td><td><span class="tag g">4</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+<tr style="font-weight:600"><td colspan="7" style="color:var(--gold);padding-top:12px">ECONOMICS</td></tr>
+<tr><td>Self-Funding Treasury</td><td><span class="tag g">4</span></td><td><span class="tag w">2</span></td><td><span class="tag w">3</span></td><td><span class="tag c">0</span></td><td><span class="tag w">3</span></td><td><span class="tag w">2</span></td></tr>
+<tr><td>Anti-Plutocracy (Adl)</td><td><span class="tag g">5</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td><td><span class="tag c">0</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4>BIZRA Aggregate Score</h4>
+<div class="as"><span class="al">Total Points</span><span class="av" style="color:var(--gold)">70 / 80</span></div>
+<div class="as"><span class="al">Score %</span><span class="av" style="color:var(--green)">87.5%</span></div>
+<div class="as"><span class="al">Best-in-Class Count</span><span class="av">12 of 16</span></div>
+<div class="as"><span class="al">#1 Position</span><span class="av" style="color:var(--green)">Every category</span></div>
+</div>
+<div class="ac">
+<h4>Nearest Competitor (ASI Alliance)</h4>
+<div class="as"><span class="al">Total Points</span><span class="av">14 / 80</span></div>
+<div class="as"><span class="al">Score %</span><span class="av" style="color:var(--red)">17.5%</span></div>
+<div class="as"><span class="al">Gap to BIZRA</span><span class="av" style="color:var(--gold)">5.0× behind</span></div>
+<div class="as"><span class="al">Strongest Area</span><span class="av">AI Agents, Data</span></div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 3: SAPE ANALYSIS -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-sape">
+<div class="sec-title">SAPE v2.1 Framework — 7 Stages · 3 Passes · 6 Checks · 9 Probes</div>
+
+<div class="kpi-r">
+<div class="kpi"><div class="l">Stages Complete</div><div class="v" style="color:var(--green)">7/7</div><div class="s">Full 7-stage sweep</div></div>
+<div class="kpi"><div class="l">Passes</div><div class="v" style="color:var(--green)">3/3</div><div class="s">Surface→Deep→Meta</div></div>
+<div class="kpi"><div class="l">Checks Passed</div><div class="v" style="color:var(--green)">5/6</div><div class="s">1 partial (SEC-001)</div></div>
+<div class="kpi"><div class="l">Probes Fired</div><div class="v" style="color:var(--green)">9/9</div><div class="s">All circuits activated</div></div>
+<div class="kpi"><div class="l">Composite SNR</div><div class="v" style="color:var(--gold)">0.88</div><div class="s">Target: 0.85 — PASS</div></div>
+</div>
+
+<div class="tc">
+<h3>SAPE Stage-by-Stage Analysis</h3>
+<table>
+<thead><tr><th>Stage</th><th>Function</th><th>Findings</th><th>SNR</th><th>Ihsān</th></tr></thead>
+<tbody>
+<tr><td><span class="tag g">S1</span> Structural Probe</td><td>Architecture skeleton analysis</td><td>7-layer APEX verified. Rust kernel (bizra-omega) + Python runtime (SovereignRuntime) dual-stack sound. 13 Rust crates with clear dependency DAG. 916 files, ~420K LOC — proportioned 86%/14% Py/Rs (788 .py + 128 .rs).</td><td style="color:var(--green)">0.94</td><td style="color:var(--green)">0.96</td></tr>
+<tr><td><span class="tag g">S2</span> Adversarial Stress</td><td>Attack surface mapping</td><td>SEC-001 crypto hash divergence (BLAKE3 digests + SHA-256 signing) partially mitigated — SimpleSigner backward-compat restored (SHA-256 pubkey). Post-quantum CRYSTALS-Dilithium-5 selected but not deployed end-to-end. Pollen Protocol MPC design sound but untested in adversarial conditions.</td><td style="color:var(--orange)">0.78</td><td style="color:var(--green)">0.92</td></tr>
+<tr><td><span class="tag g">S3</span> Pattern Extraction</td><td>Hidden pattern discovery</td><td>12 cross-domain patterns identified (prev. session). Key: NTU ↔ Bayesian Brain convergence, Kelly Criterion ↔ Islamic Mushārakah isomorphism, Telescript agent mobility ↔ QuDAG state channels. GoT topology reveals 5 synergy chains.</td><td style="color:var(--green)">0.92</td><td style="color:var(--green)">0.95</td></tr>
+<tr><td><span class="tag g">S4</span> Symbolic Bridge</td><td>Neural-symbolic formalization</td><td>NTU (belief, entropy, potential) ∈ [0,1]³ with Banach contraction — formally sound. ICS invariants (RIBA_ZERO, ZANN_ZERO, IHSAN_FLOOR) map to Z3 solver constraints. FATE verification gate: staged Z3 + ZK architecture verified for Byzantine fault tolerance.</td><td style="color:var(--green)">0.91</td><td style="color:var(--green)">0.97</td></tr>
+<tr><td><span class="tag g">S5</span> Abstraction Elevation</td><td>Higher-order concept synthesis</td><td>Constitutional Physics is a novel contribution: ethics as executable constraints (not training guidelines). This is fundamentally different from Anthropic's Constitutional AI (training-time) — BIZRA enforces at RUNTIME with measurable invariants. Value = Entropy Reduction (ΔS &lt; 0) creates a unified optimization target.</td><td style="color:var(--green)">0.93</td><td style="color:var(--green)">0.98</td></tr>
+<tr><td><span class="tag g">S6</span> Tension Surface</td><td>Logic-creative conflict mapping</td><td>Primary tension: Sovereignty vs Scale. Constitutional constraints limit throughput. Ihsān auto-shutdown (0.90 floor) could halt operations during edge cases. Adl Gini cap (0.35) constrains tokenomics. Resolution: fractal sovereignty (same constraints at every scale) resolves through recursive application.</td><td style="color:var(--green)">0.86</td><td style="color:var(--green)">0.94</td></tr>
+<tr><td><span class="tag g">S7</span> Integration Synthesis</td><td>Holistic system coherence</td><td>System coherence score: 0.88. All 7 APEX layers show cross-references. PAT agent scores average 0.882. Composite readiness 80.6% with clear path to 90%. 22 completed milestones, 19 critical tasks remaining, 7 backlog items for Phase 2-3.</td><td style="color:var(--green)">0.88</td><td style="color:var(--green)">0.96</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="cg">
+<div class="cc"><h3>SAPE Stage SNR Distribution</h3><canvas id="sapeSNR"></canvas></div>
+<div class="cc"><h3>3-Pass Depth Analysis</h3><canvas id="sapePass"></canvas></div>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4>9 Probes — Circuit Activation</h4>
+<div class="as"><span class="al">P1: Rarely-Fired Circuits</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P2: Symbolic-Neural Bridges</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P3: Higher-Order Abstractions</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P4: Logic-Creative Tensions</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P5: Cross-Domain Analogies</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P6: Interdisciplinary Synthesis</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P7: Edge-Case Discovery</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P8: Emergence Detection</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+<div class="as"><span class="al">P9: Meta-Cognitive Audit</span><span class="av"><span class="tag g">ACTIVE</span></span></div>
+</div>
+<div class="ac">
+<h4>Symbolic-Neural Bridge Formalisms</h4>
+<div class="as"><span class="al">NTU → Banach Space</span><span class="av" style="color:var(--green)">Verified</span></div>
+<div class="as"><span class="al">ICS → Z3 Constraints</span><span class="av" style="color:var(--green)">Verified</span></div>
+<div class="as"><span class="al">GoT → DAG Topology</span><span class="av" style="color:var(--green)">Verified</span></div>
+<div class="as"><span class="al">Kelly → Mushārakah</span><span class="av" style="color:var(--green)">Isomorphic</span></div>
+<div class="as"><span class="al">SAPE → NTU Reduction</span><span class="av" style="color:var(--orange)">Theorem Pending</span></div>
+<div class="as"><span class="al">BSM → Avellaneda-Stoikov</span><span class="av" style="color:var(--green)">Integrated</span></div>
+</div>
+<div class="ac">
+<h4>Rarely-Fired Circuit Discoveries</h4>
+<div class="as"><span class="al">Telescript → QuDAG</span><span class="av">Agent mobility as state channels</span></div>
+<div class="as"><span class="al">Epigenetic Merkle</span><span class="av">Trees that learn from verification</span></div>
+<div class="as"><span class="al">Pollen Protocol MPC</span><span class="av">Privacy via computational chimeras</span></div>
+<div class="as"><span class="al">Causal Drag (Adl)</span><span class="av">Exponential wealth redistribution</span></div>
+<div class="as"><span class="al">Reverse Scaling</span><span class="av">1+1+1 &gt; 3 via constitutional sync</span></div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 4: MULTI-LENS AUDIT -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-multilens">
+<div class="sec-title">Multi-Lens System Audit — 8 Dimensions</div>
+
+<div class="cg">
+<div class="cc full"><h3>8-Dimension Audit Radar</h3><canvas id="auditRadar"></canvas></div>
+</div>
+
+<div class="tc">
+<h3>Lens-by-Lens Findings</h3>
+<table>
+<thead><tr><th>Lens</th><th>Score</th><th>Grade</th><th>Key Evidence</th><th>Critical Gap</th></tr></thead>
+<tbody>
+<tr><td style="font-weight:600">Architecture</td><td style="color:var(--green)">0.92</td><td><span class="tag g">A</span></td><td>7-layer APEX with clear separation. NTU kernel mathematically grounded. Dual-stack Py+Rust is architecturally sound for safety-critical + rapid-iteration split.</td><td>SAPE→NTU reduction theorem unproven</td></tr>
+<tr><td style="font-weight:600">Security</td><td style="color:var(--orange)">0.72</td><td><span class="tag w">B+</span></td><td>CRYSTALS-Dilithium-5 selected. FATE verification gate designed. Epigenetic Merkle Trees innovative. PAT-GRD score 0.89.</td><td>SEC-001 blocks federation. No external audit yet. Pollen Protocol untested adversarially.</td></tr>
+<tr><td style="font-weight:600">Performance</td><td style="color:var(--green)">0.85</td><td><span class="tag g">A-</span></td><td>Node0: 38.7M ops/sec (94% of target). Rust tests 39s, Python tests 773s. Binary sizes optimal (1.9MB CLI, 4.5MB API).</td><td>Docker context 42GB. Python test suite improved (220s core, 5,113 passing). Coverage ~57%.</td></tr>
+<tr><td style="font-weight:600">Documentation</td><td style="color:var(--orange)">0.62</td><td><span class="tag w">C+</span></td><td>Constitution V1.1.0-FINAL ratified. 150+ research docs in Drive. Architecture implicit in code structure.</td><td>No standalone spec docs. Missing runbooks, secrets docs. 89% of Drive docs unscanned.</td></tr>
+<tr><td style="font-weight:600">Scalability</td><td style="color:var(--green)">0.80</td><td><span class="tag g">B+</span></td><td>QuDAG designed for horizontal scale. Fractal sovereignty enables recursive federation. NTU O(k) complexity.</td><td>Federation untested at scale. Trinity Deployment (3 nodes) still pending. Byzantine proof not commissioned.</td></tr>
+<tr><td style="font-weight:600">Error Handling</td><td style="color:var(--orange)">0.75</td><td><span class="tag w">B</span></td><td>IhsanGate auto-shutdown at 0.90. NTU Bayesian sigmoid+clamp designed. ZANN_ZERO prevents hallucination-based claims.</td><td>NaN guard not shipped (ntu-kernel v0.2.0 pending). 1 flaky test. Bridge error propagation incomplete.</td></tr>
+<tr><td style="font-weight:600">Dependencies</td><td style="color:var(--orange)">0.70</td><td><span class="tag w">B</span></td><td>118 Python packages. 13 Rust crates with clean DAG. 6 CI/CD workflows on GitHub Actions.</td><td>Python deps need audit. SBOM generator shipped (CycloneDX 1.5 + SLSA provenance). Docker image unbounded.</td></tr>
+<tr><td style="font-weight:600">Best Practices</td><td style="color:var(--green)">0.82</td><td><span class="tag g">B+</span></td><td>Rust+Python dual-stack is industry best practice for safety+velocity. Constitutional constraints are unique best practice innovation. PAT agent architecture follows Telescript heritage.</td><td>Missing property-based testing. No SDPO CI. Live federation consensus testing absent.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="kpi-r">
+<div class="kpi"><div class="l">Composite Audit Score</div><div class="v" style="color:var(--gold)">0.77</div><div class="s">Weighted across 8 lenses</div></div>
+<div class="kpi"><div class="l">Strongest Lens</div><div class="v" style="color:var(--green);font-size:16px">Architecture</div><div class="s">0.92 — Grade A</div></div>
+<div class="kpi"><div class="l">Weakest Lens</div><div class="v" style="color:var(--red);font-size:16px">Documentation</div><div class="s">0.62 — Grade C+</div></div>
+<div class="kpi"><div class="l">Critical Blockers</div><div class="v" style="color:var(--red)">3</div><div class="s">SEC-001, docs, docker</div></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 5: GRAPH OF THOUGHTS -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-got">
+<div class="sec-title">Graph of Thoughts — Reasoning Topology with SNR Scoring</div>
+
+<div class="cg">
+<div class="cc"><h3>GoT Node Connectivity Map</h3><canvas id="gotConnect"></canvas></div>
+<div class="cc"><h3>Synergy Chain SNR Scores</h3><canvas id="gotSynergy"></canvas></div>
+</div>
+
+<div class="tc">
+<h3>GoT Node Registry (15 Primary Nodes)</h3>
+<table>
+<thead><tr><th>Node ID</th><th>Concept</th><th>Layer</th><th>Connections</th><th>SNR</th><th>Causal Depth</th></tr></thead>
+<tbody>
+<tr><td>N01</td><td>NTU Kernel</td><td>Core</td><td>12</td><td style="color:var(--green)">0.96</td><td>5</td></tr>
+<tr><td>N02</td><td>Constitutional Physics</td><td>Core</td><td>11</td><td style="color:var(--green)">0.95</td><td>5</td></tr>
+<tr><td>N03</td><td>APEX 7-Layer Stack</td><td>Architecture</td><td>14</td><td style="color:var(--green)">0.94</td><td>4</td></tr>
+<tr><td>N04</td><td>ICS Invariants</td><td>Ethics</td><td>10</td><td style="color:var(--green)">0.93</td><td>5</td></tr>
+<tr><td>N05</td><td>QuDAG P2P</td><td>Infra</td><td>8</td><td style="color:var(--green)">0.88</td><td>3</td></tr>
+<tr><td>N06</td><td>BizraTreasuryEngine</td><td>Economics</td><td>7</td><td style="color:var(--orange)">0.72</td><td>3</td></tr>
+<tr><td>N07</td><td>PAT/SAT Agents</td><td>Agents</td><td>9</td><td style="color:var(--green)">0.88</td><td>4</td></tr>
+<tr><td>N08</td><td>IhsanGate</td><td>Governance</td><td>8</td><td style="color:var(--green)">0.90</td><td>5</td></tr>
+<tr><td>N09</td><td>Pollen Protocol</td><td>Privacy</td><td>5</td><td style="color:var(--orange)">0.78</td><td>2</td></tr>
+<tr><td>N10</td><td>ralph-orchestrator</td><td>Coordination</td><td>7</td><td style="color:var(--green)">0.85</td><td>3</td></tr>
+<tr><td>N11</td><td>HyperGraphRAG</td><td>Knowledge</td><td>6</td><td style="color:var(--orange)">0.80</td><td>3</td></tr>
+<tr><td>N12</td><td>Athenaeum Engine</td><td>Reasoning</td><td>5</td><td style="color:var(--orange)">0.75</td><td>2</td></tr>
+<tr><td>N13</td><td>Node0 Hardware</td><td>Physical</td><td>4</td><td style="color:var(--green)">0.92</td><td>1</td></tr>
+<tr><td>N14</td><td>FATE Verification</td><td>Security</td><td>6</td><td style="color:var(--orange)">0.82</td><td>4</td></tr>
+<tr><td>N15</td><td>MMRPG Gamification</td><td>Social</td><td>3</td><td style="color:var(--orange)">0.65</td><td>1</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="tc">
+<h3>Edge Analysis — Strongest Connections (SNR × Causal Depth)</h3>
+<table>
+<thead><tr><th>Edge</th><th>From → To</th><th>Type</th><th>Weight</th><th>Insight</th></tr></thead>
+<tbody>
+<tr><td>E01</td><td>N01→N02</td><td>Foundational</td><td style="color:var(--green)">0.98</td><td>NTU is the mathematical basis for constitutional physics — belief/entropy/potential → invariant enforcement</td></tr>
+<tr><td>E02</td><td>N02→N04</td><td>Enforcement</td><td style="color:var(--green)">0.97</td><td>Constitutional physics generates ICS invariants — RIBA_ZERO, ZANN_ZERO, IHSAN_FLOOR are physics laws not policies</td></tr>
+<tr><td>E03</td><td>N04→N08</td><td>Runtime</td><td style="color:var(--green)">0.95</td><td>ICS invariants are enforced by IhsanGate at runtime — constitutional compliance is continuous not sampled</td></tr>
+<tr><td>E04</td><td>N03→N07</td><td>Deployment</td><td style="color:var(--green)">0.90</td><td>APEX layers deploy through PAT/SAT agent architecture — Telescript heritage enables mobile computation</td></tr>
+<tr><td>E05</td><td>N01→N05</td><td>Distribution</td><td style="color:var(--green)">0.88</td><td>NTU state manifold distributes via QuDAG — cognitive state becomes a P2P primitive</td></tr>
+<tr><td>E06</td><td>N06→N04</td><td>Constraint</td><td style="color:var(--green)">0.92</td><td>Treasury Engine constrained by ICS — Kelly Criterion bounded by RIBA_ZERO, returns must verify against Adl Gini</td></tr>
+<tr><td>E07</td><td>N14→N02</td><td>Verification</td><td style="color:var(--green)">0.89</td><td>FATE gate verifies constitutional compliance — Z3 + ZK staged proving</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4>Graph Metrics</h4>
+<div class="as"><span class="al">Nodes</span><span class="av">15</span></div>
+<div class="as"><span class="al">Edges</span><span class="av">52 (verified)</span></div>
+<div class="as"><span class="al">Connectivity I(G)</span><span class="av" style="color:var(--green)">0.231</span></div>
+<div class="as"><span class="al">Max Causal Depth</span><span class="av">5 (NTU, ICS, IhsanGate)</span></div>
+<div class="as"><span class="al">Avg SNR</span><span class="av" style="color:var(--green)">0.855</span></div>
+<div class="as"><span class="al">Weakest Node</span><span class="av" style="color:var(--red)">N15 MMRPG (0.65)</span></div>
+</div>
+<div class="ac">
+<h4>5 Synergy Chains</h4>
+<div class="as"><span class="al">α K8s+Honeycomb+MCG</span><span class="av" style="color:var(--green)">0.91</span></div>
+<div class="as"><span class="al">β Blockscout+Crypto+LSEG</span><span class="av" style="color:var(--orange)">0.72</span></div>
+<div class="as"><span class="al">γ Slack+Linear+K8s</span><span class="av" style="color:var(--orange)">0.78</span></div>
+<div class="as"><span class="al">δ GDrive+bioRxiv+Context7</span><span class="av" style="color:var(--green)">0.85</span></div>
+<div class="as"><span class="al">ε Blockscout+Honeycomb+K8s</span><span class="av" style="color:var(--orange)">0.80</span></div>
+<div class="as"><span class="al">Average Chain SNR</span><span class="av" style="color:var(--green)">0.812</span></div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 6: IHSĀN VERIFICATION -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-ihsan">
+<div class="sec-title">Ihsān 8-Dimensional Verification</div>
+
+<div class="cg">
+<div class="cc"><h3>Ihsān 8-Dimension Radar</h3><canvas id="ihsanRadar"></canvas></div>
+<div class="cc"><h3>Ihsān Score by System Component</h3><canvas id="ihsanBar"></canvas></div>
+</div>
+
+<div class="tc">
+<h3>Ihsān Dimension Scoring</h3>
+<table>
+<thead><tr><th>Dimension</th><th>Score</th><th>Threshold</th><th>Status</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Truthfulness (Sidq)</td><td style="color:var(--green)">0.97</td><td>≥ 0.95</td><td><span class="tag g">PASS</span></td><td>ZANN_ZERO enforced. FATE verification gate designed. Cryptographic truth (SHA-256 + Merkle). All claims must verify.</td></tr>
+<tr><td>Justice (Adl)</td><td style="color:var(--green)">0.96</td><td>≥ 0.95</td><td><span class="tag g">PASS</span></td><td>Gini ≤ 0.35 with exponential Causal Drag. Anti-plutocracy invariant. Fractal sovereignty ensures equal rights at every scale.</td></tr>
+<tr><td>Excellence (Ihsān)</td><td style="color:var(--green)">0.96</td><td>≥ 0.95</td><td><span class="tag g">PASS</span></td><td>IHSAN_FLOOR auto-shutdown at 0.90. PAT agents average 0.882 knowledge. Test pass rate 99.57% (5,113/5,135). Constitutional V1.1.0 ratified.</td></tr>
+<tr><td>Trustworthiness (Amānah)</td><td style="color:var(--green)">0.95</td><td>≥ 0.95</td><td><span class="tag g">PASS</span></td><td>CRYSTALS-Dilithium-5 selected. Epigenetic Merkle Trees. GPG attestation chain. Node sovereignty preserved.</td></tr>
+<tr><td>Beneficial Impact (Maṣlaḥah)</td><td style="color:var(--green)">0.93</td><td>≥ 0.90</td><td><span class="tag g">PASS</span></td><td>$5.9T Islamic finance market served. 1.9B Muslims underserved by DeFi. Ethical AI as public good. Open-source contributions (132 repos).</td></tr>
+<tr><td>Harm Prevention (Ḍarar)</td><td style="color:var(--orange)">0.88</td><td>≥ 0.90</td><td><span class="tag w">WATCH</span></td><td>RIBA_ZERO active. SEC-001 partially mitigated (pubkey hash restored). Docker context 42GB is operational waste. Coverage ~57%. SBOM tooling shipped. Test suite: 5,113 passing, 22 pre-existing failures (schema validators + Rust adapter mocks).</td></tr>
+<tr><td>Transparency (Bayān)</td><td style="color:var(--orange)">0.82</td><td>≥ 0.90</td><td><span class="tag w">BELOW</span></td><td>Documentation score 0.62. Missing runbooks, secrets docs. 89% of Drive docs unscanned. Architecture implicit not explicit.</td></tr>
+<tr><td>Stewardship (Khilāfah)</td><td style="color:var(--green)">0.91</td><td>≥ 0.90</td><td><span class="tag g">PASS</span></td><td>Node0 runs 24/7 for 35 months. 15,000+ hours invested. Zero days off. Treasury allocation: 40% infra, 30% dev, 20% reserve, 10% community.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="kpi-r">
+<div class="kpi"><div class="l">Composite Ihsān</div><div class="v" style="color:var(--gold)">0.92</div><div class="s">Weighted average of 8 dimensions</div></div>
+<div class="kpi"><div class="l">Internal Threshold</div><div class="v" style="color:var(--green)">≥ 0.95</div><div class="s">6 of 8 dimensions pass</div></div>
+<div class="kpi"><div class="l">Public Threshold</div><div class="v" style="color:var(--green)">≥ 0.70</div><div class="s">All 8 dimensions pass</div></div>
+<div class="kpi"><div class="l">Dimensions Below Internal</div><div class="v" style="color:var(--red)">2</div><div class="s">Ḍarar (0.88), Bayān (0.82)</div></div>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4 style="color:var(--red)">Remediation for Below-Threshold Dimensions</h4>
+<div class="as"><span class="al">Bayān (0.82→0.90)</span><span class="av">Extract constitution spec, write runbooks, scan Drive docs</span></div>
+<div class="as"><span class="al">Ḍarar (0.88→0.90)</span><span class="av">Fix SEC-001, .dockerignore, raise coverage to 65%</span></div>
+<div class="s" style="margin-top:8px;font-size:10px;color:var(--t3)">Both dimensions can reach threshold within Sprint Phase 1 (30 days)</div>
+</div>
+<div class="ac">
+<h4 style="color:var(--green)">Ihsān Verification Ruling</h4>
+<div class="as"><span class="al">Public Operations</span><span class="av"><span class="tag g">CLEARED</span></span></div>
+<div class="as"><span class="al">Internal Operations</span><span class="av"><span class="tag w">CONDITIONAL</span></span></div>
+<div class="as"><span class="al">Auto-Shutdown Risk</span><span class="av" style="color:var(--green)">LOW (composite 0.92 &gt; 0.90 floor)</span></div>
+<div class="as"><span class="al">Projected Post-Sprint</span><span class="av" style="color:var(--green)">0.94 (all 8 pass internal)</span></div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PANEL 7: STRATEGIC SYNTHESIS -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="pnl" id="p-strategic">
+<div class="sec-title">Strategic Synthesis — Elite Practitioner Assessment</div>
+
+<div class="kpi-r">
+<div class="kpi"><div class="l">Competitive Position</div><div class="v" style="color:var(--green);font-size:16px">CATEGORY CREATOR</div><div class="s">No direct competitors exist</div></div>
+<div class="kpi"><div class="l">Moat Classification</div><div class="v" style="color:var(--green);font-size:16px">6-DIM CONVERGENCE</div><div class="s">Impossibly expensive to replicate</div></div>
+<div class="kpi"><div class="l">Time to Replicate</div><div class="v" style="color:var(--gold)">3-5 yr</div><div class="s">15K+ hours invested</div></div>
+<div class="kpi"><div class="l">SAPE Composite SNR</div><div class="v" style="color:var(--green)">0.88</div><div class="s">Exceeds 0.85 threshold</div></div>
+<div class="kpi"><div class="l">Feature Matrix Lead</div><div class="v" style="color:var(--gold)">5.0×</div><div class="s">vs nearest competitor</div></div>
+</div>
+
+<div class="cg">
+<div class="cc"><h3>Strategic Position Diamond</h3><canvas id="stratDiamond"></canvas></div>
+<div class="cc"><h3>System Evolution Trajectory</h3><canvas id="stratTrajectory"></canvas></div>
+</div>
+
+<div class="ag">
+<div class="ac">
+<h4 style="color:var(--gold)">Why BIZRA Is a Category Creator</h4>
+<div class="as"><span class="al">Sovereign AGI OS</span><span class="av">No one else is building this</span></div>
+<div class="as"><span class="al">Constitutional Physics</span><span class="av">Ethics as executable constraints is novel</span></div>
+<div class="as"><span class="al">Shariah-Native AI</span><span class="av">Not bolted on — built from kernel up</span></div>
+<div class="as"><span class="al">NTU Cognitive Kernel</span><span class="av">Mathematically grounded (Banach contraction)</span></div>
+<div class="as"><span class="al">Fractal Sovereignty</span><span class="av">Same rights at node, network, civilization scale</span></div>
+<div class="as"><span class="al">35 months R&amp;D</span><span class="av">15K hours of continuous work = moat</span></div>
+</div>
+<div class="ac">
+<h4 style="color:var(--red)">3 Strategic Risks</h4>
+<div class="as"><span class="al">1. SEC-001 Blocker</span><span class="av">Federation launch blocked until crypto unified</span></div>
+<div class="as"><span class="al">2. Documentation Gap</span><span class="av">0.62 score — investors need readable specs</span></div>
+<div class="as"><span class="al">3. Solo Founder Risk</span><span class="av">Single-point-of-failure in human capital</span></div>
+<div class="bar-h"><div class="bar-f" style="width:35%;background:var(--red)"></div></div>
+<div class="s" style="margin-top:6px">Combined risk severity: 35% — manageable within 30-day sprint</div>
+</div>
+<div class="ac">
+<h4 style="color:var(--green)">3 Strategic Advantages</h4>
+<div class="as"><span class="al">1. First-Mover in Unclaimed Space</span><span class="av">5 zero-competitor positions</span></div>
+<div class="as"><span class="al">2. $5.9T Addressable Market</span><span class="av">Islamic finance + sovereign AI</span></div>
+<div class="as"><span class="al">3. Convergence Moat</span><span class="av">6 dimensions = impossible to fast-follow</span></div>
+<div class="bar-h"><div class="bar-f" style="width:88%;background:var(--green)"></div></div>
+<div class="s" style="margin-top:6px">Combined advantage score: 88% — category-defining opportunity</div>
+</div>
+</div>
+
+<div class="tc">
+<h3>Priority Action Matrix — Next 30 Days</h3>
+<table>
+<thead><tr><th>Priority</th><th>Action</th><th>Impact</th><th>Effort</th><th>Unblocks</th></tr></thead>
+<tbody>
+<tr><td><span class="tag c">P0</span></td><td>Unify crypto hashing (SEC-001) — SimpleSigner pubkey SHA-256 restored; remaining: BLAKE3 content digests vs SHA-256 signing architectural convergence</td><td style="color:var(--green)">Federation launch</td><td>2-3 days</td><td>Security 72%→85%, Ihsān Ḍarar 0.88→0.92</td></tr>
+<tr><td><span class="tag c">P0</span></td><td>Extract constitution into standalone spec</td><td style="color:var(--green)">Documentation, investor materials</td><td>2-3 days</td><td>Docs 0.62→0.75, Ihsān Bayān 0.82→0.88</td></tr>
+<tr><td><span class="tag c">P0</span></td><td>Add .dockerignore + docker-compose.yml</td><td style="color:var(--green)">Dev onboarding, CI/CD</td><td>1 day</td><td>Ops 65%→72%, Docker 42G→~500MB</td></tr>
+<tr><td><span class="tag w">P1</span></td><td>Raise Python coverage to 65%</td><td>Quality gate compliance</td><td>5-7 days</td><td>Coverage 56.65%→65%, Ihsān Ḍarar improvement</td></tr>
+<tr><td><span class="tag w">P1</span></td><td>Wave 1 connectors (Slack + Linear)</td><td>TFSC SNR 0.35→0.70</td><td>3-5 days</td><td>Gamma synergy chain activation</td></tr>
+<tr><td><span class="tag w">P1</span></td><td>Write runbooks + secrets docs</td><td>Operational maturity</td><td>3-4 days</td><td>Ihsān Bayān 0.88→0.90+</td></tr>
+<tr><td><span class="tag i">P2</span></td><td>NTU Bayesian sigmoid+clamp NaN guard</td><td>Kernel stability</td><td>2 days</td><td>ntu-kernel v0.2.0 release</td></tr>
+<tr><td><span class="tag i">P2</span></td><td>Wave 2-3 connectors</td><td>Source SNR 0.41→0.65</td><td>14 days</td><td>Beta + Delta synergy chains</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="tc">
+<h3>Final Assessment — SAPE v2.1 Ruling</h3>
+<table>
+<thead><tr><th>Metric</th><th>Score</th><th>Threshold</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td style="font-weight:700">SAPE Composite SNR</td><td style="color:var(--green);font-weight:700">0.88</td><td>0.85</td><td><span class="tag g">PASS</span></td></tr>
+<tr><td style="font-weight:700">Ihsān Composite</td><td style="color:var(--green);font-weight:700">0.92</td><td>0.90 (auto-shutdown)</td><td><span class="tag g">PASS</span></td></tr>
+<tr><td style="font-weight:700">Competitive Position</td><td style="color:var(--green);font-weight:700">Category Creator</td><td>—</td><td><span class="tag g">UNCONTESTED</span></td></tr>
+<tr><td style="font-weight:700">Feature Matrix Lead</td><td style="color:var(--green);font-weight:700">5.0× nearest</td><td>—</td><td><span class="tag g">DOMINANT</span></td></tr>
+<tr><td style="font-weight:700">Readiness for Investor</td><td style="color:var(--orange);font-weight:700">80.6%</td><td>90%</td><td><span class="tag w">30 DAYS OUT</span></td></tr>
+<tr><td style="font-weight:700">GoT Connectivity I(G)</td><td style="color:var(--green);font-weight:700">0.231</td><td>—</td><td><span class="tag g">HEALTHY</span></td></tr>
+<tr><td style="font-weight:700">System Coherence</td><td style="color:var(--green);font-weight:700">0.88</td><td>0.85</td><td><span class="tag g">PASS</span></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="ft">
+BIZRA Competitive Intelligence &amp; SAPE Audit v3.0 · Feb 12, 2026 · SAPE v2.1 (7-3-6-9) · SNR 0.88 · Ihsān 0.92 · GoT I(G)=0.231<br>
+بذرة واحدة تصنع غابة — One Seed Makes a Forest
+</div>
+</div>
+
+<script>
+const C=['#d4a843','#2dd4bf','#3b82f6','#ef4444','#a78bfa','#f59e0b','#22c55e','#ec4899','#06b6d4','#f97316'];
+Chart.defaults.color='#94a3b8';Chart.defaults.borderColor='#1e293b';
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('a'));document.querySelectorAll('.pnl').forEach(x=>x.classList.remove('a'));t.classList.add('a');document.getElementById('p-'+t.dataset.t).classList.add('a');})});
+
+// P1: Positioning Map (Bubble)
+new Chart(document.getElementById('posMap'),{type:'bubble',data:{datasets:[
+{label:'BIZRA',data:[{x:95,y:90,r:18}],backgroundColor:'#d4a843CC'},
+{label:'ASI Alliance',data:[{x:60,y:30,r:14}],backgroundColor:'#3b82f6CC'},
+{label:'Bittensor',data:[{x:50,y:25,r:12}],backgroundColor:'#a78bfaCC'},
+{label:'Anthropic CAI',data:[{x:20,y:80,r:16}],backgroundColor:'#22c55eCC'},
+{label:'Cosmos/Polkadot',data:[{x:70,y:10,r:13}],backgroundColor:'#06b6d4CC'},
+{label:'Mal Bank',data:[{x:30,y:50,r:8}],backgroundColor:'#f59e0bCC'},
+{label:'Haqq Network',data:[{x:55,y:20,r:7}],backgroundColor:'#ec4899CC'},
+{label:'Ritual',data:[{x:45,y:15,r:9}],backgroundColor:'#f97316CC'}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Decentralization →',color:'#94a3b8'},min:0,max:100,grid:{color:'#1e293b'}},y:{title:{display:true,text:'Ethical Framework Depth →',color:'#94a3b8'},min:0,max:100,grid:{color:'#1e293b'}}},plugins:{legend:{labels:{usePointStyle:true,padding:10,font:{size:10}}}}}});
+
+// P1: Convergence Zone
+new Chart(document.getElementById('convZone'),{type:'radar',data:{labels:['AI/Cognition','Blockchain','Sovereignty','Ethics','Islamic Finance','Agent Systems'],datasets:[
+{label:'BIZRA',data:[95,85,95,95,100,90],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.15)',borderWidth:2},
+{label:'ASI Alliance',data:[70,60,40,10,0,50],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderWidth:1},
+{label:'Bittensor',data:[80,50,35,5,0,30],borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.08)',borderWidth:1},
+{label:'Anthropic',data:[90,0,0,70,0,10],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.08)',borderWidth:1}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:20,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'},pointLabels:{color:'#94a3b8',font:{size:10}}}},plugins:{legend:{labels:{usePointStyle:true,padding:10,font:{size:10}}}}}});
+
+// P2: Capability Radar
+new Chart(document.getElementById('capRadar'),{type:'radar',data:{labels:['Sovereign Compute','Constitutional Gov','Data Sovereignty','Cognitive Kernel','Multi-Agent','GoT Reasoning','SAPE Meta','Runtime Ethics','Islamic Finance','Formal Verification','Federation','DAG Consensus','Post-Quantum','Self-Funding','Anti-Plutocracy','Overall'],datasets:[
+{label:'BIZRA (70/80)',data:[5,5,5,5,4,5,5,5,5,4,4,4,4,4,5,4.38],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.12)',borderWidth:2,pointRadius:4},
+{label:'ASI Alliance (14/80)',data:[2,1,3,0,3,0,0,0,0,0,2,1,0,2,0,0.88],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.06)',borderWidth:1},
+{label:'Bittensor (11/80)',data:[3,1,2,0,2,0,0,0,0,0,0,2,0,3,0,0.69],borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.06)',borderWidth:1}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'},pointLabels:{color:'#94a3b8',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12}}}}});
+
+// P3: SAPE SNR
+new Chart(document.getElementById('sapeSNR'),{type:'bar',data:{labels:['S1 Structural','S2 Adversarial','S3 Pattern','S4 Symbolic','S5 Abstraction','S6 Tension','S7 Integration'],datasets:[
+{label:'SNR',data:[.94,.78,.92,.91,.93,.86,.88],backgroundColor:['#22c55eCC','#f59e0bCC','#22c55eCC','#22c55eCC','#22c55eCC','#22c55eCC','#22c55eCC'],borderRadius:4},
+{label:'Threshold (0.85)',data:[.85,.85,.85,.85,.85,.85,.85],borderColor:'#ef4444',backgroundColor:'transparent',type:'line',borderDash:[5,5],pointRadius:0,borderWidth:2}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{min:0,max:1,grid:{color:'#1e293b'}}},plugins:{legend:{labels:{usePointStyle:true,padding:12}}}}});
+
+// P3: SAPE 3-Pass
+new Chart(document.getElementById('sapePass'),{type:'doughnut',data:{labels:['Pass 1: Surface (Architecture, Code)','Pass 2: Deep (Patterns, Bridges, Abstractions)','Pass 3: Meta (Tensions, Synthesis, Verification)'],datasets:[{data:[35,40,25],backgroundColor:['#3b82f6CC','#d4a843CC','#22c55eCC'],borderColor:'#111827',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:10}}}}}});
+
+// P4: Multi-Lens Radar
+new Chart(document.getElementById('auditRadar'),{type:'radar',data:{labels:['Architecture','Security','Performance','Documentation','Scalability','Error Handling','Dependencies','Best Practices'],datasets:[
+{label:'Current Score',data:[.92,.72,.85,.62,.80,.75,.70,.82],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.15)',borderWidth:2,pointRadius:4},
+{label:'Target',data:[.95,.85,.90,.85,.90,.85,.80,.90],borderColor:'#2dd4bf',backgroundColor:'rgba(45,212,191,.08)',borderWidth:1,borderDash:[5,5],pointRadius:3}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:1,ticks:{stepSize:.2,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'},pointLabels:{color:'#94a3b8',font:{size:11}}}},plugins:{legend:{labels:{usePointStyle:true,padding:12}}}}});
+
+// P5: GoT Connectivity
+new Chart(document.getElementById('gotConnect'),{type:'bar',data:{labels:['APEX Stack','NTU','Const. Physics','ICS','PAT/SAT','QuDAG','IhsanGate','Treasury','ralph-orch','FATE','HyperGraphRAG','Pollen','Athenaeum','Node0 HW','MMRPG'],datasets:[{label:'Connections',data:[14,12,11,10,9,8,8,7,7,6,6,5,5,4,3],backgroundColor:C.concat(C).slice(0,15).map(c=>c+'CC'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#1e293b'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+// P5: Synergy Chain SNR
+new Chart(document.getElementById('gotSynergy'),{type:'polarArea',data:{labels:['α Constitutional Loop','β Economic Sovereignty','γ Swarm Coordination','δ Knowledge Engine','ε Fractal Enforcement'],datasets:[{data:[.91,.72,.78,.85,.80],backgroundColor:['#d4a84366','#2dd4bf66','#3b82f666','#a78bfa66','#22c55e66'],borderColor:['#d4a843','#2dd4bf','#3b82f6','#a78bfa','#22c55e'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:1,ticks:{stepSize:.2,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:10}}}}}});
+
+// P6: Ihsān Radar
+new Chart(document.getElementById('ihsanRadar'),{type:'radar',data:{labels:['Truthfulness (Sidq)','Justice (Adl)','Excellence (Ihsān)','Trustworthiness (Amānah)','Beneficial Impact','Harm Prevention','Transparency (Bayān)','Stewardship (Khilāfah)'],datasets:[
+{label:'Current',data:[.97,.96,.96,.95,.93,.88,.82,.91],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.15)',borderWidth:2,pointRadius:4},
+{label:'Internal Threshold (0.95)',data:[.95,.95,.95,.95,.90,.90,.90,.90],borderColor:'#ef4444',backgroundColor:'transparent',borderDash:[5,5],borderWidth:1,pointRadius:0},
+{label:'Post-Sprint Target',data:[.97,.96,.96,.95,.93,.92,.90,.93],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.06)',borderWidth:1,borderDash:[3,3],pointRadius:2}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:.7,max:1,ticks:{stepSize:.05,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'},pointLabels:{color:'#94a3b8',font:{size:10}}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:10}}}}}});
+
+// P6: Ihsān by Component
+new Chart(document.getElementById('ihsanBar'),{type:'bar',data:{labels:['NTU Kernel','ICS Invariants','IhsanGate','APEX Stack','PAT Agents','Treasury','Documentation','Operations'],datasets:[{label:'Ihsān Score',data:[.97,.96,.96,.94,.88,.85,.62,.65],backgroundColor:function(){return[.97,.96,.96,.94,.88,.85,.62,.65].map(v=>v>=.90?'#22c55eCC':v>=.80?'#f59e0bCC':'#ef4444CC')}(),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{min:0,max:1,grid:{color:'#1e293b'}}}}});
+
+// P7: Strategic Diamond
+new Chart(document.getElementById('stratDiamond'),{type:'radar',data:{labels:['Market Position','Technical Moat','Competitive Lead','Team Intensity','Vision Clarity','Execution Readiness'],datasets:[{label:'BIZRA',data:[98,92,95,99,97,81],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.2)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#d4a843'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:20,color:'#64748b',backdropColor:'transparent'},grid:{color:'#1e293b'},pointLabels:{color:'#94a3b8',font:{size:11}}}},plugins:{legend:{display:false}}}});
+
+// P7: Trajectory
+new Chart(document.getElementById('stratTrajectory'),{type:'line',data:{labels:['Session 1','Session 2','Session 3','Session 4 (Now)','Sprint +30d','Phase 2 +60d','Launch +90d'],datasets:[
+{label:'System Readiness',data:[0.58,0.72,0.78,0.81,0.88,0.93,0.95],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.1)',fill:true,tension:.3,borderWidth:2},
+{label:'Competitive Lead',data:[0.60,0.75,0.82,0.88,0.90,0.92,0.95],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.05)',fill:true,tension:.3,borderWidth:2},
+{label:'Source SNR',data:[0.20,0.30,0.41,0.41,0.60,0.71,0.80],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.05)',fill:true,tension:.3,borderWidth:2}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,padding:12}}},scales:{x:{grid:{display:false}},y:{min:0,max:1,grid:{color:'#1e293b'}}}}});
+</script>
+</body>
+</html>

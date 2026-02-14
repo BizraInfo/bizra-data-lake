@@ -20,7 +20,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from core.pci.crypto import (
     domain_separated_digest,
@@ -329,10 +329,22 @@ class Guardian:
 
     def _default_evaluate(self, proposal: Proposal) -> IhsanVector:
         """Default evaluation — override with LLM-based evaluation in production."""
-        # Placeholder scores — in real implementation, this calls an LLM
+        content = str(proposal.content).lower()
+
+        # Safety concern heuristic — reduce score when danger keywords present
+        danger_keywords = (
+            "dangerous",
+            "exploit",
+            "vulnerability",
+            "harm",
+            "attack",
+            "malicious",
+        )
+        safety_score = 0.70 if any(kw in content for kw in danger_keywords) else 0.90
+
         return IhsanVector(
             correctness=0.85,
-            safety=0.90,
+            safety=safety_score,
             beneficence=0.88,
             transparency=0.82,
             sustainability=0.80,
@@ -428,6 +440,7 @@ class GuardianCouncil:
         self.enable_veto = enable_veto
         self.guardians: dict[GuardianRole, Guardian] = {}
         self.verdicts: list[CouncilVerdict] = []
+        self._inference_gateway: Any = None
 
         # Initialize all guardians
         for role in GuardianRole:
@@ -438,6 +451,10 @@ class GuardianCouncil:
     ):
         """Set custom evaluation function for a guardian."""
         self.guardians[role].evaluate_fn = evaluate_fn
+
+    def set_inference_gateway(self, gateway: Any) -> None:
+        """Store the inference gateway for LLM-based evaluations."""
+        self._inference_gateway = gateway
 
     async def deliberate(
         self,
@@ -533,10 +550,14 @@ class GuardianCouncil:
             nucleus_vote = next(
                 (v for v in votes if v.guardian == GuardianRole.NUCLEUS), None
             )
-            approved = bool(nucleus_vote and nucleus_vote.vote_type in [
-                VoteType.APPROVE,
-                VoteType.APPROVE_WITH_CONCERNS,
-            ])
+            approved = bool(
+                nucleus_vote
+                and nucleus_vote.vote_type
+                in [
+                    VoteType.APPROVE,
+                    VoteType.APPROVE_WITH_CONCERNS,
+                ]
+            )
         else:
             approved = aggregate_score > 0
 
@@ -622,7 +643,7 @@ class GuardianCouncil:
         recommendations = []
 
         # Find weakest dimensions across all assessments
-        dimension_scores: Dict[str, List[float]] = {
+        dimension_scores: dict[str, list[float]] = {
             "correctness": [],
             "safety": [],
             "beneficence": [],
@@ -689,7 +710,7 @@ async def _guardian_council_validate(
         - consensus_score: float - aggregate consensus score
         - verdict: str - APPROVED/REJECTED/VETOED
         - ihsan_score: float - Ihsan compliance score
-        - recommendations: List[str] - improvement suggestions
+        - recommendations: list[str] - improvement suggestions
     """
     # Create a Proposal from the content
     proposal = Proposal(

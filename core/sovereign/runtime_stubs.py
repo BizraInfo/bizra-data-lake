@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .runtime_types import (
     LoopStatus,
@@ -21,7 +21,6 @@ from .runtime_types import (
 )
 
 logger = logging.getLogger("sovereign.runtime.stubs")
-
 
 # =============================================================================
 # BASE STUB
@@ -57,7 +56,7 @@ class GraphReasonerStub(ComponentStub):
     async def reason(
         self,
         query: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
         max_depth: int = 5,
     ) -> ReasoningResult:
         """Fallback reasoning - returns simple response."""
@@ -111,7 +110,7 @@ class GuardianStub(ComponentStub):
     async def validate(
         self,
         content: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> ValidationResult:
         """Fallback validation - always passes with warning."""
         self.log_fallback("validate")
@@ -124,8 +123,8 @@ class GuardianStub(ComponentStub):
     async def review(
         self,
         content: str,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        context: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """Review content (stub implementation)."""
         self.log_fallback("review")
         return {
@@ -167,7 +166,7 @@ class AutonomousLoopStub(ComponentStub):
             cycle=self._cycle,
         )
 
-    async def run_cycle(self, extended: bool = False) -> Dict[str, Any]:
+    async def run_cycle(self, extended: bool = False) -> dict[str, Any]:
         """Run a single cycle (stub implementation)."""
         self.log_fallback("run_cycle")
         self._cycle += 1

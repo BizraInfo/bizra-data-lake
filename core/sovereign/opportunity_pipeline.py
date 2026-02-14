@@ -22,14 +22,13 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from typing import Any, Callable, Deque, Optional
 
 # Core sovereign imports
 from .autonomy_matrix import AutonomyLevel
 from .event_bus import Event, EventBus
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # PIPELINE STAGE DEFINITIONS
@@ -82,19 +81,19 @@ class PipelineOpportunity:
     autonomy_level: AutonomyLevel = AutonomyLevel.OBSERVER
 
     # Enrichment data
-    context: Dict[str, Any] = field(default_factory=dict)
-    knowledge_refs: List[str] = field(default_factory=list)
+    context: dict[str, Any] = field(default_factory=dict)
+    knowledge_refs: list[str] = field(default_factory=list)
 
     # Action plan (filled by background agent)
-    action_plan: Optional[Dict[str, Any]] = None
+    action_plan: Optional[dict[str, Any]] = None
     assigned_agent: Optional[str] = None
 
     # Execution results
-    execution_result: Optional[Dict[str, Any]] = None
+    execution_result: Optional[dict[str, Any]] = None
     executed_at: Optional[float] = None
 
     # Audit trail
-    stage_history: List[Tuple[PipelineStage, float, str]] = field(default_factory=list)
+    stage_history: list[tuple[PipelineStage, float, str]] = field(default_factory=list)
     rejection_reason: Optional[str] = None
 
     def advance_stage(self, new_stage: PipelineStage, note: str = "") -> None:
@@ -102,7 +101,7 @@ class PipelineOpportunity:
         self.stage_history.append((self.stage, time.time(), note))
         self.stage = new_stage
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for events and logging."""
         return {
             "id": self.id,
@@ -234,8 +233,8 @@ class RateLimitFilter(ConstitutionalFilter):
         super().__init__("Rate Limit", weight=1.0)
         self.max_per_hour = max_per_hour
         self.max_per_day = max_per_day
-        self._hourly_counts: Dict[str, int] = {}
-        self._daily_counts: Dict[str, int] = {}
+        self._hourly_counts: dict[str, int] = {}
+        self._daily_counts: dict[str, int] = {}
         self._last_reset_hour = time.time()
         self._last_reset_day = time.time()
 
@@ -307,13 +306,13 @@ class OpportunityPipeline:
         # Pipeline state
         self._running = False
         self._queue: asyncio.Queue[PipelineOpportunity] = asyncio.Queue(maxsize=1000)
-        self._active: Dict[str, PipelineOpportunity] = {}
+        self._active: dict[str, PipelineOpportunity] = {}
         # PERF FIX: Use deque with maxlen for O(1) bounded storage
         self._completed: Deque[PipelineOpportunity] = deque(maxlen=1000)
-        self._pending_approval: Dict[str, PipelineOpportunity] = {}
+        self._pending_approval: dict[str, PipelineOpportunity] = {}
 
         # Constitutional filters
-        self._filters: List[ConstitutionalFilter] = [
+        self._filters: list[ConstitutionalFilter] = [
             SNRFilter(min_snr=snr_threshold),
             IhsanFilter(),
             DaughterTestFilter(),
@@ -327,7 +326,7 @@ class OpportunityPipeline:
         self._approval_callback: Optional[Callable] = None
 
         # Metrics
-        self._metrics: Dict[str, Any] = {
+        self._metrics: dict[str, Any] = {
             "total_received": 0,
             "total_filtered": 0,
             "total_approved": 0,
@@ -359,7 +358,7 @@ class OpportunityPipeline:
         logger.info("OpportunityPipeline started")
 
         # Start worker tasks
-        asyncio.create_task(self._process_loop())
+        self._loop_task = asyncio.create_task(self._process_loop())
 
         if self.event_bus:
             await self.event_bus.publish(
@@ -371,11 +370,23 @@ class OpportunityPipeline:
         self._running = False
         logger.info("OpportunityPipeline stopping...")
 
+        # Cancel the processing loop task
+        if (
+            hasattr(self, "_loop_task")
+            and self._loop_task
+            and not self._loop_task.done()
+        ):
+            self._loop_task.cancel()
+            try:
+                await self._loop_task
+            except asyncio.CancelledError:
+                pass
+
         # Wait for active items to complete (with timeout)
-        timeout = 30
+        timeout = 5
         start = time.time()
         while self._active and (time.time() - start) < timeout:
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
         if self.event_bus:
             await self.event_bus.publish(
@@ -436,7 +447,7 @@ class OpportunityPipeline:
         snr_score: float,
         urgency: float = 0.5,
         estimated_value: float = 0.0,
-        context: Optional[Dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> str:
         """Convenience method to submit from MuraqabahEngine."""
         opportunity = PipelineOpportunity(
@@ -460,9 +471,16 @@ class OpportunityPipeline:
         """Main processing loop."""
         while self._running:
             try:
-                # Respect concurrency limit
+                # Respect concurrency limit (event-driven via completion signal)
+                if not hasattr(self, "_slot_available"):
+                    self._slot_available = asyncio.Event()
+                    self._slot_available.set()
                 while len(self._active) >= self.max_concurrent:
-                    await asyncio.sleep(0.1)
+                    self._slot_available.clear()
+                    try:
+                        await asyncio.wait_for(self._slot_available.wait(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        continue
 
                 # Get next opportunity (with timeout to check running state)
                 try:
@@ -502,7 +520,12 @@ class OpportunityPipeline:
             opp.advance_stage(PipelineStage.APPROVAL, "Checking autonomy level")
             approved = await self._stage_approval(opp)
             if not approved:
-                # Deferred for human approval or rejected
+                # Deferred for human approval or rejected.
+                # Release the active slot — deferred items are tracked
+                # in _pending_approval, not _active.
+                self._active.pop(opp.id, None)
+                if hasattr(self, "_slot_available"):
+                    self._slot_available.set()
                 return
 
             # Stage 5: EXECUTION
@@ -711,7 +734,7 @@ class OpportunityPipeline:
     # HUMAN APPROVAL INTERFACE
     # -------------------------------------------------------------------------
 
-    def get_pending_approvals(self) -> List[Dict[str, Any]]:
+    def get_pending_approvals(self) -> list[dict[str, Any]]:
         """Get all opportunities pending human approval."""
         return [opp.to_dict() for opp in self._pending_approval.values()]
 
@@ -753,19 +776,19 @@ class OpportunityPipeline:
     # -------------------------------------------------------------------------
 
     def set_enrichment_callback(self, callback: Callable) -> None:
-        """Set callback for knowledge enrichment stage."""
+        """set callback for knowledge enrichment stage."""
         self._enrichment_callback = callback
 
     def set_planning_callback(self, callback: Callable) -> None:
-        """Set callback for action planning stage."""
+        """set callback for action planning stage."""
         self._planning_callback = callback
 
     def set_execution_callback(self, callback: Callable) -> None:
-        """Set callback for action execution stage."""
+        """set callback for action execution stage."""
         self._execution_callback = callback
 
     def set_approval_callback(self, callback: Callable) -> None:
-        """Set callback for approval decisions."""
+        """set callback for approval decisions."""
         self._approval_callback = callback
 
     # -------------------------------------------------------------------------
@@ -779,10 +802,14 @@ class OpportunityPipeline:
         # Remove from active
         self._active.pop(opp.id, None)
 
+        # Signal processing loop that a slot freed up (event-driven)
+        if hasattr(self, "_slot_available"):
+            self._slot_available.set()
+
         # PERF FIX: deque with maxlen auto-discards oldest (O(1))
         self._completed.append(opp)
 
-    def get_persistable_state(self) -> Dict[str, Any]:
+    def get_persistable_state(self) -> dict[str, Any]:
         """Get serializable state for checkpoint persistence.
 
         SAFETY-CRITICAL: Rate limiter counts must survive restarts to prevent
@@ -790,7 +817,7 @@ class OpportunityPipeline:
         resets all hourly/daily counters, allowing unbounded actions.
         """
         # Extract rate limiter state
-        rate_limiter_state: Dict[str, Any] = {}
+        rate_limiter_state: dict[str, Any] = {}
         for f in self._filters:
             if isinstance(f, RateLimitFilter):
                 rate_limiter_state = {
@@ -808,7 +835,7 @@ class OpportunityPipeline:
             "completed_count": len(self._completed),
         }
 
-    def restore_persistable_state(self, state: Dict[str, Any]) -> bool:
+    def restore_persistable_state(self, state: dict[str, Any]) -> bool:
         """Restore rate limiter state from persisted checkpoint.
 
         Returns True if rate limiter was restored.
@@ -831,7 +858,7 @@ class OpportunityPipeline:
                 return True
         return False
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get pipeline statistics."""
         maxsize = self._queue.maxsize
         qsize = self._queue.qsize()
@@ -846,11 +873,11 @@ class OpportunityPipeline:
             "running": self._running,
         }
 
-    def get_active_opportunities(self) -> List[Dict[str, Any]]:
+    def get_active_opportunities(self) -> list[dict[str, Any]]:
         """Get currently processing opportunities."""
         return [opp.to_dict() for opp in self._active.values()]
 
-    def get_completed(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_completed(self, limit: int = 50) -> list[dict[str, Any]]:
         """Get recently completed opportunities."""
         # Convert deque slice to list for external use
         return [opp.to_dict() for opp in list(self._completed)[-limit:]]
@@ -943,7 +970,7 @@ def connect_background_agents_to_pipeline(
     This allows background agents to create action plans for opportunities.
     """
 
-    async def plan_with_agents(opp: PipelineOpportunity) -> Dict[str, Any]:
+    async def plan_with_agents(opp: PipelineOpportunity) -> dict[str, Any]:
         # Find best agent for this domain
         if hasattr(agent_registry, "get_agent_for_domain"):
             agent = agent_registry.get_agent_for_domain(opp.domain)

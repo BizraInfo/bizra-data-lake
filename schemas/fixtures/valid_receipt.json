@@ -1,0 +1,57 @@
+{
+  "receipt_id": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+  "timestamp": "2026-02-10T19:24:00Z",
+  "node_id": "node-genesis-01",
+  "policy_version": "1.0.0",
+  "status": "accepted",
+  "inputs": {
+    "query_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "policy_digest": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+  },
+  "outputs": {
+    "payload_digest": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+    "graph_hash": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+  },
+  "claim_tags_summary": {
+    "design": 0,
+    "implemented": 1,
+    "measured": 5,
+    "target": 0
+  },
+  "snr": {
+    "score": 0.95,
+    "signal_mass": 0.85,
+    "noise_mass": 0.05,
+    "signal_components": { "relevance": 0.9, "groundedness": 0.8 },
+    "noise_components": { "redundancy": 0.03, "ambiguity": 0.02 }
+  },
+  "ihsan": {
+    "score": 0.96,
+    "threshold": 0.95,
+    "decision": "APPROVED",
+    "components": {
+      "correctness": 0.97,
+      "safety": 0.99,
+      "efficiency": 0.92,
+      "user_benefit": 0.95
+    },
+    "version": "1.0.0"
+  },
+  "decision": "APPROVED",
+  "reason_codes": [],
+  "gate_passed": "ihsan_gate",
+  "metrics": {
+    "duration_ms": 1250.5,
+    "memory_bytes": 4096000,
+    "p99_us": 1200000
+  },
+  "seal": {
+    "algorithm": "blake3",
+    "digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "public_key": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  }
+}

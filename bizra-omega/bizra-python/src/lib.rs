@@ -723,6 +723,165 @@ impl PyPreferenceTracker {
     }
 }
 
+// =============================================================================
+// Sovereign Experience Ledger Bindings (Episodic Memory)
+// =============================================================================
+
+/// Python wrapper for ExperienceLedger
+#[pyclass(name = "ExperienceLedger")]
+pub struct PyExperienceLedger {
+    inner: bizra_core::ExperienceLedger,
+}
+
+#[pymethods]
+impl PyExperienceLedger {
+    /// Create a new experience ledger
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: bizra_core::ExperienceLedger::new(),
+        }
+    }
+
+    /// Commit an episode to the ledger.
+    ///
+    /// Args:
+    ///     context: The query or trigger text
+    ///     graph_hash: BLAKE3 hash of the GoT artifact
+    ///     graph_node_count: Number of thoughts in the graph
+    ///     actions: List of (action_type, description, success, duration_us) tuples
+    ///     snr_score: Signal-to-Noise Ratio score (0.0-1.0)
+    ///     ihsan_score: Ihsan excellence score (0.0-1.0)
+    ///     snr_ok: Whether the SNR gate passed
+    ///     context_embedding: Optional embedding vector for semantic retrieval
+    ///     response_summary: Optional truncated response text
+    ///
+    /// Returns:
+    ///     The episode content-address hash (hex string)
+    #[pyo3(signature = (context, graph_hash, graph_node_count, actions, snr_score, ihsan_score, snr_ok, context_embedding=None, response_summary=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn commit(
+        &mut self,
+        context: &str,
+        graph_hash: &str,
+        graph_node_count: usize,
+        actions: Vec<(String, String, bool, u64)>,
+        snr_score: f64,
+        ihsan_score: f64,
+        snr_ok: bool,
+        context_embedding: Option<Vec<f32>>,
+        response_summary: Option<String>,
+    ) -> String {
+        let episode_actions: Vec<bizra_core::EpisodeAction> = actions
+            .into_iter()
+            .map(|(at, desc, ok, dur)| bizra_core::EpisodeAction {
+                action_type: at,
+                description: desc,
+                success: ok,
+                duration_us: dur,
+            })
+            .collect();
+
+        let impact = bizra_core::EpisodeImpact {
+            snr_score,
+            ihsan_score,
+            snr_ok,
+            user_feedback: None,
+            tokens_used: 0,
+            efficiency_score: 0.0,
+        };
+
+        self.inner.commit(
+            context.to_string(),
+            graph_hash.to_string(),
+            graph_node_count,
+            episode_actions,
+            impact,
+            context_embedding,
+            response_summary,
+        )
+    }
+
+    /// Retrieve top-K episodes using RIR algorithm.
+    ///
+    /// Args:
+    ///     query_text: The query to match against
+    ///     top_k: Maximum number of episodes to return
+    ///     query_embedding: Optional embedding for semantic matching
+    ///
+    /// Returns:
+    ///     List of dicts with episode fields
+    #[pyo3(signature = (query_text, top_k, query_embedding=None))]
+    fn retrieve(
+        &self,
+        query_text: &str,
+        top_k: usize,
+        query_embedding: Option<Vec<f32>>,
+    ) -> Vec<pyo3::PyObject> {
+        let emb_ref = query_embedding.as_deref();
+        let episodes = self.inner.retrieve(query_text, emb_ref, top_k);
+
+        Python::with_gil(|py| {
+            episodes
+                .into_iter()
+                .map(|ep| {
+                    let dict = pyo3::types::PyDict::new(py);
+                    let _ = dict.set_item("sequence", ep.sequence);
+                    let _ = dict.set_item("timestamp_secs", ep.timestamp_secs);
+                    let _ = dict.set_item("context", &ep.context);
+                    let _ = dict.set_item("graph_hash", &ep.graph_hash);
+                    let _ = dict.set_item("graph_node_count", ep.graph_node_count);
+                    let _ = dict.set_item("snr_score", ep.impact.snr_score);
+                    let _ = dict.set_item("ihsan_score", ep.impact.ihsan_score);
+                    let _ = dict.set_item("snr_ok", ep.impact.snr_ok);
+                    let _ = dict.set_item("episode_hash", &ep.episode_hash);
+                    let _ = dict.set_item("chain_hash", &ep.chain_hash);
+                    if let Some(ref summary) = ep.response_summary {
+                        let _ = dict.set_item("response_summary", summary);
+                    }
+                    dict.into()
+                })
+                .collect()
+        })
+    }
+
+    /// Verify the entire chain integrity.
+    fn verify_chain_integrity(&self) -> bool {
+        self.inner.verify_chain_integrity()
+    }
+
+    /// Get the current chain head hash.
+    #[getter]
+    fn chain_head(&self) -> String {
+        self.inner.chain_head().to_string()
+    }
+
+    /// Get the number of episodes.
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
+
+    /// Get the next sequence number.
+    #[getter]
+    fn next_sequence(&self) -> u64 {
+        self.inner.next_sequence()
+    }
+
+    /// Get the distillation count.
+    #[getter]
+    fn distillation_count(&self) -> u64 {
+        self.inner.distillation_count()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ExperienceLedger(episodes={}, chain_head='{}')",
+            self.inner.len(),
+            &self.inner.chain_head()[..8.min(self.inner.chain_head().len())]
+        )
+    }
+}
+
 /// BIZRA Python Module
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -747,6 +906,9 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Autopoiesis (pattern learning + preference tracking)
     m.add_class::<PyPatternMemory>()?;
     m.add_class::<PyPreferenceTracker>()?;
+
+    // Sovereign Experience Ledger (episodic memory)
+    m.add_class::<PyExperienceLedger>()?;
 
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;

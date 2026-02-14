@@ -196,7 +196,7 @@ impl<const N: usize> SNRPipeline<N> {
         // Estimate bounty based on complexity
         let complexity = Complexity::from_entropy(&entropy);
         let bounty_estimate = match complexity {
-            Complexity::Simple => 50_000,      // $500.00 in cents
+            Complexity::Simple => 50_000,     // $500.00 in cents
             Complexity::Medium => 250_000,    // $2,500.00 in cents
             Complexity::Complex => 1_000_000, // $10,000.00 in cents
             Complexity::Expert => 5_000_000,  // $50,000.00 in cents

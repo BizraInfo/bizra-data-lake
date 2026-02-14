@@ -34,12 +34,11 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 # Import unified thresholds from authoritative source
 
 logger = logging.getLogger(__name__)
-
 
 # =============================================================================
 # CONSTANTS - CONSTITUTIONAL THRESHOLDS
@@ -61,6 +60,11 @@ MINIMUM_HOLDING: float = 1e-9
 # Universal Basic Compute pool identifier
 UBC_POOL_ID: str = "__UBC_POOL__"
 
+# CRITICAL-9 FIX: Cap UBC pool ratio to prevent conservation bypass.
+# Without this, unlimited tokens can flow into UBC_POOL without triggering
+# the conservation invariant (because UBC_POOL is excluded from checks).
+# 30% is the maximum proportion of total supply that can sit in UBC pool.
+UBC_POOL_MAX_RATIO: float = 0.30
 
 # =============================================================================
 # REJECTION CODES
@@ -97,7 +101,7 @@ class Transaction:
     recipient: str
     amount: float
     timestamp: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.timestamp:
@@ -124,9 +128,9 @@ class AdlValidationResult:
     post_gini: float = 0.0
     gini_delta: float = 0.0
     threshold: float = ADL_GINI_THRESHOLD
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for PCI envelope inclusion."""
         return {
             "passed": self.passed,
@@ -156,8 +160,8 @@ class RedistributionResult:
     total_tax_collected: float
     ubc_per_node: float
     nodes_affected: int
-    holdings_before: Dict[str, float] = field(default_factory=dict)
-    holdings_after: Dict[str, float] = field(default_factory=dict)
+    holdings_before: dict[str, float] = field(default_factory=dict)
+    holdings_after: dict[str, float] = field(default_factory=dict)
 
 
 # =============================================================================
@@ -165,7 +169,7 @@ class RedistributionResult:
 # =============================================================================
 
 
-def calculate_gini(holdings: Dict[str, float]) -> float:
+def calculate_gini(holdings: dict[str, float]) -> float:
     """
     Calculate the Gini coefficient for a distribution of holdings.
 
@@ -240,7 +244,7 @@ def calculate_gini(holdings: Dict[str, float]) -> float:
     return max(0.0, min(1.0, gini))
 
 
-def calculate_gini_components(holdings: Dict[str, float]) -> Dict[str, Any]:
+def calculate_gini_components(holdings: dict[str, float]) -> dict[str, Any]:
     """
     Calculate Gini coefficient with detailed component breakdown.
 
@@ -358,7 +362,7 @@ class AdlInvariant:
     def validate_transaction(
         self,
         tx: Transaction,
-        current_state: Dict[str, float],
+        current_state: dict[str, float],
     ) -> AdlValidationResult:
         """
         Validate a transaction against the Adl invariant.
@@ -441,6 +445,28 @@ class AdlInvariant:
                 },
             )
 
+        # CRITICAL-9 FIX: Check UBC pool ratio cap
+        ubc_balance = post_state.get(UBC_POOL_ID, 0.0)
+        total_supply = post_total + ubc_balance  # Everything including UBC
+        if total_supply > 0 and ubc_balance / total_supply > UBC_POOL_MAX_RATIO:
+            self._rejection_count += 1
+            return AdlValidationResult(
+                passed=False,
+                reject_code=AdlRejectCode.REJECT_CONSERVATION_VIOLATED,
+                message=(
+                    f"UBC pool ratio {ubc_balance / total_supply:.2%} exceeds "
+                    f"cap {UBC_POOL_MAX_RATIO:.0%} — conservation integrity at risk"
+                ),
+                pre_gini=pre_gini,
+                details={
+                    "tx_id": tx.tx_id,
+                    "ubc_balance": ubc_balance,
+                    "total_supply": total_supply,
+                    "ubc_ratio": ubc_balance / total_supply,
+                    "max_ratio": UBC_POOL_MAX_RATIO,
+                },
+            )
+
         # Calculate post-transaction Gini
         post_gini = calculate_gini(post_state)
         gini_delta = post_gini - pre_gini
@@ -484,10 +510,10 @@ class AdlInvariant:
 
     def redistribute_soil_tax(
         self,
-        holdings: Dict[str, float],
+        holdings: dict[str, float],
         tax_rate: Optional[float] = None,
         time_fraction: float = 1.0,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Apply Harberger-style soil tax redistribution.
 
@@ -551,7 +577,7 @@ class AdlInvariant:
 
     def get_redistribution_impact(
         self,
-        holdings: Dict[str, float],
+        holdings: dict[str, float],
         tax_rate: Optional[float] = None,
     ) -> RedistributionResult:
         """
@@ -591,7 +617,7 @@ class AdlInvariant:
             holdings_after=new_holdings,
         )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get validation statistics."""
         return {
             "validations": self._validation_count,
@@ -638,7 +664,7 @@ class AdlGate:
         Initialize the Adl Gate.
 
         Args:
-            holdings_provider: Callable that returns current holdings Dict[str, float]
+            holdings_provider: Callable that returns current holdings dict[str, float]
             gini_threshold: Maximum allowed Gini coefficient
         """
         self.holdings_provider = holdings_provider
@@ -776,8 +802,8 @@ def create_adl_extended_gatekeeper(
 
 
 def assert_adl_invariant(
-    post_state: Dict[str, float],
-    pre_state: Optional[Dict[str, float]] = None,
+    post_state: dict[str, float],
+    pre_state: Optional[dict[str, float]] = None,
     threshold: float = ADL_GINI_THRESHOLD,
 ) -> None:
     """
@@ -803,9 +829,9 @@ def assert_adl_invariant(
 
 def simulate_transaction_impact(
     tx: Transaction,
-    current_state: Dict[str, float],
+    current_state: dict[str, float],
     threshold: float = ADL_GINI_THRESHOLD,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Simulate the impact of a transaction on Gini coefficient.
 

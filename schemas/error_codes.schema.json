@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/error_codes.schema.json",
+  "title": "BIZRA Reason Codes",
+  "description": "Machine-readable reason codes for rejection and quarantine decisions. Every non-APPROVED decision must include at least one reason code. Standing on: HTTP status codes (Fielding), gRPC error model (Google).",
+  "type": "object",
+  "properties": {
+    "reason_codes": {
+      "type": "object",
+      "description": "Registry of all valid reason codes with categories",
+      "properties": {
+        "evidence": {
+          "type": "object",
+          "description": "Evidence integrity failures",
+          "properties": {
+            "EVIDENCE_MISSING": { "const": "Required evidence artifact not found" },
+            "EVIDENCE_TAMPERED": { "const": "Evidence hash mismatch — content modified" },
+            "EVIDENCE_EXPIRED": { "const": "Evidence beyond acceptable freshness window" },
+            "NONDETERMINISTIC_BUILD": { "const": "Build artifact hash differs across runs" }
+          }
+        },
+        "claim_tags": {
+          "type": "object",
+          "description": "Claim provenance violations",
+          "properties": {
+            "CLAIM_UNTAGGED": { "const": "Output contains claims without provenance tags" },
+            "CLAIM_TAG_INVALID": { "const": "Claim tag does not match actual verification status" },
+            "CLAIM_INFLATION": { "const": "Claim tagged MEASURED but no measurement evidence exists" }
+          }
+        },
+        "quality_gates": {
+          "type": "object",
+          "description": "Quality threshold violations",
+          "properties": {
+            "SNR_BELOW_THRESHOLD": { "const": "Signal-to-noise ratio below minimum policy threshold" },
+            "IHSAN_BELOW_THRESHOLD": { "const": "Ihsan excellence score below minimum policy threshold" },
+            "CONFIDENCE_BELOW_THRESHOLD": { "const": "Confidence score below minimum for this operation" }
+          }
+        },
+        "cryptographic": {
+          "type": "object",
+          "description": "Cryptographic verification failures",
+          "properties": {
+            "UNSIGNED_ATTESTATION": { "const": "Attestation envelope has no signature" },
+            "SIGNATURE_INVALID": { "const": "Ed25519 signature verification failed" },
+            "REPLAY_DETECTED": { "const": "Nonce has been seen before within TTL window" },
+            "TIMESTAMP_STALE": { "const": "Timestamp exceeds maximum message age" },
+            "TIMESTAMP_FUTURE": { "const": "Timestamp is in the future beyond tolerance" },
+            "GENESIS_MISMATCH": { "const": "Envelope genesis_hash does not match node genesis" }
+          }
+        },
+        "authorization": {
+          "type": "object",
+          "description": "Access and budget control",
+          "properties": {
+            "AUTH_REQUIRED": { "const": "Authentication token required but not provided" },
+            "AUTH_INVALID": { "const": "Authentication token is invalid or expired" },
+            "RATE_LIMITED": { "const": "Request rate exceeds configured limit" },
+            "BUDGET_EXCEEDED": { "const": "Resource budget (bytes/time/calls) exhausted" }
+          }
+        },
+        "tool_runtime": {
+          "type": "object",
+          "description": "Tool execution safety violations",
+          "properties": {
+            "HOOK_NOT_ALLOWLISTED": { "const": "Requested hook is not in the allowlist" },
+            "HOOK_EXEC_DENIED": { "const": "Hook execution denied by policy" },
+            "TOOL_TIMEOUT": { "const": "Tool execution exceeded wall-time budget" },
+            "TOOL_OUTPUT_UNVERIFIABLE": { "const": "Tool produced output that cannot be verified" }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "description": "Policy enforcement violations",
+          "properties": {
+            "POLICY_MISMATCH": { "const": "Request policy version does not match node policy" },
+            "SCHEMA_VIOLATION": { "const": "Input does not conform to expected schema" },
+            "INVARIANT_FAILED": { "const": "System invariant check failed" },
+            "ROLE_VIOLATION": { "const": "Agent role not authorized for this operation" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "EVIDENCE_MISSING", "EVIDENCE_TAMPERED", "EVIDENCE_EXPIRED", "NONDETERMINISTIC_BUILD",
+        "CLAIM_UNTAGGED", "CLAIM_TAG_INVALID", "CLAIM_INFLATION",
+        "SNR_BELOW_THRESHOLD", "IHSAN_BELOW_THRESHOLD", "CONFIDENCE_BELOW_THRESHOLD",
+        "UNSIGNED_ATTESTATION", "SIGNATURE_INVALID", "REPLAY_DETECTED",
+        "TIMESTAMP_STALE", "TIMESTAMP_FUTURE", "GENESIS_MISMATCH",
+        "AUTH_REQUIRED", "AUTH_INVALID", "RATE_LIMITED", "BUDGET_EXCEEDED",
+        "HOOK_NOT_ALLOWLISTED", "HOOK_EXEC_DENIED", "TOOL_TIMEOUT", "TOOL_OUTPUT_UNVERIFIABLE",
+        "POLICY_MISMATCH", "SCHEMA_VIOLATION", "INVARIANT_FAILED", "ROLE_VIOLATION"
+      ]
+    }
+  }
+}

@@ -27,7 +27,6 @@ Created: 2026-02-03 | BIZRA Elite Integration v1.1.0
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import uuid
@@ -38,10 +37,7 @@ from enum import Enum
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Set,
     TypeVar,
 )
 
@@ -50,7 +46,6 @@ from core.integration.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ============================================================================
 # TYPES
@@ -85,7 +80,7 @@ class TransitionType(str, Enum):
 
 
 # Valid state transitions
-VALID_TRANSITIONS: Dict[SessionState, Set[SessionState]] = {
+VALID_TRANSITIONS: dict[SessionState, set[SessionState]] = {
     SessionState.INIT: {SessionState.ACTIVE, SessionState.TERMINATED},
     SessionState.ACTIVE: {
         SessionState.COMPUTING,
@@ -102,7 +97,6 @@ VALID_TRANSITIONS: Dict[SessionState, Set[SessionState]] = {
     SessionState.RECOVERED: {SessionState.ACTIVE},
     SessionState.TERMINATED: set(),  # Terminal state
 }
-
 
 # ============================================================================
 # MERKLE NODE
@@ -122,13 +116,13 @@ class MerkleNode:
     hash: str
 
     # Parent hashes (multiple for merges)
-    parents: List[str]
+    parents: list[str]
 
     # Session state at this node
     state: SessionState
 
     # State data (serializable)
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
     # Metadata
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -148,7 +142,7 @@ class MerkleNode:
     transition_type: TransitionType = TransitionType.STANDARD
     transition_reason: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize node."""
         return {
             "hash": self.hash,
@@ -171,9 +165,9 @@ class MerkleNode:
 
     @staticmethod
     def compute_hash(
-        parents: List[str],
+        parents: list[str],
         state: SessionState,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         timestamp: datetime,
     ) -> str:
         """
@@ -182,17 +176,19 @@ class MerkleNode:
         Hash includes: parents, state, data hash, timestamp
         This ensures content-addressability.
         """
+        from core.proof_engine.canonical import hex_digest
+
         content = {
             "parents": sorted(parents),  # Canonical order
             "state": state.value,
-            "data_hash": hashlib.sha256(
+            "data_hash": hex_digest(
                 json.dumps(data, sort_keys=True, default=str).encode()
-            ).hexdigest(),
+            ),
             "timestamp": timestamp.isoformat(),
         }
 
         content_str = json.dumps(content, sort_keys=True)
-        return hashlib.sha256(content_str.encode()).hexdigest()
+        return hex_digest(content_str.encode())
 
 
 # ============================================================================
@@ -215,10 +211,10 @@ class MerkleDAG:
         self.session_id = session_id or str(uuid.uuid4())[:12]
 
         # Node storage: hash -> MerkleNode
-        self._nodes: Dict[str, MerkleNode] = {}
+        self._nodes: dict[str, MerkleNode] = {}
 
         # Current head(s) - for branch tracking
-        self._heads: Set[str] = set()
+        self._heads: set[str] = set()
 
         # Genesis node hash
         self._genesis: Optional[str] = None
@@ -258,11 +254,11 @@ class MerkleDAG:
     def add_state(
         self,
         state: SessionState,
-        data: Dict[str, Any],
-        parents: Optional[List[str]] = None,
+        data: dict[str, Any],
+        parents: Optional[list[str]] = None,
         transition_type: TransitionType = TransitionType.STANDARD,
         transition_reason: str = "",
-        ntu_state: Optional[Dict[str, float]] = None,
+        ntu_state: Optional[dict[str, float]] = None,
         fate_score: float = 0.0,
     ) -> MerkleNode:
         """
@@ -272,7 +268,7 @@ class MerkleDAG:
             state: The new session state
             data: State data
             parents: Parent node hashes (default: current heads)
-            transition_type: Type of transition
+            transition_type: type of transition
             transition_reason: Reason for transition
             ntu_state: NTU state dict {belief, entropy, potential}
             fate_score: FATE validation score
@@ -369,7 +365,7 @@ class MerkleDAG:
         head_nodes = [self._nodes[h] for h in self._heads]
         return max(head_nodes, key=lambda n: n.logical_clock)
 
-    def get_heads(self) -> List[MerkleNode]:
+    def get_heads(self) -> list[MerkleNode]:
         """Get all current head nodes."""
         return [self._nodes[h] for h in self._heads]
 
@@ -407,7 +403,7 @@ class MerkleDAG:
 
         return False
 
-    def get_lineage(self, node_hash: str) -> List[MerkleNode]:
+    def get_lineage(self, node_hash: str) -> list[MerkleNode]:
         """
         Get full lineage from node to genesis.
 
@@ -431,7 +427,7 @@ class MerkleDAG:
         return lineage
 
     def branch(
-        self, branch_name: str, data: Optional[Dict[str, Any]] = None
+        self, branch_name: str, data: Optional[dict[str, Any]] = None
     ) -> MerkleNode:
         """
         Create a branch from current state.
@@ -455,8 +451,8 @@ class MerkleDAG:
 
     def merge(
         self,
-        branch_hashes: List[str],
-        merged_data: Dict[str, Any],
+        branch_hashes: list[str],
+        merged_data: dict[str, Any],
         result_state: SessionState,
     ) -> MerkleNode:
         """
@@ -505,7 +501,7 @@ class MerkleDAG:
             transition_reason=reason or f"Rollback to {target_hash[:12]}",
         )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get DAG statistics."""
         states_count: dict[str, int] = defaultdict(int)
         for node in self._nodes.values():
@@ -525,7 +521,7 @@ class MerkleDAG:
             "ihsan_rate": ihsan_achieved_count / max(len(self._nodes), 1),
         }
 
-    def export(self) -> Dict[str, Any]:
+    def export(self) -> dict[str, Any]:
         """Export full DAG for persistence."""
         return {
             "session_id": self.session_id,
@@ -536,7 +532,7 @@ class MerkleDAG:
         }
 
     @classmethod
-    def import_dag(cls, data: Dict[str, Any]) -> "MerkleDAG":
+    def import_dag(cls, data: dict[str, Any]) -> "MerkleDAG":
         """Import DAG from exported data."""
         dag = cls.__new__(cls)
         dag.session_id = data["session_id"]
@@ -577,7 +573,7 @@ class SessionStateMachine:
     Session state machine backed by Merkle-DAG.
 
     Provides:
-    - Type-safe state transitions
+    - type-safe state transitions
     - NTU integration for temporal patterns
     - FATE validation at transitions
     - Complete audit trail via DAG
@@ -627,7 +623,7 @@ class SessionStateMachine:
     def transition(
         self,
         to_state: SessionState,
-        data: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
         reason: str = "",
         fate_score: Optional[float] = None,
     ) -> MerkleNode:
@@ -683,18 +679,18 @@ class SessionStateMachine:
 
         return node
 
-    def activate(self, data: Optional[Dict[str, Any]] = None) -> MerkleNode:
+    def activate(self, data: Optional[dict[str, Any]] = None) -> MerkleNode:
         """Activate the session."""
         return self.transition(SessionState.ACTIVE, data, "Session activated")
 
-    def compute(self, computation_data: Dict[str, Any]) -> MerkleNode:
+    def compute(self, computation_data: dict[str, Any]) -> MerkleNode:
         """Enter computation state."""
         return self.transition(
             SessionState.COMPUTING, computation_data, "Starting computation"
         )
 
     def validate(
-        self, validation_result: Dict[str, Any], fate_score: float
+        self, validation_result: dict[str, Any], fate_score: float
     ) -> MerkleNode:
         """Validate computation result."""
         return self.transition(
@@ -704,7 +700,7 @@ class SessionStateMachine:
             fate_score,
         )
 
-    def commit(self, commit_data: Optional[Dict[str, Any]] = None) -> MerkleNode:
+    def commit(self, commit_data: Optional[dict[str, Any]] = None) -> MerkleNode:
         """Commit validated state."""
         return self.transition(SessionState.COMMITTED, commit_data, "State committed")
 
@@ -724,7 +720,7 @@ class SessionStateMachine:
             SessionState.FAILED, {"error": error}, f"Failed: {error}"
         )
 
-    def recover(self, recovery_data: Optional[Dict[str, Any]] = None) -> MerkleNode:
+    def recover(self, recovery_data: Optional[dict[str, Any]] = None) -> MerkleNode:
         """Recover from failure."""
         return self.transition(
             SessionState.RECOVERED, recovery_data, "Recovered from failure"
@@ -740,7 +736,7 @@ class SessionStateMachine:
         """Register transition callback."""
         self._on_transition = callback
 
-    def get_history(self) -> List[MerkleNode]:
+    def get_history(self) -> list[MerkleNode]:
         """Get full session history."""
         current = self.dag.get_current_node()
         if not current:
@@ -754,7 +750,7 @@ class SessionStateMachine:
             return True
         return self.dag.verify_lineage(current.hash)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get session statistics."""
         stats = self.dag.get_stats()
 
@@ -818,13 +814,15 @@ class SessionHookIntegration:
         import asyncio
         import functools
 
+        from core.proof_engine.canonical import hex_digest
+
         @functools.wraps(operation)
         async def async_wrapper(*args, **kwargs):
             # Enter computing state
             self.session.compute(
                 {
                     "operation": operation_name or operation.__name__,
-                    "args_hash": hashlib.sha256(str(args).encode()).hexdigest()[:8],
+                    "args_hash": hex_digest(str(args).encode())[:8],
                 }
             )
 

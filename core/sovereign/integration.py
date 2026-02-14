@@ -27,18 +27,10 @@ import logging
 from typing import Optional
 
 # Import unified thresholds from authoritative source
-try:
-    from core.integration.constants import (
-        UNIFIED_IHSAN_THRESHOLD,
-        UNIFIED_SNR_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
-    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
-
-# =============================================================================
-# PUBLIC API - Re-export from modular components
-# =============================================================================
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 # Capability Cards (re-export)
 from .capability_card import (
@@ -78,12 +70,16 @@ from .model_license_gate import (
     create_gate_chain,
 )
 
+# =============================================================================
+# PUBLIC API - Re-export from modular components
+# =============================================================================
+
+
 logger = logging.getLogger(__name__)
 
 # Re-export thresholds for backward compatibility
 IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
 SNR_THRESHOLD = UNIFIED_SNR_THRESHOLD
-
 
 # =============================================================================
 # FACTORY FUNCTIONS

@@ -82,8 +82,22 @@ E - Ethics:         Harm prevention and value alignment
 |---------|--------|-------------|
 | UDP Transport | ACTIVE | Gossip protocol on port 7654 |
 | Signature Verification | ACTIVE | All messages signed with Ed25519 |
-| Rate Limiting | PLANNED | Per-peer message rate limits |
-| DTLS Encryption | PLANNED | Transport layer encryption |
+| Rate Limiting | ACTIVE | Desktop Bridge: 20 req/s per client; Federation: PLANNED per-peer |
+| DTLS Encryption | DEFERRED | Transport layer encryption (federation only; Desktop Bridge uses localhost) |
+
+#### Layer 1.5: Desktop Bridge Security (TCP 9742)
+
+| Control | Status | Description |
+|---------|--------|-------------|
+| Localhost Binding | ACTIVE | `127.0.0.1:9742` only, refuses non-loopback connections |
+| Auth Envelope | ACTIVE | Token + timestamp + nonce required on every request |
+| Rate Limiter | ACTIVE | 20 requests/second per client, configurable |
+| Replay Protection | ACTIVE | Nonce tracking prevents replay attacks |
+| Timestamp Validation | ACTIVE | Requests rejected if > 120s clock skew |
+| Signed Receipts | ACTIVE | Ed25519-signed receipts for all skill invocations |
+| Skill FATE Gate | ACTIVE | Every `invoke_skill` passes through FATE + Ihsan gate |
+
+Source: `core/bridges/desktop_bridge.py`, `bin/bizra_bridge.ahk`
 
 #### Layer 2: Protocol Security
 

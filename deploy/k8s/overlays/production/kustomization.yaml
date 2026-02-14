@@ -88,7 +88,7 @@ configMapGenerator:
 images:
   - name: bizra-elite
     newName: ghcr.io/bizra/bizra-data-lake/elite
-    newTag: latest
+    newTag: v9.0.0  # Pin to release version — never use 'latest' in production
   - name: bizra-omega
     newName: ghcr.io/bizra/bizra-data-lake/omega
-    newTag: latest
+    newTag: v9.0.0  # Updated by deploy.yml kustomization-patch at deploy time

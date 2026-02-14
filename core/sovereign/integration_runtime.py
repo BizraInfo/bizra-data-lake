@@ -17,16 +17,12 @@ import math
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
-try:
-    from core.integration.constants import (
-        UNIFIED_IHSAN_THRESHOLD,
-        UNIFIED_SNR_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
-    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 from .capability_card import (
     CapabilityCard,
@@ -76,8 +72,12 @@ class SovereignRuntime:
         self._federation_node: Any = None
 
         # Ensure paths are not None before using
-        assert self.config.model_store_path is not None, "model_store_path required"
-        assert self.config.keypair_path is not None, "keypair_path required"
+        assert (
+            self.config.model_store_path is not None
+        ), "model_store_path required in SovereignConfig"
+        assert (
+            self.config.keypair_path is not None
+        ), "keypair_path required in SovereignConfig"
 
         self.constitutional_gate = ConstitutionalGate(
             z3_certificates_path=self.config.model_store_path.parent / "proofs",
@@ -93,8 +93,10 @@ class SovereignRuntime:
         if self._started:
             return
 
-        assert self.config.model_store_path is not None
-        assert self.config.keypair_path is not None
+        if self.config.model_store_path is None:
+            raise ValueError("model_store_path required to start runtime")
+        if self.config.keypair_path is None:
+            raise ValueError("keypair_path required to start runtime")
         self.config.model_store_path.mkdir(parents=True, exist_ok=True)
         self.config.keypair_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -118,7 +120,7 @@ class SovereignRuntime:
         logger.info("Sovereign Runtime stopped")
 
     def set_inference_function(self, fn: Callable[[str, str], str]) -> None:
-        """Set the inference function."""
+        """set the inference function."""
         self._inference_fn = fn
 
     async def challenge_model(
@@ -126,7 +128,7 @@ class SovereignRuntime:
         model_id: str,
         model_path: Path,
         tier: ModelTier = ModelTier.LOCAL,
-        tasks: Optional[List[TaskType]] = None,
+        tasks: Optional[list[TaskType]] = None,
     ) -> CapabilityCard:
         """Run the Constitution Challenge for a model."""
         if tasks is None:
@@ -253,10 +255,10 @@ class SovereignRuntime:
             gate_passed=gate_result["passed"],
         )
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get runtime status."""
         valid_cards = self.registry.list_valid()
-        status: Dict[str, Any] = {
+        status: dict[str, Any] = {
             "started": self._started,
             "network_mode": self.config.network_mode.value,
             "registered_models": len(self.registry.list_all()),
@@ -290,7 +292,8 @@ class SovereignRuntime:
 
     async def _load_registry(self) -> None:
         """Load registry from disk."""
-        assert self.config.model_store_path is not None
+        if self.config.model_store_path is None:
+            raise RuntimeError("model_store_path not configured")
         registry_path = self.config.model_store_path / "registry.json"
         if registry_path.exists():
             try:
@@ -308,7 +311,8 @@ class SovereignRuntime:
 
     async def _save_registry(self) -> None:
         """Save registry to disk."""
-        assert self.config.model_store_path is not None
+        if self.config.model_store_path is None:
+            raise RuntimeError("model_store_path not configured")
         registry_path = self.config.model_store_path / "registry.json"
         try:
             cards = [c.to_dict() for c in self.registry.list_all()]
@@ -327,11 +331,12 @@ class SovereignRuntime:
         try:
             from core.federation.node import FederationNode
             from core.pci import generate_keypair  # type: ignore[attr-defined]
+            from core.proof_engine.canonical import hex_digest as _hex_digest
 
             private_key, public_key = self._load_or_generate_keypair()
 
             self._federation_node = FederationNode(
-                node_id=f"sovereign_{hashlib.sha256(public_key.encode()).hexdigest()[:12]}",
+                node_id=f"sovereign_{_hex_digest(public_key.encode())[:12]}",
                 bind_address="0.0.0.0:8765",
                 public_key=public_key,
                 private_key=private_key,
@@ -371,15 +376,16 @@ class SovereignRuntime:
         from core.pci import generate_keypair  # type: ignore[attr-defined]
 
         keypair_path = self.config.keypair_path
-        assert keypair_path is not None
+        if keypair_path is None:
+            raise ValueError("keypair_path not configured")
         vault_dir = keypair_path.parent / ".vault"
 
         # Derive vault secret: env var preferred, deterministic fallback
         vault_secret = _os.environ.get("BIZRA_VAULT_SECRET")
         if not vault_secret:
-            vault_secret = hashlib.sha256(
-                f"bizra-vault-{keypair_path.resolve()}".encode()
-            ).hexdigest()
+            from core.proof_engine.canonical import hex_digest
+
+            vault_secret = hex_digest(f"bizra-vault-{keypair_path.resolve()}".encode())
 
         # Try loading from encrypted vault
         try:
@@ -411,7 +417,7 @@ class SovereignRuntime:
             except ValueError as e:
                 raise RuntimeError(
                     f"Cannot decrypt keypair vault — wrong BIZRA_VAULT_SECRET? ({e}). "
-                    f"Set the correct secret or delete {vault_dir} to regenerate."
+                    f"set the correct secret or delete {vault_dir} to regenerate."
                 ) from e
 
             # Migrate plaintext keypair if it exists
@@ -433,8 +439,10 @@ class SovereignRuntime:
                         if vault_idx.exists():
                             try:
                                 _os.chmod(vault_idx, 0o600)
-                            except OSError:
-                                pass
+                            except OSError as e:
+                                logger.debug(
+                                    "chmod vault index after migration failed: %s", e
+                                )
                         return pk, pub
                 except Exception as e:
                     logger.warning(f"Failed to migrate plaintext keypair: {e}")
@@ -450,8 +458,8 @@ class SovereignRuntime:
             if vault_idx.exists():
                 try:
                     _os.chmod(vault_idx, 0o600)
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug("chmod vault index after keygen failed: %s", e)
             logger.info("Generated new keypair and stored in encrypted vault")
             return private_key, public_key
 
@@ -464,7 +472,8 @@ class SovereignRuntime:
         from core.pci import generate_keypair  # type: ignore[attr-defined]
 
         keypair_path = self.config.keypair_path
-        assert keypair_path is not None
+        if keypair_path is None:
+            raise ValueError("keypair_path not configured")
 
         if keypair_path.exists():
             try:
@@ -501,7 +510,7 @@ class SovereignRuntime:
             finally:
                 self._federation_node = None
 
-    def get_federation_status(self) -> Optional[Dict[str, Any]]:
+    def get_federation_status(self) -> Optional[dict[str, Any]]:
         """Get federation node status."""
         if self._federation_node is None:
             return None

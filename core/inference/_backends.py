@@ -17,22 +17,24 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
-import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Optional
+
+logger = logging.getLogger(__name__)
 
 from ._batching import BatchingInferenceQueue
-from ._connection_pool import ConnectionPool, ConnectionPoolConfig
+from ._connection_pool import ConnectionPool
 from ._resilience import CircuitBreaker, CircuitBreakerMetrics
 from ._types import (
-    CircuitBreakerConfig,
     CircuitMetrics,
     CircuitState,
     InferenceBackend,
     InferenceConfig,
 )
+from .response_utils import strip_think_tokens
 
 # Import LM Studio backend (primary)
 try:
@@ -46,7 +48,6 @@ except ImportError:
     LMStudioClient = None  # type: ignore[assignment, misc]
     LMStudioConfig = None  # type: ignore[assignment, misc]
     ChatMessage = None  # type: ignore[assignment, misc]
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACKEND INTERFACE
@@ -225,7 +226,7 @@ class LlamaCppBackend(InferenceBackendBase):
             ),
         )
 
-        return result["choices"][0]["text"]
+        return strip_think_tokens(result["choices"][0]["text"])
 
     async def generate(
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
@@ -290,7 +291,8 @@ class LlamaCppBackend(InferenceBackendBase):
                     None, lambda: self._model("test", max_tokens=1)
                 )
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug("LlamaCpp health check failed: %s", e)
             return False
 
     def get_loaded_model(self) -> Optional[str]:
@@ -304,7 +306,7 @@ class LlamaCppBackend(InferenceBackendBase):
             self._batch_queue = None
         self._model = None
 
-    def get_batching_metrics(self) -> Optional[Dict[str, Any]]:
+    def get_batching_metrics(self) -> Optional[dict[str, Any]]:
         """Get batching metrics if batching is enabled."""
         if self._batch_queue:
             return self._batch_queue.get_metrics()  # type: ignore[return-value]
@@ -346,7 +348,7 @@ class OllamaBackend(InferenceBackendBase):
 
     def __init__(self, config: InferenceConfig):
         self.config = config
-        self._available_models: List[str] = []
+        self._available_models: list[str] = []
         self._current_model: Optional[str] = None
 
         # Initialize circuit breaker for external service protection
@@ -388,9 +390,11 @@ class OllamaBackend(InferenceBackendBase):
         try:
             req = urllib.request.Request(
                 f"{self.config.ollama_url}/api/tags",
-                headers={"Content-Type": "application/json"},
+                headers={"Content-type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 data = json.loads(resp.read().decode())
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
@@ -428,7 +432,7 @@ class OllamaBackend(InferenceBackendBase):
             await self._connection_pool.stop()
             self._connection_pool = None
 
-    def get_connection_pool_metrics(self) -> Optional[Dict[str, Any]]:
+    def get_connection_pool_metrics(self) -> Optional[dict[str, Any]]:
         """Get connection pool metrics if pooling is enabled."""
         if self._connection_pool:
             # Return synchronous metrics snapshot
@@ -473,7 +477,7 @@ class OllamaBackend(InferenceBackendBase):
         req = urllib.request.Request(
             f"{self.config.ollama_url}/api/generate",
             data=payload,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-type": "application/json"},
             method="POST",
         )
 
@@ -482,9 +486,11 @@ class OllamaBackend(InferenceBackendBase):
         timeout = self.config.circuit_breaker.request_timeout
 
         def make_request():
-            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=timeout
+            ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 data = json.loads(resp.read().decode())
-                return data.get("response", "")
+                return strip_think_tokens(data.get("response", ""))
 
         return await loop.run_in_executor(None, make_request)
 
@@ -518,9 +524,12 @@ class OllamaBackend(InferenceBackendBase):
 
         try:
             req = urllib.request.Request(f"{self.config.ollama_url}/api/tags")
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 — URL from trusted InferenceConfig (localhost Ollama)
                 return resp.status == 200
-        except Exception:
+        except Exception as e:
+            logger.debug("Ollama health check failed: %s", e)
             return False
 
     def get_loaded_model(self) -> Optional[str]:
@@ -648,7 +657,7 @@ class LMStudioBackend(InferenceBackendBase):
             max_tokens=max_tokens,
             temperature=temperature,
         )
-        return response.content
+        return strip_think_tokens(response.content)
 
     async def generate(
         self, prompt: str, max_tokens: int = 2048, temperature: float = 0.7, **kwargs
@@ -679,7 +688,8 @@ class LMStudioBackend(InferenceBackendBase):
         try:
             models = await self._client.list_models()
             return len(models) > 0
-        except Exception:
+        except Exception as e:
+            logger.debug("LMStudio health check failed: %s", e)
             return False
 
     def get_loaded_model(self) -> Optional[str]:
