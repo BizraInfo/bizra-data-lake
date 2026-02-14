@@ -5,6 +5,16 @@
 
 import os
 import hashlib
+
+# SEC-001: Prefer BLAKE3 for Rust interop, graceful fallback to SHA-256
+try:
+    import blake3 as _blake3
+
+    def _content_hash(data: bytes) -> str:
+        return _blake3.blake3(data).hexdigest()
+except ImportError:
+    def _content_hash(data: bytes) -> str:
+        return hashlib.sha256(data).hexdigest()
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
@@ -115,7 +125,7 @@ class CorpusManager:
                 except:
                     text_content = ""
 
-            file_hash = hashlib.sha256(text_content.encode() if text_content else str(file_path).encode()).hexdigest()
+            file_hash = _content_hash(text_content.encode() if text_content else str(file_path).encode())
 
             return {
                 "doc_id": f"{file_hash[:16]}",
@@ -170,7 +180,7 @@ class CorpusManager:
         else:
             text_content = f"[IMAGE: {file_path.name}]"
 
-        file_hash = hashlib.sha256(str(file_path).encode()).hexdigest()
+        file_hash = _content_hash(str(file_path).encode())
 
         return {
             "doc_id": f"{file_hash[:16]}",
@@ -218,7 +228,7 @@ class CorpusManager:
         else:
             text_content = f"[AUDIO: {file_path.name}]"
 
-        file_hash = hashlib.sha256(str(file_path).encode()).hexdigest()
+        file_hash = _content_hash(str(file_path).encode())
 
         return {
             "doc_id": f"{file_hash[:16]}",

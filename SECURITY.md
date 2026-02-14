@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.x     | Yes       |
+| 9.x     | Yes       |
+| < 9.0   | No        |
 
 ## Reporting a Vulnerability
 
@@ -17,12 +18,40 @@ If you discover a security vulnerability, please report it responsibly:
 
 ## Security Architecture
 
-BIZRA implements multiple security layers:
+BIZRA implements defense-in-depth across every layer:
 
-- **Proof-Carrying Inference (PCI)**: Ed25519 signatures on every inference
-- **FATE Gates**: Ethical firewall enforcing Ihsan >= 0.95
-- **ADL Invariant**: Anti-plutocracy enforcement (Gini <= 0.40)
-- **Byzantine Fault Tolerance**: Consensus protocol resilient to malicious nodes
+### Cryptographic Foundations
+
+| Primitive | Usage | Implementation |
+|-----------|-------|----------------|
+| Ed25519 | PCI receipt signatures, identity verification | `core/proof_engine/receipt.py` |
+| BLAKE3 | Content hashing, domain-separated digests | `core/proof_engine/canonical.py`, Rust PyO3 |
+| SHA-256 | File deduplication, Merkle-DAG verification | `core/iaas/deduplication.py` |
+
+### Constitutional Gates
+
+| Gate | Threshold | Enforcement |
+|------|-----------|-------------|
+| Ihsan (Excellence) | >= 0.95 | Hard gate on all outputs |
+| SNR (Signal Quality) | >= 0.85 | Information quality filter |
+| FATE (Ethics) | >= 0.95 | Fidelity, Accountability, Transparency, Ethics |
+| ADL (Justice) | Gini <= 0.40 | Anti-plutocracy resource distribution |
+
+All thresholds are defined in `core/integration/constants.py` as the single source of truth.
+
+### Network and API Security
+
+- **Desktop Bridge**: Localhost-only binding (`127.0.0.1:9742`), token-authenticated, nonce replay protection, rate limited (20 req/s)
+- **API Server**: Auth-gated endpoints, Prometheus metrics, HTTPS for external communication
+- **Federation**: Ed25519-signed gossip messages, Byzantine fault tolerance
+
+### CI/CD Security
+
+- All GitHub Actions SHA-pinned to immutable commit hashes
+- Runner OS pinned to `ubuntu-24.04` (no `latest`)
+- Docker images SHA256-pinned in production (`docker-compose.yml`, K8s overlays)
+- Security scanning: Bandit (Python), cargo-audit (Rust), Trivy (containers), pip-audit
+- Concurrency groups prevent parallel deployments
 
 ## Best Practices
 
@@ -30,3 +59,13 @@ BIZRA implements multiple security layers:
 - HTTPS for all external communication
 - Rate limiting on all API endpoints
 - Input validation at system boundaries
+- No `eval()` or equivalent dynamic execution
+- Path traversal protection on file operations
+
+## Further Reading
+
+- [Security Architecture](docs/SECURITY-ARCHITECTURE.md)
+- [Threat Model](docs/THREAT-MODEL-V3.md)
+- [Secure Patterns](docs/SECURE-PATTERNS.md)
+- [CVE Remediation Plan](docs/CVE-REMEDIATION-PLAN.md)
+- [Ihsan Compliance Matrix](docs/IHSAN_COMPLIANCE_MATRIX.md)

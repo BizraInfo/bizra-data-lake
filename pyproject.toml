@@ -72,6 +72,7 @@ timeout_method = "thread"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
+    "ignore:cannot collect test class 'TestStageHandler':pytest.PytestCollectionWarning",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -79,6 +80,7 @@ markers = [
     "requires_ollama: marks tests that require Ollama running locally",
     "requires_gpu: marks tests that require GPU hardware (CUDA/ROCm)",
     "requires_network: marks tests that require network access",
+    "requires_llama_cpp: marks tests that require llama.cpp backend available",
 ]
 
 [tool.coverage.run]
@@ -115,8 +117,8 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 60% floor enforced in CI (ratcheted from 55% after Phase 17 hardening)
-# Target: 95% (Ihsān threshold) — reached incrementally
+# Coverage gate: 60% floor enforced in CI
+# Ratcheted: 30% → 55% → 60% (Phase 3). Target: 95% (Ihsān threshold) — reached incrementally
 fail_under = 60
 show_missing = true
 precision = 2
