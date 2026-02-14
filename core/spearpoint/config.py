@@ -19,6 +19,7 @@ from typing import Any
 from core.integration.constants import (
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
+    STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -72,7 +73,7 @@ TIER_POLICIES: list[TierPolicy] = [
     TierPolicy(
         level=TierLevel.REJECT,
         min_score=0.0,
-        max_score=0.85,
+        max_score=UNIFIED_SNR_THRESHOLD,
         may_recommend=False,
         may_propose_patch=False,
         requires_confirmation=False,
@@ -81,7 +82,7 @@ TIER_POLICIES: list[TierPolicy] = [
     ),
     TierPolicy(
         level=TierLevel.DIAGNOSTICS,
-        min_score=0.85,
+        min_score=UNIFIED_SNR_THRESHOLD,
         max_score=UNIFIED_IHSAN_THRESHOLD,
         may_recommend=False,
         may_propose_patch=False,
@@ -102,7 +103,7 @@ TIER_POLICIES: list[TierPolicy] = [
     TierPolicy(
         level=TierLevel.ELITE,
         min_score=SNR_THRESHOLD_T0_ELITE,
-        max_score=0.99,
+        max_score=STRICT_IHSAN_THRESHOLD,
         may_recommend=True,
         may_propose_patch=False,
         requires_confirmation=True,
@@ -111,7 +112,7 @@ TIER_POLICIES: list[TierPolicy] = [
     ),
     TierPolicy(
         level=TierLevel.PROPOSAL,
-        min_score=0.99,
+        min_score=STRICT_IHSAN_THRESHOLD,
         max_score=1.01,  # Above 1.0 to capture exactly 1.0
         may_recommend=True,
         may_propose_patch=True,
@@ -146,12 +147,12 @@ class SpearpointConfig:
     circuit_breaker_consecutive_rejections: int = 3
     circuit_breaker_backoff_seconds: float = 60.0
 
-    # Paths
+    # Paths — defaults align with bizra_config.SPEARPOINT_STATE_DIR
     state_dir: Path = field(
         default_factory=lambda: Path(
             os.getenv(
                 "SPEARPOINT_STATE_DIR",
-                str(Path.home() / ".bizra" / "spearpoint"),
+                str(Path(__file__).resolve().parents[2] / ".spearpoint"),
             )
         )
     )
@@ -159,7 +160,7 @@ class SpearpointConfig:
         default_factory=lambda: Path(
             os.getenv(
                 "SPEARPOINT_EVIDENCE_LEDGER",
-                str(Path.home() / ".bizra" / "spearpoint" / "evidence.jsonl"),
+                str(Path(__file__).resolve().parents[2] / ".spearpoint" / "evidence.jsonl"),
             )
         )
     )
@@ -167,7 +168,7 @@ class SpearpointConfig:
         default_factory=lambda: Path(
             os.getenv(
                 "SPEARPOINT_HYPOTHESIS_MEMORY",
-                str(Path.home() / ".bizra" / "spearpoint" / "hypothesis_memory"),
+                str(Path(__file__).resolve().parents[2] / ".spearpoint" / "hypothesis_memory"),
             )
         )
     )

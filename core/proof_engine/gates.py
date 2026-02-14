@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.canonical import CanonPolicy, CanonQuery
 from core.proof_engine.receipt import (
     Metrics,
@@ -300,7 +301,7 @@ class SNRGate(Gate):
             corroboration_count=context.get("corroboration_count", 0),
             source_trust_score=context.get("trust_score", 0.5),
             z3_satisfiable=context.get("z3_satisfiable", True),
-            ihsan_score=context.get("ihsan_score", 0.95),
+            ihsan_score=context.get("ihsan_score", UNIFIED_IHSAN_THRESHOLD),
             constraint_violations=context.get("constraint_violations", 0),
             contradiction_count=context.get("contradiction_count", 0),
             conflicting_sources=context.get("conflicting_sources", 0),
@@ -348,7 +349,7 @@ class ConstraintGate(Gate):
 
     def __init__(
         self,
-        ihsan_threshold: float = 0.95,
+        ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD,
         z3_timeout_ms: int = 1000,
         constraint_validator: Optional[
             Callable[[CanonQuery, CanonPolicy], Tuple[bool, str]]
@@ -608,7 +609,7 @@ class GateChain:
         final_status = GateStatus.PENDING
         rejection_reason = None
         snr = 0.0
-        ihsan_score = context.get("ihsan_score", 0.95)
+        ihsan_score = context.get("ihsan_score", UNIFIED_IHSAN_THRESHOLD)
         snr_trace = None
 
         for gate in self.gates:

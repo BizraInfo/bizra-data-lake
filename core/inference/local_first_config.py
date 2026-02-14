@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -173,12 +174,14 @@ class BicameralResult:
 # MODEL REGISTRY
 # =============================================================================
 
+_LM_STUDIO_ENDPOINT = os.getenv("LM_STUDIO_URL", "http://192.168.56.1:1234/v1")
+
 LOCAL_MODELS: dict[str, ModelConfig] = {
     # =========================================================================
     # REASONING MODELS (Cold Core - Logic)
     # =========================================================================
     "deepseek-r1": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="deepseek-r1-distill-qwen-32b",
         role=ModelRole.REASONING,
         context_window=32768,
@@ -193,7 +196,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "qwq-reasoning": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="qwq-32b-preview",
         role=ModelRole.REASONING,
         context_window=32768,
@@ -210,7 +213,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # CODING MODELS
     # =========================================================================
     "qwen-coder": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="qwen2.5-coder-32b-instruct",
         role=ModelRole.CODING,
         context_window=32768,
@@ -225,7 +228,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "deepseek-coder": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="deepseek-coder-v2-lite-instruct",
         role=ModelRole.CODING,
         context_window=16384,
@@ -242,7 +245,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # NUANCE MODELS (Warm Surface - Creativity)
     # =========================================================================
     "mistral-nemo": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="mistral-nemo-instruct-2407",
         role=ModelRole.CREATIVE,
         context_window=128000,
@@ -256,7 +259,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "llama-creative": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="llama-3.1-8b-instruct",
         role=ModelRole.CREATIVE,
         context_window=131072,
@@ -273,7 +276,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # FAST MODELS (Edge - Quick responses)
     # =========================================================================
     "phi-4": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="phi-4",
         role=ModelRole.FAST,
         context_window=16384,
@@ -287,7 +290,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "qwen-nano": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="qwen2.5-1.5b-instruct",
         role=ModelRole.FAST,
         context_window=32768,
@@ -301,7 +304,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=90,
     ),
     "gemma-fast": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="gemma-2-2b-instruct",
         role=ModelRole.FAST,
         context_window=8192,
@@ -318,7 +321,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # EMBEDDING MODELS
     # =========================================================================
     "nomic-embed": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="nomic-embed-text-v1.5",
         role=ModelRole.EMBEDDING,
         dimensions=768,
@@ -329,7 +332,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "bge-embed": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="bge-m3",
         role=ModelRole.EMBEDDING,
         dimensions=1024,
@@ -343,7 +346,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # VISION MODELS
     # =========================================================================
     "qwen-vl": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="qwen2-vl-7b-instruct",
         role=ModelRole.VISION,
         context_window=32768,
@@ -358,7 +361,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
         priority=100,
     ),
     "llava": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="llava-v1.6-mistral-7b",
         role=ModelRole.VISION,
         context_window=4096,
@@ -376,7 +379,7 @@ LOCAL_MODELS: dict[str, ModelConfig] = {
     # AGENTIC MODELS
     # =========================================================================
     "agentflow": ModelConfig(
-        endpoint="http://192.168.56.1:1234/v1",
+        endpoint=_LM_STUDIO_ENDPOINT,
         model_id="agentflow-planner-7b",
         role=ModelRole.AGENTIC,
         context_window=32768,
