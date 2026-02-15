@@ -1261,28 +1261,51 @@ class SovereignRuntime:
     async def _build_contextual_prompt(
         self, thought_prompt: str, query: SovereignQuery
     ) -> str:
-        """Build a prompt enriched with user context, PAT identity, and memory retrieval."""
+        """Build a prompt enriched with user context, PAT identity, and memory retrieval.
+
+        Phase 20 Upgrade: Prefers AgentActivator (rich agent instances with full
+        system prompts, model routing, and keyword matching) over legacy
+        select_pat_agent(). Falls back gracefully if activator not wired.
+
+        Standing on: Phase 19 (AgentActivator/AgentExecutor bridge).
+        """
         if not self._user_context:
             return thought_prompt
 
-        # Build PAT team info from genesis
+        # ── PAT Agent Selection (prefer AgentActivator → fallback legacy) ──
         pat_info = ""
-        selected_agent = None
-        if self._genesis and self._genesis.pat_team:
+        selected_agent_role = None
+        agent_system_prompt = ""
+
+        if self._agent_activator and self._agent_activator.active_agents:
+            # Phase 20: Rich agent selection via AgentActivator
+            active_agent = self._agent_activator.select_agent(query.text)
+            if active_agent:
+                selected_agent_role = active_agent.role
+                agent_system_prompt = active_agent.system_prompt
+                pat_info = (
+                    f"Active PAT team: {len(self._agent_activator.active_agents)} agents\n"
+                    f"Responding as: {active_agent.role.upper()} ({active_agent.agent_id})"
+                )
+                # Store preferred model for inference routing
+                if active_agent.preferred_model:
+                    query.context["_preferred_model"] = active_agent.preferred_model
+                self.logger.info(
+                    f"PAT routing: {active_agent.role} selected for query"
+                )
+        elif self._genesis and self._genesis.pat_team:
+            # Legacy fallback: raw genesis PAT team
             roles = [a.role for a in self._genesis.pat_team]
             pat_info = f"Available agents: {', '.join(roles)}"
+            selected_agent_role = select_pat_agent(query.text, self._genesis.pat_team)
+            if selected_agent_role:
+                pat_info += f"\nResponding as: {selected_agent_role.upper()}"
 
-            # Route to best agent
-            selected_agent = select_pat_agent(query.text, self._genesis.pat_team)
-            if selected_agent:
-                pat_info += f"\nResponding as: {selected_agent.upper()}"
-
-        # RAG retrieval from living memory
+        # ── RAG retrieval from living memory ──
         memory_context = ""
         living_memory = getattr(self, "_living_memory", None)
         if living_memory:
             try:
-                # Retrieve memories relevant to the query
                 memories = await living_memory.retrieve(
                     query=query.text, top_k=5, min_score=0.15
                 )
@@ -1290,7 +1313,6 @@ class SovereignRuntime:
                     parts = []
                     for mem in memories:
                         label = mem.memory_type.value.upper()
-                        # Truncate long memories to keep prompt manageable
                         content = mem.content
                         if len(content) > 800:
                             content = content[:800] + "..."
@@ -1301,36 +1323,52 @@ class SovereignRuntime:
                     )
             except Exception as e:
                 self.logger.warning(f"Memory retrieval failed: {e}")
-                # Fall back to working context
                 memory_context = living_memory.get_working_context(max_entries=5)
 
-        # Build system prompt
-        system_prompt = self._user_context.build_system_prompt(
-            pat_team_info=pat_info,
-            memory_context=memory_context,
-        )
+        # ── Build final prompt ──
+        if agent_system_prompt:
+            # Phase 20: Use the activated agent's rich system prompt
+            system_prompt = agent_system_prompt
+            if memory_context:
+                system_prompt += f"\n\n--- MEMORY CONTEXT ---\n{memory_context}"
+        else:
+            # Fallback: build from user context
+            system_prompt = self._user_context.build_system_prompt(
+                pat_team_info=pat_info,
+                memory_context=memory_context,
+            )
 
-        # Store agent routing in query context for downstream use
-        if selected_agent:
-            query.context["_responding_agent"] = selected_agent
+        # Store agent routing in query context for downstream attribution
+        if selected_agent_role:
+            query.context["_responding_agent"] = selected_agent_role
 
         return f"{system_prompt}\n\n--- QUERY ---\n{thought_prompt}"
 
     async def _perform_llm_inference(
         self, thought_prompt: str, compute_tier: Optional[object], query: SovereignQuery
     ) -> tuple[str, str]:
-        """STAGE 2: LLM inference via gateway with user context."""
+        """STAGE 2: LLM inference via gateway with PAT agent model routing.
+
+        Phase 20: Honors _preferred_model from AgentActivator selection.
+        """
         # Build contextual prompt with user profile, memory, and PAT routing
         contextual_prompt = await self._build_contextual_prompt(thought_prompt, query)
+
+        # Phase 20: Extract preferred model from agent routing
+        preferred_model = query.context.get("_preferred_model")
 
         if self._gateway:
             try:
                 infer_method = getattr(self._gateway, "infer", None)
                 if infer_method is not None:
+                    kwargs: dict = {
+                        "tier": compute_tier,
+                        "max_tokens": 512,
+                    }
+                    if preferred_model:
+                        kwargs["model"] = preferred_model
                     inference_result = await infer_method(
-                        contextual_prompt,
-                        tier=compute_tier,
-                        max_tokens=512,
+                        contextual_prompt, **kwargs
                     )
                     answer = getattr(inference_result, "content", str(inference_result))
                     model_used = getattr(inference_result, "model", "unknown")

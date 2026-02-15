@@ -655,6 +655,7 @@ def main() -> None:
         epilog="""
 Examples:
   python -m core.sovereign                          # Interactive REPL
+  python -m core.sovereign genesis                  # Full genesis ceremony
   python -m core.sovereign onboard                  # Create sovereign identity
   python -m core.sovereign dashboard                # View node identity
   python -m core.sovereign impact                   # Sovereignty progression
@@ -698,6 +699,15 @@ Examples:
     onboard_parser.add_argument("--name", help="Display name (optional)")
     onboard_parser.add_argument("--node-dir", help="Node data directory")
     onboard_parser.add_argument("--json", action="store_true", help="JSON output")
+
+    # Genesis command (superset of onboard — the full ceremony)
+    genesis_parser = subparsers.add_parser(
+        "genesis", help="Genesis ceremony — birth of a sovereign node"
+    )
+    genesis_parser.add_argument("--name", help="Display name (optional)")
+    genesis_parser.add_argument("--node-dir", help="Node data directory")
+    genesis_parser.add_argument("--guild", help="Guild to join (default: sovereigns)")
+    genesis_parser.add_argument("--json", action="store_true", help="JSON output")
 
     # Dashboard command
     dashboard_parser = subparsers.add_parser("dashboard", help="View node identity")
@@ -749,6 +759,10 @@ Examples:
         asyncio.run(run_doctor(args.verbose, args.json))
     elif args.command == "onboard":
         run_onboard(args.name, args.node_dir, args.json)
+    elif args.command == "genesis":
+        from .genesis_ceremony import run_genesis_ceremony
+
+        run_genesis_ceremony(args.name, args.node_dir, args.guild, args.json)
     elif args.command == "dashboard":
         run_dashboard(args.node_dir, args.json)
     elif args.command == "impact":
