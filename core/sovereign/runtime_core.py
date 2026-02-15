@@ -103,6 +103,10 @@ class SovereignRuntime:
         self._pek: Optional[object] = None  # ProactiveExecutionKernel
         self._zpk_bootstrap_result: Optional[object] = None
 
+        # Agent Activation (True Spearpoint: genesis → live execution)
+        self._agent_activator: Optional[object] = None  # AgentActivator
+        self._agent_executor: Optional[object] = None  # AgentExecutor
+
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
 
@@ -285,6 +289,9 @@ class SovereignRuntime:
         await self._run_zpk_preflight()
 
         await self._init_components()
+
+        # Activate genesis PAT/SAT agents and wire execution bridge
+        self._init_agent_activation()
 
         if self.config.autonomous_enabled:
             await self._start_autonomous_loop()
@@ -617,6 +624,66 @@ class SovereignRuntime:
             self._pek = None
             self.logger.warning(f"⚠ ProactiveExecutionKernel init failed: {e}")
 
+    def _init_agent_activation(self) -> None:
+        """Activate genesis PAT/SAT agents and wire execution bridge.
+
+        True Spearpoint: bridges genesis identity → live agent execution.
+        Creates the AgentActivator (genesis → active instances) and
+        AgentExecutor (PEK proposals → PAT dispatch → InferenceGateway).
+
+        Standing on Giants: Boyd (OODA ACT) · Wiener (cybernetic control loop)
+        """
+        if not self._genesis:
+            self.logger.info("○ AgentActivation skipped — no genesis identity")
+            return
+
+        try:
+            from .agent_activator import AgentActivator
+            from .agent_executor import AgentExecutor
+
+            # 1. Create activator and activate genesis agents
+            activator = AgentActivator(
+                gateway=self._gateway,
+                ihsan_threshold=self.config.ihsan_threshold,
+                snr_threshold=self.config.snr_threshold,
+            )
+            result = activator.activate_from_genesis(self._genesis)
+            self._agent_activator = activator
+
+            if result.activated > 0:
+                self.logger.info(
+                    "✓ AgentActivator: %d/%d agents ready (%s)",
+                    result.activated,
+                    result.activated + result.failed,
+                    ", ".join(a.role for a in result.agents[:5]),
+                )
+            else:
+                self.logger.warning("⚠ AgentActivation: 0 agents activated")
+                return
+
+            # 2. Create executor and wire to pipeline
+            executor = AgentExecutor(
+                activator=activator,
+                gateway=self._gateway,
+                ihsan_threshold=self.config.ihsan_threshold,
+                snr_threshold=self.config.snr_threshold,
+            )
+            self._agent_executor = executor
+
+            # 3. Wire executor into PEK's OpportunityPipeline (if available)
+            if self._pek and hasattr(self._pek, "_pipeline"):
+                pipeline = self._pek._pipeline
+                if hasattr(pipeline, "set_execution_callback"):
+                    pipeline.set_execution_callback(executor.execute)
+                    self.logger.info(
+                        "✓ AgentExecutor wired to OpportunityPipeline (PEK → PAT dispatch active)"
+                    )
+
+        except ImportError as e:
+            self.logger.warning("⚠ AgentActivation unavailable: %s", e)
+        except Exception as e:
+            self.logger.warning("⚠ AgentActivation failed: %s", e)
+
     async def _init_memory_coordinator(self) -> None:
         """Initialize the unified memory coordinator with auto-save."""
         try:
@@ -761,6 +828,8 @@ class SovereignRuntime:
                 "gateway": self._gateway is not None,
                 "omega": self._omega is not None,
                 "pek": self._pek is not None,
+                "agent_activator": self._agent_activator is not None,
+                "agent_executor": self._agent_executor is not None,
             },
             "cache_size": len(self._cache),
         }
@@ -880,6 +949,13 @@ class SovereignRuntime:
                 await self._pek.stop()
             except Exception:
                 self.logger.debug("PEK stop failed during shutdown", exc_info=True)
+
+        # Deactivate PAT/SAT agents
+        if self._agent_activator and hasattr(self._agent_activator, "deactivate_all"):
+            try:
+                self._agent_activator.deactivate_all()
+            except Exception:
+                self.logger.debug("Agent deactivation failed during shutdown", exc_info=True)
 
         # Save user context (conversation history + profile)
         if self._user_context:
