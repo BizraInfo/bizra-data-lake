@@ -971,9 +971,45 @@ def create_fastapi_app(runtime: Any) -> Any:
     @app.get("/v1/health")
     async def health():
         status = runtime.status()
+
+        # Subsystem availability check
+        subsystems: dict[str, str] = {}
+        _checks = [
+            ("graph_of_thoughts", "_got_reasoner"),
+            ("snr_maximizer", "_snr"),
+            ("guardian_council", "_guardian"),
+            ("autonomous_loop", "_autonomous_loop"),
+            ("cognitive_fusion", "_cognitive_fusion"),
+            ("embedding_service", "_embedding_service"),
+            ("memory_coordinator", "_memory_coordinator"),
+            ("evidence_ledger", "_evidence_ledger"),
+        ]
+        for name, attr in _checks:
+            instance = getattr(runtime, attr, None)
+            if instance is None:
+                subsystems[name] = "unavailable"
+            elif "Stub" in type(instance).__name__:
+                subsystems[name] = "stub"
+            else:
+                subsystems[name] = "active"
+
+        stub_count = sum(1 for v in subsystems.values() if v == "stub")
+        unavailable_count = sum(1 for v in subsystems.values() if v == "unavailable")
+
+        # Override status if many subsystems degraded
+        health_status = status["health"]["status"]
+        if unavailable_count > 3:
+            health_status = "degraded"
+        elif health_status == "unknown" and stub_count == 0:
+            health_status = "partial"
+
         return {
-            "status": status["health"]["status"],
+            "status": health_status,
             "version": status["identity"]["version"],
+            "health_score": status["health"]["score"],
+            "subsystems": subsystems,
+            "stub_count": stub_count,
+            "unavailable_count": unavailable_count,
         }
 
     @app.get("/v1/status")
