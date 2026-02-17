@@ -438,6 +438,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bizra-hypergraph"
+version = "1.0.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tracing",
+]
+
+[[package]]
 name = "bizra-inference"
 version = "1.0.0"
 dependencies = [

@@ -1,5 +1,7 @@
 # Phase 33: HyperGraph RAG — N-ary Relations + Rust Crate + Retrieval Fusion
 
+> **Status: COMPLETE** — See `phase_33_completion.md` for deviations from this spec. Python (13 tests) + Rust crate `bizra-hypergraph` (23 tests).
+
 > Extends the pairwise semantic layer with hyperedge support, enabling concept clusters, causal chains, and cross-domain bridges. Adds a Rust crate for performance-critical graph traversal.
 
 Standing on Giants: Berge (1973, hypergraph theory) + Vaswani (2017, attention as soft hyperedge) + Shannon (1948, information content of hyperedge membership) + Besta (2024, graph-of-thoughts as directed hypergraph)

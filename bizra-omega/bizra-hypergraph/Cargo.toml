@@ -1,0 +1,15 @@
+[package]
+name = "bizra-hypergraph"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "BIZRA HyperGraph — N-ary knowledge graph with SIMD-friendly traversal"
+
+[dependencies]
+blake3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
