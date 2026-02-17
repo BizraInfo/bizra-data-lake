@@ -9,7 +9,7 @@ metadata:
     app: bizra-elite
     app.kubernetes.io/name: bizra
     app.kubernetes.io/component: elite
-    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/version: "1.2.0"
 spec:
   replicas: 3
   selector:
@@ -88,7 +88,7 @@ spec:
                 - ALL
           livenessProbe:
             httpGet:
-              path: /health
+              path: /v1/health
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 20
@@ -96,7 +96,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /v1/health
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -196,13 +196,13 @@ spec:
             readOnlyRootFilesystem: true
           livenessProbe:
             httpGet:
-              path: /health
+              path: /v1/health
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /v1/health
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10

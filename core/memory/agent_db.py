@@ -120,8 +120,8 @@ class AgentDB:
         """
         self._ensure_initialized()
 
-        # Content-addressable ID
-        record_id = hex_digest(content.encode())[:16]
+        # Content-addressable ID (content + source for unique provenance)
+        record_id = hex_digest((content + source).encode())[:16]
 
         # Auto-embed if embedding function is available and no embedding provided
         if embedding is None and self._embedding_fn is not None:

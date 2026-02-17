@@ -584,14 +584,16 @@ class IdentityMinter:
         auto_activate: bool = False,
         task_pool: str = "general",
         federation_assignment: str = "node0",
+        pat_count: int = PAT_AGENT_COUNT,
+        sat_count: int = SAT_AGENT_COUNT,
     ) -> OnboardingResult:
         """
         Complete user onboarding process.
 
         Creates:
         1. Identity card for the user
-        2. 7 PAT (Personal Autonomous Task) agents for the user
-        3. 5 SAT (System Autonomous Task) agents for system treasury
+        2. PAT (Personal Autonomous Task) agents for the user (default: 7)
+        3. SAT (System Autonomous Task) agents for system treasury (default: 5)
 
         Args:
             user_public_key: User's Ed25519 public key (hex)
@@ -599,6 +601,8 @@ class IdentityMinter:
             auto_activate: If True, activate agents immediately
             task_pool: Task pool for SAT agents
             federation_assignment: Federation node for SAT agents
+            pat_count: Number of PAT agents to mint
+            sat_count: Number of SAT agents to mint
 
         Returns:
             OnboardingResult containing all artifacts
@@ -614,18 +618,28 @@ class IdentityMinter:
                 metadata=user_metadata,
             )
 
-            # 2. Mint user's PAT agents (7 agents)
+            # Generate PAT agent types list based on count
+            pat_types = []
+            for i in range(pat_count):
+                pat_types.append(USER_AGENT_ALLOCATION[i % len(USER_AGENT_ALLOCATION)])
+
+            # 2. Mint user's PAT agents
             pat_agents = self.mint_pat_agents(
                 owner_id=identity_card.node_id,
-                agent_types=USER_AGENT_ALLOCATION,
+                agent_types=pat_types,
                 start_index=1,
                 metadata={"onboarding_block": block},
             )
 
-            # 3. Mint system SAT agents (5 agents)
+            # Generate SAT agent types list based on count
+            sat_types = []
+            for i in range(sat_count):
+                sat_types.append(SYSTEM_AGENT_ALLOCATION[i % len(SYSTEM_AGENT_ALLOCATION)])
+
+            # 3. Mint system SAT agents
             sat_agents = self.mint_sat_agents(
                 contribution_source=identity_card.node_id,
-                agent_types=SYSTEM_AGENT_ALLOCATION,
+                agent_types=sat_types,
                 start_index=1,
                 task_pool=task_pool,
                 federation_assignment=federation_assignment,
@@ -820,6 +834,8 @@ def generate_and_onboard() -> Tuple[str, str, OnboardingResult]:
 def mint_genesis_node(
     architect_public_key: str,
     architect_name: str = GENESIS_ARCHITECT,
+    pat_count: int = PAT_AGENT_COUNT,
+    sat_count: int = SAT_AGENT_COUNT,
 ) -> OnboardingResult:
     """
     Mint the Genesis Node — Block0, Node0.
@@ -838,12 +854,14 @@ def mint_genesis_node(
     Args:
         architect_public_key: The Genesis Architect's Ed25519 public key (hex)
         architect_name: Name of the Genesis Architect (default: "MoMo")
+        pat_count: Number of PAT agents to mint (default: 7)
+        sat_count: Number of SAT agents to mint (default: 5)
 
     Returns:
         OnboardingResult containing:
             - Genesis Identity Card (node_id = BIZRA-00000000)
-            - 7 PAT (Personal Agentic Team) agents
-            - 5 SAT (System Agentic Team) agents
+            - PAT (Personal Agentic Team) agents
+            - SAT (System Agentic Team) agents
 
     Raises:
         ValueError: If trying to create genesis with invalid parameters
@@ -878,6 +896,8 @@ def mint_genesis_node(
         auto_activate=True,  # Genesis PAT agents start active
         task_pool="genesis",
         federation_assignment="node0",
+        pat_count=pat_count,
+        sat_count=sat_count,
     )
 
     # If successful, mark as genesis in the result

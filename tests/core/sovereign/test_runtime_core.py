@@ -1833,7 +1833,7 @@ class TestStatus:
         identity = status["identity"]
 
         assert identity["node_id"] == "test-node-0001"
-        assert identity["version"] == "1.0.0"
+        assert identity["version"] == "1.2.0"
         assert identity["origin"]["designation"] == "ephemeral_node"
         assert identity["origin"]["genesis_node"] is False
         assert identity["origin"]["genesis_block"] is False

@@ -42,7 +42,7 @@ spec:
       - name: omega-runtime
         image: bizra-elite:v3.1-omega
         imagePullPolicy: Never
-        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        command: ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

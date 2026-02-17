@@ -36,11 +36,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-# Load .env from project root (supports both LM_STUDIO_API_KEY and LM_API_TOKEN)
-_env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(_env_path)
+    # Load .env from project root (supports both LM_STUDIO_API_KEY and LM_API_TOKEN)
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    load_dotenv(_env_path)
+except ImportError:
+    pass
 
 
 def _resolve_lm_token() -> str:

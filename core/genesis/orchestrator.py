@@ -182,6 +182,8 @@ class GenesisOrchestrator:
         result = mint_genesis_node(
             architect_public_key=public_key,
             architect_name=self.config.architect_name,
+            pat_count=self.config.pat_count,
+            sat_count=self.config.sat_count,
         )
 
         if not result.success:
