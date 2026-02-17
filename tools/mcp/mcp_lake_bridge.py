@@ -3,7 +3,6 @@
 # ⚠️ ARCHITECTURE WARNING: This script is intended to run inside WSL (connecting to /mnt/c/BIZRA-DATA-LAKE).
 #    Running it on Windows (Direct C:) will conflict with the WSL port binding (8443).
 
-import os
 import json
 import argparse
 import platform
@@ -17,7 +16,7 @@ import ssl
 # Import local graph logic
 try:
     from query_graph import query_graph
-    from bizra_config import GRAPH_PATH
+    from bizra_config import GRAPH_PATH  # noqa: F401
 except ImportError:
     # In stdio mode, we can't easily print errors without corrupting the stream
     # so we'll just exit or log to stderr
@@ -45,7 +44,7 @@ def process_mcp_request(request):
                 }
             }
         }
-    
+
     elif method == "notifications/initialized":
         # Client confirming initialization
         return None  # No response needed for notifications
@@ -73,19 +72,19 @@ def process_mcp_request(request):
                 ]
             }
         }
-    
+
     elif method == "tools/call":
         tool_name = params.get("name")
         args = params.get("arguments", {})
-        
+
         if tool_name == "knowledge_retrieve":
             query_text = args.get("query", "")
-            
+
             # Intercept stdout to capture query_graph's print statements
             # This is crucial for both HTTP and Stdio modes
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
-            
+
             try:
                 # Assuming query_graph prints results to stdout
                 query_graph(query_text)
@@ -113,14 +112,14 @@ def process_mcp_request(request):
                 "id": request_id,
                 "error": {"code": -32601, "message": f"Method not found: {tool_name}"}
             }
-            
+
     elif method == "ping":
         return {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {}
         }
-    
+
     else:
         # For unknown methods that expect a response
         if request_id is not None:
@@ -154,7 +153,7 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        
+
         html = """<!DOCTYPE html>
 <html>
 <head>
@@ -179,13 +178,13 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
             <p><strong>Port:</strong> 8443</p>
             <p><strong>Method:</strong> POST (JSON-RPC 2.0) or Stdio</p>
         </div>
-        
+
         <h2>📦 Available Tools</h2>
         <div class="tool">
             <strong>knowledge_retrieve</strong><br>
             Query the BIZRA Data Lake Hypergraph for technical context.
         </div>
-        
+
         <h2>🔗 Usage (Stdio)</h2>
         <pre>python mcp_lake_bridge.py --stdio</pre>
     </div>
@@ -215,24 +214,24 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
 
         # Use shared logic
         response = process_mcp_request(request)
-        
+
         self._set_headers()
         if response:
             self.wfile.write(json.dumps(response).encode())
 
 def run_stdio():
     """Run MCP server over standard input/output (Model Context Protocol)."""
-    # Force stdin/stdout to binary or unbuffered where possible, 
+    # Force stdin/stdout to binary or unbuffered where possible,
     # but Python's print() usually works fine for line-delimited JSON.
     # We just need to ensure no other debug prints pollute stdout.
-    
+
     sys.stderr.write("[MCP] Stdio mode started. Waiting for JSON-RPC messages...\n")
-    
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
             continue
-            
+
         try:
             request = json.loads(line)
             response = process_mcp_request(request)
@@ -248,14 +247,14 @@ def generate_self_signed_cert(cert_dir: Path):
     """Generate self-signed SSL certificate for HTTPS."""
     cert_file = cert_dir / "server.crt"
     key_file = cert_dir / "server.key"
-    
+
     if cert_file.exists() and key_file.exists():
         print(f"[BRIDGE] Using existing certificates in {cert_dir}")
         return str(cert_file), str(key_file)
-    
+
     print("[BRIDGE] Generating self-signed SSL certificate...")
     cert_dir.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         import subprocess
         # Generate self-signed cert using OpenSSL (if available)
@@ -277,7 +276,7 @@ def run_server(port=8443, secure=True, localhost_only=True):
     server_address = (bind_address, port)
     httpd = HTTPServer(server_address, BIZRADataLakeMCP)
 
-    print(f"[BRIDGE] 🔒 SECURITY: Bound to localhost only (127.0.0.1)")
+    print("[BRIDGE] 🔒 SECURITY: Bound to localhost only (127.0.0.1)")
 
     if secure:
         cert_dir = Path(__file__).parent / "04_GOLD" / "certs"
@@ -290,8 +289,8 @@ def run_server(port=8443, secure=True, localhost_only=True):
             httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
             print(f"[BRIDGE] 🔒 BIZRA Data Lake Bridge (HTTPS/TLS 1.2+) on port {port}")
         else:
-            print(f"[BRIDGE] ⚠️ Certificates missing. Falling back to HTTP.")
-    
+            print("[BRIDGE] ⚠️ Certificates missing. Falling back to HTTP.")
+
     httpd.serve_forever()
 
 if __name__ == "__main__":
@@ -304,7 +303,7 @@ if __name__ == "__main__":
 
     if not args.stdio and not args.force_windows:
         BIZRADataLakeMCP.check_environment()
-    
+
     if args.stdio:
         run_stdio()
     else:

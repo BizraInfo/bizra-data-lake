@@ -3,19 +3,19 @@
 ═══════════════════════════════════════════════════════════════════════════════════════════════
     PEAK MCP SERVER — Masterpiece Engine Bridge
 ═══════════════════════════════════════════════════════════════════════════════════════════════
-    
+
     ARCHITECTURE: Exposes the PEAK Masterpiece Engine (Unified DDAGI) to external agents
-    
+
     TOOLS EXPOSED:
       1. peak_query    — Unified query using PeakEngine (GoT + Hypergraph + SNR)
       2. peak_verify   — Third Fact Protocol verification (Neural → Semantic → Formal → Crypto)
       3. peak_status   — Engine health, kernel invariants, and receipts
       4. peak_command  — Execute Sovereign Commands (/A, /C, /X, etc.)
-    
+
     GIANTS ABSORBED:
       - MCP Protocol (Anthropic/Model Context Protocol 2024-11-05)
       - Peak Masterpiece Engine (BIZRA Unified)
-    
+
     Created: 2026-01-26 | Dubai
 ═══════════════════════════════════════════════════════════════════════════════════════════════
 """
@@ -26,11 +26,8 @@ import json
 import argparse
 import logging
 import time
-from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dataclasses import asdict
-from datetime import datetime
-from io import StringIO
 from typing import Dict, Any, Optional, List
 
 # Lazy import to avoid TensorFlow/PyTorch conflict at startup
@@ -84,41 +81,41 @@ SERVER_VERSION = "3.0.0-SINGULARITY"
 
 class PeakEngineInterface:
     """Interface to the Peak Masterpiece Engine."""
-    
+
     def __init__(self):
         self.engine = None
         self.initialized = False
-        
+
     def initialize(self) -> bool:
         """Initialize connection to Peak Engine."""
         try:
             # Lazy import to avoid startup conflicts
             _lazy_import()
-            
+
             logger.info("Initializing Peak Masterpiece Engine...")
             self.engine = PeakMasterpieceEngine()
             self.initialized = True
-            
+
             # Log status
             status = self.engine.get_status()
             logger.info(f"✓ Peak Engine initialized: {status['engine']} v{status['version']}")
             logger.info(f"✓ Kernel Invariants: {status['kernel_invariants']}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Peak Engine: {e}")
             return False
-    
+
     def query(self, query_text: str) -> Dict[str, Any]:
         """Unified query using Peak Engine."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
-        
+
         try:
             start = time.perf_counter()
             result = self.engine.process_query(query_text)
             elapsed = (time.perf_counter() - start) * 1000
-            
+
             return {
                 "query": result.query,
                 "content": result.synthesis,
@@ -132,19 +129,19 @@ class PeakEngineInterface:
         except Exception as e:
             logger.error(f"Query error: {e}")
             return {"error": str(e)}
-    
+
     def verify(self, claim: str) -> Dict[str, Any]:
         """Verify claim via Third Fact Protocol."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
-        
+
         try:
             result = self.engine.verify_third_fact(claim)
             return asdict(result)
         except Exception as e:
             logger.error(f"Verification error: {e}")
             return {"error": str(e)}
-            
+
     def status(self) -> Dict[str, Any]:
         """Get engine status."""
         if not self.initialized:
@@ -155,10 +152,10 @@ class PeakEngineInterface:
         """Execute a Sovereign Command."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
-            
+
         cmd_symbol = info.get("command")
         context = info.get("context", {})
-        
+
         # Find matching command type
         try:
             cmd = next(c for c in CommandType if c.symbol == cmd_symbol)
@@ -173,10 +170,10 @@ class PeakEngineInterface:
         """SINGULARITY: LLM-verified FATE Gate verification."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
-        
+
         try:
             from peak_masterpiece import EvidencePointer
-            
+
             # Build evidence pointers from sources
             evidence = []
             if evidence_sources:
@@ -185,7 +182,7 @@ class PeakEngineInterface:
                         pointer_type="file_path" if not src.startswith("http") else "url",
                         value=src
                     ))
-            
+
             # Run LLM-verified FATE
             result = self.engine.fate_gate.verify_with_llm(
                 content=content,
@@ -193,7 +190,7 @@ class PeakEngineInterface:
                 retrieved_docs=None,
                 timeout=30.0
             )
-            
+
             return {
                 "passed": result.passed,
                 "overall_score": result.overall_score,
@@ -207,17 +204,17 @@ class PeakEngineInterface:
         except Exception as e:
             logger.error(f"FATE verification error: {e}")
             return {"error": str(e)}
-    
+
     def singularity_query(self, query_text: str, verify_fate: bool = True) -> Dict[str, Any]:
         """SINGULARITY: Maximum performance query with guaranteed Ihsān SNR."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
-        
+
         try:
             start = time.perf_counter()
             result = self.engine.process_query(query_text)
             elapsed = (time.perf_counter() - start) * 1000
-            
+
             # Build synergies list with proper attribute names
             top_synergies = []
             for s in result.synergies[:3]:
@@ -227,7 +224,7 @@ class PeakEngineInterface:
                     "strength": s.strength,
                     "type": s.synergy_type.value if hasattr(s.synergy_type, 'value') else str(s.synergy_type)
                 })
-            
+
             return {
                 "query": result.query,
                 "content": result.synthesis,
@@ -358,12 +355,12 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     method = request.get("method")
     params = request.get("params", {})
     request_id = request.get("id")
-    
+
     # Initialization
     if method == "initialize":
         if not peak_interface.initialized:
             peak_interface.initialize()
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -373,23 +370,23 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION}
             }
         }
-    
+
     elif method == "tools/list":
         return {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {"tools": MCP_TOOLS}
         }
-    
+
     elif method == "tools/call":
         tool_name = params.get("name")
         args = params.get("arguments", {})
-        
+
         if not peak_interface.initialized:
             peak_interface.initialize()
-            
+
         result_text = ""
-        
+
         if tool_name == "peak_query":
             res = peak_interface.query(args.get("query", ""))
             result_text = json.dumps(res, indent=2, default=str)
@@ -420,7 +417,7 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "id": request_id,
                 "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}
             }
-            
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -428,7 +425,7 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "content": [{"type": "text", "text": result_text}]
             }
         }
-        
+
     return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -438,14 +435,14 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 class PeakMCPHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         logger.info(f"HTTP: {args[0]}")
-        
+
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
-        
+
         status = peak_interface.status() if peak_interface.initialized else {"status": "inactive"}
-        
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -463,7 +460,7 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
 </head>
 <body>
     <h1>🏔️ PEAK MASTERPIECE ENGINE</h1>
-    
+
     <div class="box">
         <h3>System Status</h3>
         <p><span class="key">Engine:</span> <span class="val">{status.get("engine", "N/A")} v{status.get("version", "N/A")}</span></p>
@@ -471,14 +468,14 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
         <p><span class="key">Receipts Emitted:</span> <span class="val">{status.get("receipts", 0)}</span></p>
         <p><span class="key">Kernel Invariants:</span> <span class="val">{status.get("kernel_invariants", {})}</span></p>
     </div>
-    
+
     <div class="box">
         <h3>Available Tools</h3>
         <ul>
             {''.join(f"<li><strong>{t['name']}</strong>: {t['description']}</li>" for t in MCP_TOOLS)}
         </ul>
     </div>
-    
+
     <div class="box">
         <h3>HTTP Usage</h3>
         <pre>POST / with JSON-RPC body</pre>
@@ -490,16 +487,16 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get('Content-Length', 0))
         data = self.rfile.read(length)
-        
+
         try:
             req = json.loads(data)
             resp = process_mcp_request(req)
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            
+
             if resp:
                 self.wfile.write(json.dumps(resp).encode("utf-8"))
         except Exception as e:
@@ -526,7 +523,7 @@ def run_stdio():
             if resp:
                 print(json.dumps(resp))
                 sys.stdout.flush()
-        except:
+        except Exception:
             pass
 
 if __name__ == "__main__":
@@ -534,7 +531,7 @@ if __name__ == "__main__":
     parser.add_argument("--http", action="store_true")
     parser.add_argument("--port", type=int, default=8444)
     args = parser.parse_args()
-    
+
     if args.http:
         run_http(args.port)
     else:

@@ -311,7 +311,7 @@ class TopologyAnalyzer:
                 continue
 
             # Count edges among neighbors
-            neighbor_set = set(neighbors)
+            set(neighbors)
             triangles = 0
             for i, n1 in enumerate(neighbors):
                 n1_neighbors = set(adj.get(n1, {}).keys())
@@ -782,7 +782,6 @@ class SemanticLayerSeparator:
         # SNR improvement estimate
         # Pre-separation: structural noise dilutes semantic signal
         if report.combined_topology and report.semantic_topology:
-            combined_entropy = report.combined_topology.degree_entropy_ratio
             semantic_entropy = report.semantic_topology.degree_entropy_ratio
 
             # Before: low SNR because structural star topology dominates

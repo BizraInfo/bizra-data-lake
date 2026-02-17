@@ -39,7 +39,6 @@ from __future__ import annotations
 import json
 import logging
 import math
-from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -49,7 +48,6 @@ import numpy as np
 
 from core.integration.constants import (
     IHSAN_WEIGHTS,
-    UNIFIED_IHSAN_THRESHOLD,
 )
 from core.proof_engine.canonical import hex_digest
 
