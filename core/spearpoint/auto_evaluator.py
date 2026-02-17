@@ -21,14 +21,47 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import fcntl
 import logging
+import sys
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
+
+# Cross-platform file locking — fcntl (Unix) or msvcrt (Windows)
+if sys.platform == "win32":
+    try:
+        import msvcrt
+
+        def _lock_file(f: Any) -> None:
+            """Acquire exclusive lock on Windows."""
+            msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+
+        def _unlock_file(f: Any) -> None:
+            """Release lock on Windows."""
+            try:
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass  # Already unlocked
+    except ImportError:
+        # Fallback: no-op locking if msvcrt unavailable
+        def _lock_file(f: Any) -> None:  # type: ignore[misc]
+            pass
+
+        def _unlock_file(f: Any) -> None:  # type: ignore[misc]
+            pass
+else:
+    import fcntl
+
+    def _lock_file(f: Any) -> None:  # type: ignore[misc]
+        """Acquire exclusive lock on Unix."""
+        fcntl.flock(f, fcntl.LOCK_EX)
+
+    def _unlock_file(f: Any) -> None:  # type: ignore[misc]
+        """Release lock on Unix."""
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 from core.benchmark.clear_framework import CLEARFramework
 from core.benchmark.guardrails import GuardrailSuite
@@ -476,7 +509,7 @@ class AutoEvaluator:
             lock_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(lock_path, "w") as lock_file:
-                fcntl.flock(lock_file, fcntl.LOCK_EX)
+                _lock_file(lock_file)
                 try:
                     # Receipt ID must be hex-only per schema
                     receipt_hex = uuid.uuid4().hex
@@ -500,7 +533,7 @@ class AutoEvaluator:
                     )
                     return entry.entry_hash
                 finally:
-                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                    _unlock_file(lock_file)
 
         except Exception as e:
             logger.error(f"Failed to emit receipt for {eval_id}: {e}")

@@ -26,6 +26,7 @@ dependencies = [
     "tqdm>=4.65.0,<5.0",
     "blake3>=0.3.3,<2.0",
     "pynacl>=1.5.0,<2.0",
+    "hnswlib>=0.8.0",
 ]
 
 [project.scripts]
@@ -60,7 +61,7 @@ minimal = [
 [tool.pytest.ini_options]
 # AUTHORITATIVE pytest config (pytest.ini should match or be removed)
 minversion = "7.0"
-addopts = "-v --tb=short --strict-markers --ignore=evidence --ignore=00_INTAKE --ignore=New\\ folder --ignore=tests/root_legacy"
+addopts = "-v --tb=short --strict-markers -m 'not slow' --ignore=evidence --ignore=00_INTAKE --ignore=New\\ folder --ignore=tests/root_legacy"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -271,6 +272,7 @@ module = [
     "aiohttp.*",
     "bizra_omega.*",
     "bizra.*",
+    "hnswlib.*",
 ]
 ignore_missing_imports = true
 

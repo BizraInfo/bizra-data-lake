@@ -129,6 +129,14 @@ try:
         query: str
         top_k: int = 5
 
+    class MemorySearchModel(_PydanticBaseModel):
+        """Request model for /v1/memory/search — AgentDB hybrid search."""
+
+        query: str
+        top_k: int = 10
+        min_score: float = 0.1
+        source: Optional[str] = None
+
     # Phase 20: Spearpoint request models
     class SpearpointReproduceModel(_PydanticBaseModel):
         """Request model for /v1/spearpoint/reproduce — evaluation-first verification."""
@@ -2291,6 +2299,69 @@ def create_fastapi_app(runtime: Any) -> Any:
         except Exception as e:
             logger.error(f"SEL verify failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
+
+    # ─── AgentDB Memory Search Endpoint (V3 Unified Memory) ──────────
+
+    @app.post("/v1/memory/search")
+    async def memory_search(body: MemorySearchModel):
+        """Hybrid memory search using AgentDB (HNSW + FTS5 + score fusion).
+
+        Returns top_k most relevant memory records for the given query.
+        Standing on: Malkov & Yashunin (2016) — HNSW; Robertson (2009) — BM25.
+        """
+        agent_db = getattr(runtime, "_agent_db", None)
+        if agent_db is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "AgentDB not initialized"},
+            )
+
+        try:
+            if not body.query:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Query text required"},
+                )
+            top_k = max(1, min(body.top_k, 100))
+            results = agent_db.search(
+                query=body.query,
+                top_k=top_k,
+                min_score=body.min_score,
+                source=body.source,
+            )
+            return {
+                "query": body.query,
+                "top_k": top_k,
+                "count": len(results),
+                "results": [
+                    {
+                        "id": r.record.id,
+                        "content": r.record.content[:500],
+                        "kind": r.record.kind.value,
+                        "score": round(r.score, 4),
+                        "vector_score": round(r.vector_score, 4),
+                        "keyword_score": round(r.keyword_score, 4),
+                        "recency_score": round(r.recency_score, 4),
+                        "importance_score": round(r.importance_score, 4),
+                        "source": r.record.source,
+                    }
+                    for r in results
+                ],
+            }
+        except Exception as e:
+            logger.error(f"AgentDB search failed: {e}")
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.get("/v1/memory/stats")
+    async def memory_stats():
+        """Get AgentDB statistics (record counts, vector index, paths)."""
+        agent_db = getattr(runtime, "_agent_db", None)
+        if agent_db is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "AgentDB not initialized"},
+            )
+        return agent_db.stats()
 
     # ─── SJE Judgment Telemetry Endpoints (Phase A: Observation) ──────
 
