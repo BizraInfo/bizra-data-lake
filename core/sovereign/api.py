@@ -324,12 +324,18 @@ class RateLimiter:
         self.rate = requests_per_minute / 60.0  # tokens per second
         self.burst = burst_size
         self.buckets: dict[str, dict[str, float]] = {}
+        self._max_buckets = 10_000  # Evict stale entries to prevent OOM (SAPE-011)
 
     def check(self, key: str) -> bool:
         """Check if request is allowed."""
         now = time.time()
 
         if key not in self.buckets:
+            if len(self.buckets) >= self._max_buckets:
+                cutoff = now - 600  # 10 min idle = stale
+                stale = [k for k, v in self.buckets.items() if v["last"] < cutoff]
+                for k in stale:
+                    del self.buckets[k]
             self.buckets[key] = {"tokens": self.burst, "last": now}
             return True
 
@@ -435,7 +441,17 @@ class SovereignAPIServer:
             if len(parts) < 2:
                 return
 
-            method, path = parts[0], parts[1]
+            full_path = parts[1]
+            # Parse querystring from URL (SAPE-005 fix)
+            if "?" in full_path:
+                path, qs = full_path.split("?", 1)
+                params = dict(
+                    pair.split("=", 1) for pair in qs.split("&") if "=" in pair
+                )
+            else:
+                path = full_path
+                params = {}
+            method = parts[0]
 
             # Read headers
             headers = {}
@@ -462,7 +478,7 @@ class SovereignAPIServer:
                 body = await reader.read(content_length)
 
             # Route request
-            response = await self._route(method, path, headers, body)
+            response = await self._route(method, path, headers, body, params)
 
             # Send response
             resp_bytes = response.encode() if isinstance(response, str) else response
@@ -480,6 +496,7 @@ class SovereignAPIServer:
         path: str,
         headers: dict[str, str],
         body: bytes,
+        params: dict[str, str] | None = None,
     ) -> str:
         """Route request to handler."""
         self._request_count += 1
@@ -931,7 +948,11 @@ def create_fastapi_app(runtime: Any) -> Any:
         _auth_available = True
         logger.info("Phase 21: Auth layer initialized (UserStore + JWT + Middleware)")
     except Exception as e:
-        logger.warning(f"Phase 21: Auth layer not available: {e}")
+        logger.error(
+            "SECURITY: Auth layer failed to initialize: %s. "
+            "Protected endpoints will deny requests until auth is restored.",
+            e,
+        )
         _user_store = None  # type: ignore[assignment]
         _jwt_auth = None  # type: ignore[assignment]
         _auth_middleware = None  # type: ignore[assignment]
@@ -1022,7 +1043,23 @@ def create_fastapi_app(runtime: Any) -> Any:
         return PlainTextResponse(m.to_prometheus(include_help=False))
 
     @app.post("/v1/query")
-    async def query(body: QueryRequestModel):
+    async def query(body: QueryRequestModel, request: Request):
+        """Query endpoint — auth-aware when auth layer is available.
+
+        Security: single handler prevents route-shadowing bypass (SAPE-001).
+        When auth is available, extracts user_id from JWT/API key.
+        When auth is unavailable or token invalid, proceeds as anonymous.
+        """
+        user_id = ""
+        if _auth_available:
+            try:
+                user = _auth_middleware.authenticate_request(request)
+                if user is not None:
+                    user_id = user.user_id
+                    _user_store.increment_query_count(user_id)
+            except Exception as e:
+                logger.debug("Auth extraction failed (anonymous access): %s", e)
+
         result = await runtime.query(
             body.query,
             context=body.context,
@@ -1030,6 +1067,7 @@ def create_fastapi_app(runtime: Any) -> Any:
             require_validation=body.require_validation,
             max_depth=body.max_depth,
             timeout_ms=body.timeout_ms,
+            user_id=user_id,
         )
 
         response: dict[str, Any] = {
@@ -1044,6 +1082,8 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "total_ms": result.processing_time_ms,
             },
         }
+        if user_id:
+            response["user_id"] = user_id
         # Spearpoint: include content-addressed graph hash when available
         if result.graph_hash:
             response["graph_hash"] = result.graph_hash
@@ -2681,6 +2721,11 @@ def create_fastapi_app(runtime: Any) -> Any:
             """Refresh an access token using a valid refresh token."""
             try:
                 new_pair = _jwt_auth.refresh_access_token(body.refresh_token)
+                if new_pair is None:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"error": "Invalid or expired refresh token"},
+                    )
                 return {
                     "access_token": new_pair.access_token,
                     "refresh_token": new_pair.refresh_token,
@@ -2713,55 +2758,9 @@ def create_fastapi_app(runtime: Any) -> Any:
                     status_code=401, content={"error": "Authentication required"}
                 )
 
-    # ─── Wire Auth into Protected Routes ──────────────────────────────
-    # Override /v1/query to propagate user_id when auth is available
-    if _auth_available:
-        _original_query = query  # capture the existing handler
-
-        @app.post("/v1/query", name="query_authenticated", include_in_schema=False)
-        async def query_with_auth(body: QueryRequestModel, request: Request):
-            """Authenticated query — propagates user_id into the pipeline."""
-            user_id = ""
-            try:
-                user = _auth_middleware.authenticate_request(request)
-                if user is not None:
-                    user_id = user.user_id
-                    _user_store.increment_query_count(user_id)
-            except Exception as e:
-                logger.debug("Auth extraction failed (anonymous access): %s", e)
-
-            result = await runtime.query(
-                body.query,
-                context=body.context,
-                require_reasoning=body.require_reasoning,
-                require_validation=body.require_validation,
-                max_depth=body.max_depth,
-                timeout_ms=body.timeout_ms,
-                user_id=user_id,
-            )
-
-            response: dict[str, Any] = {
-                "id": result.query_id,
-                "success": result.success,
-                "answer": result.response,
-                "user_id": result.user_id,
-                "quality": {
-                    "snr": result.snr_score,
-                    "ihsan": result.ihsan_score,
-                },
-                "timing": {
-                    "total_ms": result.processing_time_ms,
-                },
-            }
-            if result.graph_hash:
-                response["graph_hash"] = result.graph_hash
-            ledger = getattr(runtime, "_evidence_ledger", None)
-            if ledger and hasattr(ledger, "sequence") and ledger.sequence > 0:
-                response["receipt"] = {
-                    "sequence": ledger.sequence,
-                    "chain_hash": ledger.last_hash[:16] + "...",
-                }
-            return response
+    # ─── Auth Route Wiring ────────────────────────────────────────────
+    # Note: /v1/query is auth-aware via single handler (SAPE-001 fix).
+    # No duplicate route registration needed.
 
     import pathlib
 

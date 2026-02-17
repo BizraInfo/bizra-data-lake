@@ -56,6 +56,7 @@ class AuthMiddleware:
         self._rate = rate_limit_per_minute / 60.0
         self._burst = burst_size
         self._buckets: dict[str, dict[str, float]] = {}
+        self._BUCKET_MAX = 10_000  # Max tracked clients; evict stale (SAPE-011)
 
     def authenticate(
         self,
@@ -110,10 +111,17 @@ class AuthMiddleware:
 
         Returns True if allowed, False if throttled.
         Uses token bucket algorithm (same as existing RateLimiter).
+        Evicts stale entries when bucket count exceeds _BUCKET_MAX (SAPE-011).
         """
         now = time.time()
 
         if user_id not in self._buckets:
+            # Evict stale buckets when approaching limit
+            if len(self._buckets) >= self._BUCKET_MAX:
+                stale_cutoff = now - 600  # 10 min idle = stale
+                stale = [k for k, v in self._buckets.items() if v["last"] < stale_cutoff]
+                for k in stale:
+                    del self._buckets[k]
             self._buckets[user_id] = {"tokens": float(self._burst), "last": now}
             return True
 

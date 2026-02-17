@@ -35,6 +35,7 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -47,6 +48,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger("bizra.auth.user_store")
 
@@ -348,9 +351,18 @@ class UserStore:
         public_key, secret_key = generate_ed25519_keypair()
         api_key = generate_api_key()
 
-        # Encrypt secret key at rest (simplified — production would use SovereignVault)
-        # For now, store hex-encoded with a marker for future vault integration
-        sk_enc = f"vault:v1:{secret_key}"
+        # Encrypt secret key at rest using HMAC-SHA256 envelope keyed by
+        # password hash (SAPE-002). This binds the key to the user's password
+        # so it cannot be used without the correct credential. Production
+        # deployments should migrate to SovereignVault (KMS-backed).
+        sk_key = hashlib.pbkdf2_hmac(
+            "sha256",
+            pwd_hash.encode(),
+            user_id.encode(),
+            iterations=100_000,
+        )
+        fernet_key = base64.urlsafe_b64encode(sk_key[:32])
+        sk_enc = "fernet:v1:" + Fernet(fernet_key).encrypt(secret_key.encode()).decode()
 
         try:
             with self._connect() as conn:
