@@ -717,6 +717,7 @@ Examples:
   python -m core.sovereign bridge start              # Start desktop bridge (AHK)
   python -m core.sovereign bridge ping               # Ping running bridge
   python -m core.sovereign bridge status             # Bridge status
+  python -m core.sovereign genesis --identity-genesis --pat-7 --sat-5  # Bootstrap node
   python -m core.sovereign hunter scan 0x...        # Scan contract for vulns
   python -m core.sovereign hunter report scan.json  # Generate Immunefi report
         """,
@@ -831,6 +832,11 @@ Examples:
 
     # Tokens command
     subparsers.add_parser("tokens", help="View token supply and stats")
+
+    # Genesis command (one-command node bootstrap)
+    from core.genesis.cli import build_genesis_parser
+
+    build_genesis_parser(subparsers)
 
     # Version command
     subparsers.add_parser("version", help="Show version")
@@ -997,6 +1003,10 @@ Examples:
                 sys.exit(1)
         else:
             bridge_parser.print_help()
+    elif args.command == "genesis":
+        from core.genesis.cli import handle_genesis
+
+        handle_genesis(args)
     elif args.command == "wallet":
         _handle_wallet_command()
     elif args.command == "tokens":
