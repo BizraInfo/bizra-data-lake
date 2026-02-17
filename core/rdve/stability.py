@@ -21,14 +21,9 @@ import math
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.integration.constants import (
-    CONFIDENCE_HIGH,
-    CONFIDENCE_LOW,
-    CONFIDENCE_MEDIUM,
-    CONFIDENCE_MINIMUM,
-    UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
 

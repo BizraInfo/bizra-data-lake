@@ -33,14 +33,14 @@ Mathematical Foundation:
 
     Ruggedness Measure (Weinberger, 1990):
         ρ(d) = corr(f(x), f(x')) for ||x - x'|| = d
-        
+
         Correlation length: τ = -1/ln(ρ(1))
         Short τ = rugged landscape (many local optima)
         Long τ = smooth landscape (few local optima)
 
     Selection Pressure (Fisher, 1930):
         s = σ²_fitness / mean_fitness
-        
+
         σ²/s ≈ 2.3 → punctuated equilibrium:
         - Long periods of stasis (stuck on local peak)
         - Brief bursts of rapid change (crossing valleys)
@@ -58,17 +58,12 @@ from __future__ import annotations
 
 import logging
 import math
-import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import numpy as np
 
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +220,7 @@ class NKLandscapeMonitor:
 
     Usage:
         monitor = NKLandscapeMonitor(N=8, K=2)
-        
+
         for generation in range(100):
             snapshot = FitnessSnapshot(
                 generation=generation,
@@ -233,7 +228,7 @@ class NKLandscapeMonitor:
                 novelty_score=0.85, efficiency_score=0.88,
             )
             metrics = monitor.observe(snapshot)
-            
+
             if metrics.innovation_recommended:
                 # Trigger innovation burst
                 mutation_rate = metrics_to_mutation_rate(metrics)

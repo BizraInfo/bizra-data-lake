@@ -43,11 +43,7 @@ from core.autopoiesis.hypothesis_generator import (
 )
 from core.autopoiesis.loop_engine import AutopoieticLoop
 from core.integration.constants import (
-    CONFIDENCE_HIGH,
-    CONFIDENCE_MEDIUM,
-    CONFIDENCE_MINIMUM,
     STRICT_IHSAN_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
@@ -398,7 +394,6 @@ class RDVEOrchestrator:
         start = time.time()
 
         try:
-            import asyncio
             import inspect
 
             if self.config.use_mcts:
@@ -605,7 +600,7 @@ class RDVEOrchestrator:
             _ir = self._loop.implement(best.hypothesis)
             impl_result = await _ir if inspect.isawaitable(_ir) else _ir
             _int = self._loop.integrate(impl_result)
-            int_result = await _int if inspect.isawaitable(_int) else _int
+            await _int if inspect.isawaitable(_int) else _int
 
             duration = (time.time() - start) * 1000
             return StageResult(

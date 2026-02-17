@@ -27,11 +27,16 @@ import logging
 import argparse
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Any, Dict, List, Optional
-from dataclasses import asdict
+from typing import Any, Dict, Optional
 
 # Set up path to ensure imports work
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+_mcp_dir = os.path.dirname(os.path.abspath(__file__))
+_tools_dir = os.path.dirname(_mcp_dir)          # tools/
+_project_root = os.path.dirname(_tools_dir)      # BIZRA-DATA-LAKE/
+sys.path.insert(0, _mcp_dir)
+sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
+sys.path.insert(0, os.path.join(_tools_dir, "engines"))
+sys.path.insert(0, _project_root)
 
 # Import Ecosystem Bridge (Lazy Loading)
 EcosystemBridge = Any
@@ -66,31 +71,31 @@ SERVER_VERSION = "2.0.0"
 
 class EcosystemInterface:
     """Synchronous wrapper for the Async Ecosystem Bridge."""
-    
+
     def __init__(self):
         self.bridge: Optional[EcosystemBridge] = None
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        
+
     def initialize(self):
         """Initialize the ecosystem if not already done."""
         global EcosystemBridge, UnifiedQuery, UnifiedResponse, initialize_ecosystem, get_ecosystem, Constitution, DaughterTest, RIBA_ZERO, ZANN_ZERO, IHSAN_FLOOR
-        
+
         if not self.bridge:
             log.info("Lazy importing Ecosystem Bridge...")
             try:
                 from ecosystem_bridge import (
-                    initialize_ecosystem as init_eco, 
-                    EcosystemBridge as EcoBridge, 
-                    UnifiedQuery as UQuery, 
-                    UnifiedResponse as UResponse, 
+                    initialize_ecosystem as init_eco,
+                    EcosystemBridge as EcoBridge,
+                    UnifiedQuery as UQuery,
+                    UnifiedResponse as UResponse,
                     get_ecosystem as get_eco
                 )
                 from ultimate_engine import (
-                    RIBA_ZERO as RZ, ZANN_ZERO as ZZ, IHSAN_FLOOR as IF, 
+                    RIBA_ZERO as RZ, ZANN_ZERO as ZZ, IHSAN_FLOOR as IF,
                     Constitution as Const, DaughterTest as DT
                 )
-                
+
                 # Update globals
                 EcosystemBridge = EcoBridge
                 UnifiedQuery = UQuery
@@ -102,7 +107,7 @@ class EcosystemInterface:
                 RIBA_ZERO = RZ
                 ZANN_ZERO = ZZ
                 IHSAN_FLOOR = IF
-                
+
             except ImportError as e:
                 log.error(f"Failed to import Ecosystem: {e}")
                 raise
@@ -110,31 +115,31 @@ class EcosystemInterface:
             log.info("Initializing Ecosystem Bridge...")
             self.bridge = self.loop.run_until_complete(initialize_ecosystem())
             log.info(f"✓ Ecosystem Online: {self.bridge.node_id}")
-            
+
     def query(self, text: str, mode: str = "standard") -> Dict[str, Any]:
         """Run a unified query."""
         self.initialize()
-        
+
         require_const = True
         require_daughter = True
-        
+
         if mode == "fast":
             require_daughter = False
         elif mode == "audit":
             require_const = True
-            
+
         u_query = UnifiedQuery(
             text=text,
             require_constitution_check=require_const,
             require_daughter_test=require_daughter
         )
-        
+
         start = time.perf_counter()
         response: UnifiedResponse = self.loop.run_until_complete(
             self.bridge.query(u_query)
         )
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         return {
             "synthesis": response.synthesis,
             "snr_score": response.snr_score,
@@ -150,16 +155,16 @@ class EcosystemInterface:
         self.initialize()
         health = self.bridge.get_health()
         return health.to_dict()
-        
+
     def check_compliance(self, text: str) -> Dict[str, Any]:
         """Check specific BIZRA compliance."""
         # Using UltimateEngine components directly for granular check
         from ultimate_engine import Constitution
-        
+
         start = time.perf_counter()
         issues = Constitution.check_for_violations(text)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         return {
             "compliant": len(issues) == 0,
             "violation_count": len(issues),
@@ -173,7 +178,7 @@ class EcosystemInterface:
         start = time.perf_counter()
         result = DaughterTest.evaluate(text)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         return {
             "passed": result.passed,
             "score": result.score,
@@ -242,7 +247,7 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     method = request.get("method")
     params = request.get("params", {})
     req_id = request.get("id")
-    
+
     if method == "initialize":
         interface.initialize()
         return {
@@ -254,18 +259,18 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION}
             }
         }
-        
+
     elif method == "tools/list":
         return {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {"tools": MCP_TOOLS}
         }
-        
+
     elif method == "tools/call":
         name = params.get("name")
         args = params.get("arguments", {})
-        
+
         try:
             result_data = {}
             if name == "ecosystem_query":
@@ -282,7 +287,7 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                     "id": req_id,
                     "error": {"code": -32601, "message": f"Unknown tool: {name}"}
                 }
-            
+
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
@@ -290,15 +295,15 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                     "content": [{"type": "text", "text": json.dumps(result_data, indent=2, default=str)}]
                 }
             }
-            
+
         except Exception as e:
             log.error(f"Error executing tool {name}: {e}")
             return {
-                "jsonrpc": "2.0", 
-                "id": req_id, 
+                "jsonrpc": "2.0",
+                "id": req_id,
                 "error": {"code": -32000, "message": str(e)}
             }
-            
+
     return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -308,17 +313,17 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 class MCPHTTPHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         log.info(f"HTTP: {args[0]}")
-        
+
     def do_GET(self):
         """Simple status page."""
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        
+
         try:
             health = interface.health()
             status_color = "#0f0" if health.get('overall_health', 0) > 0.9 else "#fa0"
-            
+
             html = f"""<!DOCTYPE html>
             <html>
             <body style="background:#080808; color:#eee; font-family:monospace; padding:2rem;">
@@ -346,16 +351,16 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get('Content-Length', 0))
             data = self.rfile.read(length)
             req = json.loads(data)
-            
+
             resp = handle_mcp_request(req)
-            
+
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            
+
             if resp:
                 self.wfile.write(json.dumps(resp).encode())
-                
+
         except Exception as e:
             self.send_error(500, str(e))
 
@@ -373,10 +378,11 @@ def run_server(mode="stdio", port=8888):
         interface.initialize()
         log.info("MCP Server listening on STDIO")
         sys.stdout.flush()
-        
+
         for line in sys.stdin:
             try:
-                if not line.strip(): continue
+                if not line.strip():
+                    continue
                 req = json.loads(line)
                 resp = handle_mcp_request(req)
                 if resp:
@@ -392,5 +398,5 @@ if __name__ == "__main__":
     parser.add_argument("--http", action="store_true", help="Run in HTTP mode")
     parser.add_argument("--port", type=int, default=8888, help="Port for HTTP mode")
     args = parser.parse_args()
-    
+
     run_server(mode="http" if args.http else "stdio", port=args.port)

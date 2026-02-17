@@ -74,6 +74,13 @@ else
     exit 1
 fi
 
+# Load .env for API tokens (LM_API_TOKEN, LM_STUDIO_API_KEY, etc.)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
 # Export environment variables
 export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 export BIZRA_PROACTIVE_MODE="$MODE"

@@ -3,9 +3,9 @@
 ═══════════════════════════════════════════════════════════════════════════════════════════════
     SOVEREIGN MCP SERVER — Model Context Protocol Bridge to the House of Wisdom
 ═══════════════════════════════════════════════════════════════════════════════════════════════
-    
+
     ARCHITECTURE: Exposes the full Sovereign Brain (488 nodes, 2 engines) to external agents
-    
+
     TOOLS EXPOSED:
       1. sovereign_query      — Unified query across all engines (Apex + Nexus)
       2. sovereign_patterns   — Discover knowledge patterns (Hubs, Bridges, Co-occurrence)
@@ -13,17 +13,17 @@
       4. sovereign_health     — Brain health diagnostics
       5. sovereign_stats      — Full system statistics
       6. sovereign_reason     — Deep GoT reasoning chain
-    
+
     TRANSPORTS SUPPORTED:
       - Stdio (default for MCP)
       - HTTP/HTTPS (for direct API access)
-    
+
     GIANTS ABSORBED:
       - MCP Protocol (Anthropic/Model Context Protocol 2024-11-05)
       - Sovereign Brain (BIZRA)
       - 4-Layer Apex Engine (Vector + Graph + Reasoning + Pattern)
       - GoT + SNR Reasoning (Nexus)
-    
+
     Created: 2026-01-22 | Dubai
 ═══════════════════════════════════════════════════════════════════════════════════════════════
 """
@@ -37,10 +37,18 @@ import time
 import ssl
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from typing import Optional, Dict, Any, List
 from io import StringIO
 from datetime import datetime
+
+# Set up path to ensure tools/ sibling imports work
+_mcp_dir = os.path.dirname(os.path.abspath(__file__))
+_tools_dir = os.path.dirname(_mcp_dir)          # tools/
+_project_root = os.path.dirname(_tools_dir)      # BIZRA-DATA-LAKE/
+sys.path.insert(0, os.path.join(_tools_dir, "engines"))
+sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
+sys.path.insert(0, _project_root)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING SETUP
@@ -71,48 +79,48 @@ GOLD_PATH = BASE_PATH / "04_GOLD"
 
 class SovereignBrainInterface:
     """Interface to the Sovereign Brain orchestration layer."""
-    
+
     def __init__(self):
         self.brain = None
         self.apex_adapter = None
         self.nexus_adapter = None
         self.initialized = False
-        
+
     def initialize(self) -> bool:
         """Initialize connection to Sovereign Brain."""
         try:
             # Import engines
             from sovereign_brain import SovereignBrain
-            
+
             # Initialize brain (will load engines via adapters)
             self.brain = SovereignBrain()
             self.brain.awaken()
-            
+
             # Direct access to engine adapters for specialized operations
             self.apex_adapter = self.brain.adapters.get('apex')
             self.nexus_adapter = self.brain.adapters.get('nexus')
-            
+
             self.initialized = True
             logger.info(f"✓ Sovereign Brain initialized: {self.brain.state.total_nodes} nodes")
             return True
-            
+
         except ImportError as e:
             logger.error(f"Failed to import Sovereign Brain: {e}")
             return False
         except Exception as e:
             logger.error(f"Failed to initialize Sovereign Brain: {e}")
             return False
-    
+
     def query(self, query_text: str, limit: int = 10) -> Dict[str, Any]:
         """Unified query across all engines."""
         if not self.initialized:
             return {"error": "Brain not initialized", "results": []}
-        
+
         try:
             start = time.perf_counter()
             result = self.brain.query(query_text, max_results=limit)
             elapsed = (time.perf_counter() - start) * 1000
-            
+
             return {
                 "query": query_text,
                 "results": result.results if hasattr(result, 'results') else [],
@@ -124,12 +132,12 @@ class SovereignBrainInterface:
         except Exception as e:
             logger.error(f"Query error: {e}")
             return {"error": str(e), "results": []}
-    
+
     def get_patterns(self) -> List[Dict]:
         """Get discovered knowledge patterns."""
         if not self.initialized or not self.apex_adapter:
             return []
-        
+
         try:
             engine = self.apex_adapter.engine
             if engine and hasattr(engine, 'pattern_layer'):
@@ -139,17 +147,17 @@ class SovereignBrainInterface:
         except Exception as e:
             logger.error(f"Pattern fetch error: {e}")
             return []
-    
+
     def get_communities(self) -> Dict[str, Any]:
         """Get detected communities."""
         if not self.initialized or not self.apex_adapter:
             return {}
-        
+
         try:
             engine = self.apex_adapter.engine
             if engine and hasattr(engine, 'graph_layer'):
                 communities = engine.graph_layer.communities if hasattr(engine.graph_layer, 'communities') else {}
-                
+
                 # Summarize communities
                 summary = {}
                 for name, nodes in communities.items():
@@ -162,25 +170,25 @@ class SovereignBrainInterface:
         except Exception as e:
             logger.error(f"Community fetch error: {e}")
             return {}
-    
+
     def get_health(self) -> Dict[str, Any]:
         """Get brain health diagnostics."""
         if not self.initialized:
             return {"status": "offline", "engines": {}}
-        
+
         try:
             return self.brain.health_check()
         except Exception as e:
             return {"status": "error", "error": str(e)}
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get full system statistics."""
         if not self.initialized:
             return {"status": "offline"}
-        
+
         try:
             from sovereign_brain import EngineStatus
-            
+
             return {
                 "brain_status": "online" if self.brain.state.is_healthy else "degraded",
                 "total_nodes": self.brain.state.total_nodes,
@@ -201,34 +209,34 @@ class SovereignBrainInterface:
         except Exception as e:
             logger.error(f"Stats error: {e}")
             return {"status": "error", "error": str(e)}
-    
+
     def reason(self, question: str, depth: int = 3) -> Dict[str, Any]:
         """Deep GoT reasoning chain."""
         if not self.initialized or not self.nexus_adapter:
             return {"error": "Nexus engine not available"}
-        
+
         try:
             engine = self.nexus_adapter.engine
             if not engine:
                 return {"error": "Nexus engine not loaded"}
-            
+
             # Capture reasoning output
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
-            
+
             try:
                 results = engine.query(question, max_results=10)
                 output = mystdout.getvalue()
             finally:
                 sys.stdout = old_stdout
-            
+
             # Extract results from the query result object
             result_list = []
             snr_score = 0.0
             if hasattr(results, 'nodes'):
                 result_list = [{"name": n.name, "type": n.type.name, "snr": n.snr_score} for n in results.nodes]
                 snr_score = results.snr if hasattr(results, 'snr') else 0.0
-            
+
             return {
                 "question": question,
                 "reasoning_depth": depth,
@@ -333,16 +341,16 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     method = request.get("method")
     params = request.get("params", {})
     request_id = request.get("id")
-    
+
     # ═══════════════════════════════════════════════════════════════════════════
     # PROTOCOL METHODS
     # ═══════════════════════════════════════════════════════════════════════════
-    
+
     if method == "initialize":
         # Initialize brain on first connection
         if not brain_interface.initialized:
             brain_interface.initialize()
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -357,10 +365,10 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 }
             }
         }
-    
+
     elif method == "notifications/initialized":
         return None  # No response for notifications
-    
+
     elif method == "tools/list":
         return {
             "jsonrpc": "2.0",
@@ -369,69 +377,69 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "tools": MCP_TOOLS
             }
         }
-    
+
     elif method == "ping":
         return {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {}
         }
-    
+
     # ═══════════════════════════════════════════════════════════════════════════
     # TOOL CALLS
     # ═══════════════════════════════════════════════════════════════════════════
-    
+
     elif method == "tools/call":
         tool_name = params.get("name")
         args = params.get("arguments", {})
-        
+
         # Ensure brain is initialized
         if not brain_interface.initialized:
             brain_interface.initialize()
-        
+
         result_text = ""
-        
+
         if tool_name == "sovereign_query":
             query = args.get("query", "")
             limit = args.get("limit", 10)
             result = brain_interface.query(query, limit)
             result_text = json.dumps(result, indent=2, default=str)
-            
+
         elif tool_name == "sovereign_patterns":
             patterns = brain_interface.get_patterns()
             result_text = json.dumps({
                 "pattern_count": len(patterns),
                 "patterns": patterns
             }, indent=2, default=str)
-            
+
         elif tool_name == "sovereign_communities":
             communities = brain_interface.get_communities()
             result_text = json.dumps({
                 "community_count": len(communities),
                 "communities": communities
             }, indent=2, default=str)
-            
+
         elif tool_name == "sovereign_health":
             health = brain_interface.get_health()
             result_text = json.dumps(health, indent=2, default=str)
-            
+
         elif tool_name == "sovereign_stats":
             stats = brain_interface.get_stats()
             result_text = json.dumps(stats, indent=2, default=str)
-            
+
         elif tool_name == "sovereign_reason":
             question = args.get("question", "")
             depth = args.get("depth", 3)
             result = brain_interface.reason(question, depth)
             result_text = json.dumps(result, indent=2, default=str)
-            
+
         else:
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}
             }
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -444,7 +452,7 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 ]
             }
         }
-    
+
     # Unknown method
     if request_id is not None:
         return {
@@ -460,19 +468,19 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 class SovereignMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for MCP requests."""
-    
+
     def log_message(self, format, *args):
         """Override to log to stderr."""
         logger.info(f"HTTP: {args[0]}")
-    
+
     def do_GET(self):
         """Serve status page."""
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        
+
         stats = brain_interface.get_stats() if brain_interface.initialized else {"status": "not initialized"}
-        
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -499,14 +507,14 @@ class SovereignMCPHandler(BaseHTTPRequestHandler):
 <body>
     <div class="container">
         <h1>🧠 Sovereign MCP Server — House of Wisdom</h1>
-        
+
         <div class="status">
             <p><strong>Status:</strong> <span class="{'online' if brain_interface.initialized else 'offline'}">
                 {'● ONLINE' if brain_interface.initialized else '○ OFFLINE'}</span></p>
             <p><strong>Protocol:</strong> MCP (Model Context Protocol) {MCP_PROTOCOL_VERSION}</p>
             <p><strong>Transport:</strong> Stdio (default) | HTTP/HTTPS</p>
         </div>
-        
+
         <div class="stats">
             <div class="stat-box">
                 <div class="stat-value">{stats.get('total_nodes', 0)}</div>
@@ -521,7 +529,7 @@ class SovereignMCPHandler(BaseHTTPRequestHandler):
                 <div class="stat-label">Engines Online</div>
             </div>
         </div>
-        
+
         <h2>📦 Available Tools</h2>
         {''.join(f'''
         <div class="tool">
@@ -529,7 +537,7 @@ class SovereignMCPHandler(BaseHTTPRequestHandler):
             <div class="tool-desc">{tool['description']}</div>
         </div>
         ''' for tool in MCP_TOOLS)}
-        
+
         <h2>🔗 Usage</h2>
         <pre>
 # Stdio mode (for Claude, Copilot, etc.)
@@ -538,7 +546,7 @@ python sovereign_mcp_server.py --stdio
 # HTTP mode (for direct API access)
 python sovereign_mcp_server.py --http --port 8444
         </pre>
-        
+
         <h2>⚙️ MCP Configuration</h2>
         <pre>
 # claude_desktop_config.json
@@ -555,32 +563,32 @@ python sovereign_mcp_server.py --http --port 8444
 </body>
 </html>"""
         self.wfile.write(html.encode())
-    
+
     def do_POST(self):
         """Handle MCP requests."""
         content_length = int(self.headers.get('Content-Length', 0))
-        
+
         if content_length <= 0:
             self.send_error(400, "Missing Content-Length")
             return
-        
+
         if content_length > 1024 * 1024:  # 1MB limit
             self.send_error(413, "Request too large")
             return
-        
+
         try:
             post_data = self.rfile.read(content_length)
             request = json.loads(post_data)
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON")
             return
-        
+
         response = process_mcp_request(request)
-        
+
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        
+
         if response:
             self.wfile.write(json.dumps(response).encode())
 
@@ -596,12 +604,12 @@ def run_stdio():
     logger.info("   Waiting for JSON-RPC messages on stdin...")
 
     # Defer brain initialization to first tool call (avoid crash on missing deps)
-    
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
             continue
-        
+
         try:
             request = json.loads(line)
             response = process_mcp_request(request)
@@ -618,29 +626,29 @@ def run_http(port: int = 8444, secure: bool = False):
     logger.info("════════════════════════════════════════════════════════════════")
     logger.info("   🧠 SOVEREIGN MCP SERVER — HTTP Mode")
     logger.info("════════════════════════════════════════════════════════════════")
-    
+
     # Pre-initialize brain
     brain_interface.initialize()
-    
+
     server_address = ('127.0.0.1', port)
     httpd = HTTPServer(server_address, SovereignMCPHandler)
-    
+
     if secure:
         cert_dir = GOLD_PATH / "certs"
         cert_file = cert_dir / "server.crt"
         key_file = cert_dir / "server.key"
-        
+
         if cert_file.exists() and key_file.exists():
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             context.minimum_version = ssl.TLSVersion.TLSv1_2
             context.load_cert_chain(str(cert_file), str(key_file))
             httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-            logger.info(f"   🔒 HTTPS enabled (TLS 1.2+)")
-    
+            logger.info("   🔒 HTTPS enabled (TLS 1.2+)")
+
     logger.info(f"   Listening on http{'s' if secure else ''}://127.0.0.1:{port}")
-    logger.info(f"   Open in browser to see status page")
+    logger.info("   Open in browser to see status page")
     logger.info("════════════════════════════════════════════════════════════════")
-    
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -667,27 +675,27 @@ Examples:
     parser.add_argument("--port", type=int, default=8444, help="HTTP port (default: 8444)")
     parser.add_argument("--secure", action="store_true", help="Enable HTTPS")
     parser.add_argument("--test", action="store_true", help="Run quick test")
-    
+
     args = parser.parse_args()
-    
+
     if args.test:
         # Quick test mode
         print("🧪 Testing Sovereign MCP Server...")
         brain_interface.initialize()
-        
+
         # Test query
         result = brain_interface.query("BIZRA genesis node", limit=3)
-        print(f"\n📊 Query Test:")
+        print("\n📊 Query Test:")
         print(json.dumps(result, indent=2, default=str))
-        
+
         # Test stats
         stats = brain_interface.get_stats()
-        print(f"\n📈 Stats Test:")
+        print("\n📈 Stats Test:")
         print(json.dumps(stats, indent=2, default=str))
-        
+
         print("\n✅ All tests passed!")
         return
-    
+
     if args.http:
         run_http(port=args.port, secure=args.secure)
     else:
