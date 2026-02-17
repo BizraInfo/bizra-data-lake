@@ -17,7 +17,7 @@ services:
   # EMBEDDED OLLAMA — LLM Inference Inside the Stack
   # ═══════════════════════════════════════════════════════════════════════════════
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.6  # Pin to minor version; avoid mutable :latest (SAPE-010)
     container_name: bizra-ollama
     restart: unless-stopped
     
@@ -64,7 +64,7 @@ services:
   # MODEL PRELOADER — Warm Models on Stack Start
   # ═══════════════════════════════════════════════════════════════════════════════
   model-preloader:
-    image: curlimages/curl:latest
+    image: curlimages/curl:8.12.1  # Pin to version; avoid mutable :latest (SAPE-010)
     container_name: bizra-model-preloader
     depends_on:
       ollama:
