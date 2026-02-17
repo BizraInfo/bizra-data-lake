@@ -27,7 +27,7 @@ Created: 2026-02-08 | BIZRA Node0 Spearpoint v1.0
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "BIZRA Node0"
 
 # Orchestration layer (v1.1) — public API only
@@ -43,6 +43,17 @@ from .sovereign_spearpoint import (
     SpearheadConfig,
     SpearheadResult,
     SpearheadStatus,
+)
+
+# True Spearpoint — Benchmark Dominance Loop (v1.1)
+from .ablation_engine import AblationEngine, AblationReport, AblationType
+from .benchmark_dominance import (
+    BDLConfig,
+    BDLIterationResult,
+    BDLStage,
+    BDLStatus,
+    BenchmarkDominanceLoop,
+    SubmissionTarget,
 )
 
 __all__ = [
@@ -64,4 +75,15 @@ __all__ = [
     "RDVESkillHandler",
     "get_rdve_handler",
     "register_rdve_skill",
+    # True Spearpoint — Benchmark Dominance Loop
+    "BenchmarkDominanceLoop",
+    "BDLConfig",
+    "BDLIterationResult",
+    "BDLStage",
+    "BDLStatus",
+    "SubmissionTarget",
+    # Ablation Engine
+    "AblationEngine",
+    "AblationReport",
+    "AblationType",
 ]

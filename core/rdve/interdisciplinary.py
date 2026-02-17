@@ -27,7 +27,7 @@ Artifact: core/rdve/interdisciplinary.py
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Final, List, Optional, Set, Tuple
+from typing import Any, Dict, Final, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -429,6 +429,175 @@ CANONICAL_PATTERNS: Final[List[DomainPattern]] = [
         confidence=TransferConfidence.HIGH,
         giant="Nash (1950)",
         tags=["coordination", "incentives", "equilibrium", "multi-agent"],
+    ),
+    # ═══════════════════════════════════════════════════════════════════════
+    # TRUE SPEARPOINT PATTERNS (from Benchmark Dominance Loop whitepaper)
+    # ═══════════════════════════════════════════════════════════════════════
+    DomainPattern(
+        id="moe_sparse_activation",
+        name="Mixture-of-Experts Sparse Activation",
+        source_domain=Domain.MATHEMATICS,
+        core_principle=(
+            "Only activate a small subset of parameters for each input. "
+            "Total parameter count provides capacity; sparse activation "
+            "provides efficiency. Route inputs to specialized experts "
+            "via a learned gating function."
+        ),
+        transfer_conditions=[
+            "System has multiple specialized processing pathways",
+            "Different inputs require different expertise",
+            "Need to scale capacity without linear cost increase",
+        ],
+        instantiation_recipe=[
+            "Define expert modules (each handling a subset of capabilities)",
+            "Implement gating network that routes inputs to top-k experts",
+            "Set sparsity ratio (e.g., activate 32B of 1T total parameters)",
+            "Add load balancing loss to prevent expert collapse",
+            "Gate: cost must stay below budget while quality meets SNR floor",
+        ],
+        historical_examples=[
+            {
+                "from": "Sparse neural networks (Shazeer, 2017)",
+                "to": "GLM-4.7 and Kimi K2 architectures",
+                "result": "~1T params with ~32B active per token",
+            },
+            {
+                "from": "Federated model routing (Zoom, 2025)",
+                "to": "Z-scorer multi-model routing",
+                "result": "Route simple→nano, complex→frontier models",
+            },
+        ],
+        target_domains=[
+            Domain.DISTRIBUTED_SYSTEMS,
+            Domain.ECONOMICS,
+            Domain.NEUROSCIENCE,
+        ],
+        confidence=TransferConfidence.HIGH,
+        giant="Shazeer (2017), Lepikhin (2021)",
+        tags=["efficiency", "routing", "tiered", "resources", "sparse"],
+    ),
+    DomainPattern(
+        id="sequential_attention",
+        name="Sequential Attention for Subset Selection",
+        source_domain=Domain.MATHEMATICS,
+        core_principle=(
+            "Select the most relevant features or memory blocks in a "
+            "single forward pass. Mathematically equivalent to Orthogonal "
+            "Matching Pursuit (OMP) but computationally efficient for "
+            "neural architectures. Enables linear-time subset selection."
+        ),
+        transfer_conditions=[
+            "Need to select k items from a large set efficiently",
+            "Selection quality matters (not just speed)",
+            "Greedy selection is acceptable (vs. global optimum)",
+        ],
+        instantiation_recipe=[
+            "Define attention mechanism over candidate set",
+            "Sequentially select items that maximize marginal gain",
+            "Use attention scores as selection probabilities",
+            "Enforce orthogonality between selected items (diversity)",
+            "Apply to long-context windows, memory retrieval, or feature selection",
+        ],
+        historical_examples=[
+            {
+                "from": "Compressed sensing (OMP, 1993)",
+                "to": "Neural subset selection",
+                "result": "Linear-time feature selection for transformers",
+            },
+        ],
+        target_domains=[
+            Domain.INFORMATION_THEORY,
+            Domain.NEUROSCIENCE,
+            Domain.DISTRIBUTED_SYSTEMS,
+        ],
+        confidence=TransferConfidence.HIGH,
+        giant="Pati et al. (OMP, 1993), Vaswani (attention, 2017)",
+        tags=["efficiency", "filtering", "scoring", "speed", "selection"],
+    ),
+    DomainPattern(
+        id="miras_memory",
+        name="Memory Integration for Long-Horizon Agents",
+        source_domain=Domain.NEUROSCIENCE,
+        core_principle=(
+            "Prevent catastrophic forgetting in long-running agents by "
+            "using a specialized memory architecture that efficiently "
+            "combines new information with old memories. Analogous to "
+            "hippocampal memory consolidation in neuroscience."
+        ),
+        transfer_conditions=[
+            "Agent runs across multiple sessions or long horizons",
+            "New information must not overwrite critical old knowledge",
+            "Memory retrieval must be fast and contextually relevant",
+        ],
+        instantiation_recipe=[
+            "Separate working memory (fast, volatile) from long-term (persistent)",
+            "Implement consolidation protocol (working → long-term transfer)",
+            "Use retrieval-augmented generation for memory access",
+            "Apply forgetting curves — decay unused memories gracefully",
+            "Gate: memories must meet SNR threshold before consolidation",
+        ],
+        historical_examples=[
+            {
+                "from": "Hippocampal consolidation (neuroscience)",
+                "to": "MIRAS memory architecture for AI agents",
+                "result": "Agents maintaining coherence across 100K+ tokens",
+            },
+            {
+                "from": "Complementary Learning Systems (McClelland, 1995)",
+                "to": "Dual-store memory in BIZRA sovereign state",
+                "result": "sovereign_state/ persistence layer",
+            },
+        ],
+        target_domains=[
+            Domain.DISTRIBUTED_SYSTEMS,
+            Domain.PSYCHOLOGY,
+            Domain.BIOLOGY,
+        ],
+        confidence=TransferConfidence.HIGH,
+        giant="McClelland (1995), Kumaran (2016)",
+        bizra_implementation="sovereign_state/",
+        tags=[
+            "prediction", "learning", "model-updating", "recursive",
+            "identity", "regeneration",
+        ],
+    ),
+    DomainPattern(
+        id="speculative_decoding",
+        name="Speculative Decoding for Latency Reduction",
+        source_domain=Domain.DISTRIBUTED_SYSTEMS,
+        core_principle=(
+            "Use a small, fast 'draft' model to predict multiple tokens, "
+            "then verify all predictions in a single forward pass of the "
+            "large 'target' model. Reduces latency without sacrificing "
+            "quality — incorrect drafts are simply rejected."
+        ),
+        transfer_conditions=[
+            "System has a fast-but-imprecise and slow-but-accurate pathway",
+            "The fast pathway output can be verified cheaply by the slow one",
+            "Latency reduction is more important than throughput",
+        ],
+        instantiation_recipe=[
+            "Deploy small draft model (e.g., 1B params) alongside target",
+            "Draft model generates k candidate tokens speculatively",
+            "Target model verifies all k tokens in single batch forward pass",
+            "Accept verified tokens, reject and re-draft from divergence point",
+            "Tune k based on acceptance rate (higher acceptance → larger k)",
+        ],
+        historical_examples=[
+            {
+                "from": "Speculative execution (CPU architecture, 1967)",
+                "to": "Speculative decoding in LLMs (Leviathan, 2023)",
+                "result": "2-3x latency reduction with zero quality loss",
+            },
+        ],
+        target_domains=[
+            Domain.ECONOMICS,
+            Domain.INFORMATION_THEORY,
+            Domain.MILITARY,
+        ],
+        confidence=TransferConfidence.HIGH,
+        giant="Leviathan (2023), Chen (2023)",
+        tags=["speed", "efficiency", "tiered", "routing", "tempo"],
     ),
 ]
 

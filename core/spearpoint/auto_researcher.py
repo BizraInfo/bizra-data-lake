@@ -22,7 +22,6 @@ Standing on Giants:
 
 from __future__ import annotations
 
-import fcntl
 import logging
 import uuid
 from dataclasses import dataclass, field
@@ -43,6 +42,8 @@ from .auto_evaluator import (
     EvaluationResult,
     ExperimentDesign,
     Verdict,
+    _lock_file,
+    _unlock_file,
 )
 from .config import SpearpointConfig
 
@@ -441,7 +442,7 @@ class AutoResearcher:
 
         try:
             with open(lock_path, "w") as lock_file:
-                fcntl.flock(lock_file, fcntl.LOCK_EX)
+                _lock_file(lock_file)
                 try:
                     entry = emit_receipt(
                         self._evaluator.ledger,
@@ -475,7 +476,7 @@ class AutoResearcher:
                     )
                     return entry.entry_hash
                 finally:
-                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                    _unlock_file(lock_file)
         except Exception as e:
             logger.error(f"Failed to emit research receipt {result.research_id}: {e}")
             return ""
