@@ -32,7 +32,7 @@
 //! O(N) where N = number of gates (currently 6, constant)
 
 use std::fmt;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
@@ -354,7 +354,7 @@ impl KleisliGateChain {
             if last_result.passed {
                 return last_result;
             }
-            log::info!(
+            tracing::info!(
                 "Gate chain retry {}/{}: failed at {:?}",
                 attempt + 1,
                 max_retries,
