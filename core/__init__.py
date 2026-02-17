@@ -24,16 +24,20 @@ Created: 2026-01-27
 Updated: 2026-01-30 — Added integration bridge for module cohesion
 Updated: 2026-02-03 — Added NTU (NeuroTemporal Unit) for pattern detection
 Updated: 2026-02-05 — Added protocols + decomposed sovereign (SAPE Elite Analysis)
+Updated: 2026-02-17 — Phase 31: HyperGraph + Cognitive Fusion + Memory Coder
 """
 
 # Decomposed sovereign sub-packages (backwards compatible)
 from . import (
     a2a,
     bridges,
+    cognitive_fusion,
     federation,
     governance,
+    hypergraph,
     inference,
     integration,
+    memory_coder,
     ntu,
     orchestration,
     pci,
@@ -60,5 +64,9 @@ __all__ = [
     "orchestration",
     "treasury",
     "bridges",
+    # Phase 31: Cognitive Fusion
+    "hypergraph",
+    "cognitive_fusion",
+    "memory_coder",
 ]
-__version__ = "2.3.1"
+__version__ = "2.4.0"
