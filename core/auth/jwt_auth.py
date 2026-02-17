@@ -115,7 +115,10 @@ class JWTAuth:
         self._refresh_expiry = refresh_expiry
 
         # Token blacklist (in-memory; for production, use Redis/DB)
-        self._blacklist: set[str] = set()
+        # Bounded: stores (jti, expiry) tuples; evicts expired entries
+        # when size exceeds _BLACKLIST_MAX to prevent unbounded growth (SAPE-011).
+        self._blacklist: dict[str, int] = {}  # jti -> expiry timestamp
+        self._BLACKLIST_MAX = 10_000
 
     # --------------------------------------------------------------------------
     # TOKEN ISSUANCE
@@ -169,7 +172,7 @@ class JWTAuth:
             return None
 
         # Blacklist old refresh token
-        self._blacklist.add(claims.jti)
+        self._blacklist_add(claims.jti, claims.exp)
 
         # Issue fresh pair
         return self.issue_tokens(claims.sub, claims.username)
@@ -229,9 +232,18 @@ class JWTAuth:
         """Revoke a token by adding its JTI to the blacklist."""
         payload = self._decode(token)
         if payload and "jti" in payload:
-            self._blacklist.add(payload["jti"])
+            self._blacklist_add(payload["jti"], payload.get("exp", 0))
             return True
         return False
+
+    def _blacklist_add(self, jti: str, exp: int) -> None:
+        """Add JTI to blacklist with bounded eviction (SAPE-011)."""
+        self._blacklist[jti] = exp
+        if len(self._blacklist) > self._BLACKLIST_MAX:
+            now = int(time.time())
+            expired = [k for k, v in self._blacklist.items() if v <= now]
+            for k in expired:
+                del self._blacklist[k]
 
     # --------------------------------------------------------------------------
     # JWT ENCODING / DECODING (RFC 7519 compliant)

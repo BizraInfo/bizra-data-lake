@@ -20,7 +20,7 @@ import argparse
 import json
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -53,11 +53,9 @@ class QualityMetrics:
     security_score: float = 0.0
     documentation_score: float = 0.0
 
-    # Computed
-    overall_score: float = field(init=False)
-
-    def __post_init__(self):
-        # Weighted average of all scores
+    @property
+    def overall_score(self) -> float:
+        """Weighted average — recomputed on access so it reflects current field values."""
         weights = {
             "snr": 0.25,
             "ihsan": 0.25,
@@ -67,7 +65,7 @@ class QualityMetrics:
             "security": 0.10,
             "documentation": 0.05,
         }
-        self.overall_score = (
+        return (
             weights["snr"] * self.snr_score
             + weights["ihsan"] * self.ihsan_score
             + weights["test_coverage"] * self.test_coverage
