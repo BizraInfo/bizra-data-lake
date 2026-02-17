@@ -30,6 +30,11 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Optional
 
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -333,9 +338,9 @@ class CLEARFramework:
         >>> print(f"CLEAR Score: {metrics.compute_overall_score():.3f}")
     """
 
-    # Ihsān thresholds for CLEAR
-    IHSAN_THRESHOLD = 0.95
-    ACCEPTABLE_THRESHOLD = 0.85
+    # Ihsān thresholds for CLEAR — sourced from SSOT (constants.py)
+    IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
+    ACCEPTABLE_THRESHOLD = UNIFIED_SNR_THRESHOLD  # 0.85 = SNR floor
     MINIMUM_THRESHOLD = 0.70
 
     def __init__(

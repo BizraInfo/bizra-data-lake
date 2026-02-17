@@ -101,6 +101,9 @@ class SovereignRuntime:
         # Unified Memory Coordinator (auto-save + persistence)
         self._memory_coordinator: Optional[MemoryCoordinator] = None
 
+        # AgentDB (V3 unified memory with HNSW indexing)
+        self._agent_db: Optional[object] = None
+
         # Impact Tracker (sovereignty growth engine)
         self._impact_tracker: Optional[ImpactTrackerProtocol] = None
 
@@ -152,6 +155,12 @@ class SovereignRuntime:
 
         # User Context (the system knows its human)
         self._user_context: Optional[UserContextManager] = None
+
+        # Phase 31: Cognitive Fusion Engine
+        self._hypergraph_store: Optional[object] = None  # HyperGraphStore
+        self._cognitive_fusion: Optional[object] = None  # CognitiveFusionEngine
+        self._memory_synthesizer: Optional[object] = None  # MemorySynthesizer
+        self._pattern_codebook: Optional[object] = None  # PatternCodebook
 
         # SpearPoint Pipeline — unified post-query cockpit
         self._spearpoint: Optional[object] = None  # SpearPointPipeline
@@ -375,6 +384,9 @@ class SovereignRuntime:
 
         # Initialize unified memory coordinator with auto-save
         await self._init_memory_coordinator()
+
+        # Initialize Phase 31: Cognitive Fusion (HyperGraph + Fusion Engine + Memory Coder)
+        self._init_cognitive_fusion()
 
         # Initialize impact tracker (sovereignty growth engine)
         self._init_impact_tracker()
@@ -1393,6 +1405,30 @@ class SovereignRuntime:
             except Exception as e:
                 self.logger.warning(f"⚠ LivingMemory init failed: {e}")
 
+            # Initialize AgentDB (V3 unified memory with HNSW indexing)
+            try:
+                from core.memory import AgentDB, MemoryConfig
+
+                agent_db_config = MemoryConfig(
+                    data_dir=self.config.state_dir / "agent_db",
+                    living_memory_db=self.config.state_dir / "living_memory" / "memory.db",
+                )
+                self._agent_db = AgentDB(agent_db_config)
+                self._agent_db.initialize()
+                self._memory_coordinator.register_state_provider(
+                    "agent_db",
+                    self._agent_db.get_persistable_state,
+                    RestorePriority.CORE,
+                )
+                self.logger.info(
+                    f"✓ AgentDB initialized: {self._agent_db.count} records, "
+                    f"{self._agent_db.hnsw.count} vectors"
+                )
+            except ImportError:
+                self.logger.warning("⚠ AgentDB unavailable (core.memory not installed)")
+            except Exception as e:
+                self.logger.warning(f"⚠ AgentDB init failed: {e}")
+
             # Start auto-save background loop
             if self.config.enable_persistence:
                 await self._memory_coordinator.start_auto_save()
@@ -1400,6 +1436,76 @@ class SovereignRuntime:
 
         except Exception as e:
             self.logger.warning(f"⚠ MemoryCoordinator init failed: {e}")
+
+    def _init_cognitive_fusion(self) -> None:
+        """Initialize Phase 31 cognitive fusion subsystems.
+
+        Wires HyperGraphStore + CognitiveFusionEngine + MemorySynthesizer
+        into the sovereign runtime. All components are optional — graceful
+        degradation if any import fails.
+
+        Standing on: Berge (hypergraph) + Simon (hierarchy) + Shannon (SNR)
+        """
+        # 1. HyperGraph Store
+        try:
+            from core.hypergraph import HyperGraphStore
+
+            self._hypergraph_store = HyperGraphStore()
+            self.logger.info("✓ HyperGraphStore initialized")
+        except ImportError:
+            self.logger.warning("⚠ HyperGraphStore unavailable")
+        except Exception as e:
+            self.logger.warning(f"⚠ HyperGraphStore init failed: {e}")
+
+        # 2. Cognitive Fusion Engine (requires HyperGraph + AgentDB)
+        if self.config.enable_cognitive_fusion:
+            try:
+                from core.cognitive_fusion import CognitiveFusionEngine
+                from core.hypergraph import HyperGraphRAGFusion
+
+                rag_fusion = None
+                if self._hypergraph_store is not None:
+                    rag_fusion = HyperGraphRAGFusion(
+                        store=self._hypergraph_store,
+                        agent_db=self._agent_db,
+                    )
+
+                self._cognitive_fusion = CognitiveFusionEngine(
+                    hypergraph_rag=rag_fusion,
+                )
+                self.logger.info("✓ CognitiveFusionEngine initialized")
+            except ImportError:
+                self.logger.warning("⚠ CognitiveFusionEngine unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ CognitiveFusionEngine init failed: {e}")
+        else:
+            self.logger.info("○ CognitiveFusionEngine disabled by config")
+
+        # 3. Memory Synthesizer + Pattern Codebook
+        if self.config.enable_memory_synthesizer:
+            try:
+                from core.memory_coder import (
+                    MemorySynthesizer,
+                    PatternCodebook,
+                )
+
+                self._pattern_codebook = PatternCodebook(
+                    agent_db=self._agent_db,
+                )
+                self._memory_synthesizer = MemorySynthesizer(
+                    agent_db=self._agent_db,
+                    codebook=self._pattern_codebook,
+                )
+                self.logger.info(
+                    f"✓ MemorySynthesizer initialized "
+                    f"(codebook: {self._pattern_codebook.size} patterns)"
+                )
+            except ImportError:
+                self.logger.warning("⚠ MemorySynthesizer unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ MemorySynthesizer init failed: {e}")
+        else:
+            self.logger.info("○ MemorySynthesizer disabled by config")
 
     def _init_impact_tracker(self) -> None:
         """Initialize the impact tracker for sovereignty progression."""
@@ -1556,6 +1662,9 @@ class SovereignRuntime:
                 "gateway": self._gateway is not None,
                 "omega": self._omega is not None,
                 "pek": self._pek is not None,
+                "hypergraph_store": self._hypergraph_store is not None,
+                "cognitive_fusion": self._cognitive_fusion is not None,
+                "memory_synthesizer": self._memory_synthesizer is not None,
             },
             "cache_size": len(self._cache),
         }

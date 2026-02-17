@@ -242,6 +242,11 @@ class RuntimeConfig:
     proactive_kernel_emit_events: bool = False
     proactive_kernel_event_topic: str = "pek.proof.block"
 
+    # Phase 31: Cognitive Fusion Engine
+    enable_cognitive_fusion: bool = True
+    enable_memory_synthesizer: bool = True
+    memory_synthesizer_window_hours: int = 24
+
     # Zero Point Kernel (trusted bootstrap preflight)
     enable_zpk_preflight: bool = False
     zpk_manifest_uri: str = ""

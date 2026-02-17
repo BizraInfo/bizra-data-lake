@@ -19,7 +19,11 @@
 
 from typing import TYPE_CHECKING
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+    SNR_THRESHOLD_T2_STANDARD,
+)
 
 # Version
 BOUNTY_VERSION = "1.0.0"
@@ -67,8 +71,8 @@ AGENT_ROLES = {
 # Base payout per entropy unit
 BASE_PAYOUT_PER_DELTA_E = 500  # $500 per entropy unit reduced
 
-# SNR threshold for valid bounty claims
-BOUNTY_SNR_THRESHOLD = 0.90
+# SNR threshold for valid bounty claims — sourced from SSOT (constants.py)
+BOUNTY_SNR_THRESHOLD = SNR_THRESHOLD_T2_STANDARD  # 0.90
 
 # Ihsān threshold for ethical validation
 BOUNTY_IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
