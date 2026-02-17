@@ -309,6 +309,71 @@ class NTUMemoryAdapter:
         self.ntu.reset()
 
 
+class NTUFusionAdapter:
+    """
+    Adapts NTU temporal state into CognitiveFusion context dict.
+
+    The CognitiveFusionEngine reads context["ntu_state"] to:
+    - Adjust retrieval depth based on entropy (high entropy = more retrieval)
+    - Weight HRM level selection by belief strength
+    - Feed potential score into NorthStar alignment
+
+    Standing on Giants: Takens (1981, embedding theorem — temporal patterns)
+    Artifact: core/ntu/bridge.py
+    """
+
+    def __init__(self, ntu_bridge: Optional["NTUBridge"] = None) -> None:
+        self._bridge = ntu_bridge
+
+    @property
+    def bridge(self) -> Optional["NTUBridge"]:
+        return self._bridge
+
+    @bridge.setter
+    def bridge(self, value: "NTUBridge") -> None:
+        self._bridge = value
+
+    def enrich_context(self, context: dict[str, Any]) -> dict[str, Any]:
+        """
+        Inject NTU temporal signals into fusion context dict.
+
+        Args:
+            context: Existing query context dict (modified in-place and returned)
+
+        Returns:
+            Enriched context with ntu_state and retrieval_depth_multiplier
+        """
+        if self._bridge is None:
+            return context
+
+        state = self._bridge.get_state()
+        pattern = None
+        try:
+            detector = getattr(self._bridge._unified_ntu, "detect_pattern", None)
+            if detector is not None:
+                result = detector()
+                if result is not None:
+                    pattern = result.name if hasattr(result, "name") else str(result)
+        except Exception:
+            pass
+
+        context["ntu_state"] = {
+            "belief": state.belief,
+            "entropy": state.entropy,
+            "potential": state.potential,
+            "iteration": state.iteration,
+            "pattern": pattern,
+        }
+
+        # Entropy-driven retrieval depth: high uncertainty -> more sources
+        if state.entropy > 0.7:
+            context.setdefault("retrieval_depth_multiplier", 2.0)
+        elif state.entropy > 0.4:
+            context.setdefault("retrieval_depth_multiplier", 1.5)
+
+        return context
+
+
 class NTUBridge:
     """
     Unified bridge connecting NTU to all BIZRA components.

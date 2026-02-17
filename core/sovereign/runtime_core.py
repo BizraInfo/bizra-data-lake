@@ -168,6 +168,11 @@ class SovereignRuntime:
         self._memory_synthesizer: Optional[object] = None  # MemorySynthesizer
         self._pattern_codebook: Optional[object] = None  # PatternCodebook
 
+        # Phase 32: Embedding Service + NTU Adapter
+        self._embedding_service: Optional[object] = None  # EmbeddingService
+        self._embedding_gate: Optional[object] = None  # EmbeddingQualityGate
+        self._ntu_adapter: Optional[object] = None  # NTUFusionAdapter
+
         # SpearPoint Pipeline — unified post-query cockpit
         self._spearpoint: Optional[object] = None  # SpearPointPipeline
 
@@ -399,6 +404,9 @@ class SovereignRuntime:
 
         # Initialize Phase 31: Cognitive Fusion (HyperGraph + Fusion Engine + Memory Coder)
         self._init_cognitive_fusion()
+
+        # Initialize Phase 32: Embedding Service + NTU Adapter
+        self._init_embedding_service()
 
         # Initialize Phase 25-28: Ecosystem subsystems (HRM + NorthStar + Guild + Quest)
         self._init_ecosystem_subsystems()
@@ -1522,6 +1530,38 @@ class SovereignRuntime:
         else:
             self.logger.info("○ MemorySynthesizer disabled by config")
 
+    def _init_embedding_service(self) -> None:
+        """Initialize Phase 32 embedding service and NTU fusion adapter.
+
+        Provides real embeddings for CognitiveFusion (replacing dummy [0.0]*768)
+        and temporal context enrichment from NTU pattern detection.
+
+        Standing on: Reimers & Gurevych (sentence-BERT) + Takens (temporal patterns)
+        """
+        # 1. Embedding Service (tiered: sentence-transformers → Ollama)
+        try:
+            from core.embedding import EmbeddingConfig, EmbeddingQualityGate, EmbeddingService
+
+            self._embedding_service = EmbeddingService(EmbeddingConfig.from_env())
+            self._embedding_gate = EmbeddingQualityGate()
+            self.logger.info("✓ EmbeddingService initialized (tiered fallback)")
+        except ImportError:
+            self.logger.warning("⚠ EmbeddingService unavailable")
+        except Exception as e:
+            self.logger.warning(f"⚠ EmbeddingService init failed: {e}")
+
+        # 2. NTU Fusion Adapter
+        try:
+            from core.ntu import NTUBridge, NTUFusionAdapter
+
+            bridge = NTUBridge()
+            self._ntu_adapter = NTUFusionAdapter(ntu_bridge=bridge)
+            self.logger.info("✓ NTUFusionAdapter initialized")
+        except ImportError:
+            self.logger.warning("⚠ NTUFusionAdapter unavailable (numpy required)")
+        except Exception as e:
+            self.logger.warning(f"⚠ NTUFusionAdapter init failed: {e}")
+
     def _init_ecosystem_subsystems(self) -> None:
         """Initialize Phase 25-28 ecosystem subsystems.
 
@@ -2280,17 +2320,47 @@ class SovereignRuntime:
         """STAGE 1.5: Cognitive Fusion — MoE → HRM → RAG → NorthStar.
 
         Runs the CognitiveFusionEngine synchronously (all subsystems are CPU-bound).
-        Returns FusionResult or None if the engine is unavailable / errors.
+        Uses real embeddings from EmbeddingService when available, with quality
+        gate validation. Falls back to zero vector only as last resort.
 
-        Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT)
+        Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR)
+                   + Reimers (sentence-BERT) + Takens (NTU temporal)
         """
         try:
-            # Build a zero-vector placeholder when no embedding function available
-            dummy_embedding = [0.0] * 768
+            # Step 1: Generate real embedding (Phase 32)
+            embedding: list[float] | None = None
+            if self._embedding_service is not None:
+                try:
+                    embedding = self._embedding_service.embed(query.text)  # type: ignore[union-attr]
+
+                    # Step 1a: Quality gate
+                    if self._embedding_gate is not None and embedding is not None:
+                        gate_result = self._embedding_gate.validate(embedding)  # type: ignore[union-attr]
+                        if not gate_result.passed:
+                            self.logger.warning(
+                                f"Embedding quality gate failed: {gate_result.reason}"
+                            )
+                            embedding = None
+                except Exception as e:
+                    self.logger.debug(f"Embedding generation failed: {e}")
+
+            # Fallback: zero vector (degraded — RAG retrieval will be empty)
+            if embedding is None:
+                embedding = [0.0] * 768
+
+            # Step 2: Enrich context with NTU temporal state
+            context = dict(query.context)
+            if self._ntu_adapter is not None:
+                try:
+                    context = self._ntu_adapter.enrich_context(context)  # type: ignore[union-attr]
+                except Exception as e:
+                    self.logger.debug(f"NTU enrichment skipped: {e}")
+
+            # Step 3: Run fusion pipeline
             return self._cognitive_fusion.process(  # type: ignore[union-attr]
                 query=query.text,
-                query_embedding=dummy_embedding,
-                context=query.context,
+                query_embedding=embedding,
+                context=context,
             )
         except Exception as e:
             self.logger.warning(f"Cognitive fusion skipped: {e}")
