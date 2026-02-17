@@ -7,14 +7,15 @@ Standing on Giants: Shannon (information theory) + Lamport (distributed systems)
 ## Where We Stand (Phase 31.1 Complete)
 
 ```
-STATUS as of 2026-02-17:
+STATUS as of 2026-02-18:
 
 Code
   Elite Version:       1.2.0
   Core Packages:       397
-  Tests Passing:       6,781 / 6,781 (0 failures)
+  Tests Passing:       6,808 Python + 23 Rust (0 regressions)
   Smoke Pillars:       15/15 green
-  Phases Committed:    1–31.1
+  Phases Committed:    1–33 (Live Cognition + HyperGraph RAG)
+  Rust Workspace:      14 crates, cargo check clean
 
 Infrastructure
   k3d Cluster:         3 nodes, healthy
@@ -23,10 +24,16 @@ Infrastructure
   Docker Containers:   28 running
   CI Pipeline:         7 stages, auto-discovers tests
 
-Subsystems Wired (Phase 29-31.1)
-  ✓ SovereignRuntime  (2,850 lines)
+Subsystems Wired (Phase 29-33)
+  ✓ SovereignRuntime  (2,850+ lines)
   ✓ CognitiveFusion   Stage 1.5 (MoE → HRM → RAG → NorthStar)
-  ✓ AgentDB           HNSW + FTS5 hybrid search
+  ✓ AgentDB           HNSW + FTS5 hybrid search (79 tests)
+  ✓ EmbeddingService  Tiered: sentence-transformers → Ollama → error (38 tests)
+  ✓ QualityGate       Shannon entropy + L2 norm (calibrated 0.98)
+  ✓ NTU Integration   Temporal belief/entropy/potential → CognitiveFusion
+  ✓ HyperGraphStore   N-ary hyperedges, 5 types, structural + vector queries
+  ✓ RAGFusion         5-signal retrieval (vector + keyword + graph + recency + importance)
+  ✓ bizra-hypergraph  Rust crate: BLAKE3 IDs, incidence store, BFS traversal (23 tests)
   ✓ HRM               5 abstraction levels
   ✓ NorthStar         Alignment engine
   ✓ Guild/Quest       MMRPG ecosystem
@@ -35,12 +42,12 @@ Subsystems Wired (Phase 29-31.1)
   ✓ Genesis           Node identity + boot
 
 Known Gaps
-  ✗ Dummy embeddings  [0.0]*768 in fusion caller
-  ✗ Hypergraph        Pairwise edges only
-  ✗ PyO3 bindings     13/22+ Rust types exposed
-  ✗ Federation        DTLS handshake is placeholder
-  ✗ Production infra  No VPA, KEDA, NetworkPolicy
-  ✗ NTU integration   Complete module, not wired
+  ✓ Dummy embeddings  CLOSED (Phase 32 — real embeddings via Ollama Tier 2)
+  ✓ Hypergraph        CLOSED (Phase 33 — N-ary Python + Rust)
+  ✓ NTU integration   CLOSED (Phase 32 — NTUFusionAdapter wired)
+  ✗ PyO3 bindings     13/22+ Rust types exposed (Phase 34)
+  ✗ Federation        DTLS handshake is placeholder (Phase 35)
+  ✗ Production infra  No VPA, KEDA, NetworkPolicy (Phase 36)
 ```
 
 ---
@@ -49,8 +56,8 @@ Known Gaps
 
 | Phase | Name | Focus | New Lines | New Tests |
 |-------|------|-------|-----------|-----------|
-| **32** | Live Cognition | Real embeddings + NTU wiring + quality gates | ~295 | +10 |
-| **33** | HyperGraph RAG | N-ary relations + Rust crate + 3-way retrieval | ~1,550 | +15 |
+| **32** | Live Cognition | Real embeddings + NTU wiring + quality gates | ~295 | +38 ✅ |
+| **33** | HyperGraph RAG | N-ary relations + Rust crate + 3-way retrieval | ~1,510 | +36 ✅ |
 | **34** | Rust Bridge | PyO3 bindings for Omega/PAT/GoT/Federation | ~600 | +16 |
 | **35** | Federation Transport | DTLS handshake + DoS protection + Rust bridge | ~800 | +11 |
 | **36** | Production Fortress | VPA + KEDA + NetworkPolicy + observability | ~400 | +7 |
