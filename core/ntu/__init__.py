@@ -27,6 +27,7 @@
 try:
     from .bridge import (
         NTUBridge,
+        NTUFusionAdapter,
         NTUMemoryAdapter,
         NTUSNRAdapter,
     )
@@ -49,6 +50,7 @@ try:
         "minimal_ntu_detect",
         # Integration bridges
         "NTUBridge",
+        "NTUFusionAdapter",
         "NTUSNRAdapter",
         "NTUMemoryAdapter",
     ]
