@@ -1,5 +1,5 @@
 # BIZRA Elite Framework — Production Dockerfile
-# DevOps v1.1.0 | Constitutional Build
+# DevOps v1.2.0 | Phase 31.1 — Cognitive Fusion Pipeline
 #
 # Multi-stage build for minimal attack surface
 # No secrets in image — injected at runtime via environment variables
@@ -43,7 +43,7 @@ FROM python:3.12-slim-bookworm AS runtime
 
 LABEL org.opencontainers.image.title="BIZRA Elite Framework"
 LABEL org.opencontainers.image.description="Constitutional CI/CD with Ihsan enforcement"
-LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.version="1.2.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
 LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
@@ -74,9 +74,13 @@ ENV PYTHONUNBUFFERED=1 \
 # Switch to non-root user
 USER bizra
 
-# Health check — validates core module loads successfully
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from core.elite import ELITE_VERSION; print(f'Elite v{ELITE_VERSION} healthy')"
+# Health check — validates core stack loads (elite + memory + cognitive fusion)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "\
+from core.elite import ELITE_VERSION; \
+from core.memory import AgentDB; \
+from core.cognitive_fusion import CognitiveFusionEngine; \
+print(f'Elite v{ELITE_VERSION} | AgentDB + CognitiveFusion OK')"
 
-# Default command
-CMD ["python", "-c", "from core.elite import ElitePipeline; print('Elite Pipeline Ready')"]
+# Default command — sovereign runtime API server
+CMD ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]

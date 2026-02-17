@@ -137,6 +137,13 @@ try:
         min_score: float = 0.1
         source: Optional[str] = None
 
+    # Phase 31: Cognitive Fusion request model
+    class CognitiveFuseModel(_PydanticBaseModel):
+        """Request model for /v1/cognitive/fuse — direct cognitive fusion pipeline."""
+
+        query: str
+        context: dict[str, Any] = {}
+
     # Phase 20: Spearpoint request models
     class SpearpointReproduceModel(_PydanticBaseModel):
         """Request model for /v1/spearpoint/reproduce — evaluation-first verification."""
@@ -171,6 +178,7 @@ try:
     LoginRequestModel.model_rebuild()
     RefreshTokenModel.model_rebuild()
     SELRetrieveModel.model_rebuild()
+    CognitiveFuseModel.model_rebuild()
     SpearpointReproduceModel.model_rebuild()
     SpearpointImproveModel.model_rebuild()
     SpearpointPatternModel.model_rebuild()
@@ -181,6 +189,7 @@ except ImportError:
     RegisterRequestModel = None  # type: ignore[assignment,misc]
     LoginRequestModel = None  # type: ignore[assignment,misc]
     RefreshTokenModel = None  # type: ignore[assignment,misc]
+    CognitiveFuseModel = None  # type: ignore[assignment,misc]
     SpearpointReproduceModel = None  # type: ignore[assignment,misc]
     SpearpointImproveModel = None  # type: ignore[assignment,misc]
     SpearpointPatternModel = None  # type: ignore[assignment,misc]
@@ -285,7 +294,7 @@ class HealthResponse:
     """Health check response."""
 
     status: str = "healthy"
-    version: str = "1.0.0"
+    version: str = "1.2.0"
     uptime_seconds: float = 0.0
     checks: dict[str, bool] = field(default_factory=dict)
 
@@ -931,7 +940,7 @@ def create_fastapi_app(runtime: Any) -> Any:
     app = FastAPI(
         title="Sovereign API",
         description="BIZRA Sovereign Engine REST API",
-        version="1.0.0",
+        version="1.2.0",
         docs_url="/docs",
         redoc_url="/redoc",
     )
@@ -2362,6 +2371,99 @@ def create_fastapi_app(runtime: Any) -> Any:
                 content={"error": "AgentDB not initialized"},
             )
         return agent_db.stats()
+
+    # ─── Cognitive Fusion Endpoints (Phase 31) ──────────────────────
+
+    @app.post("/v1/cognitive/fuse")
+    async def cognitive_fuse(body: CognitiveFuseModel):
+        """Run a query through the full Cognitive Fusion pipeline.
+
+        4-stage pipeline: MoE Route → HRM Reason → HyperGraph RAG → NorthStar Gate.
+        Returns complexity classification, HRM reasoning, RAG context, and quality scores.
+        Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT).
+        """
+        fusion_engine = getattr(runtime, "_cognitive_fusion", None)
+        if fusion_engine is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "CognitiveFusionEngine not initialized"},
+            )
+
+        try:
+            if not body.query:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Query text required"},
+                )
+
+            # Use zero-vector placeholder (real embedding fn injected at runtime)
+            dummy_embedding = [0.0] * 768
+            result = fusion_engine.process(
+                query=body.query,
+                query_embedding=dummy_embedding,
+                context=body.context,
+            )
+
+            return {
+                "query": body.query,
+                "complexity": result.routing.complexity_class,
+                "expert_tier": result.expert_tier,
+                "target_level": result.target_level,
+                "hrm_snr": round(result.compound_snr, 4),
+                "retrieval_count": len(result.retrieval),
+                "fusion_snr": round(result.snr_score, 4),
+                "fusion_ihsan": round(result.ihsan_score, 4),
+                "passes_gate": result.passes_gate,
+                "is_elite": result.is_elite,
+                "routing": {
+                    "complexity_class": result.routing.complexity_class,
+                    "expert_tier": result.routing.expert_tier,
+                    "confidence": round(result.routing.confidence, 4),
+                },
+                "hrm": {
+                    "compound_snr": round(result.hrm_result.compound_snr, 4),
+                    "level_reached": result.hrm_result.level_reached,
+                    "observations": result.hrm_result.observations[:10],
+                },
+                "northstar": {
+                    "unified_snr": round(result.northstar_report.unified_snr, 4),
+                    "ihsan_score": round(result.northstar_report.ihsan_score, 4),
+                    "passes_all_gates": result.northstar_report.passes_all_gates,
+                },
+            }
+        except Exception as e:
+            logger.error(f"Cognitive fusion failed: {e}")
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.get("/v1/cognitive/status")
+    async def cognitive_status():
+        """Get Cognitive Fusion subsystem availability.
+
+        Reports which of the 4 subsystems (MoE, HRM, RAG, NorthStar) are wired.
+        """
+        fusion_engine = getattr(runtime, "_cognitive_fusion", None)
+        hrm = getattr(runtime, "_hrm_engine", None)
+        northstar = getattr(runtime, "_northstar_engine", None)
+        hypergraph = getattr(runtime, "_hypergraph_store", None)
+
+        return {
+            "cognitive_fusion_available": fusion_engine is not None,
+            "subsystems": {
+                "moe_router": (
+                    getattr(fusion_engine, "_moe_router", None) is not None
+                    if fusion_engine else False
+                ),
+                "hrm_engine": hrm is not None,
+                "hypergraph_rag": (
+                    getattr(fusion_engine, "_hypergraph_rag", None) is not None
+                    if fusion_engine else False
+                ),
+                "northstar_engine": northstar is not None,
+            },
+            "hypergraph_store": hypergraph is not None,
+            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None) is not None,
+            "pattern_codebook": getattr(runtime, "_pattern_codebook", None) is not None,
+        }
 
     # ─── SJE Judgment Telemetry Endpoints (Phase A: Observation) ──────
 

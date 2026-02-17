@@ -31,12 +31,12 @@
 ║   • Cognitive Budget: 7-3-6-9 thinking allocation (v1.1.0)                   ║
 ║   • Compute Market: Harberger Tax + Gini enforcement (v1.1.0)                ║
 ║                                                                              ║
-║   Created: 2026-02-02 | BIZRA Elite Integration v1.1.0                       ║
+║   Created: 2026-02-02 | BIZRA Elite Integration v1.2.0                       ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
 # Version
-ELITE_VERSION = "1.1.0"
+ELITE_VERSION = "1.2.0"
 
 # PMBOK Knowledge Areas mapped to BIZRA
 PMBOK_KNOWLEDGE_AREAS = {

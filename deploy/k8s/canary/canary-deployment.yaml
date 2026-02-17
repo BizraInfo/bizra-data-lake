@@ -85,7 +85,7 @@ spec:
       - name: bizra-elite
         image: bizra-elite:v1.0.1
         imagePullPolicy: Never  # Local K3d image
-        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        command: ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -212,7 +212,7 @@ spec:
         # IMPORTANT: Update this image tag for the canary version
         image: bizra-elite:v1.0.2-canary
         imagePullPolicy: Never  # Local K3d image
-        command: ["python", "-m", "core.sovereign", "serve", "--port", "8000"]
+        command: ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

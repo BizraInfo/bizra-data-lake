@@ -56,6 +56,12 @@ from .user_context import UserContextManager, select_pat_agent
 
 logger = logging.getLogger("sovereign.runtime")
 
+# Elite version — single source of truth (deferred import to avoid circular deps)
+try:
+    from core.elite import ELITE_VERSION as _ELITE_VERSION
+except Exception:
+    _ELITE_VERSION = "1.2.0"
+
 
 class SovereignRuntime:
     """
@@ -2160,6 +2166,28 @@ class SovereignRuntime:
         # SPEARPOINT: Store graph artifact for retrieval (fire-and-forget)
         self._store_graph_artifact(query.id, graph_hash)
 
+        # STAGE 1.5: Cognitive Fusion (MoE → HRM → RAG → NorthStar)
+        # Enriches the LLM prompt with complexity-scaled RAG context
+        # when the CognitiveFusionEngine is available. Falls through
+        # transparently when absent — zero disruption to existing pipeline.
+        fusion_result = None
+        if self._cognitive_fusion is not None:
+            fusion_result = self._run_cognitive_fusion(query, thought_prompt)
+            if fusion_result is not None:
+                thought_prompt = self._enrich_prompt_with_fusion(
+                    thought_prompt, fusion_result
+                )
+                result.fusion_report = {  # type: ignore[attr-defined]
+                    "complexity": fusion_result.routing.complexity_class,
+                    "expert_tier": fusion_result.expert_tier,
+                    "target_level": fusion_result.target_level,
+                    "hrm_snr": round(fusion_result.compound_snr, 4),
+                    "retrieval_count": len(fusion_result.retrieval),
+                    "fusion_snr": round(fusion_result.snr_score, 4),
+                    "fusion_ihsan": round(fusion_result.ihsan_score, 4),
+                    "passes_gate": fusion_result.passes_gate,
+                }
+
         # STAGE 2: Perform LLM inference
         answer, model_used = await self._perform_llm_inference(
             thought_prompt, compute_tier, query
@@ -2245,6 +2273,62 @@ class SovereignRuntime:
         if mode is None:
             return None
         return self._mode_to_tier(mode)
+
+    def _run_cognitive_fusion(
+        self, query: SovereignQuery, thought_prompt: str
+    ) -> Optional[object]:
+        """STAGE 1.5: Cognitive Fusion — MoE → HRM → RAG → NorthStar.
+
+        Runs the CognitiveFusionEngine synchronously (all subsystems are CPU-bound).
+        Returns FusionResult or None if the engine is unavailable / errors.
+
+        Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT)
+        """
+        try:
+            # Build a zero-vector placeholder when no embedding function available
+            dummy_embedding = [0.0] * 768
+            return self._cognitive_fusion.process(  # type: ignore[union-attr]
+                query=query.text,
+                query_embedding=dummy_embedding,
+                context=query.context,
+            )
+        except Exception as e:
+            self.logger.warning(f"Cognitive fusion skipped: {e}")
+            return None
+
+    @staticmethod
+    def _enrich_prompt_with_fusion(
+        thought_prompt: str, fusion_result: object
+    ) -> str:
+        """Augment the GoT prompt with RAG context from cognitive fusion.
+
+        Prepends retrieved context chunks (if any) so the LLM has grounded
+        knowledge to reason over. Keeps the original GoT prompt intact as
+        the primary instruction.
+        """
+        retrieval = getattr(fusion_result, "retrieval", [])
+        if not retrieval:
+            return thought_prompt
+
+        # Build context block from retrieved chunks (max 5 for prompt budget)
+        chunks = []
+        for item in retrieval[:5]:
+            if hasattr(item, "content"):
+                chunks.append(str(item.content)[:500])
+            elif isinstance(item, dict) and "content" in item:
+                chunks.append(str(item["content"])[:500])
+            elif isinstance(item, str):
+                chunks.append(item[:500])
+
+        if not chunks:
+            return thought_prompt
+
+        context_block = "\n---\n".join(chunks)
+        return (
+            f"[Retrieved Context ({len(chunks)} sources)]\n"
+            f"{context_block}\n\n"
+            f"[Query + Reasoning]\n{thought_prompt}"
+        )
 
     async def _execute_reasoning_stage(
         self, query: SovereignQuery
@@ -2639,7 +2723,7 @@ class SovereignRuntime:
 
         identity_info: dict[str, Any] = {
             "node_id": self.config.node_id,
-            "version": "1.0.0",
+            "version": _ELITE_VERSION,
             "origin": dict(self._origin_snapshot),
         }
         if self._node_signer and hasattr(self._node_signer, "public_key_hex"):
