@@ -21,6 +21,7 @@ resources:
   - services.yaml
   - ingress.yaml
   - hpa.yaml
+  - networkpolicy.yaml
 
 images:
   - name: bizra-elite

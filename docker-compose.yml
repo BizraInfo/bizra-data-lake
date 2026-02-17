@@ -102,14 +102,17 @@ services:
       - BIZRA_NODE_ID=node0-genesis-dev
       - IHSAN_THRESHOLD=0.95
       - SNR_THRESHOLD=0.85
-      - BIZRA_RECEIPT_PRIVATE_KEY_HEX=${BIZRA_RECEIPT_PRIVATE_KEY_HEX:-}
+      # REQUIRED: bridge refuses startup without this token (SAPE-003 fix)
+      - BIZRA_BRIDGE_TOKEN=${BIZRA_BRIDGE_TOKEN:?Set BIZRA_BRIDGE_TOKEN in .env}
+      - BIZRA_RECEIPT_PRIVATE_KEY_HEX=${BIZRA_RECEIPT_PRIVATE_KEY_HEX:?Set BIZRA_RECEIPT_PRIVATE_KEY_HEX in .env}
       - LLM_PRIMARY_HOST=${LLM_PRIMARY_HOST:-192.168.56.1}
       - LLM_PRIMARY_PORT=${LLM_PRIMARY_PORT:-1234}
     depends_on:
       python-api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket,json;s=socket.socket();s.settimeout(3);s.connect(('127.0.0.1',9742));s.sendall(json.dumps({'jsonrpc':'2.0','method':'ping','id':1}).encode()+b'\\n');d=s.recv(4096);s.close();r=json.loads(d);assert r.get('result',{}).get('status')=='alive'"]
+      # Auth-aware healthcheck: includes X-BIZRA-TOKEN header (SAPE-003 fix)
+      test: ["CMD", "python", "-c", "import os,socket,json,time,uuid;t=os.environ['BIZRA_BRIDGE_TOKEN'];m=json.dumps({'jsonrpc':'2.0','method':'ping','id':1,'headers':{'X-BIZRA-TOKEN':t,'X-BIZRA-TS':str(int(time.time()*1000)),'X-BIZRA-NONCE':uuid.uuid4().hex}});s=socket.socket();s.settimeout(3);s.connect(('127.0.0.1',9742));s.sendall(m.encode()+b'\\n');d=s.recv(4096);s.close();r=json.loads(d);assert r.get('result',{}).get('status')=='alive'"]
       interval: 30s
       timeout: 10s
       start_period: 10s
