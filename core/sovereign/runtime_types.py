@@ -247,6 +247,12 @@ class RuntimeConfig:
     enable_memory_synthesizer: bool = True
     memory_synthesizer_window_hours: int = 24
 
+    # Phase 25-28: Ecosystem subsystems
+    enable_hrm: bool = True
+    enable_northstar: bool = True
+    enable_guild_system: bool = True
+    enable_quest_system: bool = True
+
     # Zero Point Kernel (trusted bootstrap preflight)
     enable_zpk_preflight: bool = False
     zpk_manifest_uri: str = ""
@@ -268,6 +274,10 @@ class RuntimeConfig:
             enable_autonomous_loop=False,
             enable_proactive_kernel=False,
             enable_zpk_preflight=False,
+            enable_hrm=False,
+            enable_northstar=False,
+            enable_guild_system=False,
+            enable_quest_system=False,
         )
 
     @classmethod

@@ -143,7 +143,7 @@ class TestCrossPackageIntegration:
         assert hasattr(core, "hypergraph")
         assert hasattr(core, "cognitive_fusion")
         assert hasattr(core, "memory_coder")
-        assert core.__version__ == "2.4.0"
+        assert core.__version__ == "2.5.0"
 
     def test_runtime_config_has_fusion_flags(self):
         from core.sovereign.runtime_types import RuntimeConfig

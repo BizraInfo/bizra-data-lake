@@ -165,6 +165,12 @@ class SovereignRuntime:
         # SpearPoint Pipeline — unified post-query cockpit
         self._spearpoint: Optional[object] = None  # SpearPointPipeline
 
+        # Phase 25-28: Ecosystem subsystems
+        self._hrm_engine: Optional[object] = None  # HierarchicalReasoningModel
+        self._northstar_engine: Optional[object] = None  # NorthStarEngine
+        self._guild_registry: Optional[object] = None  # GuildRegistry
+        self._quest_engine: Optional[object] = None  # QuestEngine
+
     # -------------------------------------------------------------------------
     # LIFECYCLE
     # -------------------------------------------------------------------------
@@ -387,6 +393,9 @@ class SovereignRuntime:
 
         # Initialize Phase 31: Cognitive Fusion (HyperGraph + Fusion Engine + Memory Coder)
         self._init_cognitive_fusion()
+
+        # Initialize Phase 25-28: Ecosystem subsystems (HRM + NorthStar + Guild + Quest)
+        self._init_ecosystem_subsystems()
 
         # Initialize impact tracker (sovereignty growth engine)
         self._init_impact_tracker()
@@ -1507,6 +1516,77 @@ class SovereignRuntime:
         else:
             self.logger.info("○ MemorySynthesizer disabled by config")
 
+    def _init_ecosystem_subsystems(self) -> None:
+        """Initialize Phase 25-28 ecosystem subsystems.
+
+        Wires HRM cognitive engine + NorthStar flagship + Guild membership +
+        Quest mission engine. All optional — graceful degradation.
+
+        Standing on: Simon (hierarchy) + Csikszentmihalyi (flow) + Ostrom (commons)
+        """
+        # 1. Hierarchical Reasoning Model
+        if self.config.enable_hrm:
+            try:
+                from core.hrm import HierarchicalReasoningModel, HRMConfig
+
+                self._hrm_engine = HierarchicalReasoningModel(HRMConfig())
+                num_levels = len(self._hrm_engine._config.active_levels)
+                self.logger.info(f"✓ HRM initialized ({num_levels} levels)")
+            except ImportError:
+                self.logger.warning("⚠ HRM unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ HRM init failed: {e}")
+        else:
+            self.logger.info("○ HRM disabled by config")
+
+        # 2. NorthStar Engine (cognitive flagship)
+        if self.config.enable_northstar:
+            try:
+                from core.northstar import NorthStarEngine
+
+                self._northstar_engine = NorthStarEngine()
+                self.logger.info("✓ NorthStar Engine initialized")
+            except ImportError:
+                self.logger.warning("⚠ NorthStar unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ NorthStar init failed: {e}")
+        else:
+            self.logger.info("○ NorthStar disabled by config")
+
+        # 3. Guild Registry (collaborative communities)
+        if self.config.enable_guild_system:
+            try:
+                from core.guild import GuildRegistry
+
+                self._guild_registry = GuildRegistry()
+                guild_count = len(self._guild_registry._guilds)
+                self.logger.info(
+                    f"✓ GuildRegistry initialized ({guild_count} guilds)"
+                )
+            except ImportError:
+                self.logger.warning("⚠ GuildRegistry unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ GuildRegistry init failed: {e}")
+        else:
+            self.logger.info("○ GuildRegistry disabled by config")
+
+        # 4. Quest Engine (impact missions)
+        if self.config.enable_quest_system:
+            try:
+                from core.quest import QuestEngine
+
+                self._quest_engine = QuestEngine()
+                quest_count = len(self._quest_engine._quests)
+                self.logger.info(
+                    f"✓ QuestEngine initialized ({quest_count} quests)"
+                )
+            except ImportError:
+                self.logger.warning("⚠ QuestEngine unavailable")
+            except Exception as e:
+                self.logger.warning(f"⚠ QuestEngine init failed: {e}")
+        else:
+            self.logger.info("○ QuestEngine disabled by config")
+
     def _init_impact_tracker(self) -> None:
         """Initialize the impact tracker for sovereignty progression."""
         try:
@@ -1665,6 +1745,10 @@ class SovereignRuntime:
                 "hypergraph_store": self._hypergraph_store is not None,
                 "cognitive_fusion": self._cognitive_fusion is not None,
                 "memory_synthesizer": self._memory_synthesizer is not None,
+                "hrm_engine": self._hrm_engine is not None,
+                "northstar_engine": self._northstar_engine is not None,
+                "guild_registry": self._guild_registry is not None,
+                "quest_engine": self._quest_engine is not None,
             },
             "cache_size": len(self._cache),
         }
