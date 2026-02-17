@@ -1,5 +1,7 @@
 # Phase 32: Live Cognition — Real Embeddings + NTU Wiring + Quality Gates
 
+> **Status: COMPLETED** — Committed `d4347d4` + `9902f87` (2026-02-17). See `phase_32_completion.md` for deviations from this spec.
+
 > Replaces dummy embeddings with live sentence-transformer inference, wires the NeuroTemporal Unit into the cognitive fusion pipeline, and adds embedding-quality gates to prevent silent degradation.
 
 Standing on Giants: Reimers & Gurevych (2019, sentence-BERT) + Shannon (1948, information entropy as quality signal) + Takens (1981, embedding theorem — NTU temporal patterns) + Deming (1950, quality gates at every stage)
@@ -122,7 +124,7 @@ CLASS EmbeddingQualityGate:
   Artifact: core/embedding/quality_gate.py
   """
 
-  FUNCTION __init__(self, min_norm: float = 0.1, max_entropy_ratio: float = 0.95):
+  FUNCTION __init__(self, min_norm: float = 0.1, max_entropy_ratio: float = 0.98):  # Calibrated from 0.95
     self.min_norm = min_norm
     self.max_entropy_ratio = max_entropy_ratio
 
@@ -333,7 +335,7 @@ TEST test_runtime_graceful_when_embedding_unavailable:
 | Metric | Target |
 |--------|--------|
 | Zero dummy embeddings in pipeline | `grep -r "0.0.*768" core/sovereign/` returns 0 hits |
-| Embedding quality gate | Rejects norm < 0.1 and entropy_ratio > 0.95 |
+| Embedding quality gate | Rejects norm < 0.1 and entropy_ratio > 0.98 (calibrated from 0.95 — see `phase_32_completion.md` §1) |
 | NTU state in fusion context | `fusion_report["ntu_belief"]` present when NTU available |
 | Graceful degradation | No crashes when sentence-transformers and Ollama both unavailable |
 | Test count | +10 new tests, all passing |
