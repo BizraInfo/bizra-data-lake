@@ -37,7 +37,7 @@ class EmbeddingQualityGate:
     def __init__(
         self,
         min_norm: float = 0.1,
-        max_entropy_ratio: float = 0.95,
+        max_entropy_ratio: float = 0.98,
     ) -> None:
         self.min_norm = min_norm
         self.max_entropy_ratio = max_entropy_ratio
