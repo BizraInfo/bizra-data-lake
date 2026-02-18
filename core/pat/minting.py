@@ -634,7 +634,9 @@ class IdentityMinter:
             # Generate SAT agent types list based on count
             sat_types = []
             for i in range(sat_count):
-                sat_types.append(SYSTEM_AGENT_ALLOCATION[i % len(SYSTEM_AGENT_ALLOCATION)])
+                sat_types.append(
+                    SYSTEM_AGENT_ALLOCATION[i % len(SYSTEM_AGENT_ALLOCATION)]
+                )
 
             # 3. Mint system SAT agents
             sat_agents = self.mint_sat_agents(

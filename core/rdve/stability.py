@@ -87,15 +87,19 @@ class WarmupSchedule:
         progress = current_cycle / max(self.warmup_cycles, 1)
 
         if self.strategy == WarmupStrategy.LINEAR:
-            factor = self.min_exploration_factor + (
-                self.max_exploration_factor - self.min_exploration_factor
-            ) * progress
+            factor = (
+                self.min_exploration_factor
+                + (self.max_exploration_factor - self.min_exploration_factor) * progress
+            )
 
         elif self.strategy == WarmupStrategy.COSINE:
             # Cosine annealing: smooth S-curve transition
-            factor = self.min_exploration_factor + (
-                self.max_exploration_factor - self.min_exploration_factor
-            ) * (1 - math.cos(math.pi * progress)) / 2
+            factor = (
+                self.min_exploration_factor
+                + (self.max_exploration_factor - self.min_exploration_factor)
+                * (1 - math.cos(math.pi * progress))
+                / 2
+            )
 
         elif self.strategy == WarmupStrategy.EXPONENTIAL:
             # Exponential: fast initial ramp
@@ -116,13 +120,17 @@ class WarmupSchedule:
                 factor = self.min_exploration_factor + progress * 0.5
             else:
                 # Normal — linear progression
-                factor = self.min_exploration_factor + (
-                    self.max_exploration_factor - self.min_exploration_factor
-                ) * progress
+                factor = (
+                    self.min_exploration_factor
+                    + (self.max_exploration_factor - self.min_exploration_factor)
+                    * progress
+                )
         else:
             factor = self.max_exploration_factor
 
-        return max(self.min_exploration_factor, min(self.max_exploration_factor, factor))
+        return max(
+            self.min_exploration_factor, min(self.max_exploration_factor, factor)
+        )
 
     def get_snr_threshold(
         self,
@@ -209,9 +217,7 @@ class ConvergenceDetector:
             if self._state.scores[-1] < self._state.scores[-2] * 0.95:
                 self._state.divergence_count += 1
             else:
-                self._state.divergence_count = max(
-                    0, self._state.divergence_count - 1
-                )
+                self._state.divergence_count = max(0, self._state.divergence_count - 1)
 
     def is_converged(self) -> bool:
         """Check if the system has converged."""
@@ -320,9 +326,7 @@ class StabilityProtocol:
         """
         self._cycle_count = cycle_number
         success_rate = (
-            self._success_count / max(cycle_number, 1)
-            if cycle_number > 0
-            else 0.5
+            self._success_count / max(cycle_number, 1) if cycle_number > 0 else 0.5
         )
 
         # Warmup-adjusted exploration factor
@@ -336,7 +340,9 @@ class StabilityProtocol:
         # Rate limit check
         now = time.time()
         min_interval = 60.0 / self._max_rate
-        actual_interval = now - self._last_cycle_time if self._last_cycle_time else min_interval
+        actual_interval = (
+            now - self._last_cycle_time if self._last_cycle_time else min_interval
+        )
 
         should_wait = False
         wait_seconds = 0.0
@@ -416,7 +422,5 @@ class StabilityProtocol:
             },
             "cycle_count": self._cycle_count,
             "success_count": self._success_count,
-            "success_rate": (
-                self._success_count / max(self._cycle_count, 1)
-            ),
+            "success_rate": (self._success_count / max(self._cycle_count, 1)),
         }

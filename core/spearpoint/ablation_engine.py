@@ -60,20 +60,20 @@ STANDING_ON_GIANTS: Final[list] = [
 class AblationType(str, Enum):
     """Type of ablation experiment."""
 
-    REMOVAL = "removal"          # Remove component entirely
-    DOWNGRADE = "downgrade"      # Replace with simpler version
-    ISOLATION = "isolation"      # Test component in isolation
+    REMOVAL = "removal"  # Remove component entirely
+    DOWNGRADE = "downgrade"  # Replace with simpler version
+    ISOLATION = "isolation"  # Test component in isolation
     PERTURBATION = "perturbation"  # Add noise to component output
 
 
 class ComponentStatus(str, Enum):
     """Status classification after ablation analysis."""
 
-    CRITICAL = "critical"      # Removal causes >20% drop — must keep
-    IMPORTANT = "important"    # Removal causes 5-20% drop — should keep
-    MARGINAL = "marginal"      # Removal causes <5% drop — optimization candidate
-    REDUNDANT = "redundant"    # Removal improves performance — consider removing
-    UNKNOWN = "unknown"        # Insufficient data
+    CRITICAL = "critical"  # Removal causes >20% drop — must keep
+    IMPORTANT = "important"  # Removal causes 5-20% drop — should keep
+    MARGINAL = "marginal"  # Removal causes <5% drop — optimization candidate
+    REDUNDANT = "redundant"  # Removal improves performance — consider removing
+    UNKNOWN = "unknown"  # Insufficient data
 
 
 @dataclass
@@ -90,8 +90,8 @@ class AblationExperiment:
     ablated_score: float = 0.0
 
     # Computed
-    effect_size: float = 0.0         # baseline - ablated (positive = component helps)
-    relative_effect: float = 0.0     # effect_size / baseline
+    effect_size: float = 0.0  # baseline - ablated (positive = component helps)
+    relative_effect: float = 0.0  # effect_size / baseline
     status: ComponentStatus = ComponentStatus.UNKNOWN
 
     # Metadata
@@ -103,9 +103,7 @@ class AblationExperiment:
     def compute_effect(self) -> None:
         """Compute effect size and classify component status."""
         self.effect_size = self.baseline_score - self.ablated_score
-        self.relative_effect = (
-            self.effect_size / max(self.baseline_score, 0.001)
-        )
+        self.relative_effect = self.effect_size / max(self.baseline_score, 0.001)
 
         if self.relative_effect > 0.20:
             self.status = ComponentStatus.CRITICAL
@@ -144,19 +142,28 @@ class AblationReport:
 
     @property
     def critical_components(self) -> List[str]:
-        return [e.component_name for e in self.experiments
-                if e.status == ComponentStatus.CRITICAL]
+        return [
+            e.component_name
+            for e in self.experiments
+            if e.status == ComponentStatus.CRITICAL
+        ]
 
     @property
     def weak_components(self) -> List[str]:
         """Components where removal has minimal effect — optimization targets."""
-        return [e.component_name for e in self.experiments
-                if e.status in (ComponentStatus.MARGINAL, ComponentStatus.REDUNDANT)]
+        return [
+            e.component_name
+            for e in self.experiments
+            if e.status in (ComponentStatus.MARGINAL, ComponentStatus.REDUNDANT)
+        ]
 
     @property
     def redundant_components(self) -> List[str]:
-        return [e.component_name for e in self.experiments
-                if e.status == ComponentStatus.REDUNDANT]
+        return [
+            e.component_name
+            for e in self.experiments
+            if e.status == ComponentStatus.REDUNDANT
+        ]
 
     def ranked_by_contribution(self) -> List[AblationExperiment]:
         """Return experiments ranked by contribution (highest first)."""
@@ -313,9 +320,7 @@ class AblationEngine:
 
         # Determine components to test
         if components:
-            test_components = [
-                c for c in self._components if c["name"] in components
-            ]
+            test_components = [c for c in self._components if c["name"] in components]
         else:
             test_components = list(self._components)
 
@@ -365,13 +370,12 @@ class AblationEngine:
         )
 
         weak = [
-            e.component_name for e in sorted_by_weakness
+            e.component_name
+            for e in sorted_by_weakness
             if e.status in (ComponentStatus.MARGINAL, ComponentStatus.REDUNDANT)
         ][:top_k]
 
-        effects = {
-            e.component_name: e.effect_size for e in report.experiments
-        }
+        effects = {e.component_name: e.effect_size for e in report.experiments}
 
         logger.info(
             f"Ablation complete: {len(report.experiments)} experiments, "
@@ -387,9 +391,7 @@ class AblationEngine:
             "critical_components": report.critical_components,
         }
 
-    def _simulate_ablation(
-        self, baseline: float, component_name: str
-    ) -> float:
+    def _simulate_ablation(self, baseline: float, component_name: str) -> float:
         """
         Simulate ablation when no custom scoring function is provided.
 
@@ -401,14 +403,14 @@ class AblationEngine:
         """
         # Heuristic importance weights (calibrated from BIZRA architecture)
         importance = {
-            "hypothesis_generator": 0.20,     # Core idea generation
-            "got_explorer": 0.15,             # Non-linear search
-            "snr_filter": 0.25,               # Quality gate (critical)
-            "autopoietic_loop": 0.20,         # Constitutional integrity
-            "convergence_detector": 0.05,     # Optimization control
+            "hypothesis_generator": 0.20,  # Core idea generation
+            "got_explorer": 0.15,  # Non-linear search
+            "snr_filter": 0.25,  # Quality gate (critical)
+            "autopoietic_loop": 0.20,  # Constitutional integrity
+            "convergence_detector": 0.05,  # Optimization control
             "interdisciplinary_transfer": 0.05,  # Architecture inspiration
-            "evidence_ledger": 0.03,          # Audit trail
-            "cognitive_budget": 0.07,         # Cost efficiency
+            "evidence_ledger": 0.03,  # Audit trail
+            "cognitive_budget": 0.07,  # Cost efficiency
         }
 
         weight = importance.get(component_name, 0.10)
@@ -436,13 +438,15 @@ class AblationEngine:
         ranking = []
         for name, effects in totals.items():
             avg_effect = sum(effects) / len(effects)
-            ranking.append({
-                "component": name,
-                "avg_effect": round(avg_effect, 4),
-                "num_studies": len(effects),
-                "max_effect": round(max(effects), 4),
-                "min_effect": round(min(effects), 4),
-            })
+            ranking.append(
+                {
+                    "component": name,
+                    "avg_effect": round(avg_effect, 4),
+                    "num_studies": len(effects),
+                    "max_effect": round(max(effects), 4),
+                    "min_effect": round(min(effects), 4),
+                }
+            )
 
         ranking.sort(key=lambda r: r["avg_effect"], reverse=True)
         return ranking
@@ -453,9 +457,7 @@ class AblationEngine:
             "version": ABLATION_VERSION,
             "total_components": len(self._components),
             "total_studies": len(self._history),
-            "total_experiments": sum(
-                len(r.experiments) for r in self._history
-            ),
+            "total_experiments": sum(len(r.experiments) for r in self._history),
             "giants": STANDING_ON_GIANTS,
         }
 

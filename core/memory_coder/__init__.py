@@ -9,6 +9,7 @@ Exports:
     PatternCodebook    -- Indexed collection of synthesized patterns
     SynthesizedPattern -- A single reusable cognitive pattern
 """
+
 from __future__ import annotations
 
 from .memory_synthesizer import MemorySynthesizer, MemoryRecord

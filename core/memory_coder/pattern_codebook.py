@@ -11,6 +11,7 @@ The codebook supports two retrieval modes:
 
 Standing on Giants: Shannon (codebooks) + Deming (continuous improvement)
 """
+
 from __future__ import annotations
 
 import json
@@ -62,6 +63,7 @@ class SynthesizedPattern:
 # ---------------------------------------------------------------------------
 # Cosine-similarity helpers
 # ---------------------------------------------------------------------------
+
 
 def _cosine_similarity_np(a: List[float], b: List[float]) -> float:
     """Cosine similarity using numpy."""

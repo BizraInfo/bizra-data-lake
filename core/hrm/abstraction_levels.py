@@ -38,6 +38,7 @@ from core.integration.constants import (
 # ABSTRACTION LEVELS — The Cognitive Hierarchy
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class AbstractionLevel(IntEnum):
     """
     Hierarchical abstraction levels from perceptual ground to meta-cognitive.
@@ -53,20 +54,20 @@ class AbstractionLevel(IntEnum):
       Level N (Meta) → Adaptive Ihsān (axiom evolution)
     """
 
-    PERCEPTUAL = 0       # Signal detection, feature extraction
-    OPERATIONAL = 1      # Pattern recognition, categorization
-    TACTICAL = 2         # Action selection, resource allocation
-    STRATEGIC = 3        # Goal setting, planning, priorities
-    META_COGNITIVE = 4   # Reasoning about reasoning itself
+    PERCEPTUAL = 0  # Signal detection, feature extraction
+    OPERATIONAL = 1  # Pattern recognition, categorization
+    TACTICAL = 2  # Action selection, resource allocation
+    STRATEGIC = 3  # Goal setting, planning, priorities
+    META_COGNITIVE = 4  # Reasoning about reasoning itself
 
 
 class TemporalScale(str, Enum):
     """Temporal scale at which each abstraction level operates."""
 
-    IMMEDIATE = "immediate"        # L0: Real-time signal processing
-    SHORT_TERM = "short_term"      # L1: Pattern recognition window
-    MEDIUM_TERM = "medium_term"    # L2: Action-outcome correlation
-    LONG_TERM = "long_term"        # L3: Strategic planning horizon
+    IMMEDIATE = "immediate"  # L0: Real-time signal processing
+    SHORT_TERM = "short_term"  # L1: Pattern recognition window
+    MEDIUM_TERM = "medium_term"  # L2: Action-outcome correlation
+    LONG_TERM = "long_term"  # L3: Strategic planning horizon
     EVOLUTIONARY = "evolutionary"  # LN: Architectural evolution
 
 
@@ -80,11 +81,11 @@ class BridgeNodeType(str, Enum):
     HRM PDF Table 5: GoT Node Types in Hierarchical Context
     """
 
-    INTRA_LEVEL = "intra_level"    # Reasoning within single level
-    INTER_LEVEL = "inter_level"    # Between adjacent levels
-    BRIDGE = "bridge"              # Multi-scale insight (HIGHEST SNR)
-    HUB = "hub"                    # Integration/synthesis point
-    FRONTIER = "frontier"          # Exploration boundary probe
+    INTRA_LEVEL = "intra_level"  # Reasoning within single level
+    INTER_LEVEL = "inter_level"  # Between adjacent levels
+    BRIDGE = "bridge"  # Multi-scale insight (HIGHEST SNR)
+    HUB = "hub"  # Integration/synthesis point
+    FRONTIER = "frontier"  # Exploration boundary probe
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -95,11 +96,11 @@ class BridgeNodeType(str, Enum):
 # Lower levels tolerate more noise (more data available)
 # Higher levels require higher purity (higher stakes, less data)
 HRM_SNR_GRADIENT: Final[Dict[AbstractionLevel, float]] = {
-    AbstractionLevel.PERCEPTUAL: UNIFIED_SNR_THRESHOLD,           # 0.85
-    AbstractionLevel.OPERATIONAL: SNR_THRESHOLD_T3_ACCEPTABLE,    # 0.85
-    AbstractionLevel.TACTICAL: SNR_THRESHOLD_T2_STANDARD,         # 0.90
-    AbstractionLevel.STRATEGIC: SNR_THRESHOLD_T1_HIGH,            # 0.95
-    AbstractionLevel.META_COGNITIVE: SNR_THRESHOLD_T0_ELITE,      # 0.98
+    AbstractionLevel.PERCEPTUAL: UNIFIED_SNR_THRESHOLD,  # 0.85
+    AbstractionLevel.OPERATIONAL: SNR_THRESHOLD_T3_ACCEPTABLE,  # 0.85
+    AbstractionLevel.TACTICAL: SNR_THRESHOLD_T2_STANDARD,  # 0.90
+    AbstractionLevel.STRATEGIC: SNR_THRESHOLD_T1_HIGH,  # 0.95
+    AbstractionLevel.META_COGNITIVE: SNR_THRESHOLD_T0_ELITE,  # 0.98
 }
 
 # Temporal scale mapping
@@ -156,10 +157,10 @@ class LevelBoundary:
 
     source_level: AbstractionLevel
     target_level: AbstractionLevel
-    permeability: float = 0.5       # 0.0 = sealed, 1.0 = transparent
+    permeability: float = 0.5  # 0.0 = sealed, 1.0 = transparent
     transform_required: bool = True  # Must information be abstracted?
-    message_count: int = 0          # Telemetry: messages crossed
-    blocked_count: int = 0          # Telemetry: messages blocked
+    message_count: int = 0  # Telemetry: messages crossed
+    blocked_count: int = 0  # Telemetry: messages blocked
 
     @property
     def direction(self) -> str:
@@ -184,6 +185,7 @@ class LevelBoundary:
 # ═══════════════════════════════════════════════════════════════════════════════
 # FACTORY — Default Level Configurations
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def default_level_configs() -> List[LevelConfig]:
     """

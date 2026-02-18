@@ -67,6 +67,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION & RESULT TYPES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class HRMStatus(str, Enum):
     """Status of the Hierarchical Reasoning Model."""
 
@@ -87,9 +88,7 @@ class HRMConfig:
     """
 
     # Level configuration
-    level_configs: List[LevelConfig] = field(
-        default_factory=default_level_configs
-    )
+    level_configs: List[LevelConfig] = field(default_factory=default_level_configs)
 
     # Meta-autopoietic level
     enable_meta_level: bool = True
@@ -97,7 +96,7 @@ class HRMConfig:
 
     # Learning cascade
     cascade_factor: float = 0.8  # How much learning transfers up/down
-    cascade_decay: float = 0.9   # Decay per level distance
+    cascade_decay: float = 0.9  # Decay per level distance
 
     # Synchronization
     sync_interval_cycles: int = 5  # How often to synchronize all levels
@@ -108,7 +107,7 @@ class HRMConfig:
 
     # Constitutional alignment
     ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD  # 0.95
-    snr_floor: float = UNIFIED_SNR_THRESHOLD          # 0.85
+    snr_floor: float = UNIFIED_SNR_THRESHOLD  # 0.85
 
     @property
     def active_levels(self) -> List[AbstractionLevel]:
@@ -133,9 +132,7 @@ class LevelCycleResult:
     @property
     def success(self) -> bool:
         """Did this level produce meaningful results?"""
-        return self.snr_score >= HRM_SNR_GRADIENT.get(
-            self.level, UNIFIED_SNR_THRESHOLD
-        )
+        return self.snr_score >= HRM_SNR_GRADIENT.get(self.level, UNIFIED_SNR_THRESHOLD)
 
 
 @dataclass
@@ -182,6 +179,7 @@ class HRMCycleResult:
 # HIERARCHICAL REASONING MODEL — The Unified Engine
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class HierarchicalReasoningModel:
     """
     Multi-level cognitive architecture with nested autopoietic loops.
@@ -217,11 +215,7 @@ class HierarchicalReasoningModel:
         self._meta_level = (
             meta_level
             if meta_level is not None
-            else (
-                MetaAutopoieticLevel()
-                if self._config.enable_meta_level
-                else None
-            )
+            else (MetaAutopoieticLevel() if self._config.enable_meta_level else None)
         )
 
         # Level state tracking
@@ -272,9 +266,7 @@ class HierarchicalReasoningModel:
             self._config.level_configs, key=lambda lc: int(lc.level)
         ):
             level = level_config.level
-            level_result = self._run_level_cycle(
-                level_config, observation or {}
-            )
+            level_result = self._run_level_cycle(level_config, observation or {})
             result.level_results[level] = level_result
 
             # Propagate insights upward via bridge
@@ -297,22 +289,16 @@ class HierarchicalReasoningModel:
         result.cascade_events = cascade_count
 
         # Phase 3: Detect resonance
-        result.resonance_detected = self._detect_resonance(
-            result.level_results
-        )
+        result.resonance_detected = self._detect_resonance(result.level_results)
         if result.resonance_detected:
             self._total_resonance_events += 1
 
         # Phase 4: Synchronize if interval reached
         if self._cycle_count % self._config.sync_interval_cycles == 0:
-            sync_result = self._bridge.synchronize_integration(
-                self._level_states
-            )
+            sync_result = self._bridge.synchronize_integration(self._level_states)
             # Feed sync results to learning
             for level in self._level_states:
-                self._level_states[level]["sync_quality"] = (
-                    sync_result.sync_quality
-                )
+                self._level_states[level]["sync_quality"] = sync_result.sync_quality
 
         # Phase 5: Meta-autopoietic observation
         if (
@@ -337,9 +323,7 @@ class HierarchicalReasoningModel:
                 )
 
         # Compute compound metrics
-        result.compound_snr = self._compute_compound_snr(
-            result.level_results
-        )
+        result.compound_snr = self._compute_compound_snr(result.level_results)
         result.compound_learning_delta = self._compute_compound_learning(
             result.level_results
         )
@@ -438,9 +422,7 @@ class HierarchicalReasoningModel:
 
         # Stage 3-4: Explore & Filter
         hypotheses_gen = max(1, int(level_config.max_hypotheses * 0.6))
-        hypotheses_valid = max(
-            1, int(hypotheses_gen * snr)
-        )
+        hypotheses_valid = max(1, int(hypotheses_gen * snr))
 
         # Stage 5-7: Validate, Implement, Integrate
         insights = max(0, hypotheses_valid - int(hypotheses_gen * 0.4))
@@ -462,9 +444,7 @@ class HierarchicalReasoningModel:
         state["active_hypotheses"] = [
             f"hyp_{level.name}_{i}" for i in range(hypotheses_valid)
         ]
-        state["insights"] = [
-            f"insight_{level.name}_{i}" for i in range(insights)
-        ]
+        state["insights"] = [f"insight_{level.name}_{i}" for i in range(insights)]
         self._level_states[level] = state
 
         # Determine bridge node type
@@ -515,13 +495,14 @@ class HierarchicalReasoningModel:
             for j in range(i + 1, len(levels)):
                 target = levels[j]
                 distance = j - i
-                cascaded = delta * (self._config.cascade_decay ** distance)
+                cascaded = delta * (self._config.cascade_decay**distance)
 
                 if cascaded > 0.001:
                     state = self._level_states.get(target, {})
-                    state["cumulative_learning"] = state.get(
-                        "cumulative_learning", 0.0
-                    ) + cascaded * self._config.cascade_factor
+                    state["cumulative_learning"] = (
+                        state.get("cumulative_learning", 0.0)
+                        + cascaded * self._config.cascade_factor
+                    )
                     self._level_states[target] = state
                     cascade_count += 1
 
@@ -531,15 +512,16 @@ class HierarchicalReasoningModel:
                 distance = i - j
                 cascaded = (
                     delta
-                    * (self._config.cascade_decay ** distance)
+                    * (self._config.cascade_decay**distance)
                     * 0.5  # Downward cascade is weaker
                 )
 
                 if cascaded > 0.001:
                     state = self._level_states.get(target, {})
-                    state["cumulative_learning"] = state.get(
-                        "cumulative_learning", 0.0
-                    ) + cascaded * self._config.cascade_factor
+                    state["cumulative_learning"] = (
+                        state.get("cumulative_learning", 0.0)
+                        + cascaded * self._config.cascade_factor
+                    )
                     self._level_states[target] = state
                     cascade_count += 1
 
@@ -572,12 +554,10 @@ class HierarchicalReasoningModel:
         if len(positive_deltas) >= 3:
             # Additional check: deltas should be correlated (similar magnitude)
             mean_delta = sum(positive_deltas) / len(positive_deltas)
-            variance = sum(
-                (d - mean_delta) ** 2 for d in positive_deltas
-            ) / len(positive_deltas)
-            coefficient_of_variation = (variance ** 0.5) / max(
-                mean_delta, 0.001
+            variance = sum((d - mean_delta) ** 2 for d in positive_deltas) / len(
+                positive_deltas
             )
+            coefficient_of_variation = (variance**0.5) / max(mean_delta, 0.001)
 
             # Low CV = high correlation = resonance
             if coefficient_of_variation < 1.0:
@@ -646,15 +626,13 @@ class HierarchicalReasoningModel:
         # Compound: product of (1 + delta) - 1
         compound = 1.0
         for d in positive:
-            compound *= (1.0 + d)
+            compound *= 1.0 + d
 
         return round(compound - 1.0, 4)
 
     # ─── Public API: Status & Telemetry ────────────────────────────────
 
-    def get_level_state(
-        self, level: AbstractionLevel
-    ) -> Dict[str, Any]:
+    def get_level_state(self, level: AbstractionLevel) -> Dict[str, Any]:
         """Get the current state of a specific level."""
         return self._level_states.get(level, {})
 
@@ -671,21 +649,13 @@ class HierarchicalReasoningModel:
                     "snr_score": state.get("snr_score", 0),
                     "cycle_count": state.get("cycle_count", 0),
                     "learning_velocity": state.get("learning_velocity", 0),
-                    "cumulative_learning": state.get(
-                        "cumulative_learning", 0
-                    ),
+                    "cumulative_learning": state.get("cumulative_learning", 0),
                 }
                 for level, state in self._level_states.items()
             },
             "bridge_metrics": self._bridge.get_bridge_metrics(),
-            "meta_level": (
-                self._meta_level.get_status()
-                if self._meta_level
-                else None
-            ),
-            "compound_snr_trajectory": [
-                r.compound_snr for r in self._history[-10:]
-            ],
+            "meta_level": (self._meta_level.get_status() if self._meta_level else None),
+            "compound_snr_trajectory": [r.compound_snr for r in self._history[-10:]],
         }
 
     def get_compound_learning_rate(self) -> float:

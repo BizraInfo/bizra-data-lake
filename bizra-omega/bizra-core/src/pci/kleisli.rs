@@ -182,8 +182,11 @@ pub type GateEvalFn = Box<
     dyn Fn(
             &[u8],
             &std::collections::HashMap<String, String>,
-        ) -> (bool, std::collections::HashMap<String, String>, Option<String>)
-        + Send
+        ) -> (
+            bool,
+            std::collections::HashMap<String, String>,
+            Option<String>,
+        ) + Send
         + Sync,
 >;
 
@@ -491,7 +494,10 @@ mod tests {
 
         assert!(!result.passed);
         assert_eq!(result.failed_gate.as_deref(), Some("snr"));
-        assert_eq!(result.failure_reason.as_deref(), Some("SNR below threshold"));
+        assert_eq!(
+            result.failure_reason.as_deref(),
+            Some("SNR below threshold")
+        );
         // Only 3 gates evaluated (schema, provenance, snr)
         assert_eq!(result.evidence.gate_count(), 3);
         assert_eq!(result.gates_passed, 2); // schema + provenance passed

@@ -35,5 +35,6 @@ def __getattr__(name):
             DualOverlayGraph,
             create_semantic_separator,
         )
+
         return locals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

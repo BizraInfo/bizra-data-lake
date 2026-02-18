@@ -143,7 +143,8 @@ def main():
     print("  SUMMARY")
     print("=" * 75)
 
-    print(f"""
+    print(
+        f"""
   The BIZRA Multi-Modal Router provides intelligent task routing:
 
   Key Features:
@@ -163,7 +164,8 @@ def main():
     • Vision: {len(router.list_by_capability(ModelCapability.VISION))}
     • Voice: {len(router.list_by_capability(ModelCapability.VOICE))}
     • General: {len(router.list_by_capability(ModelCapability.GENERAL))}
-    """)
+    """
+    )
 
     print("=" * 75 + "\n")
 

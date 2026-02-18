@@ -21,19 +21,21 @@ from typing import Any, Dict, FrozenSet, List, Optional
 # HyperEdge type taxonomy
 # ---------------------------------------------------------------------------
 
+
 class HyperEdgeType(Enum):
     """Classification of N-ary relationships in the knowledge graph."""
 
-    CONCEPT_CLUSTER = auto()        # N nodes share a concept
-    CAUSAL_CHAIN = auto()           # Ordered cause->effect across N nodes
-    CROSS_DOMAIN_BRIDGE = auto()    # N nodes from different domains share pattern
-    TEMPORAL_COHORT = auto()        # N nodes active in same time window
-    EVIDENCE_BUNDLE = auto()        # N evidence items supporting one claim
+    CONCEPT_CLUSTER = auto()  # N nodes share a concept
+    CAUSAL_CHAIN = auto()  # Ordered cause->effect across N nodes
+    CROSS_DOMAIN_BRIDGE = auto()  # N nodes from different domains share pattern
+    TEMPORAL_COHORT = auto()  # N nodes active in same time window
+    EVIDENCE_BUNDLE = auto()  # N evidence items supporting one claim
 
 
 # ---------------------------------------------------------------------------
 # Core data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class HyperEdge:
@@ -92,6 +94,7 @@ class HyperGraphNode:
 # ---------------------------------------------------------------------------
 # Utility helpers
 # ---------------------------------------------------------------------------
+
 
 def generate_edge_id(node_ids: FrozenSet[str] | set[str]) -> str:
     """Deterministic edge ID from sorted node identifiers.

@@ -69,7 +69,8 @@ class SQLiteMemoryStore:
             raise RuntimeError(
                 "Database connection is closed — call initialize() first"
             )
-        self._conn.executescript("""
+        self._conn.executescript(
+            """
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INTEGER PRIMARY KEY
             );
@@ -105,7 +106,8 @@ class SQLiteMemoryStore:
                 ON memories(importance DESC);
 
             INSERT OR IGNORE INTO schema_version (version) VALUES (1);
-        """)
+        """
+        )
         self._conn.commit()
 
     # ── CRUD Operations ─────────────────────────────────────────────────

@@ -71,20 +71,20 @@ logger = logging.getLogger(__name__)
 # CONSTANTS — Autopoiesis fitness components (from __init__.py)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-N_DIMENSIONS: Final[int] = 8                    # Ihsān dimension count
-FITNESS_IHSAN_WEIGHT: Final[float] = 0.4        # Ihsān score weight
-FITNESS_SNR_WEIGHT: Final[float] = 0.3          # SNR weight
-FITNESS_NOVELTY_WEIGHT: Final[float] = 0.2      # Novelty weight
-FITNESS_EFFICIENCY_WEIGHT: Final[float] = 0.1   # Efficiency weight
+N_DIMENSIONS: Final[int] = 8  # Ihsān dimension count
+FITNESS_IHSAN_WEIGHT: Final[float] = 0.4  # Ihsān score weight
+FITNESS_SNR_WEIGHT: Final[float] = 0.3  # SNR weight
+FITNESS_NOVELTY_WEIGHT: Final[float] = 0.2  # Novelty weight
+FITNESS_EFFICIENCY_WEIGHT: Final[float] = 0.1  # Efficiency weight
 
 # Punctuated equilibrium detection thresholds
-PLATEAU_WINDOW: Final[int] = 20                 # Generations to detect stasis
-PLATEAU_THRESHOLD: Final[float] = 0.001         # Minimum improvement to not be stasis
-INNOVATION_BURST_STRENGTH: Final[float] = 0.3   # Mutation rate during innovation burst
-INNOVATION_BURST_DURATION: Final[int] = 5       # Generations of elevated mutation
+PLATEAU_WINDOW: Final[int] = 20  # Generations to detect stasis
+PLATEAU_THRESHOLD: Final[float] = 0.001  # Minimum improvement to not be stasis
+INNOVATION_BURST_STRENGTH: Final[float] = 0.3  # Mutation rate during innovation burst
+INNOVATION_BURST_DURATION: Final[int] = 5  # Generations of elevated mutation
 
 # NK landscape parameters
-DEFAULT_K: Final[int] = 2                       # Epistatic interactions (moderate ruggedness)
+DEFAULT_K: Final[int] = 2  # Epistatic interactions (moderate ruggedness)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -95,13 +95,16 @@ DEFAULT_K: Final[int] = 2                       # Epistatic interactions (modera
 @dataclass
 class FitnessSnapshot:
     """A single fitness measurement at a point in evolution time."""
+
     generation: int
     ihsan_score: float
     snr_score: float
     novelty_score: float
     efficiency_score: float
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        default_factory=lambda: datetime.now(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
     )
 
     @property
@@ -136,17 +139,18 @@ class LandscapeMetrics:
     - Rugged regime (K moderate): Local optima traps, need exploration
     - Chaotic regime (K high): Random search, innovation bursts needed
     """
-    N: int                              # Dimension count
-    K: int                              # Epistatic interaction count
-    ruggedness: float                   # Correlation length inverse (0=smooth, 1=maximally rugged)
-    correlation_length: float           # τ — how far you can move and predict fitness
-    num_local_optima_estimate: int      # Estimated local peaks
-    selection_pressure: float           # σ²/s — Fisher's selection gradient
-    is_punctuated_equilibrium: bool     # σ²/s in [1.5, 3.5] range
-    regime: str                         # "smooth", "rugged", or "chaotic"
-    plateau_detected: bool              # Currently in fitness stasis
-    plateau_length: int                 # How many generations on plateau
-    innovation_recommended: bool        # Should we trigger burst?
+
+    N: int  # Dimension count
+    K: int  # Epistatic interaction count
+    ruggedness: float  # Correlation length inverse (0=smooth, 1=maximally rugged)
+    correlation_length: float  # τ — how far you can move and predict fitness
+    num_local_optima_estimate: int  # Estimated local peaks
+    selection_pressure: float  # σ²/s — Fisher's selection gradient
+    is_punctuated_equilibrium: bool  # σ²/s in [1.5, 3.5] range
+    regime: str  # "smooth", "rugged", or "chaotic"
+    plateau_detected: bool  # Currently in fitness stasis
+    plateau_length: int  # How many generations on plateau
+    innovation_recommended: bool  # Should we trigger burst?
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -172,6 +176,7 @@ class InnovationTrigger:
     When the system detects a fitness plateau, it triggers an innovation
     burst — elevated mutation rates to escape local optima.
     """
+
     generation: int
     plateau_length: int
     fitness_at_trigger: float
@@ -179,7 +184,9 @@ class InnovationTrigger:
     burst_duration: int
     landscape_metrics: LandscapeMetrics
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        default_factory=lambda: datetime.now(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -297,13 +304,16 @@ class NKLandscapeMonitor:
 
         if n < 3:
             return LandscapeMetrics(
-                N=self._N, K=self._K,
-                ruggedness=0.0, correlation_length=float("inf"),
+                N=self._N,
+                K=self._K,
+                ruggedness=0.0,
+                correlation_length=float("inf"),
                 num_local_optima_estimate=1,
                 selection_pressure=0.0,
                 is_punctuated_equilibrium=False,
                 regime="smooth",
-                plateau_detected=False, plateau_length=0,
+                plateau_detected=False,
+                plateau_length=0,
                 innovation_recommended=False,
             )
 
@@ -330,8 +340,10 @@ class NKLandscapeMonitor:
         if self._K == 0:
             num_optima = 1
         else:
-            num_optima = max(1, int(2 ** (self._N * self._K / (self._N - 1 + 1e-10)) / (self._N + 1)))
-            num_optima = min(num_optima, 2 ** self._N)  # Cap
+            num_optima = max(
+                1, int(2 ** (self._N * self._K / (self._N - 1 + 1e-10)) / (self._N + 1))
+            )
+            num_optima = min(num_optima, 2**self._N)  # Cap
 
         # ── Plateau detection ───────────────────────────────────────────
         plateau_detected, plateau_length = self._detect_plateau(fitnesses)
@@ -406,7 +418,7 @@ class NKLandscapeMonitor:
             return 0.0
 
         # Use recent window for current pressure
-        recent = fitnesses[-min(len(fitnesses), 50):]
+        recent = fitnesses[-min(len(fitnesses), 50) :]
         variance = float(np.var(recent))
         mean = float(np.mean(recent))
 
@@ -426,7 +438,7 @@ class NKLandscapeMonitor:
         if n < self._plateau_window:
             return False, 0
 
-        recent = fitnesses[-self._plateau_window:]
+        recent = fitnesses[-self._plateau_window :]
         improvement = float(np.max(recent) - np.min(recent))
 
         if improvement < self._plateau_threshold:

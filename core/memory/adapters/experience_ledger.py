@@ -76,7 +76,9 @@ class ExperienceLedgerAdapter:
             timestamp = getattr(episode, "timestamp_secs", 0)
 
             # Build content from query + response
-            content = f"Q: {query_text}\nA: {response_text}" if query_text else str(episode)
+            content = (
+                f"Q: {query_text}\nA: {response_text}" if query_text else str(episode)
+            )
 
             # Convert epoch seconds to datetime
             if timestamp > 0:
