@@ -636,14 +636,12 @@ Core Principles:
 
 
 async def demo():
-    print(
-        """
+    print("""
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║            SOVEREIGN COMMAND CENTER — DEMONSTRATION                          ║
 ║            The Unified Autonomous Orchestration Layer                        ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
-    """
-    )
+    """)
 
     center = SovereignCommandCenter()
 

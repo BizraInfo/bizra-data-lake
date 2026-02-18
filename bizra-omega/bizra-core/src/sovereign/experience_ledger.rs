@@ -274,7 +274,7 @@ impl Episode {
 
     /// Compute the chain hash: BLAKE3(prev_chain_hash || episode_hash)
     fn compute_chain_hash(prev_chain_hash: &str, episode_hash: &str) -> String {
-        let combined = format!("{}:{}", prev_chain_hash, episode_hash);
+        let combined = format!("{prev_chain_hash}:{episode_hash}");
         let hash = blake3_domain_hash(CHAIN_DOMAIN, combined.as_bytes());
         hex_encode(&hash)
     }
@@ -809,7 +809,7 @@ fn keyword_similarity(a: &str, b: &str) -> f64 {
 
 /// Hex-encode a byte slice.
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

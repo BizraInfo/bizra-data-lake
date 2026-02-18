@@ -33,7 +33,6 @@ from core.integration.constants import (
     SNR_THRESHOLD_T3_ACCEPTABLE,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # ABSTRACTION LEVELS — The Cognitive Hierarchy
 # ═══════════════════════════════════════════════════════════════════════════════

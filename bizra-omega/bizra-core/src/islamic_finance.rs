@@ -499,8 +499,7 @@ impl MudarabahContract {
         if entrepreneur_profit_ratio < MIN_MUDARIB_SHARE {
             return Err(IslamicFinanceError::MudarabahViolation {
                 reason: format!(
-                    "Entrepreneur share {:.2} below minimum {:.2}",
-                    entrepreneur_profit_ratio, MIN_MUDARIB_SHARE
+                    "Entrepreneur share {entrepreneur_profit_ratio:.2} below minimum {MIN_MUDARIB_SHARE:.2}"
                 ),
             });
         }
@@ -508,8 +507,7 @@ impl MudarabahContract {
         if investor_profit_ratio > MAX_RABBULMAL_SHARE {
             return Err(IslamicFinanceError::MudarabahViolation {
                 reason: format!(
-                    "Investor share {:.2} exceeds maximum {:.2}",
-                    investor_profit_ratio, MAX_RABBULMAL_SHARE
+                    "Investor share {investor_profit_ratio:.2} exceeds maximum {MAX_RABBULMAL_SHARE:.2}"
                 ),
             });
         }
@@ -860,7 +858,7 @@ impl MusharakahPartnership {
         let total_profit: f64 = self.partners.iter().map(|p| p.profit_share).sum();
         if (total_profit - 1.0).abs() > 0.01 {
             return Err(IslamicFinanceError::MusharakahViolation {
-                reason: format!("Profit shares sum to {:.3}, must equal 1.0", total_profit),
+                reason: format!("Profit shares sum to {total_profit:.3}, must equal 1.0"),
             });
         }
 
@@ -1304,7 +1302,7 @@ impl WaqfEndowment {
             .unwrap_or(self.created_at);
 
         let distribution = WaqfDistribution {
-            distribution_id: format!("waqf_dist_{}", now_ms),
+            distribution_id: format!("waqf_dist_{now_ms}"),
             period_start,
             period_end: now_ms,
             total_yield: self.available_yield,
@@ -1476,7 +1474,7 @@ impl IslamicComplianceGate {
                 return Some(ComplianceViolation {
                     category: HaramCategory::Riba,
                     severity: 1.0, // Riba is always maximum severity
-                    description: format!("Detected Riba indicator: '{}'", pattern),
+                    description: format!("Detected Riba indicator: '{pattern}'"),
                     remediation: Some(
                         "Convert to profit-sharing (Mudarabah/Musharakah) structure".into(),
                     ),
@@ -1515,8 +1513,7 @@ impl IslamicComplianceGate {
                 category: HaramCategory::Gharar,
                 severity: uncertainty_score.min(1.0),
                 description: format!(
-                    "Excessive uncertainty detected: score {:.2}",
-                    uncertainty_score
+                    "Excessive uncertainty detected: score {uncertainty_score:.2}"
                 ),
                 remediation: Some(
                     "Specify all contract terms clearly and reduce uncertainty".into(),
@@ -1546,7 +1543,7 @@ impl IslamicComplianceGate {
                 return Some(ComplianceViolation {
                     category: HaramCategory::Maysir,
                     severity: 1.0,
-                    description: format!("Detected Maysir indicator: '{}'", indicator),
+                    description: format!("Detected Maysir indicator: '{indicator}'"),
                     remediation: Some(
                         "Remove gambling/speculative elements from the transaction".into(),
                     ),

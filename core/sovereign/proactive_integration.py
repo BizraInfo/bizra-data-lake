@@ -406,8 +406,7 @@ class ProactiveSovereignEntity:
                 else "Already initialized"
             )
 
-        logger.info(
-            f"""
+        logger.info(f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║              PROACTIVE SOVEREIGN ENTITY INITIALIZED                          ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -418,8 +417,7 @@ class ProactiveSovereignEntity:
 ║  Knowledge: {knowledge_status:<30}                                          ║
 ║  Ihsan Threshold: {self.config.ihsan_threshold:<10}                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
-"""
-        )
+""")
 
         # Start background tasks
         tasks = []

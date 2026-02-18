@@ -75,8 +75,7 @@ class UnifiedStore:
 
     def _create_schema(self) -> None:
         conn = self._ensure_conn()
-        conn.executescript(
-            """
+        conn.executescript("""
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INTEGER PRIMARY KEY
             );
@@ -131,8 +130,7 @@ class UnifiedStore:
             );
 
             INSERT OR IGNORE INTO schema_version (version) VALUES (2);
-        """
-        )
+        """)
         conn.commit()
 
     # ── CRUD ─────────────────────────────────────────────────────────────

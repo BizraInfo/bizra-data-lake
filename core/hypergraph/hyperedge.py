@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Dict, FrozenSet, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # HyperEdge type taxonomy
 # ---------------------------------------------------------------------------

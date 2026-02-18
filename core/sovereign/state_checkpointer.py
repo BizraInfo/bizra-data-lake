@@ -78,8 +78,7 @@ class SQLiteCheckpointStore:
         self._conn.execute("PRAGMA synchronous=NORMAL")
 
         # Create tables
-        self._conn.executescript(
-            """
+        self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS checkpoints (
                 id TEXT PRIMARY KEY,
                 timestamp TEXT NOT NULL,
@@ -100,8 +99,7 @@ class SQLiteCheckpointStore:
                 key TEXT PRIMARY KEY,
                 value TEXT
             );
-        """
-        )
+        """)
 
         # Check/update schema version
         cursor = self._conn.execute(

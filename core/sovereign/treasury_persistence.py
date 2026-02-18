@@ -49,8 +49,7 @@ class TreasuryPersistence:
             cursor = conn.cursor()
 
             # Treasury state table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS treasury_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
                     mode TEXT NOT NULL,
@@ -64,12 +63,10 @@ class TreasuryPersistence:
                     unlocked_treasury_seed REAL DEFAULT 0.0,
                     updated_at TEXT NOT NULL
                 )
-            """
-            )
+            """)
 
             # Transition history table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS treasury_transitions (
                     event_id TEXT PRIMARY KEY,
                     timestamp TEXT NOT NULL,
@@ -81,12 +78,10 @@ class TreasuryPersistence:
                     reason TEXT,
                     metadata TEXT
                 )
-            """
-            )
+            """)
 
             # Ethics assessments table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS treasury_ethics_assessments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
@@ -99,8 +94,7 @@ class TreasuryPersistence:
                     confidence REAL,
                     data_sources TEXT
                 )
-            """
-            )
+            """)
 
             conn.commit()
 
@@ -135,14 +129,12 @@ class TreasuryPersistence:
         """Load current treasury state."""
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT mode, reserves_days, ethical_score, last_transition,
                        transition_reason, burn_rate_seed_per_day, total_reserves_seed,
                        locked_treasury_seed, unlocked_treasury_seed
                 FROM treasury_state WHERE id = 1
-            """
-            )
+            """)
             row = cursor.fetchone()
 
             if row:

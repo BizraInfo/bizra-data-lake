@@ -267,8 +267,7 @@ class UserStore:
     def _ensure_schema(self) -> None:
         """Create tables if they don't exist."""
         with self._connect() as conn:
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id TEXT PRIMARY KEY,
                     username TEXT UNIQUE NOT NULL,
@@ -285,10 +284,8 @@ class UserStore:
                     query_count INTEGER DEFAULT 0,
                     metadata TEXT DEFAULT '{}'
                 )
-            """
-            )
-            conn.execute(
-                """
+            """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS api_keys (
                     key_id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
@@ -300,8 +297,7 @@ class UserStore:
                     last_used_at TEXT,
                     FOREIGN KEY (user_id) REFERENCES users(user_id)
                 )
-            """
-            )
+            """)
             # Indexes for fast lookup
             conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
             conn.execute(

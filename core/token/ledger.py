@@ -87,8 +87,7 @@ class TokenLedger:
             cursor = conn.cursor()
 
             # Token balances table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS token_balances (
                     account_id TEXT NOT NULL,
                     token_type TEXT NOT NULL,
@@ -97,12 +96,10 @@ class TokenLedger:
                     last_updated TEXT NOT NULL,
                     PRIMARY KEY (account_id, token_type)
                 )
-            """
-            )
+            """)
 
             # Transaction log table (queryable mirror of JSONL)
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS token_transactions (
                     tx_id TEXT PRIMARY KEY,
                     sequence INTEGER NOT NULL UNIQUE,
@@ -121,12 +118,10 @@ class TokenLedger:
                     nonce TEXT NOT NULL,
                     timestamp TEXT NOT NULL
                 )
-            """
-            )
+            """)
 
             # Yearly supply tracking
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS token_supply (
                     year INTEGER NOT NULL,
                     token_type TEXT NOT NULL,
@@ -134,8 +129,7 @@ class TokenLedger:
                     total_burned REAL NOT NULL DEFAULT 0.0,
                     PRIMARY KEY (year, token_type)
                 )
-            """
-            )
+            """)
 
             conn.commit()
 

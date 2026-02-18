@@ -786,7 +786,7 @@ mod hex_array_32 {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 
@@ -816,7 +816,7 @@ mod hex_array_64 {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 
@@ -849,7 +849,7 @@ mod hex_vec_32 {
         use serde::ser::SerializeSeq;
         let mut seq = serializer.serialize_seq(Some(items.len()))?;
         for bytes in items {
-            let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+            let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
             seq.serialize_element(&hex)?;
         }
         seq.end()
@@ -888,7 +888,7 @@ mod hex_option_32 {
     {
         match opt {
             Some(bytes) => {
-                let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+                let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
                 serializer.serialize_some(&hex)
             }
             None => serializer.serialize_none(),
@@ -927,7 +927,7 @@ mod hex_vec {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 

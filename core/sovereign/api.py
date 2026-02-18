@@ -2802,8 +2802,7 @@ def _run_fastapi_server(
 
     app = create_fastapi_app(runtime)
 
-    print(
-        f"""
+    print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           SOVEREIGN NODE0 ONLINE (FastAPI + Uvicorn)         ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -2816,8 +2815,7 @@ def _run_fastapi_server(
 ║                                                              ║
 ║   Press Ctrl+C to stop                                       ║
 ╚══════════════════════════════════════════════════════════════╝
-    """
-    )
+    """)
 
     uvicorn.run(
         app,
@@ -2880,8 +2878,7 @@ async def serve(
 
         await server.start()
 
-        print(
-            f"""
+        print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║              SOVEREIGN API SERVER RUNNING (asyncio)           ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -2893,8 +2890,7 @@ async def serve(
 ║   Note: Install uvicorn for Console UI + Swagger docs         ║
 ║   Press Ctrl+C to stop                                       ║
 ╚══════════════════════════════════════════════════════════════╝
-        """
-        )
+        """)
 
         await runtime.wait_for_shutdown()
         await server.stop()

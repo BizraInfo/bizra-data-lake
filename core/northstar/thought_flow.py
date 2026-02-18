@@ -46,7 +46,6 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # GOLDEN RATIO — The pulse of convergence-divergence
 # ═══════════════════════════════════════════════════════════════════════════════
