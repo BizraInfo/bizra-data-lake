@@ -21,7 +21,7 @@ import logging
 import math
 import time
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional, Sequence
 
 logger = logging.getLogger("sovereign.experience_ledger")
@@ -117,7 +117,10 @@ class Episode:
     impact: EpisodeImpact
     episode_hash: str
     prev_hash: str
-    chain_hash: str
+    parent_hashes: list[str] = field(default_factory=list)
+    # parent_hashes[0] == prev_hash for backward compatibility
+    # Multiple parents enable DAG merge commits
+    chain_hash: str = ""
     context_embedding: Optional[list[float]] = None
     response_summary: Optional[str] = None
 
@@ -148,6 +151,8 @@ class Episode:
             "episode_hash": self.episode_hash,
             "chain_hash": self.chain_hash,
         }
+        if self.parent_hashes:
+            d["parent_hashes"] = self.parent_hashes
         if self.impact.tokens_used > 0:
             d["tokens_used"] = self.impact.tokens_used
             d["efficiency_score"] = self.impact.efficiency_score
@@ -232,9 +237,26 @@ def _compute_episode_hash(
     return _blake3_hash(b"".join(parts))
 
 
-def _compute_chain_hash(prev_chain_hash: str, episode_hash: str) -> str:
-    """Compute chain hash: domain_hash(prev || episode)."""
-    combined = f"{prev_chain_hash}:{episode_hash}"
+def _compute_chain_hash(
+    parent_chain_hashes: str | list[str], episode_hash: str
+) -> str:
+    """Compute chain hash from one or more parent chain hashes.
+
+    Accepts either a single parent hash (str) for backward compatibility,
+    or a list of parent hashes for DAG merge commits.
+    Single-parent case produces identical hash to the original linear chain.
+    Multi-parent hashes are sorted for deterministic ordering.
+    """
+    if isinstance(parent_chain_hashes, str):
+        # Backward compatible: single parent string
+        combined = f"{parent_chain_hashes}:{episode_hash}"
+    elif len(parent_chain_hashes) == 1:
+        # Single-element list: identical to original f"{prev}:{ep}" format
+        combined = f"{parent_chain_hashes[0]}:{episode_hash}"
+    else:
+        # DAG merge: sort parents for deterministic hash
+        sorted_parents = ":".join(sorted(parent_chain_hashes))
+        combined = f"{sorted_parents}:{episode_hash}"
     return _domain_hash(CHAIN_DOMAIN, combined.encode("utf-8"))
 
 
@@ -263,6 +285,7 @@ class SovereignExperienceLedger:
         self._seq_index: dict[int, Episode] = {}
         self._next_sequence: int = 0
         self._chain_head: str = "genesis"
+        self._chain_tips: set[str] = {"genesis"}  # All non-superseded chain hashes
         self._max_episodes: int = max_episodes
         self._distillation_count: int = 0
 
@@ -320,6 +343,7 @@ class SovereignExperienceLedger:
             episode_actions,
             impact,
         )
+        parent_hashes = [self._chain_head]  # Linear mode: single parent
         chain_hash = _compute_chain_hash(self._chain_head, episode_hash)
 
         episode = Episode(
@@ -332,10 +356,15 @@ class SovereignExperienceLedger:
             impact=impact,
             episode_hash=episode_hash,
             prev_hash=self._chain_head,
+            parent_hashes=parent_hashes,
             chain_hash=chain_hash,
             context_embedding=context_embedding,
             response_summary=response_summary,
         )
+
+        # Update tips: remove parent from tips, add new chain_hash
+        self._chain_tips.discard(self._chain_head)
+        self._chain_tips.add(chain_hash)
 
         self._chain_head = chain_hash
         self._next_sequence += 1
@@ -349,6 +378,104 @@ class SovereignExperienceLedger:
         logger.debug(
             f"SEL commit: seq={sequence} hash={episode_hash[:16]}... "
             f"SNR={snr_score:.3f} Ihsan={ihsan_score:.3f}"
+        )
+        return episode_hash
+
+    def commit_merge(
+        self,
+        parent_chain_hashes: list[str],
+        context: str,
+        graph_hash: str,
+        graph_node_count: int,
+        actions: list[tuple[str, str, bool, int]],
+        snr_score: float,
+        ihsan_score: float,
+        snr_ok: bool,
+        context_embedding: Optional[list[float]] = None,
+        response_summary: Optional[str] = None,
+        tokens_used: int = 0,
+    ) -> str:
+        """Commit a merge episode with multiple parents (DAG merge).
+
+        All parent_chain_hashes must be valid chain hashes in the ledger.
+        The resulting episode's prev_hash is the first parent (primary).
+        Returns the episode hash.
+        """
+        if not parent_chain_hashes:
+            raise ValueError("At least one parent chain hash required")
+
+        # Verify all parents exist
+        valid_hashes = {ep.chain_hash for ep in self._episodes}
+        valid_hashes.add("genesis")
+        for ph in parent_chain_hashes:
+            if ph not in valid_hashes:
+                raise ValueError(f"Parent chain hash not found: {ph}")
+
+        sequence = self._next_sequence
+        timestamp_secs = int(time.time())
+
+        episode_actions = [
+            EpisodeAction(action_type=at, description=desc, success=ok, duration_us=dur)
+            for at, desc, ok, dur in actions
+        ]
+
+        # Compute Efficiency_k deterministically
+        efficiency = 0.0
+        if tokens_used > 0:
+            efficiency = _compute_efficiency_score(snr_score, ihsan_score, tokens_used)
+
+        impact = EpisodeImpact(
+            snr_score=snr_score,
+            ihsan_score=ihsan_score,
+            snr_ok=snr_ok,
+            tokens_used=tokens_used,
+            efficiency_score=efficiency,
+        )
+
+        episode_hash = _compute_episode_hash(
+            sequence,
+            timestamp_secs,
+            context,
+            graph_hash,
+            graph_node_count,
+            episode_actions,
+            impact,
+        )
+        chain_hash = _compute_chain_hash(parent_chain_hashes, episode_hash)
+
+        episode = Episode(
+            sequence=sequence,
+            timestamp_secs=timestamp_secs,
+            context=context,
+            graph_hash=graph_hash,
+            graph_node_count=graph_node_count,
+            actions=episode_actions,
+            impact=impact,
+            episode_hash=episode_hash,
+            prev_hash=parent_chain_hashes[0],  # Primary parent for backward compat
+            parent_hashes=list(parent_chain_hashes),
+            chain_hash=chain_hash,
+            context_embedding=context_embedding,
+            response_summary=response_summary,
+        )
+
+        # Update tips: remove all parents, add new merged tip
+        for ph in parent_chain_hashes:
+            self._chain_tips.discard(ph)
+        self._chain_tips.add(chain_hash)
+
+        self._chain_head = chain_hash  # Advance head to merged tip
+        self._next_sequence += 1
+        self._episodes.append(episode)
+        self._hash_index[episode_hash] = episode
+        self._seq_index[sequence] = episode
+
+        if len(self._episodes) > self._max_episodes:
+            self._distill()
+
+        logger.debug(
+            f"SEL merge commit: seq={sequence} hash={episode_hash[:16]}... "
+            f"parents={len(parent_chain_hashes)}"
         )
         return episode_hash
 
@@ -415,6 +542,36 @@ class SovereignExperienceLedger:
             prev_chain = ep.chain_hash
         return prev_chain == self._chain_head
 
+    def verify_dag_integrity(self) -> bool:
+        """Verify DAG structure: all parent references resolve, no cycles.
+
+        Unlike verify_chain_integrity() which only validates linear chains,
+        this method validates multi-parent (merge) episodes as well.
+        """
+        known_hashes: set[str] = {"genesis"}
+
+        for ep in self._episodes:
+            # Verify episode content hash
+            if not ep.verify_hash():
+                return False
+
+            # Determine parents: use parent_hashes if populated, else fall back
+            parents = ep.parent_hashes if ep.parent_hashes else [ep.prev_hash]
+
+            # Verify all parents exist
+            for ph in parents:
+                if ph not in known_hashes:
+                    return False
+
+            # Verify chain hash computation
+            expected_chain = _compute_chain_hash(parents, ep.episode_hash)
+            if ep.chain_hash != expected_chain:
+                return False
+
+            known_hashes.add(ep.chain_hash)
+
+        return True
+
     # ─────────────────────────────────────────────────────────────────────────
     # Accessors
     # ─────────────────────────────────────────────────────────────────────────
@@ -439,6 +596,10 @@ class SovereignExperienceLedger:
 
     def get_by_sequence(self, seq: int) -> Optional[Episode]:
         return self._seq_index.get(seq)
+
+    def get_tips(self) -> frozenset[str]:
+        """Return all current DAG tip chain hashes (not yet superseded)."""
+        return frozenset(self._chain_tips)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Distillation
@@ -525,6 +686,8 @@ class SovereignExperienceLedger:
                     tokens_used=d.get("tokens_used", 0),
                     efficiency_score=d.get("efficiency_score", 0.0),
                 )
+                prev_hash = d["prev_hash"]
+                parent_hashes = d.get("parent_hashes", [prev_hash])
                 episode = Episode(
                     sequence=d["sequence"],
                     timestamp_secs=d["timestamp_secs"],
@@ -534,7 +697,8 @@ class SovereignExperienceLedger:
                     actions=actions,
                     impact=impact,
                     episode_hash=d["episode_hash"],
-                    prev_hash=d["prev_hash"],
+                    prev_hash=prev_hash,
+                    parent_hashes=parent_hashes,
                     chain_hash=d["chain_hash"],
                     context_embedding=d.get("context_embedding"),
                     response_summary=d.get("response_summary"),
@@ -546,6 +710,14 @@ class SovereignExperienceLedger:
         if sel._episodes:
             sel._chain_head = sel._episodes[-1].chain_hash
             sel._next_sequence = sel._episodes[-1].sequence + 1
+
+        # Rebuild DAG tips: all chain hashes that are not referenced as parents
+        all_chain_hashes = {ep.chain_hash for ep in sel._episodes}
+        referenced_parents: set[str] = set()
+        for ep in sel._episodes:
+            parents = ep.parent_hashes if ep.parent_hashes else [ep.prev_hash]
+            referenced_parents.update(parents)
+        sel._chain_tips = (all_chain_hashes - referenced_parents) or {"genesis"}
 
         if verify and not sel.verify_chain_integrity():
             raise SELIntegrityError(f"Chain verification failed on import from {path}")
