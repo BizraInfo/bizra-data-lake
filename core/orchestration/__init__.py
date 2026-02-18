@@ -51,6 +51,12 @@ _LAZY_MODULES = {
     "PipelineStage": (".opportunity_pipeline", "PipelineStage"),
     "ProactiveSovereignEntity": (".proactive_integration", "ProactiveSovereignEntity"),
     "ProactiveTeam": (".proactive_team", "ProactiveTeam"),
+    # Closed Loop Orchestrator (12-step value cycle)
+    "ClosedLoopOrchestrator": (".closed_loop", "ClosedLoopOrchestrator"),
+    "ClosedLoopStep": (".closed_loop", "ClosedLoopStep"),
+    "ClosedLoopContext": (".closed_loop", "ClosedLoopContext"),
+    "ClosedLoopResult": (".closed_loop", "ClosedLoopResult"),
+    "LoopReceipt": (".closed_loop", "LoopReceipt"),
 }
 
 
@@ -89,4 +95,10 @@ __all__ = [
     "MuraqabahSensorHub",
     # Predictive
     "PredictiveMonitor",
+    # Closed Loop Orchestrator
+    "ClosedLoopOrchestrator",
+    "ClosedLoopStep",
+    "ClosedLoopContext",
+    "ClosedLoopResult",
+    "LoopReceipt",
 ]

@@ -6,6 +6,7 @@
 ║                                                                              ║
 ║   Components:                                                                ║
 ║   - constitutional_gate: Z3-proven synthesis admission                       ║
+║   - crown_verdict: H0/H1/H2 three-tier invariant verification               ║
 ║   - autonomy_matrix: Multi-level autonomous operation control                ║
 ║   - model_license_gate: Model capability validation chain                    ║
 ║   - ihsan_projector: 8-dimensional excellence scoring                        ║
@@ -59,6 +60,18 @@ from .key_registry import (
     TrustedKeyRegistry,
     get_key_registry,
 )
+from .crown_verdict import (
+    ActionScope,
+    CrownVerdict,
+    CrownVerdictResult,
+    H0Result,
+    H1Result,
+    H2Result,
+    SovereignAction,
+    TierStatus,
+    Verdict,
+    create_crown_verdict,
+)
 from .model_license_gate import (
     ModelLicenseGate,
 )
@@ -92,4 +105,15 @@ __all__ = [
     "RegisteredKey",
     "KeyStatus",
     "get_key_registry",
+    # Crown Verdict (H0/H1/H2)
+    "CrownVerdict",
+    "CrownVerdictResult",
+    "H0Result",
+    "H1Result",
+    "H2Result",
+    "SovereignAction",
+    "Verdict",
+    "TierStatus",
+    "ActionScope",
+    "create_crown_verdict",
 ]
