@@ -59,6 +59,14 @@ from .key_registry import (
     TrustedKeyRegistry,
     get_key_registry,
 )
+from .crown_layer import (
+    CROWNHorizon,
+    CROWNLayer,
+    CROWNStatus,
+    CROWNVerdict,
+    HorizonVerdict,
+    SystemState,
+)
 from .model_license_gate import (
     ModelLicenseGate,
 )
@@ -87,6 +95,13 @@ __all__ = [
     # Autonomy Engine
     "AutonomousLoop",
     "DecisionGate",
+    # CROWN Layer
+    "CROWNLayer",
+    "CROWNHorizon",
+    "CROWNStatus",
+    "CROWNVerdict",
+    "HorizonVerdict",
+    "SystemState",
     # Key Registry
     "TrustedKeyRegistry",
     "RegisteredKey",

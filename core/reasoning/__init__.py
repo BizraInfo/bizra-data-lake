@@ -61,6 +61,9 @@ from .snr_maximizer import (
     SNRMaximizer,
 )
 
+# Entropy Router — System 1/2 query routing
+from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
+
 # --------------------------------------------------------------------------
 # PHASE 2: Lazy imports for modules with cross-package dependencies.
 # collective_intelligence and collective_synthesizer import from
@@ -107,6 +110,10 @@ __all__ = [
     "SNRMaximizer",
     # Bicameral Engine
     "BicameralReasoningEngine",
+    # Entropy Router
+    "EntropyRouter",
+    "QueryComplexity",
+    "RoutingDecision",
     # Collective (lazy-loaded)
     "CollectiveIntelligence",
     "CollectiveSynthesizer",

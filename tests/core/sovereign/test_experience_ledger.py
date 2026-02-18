@@ -753,3 +753,252 @@ class TestSELSerialization:
             assert ep1.context_embedding is None
         finally:
             os.unlink(path)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DAG Support Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDAGSupport:
+    """Test directed acyclic graph (DAG) extensions to the experience ledger."""
+
+    def _commit_simple(
+        self,
+        sel: SovereignExperienceLedger,
+        context: str = "test",
+        snr: float = 0.95,
+    ) -> str:
+        """Helper to commit a simple episode, returning its episode hash."""
+        return sel.commit(
+            context=context,
+            graph_hash="g1",
+            graph_node_count=3,
+            actions=[("inference", "call", True, 1000)],
+            snr_score=snr,
+            ihsan_score=0.96,
+            snr_ok=True,
+        )
+
+    def test_linear_commit_populates_parent_hashes(self):
+        """A single commit should have parent_hashes == [prev_hash]."""
+        sel = SovereignExperienceLedger()
+        self._commit_simple(sel)
+
+        ep = sel.get_by_sequence(0)
+        assert ep is not None
+        assert ep.parent_hashes == [ep.prev_hash]
+        assert ep.prev_hash == "genesis"
+        assert ep.parent_hashes == ["genesis"]
+
+    def test_get_tips_single_chain(self):
+        """A linear chain should have exactly 1 tip."""
+        sel = SovereignExperienceLedger()
+        assert sel.get_tips() == frozenset({"genesis"})
+
+        self._commit_simple(sel, context="ep0")
+        tips = sel.get_tips()
+        assert len(tips) == 1
+        assert sel.chain_head in tips
+
+        self._commit_simple(sel, context="ep1")
+        tips = sel.get_tips()
+        assert len(tips) == 1
+        assert sel.chain_head in tips
+
+    def test_commit_merge_two_branches(self):
+        """Fork from genesis, commit on each branch, merge into single tip."""
+        sel = SovereignExperienceLedger()
+
+        # Manually commit branch A episode (links to genesis)
+        h_a = sel.commit(
+            context="branch A ep",
+            graph_hash="g1",
+            graph_node_count=3,
+            actions=[("inference", "call", True, 1000)],
+            snr_score=0.95,
+            ihsan_score=0.96,
+            snr_ok=True,
+        )
+        ep_a = sel.get_by_hash(h_a)
+        tip_a_hash = ep_a.chain_hash
+
+        # To create a second branch, we need to reset chain_head to genesis
+        # and add to tips. This simulates a fork.
+        sel._chain_head = "genesis"
+        sel._chain_tips.add("genesis")
+
+        h_b = sel.commit(
+            context="branch B ep",
+            graph_hash="g2",
+            graph_node_count=3,
+            actions=[("inference", "call", True, 1000)],
+            snr_score=0.93,
+            ihsan_score=0.94,
+            snr_ok=True,
+        )
+        ep_b = sel.get_by_hash(h_b)
+        tip_b_hash = ep_b.chain_hash
+
+        # Now we have 2 tips
+        assert len(sel.get_tips()) == 2
+        assert tip_a_hash in sel.get_tips()
+        assert tip_b_hash in sel.get_tips()
+
+        # Merge both branches
+        merge_hash = sel.commit_merge(
+            parent_chain_hashes=[tip_a_hash, tip_b_hash],
+            context="merge commit",
+            graph_hash="g_merge",
+            graph_node_count=5,
+            actions=[("merge", "combining branches", True, 500)],
+            snr_score=0.96,
+            ihsan_score=0.97,
+            snr_ok=True,
+        )
+
+        # After merge: single tip
+        assert len(sel.get_tips()) == 1
+        merge_ep = sel.get_by_hash(merge_hash)
+        assert merge_ep is not None
+        assert merge_ep.chain_hash in sel.get_tips()
+        assert set(merge_ep.parent_hashes) == {tip_a_hash, tip_b_hash}
+        assert merge_ep.prev_hash == tip_a_hash  # Primary parent
+
+    def test_commit_merge_verifies_parents(self):
+        """Merge with invalid parent hash should raise ValueError."""
+        sel = SovereignExperienceLedger()
+        self._commit_simple(sel)
+
+        with pytest.raises(ValueError, match="Parent chain hash not found"):
+            sel.commit_merge(
+                parent_chain_hashes=[sel.chain_head, "nonexistent_hash_abc"],
+                context="bad merge",
+                graph_hash="g1",
+                graph_node_count=3,
+                actions=[("merge", "bad", False, 100)],
+                snr_score=0.90,
+                ihsan_score=0.90,
+                snr_ok=True,
+            )
+
+        # Empty parents should also raise
+        with pytest.raises(ValueError, match="At least one parent"):
+            sel.commit_merge(
+                parent_chain_hashes=[],
+                context="empty parents",
+                graph_hash="g1",
+                graph_node_count=3,
+                actions=[("merge", "empty", False, 100)],
+                snr_score=0.90,
+                ihsan_score=0.90,
+                snr_ok=True,
+            )
+
+    def test_dag_integrity_after_merge(self):
+        """verify_dag_integrity() should return True after a merge commit."""
+        sel = SovereignExperienceLedger()
+
+        # Branch A from genesis
+        self._commit_simple(sel, context="A1")
+        tip_a = sel.chain_head
+
+        # Fork: reset to genesis for branch B
+        sel._chain_head = "genesis"
+        sel._chain_tips.add("genesis")
+        self._commit_simple(sel, context="B1")
+        tip_b = sel.chain_head
+
+        # Merge
+        sel.commit_merge(
+            parent_chain_hashes=[tip_a, tip_b],
+            context="merge AB",
+            graph_hash="g_merge",
+            graph_node_count=4,
+            actions=[("merge", "merge AB", True, 200)],
+            snr_score=0.95,
+            ihsan_score=0.96,
+            snr_ok=True,
+        )
+
+        assert sel.verify_dag_integrity()
+
+    def test_dag_serialization_roundtrip(self):
+        """Export/import should preserve parent_hashes for DAG episodes."""
+        sel = SovereignExperienceLedger()
+
+        # Branch A
+        self._commit_simple(sel, context="A1")
+        tip_a = sel.chain_head
+
+        # Fork: branch B from genesis
+        sel._chain_head = "genesis"
+        sel._chain_tips.add("genesis")
+        self._commit_simple(sel, context="B1")
+        tip_b = sel.chain_head
+
+        # Merge
+        sel.commit_merge(
+            parent_chain_hashes=[tip_a, tip_b],
+            context="merge AB",
+            graph_hash="g_merge",
+            graph_node_count=4,
+            actions=[("merge", "merge AB", True, 200)],
+            snr_score=0.95,
+            ihsan_score=0.96,
+            snr_ok=True,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            path = f.name
+        try:
+            sel.export_jsonl(path)
+
+            # Import with verify=False since DAG breaks linear chain verification
+            loaded = SovereignExperienceLedger.import_jsonl(path, verify=False)
+
+            assert len(loaded) == len(sel)
+
+            # Verify parent_hashes survived roundtrip
+            for i in range(len(sel)):
+                orig = sel.get_by_sequence(i)
+                imp = loaded.get_by_sequence(i)
+                assert imp is not None
+                assert imp.parent_hashes == orig.parent_hashes
+                assert imp.prev_hash == orig.prev_hash
+                assert imp.chain_hash == orig.chain_hash
+
+            # DAG integrity should pass on the loaded ledger
+            assert loaded.verify_dag_integrity()
+        finally:
+            os.unlink(path)
+
+    def test_linear_chain_still_verifies(self):
+        """verify_chain_integrity() should still pass on a linear-only ledger."""
+        sel = SovereignExperienceLedger()
+        for i in range(10):
+            self._commit_simple(sel, context=f"ep{i}")
+
+        assert sel.verify_chain_integrity()
+        # DAG verification should also pass for linear chains
+        assert sel.verify_dag_integrity()
+
+    def test_get_tips_after_fork(self):
+        """Two branches from genesis should produce 2 tips."""
+        sel = SovereignExperienceLedger()
+
+        # Branch A
+        self._commit_simple(sel, context="A1")
+        tip_a = sel.chain_head
+
+        # Fork: branch B from genesis
+        sel._chain_head = "genesis"
+        sel._chain_tips.add("genesis")
+        self._commit_simple(sel, context="B1")
+        tip_b = sel.chain_head
+
+        tips = sel.get_tips()
+        assert len(tips) == 2
+        assert tip_a in tips
+        assert tip_b in tips
+        assert "genesis" not in tips  # genesis was superseded by both branches
