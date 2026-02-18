@@ -47,8 +47,8 @@ LABEL org.opencontainers.image.version="1.2.0"
 LABEL org.opencontainers.image.vendor="BIZRA"
 LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
 
-# Create non-root user
-RUN groupadd -r bizra && useradd -r -g bizra -d /home/bizra -m bizra
+# Create non-root user (UID/GID 1000 to match K8s securityContext)
+RUN groupadd -g 1000 bizra && useradd -u 1000 -g 1000 -d /home/bizra -m bizra
 
 WORKDIR /app
 
@@ -63,6 +63,14 @@ COPY --chown=bizra:bizra pyproject.toml ./
 
 # Copy static data assets (Sci-Reasoning patterns for RDVE)
 COPY --chown=bizra:bizra data/sci_reasoning/ data/sci_reasoning/
+
+# Create runtime state directories (must be writable by non-root user)
+# Includes subdirectories created at runtime by sovereign_state, auth, spearpoint
+RUN mkdir -p /app/sovereign_state/checkpoints \
+             /app/sovereign_state/users \
+             /app/.spearpoint/hypothesis_memory \
+             /app/logs \
+    && chown -R bizra:bizra /app/sovereign_state /app/.spearpoint /app/logs
 
 # Environment — no secrets, only operational config
 ENV PYTHONUNBUFFERED=1 \
