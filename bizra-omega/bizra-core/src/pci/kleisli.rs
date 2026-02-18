@@ -400,7 +400,7 @@ mod tests {
     use super::*;
 
     fn pass_gate(name: &str) -> KleisliGate {
-        let n = name.to_string();
+        let _n = name.to_string();
         KleisliGate::new(
             name,
             Box::new(move |_input, _ctx| {
