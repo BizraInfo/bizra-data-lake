@@ -401,9 +401,7 @@ impl LMStudioBackend {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             error!("LM Studio error {status}: {body}");
-            return Err(BackendError::Generation(format!(
-                "HTTP {status}: {body}"
-            )));
+            return Err(BackendError::Generation(format!("HTTP {status}: {body}")));
         }
 
         response

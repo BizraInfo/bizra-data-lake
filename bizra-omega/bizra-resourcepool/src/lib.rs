@@ -1271,9 +1271,7 @@ impl ResourcePool {
         if self_assessment < min_assessment {
             return Err(PoolError::FateRejection {
                 gate: "HARBERGER".to_string(),
-                reason: format!(
-                    "Self-assessment {self_assessment} below minimum {min_assessment}"
-                ),
+                reason: format!("Self-assessment {self_assessment} below minimum {min_assessment}"),
             });
         }
 
