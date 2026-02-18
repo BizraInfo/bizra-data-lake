@@ -365,9 +365,7 @@ fn prop_terminal_types() {
         assert_eq!(
             node.is_terminal(),
             expected_terminal,
-            "{:?} terminal status should be {}",
-            thought_type,
-            expected_terminal
+            "{thought_type:?} terminal status should be {expected_terminal}",
         );
     }
 }

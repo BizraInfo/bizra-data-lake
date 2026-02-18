@@ -259,8 +259,7 @@ fn test_truncated_message_rejection() {
             let result = SignedGossipMessage::from_bytes(truncated);
             assert!(
                 result.is_err(),
-                "Truncated message at {} bytes should fail parsing",
-                len
+                "Truncated message at {len} bytes should fail parsing",
             );
         }
     }
@@ -609,7 +608,7 @@ fn test_special_chars_node_id() {
         // Should handle round-trip
         let bytes = signed.to_bytes();
         let result = SignedGossipMessage::from_bytes(&bytes);
-        assert!(result.is_ok(), "Failed to handle node_id: {:?}", id);
+        assert!(result.is_ok(), "Failed to handle node_id: {id:?}");
     }
 }
 

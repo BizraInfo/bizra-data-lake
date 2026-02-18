@@ -852,6 +852,6 @@ mod tests {
         distribution.insert("node3".into(), 120.0);
 
         let result = engine.evaluate(&ihsan, &distribution, 50.0);
-        assert!(result.is_ok(), "Expected Ok but got: {:?}", result);
+        assert!(result.is_ok(), "Expected Ok but got: {result:?}");
     }
 }

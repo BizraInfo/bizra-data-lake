@@ -538,9 +538,7 @@ fn test_snr_content_type_analysis() {
     // Technical should score higher than filler
     assert!(
         tech_snr > filler_snr,
-        "Technical content ({}) should score higher than filler ({})",
-        tech_snr,
-        filler_snr
+        "Technical content ({tech_snr}) should score higher than filler ({filler_snr})",
     );
 }
 
