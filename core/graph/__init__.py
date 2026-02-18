@@ -29,10 +29,10 @@ def __getattr__(name):
     """Lazy import."""
     if name in __all__:
         from .semantic_layer import (
-            SemanticLayerSeparator,
-            GraphTopologyReport,
-            EdgeClassification,
             DualOverlayGraph,
+            EdgeClassification,
+            GraphTopologyReport,
+            SemanticLayerSeparator,
             create_semantic_separator,
         )
 

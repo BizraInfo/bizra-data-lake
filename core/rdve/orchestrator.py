@@ -43,8 +43,8 @@ from core.autopoiesis.hypothesis_generator import (
 )
 from core.autopoiesis.loop_engine import AutopoieticLoop
 from core.integration.constants import (
-    STRICT_IHSAN_THRESHOLD,
     SNR_THRESHOLD_T1_HIGH,
+    STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )

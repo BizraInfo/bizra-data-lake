@@ -414,9 +414,7 @@ impl AdlInvariant {
                         gini_actual: proposed_gini,
                         gini_threshold: self.gini_threshold,
                         violator_id: None,
-                        details: format!(
-                            "Proposed change would result in Gini {proposed_gini:.4}"
-                        ),
+                        details: format!("Proposed change would result in Gini {proposed_gini:.4}"),
                         timestamp_ms: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()

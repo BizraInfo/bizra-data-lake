@@ -20,9 +20,9 @@
 from typing import TYPE_CHECKING
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T2_STANDARD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T2_STANDARD,
 )
 
 # Version

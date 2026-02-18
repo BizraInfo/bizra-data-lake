@@ -36,10 +36,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.hrm.abstraction_levels import (
-    AbstractionLevel,
-    LevelConfig,
-    LevelBoundary,
     HRM_SNR_GRADIENT,
+    AbstractionLevel,
+    LevelBoundary,
+    LevelConfig,
 )
 
 logger = logging.getLogger(__name__)

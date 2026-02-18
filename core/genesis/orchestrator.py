@@ -25,7 +25,6 @@ import logging
 import time
 from typing import Any, Callable, Dict, Optional
 
-
 from .hardware import HardwareInfo, HardwareScanner
 from .mobile_pairing import pair_mobile
 from .types import (

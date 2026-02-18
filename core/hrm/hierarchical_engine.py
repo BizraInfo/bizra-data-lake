@@ -39,16 +39,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-)
 from core.hrm.abstraction_levels import (
+    HRM_SNR_GRADIENT,
     AbstractionLevel,
     BridgeNodeType,
     LevelConfig,
     default_level_configs,
-    HRM_SNR_GRADIENT,
 )
 from core.hrm.cross_level_bridge import (
     CrossLevelBridge,
@@ -58,6 +54,10 @@ from core.hrm.meta_level import (
     MetaAutopoieticLevel,
     MetaObservation,
     MetaProposal,
+)
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 logger = logging.getLogger(__name__)

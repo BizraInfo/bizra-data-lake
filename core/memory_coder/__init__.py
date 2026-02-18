@@ -12,7 +12,7 @@ Exports:
 
 from __future__ import annotations
 
-from .memory_synthesizer import MemorySynthesizer, MemoryRecord
+from .memory_synthesizer import MemoryRecord, MemorySynthesizer
 from .pattern_codebook import PatternCodebook, SynthesizedPattern
 
 __all__ = [

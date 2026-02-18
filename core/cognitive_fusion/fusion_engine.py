@@ -27,14 +27,13 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
+from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 from core.integration.constants import (
     SNR_THRESHOLD_T0_ELITE,
     STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-
-from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 
 logger = logging.getLogger(__name__)
 

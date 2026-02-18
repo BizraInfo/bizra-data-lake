@@ -44,6 +44,7 @@ Complexity: O(N) where N = number of gates (currently 6, constant)
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -59,8 +60,6 @@ from typing import (
     TypeVar,
     Union,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -580,12 +579,12 @@ def build_standard_kleisli_chain() -> KleisliGateChain:
     formal category-theoretic semantics.
     """
     from core.proof_engine.gates import (
-        SchemaGate,
-        ProvenanceGate,
-        SNRGate,
-        ConstraintGate,
-        SafetyGate,
         CommitGate,
+        ConstraintGate,
+        ProvenanceGate,
+        SafetyGate,
+        SchemaGate,
+        SNRGate,
     )
 
     chain = KleisliGateChain()

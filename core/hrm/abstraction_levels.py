@@ -22,15 +22,15 @@ Constitutional Alignment:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import IntEnum, Enum
+from enum import Enum, IntEnum
 from typing import Dict, Final, List
 
 from core.integration.constants import (
-    UNIFIED_SNR_THRESHOLD,
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
     SNR_THRESHOLD_T2_STANDARD,
     SNR_THRESHOLD_T3_ACCEPTABLE,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

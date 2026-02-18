@@ -52,11 +52,15 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
 )
-
+from core.northstar.bridge_nodes import (
+    BridgeNodeDetector,
+    BridgeReport,
+    BridgeType,
+)
 from core.northstar.golden_gems import (
     GemReport,
     GoldenGemDetector,
@@ -65,11 +69,6 @@ from core.northstar.golden_gems import (
 from core.northstar.thought_flow import (
     FlowReport,
     ThoughtFlowDetector,
-)
-from core.northstar.bridge_nodes import (
-    BridgeNodeDetector,
-    BridgeReport,
-    BridgeType,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
