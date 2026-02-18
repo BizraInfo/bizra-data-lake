@@ -1016,8 +1016,9 @@ class TestAdlGiniGate:
     def test_transfer_allowed_below_threshold(self, tmp_path: Path) -> None:
         """Transfers that keep Gini below threshold are allowed."""
         ledger = make_ledger(tmp_path)
-        # Equal distribution: 4 accounts with 100 each → Gini ≈ 0
-        for i in range(4):
+        # Equal distribution: 6 accounts with 100 each → Gini ≈ 0
+        # (>= ADL_GINI_MIN_ACCOUNTS so Gini gate is active)
+        for i in range(6):
             mint_seed_to(ledger, f"node-{i}", 100.0)
 
         # Transfer 10 from node-0 to node-1: still very equal
@@ -1035,7 +1036,14 @@ class TestAdlGiniGate:
         """Transfer that would push Gini above 0.35 is rejected."""
         ledger = make_ledger(tmp_path)
         # Use GENESIS_MINT (exempt from Gini gate) to create initial unequal state
-        for name, amount in [("node-0", 10.0), ("node-1", 10.0), ("node-2", 10.0), ("whale", 500.0)]:
+        # Need >= ADL_GINI_MIN_ACCOUNTS (5) non-pool accounts for gate activation
+        for name, amount in [
+            ("node-0", 10.0),
+            ("node-1", 10.0),
+            ("node-2", 10.0),
+            ("node-3", 10.0),
+            ("whale", 500.0),
+        ]:
             tx = TransactionEntry(
                 op=TokenOp.GENESIS_MINT,
                 token_type=TokenType.SEED,
@@ -1137,13 +1145,13 @@ class TestAdlGiniGate:
         receipt = ledger.record_transaction(tx)
         assert receipt.success is True
 
-    def test_gini_with_single_account_passes(self, tmp_path: Path) -> None:
-        """Gini gate skipped when fewer than 2 accounts (no inequality possible)."""
+    def test_gini_with_few_accounts_passes(self, tmp_path: Path) -> None:
+        """Gini gate skipped during bootstrap (fewer than ADL_GINI_MIN_ACCOUNTS)."""
         ledger = make_ledger(tmp_path)
-        # Only one account in the system
+        # Only one account in the system — below minimum for Gini enforcement
         mint_seed_to(ledger, "solo-node", 100.0)
 
-        # Mint more to same account — no Gini issue with 1 account
+        # Mint more to same account — no Gini enforcement during bootstrap
         tx = TransactionEntry(
             op=TokenOp.MINT,
             token_type=TokenType.SEED,

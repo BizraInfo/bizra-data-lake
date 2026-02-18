@@ -31,7 +31,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from core.integration.constants import ADL_GINI_THRESHOLD, ADL_HARBERGER_TAX_RATE
+from core.integration.constants import (
+    ADL_GINI_MIN_ACCOUNTS,
+    ADL_GINI_THRESHOLD,
+    ADL_HARBERGER_TAX_RATE,
+)
 from core.sovereign.adl_invariant import UBC_POOL_ID, calculate_gini
 from core.token.types import (
     TokenBalance,
@@ -414,8 +418,10 @@ class TokenLedger:
             if v > 0 and k not in SYSTEM_POOL_IDS
         }
 
-        # Need at least 2 individual accounts for meaningful Gini
-        if len(projected) < 2:
+        # Gini coefficient is meaningless with few data points.
+        # During genesis bootstrap the system must distribute to initial
+        # participants before equality enforcement can apply.
+        if len(projected) < ADL_GINI_MIN_ACCOUNTS:
             return None
 
         # Compute pre-transaction Gini for comparison
