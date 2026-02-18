@@ -31,6 +31,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from core.integration.constants import ADL_GINI_THRESHOLD, ADL_HARBERGER_TAX_RATE
+from core.sovereign.adl_invariant import UBC_POOL_ID, calculate_gini
 from core.token.types import (
     TokenBalance,
     TokenOp,
@@ -43,6 +45,15 @@ logger = logging.getLogger(__name__)
 
 # Sentinel hash for the first transaction in the ledger
 GENESIS_TX_HASH = "0" * 64
+
+# System pool accounts — excluded from Gini calculation because they are
+# communal redistribution pools, not individual wealth holdings.
+# Gini measures inequality among INDIVIDUAL nodes, not system accounts.
+SYSTEM_POOL_IDS: frozenset[str] = frozenset({
+    "__UBC_POOL__",              # Universal Basic Compute pool
+    "BIZRA-COMMUNITY-FUND",     # Computational zakat recipient
+    "SYSTEM-TREASURY",          # System treasury
+})
 
 # Default paths — resolved relative to project root (no hardcoded absolutes)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -356,7 +367,208 @@ class TokenLedger:
         if tx.token_type == TokenType.IMPT and tx.op == TokenOp.TRANSFER:
             return "IMPT tokens are non-transferable (soulbound)"
 
+        # ADL Gini gate — reject transactions that push inequality beyond threshold
+        # Only applies to SEED (economic token). GENESIS_MINT and ZAKAT are exempt.
+        if (
+            tx.token_type == TokenType.SEED
+            and tx.op in (TokenOp.TRANSFER, TokenOp.MINT)
+        ):
+            gini_error = self._check_gini_impact(tx)
+            if gini_error:
+                return gini_error
+
         return None
+
+    def _check_gini_impact(self, tx: TransactionEntry) -> Optional[str]:
+        """Check if a transaction would push the Gini coefficient above the ADL threshold.
+
+        Simulates the post-transaction balance distribution and rejects if
+        the resulting Gini coefficient exceeds ADL_GINI_THRESHOLD (0.35).
+
+        System pool accounts (UBC pool, community fund, treasury) are excluded
+        from the Gini calculation because they are communal redistribution pools,
+        not individual wealth holdings.
+
+        Standing on Giants - Gini (1912) + Rawls (1971):
+        Justice is a hard gate, not a soft metric.
+        """
+        # Transfers TO system pools are always allowed (redistributive)
+        target = tx.to_account if tx.op in (TokenOp.MINT, TokenOp.TRANSFER) else ""
+        if target in SYSTEM_POOL_IDS:
+            return None
+
+        # Get current SEED balances for all accounts
+        holdings_raw = self._get_seed_holdings()
+        holdings = dict(holdings_raw)  # Copy for simulation
+
+        # Simulate the transaction's effect on balances
+        if tx.op == TokenOp.TRANSFER:
+            holdings[tx.from_account] = holdings.get(tx.from_account, 0.0) - tx.amount
+            holdings[tx.to_account] = holdings.get(tx.to_account, 0.0) + tx.amount
+        elif tx.op == TokenOp.MINT:
+            holdings[tx.to_account] = holdings.get(tx.to_account, 0.0) + tx.amount
+
+        # Exclude system pools and zero/negative balances from Gini calculation
+        projected = {
+            k: v for k, v in holdings.items()
+            if v > 0 and k not in SYSTEM_POOL_IDS
+        }
+
+        # Need at least 2 individual accounts for meaningful Gini
+        if len(projected) < 2:
+            return None
+
+        # Compute pre-transaction Gini for comparison
+        pre_holdings = {
+            k: v for k, v in holdings_raw.items()
+            if v > 0 and k not in SYSTEM_POOL_IDS
+        }
+        pre_gini = calculate_gini(pre_holdings) if len(pre_holdings) >= 2 else 0.0
+
+        post_gini = calculate_gini(projected)
+
+        # Allow transfers that REDUCE Gini (directionally improving justice)
+        # even if the absolute level is still above threshold
+        if post_gini <= pre_gini:
+            return None
+
+        if post_gini > ADL_GINI_THRESHOLD:
+            return (
+                f"ADL Gini gate: transaction would push Gini to {post_gini:.4f} "
+                f"(threshold={ADL_GINI_THRESHOLD}). "
+                f"Plutocratic concentration rejected."
+            )
+
+        return None
+
+    def _get_seed_holdings(self) -> dict[str, float]:
+        """Query all non-zero SEED balances from SQLite."""
+        with sqlite3.connect(str(self._db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT account_id, balance FROM token_balances "
+                "WHERE token_type = ? AND balance > 0",
+                (TokenType.SEED.value,),
+            )
+            return {row[0]: row[1] for row in cursor.fetchall()}
+
+    # =========================================================================
+    # HARBERGER TAX — Continuous redistribution toward equality
+    # =========================================================================
+
+    def apply_harberger_tax(
+        self,
+        tax_rate: Optional[float] = None,
+        epoch_id: str = "",
+    ) -> dict:
+        """Apply Harberger tax to all SEED holders, flowing proceeds to UBC pool.
+
+        The Harberger mechanism ensures that resources held but not productively
+        used are gradually redistributed to the Universal Basic Compute pool,
+        which distributes equally to all active nodes.
+
+        Standing on Giants - Harberger (1962):
+        Self-assessed value with continuous taxation prevents hoarding.
+
+        Args:
+            tax_rate: Override rate (default: ADL_HARBERGER_TAX_RATE from constants.py)
+            epoch_id: Epoch identifier for the tax sweep
+
+        Returns:
+            Summary dict with total_taxed, accounts_affected, ubc_pool_credit
+        """
+        rate = tax_rate if tax_rate is not None else ADL_HARBERGER_TAX_RATE
+        holdings = self._get_seed_holdings()
+
+        # Exclude UBC pool itself from taxation
+        holdings.pop(UBC_POOL_ID, None)
+
+        total_taxed = 0.0
+        accounts_affected = 0
+
+        for account_id, balance in holdings.items():
+            tax_amount = balance * rate
+            if tax_amount <= 0:
+                continue
+
+            # Create a TRANSFER from holder to UBC pool
+            tx = TransactionEntry(
+                op=TokenOp.TRANSFER,
+                token_type=TokenType.SEED,
+                from_account=account_id,
+                to_account=UBC_POOL_ID,
+                amount=tax_amount,
+                memo=f"harberger_tax_epoch_{epoch_id}" if epoch_id else "harberger_tax",
+                epoch_id=epoch_id,
+            )
+
+            # Record without Gini check (tax is redistributive by nature)
+            # We bypass _validate_transaction's Gini gate by recording directly
+            receipt = self._record_tax_transfer(tx)
+            if receipt.success:
+                total_taxed += tax_amount
+                accounts_affected += 1
+            else:
+                logger.warning(
+                    "Harberger tax failed for %s: %s", account_id, receipt.error
+                )
+
+        logger.info(
+            "Harberger tax sweep: %.2f SEED collected from %d accounts → %s",
+            total_taxed,
+            accounts_affected,
+            UBC_POOL_ID,
+        )
+
+        return {
+            "total_taxed": total_taxed,
+            "accounts_affected": accounts_affected,
+            "ubc_pool_credit": total_taxed,
+            "tax_rate": rate,
+            "epoch_id": epoch_id,
+        }
+
+    def _record_tax_transfer(self, tx: TransactionEntry) -> TokenReceipt:
+        """Record a Harberger tax transfer, bypassing the Gini gate.
+
+        Tax transfers are inherently redistributive (reducing Gini), so
+        they must not be blocked by the Gini gate that prevents concentration.
+        All other validations (balance sufficiency, etc.) still apply.
+        """
+        with self._lock:
+            # Assign sequence and chain link
+            self._sequence += 1
+            tx.sequence = self._sequence
+            tx.prev_hash = self._last_hash
+            tx.tx_hash = tx.compute_hash()
+
+            # Validate balance only (skip Gini gate)
+            if tx.amount <= 0:
+                self._sequence -= 1
+                return TokenReceipt(success=False, error="Amount must be positive")
+            bal = self.get_balance(tx.from_account, tx.token_type)
+            if bal.available < tx.amount:
+                self._sequence -= 1
+                return TokenReceipt(
+                    success=False,
+                    error=f"Insufficient balance for tax: {bal.available:.4f}",
+                )
+
+            try:
+                balance_after = self._apply_to_db(tx)
+            except Exception as e:
+                self._sequence -= 1
+                return TokenReceipt(success=False, error=str(e))
+
+            self._append_to_log(tx)
+            self._last_hash = tx.tx_hash
+
+            return TokenReceipt(
+                success=True,
+                tx_entry=tx,
+                balance_after=balance_after,
+                receipt_hash=tx.tx_hash,
+            )
 
     def _apply_to_db(self, tx: TransactionEntry) -> float:
         """Apply transaction to SQLite balances. Returns new balance of primary account."""
@@ -619,6 +831,7 @@ class TokenLedger:
 __all__ = [
     "TokenLedger",
     "GENESIS_TX_HASH",
+    "SYSTEM_POOL_IDS",
     "DEFAULT_DB_PATH",
     "DEFAULT_LOG_PATH",
 ]
