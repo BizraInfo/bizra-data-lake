@@ -364,8 +364,8 @@ impl AdlInvariant {
                 gini_threshold: self.gini_threshold,
                 violator_id: None,
                 details: format!(
-                    "Gini {:.4} exceeds threshold {:.2}",
-                    current_gini, self.gini_threshold
+                    "Gini {current_gini:.4} exceeds threshold {:.2}",
+                    self.gini_threshold
                 ),
                 timestamp_ms: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -386,8 +386,7 @@ impl AdlInvariant {
                         gini_threshold: self.gini_threshold,
                         violator_id: Some(holder_id.clone()),
                         details: format!(
-                            "Holder {} controls {:.1}% of resources",
-                            holder_id,
+                            "Holder {holder_id} controls {:.1}% of resources",
                             share * 100.0
                         ),
                         timestamp_ms: std::time::SystemTime::now()

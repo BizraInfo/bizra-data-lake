@@ -207,7 +207,7 @@ async fn run_genesis(args: &[String]) -> anyhow::Result<()> {
 
     // For demo, just show PAT creation
     let pat = pool.create_pat(&node_id).await?;
-    info!(owner = %pat.owner_node, "Personal Agent Team (PAT) created with {} slots", PAT_SIZE);
+    info!(owner = %pat.owner_node, "Personal Agent Team (PAT) created with {PAT_SIZE} slots");
 
     // Process initial Zakat cycle
     let zakat = pool.process_zakat().await?;

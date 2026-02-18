@@ -309,8 +309,8 @@ impl Backend for LlamaCppFFIBackend {
         // Build chat template prompt
         let full_prompt = match &request.system {
             Some(sys) => format!(
-                "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
-                sys, request.prompt
+                "<|im_start|>system\n{sys}<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",
+                request.prompt
             ),
             None => format!(
                 "<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n",

@@ -1272,8 +1272,7 @@ impl ResourcePool {
             return Err(PoolError::FateRejection {
                 gate: "HARBERGER".to_string(),
                 reason: format!(
-                    "Self-assessment {} below minimum {}",
-                    self_assessment, min_assessment
+                    "Self-assessment {self_assessment} below minimum {min_assessment}"
                 ),
             });
         }

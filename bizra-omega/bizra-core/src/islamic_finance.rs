@@ -1256,8 +1256,7 @@ impl WaqfEndowment {
         if active_beneficiaries.len() < MIN_WAQF_BENEFICIARIES {
             return Err(IslamicFinanceError::WaqfViolation {
                 reason: format!(
-                    "Need {} beneficiaries, have {}",
-                    MIN_WAQF_BENEFICIARIES,
+                    "Need {MIN_WAQF_BENEFICIARIES} beneficiaries, have {}",
                     active_beneficiaries.len()
                 ),
             });
@@ -1589,8 +1588,8 @@ impl IslamicComplianceGate {
                 category: HaramCategory::Exploitation, // Low quality exploits users
                 severity: (self.ihsan_threshold - ihsan) / self.ihsan_threshold,
                 description: format!(
-                    "Ihsan score {:.3} below threshold {:.3}",
-                    ihsan, self.ihsan_threshold
+                    "Ihsan score {ihsan:.3} below threshold {:.3}",
+                    self.ihsan_threshold
                 ),
                 remediation: Some("Improve service quality to meet Ihsan standards".into()),
             });

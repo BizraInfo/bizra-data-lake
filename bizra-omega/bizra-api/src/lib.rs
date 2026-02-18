@@ -72,7 +72,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/ws", get(websocket::ws_handler));
 
     Router::new()
-        .nest(&format!("/api/{}", API_VERSION), api_routes)
+        .nest(&format!("/api/{API_VERSION}"), api_routes)
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(

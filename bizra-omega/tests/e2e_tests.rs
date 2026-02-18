@@ -204,7 +204,7 @@ fn e2e_constitution_thresholds() {
     // 1. Verify default thresholds
     assert!((IHSAN_THRESHOLD - 0.95).abs() < 0.001);
     assert!((SNR_THRESHOLD - 0.85).abs() < 0.001);
-    println!("✓ Default thresholds: Ihsan={}, SNR={}", IHSAN_THRESHOLD, SNR_THRESHOLD);
+    println!("✓ Default thresholds: Ihsan={IHSAN_THRESHOLD}, SNR={SNR_THRESHOLD}");
 
     // 2. Ihsan checks
     assert!(constitution.check_ihsan(0.95));
@@ -431,9 +431,9 @@ fn benchmark_identity_ops() {
     let hash_elapsed = start.elapsed();
 
     println!("\n📊 Performance Benchmarks:");
-    println!("   100 signatures: {:?} ({:.0}/sec)", sign_elapsed, 100.0 / sign_elapsed.as_secs_f64());
-    println!("   100 verifies:   {:?} ({:.0}/sec)", verify_elapsed, 100.0 / verify_elapsed.as_secs_f64());
-    println!("   1000 hashes:    {:?} ({:.0}/sec)", hash_elapsed, 1000.0 / hash_elapsed.as_secs_f64());
+    println!("   100 signatures: {sign_elapsed:?} ({:.0}/sec)", 100.0 / sign_elapsed.as_secs_f64());
+    println!("   100 verifies:   {verify_elapsed:?} ({:.0}/sec)", 100.0 / verify_elapsed.as_secs_f64());
+    println!("   1000 hashes:    {hash_elapsed:?} ({:.0}/sec)", 1000.0 / hash_elapsed.as_secs_f64());
 
     // Assert reasonable performance
     assert!(sign_elapsed.as_millis() < 5000); // < 5s for 100 sigs

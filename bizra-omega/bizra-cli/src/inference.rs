@@ -184,7 +184,7 @@ impl LMStudio {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to connect to LM Studio: {}", e))?;
+            .map_err(|e| anyhow!("Failed to connect to LM Studio: {e}"))?;
 
         if !resp.status().is_success() {
             return Err(anyhow!("LM Studio returned error: {}", resp.status()));
@@ -193,7 +193,7 @@ impl LMStudio {
         let models: ModelsResponse = resp
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse models response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse models response: {e}"))?;
 
         Ok(models.data)
     }
@@ -228,18 +228,18 @@ impl LMStudio {
             .json(&request)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to connect to LM Studio: {}", e))?;
+            .map_err(|e| anyhow!("Failed to connect to LM Studio: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("LM Studio error {}: {}", status, body));
+            return Err(anyhow!("LM Studio error {status}: {body}"));
         }
 
         let response: V1ChatResponse = resp
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse chat response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse chat response: {e}"))?;
 
         Ok(response)
     }
@@ -268,18 +268,18 @@ impl LMStudio {
             .json(&request)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to connect to LM Studio: {}", e))?;
+            .map_err(|e| anyhow!("Failed to connect to LM Studio: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("LM Studio error {}: {}", status, body));
+            return Err(anyhow!("LM Studio error {status}: {body}"));
         }
 
         let response: OpenAIChatResponse = resp
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse chat response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse chat response: {e}"))?;
 
         Ok(response)
     }

@@ -400,10 +400,9 @@ impl LMStudioBackend {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            error!("LM Studio error {}: {}", status, body);
+            error!("LM Studio error {status}: {body}");
             return Err(BackendError::Generation(format!(
-                "HTTP {}: {}",
-                status, body
+                "HTTP {status}: {body}"
             )));
         }
 
@@ -659,7 +658,7 @@ impl Backend for LMStudioBackend {
         match self.client.get(&url).send().await {
             Ok(response) => response.status().is_success(),
             Err(e) => {
-                warn!("LM Studio health check failed: {}", e);
+                warn!("LM Studio health check failed: {e}");
                 false
             }
         }

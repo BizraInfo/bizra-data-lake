@@ -136,7 +136,7 @@ async fn main() -> anyhow::Result<()> {
     println!("   │    GET  /api/v1/federation/*    Federation status           │");
     println!("   │    GET  /api/v1/ws              WebSocket                   │");
     println!("   └─────────────────────────────────────────────────────────────┘");
-    println!("\n   Listening on: http://{}:{}\n", host, port);
+    println!("\n   Listening on: http://{host}:{port}\n");
 
     // Start server
     serve(config, state).await?;

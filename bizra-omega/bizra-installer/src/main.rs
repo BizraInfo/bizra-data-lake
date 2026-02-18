@@ -314,7 +314,7 @@ async fn cmd_init(data_dir: &Path, force: bool) -> anyhow::Result<()> {
     "#
     );
 
-    println!("    Initializing BIZRA Sovereign Node v{}\n", VERSION);
+    println!("    Initializing BIZRA Sovereign Node v{VERSION}\n");
 
     let identity_file = data_dir.join("identity.key");
 
@@ -425,10 +425,7 @@ async fn cmd_join(_data_dir: &Path, seed: &str, port: u16) -> anyhow::Result<()>
 
     // In production: initialize gossip protocol
     println!("\n   [Federation join not yet implemented]");
-    println!(
-        "   Would connect to {} and start gossip on port {}",
-        seed, port
-    );
+    println!("   Would connect to {seed} and start gossip on port {port}");
 
     Ok(())
 }

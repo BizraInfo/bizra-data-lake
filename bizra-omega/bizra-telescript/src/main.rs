@@ -21,14 +21,8 @@ async fn main() -> anyhow::Result<()> {
     println!("▸ Creating Places...");
     let place_dubai = engine.create_place("node0://dubai.bizra", None).await?;
     let place_cairo = engine.create_place("node1://cairo.bizra", None).await?;
-    println!(
-        "  ✓ Place created: node0://dubai.bizra (ID: {})",
-        place_dubai
-    );
-    println!(
-        "  ✓ Place created: node1://cairo.bizra (ID: {})",
-        place_cairo
-    );
+    println!("  ✓ Place created: node0://dubai.bizra (ID: {place_dubai})");
+    println!("  ✓ Place created: node1://cairo.bizra (ID: {place_cairo})");
     println!();
 
     // Create authority delegation chain
@@ -95,15 +89,9 @@ async fn main() -> anyhow::Result<()> {
     let gini_fair = TelescriptEngine::calculate_gini(&fair_distribution);
     let gini_unfair = TelescriptEngine::calculate_gini(&unfair_distribution);
 
-    println!(
-        "  Fair distribution [10,11,12,10,11]: Gini = {:.4}",
-        gini_fair
-    );
-    println!(
-        "  Unfair distribution [1,2,3,100]: Gini = {:.4}",
-        gini_unfair
-    );
-    println!("  ADL_GINI_MAX threshold: {:.2}", ADL_GINI_MAX);
+    println!("  Fair distribution [10,11,12,10,11]: Gini = {gini_fair:.4}");
+    println!("  Unfair distribution [1,2,3,100]: Gini = {gini_unfair:.4}");
+    println!("  ADL_GINI_MAX threshold: {ADL_GINI_MAX:.2}");
     println!(
         "  Fair passes ADL: {}",
         if gini_fair <= ADL_GINI_MAX {

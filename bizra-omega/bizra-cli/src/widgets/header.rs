@@ -57,7 +57,7 @@ impl Widget for Header<'_> {
 
         // Left side: Stylized logo
         let logo = Span::styled(
-            format!(" {} ", LOGO_COMPACT),
+            format!(" {LOGO_COMPACT} "),
             Style::default()
                 .fg(colors::GOLD)
                 .add_modifier(Modifier::BOLD),
@@ -86,7 +86,7 @@ impl Widget for Header<'_> {
                 (Theme::unselected(), " ")
             };
             tabs.push(Span::styled(
-                format!("{}[{}]{} ", prefix, view.key(), view.name()),
+                format!("{prefix}[{}]{} ", view.key(), view.name()),
                 style,
             ));
         }

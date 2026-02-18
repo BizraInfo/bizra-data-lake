@@ -187,7 +187,7 @@ impl AgentMintingEngine {
         Ok(MintedAgent {
             id: agent_id,
             public_key: agent_public_key,
-            name: format!("PAT-{:?}-{}", role, &hex_encode(&agent_public_key)[..8]),
+            name: format!("PAT-{role:?}-{}", &hex_encode(&agent_public_key)[..8]),
             capability_card,
             ihsan_score: self.ihsan_threshold,
             state: AgentState::Active,
@@ -359,7 +359,7 @@ impl AgentMintingEngine {
         Ok(MintedAgent {
             id: agent_id,
             public_key: agent_public_key,
-            name: format!("SAT-{:?}-{}", role, &hex_encode(&agent_public_key)[..8]),
+            name: format!("SAT-{role:?}-{}", &hex_encode(&agent_public_key)[..8]),
             capability_card,
             ihsan_score: self.ihsan_threshold,
             state: AgentState::Active,
