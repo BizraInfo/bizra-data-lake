@@ -162,13 +162,14 @@ CONFIDENCE_MINIMUM: Final[float] = 0.50
 # "Adl (عدل) - Justice is not optional. It is a hard constraint."
 
 # Maximum Gini coefficient - HARD GATE, not warning
-# 0.40 represents moderate inequality (below most developed nations)
+# 0.35 represents moderate inequality — aligned with Rust bizra-resourcepool
 # Transactions that would push Gini above this are REJECTED
-ADL_GINI_THRESHOLD: Final[float] = 0.40
+ADL_GINI_THRESHOLD: Final[float] = 0.35
 
 # Harberger tax rate (annual, applied continuously)
 # Flows to Universal Basic Compute (UBC) pool
-ADL_HARBERGER_TAX_RATE: Final[float] = 0.05
+# Aligned with Rust bizra-resourcepool HARBERGER_TAX_RATE = 0.07
+ADL_HARBERGER_TAX_RATE: Final[float] = 0.07
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
@@ -241,7 +242,7 @@ CANONICAL_THRESHOLDS = {
     "SNR_THRESHOLD_T0_ELITE": 0.98,
     "MUSEUM_SNR_FLOOR": 0.85,
     "RUNTIME_IHSAN": 1.0,
-    "ADL_GINI_THRESHOLD": 0.40,  # Justice invariant - anti-plutocracy
+    "ADL_GINI_THRESHOLD": 0.35,  # Justice invariant - anti-plutocracy
 }
 
 
