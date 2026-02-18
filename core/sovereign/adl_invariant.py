@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # The Adl threshold - Gini coefficient must not exceed this value
 # 0.40 represents moderate inequality - below most developed nations
 # This is a HARD GATE, not a soft warning
-ADL_GINI_THRESHOLD: float = 0.40
+ADL_GINI_THRESHOLD: float = 0.35
 
 # Harberger tax rate (annual, applied continuously)
 # 5% strikes balance between redistribution pressure and stability

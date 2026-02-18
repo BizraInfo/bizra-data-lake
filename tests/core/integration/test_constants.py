@@ -223,11 +223,11 @@ class TestADLConstants:
 
     def test_gini_threshold(self):
         assert 0.0 < ADL_GINI_THRESHOLD < 1.0
-        assert ADL_GINI_THRESHOLD == 0.40
+        assert ADL_GINI_THRESHOLD == 0.35
 
     def test_harberger_tax_rate(self):
         assert 0.0 < ADL_HARBERGER_TAX_RATE < 1.0
-        assert ADL_HARBERGER_TAX_RATE == 0.05
+        assert ADL_HARBERGER_TAX_RATE == 0.07
 
     def test_minimum_holding(self):
         assert ADL_MINIMUM_HOLDING > 0.0
