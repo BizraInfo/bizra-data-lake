@@ -446,7 +446,7 @@ fn benchmark_identity_ops() {
     // Hash 1000 times
     let start = Instant::now();
     for i in 0..1000 {
-        domain_separated_digest(format!("message {}", i).as_bytes());
+        domain_separated_digest(format!("message {i}").as_bytes());
     }
     let hash_elapsed = start.elapsed();
 

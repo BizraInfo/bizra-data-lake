@@ -57,14 +57,14 @@ impl Widget for StatusBar<'_> {
         };
 
         let mut spans = vec![
-            Span::styled(format!(" {} ", mode_text), mode_style),
+            Span::styled(format!(" {mode_text} "), mode_style),
             Span::raw(" │ "),
         ];
 
         // Selected agent
         if let Some(agent) = self.selected_agent {
             spans.push(Span::styled(
-                format!("{} {} ", symbols::AGENT, agent),
+                format!("{} {agent} ", symbols::AGENT),
                 Theme::pat_agent(agent),
             ));
             spans.push(Span::raw("│ "));

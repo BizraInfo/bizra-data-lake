@@ -83,12 +83,12 @@ impl PreferenceTracker {
     pub fn apply_to_prompt(&self, prompt: &str) -> String {
         let mut additions = Vec::new();
         if let Some(style) = self.get(&PreferenceType::Style, "response") {
-            additions.push(format!("Use {} tone.", style));
+            additions.push(format!("Use {style} tone."));
         }
         if additions.is_empty() {
             prompt.to_string()
         } else {
-            format!("{}\n\nPreferences: {}", prompt, additions.join(" "))
+            format!("{prompt}\n\nPreferences: {}", additions.join(" "))
         }
     }
 }

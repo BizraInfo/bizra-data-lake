@@ -150,7 +150,7 @@ impl LMStudio {
     pub fn with_config(config: LMStudioConfig) -> Self {
         let mut headers = HeaderMap::new();
         if let Some(ref key) = config.api_key {
-            let value = format!("Bearer {}", key);
+            let value = format!("Bearer {key}");
             if let Ok(header_value) = HeaderValue::from_str(&value) {
                 headers.insert(AUTHORIZATION, header_value);
             }

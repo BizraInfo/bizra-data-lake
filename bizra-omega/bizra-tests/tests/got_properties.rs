@@ -112,7 +112,7 @@ fn prop_backtrack_max_snr() {
 
     for (i, &snr) in scores.iter().enumerate() {
         let id = graph.create_thought_with_type(
-            &format!("Hypothesis {}", i),
+            &format!("Hypothesis {i}"),
             Some(&root),
             ThoughtType::Hypothesis,
         );
@@ -204,7 +204,7 @@ fn prop_aggregate_majority_required() {
     for (successes, total, expected) in test_cases {
         let paths: Vec<ReasoningPath> = (0..total)
             .map(|i| {
-                let mut path = graph.create_path(&format!("path_{}", i));
+                let mut path = graph.create_path(&format!("path_{i}"));
                 path.add_thought(ThoughtNode::new("t", "test"));
                 path.record_result("t", i < successes);
                 path
@@ -253,8 +253,7 @@ fn prop_success_rate_bounds() {
     let rate = empty_path.success_rate();
     assert!(
         (0.0..=1.0).contains(&rate),
-        "Success rate {} out of bounds",
-        rate
+        "Success rate {rate} out of bounds"
     );
 
     // Partial success
@@ -267,10 +266,9 @@ fn prop_success_rate_bounds() {
     let rate = partial.success_rate();
     assert!(
         (0.0..=1.0).contains(&rate),
-        "Success rate {} out of bounds",
-        rate
+        "Success rate {rate} out of bounds"
     );
-    assert!((rate - 0.5).abs() < 0.001, "Expected 0.5, got {}", rate);
+    assert!((rate - 0.5).abs() < 0.001, "Expected 0.5, got {rate}");
 }
 
 /// Property: final_result is Some only when all thoughts have results
@@ -424,7 +422,7 @@ fn test_deep_chain() {
 
     let mut parent = graph.create_thought("Root", None);
     for i in 1..=100 {
-        parent = graph.create_thought(&format!("Node {}", i), Some(&parent));
+        parent = graph.create_thought(&format!("Node {i}"), Some(&parent));
     }
 
     assert_eq!(graph.stats().total_thoughts, 101);
@@ -442,7 +440,7 @@ fn test_wide_tree() {
 
     let root = graph.create_thought("Root", None);
     for i in 0..100 {
-        graph.create_thought(&format!("Child {}", i), Some(&root));
+        graph.create_thought(&format!("Child {i}"), Some(&root));
     }
 
     assert_eq!(graph.stats().total_thoughts, 101);
@@ -479,7 +477,7 @@ fn test_conclusions_threshold_filtering() {
     let snr_values = [0.1, 0.3, 0.5, 0.7, 0.9];
     for snr in snr_values {
         let id = graph.create_thought_with_type(
-            &format!("Conclusion SNR {}", snr),
+            &format!("Conclusion SNR {snr}"),
             Some(&root),
             ThoughtType::Conclusion,
         );
@@ -552,7 +550,7 @@ fn stress_large_graph() {
         let mut next_level = Vec::new();
         for parent in &current_level {
             for i in 0..10 {
-                let child = graph.create_thought(&format!("Node {}", i), Some(parent));
+                let child = graph.create_thought(&format!("Node {i}"), Some(parent));
                 next_level.push(child);
             }
         }
@@ -576,10 +574,10 @@ fn stress_many_paths() {
 
     let paths: Vec<ReasoningPath> = (0..1000)
         .map(|i| {
-            let mut path = graph.create_path(&format!("path_{}", i));
+            let mut path = graph.create_path(&format!("path_{i}"));
             for j in 0..10 {
-                path.add_thought(ThoughtNode::new(&format!("t{}_{}", i, j), "thought"));
-                path.record_result(&format!("t{}_{}", i, j), j % 2 == 0);
+                path.add_thought(ThoughtNode::new(&format!("t{i}_{j}"), "thought"));
+                path.record_result(&format!("t{i}_{j}"), j % 2 == 0);
             }
             path
         })

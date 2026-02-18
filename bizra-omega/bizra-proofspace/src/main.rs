@@ -87,7 +87,7 @@ fn main() {
     if !result.warnings.is_empty() {
         println!("▸ Warnings ({}):", result.warnings.len());
         for warning in &result.warnings {
-            println!("  - {}", warning);
+            println!("  - {warning}");
         }
         println!();
     }

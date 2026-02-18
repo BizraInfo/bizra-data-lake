@@ -420,8 +420,8 @@ async fn cmd_serve(data_dir: &Path, args: ServeArgs) -> anyhow::Result<()> {
 
 async fn cmd_join(_data_dir: &Path, seed: &str, port: u16) -> anyhow::Result<()> {
     println!("🔗 Joining federation...\n");
-    println!("   Seed node: {}", seed);
-    println!("   Local port: {}", port);
+    println!("   Seed node: {seed}");
+    println!("   Local port: {port}");
 
     // In production: initialize gossip protocol
     println!("\n   [Federation join not yet implemented]");
@@ -513,7 +513,7 @@ async fn cmd_models(action: ModelCommands) -> anyhow::Result<()> {
             }
         }
         ModelCommands::Download { name } => {
-            println!("⬇️  Downloading model: {}\n", name);
+            println!("⬇️  Downloading model: {name}\n");
             println!("   [Download not yet implemented]");
         }
         ModelCommands::Loaded => {
@@ -521,7 +521,7 @@ async fn cmd_models(action: ModelCommands) -> anyhow::Result<()> {
             println!("   [No models currently loaded]");
         }
         ModelCommands::Unload { name } => {
-            println!("🗑️  Unloading model: {}", name);
+            println!("🗑️  Unloading model: {name}");
         }
     }
     Ok(())
@@ -560,7 +560,7 @@ async fn cmd_federation(_data_dir: &Path, action: FederationCommands) -> anyhow:
             println!("   [Not connected to federation]");
         }
         FederationCommands::Propose { pattern_id } => {
-            println!("📤 Proposing pattern: {}", pattern_id);
+            println!("📤 Proposing pattern: {pattern_id}");
             println!("   [Federation not connected]");
         }
         FederationCommands::Leave => {
@@ -631,7 +631,7 @@ async fn cmd_identity(data_dir: &Path, action: IdentityCommands) -> anyhow::Resu
             let identity = NodeIdentity::from_secret_bytes(&secret_array);
 
             let signature = identity.sign(message.as_bytes());
-            println!("{}", signature);
+            println!("{signature}");
         }
         IdentityCommands::Verify {
             message,
@@ -655,7 +655,7 @@ async fn cmd_pci(_data_dir: &Path, action: PCICommands) -> anyhow::Result<()> {
         PCICommands::Create { payload, ttl } => {
             println!("📦 Creating PCI Envelope\n");
             println!("   Payload: {}...", &payload[..payload.len().min(50)]);
-            println!("   TTL:     {} seconds", ttl);
+            println!("   TTL:     {ttl} seconds");
             println!("\n   [Requires initialized identity - use 'bizra init' first]");
         }
         PCICommands::Verify { envelope } => {
@@ -675,10 +675,10 @@ async fn cmd_pci(_data_dir: &Path, action: PCICommands) -> anyhow::Result<()> {
             println!("🚧 Checking Gates\n");
             println!("   Content: {}...", &content[..content.len().min(50)]);
             if let Some(s) = snr {
-                println!("   SNR:     {}", s);
+                println!("   SNR:     {s}");
             }
             if let Some(i) = ihsan {
-                println!("   Ihsan:   {}", i);
+                println!("   Ihsan:   {i}");
             }
             println!("\n   [Gate check not yet implemented]");
         }

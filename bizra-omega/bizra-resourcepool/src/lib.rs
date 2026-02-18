@@ -905,7 +905,7 @@ impl ResourcePool {
 
         // Verify signature
         let pk_bytes = hex::decode(&request.node_id).map_err(|e| PoolError::CryptoError {
-            reason: format!("Invalid node ID: {}", e),
+            reason: format!("Invalid node ID: {e}"),
         })?;
 
         let verifying_key =
@@ -913,7 +913,7 @@ impl ResourcePool {
                 reason: "Invalid key length".to_string(),
             })?)
             .map_err(|e| PoolError::CryptoError {
-                reason: format!("Invalid public key: {}", e),
+                reason: format!("Invalid public key: {e}"),
             })?;
 
         // Create the new node
@@ -1231,7 +1231,7 @@ impl ResourcePool {
                 category,
                 recipient_node: None,
                 amount: per_category,
-                purpose: format!("{:?} support", category),
+                purpose: format!("{category:?} support"),
             });
         }
 

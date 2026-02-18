@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     let agent_id = engine
         .create_agent("Seeker-001", permit, agent_code, place_dubai)
         .await?;
-    println!("  ✓ Agent created: Seeker-001 (ID: {})", agent_id);
+    println!("  ✓ Agent created: Seeker-001 (ID: {agent_id})");
     println!();
 
     // Travel to another place

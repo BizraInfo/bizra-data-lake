@@ -321,7 +321,7 @@ mod tests {
         // Uniform distribution should have high entropy
         let uniform: Vec<u8> = (0..=255).collect();
         let entropy = calc.bytecode_entropy(&uniform);
-        assert!(entropy > 0.99, "Uniform distribution entropy: {}", entropy);
+        assert!(entropy > 0.99, "Uniform distribution entropy: {entropy}");
     }
 
     #[test]
@@ -330,7 +330,7 @@ mod tests {
         // Constant bytes should have zero entropy
         let constant = vec![0x60u8; 256];
         let entropy = calc.bytecode_entropy(&constant);
-        assert!(entropy < 0.01, "Constant entropy: {}", entropy);
+        assert!(entropy < 0.01, "Constant entropy: {entropy}");
     }
 
     #[test]
@@ -355,6 +355,6 @@ mod tests {
         // Bytecode with many jumps
         let bytecode = vec![0x56, 0x57, 0x5b, 0x56, 0x57, 0x5b, 0x60, 0x60];
         let entropy = calc.cfg_entropy(&bytecode);
-        assert!(entropy > 0.5, "CFG entropy: {}", entropy);
+        assert!(entropy > 0.5, "CFG entropy: {entropy}");
     }
 }

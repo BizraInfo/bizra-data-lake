@@ -122,8 +122,8 @@ pub fn run_all_benchmarks() -> Vec<BenchResult> {
     let total_iters: usize = results.iter().map(|r| r.iterations).sum();
 
     println!("  Total benchmarks:    {}", results.len());
-    println!("  Total iterations:    {}", total_iters);
-    println!("  Combined throughput: {:.0} ops/sec", total_ops);
+    println!("  Total iterations:    {total_iters}");
+    println!("  Combined throughput: {total_ops:.0} ops/sec");
 
     results
 }
@@ -307,8 +307,8 @@ fn bench_simd() -> Vec<BenchResult> {
     // Batch gate validation (branchless)
     let contexts: Vec<GateContext> = (0..100)
         .map(|i| GateContext {
-            sender_id: format!("node_{}", i),
-            envelope_id: format!("pci_{}", i),
+            sender_id: format!("node_{i}"),
+            envelope_id: format!("pci_{i}"),
             content: br#"{"valid": "json"}"#.to_vec(),
             constitution: constitution.clone(),
             snr_score: Some(0.90),

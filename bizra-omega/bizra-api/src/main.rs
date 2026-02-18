@@ -88,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Initialize gossip protocol with signing key for secure message authentication
-    let gossip_addr: SocketAddr = format!("{}:7946", host).parse()?;
+    let gossip_addr: SocketAddr = format!("{host}:7946").parse()?;
     let gossip_signing_key = SigningKey::from_bytes(&secret_bytes);
     let gossip = GossipProtocol::new(identity.node_id().clone(), gossip_addr, gossip_signing_key);
     tracing::info!(addr = %gossip_addr, "Gossip protocol initialized with Ed25519 signing");
@@ -187,7 +187,7 @@ async fn check_ollama_available() -> bool {
     let client = reqwest::Client::new();
     let base_url = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost:11434".into());
 
-    match client.get(format!("{}/api/tags", base_url)).send().await {
+    match client.get(format!("{base_url}/api/tags")).send().await {
         Ok(resp) => resp.status().is_success(),
         Err(_) => false,
     }
@@ -208,7 +208,7 @@ async fn detect_ollama_model() -> Option<String> {
     }
 
     let resp = client
-        .get(format!("{}/api/tags", base_url))
+        .get(format!("{base_url}/api/tags"))
         .send()
         .await
         .ok()?;

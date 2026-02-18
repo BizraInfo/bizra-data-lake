@@ -74,7 +74,7 @@ fn main() -> Result<()> {
         Some(Commands::Agent(cmd)) => match cmd {
             AgentCommands::List => commands::exec_agent_list(),
             AgentCommands::Show { name } => {
-                println!("Agent: {}", name);
+                println!("Agent: {name}");
                 Ok(())
             }
             AgentCommands::Chat { agent, message } => exec_agent_chat(&agent, message.as_deref()),
@@ -82,7 +82,7 @@ fn main() -> Result<()> {
         Some(Commands::Query { text, agent }) => exec_query(&text, &agent),
         Some(Commands::Task(cmd)) => match cmd {
             TaskCommands::List { status } => {
-                println!("Tasks (filter: {:?})", status);
+                println!("Tasks (filter: {status:?})");
                 Ok(())
             }
             TaskCommands::Add {
@@ -90,16 +90,16 @@ fn main() -> Result<()> {
                 description,
                 agent,
             } => {
-                println!("Add task: {} ({:?}, {:?})", title, description, agent);
+                println!("Add task: {title} ({description:?}, {agent:?})");
                 Ok(())
             }
             TaskCommands::Complete { id } => {
-                println!("Complete task: {}", id);
+                println!("Complete task: {id}");
                 Ok(())
             }
         },
         Some(Commands::Voice { agent }) => {
-            println!("Voice mode with agent: {}", agent);
+            println!("Voice mode with agent: {agent}");
             println!("Note: Voice requires PersonaPlex server running at https://localhost:8998");
             Ok(())
         }
@@ -111,11 +111,11 @@ fn exec_query(text: &str, agent: &str) -> Result<()> {
     use std::process::Command;
 
     println!("╔════════════════════════════════════════════════════════════════════════════╗");
-    println!("║  Query via {} {:>52}║", agent, "");
+    println!("║  Query via {agent} {:>52}║", "");
     println!("╚════════════════════════════════════════════════════════════════════════════╝");
     println!();
 
-    println!("  Query: {}", text);
+    println!("  Query: {text}");
     println!();
     println!("  ─────────────────────────────────────────────────────────────────────────");
     println!();
@@ -152,28 +152,28 @@ fn exec_query(text: &str, agent: &str) -> Result<()> {
                                 start = end;
                             }
                         } else {
-                            println!("  {}", line);
+                            println!("  {line}");
                         }
                     }
                 } else if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
-                    println!("  Error: {}", error);
+                    println!("  Error: {error}");
                 }
             } else {
                 let stderr = String::from_utf8_lossy(&out.stderr);
                 // Try to parse JSON error from stdout
                 if let Ok(response) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
                     if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
-                        println!("  LM Studio: {}", error);
+                        println!("  LM Studio: {error}");
                         println!();
                         println!("  Please start LM Studio and load a model.");
                     }
                 } else if !stderr.is_empty() {
-                    println!("  Error: {}", stderr);
+                    println!("  Error: {stderr}");
                 }
             }
         }
         Err(e) => {
-            println!("  Error: Failed to run Python bridge: {}", e);
+            println!("  Error: Failed to run Python bridge: {e}");
             println!("  Make sure Python venv is set up at /mnt/c/BIZRA-DATA-LAKE/.venv");
         }
     }
@@ -221,7 +221,7 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
 
     // If message provided, single response mode
     if let Some(msg) = message {
-        println!("  You: {}", msg);
+        println!("  You: {msg}");
         println!();
 
         let output = create_cmd(&[bridge_path, "agent", &agent_lower, msg]).output();
@@ -232,11 +232,11 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
                     if let Some(content) = response.get("content").and_then(|c| c.as_str()) {
                         println!("  {}: {}", agent_display.1, content);
                     } else if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
-                        println!("  Error: {}", error);
+                        println!("  Error: {error}");
                     }
                 }
             }
-            Err(e) => println!("  Error: {}", e),
+            Err(e) => println!("  Error: {e}"),
         }
     } else {
         // Interactive mode
@@ -269,14 +269,14 @@ fn exec_agent_chat(agent: &str, message: Option<&str>) -> Result<()> {
                         if let Some(content) = response.get("content").and_then(|c| c.as_str()) {
                             println!("  {}: {}", agent_display.1, content);
                         } else if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
-                            println!("  Error: {}", error);
+                            println!("  Error: {error}");
                         }
                     }
                     println!();
                 }
                 Err(e) => {
                     println!();
-                    println!("  Error: {}", e);
+                    println!("  Error: {e}");
                     println!();
                 }
             }
@@ -339,7 +339,7 @@ fn run_tui() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        eprintln!("Error: {}", err);
+        eprintln!("Error: {err}");
     }
 
     Ok(())
@@ -691,7 +691,7 @@ fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Re
     use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
     let agent_name = app.selected_agent.map(|a| a.name()).unwrap_or("Guardian");
-    let title = format!(" Chat with {} ", agent_name);
+    let title = format!(" Chat with {agent_name} ");
 
     let block = Block::default()
         .title(Span::styled(title, Theme::title()))
@@ -727,12 +727,12 @@ fn render_chat(f: &mut ratatui::Frame, app: &app::App, area: ratatui::layout::Re
         for (i, line) in msg.content.lines().enumerate() {
             if i == 0 {
                 all_lines.push(Line::from(vec![
-                    Span::styled(format!("[{}] ", prefix), style),
+                    Span::styled(format!("[{prefix}] "), style),
                     Span::styled(line, Theme::text()),
                 ]));
             } else {
                 all_lines.push(Line::from(Span::styled(
-                    format!("      {}", line),
+                    format!("      {line}"),
                     Theme::text(),
                 )));
             }

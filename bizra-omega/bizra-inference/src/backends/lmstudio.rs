@@ -436,7 +436,7 @@ impl LMStudioBackend {
                         content_type: "image_url".to_string(),
                         text: None,
                         image_url: Some(ImageUrl {
-                            url: format!("data:image/jpeg;base64,{}", image_base64),
+                            url: format!("data:image/jpeg;base64,{image_base64}"),
                             detail: Some("high".to_string()),
                         }),
                     },

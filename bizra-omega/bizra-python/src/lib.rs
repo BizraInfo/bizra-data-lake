@@ -190,10 +190,10 @@ impl PyPCIEnvelope {
     ) -> PyResult<Self> {
         // Parse payload as JSON value
         let payload_value: serde_json::Value = serde_json::from_str(payload)
-            .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {e}")))?;
 
         let envelope = RustPCIEnvelope::create(&identity.inner, payload_value, ttl, provenance)
-            .map_err(|e| PyRuntimeError::new_err(format!("PCI error: {}", e)))?;
+            .map_err(|e| PyRuntimeError::new_err(format!("PCI error: {e}")))?;
 
         Ok(Self {
             id: envelope.id,
@@ -204,7 +204,7 @@ impl PyPCIEnvelope {
             signature: envelope.signature,
             public_key: envelope.public_key,
             payload_json: serde_json::to_string(&envelope.payload).map_err(|e| {
-                PyRuntimeError::new_err(format!("Payload serialization failed: {}", e))
+                PyRuntimeError::new_err(format!("Payload serialization failed: {e}"))
             })?,
             ttl: envelope.ttl,
         })
@@ -287,7 +287,7 @@ impl PyTaskComplexity {
         use bizra_inference::selector::TaskComplexity;
         let complexity = TaskComplexity::estimate(prompt, max_tokens);
         Self {
-            level: format!("{:?}", complexity),
+            level: format!("{complexity:?}"),
         }
     }
 
@@ -477,7 +477,7 @@ impl PyInferenceGateway {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
-            .map_err(|e| PyRuntimeError::new_err(format!("Tokio runtime error: {}", e)))?;
+            .map_err(|e| PyRuntimeError::new_err(format!("Tokio runtime error: {e}")))?;
         Ok(Self {
             gateway: std::sync::Arc::new(tokio::sync::Mutex::new(gateway)),
             runtime: std::sync::Arc::new(runtime),
@@ -493,7 +493,7 @@ impl PyInferenceGateway {
     fn register_ollama(&self, model: &str, tier: &str, base_url: Option<&str>) -> PyResult<()> {
         let model_tier = parse_tier(tier)?;
         let config = bizra_inference::BackendConfig {
-            name: format!("ollama-{}", tier),
+            name: format!("ollama-{tier}"),
             model: model.to_string(),
             context_length: 4096,
             gpu_layers: -1,
@@ -577,7 +577,7 @@ impl PyInferenceGateway {
 
         match result {
             Ok(response) => Ok(PyInferenceResponse::from(response)),
-            Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {}", e))),
+            Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
 
@@ -648,7 +648,7 @@ impl PyPatternMemory {
     fn learn(&mut self, content: &str, embedding: Vec<f32>, tags: Vec<String>) -> PyResult<String> {
         self.inner
             .learn(content.to_string(), embedding, tags)
-            .map_err(|e| PyRuntimeError::new_err(format!("Pattern learn error: {}", e)))
+            .map_err(|e| PyRuntimeError::new_err(format!("Pattern learn error: {e}")))
     }
 
     /// Recall patterns similar to the given embedding

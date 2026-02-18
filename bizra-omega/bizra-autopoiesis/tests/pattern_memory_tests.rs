@@ -147,7 +147,7 @@ fn memory_store_search_similar_respects_limit() {
     let node = NodeId("n".into());
     for i in 0..10 {
         let emb = vec![1.0, 0.1 * i as f32, 0.0];
-        let p = Pattern::new(format!("p{}", i), emb, node.clone());
+        let p = Pattern::new(format!("p{i}"), emb, node.clone());
         store.store(p).unwrap();
     }
 
@@ -203,7 +203,7 @@ fn pattern_memory_learn_increases_count() {
 fn pattern_memory_learn_multiple() {
     let mut mem = PatternMemory::in_memory(NodeId("multi".into()));
     for i in 0..5 {
-        mem.learn(format!("item_{}", i), vec![0.1 * i as f32; 10], vec![])
+        mem.learn(format!("item_{i}"), vec![0.1 * i as f32; 10], vec![])
             .unwrap();
     }
     assert_eq!(mem.count(), 5);
@@ -230,7 +230,7 @@ fn pattern_memory_recall_respects_limit() {
     // Store many similar patterns
     for i in 0..20 {
         let emb = vec![1.0, 0.01 * i as f32, 0.0];
-        mem.learn(format!("item_{}", i), emb, vec![]).unwrap();
+        mem.learn(format!("item_{i}"), emb, vec![]).unwrap();
     }
     let results = mem.recall(&[1.0, 0.0, 0.0], 5);
     assert!(results.len() <= 5);
