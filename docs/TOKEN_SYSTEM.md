@@ -265,8 +265,9 @@ The ledger enforces the Adl (Justice) invariant at the transaction level. Every 
 1. **Scope**: Only SEED token. BLOOM and IMPT are exempt.
 2. **Exempt operations**: `GENESIS_MINT`, `ZAKAT`, `BURN`, `STAKE`, `UNSTAKE` bypass the gate.
 3. **System pool exclusion**: Communal accounts (`SYSTEM_POOL_IDS`) are excluded from Gini calculation — they are redistribution pools, not individual wealth.
-4. **Directional awareness**: Transfers that *reduce* Gini are always allowed, even if the absolute level remains above threshold. This prevents system lockup when bootstrapping from unequal initial allocations.
-5. **Transfers to system pools**: Always allowed (redistributive by nature).
+4. **Bootstrap exemption**: Gini enforcement activates only when `ADL_GINI_MIN_ACCOUNTS` (5) non-pool accounts exist. Gini coefficient is statistically meaningless with fewer data points, and the genesis phase must distribute to initial participants.
+5. **Directional awareness**: Transfers that *reduce* Gini are always allowed, even if the absolute level remains above threshold. This prevents system lockup when bootstrapping from unequal initial allocations.
+6. **Transfers to system pools**: Always allowed (redistributive by nature).
 
 ### Validation Flow
 

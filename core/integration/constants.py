@@ -175,6 +175,13 @@ ADL_HARBERGER_TAX_RATE: Final[float] = 0.07
 # Prevents dust attacks and ensures meaningful participation
 ADL_MINIMUM_HOLDING: Final[float] = 1e-9
 
+# Minimum non-pool accounts before Gini enforcement activates
+# Gini coefficient is statistically meaningless with < 5 data points.
+# During genesis bootstrap, the system must distribute to initial participants
+# before equality enforcement can meaningfully apply.
+# Standing on Giants — Gini (1912): sample-size requirement for robust estimation
+ADL_GINI_MIN_ACCOUNTS: Final[int] = 5
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TIMING CONSTANTS
