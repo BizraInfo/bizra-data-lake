@@ -1,0 +1,96 @@
+# BIZRA NetworkPolicy — East-West Traffic Segmentation
+# Phase 36 (Production Fortress): Enforces zero-trust within the cluster.
+#
+# Policy: Default-deny all, then allow:
+#   Ingress: traefik → app ports, intra-namespace gossip, prometheus scrape
+#   Egress:  kube-dns, intra-namespace, ollama, external HTTPS
+#
+# Standing on Giants: Burns (K8s design patterns) + Bernstein (zero-trust)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bizra-network-policy
+  labels:
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: bizra
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # 1. Ingress controller → app HTTP ports
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - port: 3001
+          protocol: TCP
+        - port: 8000
+          protocol: TCP
+
+    # 2. Intra-namespace: app ↔ app (HTTP + gossip + federation)
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bizra
+      ports:
+        - port: 3001
+          protocol: TCP
+        - port: 8000
+          protocol: TCP
+        - port: 7946    # Gossip (memberlist)
+          protocol: UDP
+        - port: 7654    # Federation DTLS
+          protocol: TCP
+
+    # 3. Monitoring namespace → Prometheus scrape
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - port: 9090
+          protocol: TCP
+
+  egress:
+    # 1. DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+
+    # 2. Intra-namespace communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bizra
+
+    # 3. Ollama LLM inference
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - port: 11434
+          protocol: TCP
+
+    # 4. External HTTPS only (no internal RFC1918 ranges)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP

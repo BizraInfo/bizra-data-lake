@@ -144,7 +144,7 @@ ignore = [
     "E501",   # line-too-long (Black handles this)
     "E741",   # ambiguous-variable-name (math code uses short names)
     "F403",   # undefined-local-with-import-star
-    "F821",   # undefined-name (forward references in runtime engines)
+    # F821 removed from global ignore (SAPE-013) — use per-file-ignores instead
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -152,6 +152,15 @@ ignore = [
 "core/sovereign/runtime_engines/*" = ["F821"]  # Forward references
 "core/autopoiesis/__init__.py" = ["F811"]  # Intentional lazy imports
 "core/bridges/bridge.py" = ["F401"]  # Availability-check imports in try/except
+# F821: Deferred imports via __future__ annotations or conditional imports (SAPE-013)
+"core/bridges/rust_lifecycle.py" = ["F821"]
+"core/graph/semantic_layer.py" = ["F821"]
+"core/living_memory/core.py" = ["F821"]
+"core/sovereign/experience_ledger.py" = ["F821"]
+"core/sovereign/orchestrator.py" = ["F821"]
+"core/sovereign/snr_maximizer.py" = ["F821"]
+"core/sovereign/user_context.py" = ["F821"]
+"core/spearpoint/auto_researcher.py" = ["F821"]
 "core/bridges/local_inference_bridge.py" = ["F401"]  # Availability-check imports
 "core/sovereign/bridge.py" = ["F401"]  # Availability-check imports in try/except
 "core/sovereign/doctor.py" = ["F401"]  # Availability-check imports
