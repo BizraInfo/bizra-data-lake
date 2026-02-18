@@ -97,7 +97,8 @@ async def create_sovereign_runtime(
 
 def print_banner():
     """Print the BIZRA banner."""
-    print("""
+    print(
+        """
 ╔══════════════════════════════════════════════════════════════════╗
 ║                                                                   ║
 ║    "بذرة — Every seed is welcome that bears good fruit."         ║
@@ -110,7 +111,8 @@ def print_banner():
 ║    "We do not assume. We verify with formal proofs."             ║
 ║                                                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
-""")
+"""
+    )
 
 
 # =============================================================================

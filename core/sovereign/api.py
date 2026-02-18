@@ -2530,17 +2530,20 @@ def create_fastapi_app(runtime: Any) -> Any:
             "subsystems": {
                 "moe_router": (
                     getattr(fusion_engine, "_moe_router", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "hrm_engine": hrm is not None,
                 "hypergraph_rag": (
                     getattr(fusion_engine, "_hypergraph_rag", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "northstar_engine": northstar is not None,
             },
             "hypergraph_store": hypergraph is not None,
-            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None) is not None,
+            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None)
+            is not None,
             "pattern_codebook": getattr(runtime, "_pattern_codebook", None) is not None,
         }
 
@@ -2799,7 +2802,8 @@ def _run_fastapi_server(
 
     app = create_fastapi_app(runtime)
 
-    print(f"""
+    print(
+        f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           SOVEREIGN NODE0 ONLINE (FastAPI + Uvicorn)         ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -2812,7 +2816,8 @@ def _run_fastapi_server(
 ║                                                              ║
 ║   Press Ctrl+C to stop                                       ║
 ╚══════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     uvicorn.run(
         app,
@@ -2875,7 +2880,8 @@ async def serve(
 
         await server.start()
 
-        print(f"""
+        print(
+            f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║              SOVEREIGN API SERVER RUNNING (asyncio)           ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -2887,7 +2893,8 @@ async def serve(
 ║   Note: Install uvicorn for Console UI + Swagger docs         ║
 ║   Press Ctrl+C to stop                                       ║
 ╚══════════════════════════════════════════════════════════════╝
-        """)
+        """
+        )
 
         await runtime.wait_for_shutdown()
         await server.stop()

@@ -338,14 +338,21 @@ class GenesisOrchestrator:
         """Step 12: Persist sovereign state to disk."""
         from pathlib import Path
 
-        from .state_persistence import SovereignState, save_sovereign_state, state_exists
+        from .state_persistence import (
+            SovereignState,
+            save_sovereign_state,
+            state_exists,
+        )
 
         state_dir = Path("sovereign_state") / "genesis"
 
         # Collect state from completed steps
         state = SovereignState(
             node_id=self._node_id or "BIZRA-PENDING",
-            identity_card={"node_id": self._node_id, "genesis_hash": self._genesis_hash},
+            identity_card={
+                "node_id": self._node_id,
+                "genesis_hash": self._genesis_hash,
+            },
             hardware_info=self._hardware_info.to_dict() if self._hardware_info else {},
         )
 
@@ -407,7 +414,9 @@ class GenesisOrchestrator:
             count = d.get("pat_count", 7)
             latency = round(step.duration_ms, 0)
             ihsan = d.get("ihsan", 0.98)
-            return f"{mark} PAT-{count} instantiated: {latency}ms latency, Ihsan {ihsan}"
+            return (
+                f"{mark} PAT-{count} instantiated: {latency}ms latency, Ihsan {ihsan}"
+            )
 
         elif step.name == "sat_activation":
             count = d.get("sat_count", 5)

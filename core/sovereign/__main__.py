@@ -239,7 +239,8 @@ async def run_repl() -> None:
                     break
 
                 if query.lower() == "help":
-                    print("""
+                    print(
+                        """
 Commands:
   onboard   - Create sovereign identity (if not yet onboarded)
   dashboard - View node identity and agents
@@ -255,7 +256,8 @@ Commands:
 
 Or type any query to get a sovereign response.
 Your PAT team remembers the conversation and learns who you are.
-                    """)
+                    """
+                    )
                     continue
 
                 if query.lower() == "onboard":

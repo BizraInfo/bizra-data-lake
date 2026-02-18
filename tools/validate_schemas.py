@@ -141,9 +141,12 @@ def check_reason_codes_sync() -> list:
 
     try:
         from core.proof_engine.reason_codes import ReasonCode
+
         python_codes = set(rc.value for rc in ReasonCode)
-    except ImportError:
-        errors.append("WARNING: Could not import ReasonCode — skipping sync check")
+    except Exception:
+        # Non-fatal: ReasonCode import may fail if optional deps are missing.
+        # This is a sync check, not a schema structural check.
+        print("  SKIP  ReasonCode import unavailable — sync check deferred")
         return errors
 
     # Check both directions

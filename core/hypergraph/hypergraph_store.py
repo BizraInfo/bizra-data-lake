@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 # Cosine similarity
 # ---------------------------------------------------------------------------
 
+
 def _cosine_similarity(a: List[float], b: List[float]) -> float:
     """Cosine similarity between two vectors.
 
@@ -53,6 +54,7 @@ def _cosine_similarity(a: List[float], b: List[float]) -> float:
 # ---------------------------------------------------------------------------
 # HyperGraphStore
 # ---------------------------------------------------------------------------
+
 
 class HyperGraphStore:
     """In-memory hypergraph with structural and vector queries.
@@ -109,9 +111,7 @@ class HyperGraphStore:
 
         missing = node_ids - self._nodes.keys()
         if missing:
-            raise ValueError(
-                f"Node(s) not found in the store: {sorted(missing)}"
-            )
+            raise ValueError(f"Node(s) not found in the store: {sorted(missing)}")
 
         edge_id = generate_edge_id(node_ids)
         edge = HyperEdge(
@@ -176,7 +176,8 @@ class HyperGraphStore:
             List of cross-domain bridge hyperedges.
         """
         return [
-            e for e in self._edges.values()
+            e
+            for e in self._edges.values()
             if e.edge_type == HyperEdgeType.CROSS_DOMAIN_BRIDGE
         ]
 

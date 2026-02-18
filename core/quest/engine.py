@@ -213,7 +213,9 @@ class QuestEngine:
         if quest.accepted_by != node_id:
             logger.warning(
                 "Node %s cannot complete quest %s (accepted by %s)",
-                node_id, quest_id, quest.accepted_by,
+                node_id,
+                quest_id,
+                quest.accepted_by,
             )
             return None
 
@@ -221,7 +223,9 @@ class QuestEngine:
         if ihsan_score < UNIFIED_IHSAN_THRESHOLD:
             logger.warning(
                 "Ihsan gate failed for quest %s: %.4f < %.4f",
-                quest_id, ihsan_score, UNIFIED_IHSAN_THRESHOLD,
+                quest_id,
+                ihsan_score,
+                UNIFIED_IHSAN_THRESHOLD,
             )
             return None
 
@@ -233,7 +237,9 @@ class QuestEngine:
 
         logger.info(
             "Quest %s completed by %s (reward: %s)",
-            quest_id, node_id, quest.reward.description,
+            quest_id,
+            node_id,
+            quest.reward.description,
         )
 
         return quest.reward
@@ -244,10 +250,7 @@ class QuestEngine:
 
     def list_available(self, guild_id: Optional[str] = None) -> List[Quest]:
         """List available quests, optionally filtered by guild."""
-        quests = [
-            q for q in self._quests.values()
-            if q.status == QuestStatus.AVAILABLE
-        ]
+        quests = [q for q in self._quests.values() if q.status == QuestStatus.AVAILABLE]
         if guild_id:
             quests = [q for q in quests if q.guild_id == guild_id]
         return quests
@@ -255,7 +258,8 @@ class QuestEngine:
     def get_accepted(self, node_id: str) -> List[Quest]:
         """Get all quests accepted by a specific node."""
         return [
-            q for q in self._quests.values()
+            q
+            for q in self._quests.values()
             if q.accepted_by == node_id
             and q.status in (QuestStatus.ACCEPTED, QuestStatus.IN_PROGRESS)
         ]

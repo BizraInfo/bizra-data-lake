@@ -160,7 +160,11 @@ class SpearpointConfig:
         default_factory=lambda: Path(
             os.getenv(
                 "SPEARPOINT_EVIDENCE_LEDGER",
-                str(Path(__file__).resolve().parents[2] / ".spearpoint" / "evidence.jsonl"),
+                str(
+                    Path(__file__).resolve().parents[2]
+                    / ".spearpoint"
+                    / "evidence.jsonl"
+                ),
             )
         )
     )
@@ -168,7 +172,11 @@ class SpearpointConfig:
         default_factory=lambda: Path(
             os.getenv(
                 "SPEARPOINT_HYPOTHESIS_MEMORY",
-                str(Path(__file__).resolve().parents[2] / ".spearpoint" / "hypothesis_memory"),
+                str(
+                    Path(__file__).resolve().parents[2]
+                    / ".spearpoint"
+                    / "hypothesis_memory"
+                ),
             )
         )
     )

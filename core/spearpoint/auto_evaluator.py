@@ -45,6 +45,7 @@ if sys.platform == "win32":
                 msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
             except OSError:
                 pass  # Already unlocked
+
     except ImportError:
         # Fallback: no-op locking if msvcrt unavailable
         def _lock_file(f: Any) -> None:  # type: ignore[misc]
@@ -52,6 +53,7 @@ if sys.platform == "win32":
 
         def _unlock_file(f: Any) -> None:  # type: ignore[misc]
             pass
+
 else:
     import fcntl
 
@@ -62,6 +64,7 @@ else:
     def _unlock_file(f: Any) -> None:  # type: ignore[misc]
         """Release lock on Unix."""
         fcntl.flock(f, fcntl.LOCK_UN)
+
 
 from core.benchmark.clear_framework import CLEARFramework
 from core.benchmark.guardrails import GuardrailSuite

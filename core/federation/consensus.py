@@ -612,9 +612,7 @@ class ConsensusEngine:
         view_change_digest = domain_separated_digest(view_change_data.encode())
 
         if not verify_signature(view_change_digest, request.signature, registered_key):
-            logger.error(
-                f"⚠️ Invalid VIEW-CHANGE signature from {request.requester_id}"
-            )
+            logger.error(f"⚠️ Invalid VIEW-CHANGE signature from {request.requester_id}")
             return False
 
         # Track request

@@ -120,7 +120,9 @@ class GenesisResult:
         payload = json.dumps(
             {
                 "node_id": self.node_id,
-                "steps": [s.name for s in self.steps if s.status == GenesisStepStatus.SUCCESS],
+                "steps": [
+                    s.name for s in self.steps if s.status == GenesisStepStatus.SUCCESS
+                ],
                 "created_at": self.created_at,
             },
             sort_keys=True,

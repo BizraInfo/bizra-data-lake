@@ -58,9 +58,7 @@ class UnifiedStore:
             self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
-        self._conn.execute(
-            f"PRAGMA busy_timeout={self._config.sqlite_busy_timeout_ms}"
-        )
+        self._conn.execute(f"PRAGMA busy_timeout={self._config.sqlite_busy_timeout_ms}")
 
         self._create_schema()
         logger.info(f"UnifiedStore opened: {self.db_path}")
@@ -77,7 +75,8 @@ class UnifiedStore:
 
     def _create_schema(self) -> None:
         conn = self._ensure_conn()
-        conn.executescript("""
+        conn.executescript(
+            """
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INTEGER PRIMARY KEY
             );
@@ -132,7 +131,8 @@ class UnifiedStore:
             );
 
             INSERT OR IGNORE INTO schema_version (version) VALUES (2);
-        """)
+        """
+        )
         conn.commit()
 
     # ── CRUD ─────────────────────────────────────────────────────────────
@@ -297,9 +297,7 @@ class UnifiedStore:
 
     # ── FTS5 Keyword Search ──────────────────────────────────────────────
 
-    def keyword_search(
-        self, query: str, top_k: int = 10
-    ) -> List[tuple[str, float]]:
+    def keyword_search(self, query: str, top_k: int = 10) -> List[tuple[str, float]]:
         """Full-text search using FTS5.
 
         Returns list of (record_id, bm25_score) sorted by relevance.

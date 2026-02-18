@@ -89,6 +89,9 @@ def pledge_resources(
 
     logger.info(
         "URP pledge created: %s — %dGB RAM + %dGB VRAM (hash: %s)",
-        node_id, ram_gb, vram_gb, pledge_hash,
+        node_id,
+        ram_gb,
+        vram_gb,
+        pledge_hash,
     )
     return pledge

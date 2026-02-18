@@ -1,6 +1,6 @@
 # BIZRA Documentation Portal
 
-Last updated: 2026-02-14
+Last updated: 2026-02-18
 
 This is the canonical entry point for BIZRA system documentation.
 Use this file first, then follow the role-based reading paths below.
@@ -106,6 +106,12 @@ Any production-impacting feature change should update docs that satisfy:
 3. Traceability: references source files/paths that implement the behavior.
 4. Operational clarity: includes failure modes and rollback/safe fallback.
 5. Freshness: avoids hardcoded volatile numbers unless date-stamped.
+
+Required references (CI-enforced tokens):
+
+- `docs/README.md` (this file)
+- `docs/OPERATIONS_RUNBOOK.md`
+- `docs/TESTING.md`
 
 Enforcement:
 
