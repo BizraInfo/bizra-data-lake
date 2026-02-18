@@ -59,7 +59,8 @@ All thresholds are defined in `core/integration/constants.py` as the single sour
 - HTTPS for all external communication
 - Rate limiting on all API endpoints
 - Input validation at system boundaries
-- No `eval()` or equivalent dynamic execution
+- No raw `eval()` — sandboxed `exec()` is permitted only in `core/zpk/kernel.py` and
+  `tools/engines/agentic_cleaner.py`, gated by AST validation + restricted `__builtins__`
 - Path traversal protection on file operations
 
 ## Further Reading

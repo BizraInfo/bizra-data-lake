@@ -25,7 +25,8 @@ beautifulsoup4==4.14.2
 bitarray==3.7.2
 bitsandbytes==0.47.0
 -e git+https://github.com/BizraInfo/BIZRA-TaskMaster.git@a6372b9e37063426bc398794c136be020d4a110c#egg=bizra_taskmaster
-bizra_python @ file:///C:/BIZRA-TaskMaster/backend-rs/target/wheels/bizra_python-0.1.0-cp313-cp313-win_amd64.whl#sha256=86ab31282be8025b3bfff60a54ac85fe1b29f7e96ca9d3bd85a68971f78844d9
+# bizra_python — built locally via: cd bizra-omega/bizra-python && maturin develop --release
+# bizra_python @ file:///C:/BIZRA-TaskMaster/backend-rs/target/wheels/bizra_python-0.1.0-cp313-cp313-win_amd64.whl
 black==25.12.0
 blake3==1.0.8
 bleach==6.3.0

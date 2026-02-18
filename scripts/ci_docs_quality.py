@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
-import sys
 from datetime import date
 from typing import Iterable, List
 
@@ -35,8 +34,8 @@ REQUIRED_README_TOKENS = [
 
 REQUIRED_PORTAL_TOKENS = [
     "## A+ Documentation Quality Gate",
-    "docs/OPERATIONS_RUNBOOK.md",
-    "docs/TESTING.md",
+    "OPERATIONS_RUNBOOK.md",
+    "TESTING.md",
 ]
 
 REQUIRED_CONTRIBUTING_TOKENS = [

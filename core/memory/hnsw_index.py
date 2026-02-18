@@ -170,12 +170,23 @@ class HNSWIndex:
         else:
             return self._numpy_search(vec, k)
 
+    _SCALE_WARNING_THRESHOLD = 10_000
+    _scale_warned = False
+
     def _numpy_search(
         self, query: np.ndarray, top_k: int
     ) -> List[Tuple[str, float]]:
         """Brute-force cosine search (fallback when hnswlib unavailable)."""
         if not self._fallback_vectors:
             return []
+
+        n = len(self._fallback_vectors)
+        if n >= self._SCALE_WARNING_THRESHOLD and not HNSWIndex._scale_warned:
+            logger.warning(
+                f"numpy brute-force search over {n} vectors — O(n) per query. "
+                "Install hnswlib (pip install hnswlib) for sub-linear performance."
+            )
+            HNSWIndex._scale_warned = True
 
         ids = list(self._fallback_vectors.keys())
         matrix = np.stack([self._fallback_vectors[i] for i in ids])
