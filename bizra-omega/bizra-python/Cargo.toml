@@ -13,6 +13,8 @@ bizra-core = { path = "../bizra-core" }
 bizra-inference = { path = "../bizra-inference" }
 bizra-autopoiesis = { path = "../bizra-autopoiesis" }
 bizra-federation = { path = "../bizra-federation" }
+bizra-hooks = { path = "../bizra-hooks" }
+bizra-memory = { path = "../bizra-memory" }
 
 pyo3 = { version = "0.24", features = ["extension-module"] }
 serde_json = "1.0"
