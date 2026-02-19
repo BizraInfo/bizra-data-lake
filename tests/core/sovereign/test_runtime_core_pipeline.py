@@ -1009,6 +1009,55 @@ class TestValidateConstitutionally:
     """Tests for _validate_constitutionally (lines 1979-2057)."""
 
     @pytest.mark.asyncio
+    async def test_phase1_prefers_ihsan_computer_when_available(
+        self, tmp_path: Path
+    ) -> None:
+        """Phase 1 uses IhsanComputer-derived components before legacy fallback."""
+        rt = _make_runtime(tmp_path)
+        rt._omega = None
+        rt._guardian_council = None
+
+        mock_gate = MagicMock()
+        mock_gate.ihsan_score = MagicMock(
+            return_value={
+                "score": 0.961,
+                "decision": "APPROVED",
+            }
+        )
+        mock_components = object()
+        mock_computer = MagicMock()
+        mock_computer.compute = MagicMock(return_value=mock_components)
+        mock_ihsan_components_ctor = MagicMock()
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=mock_ihsan_components_ctor,
+                ),
+                "core.proof_engine.ihsan_computer": MagicMock(
+                    IhsanComputer=MagicMock(return_value=mock_computer),
+                ),
+            },
+        ):
+            query = SovereignQuery(text="validate with grounded ihsan", require_validation=False)
+            score, verdict = await rt._validate_constitutionally(
+                "content body", {"risk_score": 0.2}, query, 0.88
+            )
+
+        assert score == 0.961
+        assert verdict == "APPROVED"
+        mock_computer.compute.assert_called_once_with(
+            content="content body",
+            snr_score=0.88,
+            query_text="validate with grounded ihsan",
+            context={"risk_score": 0.2},
+        )
+        mock_gate.ihsan_score.assert_called_once_with(mock_components)
+        mock_ihsan_components_ctor.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_phase1_ihsan_gate_scoring(self, tmp_path: Path) -> None:
         """Phase 1: IhsanGate v1 computes authoritative ihsan score."""
         rt = _make_runtime(tmp_path)

@@ -20,7 +20,30 @@ Standing on Giants:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.reason_codes import ReasonCode
+
+
+def _canonical_component_weights() -> Dict[str, float]:
+    """
+    Derive 4-component gate weights from the canonical 8-dim Ihsan weights.
+
+    This gate only scores components it directly receives:
+    correctness, safety, efficiency, user_benefit.
+    To avoid split-brain drift, those weights are projected from
+    `core.integration.constants.IHSAN_WEIGHTS` and normalized.
+    """
+    base = {
+        "correctness": float(IHSAN_WEIGHTS["correctness"]),
+        "safety": float(IHSAN_WEIGHTS["safety"]),
+        "efficiency": float(IHSAN_WEIGHTS["efficiency"]),
+        "user_benefit": float(IHSAN_WEIGHTS["user_benefit"]),
+    }
+    total = sum(base.values())
+    if total <= 0.0:
+        # Fail-safe fallback (equal weights) if constants are ever corrupted.
+        return {k: 0.25 for k in base}
+    return {k: v / total for k, v in base.items()}
 
 
 @dataclass
@@ -47,20 +70,16 @@ class IhsanComponents:
     ) -> float:
         """Compute weighted composite score.
 
-        Default weights: safety=0.35, correctness=0.30, user_benefit=0.20, efficiency=0.15
-        Safety is weighted highest because harm is irreversible.
+        Default weights are derived from canonical SOT weights in
+        `core.integration.constants.IHSAN_WEIGHTS` and normalized over
+        the 4 component dimensions represented in this gate.
         """
-        w = weights or {
-            "correctness": 0.30,
-            "safety": 0.35,
-            "efficiency": 0.15,
-            "user_benefit": 0.20,
-        }
+        w = weights or _canonical_component_weights()
         return (
-            w.get("correctness", 0.3) * self.correctness
-            + w.get("safety", 0.35) * self.safety
-            + w.get("efficiency", 0.15) * self.efficiency
-            + w.get("user_benefit", 0.2) * self.user_benefit
+            w.get("correctness", 0.0) * self.correctness
+            + w.get("safety", 0.0) * self.safety
+            + w.get("efficiency", 0.0) * self.efficiency
+            + w.get("user_benefit", 0.0) * self.user_benefit
         )
 
 
@@ -96,7 +115,7 @@ class IhsanGate:
 
     def __init__(
         self,
-        threshold: float = 0.95,
+        threshold: float = UNIFIED_IHSAN_THRESHOLD,
         weights: Optional[Dict[str, float]] = None,
     ):
         self.threshold = threshold
