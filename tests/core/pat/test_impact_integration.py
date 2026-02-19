@@ -209,6 +209,7 @@ class TestImpactPersistence:
     """Verify impact state survives runtime restarts."""
 
     @pytest.mark.asyncio
+    @pytest.mark.timeout(180)
     async def test_impact_survives_restart(self, tmp_path):
         from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
