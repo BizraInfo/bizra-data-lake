@@ -12,11 +12,11 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-002: "every verification call emits a receipt"
 """
 
+import hashlib
 import json
 import logging
 import os
 import threading
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
