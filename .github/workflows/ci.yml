@@ -141,6 +141,9 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Validate PromQL guard patterns
+        run: python scripts/ci_promql_guard.py
+
       - name: Run schema test suite
         run: |
           pip install pytest
