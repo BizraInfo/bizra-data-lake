@@ -1376,13 +1376,10 @@ class ApexSovereignEngine:
         """
         # --- Phase 46: GoT Bridge path (evidence-grounded reasoning) ---
         try:
-            import os
+            from core.rollout.canary import CanaryRouter
 
-            if os.getenv("BIZRA_PHASE46_GOT_BRIDGE_ENABLED", "0").lower() in {
-                "1",
-                "true",
-                "yes",
-            }:
+            _canary = CanaryRouter()
+            if _canary.should_route("got_bridge", query):
                 try:
                     from core.reasoning.got_bridge import GoTBridge
 

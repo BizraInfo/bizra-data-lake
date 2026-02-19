@@ -91,6 +91,10 @@ class ProactiveRetriever:
         self._hmm_engine: Optional[Any] = hmm_engine
         self._hmm_enabled = self._init_hmm()
 
+        # Phase 47.1: Canary routing for HMM observations
+        from core.rollout.canary import CanaryRouter
+        self._canary = CanaryRouter()
+
     def _init_hmm(self) -> bool:
         """Lazily initialise the HMM engine if Phase 46 is enabled."""
         import os
@@ -149,12 +153,16 @@ class ProactiveRetriever:
     }
 
     def _observe_hmm(self, topics: Set[str]) -> None:
-        """Feed extracted topics to the HMM as observation symbols."""
+        """Feed extracted topics to the HMM as observation symbols.
+
+        Phase 47.1: Each observation is gated through CanaryRouter using the
+        symbol as request_key for deterministic percent-based routing.
+        """
         if self._hmm_engine is None:
             return
         for topic in topics:
             symbol = self._TOPIC_TO_SYMBOL.get(topic)
-            if symbol:
+            if symbol and self._canary.should_route("hmm", symbol):
                 try:
                     self._hmm_engine.observe(symbol)
                 except Exception:

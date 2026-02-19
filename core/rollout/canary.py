@@ -57,19 +57,19 @@ class CanaryRouter:
         Returns:
             ``True`` if this request should use the Phase 46 component.
         """
+        # Gate 0: Kill switch precedence (ALWAYS checked first)
+        kill = self._check_kill_switch(component)
+        if kill is not None:
+            return kill
+
         if percent is None:
             percent = self._read_percent(component)
 
-        # Gate 0: Percent bounds
+        # Gate 1: Percent bounds
         if percent <= 0:
             return False
         if percent >= 100:
             return True
-
-        # Gate 1: Kill switch precedence
-        kill = self._check_kill_switch(component)
-        if kill is not None:
-            return kill
 
         # Gate 2: Deterministic hash routing
         hash_input = f"{self._salt}:{component}:{request_key}"
