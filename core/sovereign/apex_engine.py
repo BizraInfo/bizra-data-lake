@@ -1378,8 +1378,9 @@ class ApexSovereignEngine:
         try:
             from core.rollout.canary import CanaryRouter
 
-            _canary = CanaryRouter()
-            if _canary.should_route("got_bridge", query):
+            if not hasattr(self, "_canary_router"):
+                self._canary_router = CanaryRouter()
+            if self._canary_router.should_route("got_bridge", query):
                 try:
                     from core.reasoning.got_bridge import GoTBridge
 
