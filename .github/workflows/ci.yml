@@ -199,6 +199,15 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: "ROLLOUT-001: Phase 46/47 rollout infrastructure regression"
+        run: |
+          pytest tests/core/rollout/ \
+            tests/core/mcp/test_sovereign_phase46_tools.py \
+            tests/integration/test_phase46_full_pipeline.py \
+            -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Upload coverage
         if: matrix.coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4

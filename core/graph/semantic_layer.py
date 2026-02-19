@@ -1,3 +1,24 @@
+"""
+BIZRA Graph Semantic Layer — Dual-overlay topology separation.
+
+Separates semantic edges from structural PART_OF edges in the knowledge graph.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import math
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Final, List, Optional, Set, Tuple
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
