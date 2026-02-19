@@ -146,6 +146,29 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Deploy to Staging
   # ═══════════════════════════════════════════════════════════════════════════
+  # Audit trail: log who bypassed staging and why
+  staging-bypass-audit:
+    name: Staging Bypass Audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: build-push
+    if: ${{ github.event.inputs.skip_staging == 'true' && github.event_name != 'release' }}
+    steps:
+      - name: Record bypass audit trail
+        run: |
+          echo "## Staging Bypass Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Ref** | ${{ github.ref }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run ID** | ${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Warning:** Staging environment was bypassed — deploying directly to production." >> $GITHUB_STEP_SUMMARY
+          echo "> This bypass should only be used for verified emergency hotfixes." >> $GITHUB_STEP_SUMMARY
+
   deploy-staging:
     name: Deploy Staging
     runs-on: ubuntu-24.04
@@ -216,7 +239,8 @@ jobs:
     name: Smoke Tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: [build-push, deploy-staging]
+    needs: [build-push, deploy-staging, staging-bypass-audit]
+    if: ${{ needs.deploy-staging.result == 'success' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -289,8 +313,8 @@ jobs:
     name: Production Quality Gate
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    needs: [smoke-tests]
-    if: ${{ github.event.inputs.environment == 'production' || github.event_name == 'release' }}
+    needs: [smoke-tests, staging-bypass-audit]
+    if: ${{ (github.event.inputs.environment == 'production' || github.event_name == 'release') && (needs.smoke-tests.result == 'success' || needs.staging-bypass-audit.result == 'success') }}
     outputs:
       approved: ${{ steps.gate.outputs.approved }}
     steps:

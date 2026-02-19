@@ -1,0 +1,265 @@
+# BIZRA MCP Service Mesh — Alerting Rules
+# Prometheus alerting for Model Context Protocol servers
+#
+# Constitutional Thresholds (from core/integration/constants.py):
+# - IHSAN_THRESHOLD: 0.95 (standard), 0.99 (strict)
+# - SNR_THRESHOLD: 0.85 (minimum), 0.95 (T1), 0.98 (T0/elite)
+#
+# Standing on Giants: Prometheus, MCP (Anthropic)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bizra-mcp-alerts
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    prometheus: k8s
+    role: alert-rules
+    team: sovereign
+spec:
+  groups:
+    # =========================================================================
+    # MCP Availability Alerts
+    # =========================================================================
+    - name: bizra.mcp.availability
+      rules:
+        # CRITICAL: MCP Gateway down
+        - alert: BizraMCPGatewayDown
+          expr: up{job="bizra-mcp-gateway"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: sovereign
+            component: mcp-gateway
+          annotations:
+            summary: "MCP Gateway not responding"
+            description: |
+              MCP Gateway instance {{ $labels.instance }} is not responding.
+              All external agent connections will fail. Immediate action required.
+            runbook_url: "https://docs.bizra.io/runbooks/mcp-gateway-down"
+
+        # CRITICAL: MCP Sovereign Brain down
+        - alert: BizraMCPSovereignDown
+          expr: up{job="bizra-mcp-sovereign"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            component: mcp-sovereign
+          annotations:
+            summary: "MCP Sovereign Brain not responding"
+            description: |
+              Sovereign MCP (House of Wisdom) instance {{ $labels.instance }} is down.
+              Graph-of-Thoughts reasoning unavailable.
+
+        # WARNING: Any MCP server down
+        - alert: BizraMCPServerDown
+          expr: up{job=~"bizra-mcp-.*"} == 0
+          for: 2m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "MCP server {{ $labels.job }} not responding"
+            description: |
+              MCP server {{ $labels.job }} on {{ $labels.instance }} is not responding.
+              Partial MCP capability degradation.
+
+        # WARNING: MCP pod restarts
+        - alert: BizraMCPPodRestarts
+          expr: increase(kube_pod_container_status_restarts_total{namespace="bizra", container=~"mcp-.*"}[1h]) > 3
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "MCP pod {{ $labels.pod }} restarting frequently"
+            description: |
+              MCP container {{ $labels.container }} in pod {{ $labels.pod }}
+              has restarted {{ $value }} times in the last hour. Investigate
+              logs for crash loops or OOM kills.
+
+    # =========================================================================
+    # MCP Performance Alerts
+    # =========================================================================
+    - name: bizra.mcp.performance
+      rules:
+        # CRITICAL: MCP query latency > 2000ms
+        - alert: BizraMCPLatencyCritical
+          expr: mcp_avg_response_time_ms > 2000
+          for: 5m
+          labels:
+            severity: critical
+            team: sovereign
+            threshold: "2000ms"
+          annotations:
+            summary: "MCP response time exceeds 2000ms"
+            description: |
+              MCP server {{ $labels.job }} average response time is
+              {{ $value | printf "%.0f" }}ms. Agent experience severely degraded.
+
+        # WARNING: MCP query latency > 500ms
+        - alert: BizraMCPLatencyWarning
+          expr: mcp_avg_response_time_ms > 500 and mcp_avg_response_time_ms <= 2000
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "500ms"
+          annotations:
+            summary: "MCP response time elevated"
+            description: |
+              MCP server {{ $labels.job }} average response time is
+              {{ $value | printf "%.0f" }}ms. Monitor for further degradation.
+
+        # WARNING: MCP cache hit rate low
+        - alert: BizraMCPCacheHitRateLow
+          expr: mcp_cache_hit_rate < 0.3
+          for: 15m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "MCP cache hit rate below 30%"
+            description: |
+              MCP server {{ $labels.job }} cache hit rate is
+              {{ $value | printf "%.2f" }}. Queries are not benefiting
+              from caching. Check TTL settings or query diversity.
+
+        # WARNING: MCP error rate > 5%
+        - alert: BizraMCPErrorRateHigh
+          expr: |
+            (mcp_error_count / mcp_query_count) > 0.05 and mcp_query_count > 0
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            threshold: "5%"
+          annotations:
+            summary: "MCP error rate exceeds 5%"
+            description: |
+              MCP server {{ $labels.job }} error rate is
+              {{ $value | printf "%.2f" | mul 100 }}%. Investigate tool
+              execution failures or backend unavailability.
+
+        # CRITICAL: MCP error rate > 20%
+        - alert: BizraMCPErrorRateCritical
+          expr: |
+            (mcp_error_count / mcp_query_count) > 0.20 and mcp_query_count > 0
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            threshold: "20%"
+          annotations:
+            summary: "MCP error rate critical (>20%)"
+            description: |
+              MCP server {{ $labels.job }} has {{ $value | printf "%.0f" | mul 100 }}%
+              error rate. Service is effectively unavailable.
+
+    # =========================================================================
+    # MCP Constitutional Compliance Alerts
+    # =========================================================================
+    - name: bizra.mcp.constitutional
+      rules:
+        # CRITICAL: MCP SNR score violation
+        - alert: BizraMCPSNRViolation
+          expr: mcp_snr_score < 0.85
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            constitutional: "true"
+            threshold: "0.85"
+          annotations:
+            summary: "CONSTITUTIONAL: MCP SNR below 0.85"
+            description: |
+              MCP server {{ $labels.job }} SNR score {{ $value | printf "%.4f" }}
+              violates the constitutional minimum of 0.85.
+              Four Pillars violation — immediate investigation required.
+
+        # CRITICAL: MCP Ihsan violation
+        - alert: BizraMCPIhsanViolation
+          expr: mcp_ihsan_score < 0.95
+          for: 2m
+          labels:
+            severity: critical
+            team: sovereign
+            constitutional: "true"
+            threshold: "0.95"
+          annotations:
+            summary: "CONSTITUTIONAL: MCP Ihsan below 0.95"
+            description: |
+              MCP server {{ $labels.job }} Ihsan score {{ $value | printf "%.4f" }}
+              violates the constitutional threshold of 0.95.
+              Excellence constraint violated.
+
+    # =========================================================================
+    # MCP Traffic Alerts
+    # =========================================================================
+    - name: bizra.mcp.traffic
+      rules:
+        # WARNING: No MCP traffic
+        - alert: BizraMCPNoTraffic
+          expr: increase(mcp_query_count[15m]) == 0
+          for: 15m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "No MCP query traffic in 15 minutes"
+            description: |
+              MCP server {{ $labels.job }} has received no queries in 15 minutes.
+              External agents may be disconnected.
+
+        # WARNING: MCP traffic spike (>10x normal)
+        - alert: BizraMCPTrafficSpike
+          expr: |
+            (rate(mcp_query_count[5m]) / rate(mcp_query_count[1h])) > 10
+            and rate(mcp_query_count[1h]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+          annotations:
+            summary: "MCP traffic spike detected (10x above baseline)"
+            description: |
+              MCP server {{ $labels.job }} is receiving {{ $value | printf "%.1f" }}x
+              the normal query rate. Check for runaway agent loops.
+
+    # =========================================================================
+    # MCP Recording Rules
+    # =========================================================================
+    - name: bizra.mcp.recording
+      interval: 30s
+      rules:
+        # MCP query rate (5m window)
+        - record: bizra:mcp_queries:rate5m
+          expr: rate(mcp_query_count[5m])
+
+        # MCP average response time (5m window)
+        - record: bizra:mcp_latency_ms:avg5m
+          expr: avg_over_time(mcp_avg_response_time_ms[5m])
+
+        # MCP cache efficiency
+        - record: bizra:mcp_cache_hit_rate:avg5m
+          expr: avg_over_time(mcp_cache_hit_rate[5m])
+
+        # MCP error rate
+        - record: bizra:mcp_error_rate:5m
+          expr: |
+            (rate(mcp_error_count[5m]) / rate(mcp_query_count[5m]))
+            and rate(mcp_query_count[5m]) > 0
+
+        # MCP uptime per server
+        - record: bizra:mcp_uptime_seconds
+          expr: mcp_uptime_seconds
+
+        # MCP constitutional compliance
+        # Weighted pass/fail gate: 0.0=both fail, 0.4=SNR pass, 0.6=Ihsan pass, 1.0=both pass
+        - record: bizra:mcp_constitutional_compliance
+          expr: |
+            (
+              (mcp_snr_score >= 0.85) * 0.4 +
+              (mcp_ihsan_score >= 0.95) * 0.6
+            )
