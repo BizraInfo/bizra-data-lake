@@ -378,6 +378,22 @@ GOT_MAX_HYPOTHESES: Final[int] = 5
 GOT_CONVERGENCE_SNR: Final[float] = 0.90
 GOT_MAX_DEPTH: Final[int] = 4
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SAFE ACTIVATION — Phase 47.1
+# Standing on Giants: Fowler (canary, 2010), Nygard (Release It!, 2007)
+# ═══════════════════════════════════════════════════════════════════════════════
+CANARY_PERCENT_MIN: Final[int] = 0
+CANARY_PERCENT_MAX: Final[int] = 100
+CANARY_DEFAULT_SALT: Final[str] = "bizra-phase46-canary-v1"
+HMM_CALLER_MODE_DEFAULT: Final[str] = "single"
+HMM_ALLOWED_CALLER_DEFAULT: Final[str] = "mcp"
+ROLLBACK_CONSECUTIVE_BREACHES: Final[int] = 2
+ROLLBACK_SEARCH_ERROR_THRESHOLD: Final[float] = 0.02  # 2%
+ROLLBACK_GOT_FALLBACK_THRESHOLD: Final[float] = 0.20  # 20%
+ROLLBACK_HMM_CONFIDENCE_FLOOR: Final[float] = 0.55
+ROLLBACK_SNR_DROP_THRESHOLD: Final[float] = 0.15  # 15% drop from baseline
+ROLLBACK_LATENCY_DELTA_THRESHOLD: Final[float] = 0.30  # 30% p95 regression
+
 
 def validate_cross_repo_consistency() -> dict:
     """
