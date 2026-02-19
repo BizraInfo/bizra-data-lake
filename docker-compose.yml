@@ -49,8 +49,17 @@ services:
       start_period: 30s
       retries: 3
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - bizra-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   # ═══════════════════════════════════════════════════════════════
   # Rust Omega API (Port 3001)
@@ -79,8 +88,17 @@ services:
       start_period: 10s
       retries: 3
     restart: unless-stopped
+    stop_grace_period: 15s
     networks:
       - bizra-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   # ═══════════════════════════════════════════════════════════════
   # Desktop Bridge (TCP JSON-RPC on Port 9742)
@@ -118,8 +136,17 @@ services:
       start_period: 10s
       retries: 3
     restart: unless-stopped
+    stop_grace_period: 15s
     networks:
       - bizra-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   # ═══════════════════════════════════════════════════════════════
   # Redis (Cache + Message Broker)
@@ -138,8 +165,17 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    stop_grace_period: 10s
     networks:
       - bizra-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   # ═══════════════════════════════════════════════════════════════
   # Prometheus (Metrics Collection)
@@ -160,11 +196,25 @@ services:
     depends_on:
       - python-api
       - rust-api
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
+    stop_grace_period: 15s
     networks:
       - bizra-net
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
 
   # ═══════════════════════════════════════════════════════════════
   # Grafana (Dashboards)
@@ -182,11 +232,25 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
+    stop_grace_period: 10s
     networks:
       - bizra-net
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 # ═══════════════════════════════════════════════════════════════
 # Volumes

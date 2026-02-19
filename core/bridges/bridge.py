@@ -38,6 +38,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional, TypeVar
 
+from core.integration.constants import LMSTUDIO_URL
+
 logger = logging.getLogger("sovereign.bridge")
 
 T = TypeVar("T")
@@ -237,7 +239,7 @@ class InferenceConnector(SubsystemConnector):
     def __init__(
         self,
         ollama_url: str = "http://localhost:11434",
-        lmstudio_url: str = "http://192.168.56.1:1234",
+        lmstudio_url: str = LMSTUDIO_URL,
     ):
         super().__init__("inference")
         self.ollama_url = ollama_url

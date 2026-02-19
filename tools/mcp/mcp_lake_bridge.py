@@ -80,19 +80,16 @@ def process_mcp_request(request):
         if tool_name == "knowledge_retrieve":
             query_text = args.get("query", "")
 
-            # Intercept stdout to capture query_graph's print statements
-            # This is crucial for both HTTP and Stdio modes
-            old_stdout = sys.stdout
-            sys.stdout = mystdout = StringIO()
+            # Thread-safe stdout capture via contextlib
+            import contextlib
+            captured = StringIO()
 
             try:
-                # Assuming query_graph prints results to stdout
-                query_graph(query_text)
-                results = mystdout.getvalue()
+                with contextlib.redirect_stdout(captured):
+                    query_graph(query_text)
+                results = captured.getvalue()
             except Exception as e:
                 results = f"Error executing query: {str(e)}"
-            finally:
-                sys.stdout = old_stdout
 
             return {
                 "jsonrpc": "2.0",

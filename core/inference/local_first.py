@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +49,8 @@ class LocalFirstDetector:
     """Detects and selects best available local backend."""
 
     # Configuration (env vars override defaults)
-    LM_STUDIO_HOST = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
-    LM_STUDIO_PORT = int(os.getenv("LMSTUDIO_PORT", "1234"))
+    LM_STUDIO_HOST = LMSTUDIO_HOST
+    LM_STUDIO_PORT = int(LMSTUDIO_PORT)
     OLLAMA_HOST = os.getenv("OLLAMA_HOST_ADDR", "localhost")
     OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 

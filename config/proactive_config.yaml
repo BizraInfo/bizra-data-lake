@@ -72,25 +72,54 @@ predictions:
     - 24h
     - 7d
 
+# Model Routing — Node0 MoMo Stack (all ≤ 8B, fits RTX 4090 16GB VRAM)
+# VRAM budget: Planner(~4GB) + Reasoner(~5GB) + Vision4B(~3GB) = ~12GB with headroom
+# Voice and Vision-8B load on-demand via hot-swap; Embedding runs CPU-side
+model_routing:
+  backend: lm_studio                     # Primary: LM Studio at 192.168.56.1:1234
+  fallback: ollama                       # Fallback: Ollama at localhost:11434
+
+  # PAT Agent → Model assignments
+  planner: agentflow-planner-7b-i1       # PAT Master Reasoner — planning, decomposition
+  reasoner: deepseek/deepseek-r1-0528-qwen3-8b  # Deep analysis, OODA Orient phase
+  fast: qwen2.5-0.5b-instruct           # Quick classification, routing, triage
+  vision: qwen/qwen3-vl-8b              # Complex visual reasoning (on-demand)
+  vision_light: qwen/qwen3-vl-4b        # Lightweight visual tasks (default)
+  voice: deephat-v1-7b                   # Voice interaction (on-demand hot-swap)
+  embedding: text-embedding-nomic-embed-text-v1.5  # Vector search (CPU-side, no VRAM)
+
+  # VRAM management
+  vram_budget_gb: 16
+  always_loaded:
+    - agentflow-planner-7b-i1            # ~4GB — always in VRAM
+    - deepseek/deepseek-r1-0528-qwen3-8b # ~5GB — always in VRAM
+  on_demand:
+    - qwen/qwen3-vl-8b                  # Load when vision task arrives
+    - qwen/qwen3-vl-4b                  # Load for lightweight vision
+    - deephat-v1-7b                      # Load when voice interaction
+  cpu_only:
+    - text-embedding-nomic-embed-text-v1.5  # Embedding on CPU
+    - qwen2.5-0.5b-instruct             # Fast model fits CPU
+
 # Dual-Agentic Team Configuration
 dual_agentic:
   # PAT - Primary Action Team (7 specialists)
   pat:
-    master_reasoner: true
-    data_analyzer: true
-    execution_planner: true
-    ethics_guardian: true
-    communicator: true
-    memory_architect: true
-    fusion: true
+    master_reasoner: true                # Uses: planner (agentflow-7b)
+    data_analyzer: true                  # Uses: reasoner (deepseek-r1-8b)
+    execution_planner: true              # Uses: planner (agentflow-7b)
+    ethics_guardian: true                # Uses: reasoner (deepseek-r1-8b)
+    communicator: true                   # Uses: fast (qwen-0.5b)
+    memory_architect: true               # Uses: reasoner (deepseek-r1-8b)
+    fusion: true                         # Uses: planner (agentflow-7b)
 
   # SAT - Secondary Action Team (5 validators)
   sat:
-    security_guardian: true       # VETO power
-    ethics_validator: true        # VETO power
-    performance_monitor: true
-    consistency_checker: true
-    resource_optimizer: true
+    security_guardian: true              # VETO power — Uses: reasoner
+    ethics_validator: true               # VETO power — Uses: reasoner
+    performance_monitor: true            # Uses: fast
+    consistency_checker: true            # Uses: fast
+    resource_optimizer: true             # Uses: fast
 
   # Consensus settings
   consensus:
@@ -133,6 +162,23 @@ logging:
   log_file: logs/proactive/sovereign.log
   rotate_size_mb: 100
   backup_count: 5
+
+# Knowledge Base Configuration (Node0 FAISS Index)
+knowledge_base:
+  enabled: true
+  faiss_index: 04_GOLD/node0_faiss.index
+  faiss_meta: 04_GOLD/node0_faiss_meta.json
+  chunks_parquet: 04_GOLD/chunks.parquet
+  documents_parquet: 04_GOLD/documents.parquet
+  embedding_model: text-embedding-nomic-embed-text-v1.5
+  embedding_dim: 384
+  top_k: 5                               # Default retrieval count
+  similarity_threshold: 0.3              # Minimum cosine similarity
+
+# Domain Configuration
+domains:
+  primary: bizra.ai
+  info: bizra.info
 
 # Alert Configuration
 alerts:

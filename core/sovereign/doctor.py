@@ -25,6 +25,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List
 
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
 
 class CheckStatus(str, Enum):
     """Status of a health check."""
@@ -271,8 +273,8 @@ class BizraDoctor:
         """Check LM Studio availability (v1 API with auth)."""
         import os
 
-        host = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
-        port = os.getenv("LMSTUDIO_PORT", "1234")
+        host = LMSTUDIO_HOST
+        port = LMSTUDIO_PORT
         url = f"http://{host}:{port}/api/v1/models"
 
         api_key = (

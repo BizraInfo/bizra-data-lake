@@ -94,23 +94,26 @@ class SNRFacade:
     Unified SNR entry point for the orchestrator.
 
     Routes to the appropriate engine based on available inputs:
-    - If embeddings are provided → arte_engine.SNREngine (vector-space)
-    - If text is provided → snr_maximizer.SNRMaximizer (text-space)
-    - If both → ensemble (geometric mean of both scores)
+    - v2_engine (preferred): SNRv2Adapter wrapping SNRCalculatorV2
+    - embedding_engine (legacy): arte_engine.SNREngine
+    - text_engine: snr_maximizer.SNRMaximizer
+    - ensemble: geometric mean when multiple engines available
 
     Usage:
-        facade = SNRFacade(embedding_engine=snr_engine, text_engine=maximizer)
-        result = facade.calculate(text=answer, query_embedding=qe, context_embeddings=ce, ...)
+        facade = SNRFacade(v2_engine=adapter, text_engine=maximizer)
+        result = facade.calculate(text=answer, query="question")
     """
 
     def __init__(
         self,
         embedding_engine: Optional[Any] = None,
         text_engine: Optional[Any] = None,
+        v2_engine: Optional[Any] = None,
         ihsan_threshold: float = 0.95,
     ):
         self.embedding_engine = embedding_engine
         self.text_engine = text_engine
+        self.v2_engine = v2_engine
         self.ihsan_threshold = ihsan_threshold
 
     def calculate(
@@ -132,6 +135,7 @@ class SNRFacade:
         Returns a single canonical SNRResult.
         """
 
+        has_v2 = self.v2_engine is not None and text is not None
         has_embeddings = (
             query_embedding is not None
             and context_embeddings is not None
@@ -139,7 +143,18 @@ class SNRFacade:
         )
         has_text = text is not None and self.text_engine is not None
 
-        if has_embeddings and has_text:
+        # Priority: v2+text ensemble > v2-only > legacy embedding+text > legacy embedding > text > none
+        if has_v2 and has_text:
+            return self._ensemble_v2(
+                text=text or "",
+                query=query,
+                sources=sources,
+            )
+        elif has_v2:
+            return self.v2_engine.calculate_snr_normalized(
+                text=text or "", query=query or ""
+            )
+        elif has_embeddings and has_text:
             return self._ensemble(
                 text=text or "",
                 query=query,
@@ -195,9 +210,10 @@ class SNRFacade:
             )
         analysis = self.text_engine.analyze(text, query, sources)
 
-        # Normalize dB-scale to [0, 1] via sigmoid-like mapping
-        # snr_linear is already a ratio; clamp to [0, 1]
-        normalized_score = min(max(analysis.snr_linear, 0.0), 1.0)
+        # Use snr_normalized (bounded [0,1]) — Phase 42 Spec 01 fix.
+        # snr_linear is an unbounded diagnostic ratio (0 to 10^10);
+        # snr_normalized = signal * (1 - noise), properly bounded.
+        normalized_score = analysis.snr_normalized
 
         return SNRResult(
             score=normalized_score,
@@ -245,6 +261,52 @@ class SNRFacade:
                 "text_snr": txt_result.score,
                 "ensemble_method": "geometric_mean",
                 "embedding_metrics": emb_result.metrics,
+                "text_metrics": txt_result.metrics,
+            },
+            recommendations=all_recs,
+        )
+
+
+    def _ensemble_v2(
+        self,
+        *,
+        text: str,
+        query: Optional[str],
+        sources: Optional[list[str]],
+    ) -> SNRResult:
+        """
+        Ensemble v2: geometric mean of SNRv2Adapter + text engine.
+
+        v2 provides embedding-grade measurement (Shannon + Renyi-2).
+        Text engine provides heuristic noise analysis (7 dimensions).
+        Geometric mean ensures a single zero dominates (fail-closed).
+        """
+        import math
+
+        v2_result = self.v2_engine.calculate_snr_normalized(
+            text=text, query=query or ""
+        )
+        txt_result = self._from_text_engine(text=text, query=query, sources=sources)
+
+        epsilon = 1e-10
+        ensemble_score = math.exp(
+            0.5 * math.log(v2_result.score + epsilon)
+            + 0.5 * math.log(txt_result.score + epsilon)
+        )
+        ensemble_score = min(max(ensemble_score, 0.0), 1.0)
+
+        all_recs = list(set(v2_result.recommendations + txt_result.recommendations))
+
+        return SNRResult(
+            score=round(ensemble_score, 4),
+            ihsan_achieved=ensemble_score >= self.ihsan_threshold,
+            engine="ensemble_v2",
+            metrics={
+                "v2_snr": v2_result.score,
+                "v2_tier": v2_result.metrics.get("quality_tier", "unknown"),
+                "text_snr": txt_result.score,
+                "ensemble_method": "geometric_mean",
+                "v2_metrics": v2_result.metrics,
                 "text_metrics": txt_result.metrics,
             },
             recommendations=all_recs,

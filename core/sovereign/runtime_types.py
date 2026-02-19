@@ -22,6 +22,8 @@ from typing import (
     runtime_checkable,
 )
 
+from core.integration.constants import LMSTUDIO_URL
+
 # =============================================================================
 # TYPED DICTS
 # =============================================================================
@@ -185,10 +187,7 @@ class RuntimeConfig:
 
     # LLM Backend (env vars override defaults)
     lm_studio_url: str = field(
-        default_factory=lambda: os.getenv(
-            "LMSTUDIO_URL",
-            f"http://{os.getenv('LMSTUDIO_HOST', '192.168.56.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
-        )
+        default_factory=lambda: LMSTUDIO_URL
     )
     ollama_url: str = field(
         default_factory=lambda: os.getenv(

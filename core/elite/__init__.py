@@ -87,9 +87,9 @@ def __getattr__(name: str):
 
         return ElitePipeline
     elif name == "MetricsDashboard":
-        # TODO: core/elite/metrics.py does not exist yet -- create it or remove this lazy import
-        raise ImportError(
-            "MetricsDashboard requires core.elite.metrics which has not been created yet"
+        # Deferred: requires metrics.py (Phase 46+ observability evolution)
+        raise AttributeError(
+            "MetricsDashboard is planned but not yet implemented (core.elite.metrics)"
         )
     elif name == "RiskManager":
         from .risk import RiskManager
@@ -100,9 +100,9 @@ def __getattr__(name: str):
 
         return SAPEOptimizer
     elif name == "IhsanValidator":
-        # TODO: core/elite/ihsan.py does not exist yet -- create it or remove this lazy import
-        raise ImportError(
-            "IhsanValidator requires core.elite.ihsan which has not been created yet"
+        # Deferred: requires ihsan.py (Phase 46+ quality evolution)
+        raise AttributeError(
+            "IhsanValidator is planned but not yet implemented (core.elite.ihsan)"
         )
     # v1.1.0 additions
     elif name == "FATEGate":
@@ -174,10 +174,9 @@ __all__ = [
     # Quality Gates
     "QualityGate",
     "ElitePipeline",
-    "MetricsDashboard",
     "RiskManager",
     "SAPEOptimizer",
-    "IhsanValidator",
+    # Deferred (Phase 46+): "MetricsDashboard", "IhsanValidator"
     # v1.1.0: Hook-First Governance (FATE)
     "FATEGate",
     "HookRegistry",

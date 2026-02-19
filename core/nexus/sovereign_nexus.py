@@ -36,6 +36,7 @@ from typing import Any, Callable, Optional
 
 # Core imports
 from core.integration.constants import (
+    LMSTUDIO_URL,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -637,7 +638,7 @@ class NexusConfig:
     )
 
     # LLM Backend
-    lm_studio_url: str = "http://192.168.56.1:1234"
+    lm_studio_url: str = LMSTUDIO_URL
     lm_studio_token: str = ""
     default_model: str = "deepseek-r1-distill-llama-8b"
 

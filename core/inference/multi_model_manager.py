@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 from core.inference.response_utils import strip_think_tokens
 
 logger = logging.getLogger(__name__)
@@ -180,8 +181,8 @@ class ConnectionPoolMetrics:
 class MultiModelConfig:
     """Configuration for multi-model manager."""
 
-    host: str = "192.168.56.1"
-    port: int = 1234
+    host: str = LMSTUDIO_HOST
+    port: int = int(LMSTUDIO_PORT)
 
     # Auto-load settings
     auto_load_on_demand: bool = True

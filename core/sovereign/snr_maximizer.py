@@ -156,6 +156,7 @@ class SNRAnalysis:
     noise: NoiseProfile
     snr_linear: float = 0.0
     snr_db: float = 0.0
+    snr_normalized: float = 0.0
     ihsan_achieved: bool = False
     recommendations: List[str] = field(default_factory=list)
 
@@ -164,13 +165,19 @@ class SNRAnalysis:
 
         self.snr_linear = self.signal.total_signal / (self.noise.total_noise + 1e-10)
         self.snr_db = 10 * math.log10(max(self.snr_linear, 1e-10))
-        self.ihsan_achieved = self.snr_linear >= UNIFIED_IHSAN_THRESHOLD
+        # Bounded [0,1] score: signal quality penalized by noise.
+        # When noise=0, score = signal quality (must earn it on signal alone).
+        # When noise>0, score decreases multiplicatively.
+        self.snr_normalized = self.signal.total_signal * (1.0 - self.noise.total_noise)
+        self.snr_normalized = max(0.0, min(1.0, self.snr_normalized))
+        self.ihsan_achieved = self.snr_normalized >= UNIFIED_IHSAN_THRESHOLD
 
     def to_dict(self) -> dict:
         return {
             "signal": self.signal.to_dict(),
             "noise": self.noise.to_dict(),
             "snr_linear": self.snr_linear,
+            "snr_normalized": self.snr_normalized,
             "snr_db": self.snr_db,
             "ihsan_achieved": self.ihsan_achieved,
             "recommendations": self.recommendations,
@@ -278,17 +285,170 @@ class NoiseFilter:
         verbosity = (filler_count * 0.1) + (1 - unique_ratio) * 0.5
         return min(verbosity, 1.0)
 
+    def _detect_inconsistency(self, text: str) -> float:
+        """Detect contradictory statements via negation and opposition patterns."""
+        sentences = [s.strip() for s in text.split(".") if s.strip()]
+        if len(sentences) < 2:
+            return 0.0
+
+        negation_pairs = [
+            ("is", "is not"),
+            ("can", "cannot"),
+            ("will", "will not"),
+            ("should", "should not"),
+            ("always", "never"),
+            ("all", "none"),
+            ("increase", "decrease"),
+            ("improve", "worsen"),
+            ("true", "false"),
+            ("yes", "no"),
+            ("enable", "disable"),
+            ("success", "failure"),
+        ]
+
+        contradiction_count = 0
+        for i, s1 in enumerate(sentences):
+            s1_lower = s1.lower()
+            for s2 in sentences[i + 1 :]:
+                s2_lower = s2.lower()
+                for pos, neg in negation_pairs:
+                    if (pos in s1_lower and neg in s2_lower) or (
+                        neg in s1_lower and pos in s2_lower
+                    ):
+                        contradiction_count += 1
+                        break
+
+        max_pairs = len(sentences) * (len(sentences) - 1) / 2
+        return min(contradiction_count / max(max_pairs, 1), 1.0)
+
+    def _detect_irrelevance(self, text: str, context: Optional[str] = None) -> float:
+        """Detect off-topic content via word overlap with context."""
+        if not context:
+            return 0.0
+
+        text_words = set(text.lower().split())
+        context_words = set(context.lower().split())
+
+        # Remove very common words (stopwords lite)
+        stopwords = {
+            "the", "a", "an", "is", "are", "was", "were", "be", "been",
+            "being", "have", "has", "had", "do", "does", "did", "will",
+            "would", "could", "should", "may", "might", "shall", "can",
+            "to", "of", "in", "for", "on", "with", "at", "by", "from",
+            "as", "into", "through", "during", "before", "after", "and",
+            "but", "or", "nor", "not", "so", "yet", "both", "either",
+            "neither", "each", "every", "all", "any", "few", "more",
+            "most", "other", "some", "such", "no", "only", "own", "same",
+            "than", "too", "very", "just", "because", "if", "when", "that",
+            "this", "it", "its", "they", "them", "their", "we", "our",
+        }
+        text_content = text_words - stopwords
+        context_content = context_words - stopwords
+
+        if not context_content or not text_content:
+            return 0.0
+
+        overlap = len(text_content & context_content)
+        relevance = overlap / len(context_content)
+
+        # Irrelevance is inverse of relevance
+        return max(0.0, min(1.0, 1.0 - relevance))
+
+    def _detect_hallucination(self, text: str) -> float:
+        """Detect ungrounded claims — high confidence markers without evidence."""
+        confidence_markers = [
+            "definitely",
+            "certainly",
+            "absolutely",
+            "always",
+            "never",
+            "guaranteed",
+            "proven",
+            "obviously",
+            "clearly",
+            "undoubtedly",
+            "without question",
+            "100%",
+            "all experts agree",
+        ]
+
+        evidence_markers = [
+            "according to",
+            "research shows",
+            "study found",
+            "data indicates",
+            "source:",
+            "citation",
+            "reference",
+            "measured",
+            "observed",
+            "documented",
+            "per the",
+        ]
+
+        text_lower = text.lower()
+        confidence_count = sum(1 for m in confidence_markers if m in text_lower)
+        evidence_count = sum(1 for m in evidence_markers if m in text_lower)
+
+        if confidence_count == 0:
+            return 0.0
+
+        # Hallucination risk: high confidence without evidence
+        ungrounded_ratio = max(0, confidence_count - evidence_count) / confidence_count
+        return min(ungrounded_ratio * 0.8, 1.0)
+
+    def _detect_bias(self, text: str) -> float:
+        """Detect systematic one-sided language."""
+        positive_loaded = [
+            "amazing",
+            "incredible",
+            "revolutionary",
+            "groundbreaking",
+            "best",
+            "superior",
+            "perfect",
+            "flawless",
+            "brilliant",
+            "genius",
+        ]
+        negative_loaded = [
+            "terrible",
+            "horrible",
+            "worst",
+            "useless",
+            "stupid",
+            "idiotic",
+            "catastrophic",
+            "disastrous",
+            "pathetic",
+            "absurd",
+        ]
+
+        text_lower = text.lower()
+        pos_count = sum(1 for w in positive_loaded if w in text_lower)
+        neg_count = sum(1 for w in negative_loaded if w in text_lower)
+
+        total_loaded = pos_count + neg_count
+        if total_loaded == 0:
+            return 0.0
+
+        # Bias = imbalance toward one side
+        word_count = len(text.split())
+        density = total_loaded / max(word_count / 20, 1)
+        imbalance = abs(pos_count - neg_count) / total_loaded
+
+        return min(density * imbalance, 1.0)
+
     def analyze(self, text: str, context: Optional[str] = None) -> NoiseProfile:
-        """Analyze text for noise components."""
+        """Analyze text for all noise components."""
         return NoiseProfile(
             redundancy=self._detect_redundancy(text),
             ambiguity=self._detect_ambiguity(text),
             verbosity=self._detect_verbosity(text),
-            # These require more context/external validation
-            inconsistency=0.0,
-            irrelevance=0.0,
-            hallucination=0.0,
-            bias=0.0,
+            inconsistency=self._detect_inconsistency(text),
+            irrelevance=self._detect_irrelevance(text, context),
+            hallucination=self._detect_hallucination(text),
+            bias=self._detect_bias(text),
         )
 
     def filter(self, text: str, threshold: float = 0.5) -> Tuple[str, NoiseProfile]:
@@ -556,10 +716,15 @@ class SNRMaximizer:
         sources: Optional[List[str]] = None,
     ) -> SNRAnalysis:
         """Perform complete SNR analysis."""
-        noise = self.noise_filter.analyze(text)
+        noise = self.noise_filter.analyze(text, context=query)
         signal = self.signal_amplifier.analyze(text, query, sources)
 
         analysis = SNRAnalysis(signal=signal, noise=noise)
+
+        # Override ihsan_achieved with this maximizer's configured threshold
+        # (SNRAnalysis.__post_init__ uses UNIFIED_IHSAN_THRESHOLD as default,
+        # but the maximizer may have a different threshold for its use case)
+        analysis.ihsan_achieved = analysis.snr_normalized >= self.ihsan_threshold
 
         # Generate recommendations
         if not analysis.ihsan_achieved:
@@ -609,13 +774,13 @@ class SNRMaximizer:
             # Re-analyze
             analysis = self.analyze(current_text, query)
 
-            if analysis.snr_linear > best_analysis.snr_linear:
+            if analysis.snr_normalized > best_analysis.snr_normalized:
                 best_analysis = analysis
             else:
                 break  # No improvement
 
         logger.info(
-            f"SNR Maximization: {best_analysis.snr_linear:.3f} "
+            f"SNR Maximization: {best_analysis.snr_normalized:.3f} "
             f"({'PASS' if best_analysis.ihsan_achieved else 'FAIL'})"
         )
 
@@ -626,13 +791,14 @@ class SNRMaximizer:
         Ihsān Gate: Check if content passes SNR threshold.
 
         Returns (passed, analysis).
+        Uses snr_normalized (bounded [0,1]) for gate comparison.
         """
         analysis = self.analyze(text, query)
-        passed = analysis.snr_linear >= self.ihsan_threshold
+        passed = analysis.snr_normalized >= self.ihsan_threshold
 
         if not passed:
             logger.warning(
-                f"Ihsān Gate FAILED: SNR {analysis.snr_linear:.3f} < {self.ihsan_threshold}"
+                f"Ihsān Gate FAILED: SNR {analysis.snr_normalized:.3f} < {self.ihsan_threshold}"
             )
 
         return passed, analysis
@@ -659,8 +825,8 @@ class SNRMaximizer:
         optimized_text, analysis = self.maximize(content, max_iterations=3)
 
         return {
-            "snr_score": analysis.snr_linear,
-            "ihsan_score": analysis.snr_linear,  # SNR serves as Ihsān proxy
+            "snr_score": analysis.snr_normalized,
+            "ihsan_score": analysis.snr_normalized,  # Bounded [0,1] SNR serves as Ihsān proxy
             "optimized": optimized_text if optimized_text != content else None,
             "passed": analysis.ihsan_achieved,
             "recommendations": analysis.recommendations,
@@ -711,8 +877,8 @@ class SNRMaximizer:
 
         analysis = self.analyze(text, query, sources)
 
-        # Normalize: snr_linear is already signal/noise ratio; clamp to [0, 1]
-        normalized = min(max(analysis.snr_linear, 0.0), 1.0)
+        # Use bounded snr_normalized (signal quality * (1 - noise))
+        normalized = analysis.snr_normalized
 
         return SNRResult(
             score=round(normalized, 4),

@@ -14,9 +14,9 @@
 | 6 | `sqlite` | stdio | `uvx mcp-server-sqlite` | Active |
 | 7 | `claude-flow-sqlite` | stdio | `uvx mcp-server-sqlite` | Active |
 | 8 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Active |
-| 9 | `bizra-sovereign` | stdio | `Python313\python.exe sovereign_mcp_server.py` | Active |
-| 10 | `bizra-ecosystem` | stdio | `Python313\python.exe ecosystem_mcp_server.py` | Active |
-| 11 | `bizra-ddagi` | stdio | `Python313\python.exe bizra_mcp.py` | Active |
+| 9 | `bizra-sovereign` | stdio | `/usr/bin/python3 sovereign_mcp_server.py --stdio` | Active |
+| 10 | `bizra-ecosystem` | stdio | `/usr/bin/python3 ecosystem_mcp_server.py --stdio` | Active |
+| 11 | `bizra-ddagi` | stdio | `/usr/bin/python3 bizra_mcp.py` | Active |
 
 ## Configuration File
 
@@ -43,22 +43,22 @@ Location: `.mcp.json` (project root)
 
 ### BIZRA Python Servers
 
-All three use Windows Python 3.13 with Windows-native paths. Claude Code runs from Windows
-and translates `/mnt/c/` to `C:\`, so the MCP servers must use Windows Python and paths:
+All three use WSL Python with Linux paths. Claude Code runs in WSL and spawns
+servers directly:
 
 ```json
 {
   "bizra-sovereign": {
-    "command": "C:\\Program Files\\Python313\\python.exe",
-    "args": ["C:\\BIZRA-DATA-LAKE\\tools\\mcp\\sovereign_mcp_server.py", "--stdio"]
+    "command": "/usr/bin/python3",
+    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/sovereign_mcp_server.py", "--stdio"]
   },
   "bizra-ecosystem": {
-    "command": "C:\\Program Files\\Python313\\python.exe",
-    "args": ["C:\\BIZRA-DATA-LAKE\\tools\\mcp\\ecosystem_mcp_server.py"]
+    "command": "/usr/bin/python3",
+    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/ecosystem_mcp_server.py", "--stdio"]
   },
   "bizra-ddagi": {
-    "command": "C:\\Program Files\\Python313\\python.exe",
-    "args": ["C:\\BIZRA-DATA-LAKE\\tools\\mcp\\bizra_mcp.py"]
+    "command": "/usr/bin/python3",
+    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/bizra_mcp.py"]
   }
 }
 ```
@@ -84,6 +84,7 @@ Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
 | `sovereign_health` | Engine status and diagnostics |
 | `sovereign_stats` | Node/edge counts and engine status |
 | `sovereign_reason` | Deep Graph-of-Thoughts reasoning (1-5 depth) |
+| `mcp_health` | Server performance metrics |
 
 ### bizra-ecosystem (Ecosystem Bridge)
 
@@ -93,6 +94,7 @@ Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
 | `ecosystem_health` | Detailed health of all sub-engines |
 | `check_compliance` | Verify text against BIZRA Constitution (RIBA, ZANN) |
 | `perform_daughter_test` | "Would I be proud if my daughter saw this?" |
+| `mcp_health` | Server performance metrics |
 
 ### bizra-ddagi (FastMCP)
 
@@ -100,15 +102,67 @@ Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
 |------|-------------|
 | `query_bizra` | Cognitive query with SNR threshold and deep scan |
 | `get_system_health` | Kernel invariant verification |
+| `mcp_health` | Server performance metrics |
+
+## V3 Performance Optimizations
+
+All three custom BIZRA MCP servers include V3 optimizations (2026-02-18):
+
+### Response Caching
+
+- **LRU + TTL**: 256 entries, 300s TTL
+- **Cacheable tools**: Read-only tools (`sovereign_query`, `sovereign_patterns`, `sovereign_communities`, `sovereign_health`, `sovereign_stats`, `ecosystem_query`, `ecosystem_health`, `check_compliance`, `perform_daughter_test`)
+- **Not cached**: `sovereign_reason` (varied output), `query_bizra` (deep scan)
+
+### Compact JSON Serialization
+
+All STDIO transport paths use `json.dumps(result, separators=(',', ':'))` for ~30% payload reduction. HTTP/HTML paths retain `indent=2` for readability.
+
+### Timeout Guards
+
+Every tool handler wrapped with `asyncio.wait_for(..., timeout=30.0)`. Returns structured error `{"error":"timeout","message":"...","elapsed_ms":...}` instead of hanging.
+
+### Health Monitoring
+
+Every server exposes `mcp_health` tool returning:
+- `uptime_seconds`, `query_count`, `error_count`
+- `cache_hit_rate`, `cache_size`, `avg_response_ms`
+
+### Parallel Initialization
+
+`ecosystem_bridge.py` initializes Orchestrator and SovereignBridge in parallel via `asyncio.gather()` for faster startup.
+
+### Performance Targets
+
+| Metric | Before V3 | V3 Target | Method |
+|--------|-----------|-----------|--------|
+| Server startup | ~1.8s | <400ms | Lazy init, parallel gather |
+| JSON payload | +30% (indent) | baseline | Compact separators |
+| Cache hit rate | 0% | >90% | LRU+TTL ResponseCache |
+| Response p95 | unmeasured | <100ms | Caching + timeouts |
+| Tool lookup | O(n) | O(1) <5ms | TypeScript FastToolRegistry |
+
+## TypeScript Optimization Layer
+
+The `src/core/mcp/` module provides a high-performance TypeScript layer:
+
+| Module | Purpose |
+|--------|---------|
+| `connection-pool.ts` | Managed connections with health checks |
+| `fast-tool-registry.ts` | O(1) tool lookup via Map |
+| `load-balancer.ts` | Least-latency / round-robin / weighted selection |
+| `multi-level-cache.ts` | L1 Map + L2 LRU caching |
+| `optimized-transport.ts` | Request batching + deduplication |
+| `metrics.ts` | Real-time p50/p95/p99 latency tracking |
+
+Import: `import { MCPConnectionPool, FastToolRegistry, ... } from '@mcp/index'`
 
 ## Troubleshooting
 
 ### Server won't start
 
-1. **Check Python path**: Python MCP servers must use **Windows Python** (`C:\Program Files\Python313\python.exe`),
-   not a WSL/Linux venv. Claude Code spawns MCP servers from the Windows side, so Linux ELF
-   binaries (`.venv-linux/bin/python`) cannot be executed. Windows Python 3.13 has `fastmcp`,
-   `networkx`, and all required dependencies installed via `pip`.
+1. **Check Python path**: Python MCP servers use `/usr/bin/python3` (WSL system Python).
+   Ensure the `mcp` package is installed: `pip3 install mcp` or from `pyproject.toml`.
 
 2. **Check sys.path**: All three Python servers need `tools/bridges/`, `tools/engines/`,
    and the project root on `sys.path`. This is configured in each server file.
@@ -116,12 +170,12 @@ Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
 3. **Missing database**: The `sqlite` server requires `04_GOLD/bizra.db` to exist.
    Create it with: `sqlite3 04_GOLD/bizra.db "CREATE TABLE IF NOT EXISTS metadata(key TEXT, value TEXT)"`
 
-4. **"Server disconnected" error**: Usually means Claude Code tried to launch a Linux Python
-   binary from Windows. Verify `.mcp.json` uses Windows paths (`C:\\Program Files\\...`).
+4. **"Server disconnected" error**: Usually means the Python executable can't be found.
+   Verify `/usr/bin/python3` exists and has the MCP SDK installed.
 
 5. **Brain shows 0 nodes (DEGRADED)**: The knowledge YAML files use relative paths resolved
-   from the server's working directory. When launched from Windows, the CWD is the project
-   root (`C:\BIZRA-DATA-LAKE`), and the YAML files resolve correctly (488 nodes expected).
+   from the server's working directory. When launched from the project root, the YAML files
+   resolve correctly (488 nodes expected).
 
 ### npm packages removed
 
@@ -135,25 +189,17 @@ packages were removed. Use `uvx` alternatives instead:
 
 ### Ecosystem server flags
 
-`bizra-ecosystem` does NOT accept `--stdio`. It defaults to stdio mode when run without
-the `--http` flag. Do not add `--stdio` to its args.
+`bizra-ecosystem` now accepts `--stdio` (default) and `--http`. The `--stdio` flag uses
+proper MCP SDK transport with content-length framing.
 
 ### Verify a server
 
-Test from WSL with the Linux venv (for development/debugging):
+Test from WSL:
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' \
-  | timeout 35 /mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python \
-    /mnt/c/BIZRA-DATA-LAKE/tools/mcp/ecosystem_mcp_server.py 2>/dev/null | head -1
-```
-
-Test from Windows (how Claude Code actually launches servers):
-
-```cmd
-echo {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}} | ^
-  "C:\Program Files\Python313\python.exe" ^
-    "C:\BIZRA-DATA-LAKE\tools\mcp\sovereign_mcp_server.py" --stdio 2>NUL
+  | timeout 35 /usr/bin/python3 \
+    /mnt/c/BIZRA-DATA-LAKE/tools/mcp/sovereign_mcp_server.py --stdio 2>/dev/null | head -1
 ```
 
 Expected: JSON response with `protocolVersion` and `serverInfo`.
@@ -163,10 +209,11 @@ Expected: JSON response with `protocolVersion` and `serverInfo`.
 | File | Purpose |
 |------|---------|
 | `.mcp.json` | MCP server configuration (Claude Code reads this) |
-| `tools/mcp/sovereign_mcp_server.py` | Sovereign Brain MCP server |
-| `tools/mcp/ecosystem_mcp_server.py` | Ecosystem Bridge MCP server |
-| `tools/mcp/bizra_mcp.py` | DDAGI OS MCP server (FastMCP) |
+| `tools/mcp/sovereign_mcp_server.py` | Sovereign Brain MCP server (v1.2.0) |
+| `tools/mcp/ecosystem_mcp_server.py` | Ecosystem Bridge MCP server (v3.0.0) |
+| `tools/mcp/bizra_mcp.py` | DDAGI OS MCP server (FastMCP, v3.0.0) |
 | `tools/bridges/ecosystem_bridge.py` | Shared bridge (imported by MCP servers) |
 | `tools/engines/sovereign_brain.py` | Shared engine (imported by MCP servers) |
+| `src/core/mcp/` | TypeScript optimization layer (7 modules) |
 | `04_GOLD/bizra.db` | SQLite database for the sqlite MCP server |
 | `.swarm/memory.db` | SQLite database for the claude-flow-sqlite server |
