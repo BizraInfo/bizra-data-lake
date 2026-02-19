@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import threading
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,6 +86,22 @@ def _compute_entry_hash(sequence: int, receipt: Dict[str, Any], prev_hash: str) 
     from core.proof_engine.canonical import hex_digest
 
     return hex_digest(canonical)
+
+
+def _compute_entry_hash_legacy_sha256(
+    sequence: int, receipt: Dict[str, Any], prev_hash: str
+) -> str:
+    """Legacy SHA-256 entry hash used before SEC-001 BLAKE3 migration.
+
+    Keep verification backward-compatible with historical ledgers while
+    preserving fail-closed tamper detection semantics.
+    """
+    canonical = json.dumps(
+        {"seq": sequence, "receipt": receipt, "prev_hash": prev_hash},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 class EvidenceLedger:
@@ -211,15 +228,27 @@ class EvidenceLedger:
                         f"(expected {prev_hash[:16]}..., got {entry.prev_hash[:16]}...)"
                     )
 
-                # Recompute entry hash
-                recomputed = _compute_entry_hash(
+                # Recompute entry hash. Accept either current BLAKE3 hash or
+                # historical SHA-256 hash to support pre-migration ledgers.
+                recomputed_blake3 = _compute_entry_hash(
                     entry.sequence, entry.receipt, entry.prev_hash
                 )
-                if entry.entry_hash != recomputed:
-                    errors.append(
-                        f"Line {line_num}: entry_hash mismatch "
-                        f"(expected {recomputed[:16]}..., got {entry.entry_hash[:16]}...)"
+                if entry.entry_hash != recomputed_blake3:
+                    recomputed_sha256 = _compute_entry_hash_legacy_sha256(
+                        entry.sequence, entry.receipt, entry.prev_hash
                     )
+                    if entry.entry_hash == recomputed_sha256:
+                        logger.debug(
+                            "Evidence ledger line %d verified with legacy SHA-256 hash",
+                            line_num,
+                        )
+                    else:
+                        errors.append(
+                            f"Line {line_num}: entry_hash mismatch "
+                            f"(expected blake3 {recomputed_blake3[:16]}... or "
+                            f"legacy sha256 {recomputed_sha256[:16]}..., got "
+                            f"{entry.entry_hash[:16]}...)"
+                        )
 
                 prev_hash = entry.entry_hash
 
