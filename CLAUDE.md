@@ -38,12 +38,16 @@ python langextract_engine.py       # Layer 4: LLM extraction → assertions.json
 python arte_engine.py              # ARTE: SNR validation
 ```
 
-### Rust (bizra-omega/)
+### Rust (bizra-omega/ — unified, 18 crates)
 
 ```bash
 cd bizra-omega
+
+# Prerequisite: Z3 solver
+sudo apt install libz3-dev  # Ubuntu/WSL
+
 cargo build --workspace --release
-cargo test --workspace --release
+cargo test --workspace --release       # 610+ tests
 cargo test --doc --workspace
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings   # Zero warnings enforced in CI
@@ -60,7 +64,7 @@ RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
 The codebase has two major layers that mirror each other:
 
 ```
-Python (core/)                          Rust (bizra-omega/)
+Python (core/)                          Rust (bizra-omega/ — unified, 18 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
@@ -71,7 +75,11 @@ Python (core/)                          Rust (bizra-omega/)
 ├── reasoning/  Graph-of-Thoughts           bizra-autopoiesis/ Self-healing
 ├── orchestration/ Event bus + agents       bizra-resourcepool/ Compute allocation
 ├── treasury/   Resource management         bizra-python/      PyO3 bindings
-└── a2a/        Agent-to-Agent protocol     bizra-hunter/      Bounty system
+├── a2a/        Agent-to-Agent protocol     bizra-hunter/      Bounty system
+├── living_memory/ Proactive retrieval      bizra-memory/      Memory synthesis pipeline
+├── (event hooks)                           bizra-hooks/       Nervous system + Ihsan gate
+├── (FATE gates)                            fate-binding/      Z3 + Dilithium post-quantum
+└── (IPC)                                   iceoryx-bridge/    Zero-copy shared memory
 ```
 
 ### Key Architectural Concepts
@@ -127,9 +135,16 @@ tests/
 
 ## Rust Workspace (bizra-omega/)
 
-13 crates with workspace-level dependency management. Key dependencies: `ed25519-dalek` (crypto), `tokio` (async), `serde` (serialization), `blake3` (hashing with rayon parallelism).
+18 crates in a unified workspace (v2.0.0). Two layers:
 
-Release profile uses fat LTO + single codegen unit + `panic = "abort"`. The `omega` profile adds AVX-512 native CPU targeting.
+- **Platform layer** (14 crates): PCI, federation, inference, API, CLI, proofspace, resource pool, etc.
+- **Cognitive layer** (4 crates, merged from `native/`): `bizra-hooks` (nervous system), `bizra-memory` (synthesis pipeline), `fate-binding` (Z3 + Dilithium), `iceoryx-bridge` (IPC)
+
+Key dependencies: `ed25519-dalek` (crypto), `tokio` (async), `serde` (serialization), `blake3` (hashing with rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (zero-copy IPC).
+
+Release profile uses fat LTO + single codegen unit + `panic = "abort"`. The `omega` profile adds AVX-512 native CPU targeting. Z3 is required: `sudo apt install libz3-dev`.
+
+**Note:** `native/` is deprecated. All Rust development happens in `bizra-omega/`.
 
 ## Important Patterns
 

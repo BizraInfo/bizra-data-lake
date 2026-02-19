@@ -1,21 +1,22 @@
-# BIZRA Native Crates — CI Pipeline
-# Covers: fate-binding (Z3 + post-quantum crypto) + iceoryx-bridge (IPC)
+# BIZRA Unified Rust Workspace — Cognitive Layer CI Pipeline
+# Covers: 18 crates (14 platform + 4 cognitive) in bizra-omega/
+# Triggers on: bizra-omega/** changes (unified workspace)
 #
-# Standing on Giants: GitHub Actions • Z3 • Criterion
+# Standing on Giants: GitHub Actions . Z3 . Criterion
 # Constitutional Constraint: Zero warnings, zero vulnerabilities
 
-name: Native CI
+name: Rust Workspace CI
 
 on:
   push:
     branches: [main, master, develop]
     paths:
-      - 'native/**'
+      - 'bizra-omega/**'
       - '.github/workflows/native-ci.yml'
   pull_request:
     branches: [main, master]
     paths:
-      - 'native/**'
+      - 'bizra-omega/**'
       - '.github/workflows/native-ci.yml'
   workflow_dispatch:
 
@@ -32,12 +33,12 @@ jobs:
   # Lint & Format
   # ═══════════════════════════════════════════════════════════════════════════
   lint:
-    name: Lint Native Crates
+    name: Lint Workspace
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: native
+        working-directory: bizra-omega
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -46,7 +47,7 @@ jobs:
         with:
           components: clippy, rustfmt
 
-      - name: Install Z3
+      - name: Install Z3 (required by fate-binding)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y libz3-dev
@@ -58,10 +59,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            native/target
-          key: ${{ runner.os }}-native-lint-${{ hashFiles('native/**/Cargo.lock') }}
+            bizra-omega/target
+          key: ${{ runner.os }}-rust-lint-${{ hashFiles('bizra-omega/**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-native-lint-
+            ${{ runner.os }}-rust-lint-
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -70,23 +71,23 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Test
+  # Test (all 18 crates)
   # ═══════════════════════════════════════════════════════════════════════════
   test:
-    name: Test Native Crates
+    name: Test Workspace (18 crates)
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [lint]
     defaults:
       run:
-        working-directory: native
+        working-directory: bizra-omega
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
 
-      - name: Install Z3
+      - name: Install Z3 (required by fate-binding)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y libz3-dev
@@ -98,16 +99,19 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            native/target
-          key: ${{ runner.os }}-native-test-${{ hashFiles('native/**/Cargo.lock') }}
+            bizra-omega/target
+          key: ${{ runner.os }}-rust-test-${{ hashFiles('bizra-omega/**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-native-test-
+            ${{ runner.os }}-rust-test-
 
       - name: Build workspace
         run: cargo build --workspace
 
       - name: Run tests
         run: cargo test --workspace -- --nocapture
+
+      - name: Run doc tests
+        run: cargo test --doc --workspace
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@4d137b827f4da48b11519b9c4ed64ad1ed67a705  # cargo-llvm-cov
@@ -120,9 +124,9 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
         with:
-          files: native/lcov.info
-          flags: rust-native
-          name: native-coverage
+          files: bizra-omega/lcov.info
+          flags: rust-unified
+          name: rust-workspace-coverage
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Security Audit
@@ -134,7 +138,7 @@ jobs:
     needs: [test]
     defaults:
       run:
-        working-directory: native
+        working-directory: bizra-omega
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -158,7 +162,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     defaults:
       run:
-        working-directory: native
+        working-directory: bizra-omega
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -177,10 +181,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            native/target
-          key: ${{ runner.os }}-native-bench-${{ hashFiles('native/**/Cargo.lock') }}
+            bizra-omega/target
+          key: ${{ runner.os }}-rust-bench-${{ hashFiles('bizra-omega/**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-native-bench-
+            ${{ runner.os }}-rust-bench-
 
       - name: Run benchmarks
         run: cargo bench --workspace 2>&1 | tee bench_output.txt
@@ -188,6 +192,6 @@ jobs:
       - name: Upload benchmark results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
-          name: native-bench-results
-          path: native/bench_output.txt
+          name: rust-bench-results
+          path: bizra-omega/bench_output.txt
           retention-days: 30
