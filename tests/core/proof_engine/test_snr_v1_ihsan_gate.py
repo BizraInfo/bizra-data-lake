@@ -11,6 +11,7 @@ Standing on Giants:
 import pytest
 from typing import Dict, Any
 
+from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.snr import (
     SNREngine,
     SNRInput,
@@ -194,7 +195,7 @@ class TestIhsanGate:
     def test_gate_creation(self):
         """IhsanGate can be created with default threshold."""
         gate = IhsanGate()
-        assert gate.threshold == 0.95
+        assert gate.threshold == UNIFIED_IHSAN_THRESHOLD
 
     def test_gate_custom_threshold(self):
         """IhsanGate accepts custom threshold."""
@@ -265,8 +266,36 @@ class TestIhsanGate:
         score = components.composite_score()
         assert abs(score - 1.0) < 0.001
 
+    def test_default_weights_derived_from_canonical_constants(self):
+        """Default component weights are projected from canonical IHSAN_WEIGHTS."""
+        total = (
+            IHSAN_WEIGHTS["correctness"]
+            + IHSAN_WEIGHTS["safety"]
+            + IHSAN_WEIGHTS["efficiency"]
+            + IHSAN_WEIGHTS["user_benefit"]
+        )
+        expected = {
+            "correctness": IHSAN_WEIGHTS["correctness"] / total,
+            "safety": IHSAN_WEIGHTS["safety"] / total,
+            "efficiency": IHSAN_WEIGHTS["efficiency"] / total,
+            "user_benefit": IHSAN_WEIGHTS["user_benefit"] / total,
+        }
+
+        assert IhsanComponents(
+            correctness=1.0, safety=0.0, efficiency=0.0, user_benefit=0.0
+        ).composite_score() == pytest.approx(expected["correctness"], abs=1e-9)
+        assert IhsanComponents(
+            correctness=0.0, safety=1.0, efficiency=0.0, user_benefit=0.0
+        ).composite_score() == pytest.approx(expected["safety"], abs=1e-9)
+        assert IhsanComponents(
+            correctness=0.0, safety=0.0, efficiency=1.0, user_benefit=0.0
+        ).composite_score() == pytest.approx(expected["efficiency"], abs=1e-9)
+        assert IhsanComponents(
+            correctness=0.0, safety=0.0, efficiency=0.0, user_benefit=1.0
+        ).composite_score() == pytest.approx(expected["user_benefit"], abs=1e-9)
+
     def test_safety_weighted_highest(self):
-        """Safety has highest default weight (0.35)."""
+        """Safety meaningfully affects the score under default canonical weights."""
         # High safety, low everything else
         high_safety = IhsanComponents(
             correctness=0.5, safety=1.0, efficiency=0.5, user_benefit=0.5
