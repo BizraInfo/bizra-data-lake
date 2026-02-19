@@ -352,8 +352,8 @@ spec:
         # WARNING: High decision rejection rate
         - alert: BizraDecisionRejectionHigh
           expr: |
-            sovereign_decisions_rejected_total /
-            (sovereign_decisions_made_total > 0) > 0.3
+            (sovereign_decisions_rejected_total / sovereign_decisions_made_total) > 0.3
+            and sovereign_decisions_made_total > 0
           for: 10m
           labels:
             severity: warning
@@ -372,8 +372,8 @@ spec:
         # WARNING: Guardian rejection rate high
         - alert: BizraGuardianRejectionHigh
           expr: |
-            sovereign_council_rejections_total /
-            (sovereign_council_invocations_total > 0) > 0.2
+            (sovereign_council_rejections_total / sovereign_council_invocations_total) > 0.2
+            and sovereign_council_invocations_total > 0
           for: 10m
           labels:
             severity: warning
@@ -419,9 +419,8 @@ spec:
         # WARNING: Bridge FATE gate rejection rate > 20%
         - alert: BizraBridgeFateRejectionHigh
           expr: |
-            rate(bridge_requests_total{fate_result="rejected"}[5m])
-            /
-            (rate(bridge_requests_total[5m]) > 0) > 0.2
+            (rate(bridge_requests_total{fate_result="rejected"}[5m]) / rate(bridge_requests_total[5m])) > 0.2
+            and rate(bridge_requests_total[5m]) > 0
           for: 5m
           labels:
             severity: warning
@@ -481,9 +480,8 @@ spec:
         # WARNING: RDVE high rejection rate
         - alert: BizraRDVERejectionRateHigh
           expr: |
-            rate(rdve_missions_total{outcome="rejected"}[15m])
-            /
-            (rate(rdve_missions_total[15m]) > 0) > 0.5
+            (rate(rdve_missions_total{outcome="rejected"}[15m]) / rate(rdve_missions_total[15m])) > 0.5
+            and rate(rdve_missions_total[15m]) > 0
           for: 15m
           labels:
             severity: warning

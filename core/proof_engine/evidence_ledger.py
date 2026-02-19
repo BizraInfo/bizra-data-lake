@@ -101,7 +101,7 @@ def _compute_entry_hash_legacy_sha256(
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
-    return hashlib.sha256(canonical).hexdigest()
+    return hashlib.sha256(canonical).hexdigest()  # BLAKE3-exempt: legacy verification
 
 
 class EvidenceLedger:

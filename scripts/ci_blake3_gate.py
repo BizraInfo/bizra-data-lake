@@ -27,6 +27,7 @@ ENFORCED_PATHS = [
 # We flag any line with hashlib.sha256 that isn't preceded by hmac on the same line
 SHA256_PATTERN = re.compile(r"hashlib\.sha256")
 HMAC_PATTERN = re.compile(r"hmac\.(new|HMAC|compare_digest).*hashlib\.sha256")
+EXEMPT_PATTERN = re.compile(r"#\s*BLAKE3-exempt")
 COMMENT_PATTERN = re.compile(r"^\s*#")
 
 
@@ -44,6 +45,9 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
             continue
         # Skip lines that are HMAC usage (RFC 2104 — intentional)
         if HMAC_PATTERN.search(line):
+            continue
+        # Skip lines annotated with BLAKE3-exempt (legacy backward-compat)
+        if EXEMPT_PATTERN.search(line):
             continue
         # Flag raw hashlib.sha256
         if SHA256_PATTERN.search(line):
