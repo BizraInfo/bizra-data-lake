@@ -42,6 +42,7 @@ from datetime import datetime, timezone
 from enum import Enum, IntEnum
 from typing import Any, Callable, Optional
 
+from core.integration.constants import ADL_GINI_THRESHOLD, IHSAN_WEIGHTS
 from core.proof_engine.canonical import hex_digest
 
 logger = logging.getLogger(__name__)
@@ -50,16 +51,17 @@ logger = logging.getLogger(__name__)
 # CONSTANTS - CANONICAL WEIGHTS (MUST SUM TO 1.0)
 # =============================================================================
 
-# Dimension weights - constitutional values, do not modify
+# Dimension weights derived from authoritative source-of-truth.
+# `IHSAN_WEIGHTS` uses key `adl_fairness`; this vector exposes `fairness`.
 CANONICAL_WEIGHTS: dict[str, float] = {
-    "correctness": 0.22,
-    "safety": 0.22,
-    "user_benefit": 0.14,
-    "efficiency": 0.12,
-    "auditability": 0.12,
-    "anti_centralization": 0.08,
-    "robustness": 0.06,
-    "fairness": 0.04,
+    "correctness": float(IHSAN_WEIGHTS["correctness"]),
+    "safety": float(IHSAN_WEIGHTS["safety"]),
+    "user_benefit": float(IHSAN_WEIGHTS["user_benefit"]),
+    "efficiency": float(IHSAN_WEIGHTS["efficiency"]),
+    "auditability": float(IHSAN_WEIGHTS["auditability"]),
+    "anti_centralization": float(IHSAN_WEIGHTS["anti_centralization"]),
+    "robustness": float(IHSAN_WEIGHTS["robustness"]),
+    "fairness": float(IHSAN_WEIGHTS.get("fairness", IHSAN_WEIGHTS["adl_fairness"])),
 }
 
 # Verification method identifiers
@@ -74,8 +76,8 @@ VERIFY_METHODS: dict[str, str] = {
     "fairness": "kl_divergence_bias_check",
 }
 
-# Anti-centralization Gini threshold (stricter than ADL invariant's 0.40)
-ANTI_CENTRALIZATION_GINI_THRESHOLD: float = 0.35
+# Anti-centralization Gini threshold (aligned to constitutional ADL invariant)
+ANTI_CENTRALIZATION_GINI_THRESHOLD: float = ADL_GINI_THRESHOLD
 
 # =============================================================================
 # EXECUTION CONTEXT

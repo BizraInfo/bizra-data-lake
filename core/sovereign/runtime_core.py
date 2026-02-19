@@ -2644,12 +2644,33 @@ class SovereignRuntime:
             from core.proof_engine.ihsan_gate import IhsanComponents, IhsanGate
 
             gate = IhsanGate(threshold=self.config.ihsan_threshold)
-            components = IhsanComponents(
-                correctness=min(snr_score * 1.02, 1.0),
-                safety=0.95,  # Default safety assumption; overridden by Guardian
-                efficiency=min(snr_score, 1.0),
-                user_benefit=min(snr_score * 0.98, 1.0),
-            )
+            components: Any = None
+
+            # Primary path: compute components from actual content/query/context.
+            try:
+                from core.proof_engine.ihsan_computer import IhsanComputer
+
+                components = IhsanComputer().compute(
+                    content=content,
+                    snr_score=snr_score,
+                    query_text=query.text,
+                    context=context,
+                )
+            except Exception as ihsan_computer_err:
+                self.logger.debug(
+                    "IhsanComputer unavailable, using legacy component projection: %s",
+                    ihsan_computer_err,
+                )
+
+            # Fallback path: preserve historical behavior if IhsanComputer unavailable.
+            if components is None:
+                components = IhsanComponents(
+                    correctness=min(snr_score * 1.02, 1.0),
+                    safety=0.95,
+                    efficiency=min(snr_score, 1.0),
+                    user_benefit=min(snr_score * 0.98, 1.0),
+                )
+
             ihsan_gate_result = gate.ihsan_score(components)
             ihsan_score = ihsan_gate_result["score"]
             guardian_verdict = ihsan_gate_result["decision"]
