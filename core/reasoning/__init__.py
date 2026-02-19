@@ -72,6 +72,8 @@ from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
 _LAZY_MODULES = {
     "CollectiveIntelligence": (".collective_intelligence", "CollectiveIntelligence"),
     "CollectiveSynthesizer": (".collective_synthesizer", "CollectiveSynthesizer"),
+    "GoTBridge": (".got_bridge", "GoTBridge"),
+    "GoTBridgeResult": (".got_bridge", "GoTBridgeResult"),
 }
 
 
@@ -117,4 +119,7 @@ __all__ = [
     # Collective (lazy-loaded)
     "CollectiveIntelligence",
     "CollectiveSynthesizer",
+    # GoT Bridge — Phase 46 (lazy-loaded)
+    "GoTBridge",
+    "GoTBridgeResult",
 ]
