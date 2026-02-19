@@ -300,6 +300,29 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 3: Quality Gates (FATE Score Validation)
   # ═══════════════════════════════════════════════════════════════════════════
+  # Audit trail: log who bypassed quality gates and why
+  quality-gate-bypass-audit:
+    name: Quality Gate Bypass Audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [test-python, test-rust, validate-schemas]
+    if: ${{ github.event.inputs.skip_quality_gate == 'true' }}
+    steps:
+      - name: Record bypass audit trail
+        run: |
+          echo "## Quality Gate Bypass Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Ref** | ${{ github.ref }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run ID** | ${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Warning:** Quality gates were intentionally skipped via workflow_dispatch." >> $GITHUB_STEP_SUMMARY
+          echo "> This bypass should only be used for emergency hotfixes." >> $GITHUB_STEP_SUMMARY
+
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-24.04
@@ -741,7 +764,8 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    needs: [quality-gates]
+    needs: [quality-gates, quality-gate-bypass-audit]
+    if: ${{ needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -788,7 +812,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     continue-on-error: true  # Soft-gated until Docker builds verified in CI
-    needs: [quality-gates, security-scan]
+    needs: [quality-gates, quality-gate-bypass-audit, security-scan]
+    if: ${{ needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -818,7 +843,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     continue-on-error: true  # Soft-gated until Docker builds verified in CI
-    needs: [quality-gates, security-scan]
+    needs: [quality-gates, quality-gate-bypass-audit, security-scan]
+    if: ${{ needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
     defaults:
       run:
         working-directory: bizra-omega
@@ -897,7 +923,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [lint-python, lint-rust, validate-schemas, test-python, test-rust, quality-gates, security-scan, build-python-image, build-rust-image, integration-tests]
+    needs: [lint-python, lint-rust, validate-schemas, test-python, test-rust, quality-gates, quality-gate-bypass-audit, security-scan, build-python-image, build-rust-image, integration-tests]
     if: always()
     steps:
       - name: Generate Summary
@@ -922,5 +948,6 @@ jobs:
           echo "| Test Python | ${{ needs.test-python.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test Rust | ${{ needs.test-rust.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Quality Gates | ${{ needs.quality-gates.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Gate Bypass Audit | ${{ needs.quality-gate-bypass-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
