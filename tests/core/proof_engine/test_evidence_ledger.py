@@ -13,6 +13,7 @@ Standing on Giants:
 import copy
 import json
 import os
+import hashlib
 import pytest
 import tempfile
 from pathlib import Path
@@ -70,6 +71,16 @@ def _minimal_receipt(receipt_id="a1b2c3d4e5f6a1b2", decision="APPROVED"):
         "ihsan": {"score": 0.96, "threshold": 0.95, "decision": "APPROVED"},
         "seal": {"algorithm": "blake3", "digest": "a" * 64},
     }
+
+
+def _legacy_sha256_entry_hash(sequence: int, receipt: dict, prev_hash: str) -> str:
+    """Compute legacy pre-SEC-001 SHA-256 ledger hash."""
+    canonical = json.dumps(
+        {"seq": sequence, "receipt": receipt, "prev_hash": prev_hash},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 # =============================================================================
@@ -160,6 +171,68 @@ class TestChainIntegrity:
         """Empty ledger passes verification."""
         is_valid, errors = ledger.verify_chain()
         assert is_valid is True
+
+    def test_verify_chain_accepts_legacy_sha256_entries(self, ledger_path):
+        """Historical SHA-256 entries verify after BLAKE3 migration."""
+        receipt1 = _minimal_receipt("legacy-r1")
+        receipt2 = _minimal_receipt("legacy-r2")
+
+        legacy_h1 = _legacy_sha256_entry_hash(1, receipt1, GENESIS_HASH)
+        h2 = _compute_entry_hash(2, receipt2, legacy_h1)
+
+        entry1 = {
+            "seq": 1,
+            "receipt": receipt1,
+            "prev_hash": GENESIS_HASH,
+            "entry_hash": legacy_h1,
+            "ts": "2026-02-10T19:00:00+00:00",
+        }
+        entry2 = {
+            "seq": 2,
+            "receipt": receipt2,
+            "prev_hash": legacy_h1,
+            "entry_hash": h2,
+            "ts": "2026-02-10T19:01:00+00:00",
+        }
+
+        ledger_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(entry1, separators=(",", ":"), sort_keys=True),
+                    json.dumps(entry2, separators=(",", ":"), sort_keys=True),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+        is_valid, errors = ledger.verify_chain()
+        assert is_valid is True
+        assert errors == []
+
+    def test_verify_chain_still_detects_legacy_tampering(self, ledger_path):
+        """Legacy hash compatibility must not disable tamper detection."""
+        receipt = _minimal_receipt("legacy-r1")
+        legacy_h1 = _legacy_sha256_entry_hash(1, receipt, GENESIS_HASH)
+        entry = {
+            "seq": 1,
+            "receipt": receipt,
+            "prev_hash": GENESIS_HASH,
+            "entry_hash": legacy_h1,
+            "ts": "2026-02-10T19:00:00+00:00",
+        }
+        # Tamper payload while preserving old hash.
+        entry["receipt"]["decision"] = "REJECTED"
+        ledger_path.write_text(
+            json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+        is_valid, errors = ledger.verify_chain()
+        assert is_valid is False
+        assert any("entry_hash mismatch" in e for e in errors)
 
     def test_tampered_receipt_detected(self, ledger, ledger_path):
         """Modifying a receipt breaks the chain."""
