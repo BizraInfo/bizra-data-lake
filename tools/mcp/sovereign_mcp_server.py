@@ -340,6 +340,10 @@ class Phase46Interface:
         self._hmm = None          # HMMEngine
         self.initialized = False
 
+        # Phase 47.1: Observability metrics
+        from core.rollout.metrics import Phase46Metrics
+        self._metrics = Phase46Metrics()
+
     def initialize(self) -> bool:
         """Initialize Phase 46 components. Each is independent."""
         try:
@@ -374,6 +378,8 @@ class Phase46Interface:
 
     def search(self, query: str, top_k: int = 10) -> Dict[str, Any]:
         """FAISS vector search with cosine similarity scoring."""
+        self._metrics.inc("search_requests")
+
         if self._search is None:
             return {"error": "Search engine not available", "results": []}
 
@@ -381,6 +387,7 @@ class Phase46Interface:
             start = time.perf_counter()
             results = self._search.search(query, top_k=top_k)
             elapsed = (time.perf_counter() - start) * 1000
+            self._metrics.record_latency("search", elapsed)
 
             serialized = []
             for sr in results:
@@ -392,6 +399,9 @@ class Phase46Interface:
                     "source_id": rec.source_id or "",
                     "metadata": rec.metadata or {},
                 })
+
+            if len(serialized) > 0:
+                self._metrics.inc("search_hits")
 
             return {
                 "query": query,
@@ -406,6 +416,8 @@ class Phase46Interface:
 
     async def resonance(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """Full cognitive resonance pipeline: search → predict."""
+        self._metrics.inc("resonance_requests")
+
         if self._resonance is None:
             return {"error": "Resonance pipeline not available"}
 
@@ -413,6 +425,8 @@ class Phase46Interface:
             start = time.perf_counter()
             result = await self._resonance.process(query, context)
             elapsed = (time.perf_counter() - start) * 1000
+            self._metrics.record_latency("resonance", elapsed)
+            self._metrics.record_snr(result.combined_snr)
 
             # Serialize search results
             search_serialized = []
@@ -447,11 +461,16 @@ class Phase46Interface:
 
     def predict(self, action: str) -> Dict[str, Any]:
         """HMM cognitive state observation and prediction."""
+        self._metrics.inc("hmm_requests")
+
         if self._hmm is None:
             return {"error": "HMM engine not available"}
 
         try:
             result = self._hmm.observe(action)
+            self._metrics.record_hmm_confidence(result.prediction_confidence)
+            self._metrics.record_hmm_observation(action)
+
             return {
                 "action": action,
                 "most_likely_state": result.most_likely_state.value,
@@ -480,6 +499,7 @@ class Phase46Interface:
                 self._hmm.current_state.value
                 if self._hmm is not None else None
             ),
+            "metrics": self._metrics.snapshot(),
         }
 
 

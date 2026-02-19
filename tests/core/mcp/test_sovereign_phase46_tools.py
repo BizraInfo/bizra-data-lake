@@ -173,13 +173,13 @@ class TestPhase46Interface:
         iface.initialized = True
 
         status = iface.status
-        assert status == {
-            "initialized": True,
-            "search_available": True,
-            "hmm_available": True,
-            "resonance_available": True,
-            "hmm_current_state": "creating",
-        }
+        assert status["initialized"] is True
+        assert status["search_available"] is True
+        assert status["hmm_available"] is True
+        assert status["resonance_available"] is True
+        assert status["hmm_current_state"] == "creating"
+        assert "metrics" in status
+        assert "counters" in status["metrics"]
 
 
 # ===========================================================================
@@ -219,6 +219,10 @@ class TestSearchTool:
         assert r0["source"] == "papers.parquet"
         assert r0["source_id"] == "chunk-42"
         assert r0["metadata"]["faiss_idx"] == 7
+
+        # Phase 47.1: Verify metrics recorded
+        assert iface._metrics.get_counter("search_requests") == 1
+        assert iface._metrics.get_counter("search_hits") == 1
 
     def test_search_respects_top_k(self):
         """Verify top_k is forwarded to engine.search()."""
@@ -292,6 +296,10 @@ class TestPredictTool:
         # state_probabilities should have string keys with float values
         assert isinstance(result["state_probabilities"], dict)
         assert len(result["state_probabilities"]) == 6
+
+        # Phase 47.1: Verify metrics recorded
+        assert iface._metrics.get_counter("hmm_requests") == 1
+        assert iface._metrics._hmm_confidences == [0.42]
 
     def test_predict_no_engine_returns_error(self):
         """When _hmm is None, return error dict."""
@@ -371,6 +379,10 @@ class TestResonanceTool:
         assert result["prediction"]["predicted_next"] == "creating"
         assert result["prediction"]["confidence"] == 0.67
         assert "elapsed_ms" in result
+
+        # Phase 47.1: Verify metrics recorded
+        assert iface._metrics.get_counter("resonance_requests") == 1
+        assert iface._metrics._snr_values == [0.85]
 
     @pytest.mark.asyncio
     async def test_resonance_no_engine_returns_error(self):
