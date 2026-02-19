@@ -61,6 +61,9 @@ class ProactiveRetriever:
 
     Proactively identifies and surfaces relevant information
     before it's explicitly requested.
+
+    Phase 46: Optional HMM engine for cognitive state prediction.
+    Gated by BIZRA_PHASE46_HMM_ENABLED env var.
     """
 
     def __init__(
@@ -68,6 +71,7 @@ class ProactiveRetriever:
         memory: LivingMemoryCore,
         llm_fn: Optional[Callable[[str], str]] = None,
         max_suggestions: int = 5,
+        hmm_engine: Optional[Any] = None,
     ):
         self.memory = memory
         self.llm_fn = llm_fn
@@ -82,6 +86,79 @@ class ProactiveRetriever:
         self._topic_transitions: Dict[str, Dict[str, int]] = (
             {}
         )  # topic -> next_topic -> count
+
+        # Phase 46: HMM cognitive state prediction
+        self._hmm_engine: Optional[Any] = hmm_engine
+        self._hmm_enabled = self._init_hmm()
+
+    def _init_hmm(self) -> bool:
+        """Lazily initialise the HMM engine if Phase 46 is enabled."""
+        import os
+
+        if os.getenv("BIZRA_PHASE46_HMM_ENABLED", "0").lower() not in {
+            "1",
+            "true",
+            "yes",
+        }:
+            return False
+        if self._hmm_engine is not None:
+            return True
+        try:
+            from core.prediction import HMMEngine
+
+            self._hmm_engine = HMMEngine()
+            logger.info("ProactiveRetriever: HMM engine initialised (Phase 46)")
+            return True
+        except Exception as exc:
+            logger.warning("ProactiveRetriever: HMM init failed: %s", exc)
+            return False
+
+    def predict_state(self) -> Optional[Any]:
+        """Return current HMM prediction, or None if HMM unavailable."""
+        if self._hmm_engine is None:
+            return None
+        try:
+            return self._hmm_engine.predict_next()
+        except Exception as exc:
+            logger.warning("ProactiveRetriever: HMM predict failed: %s", exc)
+            return None
+
+    # --- HMM observation mapping ---
+    _TOPIC_TO_SYMBOL: Dict[str, str] = {
+        "search": "search",
+        "find": "search",
+        "query": "search",
+        "edit": "edit",
+        "modify": "edit",
+        "change": "edit",
+        "fix": "edit",
+        "review": "review",
+        "check": "review",
+        "test": "test",
+        "deploy": "deploy",
+        "organize": "organize",
+        "sort": "organize",
+        "chat": "chat",
+        "open": "file_open",
+        "read": "file_open",
+        "save": "file_save",
+        "write": "file_save",
+        "compile": "compile",
+        "build": "compile",
+        "run": "compile",
+    }
+
+    def _observe_hmm(self, topics: Set[str]) -> None:
+        """Feed extracted topics to the HMM as observation symbols."""
+        if self._hmm_engine is None:
+            return
+        for topic in topics:
+            symbol = self._TOPIC_TO_SYMBOL.get(topic)
+            if symbol:
+                try:
+                    self._hmm_engine.observe(symbol)
+                except Exception:
+                    pass  # Unknown symbol or engine error — non-fatal
 
     def update_context(
         self,
@@ -103,6 +180,10 @@ class ProactiveRetriever:
             # Track topic transitions for prediction
             for topic in extracted:
                 self._update_topic_transitions(topic)
+
+            # Phase 46: Feed topics to HMM
+            if self._hmm_enabled:
+                self._observe_hmm(extracted)
 
         if topics:
             self._context.active_topics.update(topics)

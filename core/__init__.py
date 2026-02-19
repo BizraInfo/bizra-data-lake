@@ -37,6 +37,7 @@ from . import (
     genesis,
     governance,
     guild,
+    hashtable,
     hrm,
     hypergraph,
     inference,
@@ -47,9 +48,11 @@ from . import (
     ntu,
     orchestration,
     pci,
+    prediction,
     protocols,
     quest,
     reasoning,
+    search,
     treasury,
     vault,
 )
@@ -71,6 +74,11 @@ __all__ = [
     "orchestration",
     "treasury",
     "bridges",
+    # Phase 44: Hash Table Infrastructure
+    "hashtable",
+    # Phase 46: Cognitive Resonance
+    "search",
+    "prediction",
     # Phase 31: Cognitive Fusion
     "hypergraph",
     "cognitive_fusion",
