@@ -18,18 +18,26 @@ resources:
   - storage.yaml
   - deployment-elite.yaml
   - deployment-omega.yaml
+  - deployment-mcp.yaml
   - services.yaml
+  - services-mcp.yaml
   - ingress.yaml
   - hpa.yaml
   - networkpolicy.yaml
 
 images:
+  # IMPORTANT: Override newTag at deploy time via:
+  #   kustomize edit set image bizra-elite=ghcr.io/bizra/bizra-data-lake/elite:<sha>
+  # Never deploy 'latest' to production — use immutable SHA-based tags.
   - name: bizra-elite
     newName: ghcr.io/bizra/bizra-data-lake/elite
-    newTag: latest
+    newTag: "${GIT_SHA:-v1.0.0}"
   - name: bizra-omega
     newName: ghcr.io/bizra/bizra-data-lake/omega
-    newTag: latest
+    newTag: "${GIT_SHA:-v1.0.0}"
+  - name: bizra-mcp
+    newName: ghcr.io/bizra/bizra-data-lake/mcp
+    newTag: "${GIT_SHA:-v1.0.0}"
 
 configMapGenerator:
   - name: bizra-version

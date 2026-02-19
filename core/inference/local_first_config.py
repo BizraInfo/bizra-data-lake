@@ -42,6 +42,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
+from core.integration.constants import LMSTUDIO_URL
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -174,7 +176,7 @@ class BicameralResult:
 # MODEL REGISTRY
 # =============================================================================
 
-_LM_STUDIO_ENDPOINT = os.getenv("LM_STUDIO_URL", "http://192.168.56.1:1234/v1")
+_LM_STUDIO_ENDPOINT = os.getenv("LM_STUDIO_URL", f"{LMSTUDIO_URL}/v1")
 
 LOCAL_MODELS: dict[str, ModelConfig] = {
     # =========================================================================

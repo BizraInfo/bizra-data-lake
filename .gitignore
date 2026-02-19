@@ -11,6 +11,10 @@
 *.p12
 *.pfx
 
+# ── Deploy runtime state ────────────────────────────────────
+deploy/.deploy-version
+deploy/.deploy-version.prev
+
 # ── Python ────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]

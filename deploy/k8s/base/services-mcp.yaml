@@ -1,0 +1,120 @@
+# BIZRA MCP Service Mesh — Kubernetes Services
+# Exposes MCP servers for internal cluster routing and Prometheus scraping
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-mcp-gateway
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    component: gateway
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-gateway
+spec:
+  selector:
+    app: bizra-mcp
+    component: gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-mcp-sovereign
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    component: sovereign
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-sovereign
+spec:
+  selector:
+    app: bizra-mcp
+    component: sovereign
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8081
+      protocol: TCP
+    - name: http-metrics
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-mcp-ecosystem
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    component: ecosystem
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-ecosystem
+spec:
+  selector:
+    app: bizra-mcp
+    component: ecosystem
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8082
+      protocol: TCP
+    - name: http-metrics
+      port: 8082
+      targetPort: 8082
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizra-mcp-peak
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    component: peak
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-peak
+spec:
+  selector:
+    app: bizra-mcp
+    component: peak
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8084
+      protocol: TCP
+    - name: http-metrics
+      port: 8084
+      targetPort: 8084
+      protocol: TCP
+  type: ClusterIP
+---
+# ConfigMap for MCP-specific configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bizra-mcp-config
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp
+data:
+  TOOL_TIMEOUT_SECONDS: "30"
+  MCP_CACHE_TTL_SECONDS: "300"
+  MCP_CACHE_MAX_ENTRIES: "256"
+  MCP_LOG_LEVEL: "INFO"
+  IHSAN_THRESHOLD: "0.95"
+  SNR_THRESHOLD: "0.85"
+  BIZRA_ENV: "production"

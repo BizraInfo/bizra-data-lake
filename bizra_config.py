@@ -104,8 +104,11 @@ MAX_SEQ_LENGTH = 512
 GPU_ENABLED = True
 
 # --- REASONING PARAMETERS ---
-SNR_THRESHOLD = 0.85     # Minimum acceptable signal quality
-IHSAN_CONSTRAINT = 0.99  # Target for Excellence (Exceeding expectations)
+# Import from authoritative single source of truth
+from core.integration.constants import (
+    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,       # 0.85 minimum signal quality
+    STRICT_IHSAN_THRESHOLD as IHSAN_CONSTRAINT,    # 0.99 strict excellence target
+)
 ARTE_TENSION_LIMIT = 0.75
 
 # --- INGESTION GATE ---
@@ -166,11 +169,14 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_ENABLED = True
 OLLAMA_TIMEOUT = 120.0  # seconds
 
-# Default Model Mappings
-DEFAULT_TEXT_MODEL = os.getenv("DEFAULT_TEXT_MODEL", "liquid/lfm2.5-1.2b")
+# Default Model Mappings — Node0 MoMo Stack (all ≤ 8B, fits RTX 4090 16GB)
+DEFAULT_TEXT_MODEL = os.getenv("DEFAULT_TEXT_MODEL", "qwen2.5-0.5b-instruct")
 DEFAULT_REASONING_MODEL = os.getenv("DEFAULT_REASONING_MODEL", "agentflow-planner-7b-i1")
-DEFAULT_CODE_MODEL = os.getenv("DEFAULT_CODE_MODEL", "qwen2.5-14b_uncensored_instruct")
+DEFAULT_CODE_MODEL = os.getenv("DEFAULT_CODE_MODEL", "deepseek/deepseek-r1-0528-qwen3-8b")
 DEFAULT_VISION_MODEL = os.getenv("DEFAULT_VISION_MODEL", "qwen/qwen3-vl-8b")
+DEFAULT_VISION_LIGHT_MODEL = os.getenv("DEFAULT_VISION_LIGHT_MODEL", "qwen/qwen3-vl-4b")
+DEFAULT_VOICE_MODEL = os.getenv("DEFAULT_VOICE_MODEL", "deephat-v1-7b")
+DEFAULT_EMBEDDING_MODEL = os.getenv("DEFAULT_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
 
 # Ollama Fallback Models
 OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "llama3.2")

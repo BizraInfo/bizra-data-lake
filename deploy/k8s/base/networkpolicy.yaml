@@ -32,8 +32,10 @@ spec:
           protocol: TCP
         - port: 8000
           protocol: TCP
+        - port: 8080    # MCP Gateway
+          protocol: TCP
 
-    # 2. Intra-namespace: app ↔ app (HTTP + gossip + federation)
+    # 2. Intra-namespace: app ↔ app (HTTP + gossip + federation + MCP)
     - from:
         - podSelector:
             matchLabels:
@@ -47,14 +49,34 @@ spec:
           protocol: UDP
         - port: 7654    # Federation DTLS
           protocol: TCP
+        - port: 8080    # MCP Gateway
+          protocol: TCP
+        - port: 8081    # MCP Sovereign
+          protocol: TCP
+        - port: 8082    # MCP Ecosystem
+          protocol: TCP
+        - port: 8084    # MCP Peak
+          protocol: TCP
 
-    # 3. Monitoring namespace → Prometheus scrape
+    # 3. Monitoring namespace → Prometheus scrape (all metrics ports)
     - from:
         - namespaceSelector:
             matchLabels:
               name: monitoring
       ports:
         - port: 9090
+          protocol: TCP
+        - port: 3001    # Omega metrics
+          protocol: TCP
+        - port: 8000    # Elite metrics
+          protocol: TCP
+        - port: 8080    # MCP Gateway metrics
+          protocol: TCP
+        - port: 8081    # MCP Sovereign metrics
+          protocol: TCP
+        - port: 8082    # MCP Ecosystem metrics
+          protocol: TCP
+        - port: 8084    # MCP Peak metrics
           protocol: TCP
 
   egress:

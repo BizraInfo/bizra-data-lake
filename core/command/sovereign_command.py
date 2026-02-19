@@ -36,7 +36,7 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Final, Optional
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import LMSTUDIO_URL, UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 
 # ════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -46,7 +46,7 @@ IHSAN_THRESHOLD: Final[float] = UNIFIED_IHSAN_THRESHOLD
 SNR_THRESHOLD: Final[float] = UNIFIED_SNR_THRESHOLD
 SNR_TARGET: Final[float] = 0.99
 
-LM_STUDIO_URL: Final[str] = os.getenv("LM_STUDIO_URL", "http://192.168.56.1:1234")
+LM_STUDIO_URL: Final[str] = os.getenv("LM_STUDIO_URL", LMSTUDIO_URL)
 LM_STUDIO_TOKEN: Final[str] = os.getenv(
     "LM_STUDIO_TOKEN", os.getenv("LM_API_TOKEN", "")
 )

@@ -37,14 +37,10 @@ from typing import Any, Callable, Optional
 
 from .event_bus import EventBus, EventPriority, get_event_bus
 
-try:
-    from core.integration.constants import (
-        UNIFIED_IHSAN_THRESHOLD,
-        UNIFIED_SNR_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_IHSAN_THRESHOLD = 0.95  # type: ignore[misc]
-    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 logger = logging.getLogger(__name__)
 

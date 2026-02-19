@@ -23,6 +23,8 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
+
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 from typing import Any, Optional
 
 from core.inference.response_utils import strip_think_tokens
@@ -88,8 +90,8 @@ class LocalInferenceBridge:
 
     def __init__(
         self,
-        host: str = "192.168.56.1",
-        port: int = 1234,
+        host: str = LMSTUDIO_HOST,
+        port: int = int(LMSTUDIO_PORT),
         auto_load: bool = True,
     ):
         """

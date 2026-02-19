@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODEL CAPABILITIES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -51,7 +53,7 @@ class ModelInfo:
     capabilities: List[ModelCapability]
     primary_capability: ModelCapability
     backend: str  # "lmstudio" or "ollama"
-    endpoint: str  # e.g., "192.168.56.1:1234"
+    endpoint: str  # e.g., "{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
     params_b: float  # Model size in billions
     context_length: int = 4096
     speed_tok_per_sec: float = 0.0  # Approximate
@@ -76,7 +78,7 @@ class MultiModalConfig:
     model_registry: Dict[str, ModelInfo] = field(default_factory=dict)
 
     # Default backend endpoints
-    lmstudio_endpoint: str = "192.168.56.1:1234"
+    lmstudio_endpoint: str = f"{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
     ollama_endpoint: str = "localhost:11434"
 
     # Routing preferences

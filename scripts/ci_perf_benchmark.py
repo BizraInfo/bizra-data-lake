@@ -285,47 +285,67 @@ class CIPerfBenchmark:
 
         try:
             # Try to import actual modules
-            from core.pci.envelope import PCIEnvelope, PCISender, PCISignature, PCIMetadata
-            from core.pci.gates import PCIGateKeeper
             from core.pci.crypto import generate_keypair, sign_message
-            from datetime import datetime, timezone
+            from core.pci.envelope import (
+                AgentType,
+                EnvelopeMetadata,
+                EnvelopePayload,
+                EnvelopeSender,
+                EnvelopeSignature,
+                PCIEnvelope,
+            )
+            from core.pci.gates import PCIGateKeeper
 
             private_key, public_key = generate_keypair()
             gatekeeper = PCIGateKeeper()
-            sender = PCISender(node_id="bench_node", public_key=public_key)
-            metadata = PCIMetadata(ihsan_score=0.96, snr_score=0.97)
+            sender = EnvelopeSender(
+                agent_type=AgentType.PAT,
+                agent_id="bench_node",
+                public_key=public_key,
+            )
+            metadata = EnvelopeMetadata(ihsan_score=0.96, snr_score=0.97)
+            policy_hash = gatekeeper.constitution_hash
+            state_hash = "0" * 64
+
+            def _build_envelope(nonce: str, payload: Dict[str, Any]) -> PCIEnvelope:
+                envelope = PCIEnvelope(
+                    version="1.0",
+                    envelope_id=f"bench-{nonce}",
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    nonce=nonce,
+                    sender=sender,
+                    payload=EnvelopePayload(
+                        action="benchmark",
+                        data=payload,
+                        policy_hash=policy_hash,
+                        state_hash=state_hash,
+                    ),
+                    metadata=metadata,
+                    signature=EnvelopeSignature(
+                        algorithm="ed25519",
+                        value="",
+                        signed_fields=["sender", "payload", "metadata", "timestamp", "nonce"],
+                    ),
+                )
+                digest = envelope.compute_digest()
+                envelope.signature = EnvelopeSignature(
+                    algorithm="ed25519",
+                    value=sign_message(digest, private_key),
+                    signed_fields=["sender", "payload", "metadata", "timestamp", "nonce"],
+                )
+                return envelope
 
             # Warmup
             self.log(f"  Warmup ({self.warmup} iterations)...")
             for i in range(self.warmup):
-                envelope = PCIEnvelope(
-                    sender=sender,
-                    nonce=f"warmup_{i}",
-                    timestamp=datetime.now(timezone.utc).isoformat(),
-                    payload={"test": "warmup"},
-                    metadata=metadata,
-                    signature=PCISignature(algorithm="ed25519", value="dummy"),
-                )
-                digest = envelope.compute_digest()
-                envelope.signature = PCISignature(
-                    algorithm="ed25519", value=sign_message(digest, private_key)
-                )
-                gatekeeper.verify(envelope)
+                gatekeeper.verify(_build_envelope(f"warmup_{i}", {"test": "warmup"}))
 
             # Actual benchmark
             self.log(f"  Running benchmark ({self.iterations} iterations)...")
             for i in range(self.iterations):
-                envelope = PCIEnvelope(
-                    sender=sender,
-                    nonce=f"bench_{i}",
-                    timestamp=datetime.now(timezone.utc).isoformat(),
-                    payload={"test": "benchmark", "iteration": i},
-                    metadata=metadata,
-                    signature=PCISignature(algorithm="ed25519", value="dummy"),
-                )
-                digest = envelope.compute_digest()
-                envelope.signature = PCISignature(
-                    algorithm="ed25519", value=sign_message(digest, private_key)
+                envelope = _build_envelope(
+                    f"bench_{i}",
+                    {"test": "benchmark", "iteration": i},
                 )
 
                 start = time.perf_counter()

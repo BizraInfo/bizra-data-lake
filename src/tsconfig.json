@@ -18,6 +18,7 @@
     "paths": {
       "@sovereign/*": ["core/sovereign/*"],
       "@federation/*": ["core/federation/*"],
+      "@mcp/*": ["core/mcp/*"],
       "@native/*": ["../native/*"]
     },
     "types": ["node"],

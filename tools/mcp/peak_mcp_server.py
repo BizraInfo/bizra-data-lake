@@ -505,8 +505,10 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
 def run_http(port=8444):
     try:
         peak_interface.initialize()
-        server = HTTPServer(('127.0.0.1', port), PeakMCPHandler)
-        logger.info(f"Serving PEAK MASTERPIECE HTTP on http://127.0.0.1:{port}")
+        # Bind to 0.0.0.0 in container environments, 127.0.0.1 for local dev
+        bind_addr = '0.0.0.0' if os.getenv('BIZRA_ENV') == 'production' else '127.0.0.1'
+        server = HTTPServer((bind_addr, port), PeakMCPHandler)
+        logger.info(f"Serving PEAK MASTERPIECE HTTP on http://{bind_addr}:{port}")
         server.serve_forever()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")

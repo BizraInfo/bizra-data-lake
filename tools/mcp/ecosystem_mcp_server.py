@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-╔════════════════════════════════════════════════════════════════════════════════════════════╗
-║   BIZRA ECOSYSTEM MCP SERVER                                                               ║
-╠════════════════════════════════════════════════════════════════════════════════════════════╣
-║   Exposes the unified BIZRA Ecosystem Bridge via the Model Context Protocol (MCP).         ║
-║   Allows external agents to query the entire OS, run compliance checks, and access         ║
-║   health metrics.                                                                          ║
-║                                                                                            ║
-║   TOOLS:                                                                                   ║
-║     - ecosystem_query: Unified query across all 6 engines                                  ║
-║     - ecosystem_health: System diagnostics and component status                            ║
-║     - check_compliance: Evaluate text against Kernel Invariants (RIBA, ZANN, IHSAN)         ║
-║     - perform_daughter_test: Run the Daughter Test on any proposition                      ║
-║                                                                                            ║
-║   USAGE:                                                                                   ║
-║     python ecosystem_mcp_server.py --stdio  (Standard Input/Output)                        ║
-║     python ecosystem_mcp_server.py --http   (HTTP/JSON-RPC Server)                         ║
-╚════════════════════════════════════════════════════════════════════════════════════════════╝
+BIZRA ECOSYSTEM MCP SERVER
+
+Exposes the unified BIZRA Ecosystem Bridge via the Model Context Protocol (MCP).
+Allows external agents to query the entire OS, run compliance checks, and access
+health metrics.
+
+TOOLS:
+  - ecosystem_query: Unified query across all 6 engines
+  - ecosystem_health: System diagnostics and component status
+  - check_compliance: Evaluate text against Kernel Invariants (RIBA, ZANN, IHSAN)
+  - perform_daughter_test: Run the Daughter Test on any proposition
+  - mcp_health: Server performance metrics
+
+TRANSPORT:
+  --stdio  MCP SDK stdio transport (default)
+  --http   HTTP/JSON-RPC Server (alternative)
+
+Migrated to MCP SDK: 2026-02-18
 """
 
 import sys
@@ -26,7 +27,11 @@ import asyncio
 import logging
 import argparse
 import time
+import contextlib
+import hashlib
+from collections import OrderedDict
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from io import StringIO
 from typing import Any, Dict, Optional
 
 # Set up path to ensure imports work
@@ -38,16 +43,9 @@ sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
 sys.path.insert(0, os.path.join(_tools_dir, "engines"))
 sys.path.insert(0, _project_root)
 
-# Import Ecosystem Bridge (Lazy Loading)
-EcosystemBridge = Any
-UnifiedQuery = Any
-UnifiedResponse = Any
-initialize_ecosystem = None
-get_ecosystem = None
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# LOGGING
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
+# LOGGING -- stderr only, stdout reserved for MCP protocol
+# ===============================================================================
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,141 +55,362 @@ logging.basicConfig(
 )
 log = logging.getLogger("EcosystemMCP")
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # CONSTANTS
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "bizra-ecosystem-mcp"
-SERVER_VERSION = "2.0.0"
+SERVER_VERSION = "3.0.0"
+TOOL_TIMEOUT_SECONDS = 30.0
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ECOSYSTEM INTERFACE
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
+# RESPONSE CACHE (LRU with TTL)
+# ===============================================================================
 
-class EcosystemInterface:
-    """Synchronous wrapper for the Async Ecosystem Bridge."""
+class ResponseCache:
+    """LRU cache with TTL for read-only MCP tool responses."""
 
-    def __init__(self):
-        self.bridge: Optional[EcosystemBridge] = None
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+    def __init__(self, max_entries: int = 256, ttl_seconds: float = 300.0):
+        self._cache: OrderedDict[str, tuple[float, Any]] = OrderedDict()
+        self._max_entries = max_entries
+        self._ttl = ttl_seconds
+        self.hits = 0
+        self.misses = 0
 
-    def initialize(self):
-        """Initialize the ecosystem if not already done."""
-        global EcosystemBridge, UnifiedQuery, UnifiedResponse, initialize_ecosystem, get_ecosystem, Constitution, DaughterTest, RIBA_ZERO, ZANN_ZERO, IHSAN_FLOOR
+    def _make_key(self, tool_name: str, arguments: dict) -> str:
+        raw = json.dumps({"t": tool_name, "a": arguments}, sort_keys=True, default=str)
+        return hashlib.md5(raw.encode()).hexdigest()
 
-        if not self.bridge:
-            log.info("Lazy importing Ecosystem Bridge...")
-            try:
-                from ecosystem_bridge import (
-                    initialize_ecosystem as init_eco,
-                    EcosystemBridge as EcoBridge,
-                    UnifiedQuery as UQuery,
-                    UnifiedResponse as UResponse,
-                    get_ecosystem as get_eco
-                )
-                from ultimate_engine import (
-                    RIBA_ZERO as RZ, ZANN_ZERO as ZZ, IHSAN_FLOOR as IF,
-                    Constitution as Const, DaughterTest as DT
-                )
+    def get(self, tool_name: str, arguments: dict) -> Optional[Any]:
+        key = self._make_key(tool_name, arguments)
+        entry = self._cache.get(key)
+        if entry is None:
+            self.misses += 1
+            return None
+        ts, value = entry
+        if (time.monotonic() - ts) > self._ttl:
+            del self._cache[key]
+            self.misses += 1
+            return None
+        self._cache.move_to_end(key)
+        self.hits += 1
+        return value
 
-                # Update globals
-                EcosystemBridge = EcoBridge
-                UnifiedQuery = UQuery
-                UnifiedResponse = UResponse
-                initialize_ecosystem = init_eco
-                get_ecosystem = get_eco
-                Constitution = Const
-                DaughterTest = DT
-                RIBA_ZERO = RZ
-                ZANN_ZERO = ZZ
-                IHSAN_FLOOR = IF
+    def put(self, tool_name: str, arguments: dict, value: Any) -> None:
+        key = self._make_key(tool_name, arguments)
+        self._cache[key] = (time.monotonic(), value)
+        self._cache.move_to_end(key)
+        while len(self._cache) > self._max_entries:
+            self._cache.popitem(last=False)
 
-            except ImportError as e:
-                log.error(f"Failed to import Ecosystem: {e}")
-                raise
+    @property
+    def hit_rate(self) -> float:
+        total = self.hits + self.misses
+        return self.hits / total if total > 0 else 0.0
 
-            log.info("Initializing Ecosystem Bridge...")
-            self.bridge = self.loop.run_until_complete(initialize_ecosystem())
-            log.info(f"✓ Ecosystem Online: {self.bridge.node_id}")
+    @property
+    def size(self) -> int:
+        return len(self._cache)
 
-    def query(self, text: str, mode: str = "standard") -> Dict[str, Any]:
-        """Run a unified query."""
-        self.initialize()
 
-        require_const = True
-        require_daughter = True
+# Cacheable tools (read-only, deterministic)
+CACHEABLE_TOOLS = {"ecosystem_query", "ecosystem_health", "check_compliance", "perform_daughter_test"}
 
-        if mode == "fast":
-            require_daughter = False
-        elif mode == "audit":
-            require_const = True
+cache = ResponseCache(max_entries=256, ttl_seconds=300.0)
 
-        u_query = UnifiedQuery(
-            text=text,
-            require_constitution_check=require_const,
-            require_daughter_test=require_daughter
-        )
+# ===============================================================================
+# SERVER METRICS
+# ===============================================================================
 
-        start = time.perf_counter()
-        response: UnifiedResponse = self.loop.run_until_complete(
-            self.bridge.query(u_query)
-        )
-        elapsed_ms = (time.perf_counter() - start) * 1000
+_server_start_time = time.monotonic()
+_query_count = 0
+_error_count = 0
+_total_response_time = 0.0
 
-        return {
-            "synthesis": response.synthesis,
-            "snr_score": response.snr_score,
-            "ihsan_score": response.ihsan_score,
-            "components_used": response.components_used,
-            "constitution_check": response.constitution_check,
-            "daughter_test": response.daughter_test_result,
-            "latency_ms": round(elapsed_ms, 2)
-        }
+# ===============================================================================
+# ECOSYSTEM INTERFACE (async, lazy-loading)
+# ===============================================================================
 
-    def health(self) -> Dict[str, Any]:
-        """Get system health."""
-        self.initialize()
-        health = self.bridge.get_health()
-        return health.to_dict()
+_bridge = None
+_bridge_lock = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
 
-    def check_compliance(self, text: str) -> Dict[str, Any]:
-        """Check specific BIZRA compliance."""
-        # Using UltimateEngine components directly for granular check
-        from ultimate_engine import Constitution
+# Lazy import holders
+_EcosystemBridge = None
+_UnifiedQuery = None
+_UnifiedResponse = None
+_initialize_ecosystem = None
+_Constitution = None
+_DaughterTest = None
 
-        start = time.perf_counter()
-        issues = Constitution.check_for_violations(text)
-        elapsed_ms = (time.perf_counter() - start) * 1000
 
-        return {
-            "compliant": len(issues) == 0,
-            "violation_count": len(issues),
-            "violations": issues,
-            "latency_ms": round(elapsed_ms, 2)
-        }
+def _lazy_import():
+    """Import ecosystem modules on first use."""
+    global _EcosystemBridge, _UnifiedQuery, _UnifiedResponse, _initialize_ecosystem
+    global _Constitution, _DaughterTest
 
-    def daughter_test(self, text: str) -> Dict[str, Any]:
-        """Run the Daughter Test."""
-        self.initialize()
-        start = time.perf_counter()
-        result = DaughterTest.evaluate(text)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+    if _EcosystemBridge is not None:
+        return
 
-        return {
-            "passed": result.passed,
-            "score": result.score,
-            "explanation": result.explanation,
-            "latency_ms": round(elapsed_ms, 2)
-        }
+    log.info("Lazy importing Ecosystem Bridge...")
+    from ecosystem_bridge import (
+        initialize_ecosystem,
+        EcosystemBridge,
+        UnifiedQuery,
+        UnifiedResponse,
+    )
+    _EcosystemBridge = EcosystemBridge
+    _UnifiedQuery = UnifiedQuery
+    _UnifiedResponse = UnifiedResponse
+    _initialize_ecosystem = initialize_ecosystem
 
-interface = EcosystemInterface()
+    try:
+        from ultimate_engine import Constitution, DaughterTest
+        _Constitution = Constitution
+        _DaughterTest = DaughterTest
+    except ImportError:
+        log.warning("UltimateEngine not available for direct compliance checks")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# MCP TOOLS
-# ═══════════════════════════════════════════════════════════════════════════════
 
+async def _get_bridge():
+    """Get or initialize the ecosystem bridge singleton."""
+    global _bridge
+    if _bridge is not None:
+        return _bridge
+
+    _lazy_import()
+    log.info("Initializing Ecosystem Bridge...")
+    _bridge = await _initialize_ecosystem()
+    log.info(f"Ecosystem Online: {_bridge.node_id}")
+    return _bridge
+
+
+async def _do_query(query_text: str, mode: str = "standard") -> Dict[str, Any]:
+    bridge = await _get_bridge()
+
+    require_const = True
+    require_daughter = mode != "fast"
+
+    uq = _UnifiedQuery(
+        text=query_text,
+        require_constitution_check=require_const,
+        require_daughter_test=require_daughter
+    )
+
+    start = time.perf_counter()
+    response = await bridge.query(uq)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    return {
+        "synthesis": response.synthesis,
+        "snr_score": response.snr_score,
+        "ihsan_score": response.ihsan_score,
+        "components_used": response.components_used,
+        "constitution_check": response.constitution_check,
+        "daughter_test": getattr(response, 'daughter_test_result', getattr(response, 'daughter_test_check', None)),
+        "latency_ms": round(elapsed_ms, 2)
+    }
+
+
+async def _do_health() -> Dict[str, Any]:
+    bridge = await _get_bridge()
+    health = bridge.get_health()
+    return health.to_dict()
+
+
+async def _do_compliance(text: str) -> Dict[str, Any]:
+    _lazy_import()
+    if _Constitution is None:
+        return {"error": "Constitution module not available"}
+
+    start = time.perf_counter()
+    issues = _Constitution.check_for_violations(text)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    return {
+        "compliant": len(issues) == 0,
+        "violation_count": len(issues),
+        "violations": issues,
+        "latency_ms": round(elapsed_ms, 2)
+    }
+
+
+async def _do_daughter_test(text: str) -> Dict[str, Any]:
+    bridge = await _get_bridge()
+    _lazy_import()
+    if _DaughterTest is None:
+        return {"error": "DaughterTest module not available"}
+
+    start = time.perf_counter()
+    result = _DaughterTest.evaluate(text)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    return {
+        "passed": result.passed,
+        "score": result.score,
+        "explanation": result.explanation,
+        "latency_ms": round(elapsed_ms, 2)
+    }
+
+
+def _do_mcp_health() -> Dict[str, Any]:
+    uptime = time.monotonic() - _server_start_time
+    return {
+        "server": SERVER_NAME,
+        "version": SERVER_VERSION,
+        "uptime_seconds": round(uptime, 1),
+        "query_count": _query_count,
+        "error_count": _error_count,
+        "cache_hit_rate": round(cache.hit_rate, 4),
+        "cache_size": cache.size,
+        "avg_response_ms": round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0,
+    }
+
+
+# ===============================================================================
+# MCP SERVER via SDK (proper stdio transport with content-length framing)
+# ===============================================================================
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+import mcp.types as types
+
+server = Server(SERVER_NAME, version=SERVER_VERSION)
+
+
+@server.list_tools()
+async def list_tools() -> list[types.Tool]:
+    return [
+        types.Tool(
+            name="ecosystem_query",
+            description="Query the Unified BIZRA OS. Routes through Ultimate Engine, BIZRA Orchestrator, Apex, and Peak.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The question or task"},
+                    "mode": {"type": "string", "enum": ["standard", "fast", "audit"], "description": "Execution mode (default: standard)"}
+                },
+                "required": ["query"]
+            }
+        ),
+        types.Tool(
+            name="ecosystem_health",
+            description="Get detailed health status of all 6 sub-engines.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        ),
+        types.Tool(
+            name="check_compliance",
+            description="Verify text against the BIZRA Constitution and Kernel Invariants (RIBA, ZANN).",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Content to verify"}
+                },
+                "required": ["text"]
+            }
+        ),
+        types.Tool(
+            name="perform_daughter_test",
+            description="Run the Daughter Test: 'Would I be proud if my daughter saw this result?'",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Content or decision to evaluate"}
+                },
+                "required": ["text"]
+            }
+        ),
+        types.Tool(
+            name="mcp_health",
+            description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        ),
+    ]
+
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
+    global _query_count, _error_count, _total_response_time
+
+    _query_count += 1
+    start = time.perf_counter()
+
+    # Check cache for read-only tools
+    if name in CACHEABLE_TOOLS:
+        cached = cache.get(name, arguments)
+        if cached is not None:
+            elapsed = (time.perf_counter() - start) * 1000
+            _total_response_time += elapsed
+            return [types.TextContent(type="text", text=cached)]
+
+    try:
+        result_data: Any = None
+
+        if name == "ecosystem_query":
+            result_data = await asyncio.wait_for(
+                _do_query(arguments.get("query", ""), arguments.get("mode", "standard")),
+                timeout=TOOL_TIMEOUT_SECONDS
+            )
+        elif name == "ecosystem_health":
+            result_data = await asyncio.wait_for(
+                _do_health(),
+                timeout=TOOL_TIMEOUT_SECONDS
+            )
+        elif name == "check_compliance":
+            result_data = await asyncio.wait_for(
+                _do_compliance(arguments.get("text", "")),
+                timeout=TOOL_TIMEOUT_SECONDS
+            )
+        elif name == "perform_daughter_test":
+            result_data = await asyncio.wait_for(
+                _do_daughter_test(arguments.get("text", "")),
+                timeout=TOOL_TIMEOUT_SECONDS
+            )
+        elif name == "mcp_health":
+            result_data = _do_mcp_health()
+        else:
+            _error_count += 1
+            raise ValueError(f"Unknown tool: {name}")
+
+        # Compact JSON for STDIO transport
+        text = json.dumps(result_data, default=str, separators=(',', ':'))
+
+        # Cache the result for read-only tools
+        if name in CACHEABLE_TOOLS:
+            cache.put(name, arguments, text)
+
+        elapsed = (time.perf_counter() - start) * 1000
+        _total_response_time += elapsed
+        return [types.TextContent(type="text", text=text)]
+
+    except asyncio.TimeoutError:
+        _error_count += 1
+        elapsed = (time.perf_counter() - start) * 1000
+        _total_response_time += elapsed
+        error = {"error": "timeout", "message": f"Tool '{name}' exceeded {TOOL_TIMEOUT_SECONDS}s timeout", "elapsed_ms": round(elapsed, 2)}
+        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+    except Exception as e:
+        _error_count += 1
+        elapsed = (time.perf_counter() - start) * 1000
+        _total_response_time += elapsed
+        log.error(f"Error executing tool {name}: {e}")
+        error = {"error": str(type(e).__name__), "message": str(e)}
+        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+
+
+# ===============================================================================
+# HTTP SERVER (alternative transport, retained for compatibility)
+# ===============================================================================
+
+# Legacy MCP tools list for HTTP handler
 MCP_TOOLS = [
     {
         "name": "ecosystem_query",
@@ -208,20 +427,14 @@ MCP_TOOLS = [
     {
         "name": "ecosystem_health",
         "description": "Get detailed health status of all 6 sub-engines.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
+        "inputSchema": {"type": "object", "properties": {}, "required": []}
     },
     {
         "name": "check_compliance",
         "description": "Verify text against the BIZRA Constitution and Kernel Invariants (RIBA, ZANN).",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "Content to verify"}
-            },
+            "properties": {"text": {"type": "string", "description": "Content to verify"}},
             "required": ["text"]
         }
     },
@@ -230,26 +443,25 @@ MCP_TOOLS = [
         "description": "Run the Daughter Test: 'Would I be proud if my daughter saw this result?'",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "Content or decision to evaluate"}
-            },
+            "properties": {"text": {"type": "string", "description": "Content or decision to evaluate"}},
             "required": ["text"]
         }
-    }
+    },
+    {
+        "name": "mcp_health",
+        "description": "Get MCP server performance metrics.",
+        "inputSchema": {"type": "object", "properties": {}, "required": []}
+    },
 ]
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# HANDLERS
-# ═══════════════════════════════════════════════════════════════════════════════
 
-def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Process a JSON-RPC request."""
+def _handle_http_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Process a JSON-RPC request for HTTP transport."""
     method = request.get("method")
     params = request.get("params", {})
     req_id = request.get("id")
 
     if method == "initialize":
-        interface.initialize()
         return {
             "jsonrpc": "2.0",
             "id": req_id,
@@ -268,70 +480,51 @@ def handle_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         }
 
     elif method == "tools/call":
-        name = params.get("name")
+        tool_name = params.get("name")
         args = params.get("arguments", {})
-
+        loop = asyncio.new_event_loop()
         try:
-            result_data = {}
-            if name == "ecosystem_query":
-                result_data = interface.query(args.get("query"), args.get("mode", "standard"))
-            elif name == "ecosystem_health":
-                result_data = interface.health()
-            elif name == "check_compliance":
-                result_data = interface.check_compliance(args.get("text"))
-            elif name == "perform_daughter_test":
-                result_data = interface.daughter_test(args.get("text"))
-            else:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": req_id,
-                    "error": {"code": -32601, "message": f"Unknown tool: {name}"}
-                }
-
+            # Run the async tool handler synchronously for HTTP
+            result_content = loop.run_until_complete(call_tool(tool_name, args))
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": json.dumps(result_data, indent=2, default=str)}]
+                    "content": [{"type": c.type, "text": c.text} for c in result_content]
                 }
             }
-
         except Exception as e:
-            log.error(f"Error executing tool {name}: {e}")
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "error": {"code": -32000, "message": str(e)}
             }
+        finally:
+            loop.close()
 
     return None
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# HTTP SERVER
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class MCPHTTPHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         log.info(f"HTTP: {args[0]}")
 
     def do_GET(self):
-        """Simple status page."""
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
         try:
-            health = interface.health()
-            status_color = "#0f0" if health.get('overall_health', 0) > 0.9 else "#fa0"
+            health_data = _do_mcp_health()
+            status_color = "#0f0" if health_data.get('error_count', 0) == 0 else "#fa0"
 
             html = f"""<!DOCTYPE html>
             <html>
             <body style="background:#080808; color:#eee; font-family:monospace; padding:2rem;">
-                <h1 style="color:#d4af37; border-bottom: 1px solid #333;">BIZRA ECOSYSTEM MCP</h1>
+                <h1 style="color:#d4af37; border-bottom: 1px solid #333;">BIZRA ECOSYSTEM MCP v{SERVER_VERSION}</h1>
                 <div style="border:1px solid #333; padding:1rem; border-radius:4px; margin-bottom:1rem;">
-                    <h3>SYSTEM HEALTH</h3>
-                    <p style="color:{status_color}; font-size:1.5rem;">{health.get('overall_health', 0)*100:.0f}%</p>
-                    <pre>{json.dumps(health, indent=2)}</pre>
+                    <h3>SERVER HEALTH</h3>
+                    <pre>{json.dumps(health_data, indent=2)}</pre>
                 </div>
                 <div style="border:1px solid #333; padding:1rem; border-radius:4px;">
                     <h3>CAPABILITIES</h3>
@@ -346,57 +539,52 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(f"Server Error: {str(e)}".encode())
 
     def do_POST(self):
-        """Handle JSON-RPC."""
         try:
             length = int(self.headers.get('Content-Length', 0))
             data = self.rfile.read(length)
             req = json.loads(data)
-
-            resp = handle_mcp_request(req)
+            resp = _handle_http_request(req)
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-
             if resp:
                 self.wfile.write(json.dumps(resp).encode())
-
         except Exception as e:
             self.send_error(500, str(e))
 
-def run_server(mode="stdio", port=8888):
-    if mode == "http":
-        interface.initialize()
-        server = HTTPServer(('127.0.0.1', port), MCPHTTPHandler)
-        log.info(f"Serving HTTP on http://127.0.0.1:{port}")
-        try:
-            server.serve_forever()
-        except KeyboardInterrupt:
-            pass
-    else:
-        # STDIO loop
-        interface.initialize()
-        log.info("MCP Server listening on STDIO")
-        sys.stdout.flush()
 
-        for line in sys.stdin:
-            try:
-                if not line.strip():
-                    continue
-                req = json.loads(line)
-                resp = handle_mcp_request(req)
-                if resp:
-                    print(json.dumps(resp))
-                    sys.stdout.flush()
-            except json.JSONDecodeError:
-                log.error("Invalid JSON received")
-            except Exception as e:
-                log.error(f"Stream error: {e}")
+# ===============================================================================
+# ENTRY POINTS
+# ===============================================================================
+
+async def main_stdio():
+    """Run via MCP SDK stdio transport."""
+    log.info(f"Ecosystem MCP Server v{SERVER_VERSION} starting (SDK stdio transport)...")
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server.create_initialization_options())
+
+
+def main_http(port: int = 8888):
+    """Run via HTTP transport."""
+    # Bind to 0.0.0.0 in container environments, 127.0.0.1 for local dev
+    bind_addr = '0.0.0.0' if os.getenv('BIZRA_ENV') == 'production' else '127.0.0.1'
+    httpd = HTTPServer((bind_addr, port), MCPHTTPHandler)
+    log.info(f"Serving HTTP on http://{bind_addr}:{port}")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--http", action="store_true", help="Run in HTTP mode")
+    parser.add_argument("--stdio", action="store_true", help="Run in STDIO mode (default)")
     parser.add_argument("--port", type=int, default=8888, help="Port for HTTP mode")
     args = parser.parse_args()
 
-    run_server(mode="http" if args.http else "stdio", port=args.port)
+    if args.http:
+        main_http(port=args.port)
+    else:
+        asyncio.run(main_stdio())

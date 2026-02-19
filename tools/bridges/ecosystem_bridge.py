@@ -344,31 +344,35 @@ class EcosystemBridge:
         log.info(f"✨ EcosystemBridge v{__version__} created")
     
     async def initialize(self) -> bool:
-        """Initialize all connected components."""
+        """Initialize all connected components in parallel."""
         if self._initialized:
             return True
-        
-        log.info("🔧 Initializing ecosystem components...")
-        
-        # Initialize orchestrator
+
+        log.info("Initializing ecosystem components (parallel)...")
+
+        # Gather all initialization tasks for parallel execution
+        tasks = []
+        task_names = []
+
         if self.orchestrator:
-            try:
-                await self.orchestrator.initialize()
-                log.info("   ✓ Orchestrator initialized")
-            except Exception as e:
-                log.warning(f"   ⚠️ Orchestrator init failed: {e}")
-        
-        # Initialize sovereign bridge
+            tasks.append(self.orchestrator.initialize())
+            task_names.append("Orchestrator")
+
         if self.sovereign_bridge:
-            try:
-                await self.sovereign_bridge.initialize()
-                log.info("   ✓ SovereignBridge initialized")
-            except Exception as e:
-                log.warning(f"   ⚠️ SovereignBridge init failed: {e}")
-        
+            tasks.append(self.sovereign_bridge.initialize())
+            task_names.append("SovereignBridge")
+
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for name, result in zip(task_names, results):
+                if isinstance(result, Exception):
+                    log.warning(f"   {name} init failed: {result}")
+                else:
+                    log.info(f"   {name} initialized")
+
         self._initialized = True
-        log.info("✅ Ecosystem initialization complete")
-        
+        log.info("Ecosystem initialization complete")
+
         return True
     
     async def query(self, unified_query: UnifiedQuery) -> UnifiedResponse:

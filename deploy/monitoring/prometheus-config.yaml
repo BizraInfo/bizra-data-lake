@@ -187,18 +187,17 @@ spec:
         # Error rate calculation
         - record: bizra:error_rate:5m
           expr: |
-            1 - (
-              increase(sovereign_queries_total{status="success"}[5m])
-              /
-              (increase(sovereign_queries_total[5m]) > 0)
-            )
+            (
+              1 - increase(sovereign_queries_total{status="success"}[5m])
+                  / increase(sovereign_queries_total[5m])
+            ) and increase(sovereign_queries_total[5m]) > 0
 
         # Queries per second
         - record: bizra:queries:rate5m
           expr: rate(sovereign_queries_total[5m])
 
         # Constitutional compliance score
-        # Combined SNR + Ihsan weighted average
+        # Weighted pass/fail gate: 0.0=both fail, 0.4=SNR pass, 0.6=Ihsan pass, 1.0=both pass
         - record: bizra:constitutional_compliance
           expr: |
             (
@@ -236,9 +235,8 @@ spec:
         # Bridge error rate
         - record: bizra:bridge_error_rate:5m
           expr: |
-            rate(bridge_requests_total{status="error"}[5m])
-            /
-            (rate(bridge_requests_total[5m]) > 0)
+            (rate(bridge_requests_total{status="error"}[5m]) / rate(bridge_requests_total[5m]))
+            and rate(bridge_requests_total[5m]) > 0
 
         # Bridge active connections
         - record: bizra:bridge_connections:current

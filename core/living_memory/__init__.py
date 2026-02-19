@@ -50,18 +50,18 @@ def __getattr__(name: str):
 
         return MemoryEntry
     elif name == "MemoryConsolidator":
-        # TODO: core/living_memory/consolidation.py does not exist yet -- create it or remove this lazy import
-        raise ImportError(
-            "MemoryConsolidator requires core.living_memory.consolidation which has not been created yet"
+        # Deferred: requires consolidation.py (Phase 46+ living memory evolution)
+        raise AttributeError(
+            "MemoryConsolidator is planned but not yet implemented (core.living_memory.consolidation)"
         )
     elif name == "ProactiveRetriever":
         from .proactive import ProactiveRetriever
 
         return ProactiveRetriever
     elif name == "KnowledgeGraph":
-        # TODO: core/living_memory/graph.py does not exist yet -- create it or remove this lazy import
-        raise ImportError(
-            "KnowledgeGraph requires core.living_memory.graph which has not been created yet"
+        # Deferred: requires graph.py (Phase 46+ living memory evolution)
+        raise AttributeError(
+            "KnowledgeGraph is planned but not yet implemented (core.living_memory.graph)"
         )
     elif name == "MemoryHealer":
         from .healing import MemoryHealer
@@ -73,12 +73,11 @@ def __getattr__(name: str):
 __all__ = [
     "LivingMemoryCore",
     "MemoryEntry",
-    "MemoryConsolidator",
     "ProactiveRetriever",
-    "KnowledgeGraph",
     "MemoryHealer",
     "MEMORY_VERSION",
     "DEFAULT_EMBEDDING_DIM",
     "MAX_MEMORY_ENTRIES",
     "MEMORY_TYPES",
+    # Deferred (Phase 46+): "MemoryConsolidator", "KnowledgeGraph"
 ]
