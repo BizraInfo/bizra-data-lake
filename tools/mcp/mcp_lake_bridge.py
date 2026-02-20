@@ -263,8 +263,8 @@ def generate_self_signed_cert(cert_dir: Path):
         ], check=True, capture_output=True)
         print("[BRIDGE] ✅ SSL certificate generated successfully")
         return str(cert_file), str(key_file)
-    except Exception:
-        # Simplified fallback logic if certificates missing
+    except Exception as e:
+        sys.stderr.write(f"[BRIDGE] SSL cert generation failed: {e}\n")
         return None, None
 
 def run_server(port=8443, secure=True, localhost_only=True):

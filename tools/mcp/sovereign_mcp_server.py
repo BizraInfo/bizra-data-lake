@@ -36,7 +36,6 @@ import time
 import contextlib
 import hashlib
 from collections import OrderedDict
-from pathlib import Path
 from dataclasses import asdict
 from typing import Dict, Any, List, Optional
 from io import StringIO
@@ -334,6 +333,9 @@ class Phase46Interface:
     CognitiveResonance orchestrates search → predict with graceful degradation.
     """
 
+    # Minimum requests before rollback evaluation kicks in (avoid noisy early state)
+    _ROLLBACK_MIN_REQUESTS = 10
+
     def __init__(self):
         self._search = None       # VectorSearchEngine
         self._resonance = None    # CognitiveResonance
@@ -343,6 +345,10 @@ class Phase46Interface:
         # Phase 47.1: Observability metrics
         from core.rollout.metrics import Phase46Metrics
         self._metrics = Phase46Metrics()
+
+        # Phase 49.3: Production rollback engine — monitors metrics and auto-rolls back
+        from core.rollout.rollback import RollbackEngine
+        self._rollback = RollbackEngine(metrics=self._metrics)
 
     def initialize(self) -> bool:
         """Initialize Phase 46 components. Each is independent."""
@@ -403,6 +409,8 @@ class Phase46Interface:
             if len(serialized) > 0:
                 self._metrics.inc("search_hits")
 
+            self._evaluate_rollback()
+
             return {
                 "query": query,
                 "results": serialized,
@@ -412,6 +420,8 @@ class Phase46Interface:
             }
         except Exception as e:
             logger.error(f"Phase 46 search error: {e}")
+            self._metrics.inc("search_errors")
+            self._evaluate_rollback()
             return {"error": str(e), "results": []}
 
     async def resonance(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
@@ -446,6 +456,8 @@ class Phase46Interface:
                     "confidence": round(result.prediction.prediction_confidence, 4),
                 }
 
+            self._evaluate_rollback()
+
             return {
                 "query": query,
                 "search_results": search_serialized,
@@ -457,6 +469,7 @@ class Phase46Interface:
             }
         except Exception as e:
             logger.error(f"Phase 46 resonance error: {e}")
+            self._evaluate_rollback()
             return {"error": str(e)}
 
     def predict(self, action: str) -> Dict[str, Any]:
@@ -470,6 +483,8 @@ class Phase46Interface:
             result = self._hmm.observe(action)
             self._metrics.record_hmm_confidence(result.prediction_confidence)
             self._metrics.record_hmm_observation(action)
+
+            self._evaluate_rollback()
 
             return {
                 "action": action,
@@ -485,7 +500,64 @@ class Phase46Interface:
             }
         except Exception as e:
             logger.error(f"Phase 46 predict error: {e}")
+            self._evaluate_rollback()
             return {"error": str(e)}
+
+    def _evaluate_rollback(self) -> None:
+        """Evaluate rollback conditions after each Phase 46 tool call.
+
+        Checks error rates and latency regressions against thresholds
+        from core.integration.constants.  Requires _ROLLBACK_MIN_REQUESTS
+        to avoid false positives during cold start.
+
+        Standing on Giants: Nygard (Release It!, 2007) · Fowler (canary, 2010)
+        """
+        from core.integration.constants import (
+            ROLLBACK_GOT_FALLBACK_THRESHOLD,
+            ROLLBACK_HMM_CONFIDENCE_FLOOR,
+            ROLLBACK_LATENCY_DELTA_THRESHOLD,
+            ROLLBACK_SEARCH_ERROR_THRESHOLD,
+        )
+
+        total = self._metrics.get_counter("search_requests")
+        if total < self._ROLLBACK_MIN_REQUESTS:
+            return  # Not enough data yet
+
+        # Search error rate
+        search_errors = self._metrics.get_counter("search_errors")
+        if total > 0:
+            error_rate = search_errors / total
+            self._rollback.evaluate(
+                "search_error_rate", error_rate > ROLLBACK_SEARCH_ERROR_THRESHOLD
+            )
+
+        # GoT fallback rate
+        got_total = self._metrics.get_counter("got_requests")
+        if got_total > 0:
+            fallback_rate = self._metrics.compute_rate("got_fallback", "got_requests")
+            self._rollback.evaluate(
+                "got_fallback_rate", fallback_rate > ROLLBACK_GOT_FALLBACK_THRESHOLD
+            )
+
+        # HMM confidence floor
+        hmm_total = self._metrics.get_counter("hmm_requests")
+        if hmm_total >= 5:
+            snap = self._metrics.snapshot()
+            hmm_p50 = snap.get("hmm", {}).get("confidence_p50", 1.0)
+            self._rollback.evaluate(
+                "hmm_confidence", hmm_p50 < ROLLBACK_HMM_CONFIDENCE_FLOOR
+            )
+
+        # Latency regression (search p95 vs first 10 requests baseline)
+        search_latencies = self._metrics._latencies.get("search", [])
+        if len(search_latencies) >= 20:
+            baseline_p95 = self._metrics.percentile(search_latencies[:10], 95)
+            current_p95 = self._metrics.percentile(search_latencies[-10:], 95)
+            if baseline_p95 > 0:
+                regression = (current_p95 - baseline_p95) / baseline_p95
+                self._rollback.evaluate(
+                    "latency_regression", regression > ROLLBACK_LATENCY_DELTA_THRESHOLD
+                )
 
     @property
     def status(self) -> Dict[str, Any]:
@@ -500,6 +572,7 @@ class Phase46Interface:
                 if self._hmm is not None else None
             ),
             "metrics": self._metrics.snapshot(),
+            "rollback": self._rollback.status,
         }
 
 
