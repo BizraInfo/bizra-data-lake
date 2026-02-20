@@ -525,8 +525,8 @@ def run_stdio():
             if resp:
                 print(json.dumps(resp))
                 sys.stdout.flush()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("stdio request parse/dispatch failed: %s", e)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

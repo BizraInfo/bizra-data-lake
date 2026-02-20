@@ -349,7 +349,8 @@ async def health_ready(request: Request):
         # Check Redis connection
         await request.app.state.redis.ping()
         redis_status = "ready"
-    except Exception:
+    except Exception as e:
+        logger.debug("Redis readiness check failed: %s", e)
         redis_status = "not_ready"
 
     status = "ready" if redis_status == "ready" else "not_ready"
@@ -434,11 +435,6 @@ async def knowledge_status():
 @app.get("/metrics/prometheus")
 async def prometheus_metrics():
     """Prometheus metrics endpoint with live Phase46 metrics."""
-    try:
-        from core.rollout.metrics import Phase46Metrics
-    except ImportError:
-        Phase46Metrics = None
-
     snap = _gateway_metrics.snapshot() if _gateway_metrics is not None else {}
     counters = snap.get("counters", {})
     search = snap.get("search", {})
@@ -494,8 +490,8 @@ async def prometheus_metrics():
         "# TYPE bizra_snr_threshold gauge",
         f"bizra_snr_threshold {SNR_THRESHOLD}",
         "",
-        f"# HELP bizra_phase46_uptime_seconds Phase46 metrics uptime",
-        f"# TYPE bizra_phase46_uptime_seconds gauge",
+        "# HELP bizra_phase46_uptime_seconds Phase46 metrics uptime",
+        "# TYPE bizra_phase46_uptime_seconds gauge",
         f"bizra_phase46_uptime_seconds {snap.get('uptime_seconds', 0.0)}",
     ]
     return Response(content="\n".join(lines), media_type="text/plain")

@@ -423,3 +423,134 @@ class TestResonanceTool:
         assert result["search_results"][1]["content"] == "Vector quantization methods"
         assert result["prediction"] is None
         assert result["combined_snr"] == 0.92
+
+
+# ===========================================================================
+# 5. TestRollbackIntegration — RollbackEngine wired into Phase46Interface
+# ===========================================================================
+
+class TestRollbackIntegration:
+    """Verify RollbackEngine is wired into Phase46Interface and evaluates after tool calls."""
+
+    def _make_interface(self):
+        from tools.mcp.sovereign_mcp_server import Phase46Interface
+        return Phase46Interface()
+
+    def test_rollback_engine_instantiated(self):
+        """Phase46Interface should have a _rollback attribute."""
+        iface = self._make_interface()
+        assert hasattr(iface, "_rollback")
+        from core.rollout.rollback import RollbackEngine
+        assert isinstance(iface._rollback, RollbackEngine)
+
+    def test_rollback_engine_receives_metrics(self):
+        """RollbackEngine should have same metrics instance as Phase46Interface."""
+        iface = self._make_interface()
+        assert iface._rollback._metrics is iface._metrics
+
+    def test_status_includes_rollback(self):
+        """Status dict should include rollback engine status."""
+        iface = self._make_interface()
+        status = iface.status
+        assert "rollback" in status
+        assert "breach_windows" in status["rollback"]
+        assert "rollback_in_progress" in status["rollback"]
+
+    def test_evaluate_rollback_skips_under_min_requests(self):
+        """_evaluate_rollback does nothing when fewer than _ROLLBACK_MIN_REQUESTS."""
+        iface = self._make_interface()
+        # Simulate 5 search requests (below threshold of 10)
+        for _ in range(5):
+            iface._metrics.inc("search_requests")
+        iface._metrics.inc("search_errors", 5)  # 100% error rate
+
+        # Should not trigger rollback (not enough data)
+        iface._evaluate_rollback()
+        windows = iface._rollback.status["breach_windows"]
+        assert windows["search_error_rate"]["consecutive"] == 0
+
+    def test_evaluate_rollback_detects_search_error_breach(self):
+        """High search error rate flags a breach in rollback engine."""
+        iface = self._make_interface()
+        # Simulate 15 requests, 5 errors = 33% error rate (threshold: 2%)
+        iface._metrics.inc("search_requests", 15)
+        iface._metrics.inc("search_errors", 5)
+
+        iface._evaluate_rollback()
+        windows = iface._rollback.status["breach_windows"]
+        assert windows["search_error_rate"]["consecutive"] == 1
+        assert windows["search_error_rate"]["last_breached"] is True
+
+    def test_evaluate_rollback_clean_window_resets(self):
+        """Zero errors after a breach resets the consecutive counter."""
+        iface = self._make_interface()
+        # First eval: breach
+        iface._metrics.inc("search_requests", 15)
+        iface._metrics.inc("search_errors", 5)
+        iface._evaluate_rollback()
+        assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 1
+
+        # Second eval: clean (reset counter manually for clean run)
+        iface._metrics._counters["search_errors"] = 0
+        iface._evaluate_rollback()
+        assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 0
+
+    def test_two_consecutive_breaches_trigger_rollback(self, tmp_path):
+        """Two consecutive error breaches trigger RollbackEngine rollback."""
+        iface = self._make_interface()
+        iface._rollback._receipt_dir = tmp_path
+
+        iface._metrics.inc("search_requests", 15)
+        iface._metrics.inc("search_errors", 5)
+
+        # Set search percent so rollback has something to zero
+        os.environ["BIZRA_PHASE46_SEARCH_PERCENT"] = "10"
+        os.environ["BIZRA_PHASE46_SEARCH_ENABLED"] = "1"
+
+        try:
+            # First breach
+            iface._evaluate_rollback()
+            assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 1
+
+            # Second consecutive breach -> triggers rollback
+            iface._evaluate_rollback()
+            # After rollback, consecutive resets to 0
+            assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 0
+
+            # Verify receipt was written
+            receipts = list(tmp_path.glob("rollback_*.json"))
+            assert len(receipts) == 1
+
+            # Verify env was zeroed
+            assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "0"
+        finally:
+            os.environ.pop("BIZRA_PHASE46_SEARCH_PERCENT", None)
+            os.environ.pop("BIZRA_PHASE46_SEARCH_ENABLED", None)
+
+    def test_search_error_incremented_on_exception(self):
+        """When search raises, search_errors counter is incremented."""
+        iface = self._make_interface()
+        engine = MagicMock()
+        engine.search.side_effect = RuntimeError("index corrupted")
+        iface._search = engine
+        iface.initialized = True
+
+        iface.search("broken query")
+
+        assert iface._metrics.get_counter("search_errors") == 1
+        assert iface._metrics.get_counter("search_requests") == 1
+
+    def test_evaluate_rollback_hmm_confidence_breach(self):
+        """Low HMM confidence flags a breach."""
+        iface = self._make_interface()
+        iface._metrics.inc("search_requests", 15)
+        iface._metrics.inc("hmm_requests", 10)
+
+        # Record 10 very low confidence values (all below 0.55 floor)
+        for _ in range(10):
+            iface._metrics.record_hmm_confidence(0.30)
+
+        iface._evaluate_rollback()
+        windows = iface._rollback.status["breach_windows"]
+        assert windows["hmm_confidence"]["consecutive"] == 1
+        assert windows["hmm_confidence"]["last_breached"] is True
