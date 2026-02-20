@@ -118,9 +118,9 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 60% floor enforced in CI
-# Ratcheted: 30% → 55% → 60% (Phase 3). Target: 95% (Ihsān threshold) — reached incrementally
-fail_under = 60
+# Coverage gate: 65% floor enforced in CI
+# Ratcheted: 30% → 55% → 60% → 65% (Phase 49). Target: 95% (Ihsān threshold) — reached incrementally
+fail_under = 65
 show_missing = true
 precision = 2
 

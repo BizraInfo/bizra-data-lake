@@ -60,7 +60,6 @@ yarn.lock
 package-lock.json
 
 # ── Rust Build Artifacts ──────────────────────────────────────
-native/target/
 bizra-omega/target/
 target/
 
