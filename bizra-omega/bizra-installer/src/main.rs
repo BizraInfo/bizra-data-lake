@@ -7,6 +7,13 @@
 mod hardware_detect;
 mod model_cache;
 
+// Alpha-100 Sprint 1 modules (re-exported via lib.rs)
+mod alpha100;
+mod binary_fetch;
+mod config;
+mod policy;
+mod provider;
+
 use clap::{Args, Parser, Subcommand};
 use hardware_detect::detect_hardware;
 use model_cache::ModelSpec;
@@ -117,6 +124,12 @@ enum Commands {
         /// Show current thresholds
         #[arg(long)]
         thresholds: bool,
+    },
+
+    /// Alpha-100 bootstrap and onboarding
+    Alpha100 {
+        #[command(subcommand)]
+        action: alpha100::Alpha100Commands,
     },
 }
 
@@ -285,6 +298,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Identity { action } => cmd_identity(&data_dir, action).await?,
         Commands::Pci { action } => cmd_pci(&data_dir, action).await?,
         Commands::Constitution { thresholds } => cmd_constitution(thresholds).await?,
+        Commands::Alpha100 { action } => alpha100::dispatch(action)?,
     }
 
     Ok(())
