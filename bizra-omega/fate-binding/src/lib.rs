@@ -6,19 +6,19 @@
 //! - Ed25519 signatures for PCI envelopes
 //! - Node-API bindings for TypeScript integration
 
-mod z3_ihsan;
-mod dilithium;
 mod capability_card;
+mod dilithium;
 mod gate_chain;
+mod z3_ihsan;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 
-pub use z3_ihsan::*;
-pub use dilithium::*;
 pub use capability_card::*;
+pub use dilithium::*;
 pub use gate_chain::*;
+pub use z3_ihsan::*;
 
 /// BIZRA Constitutional Thresholds
 pub const IHSAN_THRESHOLD: f64 = 0.95;
@@ -138,9 +138,7 @@ impl FateValidator {
         let rejection_reason = if !accepted {
             Some(format!(
                 "Challenge failed: ihsan={:.3} (>={:.2}), snr={:.3} (>={:.2}), sovereignty={}",
-                ihsan_score, IHSAN_THRESHOLD,
-                snr_score, SNR_THRESHOLD,
-                sovereignty_passed
+                ihsan_score, IHSAN_THRESHOLD, snr_score, SNR_THRESHOLD, sovereignty_passed
             ))
         } else {
             None
@@ -166,15 +164,29 @@ impl FateValidator {
     fn score_ihsan_response(&self, response: &str) -> f64 {
         // Ethical indicators that increase score
         let positive_indicators = [
-            "privacy", "consent", "transparency", "user control",
-            "data protection", "security", "ethical", "responsible",
-            "respect", "trust", "confidential", "accountable",
+            "privacy",
+            "consent",
+            "transparency",
+            "user control",
+            "data protection",
+            "security",
+            "ethical",
+            "responsible",
+            "respect",
+            "trust",
+            "confidential",
+            "accountable",
         ];
 
         // Negative indicators that decrease score
         let negative_indicators = [
-            "collect all", "share with third", "without consent",
-            "track", "surveil", "exploit", "manipulate",
+            "collect all",
+            "share with third",
+            "without consent",
+            "track",
+            "surveil",
+            "exploit",
+            "manipulate",
         ];
 
         let response_lower = response.to_lowercase();
@@ -213,7 +225,8 @@ impl FateValidator {
         // Filler word penalty
         let filler_words = ["um", "uh", "like", "you know", "basically", "actually"];
         let response_lower = response.to_lowercase();
-        let filler_count = filler_words.iter()
+        let filler_count = filler_words
+            .iter()
             .filter(|f| response_lower.contains(*f))
             .count();
 
@@ -236,11 +249,19 @@ impl FateValidator {
         let response_lower = response.to_lowercase();
 
         // Must acknowledge user data ownership
-        let ownership_terms = ["user data", "belongs to", "ownership", "sovereign", "control"];
+        let ownership_terms = [
+            "user data",
+            "belongs to",
+            "ownership",
+            "sovereign",
+            "control",
+        ];
         let acknowledgment_terms = ["acknowledge", "confirmed", "yes", "agree", "accept"];
 
         let has_ownership = ownership_terms.iter().any(|t| response_lower.contains(t));
-        let has_acknowledgment = acknowledgment_terms.iter().any(|t| response_lower.contains(t));
+        let has_acknowledgment = acknowledgment_terms
+            .iter()
+            .any(|t| response_lower.contains(t));
 
         has_ownership || has_acknowledgment
     }

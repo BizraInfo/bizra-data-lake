@@ -19,6 +19,10 @@ members = [
     # ━━━ Node0 Cognitive Layer (merged from native/) ━━━
     "bizra-hooks",
     "bizra-memory",
+    # ━━━ Desktop Node Layer (sovereign agent + binary) ━━━
+    "bizra-agent",
+    "bizra-node",
+    # ━━━ Advanced Bindings ━━━
     "fate-binding",
     "iceoryx-bridge",
 ]

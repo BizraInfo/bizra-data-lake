@@ -15,9 +15,9 @@
 //! - Emits knowledge events (new insights, profile updates)
 //! - إحسان score tracks knowledge quality
 
-use crate::types::*;
 use crate::store::InMemoryStore;
-use crate::synthesis::{SynthesisEngine, SynthesisConfig, SynthesisPassResult};
+use crate::synthesis::{SynthesisConfig, SynthesisEngine, SynthesisPassResult};
+use crate::types::*;
 
 /// Pipeline configuration.
 #[derive(Debug, Clone, Copy)]
@@ -106,9 +106,9 @@ impl MemoryPipeline {
         turn: u32,
         timestamp: u64,
     ) -> Result<FragmentId, crate::store::StoreError> {
-        let id = self.store.ingest_fragment(
-            kind, content.as_bytes(), session_id, turn, timestamp,
-        )?;
+        let id =
+            self.store
+                .ingest_fragment(kind, content.as_bytes(), session_id, turn, timestamp)?;
         self.stats.fragments_ingested += 1;
         Ok(id)
     }
@@ -126,16 +126,19 @@ impl MemoryPipeline {
         let mut extracted = 0u32;
 
         // Collect fragment data (avoid borrow conflict)
-        let pending: Vec<(FragmentId, u64, u32, u64, u32)> = self.store
+        let pending: Vec<(FragmentId, u64, u32, u64, u32)> = self
+            .store
             .pending_extraction()
             .take(self.config.max_ingest_batch)
-            .map(|f| (
-                f.header.id,
-                f.header.content_offset,
-                f.header.content_len,
-                f.header.session_id,
-                f.header.turn,
-            ))
+            .map(|f| {
+                (
+                    f.header.id,
+                    f.header.content_offset,
+                    f.header.content_len,
+                    f.header.session_id,
+                    f.header.turn,
+                )
+            })
             .collect();
 
         let extractor = bizra_hooks::ComponentId::from_name("memory-engine", "0.1.0");
@@ -175,64 +178,92 @@ impl MemoryPipeline {
         // Pattern: "I am X" / "I'm X" → Fact or Relationship
         if lower.contains("i am ") || lower.contains("i'm ") {
             let _ = self.store.store_atom(
-                AtomKind::Fact, content, frag_id,
-                Confidence::stated(timestamp), provenance,
+                AtomKind::Fact,
+                content,
+                frag_id,
+                Confidence::stated(timestamp),
+                provenance,
             );
             count += 1;
         }
 
         // Pattern: "I prefer X" / "I like X" → Preference
-        if lower.contains("i prefer") || lower.contains("i like")
-            || lower.contains("i want") || lower.contains("i need")
+        if lower.contains("i prefer")
+            || lower.contains("i like")
+            || lower.contains("i want")
+            || lower.contains("i need")
         {
             let _ = self.store.store_atom(
-                AtomKind::Preference, content, frag_id,
-                Confidence::stated(timestamp), provenance,
+                AtomKind::Preference,
+                content,
+                frag_id,
+                Confidence::stated(timestamp),
+                provenance,
             );
             count += 1;
         }
 
         // Pattern: "working on X" / "building X" → Goal
-        if lower.contains("working on") || lower.contains("building")
-            || lower.contains("preparing") || lower.contains("planning")
+        if lower.contains("working on")
+            || lower.contains("building")
+            || lower.contains("preparing")
+            || lower.contains("planning")
         {
             let _ = self.store.store_atom(
-                AtomKind::Goal, content, frag_id,
-                Confidence::inferred(timestamp), provenance,
+                AtomKind::Goal,
+                content,
+                frag_id,
+                Confidence::inferred(timestamp),
+                provenance,
             );
             count += 1;
         }
 
         // Pattern: "I don't" / "never" / "not" → Negation
-        if lower.contains("i don't") || lower.contains("i never")
-            || lower.contains("i do not") || lower.contains("not interested")
+        if lower.contains("i don't")
+            || lower.contains("i never")
+            || lower.contains("i do not")
+            || lower.contains("not interested")
         {
             let _ = self.store.store_atom(
-                AtomKind::Negation, content, frag_id,
-                Confidence::stated(timestamp), provenance,
+                AtomKind::Negation,
+                content,
+                frag_id,
+                Confidence::stated(timestamp),
+                provenance,
             );
             count += 1;
         }
 
         // Pattern: "every day" / "usually" / "always" → Pattern
-        if lower.contains("every day") || lower.contains("usually")
-            || lower.contains("always") || lower.contains("every morning")
+        if lower.contains("every day")
+            || lower.contains("usually")
+            || lower.contains("always")
+            || lower.contains("every morning")
         {
             let _ = self.store.store_atom(
-                AtomKind::Pattern, content, frag_id,
-                Confidence::inferred(timestamp), provenance,
+                AtomKind::Pattern,
+                content,
+                frag_id,
+                Confidence::inferred(timestamp),
+                provenance,
             );
             count += 1;
         }
 
         // Pattern: "my principle" / "I believe" / "my value" → Principle
-        if lower.contains("my principle") || lower.contains("my guiding")
-            || lower.contains("i believe") || lower.contains("my value")
+        if lower.contains("my principle")
+            || lower.contains("my guiding")
+            || lower.contains("i believe")
+            || lower.contains("my value")
             || lower.contains("my standard")
         {
             let _ = self.store.store_atom(
-                AtomKind::Principle, content, frag_id,
-                Confidence::stated(timestamp), provenance,
+                AtomKind::Principle,
+                content,
+                frag_id,
+                Confidence::stated(timestamp),
+                provenance,
             );
             count += 1;
         }
@@ -240,8 +271,11 @@ impl MemoryPipeline {
         // Fallback: if no rules matched, store as Context
         if count == 0 && content.len() > 20 {
             let _ = self.store.store_atom(
-                AtomKind::Context, content, frag_id,
-                Confidence::speculative(timestamp), provenance,
+                AtomKind::Context,
+                content,
+                frag_id,
+                Confidence::speculative(timestamp),
+                provenance,
             );
             count += 1;
         }
@@ -278,10 +312,12 @@ impl MemoryPipeline {
     /// Query the knowledge base for facts about the user.
     pub fn query_facts(&mut self, kind: AtomKind, now: u64) -> Vec<(&str, f32)> {
         self.stats.queries_served += 1;
-        self.store.atoms_by_kind(kind)
+        self.store
+            .atoms_by_kind(kind)
             .filter(|a| a.header.confidence.is_reliable(now))
             .filter_map(|a| {
-                self.store.atom_content(a)
+                self.store
+                    .atom_content(a)
                     .map(|c| (c, a.header.confidence.effective_at(now)))
             })
             .collect()
@@ -290,10 +326,12 @@ impl MemoryPipeline {
     /// Query insights by synthesis method.
     pub fn query_insights(&mut self, method: Option<SynthesisMethod>) -> Vec<(&str, f32)> {
         self.stats.queries_served += 1;
-        self.store.valid_insights()
+        self.store
+            .valid_insights()
             .filter(|i| method.map_or(true, |m| i.header.synthesis_method == m))
             .filter_map(|i| {
-                self.store.insight_content(i)
+                self.store
+                    .insight_content(i)
                     .map(|c| (c, i.header.confidence.base))
             })
             .collect()
@@ -325,7 +363,9 @@ impl MemoryPipeline {
         };
 
         // Stage 1: Ingest
-        let ingest_ok = self.ingest(kind, content, session_id, turn, timestamp).is_ok();
+        let ingest_ok = self
+            .ingest(kind, content, session_id, turn, timestamp)
+            .is_ok();
 
         // Stage 2: Extract
         let atoms_extracted = self.extract(timestamp);
@@ -344,8 +384,12 @@ impl MemoryPipeline {
     // Telemetry & Diagnostics
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    pub fn stats(&self) -> &PipelineStats { &self.stats }
-    pub fn store(&self) -> &InMemoryStore { &self.store }
+    pub fn stats(&self) -> &PipelineStats {
+        &self.stats
+    }
+    pub fn store(&self) -> &InMemoryStore {
+        &self.store
+    }
 
     pub fn knowledge_summary(&self) -> KnowledgeSummary {
         let profile = self.store.profile();
@@ -395,7 +439,10 @@ mod tests {
 
         let result = pipeline.process_turn(
             "I am Mumo, the CEO of BIZRA. I prefer Rust for core systems.",
-            true, 1, 1, 1000,
+            true,
+            1,
+            1,
+            1000,
         );
 
         assert!(result.ingested);
@@ -486,7 +533,10 @@ mod tests {
 
         pipeline.process_turn(
             "Based on your architecture, I recommend focusing on the hook system first",
-            false, 1, 1, 1000,
+            false,
+            1,
+            1,
+            1000,
         );
 
         assert_eq!(pipeline.knowledge_summary().total_fragments, 1);

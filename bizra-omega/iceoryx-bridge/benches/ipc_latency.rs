@@ -30,12 +30,18 @@ fn bench_envelope_creation(c: &mut Criterion) {
     };
 
     group.bench_function("inference_request", |b| {
-        b.iter(|| black_box(MessageEnvelope::inference_request(black_box(&request), "orchestrator")));
+        b.iter(|| {
+            black_box(MessageEnvelope::inference_request(
+                black_box(&request),
+                "orchestrator",
+            ))
+        });
     });
 
     let response = InferenceResponse {
         id: "bench-001".to_string(),
-        content: "Quantum entanglement is a phenomenon where two particles become linked.".to_string(),
+        content: "Quantum entanglement is a phenomenon where two particles become linked."
+            .to_string(),
         model_id: "sovereign-7b-v1".to_string(),
         tokens_generated: 12,
         generation_time_ms: 150,
@@ -82,7 +88,8 @@ fn bench_envelope_decode(c: &mut Criterion) {
 
     let response = InferenceResponse {
         id: "bench-001".to_string(),
-        content: "Quantum entanglement is a phenomenon where two particles become linked.".to_string(),
+        content: "Quantum entanglement is a phenomenon where two particles become linked."
+            .to_string(),
         model_id: "sovereign-7b-v1".to_string(),
         tokens_generated: 12,
         generation_time_ms: 150,
@@ -159,8 +166,7 @@ fn bench_envelope_roundtrip(c: &mut Criterion) {
 
     group.bench_function("large_payload_64kb", |b| {
         b.iter(|| {
-            let envelope =
-                MessageEnvelope::inference_request(black_box(&xlarge_request), "bench");
+            let envelope = MessageEnvelope::inference_request(black_box(&xlarge_request), "bench");
             let decoded: InferenceRequest = envelope.decode().unwrap();
             black_box(decoded);
         });

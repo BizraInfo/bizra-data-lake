@@ -7,9 +7,9 @@
 //!
 //! Uses Iceoryx2 for true zero-copy shared memory transport.
 
+mod channels;
 mod ipc_router;
 mod message_types;
-mod channels;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -17,9 +17,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+pub use channels::*;
 pub use ipc_router::*;
 pub use message_types::*;
-pub use channels::*;
 
 /// IPC Bridge configuration
 #[napi(object)]

@@ -133,8 +133,7 @@ impl InMemoryStore {
             return Err(StoreError::ContentBufferFull);
         }
         let offset = self.content_cursor as u64;
-        self.content[self.content_cursor..self.content_cursor + len]
-            .copy_from_slice(content);
+        self.content[self.content_cursor..self.content_cursor + len].copy_from_slice(content);
         self.content_cursor += len;
         Ok((offset, len as u32))
     }
@@ -269,7 +268,9 @@ impl InMemoryStore {
 
     /// Get all unsynthesized atoms.
     pub fn pending_synthesis(&self) -> impl Iterator<Item = &StoredAtom> {
-        self.atoms.iter().filter(|a| !a.synthesized && !a.superseded)
+        self.atoms
+            .iter()
+            .filter(|a| !a.synthesized && !a.superseded)
     }
 
     /// Mark an atom as synthesized.
@@ -295,13 +296,15 @@ impl InMemoryStore {
 
     /// Find atoms by kind.
     pub fn atoms_by_kind(&self, kind: AtomKind) -> impl Iterator<Item = &StoredAtom> {
-        self.atoms.iter()
+        self.atoms
+            .iter()
             .filter(move |a| a.header.kind == kind && !a.superseded)
     }
 
     /// Find atoms with confidence above threshold at given time.
     pub fn reliable_atoms(&self, now: u64) -> impl Iterator<Item = &StoredAtom> {
-        self.atoms.iter()
+        self.atoms
+            .iter()
             .filter(move |a| !a.superseded && a.header.confidence.is_reliable(now))
     }
 
@@ -408,7 +411,9 @@ impl InMemoryStore {
     pub fn update_profile_sections(&mut self) {
         let mut sections: u8 = 0;
         for atom in &self.atoms {
-            if atom.superseded { continue; }
+            if atom.superseded {
+                continue;
+            }
             let section = match atom.header.kind {
                 AtomKind::Fact | AtomKind::Relationship => ProfileSection::Identity,
                 AtomKind::Goal => ProfileSection::Goals,
@@ -433,9 +438,15 @@ impl InMemoryStore {
         (self.content_cursor, CONTENT_BUFFER_SIZE)
     }
 
-    pub fn fragment_count(&self) -> usize { self.fragments.len() }
-    pub fn atom_count(&self) -> usize { self.atoms.len() }
-    pub fn insight_count(&self) -> usize { self.insights.len() }
+    pub fn fragment_count(&self) -> usize {
+        self.fragments.len()
+    }
+    pub fn atom_count(&self) -> usize {
+        self.atoms.len()
+    }
+    pub fn insight_count(&self) -> usize {
+        self.insights.len()
+    }
 }
 
 impl Default for InMemoryStore {
@@ -458,15 +469,17 @@ mod tests {
         let mut store = InMemoryStore::new();
         let content = b"User said: I am working on BIZRA";
 
-        let id = store.ingest_fragment(
-            FragmentKind::UserMessage, content, 1, 1, 1000
-        ).unwrap();
+        let id = store
+            .ingest_fragment(FragmentKind::UserMessage, content, 1, 1, 1000)
+            .unwrap();
 
         let frag = store.get_fragment(&id).unwrap();
         assert_eq!(frag.header.kind, FragmentKind::UserMessage);
         assert!(!frag.extracted);
 
-        let retrieved = store.get_content(frag.header.content_offset, frag.header.content_len).unwrap();
+        let retrieved = store
+            .get_content(frag.header.content_offset, frag.header.content_len)
+            .unwrap();
         assert_eq!(retrieved, content);
     }
 
@@ -475,7 +488,9 @@ mod tests {
         let mut store = InMemoryStore::new();
         let content = b"same content twice";
 
-        store.ingest_fragment(FragmentKind::UserMessage, content, 1, 1, 1000).unwrap();
+        store
+            .ingest_fragment(FragmentKind::UserMessage, content, 1, 1, 1000)
+            .unwrap();
         let result = store.ingest_fragment(FragmentKind::UserMessage, content, 1, 2, 2000);
         assert_eq!(result, Err(StoreError::Duplicate));
     }
@@ -485,13 +500,15 @@ mod tests {
         let mut store = InMemoryStore::new();
         let frag_id = FragmentId::from_content(b"test");
 
-        let atom_id = store.store_atom(
-            AtomKind::Fact,
-            "User's name is Mumo",
-            frag_id,
-            Confidence::stated(1000),
-            test_provenance(),
-        ).unwrap();
+        let atom_id = store
+            .store_atom(
+                AtomKind::Fact,
+                "User's name is Mumo",
+                frag_id,
+                Confidence::stated(1000),
+                test_provenance(),
+            )
+            .unwrap();
 
         let atom = store.get_atom(&atom_id).unwrap();
         assert_eq!(atom.header.kind, AtomKind::Fact);
@@ -503,13 +520,15 @@ mod tests {
         let mut store = InMemoryStore::new();
         let frag_id = FragmentId::from_content(b"test");
 
-        let id = store.store_atom(
-            AtomKind::Preference,
-            "Prefers Rust",
-            frag_id,
-            Confidence::inferred(1000),
-            test_provenance(),
-        ).unwrap();
+        let id = store
+            .store_atom(
+                AtomKind::Preference,
+                "Prefers Rust",
+                frag_id,
+                Confidence::inferred(1000),
+                test_provenance(),
+            )
+            .unwrap();
 
         assert_eq!(store.profile().active_atoms, 1);
 
@@ -528,27 +547,42 @@ mod tests {
         let mut store = InMemoryStore::new();
         let frag_id = FragmentId::from_content(b"test");
 
-        let a1 = store.store_atom(
-            AtomKind::Pattern, "Works best after Fajr", frag_id,
-            Confidence::inferred(1000), test_provenance(),
-        ).unwrap();
+        let a1 = store
+            .store_atom(
+                AtomKind::Pattern,
+                "Works best after Fajr",
+                frag_id,
+                Confidence::inferred(1000),
+                test_provenance(),
+            )
+            .unwrap();
 
-        let a2 = store.store_atom(
-            AtomKind::Pattern, "Loses focus at 2pm", frag_id,
-            Confidence::inferred(1000), test_provenance(),
-        ).unwrap();
+        let a2 = store
+            .store_atom(
+                AtomKind::Pattern,
+                "Loses focus at 2pm",
+                frag_id,
+                Confidence::inferred(1000),
+                test_provenance(),
+            )
+            .unwrap();
 
-        let ins_id = store.store_insight(
-            SynthesisMethod::Correlation,
-            "Schedule deep work morning, admin afternoon",
-            &[a1, a2],
-            Confidence::inferred(1000),
-            2000,
-        ).unwrap();
+        let ins_id = store
+            .store_insight(
+                SynthesisMethod::Correlation,
+                "Schedule deep work morning, admin afternoon",
+                &[a1, a2],
+                Confidence::inferred(1000),
+                2000,
+            )
+            .unwrap();
 
         let insight = store.get_insight(&ins_id).unwrap();
         assert_eq!(insight.contributing_count, 2);
-        assert_eq!(insight.header.synthesis_method, SynthesisMethod::Correlation);
+        assert_eq!(
+            insight.header.synthesis_method,
+            SynthesisMethod::Correlation
+        );
         assert_eq!(
             store.insight_content(insight),
             Some("Schedule deep work morning, admin afternoon")
@@ -560,12 +594,33 @@ mod tests {
         let mut store = InMemoryStore::new();
         let frag_id = FragmentId::from_content(b"test");
 
-        store.store_atom(AtomKind::Fact, "name is Mumo", frag_id,
-            Confidence::stated(1000), test_provenance()).unwrap();
-        store.store_atom(AtomKind::Expertise, "knows distributed systems", frag_id,
-            Confidence::inferred(1000), test_provenance()).unwrap();
-        store.store_atom(AtomKind::Goal, "preparing investor pitch", frag_id,
-            Confidence::stated(1000), test_provenance()).unwrap();
+        store
+            .store_atom(
+                AtomKind::Fact,
+                "name is Mumo",
+                frag_id,
+                Confidence::stated(1000),
+                test_provenance(),
+            )
+            .unwrap();
+        store
+            .store_atom(
+                AtomKind::Expertise,
+                "knows distributed systems",
+                frag_id,
+                Confidence::inferred(1000),
+                test_provenance(),
+            )
+            .unwrap();
+        store
+            .store_atom(
+                AtomKind::Goal,
+                "preparing investor pitch",
+                frag_id,
+                Confidence::stated(1000),
+                test_provenance(),
+            )
+            .unwrap();
 
         store.update_profile_sections();
 

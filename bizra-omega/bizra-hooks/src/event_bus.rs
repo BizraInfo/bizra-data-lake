@@ -106,7 +106,9 @@ impl EventBus {
         min_priority: Priority,
         handler: EventHandler,
     ) -> Result<SubscriptionId, HookError> {
-        let slot = self.handlers.iter()
+        let slot = self
+            .handlers
+            .iter()
             .position(|h| h.is_none())
             .ok_or(HookError::SubscribersFull)?;
 
@@ -372,7 +374,8 @@ mod tests {
         let mut bus = EventBus::new();
         let comp = ComponentId::from_name("listener", "1.0.0");
 
-        bus.subscribe(comp, "test.topic", Priority::Low, noop_handler).unwrap();
+        bus.subscribe(comp, "test.topic", Priority::Low, noop_handler)
+            .unwrap();
 
         let delivered = bus.emit_simple(
             make_source(),
@@ -392,11 +395,30 @@ mod tests {
         let mut bus = EventBus::new();
         let comp = ComponentId::from_name("monitor", "1.0.0");
 
-        bus.subscribe(comp, "system.*", Priority::Low, noop_handler).unwrap();
+        bus.subscribe(comp, "system.*", Priority::Low, noop_handler)
+            .unwrap();
 
-        let d1 = bus.emit_simple(make_source(), "system.health", Payload::empty(), Priority::Normal, 1000);
-        let d2 = bus.emit_simple(make_source(), "system.crash", Payload::empty(), Priority::Normal, 1001);
-        let d3 = bus.emit_simple(make_source(), "agent.health", Payload::empty(), Priority::Normal, 1002);
+        let d1 = bus.emit_simple(
+            make_source(),
+            "system.health",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
+        let d2 = bus.emit_simple(
+            make_source(),
+            "system.crash",
+            Payload::empty(),
+            Priority::Normal,
+            1001,
+        );
+        let d3 = bus.emit_simple(
+            make_source(),
+            "agent.health",
+            Payload::empty(),
+            Priority::Normal,
+            1002,
+        );
 
         assert_eq!(d1, 1);
         assert_eq!(d2, 1);
@@ -409,10 +431,23 @@ mod tests {
         let comp = ComponentId::from_name("critical-only", "1.0.0");
 
         // Only receive Critical+
-        bus.subscribe(comp, "test.*", Priority::Critical, noop_handler).unwrap();
+        bus.subscribe(comp, "test.*", Priority::Critical, noop_handler)
+            .unwrap();
 
-        let d1 = bus.emit_simple(make_source(), "test.low", Payload::empty(), Priority::Normal, 1000);
-        let d2 = bus.emit_simple(make_source(), "test.crit", Payload::empty(), Priority::Critical, 1001);
+        let d1 = bus.emit_simple(
+            make_source(),
+            "test.low",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
+        let d2 = bus.emit_simple(
+            make_source(),
+            "test.crit",
+            Payload::empty(),
+            Priority::Critical,
+            1001,
+        );
 
         assert_eq!(d1, 0); // Normal < Critical filter
         assert_eq!(d2, 1);
@@ -425,10 +460,18 @@ mod tests {
         let pass_comp = ComponentId::from_name("listener", "1.0.0");
 
         // Gatekeeper subscribes first, halts all events
-        bus.subscribe(halt_comp, "test.*", Priority::Low, halt_handler).unwrap();
-        bus.subscribe(pass_comp, "test.*", Priority::Low, noop_handler).unwrap();
+        bus.subscribe(halt_comp, "test.*", Priority::Low, halt_handler)
+            .unwrap();
+        bus.subscribe(pass_comp, "test.*", Priority::Low, noop_handler)
+            .unwrap();
 
-        let delivered = bus.emit_simple(make_source(), "test.event", Payload::empty(), Priority::Normal, 1000);
+        let delivered = bus.emit_simple(
+            make_source(),
+            "test.event",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
 
         // Only gatekeeper received it before halting
         assert_eq!(delivered, 1);
@@ -439,13 +482,21 @@ mod tests {
         let mut bus = EventBus::new();
         let comp = ComponentId::from_name("temp", "1.0.0");
 
-        let sub_id = bus.subscribe(comp, "test.*", Priority::Low, noop_handler).unwrap();
+        let sub_id = bus
+            .subscribe(comp, "test.*", Priority::Low, noop_handler)
+            .unwrap();
         assert_eq!(bus.subscription_count(), 1);
 
         bus.unsubscribe(sub_id);
         assert_eq!(bus.subscription_count(), 0);
 
-        let delivered = bus.emit_simple(make_source(), "test.event", Payload::empty(), Priority::Normal, 1000);
+        let delivered = bus.emit_simple(
+            make_source(),
+            "test.event",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
         assert_eq!(delivered, 0);
     }
 
@@ -465,7 +516,8 @@ mod tests {
     fn enqueue_and_flush() {
         let mut bus = EventBus::new();
         let comp = ComponentId::from_name("deferred", "1.0.0");
-        bus.subscribe(comp, "deferred.*", Priority::Low, noop_handler).unwrap();
+        bus.subscribe(comp, "deferred.*", Priority::Low, noop_handler)
+            .unwrap();
 
         // Enqueue events before subscribers are ready
         let event = Event {
@@ -490,7 +542,13 @@ mod tests {
         let mut bus = EventBus::new();
 
         // No subscribers → events drop
-        bus.emit_simple(make_source(), "orphan.event", Payload::empty(), Priority::Normal, 1000);
+        bus.emit_simple(
+            make_source(),
+            "orphan.event",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
         assert_eq!(bus.total_dropped(), 1);
         assert!(bus.delivery_ratio() < 1.0);
     }

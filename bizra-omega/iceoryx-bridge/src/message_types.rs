@@ -117,8 +117,12 @@ pub struct GateResultDetail {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ControlMessage {
     /// Ping/pong for health checks
-    Ping { id: u64 },
-    Pong { id: u64 },
+    Ping {
+        id: u64,
+    },
+    Pong {
+        id: u64,
+    },
 
     /// Shutdown signal
     Shutdown,
@@ -128,12 +132,22 @@ pub enum ControlMessage {
     StatsResponse(BridgeStatsInternal),
 
     /// Model loading
-    LoadModel { model_id: String, model_path: String },
-    ModelLoaded { model_id: String, success: bool },
+    LoadModel {
+        model_id: String,
+        model_path: String,
+    },
+    ModelLoaded {
+        model_id: String,
+        success: bool,
+    },
 
     /// Configuration update
-    UpdateConfig { config_json: String },
-    ConfigUpdated { success: bool },
+    UpdateConfig {
+        config_json: String,
+    },
+    ConfigUpdated {
+        success: bool,
+    },
 }
 
 /// Internal bridge statistics

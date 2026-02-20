@@ -917,7 +917,9 @@ impl PyBizraMemory {
         turn: u32,
         timestamp: u64,
     ) -> pyo3::PyObject {
-        let result = self.inner.process_user_turn(content, session_id, turn, timestamp);
+        let result = self
+            .inner
+            .process_user_turn(content, session_id, turn, timestamp);
         Python::with_gil(|py| {
             let dict = pyo3::types::PyDict::new(py);
             let _ = dict.set_item("ingested", result.ingested);
@@ -936,7 +938,9 @@ impl PyBizraMemory {
         turn: u32,
         timestamp: u64,
     ) -> pyo3::PyObject {
-        let result = self.inner.process_assistant_turn(content, session_id, turn, timestamp);
+        let result = self
+            .inner
+            .process_assistant_turn(content, session_id, turn, timestamp);
         Python::with_gil(|py| {
             let dict = pyo3::types::PyDict::new(py);
             let _ = dict.set_item("ingested", result.ingested);
@@ -949,7 +953,8 @@ impl PyBizraMemory {
 
     /// "What do I know?" — all reliable facts with confidence scores.
     fn what_do_i_know(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.what_do_i_know(now)
+        self.inner
+            .what_do_i_know(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -957,7 +962,8 @@ impl PyBizraMemory {
 
     /// User preferences with confidence scores.
     fn user_preferences(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.user_preferences(now)
+        self.inner
+            .user_preferences(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -965,7 +971,8 @@ impl PyBizraMemory {
 
     /// Active user goals with confidence scores.
     fn user_goals(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.user_goals(now)
+        self.inner
+            .user_goals(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -973,7 +980,8 @@ impl PyBizraMemory {
 
     /// User boundaries and negations with confidence scores.
     fn user_boundaries(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.user_boundaries(now)
+        self.inner
+            .user_boundaries(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -981,7 +989,8 @@ impl PyBizraMemory {
 
     /// Observed behavioral patterns with confidence scores.
     fn user_patterns(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.user_patterns(now)
+        self.inner
+            .user_patterns(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -989,7 +998,8 @@ impl PyBizraMemory {
 
     /// User principles and values with confidence scores.
     fn user_principles(&mut self, now: u64) -> Vec<(String, f32)> {
-        self.inner.user_principles(now)
+        self.inner
+            .user_principles(now)
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -997,7 +1007,8 @@ impl PyBizraMemory {
 
     /// Synthesized insights — connected understanding.
     fn insights(&mut self) -> Vec<(String, f32)> {
-        self.inner.insights()
+        self.inner
+            .insights()
             .into_iter()
             .map(|(s, c)| (s.to_string(), c))
             .collect()
@@ -1009,14 +1020,20 @@ impl PyBizraMemory {
     }
 
     /// Activate the memory system.
-    fn activate(&mut self) { self.inner.activate(); }
+    fn activate(&mut self) {
+        self.inner.activate();
+    }
 
     /// Deactivate (pause processing).
-    fn deactivate(&mut self) { self.inner.deactivate(); }
+    fn deactivate(&mut self) {
+        self.inner.deactivate();
+    }
 
     /// Is the system active?
     #[getter]
-    fn is_active(&self) -> bool { self.inner.is_active() }
+    fn is_active(&self) -> bool {
+        self.inner.is_active()
+    }
 
     /// Full health snapshot as dict.
     fn health(&self) -> pyo3::PyObject {
@@ -1040,7 +1057,10 @@ impl PyBizraMemory {
         let h = self.inner.health();
         format!(
             "BizraMemory(turns={}, atoms={}, insights={}, profile={:.0}%)",
-            h.turns_processed, h.atoms, h.insights, h.profile_completeness * 100.0
+            h.turns_processed,
+            h.atoms,
+            h.insights,
+            h.profile_completeness * 100.0
         )
     }
 }
@@ -1103,18 +1123,22 @@ impl PyThoughtGraph {
             "conclusion" => bizra_core::ThoughtType::Conclusion,
             "question" => bizra_core::ThoughtType::Question,
             "counterpoint" => bizra_core::ThoughtType::Counterpoint,
-            _ => return Err(PyValueError::new_err(format!(
-                "Unknown thought type: '{}'. Use: hypothesis, evidence, reasoning, synthesis, \
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Unknown thought type: '{}'. Use: hypothesis, evidence, reasoning, synthesis, \
                  refinement, validation, conclusion, question, counterpoint",
-                thought_type
-            ))),
+                    thought_type
+                )))
+            }
         };
         Ok(self.inner.create_thought_with_type(description, parent, tt))
     }
 
     /// Set a thought's result and confidence (REFINE operation).
     fn complete_thought(&mut self, id: &str, result: bool, confidence: f64) -> PyResult<()> {
-        let node = self.inner.get_thought_mut(id)
+        let node = self
+            .inner
+            .get_thought_mut(id)
             .ok_or_else(|| PyValueError::new_err(format!("Thought '{}' not found", id)))?;
         node.complete(result, confidence);
         Ok(())
@@ -1122,7 +1146,9 @@ impl PyThoughtGraph {
 
     /// Set a thought's SNR score.
     fn set_snr(&mut self, id: &str, snr: f64) -> PyResult<()> {
-        let node = self.inner.get_thought_mut(id)
+        let node = self
+            .inner
+            .get_thought_mut(id)
             .ok_or_else(|| PyValueError::new_err(format!("Thought '{}' not found", id)))?;
         node.set_snr(snr);
         Ok(())
@@ -1140,7 +1166,8 @@ impl PyThoughtGraph {
 
     /// VALIDATE — Get conclusions that meet the SNR threshold.
     fn get_conclusions(&self, min_snr: f64) -> Vec<pyo3::PyObject> {
-        self.inner.get_conclusions(min_snr)
+        self.inner
+            .get_conclusions(min_snr)
             .into_iter()
             .map(|node| thought_to_pyobject(node))
             .collect()
@@ -1148,7 +1175,8 @@ impl PyThoughtGraph {
 
     /// Get frontier (leaf) nodes — candidates for expansion.
     fn get_frontier(&self) -> Vec<pyo3::PyObject> {
-        self.inner.get_frontier()
+        self.inner
+            .get_frontier()
             .into_iter()
             .map(|node| thought_to_pyobject(node))
             .collect()
@@ -1189,7 +1217,8 @@ impl PyThoughtGraph {
         max_iterations: usize,
         target_snr: f64,
     ) -> Option<pyo3::PyObject> {
-        self.inner.explore_with_backtrack(max_iterations, target_snr)
+        self.inner
+            .explore_with_backtrack(max_iterations, target_snr)
             .map(|node| thought_to_pyobject(node))
     }
 

@@ -64,18 +64,18 @@
 // Module declarations
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-pub mod types;
-pub mod registry;
 pub mod event_bus;
-pub mod pipeline;
 pub mod ihsan_gate;
+pub mod pipeline;
+pub mod registry;
+pub mod types;
 
 // Re-exports for ergonomic usage
+pub use event_bus::{EventBus, EventHandler, Subscription};
+pub use ihsan_gate::{GateAction, GateConfig, GatePolicy, GateVerdict, IhsanGate};
+pub use pipeline::{HookFn, HookPipeline};
+pub use registry::{Dependency, DependencyKind, Registry, RegistrySnapshot};
 pub use types::*;
-pub use registry::{Registry, RegistrySnapshot, Dependency, DependencyKind};
-pub use event_bus::{EventBus, Subscription, EventHandler};
-pub use pipeline::{HookPipeline, HookFn};
-pub use ihsan_gate::{IhsanGate, GateConfig, GatePolicy, GateVerdict, GateAction};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // BizraSystem — The Unified Facade
@@ -249,7 +249,9 @@ impl BizraSystem {
         timestamp_nanos: u64,
     ) -> Result<usize, HookError> {
         // Verify source is registered and active
-        let meta = self.registry.get(&source)
+        let meta = self
+            .registry
+            .get(&source)
             .ok_or(HookError::ComponentNotFound(source))?;
 
         if meta.status != ComponentStatus::Active {
@@ -323,11 +325,7 @@ impl BizraSystem {
     }
 
     /// Update a component's إحسان score.
-    pub fn update_ihsan(
-        &mut self,
-        id: &ComponentId,
-        score: IhsanScore,
-    ) -> Result<(), HookError> {
+    pub fn update_ihsan(&mut self, id: &ComponentId, score: IhsanScore) -> Result<(), HookError> {
         self.registry.update_ihsan(id, score)?;
         self.gate.set_score(*id, score, 0);
         Ok(())
@@ -412,27 +410,35 @@ mod tests {
         let mut sys = BizraSystem::new();
 
         // Register components
-        let mem = sys.register_component("memory-engine", "1.0.0", 1000).unwrap();
-        let agent = sys.register_component("agent-runtime", "1.0.0", 1001).unwrap();
+        let mem = sys
+            .register_component("memory-engine", "1.0.0", 1000)
+            .unwrap();
+        let agent = sys
+            .register_component("agent-runtime", "1.0.0", 1001)
+            .unwrap();
 
         // Activate
         sys.activate_component(&mem).unwrap();
         sys.activate_component(&agent).unwrap();
 
         // Add dependency
-        sys.add_dependency(agent, mem, DependencyKind::Required).unwrap();
+        sys.add_dependency(agent, mem, DependencyKind::Required)
+            .unwrap();
 
         // Subscribe agent to memory events
-        sys.subscribe(agent, "memory.*", Priority::Normal, noop_event_handler).unwrap();
+        sys.subscribe(agent, "memory.*", Priority::Normal, noop_event_handler)
+            .unwrap();
 
         // Emit event from memory engine
-        let delivered = sys.emit(
-            mem,
-            "memory.indexed",
-            Payload::from_str("500 vectors"),
-            Priority::Normal,
-            2000,
-        ).unwrap();
+        let delivered = sys
+            .emit(
+                mem,
+                "memory.indexed",
+                Payload::from_str("500 vectors"),
+                Priority::Normal,
+                2000,
+            )
+            .unwrap();
 
         assert_eq!(delivered, 1);
 
@@ -459,13 +465,7 @@ mod tests {
         sys.update_ihsan(&comp, IhsanScore::from_f64(0.50)).unwrap();
 
         // Try to emit — should be rejected by gate
-        let result = sys.emit(
-            comp,
-            "test.event",
-            Payload::empty(),
-            Priority::Normal,
-            2000,
-        );
+        let result = sys.emit(comp, "test.event", Payload::empty(), Priority::Normal, 2000);
 
         assert!(matches!(result, Err(HookError::IhsanGateRejected(_))));
     }
@@ -509,12 +509,10 @@ mod tests {
         let mut sys = BizraSystem::new();
 
         // Register a PreEmit hook that passes everything
-        sys.register_hook(
-            HookPhase::PreEmit,
-            "validator",
-            0,
-            |_| (HookResult::Continue, None),
-        ).unwrap();
+        sys.register_hook(HookPhase::PreEmit, "validator", 0, |_| {
+            (HookResult::Continue, None)
+        })
+        .unwrap();
 
         let comp = sys.register_component("hooked", "1.0.0", 1000).unwrap();
         sys.activate_component(&comp).unwrap();
@@ -541,17 +539,20 @@ mod tests {
 
         // Each subscribes to a wildcard
         for &id in &ids {
-            sys.subscribe(id, "broadcast.*", Priority::Low, noop_event_handler).unwrap();
+            sys.subscribe(id, "broadcast.*", Priority::Low, noop_event_handler)
+                .unwrap();
         }
 
         // Broadcast from first component
-        let delivered = sys.emit(
-            ids[0],
-            "broadcast.ping",
-            Payload::from_str("alive"),
-            Priority::Normal,
-            10000,
-        ).unwrap();
+        let delivered = sys
+            .emit(
+                ids[0],
+                "broadcast.ping",
+                Payload::from_str("alive"),
+                Priority::Normal,
+                10000,
+            )
+            .unwrap();
 
         // All 50 should receive (including the sender)
         assert_eq!(delivered, 50);
@@ -565,12 +566,16 @@ mod tests {
     fn dependency_impact_analysis() {
         let mut sys = BizraSystem::new();
 
-        let core = sys.register_component("core-engine", "1.0.0", 1000).unwrap();
+        let core = sys
+            .register_component("core-engine", "1.0.0", 1000)
+            .unwrap();
         let a = sys.register_component("agent-a", "1.0.0", 1001).unwrap();
         let b = sys.register_component("agent-b", "1.0.0", 1002).unwrap();
 
-        sys.add_dependency(a, core, DependencyKind::Required).unwrap();
-        sys.add_dependency(b, core, DependencyKind::Required).unwrap();
+        sys.add_dependency(a, core, DependencyKind::Required)
+            .unwrap();
+        sys.add_dependency(b, core, DependencyKind::Required)
+            .unwrap();
 
         // Removing core would break 2 components
         assert_eq!(sys.registry.removal_impact(&core), 2);
