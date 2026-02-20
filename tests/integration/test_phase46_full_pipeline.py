@@ -545,3 +545,144 @@ class TestFullPipeline:
         assert percents["search"] == 75
         assert percents["got_bridge"] == 30
         assert percents["hmm"] == 10
+
+
+# ======================================================================
+# Stage 5: Canary Stage 1 — SEARCH_PERCENT=10 activation verification
+# ======================================================================
+
+
+class TestCanaryStage1Activation:
+    """Verify the Stage 1 production configuration: SEARCH_ENABLED=1,
+    SEARCH_PERCENT=10, GoT/HMM disabled. Validates ~10% routing,
+    clean rollback windows, and correct metrics flow."""
+
+    @pytest.fixture(autouse=True)
+    def stage1_env(self, monkeypatch):
+        """Set the exact Stage 1 env vars from .env.example.
+
+        SEARCH_ENABLED is deliberately UNSET — percent routing controls search.
+        GoT/HMM kill switches are OFF (hard-disabled).
+        """
+        monkeypatch.delenv("BIZRA_PHASE46_SEARCH_ENABLED", raising=False)
+        monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "10")
+        monkeypatch.setenv("BIZRA_PHASE46_GOT_BRIDGE_ENABLED", "0")
+        monkeypatch.setenv("BIZRA_PHASE46_GOT_BRIDGE_PERCENT", "0")
+        monkeypatch.setenv("BIZRA_PHASE46_HMM_ENABLED", "0")
+        monkeypatch.setenv("BIZRA_PHASE46_HMM_PERCENT", "0")
+
+    def test_search_routes_approximately_10_percent(self):
+        """With SEARCH_PERCENT=10, roughly 10% of 1000 keys should route."""
+        router = CanaryRouter(salt="stage1-verify")
+        routed = sum(
+            router.should_route("search", f"query-{i}")
+            for i in range(1000)
+        )
+        # Expect ~100 routed (10%). Allow 5-15% range for hash variance.
+        assert 50 <= routed <= 150, f"Expected ~100 routed, got {routed}"
+
+    def test_search_routing_is_deterministic(self):
+        """Same keys produce identical routing decisions across runs."""
+        router = CanaryRouter(salt="stage1-verify")
+        run1 = [router.should_route("search", f"q-{i}") for i in range(200)]
+        run2 = [router.should_route("search", f"q-{i}") for i in range(200)]
+        assert run1 == run2
+
+    def test_got_bridge_fully_blocked(self):
+        """GoT bridge kill switch (ENABLED=0) blocks all routing."""
+        router = CanaryRouter()
+        routed = sum(
+            router.should_route("got_bridge", f"q-{i}")
+            for i in range(100)
+        )
+        assert routed == 0
+
+    def test_hmm_fully_blocked(self):
+        """HMM kill switch (ENABLED=0) blocks all routing."""
+        router = CanaryRouter()
+        routed = sum(
+            router.should_route("hmm", f"q-{i}")
+            for i in range(100)
+        )
+        assert routed == 0
+
+    def test_active_percents_reflect_stage1(self):
+        """get_active_percents() returns the Stage 1 configuration."""
+        router = CanaryRouter()
+        percents = router.get_active_percents()
+        assert percents["search"] == 10
+        assert percents["got_bridge"] == 0
+        assert percents["hmm"] == 0
+
+    def test_metrics_accumulate_for_routed_requests(self):
+        """Only routed requests increment search_requests counter."""
+        router = CanaryRouter(salt="stage1-metrics")
+        metrics = Phase46Metrics()
+
+        for i in range(100):
+            if router.should_route("search", f"query-{i}"):
+                metrics.inc("search_requests")
+                metrics.record_latency("search", 20.0 + i * 0.1)
+                metrics.inc("search_hits")
+
+        # Should have ~10 requests (10%)
+        count = metrics.get_counter("search_requests")
+        assert 3 <= count <= 20, f"Expected ~10, got {count}"
+        assert metrics.get_counter("search_hits") == count
+
+        snap = metrics.snapshot()
+        if count > 0:
+            assert snap["search"]["latency_p50_ms"] > 0
+            assert snap["search"]["hit_rate"] == pytest.approx(1.0, abs=0.01)
+
+    def test_rollback_stays_clean_with_no_errors(self):
+        """Under normal operation (no errors), rollback windows stay clean."""
+        metrics = Phase46Metrics()
+        receipt_dir = tempfile.mkdtemp(prefix="stage1_rollback_")
+
+        try:
+            rollback = RollbackEngine(receipt_dir=receipt_dir, metrics=metrics)
+
+            # Simulate 50 clean requests
+            for _ in range(50):
+                metrics.inc("search_requests")
+                metrics.record_latency("search", 18.0)
+                metrics.inc("search_hits")
+
+            # Evaluate with no breaches
+            rollback.evaluate("search_error_rate", breached=False)
+            rollback.evaluate("search_error_rate", breached=False)
+
+            status = rollback.status
+            for window_name, window in status["breach_windows"].items():
+                assert window["consecutive"] == 0, (
+                    f"{window_name} has consecutive={window['consecutive']}"
+                )
+            assert status["rollback_in_progress"] is False
+
+            # No receipts written
+            assert len(os.listdir(receipt_dir)) == 0
+        finally:
+            shutil.rmtree(receipt_dir, ignore_errors=True)
+
+    def test_stage1_rollback_preserves_got_hmm(self, monkeypatch):
+        """If search rolls back, GoT/HMM kill switches remain at 0 (disabled)."""
+        receipt_dir = tempfile.mkdtemp(prefix="stage1_preserve_")
+        metrics = Phase46Metrics()
+
+        try:
+            rollback = RollbackEngine(receipt_dir=receipt_dir, metrics=metrics)
+
+            # Trigger search rollback
+            rollback.evaluate("search_error_rate", breached=True)
+            receipt = rollback.evaluate("search_error_rate", breached=True)
+
+            assert receipt is not None
+            assert receipt.component == "search"
+            assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "0"
+
+            # GoT and HMM kill switches still blocking
+            assert os.environ.get("BIZRA_PHASE46_GOT_BRIDGE_ENABLED") == "0"
+            assert os.environ.get("BIZRA_PHASE46_HMM_ENABLED") == "0"
+        finally:
+            shutil.rmtree(receipt_dir, ignore_errors=True)
