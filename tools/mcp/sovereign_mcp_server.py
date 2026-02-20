@@ -340,6 +340,7 @@ class Phase46Interface:
         self._search = None       # VectorSearchEngine
         self._resonance = None    # CognitiveResonance
         self._hmm = None          # HMMEngine
+        self._hmm_gate = None     # HMMCallerGate (wraps _hmm)
         self.initialized = False
 
         # Phase 47.1: Observability metrics
@@ -349,6 +350,10 @@ class Phase46Interface:
         # Phase 49.3: Production rollback engine — monitors metrics and auto-rolls back
         from core.rollout.rollback import RollbackEngine
         self._rollback = RollbackEngine(metrics=self._metrics)
+
+        # Phase 49.6: Canary gate — rollback actually stops traffic
+        from core.rollout.canary import CanaryRouter
+        self._canary = CanaryRouter()
 
     def initialize(self) -> bool:
         """Initialize Phase 46 components. Each is independent."""
@@ -362,7 +367,10 @@ class Phase46Interface:
         try:
             from core.prediction import HMMEngine
             self._hmm = HMMEngine()
-            logger.info("Phase 46: HMMEngine ready (6 cognitive states)")
+            # Wrap with caller isolation gate
+            from core.rollout.hmm_gate import HMMCallerGate
+            self._hmm_gate = HMMCallerGate(self._hmm)
+            logger.info("Phase 46: HMMEngine + CallerGate ready (6 cognitive states)")
         except Exception as e:
             logger.warning(f"Phase 46 HMM init failed: {e}")
 
@@ -385,6 +393,10 @@ class Phase46Interface:
     def search(self, query: str, top_k: int = 10) -> Dict[str, Any]:
         """FAISS vector search with cosine similarity scoring."""
         self._metrics.inc("search_requests")
+
+        # Canary gate: rollback zeroing PERCENT actually stops traffic
+        if not self._canary.should_route("search", query):
+            return {"error": "Search temporarily disabled by canary routing", "results": []}
 
         if self._search is None:
             return {"error": "Search engine not available", "results": []}
@@ -427,6 +439,10 @@ class Phase46Interface:
     async def resonance(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """Full cognitive resonance pipeline: search → predict."""
         self._metrics.inc("resonance_requests")
+
+        # Canary gate: resonance depends on search, so gate on search component
+        if not self._canary.should_route("search", query):
+            return {"error": "Resonance temporarily disabled by canary routing"}
 
         if self._resonance is None:
             return {"error": "Resonance pipeline not available"}
@@ -476,11 +492,21 @@ class Phase46Interface:
         """HMM cognitive state observation and prediction."""
         self._metrics.inc("hmm_requests")
 
+        # Canary gate: rollback zeroing HMM_PERCENT actually stops observations
+        if not self._canary.should_route("hmm", action):
+            return {"error": "HMM prediction temporarily disabled by canary routing"}
+
         if self._hmm is None:
             return {"error": "HMM engine not available"}
 
         try:
-            result = self._hmm.observe(action)
+            # Route through HMMCallerGate for caller isolation
+            if self._hmm_gate is not None:
+                result = self._hmm_gate.observe(action, "mcp")
+                if result is None:
+                    return {"error": "HMM observation rejected by caller gate"}
+            else:
+                result = self._hmm.observe(action)
             self._metrics.record_hmm_confidence(result.prediction_confidence)
             self._metrics.record_hmm_observation(action)
 
@@ -571,6 +597,8 @@ class Phase46Interface:
                 self._hmm.current_state.value
                 if self._hmm is not None else None
             ),
+            "hmm_gate": self._hmm_gate.stats if self._hmm_gate is not None else None,
+            "canary_percents": self._canary.get_active_percents(),
             "metrics": self._metrics.snapshot(),
             "rollback": self._rollback.status,
         }

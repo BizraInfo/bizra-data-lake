@@ -516,8 +516,8 @@ spec:
         - alert: Phase46SearchErrorRate
           expr: |
             (
-              rate(phase46_search_errors_total[15m])
-              / rate(phase46_search_requests_total[15m])
+              rate(bizra_phase46_search_errors_total[15m])
+              / rate(bizra_phase46_search_requests_total[15m])
             ) > 0.02
           for: 5m
           labels:
@@ -536,8 +536,8 @@ spec:
         - alert: Phase46GoTFallbackRate
           expr: |
             (
-              rate(phase46_got_fallback_total[15m])
-              / rate(phase46_got_requests_total[15m])
+              rate(bizra_phase46_got_fallback_total[15m])
+              / rate(bizra_phase46_got_requests_total[15m])
             ) > 0.20
           for: 5m
           labels:
@@ -555,8 +555,8 @@ spec:
         # WARNING: End-to-end p95 latency delta > 30% over 30m
         - alert: Phase46LatencyRegression
           expr: |
-            histogram_quantile(0.95, rate(phase46_resonance_latency_seconds_bucket[30m]))
-            > 1.3 * histogram_quantile(0.95, rate(phase46_resonance_latency_seconds_bucket[30m] offset 1h))
+            bizra_phase46_search_latency_p95_ms
+            > 1.3 * bizra_phase46_search_latency_p95_ms offset 1h
           for: 10m
           labels:
             severity: warning
@@ -571,7 +571,7 @@ spec:
 
         # WARNING: HMM confidence p50 < 0.55 over 30m
         - alert: Phase46HMMConfidenceLow
-          expr: phase46_hmm_prediction_confidence{quantile="0.5"} < 0.55
+          expr: bizra_phase46_hmm_confidence_p50 < 0.55
           for: 30m
           labels:
             severity: warning
@@ -588,8 +588,8 @@ spec:
         # CRITICAL: Resonance combined_snr p50 drops > 15% from baseline
         - alert: Phase46ResonanceSNRDrop
           expr: |
-            phase46_resonance_combined_snr{quantile="0.5"}
-            < 0.85 * phase46_resonance_combined_snr_baseline
+            bizra_phase46_resonance_snr_p50
+            < 0.85 * bizra_phase46_resonance_snr_p50 offset 1h
           for: 30m
           labels:
             severity: critical
