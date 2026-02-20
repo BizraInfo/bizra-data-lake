@@ -31,6 +31,19 @@ from core.resonance import ResonanceResult
 
 
 # ---------------------------------------------------------------------------
+# Module-wide fixture: enable all Phase 46 canary routes for unit tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _enable_phase46_canary(monkeypatch):
+    """Enable all Phase 46 components so canary gates don't block tests."""
+    monkeypatch.setenv("BIZRA_PHASE46_SEARCH_ENABLED", "1")
+    monkeypatch.setenv("BIZRA_PHASE46_GOT_BRIDGE_ENABLED", "1")
+    monkeypatch.setenv("BIZRA_PHASE46_HMM_ENABLED", "1")
+    monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "multi")
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -554,3 +567,114 @@ class TestRollbackIntegration:
         windows = iface._rollback.status["breach_windows"]
         assert windows["hmm_confidence"]["consecutive"] == 1
         assert windows["hmm_confidence"]["last_breached"] is True
+
+
+# ===========================================================================
+# 6. TestCanaryGateEnforcement — P0 fix: canary actually blocks after rollback
+# ===========================================================================
+
+class TestCanaryGateEnforcement:
+    """Verify that CanaryRouter gate in Phase46Interface actually stops traffic
+    when env vars are zeroed by rollback."""
+
+    def _make_interface(self):
+        from tools.mcp.sovereign_mcp_server import Phase46Interface
+        return Phase46Interface()
+
+    def test_search_blocked_when_canary_disabled(self, monkeypatch):
+        """When SEARCH_ENABLED=0, search returns canary-disabled error."""
+        monkeypatch.setenv("BIZRA_PHASE46_SEARCH_ENABLED", "0")
+        iface = self._make_interface()
+        iface._search = MagicMock()
+        iface.initialized = True
+
+        result = iface.search("test query")
+        assert "canary" in result["error"].lower()
+        assert result["results"] == []
+        # Engine should NOT have been called
+        iface._search.search.assert_not_called()
+
+    def test_predict_blocked_when_canary_disabled(self, monkeypatch):
+        """When HMM_ENABLED=0, predict returns canary-disabled error."""
+        monkeypatch.setenv("BIZRA_PHASE46_HMM_ENABLED", "0")
+        iface = self._make_interface()
+        iface._hmm = MagicMock()
+        iface.initialized = True
+
+        result = iface.predict("search")
+        assert "canary" in result["error"].lower()
+        iface._hmm.observe.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_resonance_blocked_when_canary_disabled(self, monkeypatch):
+        """When SEARCH_ENABLED=0, resonance returns canary-disabled error."""
+        monkeypatch.setenv("BIZRA_PHASE46_SEARCH_ENABLED", "0")
+        iface = self._make_interface()
+        iface._resonance = AsyncMock()
+        iface.initialized = True
+
+        result = await iface.resonance("test query")
+        assert "canary" in result["error"].lower()
+        iface._resonance.process.assert_not_called()
+
+    def test_search_allowed_after_percent_routing(self, monkeypatch):
+        """When SEARCH_ENABLED unset and PERCENT=100, search executes normally."""
+        monkeypatch.delenv("BIZRA_PHASE46_SEARCH_ENABLED", raising=False)
+        monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "100")
+        iface = self._make_interface()
+
+        engine = MagicMock()
+        engine.search.return_value = []
+        iface._search = engine
+        iface.initialized = True
+
+        result = iface.search("test query")
+        assert "error" not in result
+        engine.search.assert_called_once()
+
+    def test_rollback_zeroes_percent_then_canary_blocks(self, monkeypatch, tmp_path):
+        """Full P0 chain: rollback zeroes PERCENT, canary blocks subsequent search."""
+        monkeypatch.delenv("BIZRA_PHASE46_SEARCH_ENABLED", raising=False)
+        monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "100")
+
+        iface = self._make_interface()
+        iface._rollback._receipt_dir = tmp_path
+
+        engine = MagicMock()
+        engine.search.return_value = []
+        iface._search = engine
+        iface.initialized = True
+
+        # Before rollback: search works
+        result = iface.search("query-a")
+        assert "error" not in result
+        engine.search.assert_called_once()
+
+        # Trigger rollback (2 consecutive breaches)
+        iface._metrics.inc("search_requests", 15)
+        iface._metrics.inc("search_errors", 5)
+        iface._evaluate_rollback()
+        iface._evaluate_rollback()
+
+        # After rollback: PERCENT should be 0, canary should block
+        assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "0"
+
+        engine.reset_mock()
+        result2 = iface.search("query-b")
+        assert "canary" in result2["error"].lower()
+        engine.search.assert_not_called()
+
+    def test_status_includes_canary_percents(self):
+        """Status dict exposes canary active percents."""
+        iface = self._make_interface()
+        status = iface.status
+        assert "canary_percents" in status
+        assert "search" in status["canary_percents"]
+        assert "hmm" in status["canary_percents"]
+
+    def test_hmm_gate_in_status(self):
+        """Status dict exposes HMM gate stats when gate is available."""
+        iface = self._make_interface()
+        # _hmm_gate is None by default (no HMMEngine initialized)
+        status = iface.status
+        assert "hmm_gate" in status
