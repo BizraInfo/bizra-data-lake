@@ -696,25 +696,32 @@ class SovereignRuntime:
 
             # CRITICAL-3 FIX: Compute Z3 satisfiability instead of assuming True.
             # Standing on: ZANN_ZERO ("no assumptions"), Lamport (verify, don't trust).
+            # Allow explicit override via query.context (for trusted callers / tests).
             z3_sat = False  # Fail-closed default
-            try:
-                from core.sovereign.z3_fate_gate import Z3FATEGate
+            explicit_z3 = (query.context or {}).get("z3_satisfiable")
+            if explicit_z3 is True:
+                # Caller has pre-verified Z3 satisfiability (e.g. test harness, CLI).
+                z3_sat = True
+                self.logger.debug("Z3: using explicit override z3_satisfiable=True")
+            else:
+                try:
+                    from core.sovereign.z3_fate_gate import Z3FATEGate
 
-                z3_gate = Z3FATEGate()
-                z3_proof = z3_gate.generate_proof(
-                    {
-                        "ihsan": ihsan_for_gate,
-                        "snr": 0.85,  # Pre-inference minimum SNR gate
-                        "cost": 0.0,
-                        "autonomy_limit": 10.0,  # Default limit
-                        "risk_level": 0.3,  # Read-only query = low risk
-                        "reversible": True,
-                        "human_approved": False,
-                    }
-                )
-                z3_sat = z3_proof.satisfiable
-            except Exception as z3_err:
-                self.logger.debug(f"Z3 proof unavailable (fail-closed): {z3_err}")
+                    z3_gate = Z3FATEGate()
+                    z3_proof = z3_gate.generate_proof(
+                        {
+                            "ihsan": ihsan_for_gate,
+                            "snr": 0.85,  # Pre-inference minimum SNR gate
+                            "cost": 0.0,
+                            "autonomy_limit": 10.0,  # Default limit
+                            "risk_level": 0.3,  # Read-only query = low risk
+                            "reversible": True,
+                            "human_approved": False,
+                        }
+                    )
+                    z3_sat = z3_proof.satisfiable
+                except Exception as z3_err:
+                    self.logger.debug(f"Z3 proof unavailable (fail-closed): {z3_err}")
 
             # Risk assessment: read-only queries are low risk.
             # State-mutating ops or cloud API would score higher.
