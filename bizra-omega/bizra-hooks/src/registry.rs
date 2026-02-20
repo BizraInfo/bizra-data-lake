@@ -102,8 +102,7 @@ impl Registry {
         }
 
         // Find empty slot
-        let slot = self.find_empty_slot()
-            .ok_or(HookError::RegistryFull)?;
+        let slot = self.find_empty_slot().ok_or(HookError::RegistryFull)?;
 
         self.components[slot] = Some(ComponentMeta {
             id,
@@ -126,10 +125,12 @@ impl Registry {
 
     /// Unregister a component. Removes it and all its dependency edges.
     pub fn unregister(&mut self, id: &ComponentId) -> Result<ComponentMeta, HookError> {
-        let slot = self.find_slot(id)
+        let slot = self
+            .find_slot(id)
             .ok_or(HookError::ComponentNotFound(*id))?;
 
-        let meta = self.components[slot].take()
+        let meta = self.components[slot]
+            .take()
             .ok_or(HookError::ComponentNotFound(*id))?;
 
         self.count -= 1;
@@ -208,8 +209,7 @@ impl Registry {
 
     /// Activate a component (transition to Active).
     pub fn activate(&mut self, id: &ComponentId) -> Result<(), HookError> {
-        let meta = self.get_mut(id)
-            .ok_or(HookError::ComponentNotFound(*id))?;
+        let meta = self.get_mut(id).ok_or(HookError::ComponentNotFound(*id))?;
         meta.status = ComponentStatus::Active;
         self.change_sequence += 1;
         Ok(())
@@ -217,8 +217,7 @@ impl Registry {
 
     /// Suspend a component.
     pub fn suspend(&mut self, id: &ComponentId) -> Result<(), HookError> {
-        let meta = self.get_mut(id)
-            .ok_or(HookError::ComponentNotFound(*id))?;
+        let meta = self.get_mut(id).ok_or(HookError::ComponentNotFound(*id))?;
         meta.status = ComponentStatus::Suspended;
         self.change_sequence += 1;
         Ok(())
@@ -226,8 +225,7 @@ impl Registry {
 
     /// Mark a component as failed.
     pub fn mark_failed(&mut self, id: &ComponentId) -> Result<(), HookError> {
-        let meta = self.get_mut(id)
-            .ok_or(HookError::ComponentNotFound(*id))?;
+        let meta = self.get_mut(id).ok_or(HookError::ComponentNotFound(*id))?;
         meta.status = ComponentStatus::Failed;
         self.change_sequence += 1;
         self.recalculate_system_ihsan();
@@ -236,8 +234,7 @@ impl Registry {
 
     /// Update a component's إحسان score.
     pub fn update_ihsan(&mut self, id: &ComponentId, score: IhsanScore) -> Result<(), HookError> {
-        let meta = self.get_mut(id)
-            .ok_or(HookError::ComponentNotFound(*id))?;
+        let meta = self.get_mut(id).ok_or(HookError::ComponentNotFound(*id))?;
         meta.ihsan = score;
         self.change_sequence += 1;
         self.recalculate_system_ihsan();
@@ -280,7 +277,9 @@ impl Registry {
         }
 
         // Find empty dependency slot
-        let slot = self.dependencies.iter()
+        let slot = self
+            .dependencies
+            .iter()
             .position(|d| d.is_none())
             .ok_or(HookError::RegistryFull)?;
 
@@ -292,15 +291,23 @@ impl Registry {
     }
 
     /// Get all dependencies of a component (what it depends ON).
-    pub fn dependencies_of<'a>(&'a self, id: &'a ComponentId) -> impl Iterator<Item = &'a Dependency> + 'a {
-        self.dependencies.iter()
+    pub fn dependencies_of<'a>(
+        &'a self,
+        id: &'a ComponentId,
+    ) -> impl Iterator<Item = &'a Dependency> + 'a {
+        self.dependencies
+            .iter()
             .filter_map(|d| d.as_ref())
             .filter(move |d| d.from == *id)
     }
 
     /// Get all dependents of a component (what depends on IT).
-    pub fn dependents_of<'a>(&'a self, id: &'a ComponentId) -> impl Iterator<Item = &'a Dependency> + 'a {
-        self.dependencies.iter()
+    pub fn dependents_of<'a>(
+        &'a self,
+        id: &'a ComponentId,
+    ) -> impl Iterator<Item = &'a Dependency> + 'a {
+        self.dependencies
+            .iter()
             .filter_map(|d| d.as_ref())
             .filter(move |d| d.to == *id)
     }
@@ -334,9 +341,9 @@ impl Registry {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn find_slot(&self, id: &ComponentId) -> Option<usize> {
-        self.components.iter().position(|c| {
-            c.as_ref().map(|m| m.id == *id).unwrap_or(false)
-        })
+        self.components
+            .iter()
+            .position(|c| c.as_ref().map(|m| m.id == *id).unwrap_or(false))
     }
 
     fn find_empty_slot(&self) -> Option<usize> {
@@ -432,7 +439,8 @@ mod tests {
         let mem = reg.register("memory", "1.0.0", 1000).unwrap();
         let agent = reg.register("agent", "1.0.0", 1000).unwrap();
 
-        reg.add_dependency(agent, mem, DependencyKind::Required).unwrap();
+        reg.add_dependency(agent, mem, DependencyKind::Required)
+            .unwrap();
 
         assert_eq!(reg.dependencies_of(&agent).count(), 1);
         assert_eq!(reg.dependents_of(&mem).count(), 1);

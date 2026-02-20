@@ -4,12 +4,12 @@
 //! certifies its validated capabilities. Cards are signed using
 //! Ed25519 for fast verification and include expiration dates.
 
-use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey, Signature};
+use chrono::{DateTime, Duration, Utc};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Duration, Utc};
 
 use crate::{ModelTier, TaskType, IHSAN_THRESHOLD, SNR_THRESHOLD};
 
@@ -134,7 +134,9 @@ impl CapabilityCard {
             return Ok(false);
         }
 
-        let expires: DateTime<Utc> = self.expires_at.parse()
+        let expires: DateTime<Utc> = self
+            .expires_at
+            .parse()
             .map_err(|_| Error::from_reason("Invalid expiration date"))?;
 
         Ok(Utc::now() < expires)
@@ -201,14 +203,17 @@ impl CardIssuer {
         let pk_bytes = hex::decode(&card.issuer_public_key)
             .map_err(|_| Error::from_reason("Invalid public key hex"))?;
 
-        let pk_array: [u8; 32] = pk_bytes.try_into()
+        let pk_array: [u8; 32] = pk_bytes
+            .try_into()
             .map_err(|_| Error::from_reason("Public key must be 32 bytes"))?;
 
         let verifying_key = VerifyingKey::from_bytes(&pk_array)
             .map_err(|_| Error::from_reason("Invalid public key"))?;
 
         // Verify
-        Ok(verifying_key.verify(&card.canonical_bytes(), &signature).is_ok())
+        Ok(verifying_key
+            .verify(&card.canonical_bytes(), &signature)
+            .is_ok())
     }
 }
 
@@ -222,8 +227,8 @@ pub fn verify_capability_card(card_json: String) -> Result<CapabilityCardValidat
     let is_expired = !card.is_valid().unwrap_or(false);
 
     // Verify signature
-    let sig_bytes = hex::decode(&card.signature)
-        .map_err(|_| Error::from_reason("Invalid signature hex"))?;
+    let sig_bytes =
+        hex::decode(&card.signature).map_err(|_| Error::from_reason("Invalid signature hex"))?;
 
     let signature = Signature::from_slice(&sig_bytes)
         .map_err(|_| Error::from_reason("Invalid signature format"))?;
@@ -231,13 +236,16 @@ pub fn verify_capability_card(card_json: String) -> Result<CapabilityCardValidat
     let pk_bytes = hex::decode(&card.issuer_public_key)
         .map_err(|_| Error::from_reason("Invalid public key hex"))?;
 
-    let pk_array: [u8; 32] = pk_bytes.try_into()
+    let pk_array: [u8; 32] = pk_bytes
+        .try_into()
         .map_err(|_| Error::from_reason("Public key must be 32 bytes"))?;
 
     let verifying_key = VerifyingKey::from_bytes(&pk_array)
         .map_err(|_| Error::from_reason("Invalid public key"))?;
 
-    let signature_valid = verifying_key.verify(&card.canonical_bytes(), &signature).is_ok();
+    let signature_valid = verifying_key
+        .verify(&card.canonical_bytes(), &signature)
+        .is_ok();
 
     // Check scores still meet thresholds
     let ihsan_valid = card.ihsan_score >= IHSAN_THRESHOLD;
@@ -298,7 +306,8 @@ mod tests {
             vec![TaskType::Chat],
             0.97,
             0.90,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(card.model_id, "test-model");
         assert_eq!(card.tier, "LOCAL");
@@ -315,7 +324,8 @@ mod tests {
             vec![TaskType::Chat, TaskType::Summarization],
             0.96,
             0.88,
-        ).unwrap();
+        )
+        .unwrap();
 
         let card_json = serde_json::to_string(&card).unwrap();
         let signed_json = issuer.issue(card_json).unwrap();

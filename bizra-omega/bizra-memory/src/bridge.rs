@@ -62,8 +62,12 @@ impl ExtractionContent {
         unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
     }
 
-    pub fn len(&self) -> usize { self.len }
-    pub fn is_empty(&self) -> bool { self.len == 0 }
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 impl core::fmt::Debug for ExtractionContent {
@@ -100,8 +104,12 @@ impl ExtractionBatch {
         self.results[..self.count].iter().filter_map(|r| r.as_ref())
     }
 
-    pub fn count(&self) -> usize { self.count }
-    pub fn is_empty(&self) -> bool { self.count == 0 }
+    pub fn count(&self) -> usize {
+        self.count
+    }
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
 }
 
 impl Default for ExtractionBatch {
@@ -141,8 +149,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Preference patterns
-        if lower.contains("i prefer") || lower.contains("i like")
-            || lower.contains("i want") || lower.contains("i need")
+        if lower.contains("i prefer")
+            || lower.contains("i like")
+            || lower.contains("i want")
+            || lower.contains("i need")
         {
             batch.push(ExtractionResult {
                 kind: AtomKind::Preference,
@@ -152,8 +162,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Goal patterns
-        if lower.contains("working on") || lower.contains("building")
-            || lower.contains("preparing") || lower.contains("planning")
+        if lower.contains("working on")
+            || lower.contains("building")
+            || lower.contains("preparing")
+            || lower.contains("planning")
         {
             batch.push(ExtractionResult {
                 kind: AtomKind::Goal,
@@ -163,8 +175,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Negation patterns
-        if lower.contains("i don't") || lower.contains("i never")
-            || lower.contains("i do not") || lower.contains("not interested")
+        if lower.contains("i don't")
+            || lower.contains("i never")
+            || lower.contains("i do not")
+            || lower.contains("not interested")
         {
             batch.push(ExtractionResult {
                 kind: AtomKind::Negation,
@@ -174,8 +188,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Behavioral patterns
-        if lower.contains("every day") || lower.contains("usually")
-            || lower.contains("always") || lower.contains("every morning")
+        if lower.contains("every day")
+            || lower.contains("usually")
+            || lower.contains("always")
+            || lower.contains("every morning")
         {
             batch.push(ExtractionResult {
                 kind: AtomKind::Pattern,
@@ -185,8 +201,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Expertise patterns
-        if lower.contains("i know") || lower.contains("i understand")
-            || lower.contains("expert") || lower.contains("experienced")
+        if lower.contains("i know")
+            || lower.contains("i understand")
+            || lower.contains("expert")
+            || lower.contains("experienced")
         {
             batch.push(ExtractionResult {
                 kind: AtomKind::Expertise,
@@ -196,8 +214,10 @@ impl Extractor for RuleExtractor {
         }
 
         // Principle patterns
-        if lower.contains("principle") || lower.contains("believe")
-            || lower.contains("value") || lower.contains("إحسان")
+        if lower.contains("principle")
+            || lower.contains("believe")
+            || lower.contains("value")
+            || lower.contains("إحسان")
             || lower.contains("ihsan")
         {
             batch.push(ExtractionResult {
@@ -219,7 +239,9 @@ impl Extractor for RuleExtractor {
         batch
     }
 
-    fn engine_name(&self) -> &str { "rule-extractor-v1" }
+    fn engine_name(&self) -> &str {
+        "rule-extractor-v1"
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -245,7 +267,9 @@ pub struct SearchBatch {
 
 impl SearchBatch {
     pub fn new() -> Self {
-        SearchBatch { results: Vec::with_capacity(MAX_SEARCH_RESULTS) }
+        SearchBatch {
+            results: Vec::with_capacity(MAX_SEARCH_RESULTS),
+        }
     }
 
     pub fn push(&mut self, result: SearchResult) {
@@ -258,12 +282,20 @@ impl SearchBatch {
         self.results.iter()
     }
 
-    pub fn count(&self) -> usize { self.results.len() }
-    pub fn is_empty(&self) -> bool { self.results.is_empty() }
+    pub fn count(&self) -> usize {
+        self.results.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.results.is_empty()
+    }
 
     /// Sort by relevance descending.
     pub fn sort_by_relevance(&mut self) {
-        self.results.sort_by(|a, b| b.relevance.partial_cmp(&a.relevance).unwrap_or(core::cmp::Ordering::Equal));
+        self.results.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
     }
 }
 
@@ -292,7 +324,7 @@ pub trait Searcher {
 /// C-ABI compatible extraction result for FFI.
 #[repr(C)]
 pub struct FfiExtractionResult {
-    pub kind: u8,         // AtomKind as u8
+    pub kind: u8, // AtomKind as u8
     pub confidence: f32,
     pub content_ptr: *const u8,
     pub content_len: u32,
@@ -303,7 +335,7 @@ pub struct FfiExtractionResult {
 pub struct FfiSearchResult {
     pub relevance: f32,
     pub confidence: f32,
-    pub kind: u8,         // QueryResultKind as u8
+    pub kind: u8, // QueryResultKind as u8
     pub content_ptr: *const u8,
     pub content_len: u32,
 }
@@ -312,8 +344,8 @@ pub struct FfiSearchResult {
 #[repr(C)]
 pub struct FfiBatchHeader {
     pub count: u32,
-    pub success: u8,      // 0 = error, 1 = ok
-    pub error_code: u32,  // 0 = none
+    pub success: u8,     // 0 = error, 1 = ok
+    pub error_code: u32, // 0 = none
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -357,7 +389,9 @@ impl BridgeHealth {
     }
 
     pub fn success_rate(&self) -> f64 {
-        if self.calls_made == 0 { return 1.0; }
+        if self.calls_made == 0 {
+            return 1.0;
+        }
         1.0 - (self.calls_failed as f64 / self.calls_made as f64)
     }
 }
@@ -380,7 +414,10 @@ mod tests {
     #[test]
     fn rule_extractor_preference() {
         let extractor = RuleExtractor;
-        let batch = extractor.extract("I prefer Rust over Python for core", FragmentKind::UserMessage);
+        let batch = extractor.extract(
+            "I prefer Rust over Python for core",
+            FragmentKind::UserMessage,
+        );
 
         let pref = batch.iter().find(|r| r.kind == AtomKind::Preference);
         assert!(pref.is_some());

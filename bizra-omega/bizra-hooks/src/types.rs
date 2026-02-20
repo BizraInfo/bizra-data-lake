@@ -9,8 +9,8 @@
 //! - **Cryptographic identity**: IDs derived from content, not sequence counters
 //! - **إحسان scoring**: Quality is a first-class type, not an afterthought
 
-use core::fmt;
 use core::cmp::Ordering;
+use core::fmt;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Identity Types — Fixed-size, Copy, deterministic
@@ -190,7 +190,10 @@ impl Topic {
         let bytes = s.as_bytes();
         let len = bytes.len().min(128);
         data[..len].copy_from_slice(&bytes[..len]);
-        Topic { data, len: len as u8 }
+        Topic {
+            data,
+            len: len as u8,
+        }
     }
 
     /// Get topic as string slice.
@@ -207,7 +210,8 @@ impl Topic {
 
         if pat.ends_with(".*") {
             let prefix = &pat[..pat.len() - 2];
-            topic.starts_with(prefix) && topic.len() > prefix.len()
+            topic.starts_with(prefix)
+                && topic.len() > prefix.len()
                 && topic.as_bytes()[prefix.len()] == b'.'
         } else {
             topic == pat
@@ -235,7 +239,10 @@ impl Topic {
             data[i] = bytes[i];
             i += 1;
         }
-        Topic { data, len: len as u8 }
+        Topic {
+            data,
+            len: len as u8,
+        }
     }
 }
 
@@ -264,11 +271,17 @@ impl Payload {
         let mut data = [0u8; 256];
         let len = bytes.len().min(256);
         data[..len].copy_from_slice(&bytes[..len]);
-        Payload { data, len: len as u16 }
+        Payload {
+            data,
+            len: len as u16,
+        }
     }
 
     pub fn empty() -> Self {
-        Payload { data: [0u8; 256], len: 0 }
+        Payload {
+            data: [0u8; 256],
+            len: 0,
+        }
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -361,7 +374,13 @@ impl IhsanScore {
 
     /// Create from floating point (clamped to 0.0..1.0).
     pub fn from_f64(score: f64) -> Self {
-        let clamped = if score < 0.0 { 0.0 } else if score > 1.0 { 1.0 } else { score };
+        let clamped = if score < 0.0 {
+            0.0
+        } else if score > 1.0 {
+            1.0
+        } else {
+            score
+        };
         IhsanScore((clamped * 65535.0) as u16)
     }
 
@@ -455,7 +474,10 @@ impl Name {
         let bytes = s.as_bytes();
         let len = bytes.len().min(64);
         data[..len].copy_from_slice(&bytes[..len]);
-        Name { data, len: len as u8 }
+        Name {
+            data,
+            len: len as u8,
+        }
     }
 
     pub fn as_str(&self) -> &str {
@@ -488,7 +510,10 @@ impl Version {
         let bytes = s.as_bytes();
         let len = bytes.len().min(16);
         data[..len].copy_from_slice(&bytes[..len]);
-        Version { data, len: len as u8 }
+        Version {
+            data,
+            len: len as u8,
+        }
     }
 
     pub fn as_str(&self) -> &str {

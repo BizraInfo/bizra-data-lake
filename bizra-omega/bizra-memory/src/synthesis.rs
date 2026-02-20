@@ -16,8 +16,8 @@
 //!
 //! That's what this engine does.
 
-use crate::types::*;
 use crate::store::InMemoryStore;
+use crate::types::*;
 
 /// Configuration for synthesis strategies.
 #[derive(Debug, Clone, Copy)]
@@ -94,11 +94,7 @@ impl SynthesisEngine {
     /// 2. Correlation of same-kind patterns
     /// 3. Contradiction detection and resolution
     /// 4. Reinforcement of existing atoms with new evidence
-    pub fn synthesize(
-        &mut self,
-        store: &mut InMemoryStore,
-        now: u64,
-    ) -> SynthesisPassResult {
+    pub fn synthesize(&mut self, store: &mut InMemoryStore, now: u64) -> SynthesisPassResult {
         self.total_passes += 1;
 
         let mut result = SynthesisPassResult {
@@ -115,13 +111,15 @@ impl SynthesisEngine {
             .pending_synthesis()
             .filter(|a| a.header.confidence.effective_at(now) >= self.config.min_atom_confidence)
             .take(self.config.max_atoms_per_pass)
-            .map(|a| (
-                a.header.id,
-                a.header.kind,
-                a.header.confidence.effective_at(now),
-                a.header.content_offset,
-                a.header.content_len,
-            ))
+            .map(|a| {
+                (
+                    a.header.id,
+                    a.header.kind,
+                    a.header.confidence.effective_at(now),
+                    a.header.content_offset,
+                    a.header.content_len,
+                )
+            })
             .collect();
 
         result.atoms_examined = pending.len() as u32;
@@ -134,7 +132,10 @@ impl SynthesisEngine {
                     let method = SynthesisMethod::Direct;
                     let conf = Confidence::new(confidence, now);
 
-                    if store.store_insight(method, &insight_content, &[atom_id], conf, now).is_ok() {
+                    if store
+                        .store_insight(method, &insight_content, &[atom_id], conf, now)
+                        .is_ok()
+                    {
                         result.insights_produced += 1;
                         self.total_insights_produced += 1;
                     }
@@ -162,13 +163,10 @@ impl SynthesisEngine {
                     let avg_conf = group.iter().map(|g| g.2).sum::<f32>() / group.len() as f32;
                     let conf = Confidence::new(avg_conf * 0.85, now); // slight penalty for inference
 
-                    if store.store_insight(
-                        SynthesisMethod::Correlation,
-                        &summary,
-                        &atom_ids,
-                        conf,
-                        now,
-                    ).is_ok() {
+                    if store
+                        .store_insight(SynthesisMethod::Correlation, &summary, &atom_ids, conf, now)
+                        .is_ok()
+                    {
                         result.insights_produced += 1;
                         self.total_insights_produced += 1;
                     }
@@ -201,18 +199,22 @@ impl SynthesisEngine {
         atoms: &'a [(AtomId, AtomKind, f32, u64, u32)],
     ) -> Vec<(AtomKind, Vec<&'a (AtomId, AtomKind, f32, u64, u32)>)> {
         let kinds = [
-            AtomKind::Fact, AtomKind::Preference, AtomKind::Pattern,
-            AtomKind::Relationship, AtomKind::Goal, AtomKind::Expertise,
-            AtomKind::Context, AtomKind::Principle, AtomKind::Temporal,
+            AtomKind::Fact,
+            AtomKind::Preference,
+            AtomKind::Pattern,
+            AtomKind::Relationship,
+            AtomKind::Goal,
+            AtomKind::Expertise,
+            AtomKind::Context,
+            AtomKind::Principle,
+            AtomKind::Temporal,
             AtomKind::Negation,
         ];
 
         let mut groups = Vec::new();
         for kind in &kinds {
-            let group: Vec<&(AtomId, AtomKind, f32, u64, u32)> = atoms
-                .iter()
-                .filter(|(_, k, _, _, _)| k == kind)
-                .collect();
+            let group: Vec<&(AtomId, AtomKind, f32, u64, u32)> =
+                atoms.iter().filter(|(_, k, _, _, _)| k == kind).collect();
 
             if !group.is_empty() {
                 groups.push((*kind, group));
@@ -251,9 +253,15 @@ impl SynthesisEngine {
     // Telemetry
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    pub fn total_passes(&self) -> u64 { self.total_passes }
-    pub fn total_insights_produced(&self) -> u64 { self.total_insights_produced }
-    pub fn config(&self) -> &SynthesisConfig { &self.config }
+    pub fn total_passes(&self) -> u64 {
+        self.total_passes
+    }
+    pub fn total_insights_produced(&self) -> u64 {
+        self.total_insights_produced
+    }
+    pub fn config(&self) -> &SynthesisConfig {
+        &self.config
+    }
 }
 
 impl Default for SynthesisEngine {
@@ -278,10 +286,15 @@ mod tests {
         let frag = FragmentId::from_content(b"test");
 
         // Store a high-confidence atom
-        store.store_atom(
-            AtomKind::Fact, "User's name is Mumo", frag,
-            Confidence::stated(1000), prov(1000),
-        ).unwrap();
+        store
+            .store_atom(
+                AtomKind::Fact,
+                "User's name is Mumo",
+                frag,
+                Confidence::stated(1000),
+                prov(1000),
+            )
+            .unwrap();
 
         let result = engine.synthesize(&mut store, 1000);
 
@@ -301,12 +314,33 @@ mod tests {
         let frag = FragmentId::from_content(b"test");
 
         // Store 3+ patterns (meets correlation_threshold)
-        store.store_atom(AtomKind::Pattern, "Works after Fajr", frag,
-            Confidence::inferred(1000), prov(1000)).unwrap();
-        store.store_atom(AtomKind::Pattern, "Loses focus at 2pm", frag,
-            Confidence::inferred(1000), prov(1000)).unwrap();
-        store.store_atom(AtomKind::Pattern, "Peak coding at 6am", frag,
-            Confidence::inferred(1000), prov(1000)).unwrap();
+        store
+            .store_atom(
+                AtomKind::Pattern,
+                "Works after Fajr",
+                frag,
+                Confidence::inferred(1000),
+                prov(1000),
+            )
+            .unwrap();
+        store
+            .store_atom(
+                AtomKind::Pattern,
+                "Loses focus at 2pm",
+                frag,
+                Confidence::inferred(1000),
+                prov(1000),
+            )
+            .unwrap();
+        store
+            .store_atom(
+                AtomKind::Pattern,
+                "Peak coding at 6am",
+                frag,
+                Confidence::inferred(1000),
+                prov(1000),
+            )
+            .unwrap();
 
         let result = engine.synthesize(&mut store, 1000);
 
@@ -314,7 +348,8 @@ mod tests {
         assert!(result.insights_produced >= 1);
 
         // Find the correlation insight
-        let corr = store.valid_insights()
+        let corr = store
+            .valid_insights()
             .find(|i| i.header.synthesis_method == SynthesisMethod::Correlation);
         assert!(corr.is_some());
     }
@@ -326,10 +361,15 @@ mod tests {
         let frag = FragmentId::from_content(b"test");
 
         // Store a very low confidence atom
-        store.store_atom(
-            AtomKind::Fact, "Maybe likes coffee", frag,
-            Confidence::new(0.20, 1000), prov(1000),
-        ).unwrap();
+        store
+            .store_atom(
+                AtomKind::Fact,
+                "Maybe likes coffee",
+                frag,
+                Confidence::new(0.20, 1000),
+                prov(1000),
+            )
+            .unwrap();
 
         let result = engine.synthesize(&mut store, 1000);
 
@@ -346,10 +386,15 @@ mod tests {
         let one_day: u64 = 24 * 3600 * 1_000_000_000;
 
         // Store atom at time 0 with medium confidence
-        store.store_atom(
-            AtomKind::Preference, "Prefers tabs over spaces", frag,
-            Confidence::inferred(0), prov(0),
-        ).unwrap();
+        store
+            .store_atom(
+                AtomKind::Preference,
+                "Prefers tabs over spaces",
+                frag,
+                Confidence::inferred(0),
+                prov(0),
+            )
+            .unwrap();
 
         // Synthesize after 90 days — confidence should have decayed
         let result = engine.synthesize(&mut store, 90 * one_day);
@@ -365,15 +410,29 @@ mod tests {
         let frag = FragmentId::from_content(b"test");
 
         // Pass 1: one atom
-        store.store_atom(AtomKind::Fact, "CEO of BIZRA", frag,
-            Confidence::stated(1000), prov(1000)).unwrap();
+        store
+            .store_atom(
+                AtomKind::Fact,
+                "CEO of BIZRA",
+                frag,
+                Confidence::stated(1000),
+                prov(1000),
+            )
+            .unwrap();
         let r1 = engine.synthesize(&mut store, 1000);
         assert_eq!(r1.insights_produced, 1);
 
         // Pass 2: new atom (different content for dedup)
         let frag2 = FragmentId::from_content(b"test2");
-        store.store_atom(AtomKind::Fact, "Based in Dubai", frag2,
-            Confidence::stated(2000), prov(2000)).unwrap();
+        store
+            .store_atom(
+                AtomKind::Fact,
+                "Based in Dubai",
+                frag2,
+                Confidence::stated(2000),
+                prov(2000),
+            )
+            .unwrap();
         let r2 = engine.synthesize(&mut store, 2000);
         assert_eq!(r2.insights_produced, 1);
 

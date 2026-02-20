@@ -46,13 +46,13 @@ impl Channel {
     /// Get the maximum message size for this channel
     pub fn max_message_size(&self) -> usize {
         match self {
-            Channel::InferenceRequest => 64 * 1024,      // 64KB
-            Channel::InferenceResponse => 1024 * 1024,   // 1MB
-            Channel::GateRequest => 1024 * 1024,         // 1MB
-            Channel::GateResponse => 64 * 1024,          // 64KB
-            Channel::ModelRegistry => 256 * 1024,        // 256KB
-            Channel::Control => 4 * 1024,                // 4KB
-            Channel::Metrics => 16 * 1024,               // 16KB
+            Channel::InferenceRequest => 64 * 1024,    // 64KB
+            Channel::InferenceResponse => 1024 * 1024, // 1MB
+            Channel::GateRequest => 1024 * 1024,       // 1MB
+            Channel::GateResponse => 64 * 1024,        // 64KB
+            Channel::ModelRegistry => 256 * 1024,      // 256KB
+            Channel::Control => 4 * 1024,              // 4KB
+            Channel::Metrics => 16 * 1024,             // 16KB
         }
     }
 
@@ -143,10 +143,7 @@ mod tests {
             Channel::InferenceRequest.service_name(),
             "bizra/inference/request"
         );
-        assert_eq!(
-            Channel::GateResponse.service_name(),
-            "bizra/gate/response"
-        );
+        assert_eq!(Channel::GateResponse.service_name(), "bizra/gate/response");
     }
 
     #[test]

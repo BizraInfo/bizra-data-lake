@@ -7,7 +7,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use pqcrypto_mldsa::mldsa87;
-use pqcrypto_traits::sign::{PublicKey, SecretKey, DetachedSignature};
+use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 
 /// Dilithium-5 keypair for post-quantum signatures
@@ -86,7 +86,9 @@ impl DilithiumKeypair {
             .map_err(|e| Error::from_reason(format!("Parse error: {}", e)))?;
 
         if data.algorithm != "ML-DSA-87" && data.algorithm != "Dilithium-5" {
-            return Err(Error::from_reason("Algorithm mismatch: expected ML-DSA-87 or Dilithium-5"));
+            return Err(Error::from_reason(
+                "Algorithm mismatch: expected ML-DSA-87 or Dilithium-5",
+            ));
         }
 
         Ok(Self {

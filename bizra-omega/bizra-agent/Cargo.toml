@@ -1,0 +1,20 @@
+[package]
+name = "bizra-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sovereign Agent Runtime — the being that uses hooks (nerves) and memory (brain). Orchestrates PAT (Personal Agent Team) with 7 specialized agents per user."
+publish = false
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+bizra-hooks = { path = "../bizra-hooks" }
+bizra-memory = { path = "../bizra-memory" }
+blake3 = { workspace = true }
+
+[features]
+default = []
+ffi = []  # Enable C-ABI exports for desktop bridge

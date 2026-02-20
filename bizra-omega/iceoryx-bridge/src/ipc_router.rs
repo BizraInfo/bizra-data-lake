@@ -7,8 +7,8 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 use crate::{
-    BridgeConfig, BridgeStats, GateResponse, InferenceRequest, InferenceResponse,
-    MessageEnvelope, GateResultDetail,
+    BridgeConfig, BridgeStats, GateResponse, GateResultDetail, InferenceRequest, InferenceResponse,
+    MessageEnvelope,
 };
 
 /// Statistics tracker
@@ -168,7 +168,8 @@ impl IpcRouter {
         let envelope = MessageEnvelope::inference_request(&request, "orchestrator");
 
         if let Some(tx) = &self.inference_tx {
-            tx.send(envelope).await
+            tx.send(envelope)
+                .await
                 .map_err(|_| Error::from_reason("Failed to send message"))?;
         }
 
@@ -271,7 +272,11 @@ impl IpcRouter {
                     gate: "SCHEMA".to_string(),
                     passed: schema_passed,
                     score: if schema_passed { 1.0 } else { 0.0 },
-                    reason: if schema_passed { None } else { Some("Empty content".to_string()) },
+                    reason: if schema_passed {
+                        None
+                    } else {
+                        Some("Empty content".to_string())
+                    },
                     time_ns: 100,
                 },
                 GateResultDetail {

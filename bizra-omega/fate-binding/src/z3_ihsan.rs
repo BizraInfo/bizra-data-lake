@@ -5,7 +5,7 @@
 //! mathematically proven.
 
 use napi::bindgen_prelude::*;
-use z3::{Config, Context, Solver, ast::Real};
+use z3::{ast::Real, Config, Context, Solver};
 
 use crate::IHSAN_THRESHOLD;
 
@@ -33,16 +33,10 @@ impl IhsanVerifier {
         let solver = Solver::new(&ctx);
 
         // Define the score as a Z3 real number
-        let score_z3 = Real::from_real(&ctx,
-            (score * 1000.0) as i32,
-            1000
-        );
+        let score_z3 = Real::from_real(&ctx, (score * 1000.0) as i32, 1000);
 
         // Define the threshold as a Z3 real number
-        let threshold_z3 = Real::from_real(&ctx,
-            (IHSAN_THRESHOLD * 1000.0) as i32,
-            1000
-        );
+        let threshold_z3 = Real::from_real(&ctx, (IHSAN_THRESHOLD * 1000.0) as i32, 1000);
 
         // Assert: score >= threshold
         let constraint = score_z3.ge(&threshold_z3);
@@ -52,15 +46,14 @@ impl IhsanVerifier {
         match solver.check() {
             z3::SatResult::Sat => Ok(true),
             z3::SatResult::Unsat => Ok(false),
-            z3::SatResult::Unknown => {
-                Err(Error::from_reason("Z3 verification inconclusive"))
-            }
+            z3::SatResult::Unknown => Err(Error::from_reason("Z3 verification inconclusive")),
         }
     }
 
     /// Verify multiple scores meet their respective thresholds
     pub fn verify_multi(&self, scores: &[(f64, f64)]) -> Result<Vec<bool>> {
-        scores.iter()
+        scores
+            .iter()
             .map(|(score, threshold)| self.verify_with_threshold(*score, *threshold))
             .collect()
     }
@@ -78,9 +71,7 @@ impl IhsanVerifier {
         match solver.check() {
             z3::SatResult::Sat => Ok(true),
             z3::SatResult::Unsat => Ok(false),
-            z3::SatResult::Unknown => {
-                Err(Error::from_reason("Z3 verification inconclusive"))
-            }
+            z3::SatResult::Unknown => Err(Error::from_reason("Z3 verification inconclusive")),
         }
     }
 
@@ -100,7 +91,7 @@ impl IhsanVerifier {
 
     /// Compute a hash of the proof for integrity verification
     fn compute_proof_hash(&self, score: f64, verified: bool) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
         hasher.update(score.to_le_bytes());

@@ -41,22 +41,21 @@
 //! let profile = memory.who_is_the_user();
 //! ```
 
-pub mod types;
+pub mod bridge;
+pub mod pipeline;
 pub mod store;
 pub mod synthesis;
-pub mod pipeline;
-pub mod bridge;
+pub mod types;
 
 // Re-exports for convenience
-pub use types::*;
-pub use store::{InMemoryStore, StoreError};
-pub use synthesis::{SynthesisEngine, SynthesisConfig};
-pub use pipeline::{MemoryPipeline, PipelineConfig, PipelineStats, KnowledgeSummary};
 pub use bridge::{
-    Extractor, RuleExtractor, ExtractionBatch, ExtractionResult, ExtractionContent,
-    Searcher, SearchBatch, SearchResult,
-    BridgeStatus, BridgeHealth,
+    BridgeHealth, BridgeStatus, ExtractionBatch, ExtractionContent, ExtractionResult, Extractor,
+    RuleExtractor, SearchBatch, SearchResult, Searcher,
 };
+pub use pipeline::{KnowledgeSummary, MemoryPipeline, PipelineConfig, PipelineStats};
+pub use store::{InMemoryStore, StoreError};
+pub use synthesis::{SynthesisConfig, SynthesisEngine};
+pub use types::*;
 
 // Re-export hooks types used in our API
 pub use bizra_hooks::{ComponentId, IhsanScore};
@@ -116,14 +115,15 @@ impl BizraMemory {
         }
 
         self.turns_processed += 1;
-        let stage_results = self.pipeline.process_turn(
-            content, true, session_id, turn, timestamp,
-        );
+        let stage_results = self
+            .pipeline
+            .process_turn(content, true, session_id, turn, timestamp);
 
         TurnResult {
             ingested: stage_results.ingested,
             atoms_extracted: stage_results.atoms_extracted,
-            insights_produced: stage_results.synthesis_result
+            insights_produced: stage_results
+                .synthesis_result
                 .map(|s| s.insights_produced)
                 .unwrap_or(0),
             synthesis_triggered: stage_results.synthesis_result.is_some(),
@@ -143,14 +143,15 @@ impl BizraMemory {
         }
 
         self.turns_processed += 1;
-        let stage_results = self.pipeline.process_turn(
-            content, false, session_id, turn, timestamp,
-        );
+        let stage_results = self
+            .pipeline
+            .process_turn(content, false, session_id, turn, timestamp);
 
         TurnResult {
             ingested: stage_results.ingested,
             atoms_extracted: stage_results.atoms_extracted,
-            insights_produced: stage_results.synthesis_result
+            insights_produced: stage_results
+                .synthesis_result
                 .map(|s| s.insights_produced)
                 .unwrap_or(0),
             synthesis_triggered: stage_results.synthesis_result.is_some(),
@@ -206,13 +207,19 @@ impl BizraMemory {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     /// Activate the memory system.
-    pub fn activate(&mut self) { self.active = true; }
+    pub fn activate(&mut self) {
+        self.active = true;
+    }
 
     /// Deactivate (pause processing, queries still work).
-    pub fn deactivate(&mut self) { self.active = false; }
+    pub fn deactivate(&mut self) {
+        self.active = false;
+    }
 
     /// Is the system active?
-    pub fn is_active(&self) -> bool { self.active }
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
 
     /// Force a synthesis pass (regardless of batch threshold).
     pub fn force_synthesis(&mut self, now: u64) {
@@ -314,19 +321,18 @@ mod tests {
         let mut memory = BizraMemory::new();
 
         // Simulate a conversation
-        let r1 = memory.process_user_turn(
-            "I am Mumo, the founder and CEO of BIZRA", 1, 1, 1000,
-        );
+        let r1 = memory.process_user_turn("I am Mumo, the founder and CEO of BIZRA", 1, 1, 1000);
         assert!(r1.ingested);
         assert!(r1.atoms_extracted >= 1);
 
-        let r2 = memory.process_user_turn(
-            "I prefer Rust for sovereign architecture", 1, 2, 2000,
-        );
+        let r2 = memory.process_user_turn("I prefer Rust for sovereign architecture", 1, 2, 2000);
         assert!(r2.ingested);
 
         let r3 = memory.process_user_turn(
-            "I am building the world's first distributed AI platform", 1, 3, 3000,
+            "I am building the world's first distributed AI platform",
+            1,
+            3,
+            3000,
         );
         assert!(r3.ingested);
 
@@ -411,7 +417,9 @@ mod tests {
         memory.process_user_turn("Help me design the memory system", 1, 1, 1000);
         memory.process_assistant_turn(
             "I recommend starting with a type system for memory atoms",
-            1, 2, 2000,
+            1,
+            2,
+            2000,
         );
 
         let summary = memory.knowledge_summary();
@@ -431,29 +439,31 @@ mod tests {
         let mut memory = BizraMemory::with_config(config);
 
         // Simulate real conversation turns
-        memory.process_user_turn(
-            "I am Mumo, founder and CEO of BIZRA in Dubai",
-            1, 1, 1000,
-        );
+        memory.process_user_turn("I am Mumo, founder and CEO of BIZRA in Dubai", 1, 1, 1000);
         memory.process_user_turn(
             "I prefer building sovereign systems with zero dependencies",
-            1, 2, 2000,
+            1,
+            2,
+            2000,
         );
-        memory.process_user_turn(
-            "I don't want centralized cloud dependencies",
-            1, 3, 3000,
-        );
+        memory.process_user_turn("I don't want centralized cloud dependencies", 1, 3, 3000);
         memory.process_user_turn(
             "I always start my deep work after Fajr prayer every morning",
-            1, 4, 4000,
+            1,
+            4,
+            4000,
         );
         memory.process_user_turn(
             "My guiding principle is إحسان — excellence as worship",
-            1, 5, 5000,
+            1,
+            5,
+            5000,
         );
         memory.process_user_turn(
             "I am preparing investor pitch materials for Series A",
-            1, 6, 6000,
+            1,
+            6,
+            6000,
         );
 
         memory.force_synthesis(7000);
@@ -486,11 +496,20 @@ mod tests {
 
         // Profile completeness
         let profile = memory.who_is_the_user();
-        assert!(profile.section_count() >= 3, "Profile should have 3+ sections");
-        assert!(profile.completeness() >= 0.3, "Profile should be 30%+ complete");
+        assert!(
+            profile.section_count() >= 3,
+            "Profile should have 3+ sections"
+        );
+        assert!(
+            profile.completeness() >= 0.3,
+            "Profile should be 30%+ complete"
+        );
 
         // Insights exist
         let insights = memory.insights();
-        assert!(!insights.is_empty(), "System should have synthesized insights");
+        assert!(
+            !insights.is_empty(),
+            "System should have synthesized insights"
+        );
     }
 }

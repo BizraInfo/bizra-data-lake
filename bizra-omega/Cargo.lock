@@ -365,6 +365,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bizra-agent"
+version = "2.0.0"
+dependencies = [
+ "bizra-hooks",
+ "bizra-memory",
+ "blake3",
+]
+
+[[package]]
 name = "bizra-api"
 version = "0.1.0"
 dependencies = [
@@ -545,6 +554,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bizra-node"
+version = "2.0.0"
+dependencies = [
+ "bizra-agent",
+ "bizra-hooks",
+ "bizra-memory",
+]
+
+[[package]]
 name = "bizra-proofspace"
 version = "1.0.0"
 dependencies = [
@@ -578,7 +596,9 @@ dependencies = [
  "bizra-autopoiesis",
  "bizra-core",
  "bizra-federation",
+ "bizra-hooks",
  "bizra-inference",
+ "bizra-memory",
  "pyo3",
  "pyo3-build-config",
  "serde_json",

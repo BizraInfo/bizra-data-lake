@@ -1,0 +1,315 @@
+// bizra-node/src/main.rs
+// ============================================================
+// Node0 — the sovereign binary
+// ============================================================
+//
+//   بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+//
+// Usage:
+//   bizra-node                         # Defaults
+//   bizra-node --user <hash>           # User identity
+//   bizra-node --ihsan <floor>         # إحسان floor
+//   bizra-node --seed <file>           # Pre-load knowledge
+//   bizra-node --state-dir <path>      # Persist across sessions
+//   bizra-node --no-banner             # Suppress banner
+//   bizra-node --no-auto-session       # Manual session control
+//
+// The seed file: your knowledge as text. You own it.
+// ============================================================
+
+use bizra_agent::reflex_cache::ReflexMode;
+use bizra_hooks::IhsanScore;
+use bizra_node::node::{Node, NodeConfig};
+use bizra_node::persistence;
+use std::path::PathBuf;
+use std::process;
+
+struct CliConfig {
+    node_config: NodeConfig,
+    seed_file: Option<PathBuf>,
+    state_dir: Option<PathBuf>,
+    auto_persist: bool,
+}
+
+fn main() {
+    let cli = parse_args();
+
+    let mut node = Node::new(cli.node_config);
+
+    // Determine state directory (explicit or default)
+    let state_dir = cli
+        .state_dir
+        .unwrap_or_else(|| persistence::state_dir(node.user_hash()));
+
+    // Auto-persist is on by default if not explicitly off
+    let auto_persist = cli.auto_persist;
+
+    // Load seed file if provided
+    if let Some(seed_path) = &cli.seed_file {
+        if seed_path.exists() {
+            match persistence::load_seed(&mut node, seed_path) {
+                Ok((loaded, errors)) => {
+                    if node.config_ref().show_banner {
+                        eprintln!(
+                            "  seed: loaded {} commands ({} errors) from {}",
+                            loaded,
+                            errors,
+                            seed_path.display()
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("  seed: error reading {}: {}", seed_path.display(), e);
+                }
+            }
+        } else {
+            eprintln!("  seed: file not found: {}", seed_path.display());
+        }
+    } else if auto_persist {
+        // Try loading from default state path
+        let default_seed = state_dir.join("knowledge.seed");
+        if default_seed.exists() {
+            match persistence::load_seed(&mut node, &default_seed) {
+                Ok((loaded, _errors)) => {
+                    if node.config_ref().show_banner && loaded > 0 {
+                        eprintln!(
+                            "  state: restored {} fragments from {}",
+                            loaded,
+                            default_seed.display()
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("  state: error restoring: {}", e);
+                }
+            }
+        }
+    }
+
+    if auto_persist {
+        // Restore compiled reflex cache
+        let reflex_cache_path = state_dir.join("reflex.cache");
+        if reflex_cache_path.exists() {
+            match persistence::load_reflex_cache(&mut node, &reflex_cache_path) {
+                Ok((loaded, quarantined)) => {
+                    if node.config_ref().show_banner && (loaded > 0 || quarantined > 0) {
+                        eprintln!(
+                            "  reflex: restored {} rules ({} quarantined) from {}",
+                            loaded,
+                            quarantined,
+                            reflex_cache_path.display()
+                        );
+                    }
+                }
+                Err(e) => eprintln!("  reflex: error restoring cache: {}", e),
+            }
+        }
+    }
+
+    // Run the node
+    if let Err(e) = node.run() {
+        eprintln!("bizra-node: fatal error: {}", e);
+
+        // Still try to save state on error
+        if auto_persist {
+            let _ = save_state_quietly(&node, &state_dir);
+        }
+
+        process::exit(1);
+    }
+
+    // Save state on shutdown
+    if auto_persist {
+        match save_state_quietly(&node, &state_dir) {
+            Ok(count) => {
+                if count > 0 {
+                    eprintln!(
+                        "  state: saved {} fragments to {}",
+                        count,
+                        state_dir.join("knowledge.seed").display()
+                    );
+                }
+            }
+            Err(e) => {
+                eprintln!("  state: error saving: {}", e);
+            }
+        }
+
+        if let Err(e) = save_reflex_cache_quietly(&node, &state_dir) {
+            eprintln!("  reflex: error saving cache: {}", e);
+        }
+    }
+
+    process::exit(0);
+}
+
+fn save_state_quietly(node: &Node, state_dir: &std::path::Path) -> std::io::Result<usize> {
+    std::fs::create_dir_all(state_dir)?;
+    let seed_path = state_dir.join("knowledge.seed");
+    persistence::save_state(node, &seed_path)
+}
+
+fn save_reflex_cache_quietly(node: &Node, state_dir: &std::path::Path) -> std::io::Result<usize> {
+    std::fs::create_dir_all(state_dir)?;
+    let cache_path = state_dir.join("reflex.cache");
+    persistence::save_reflex_cache(node, &cache_path)
+}
+
+fn parse_args() -> CliConfig {
+    let args: Vec<String> = std::env::args().collect();
+    let mut node_config = NodeConfig::default();
+    let mut seed_file = None;
+    let mut state_dir = None;
+    let mut auto_persist = true;
+    let mut cli_policy_hash: Option<String> = None;
+
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--user" => {
+                i += 1;
+                if i < args.len() {
+                    node_config.user_hash = args[i].parse().unwrap_or_else(|_| {
+                        eprintln!("bizra-node: invalid --user value: {}", args[i]);
+                        process::exit(2);
+                    });
+                    node_config.runtime_config =
+                        bizra_agent::runtime::RuntimeConfig::for_user(node_config.user_hash);
+                }
+            }
+            "--ihsan" => {
+                i += 1;
+                if i < args.len() {
+                    node_config.ihsan_floor = args[i].parse().unwrap_or_else(|_| {
+                        eprintln!("bizra-node: invalid --ihsan value: {}", args[i]);
+                        process::exit(2);
+                    });
+                    node_config.runtime_config.ihsan_floor =
+                        IhsanScore::from_f64(node_config.ihsan_floor as f64 / 10000.0);
+                }
+            }
+            "--seed" => {
+                i += 1;
+                if i < args.len() {
+                    seed_file = Some(PathBuf::from(&args[i]));
+                }
+            }
+            "--state-dir" => {
+                i += 1;
+                if i < args.len() {
+                    state_dir = Some(PathBuf::from(&args[i]));
+                }
+            }
+            "--reflex-mode" => {
+                i += 1;
+                if i < args.len() {
+                    let mode = ReflexMode::parse(&args[i]).unwrap_or_else(|| {
+                        eprintln!("bizra-node: invalid --reflex-mode value: {}", args[i]);
+                        process::exit(2);
+                    });
+                    node_config.runtime_config.reflex_mode = mode;
+                }
+            }
+            "--policy-hash" => {
+                i += 1;
+                if i < args.len() {
+                    let hash = args[i].clone();
+                    if hash.len() != 64 || !hash.chars().all(|c| c.is_ascii_hexdigit()) {
+                        eprintln!("bizra-node: invalid --policy-hash (expect 64 hex chars)");
+                        process::exit(2);
+                    }
+                    cli_policy_hash = Some(hash);
+                }
+            }
+            "--no-persist" => {
+                auto_persist = false;
+            }
+            "--no-banner" => {
+                node_config.show_banner = false;
+            }
+            "--no-auto-session" => {
+                node_config.auto_start_session = false;
+            }
+            "--help" | "-h" => {
+                print_help();
+                process::exit(0);
+            }
+            "--version" | "-v" => {
+                println!("bizra-node {}", bizra_node::protocol::NODE_VERSION);
+                process::exit(0);
+            }
+            other => {
+                eprintln!("bizra-node: unknown argument: {}", other);
+                process::exit(2);
+            }
+        }
+        i += 1;
+    }
+
+    let effective_policy_hash = cli_policy_hash.or_else(|| {
+        std::env::var("BIZRA_GENESIS_POLICY_HASH")
+            .ok()
+            .filter(|v| v.len() == 64 && v.chars().all(|c| c.is_ascii_hexdigit()))
+    });
+    if let Some(hash) = effective_policy_hash {
+        node_config.runtime_config.policy_hash_hex = hash;
+    }
+
+    CliConfig {
+        node_config,
+        seed_file,
+        state_dir,
+        auto_persist,
+    }
+}
+
+fn print_help() {
+    println!(
+        r#"
+bizra-node — Node0: The Sovereign AI Node
+
+USAGE:
+    bizra-node [OPTIONS]
+
+OPTIONS:
+    --user <hash>       User identity hash (default: 1)
+    --ihsan <floor>     إحسان quality floor, 0-10000 (default: 9500)
+    --seed <file>       Load knowledge from a .seed file at startup
+    --state-dir <path>  Directory for persistent state (default: ~/.bizra/node-<hash>)
+    --reflex-mode <m>   Reflex routing mode: disabled|shadow|active
+    --policy-hash <h>   Genesis policy hash (64 hex). Or env BIZRA_GENESIS_POLICY_HASH.
+    --no-persist        Disable auto-save on shutdown
+    --no-banner         Suppress startup banner
+    --no-auto-session   Don't auto-start a conversation session
+    --help, -h          Show this help
+    --version, -v       Show version
+
+PERSISTENCE:
+    By default, knowledge auto-saves to ~/.bizra/node-<hash>/knowledge.seed
+    and reflex rules to ~/.bizra/node-<hash>/reflex.cache.
+    State auto-loads on startup. Your knowledge is a text file.
+    You own it. Back it up. Guard it. Share it — or don't.
+
+PROTOCOL:
+    stdin  → VERB<TAB>arg1<TAB>arg2<NEWLINE>
+    stdout → OK<TAB>field=value<TAB>...<NEWLINE>
+
+COMMANDS:
+    RECEIVE <content> <ts>             Process a user message
+    TEACH <kind> <content> <conf> <ts> Teach the node directly
+    SYNTHESIZE <ts>                    Force memory synthesis
+    QUERY <key>                        Query a user trait
+    PROFILE                            Get full user profile
+    KNOWS_ME                           Get "my AI knows me" score
+    HEALTH                             Full system health
+    START_SESSION <ts>                 Begin conversation session
+    END_SESSION <ts>                   End conversation session
+    IHSAN <score>                      Update إحسان score
+    PING                               Keepalive check
+    VERSION                            Node version info
+    SHUTDOWN                           Graceful shutdown
+
+    Every seed has infinite potential. ربي لا يعرف المستحيل
+"#
+    );
+}

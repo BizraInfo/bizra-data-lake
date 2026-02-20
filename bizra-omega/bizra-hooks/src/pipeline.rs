@@ -362,7 +362,9 @@ mod tests {
     #[test]
     fn pre_emit_halt_blocks_delivery() {
         let mut pipeline = HookPipeline::new();
-        pipeline.register(HookPhase::PreEmit, "blocker", 0, halt_hook).unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "blocker", 0, halt_hook)
+            .unwrap();
 
         let result = pipeline.process_pre_delivery(make_event());
         assert!(result.is_err());
@@ -373,7 +375,9 @@ mod tests {
     #[test]
     fn transform_modifies_event() {
         let mut pipeline = HookPipeline::new();
-        pipeline.register(HookPhase::Route, "upgrader", 0, upgrade_priority).unwrap();
+        pipeline
+            .register(HookPhase::Route, "upgrader", 0, upgrade_priority)
+            .unwrap();
 
         let event = make_event();
         assert_eq!(event.priority, Priority::Normal);
@@ -387,9 +391,15 @@ mod tests {
         let mut pipeline = HookPipeline::new();
 
         // Register in reverse priority order
-        pipeline.register(HookPhase::PreEmit, "last", 10, pass_hook).unwrap();
-        pipeline.register(HookPhase::PreEmit, "first", 0, pass_hook).unwrap();
-        pipeline.register(HookPhase::PreEmit, "middle", 5, pass_hook).unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "last", 10, pass_hook)
+            .unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "first", 0, pass_hook)
+            .unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "middle", 5, pass_hook)
+            .unwrap();
 
         let counts = pipeline.hooks_per_phase();
         assert_eq!(counts[0], 3); // 3 hooks in PreEmit
@@ -398,7 +408,9 @@ mod tests {
     #[test]
     fn disable_hook_skips_execution() {
         let mut pipeline = HookPipeline::new();
-        let id = pipeline.register(HookPhase::PreEmit, "blocker", 0, halt_hook).unwrap();
+        let id = pipeline
+            .register(HookPhase::PreEmit, "blocker", 0, halt_hook)
+            .unwrap();
 
         // Should halt
         assert!(pipeline.process_pre_delivery(make_event()).is_err());
@@ -413,7 +425,9 @@ mod tests {
     #[test]
     fn unregister_removes_hook() {
         let mut pipeline = HookPipeline::new();
-        let id = pipeline.register(HookPhase::PreEmit, "temp", 0, halt_hook).unwrap();
+        let id = pipeline
+            .register(HookPhase::PreEmit, "temp", 0, halt_hook)
+            .unwrap();
 
         assert_eq!(pipeline.total_hooks(), 1);
         pipeline.unregister(id);
@@ -424,10 +438,18 @@ mod tests {
     fn multi_phase_execution() {
         let mut pipeline = HookPipeline::new();
 
-        pipeline.register(HookPhase::PreEmit, "validate", 0, pass_hook).unwrap();
-        pipeline.register(HookPhase::Route, "route", 0, pass_hook).unwrap();
-        pipeline.register(HookPhase::PreDeliver, "enrich", 0, pass_hook).unwrap();
-        pipeline.register(HookPhase::PostDeliver, "log", 0, pass_hook).unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "validate", 0, pass_hook)
+            .unwrap();
+        pipeline
+            .register(HookPhase::Route, "route", 0, pass_hook)
+            .unwrap();
+        pipeline
+            .register(HookPhase::PreDeliver, "enrich", 0, pass_hook)
+            .unwrap();
+        pipeline
+            .register(HookPhase::PostDeliver, "log", 0, pass_hook)
+            .unwrap();
 
         let event = make_event();
         let processed = pipeline.process_pre_delivery(event).unwrap();
@@ -450,7 +472,9 @@ mod tests {
         assert!((pipeline.pass_rate() - 1.0).abs() < f64::EPSILON);
 
         // Add a halt hook and process 1 more
-        pipeline.register(HookPhase::PreEmit, "halt", 0, halt_hook).unwrap();
+        pipeline
+            .register(HookPhase::PreEmit, "halt", 0, halt_hook)
+            .unwrap();
         let _ = pipeline.process_pre_delivery(make_event());
 
         // 2 passed out of 3 total

@@ -42,7 +42,9 @@ pub struct InsightId(pub u64);
 impl fmt::Debug for FragmentId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "frag:")?;
-        for b in &self.0[..4] { write!(f, "{:02x}", b)?; }
+        for b in &self.0[..4] {
+            write!(f, "{:02x}", b)?;
+        }
         Ok(())
     }
 }
@@ -71,18 +73,30 @@ impl FragmentId {
         FragmentId(hash.to_le_bytes())
     }
 
-    pub const fn null() -> Self { FragmentId([0u8; 16]) }
-    pub fn is_null(&self) -> bool { self.0 == [0u8; 16] }
+    pub const fn null() -> Self {
+        FragmentId([0u8; 16])
+    }
+    pub fn is_null(&self) -> bool {
+        self.0 == [0u8; 16]
+    }
 }
 
 impl AtomId {
-    pub const fn new(id: u64) -> Self { AtomId(id) }
-    pub const fn null() -> Self { AtomId(0) }
+    pub const fn new(id: u64) -> Self {
+        AtomId(id)
+    }
+    pub const fn null() -> Self {
+        AtomId(0)
+    }
 }
 
 impl InsightId {
-    pub const fn new(id: u64) -> Self { InsightId(id) }
-    pub const fn null() -> Self { InsightId(0) }
+    pub const fn new(id: u64) -> Self {
+        InsightId(id)
+    }
+    pub const fn null() -> Self {
+        InsightId(0)
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,7 +210,12 @@ pub struct Provenance {
 
 impl Provenance {
     pub fn new(session_id: u64, turn: u32, extractor: ComponentId, timestamp: u64) -> Self {
-        Provenance { session_id, turn, extractor, extracted_at: timestamp }
+        Provenance {
+            session_id,
+            turn,
+            extractor,
+            extracted_at: timestamp,
+        }
     }
 }
 
