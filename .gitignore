@@ -63,6 +63,12 @@ package-lock.json
 bizra-omega/target/
 target/
 
+# ── Legacy Workspaces (merged into bizra-omega/) ─────────────
+native/
+filedfs/mnt/
+filedfs/*.so
+filedfs/bizra-node-binary
+
 # ── Data Pipeline (large generated data) ──────────────────────
 00_INTAKE/
 01_RAW/

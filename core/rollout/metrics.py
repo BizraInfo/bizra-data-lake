@@ -192,3 +192,22 @@ class Phase46Metrics:
         if extra:
             entry.update(extra)
         logger.info("phase46_event %s", entry)
+
+
+# ------------------------------------------------------------------
+# Module-level shared instance for cross-module metrics aggregation
+# ------------------------------------------------------------------
+
+_shared_instance: Optional["Phase46Metrics"] = None
+
+
+def get_shared_metrics() -> "Phase46Metrics":
+    """Return a process-wide shared Phase46Metrics instance.
+
+    Used by apex_engine.py and sovereign_mcp_server.py to ensure
+    GoT bridge counters aggregate into the same metrics pool.
+    """
+    global _shared_instance
+    if _shared_instance is None:
+        _shared_instance = Phase46Metrics()
+    return _shared_instance

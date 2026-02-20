@@ -167,13 +167,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware — restrict origins in production (BIZRA_CORS_ORIGINS csv).
+# allow_credentials requires explicit origins; wildcard + credentials is
+# rejected by browsers per the Fetch spec and is a security misconfiguration.
+_cors_origins = [
+    o.strip()
+    for o in os.getenv("BIZRA_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
 
 
@@ -432,9 +439,14 @@ async def knowledge_status():
     }
 
 
+@app.get("/metrics")
 @app.get("/metrics/prometheus")
 async def prometheus_metrics():
-    """Prometheus metrics endpoint with live Phase46 metrics."""
+    """Prometheus metrics endpoint with live Phase46 metrics.
+
+    Served on both /metrics (K8s annotation default) and /metrics/prometheus
+    (backward compatibility).
+    """
     snap = _gateway_metrics.snapshot() if _gateway_metrics is not None else {}
     counters = snap.get("counters", {})
     search = snap.get("search", {})
@@ -461,6 +473,10 @@ async def prometheus_metrics():
         "# HELP bizra_phase46_resonance_requests_total Phase46 resonance requests",
         "# TYPE bizra_phase46_resonance_requests_total counter",
         f"bizra_phase46_resonance_requests_total {counters.get('resonance_requests', 0)}",
+        "",
+        "# HELP bizra_phase46_resonance_errors_total Phase46 resonance errors",
+        "# TYPE bizra_phase46_resonance_errors_total counter",
+        f"bizra_phase46_resonance_errors_total {counters.get('resonance_errors', 0)}",
         "",
         "# HELP bizra_phase46_hmm_requests_total Phase46 HMM requests",
         "# TYPE bizra_phase46_hmm_requests_total counter",

@@ -1377,10 +1377,14 @@ class ApexSovereignEngine:
         # --- Phase 46: GoT Bridge path (evidence-grounded reasoning) ---
         try:
             from core.rollout.canary import CanaryRouter
+            from core.rollout.metrics import get_shared_metrics
 
             if not hasattr(self, "_canary_router"):
                 self._canary_router = CanaryRouter()
+            if not hasattr(self, "_phase46_metrics"):
+                self._phase46_metrics = get_shared_metrics()
             if self._canary_router.should_route("got_bridge", query):
+                self._phase46_metrics.inc("got_requests")
                 try:
                     from core.reasoning.got_bridge import GoTBridge
 
@@ -1398,12 +1402,13 @@ class ApexSovereignEngine:
                         "best_path": bridge_result.convergence_path,
                     }
                 except Exception as bridge_exc:
+                    self._phase46_metrics.inc("got_fallback")
                     logger.warning(
                         "GoT Bridge failed, falling back to direct GoT: %s",
                         bridge_exc,
                     )
         except Exception:
-            pass  # os import or env check failure — continue to canonical path
+            logger.debug("GoT bridge rollout init failed", exc_info=True)
 
         # --- Canonical GoT engine path ---
         try:

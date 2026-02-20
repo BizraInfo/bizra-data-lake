@@ -95,6 +95,18 @@ class ProactiveRetriever:
         from core.rollout.canary import CanaryRouter
         self._canary = CanaryRouter()
 
+        # Phase 49.8: HMM caller-gate isolation (single-caller mode by default)
+        self._hmm_gate: Optional[Any] = None
+        try:
+            from core.rollout.hmm_gate import HMMCallerGate
+            self._hmm_gate = HMMCallerGate()
+        except Exception:
+            pass  # gate unavailable — direct observe only
+
+        # Phase 49.8: Metrics for proactive HMM observations
+        from core.rollout.metrics import get_shared_metrics
+        self._p46_metrics = get_shared_metrics()
+
     def _init_hmm(self) -> bool:
         """Lazily initialise the HMM engine if Phase 46 is enabled."""
         import os
@@ -157,6 +169,7 @@ class ProactiveRetriever:
 
         Phase 47.1: Each observation is gated through CanaryRouter using the
         symbol as request_key for deterministic percent-based routing.
+        Phase 49.8: Observations pass through HMMCallerGate for caller isolation.
         """
         if self._hmm_engine is None:
             return
@@ -164,9 +177,17 @@ class ProactiveRetriever:
             symbol = self._TOPIC_TO_SYMBOL.get(topic)
             if symbol and self._canary.should_route("hmm", symbol):
                 try:
+                    # Gate through HMMCallerGate if available (single-caller isolation)
+                    if self._hmm_gate is not None:
+                        result = self._hmm_gate.observe(symbol, "proactive")
+                        if result is None:
+                            logger.debug("HMM observation rejected by caller gate: %s", symbol)
+                            continue
                     self._hmm_engine.observe(symbol)
-                except Exception:
-                    pass  # Unknown symbol or engine error — non-fatal
+                    self._p46_metrics.inc("hmm_proactive_observations")
+                except Exception as exc:
+                    self._p46_metrics.inc("hmm_proactive_errors")
+                    logger.debug("HMM observe failed for symbol %s: %s", symbol, exc)
 
     def update_context(
         self,

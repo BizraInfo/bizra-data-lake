@@ -602,3 +602,49 @@ spec:
             description: |
               Combined SNR at {{ $value | printf "%.3f" }} for pod {{ $labels.pod }}.
               Baseline breach detected. Triggers strict rollback evaluation.
+
+        # WARNING: Search hit rate drops below 10% over 30m (search returning empty)
+        - alert: Phase46SearchHitRateLow
+          expr: bizra_phase46_search_hit_rate < 0.10
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "10%"
+          annotations:
+            summary: "Phase 46 search hit rate below 10%"
+            description: |
+              Search hit rate at {{ $value | printf "%.2f" }} for pod {{ $labels.pod }}.
+              FAISS index may be stale or embedding dimension mismatch.
+
+        # WARNING: HMM entropy drops to zero over 30m (no observation diversity)
+        - alert: Phase46HMMEntropyZero
+          expr: bizra_phase46_hmm_entropy == 0
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "0"
+          annotations:
+            summary: "Phase 46 HMM observation entropy is zero"
+            description: |
+              HMM observation entropy at zero for pod {{ $labels.pod }}.
+              No diverse symbols being observed. Check proactive retriever pipeline.
+
+        # INFO: Search producing zero hits for extended period
+        - alert: Phase46SearchZeroHits
+          expr: |
+            increase(bizra_phase46_search_hits_total[1h]) == 0
+            and increase(bizra_phase46_search_requests_total[1h]) > 0
+          for: 1h
+          labels:
+            severity: info
+            team: sovereign
+            phase: "46"
+          annotations:
+            summary: "Phase 46 search has produced zero hits for 1 hour"
+            description: |
+              Search requests are being processed but returning zero hits
+              for pod {{ $labels.pod }}. Index may need rebuilding.
