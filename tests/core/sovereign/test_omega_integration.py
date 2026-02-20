@@ -231,8 +231,11 @@ class TestFullPipeline:
         # CRITICAL-1: Initialize gate chain so queries aren't rejected (fail-closed)
         runtime._init_gate_chain()
 
-        # Run query
-        result = await runtime.query("What is the meaning of life?")
+        # Run query — z3_satisfiable=True required by ConstraintGate (CRITICAL-3 fail-closed)
+        result = await runtime.query(
+            "What is the meaning of life?",
+            context={"z3_satisfiable": True},
+        )
 
         # Gateway should have been called
         assert mock_gateway.infer_called

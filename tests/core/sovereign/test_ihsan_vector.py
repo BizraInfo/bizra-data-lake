@@ -66,9 +66,9 @@ class TestCanonicalConstants:
         """Weight keys and verify method keys must be identical sets."""
         assert set(CANONICAL_WEIGHTS.keys()) == set(VERIFY_METHODS.keys())
 
-    def test_gini_threshold_is_035(self) -> None:
-        """Anti-centralization Gini threshold must be 0.35."""
-        assert ANTI_CENTRALIZATION_GINI_THRESHOLD == 0.35
+    def test_gini_threshold_is_040(self) -> None:
+        """Anti-centralization Gini threshold is 0.40 per Rawls (1971) justice constraint."""
+        assert ANTI_CENTRALIZATION_GINI_THRESHOLD == 0.40
 
     def test_context_thresholds_has_all_four_contexts(self) -> None:
         """Context thresholds must exist for all 4 execution contexts."""

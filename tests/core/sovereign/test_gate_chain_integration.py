@@ -87,7 +87,10 @@ class TestGateChainPreflight:
         runtime = SovereignRuntime(config)
         runtime._init_gate_chain()
 
-        query = SovereignQuery(text="What is the meaning of life?", id="a1b2c3d4e5f60001")
+        query = SovereignQuery(
+            text="What is the meaning of life?", id="a1b2c3d4e5f60001",
+            context={"z3_satisfiable": True},  # CRITICAL-3: Must be set explicitly
+        )
         result = SovereignResult(query_id=query.id)
 
         rejection = await runtime._run_gate_chain_preflight(query, result)
@@ -132,7 +135,10 @@ class TestGateChainPreflight:
         runtime = SovereignRuntime(config)
         runtime._init_gate_chain()
 
-        query = SovereignQuery(text="What is truth?", id="a1b2c3d4e5f60004")
+        query = SovereignQuery(
+            text="What is truth?", id="a1b2c3d4e5f60004",
+            context={"z3_satisfiable": True},  # CRITICAL-3: Must be set explicitly
+        )
         result = SovereignResult(query_id=query.id)
 
         await runtime._run_gate_chain_preflight(query, result)
@@ -167,7 +173,7 @@ class TestGateChainPreflight:
 
         query = SovereignQuery(
             text="What is the meaning?", id="a1b2c3d4e5f60006",
-            context={"user_state": "privileged"},
+            context={"user_state": "privileged", "z3_satisfiable": True},  # CRITICAL-3
         )
         result = SovereignResult(query_id=query.id)
 
@@ -184,7 +190,8 @@ class TestGateChainPreflight:
 
         for i in range(5):
             query = SovereignQuery(
-                text=f"Query {i}", id=f"a1b2c3d4e5f6{i:04x}"
+                text=f"Query {i}", id=f"a1b2c3d4e5f6{i:04x}",
+                context={"z3_satisfiable": True},  # CRITICAL-3: Must be set explicitly
             )
             result = SovereignResult(query_id=query.id)
             await runtime._run_gate_chain_preflight(query, result)

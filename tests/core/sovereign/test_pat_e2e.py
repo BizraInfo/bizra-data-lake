@@ -112,7 +112,11 @@ class TestPATEndToEnd:
             # CRITICAL-1: Initialize gate chain so queries pass (fail-closed)
             runtime._init_gate_chain()
 
-            result = await runtime.query("What is sovereignty?")
+            # z3_satisfiable=True required by ConstraintGate (CRITICAL-3 fail-closed)
+            result = await runtime.query(
+                "What is sovereignty?",
+                context={"z3_satisfiable": True},
+            )
 
             # Should have recorded human turn + PAT response
             assert runtime._user_context.conversation.get_turn_count() == 2
