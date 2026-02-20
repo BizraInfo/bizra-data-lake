@@ -7,8 +7,11 @@ Strategy: Fully mock-based — no FAISS, pandas, or embedding service.
 Standing on Giants: Shannon (1948) . Rabiner (1989) . Johnson/FAISS (2021)
 """
 
+import asyncio
 import os
+import subprocess
 import sys
+import time
 from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
@@ -548,10 +551,13 @@ class TestRollbackIntegration:
         iface._search = engine
         iface.initialized = True
 
+        errors_before = iface._metrics.get_counter("search_errors")
+        requests_before = iface._metrics.get_counter("search_requests")
+
         iface.search("broken query")
 
-        assert iface._metrics.get_counter("search_errors") == 1
-        assert iface._metrics.get_counter("search_requests") == 1
+        assert iface._metrics.get_counter("search_errors") == errors_before + 1
+        assert iface._metrics.get_counter("search_requests") == requests_before + 1
 
     def test_evaluate_rollback_hmm_confidence_breach(self):
         """Low HMM confidence flags a breach."""
@@ -678,3 +684,253 @@ class TestCanaryGateEnforcement:
         # _hmm_gate is None by default (no HMMEngine initialized)
         status = iface.status
         assert "hmm_gate" in status
+
+
+# ===========================================================================
+# HTTP Health/Metrics Server Tests
+# ===========================================================================
+
+class TestHTTPHealthServer:
+    """Validate the HTTP health/metrics handler for K8s probes."""
+
+    @pytest.fixture
+    def _patch_globals(self, monkeypatch):
+        """Patch global state read by _http_handler."""
+        from tools.mcp import sovereign_mcp_server as mod
+        monkeypatch.setattr(mod, "_query_count", 42)
+        monkeypatch.setattr(mod, "_error_count", 3)
+        return mod
+
+    @staticmethod
+    async def _simulate_request(handler, path="/health"):
+        """Simulate an HTTP request through the handler."""
+        import asyncio
+
+        request_bytes = f"GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n".encode()
+
+        reader = asyncio.StreamReader()
+        reader.feed_data(request_bytes)
+        reader.feed_eof()
+
+        # Capture writer output
+        output = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                output.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        writer = MockWriter()
+        await handler(reader, writer)
+        return output.decode(errors="replace")
+
+    @pytest.mark.asyncio
+    async def test_health_returns_200(self, _patch_globals):
+        """GET /health returns 200 with JSON status."""
+        from tools.mcp.sovereign_mcp_server import _http_handler
+        response = await self._simulate_request(_http_handler, "/health")
+        assert "200 OK" in response
+        assert '"status": "healthy"' in response
+        assert '"query_count": 42' in response
+
+    @pytest.mark.asyncio
+    async def test_metrics_returns_prometheus_format(self, _patch_globals):
+        """GET /metrics returns Prometheus text format."""
+        from tools.mcp.sovereign_mcp_server import _http_handler
+        response = await self._simulate_request(_http_handler, "/metrics")
+        assert "200 OK" in response
+        assert "bizra_phase46_search_requests_total" in response
+        assert "sovereign_mcp_queries_total 42" in response
+        assert "text/plain" in response
+
+    @pytest.mark.asyncio
+    async def test_metrics_prometheus_alias(self, _patch_globals):
+        """GET /metrics/prometheus also returns metrics (backward compat)."""
+        from tools.mcp.sovereign_mcp_server import _http_handler
+        response = await self._simulate_request(_http_handler, "/metrics/prometheus")
+        assert "200 OK" in response
+        assert "bizra_phase46_search_requests_total" in response
+
+    @pytest.mark.asyncio
+    async def test_unknown_path_returns_404(self, _patch_globals):
+        """Unknown path returns 404."""
+        from tools.mcp.sovereign_mcp_server import _http_handler
+        response = await self._simulate_request(_http_handler, "/nonexistent")
+        assert "404 Not Found" in response
+
+    @pytest.mark.asyncio
+    async def test_header_bomb_returns_431(self, _patch_globals):
+        """Oversized headers (>8 KB) get rejected with 431."""
+        import asyncio
+        from tools.mcp.sovereign_mcp_server import _http_handler
+
+        # Build a request with >8 KB of header data
+        big_header = "X-Bomb: " + "A" * 9000 + "\r\n"
+        request_bytes = (
+            "GET /health HTTP/1.1\r\n"
+            f"Host: localhost\r\n{big_header}\r\n"
+        ).encode()
+
+        reader = asyncio.StreamReader()
+        reader.feed_data(request_bytes)
+        reader.feed_eof()
+
+        output = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                output.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        writer = MockWriter()
+        await _http_handler(reader, writer)
+        response = output.decode(errors="replace")
+        assert "431" in response
+
+
+# ===========================================================================
+# 9. TestHeadlessMode — P0 fix: health server survives stdin close
+# ===========================================================================
+
+class TestHeadlessMode:
+    """Verify that the sovereign MCP server keeps health server alive
+    after stdio transport exits (K8s headless container mode).
+
+    Uses subprocess isolation to avoid SIGTERM killing pytest.
+    Timeout is generous (30s) because the subprocess must import FAISS,
+    numpy, and the full core/ tree before the health server binds.
+    """
+
+    # Use high non-default ports to avoid conflicts with other tests
+    _TEST_PORT = 18091
+
+    @staticmethod
+    def _wait_for_health(port: int, timeout: float = 30.0) -> bool:
+        """Poll /health until 200 or timeout.  Returns True if reachable."""
+        import urllib.request
+        import urllib.error
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                resp = urllib.request.urlopen(
+                    f"http://127.0.0.1:{port}/health", timeout=2
+                )
+                if resp.status == 200:
+                    return True
+            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                pass
+            time.sleep(0.5)
+        return False
+
+    @staticmethod
+    def _launch_server(port: int) -> "subprocess.Popen":
+        env = os.environ.copy()
+        env["MCP_HTTP_PORT"] = str(port)
+        env["PYTHONPATH"] = _project_root
+        return subprocess.Popen(
+            [sys.executable, "-m", "tools.mcp.sovereign_mcp_server"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=_project_root,
+            env=env,
+        )
+
+    @staticmethod
+    def _kill_proc(proc: "subprocess.Popen") -> bytes:
+        """Kill a subprocess and return its stderr."""
+        import signal as _signal
+        if proc.poll() is None:
+            try:
+                proc.send_signal(_signal.SIGTERM)
+                proc.wait(timeout=5)
+            except Exception:
+                proc.kill()
+                proc.wait(timeout=3)
+        _, stderr = proc.communicate(timeout=5) if proc.returncode is None else (None, b"")
+        # communicate may have already been called by wait; safe no-op
+        try:
+            _, stderr = proc.communicate(timeout=1)
+        except Exception:
+            stderr = b""
+        return stderr
+
+    def test_health_reachable_with_stdin_closed(self):
+        """Launch sovereign server with stdin=/dev/null (K8s headless mode).
+        Assert /health returns 200, then SIGTERM for clean shutdown."""
+        import signal as _signal
+
+        proc = self._launch_server(self._TEST_PORT)
+
+        try:
+            health_ok = self._wait_for_health(self._TEST_PORT, timeout=30.0)
+
+            if not health_ok:
+                proc.kill()
+                _, stderr = proc.communicate(timeout=5)
+                pytest.fail(
+                    f"Health endpoint not reachable within 30s. "
+                    f"Process alive={proc.poll() is None}. rc={proc.returncode}. "
+                    f"stderr (last 800 chars): {stderr[-800:].decode(errors='replace')}"
+                )
+
+            # Verify process is still alive (headless mode, not exited)
+            assert proc.poll() is None, "Process exited prematurely after stdio close"
+
+        finally:
+            if proc.poll() is None:
+                proc.send_signal(_signal.SIGTERM)
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=3)
+            # Give OS time to release the port
+            time.sleep(0.5)
+
+    def test_sigterm_triggers_clean_exit(self):
+        """After SIGTERM, the headless server exits with code 0."""
+        import signal as _signal
+
+        port = self._TEST_PORT + 1
+        proc = self._launch_server(port)
+
+        try:
+            # Wait for health to confirm server is fully initialized
+            health_ok = self._wait_for_health(port, timeout=30.0)
+
+            if not health_ok:
+                proc.kill()
+                _, stderr = proc.communicate(timeout=5)
+                pytest.fail(
+                    f"Health never reachable on port {port} within 30s. "
+                    f"rc={proc.returncode}. "
+                    f"stderr (last 800 chars): {stderr[-800:].decode(errors='replace')}"
+                )
+
+            # Send SIGTERM — server should shut down cleanly
+            proc.send_signal(_signal.SIGTERM)
+            exit_code = proc.wait(timeout=10)
+            assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
+        except Exception:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=3)
+            raise

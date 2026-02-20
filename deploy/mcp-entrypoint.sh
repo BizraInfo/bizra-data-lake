@@ -28,7 +28,7 @@ echo "[MCP] IHSAN_THRESHOLD=${IHSAN_THRESHOLD:-0.95}"
 
 case "$MCP_SERVER" in
     sovereign)
-        echo "[MCP] Launching Sovereign Brain MCP (stdio -> HTTP adapter)"
+        echo "[MCP] Launching Sovereign Brain MCP (stdio + HTTP health on port ${MCP_HTTP_PORT})"
         exec python -m tools.mcp.sovereign_mcp_server "$@"
         ;;
     ecosystem)

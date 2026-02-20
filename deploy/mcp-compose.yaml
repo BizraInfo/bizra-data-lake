@@ -22,6 +22,16 @@ x-mcp-common: &mcp-common
     - TOOL_TIMEOUT_SECONDS=30
     - REDIS_URL=redis://:${REDIS_PASSWORD}@bizra-redis:6379
     - PYTHONPATH=/app
+    # Phase 46 Canary Routing — Stage 1
+    # SEARCH_ENABLED deliberately unset: percent routing controls search.
+    - BIZRA_PHASE46_GOT_BRIDGE_ENABLED=0
+    - BIZRA_PHASE46_HMM_ENABLED=0
+    - BIZRA_PHASE46_SEARCH_PERCENT=${BIZRA_PHASE46_SEARCH_PERCENT:-10}
+    - BIZRA_PHASE46_GOT_BRIDGE_PERCENT=0
+    - BIZRA_PHASE46_HMM_PERCENT=0
+    - BIZRA_PHASE46_CANARY_SALT=bizra-phase46-canary-v1
+    - BIZRA_PHASE46_HMM_CALLER_MODE=single
+    - BIZRA_PHASE46_HMM_ALLOWED_CALLER=mcp
   networks:
     - bizra-network
   restart: unless-stopped
