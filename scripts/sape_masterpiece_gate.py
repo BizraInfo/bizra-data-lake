@@ -46,10 +46,14 @@ def _free_port() -> int:
 
 
 def _headers(
-    token: str = DEFAULT_TOKEN,
+    token: str | None = None,
     ts_ms: int | None = None,
     nonce: str | None = None,
 ) -> dict[str, Any]:
+    # Resolve token: caller > env var > module default.
+    # This ensures CI (BIZRA_BRIDGE_TOKEN=ci-bridge-token) matches the bridge.
+    if token is None:
+        token = os.environ.get("BIZRA_BRIDGE_TOKEN", DEFAULT_TOKEN)
     return {
         "X-BIZRA-TOKEN": token,
         "X-BIZRA-TS": ts_ms if ts_ms is not None else int(time.time() * 1000),
