@@ -51,9 +51,9 @@ from core.integration.constants import (
 # ═══════════════════════════════════════════════════════════════════════════════
 # Feature Flag
 # ═══════════════════════════════════════════════════════════════════════════════
-PHASE46_HMM_ENABLED: Final[bool] = (
-    os.getenv("BIZRA_PHASE46_HMM_ENABLED", "1").lower() in ("1", "true", "yes")
-)
+PHASE46_HMM_ENABLED: Final[bool] = os.getenv(
+    "BIZRA_PHASE46_HMM_ENABLED", "1"
+).lower() in ("1", "true", "yes")
 
 logger = logging.getLogger(__name__)
 
@@ -322,7 +322,11 @@ class HMMEngine:
         self._lock = threading.Lock()
 
         # Observation vocabulary
-        symbols = observation_symbols if observation_symbols is not None else list(DEFAULT_OBSERVATION_SYMBOLS)
+        symbols = (
+            observation_symbols
+            if observation_symbols is not None
+            else list(DEFAULT_OBSERVATION_SYMBOLS)
+        )
         if not symbols:
             raise ValueError("observation_symbols must be a non-empty list")
         self._observation_symbols: list[str] = symbols
@@ -344,11 +348,15 @@ class HMMEngine:
             self._A = A
 
         # B — emission matrix with informed priors
-        if n_hidden == HMM_NUM_HIDDEN_STATES and self._n_obs == len(DEFAULT_OBSERVATION_SYMBOLS):
+        if n_hidden == HMM_NUM_HIDDEN_STATES and self._n_obs == len(
+            DEFAULT_OBSERVATION_SYMBOLS
+        ):
             self._B: np.ndarray = _build_informed_emission(n_hidden, self._n_obs)
         else:
             # Custom configuration: uniform emission
-            self._B = np.full((n_hidden, self._n_obs), 1.0 / self._n_obs, dtype=np.float64)
+            self._B = np.full(
+                (n_hidden, self._n_obs), 1.0 / self._n_obs, dtype=np.float64
+            )
 
         # Running state
         self._current_state_dist: np.ndarray = self._pi.copy()
@@ -418,7 +426,9 @@ class HMMEngine:
             # Append to bounded history
             self._observation_history.append(obs_idx)
             if len(self._observation_history) > self._observation_window:
-                self._observation_history = self._observation_history[-self._observation_window :]
+                self._observation_history = self._observation_history[
+                    -self._observation_window :
+                ]
 
             # Forward step: alpha_t = B[:, obs] * (A^T @ alpha_{t-1})
             prediction = self._A.T @ self._current_state_dist
@@ -502,7 +512,9 @@ class HMMEngine:
         for t in range(n_obs - 2, -1, -1):
             path[t] = int(backptr[t + 1, path[t + 1]])
 
-        return [_STATE_LIST[i] if i < len(_STATE_LIST) else _STATE_LIST[0] for i in path]
+        return [
+            _STATE_LIST[i] if i < len(_STATE_LIST) else _STATE_LIST[0] for i in path
+        ]
 
     def likelihood(self, observations: list[str]) -> float:
         """Forward algorithm — log-likelihood P(observations | model).
@@ -598,7 +610,9 @@ class HMMEngine:
         engine = cls(
             n_hidden=data["n_hidden"],
             observation_symbols=data["observation_symbols"],
-            convergence_threshold=data.get("convergence_threshold", HMM_CONVERGENCE_THRESHOLD),
+            convergence_threshold=data.get(
+                "convergence_threshold", HMM_CONVERGENCE_THRESHOLD
+            ),
             max_iterations=data.get("max_iterations", HMM_MAX_EM_ITERATIONS),
         )
 
@@ -606,10 +620,14 @@ class HMMEngine:
         engine._pi = np.array(data["pi"], dtype=np.float64)
         engine._A = np.array(data["A"], dtype=np.float64)
         engine._B = np.array(data["B"], dtype=np.float64)
-        engine._current_state_dist = np.array(data["current_state_dist"], dtype=np.float64)
+        engine._current_state_dist = np.array(
+            data["current_state_dist"], dtype=np.float64
+        )
         engine._observation_history = list(data.get("observation_history", []))
         engine._log_likelihood_accum = float(data.get("log_likelihood_accum", 0.0))
-        engine._observation_window = int(data.get("observation_window", HMM_OBSERVATION_WINDOW))
+        engine._observation_window = int(
+            data.get("observation_window", HMM_OBSERVATION_WINDOW)
+        )
 
         return engine
 
@@ -643,7 +661,11 @@ class HMMEngine:
 
         # Current MAP state
         current_idx = int(np.argmax(dist))
-        current_state = _STATE_LIST[current_idx] if current_idx < len(_STATE_LIST) else _STATE_LIST[0]
+        current_state = (
+            _STATE_LIST[current_idx]
+            if current_idx < len(_STATE_LIST)
+            else _STATE_LIST[0]
+        )
 
         # State probabilities (string keys for JSON serializability)
         state_probs: dict[str, float] = {}
@@ -660,7 +682,9 @@ class HMMEngine:
             next_dist = next_dist / next_sum
 
         next_idx = int(np.argmax(next_dist))
-        predicted_next = _STATE_LIST[next_idx] if next_idx < len(_STATE_LIST) else _STATE_LIST[0]
+        predicted_next = (
+            _STATE_LIST[next_idx] if next_idx < len(_STATE_LIST) else _STATE_LIST[0]
+        )
         confidence = float(next_dist[next_idx])
 
         return PredictionResult(

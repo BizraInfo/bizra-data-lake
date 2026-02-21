@@ -10,6 +10,12 @@
 // ============================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  countQueuedActions,
+  enqueueAction,
+  listQueuedActions,
+  removeQueuedAction,
+} from "./offline/queue";
 
 // Is Tauri available?
 const isTauri = () => typeof window !== "undefined" && window.__TAURI_INTERNALS__;
@@ -34,6 +40,7 @@ const createTauriBridge = () => {
 
     send: async (verb, args = {}) => {
       const inv = await ensureInvoke();
+      const sanitize = (v) => String(v ?? "").replace(/\t/g, " ").replace(/\n/g, " ");
 
       switch (verb) {
         case "RECEIVE":
@@ -74,6 +81,47 @@ const createTauriBridge = () => {
           return inv("node_ping");
         case "VERSION":
           return inv("node_version");
+        case "PLAN_ACTION":
+          return inv("node_execute", {
+            command: `PLAN_ACTION\t${sanitize(args.payload_json || "{}")}`,
+          });
+        case "RUN_ACTION":
+          return inv("node_execute", {
+            command: `RUN_ACTION\t${sanitize(args.plan_id || "")}\t${sanitize(args.payload_json || "{}")}`,
+          });
+        case "ACTION_STATUS":
+          return inv("node_execute", {
+            command: `ACTION_STATUS\t${sanitize(args.action_id || "")}`,
+          });
+        case "ACTION_HISTORY":
+          return inv("node_execute", {
+            command: `ACTION_HISTORY\t${sanitize(args.limit || 20)}\t${sanitize(args.cursor || "")}`,
+          });
+        // SAP v0 protocol verbs
+        case "SAP_MEET_OPEN":
+          return inv("node_execute", {
+            command: `SAP_MEET_OPEN\t${sanitize(args.profile || "sap-ads-retail-v0")}\t${sanitize(args.initiator_role || "visitor")}\t${Date.now()}`,
+          });
+        case "SAP_MESSAGE":
+          return inv("node_execute", {
+            command: `SAP_MESSAGE\t${sanitize(args.session_id || "")}\t${sanitize(args.content || "")}\t${Date.now()}`,
+          });
+        case "SAP_DISCLOSURE":
+          return inv("node_execute", {
+            command: `SAP_DISCLOSURE\t${sanitize(args.session_id || "")}`,
+          });
+        case "SAP_CONSENT_REQUEST":
+          return inv("node_execute", {
+            command: `SAP_CONSENT_REQUEST\t${sanitize(args.session_id || "")}\t${sanitize(JSON.stringify(args.scopes || []))}`,
+          });
+        case "SAP_CONSENT_REVOKE":
+          return inv("node_execute", {
+            command: `SAP_CONSENT_REVOKE\t${sanitize(args.session_id || "")}\t${sanitize(args.receipt_id || "")}`,
+          });
+        case "SAP_SESSION_CLOSE":
+          return inv("node_execute", {
+            command: `SAP_SESSION_CLOSE\t${sanitize(args.session_id || "")}\t${Date.now()}`,
+          });
         default:
           return inv("node_execute", { command: verb });
       }
@@ -205,6 +253,144 @@ const createBrowserBridge = () => {
           return { ok: true, fields: { pong: "true" } };
         case "VERSION":
           return { ok: true, fields: { node: "bizra-node", version: "0.1.0", protocol: "1.0" } };
+        case "PLAN_ACTION":
+          return {
+            ok: true,
+            fields: {
+              planned: "true",
+              plan_id: `pln_demo_${Date.now()}`,
+              steps: "1",
+              created_at: String(Date.now()),
+            },
+          };
+        case "RUN_ACTION":
+          return {
+            ok: true,
+            fields: {
+              ran: "true",
+              action_id: `act_demo_${Date.now()}`,
+              status: "completed",
+              message: "ok",
+            },
+          };
+        case "ACTION_STATUS":
+          return {
+            ok: true,
+            fields: {
+              found: "true",
+              action_id: args.action_id || "act_demo",
+              status: "completed",
+              message: "ok",
+            },
+          };
+        case "ACTION_HISTORY":
+          return {
+            ok: true,
+            fields: {
+              count: "0",
+              next_cursor: "",
+              rows: "",
+            },
+          };
+
+        // SAP v0 protocol simulation
+        case "SAP_MEET_OPEN": {
+          const sessionId = `sap_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          return {
+            ok: true,
+            fields: {
+              session_id: sessionId,
+              profile: args.profile || "sap-ads-retail-v0",
+              disclosure: JSON.stringify({
+                claims: [
+                  "This agent is compiled from real multi-platform conversations",
+                  "BIZRA is in Alpha-100 stage",
+                ],
+                uncertainty: [
+                  "Compilation score is approximate",
+                  "Alpha software — features may change",
+                ],
+                source_refs: ["specs/sap-v0/01-core-primitives.md"],
+                compliance_assertions: [{ standard: "SAP_v0", status: "conformant", evidence: "22/22 tests" }],
+              }),
+              ihsan_score: "0.97",
+            },
+          };
+        }
+        case "SAP_MESSAGE": {
+          state.messages++;
+          const frags = extractFragments(args.content || "");
+          state.fragments += frags;
+          state.knowsMe = Math.min(1.0, state.knowsMe + frags * 0.008 + 0.002);
+          return {
+            ok: true,
+            fields: {
+              session_id: args.session_id || "",
+              content: state.knowsMe > 0.05
+                ? "I understand your interest. Let me share what I know about BIZRA's architecture."
+                : "Welcome to BIZRA. I'm a sovereign agent — compiled, not prompted. Ask me anything.",
+              disclosure: JSON.stringify({
+                claims: ["Response generated from compiled reflexes"],
+                uncertainty: ["I may not have information on features still in development"],
+              }),
+              ihsan_score: String(0.95 + Math.random() * 0.04),
+              receipt_hash: Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
+            },
+          };
+        }
+        case "SAP_DISCLOSURE":
+          return {
+            ok: true,
+            fields: {
+              session_id: args.session_id || "",
+              disclosure: JSON.stringify({
+                claims: [
+                  "This agent is compiled from 7000+ real conversations across 8 platforms",
+                  "All responses pass a constitutional Ihsan gate (threshold >= 0.95)",
+                  "SAP v0 conformance: 22/22 tests passing",
+                ],
+                uncertainty: [
+                  "Compilation score is 0.92 — some gaps may exist",
+                  "Alpha software — production readiness in progress",
+                ],
+                source_refs: [
+                  "specs/sap-v0/01-core-primitives.md",
+                  "tests/conformance/sap_v0/",
+                  "schemas/sap/v0/disclosure.schema.json",
+                ],
+              }),
+            },
+          };
+        case "SAP_CONSENT_REQUEST":
+          return {
+            ok: true,
+            fields: {
+              session_id: args.session_id || "",
+              status: "pending",
+              scopes: JSON.stringify(args.scopes || []),
+              message: "Consent requested. No data shared until explicitly granted.",
+            },
+          };
+        case "SAP_CONSENT_REVOKE":
+          return {
+            ok: true,
+            fields: {
+              session_id: args.session_id || "",
+              revoked: "true",
+              message: "Consent revoked. All associated data processing stopped.",
+            },
+          };
+        case "SAP_SESSION_CLOSE":
+          return {
+            ok: true,
+            fields: {
+              session_id: args.session_id || "",
+              closed: "true",
+              final_receipt_hash: Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
+              message: "Session closed. You can revoke any granted consent at any time.",
+            },
+          };
+
         default:
           return { ok: true, fields: {} };
       }
@@ -222,6 +408,24 @@ export function useNode() {
   const [connected, setConnected] = useState(false);
   const [mode, setMode] = useState("detecting");
   const [health, setHealth] = useState(null);
+  const [lastSeenTs, setLastSeenTs] = useState(null);
+  const [queuedActions, setQueuedActions] = useState(0);
+  const [nodeReachable, setNodeReachable] = useState(false);
+
+  const flushQueue = useCallback(async () => {
+    if (!bridgeRef.current || !nodeReachable) return;
+    const rows = await listQueuedActions(50);
+    for (const row of rows) {
+      try {
+        await bridgeRef.current.send(row.command, row.payload);
+        await removeQueuedAction(row.id);
+      } catch {
+        // Stop flush on first failure to avoid tight loops.
+        break;
+      }
+    }
+    setQueuedActions(await countQueuedActions());
+  }, [nodeReachable]);
 
   // Initialize bridge
   useEffect(() => {
@@ -234,23 +438,49 @@ export function useNode() {
       try {
         await bridge.send("PING");
         setConnected(true);
+        setNodeReachable(true);
+        setLastSeenTs(Date.now());
 
         // Get initial health
         const h = await bridge.send("HEALTH");
         if (h.ok) setHealth(h.fields);
+        setQueuedActions(await countQueuedActions());
+        await flushQueue();
       } catch (err) {
         console.error("[useNode] Boot failed:", err);
+        setConnected(false);
+        setNodeReachable(false);
+        setQueuedActions(await countQueuedActions());
       }
     };
 
     boot();
-  }, []);
+  }, [flushQueue]);
 
   // Stable send function
   const send = useCallback(async (verb, args = {}) => {
     if (!bridgeRef.current) return { ok: false, error: "Not initialized" };
-    const result = await bridgeRef.current.send(verb, args);
-    return result;
+    try {
+      const result = await bridgeRef.current.send(verb, args);
+      setConnected(true);
+      setNodeReachable(true);
+      setLastSeenTs(Date.now());
+      return result;
+    } catch (err) {
+      setConnected(false);
+      setNodeReachable(false);
+      const queueEligible = verb === "PLAN_ACTION" || verb === "RUN_ACTION";
+      if (queueEligible) {
+        await enqueueAction({ command: verb, payload: args });
+        setQueuedActions(await countQueuedActions());
+        return {
+          ok: false,
+          queued: true,
+          error: "Node unreachable, action queued for reconnect",
+        };
+      }
+      return { ok: false, error: "Node unreachable" };
+    }
   }, []);
 
   // Convenience methods
@@ -275,15 +505,64 @@ export function useNode() {
     return h;
   }, [send]);
 
+  // SAP v0 convenience methods
+  const sapMeetOpen = useCallback(
+    (profile = "sap-ads-retail-v0", initiatorRole = "visitor") =>
+      send("SAP_MEET_OPEN", { profile, initiator_role: initiatorRole }),
+    [send]
+  );
+
+  const sapMessage = useCallback(
+    (sessionId, content) =>
+      send("SAP_MESSAGE", { session_id: sessionId, content }),
+    [send]
+  );
+
+  const sapDisclosure = useCallback(
+    (sessionId) => send("SAP_DISCLOSURE", { session_id: sessionId }),
+    [send]
+  );
+
+  const sapSessionClose = useCallback(
+    (sessionId) => send("SAP_SESSION_CLOSE", { session_id: sessionId }),
+    [send]
+  );
+
+  // Lightweight heartbeat + queue flush loop.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (!bridgeRef.current) return;
+      try {
+        await bridgeRef.current.send("PING");
+        setConnected(true);
+        setNodeReachable(true);
+        setLastSeenTs(Date.now());
+        await flushQueue();
+      } catch {
+        setConnected(false);
+        setNodeReachable(false);
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [flushQueue]);
+
   return {
     connected,
     mode,
     health,
+    nodeReachable,
+    queuedActions,
+    lastSeenTs,
     send,
     receive,
     teach,
     synthesize,
     knowsMe,
     refreshHealth,
+    // SAP v0
+    sapMeetOpen,
+    sapMessage,
+    sapDisclosure,
+    sapSessionClose,
   };
 }

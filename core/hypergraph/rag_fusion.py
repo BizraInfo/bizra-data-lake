@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Retrieval result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RetrievalResult:
     """A single retrieval candidate with per-source scores.
@@ -79,6 +80,7 @@ FUSION_WEIGHTS: Dict[str, float] = {
 # ---------------------------------------------------------------------------
 # HyperGraphRAGFusion
 # ---------------------------------------------------------------------------
+
 
 class HyperGraphRAGFusion:
     """Triple-source retrieval with hypergraph-augmented re-ranking.
@@ -242,10 +244,7 @@ class HyperGraphRAGFusion:
                 if neighbor_id not in results or score > results[neighbor_id][0]:
                     results[neighbor_id] = (score, domain)
 
-        return [
-            (nid, score, domain)
-            for nid, (score, domain) in results.items()
-        ]
+        return [(nid, score, domain) for nid, (score, domain) in results.items()]
 
     # -- helpers ------------------------------------------------------------
 

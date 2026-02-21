@@ -1,0 +1,13 @@
+{
+  "name": "redline_violation_valid",
+  "schema": "redline_violation.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "violation_id": "violation_001",
+    "rule_code": "SC-02",
+    "actor": "agent_brand_001",
+    "decision": "deny",
+    "timestamp": 1893456004,
+    "reason": "Attempted purchase_negotiation outside consent scope."
+  }
+}

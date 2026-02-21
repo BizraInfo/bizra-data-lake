@@ -58,8 +58,13 @@ impl ExtractionContent {
     }
 
     pub fn as_str(&self) -> &str {
-        // Safety: we only store valid UTF-8 from &str input
-        unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
+        let slice = &self.buf[..self.len];
+        debug_assert!(
+            core::str::from_utf8(slice).is_ok(),
+            "UTF-8 invariant violated in ExtractionContent"
+        );
+        // Safety: constructors validate UTF-8; debug_assert guards against regression
+        unsafe { core::str::from_utf8_unchecked(slice) }
     }
 
     pub fn len(&self) -> usize {

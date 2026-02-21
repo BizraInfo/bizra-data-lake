@@ -12,7 +12,7 @@ in SNRFacade, conforming to the canonical SNRProtocol interface.
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.snr_protocol import SNRResult
@@ -66,9 +66,7 @@ class SNRv2Adapter:
                     text_embeddings=text_embeddings,
                 )
             else:
-                components = self._calculator.calculate_simple(
-                    query=query, texts=texts
-                )
+                components = self._calculator.calculate_simple(query=query, texts=texts)
         except Exception as e:
             logger.warning(f"SNRv2Adapter: compute failed: {e}")
             return SNRResult(

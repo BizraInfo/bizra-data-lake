@@ -95,7 +95,7 @@ asyncio.run(FederationNode('test', bind_address='127.0.0.1:9000').start())
 >>> SUCCESS
 ```
 
-**Fix Applied**: [core/federation/node.py](core/federation/node.py) - Changed `bind_host`/`bind_port` to `bind_address`, commented out calls to non-existent gossip methods, added honest "(LOCAL MODE - no P2P)" message.
+**Fix Applied**: [core/federation/node.py](../../core/federation/node.py) - Changed `bind_host`/`bind_port` to `bind_address`, commented out calls to non-existent gossip methods, added honest "(LOCAL MODE - no P2P)" message.
 
 **7/7 federation tests still pass** — tests validate data structures, not P2P networking.
 

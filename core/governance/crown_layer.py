@@ -177,9 +177,11 @@ class CROWNLayer:
         return HorizonVerdict(
             horizon=CROWNHorizon.H0_ETHICAL,
             status=status,
-            details="; ".join(details_parts)
-            if details_parts
-            else "All ethical invariants hold",
+            details=(
+                "; ".join(details_parts)
+                if details_parts
+                else "All ethical invariants hold"
+            ),
             metrics=metrics,
         )
 
@@ -210,9 +212,11 @@ class CROWNLayer:
         return HorizonVerdict(
             horizon=CROWNHorizon.H1_PERFORMANCE,
             status=status,
-            details="; ".join(details_parts)
-            if details_parts
-            else "All performance SLAs met",
+            details=(
+                "; ".join(details_parts)
+                if details_parts
+                else "All performance SLAs met"
+            ),
             metrics=metrics,
         )
 
@@ -227,9 +231,7 @@ class CROWNLayer:
             metrics["is_reversible"] = state.is_reversible
             if not state.is_reversible:
                 status = CROWNStatus.HALT
-                details_parts.append(
-                    "Irreversible action without safety confirmation"
-                )
+                details_parts.append("Irreversible action without safety confirmation")
 
         # Human override availability
         if state.human_override_available is not None:
@@ -252,8 +254,10 @@ class CROWNLayer:
         return HorizonVerdict(
             horizon=CROWNHorizon.H2_SAFETY,
             status=status,
-            details="; ".join(details_parts)
-            if details_parts
-            else "All safety invariants hold",
+            details=(
+                "; ".join(details_parts)
+                if details_parts
+                else "All safety invariants hold"
+            ),
             metrics=metrics,
         )

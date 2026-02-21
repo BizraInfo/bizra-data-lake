@@ -69,10 +69,6 @@ from typing import Any, Final, Optional
 # CONFIGURATION & CONSTANTS
 # ════════════════════════════════════════════════════════════════════════════════
 
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-)
 
 # Peak Masterpiece targets (highest tier)
 PEAK_SNR_TARGET: Final[float] = 0.99  # Ultimate excellence

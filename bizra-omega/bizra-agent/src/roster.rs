@@ -129,6 +129,7 @@ pub const PAT_SIZE: usize = 7; // Personal Agent Team = 7 agents
 pub struct AgentRoster {
     agents: [AgentEntry; PAT_SIZE],
     user_hash: u32,
+    #[allow(dead_code)]
     created_at: u64,
     total_tasks_routed: u64,
 }

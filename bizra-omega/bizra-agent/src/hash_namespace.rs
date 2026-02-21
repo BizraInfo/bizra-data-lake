@@ -8,6 +8,7 @@ use blake3::Hasher;
 pub const TRIGGER_DOMAIN: &str = "genesis/trigger/v1";
 pub const ACTION_DOMAIN: &str = "genesis/action/v1";
 pub const ARTIFACT_DOMAIN: &str = "genesis/artifact/v1";
+pub const RECEIPT_DOMAIN: &str = "genesis/receipt/v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TriggerHash(pub [u8; 32]);
@@ -17,6 +18,9 @@ pub struct ActionHash(pub [u8; 32]);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ArtifactHash(pub [u8; 32]);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ReceiptHash(pub [u8; 32]);
 
 impl TriggerHash {
     pub fn to_hex(self) -> String {
@@ -31,6 +35,12 @@ impl ActionHash {
 }
 
 impl ArtifactHash {
+    pub fn to_hex(self) -> String {
+        hex_encode(&self.0)
+    }
+}
+
+impl ReceiptHash {
     pub fn to_hex(self) -> String {
         hex_encode(&self.0)
     }
@@ -63,7 +73,7 @@ pub fn compute_trigger_hash(
             )
         })
         .collect();
-    canonical_traits.sort_by(|a, b| a.cmp(b));
+    canonical_traits.sort();
 
     let mut payload = Vec::new();
     let intent = normalize_ws(normalized_intent.trim()).to_ascii_lowercase();
@@ -94,6 +104,13 @@ pub fn compute_artifact_hash(action_hash: &ActionHash, serialized_artifact: &str
     payload.extend_from_slice(&action_hash.0);
     write_len_prefixed(&mut payload, normalize_ws(serialized_artifact).as_bytes());
     ArtifactHash(domain_hash(ARTIFACT_DOMAIN, &payload))
+}
+
+pub fn compute_receipt_hash(canonical_receipt: &str, prev_receipt_hash: &[u8; 32]) -> ReceiptHash {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(prev_receipt_hash);
+    write_len_prefixed(&mut payload, normalize_ws(canonical_receipt).as_bytes());
+    ReceiptHash(domain_hash(RECEIPT_DOMAIN, &payload))
 }
 
 fn domain_hash(domain: &str, data: &[u8]) -> [u8; 32] {

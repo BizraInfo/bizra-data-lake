@@ -1,0 +1,16 @@
+{
+  "name": "agent_card_missing_compilation",
+  "schema": "agent_card.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "agent_id": "agent_user_001",
+    "owner_node_id": "node_owner_001",
+    "role": "user_proxy",
+    "policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "capabilities": ["Compute"],
+    "endpoints": {
+      "local": "ipc://node0/user-proxy"
+    },
+    "version": "0.1.0"
+  }
+}

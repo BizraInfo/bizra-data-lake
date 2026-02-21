@@ -51,15 +51,15 @@ __author__ = "BIZRA Node0"
 # PUBLIC API — Abstraction Levels
 # ═══════════════════════════════════════════════════════════════════════════════
 from core.hrm.abstraction_levels import (
+    HRM_SNR_GRADIENT,
+    HRM_TEMPORAL_SCALE,
     AbstractionLevel,
     BridgeNodeType,
     LevelBoundary,
     LevelConfig,
     TemporalScale,
-    HRM_SNR_GRADIENT,
-    HRM_TEMPORAL_SCALE,
-    default_level_configs,
     default_boundaries,
+    default_level_configs,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -75,17 +75,6 @@ from core.hrm.cross_level_bridge import (
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PUBLIC API — Meta-Autopoietic Level
-# ═══════════════════════════════════════════════════════════════════════════════
-from core.hrm.meta_level import (
-    MetaAutopoieticLevel,
-    MetaObservation,
-    MetaOperation,
-    MetaProposal,
-    TriggerCondition,
-)
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API — Hierarchical Engine (The Core)
 # ═══════════════════════════════════════════════════════════════════════════════
 from core.hrm.hierarchical_engine import (
@@ -94,6 +83,17 @@ from core.hrm.hierarchical_engine import (
     HRMCycleResult,
     HRMStatus,
     LevelCycleResult,
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — Meta-Autopoietic Level
+# ═══════════════════════════════════════════════════════════════════════════════
+from core.hrm.meta_level import (
+    MetaAutopoieticLevel,
+    MetaObservation,
+    MetaOperation,
+    MetaProposal,
+    TriggerCondition,
 )
 
 __all__ = [

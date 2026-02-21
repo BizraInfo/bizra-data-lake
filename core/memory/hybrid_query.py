@@ -26,7 +26,6 @@ from .hnsw_index import HNSWIndex
 from .types import QueryOptions, SearchResult
 from .unified_store import UnifiedStore
 
-
 # Recency half-life in hours (1 week)
 _RECENCY_HALF_LIFE_HOURS = 168.0
 

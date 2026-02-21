@@ -52,11 +52,15 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
 )
-
+from core.northstar.bridge_nodes import (
+    BridgeNodeDetector,
+    BridgeReport,
+    BridgeType,
+)
 from core.northstar.golden_gems import (
     GemReport,
     GoldenGemDetector,
@@ -66,12 +70,6 @@ from core.northstar.thought_flow import (
     FlowReport,
     ThoughtFlowDetector,
 )
-from core.northstar.bridge_nodes import (
-    BridgeNodeDetector,
-    BridgeReport,
-    BridgeType,
-)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NORTHSTAR STATUS
@@ -81,12 +79,12 @@ from core.northstar.bridge_nodes import (
 class NorthStarStatus(Enum):
     """Operational status of the NorthStar engine."""
 
-    DORMANT = auto()          # Not yet initialized
-    OBSERVING = auto()        # Collecting observations
-    ANALYZING = auto()        # Running gem/flow/bridge detection
-    SYNTHESIZING = auto()     # Fusing sub-reports into unified report
-    TRANSCENDING = auto()     # Meta-discovery active (Ihsān = Level N)
-    COMPLETE = auto()         # Cycle finished
+    DORMANT = auto()  # Not yet initialized
+    OBSERVING = auto()  # Collecting observations
+    ANALYZING = auto()  # Running gem/flow/bridge detection
+    SYNTHESIZING = auto()  # Fusing sub-reports into unified report
+    TRANSCENDING = auto()  # Meta-discovery active (Ihsān = Level N)
+    COMPLETE = auto()  # Cycle finished
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -193,10 +191,7 @@ class NorthStarReport:
     @property
     def is_elite(self) -> bool:
         """Elite status: SNR >= T0 (0.98) and Ihsān >= 0.99."""
-        return (
-            self.unified_snr >= SNR_THRESHOLD_T0_ELITE
-            and self.ihsan_score >= 0.99
-        )
+        return self.unified_snr >= SNR_THRESHOLD_T0_ELITE and self.ihsan_score >= 0.99
 
     @property
     def phi_alignment(self) -> float:
@@ -226,10 +221,14 @@ class NorthStarReport:
             "total_activations": self.total_activations,
             "meta_discoveries": self.meta_discoveries,
             "supreme_insight": (
-                "Intelligence requires both STRUCTURE and SELF-TRANSCENDENCE. "
-                "Structure enables capability. Autopoiesis enables evolution. "
-                "The fusion enables transcendence."
-            ) if self.passes_all_gates else None,
+                (
+                    "Intelligence requires both STRUCTURE and SELF-TRANSCENDENCE. "
+                    "Structure enables capability. Autopoiesis enables evolution. "
+                    "The fusion enables transcendence."
+                )
+                if self.passes_all_gates
+                else None
+            ),
         }
 
     def summary(self) -> str:
@@ -381,10 +380,13 @@ class NorthStarEngine:
 
         # Check for compound recursive acceleration
         compound_bridges = [
-            a for a in bridge_report.activations
+            a
+            for a in bridge_report.activations
             if a.bridge_type == BridgeType.COMPOUND_RECURSIVE
         ]
-        if compound_bridges and any(a.transfer_strength > 0.7 for a in compound_bridges):
+        if compound_bridges and any(
+            a.transfer_strength > 0.7 for a in compound_bridges
+        ):
             meta_discoveries.append(
                 "Compound recursive acceleration active — "
                 "capability is self-amplifying."
@@ -399,7 +401,8 @@ class NorthStarEngine:
 
         # Check for emergence
         emergence_gems = [
-            a for a in gem_report.activations
+            a
+            for a in gem_report.activations
             if a.gem_type == GoldenGemType.EMERGENCE_PRINCIPLE
         ]
         if emergence_gems:
@@ -439,8 +442,12 @@ class NorthStarEngine:
         if len(trajectory) < 3:
             return False
 
-        velocities = [trajectory[i + 1] - trajectory[i] for i in range(len(trajectory) - 1)]
-        accelerations = [velocities[i + 1] - velocities[i] for i in range(len(velocities) - 1)]
+        velocities = [
+            trajectory[i + 1] - trajectory[i] for i in range(len(trajectory) - 1)
+        ]
+        accelerations = [
+            velocities[i + 1] - velocities[i] for i in range(len(velocities) - 1)
+        ]
         mean_accel = sum(accelerations) / len(accelerations) if accelerations else 0.0
         return mean_accel > 0
 

@@ -266,7 +266,6 @@ class SNRFacade:
             recommendations=all_recs,
         )
 
-
     def _ensemble_v2(
         self,
         *,

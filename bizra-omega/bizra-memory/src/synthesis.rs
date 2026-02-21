@@ -125,7 +125,7 @@ impl SynthesisEngine {
         result.atoms_examined = pending.len() as u32;
 
         // Strategy 1: Direct promotion — high-confidence stated facts become insights
-        for &(atom_id, kind, confidence, offset, len) in &pending {
+        for &(atom_id, _kind, confidence, offset, len) in &pending {
             if confidence >= 0.90 {
                 if let Some(content) = store.get_content_str(offset, len) {
                     let insight_content = content.to_string();
@@ -194,6 +194,7 @@ impl SynthesisEngine {
     }
 
     /// Group atoms by kind for correlation analysis.
+    #[allow(clippy::type_complexity)]
     fn group_by_kind<'a>(
         &self,
         atoms: &'a [(AtomId, AtomKind, f32, u64, u32)],

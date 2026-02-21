@@ -471,12 +471,14 @@ pub struct ContextTrait {
 impl ContextTrait {
     pub fn new(key: &str, value: &str, confidence: Confidence) -> Self {
         let mut k = [0u8; 64];
-        let kl = key.as_bytes().len().min(64);
-        k[..kl].copy_from_slice(&key.as_bytes()[..kl]);
+        let kb = key.as_bytes();
+        let kl = kb.len().min(64);
+        k[..kl].copy_from_slice(&kb[..kl]);
 
         let mut v = [0u8; 256];
-        let vl = value.as_bytes().len().min(256);
-        v[..vl].copy_from_slice(&value.as_bytes()[..vl]);
+        let vb = value.as_bytes();
+        let vl = vb.len().min(256);
+        v[..vl].copy_from_slice(&vb[..vl]);
 
         Self {
             key: k,
@@ -603,6 +605,7 @@ pub struct Response {
 }
 
 impl Response {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         message_id: MessageId,
         content: &str,

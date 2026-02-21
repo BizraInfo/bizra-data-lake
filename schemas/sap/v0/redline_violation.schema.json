@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/redline_violation.schema.json",
+  "title": "RedlineViolation",
+  "type": "object",
+  "required": [
+    "violation_id",
+    "rule_code",
+    "actor",
+    "decision",
+    "timestamp",
+    "reason"
+  ],
+  "properties": {
+    "violation_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "rule_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "deny",
+        "quarantine",
+        "terminate"
+      ]
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    }
+  },
+  "additionalProperties": false
+}

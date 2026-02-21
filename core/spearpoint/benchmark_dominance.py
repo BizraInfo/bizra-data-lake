@@ -73,11 +73,11 @@ STANDING_ON_GIANTS: Final[list] = [
 class BDLStage(str, Enum):
     """Benchmark Dominance Loop stages — the True Spearpoint flywheel."""
 
-    EVALUATE = "evaluate"    # Run against CLEAR harness + ABC checklist
-    ABLATE = "ablate"        # Identify weak modules via controlled removal
+    EVALUATE = "evaluate"  # Run against CLEAR harness + ABC checklist
+    ABLATE = "ablate"  # Identify weak modules via controlled removal
     ARCHITECT = "architect"  # Upgrade weak modules using pattern library
-    SUBMIT = "submit"        # Execute RDVE cycle with improvements
-    ANALYZE = "analyze"      # Ingest results, detect convergence
+    SUBMIT = "submit"  # Execute RDVE cycle with improvements
+    ANALYZE = "analyze"  # Ingest results, detect convergence
 
 
 class BDLStatus(str, Enum):
@@ -92,11 +92,11 @@ class BDLStatus(str, Enum):
 class SubmissionTarget(str, Enum):
     """Target benchmark for submission."""
 
-    INTERNAL = "internal"          # BIZRA internal validation
-    SWE_BENCH = "swe_bench"        # Software engineering benchmark
-    HLE = "hle"                    # Humanity's Last Exam
-    AGENT_BEATS = "agent_beats"    # Berkeley RDI dynamic competition
-    CUSTOM = "custom"              # User-defined benchmark
+    INTERNAL = "internal"  # BIZRA internal validation
+    SWE_BENCH = "swe_bench"  # Software engineering benchmark
+    HLE = "hle"  # Humanity's Last Exam
+    AGENT_BEATS = "agent_beats"  # Berkeley RDI dynamic competition
+    CUSTOM = "custom"  # User-defined benchmark
 
 
 @dataclass
@@ -107,10 +107,10 @@ class BDLConfig:
     """
 
     # Quality gates
-    snr_floor: float = UNIFIED_SNR_THRESHOLD         # 0.85
-    snr_target: float = SNR_THRESHOLD_T1_HIGH         # 0.95
-    elite_threshold: float = SNR_THRESHOLD_T0_ELITE   # 0.98
-    ihsan_floor: float = UNIFIED_IHSAN_THRESHOLD      # 0.95
+    snr_floor: float = UNIFIED_SNR_THRESHOLD  # 0.85
+    snr_target: float = SNR_THRESHOLD_T1_HIGH  # 0.95
+    elite_threshold: float = SNR_THRESHOLD_T0_ELITE  # 0.98
+    ihsan_floor: float = UNIFIED_IHSAN_THRESHOLD  # 0.95
 
     # Loop constraints
     max_iterations: int = 50
@@ -123,7 +123,7 @@ class BDLConfig:
 
     # Ablation parameters
     min_ablation_effect: float = 0.02  # Minimum effect size to be significant
-    ablation_top_k: int = 5           # Components to test per ablation round
+    ablation_top_k: int = 5  # Components to test per ablation round
 
     # Submission
     target: SubmissionTarget = SubmissionTarget.INTERNAL
@@ -168,7 +168,7 @@ class BDLIterationResult:
     # Aggregate scores
     baseline_score: float = 0.0
     improved_score: float = 0.0
-    delta: float = 0.0      # improved - baseline
+    delta: float = 0.0  # improved - baseline
     cost_usd: float = 0.0
 
     # Ablation findings
@@ -342,25 +342,31 @@ class BenchmarkDominanceLoop:
                 baseline = metrics.get("accuracy", 0.5)
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=BDLStage.EVALUATE,
-                success=True,
-                duration_ms=duration,
-                artifacts={
-                    "baseline_score": baseline,
-                    "snr_check": baseline >= self.config.snr_floor,
-                },
-            ), baseline
+            return (
+                StageResult(
+                    stage=BDLStage.EVALUATE,
+                    success=True,
+                    duration_ms=duration,
+                    artifacts={
+                        "baseline_score": baseline,
+                        "snr_check": baseline >= self.config.snr_floor,
+                    },
+                ),
+                baseline,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Evaluate failed: {e}")
-            return StageResult(
-                stage=BDLStage.EVALUATE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), 0.0
+            return (
+                StageResult(
+                    stage=BDLStage.EVALUATE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                0.0,
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 2: ABLATE
@@ -389,35 +395,48 @@ class BenchmarkDominanceLoop:
                 effects = ablation_results.get("effects", {})
             else:
                 # No ablation engine — use heuristic component ranking
-                components = context.get("components", [
-                    "hypothesis_generator", "got_explorer",
-                    "snr_filter", "autopoietic_loop",
-                ])
+                components = context.get(
+                    "components",
+                    [
+                        "hypothesis_generator",
+                        "got_explorer",
+                        "snr_filter",
+                        "autopoietic_loop",
+                    ],
+                )
                 # Heuristic: all components equally weighted
-                weak = components[:self.config.ablation_top_k]
+                weak = components[: self.config.ablation_top_k]
                 effects = {c: 0.05 for c in weak}
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=BDLStage.ABLATE,
-                success=True,
-                duration_ms=duration,
-                artifacts={
-                    "components_tested": len(effects),
-                    "weak_count": len(weak),
-                    "max_effect": max(effects.values()) if effects else 0.0,
-                },
-            ), weak, effects
+            return (
+                StageResult(
+                    stage=BDLStage.ABLATE,
+                    success=True,
+                    duration_ms=duration,
+                    artifacts={
+                        "components_tested": len(effects),
+                        "weak_count": len(weak),
+                        "max_effect": max(effects.values()) if effects else 0.0,
+                    },
+                ),
+                weak,
+                effects,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Ablate failed: {e}")
-            return StageResult(
-                stage=BDLStage.ABLATE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), [], {}
+            return (
+                StageResult(
+                    stage=BDLStage.ABLATE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                [],
+                {},
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 3: ARCHITECT
@@ -458,34 +477,36 @@ class BenchmarkDominanceLoop:
                         context_tags=tags,
                     )
                     for t in transfers[:2]:  # Top 2 patterns per component
-                        patterns_applied.append(
-                            f"{t.pattern.name} → {component}"
-                        )
+                        patterns_applied.append(f"{t.pattern.name} → {component}")
             else:
-                patterns_applied = [
-                    f"Optimize {c}" for c in weak_components[:3]
-                ]
+                patterns_applied = [f"Optimize {c}" for c in weak_components[:3]]
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=BDLStage.ARCHITECT,
-                success=len(patterns_applied) > 0,
-                duration_ms=duration,
-                artifacts={
-                    "patterns_applied": len(patterns_applied),
-                    "components_targeted": len(weak_components),
-                },
-            ), patterns_applied
+            return (
+                StageResult(
+                    stage=BDLStage.ARCHITECT,
+                    success=len(patterns_applied) > 0,
+                    duration_ms=duration,
+                    artifacts={
+                        "patterns_applied": len(patterns_applied),
+                        "components_targeted": len(weak_components),
+                    },
+                ),
+                patterns_applied,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Architect failed: {e}")
-            return StageResult(
-                stage=BDLStage.ARCHITECT,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), []
+            return (
+                StageResult(
+                    stage=BDLStage.ARCHITECT,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                [],
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 4: SUBMIT
@@ -532,27 +553,35 @@ class BenchmarkDominanceLoop:
                     improved_score = 0.0
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=BDLStage.SUBMIT,
-                success=True,
-                duration_ms=duration,
-                artifacts={
-                    "improved_score": improved_score,
-                    "cost_usd": cost,
-                    "target": self.config.target.value,
-                    "anti_gaming_passed": True,
-                },
-            ), improved_score, cost
+            return (
+                StageResult(
+                    stage=BDLStage.SUBMIT,
+                    success=True,
+                    duration_ms=duration,
+                    artifacts={
+                        "improved_score": improved_score,
+                        "cost_usd": cost,
+                        "target": self.config.target.value,
+                        "anti_gaming_passed": True,
+                    },
+                ),
+                improved_score,
+                cost,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Submit failed: {e}")
-            return StageResult(
-                stage=BDLStage.SUBMIT,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), 0.0, 0.0
+            return (
+                StageResult(
+                    stage=BDLStage.SUBMIT,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                0.0,
+                0.0,
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 5: ANALYZE
@@ -601,30 +630,36 @@ class BenchmarkDominanceLoop:
             converged = self._check_convergence()
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=BDLStage.ANALYZE,
-                success=True,
-                duration_ms=duration,
-                artifacts={
-                    "delta": delta,
-                    "is_improvement": is_improvement,
-                    "cost_adjusted_score": cost_adjusted,
-                    "converged": converged,
-                    "total_cost_usd": self._total_cost_usd,
-                    "best_score": self._best_score,
-                    "best_iteration": self._best_iteration,
-                },
-            ), is_improvement
+            return (
+                StageResult(
+                    stage=BDLStage.ANALYZE,
+                    success=True,
+                    duration_ms=duration,
+                    artifacts={
+                        "delta": delta,
+                        "is_improvement": is_improvement,
+                        "cost_adjusted_score": cost_adjusted,
+                        "converged": converged,
+                        "total_cost_usd": self._total_cost_usd,
+                        "best_score": self._best_score,
+                        "best_iteration": self._best_iteration,
+                    },
+                ),
+                is_improvement,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"BDL Analyze failed: {e}")
-            return StageResult(
-                stage=BDLStage.ANALYZE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), False
+            return (
+                StageResult(
+                    stage=BDLStage.ANALYZE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                False,
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # CONVERGENCE DETECTION
@@ -635,7 +670,7 @@ class BenchmarkDominanceLoop:
         if len(self._score_trajectory) < self.config.convergence_window:
             return False
 
-        window = self._score_trajectory[-self.config.convergence_window:]
+        window = self._score_trajectory[-self.config.convergence_window :]
         max_delta = max(window) - min(window)
         return max_delta < self.config.convergence_threshold
 

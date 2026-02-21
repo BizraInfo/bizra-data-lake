@@ -18,7 +18,7 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from core.integration.constants import (
@@ -199,7 +199,9 @@ class SkillCache:
                 "evictions": self._evictions,
                 "size": len(self._cache),
                 "max_size": self._max_size,
-                "fill_ratio": len(self._cache) / self._max_size if self._max_size else 0.0,
+                "fill_ratio": (
+                    len(self._cache) / self._max_size if self._max_size else 0.0
+                ),
                 "hit_rate": self._hits / total if total > 0 else 0.0,
             }
 

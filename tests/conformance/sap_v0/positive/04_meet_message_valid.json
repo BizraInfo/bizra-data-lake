@@ -1,0 +1,18 @@
+{
+  "name": "meet_message_valid",
+  "schema": "meet_message.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "session_id": "session_001",
+    "message_id": "msg_001",
+    "sender_role": "brand_proxy",
+    "intent": "discover",
+    "payload_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "content_ref": "urn:content:message:001",
+    "timestamp": 1893456001,
+    "signature": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "meta": {
+    "session_consent_scope": ["product_discovery", "price_comparison"]
+  }
+}

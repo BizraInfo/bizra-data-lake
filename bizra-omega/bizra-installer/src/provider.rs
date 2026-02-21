@@ -134,7 +134,11 @@ pub fn detect_best_provider() -> (String, String, String) {
     }
 
     // Neither available — return safe defaults
-    ("local".to_string(), "ollama".to_string(), "llama3.1:8b".to_string())
+    (
+        "local".to_string(),
+        "ollama".to_string(),
+        "llama3.1:8b".to_string(),
+    )
 }
 
 /// Recommend a model size based on available VRAM.

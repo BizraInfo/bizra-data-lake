@@ -25,7 +25,6 @@ from core.integration.constants import (
     PILLAR_3_SANDBOX_SNR_FLOOR,
     UNIFIED_SNR_THRESHOLD,
 )
-
 from core.pci.crypto import canonical_json, verify_signature
 
 from .integration_types import (

@@ -60,44 +60,30 @@ __version__ = "1.0.0"
 __author__ = "BIZRA Node0"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PUBLIC API — Golden Gems
-# ═══════════════════════════════════════════════════════════════════════════════
-from core.northstar.golden_gems import (
-    GemActivation,
-    GemReport,
-    GoldenGemDetector,
-    GoldenGemType,
-    GEM_ORIGIN_SNR,
-    GEM_NORMALIZED_SNR,
-)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# PUBLIC API — Thought Flows
-# ═══════════════════════════════════════════════════════════════════════════════
-from core.northstar.thought_flow import (
-    FlowActivation,
-    FlowReport,
-    PhaseActivation,
-    PhasePatternType,
-    ThoughtFlowDetector,
-    ThoughtFlowType,
-    PHASE_PATTERN_SNR,
-    PHI,
-)
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API — Bridge Nodes
 # ═══════════════════════════════════════════════════════════════════════════════
 from core.northstar.bridge_nodes import (
+    AUTOPOIESIS_RDVE_ROLES,
+    BRIDGE_ORIGIN_SNR,
+    GOT_TOPOLOGY_CONSTANTS,
+    HRM_PILLAR_MAP,
+    SHANNON_NOISE_MAP,
     BridgeActivation,
     BridgeNodeDetector,
     BridgeReport,
     BridgeType,
-    BRIDGE_ORIGIN_SNR,
-    AUTOPOIESIS_RDVE_ROLES,
-    HRM_PILLAR_MAP,
-    SHANNON_NOISE_MAP,
-    GOT_TOPOLOGY_CONSTANTS,
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — Golden Gems
+# ═══════════════════════════════════════════════════════════════════════════════
+from core.northstar.golden_gems import (
+    GEM_NORMALIZED_SNR,
+    GEM_ORIGIN_SNR,
+    GemActivation,
+    GemReport,
+    GoldenGemDetector,
+    GoldenGemType,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -107,6 +93,20 @@ from core.northstar.northstar_engine import (
     NorthStarEngine,
     NorthStarReport,
     NorthStarStatus,
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — Thought Flows
+# ═══════════════════════════════════════════════════════════════════════════════
+from core.northstar.thought_flow import (
+    PHASE_PATTERN_SNR,
+    PHI,
+    FlowActivation,
+    FlowReport,
+    PhaseActivation,
+    PhasePatternType,
+    ThoughtFlowDetector,
+    ThoughtFlowType,
 )
 
 __all__ = [

@@ -65,6 +65,10 @@ AUTH_HEADER_TS = "X-BIZRA-TS"
 AUTH_HEADER_NONCE = "X-BIZRA-NONCE"
 AUTH_MAX_CLOCK_SKEW_MS = 120_000
 AUTH_NONCE_TTL_MS = AUTH_MAX_CLOCK_SKEW_MS * 2
+GUARDIAN_WIRE_MODE_ENV = "BIZRA_GUARDIAN_WIRE_MODE"
+GUARDIAN_HOST_ENV = "BIZRA_GUARDIAN_HOST"
+GUARDIAN_PORT_ENV = "BIZRA_GUARDIAN_PORT"
+GUARDIAN_TIMEOUT_MS_ENV = "BIZRA_GUARDIAN_TIMEOUT_MS"
 GENESIS_STATE_DIR = Path("sovereign_state")
 
 # ---------------------------------------------------------------------------
@@ -163,6 +167,20 @@ class DesktopBridge:
         self._nonce_seen: dict[str, int] = {}
         self._node_role: str = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         self._origin_snapshot: dict[str, Any] = self._default_origin_snapshot()
+        self._guardian_wire_mode = (
+            os.getenv(GUARDIAN_WIRE_MODE_ENV, "best_effort").strip().lower()
+        )
+        if self._guardian_wire_mode not in {"off", "best_effort", "required"}:
+            self._guardian_wire_mode = "best_effort"
+        self._guardian_host = os.getenv(GUARDIAN_HOST_ENV, "127.0.0.1")
+        try:
+            self._guardian_port = int(os.getenv(GUARDIAN_PORT_ENV, "9741"))
+        except ValueError:
+            self._guardian_port = 9741
+        try:
+            self._guardian_timeout_ms = int(os.getenv(GUARDIAN_TIMEOUT_MS_ENV, "1200"))
+        except ValueError:
+            self._guardian_timeout_ms = 1200
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -171,6 +189,15 @@ class DesktopBridge:
         self._auth_token = self._load_auth_token()
         self._node_role = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         enforce_node0_fail_closed(GENESIS_STATE_DIR, self._node_role)
+        if self._guardian_wire_mode == "required":
+            probe = await self._check_rust_guardian(
+                "bridge_startup_probe",
+                source="desktop_bridge.start",
+            )
+            if not probe.get("allowed", False):
+                raise RuntimeError(
+                    f"Rust guardian wire required but unavailable: {probe.get('reason')}"
+                )
         # Hard cutover: bridge refuses startup if signer cannot initialize.
         self._get_receipt_engine()
         self._origin_snapshot = self._resolve_origin_snapshot()
@@ -183,6 +210,13 @@ class DesktopBridge:
         )
         addrs = [s.getsockname() for s in self._server.sockets]
         logger.info(f"Desktop bridge listening on {addrs}")
+        logger.info(
+            "Guardian wire mode=%s target=%s:%s timeout_ms=%s",
+            self._guardian_wire_mode,
+            self._guardian_host,
+            self._guardian_port,
+            self._guardian_timeout_ms,
+        )
 
     async def stop(self) -> None:
         """Gracefully stop the server."""
@@ -555,6 +589,100 @@ class DesktopBridge:
         except Exception:
             return None
 
+    async def _check_rust_guardian(self, content: str, source: str) -> dict[str, Any]:
+        """
+        Route action preflight to rust guardian over local MCP JSON-RPC transport.
+
+        Modes:
+          - off: bypass guardian wire (legacy compatibility)
+          - best_effort: allow if guardian transport unavailable
+          - required: fail-closed if guardian transport unavailable or denied
+        """
+        mode = self._guardian_wire_mode
+        if mode == "off":
+            return {
+                "allowed": True,
+                "reason": "guardian_wire_off",
+                "mode": mode,
+            }
+
+        request_id = int(time.time() * 1000)
+        wire = (
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "method": "guardian_check",
+                    "params": {
+                        "content": content,
+                        "source": source,
+                    },
+                    "id": request_id,
+                }
+            ).encode()
+            + b"\n"
+        )
+
+        reader: Optional[asyncio.StreamReader] = None
+        writer: Optional[asyncio.StreamWriter] = None
+        try:
+            timeout_s = max(0.1, self._guardian_timeout_ms / 1000.0)
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self._guardian_host, self._guardian_port),
+                timeout=timeout_s,
+            )
+            writer.write(wire)
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=timeout_s)
+            if not line:
+                raise RuntimeError("empty_guardian_response")
+            payload = json.loads(line)
+            if "error" in payload:
+                err = payload.get("error") or {}
+                reason = str(err.get("message", "guardian_error"))
+                if mode == "required":
+                    return {"allowed": False, "reason": reason, "mode": mode}
+                logger.warning("Guardian wire error (best_effort): %s", reason)
+                return {
+                    "allowed": True,
+                    "reason": "guardian_wire_error_best_effort",
+                    "mode": mode,
+                }
+
+            result = payload.get("result") or {}
+            raw_allowed = result.get("allowed", False)
+            if isinstance(raw_allowed, str):
+                allowed = raw_allowed.strip().lower() == "true"
+            else:
+                allowed = bool(raw_allowed)
+            reason = str(
+                result.get("reason", "allowed" if allowed else "guardian_veto")
+            )
+            return {
+                "allowed": allowed,
+                "reason": reason,
+                "mode": mode,
+            }
+        except Exception as exc:
+            if mode == "required":
+                return {
+                    "allowed": False,
+                    "reason": f"guardian_wire_unavailable:{type(exc).__name__}",
+                    "mode": mode,
+                }
+            logger.warning("Guardian wire unavailable (best_effort): %s", exc)
+            return {
+                "allowed": True,
+                "reason": "guardian_wire_unavailable_best_effort",
+                "mode": mode,
+            }
+        finally:
+            if writer is not None:
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:
+                    pass
+
     # -- method handlers -----------------------------------------------------
 
     async def _handle_ping(self, params: Any) -> dict[str, Any]:
@@ -682,6 +810,29 @@ class DesktopBridge:
 
         inputs = params.get("inputs", {})
 
+        # Rust guardian wire preflight (Python -> Rust -> action) for safety authority.
+        guardian_content = (
+            f"invoke_skill:{skill_name}:{json.dumps(inputs, sort_keys=True)[:512]}"
+        )
+        guardian = await self._check_rust_guardian(
+            guardian_content,
+            source="desktop_bridge.invoke_skill",
+        )
+        if not guardian.get("allowed", False):
+            receipt = self._emit_receipt(
+                "invoke_skill",
+                params,
+                guardian,
+                "rejected",
+                "RustGuardian",
+                reason=f"Rust guardian veto: {guardian.get('reason', 'guardian_veto')}",
+            )
+            return {
+                "error": "Rust guardian veto",
+                "guardian": guardian,
+                "receipt": receipt,
+            }
+
         # FATE gate — ihsan score derived server-side (never client-controlled)
         fate_result = self._validate_fate(f"invoke_skill:{skill_name}")
         ihsan = float(fate_result.get("overall", 0.0))
@@ -803,6 +954,26 @@ class DesktopBridge:
 
         if not code:
             raise ValueError("Empty instruction code")
+
+        # Rust guardian wire preflight before any execution sealing.
+        guardian = await self._check_rust_guardian(
+            f"actuator_execute:{intent}:{code[:512]}",
+            source="desktop_bridge.actuator_execute",
+        )
+        if not guardian.get("allowed", False):
+            receipt = self._emit_receipt(
+                "actuator_execute",
+                params,
+                guardian,
+                "rejected",
+                "RustGuardian",
+                reason=f"Rust guardian veto: {guardian.get('reason', 'guardian_veto')}",
+            )
+            return {
+                "error": "Rust guardian veto",
+                "guardian": guardian,
+                "receipt": receipt,
+            }
 
         # Gate 1: FATE (Ihsan threshold)
         fate_result = self._validate_fate(f"actuator_execute:{intent}")

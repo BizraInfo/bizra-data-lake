@@ -161,7 +161,7 @@ impl Confidence {
             return 0.0;
         }
 
-        let decay = (-0.693147 * elapsed as f64 / effective_half_life).exp();
+        let decay = (-std::f64::consts::LN_2 * elapsed as f64 / effective_half_life).exp();
         (self.base as f64 * decay) as f32
     }
 

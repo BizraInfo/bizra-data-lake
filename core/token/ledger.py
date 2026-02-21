@@ -53,11 +53,13 @@ GENESIS_TX_HASH = "0" * 64
 # System pool accounts — excluded from Gini calculation because they are
 # communal redistribution pools, not individual wealth holdings.
 # Gini measures inequality among INDIVIDUAL nodes, not system accounts.
-SYSTEM_POOL_IDS: frozenset[str] = frozenset({
-    "__UBC_POOL__",              # Universal Basic Compute pool
-    "BIZRA-COMMUNITY-FUND",     # Computational zakat recipient
-    "SYSTEM-TREASURY",          # System treasury
-})
+SYSTEM_POOL_IDS: frozenset[str] = frozenset(
+    {
+        "__UBC_POOL__",  # Universal Basic Compute pool
+        "BIZRA-COMMUNITY-FUND",  # Computational zakat recipient
+        "SYSTEM-TREASURY",  # System treasury
+    }
+)
 
 # Default paths — resolved relative to project root (no hardcoded absolutes)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -373,9 +375,9 @@ class TokenLedger:
 
         # ADL Gini gate — reject transactions that push inequality beyond threshold
         # Only applies to SEED (economic token). GENESIS_MINT and ZAKAT are exempt.
-        if (
-            tx.token_type == TokenType.SEED
-            and tx.op in (TokenOp.TRANSFER, TokenOp.MINT)
+        if tx.token_type == TokenType.SEED and tx.op in (
+            TokenOp.TRANSFER,
+            TokenOp.MINT,
         ):
             gini_error = self._check_gini_impact(tx)
             if gini_error:
@@ -414,8 +416,7 @@ class TokenLedger:
 
         # Exclude system pools and zero/negative balances from Gini calculation
         projected = {
-            k: v for k, v in holdings.items()
-            if v > 0 and k not in SYSTEM_POOL_IDS
+            k: v for k, v in holdings.items() if v > 0 and k not in SYSTEM_POOL_IDS
         }
 
         # Gini coefficient is meaningless with few data points.
@@ -426,8 +427,7 @@ class TokenLedger:
 
         # Compute pre-transaction Gini for comparison
         pre_holdings = {
-            k: v for k, v in holdings_raw.items()
-            if v > 0 and k not in SYSTEM_POOL_IDS
+            k: v for k, v in holdings_raw.items() if v > 0 and k not in SYSTEM_POOL_IDS
         }
         pre_gini = calculate_gini(pre_holdings) if len(pre_holdings) >= 2 else 0.0
 

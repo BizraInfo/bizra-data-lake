@@ -44,7 +44,11 @@ impl Alpha100Config {
             model: "llama3.1:8b".to_string(),
             policy_hash: String::new(),
             reflex_mode: "shadow".to_string(),
-            node_binary_path: base.join("bin").join("bizra-node").to_string_lossy().to_string(),
+            node_binary_path: base
+                .join("bin")
+                .join("bizra-node")
+                .to_string_lossy()
+                .to_string(),
             bridge_path: base.join("bridge").to_string_lossy().to_string(),
             state_dir: base.join("state").to_string_lossy().to_string(),
             installed_at: chrono::Utc::now().to_rfc3339(),
@@ -66,8 +70,8 @@ pub fn save_config(config: &Alpha100Config, base_dir: &Path) -> Result<()> {
     std::fs::create_dir_all(base_dir)
         .with_context(|| format!("Failed to create config dir: {}", base_dir.display()))?;
 
-    let toml_str = toml::to_string_pretty(config)
-        .context("Failed to serialize Alpha100Config to TOML")?;
+    let toml_str =
+        toml::to_string_pretty(config).context("Failed to serialize Alpha100Config to TOML")?;
 
     let path = base_dir.join("install.toml");
     std::fs::write(&path, toml_str)
@@ -82,8 +86,8 @@ pub fn load_config(base_dir: &Path) -> Result<Alpha100Config> {
     let content = std::fs::read_to_string(&path)
         .with_context(|| format!("Failed to read install.toml from {}", path.display()))?;
 
-    let config: Alpha100Config = toml::from_str(&content)
-        .context("Failed to parse install.toml")?;
+    let config: Alpha100Config =
+        toml::from_str(&content).context("Failed to parse install.toml")?;
 
     Ok(config)
 }

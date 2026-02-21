@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNode } from "./hooks/useNode";
+import { useNode } from "./useNode";
 import OnboardingFlow from "./onboarding/OnboardingFlow";
 
 // ── Sacred Geometry ─────────────────────────────────────────
@@ -96,10 +96,12 @@ const Bubble = ({ role, content, meta }) => {
         color: "rgba(255,255,255,0.88)", fontFamily: "var(--sans)", fontSize: 13.5, lineHeight: 1.55,
       }}>{content}</div>
       {meta && (
-        <div style={{ display: "flex", gap: 10, marginTop: 4, padding: "0 4px" }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 4, padding: "0 4px", flexWrap: "wrap", alignItems: "center" }}>
           {meta.agents && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(212,165,71,0.4)" }}>{meta.agents} agents</span>}
           {meta.fragments > 0 && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(91,186,111,0.5)" }}>+{meta.fragments} learned</span>}
           {meta.confidence && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{(parseFloat(meta.confidence) * 100).toFixed(0)}% conf</span>}
+          {meta.ihsanScore && <SAPBadge ihsanScore={meta.ihsanScore} sessionActive={true} />}
+          {meta.receiptHash && <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(107,155,247,0.3)" }} title={`Receipt: ${meta.receiptHash}`}>#{meta.receiptHash.slice(0, 8)}</span>}
         </div>
       )}
     </div>
@@ -136,13 +138,99 @@ const SectionLabel = ({ children, extra }) => (
   </div>
 );
 
+// ── SAP v0 Disclosure Badge ─────────────────────────────────
+
+const SAPBadge = ({ ihsanScore, sessionActive }) => {
+  const score = parseFloat(ihsanScore || "0");
+  const color = score >= 0.95 ? "#5BBA6F" : score >= 0.90 ? "#D4A547" : "#E85D4A";
+  const label = score >= 0.95 ? "SAP v0 Conformant" : "SAP v0 Warning";
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 8px",
+      background: `${color}12`, border: `1px solid ${color}30`, borderRadius: 4,
+    }}>
+      <div style={{ width: 5, height: 5, borderRadius: "50%", background: color, boxShadow: sessionActive ? `0 0 6px ${color}60` : "none" }} />
+      <span style={{ fontFamily: "var(--mono)", fontSize: 9, color, letterSpacing: 0.5 }}>{label}</span>
+      <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.3)" }}>{(score * 100).toFixed(1)}%</span>
+    </div>
+  );
+};
+
+const DisclosurePanel = ({ disclosure, collapsed, onToggle }) => {
+  let data = null;
+  try { data = typeof disclosure === "string" ? JSON.parse(disclosure) : disclosure; } catch { return null; }
+  if (!data) return null;
+
+  return (
+    <div style={{
+      margin: "4px 0 8px", padding: collapsed ? "4px 8px" : "8px 10px",
+      background: "rgba(91,186,111,0.04)", border: "1px solid rgba(91,186,111,0.12)", borderRadius: 6,
+      cursor: "pointer", transition: "all 0.2s ease",
+    }} onClick={onToggle}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(91,186,111,0.6)", letterSpacing: 1, textTransform: "uppercase" }}>
+          Disclosure {collapsed ? "+" : "-"}
+        </span>
+      </div>
+      {!collapsed && (
+        <div style={{ marginTop: 6 }}>
+          {data.claims && data.claims.length > 0 && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 0.8 }}>CLAIMS</span>
+              {data.claims.map((c, i) => (
+                <div key={i} style={{ fontFamily: "var(--sans)", fontSize: 11, color: "rgba(255,255,255,0.6)", paddingLeft: 8, lineHeight: 1.4 }}>- {c}</div>
+              ))}
+            </div>
+          )}
+          {data.uncertainty && data.uncertainty.length > 0 && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(232,93,74,0.5)", letterSpacing: 0.8 }}>UNCERTAINTY</span>
+              {data.uncertainty.map((u, i) => (
+                <div key={i} style={{ fontFamily: "var(--sans)", fontSize: 11, color: "rgba(232,93,74,0.5)", paddingLeft: 8, lineHeight: 1.4 }}>- {u}</div>
+              ))}
+            </div>
+          )}
+          {data.source_refs && data.source_refs.length > 0 && (
+            <div>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(255,255,255,0.2)", letterSpacing: 0.8 }}>SOURCES</span>
+              {data.source_refs.map((s, i) => (
+                <div key={i} style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(107,155,247,0.5)", paddingLeft: 8 }}>{typeof s === "string" ? s : s.uri || s.ref_id}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ============================================================
 // MAIN DASHBOARD
 // ============================================================
 
 export default function App() {
   const node = useNode();
-  const { connected, mode, send, receive, teach, synthesize, refreshHealth } = node;
+  const {
+    connected,
+    mode,
+    send,
+    receive,
+    teach,
+    synthesize,
+    refreshHealth,
+    nodeReachable,
+    queuedActions,
+    lastSeenTs,
+    sapMeetOpen,
+    sapMessage,
+    sapDisclosure,
+    sapSessionClose,
+  } = node;
+
+  // SAP v0 session state
+  const [sapSession, setSapSession] = useState(null);
+  const [sapDisclosureData, setSapDisclosureData] = useState(null);
+  const [disclosureCollapsed, setDisclosureCollapsed] = useState(true);
   const [onboarded, setOnboarded] = useState(() => {
     try { return localStorage.getItem("bizra_onboarded") === "1"; } catch { return false; }
   });
@@ -162,9 +250,16 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [activeAgents, setActiveAgents] = useState([]);
+  const [actionPayload, setActionPayload] = useState(
+    '{"steps":[{"channel":"DesktopRpc","kind":"Click","payload":{"code":"click notepad"}}]}'
+  );
+  const [planId, setPlanId] = useState("");
+  const [actionId, setActionId] = useState("");
+  const [actionRows, setActionRows] = useState([]);
   const [nodeData, setNodeData] = useState({
     knowsMe: 0, ihsan: 9900, messages: 0, fragments: 0, insights: 0, traits: [],
   });
+  const hhmmReportPath = "/reports/hhmm-sparse-tensor-analysis-2026-02-20.html";
   const chatEndRef = useRef(null);
 
   // Refresh state from node
@@ -200,7 +295,7 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send message
+  // Send message (with SAP v0 session support)
   const sendMessage = useCallback(async () => {
     if (!input.trim() || !connected) return;
     const text = input.trim();
@@ -208,7 +303,24 @@ export default function App() {
 
     setMessages((prev) => [...prev, { role: "user", content: text }]);
 
-    const result = await receive(text);
+    // Auto-initiate SAP session on first message if not active
+    let currentSession = sapSession;
+    if (!currentSession && sapMeetOpen) {
+      const meetResult = await sapMeetOpen();
+      if (meetResult?.ok && meetResult.fields) {
+        currentSession = meetResult.fields.session_id;
+        setSapSession(currentSession);
+        setSapDisclosureData(meetResult.fields.disclosure);
+      }
+    }
+
+    // Use SAP_MESSAGE if session is active, fall back to RECEIVE
+    let result;
+    if (currentSession && sapMessage) {
+      result = await sapMessage(currentSession, text);
+    } else {
+      result = await receive(text);
+    }
 
     if (result?.ok && result.fields) {
       const f = result.fields;
@@ -217,6 +329,11 @@ export default function App() {
       const activeNames = ALL_AGENTS.slice(0, agentCount);
       setActiveAgents(activeNames);
       setTimeout(() => setActiveAgents([]), 1500);
+
+      // Update disclosure data if present in response
+      if (f.disclosure) {
+        setSapDisclosureData(f.disclosure);
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -228,13 +345,16 @@ export default function App() {
             fragments: parseInt(f.fragments_extracted || "0", 10),
             confidence: f.confidence,
             intent: f.intent,
+            ihsanScore: f.ihsan_score,
+            disclosure: f.disclosure,
+            receiptHash: f.receipt_hash,
           },
         },
       ]);
     }
 
     await syncState();
-  }, [input, connected, receive, syncState]);
+  }, [input, connected, receive, sapMeetOpen, sapMessage, sapSession, syncState]);
 
   // Teach shortcut
   const handleTeach = useCallback(
@@ -260,6 +380,81 @@ export default function App() {
     }
     await syncState();
   }, [synthesize, syncState]);
+
+  const handlePlanAction = useCallback(async () => {
+    const result = await send("PLAN_ACTION", { payload_json: actionPayload });
+    if (result?.ok && result.fields) {
+      setPlanId(result.fields.plan_id || "");
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", content: `🗺️ Action planned: ${result.fields.plan_id}` },
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", content: `⚠️ PLAN_ACTION failed${result?.queued ? " (queued)" : ""}` },
+      ]);
+    }
+  }, [send, actionPayload]);
+
+  const handleRunAction = useCallback(async () => {
+    const result = await send("RUN_ACTION", {
+      plan_id: planId,
+      payload_json: actionPayload,
+    });
+    if (result?.ok && result.fields) {
+      setActionId(result.fields.action_id || "");
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "system",
+          content: `⚙️ RUN_ACTION ${result.fields.status || "unknown"} (${result.fields.action_id || "n/a"})`,
+        },
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        { role: "system", content: `⚠️ RUN_ACTION failed${result?.queued ? " (queued)" : ""}` },
+      ]);
+    }
+  }, [send, planId, actionPayload]);
+
+  const handleActionStatus = useCallback(async () => {
+    if (!actionId) return;
+    const result = await send("ACTION_STATUS", { action_id: actionId });
+    if (result?.ok && result.fields) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "system",
+          content: `📍 ACTION_STATUS ${result.fields.status || "unknown"} for ${result.fields.action_id || actionId}`,
+        },
+      ]);
+    }
+  }, [send, actionId]);
+
+  const handleActionHistory = useCallback(async () => {
+    const result = await send("ACTION_HISTORY", { limit: 10, cursor: "" });
+    if (result?.ok && result.fields) {
+      const rows = (result.fields.rows || "")
+        .split("||")
+        .filter(Boolean)
+        .map((line) => {
+          try {
+            return JSON.parse(line);
+          } catch {
+            return { raw: line };
+          }
+        });
+      setActionRows(rows);
+    }
+  }, [send]);
+
+  const openHhmmReport = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.open(hhmmReportPath, "_blank", "noopener,noreferrer");
+    }
+  }, [hhmmReportPath]);
 
   const quickTeach = [
     { kind: "preference", text: "I prefer dark mode and minimal UI" },
@@ -313,6 +508,30 @@ export default function App() {
         </div>
       </header>
 
+      {!nodeReachable && (
+        <div
+          style={{
+            position: "relative",
+            zIndex: 9,
+            borderBottom: "1px solid rgba(232,93,74,0.25)",
+            background: "rgba(232,93,74,0.08)",
+            color: "rgba(255,210,205,0.9)",
+            fontFamily: "var(--mono)",
+            fontSize: 10,
+            letterSpacing: 0.6,
+            padding: "8px 24px",
+          }}
+        >
+          NODE UNREACHABLE
+          <span style={{ marginLeft: 10, color: "rgba(255,255,255,0.5)" }}>
+            last seen: {lastSeenTs ? new Date(lastSeenTs).toLocaleTimeString() : "never"}
+          </span>
+          <span style={{ marginLeft: 10, color: "rgba(212,165,71,0.75)" }}>
+            queued actions: {queuedActions}
+          </span>
+        </div>
+      )}
+
       {/* Main Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 240px", flex: 1, gap: 0, position: "relative", zIndex: 5, minHeight: 0 }}>
 
@@ -362,6 +581,35 @@ export default function App() {
           }}>
             🧬 Synthesize Memory
           </button>
+
+          <div style={{ marginTop: -8 }}>
+            <button onClick={openHhmmReport} style={{
+              width: "100%",
+              background: "rgba(78,205,196,0.08)",
+              border: "1px solid rgba(78,205,196,0.25)",
+              borderRadius: 8,
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontFamily: "var(--mono)",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#4ecdc4",
+              letterSpacing: 0.5,
+            }}>
+              📊 Analysis
+            </button>
+            <div style={{
+              marginTop: 6,
+              textAlign: "center",
+              fontFamily: "var(--mono)",
+              fontSize: 9,
+              color: "rgba(78,205,196,0.55)",
+              letterSpacing: 0.6,
+              textTransform: "uppercase",
+            }}>
+              Internal HHMM snapshot
+            </div>
+          </div>
         </div>
 
         {/* CENTER — Chat */}
@@ -423,6 +671,18 @@ export default function App() {
             <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 4 }}>Understanding Depth</div>
           </div>
 
+          {/* SAP v0 Transparency */}
+          {sapSession && (
+            <div style={{ width: "100%", padding: "10px 12px", background: "rgba(91,186,111,0.03)", border: "1px solid rgba(91,186,111,0.08)", borderRadius: 8 }}>
+              <SectionLabel extra="SAP v0">Transparency</SectionLabel>
+              <SAPBadge ihsanScore="0.97" sessionActive={!!sapSession} />
+              <DisclosurePanel disclosure={sapDisclosureData} collapsed={disclosureCollapsed} onToggle={() => setDisclosureCollapsed((c) => !c)} />
+              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
+                Session: {sapSession.slice(0, 12)}...
+              </div>
+            </div>
+          )}
+
           <div style={{ width: "100%" }}>
             <SectionLabel extra={nodeData.traits.length}>Learned Traits</SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -443,6 +703,46 @@ export default function App() {
               10,000 lines • 205 tests<br />Zero dependencies<br />ربي لا يعرف المستحيل
             </div>
           </div>
+
+          <div style={{ width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 8 }}>
+            <SectionLabel>Action Layer</SectionLabel>
+            <textarea
+              value={actionPayload}
+              onChange={(e) => setActionPayload(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 72,
+                background: "rgba(0,0,0,0.2)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 6,
+                color: "rgba(255,255,255,0.75)",
+                fontFamily: "var(--mono)",
+                fontSize: 10,
+                padding: 8,
+                resize: "vertical",
+              }}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+              <button onClick={handlePlanAction} style={actionBtnStyle}>Plan</button>
+              <button onClick={handleRunAction} style={actionBtnStyle}>Run</button>
+              <button onClick={handleActionStatus} style={actionBtnStyle} disabled={!actionId}>Status</button>
+              <button onClick={handleActionHistory} style={actionBtnStyle}>History</button>
+            </div>
+            <div style={{ marginTop: 8, fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.25)" }}>
+              plan: {planId || "—"}<br />
+              action: {actionId || "—"}
+            </div>
+            {actionRows.length > 0 && (
+              <div style={{ marginTop: 8, maxHeight: 120, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {actionRows.map((row, idx) => (
+                  <div key={idx} style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(212,165,71,0.6)", border: "1px solid rgba(212,165,71,0.15)", borderRadius: 6, padding: "4px 6px" }}>
+                    {(row.id || row.raw || "row").toString().slice(0, 32)}
+                    <span style={{ color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>{row.result || ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -452,3 +752,14 @@ export default function App() {
     </div>
   );
 }
+
+const actionBtnStyle = {
+  background: "rgba(212,165,71,0.1)",
+  border: "1px solid rgba(212,165,71,0.25)",
+  color: "#D4A547",
+  borderRadius: 6,
+  padding: "6px 8px",
+  fontFamily: "var(--mono)",
+  fontSize: 10,
+  cursor: "pointer",
+};

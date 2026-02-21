@@ -86,6 +86,17 @@ pub enum Command {
     ReflexStats,
     /// REFLEX_INVALIDATE <trigger_hash_hex>
     ReflexInvalidate { trigger_hash: String },
+    /// PLAN_ACTION <json_payload>
+    PlanAction { payload_json: String },
+    /// RUN_ACTION <plan_id> <json_payload>
+    RunAction {
+        plan_id: String,
+        payload_json: String,
+    },
+    /// ACTION_STATUS <action_id>
+    ActionStatus { action_id: String },
+    /// ACTION_HISTORY <limit> <cursor>
+    ActionHistory { limit: u32, cursor: String },
     /// START_SESSION <timestamp>
     StartSession { timestamp: u64 },
     /// END_SESSION <timestamp>
@@ -98,6 +109,15 @@ pub enum Command {
     Version,
     /// SHUTDOWN
     Shutdown,
+    /// INTENT_CLASSIFY <content>
+    IntentClassify { content: String },
+    /// GUARDIAN_CHECK <content>
+    GuardianCheck { content: String },
+    /// ACTION_DISPATCH <channel> <json_payload>
+    ActionDispatch {
+        channel: String,
+        payload_json: String,
+    },
 }
 
 // ============================================================
@@ -141,13 +161,13 @@ impl Response {
                 let mut parts = vec!["OK".to_string()];
                 for (k, v) in fields {
                     // Escape any tabs or newlines in values
-                    let safe_v = v.replace('\t', " ").replace('\n', " ");
+                    let safe_v = v.replace(['\t', '\n'], " ");
                     parts.push(format!("{}={}", k, safe_v));
                 }
                 parts.join("\t")
             }
             Response::Err(code, msg) => {
-                let safe_msg = msg.replace('\t', " ").replace('\n', " ");
+                let safe_msg = msg.replace(['\t', '\n'], " ");
                 format!("ERR\t{}\t{}", code.as_str(), safe_msg)
             }
         }
@@ -218,6 +238,86 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             Ok(Command::ReflexInvalidate {
                 trigger_hash: parts[1].to_string(),
             })
+        }
+
+        "PLAN_ACTION" => {
+            if parts.len() < 2 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "PLAN_ACTION requires <json_payload>".to_string(),
+                ));
+            }
+            if parts[1].trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "PLAN_ACTION payload must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::PlanAction {
+                payload_json: parts[1].to_string(),
+            })
+        }
+
+        "RUN_ACTION" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "RUN_ACTION requires <plan_id> <json_payload>".to_string(),
+                ));
+            }
+            if parts[1].trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "RUN_ACTION plan_id must not be empty".to_string(),
+                ));
+            }
+            if parts[2].trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "RUN_ACTION payload must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::RunAction {
+                plan_id: parts[1].to_string(),
+                payload_json: parts[2].to_string(),
+            })
+        }
+
+        "ACTION_STATUS" => {
+            if parts.len() < 2 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "ACTION_STATUS requires <action_id>".to_string(),
+                ));
+            }
+            if parts[1].trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "ACTION_STATUS action_id must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::ActionStatus {
+                action_id: parts[1].to_string(),
+            })
+        }
+
+        "ACTION_HISTORY" => {
+            let limit = if parts.len() >= 2 && !parts[1].trim().is_empty() {
+                parts[1].parse::<u32>().map_err(|_| {
+                    (
+                        ErrorCode::ParseError,
+                        "invalid action history limit".to_string(),
+                    )
+                })?
+            } else {
+                20
+            };
+            let cursor = if parts.len() >= 3 {
+                parts[2].to_string()
+            } else {
+                String::new()
+            };
+            Ok(Command::ActionHistory { limit, cursor })
         }
 
         "RECEIVE" => {
@@ -315,6 +415,67 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             }
             let score = parse_u16(parts[1], "score")?;
             Ok(Command::Ihsan { score })
+        }
+
+        "INTENT_CLASSIFY" => {
+            if parts.len() < 2 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "INTENT_CLASSIFY requires <content>".to_string(),
+                ));
+            }
+            let content = parts[1..].join("\t"); // rejoin in case content had tabs
+            if content.trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "INTENT_CLASSIFY content must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::IntentClassify { content })
+        }
+
+        "GUARDIAN_CHECK" => {
+            if parts.len() < 2 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "GUARDIAN_CHECK requires <content>".to_string(),
+                ));
+            }
+            let content = parts[1..].join("\t");
+            if content.trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "GUARDIAN_CHECK content must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::GuardianCheck { content })
+        }
+
+        "ACTION_DISPATCH" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "ACTION_DISPATCH requires <channel> <json_payload>".to_string(),
+                ));
+            }
+            let channel = parts[1].to_string();
+            if channel.trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "ACTION_DISPATCH channel must not be empty".to_string(),
+                ));
+            }
+            let payload_json = parts[2..].join("\t");
+            if payload_json.trim().is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "ACTION_DISPATCH payload must not be empty".to_string(),
+                ));
+            }
+            Ok(Command::ActionDispatch {
+                channel,
+                payload_json,
+            })
         }
 
         _ => Err((ErrorCode::BadCommand, format!("unknown command: {}", verb))),
@@ -453,6 +614,116 @@ mod tests {
                 trigger_hash: "0011".to_string(),
             }
         );
+    }
+
+    #[test]
+    fn parse_plan_action() {
+        let cmd = parse_command("PLAN_ACTION\t{\"kind\":\"Click\"}").unwrap();
+        assert_eq!(
+            cmd,
+            Command::PlanAction {
+                payload_json: "{\"kind\":\"Click\"}".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_run_action() {
+        let cmd = parse_command("RUN_ACTION\tpln_1\t{\"kind\":\"Click\"}").unwrap();
+        assert_eq!(
+            cmd,
+            Command::RunAction {
+                plan_id: "pln_1".to_string(),
+                payload_json: "{\"kind\":\"Click\"}".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_action_status() {
+        let cmd = parse_command("ACTION_STATUS\tact_1").unwrap();
+        assert_eq!(
+            cmd,
+            Command::ActionStatus {
+                action_id: "act_1".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_action_history_defaults() {
+        let cmd = parse_command("ACTION_HISTORY").unwrap();
+        assert_eq!(
+            cmd,
+            Command::ActionHistory {
+                limit: 20,
+                cursor: String::new(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_intent_classify() {
+        let cmd = parse_command("INTENT_CLASSIFY\thelp me plan the meeting").unwrap();
+        assert_eq!(
+            cmd,
+            Command::IntentClassify {
+                content: "help me plan the meeting".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_intent_classify_missing_content() {
+        let err = parse_command("INTENT_CLASSIFY").unwrap_err();
+        assert_eq!(err.0, ErrorCode::MissingArg);
+    }
+
+    #[test]
+    fn parse_intent_classify_empty_content() {
+        let err = parse_command("INTENT_CLASSIFY\t").unwrap_err();
+        assert_eq!(err.0, ErrorCode::InvalidArg);
+    }
+
+    #[test]
+    fn parse_action_dispatch() {
+        let cmd = parse_command("ACTION_DISPATCH\tllm\t{\"prompt\":\"hello\"}").unwrap();
+        assert_eq!(
+            cmd,
+            Command::ActionDispatch {
+                channel: "llm".to_string(),
+                payload_json: "{\"prompt\":\"hello\"}".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_action_dispatch_missing_args() {
+        let err = parse_command("ACTION_DISPATCH\tllm").unwrap_err();
+        assert_eq!(err.0, ErrorCode::MissingArg);
+    }
+
+    #[test]
+    fn parse_action_dispatch_empty_channel() {
+        let err = parse_command("ACTION_DISPATCH\t\t{\"a\":1}").unwrap_err();
+        assert_eq!(err.0, ErrorCode::InvalidArg);
+    }
+
+    #[test]
+    fn parse_guardian_check() {
+        let cmd = parse_command("GUARDIAN_CHECK\tplease plan my project").unwrap();
+        assert_eq!(
+            cmd,
+            Command::GuardianCheck {
+                content: "please plan my project".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_guardian_check_missing_content() {
+        let err = parse_command("GUARDIAN_CHECK").unwrap_err();
+        assert_eq!(err.0, ErrorCode::MissingArg);
     }
 
     #[test]

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/corpus/corpus_manifest.v1.schema.json",
+  "title": "CorpusManifestV1",
+  "type": "object",
+  "required": [
+    "providers_covered",
+    "raw_conversations",
+    "raw_messages",
+    "unique_conversations",
+    "unique_messages",
+    "duplication_factor",
+    "coverage_notes",
+    "generated_at",
+    "manifest_hash"
+  ],
+  "properties": {
+    "providers_covered": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "chatgpt_openai",
+          "claude",
+          "gemini_google",
+          "deepseek",
+          "qwen",
+          "kimi",
+          "perplexity",
+          "zhipu"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "raw_conversations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "raw_messages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unique_conversations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unique_messages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplication_factor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "coverage_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "manifest_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

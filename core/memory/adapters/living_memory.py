@@ -115,5 +115,7 @@ class LivingMemoryAdapter:
                 },
             )
         except Exception as e:
-            logger.warning(f"Failed to convert MemoryEntry {getattr(entry, 'id', '?')}: {e}")
+            logger.warning(
+                f"Failed to convert MemoryEntry {getattr(entry, 'id', '?')}: {e}"
+            )
             return None

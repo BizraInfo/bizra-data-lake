@@ -46,7 +46,6 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # GOLDEN GEM TAXONOMY
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -55,14 +54,14 @@ from core.integration.constants import (
 class GoldenGemType(Enum):
     """The 8 golden gems — meta-cognitive primitives of the NorthStar."""
 
-    SHADOW_KNOWLEDGE = auto()       # Blind spots as data
+    SHADOW_KNOWLEDGE = auto()  # Blind spots as data
     CONTRADICTION_HARVEST = auto()  # Conflicts reveal hidden structure
-    EMERGENCE_PRINCIPLE = auto()    # Topology > individual nodes
-    NOISE_IS_SIGNAL = auto()        # Persistent noise = unconceptualized truth
-    VALIDATION_MIRROR = auto()      # Rejections map system boundaries
+    EMERGENCE_PRINCIPLE = auto()  # Topology > individual nodes
+    NOISE_IS_SIGNAL = auto()  # Persistent noise = unconceptualized truth
+    VALIDATION_MIRROR = auto()  # Rejections map system boundaries
     IMPLEMENTATION_HYPOTHESIS = auto()  # Every execution is experiment
-    INTEGRATION_PARADOX = auto()    # Friction signals breakthrough potential
-    OUTCOME_ORACLE = auto()         # Results answer unasked questions
+    INTEGRATION_PARADOX = auto()  # Friction signals breakthrough potential
+    OUTCOME_ORACLE = auto()  # Results answer unasked questions
 
 
 # Origin SNR scores from cross-document synthesis (scale: 0-10)
@@ -102,10 +101,10 @@ class GemActivation:
 
     gem_type: GoldenGemType
     evidence: str
-    intensity: float          # [0, 1] — strength of pattern match
-    insight: str              # What the gem reveals
+    intensity: float  # [0, 1] — strength of pattern match
+    insight: str  # What the gem reveals
     timestamp: float = field(default_factory=time.time)
-    source_level: int = 0     # HRM abstraction level that produced evidence
+    source_level: int = 0  # HRM abstraction level that produced evidence
     confidence: float = 0.95  # Ihsān-floor confidence
 
     def snr_score(self) -> float:
@@ -285,19 +284,25 @@ class GoldenGemDetector:
                     a_val = a.get("value")
                     b_val = b.get("value")
                     if a.get("domain") == b.get("domain") and a_val != b_val:
-                        contradictions.append((
-                            i, j,
-                            f"'{a.get('claim')}' vs '{b.get('claim')}' in domain '{a.get('domain')}'"
-                        ))
+                        contradictions.append(
+                            (
+                                i,
+                                j,
+                                f"'{a.get('claim')}' vs '{b.get('claim')}' in domain '{a.get('domain')}'",
+                            )
+                        )
 
                 # Detect confidence-level contradiction
                 a_conf = a.get("confidence", 0.5)
                 b_conf = b.get("confidence", 0.5)
                 if abs(a_conf - b_conf) > 0.4 and a.get("topic") == b.get("topic"):
-                    contradictions.append((
-                        i, j,
-                        f"Confidence gap: {a_conf:.2f} vs {b_conf:.2f} on '{a.get('topic')}'"
-                    ))
+                    contradictions.append(
+                        (
+                            i,
+                            j,
+                            f"Confidence gap: {a_conf:.2f} vs {b_conf:.2f} on '{a.get('topic')}'",
+                        )
+                    )
 
         if not contradictions:
             return None
@@ -355,7 +360,9 @@ class GoldenGemDetector:
             small_world_score += max(0.0, path_proximity) * 0.5
 
         # Combined intensity
-        intensity = min(1.0, (density * 0.3 + small_world_score * 0.7) * (1.0 + self.sensitivity))
+        intensity = min(
+            1.0, (density * 0.3 + small_world_score * 0.7) * (1.0 + self.sensitivity)
+        )
 
         if intensity < self.min_intensity:
             return None
@@ -394,8 +401,10 @@ class GoldenGemDetector:
 
         # Compute noise persistence: variance of noise values across windows
         windows: List[List[float]] = []
-        for i in range(0, len(noise_history) - window_size + 1, max(1, window_size // 2)):
-            windows.append(list(noise_history[i:i + window_size]))
+        for i in range(
+            0, len(noise_history) - window_size + 1, max(1, window_size // 2)
+        ):
+            windows.append(list(noise_history[i : i + window_size]))
 
         if len(windows) < 2:
             return None
@@ -403,18 +412,26 @@ class GoldenGemDetector:
         # Cross-window correlation (persistent noise = high cross-correlation)
         window_means = [sum(w) / len(w) for w in windows]
         mean_of_means = sum(window_means) / len(window_means)
-        variance = sum((m - mean_of_means) ** 2 for m in window_means) / len(window_means)
+        variance = sum((m - mean_of_means) ** 2 for m in window_means) / len(
+            window_means
+        )
 
         # Low variance across windows = persistent noise (= hidden signal)
         persistence = 1.0 - min(1.0, variance / max(mean_of_means, 0.01))
 
         # σ²/s ratio check (punctuated equilibrium marker at ≈ 2.3)
         overall_mean = sum(noise_history) / len(noise_history)
-        overall_var = sum((x - overall_mean) ** 2 for x in noise_history) / len(noise_history)
+        overall_var = sum((x - overall_mean) ** 2 for x in noise_history) / len(
+            noise_history
+        )
         sigma_over_s = overall_var / max(overall_mean, 0.001)
         equilibrium_proximity = 1.0 - min(1.0, abs(sigma_over_s - 2.3) / 2.3)
 
-        intensity = min(1.0, (persistence * 0.6 + equilibrium_proximity * 0.4) * (1.0 + self.sensitivity))
+        intensity = min(
+            1.0,
+            (persistence * 0.6 + equilibrium_proximity * 0.4)
+            * (1.0 + self.sensitivity),
+        )
 
         if intensity < self.min_intensity:
             return None

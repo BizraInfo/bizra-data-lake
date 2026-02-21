@@ -46,6 +46,14 @@ from .constitutional_gate import (  # type: ignore[attr-defined]
     AdmissionStatus,
     ConstitutionalGate,
 )
+from .crown_layer import (
+    CROWNHorizon,
+    CROWNLayer,
+    CROWNStatus,
+    CROWNVerdict,
+    HorizonVerdict,
+    SystemState,
+)
 from .ihsan_projector import (
     IhsanProjector,
 )
@@ -58,14 +66,6 @@ from .key_registry import (
     RegisteredKey,
     TrustedKeyRegistry,
     get_key_registry,
-)
-from .crown_layer import (
-    CROWNHorizon,
-    CROWNLayer,
-    CROWNStatus,
-    CROWNVerdict,
-    HorizonVerdict,
-    SystemState,
 )
 from .model_license_gate import (
     ModelLicenseGate,

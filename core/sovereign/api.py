@@ -2533,17 +2533,20 @@ def create_fastapi_app(runtime: Any) -> Any:
             "subsystems": {
                 "moe_router": (
                     getattr(fusion_engine, "_moe_router", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "hrm_engine": hrm is not None,
                 "hypergraph_rag": (
                     getattr(fusion_engine, "_hypergraph_rag", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "northstar_engine": northstar is not None,
             },
             "hypergraph_store": hypergraph is not None,
-            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None) is not None,
+            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None)
+            is not None,
             "pattern_codebook": getattr(runtime, "_pattern_codebook", None) is not None,
         }
 

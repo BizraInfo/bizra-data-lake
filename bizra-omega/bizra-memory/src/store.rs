@@ -355,9 +355,7 @@ impl InMemoryStore {
 
         let mut atoms = [AtomId::null(); 16];
         let count = contributing_atoms.len().min(16);
-        for i in 0..count {
-            atoms[i] = contributing_atoms[i];
-        }
+        atoms[..count].copy_from_slice(&contributing_atoms[..count]);
 
         let header = InsightHeader {
             id,

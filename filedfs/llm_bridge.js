@@ -86,6 +86,43 @@ function loadProviderEnv(envPath) {
 }
 const defaultEnvPath = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.bizra', 'alpha100', 'provider.env');
 loadProviderEnv(defaultEnvPath);
+// ============================================================
+// Smart Model Routing — mirrors bizra-agent/src/context.rs
+// Gem 8: intent-derived pipelines
+// ============================================================
+
+/**
+ * Classify user intent from message content.
+ * Keywords MUST match bizra-agent/src/context.rs:282-330 exactly.
+ */
+function classifyIntent(content) {
+  const lower = content.toLowerCase();
+  if (/\b(code|function|implement|debug|compile|crate|script|program)\b/.test(lower)) return 'Code';
+  if (/\b(create|build|make|generate|write|design|draft)\b/.test(lower)) return 'Create';
+  if (/\b(analyze|compare|evaluate|assess|review|examine)\b/.test(lower)) return 'Analyze';
+  if (/\b(plan|strategy|roadmap|schedule|next steps)\b/.test(lower)) return 'Plan';
+  if (/\b(fix|change|update|modify|edit|refactor)\b/.test(lower)) return 'Modify';
+  if (/\?|^what\b|^how\b|^why\b|^when\b|^where\b|^who\b/.test(lower)) return 'Question';
+  if (/^(hi|hello|hey|greetings)\b/.test(lower)) return 'Chat';
+  return 'Chat';
+}
+
+/**
+ * Select best provider for this intent.
+ * Economic model: 90% local/$0, 8% cloud/pennies, 2% premium/cents.
+ */
+function selectProvider(intent, config) {
+  if (config.preferred_provider) return config.preferred_provider;
+  switch (intent) {
+    case 'Plan': case 'Analyze': case 'Code':
+      return process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'local';
+    case 'Create':
+      return process.env.OPENAI_API_KEY ? 'openai' : 'local';
+    case 'Chat': case 'Question': case 'Modify': default:
+      return 'local';
+  }
+}
+
 let nodeProcess = null, nodeReady = false, pendingCallbacks = [], responseBuffer = '';
 
 function startNode() {
@@ -216,8 +253,23 @@ async function main() {
     try {
       await sendToNode('RECEIVE\t'+input.replace(/\t/g,' ')+'\t'+Date.now());
       const ctx = await getContext();
+      // Smart routing: classify intent and select best provider
+      const intent = classifyIntent(input);
+      const originalProvider = CONFIG.provider;
+      const routed = selectProvider(intent, CONFIG);
+      if (routed !== originalProvider) { CONFIG.provider = routed; process.stderr.write('  [route] '+intent+' -> '+routed+'\n'); }
       process.stdout.write('\n  node > ');
-      const resp = await llm(sysPrompt(ctx), input, hist);
+      let resp;
+      try { resp = await llm(sysPrompt(ctx), input, hist); }
+      catch(routeErr) {
+        // Fall back to original provider on routing failure
+        if (CONFIG.provider !== originalProvider) {
+          CONFIG.provider = originalProvider;
+          process.stderr.write('  [route] fallback -> '+originalProvider+'\n');
+          resp = await llm(sysPrompt(ctx), input, hist);
+        } else throw routeErr;
+      }
+      CONFIG.provider = originalProvider;
       console.log(resp+'\n');
       hist.push({role:'user',content:input},{role:'assistant',content:resp});
       if (hist.length>20) hist = hist.slice(-16);

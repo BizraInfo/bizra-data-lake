@@ -44,10 +44,10 @@ V1.1 persistence ensures the organism learns from every file dropped into `00_IN
 
 ## 🔗 INTEGRATION MAP
 
-- **Inception**: [README.md](file:///c:/BIZRA-DATA-LAKE/README.md)
-- **Intelligence**: [HYPERGRAPH-RAG-VISION.md](file:///c:/BIZRA-DATA-LAKE/HYPERGRAPH-RAG-VISION.md)
-- **Protocols**: [SOVEREIGN_INTEGRATION_PROTOCOLS.md](file:///C:/Users/BIZRA-OS/.gemini/antigravity/brain/cf2f3ddc-d0ec-4013-8520-5cb574eb7eed/SOVEREIGN_INTEGRATION_PROTOCOLS.md)
-- **Status**: [SLEEPING-BEAST-STATUS.md](file:///c:/BIZRA-DATA-LAKE/SLEEPING-BEAST-STATUS.md)
+- **Inception**: [README.md](../../README.md)
+- **Intelligence**: [HYPERGRAPH-RAG-VISION.md](HYPERGRAPH-RAG-VISION.md)
+- **Protocols**: SOVEREIGN_INTEGRATION_PROTOCOLS.md *(deprecated -- file no longer exists in repository)*
+- **Status**: [SLEEPING-BEAST-STATUS.md](SLEEPING-BEAST-STATUS.md)
 
 ---
 

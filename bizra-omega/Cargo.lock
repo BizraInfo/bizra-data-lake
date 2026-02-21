@@ -370,7 +370,10 @@ version = "2.0.0"
 dependencies = [
  "bizra-hooks",
  "bizra-memory",
+ "bizra-telescript",
  "blake3",
+ "tempfile",
+ "toml",
 ]
 
 [[package]]
@@ -459,6 +462,7 @@ dependencies = [
  "bizra-core",
  "chrono",
  "ed25519-dalek",
+ "getrandom 0.2.17",
  "hex",
  "rand 0.8.5",
  "serde",
@@ -565,6 +569,8 @@ dependencies = [
  "bizra-agent",
  "bizra-hooks",
  "bizra-memory",
+ "bizra-telescript",
+ "serde_json",
 ]
 
 [[package]]

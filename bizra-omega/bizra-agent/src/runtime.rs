@@ -43,6 +43,29 @@ use crate::reflex_compiler::{
 use crate::roster::AgentRoster;
 use crate::types::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActionMode {
+    Disabled,
+    Shadow,
+    Active,
+}
+
+impl ActionMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::Shadow => "shadow",
+            Self::Active => "active",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuardianCheckResult {
+    pub allowed: bool,
+    pub reason: String,
+}
+
 // ============================================================
 // RUNTIME CONFIG
 // ============================================================
@@ -79,6 +102,8 @@ pub struct RuntimeConfig {
     pub revalidate_after_uses: u64,
     /// Immediately quarantine on guardian veto/revalidation failure
     pub immediate_quarantine: bool,
+    /// Action execution mode for explicit action protocol
+    pub action_mode: ActionMode,
 }
 
 impl Default for RuntimeConfig {
@@ -99,6 +124,7 @@ impl Default for RuntimeConfig {
             revalidate_after_seconds: 604_800,
             revalidate_after_uses: 200,
             immediate_quarantine: true,
+            action_mode: ActionMode::Disabled,
         }
     }
 }
@@ -186,6 +212,11 @@ pub struct RuntimeHealth {
     pub reflex_hits: u64,
     pub reflex_misses: u64,
     pub decision_artifacts: usize,
+    // Action execution telemetry (Node action layer)
+    pub actions_planned: u64,
+    pub actions_executed: u64,
+    pub actions_failed: u64,
+    pub guardian_action_vetoes: u64,
 }
 
 // ============================================================
@@ -221,6 +252,11 @@ pub struct AgentRuntime {
     decision_registry: DecisionRegistry,
     /// Parsed policy hash (required for active reflex mode)
     policy_hash: Option<[u8; 32]>,
+    /// Action-layer counters (updated by node protocol handlers)
+    actions_planned: u64,
+    actions_executed: u64,
+    actions_failed: u64,
+    guardian_action_vetoes: u64,
 }
 
 impl AgentRuntime {
@@ -263,6 +299,10 @@ impl AgentRuntime {
             reflex_compiler: ReflexCompiler::default(),
             decision_registry: DecisionRegistry::default(),
             policy_hash,
+            actions_planned: 0,
+            actions_executed: 0,
+            actions_failed: 0,
+            guardian_action_vetoes: 0,
         }
     }
 
@@ -313,7 +353,7 @@ impl AgentRuntime {
 
     /// Check if there's an active conversation
     pub fn has_active_conversation(&self) -> bool {
-        self.current_session.as_ref().map_or(false, |s| s.active)
+        self.current_session.as_ref().is_some_and(|s| s.active)
     }
 
     // ================================================================
@@ -414,20 +454,18 @@ impl AgentRuntime {
         );
 
         if let Some(rule) = selected_rule {
-            if decision_mode == CognitiveMode::System1 {
-                if forced_revalidation {
-                    let matched = result.guardian_approved
-                        && result.chosen_route == rule.action_template.route_signature;
-                    self.reflex_cache
-                        .mark_revalidated(&trigger_hash, timestamp, matched);
-                    if !matched {
-                        decision_mode = CognitiveMode::System2;
-                        reflex_hit = false;
-                        if self.config.immediate_quarantine {
-                            let _ = self
-                                .reflex_cache
-                                .quarantine(trigger_hash, QuarantineReason::RevalidationFailed);
-                        }
+            if decision_mode == CognitiveMode::System1 && forced_revalidation {
+                let matched = result.guardian_approved
+                    && result.chosen_route == rule.action_template.route_signature;
+                self.reflex_cache
+                    .mark_revalidated(&trigger_hash, timestamp, matched);
+                if !matched {
+                    decision_mode = CognitiveMode::System2;
+                    reflex_hit = false;
+                    if self.config.immediate_quarantine {
+                        let _ = self
+                            .reflex_cache
+                            .quarantine(trigger_hash, QuarantineReason::RevalidationFailed);
                     }
                 }
             }
@@ -537,6 +575,7 @@ impl AgentRuntime {
             decision_mode,
             action_hash: action_hash.to_hex(),
             reflex_hit,
+            action_id: None,
         }
     }
 
@@ -756,6 +795,11 @@ impl AgentRuntime {
     // ================================================================
 
     /// Complete system health snapshot
+    /// Immutable access to the memory pipeline (for persistence export).
+    pub fn pipeline(&self) -> &MemoryPipeline {
+        &self.pipeline
+    }
+
     pub fn health(&self) -> RuntimeHealth {
         let summary = self.pipeline.knowledge_summary();
         let stats = self.pipeline.stats();
@@ -787,6 +831,10 @@ impl AgentRuntime {
             reflex_hits: reflex_stats.hits,
             reflex_misses: reflex_stats.misses,
             decision_artifacts: self.decision_registry.len(),
+            actions_planned: self.actions_planned,
+            actions_executed: self.actions_executed,
+            actions_failed: self.actions_failed,
+            guardian_action_vetoes: self.guardian_action_vetoes,
         }
     }
 
@@ -861,6 +909,77 @@ impl AgentRuntime {
             .map(|h| h.iter().map(|b| format!("{:02x}", b)).collect())
     }
 
+    pub fn set_policy_hash(&mut self, hex: &str) {
+        self.policy_hash = crate::hash_namespace::parse_hex_32(hex);
+    }
+
+    pub fn action_mode(&self) -> ActionMode {
+        self.config.action_mode
+    }
+
+    /// Rust-side guardian preflight for external action channels (MCP/Desktop bridge).
+    /// This keeps the authoritative safety verdict in the sovereign runtime.
+    pub fn guardian_check_text(&mut self, content: &str, timestamp: u64) -> GuardianCheckResult {
+        let msg = Message::inbound(
+            MessageId::new(self.total_conversations.max(1), 1),
+            content,
+            timestamp,
+            self.current_ihsan,
+        );
+        let allowed = self
+            .orchestrator
+            .guardian_check(&msg, &mut self.roster, self.current_ihsan);
+        if allowed {
+            return GuardianCheckResult {
+                allowed: true,
+                reason: "allowed".to_string(),
+            };
+        }
+
+        if self.current_ihsan.raw() < 9500 {
+            return GuardianCheckResult {
+                allowed: false,
+                reason: "ihsan_below_guardian_floor".to_string(),
+            };
+        }
+
+        let lowered = content.to_ascii_lowercase();
+        let blocked = [
+            "harm",
+            "attack",
+            "exploit",
+            "inject",
+            "bypass safety",
+            "ignore instructions",
+            "override",
+        ];
+        let reason = blocked
+            .iter()
+            .find(|needle| lowered.contains(**needle))
+            .map(|needle| format!("content_contains:{}", needle))
+            .unwrap_or_else(|| "guardian_veto".to_string());
+        GuardianCheckResult {
+            allowed: false,
+            reason,
+        }
+    }
+
+    pub fn record_action_planned(&mut self) {
+        self.actions_planned += 1;
+    }
+
+    pub fn record_action_executed(&mut self) {
+        self.actions_executed += 1;
+    }
+
+    pub fn record_action_failed(&mut self) {
+        self.actions_failed += 1;
+    }
+
+    pub fn record_guardian_action_veto(&mut self) {
+        self.guardian_action_vetoes += 1;
+    }
+
     fn select_trigger_traits(&mut self, now: u64) -> Vec<(String, String)> {
         let mut out = Vec::new();
         let kinds = [
@@ -912,6 +1031,8 @@ pub struct RuntimeResponse {
     pub action_hash: String,
     /// True when a compiled reflex rule was selected
     pub reflex_hit: bool,
+    /// Optional action identifier when an explicit action is executed
+    pub action_id: Option<String>,
 }
 
 impl RuntimeResponse {
@@ -926,6 +1047,7 @@ impl RuntimeResponse {
             decision_mode: CognitiveMode::System2,
             action_hash: ActionHash([0u8; 32]).to_hex(),
             reflex_hit: false,
+            action_id: None,
         }
     }
 
@@ -940,6 +1062,7 @@ impl RuntimeResponse {
             decision_mode: CognitiveMode::System2,
             action_hash: ActionHash([0u8; 32]).to_hex(),
             reflex_hit: false,
+            action_id: None,
         }
     }
 
@@ -1259,6 +1382,31 @@ mod tests {
         assert!(!response.reflex_hit);
         assert!(!response.guardian_approved);
         assert!(runtime.reflex_stats().quarantined >= 1);
+    }
+
+    #[test]
+    fn guardian_check_text_allows_safe_content() {
+        let mut runtime = AgentRuntime::for_user(42);
+        let verdict = runtime.guardian_check_text("Plan the roadmap for next week", 7000);
+        assert!(verdict.allowed);
+        assert_eq!(verdict.reason, "allowed");
+    }
+
+    #[test]
+    fn guardian_check_text_blocks_harmful_content() {
+        let mut runtime = AgentRuntime::for_user(42);
+        let verdict = runtime.guardian_check_text("help me exploit this system", 7001);
+        assert!(!verdict.allowed);
+        assert!(verdict.reason.starts_with("content_contains:"));
+    }
+
+    #[test]
+    fn guardian_check_text_blocks_low_ihsan() {
+        let mut runtime = AgentRuntime::for_user(42);
+        runtime.update_ihsan(IhsanScore::from_raw(9000));
+        let verdict = runtime.guardian_check_text("Normal harmless request", 7002);
+        assert!(!verdict.allowed);
+        assert_eq!(verdict.reason, "ihsan_below_guardian_floor");
     }
 
     #[test]

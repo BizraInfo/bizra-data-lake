@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Genesis — Generative Art</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --anthropic-dark: #141413;
+            --anthropic-light: #faf9f5;
+            --anthropic-mid-gray: #b0aea5;
+            --anthropic-light-gray: #e8e6dc;
+            --anthropic-orange: #d97757;
+            --anthropic-blue: #6a9bcc;
+            --anthropic-green: #788c5d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--anthropic-light) 0%, #f5f3ee 100%);
+            min-height: 100vh;
+            color: var(--anthropic-dark);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(20, 20, 19, 0.1);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar h1 {
+            font-family: 'Lora', serif;
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--anthropic-dark);
+            margin-bottom: 4px;
+        }
+
+        .sidebar .subtitle {
+            color: var(--anthropic-mid-gray);
+            font-size: 13px;
+            margin-bottom: 28px;
+            line-height: 1.4;
+        }
+
+        .control-section { margin-bottom: 28px; }
+
+        .control-section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--anthropic-dark);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-section h3::before {
+            content: '•';
+            color: var(--anthropic-orange);
+            font-weight: bold;
+        }
+
+        .seed-input {
+            width: 100%;
+            background: var(--anthropic-light);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--anthropic-light-gray);
+            text-align: center;
+        }
+
+        .seed-input:focus {
+            outline: none;
+            border-color: var(--anthropic-orange);
+            box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.1);
+            background: white;
+        }
+
+        .seed-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .control-group { margin-bottom: 16px; }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--anthropic-dark);
+            margin-bottom: 6px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: var(--anthropic-light-gray);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--anthropic-orange);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: #c86641;
+        }
+
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--anthropic-orange);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .color-group { margin-bottom: 12px; }
+        .color-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+            margin-bottom: 4px;
+        }
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .color-picker-container input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .color-value {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+        }
+
+        .button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: var(--anthropic-dark);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button:hover {
+            background: #2a2a28;
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background: transparent;
+            color: var(--anthropic-dark);
+            border: 1px solid var(--anthropic-light-gray);
+        }
+
+        .button.secondary:hover {
+            background: var(--anthropic-light);
+            transform: translateY(-1px);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .button-row .button { flex: 1; }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-width: 0;
+        }
+
+        #canvas-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(20, 20, 19, 0.12);
+        }
+
+        #canvas-container canvas {
+            display: block;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 800px;
+            height: 800px;
+            background: var(--anthropic-light);
+            color: var(--anthropic-mid-gray);
+            font-size: 14px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--anthropic-mid-gray);
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .stat-row .stat-val {
+            font-family: 'Courier New', monospace;
+            color: var(--anthropic-dark);
+            font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>Sovereign Genesis</h1>
+            <div class="subtitle">Seeds that root, bloom, and discover each other — a living parable of distributed intelligence emerging from sovereign nodes.</div>
+
+            <!-- Seed Section -->
+            <div class="control-section">
+                <h3>Seed</h3>
+                <input type="text" class="seed-input" id="seed-input" value="12345" onchange="updateSeed()">
+                <div class="seed-controls">
+                    <button class="button secondary" onclick="previousSeed()">← Prev</button>
+                    <button class="button secondary" onclick="nextSeed()">Next →</button>
+                </div>
+                <div class="button-row">
+                    <button class="button secondary" onclick="randomSeedAndUpdate()">Random</button>
+                    <button class="button" onclick="initializeSystem()">Regenerate</button>
+                </div>
+            </div>
+
+            <!-- Parameters -->
+            <div class="control-section">
+                <h3>Genesis Parameters</h3>
+
+                <div class="control-group">
+                    <label>Node Count</label>
+                    <div class="slider-container">
+                        <input type="range" id="nodeCount" min="3" max="12" step="1" value="7" oninput="updateParam('nodeCount', this.value)">
+                        <span class="value-display" id="nodeCount-value">7</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Particles Per Node</label>
+                    <div class="slider-container">
+                        <input type="range" id="particlesPerNode" min="50" max="500" step="10" value="200" oninput="updateParam('particlesPerNode', this.value)">
+                        <span class="value-display" id="particlesPerNode-value">200</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Root Depth</label>
+                    <div class="slider-container">
+                        <input type="range" id="rootDepth" min="0.2" max="2.0" step="0.1" value="1.0" oninput="updateParam('rootDepth', this.value)">
+                        <span class="value-display" id="rootDepth-value">1.0</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Bloom Reach</label>
+                    <div class="slider-container">
+                        <input type="range" id="bloomReach" min="0.2" max="3.0" step="0.1" value="1.5" oninput="updateParam('bloomReach', this.value)">
+                        <span class="value-display" id="bloomReach-value">1.5</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Connection Strength</label>
+                    <div class="slider-container">
+                        <input type="range" id="connectionStrength" min="0.0" max="1.0" step="0.05" value="0.5" oninput="updateParam('connectionStrength', this.value)">
+                        <span class="value-display" id="connectionStrength-value">0.50</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Memory Persistence</label>
+                    <div class="slider-container">
+                        <input type="range" id="memoryFade" min="1" max="30" step="1" value="8" oninput="updateParam('memoryFade', this.value)">
+                        <span class="value-display" id="memoryFade-value">8</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Noise Evolution</label>
+                    <div class="slider-container">
+                        <input type="range" id="noiseSpeed" min="0.001" max="0.01" step="0.001" value="0.003" oninput="updateParam('noiseSpeed', this.value)">
+                        <span class="value-display" id="noiseSpeed-value">0.003</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colors -->
+            <div class="control-section">
+                <h3>Palette</h3>
+                <div class="color-group">
+                    <label>Root (Memory)</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color1" value="#3a6b4e" onchange="updateColor('color1', this.value)">
+                        <span class="color-value" id="color1-value">#3a6b4e</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Bloom (Expansion)</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color2" value="#d4a574" onchange="updateColor('color2', this.value)">
+                        <span class="color-value" id="color2-value">#d4a574</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Genesis Spark</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color3" value="#c86641" onchange="updateColor('color3', this.value)">
+                        <span class="color-value" id="color3-value">#c86641</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Stats -->
+            <div class="control-section">
+                <h3>Living System</h3>
+                <div class="stat-row"><span>Active Particles</span><span class="stat-val" id="stat-particles">0</span></div>
+                <div class="stat-row"><span>Connections</span><span class="stat-val" id="stat-connections">0</span></div>
+                <div class="stat-row"><span>Genesis Events</span><span class="stat-val" id="stat-genesis">0</span></div>
+                <div class="stat-row"><span>Frame</span><span class="stat-val" id="stat-frame">0</span></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="control-section">
+                <h3>Actions</h3>
+                <div class="button-row">
+                    <button class="button secondary" onclick="resetParameters()">Reset</button>
+                    <button class="button" onclick="exportImage()">Download PNG</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div id="canvas-container">
+                <div class="loading">Initializing sovereign genesis...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════
+        // SOVEREIGN GENESIS — Parameters
+        // ═══════════════════════════════════════════════════════════════════════
+
+        let params = {
+            seed: 12345,
+            nodeCount: 7,
+            particlesPerNode: 200,
+            rootDepth: 1.0,
+            bloomReach: 1.5,
+            connectionStrength: 0.5,
+            memoryFade: 8,
+            noiseSpeed: 0.003,
+            colorPalette: ['#3a6b4e', '#d4a574', '#c86641']
+        };
+
+        let defaultParams = JSON.parse(JSON.stringify(params));
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SOVEREIGN GENESIS — The Living Algorithm
+        // ═══════════════════════════════════════════════════════════════════════
+
+        let nodes = [];
+        let rootParticles = [];
+        let bloomParticles = [];
+        let connections = [];
+        let genesisEvents = [];
+        let frameCount_ = 0;
+        let trailLayer;
+        let noiseZ = 0;
+        let genesisCount = 0;
+
+        function setup() {
+            let sz = min(800, windowWidth - 380);
+            sz = max(sz, 400);
+            let canvas = createCanvas(sz, sz);
+            canvas.parent('canvas-container');
+            pixelDensity(1);
+
+            trailLayer = createGraphics(sz, sz);
+            trailLayer.pixelDensity(1);
+
+            initializeSystem();
+            document.querySelector('.loading').style.display = 'none';
+        }
+
+        function initializeSystem() {
+            randomSeed(params.seed);
+            noiseSeed(params.seed);
+
+            nodes = [];
+            rootParticles = [];
+            bloomParticles = [];
+            connections = [];
+            genesisEvents = [];
+            frameCount_ = 0;
+            noiseZ = 0;
+            genesisCount = 0;
+
+            trailLayer.clear();
+            trailLayer.background(250, 249, 245);
+
+            // Place sovereign nodes using golden angle distribution
+            let cx = width / 2;
+            let cy = height / 2;
+            let goldenAngle = PI * (3 - sqrt(5));
+            let maxR = min(width, height) * 0.35;
+
+            for (let i = 0; i < params.nodeCount; i++) {
+                let t = i / max(params.nodeCount - 1, 1);
+                let r = maxR * sqrt(t) * (0.5 + 0.5 * random());
+                let a = goldenAngle * i + random(-0.3, 0.3);
+
+                // First node always at center — Node0
+                let nx, ny;
+                if (i === 0) {
+                    nx = cx + random(-10, 10);
+                    ny = cy + random(-10, 10);
+                } else {
+                    nx = cx + cos(a) * r;
+                    ny = cy + sin(a) * r;
+                }
+
+                nodes.push({
+                    x: nx, y: ny,
+                    radius: 3 + random(2),
+                    phase: random(TWO_PI),
+                    freq: 0.01 + random(0.015),
+                    energy: 0.5 + random(0.5),
+                    id: i
+                });
+
+                // Spawn root particles (downward/inward — memory/persistence)
+                for (let j = 0; j < params.particlesPerNode; j++) {
+                    rootParticles.push(new RootParticle(nx, ny, i));
+                }
+
+                // Spawn bloom particles (upward/outward — expansion/connection)
+                for (let j = 0; j < floor(params.particlesPerNode * 0.6); j++) {
+                    bloomParticles.push(new BloomParticle(nx, ny, i));
+                }
+            }
+
+            background(250, 249, 245);
+        }
+
+        function draw() {
+            frameCount_++;
+            noiseZ += params.noiseSpeed;
+
+            // Fade trail layer gently for memory persistence
+            trailLayer.fill(250, 249, 245, params.memoryFade);
+            trailLayer.noStroke();
+            trailLayer.rect(0, 0, width, height);
+
+            // Update and draw root particles on trail layer
+            let rootCol = hexToRgb(params.colorPalette[0]);
+            for (let p of rootParticles) {
+                p.update();
+                p.display(trailLayer, rootCol);
+            }
+
+            // Update and draw bloom particles on trail layer
+            let bloomCol = hexToRgb(params.colorPalette[1]);
+            for (let p of bloomParticles) {
+                p.update();
+                p.display(trailLayer, bloomCol);
+            }
+
+            // Detect and draw connections between nearby bloom particles from different nodes
+            connections = [];
+            if (params.connectionStrength > 0) {
+                for (let i = 0; i < bloomParticles.length; i += 3) {
+                    for (let j = i + 3; j < bloomParticles.length; j += 3) {
+                        let a = bloomParticles[i];
+                        let b = bloomParticles[j];
+                        if (a.nodeId === b.nodeId) continue;
+                        let d = dist(a.x, a.y, b.x, b.y);
+                        let threshold = 40 + params.connectionStrength * 60;
+                        if (d < threshold && d > 5) {
+                            connections.push({ a, b, d, threshold });
+                            // Genesis event — where root and bloom meet across nodes
+                            if (d < 15 && random() < 0.003 * params.connectionStrength) {
+                                genesisEvents.push({
+                                    x: (a.x + b.x) / 2,
+                                    y: (a.y + b.y) / 2,
+                                    life: 1.0,
+                                    size: random(3, 8)
+                                });
+                                genesisCount++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Draw connections on trail layer
+            let sparkCol = hexToRgb(params.colorPalette[2]);
+            for (let c of connections) {
+                let alpha = map(c.d, 0, c.threshold, 30, 3) * params.connectionStrength;
+                trailLayer.stroke(sparkCol.r, sparkCol.g, sparkCol.b, alpha);
+                trailLayer.strokeWeight(0.5);
+                trailLayer.line(c.a.x, c.a.y, c.b.x, c.b.y);
+            }
+
+            // Draw genesis events (golden sparks where nodes connect)
+            for (let i = genesisEvents.length - 1; i >= 0; i--) {
+                let g = genesisEvents[i];
+                g.life -= 0.008;
+                if (g.life <= 0) {
+                    genesisEvents.splice(i, 1);
+                    continue;
+                }
+                let gAlpha = g.life * 200;
+                let gSize = g.size * (1 + (1 - g.life) * 3);
+
+                // Radiant glow
+                trailLayer.noStroke();
+                for (let r = gSize; r > 0; r -= 1) {
+                    let a = map(r, 0, gSize, gAlpha * 0.6, 0);
+                    trailLayer.fill(sparkCol.r, sparkCol.g, sparkCol.b, a);
+                    trailLayer.ellipse(g.x, g.y, r * 2, r * 2);
+                }
+
+                // Inner core — golden white
+                trailLayer.fill(255, 245, 230, gAlpha);
+                trailLayer.ellipse(g.x, g.y, gSize * 0.4, gSize * 0.4);
+            }
+
+            // Render trail layer to canvas
+            image(trailLayer, 0, 0);
+
+            // Draw node cores on top (pulsing)
+            for (let n of nodes) {
+                let pulse = 1 + 0.3 * sin(frameCount_ * n.freq + n.phase);
+                let coreSize = n.radius * pulse;
+
+                // Outer glow
+                noStroke();
+                for (let r = coreSize * 6; r > coreSize; r -= 1.5) {
+                    let a = map(r, coreSize, coreSize * 6, 40, 0);
+                    if (n.id === 0) {
+                        fill(sparkCol.r, sparkCol.g, sparkCol.b, a);
+                    } else {
+                        fill(bloomCol.r, bloomCol.g, bloomCol.b, a * 0.5);
+                    }
+                    ellipse(n.x, n.y, r * 2, r * 2);
+                }
+
+                // Core
+                if (n.id === 0) {
+                    fill(sparkCol.r, sparkCol.g, sparkCol.b);
+                } else {
+                    fill(
+                        lerp(rootCol.r, bloomCol.r, 0.5),
+                        lerp(rootCol.g, bloomCol.g, 0.5),
+                        lerp(rootCol.b, bloomCol.b, 0.5)
+                    );
+                }
+                ellipse(n.x, n.y, coreSize * 2, coreSize * 2);
+
+                // Inner light
+                fill(255, 250, 240, 180 * pulse);
+                ellipse(n.x, n.y, coreSize * 0.8, coreSize * 0.8);
+            }
+
+            // Update stats
+            if (frameCount_ % 10 === 0) {
+                document.getElementById('stat-particles').textContent =
+                    rootParticles.length + bloomParticles.length;
+                document.getElementById('stat-connections').textContent = connections.length;
+                document.getElementById('stat-genesis').textContent = genesisCount;
+                document.getElementById('stat-frame').textContent = frameCount_;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ROOT PARTICLE — Memory, persistence, the grounding force
+        // ═══════════════════════════════════════════════════════════════════════
+
+        class RootParticle {
+            constructor(ox, oy, nodeId) {
+                this.nodeId = nodeId;
+                this.ox = ox;
+                this.oy = oy;
+                this.x = ox + random(-5, 5);
+                this.y = oy + random(-5, 5);
+                this.vx = 0;
+                this.vy = 0;
+                this.angle = random(TWO_PI);
+                this.speed = 0.3 + random(0.7);
+                this.noiseOffX = random(1000);
+                this.noiseOffY = random(1000);
+                this.life = 1.0;
+                this.maxDist = 30 + random(80) * params.rootDepth;
+                this.trail = [];
+                this.trailMax = 3 + floor(random(5));
+            }
+
+            update() {
+                // Root particles spiral inward/downward, drawn by node gravity
+                let toNodeX = this.ox - this.x;
+                let toNodeY = this.oy - this.y;
+                let d = sqrt(toNodeX * toNodeX + toNodeY * toNodeY);
+
+                // Noise-driven wandering
+                let n = noise(
+                    this.x * 0.008 + this.noiseOffX,
+                    this.y * 0.008 + this.noiseOffY,
+                    noiseZ
+                );
+                let noiseAngle = n * TWO_PI * 4;
+
+                // Gravity toward home node (stronger when far)
+                let gravityStrength = map(d, 0, this.maxDist, 0, 0.05 * params.rootDepth);
+
+                this.vx += cos(noiseAngle) * 0.15 * this.speed;
+                this.vy += sin(noiseAngle) * 0.15 * this.speed;
+
+                if (d > this.maxDist * 0.3) {
+                    this.vx += (toNodeX / max(d, 1)) * gravityStrength;
+                    this.vy += (toNodeY / max(d, 1)) * gravityStrength;
+                }
+
+                // Damping
+                this.vx *= 0.92;
+                this.vy *= 0.92;
+
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.trailMax) this.trail.shift();
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Respawn if too far
+                if (d > this.maxDist * 1.5) {
+                    this.x = this.ox + random(-10, 10);
+                    this.y = this.oy + random(-10, 10);
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.trail = [];
+                }
+            }
+
+            display(pg, col) {
+                let alpha = 25 + this.life * 25;
+                let sw = 0.6 + this.speed * 0.3;
+
+                pg.strokeWeight(sw);
+                pg.noFill();
+
+                for (let i = 1; i < this.trail.length; i++) {
+                    let ta = alpha * (i / this.trail.length) * 0.5;
+                    pg.stroke(col.r, col.g, col.b, ta);
+                    pg.line(this.trail[i - 1].x, this.trail[i - 1].y, this.trail[i].x, this.trail[i].y);
+                }
+
+                pg.noStroke();
+                pg.fill(col.r, col.g, col.b, alpha);
+                pg.ellipse(this.x, this.y, sw * 1.5, sw * 1.5);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // BLOOM PARTICLE — Expansion, connection, the reaching force
+        // ═══════════════════════════════════════════════════════════════════════
+
+        class BloomParticle {
+            constructor(ox, oy, nodeId) {
+                this.nodeId = nodeId;
+                this.ox = ox;
+                this.oy = oy;
+                this.x = ox;
+                this.y = oy;
+                this.vx = 0;
+                this.vy = 0;
+                this.angle = random(TWO_PI);
+                this.speed = 0.5 + random(1.0);
+                this.noiseOffX = random(2000, 4000);
+                this.noiseOffY = random(2000, 4000);
+                this.maxDist = 60 + random(120) * params.bloomReach;
+                this.trail = [];
+                this.trailMax = 4 + floor(random(6));
+                this.wanderPhase = random(TWO_PI);
+                this.wanderFreq = 0.005 + random(0.01);
+            }
+
+            update() {
+                let d = dist(this.x, this.y, this.ox, this.oy);
+
+                // Noise-driven field
+                let n = noise(
+                    this.x * 0.005 + this.noiseOffX,
+                    this.y * 0.005 + this.noiseOffY,
+                    noiseZ * 0.7
+                );
+                let noiseAngle = n * TWO_PI * 6;
+
+                // Outward drift (bloom force)
+                let outX = this.x - this.ox;
+                let outY = this.y - this.oy;
+                let outMag = max(sqrt(outX * outX + outY * outY), 1);
+                let bloomForce = map(d, 0, this.maxDist, 0.04, 0.0) * params.bloomReach;
+
+                this.vx += cos(noiseAngle) * 0.12 * this.speed;
+                this.vy += sin(noiseAngle) * 0.12 * this.speed;
+
+                // Push outward when near home
+                if (d < this.maxDist * 0.5) {
+                    this.vx += (outX / outMag) * bloomForce;
+                    this.vy += (outY / outMag) * bloomForce;
+                }
+
+                // Gentle gravity back when too far
+                if (d > this.maxDist) {
+                    let pullStr = map(d, this.maxDist, this.maxDist * 2, 0, 0.08);
+                    this.vx -= (outX / outMag) * pullStr;
+                    this.vy -= (outY / outMag) * pullStr;
+                }
+
+                // Orbital tendency — creates spiral/mandala patterns
+                this.wanderPhase += this.wanderFreq;
+                this.vx += cos(this.angle + this.wanderPhase) * 0.02;
+                this.vy += sin(this.angle + this.wanderPhase) * 0.02;
+
+                // Inter-node attraction (bloom particles seek other nodes)
+                if (params.connectionStrength > 0.1) {
+                    for (let n of nodes) {
+                        if (n.id === this.nodeId) continue;
+                        let dn = dist(this.x, this.y, n.x, n.y);
+                        if (dn < 150 && dn > 20) {
+                            let attr = map(dn, 20, 150, 0.02, 0.0) * params.connectionStrength;
+                            this.vx += ((n.x - this.x) / dn) * attr;
+                            this.vy += ((n.y - this.y) / dn) * attr;
+                        }
+                    }
+                }
+
+                this.vx *= 0.94;
+                this.vy *= 0.94;
+
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.trailMax) this.trail.shift();
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Boundary wrapping with respawn
+                if (this.x < -20 || this.x > width + 20 || this.y < -20 || this.y > height + 20) {
+                    this.x = this.ox + random(-15, 15);
+                    this.y = this.oy + random(-15, 15);
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.trail = [];
+                }
+            }
+
+            display(pg, col) {
+                let alpha = 20 + this.speed * 15;
+                let sw = 0.5 + this.speed * 0.25;
+
+                pg.strokeWeight(sw);
+                pg.noFill();
+
+                for (let i = 1; i < this.trail.length; i++) {
+                    let ta = alpha * (i / this.trail.length) * 0.6;
+                    pg.stroke(col.r, col.g, col.b, ta);
+                    pg.line(this.trail[i - 1].x, this.trail[i - 1].y, this.trail[i].x, this.trail[i].y);
+                }
+
+                pg.noStroke();
+                pg.fill(col.r, col.g, col.b, alpha * 0.8);
+                pg.ellipse(this.x, this.y, sw * 1.2, sw * 1.2);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 100, g: 100, b: 100 };
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // UI CONTROL HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function updateParam(paramName, value) {
+            params[paramName] = parseFloat(value);
+            document.getElementById(paramName + '-value').textContent =
+                Number.isInteger(params[paramName]) ? params[paramName] : params[paramName].toFixed(paramName === 'noiseSpeed' ? 3 : paramName === 'connectionStrength' ? 2 : 1);
+
+            // Heavy params need full regeneration
+            if (['nodeCount', 'particlesPerNode'].includes(paramName)) {
+                initializeSystem();
+            }
+        }
+
+        function updateColor(colorId, value) {
+            let idx = colorId === 'color1' ? 0 : colorId === 'color2' ? 1 : 2;
+            params.colorPalette[idx] = value;
+            document.getElementById(colorId + '-value').textContent = value;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SEED CONTROLS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function updateSeedDisplay() {
+            document.getElementById('seed-input').value = params.seed;
+        }
+
+        function updateSeed() {
+            let input = document.getElementById('seed-input');
+            let newSeed = parseInt(input.value);
+            if (newSeed && newSeed > 0) {
+                params.seed = newSeed;
+                initializeSystem();
+            } else {
+                updateSeedDisplay();
+            }
+        }
+
+        function previousSeed() {
+            params.seed = Math.max(1, params.seed - 1);
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function nextSeed() {
+            params.seed = params.seed + 1;
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function randomSeedAndUpdate() {
+            params.seed = Math.floor(Math.random() * 999999) + 1;
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function resetParameters() {
+            params = JSON.parse(JSON.stringify(defaultParams));
+            document.getElementById('nodeCount').value = params.nodeCount;
+            document.getElementById('nodeCount-value').textContent = params.nodeCount;
+            document.getElementById('particlesPerNode').value = params.particlesPerNode;
+            document.getElementById('particlesPerNode-value').textContent = params.particlesPerNode;
+            document.getElementById('rootDepth').value = params.rootDepth;
+            document.getElementById('rootDepth-value').textContent = params.rootDepth.toFixed(1);
+            document.getElementById('bloomReach').value = params.bloomReach;
+            document.getElementById('bloomReach-value').textContent = params.bloomReach.toFixed(1);
+            document.getElementById('connectionStrength').value = params.connectionStrength;
+            document.getElementById('connectionStrength-value').textContent = params.connectionStrength.toFixed(2);
+            document.getElementById('memoryFade').value = params.memoryFade;
+            document.getElementById('memoryFade-value').textContent = params.memoryFade;
+            document.getElementById('noiseSpeed').value = params.noiseSpeed;
+            document.getElementById('noiseSpeed-value').textContent = params.noiseSpeed.toFixed(3);
+            document.getElementById('color1').value = params.colorPalette[0];
+            document.getElementById('color1-value').textContent = params.colorPalette[0];
+            document.getElementById('color2').value = params.colorPalette[1];
+            document.getElementById('color2-value').textContent = params.colorPalette[1];
+            document.getElementById('color3').value = params.colorPalette[2];
+            document.getElementById('color3-value').textContent = params.colorPalette[2];
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function exportImage() {
+            saveCanvas('sovereign-genesis-' + params.seed, 'png');
+        }
+
+        window.addEventListener('load', function () {
+            updateSeedDisplay();
+        });
+    </script>
+</body>
+</html>

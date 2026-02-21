@@ -100,15 +100,11 @@ class EmbeddingService:
             try:
                 from sentence_transformers import SentenceTransformer
             except ImportError as e:
-                raise ImportError(
-                    "sentence-transformers not installed"
-                ) from e
+                raise ImportError("sentence-transformers not installed") from e
 
             self._model = SentenceTransformer(self.config.model_name)
             self._dimension = self._model.get_sentence_embedding_dimension()
-            logger.info(
-                f"Loaded {self.config.model_name} (dim={self._dimension})"
-            )
+            logger.info(f"Loaded {self.config.model_name} (dim={self._dimension})")
 
         vector = self._model.encode(text, normalize_embeddings=True)
         return vector.tolist()

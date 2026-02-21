@@ -48,14 +48,14 @@ from typing import (
     Optional,
 )
 
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+)
+
 # ════════════════════════════════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION & CONSTANTS
 # ════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-)
 
 # Apex-level thresholds (higher than standard)
 APEX_SNR_TARGET: Final[float] = 0.99  # Ihsān Excellence

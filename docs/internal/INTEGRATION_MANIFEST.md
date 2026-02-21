@@ -171,10 +171,10 @@ EMBEDDING GENERATION COMPLETE
 
 ## 🔗 Related Files
 
-- [intake_processor.py](tools/intake_processor.py) - ChatGPT JSON converter
-- [generate-embeddings.py](generate-embeddings.py) - Embedding generator
-- [warp_retriever.py](warp_retriever.py) - WARP semantic search
-- [knowledge_base_validator.py](tools/knowledge_base_validator.py) - Validation suite
+- [intake_processor.py](../../tools/intake_processor.py) - ChatGPT JSON converter
+- [generate-embeddings.py](../../tools/generate-embeddings.py) - Embedding generator
+- [warp_retriever.py](../../tools/bridges/warp_retriever.py) - WARP semantic search
+- [knowledge_base_validator.py](../../tools/knowledge_base_validator.py) - Validation suite
 
 ---
 

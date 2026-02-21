@@ -1,0 +1,30 @@
+{
+  "name": "permit_capability_escalation",
+  "schema": "permit_envelope.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "permit_id": "permit_002",
+    "issuer": "agent_user_001",
+    "holder_agent_id": "agent_brand_001",
+    "capabilities": ["Disclose", "Transact"],
+    "limits": {
+      "max_actions": 20,
+      "max_duration_seconds": 300,
+      "max_payload_bytes": 65536,
+      "max_cost_tokens": 2000
+    },
+    "parent_permit_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "degradation_factor": 0.5,
+    "signature": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "meta": {
+    "parent_capabilities": ["Compute", "Network", "Store", "Negotiate", "Disclose"],
+    "parent_limit_caps": {
+      "max_actions": 50,
+      "max_duration_seconds": 300,
+      "max_payload_bytes": 65536,
+      "max_cost_tokens": 5000
+    },
+    "require_strict_subset": true
+  }
+}

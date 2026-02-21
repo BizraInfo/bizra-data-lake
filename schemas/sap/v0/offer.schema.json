@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/offer.schema.json",
+  "title": "Offer",
+  "type": "object",
+  "required": [
+    "offer_id",
+    "product_sku",
+    "price",
+    "currency",
+    "terms",
+    "expiry",
+    "provenance_hashes"
+  ],
+  "properties": {
+    "offer_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "product_sku": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "terms": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": true
+    },
+    "expiry": {
+      "type": "integer"
+    },
+    "provenance_hashes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  },
+  "additionalProperties": false
+}

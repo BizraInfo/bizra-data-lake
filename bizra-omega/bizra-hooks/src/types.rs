@@ -154,12 +154,13 @@ impl HookId {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /// Event priority levels. Higher priority = processed first.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(u8)]
 pub enum Priority {
     /// Background tasks, telemetry, non-critical logging
     Low = 0,
     /// Normal operational events
+    #[default]
     Normal = 1,
     /// User-facing actions, API responses
     High = 2,
@@ -167,12 +168,6 @@ pub enum Priority {
     Critical = 3,
     /// System integrity, constitutional constraint enforcement
     Emergency = 4,
-}
-
-impl Default for Priority {
-    fn default() -> Self {
-        Priority::Normal
-    }
 }
 
 /// Event topic — hierarchical namespace for routing.
@@ -198,8 +193,13 @@ impl Topic {
 
     /// Get topic as string slice.
     pub fn as_str(&self) -> &str {
-        // Safe: we only store valid UTF-8 from new()
-        unsafe { core::str::from_utf8_unchecked(&self.data[..self.len as usize]) }
+        let slice = &self.data[..self.len as usize];
+        debug_assert!(
+            core::str::from_utf8(slice).is_ok(),
+            "UTF-8 invariant violated in Topic"
+        );
+        // Safety: constructors validate UTF-8; debug_assert guards against regression
+        unsafe { core::str::from_utf8_unchecked(slice) }
     }
 
     /// Check if this topic matches a pattern (supports trailing wildcard '*').
@@ -208,8 +208,7 @@ impl Topic {
         let pat = pattern.as_str();
         let topic = self.as_str();
 
-        if pat.ends_with(".*") {
-            let prefix = &pat[..pat.len() - 2];
+        if let Some(prefix) = pat.strip_suffix(".*") {
             topic.starts_with(prefix)
                 && topic.len() > prefix.len()
                 && topic.as_bytes()[prefix.len()] == b'.'
@@ -319,8 +318,8 @@ impl Payload {
         core::str::from_utf8(self.as_bytes()).ok()
     }
 
-    /// Create from string.
-    pub fn from_str(s: &str) -> Self {
+    /// Create from string slice.
+    pub fn from_text(s: &str) -> Self {
         Self::new(s.as_bytes())
     }
 }
@@ -374,14 +373,7 @@ impl IhsanScore {
 
     /// Create from floating point (clamped to 0.0..1.0).
     pub fn from_f64(score: f64) -> Self {
-        let clamped = if score < 0.0 {
-            0.0
-        } else if score > 1.0 {
-            1.0
-        } else {
-            score
-        };
-        IhsanScore((clamped * 65535.0) as u16)
+        IhsanScore((score.clamp(0.0, 1.0) * 65535.0) as u16)
     }
 
     /// Convert to floating point.
@@ -438,10 +430,11 @@ impl Default for IhsanScore {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /// Component health status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(u8)]
 pub enum ComponentStatus {
     /// Registered but not yet initialized
+    #[default]
     Registered = 0,
     /// Initialized and ready to process events
     Active = 1,
@@ -453,12 +446,6 @@ pub enum ComponentStatus {
     Failed = 4,
     /// Gracefully shutting down
     ShuttingDown = 5,
-}
-
-impl Default for ComponentStatus {
-    fn default() -> Self {
-        ComponentStatus::Registered
-    }
 }
 
 /// Fixed-size name buffer (64 bytes max).
@@ -481,7 +468,13 @@ impl Name {
     }
 
     pub fn as_str(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(&self.data[..self.len as usize]) }
+        let slice = &self.data[..self.len as usize];
+        debug_assert!(
+            core::str::from_utf8(slice).is_ok(),
+            "UTF-8 invariant violated in Name"
+        );
+        // Safety: constructors validate UTF-8; debug_assert guards against regression
+        unsafe { core::str::from_utf8_unchecked(slice) }
     }
 }
 
@@ -517,7 +510,13 @@ impl Version {
     }
 
     pub fn as_str(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(&self.data[..self.len as usize]) }
+        let slice = &self.data[..self.len as usize];
+        debug_assert!(
+            core::str::from_utf8(slice).is_ok(),
+            "UTF-8 invariant violated in Version"
+        );
+        // Safety: constructors validate UTF-8; debug_assert guards against regression
+        unsafe { core::str::from_utf8_unchecked(slice) }
     }
 }
 
@@ -691,7 +690,7 @@ mod tests {
         let p = Payload::from_u64(42);
         assert_eq!(p.as_u64(), Some(42));
 
-        let p2 = Payload::from_str("hello BIZRA");
+        let p2 = Payload::from_text("hello BIZRA");
         assert_eq!(p2.as_str(), Some("hello BIZRA"));
     }
 }

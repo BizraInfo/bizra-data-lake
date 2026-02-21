@@ -34,6 +34,7 @@ pub type HookFn = fn(&Event) -> (HookResult, Option<Event>);
 #[derive(Clone, Copy)]
 struct HookEntry {
     id: HookId,
+    #[allow(dead_code)]
     name: Name,
     priority: u8, // 0 = highest priority (runs first within phase)
     hook_fn: HookFn,

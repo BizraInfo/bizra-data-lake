@@ -16,9 +16,10 @@
 use crate::types::*;
 
 /// Gate enforcement policy — what happens when إحسان is violated?
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GatePolicy {
     /// Log warning but allow event (observation mode)
+    #[default]
     Observe,
     /// Attach warning flag to event, still deliver
     Flag,
@@ -26,12 +27,6 @@ pub enum GatePolicy {
     Throttle(u32),
     /// Hard reject: halt events from components below floor
     Reject,
-}
-
-impl Default for GatePolicy {
-    fn default() -> Self {
-        GatePolicy::Observe // Safe default: observe first, then tighten
-    }
 }
 
 /// Configuration for the إحسان Gate.
@@ -49,15 +44,59 @@ pub struct GateConfig {
     pub emit_events: bool,
 }
 
-impl Default for GateConfig {
-    fn default() -> Self {
+impl GateConfig {
+    /// Production configuration: **enforcement mode**.
+    ///
+    /// Events from components below the constitutional floor (0.990) are
+    /// hard-rejected. This transforms the Ihsan floor from a monitoring
+    /// metric into an active guardrail.
+    ///
+    /// Standing on Giants: Al-Ghazali — Ihsan is not optional in production.
+    pub fn production() -> Self {
         GateConfig {
             floor: IhsanScore::IHSAN_FLOOR,
             warning: IhsanScore::WARNING,
-            max_delta: IhsanScore::from_f64(0.01), // 1% max drop per mutation
+            max_delta: IhsanScore::from_f64(0.01),
+            policy: GatePolicy::Reject,
+            emit_events: true,
+        }
+    }
+
+    /// Development configuration: **observation mode**.
+    ///
+    /// Events from degraded components are logged but allowed through.
+    /// Use this for local development and testing where enforcement
+    /// would block iteration velocity.
+    pub fn development() -> Self {
+        GateConfig {
+            floor: IhsanScore::IHSAN_FLOOR,
+            warning: IhsanScore::WARNING,
+            max_delta: IhsanScore::from_f64(0.01),
             policy: GatePolicy::Observe,
             emit_events: true,
         }
+    }
+
+    /// Staged rollout configuration: **throttle mode**.
+    ///
+    /// Allows 1 in N events from degraded components through.
+    /// Use this as a transition step between Observe and Reject.
+    pub fn staged(throttle_n: u32) -> Self {
+        GateConfig {
+            floor: IhsanScore::IHSAN_FLOOR,
+            warning: IhsanScore::WARNING,
+            max_delta: IhsanScore::from_f64(0.01),
+            policy: GatePolicy::Throttle(throttle_n),
+            emit_events: true,
+        }
+    }
+}
+
+impl Default for GateConfig {
+    fn default() -> Self {
+        // Default is development mode for backward compatibility.
+        // Production deployments MUST use GateConfig::production().
+        Self::development()
     }
 }
 
@@ -119,9 +158,23 @@ pub struct IhsanGate {
 }
 
 impl IhsanGate {
-    /// Create a new gate with default configuration.
+    /// Create a new gate with default (development) configuration.
     pub fn new() -> Self {
         Self::with_config(GateConfig::default())
+    }
+
+    /// Create a production gate: Reject policy, enforcement active.
+    ///
+    /// This is the gate configuration that transforms the Ihsan floor
+    /// from a monitoring metric into an enforcement gate. Events from
+    /// components below 0.990 are hard-rejected.
+    pub fn production() -> Self {
+        Self::with_config(GateConfig::production())
+    }
+
+    /// Create a development gate: Observe policy, logging only.
+    pub fn development() -> Self {
+        Self::with_config(GateConfig::development())
     }
 
     /// Create with custom configuration.
@@ -184,7 +237,7 @@ impl IhsanGate {
                 GatePolicy::Throttle(n) => {
                     let slot = self.find_score_slot(&event.source);
                     self.throttle_counters[slot] += 1;
-                    if self.throttle_counters[slot] % n == 0 {
+                    if self.throttle_counters[slot].is_multiple_of(n) {
                         GateAction::Allow // Let through every Nth event
                     } else {
                         self.total_rejections += 1;
@@ -433,6 +486,94 @@ mod tests {
                 assert_eq!(verdict.action, GateAction::Throttled);
             }
         }
+    }
+
+    #[test]
+    fn production_gate_rejects_below_floor() {
+        let mut gate = IhsanGate::production();
+        let comp = ComponentId::from_name("degraded", "1.0.0");
+        let event = make_event(comp, 0.95); // Below 0.990 floor
+
+        let verdict = gate.evaluate(&event);
+        assert!(!verdict.meets_floor);
+        assert_eq!(verdict.action, GateAction::Rejected);
+        assert_eq!(gate.total_rejections(), 1);
+    }
+
+    #[test]
+    fn production_gate_allows_above_floor() {
+        let mut gate = IhsanGate::production();
+        let comp = ComponentId::from_name("excellent", "1.0.0");
+        let event = make_event(comp, 0.995); // Above 0.990 floor
+
+        let verdict = gate.evaluate(&event);
+        assert!(verdict.meets_floor);
+        assert_eq!(verdict.action, GateAction::Allow);
+        assert_eq!(gate.total_rejections(), 0);
+    }
+
+    #[test]
+    fn production_gate_rejects_at_exact_boundary() {
+        let mut gate = IhsanGate::production();
+        let comp = ComponentId::from_name("edge", "1.0.0");
+        // 0.989 is below 0.990 floor
+        let event = make_event(comp, 0.989);
+
+        let verdict = gate.evaluate(&event);
+        assert!(!verdict.meets_floor);
+        assert_eq!(verdict.action, GateAction::Rejected);
+    }
+
+    #[test]
+    fn development_gate_observes_violations() {
+        let mut gate = IhsanGate::development();
+        let comp = ComponentId::from_name("testing", "1.0.0");
+        let event = make_event(comp, 0.50); // Way below floor
+
+        let verdict = gate.evaluate(&event);
+        assert!(!verdict.meets_floor);
+        // Development mode: violation detected but event allowed through
+        assert_eq!(verdict.action, GateAction::Allow);
+        assert_eq!(gate.total_violations(), 1);
+        assert_eq!(gate.total_rejections(), 0);
+    }
+
+    #[test]
+    fn staged_gate_throttles_degraded() {
+        let mut gate = IhsanGate::with_config(GateConfig::staged(3));
+        let comp = ComponentId::from_name("degraded", "1.0.0");
+
+        // 3 events below floor — only every 3rd allowed
+        for i in 0..6 {
+            let mut event = make_event(comp, 0.50);
+            event.id = EventId::new(1000 + i, 0);
+            let verdict = gate.evaluate(&event);
+            if (i + 1) % 3 == 0 {
+                assert_eq!(verdict.action, GateAction::Allow);
+            } else {
+                assert_eq!(verdict.action, GateAction::Throttled);
+            }
+        }
+    }
+
+    #[test]
+    fn config_constructors_are_consistent() {
+        let prod = GateConfig::production();
+        let dev = GateConfig::development();
+        let staged = GateConfig::staged(5);
+
+        // Same floor across all configs
+        assert_eq!(prod.floor, dev.floor);
+        assert_eq!(dev.floor, staged.floor);
+
+        // Policy differs
+        assert_eq!(prod.policy, GatePolicy::Reject);
+        assert_eq!(dev.policy, GatePolicy::Observe);
+        assert_eq!(staged.policy, GatePolicy::Throttle(5));
+
+        // Default is development
+        let default = GateConfig::default();
+        assert_eq!(default.policy, GatePolicy::Observe);
     }
 
     #[test]

@@ -1434,7 +1434,9 @@ class SovereignRuntime:
 
                 agent_db_config = MemoryConfig(
                     data_dir=self.config.state_dir / "agent_db",
-                    living_memory_db=self.config.state_dir / "living_memory" / "memory.db",
+                    living_memory_db=self.config.state_dir
+                    / "living_memory"
+                    / "memory.db",
                 )
                 self._agent_db = AgentDB(agent_db_config)
                 self._agent_db.initialize()
@@ -1540,7 +1542,11 @@ class SovereignRuntime:
         """
         # 1. Embedding Service (tiered: sentence-transformers → Ollama)
         try:
-            from core.embedding import EmbeddingConfig, EmbeddingQualityGate, EmbeddingService
+            from core.embedding import (
+                EmbeddingConfig,
+                EmbeddingQualityGate,
+                EmbeddingService,
+            )
 
             self._embedding_service = EmbeddingService(EmbeddingConfig.from_env())
             self._embedding_gate = EmbeddingQualityGate()
@@ -1606,9 +1612,7 @@ class SovereignRuntime:
 
                 self._guild_registry = GuildRegistry()
                 guild_count = len(self._guild_registry._guilds)
-                self.logger.info(
-                    f"✓ GuildRegistry initialized ({guild_count} guilds)"
-                )
+                self.logger.info(f"✓ GuildRegistry initialized ({guild_count} guilds)")
             except ImportError:
                 self.logger.warning("⚠ GuildRegistry unavailable")
             except Exception as e:
@@ -1623,9 +1627,7 @@ class SovereignRuntime:
 
                 self._quest_engine = QuestEngine()
                 quest_count = len(self._quest_engine._quests)
-                self.logger.info(
-                    f"✓ QuestEngine initialized ({quest_count} quests)"
-                )
+                self.logger.info(f"✓ QuestEngine initialized ({quest_count} quests)")
             except ImportError:
                 self.logger.warning("⚠ QuestEngine unavailable")
             except Exception as e:
@@ -2367,9 +2369,7 @@ class SovereignRuntime:
             return None
 
     @staticmethod
-    def _enrich_prompt_with_fusion(
-        thought_prompt: str, fusion_result: object
-    ) -> str:
+    def _enrich_prompt_with_fusion(thought_prompt: str, fusion_result: object) -> str:
         """Augment the GoT prompt with RAG context from cognitive fusion.
 
         Prepends retrieved context chunks (if any) so the LLM has grounded

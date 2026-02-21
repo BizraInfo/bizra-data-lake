@@ -31,8 +31,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 from core.inference.response_utils import strip_think_tokens
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 
 logger = logging.getLogger(__name__)
 

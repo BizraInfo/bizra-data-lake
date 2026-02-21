@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/permit_envelope.schema.json",
+  "title": "PermitEnvelope",
+  "type": "object",
+  "required": [
+    "permit_id",
+    "issuer",
+    "holder_agent_id",
+    "capabilities",
+    "limits",
+    "parent_permit_hash",
+    "degradation_factor",
+    "signature"
+  ],
+  "properties": {
+    "permit_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "holder_agent_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "Compute",
+          "Network",
+          "Store",
+          "Negotiate",
+          "Disclose",
+          "Consent",
+          "Transact",
+          "Observe"
+        ]
+      }
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "max_actions",
+        "max_duration_seconds",
+        "max_payload_bytes"
+      ],
+      "properties": {
+        "max_actions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_duration_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_payload_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cost_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "parent_permit_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "degradation_factor": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{128}$"
+    }
+  },
+  "additionalProperties": false
+}
