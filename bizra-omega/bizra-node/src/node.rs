@@ -15,13 +15,14 @@
 // The Node is self-contained. No global state. No singletons.
 // ============================================================
 
+use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 
 use bizra_agent::runtime::{AgentRuntime, RuntimeConfig};
 use bizra_hooks::IhsanScore;
 
 use crate::action_executor::ActionExecutor;
-use crate::handler::{self, NodeInternals};
+use crate::handler::{self, NodeInternals, SapSessionState};
 use crate::protocol::{self, Response, NODE_NAME, NODE_VERSION};
 
 // ============================================================
@@ -94,6 +95,8 @@ pub struct Node {
     session_auto_started: bool,
     /// Action-layer executor and state.
     action_executor: ActionExecutor,
+    /// SAP v0 active sessions.
+    sap_sessions: HashMap<String, SapSessionState>,
 }
 
 impl Node {
@@ -113,6 +116,7 @@ impl Node {
             message_counter: 0,
             session_auto_started: false,
             action_executor: ActionExecutor::default(),
+            sap_sessions: HashMap::new(),
         };
 
         // Auto-start a session if configured
@@ -157,6 +161,7 @@ impl Node {
                 user_hash: self.config.user_hash,
                 stopped: &mut stopped,
                 action_executor: &mut self.action_executor,
+                sap_sessions: &mut self.sap_sessions,
             };
             handler::handle(cmd, &mut internals)
         };

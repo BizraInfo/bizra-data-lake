@@ -9,7 +9,7 @@ Updated: 2026-02-22T03:00Z
 4. Manifest hash: `504145f781412a4103249f78f46d61609eb1d02f81a1c2fa2f051184b23c6e09`.
 5. Provider normalizer tests: `31/31` passing.
 6. Desktop bridge tests: `33/33` passing.
-7. Rust workspace tests: `982/982` passing (0 failed, 0 ignored).
+7. Rust workspace tests: `993/993` passing (0 failed, 0 ignored).
 8. CI lint checks: `5/5` passing (cargo fmt, clippy, ruff, black, isort).
 9. Python full suite: `6,887/6,889` passing (99.97%, 2 skipped).
 10. DevOps review findings: `4/4` resolved (3 P1, 1 P2).
@@ -30,7 +30,7 @@ Updated: 2026-02-22T03:00Z
 | User Zero shadow marketing pilot | Yes | Yes (internal shadow) | `scripts/pilot/run_user_zero_shadow.py`, `tests/pilot/test_shadow_marketing_flow.py` | Fail-closed evidence/consent behavior; 4/4 pass. |
 | SAP v0 frontend wiring (bridge + hook + UI) | Yes | Yes | `filedfs/bizra-bridge.mjs`, `filedfs/useNode.js`, `filedfs/App.jsx` | 6 SAP verbs, SAPBadge, inline DisclosurePanel, SovereignAgentCard, receipt chain, session controls. |
 | User Zero Bootstrap spec package | Yes | Yes (spec layer) | `specs/user-zero-bootstrap/` (6 files, 2263 lines) | SPARC spec-pseudocode for 5-phase bootstrap. |
-| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 982 tests, 0 failures, 18 crates, release profile. |
+| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 993 tests, 0 failures, 18 crates, release profile. |
 | Desktop bridge integration | Yes | Yes | `tests/core/bridges/test_desktop_bridge.py` | 33/33 passing. |
 | Cross-node GO/MEET transport | Yes | No (post-v0) | N/A | Out of scope for this milestone. |
 | Token economics/federation rollout | Yes | No (post-v0) | N/A | Deferred beyond current milestone. |
