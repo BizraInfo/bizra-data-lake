@@ -118,6 +118,34 @@ pub enum Command {
         channel: String,
         payload_json: String,
     },
+
+    // ── SAP v0 Protocol ──────────────────────────────
+    /// SAP_MEET_OPEN <profile> <initiator_role> <timestamp>
+    SapMeetOpen {
+        profile: String,
+        initiator_role: String,
+        timestamp: u64,
+    },
+    /// SAP_MESSAGE <session_id> <content> <timestamp>
+    SapMessage {
+        session_id: String,
+        content: String,
+        timestamp: u64,
+    },
+    /// SAP_DISCLOSURE <session_id>
+    SapDisclosure { session_id: String },
+    /// SAP_CONSENT_REQUEST <session_id> <scopes_json>
+    SapConsentRequest {
+        session_id: String,
+        scopes_json: String,
+    },
+    /// SAP_CONSENT_REVOKE <session_id> <receipt_id>
+    SapConsentRevoke {
+        session_id: String,
+        receipt_id: String,
+    },
+    /// SAP_SESSION_CLOSE <session_id> <timestamp>
+    SapSessionClose { session_id: String, timestamp: u64 },
 }
 
 // ============================================================
@@ -478,6 +506,117 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             })
         }
 
+        // SAP v0 protocol commands
+        "SAP_MEET_OPEN" => {
+            let profile = if parts.len() >= 2 && !parts[1].is_empty() {
+                parts[1].to_string()
+            } else {
+                "sap-ads-retail-v0".to_string()
+            };
+            let initiator_role = if parts.len() >= 3 && !parts[2].is_empty() {
+                parts[2].to_string()
+            } else {
+                "visitor".to_string()
+            };
+            let ts = if parts.len() >= 4 {
+                parse_u64(parts[3], "timestamp")?
+            } else {
+                0
+            };
+            Ok(Command::SapMeetOpen {
+                profile,
+                initiator_role,
+                timestamp: ts,
+            })
+        }
+
+        "SAP_MESSAGE" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "SAP_MESSAGE requires <session_id> <content> [timestamp]".to_string(),
+                ));
+            }
+            if parts[1].is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "SAP_MESSAGE session_id must not be empty".to_string(),
+                ));
+            }
+            if parts[2].is_empty() {
+                return Err((
+                    ErrorCode::InvalidArg,
+                    "SAP_MESSAGE content must not be empty".to_string(),
+                ));
+            }
+            let ts = if parts.len() >= 4 {
+                parse_u64(parts[3], "timestamp")?
+            } else {
+                0
+            };
+            Ok(Command::SapMessage {
+                session_id: parts[1].to_string(),
+                content: parts[2].to_string(),
+                timestamp: ts,
+            })
+        }
+
+        "SAP_DISCLOSURE" => {
+            if parts.len() < 2 || parts[1].is_empty() {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "SAP_DISCLOSURE requires <session_id>".to_string(),
+                ));
+            }
+            Ok(Command::SapDisclosure {
+                session_id: parts[1].to_string(),
+            })
+        }
+
+        "SAP_CONSENT_REQUEST" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "SAP_CONSENT_REQUEST requires <session_id> <scopes_json>".to_string(),
+                ));
+            }
+            Ok(Command::SapConsentRequest {
+                session_id: parts[1].to_string(),
+                scopes_json: parts[2].to_string(),
+            })
+        }
+
+        "SAP_CONSENT_REVOKE" => {
+            if parts.len() < 3 {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "SAP_CONSENT_REVOKE requires <session_id> <receipt_id>".to_string(),
+                ));
+            }
+            Ok(Command::SapConsentRevoke {
+                session_id: parts[1].to_string(),
+                receipt_id: parts[2].to_string(),
+            })
+        }
+
+        "SAP_SESSION_CLOSE" => {
+            if parts.len() < 2 || parts[1].is_empty() {
+                return Err((
+                    ErrorCode::MissingArg,
+                    "SAP_SESSION_CLOSE requires <session_id> [timestamp]".to_string(),
+                ));
+            }
+            let ts = if parts.len() >= 3 {
+                parse_u64(parts[2], "timestamp")?
+            } else {
+                0
+            };
+            Ok(Command::SapSessionClose {
+                session_id: parts[1].to_string(),
+                timestamp: ts,
+            })
+        }
+
         _ => Err((ErrorCode::BadCommand, format!("unknown command: {}", verb))),
     }
 }
@@ -730,6 +869,76 @@ mod tests {
     fn parse_bogus_command() {
         let err = parse_command("BOGUS").unwrap_err();
         assert_eq!(err.0, ErrorCode::BadCommand);
+    }
+
+    // ── SAP v0 parser tests ──
+
+    #[test]
+    fn parse_sap_meet_open() {
+        let cmd = parse_command("SAP_MEET_OPEN\tsap-ads-retail-v0\tvisitor\t5000").unwrap();
+        assert_eq!(
+            cmd,
+            Command::SapMeetOpen {
+                profile: "sap-ads-retail-v0".to_string(),
+                initiator_role: "visitor".to_string(),
+                timestamp: 5000,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_sap_meet_open_defaults() {
+        let cmd = parse_command("SAP_MEET_OPEN").unwrap();
+        assert_eq!(
+            cmd,
+            Command::SapMeetOpen {
+                profile: "sap-ads-retail-v0".to_string(),
+                initiator_role: "visitor".to_string(),
+                timestamp: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_sap_message() {
+        let cmd = parse_command("SAP_MESSAGE\tsap_123\thello\t6000").unwrap();
+        assert_eq!(
+            cmd,
+            Command::SapMessage {
+                session_id: "sap_123".to_string(),
+                content: "hello".to_string(),
+                timestamp: 6000,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_sap_message_missing_content() {
+        let err = parse_command("SAP_MESSAGE\tsap_123").unwrap_err();
+        assert_eq!(err.0, ErrorCode::MissingArg);
+    }
+
+    #[test]
+    fn parse_sap_disclosure() {
+        let cmd = parse_command("SAP_DISCLOSURE\tsap_123").unwrap();
+        assert_eq!(
+            cmd,
+            Command::SapDisclosure {
+                session_id: "sap_123".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_sap_session_close() {
+        let cmd = parse_command("SAP_SESSION_CLOSE\tsap_123\t7000").unwrap();
+        assert_eq!(
+            cmd,
+            Command::SapSessionClose {
+                session_id: "sap_123".to_string(),
+                timestamp: 7000,
+            }
+        );
     }
 
     #[test]
