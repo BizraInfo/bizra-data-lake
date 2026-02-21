@@ -343,6 +343,7 @@ fn handle_plan_action(state: &mut NodeInternals<'_>, payload_json: &str) -> Resp
 fn handle_run_action(state: &mut NodeInternals<'_>, plan_id: &str, payload_json: &str) -> Response {
     let now = current_ts();
     let policy_hash = parse_policy_hash_hex(state.runtime.policy_hash_hex());
+    state.action_executor.set_event_ihsan_score(*state.ihsan);
     match state
         .action_executor
         .run_action(plan_id, payload_json, now, policy_hash)
@@ -567,6 +568,7 @@ fn handle_action_dispatch(
         payload_json
     );
     let now = current_ts();
+    state.action_executor.set_event_ihsan_score(*state.ihsan);
     match state.action_executor.plan_action(&step_json, now) {
         Ok(plan) => {
             state.runtime.record_action_planned();

@@ -119,6 +119,18 @@ impl Node {
             sap_sessions: HashMap::new(),
         };
 
+        // Register PostDeliver audit hook for action.receipt events.
+        if let Err(err) = node.action_executor.register_post_deliver_hook(
+            "audit.action_receipt",
+            0,
+            crate::audit_hook::audit_receipt_hook,
+        ) {
+            eprintln!("[WARN] Failed to register action.receipt audit hook: {err:?}");
+        }
+        // Keep transitional direct-write fallback disabled to avoid duplicates.
+        node.action_executor
+            .set_direct_audit_fallback_on_eventbus(false);
+
         // Auto-start a session if configured
         if node.config.auto_start_session {
             node.runtime.start_conversation(0);
@@ -339,5 +351,11 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(node.state(), NodeState::Running);
+    }
+
+    #[test]
+    fn node_registers_action_receipt_post_deliver_hook() {
+        let node = Node::new(NodeConfig::default());
+        assert!(node.action_executor().post_deliver_hook_count() >= 1);
     }
 }

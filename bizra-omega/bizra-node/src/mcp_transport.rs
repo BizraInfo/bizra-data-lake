@@ -269,6 +269,57 @@ fn method_to_command(method: &str, params: &Value) -> Result<Command, (i32, Stri
                 payload_json: payload.to_string(),
             })
         }
+
+        // -- SAP v0 Protocol --
+        "sap_meet_open" => {
+            let profile = optional_str(params, "profile", "sap-ads-retail-v0");
+            let initiator_role = optional_str(params, "initiator_role", "visitor");
+            let timestamp = optional_u64(params, "timestamp", current_time_secs());
+            Ok(Command::SapMeetOpen {
+                profile,
+                initiator_role,
+                timestamp,
+            })
+        }
+        "sap_message" => {
+            let session_id = require_str(params, "session_id").map_err(|m| (-32602, m))?;
+            let content = require_str(params, "content").map_err(|m| (-32602, m))?;
+            let timestamp = optional_u64(params, "timestamp", current_time_secs());
+            Ok(Command::SapMessage {
+                session_id,
+                content,
+                timestamp,
+            })
+        }
+        "sap_disclosure" => {
+            let session_id = require_str(params, "session_id").map_err(|m| (-32602, m))?;
+            Ok(Command::SapDisclosure { session_id })
+        }
+        "sap_consent_request" => {
+            let session_id = require_str(params, "session_id").map_err(|m| (-32602, m))?;
+            let scopes = require_value(params, "scopes").map_err(|m| (-32602, m))?;
+            Ok(Command::SapConsentRequest {
+                session_id,
+                scopes_json: scopes.to_string(),
+            })
+        }
+        "sap_consent_revoke" => {
+            let session_id = require_str(params, "session_id").map_err(|m| (-32602, m))?;
+            let receipt_id = require_str(params, "receipt_id").map_err(|m| (-32602, m))?;
+            Ok(Command::SapConsentRevoke {
+                session_id,
+                receipt_id,
+            })
+        }
+        "sap_session_close" => {
+            let session_id = require_str(params, "session_id").map_err(|m| (-32602, m))?;
+            let timestamp = optional_u64(params, "timestamp", current_time_secs());
+            Ok(Command::SapSessionClose {
+                session_id,
+                timestamp,
+            })
+        }
+
         _ => Err((-32601, format!("Method not found: {}", method))),
     }
 }
@@ -539,5 +590,144 @@ mod tests {
         let v: Value = serde_json::from_str(&response_to_jsonrpc(&resp, &json!(1))).unwrap();
         assert_eq!(v["error"]["code"], -32602);
         assert_eq!(v["error"]["data"]["code"], "MISSING_ARG");
+    }
+
+    // -- SAP v0 JSON-RPC Tests --
+
+    #[test]
+    fn parse_sap_meet_open_rpc() {
+        let (cmd, id) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_meet_open","params":{"profile":"sap-ads-retail-v0","initiator_role":"visitor","timestamp":1000},"id":10}"#,
+        )
+        .unwrap();
+        assert_eq!(id, json!(10));
+        match cmd {
+            Command::SapMeetOpen {
+                profile,
+                initiator_role,
+                timestamp,
+            } => {
+                assert_eq!(profile, "sap-ads-retail-v0");
+                assert_eq!(initiator_role, "visitor");
+                assert_eq!(timestamp, 1000);
+            }
+            _ => panic!("expected SapMeetOpen"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_meet_open_defaults_rpc() {
+        let (cmd, _) =
+            parse_jsonrpc(r#"{"jsonrpc":"2.0","method":"sap_meet_open","params":{},"id":11}"#)
+                .unwrap();
+        match cmd {
+            Command::SapMeetOpen {
+                profile,
+                initiator_role,
+                ..
+            } => {
+                assert_eq!(profile, "sap-ads-retail-v0");
+                assert_eq!(initiator_role, "visitor");
+            }
+            _ => panic!("expected SapMeetOpen"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_message_rpc() {
+        let (cmd, _) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_message","params":{"session_id":"ses_1","content":"hello","timestamp":2000},"id":12}"#,
+        )
+        .unwrap();
+        match cmd {
+            Command::SapMessage {
+                session_id,
+                content,
+                timestamp,
+            } => {
+                assert_eq!(session_id, "ses_1");
+                assert_eq!(content, "hello");
+                assert_eq!(timestamp, 2000);
+            }
+            _ => panic!("expected SapMessage"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_message_missing_session_rpc() {
+        let err = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_message","params":{"content":"hello"},"id":13}"#,
+        )
+        .unwrap_err();
+        let v: Value = serde_json::from_str(&err).unwrap();
+        assert_eq!(v["error"]["code"], -32602);
+    }
+
+    #[test]
+    fn parse_sap_disclosure_rpc() {
+        let (cmd, _) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_disclosure","params":{"session_id":"ses_1"},"id":14}"#,
+        )
+        .unwrap();
+        match cmd {
+            Command::SapDisclosure { session_id } => {
+                assert_eq!(session_id, "ses_1");
+            }
+            _ => panic!("expected SapDisclosure"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_consent_request_rpc() {
+        let (cmd, _) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_consent_request","params":{"session_id":"ses_1","scopes":["name","email"]},"id":15}"#,
+        )
+        .unwrap();
+        match cmd {
+            Command::SapConsentRequest {
+                session_id,
+                scopes_json,
+            } => {
+                assert_eq!(session_id, "ses_1");
+                assert!(scopes_json.contains("name"));
+            }
+            _ => panic!("expected SapConsentRequest"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_consent_revoke_rpc() {
+        let (cmd, _) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_consent_revoke","params":{"session_id":"ses_1","receipt_id":"rcpt_1"},"id":16}"#,
+        )
+        .unwrap();
+        match cmd {
+            Command::SapConsentRevoke {
+                session_id,
+                receipt_id,
+            } => {
+                assert_eq!(session_id, "ses_1");
+                assert_eq!(receipt_id, "rcpt_1");
+            }
+            _ => panic!("expected SapConsentRevoke"),
+        }
+    }
+
+    #[test]
+    fn parse_sap_session_close_rpc() {
+        let (cmd, _) = parse_jsonrpc(
+            r#"{"jsonrpc":"2.0","method":"sap_session_close","params":{"session_id":"ses_1","timestamp":3000},"id":17}"#,
+        )
+        .unwrap();
+        match cmd {
+            Command::SapSessionClose {
+                session_id,
+                timestamp,
+            } => {
+                assert_eq!(session_id, "ses_1");
+                assert_eq!(timestamp, 3000);
+            }
+            _ => panic!("expected SapSessionClose"),
+        }
     }
 }
