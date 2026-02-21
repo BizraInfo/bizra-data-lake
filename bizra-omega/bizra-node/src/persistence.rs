@@ -419,6 +419,92 @@ mod tests {
     }
 
     #[test]
+    fn teach_kind_roundtrip_preserves_fidelity() {
+        let dir = std::env::temp_dir().join("bizra-test-teach-roundtrip");
+        let _ = std::fs::create_dir_all(&dir);
+        let seed_path = dir.join("roundtrip.seed");
+
+        // Phase 1: TEACH diverse kinds into a node
+        let mut node = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+
+        let teach_lines = [
+            "TEACH\tfact\tFounder and CEO of BIZRA\t9900\t1",
+            "TEACH\tpreference\tPrefers Rust over Python\t9500\t2",
+            "TEACH\tprinciple\tIhsan excellence standard\t9800\t3",
+            "TEACH\tnegation\tNever send data off-device\t9950\t4",
+            "TEACH\tgoal\tComplete NODE0 v3 GENESIS\t9700\t5",
+            "TEACH\texpertise\tDistributed systems\t9200\t6",
+            "TEACH\tpattern\tDeep focused sessions\t9300\t7",
+            "TEACH\trelationship\tAlpha-100 co-builders\t9600\t8",
+            "TEACH\ttemporal\tPreparing investor materials\t9100\t9",
+            "TEACH\tcontext\tGMT+4 Dubai timezone\t9400\t10",
+        ];
+
+        for line in &teach_lines {
+            let resp = node.execute(line);
+            assert!(
+                resp.starts_with("OK"),
+                "TEACH should succeed: {} -> {}",
+                line,
+                resp
+            );
+        }
+
+        // Phase 2: Save state
+        let saved = save_state(&node, &seed_path).unwrap();
+        assert_eq!(saved, 10, "All 10 atoms should be saved");
+
+        // Phase 3: Read the saved file and verify kind preservation
+        let content = std::fs::read_to_string(&seed_path).unwrap();
+
+        // Every kind that was taught should appear in the export
+        assert!(content.contains("TEACH\tfact\t"), "fact kind missing");
+        assert!(
+            content.contains("TEACH\tpreference\t"),
+            "preference kind missing"
+        );
+        assert!(
+            content.contains("TEACH\tprinciple\t"),
+            "principle kind missing"
+        );
+        assert!(
+            content.contains("TEACH\tnegation\t"),
+            "negation kind missing"
+        );
+        assert!(content.contains("TEACH\tgoal\t"), "goal kind missing");
+        assert!(
+            content.contains("TEACH\texpertise\t"),
+            "expertise kind missing"
+        );
+        assert!(content.contains("TEACH\tpattern\t"), "pattern kind missing");
+        assert!(
+            content.contains("TEACH\trelationship\t"),
+            "relationship kind missing"
+        );
+        assert!(
+            content.contains("TEACH\ttemporal\t"),
+            "temporal kind missing"
+        );
+        assert!(content.contains("TEACH\tcontext\t"), "context kind missing");
+
+        // Phase 4: Load into a fresh node and verify
+        let mut restored = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+        let (loaded, errors) = load_seed(&mut restored, &seed_path).unwrap();
+        assert_eq!(loaded, 10, "All 10 atoms should reload");
+        assert_eq!(errors, 0, "No reload errors");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn save_and_load_reflex_cache_roundtrip() {
         let dir = std::env::temp_dir().join("bizra-test-reflex-cache");
         let _ = std::fs::create_dir_all(&dir);

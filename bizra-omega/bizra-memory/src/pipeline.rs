@@ -113,6 +113,36 @@ impl MemoryPipeline {
         Ok(id)
     }
 
+    /// Directly teach the pipeline an atom with explicit kind and confidence.
+    ///
+    /// Unlike `process_turn()` which runs rule-based extraction, this method
+    /// stores the atom exactly as specified — preserving the caller's kind
+    /// and confidence without re-classification. Used by the TEACH protocol
+    /// command to ensure kind fidelity in seed roundtrips.
+    pub fn teach_atom(
+        &mut self,
+        kind: AtomKind,
+        content: &str,
+        confidence: Confidence,
+        timestamp: u64,
+    ) -> bool {
+        let frag_id = FragmentId::from_content(content.as_bytes());
+        let extractor = bizra_hooks::ComponentId::from_name("teach-direct", "1.0.0");
+        let provenance = Provenance::new(0, 0, extractor, timestamp);
+
+        match self
+            .store
+            .store_atom(kind, content, frag_id, confidence, provenance)
+        {
+            Ok(_) => {
+                self.stats.atoms_extracted += 1;
+                self.atoms_since_synthesis += 1;
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Stage 2: Extract — Pull atoms from fragments
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -381,6 +411,101 @@ impl MemoryPipeline {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Genesis Seed Loader — HHMM-aware identity bootstrap
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /// Load a genesis seed file into the memory pipeline.
+    ///
+    /// Format: `TEACH\t<kind>\t<content>\t<confidence_0_10000>\t<ordinal>`
+    /// Lines starting with `#` are comments.
+    ///
+    /// The `base_timestamp` replaces ordinal timestamps so that
+    /// HHMM TTL math starts from the correct epoch.
+    ///
+    /// Uses HHMM-aware confidence constructors so each atom kind
+    /// gets the appropriate half-life for its cognitive layer.
+    pub fn load_genesis_seed(&mut self, seed_text: &str, base_timestamp: u64) -> GenesisSeedResult {
+        let mut result = GenesisSeedResult {
+            total_lines: 0,
+            loaded: 0,
+            skipped: 0,
+            errors: 0,
+            by_layer: (0, 0, 0), // (fast, slow, glacial)
+        };
+
+        let extractor = bizra_hooks::ComponentId::from_name("genesis-seed", "1.0.0");
+
+        for line in seed_text.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            result.total_lines += 1;
+
+            let parts: Vec<&str> = trimmed.splitn(5, '\t').collect();
+            if parts.len() < 4 || parts[0] != "TEACH" {
+                result.skipped += 1;
+                continue;
+            }
+
+            let kind_str = parts[1];
+            let content = parts[2];
+            let confidence_raw: f32 = match parts[3].parse::<u32>() {
+                Ok(v) => (v as f32 / 10000.0).clamp(0.0, 1.0),
+                Err(_) => {
+                    result.errors += 1;
+                    continue;
+                }
+            };
+
+            let kind = match kind_str {
+                "fact" => AtomKind::Fact,
+                "preference" => AtomKind::Preference,
+                "pattern" => AtomKind::Pattern,
+                "relationship" => AtomKind::Relationship,
+                "goal" => AtomKind::Goal,
+                "expertise" => AtomKind::Expertise,
+                "context" => AtomKind::Context,
+                "principle" => AtomKind::Principle,
+                "temporal" => AtomKind::Temporal,
+                "negation" => AtomKind::Negation,
+                _ => {
+                    result.errors += 1;
+                    continue;
+                }
+            };
+
+            // HHMM-aware confidence: half-life derived from atom kind
+            let confidence = Confidence::for_kind(confidence_raw, base_timestamp, kind);
+            let frag_id = FragmentId::from_content(content.as_bytes());
+            let provenance = Provenance::new(0, 0, extractor, base_timestamp);
+
+            match self
+                .store
+                .store_atom(kind, content, frag_id, confidence, provenance)
+            {
+                Ok(_) => {
+                    result.loaded += 1;
+                    match kind.hhmm_layer() {
+                        HhmmLayer::Fast => result.by_layer.0 += 1,
+                        HhmmLayer::Slow => result.by_layer.1 += 1,
+                        HhmmLayer::Glacial => result.by_layer.2 += 1,
+                    }
+                    self.stats.atoms_extracted += 1;
+                }
+                Err(_) => {
+                    result.errors += 1;
+                }
+            }
+        }
+
+        // Update profile sections after bulk load
+        self.store.update_profile_sections();
+
+        result
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Telemetry & Diagnostics
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -427,6 +552,21 @@ pub struct KnowledgeSummary {
     pub active_atoms: u32,
     pub profile_completeness: f32,
     pub profile_sections: u32,
+}
+
+/// Result of loading a genesis seed file.
+#[derive(Debug, Clone, Copy)]
+pub struct GenesisSeedResult {
+    /// Total non-comment, non-empty lines parsed
+    pub total_lines: u32,
+    /// Atoms successfully loaded into the store
+    pub loaded: u32,
+    /// Lines skipped (malformed or non-TEACH)
+    pub skipped: u32,
+    /// Lines that failed to parse
+    pub errors: u32,
+    /// Distribution by HHMM layer: (fast, slow, glacial)
+    pub by_layer: (u32, u32, u32),
 }
 
 #[cfg(test)]
@@ -540,5 +680,80 @@ mod tests {
         );
 
         assert_eq!(pipeline.knowledge_summary().total_fragments, 1);
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // HHMM Temporal Granularity Tests
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    #[test]
+    fn genesis_seed_loads_all_81_fragments() {
+        let mut pipeline = MemoryPipeline::new();
+        let seed = include_str!("../../tests/fixtures/genesis_seed_user_zero.txt");
+        let now = 1_740_000_000_000_000_000u64; // ~Feb 2025 in nanos
+
+        let result = pipeline.load_genesis_seed(seed, now);
+
+        assert_eq!(result.loaded, 81, "Expected 81 atoms from genesis seed");
+        assert_eq!(result.errors, 0, "Expected 0 parse errors");
+
+        // HHMM layer distribution from the seed:
+        // Glacial: 7 facts + 8 principles + 6 negations + 5 relationships = 26
+        // Slow: 12 expertise + 8 patterns + 0 preferences = 20
+        // Fast: 9 goals + 6 temporals + 6 contexts = 21
+        // Note: some TEACH lines may have slightly different counts
+        let (fast, slow, glacial) = result.by_layer;
+        assert!(
+            glacial >= 20,
+            "Glacial layer should have 20+ atoms, got {}",
+            glacial
+        );
+        assert!(slow >= 15, "Slow layer should have 15+ atoms, got {}", slow);
+        assert!(fast >= 15, "Fast layer should have 15+ atoms, got {}", fast);
+
+        // Profile should have multiple sections populated
+        let profile = pipeline.profile();
+        assert!(
+            profile.section_count() >= 4,
+            "Profile should have 4+ sections after seed load"
+        );
+    }
+
+    #[test]
+    fn teach_atom_preserves_kind() {
+        let mut pipeline = MemoryPipeline::new();
+
+        // teach_atom stores with exact kind — no rule-based re-classification
+        let ok = pipeline.teach_atom(
+            AtomKind::Principle,
+            "Ihsan excellence standard governs all architecture",
+            Confidence::new(0.99, 1000),
+            1000,
+        );
+        assert!(ok, "teach_atom should succeed");
+
+        // Query by Principle kind — should find it
+        let principles = pipeline.query_facts(AtomKind::Principle, 1000);
+        assert_eq!(principles.len(), 1, "Should have exactly 1 principle");
+        assert!(principles[0].0.contains("Ihsan"));
+
+        // Should NOT appear under Context (the old bug's fallback kind)
+        let contexts = pipeline.query_facts(AtomKind::Context, 1000);
+        assert!(
+            contexts.is_empty(),
+            "Principle should not be re-classified as Context"
+        );
+    }
+
+    #[test]
+    fn genesis_seed_hhmm_ttl_differentiation() {
+        let mut pipeline = MemoryPipeline::new();
+        // Minimal seed with one atom per layer
+        let seed = "TEACH\tfact\tUser Zero\t9900\t1\nTEACH\texpertise\tRust systems\t9500\t2\nTEACH\ttemporal\tPreparing pitch\t9300\t3";
+        let now = 1_740_000_000_000_000_000u64;
+
+        let result = pipeline.load_genesis_seed(seed, now);
+        assert_eq!(result.loaded, 3);
+        assert_eq!(result.by_layer, (1, 1, 1)); // one per layer
     }
 }

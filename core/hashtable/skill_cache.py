@@ -43,6 +43,45 @@ class CachedSkillResult:
     last_hit: float = 0.0
 
 
+@dataclass(frozen=True)
+class TemporalGranularityPolicy:
+    """
+    HHMM-style TTL policy for cache entries.
+
+    Lower hierarchy layers represent fast-changing context and should expire
+    quickly. Upper layers represent slower, strategic context and should remain
+    stable longer.
+    """
+
+    min_ttl_seconds: int
+    max_ttl_seconds: int
+    hierarchy_levels: int = 5
+
+    def __post_init__(self) -> None:
+        if self.hierarchy_levels < 2:
+            raise ValueError("hierarchy_levels must be >= 2")
+        if self.min_ttl_seconds < 1:
+            raise ValueError("min_ttl_seconds must be >= 1")
+        if self.max_ttl_seconds < self.min_ttl_seconds:
+            raise ValueError("max_ttl_seconds must be >= min_ttl_seconds")
+
+    def ttl_for_layer(self, layer_index: int) -> int:
+        """
+        Resolve TTL for a hierarchy layer index.
+
+        Layer 0 => min_ttl_seconds (fast context)
+        Layer N => max_ttl_seconds (slow context)
+        """
+        layer = max(0, min(int(layer_index), self.hierarchy_levels - 1))
+        if self.hierarchy_levels == 1:
+            return self.max_ttl_seconds
+        ratio = layer / (self.hierarchy_levels - 1)
+        ttl = self.min_ttl_seconds + ratio * (
+            self.max_ttl_seconds - self.min_ttl_seconds
+        )
+        return max(1, int(round(ttl)))
+
+
 class SkillCache:
     """
     LRU cache for compiled thought patterns.
@@ -59,6 +98,7 @@ class SkillCache:
         "_lock",
         "_max_size",
         "_default_ttl",
+        "_temporal_policy",
         "_ihsan_floor",
         "_hits",
         "_misses",
@@ -69,16 +109,32 @@ class SkillCache:
         self,
         max_size: int = SKILL_CACHE_MAX_SIZE,
         default_ttl: int = SKILL_CACHE_DEFAULT_TTL,
+        temporal_policy: Optional[TemporalGranularityPolicy] = None,
         ihsan_floor: float = UNIFIED_IHSAN_THRESHOLD,
     ) -> None:
         self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
         self._lock = threading.Lock()
         self._max_size = max(1, max_size)
         self._default_ttl = default_ttl
+        if temporal_policy is None:
+            # Default spread keeps backward compatibility while enabling HHMM
+            # temporal decoupling when a layer is provided.
+            min_ttl = max(1, int(default_ttl // 4))
+            max_ttl = max(min_ttl, int(default_ttl * 4))
+            temporal_policy = TemporalGranularityPolicy(
+                min_ttl_seconds=min_ttl,
+                max_ttl_seconds=max_ttl,
+                hierarchy_levels=5,
+            )
+        self._temporal_policy = temporal_policy
         self._ihsan_floor = ihsan_floor
         self._hits = 0
         self._misses = 0
         self._evictions = 0
+
+    def ttl_for_hhmm_layer(self, hhmm_layer: int) -> int:
+        """Compute TTL using temporal granularity policy for a hierarchy layer."""
+        return self._temporal_policy.ttl_for_layer(hhmm_layer)
 
     def structural_hash(self, thought_chain: list[dict]) -> str:
         """
@@ -145,6 +201,7 @@ class SkillCache:
         snr_score: float,
         query_pattern: str = "",
         ttl: Optional[int] = None,
+        hhmm_layer: Optional[int] = None,
     ) -> None:
         """
         Store a compiled skill result.
@@ -155,6 +212,8 @@ class SkillCache:
         if snr_score < self._ihsan_floor:
             return
 
+        ttl_seconds = self._resolve_ttl(ttl=ttl, hhmm_layer=hhmm_layer)
+
         with self._lock:
             now = time.monotonic()
             entry = _CacheEntry(
@@ -162,7 +221,7 @@ class SkillCache:
                 result=result,
                 snr_score=snr_score,
                 created_at=now,
-                ttl_seconds=ttl if ttl is not None else self._default_ttl,
+                ttl_seconds=ttl_seconds,
                 hit_count=0,
                 last_hit=0.0,
             )
@@ -175,6 +234,14 @@ class SkillCache:
             while len(self._cache) > self._max_size:
                 self._cache.popitem(last=False)
                 self._evictions += 1
+
+    def _resolve_ttl(self, ttl: Optional[int], hhmm_layer: Optional[int]) -> int:
+        """Resolve effective TTL with explicit override precedence."""
+        if ttl is not None:
+            return max(1, int(ttl))
+        if hhmm_layer is not None:
+            return self.ttl_for_hhmm_layer(hhmm_layer)
+        return max(1, int(self._default_ttl))
 
     def invalidate(self, key: str) -> bool:
         """Remove a specific key. Returns True if it existed."""
@@ -203,6 +270,11 @@ class SkillCache:
                     len(self._cache) / self._max_size if self._max_size else 0.0
                 ),
                 "hit_rate": self._hits / total if total > 0 else 0.0,
+                "temporal_policy": {
+                    "min_ttl_seconds": self._temporal_policy.min_ttl_seconds,
+                    "max_ttl_seconds": self._temporal_policy.max_ttl_seconds,
+                    "hierarchy_levels": self._temporal_policy.hierarchy_levels,
+                },
             }
 
     def __len__(self) -> int:

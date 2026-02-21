@@ -722,16 +722,20 @@ impl AgentRuntime {
     // ================================================================
 
     /// Manually teach the runtime something about the user.
-    /// In omega, confidence is handled by the pipeline's extraction phase,
-    /// so we ingest the content and let the pipeline classify it.
+    ///
+    /// Stores the atom directly with the specified kind and confidence,
+    /// bypassing rule-based extraction. This preserves the caller's
+    /// exact classification (critical for TEACH command fidelity and
+    /// seed roundtrip integrity).
     pub fn teach(
         &mut self,
-        kind: FragmentKind,
+        kind: AtomKind,
         content: &str,
-        _confidence: Confidence,
+        confidence: Confidence,
         timestamp: u64,
     ) -> bool {
-        self.ingest_fragment(kind, content, timestamp)
+        self.pipeline
+            .teach_atom(kind, content, confidence, timestamp)
     }
 
     /// Force a synthesis round.
@@ -1160,14 +1164,14 @@ mod tests {
         let mut runtime = AgentRuntime::for_user(42);
 
         runtime.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Fact,
             "User lives in Dubai",
             Confidence::new(0.90, 1000),
             1000,
         );
 
         runtime.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Preference,
             "User prefers Rust over Python",
             Confidence::new(0.85, 1002),
             1001,
@@ -1176,9 +1180,9 @@ mod tests {
         // Synthesize to produce profile traits
         runtime.synthesize(2000);
 
-        // Knowledge depth should be positive
+        // Knowledge depth should be positive (teach stores atoms directly, not fragments)
         let health = runtime.health();
-        assert!(health.fragments_stored >= 2);
+        assert!(health.profile_traits >= 2);
     }
 
     #[test]
@@ -1192,7 +1196,7 @@ mod tests {
         for i in 0..10 {
             let ts = 1000 + i as u64;
             runtime.teach(
-                FragmentKind::UserMessage,
+                AtomKind::Preference,
                 &format!("I prefer preference number {}", i),
                 Confidence::new(0.80, ts),
                 ts,
@@ -1298,7 +1302,7 @@ mod tests {
         for i in 0..4 {
             let ts = 1000 + i;
             runtime.teach(
-                FragmentKind::UserMessage,
+                AtomKind::Preference,
                 "I prefer rust and distributed systems",
                 Confidence::stated(ts),
                 ts,
@@ -1325,7 +1329,7 @@ mod tests {
         for i in 0..12 {
             let ts = 1000 + i;
             runtime.teach(
-                FragmentKind::UserMessage,
+                AtomKind::Preference,
                 format!("I prefer rust pattern {}", i).as_str(),
                 Confidence::stated(ts),
                 ts,

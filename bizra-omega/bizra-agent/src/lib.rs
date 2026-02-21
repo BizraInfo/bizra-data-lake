@@ -88,7 +88,7 @@ pub use types::{
 mod integration_tests {
     use super::*;
     use bizra_hooks::IhsanScore;
-    use bizra_memory::{Confidence, FragmentKind};
+    use bizra_memory::{AtomKind, Confidence, FragmentKind};
 
     // --------------------------------------------------------
     // Test 1: Full agent lifecycle -- message in, response out
@@ -608,34 +608,33 @@ mod integration_tests {
 
         let mut rt = AgentRuntime::for_user(0xCAFE);
 
-        // Teach facts directly (all via UserMessage/Observation since
-        // omega FragmentKind has UserMessage, AssistantMessage, etc.)
+        // Teach atoms directly with explicit kinds (bypasses rule-based extraction)
         rt.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Fact,
             "I am CEO of BIZRA",
             Confidence::new(0.90, 1000),
             1000,
         );
         rt.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Fact,
             "I live in Dubai",
             Confidence::new(0.90, 1001),
             1001,
         );
         rt.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Preference,
             "I prefer Rust for core systems",
             Confidence::new(0.85, 1002),
             1002,
         );
         rt.teach(
-            FragmentKind::UserMessage,
+            AtomKind::Goal,
             "I am building distributed AI",
             Confidence::new(0.80, 1003),
             1003,
         );
         rt.teach(
-            FragmentKind::Observation,
+            AtomKind::Pattern,
             "Concise communication style",
             Confidence::new(0.75, 1004),
             1004,
@@ -650,7 +649,8 @@ mod integration_tests {
         assert!(score > 0.0, "Score should be positive after teaching");
 
         let health = rt.health();
-        assert!(health.fragments_stored >= 5);
+        // teach() stores atoms directly, not fragments
+        assert!(health.profile_traits >= 5);
         assert!(health.synthesis_rounds >= 1);
     }
 

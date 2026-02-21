@@ -18,7 +18,11 @@ Standing on Giants:
 
 from core.hashtable.bloom_filter import BloomFilter, BloomFilterSaturatedError
 from core.hashtable.merkle_tree import MerkleProof, MerkleTree
-from core.hashtable.skill_cache import CachedSkillResult, SkillCache
+from core.hashtable.skill_cache import (
+    CachedSkillResult,
+    SkillCache,
+    TemporalGranularityPolicy,
+)
 
 __all__ = [
     "BloomFilter",
@@ -27,4 +31,5 @@ __all__ = [
     "MerkleProof",
     "SkillCache",
     "CachedSkillResult",
+    "TemporalGranularityPolicy",
 ]

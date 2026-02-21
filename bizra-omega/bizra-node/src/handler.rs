@@ -17,7 +17,7 @@ use bizra_agent::context::IntentClassifier;
 use bizra_agent::runtime::{AgentRuntime, RuntimeState};
 use bizra_agent::types::{AgentRole, Message, MessageId};
 use bizra_hooks::IhsanScore;
-use bizra_memory::types::FragmentKind;
+use bizra_memory::types::{AtomKind, Confidence};
 
 // ============================================================
 // NODE INTERNALS — the mutable state the handler operates on
@@ -367,15 +367,16 @@ fn handle_teach(
     confidence_raw: u16,
     timestamp: u64,
 ) -> Response {
-    let frag_kind = match teach_kind_to_fragment(kind) {
+    let atom_kind = match parse_atom_kind(kind) {
         Some(k) => k,
         None => {
             return Response::err(ErrorCode::InvalidArg, &format!("unknown kind: {:?}", kind));
         }
     };
 
-    let conf = bizra_memory::Confidence::new(confidence_raw as f32 / 10000.0, timestamp);
-    let ok = state.runtime.teach(frag_kind, content, conf, timestamp);
+    // HHMM-aware confidence: half-life derived from atom kind's cognitive layer.
+    let conf = Confidence::for_kind(confidence_raw as f32 / 10000.0, timestamp, atom_kind);
+    let ok = state.runtime.teach(atom_kind, content, conf, timestamp);
 
     Response::ok(vec![
         ("taught", format!("{}", ok)),
@@ -558,24 +559,23 @@ fn handle_action_dispatch(
 // HELPERS
 // ============================================================
 
-/// Map a TEACH kind string to a MemoryPipeline FragmentKind.
+/// Parse a TEACH kind string to the corresponding AtomKind.
 ///
-/// TEACH puts knowledge directly into the memory pipeline, so we map
-/// the human-friendly kind names to the fragment kinds the pipeline
-/// understands. Most teach commands ingest as UserMessage since the
-/// pipeline's rule-based extractor will pull typed atoms from content.
-fn teach_kind_to_fragment(kind: &str) -> Option<FragmentKind> {
+/// TEACH commands store atoms directly with their specified kind,
+/// bypassing rule-based extraction. This preserves kind fidelity
+/// through the full TEACH → store → export roundtrip.
+fn parse_atom_kind(kind: &str) -> Option<AtomKind> {
     match kind {
-        "fact" => Some(FragmentKind::Observation),
-        "preference" => Some(FragmentKind::UserMessage),
-        "pattern" => Some(FragmentKind::Observation),
-        "relationship" => Some(FragmentKind::Observation),
-        "goal" => Some(FragmentKind::UserMessage),
-        "expertise" => Some(FragmentKind::UserMessage),
-        "context" => Some(FragmentKind::Observation),
-        "principle" => Some(FragmentKind::UserMessage),
-        "temporal" => Some(FragmentKind::Observation),
-        "negation" => Some(FragmentKind::UserMessage),
+        "fact" => Some(AtomKind::Fact),
+        "preference" => Some(AtomKind::Preference),
+        "pattern" => Some(AtomKind::Pattern),
+        "relationship" => Some(AtomKind::Relationship),
+        "goal" => Some(AtomKind::Goal),
+        "expertise" => Some(AtomKind::Expertise),
+        "context" => Some(AtomKind::Context),
+        "principle" => Some(AtomKind::Principle),
+        "temporal" => Some(AtomKind::Temporal),
+        "negation" => Some(AtomKind::Negation),
         _ => None,
     }
 }

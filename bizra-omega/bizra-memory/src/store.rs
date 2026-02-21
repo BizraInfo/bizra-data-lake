@@ -332,6 +332,106 @@ impl InMemoryStore {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // HHMM Temporal Granularity — TTL-aware eviction & promotion
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /// Reap expired atoms based on HHMM-aware TTL.
+    ///
+    /// Pass 1 of the two-pass eviction strategy:
+    /// 1. Reap atoms that have exceeded their kind-specific TTL
+    /// 2. (Existing) Capacity-based eviction if still over limit
+    ///
+    /// An atom expires when: now - last_reinforced > ttl_days * 86400 * 1e9
+    /// Reinforcement count extends effective TTL via sqrt factor (Ebbinghaus).
+    ///
+    /// Returns the number of atoms reaped.
+    pub fn reap_expired(&mut self, now: u64) -> u32 {
+        let mut reaped = 0u32;
+        for atom in &mut self.atoms {
+            if atom.superseded {
+                continue;
+            }
+            let kind = atom.header.kind;
+            let ttl_nanos = kind.ttl_days() as u64 * 24 * 3600 * 1_000_000_000;
+            // Reinforcement extends TTL: effective_ttl = ttl * sqrt(reinforcement_count)
+            let count_factor = (atom.header.confidence.reinforcement_count as f64).sqrt();
+            let effective_ttl = (ttl_nanos as f64 * count_factor) as u64;
+
+            let elapsed = now.saturating_sub(atom.header.confidence.last_reinforced);
+            if elapsed > effective_ttl {
+                atom.superseded = true;
+                self.profile.active_atoms = self.profile.active_atoms.saturating_sub(1);
+                reaped += 1;
+            }
+        }
+        reaped
+    }
+
+    /// Promote an atom to a higher HHMM layer.
+    ///
+    /// When an atom has been reinforced enough times (exceeds promotion_threshold),
+    /// it transcends its current layer. A Goal mentioned 5+ times becomes a Pattern.
+    /// A Pattern confirmed 10+ times becomes a Fact.
+    ///
+    /// The promotion:
+    /// 1. Changes the atom's kind to the promotion target
+    /// 2. Updates the half_life_nanos to match the new kind's TTL
+    /// 3. Preserves all other metadata (content, provenance, confidence)
+    ///
+    /// Returns Some(new_kind) if promoted, None if not eligible.
+    pub fn try_promote_atom(&mut self, id: &AtomId) -> Option<AtomKind> {
+        // Find the atom and check promotion eligibility
+        let (eligible, new_kind) = {
+            let atom = self
+                .atoms
+                .iter()
+                .find(|a| a.header.id == *id && !a.superseded)?;
+            let kind = atom.header.kind;
+            let count = atom.header.confidence.reinforcement_count;
+            let threshold = kind.promotion_threshold();
+
+            if count >= threshold {
+                kind.promotion_target().map(|target| (true, target))
+            } else {
+                None
+            }
+            .unwrap_or((false, kind))
+        };
+
+        if !eligible {
+            return None;
+        }
+
+        // Apply the promotion
+        for atom in &mut self.atoms {
+            if atom.header.id == *id && !atom.superseded {
+                atom.header.kind = new_kind;
+                atom.header.confidence.half_life_nanos = new_kind.half_life_nanos();
+                return Some(new_kind);
+            }
+        }
+        None
+    }
+
+    /// Get atoms grouped by HHMM layer for diagnostics.
+    pub fn atoms_by_layer(&self) -> (u32, u32, u32) {
+        let mut fast = 0u32;
+        let mut slow = 0u32;
+        let mut glacial = 0u32;
+        for atom in &self.atoms {
+            if atom.superseded {
+                continue;
+            }
+            match atom.header.kind.hhmm_layer() {
+                HhmmLayer::Fast => fast += 1,
+                HhmmLayer::Slow => slow += 1,
+                HhmmLayer::Glacial => glacial += 1,
+            }
+        }
+        (fast, slow, glacial)
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Insight Operations
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
