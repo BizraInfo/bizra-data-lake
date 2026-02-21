@@ -70,10 +70,7 @@ mod tests {
         let with_spaces = "line one   \nline two  \n";
         let clean = "line one\nline two\n";
 
-        assert_eq!(
-            compute_policy_hash(with_spaces),
-            compute_policy_hash(clean)
-        );
+        assert_eq!(compute_policy_hash(with_spaces), compute_policy_hash(clean));
     }
 
     #[test]

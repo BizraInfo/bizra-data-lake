@@ -173,9 +173,7 @@ class HNSWIndex:
     _SCALE_WARNING_THRESHOLD = 10_000
     _scale_warned = False
 
-    def _numpy_search(
-        self, query: np.ndarray, top_k: int
-    ) -> List[Tuple[str, float]]:
+    def _numpy_search(self, query: np.ndarray, top_k: int) -> List[Tuple[str, float]]:
         """Brute-force cosine search (fallback when hnswlib unavailable)."""
         if not self._fallback_vectors:
             return []
@@ -278,13 +276,9 @@ class HNSWIndex:
                 data = np.load(str(npz_path), allow_pickle=True)
                 ids = data["ids"]
                 vecs = data["vectors"]
-                self._fallback_vectors = {
-                    str(ids[i]): vecs[i] for i in range(len(ids))
-                }
+                self._fallback_vectors = {str(ids[i]): vecs[i] for i in range(len(ids))}
                 self._initialized = True
-                logger.info(
-                    f"Numpy index loaded: {npz_path} ({len(ids)} vectors)"
-                )
+                logger.info(f"Numpy index loaded: {npz_path} ({len(ids)} vectors)")
                 return True
             except Exception as e:
                 logger.error(f"Failed to load numpy index: {e}")

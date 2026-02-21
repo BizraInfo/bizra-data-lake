@@ -450,7 +450,7 @@ mod tests {
     #[test]
     fn system_ihsan_calculation() {
         let mut reg = Registry::new();
-        let a = reg.register("comp-a", "1.0.0", 1000).unwrap();
+        let _a = reg.register("comp-a", "1.0.0", 1000).unwrap();
         let b = reg.register("comp-b", "1.0.0", 1000).unwrap();
 
         // Both at MAX → system should be MAX

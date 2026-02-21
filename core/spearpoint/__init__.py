@@ -30,6 +30,17 @@ from __future__ import annotations
 __version__ = "1.1.0"
 __author__ = "BIZRA Node0"
 
+# True Spearpoint — Benchmark Dominance Loop (v1.1)
+from .ablation_engine import AblationEngine, AblationReport, AblationType
+from .benchmark_dominance import (
+    BDLConfig,
+    BDLIterationResult,
+    BDLStage,
+    BDLStatus,
+    BenchmarkDominanceLoop,
+    SubmissionTarget,
+)
+
 # Orchestration layer (v1.1) — public API only
 from .config import MissionType, SpearpointConfig
 from .orchestrator import SpearpointMission, SpearpointOrchestrator
@@ -43,17 +54,6 @@ from .sovereign_spearpoint import (
     SpearheadConfig,
     SpearheadResult,
     SpearheadStatus,
-)
-
-# True Spearpoint — Benchmark Dominance Loop (v1.1)
-from .ablation_engine import AblationEngine, AblationReport, AblationType
-from .benchmark_dominance import (
-    BDLConfig,
-    BDLIterationResult,
-    BDLStage,
-    BDLStatus,
-    BenchmarkDominanceLoop,
-    SubmissionTarget,
 )
 
 __all__ = [

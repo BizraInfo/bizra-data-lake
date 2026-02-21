@@ -1393,9 +1393,11 @@ class ApexSovereignEngine:
                     return {
                         "conclusion": bridge_result.answer,
                         "snr_score": bridge_result.snr_score or input_snr,
-                        "ihsan_score": bridge_result.snr_score * 0.95
-                        if bridge_result.snr_score
-                        else 0.0,
+                        "ihsan_score": (
+                            bridge_result.snr_score * 0.95
+                            if bridge_result.snr_score
+                            else 0.0
+                        ),
                         "passes_threshold": bridge_result.converged,
                         "explored_nodes": bridge_result.hypotheses_explored,
                         "depth_reached": bridge_result.reasoning_depth,

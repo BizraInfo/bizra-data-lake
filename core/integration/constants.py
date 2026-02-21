@@ -293,14 +293,14 @@ TIMESCALE_T3_FEDERATION_DAYS: Final[int] = 7  # Cross-node sync period
 # feels the result through verification, and develops procedural memory.
 
 SEL_STAGES: Final[tuple] = (
-    "PERCEIVE",   # OS-level awareness (file system, UI state, user context)
-    "THINK",      # Diffusion reasoning (parallel GoT hypotheses)
-    "PLAN",       # PAT agent team (7 agents, ranked action plans)
-    "ACT",        # Desktop automation (real keystrokes, real file moves)
-    "SENSE",      # Receipt pipeline (verify what actually happened)
-    "LEARN",      # Layer 2 memory (encrypted personal episodic storage)
-    "REMEMBER",   # Layer 3 memory (federated skill aggregation)
-    "SHARE",      # PoI consensus (network-wide skill propagation)
+    "PERCEIVE",  # OS-level awareness (file system, UI state, user context)
+    "THINK",  # Diffusion reasoning (parallel GoT hypotheses)
+    "PLAN",  # PAT agent team (7 agents, ranked action plans)
+    "ACT",  # Desktop automation (real keystrokes, real file moves)
+    "SENSE",  # Receipt pipeline (verify what actually happened)
+    "LEARN",  # Layer 2 memory (encrypted personal episodic storage)
+    "REMEMBER",  # Layer 3 memory (federated skill aggregation)
+    "SHARE",  # PoI consensus (network-wide skill propagation)
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -336,9 +336,9 @@ ANOMALY_LOG_LIKELIHOOD_THRESHOLD: Final[float] = -3.0  # Standard deviations
 # Standing on Giants: Al-Ghazali (Ihsan, 1095) · Shannon (1948) · البذرة (2023)
 
 KERNEL_INVARIANTS: Final[tuple] = (
-    "RIBA_ZERO",        # No exploitation. No interest. No harm.
+    "RIBA_ZERO",  # No exploitation. No interest. No harm.
     "CLAIM_MUST_BIND",  # No hallucination. Every claim has evidence. (ZANN_ZERO)
-    "IHSAN_FLOOR",      # Excellence is the minimum. 0.99 threshold.
+    "IHSAN_FLOOR",  # Excellence is the minimum. 0.99 threshold.
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -36,7 +36,11 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Final, Optional
 
-from core.integration.constants import LMSTUDIO_URL, UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import (
+    LMSTUDIO_URL,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 # ════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION

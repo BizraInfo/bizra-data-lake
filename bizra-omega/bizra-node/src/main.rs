@@ -18,6 +18,7 @@
 // ============================================================
 
 use bizra_agent::reflex_cache::ReflexMode;
+use bizra_agent::runtime::ActionMode;
 use bizra_hooks::IhsanScore;
 use bizra_node::node::{Node, NodeConfig};
 use bizra_node::persistence;
@@ -104,6 +105,24 @@ fn main() {
                 Err(e) => eprintln!("  reflex: error restoring cache: {}", e),
             }
         }
+
+        // Restore action receipt history
+        let actions_log_path = state_dir.join("actions.log");
+        if actions_log_path.exists() {
+            match persistence::load_action_log(&mut node, &actions_log_path) {
+                Ok((loaded, rejected)) => {
+                    if node.config_ref().show_banner && (loaded > 0 || rejected > 0) {
+                        eprintln!(
+                            "  actions: restored {} receipts ({} rejected) from {}",
+                            loaded,
+                            rejected,
+                            actions_log_path.display()
+                        );
+                    }
+                }
+                Err(e) => eprintln!("  actions: error restoring log: {}", e),
+            }
+        }
     }
 
     // Run the node
@@ -138,6 +157,9 @@ fn main() {
         if let Err(e) = save_reflex_cache_quietly(&node, &state_dir) {
             eprintln!("  reflex: error saving cache: {}", e);
         }
+        if let Err(e) = save_action_log_quietly(&node, &state_dir) {
+            eprintln!("  actions: error saving log: {}", e);
+        }
     }
 
     process::exit(0);
@@ -153,6 +175,12 @@ fn save_reflex_cache_quietly(node: &Node, state_dir: &std::path::Path) -> std::i
     std::fs::create_dir_all(state_dir)?;
     let cache_path = state_dir.join("reflex.cache");
     persistence::save_reflex_cache(node, &cache_path)
+}
+
+fn save_action_log_quietly(node: &Node, state_dir: &std::path::Path) -> std::io::Result<usize> {
+    std::fs::create_dir_all(state_dir)?;
+    let log_path = state_dir.join("actions.log");
+    persistence::save_action_log(node, &log_path)
 }
 
 fn parse_args() -> CliConfig {
@@ -221,6 +249,21 @@ fn parse_args() -> CliConfig {
                     cli_policy_hash = Some(hash);
                 }
             }
+            "--action-mode" => {
+                i += 1;
+                if i < args.len() {
+                    let mode = match args[i].to_ascii_lowercase().as_str() {
+                        "disabled" => ActionMode::Disabled,
+                        "shadow" => ActionMode::Shadow,
+                        "active" => ActionMode::Active,
+                        _ => {
+                            eprintln!("bizra-node: invalid --action-mode value: {}", args[i]);
+                            process::exit(2);
+                        }
+                    };
+                    node_config.runtime_config.action_mode = mode;
+                }
+            }
             "--no-persist" => {
                 auto_persist = false;
             }
@@ -277,6 +320,7 @@ OPTIONS:
     --seed <file>       Load knowledge from a .seed file at startup
     --state-dir <path>  Directory for persistent state (default: ~/.bizra/node-<hash>)
     --reflex-mode <m>   Reflex routing mode: disabled|shadow|active
+    --action-mode <m>   Action execution mode: disabled|shadow|active
     --policy-hash <h>   Genesis policy hash (64 hex). Or env BIZRA_GENESIS_POLICY_HASH.
     --no-persist        Disable auto-save on shutdown
     --no-banner         Suppress startup banner
@@ -286,7 +330,8 @@ OPTIONS:
 
 PERSISTENCE:
     By default, knowledge auto-saves to ~/.bizra/node-<hash>/knowledge.seed
-    and reflex rules to ~/.bizra/node-<hash>/reflex.cache.
+    reflex rules to ~/.bizra/node-<hash>/reflex.cache,
+    and action receipts to ~/.bizra/node-<hash>/actions.log.
     State auto-loads on startup. Your knowledge is a text file.
     You own it. Back it up. Guard it. Share it — or don't.
 
@@ -302,6 +347,10 @@ COMMANDS:
     PROFILE                            Get full user profile
     KNOWS_ME                           Get "my AI knows me" score
     HEALTH                             Full system health
+    PLAN_ACTION <json>                 Validate and stage an action plan
+    RUN_ACTION <plan_id> <json>        Execute a staged or ad-hoc action
+    ACTION_STATUS <action_id>          Fetch action execution status
+    ACTION_HISTORY <limit> <cursor>    Fetch hash-chained action receipts
     START_SESSION <ts>                 Begin conversation session
     END_SESSION <ts>                   End conversation session
     IHSAN <score>                      Update إحسان score

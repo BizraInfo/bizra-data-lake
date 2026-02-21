@@ -298,9 +298,7 @@ class InferenceConfig:
             "OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")
         )
     )
-    lmstudio_url: str = field(
-        default_factory=lambda: LMSTUDIO_URL
-    )
+    lmstudio_url: str = field(default_factory=lambda: LMSTUDIO_URL)
 
     # Batching settings (P0-P1 optimization)
     enable_batching: bool = True

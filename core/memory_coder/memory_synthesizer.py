@@ -13,6 +13,7 @@ The synthesize cycle follows a PDCA loop:
 
 Standing on Giants: Deming (PDCA) + Shannon (compression) + Kauffman (adjacent possible)
 """
+
 from __future__ import annotations
 
 import hashlib

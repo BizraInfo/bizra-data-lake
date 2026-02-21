@@ -328,7 +328,7 @@ impl MemoryPipeline {
         self.stats.queries_served += 1;
         self.store
             .valid_insights()
-            .filter(|i| method.map_or(true, |m| i.header.synthesis_method == m))
+            .filter(|i| method.is_none_or(|m| i.header.synthesis_method == m))
             .filter_map(|i| {
                 self.store
                     .insight_content(i)

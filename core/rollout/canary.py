@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from core.integration.constants import CANARY_DEFAULT_SALT
 
@@ -40,9 +40,7 @@ class CanaryRouter:
     }
 
     def __init__(self, salt: Optional[str] = None) -> None:
-        self._salt = salt or os.getenv(
-            "BIZRA_PHASE46_CANARY_SALT", CANARY_DEFAULT_SALT
-        )
+        self._salt = salt or os.getenv("BIZRA_PHASE46_CANARY_SALT", CANARY_DEFAULT_SALT)
 
     def should_route(
         self, component: str, request_key: str, percent: Optional[int] = None

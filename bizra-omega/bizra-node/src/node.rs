@@ -20,6 +20,7 @@ use std::io::{self, BufRead, Write};
 use bizra_agent::runtime::{AgentRuntime, RuntimeConfig};
 use bizra_hooks::IhsanScore;
 
+use crate::action_executor::ActionExecutor;
 use crate::handler::{self, NodeInternals};
 use crate::protocol::{self, Response, NODE_NAME, NODE_VERSION};
 
@@ -91,6 +92,8 @@ pub struct Node {
     message_counter: u64,
     /// Whether a session has been auto-started.
     session_auto_started: bool,
+    /// Action-layer executor and state.
+    action_executor: ActionExecutor,
 }
 
 impl Node {
@@ -109,6 +112,7 @@ impl Node {
             session_counter: 0,
             message_counter: 0,
             session_auto_started: false,
+            action_executor: ActionExecutor::default(),
         };
 
         // Auto-start a session if configured
@@ -152,6 +156,7 @@ impl Node {
                 ihsan_floor: self.config.ihsan_floor,
                 user_hash: self.config.user_hash,
                 stopped: &mut stopped,
+                action_executor: &mut self.action_executor,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -237,6 +242,14 @@ impl Node {
     /// Immutable access to the AgentRuntime (used by persistence).
     pub fn runtime(&self) -> &AgentRuntime {
         &self.runtime
+    }
+
+    pub fn action_executor_mut(&mut self) -> &mut ActionExecutor {
+        &mut self.action_executor
+    }
+
+    pub fn action_executor(&self) -> &ActionExecutor {
+        &self.action_executor
     }
 
     // ================================================================

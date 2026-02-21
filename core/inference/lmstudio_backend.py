@@ -19,7 +19,12 @@ from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from core.inference.response_utils import strip_think_tokens
-from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT, UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.integration.constants import (
+    LMSTUDIO_HOST,
+    LMSTUDIO_PORT,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +65,7 @@ class LMStudioEndpoint(Enum):
 class LMStudioConfig:
     """Configuration for LM Studio backend."""
 
-    host: str = field(
-        default_factory=lambda: LMSTUDIO_HOST
-    )
+    host: str = field(default_factory=lambda: LMSTUDIO_HOST)
     port: int = field(default_factory=lambda: int(os.getenv("LMSTUDIO_PORT", "1234")))
     api_key: Optional[str] = field(
         default_factory=lambda: os.getenv("LM_API_TOKEN")
@@ -681,7 +684,9 @@ class LMStudioBackend:
 
 # Convenience function for BIZRA integration
 async def create_lmstudio_backend(
-    host: str = LMSTUDIO_HOST, port: int = int(LMSTUDIO_PORT), api_key: Optional[str] = None
+    host: str = LMSTUDIO_HOST,
+    port: int = int(LMSTUDIO_PORT),
+    api_key: Optional[str] = None,
 ) -> LMStudioBackend:
     """Create and connect an LM Studio backend."""
     config = LMStudioConfig(host=host, port=port, api_key=api_key)

@@ -557,8 +557,12 @@ CANONICAL_PATTERNS: Final[List[DomainPattern]] = [
         giant="McClelland (1995), Kumaran (2016)",
         bizra_implementation="sovereign_state/",
         tags=[
-            "prediction", "learning", "model-updating", "recursive",
-            "identity", "regeneration",
+            "prediction",
+            "learning",
+            "model-updating",
+            "recursive",
+            "identity",
+            "regeneration",
         ],
     ),
     DomainPattern(
@@ -725,10 +729,7 @@ class InterdisciplinaryTransfer:
 
     def get_proven_patterns(self) -> List[DomainPattern]:
         """Get all patterns with PROVEN confidence (validated in BIZRA)."""
-        return [
-            p for p in self._patterns
-            if p.confidence == TransferConfidence.PROVEN
-        ]
+        return [p for p in self._patterns if p.confidence == TransferConfidence.PROVEN]
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get pattern library statistics."""
@@ -743,12 +744,10 @@ class InterdisciplinaryTransfer:
             "total_patterns": len(self._patterns),
             "patterns_by_domain": domains,
             "proven_count": sum(
-                1 for p in self._patterns
-                if p.confidence == TransferConfidence.PROVEN
+                1 for p in self._patterns if p.confidence == TransferConfidence.PROVEN
             ),
             "implemented_count": sum(
-                1 for p in self._patterns
-                if p.bizra_implementation is not None
+                1 for p in self._patterns if p.bizra_implementation is not None
             ),
             "transfers_executed": len(self._transfer_history),
         }

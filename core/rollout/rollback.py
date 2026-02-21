@@ -66,9 +66,7 @@ class RollbackEngine:
         receipt_dir: Optional[str] = None,
         metrics: Optional[Any] = None,
     ) -> None:
-        self._receipt_dir = Path(
-            receipt_dir or "artifacts/rollback_receipts"
-        )
+        self._receipt_dir = Path(receipt_dir or "artifacts/rollback_receipts")
         self._receipt_dir.mkdir(parents=True, exist_ok=True)
         self._metrics = metrics
         self._breach_windows: Dict[str, _BreachWindow] = {
@@ -80,9 +78,7 @@ class RollbackEngine:
     # Evaluate
     # ------------------------------------------------------------------
 
-    def evaluate(
-        self, metric_name: str, breached: bool
-    ) -> Optional[RollbackReceipt]:
+    def evaluate(self, metric_name: str, breached: bool) -> Optional[RollbackReceipt]:
         """Evaluate a metric window.
 
         Returns a :class:`RollbackReceipt` if rollback was triggered,
@@ -121,9 +117,7 @@ class RollbackEngine:
     # Rollback execution
     # ------------------------------------------------------------------
 
-    def _execute_rollback(
-        self, trigger: str, window: _BreachWindow
-    ) -> RollbackReceipt:
+    def _execute_rollback(self, trigger: str, window: _BreachWindow) -> RollbackReceipt:
         self._rollback_in_progress = True
 
         previous_config = self._snapshot_config()

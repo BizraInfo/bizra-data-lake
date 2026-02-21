@@ -53,7 +53,7 @@
 //! }).unwrap();
 //!
 //! // Emit an event
-//! system.emit(mem_id, "agent.query", Payload::from_str("find context"), Priority::Normal, 1000);
+//! system.emit(mem_id, "agent.query", Payload::from_text("find context"), Priority::Normal, 1000);
 //!
 //! // Check system health
 //! let health = system.health();
@@ -127,7 +127,10 @@ pub struct BizraSystem {
 }
 
 impl BizraSystem {
-    /// Create a new BizraSystem with default configuration.
+    /// Create a new BizraSystem with default (development) configuration.
+    ///
+    /// Gate policy: Observe (log violations, allow events through).
+    /// Gate active: false (must call `activate_gate()` to wire).
     pub fn new() -> Self {
         BizraSystem {
             registry: Registry::new(),
@@ -135,6 +138,26 @@ impl BizraSystem {
             pipeline: HookPipeline::new(),
             gate: IhsanGate::new(),
             gate_active: false,
+        }
+    }
+
+    /// Create a production BizraSystem with enforcement active.
+    ///
+    /// Gate policy: **Reject** — events from components below the
+    /// constitutional floor (0.990) are hard-rejected.
+    /// Gate active: **true** — enforcement is wired from creation.
+    ///
+    /// This is the constructor that transforms the Ihsan floor from
+    /// a monitoring metric into an active enforcement gate.
+    ///
+    /// Standing on Giants: Al-Ghazali (إحسان as non-negotiable standard)
+    pub fn production() -> Self {
+        BizraSystem {
+            registry: Registry::new(),
+            bus: EventBus::new(),
+            pipeline: HookPipeline::new(),
+            gate: IhsanGate::production(),
+            gate_active: true,
         }
     }
 
@@ -166,7 +189,7 @@ impl BizraSystem {
         self.bus.emit_simple(
             id,
             "system.lifecycle",
-            Payload::from_str("registered"),
+            Payload::from_text("registered"),
             Priority::High,
             timestamp_nanos,
         );
@@ -196,7 +219,7 @@ impl BizraSystem {
         self.bus.emit_simple(
             *id,
             "system.lifecycle",
-            Payload::from_str("unregistering"),
+            Payload::from_text("unregistering"),
             Priority::High,
             timestamp_nanos,
         );
@@ -434,7 +457,7 @@ mod tests {
             .emit(
                 mem,
                 "memory.indexed",
-                Payload::from_str("500 vectors"),
+                Payload::from_text("500 vectors"),
                 Priority::Normal,
                 2000,
             )
@@ -548,7 +571,7 @@ mod tests {
             .emit(
                 ids[0],
                 "broadcast.ping",
-                Payload::from_str("alive"),
+                Payload::from_text("alive"),
                 Priority::Normal,
                 10000,
             )
@@ -560,6 +583,54 @@ mod tests {
         let health = sys.health();
         assert_eq!(health.registry.total_components, 50);
         assert_eq!(health.active_subscriptions, 50);
+    }
+
+    #[test]
+    fn production_system_enforces_ihsan() {
+        let mut sys = BizraSystem::production();
+
+        // Register and activate a component
+        let comp = sys.register_component("worker", "1.0.0", 1000).unwrap();
+        sys.activate_component(&comp).unwrap();
+
+        // Emit at full quality — should succeed
+        let result = sys.emit(comp, "test.ok", Payload::empty(), Priority::Normal, 2000);
+        assert!(result.is_ok());
+
+        // Degrade below constitutional floor
+        sys.update_ihsan(&comp, IhsanScore::from_f64(0.95)).unwrap();
+
+        // Emit from degraded component — should be rejected
+        let result = sys.emit(
+            comp,
+            "test.degraded",
+            Payload::empty(),
+            Priority::Normal,
+            3000,
+        );
+        assert!(matches!(result, Err(HookError::IhsanGateRejected(_))));
+    }
+
+    #[test]
+    fn production_system_gate_active_by_default() {
+        let sys = BizraSystem::production();
+        // Gate should be active from creation
+        assert!(sys.gate_active);
+        assert_eq!(sys.gate.config().policy, GatePolicy::Reject);
+    }
+
+    #[test]
+    fn development_system_allows_degraded() {
+        let mut sys = BizraSystem::new();
+        sys.activate_gate(); // Wire the gate
+
+        let comp = sys.register_component("dev-worker", "1.0.0", 1000).unwrap();
+        sys.activate_component(&comp).unwrap();
+        sys.update_ihsan(&comp, IhsanScore::from_f64(0.50)).unwrap();
+
+        // Development mode: degraded events allowed through
+        let result = sys.emit(comp, "test.dev", Payload::empty(), Priority::Normal, 2000);
+        assert!(result.is_ok());
     }
 
     #[test]

@@ -93,18 +93,21 @@ class ProactiveRetriever:
 
         # Phase 47.1: Canary routing for HMM observations
         from core.rollout.canary import CanaryRouter
+
         self._canary = CanaryRouter()
 
         # Phase 49.8: HMM caller-gate isolation (single-caller mode by default)
         self._hmm_gate: Optional[Any] = None
         try:
             from core.rollout.hmm_gate import HMMCallerGate
+
             self._hmm_gate = HMMCallerGate()
         except Exception:
             pass  # gate unavailable — direct observe only
 
         # Phase 49.8: Metrics for proactive HMM observations
         from core.rollout.metrics import get_shared_metrics
+
         self._p46_metrics = get_shared_metrics()
 
     def _init_hmm(self) -> bool:
@@ -181,7 +184,9 @@ class ProactiveRetriever:
                     if self._hmm_gate is not None:
                         result = self._hmm_gate.observe(symbol, "proactive")
                         if result is None:
-                            logger.debug("HMM observation rejected by caller gate: %s", symbol)
+                            logger.debug(
+                                "HMM observation rejected by caller gate: %s", symbol
+                            )
                             continue
                     self._hmm_engine.observe(symbol)
                     self._p46_metrics.inc("hmm_proactive_observations")

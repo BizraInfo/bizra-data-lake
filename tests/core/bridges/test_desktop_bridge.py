@@ -170,6 +170,18 @@ class TestServerLifecycle:
         with pytest.raises(RuntimeError, match="Node0 genesis enforcement failed"):
             await b.start()
 
+    @pytest.mark.asyncio
+    async def test_start_fails_when_guardian_wire_required_unavailable(
+        self, free_port: int, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("BIZRA_GUARDIAN_WIRE_MODE", "required")
+        monkeypatch.setenv("BIZRA_GUARDIAN_HOST", "127.0.0.1")
+        monkeypatch.setenv("BIZRA_GUARDIAN_PORT", str(free_port))  # no listener
+        monkeypatch.setenv("BIZRA_GUARDIAN_TIMEOUT_MS", "50")
+        b = DesktopBridge(host="127.0.0.1", port=free_port + 1)
+        with pytest.raises(RuntimeError, match="Rust guardian wire required"):
+            await b.start()
+
 
 # ---------------------------------------------------------------------------
 # ping
@@ -401,6 +413,35 @@ class TestSecurity:
     def test_rejects_external_address(self) -> None:
         with pytest.raises(ValueError, match="127.0.0.1"):
             DesktopBridge(host="192.168.1.100", port=9742)
+
+
+class TestGuardianWire:
+    @pytest.mark.asyncio
+    async def test_guardian_wire_best_effort_allows_when_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch, free_port: int
+    ) -> None:
+        monkeypatch.setenv("BIZRA_GUARDIAN_WIRE_MODE", "best_effort")
+        monkeypatch.setenv("BIZRA_GUARDIAN_HOST", "127.0.0.1")
+        monkeypatch.setenv("BIZRA_GUARDIAN_PORT", str(free_port))
+        monkeypatch.setenv("BIZRA_GUARDIAN_TIMEOUT_MS", "50")
+        bridge = DesktopBridge(host="127.0.0.1", port=free_port + 1)
+        result = await bridge._check_rust_guardian("plan roadmap", "test.best_effort")
+        assert result["allowed"] is True
+        assert result["mode"] == "best_effort"
+
+    @pytest.mark.asyncio
+    async def test_guardian_wire_required_denies_when_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch, free_port: int
+    ) -> None:
+        monkeypatch.setenv("BIZRA_GUARDIAN_WIRE_MODE", "required")
+        monkeypatch.setenv("BIZRA_GUARDIAN_HOST", "127.0.0.1")
+        monkeypatch.setenv("BIZRA_GUARDIAN_PORT", str(free_port))
+        monkeypatch.setenv("BIZRA_GUARDIAN_TIMEOUT_MS", "50")
+        bridge = DesktopBridge(host="127.0.0.1", port=free_port + 1)
+        result = await bridge._check_rust_guardian("plan roadmap", "test.required")
+        assert result["allowed"] is False
+        assert result["mode"] == "required"
+        assert "guardian_wire_unavailable" in result["reason"]
 
 
 # ---------------------------------------------------------------------------

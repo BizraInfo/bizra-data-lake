@@ -1,6 +1,6 @@
 # BIZRA NODE0 -- DOCUMENTATION INDEX
 
-**Last Updated:** February 14, 2026
+**Last Updated:** February 21, 2026
 
 > Canonical entrypoint moved: use [`docs/README.md`](../README.md) first for current, role-based navigation.
 > This file is retained as historical/internal context.
@@ -111,6 +111,10 @@ This is the master index of all documentation for **Node0 (Genesis Block)**.
 | [Phase 19 Integration](../specs/phase19_integration_completion.md) | Integration completion spec |
 | [Apex Integration](../specs/apex_integration/00_overview.md) | Social/market/swarm integration spec |
 | [Autopoietic Loop](../specs/autopoietic-loop-architecture.md) | Self-healing loop architecture |
+| [SAP v0 (Core)](../../specs/sap-v0/README.md) | Sovereign Agent Protocol v0 (internal-first, schema-backed) |
+| [SAP Retail Ads Profile v0](../../specs/sap-v0/profiles/agentic-ads-retail-v0.md) | Agentic ads lifecycle profile for retail e-commerce |
+| [SAP Evidence Matrix](SAP_V0_EVIDENCE_MATRIX.md) | Claim-level truth mapping (`Implemented/Planned/Hypothesis`) |
+| [Technical Master Plan v1.0](../../TMP_v1.0.md) | Authoritative internal source of truth (priority, evidence, roadmap) |
 
 ---
 

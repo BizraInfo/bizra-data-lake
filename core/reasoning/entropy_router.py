@@ -112,15 +112,11 @@ class EntropyRouter:
         length_score = min(len(words) / 80.0, 1.0)
 
         # 3. Sub-question structural markers
-        sub_q_count = sum(
-            1 for p in self._sub_q_patterns if p.search(query_text)
-        )
+        sub_q_count = sum(1 for p in self._sub_q_patterns if p.search(query_text))
         sub_q_score = min(sub_q_count / 3.0, 1.0)
 
         # 4. Multi-domain markers
-        domain_count = sum(
-            1 for p in self._domain_patterns if p.search(query_text)
-        )
+        domain_count = sum(1 for p in self._domain_patterns if p.search(query_text))
         domain_score = min(domain_count / 2.0, 1.0)
 
         # 5. Question mark density (multiple questions = more complex)
@@ -150,9 +146,7 @@ class EntropyRouter:
         for ch in text.lower():
             freq[ch] = freq.get(ch, 0) + 1
         n = len(text)
-        entropy = -sum(
-            (c / n) * math.log2(c / n) for c in freq.values() if c > 0
-        )
+        entropy = -sum((c / n) * math.log2(c / n) for c in freq.values() if c > 0)
         # Normalize by log2(alphabet_size) to get 0-1 range
         max_entropy = math.log2(len(freq)) if len(freq) > 1 else 1.0
         return entropy / max_entropy if max_entropy > 0 else 0.0

@@ -173,7 +173,9 @@ class MerkleTree:
         if not self._leaves:
             raise IndexError("Cannot prove on empty tree")
         if leaf_index < 0 or leaf_index >= len(self._leaves):
-            raise IndexError(f"Leaf index {leaf_index} out of range [0, {len(self._leaves)})")
+            raise IndexError(
+                f"Leaf index {leaf_index} out of range [0, {len(self._leaves)})"
+            )
 
         siblings: list[tuple[bytes, bool]] = []
         layer = list(self._leaves)

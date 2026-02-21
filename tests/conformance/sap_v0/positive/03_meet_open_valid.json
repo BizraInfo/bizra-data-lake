@@ -1,0 +1,23 @@
+{
+  "name": "meet_open_valid",
+  "schema": "meet_open.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "session_id": "session_001",
+    "initiator_agent_id": "agent_user_001",
+    "responder_agent_id": "agent_brand_001",
+    "place_id": "place_feed_001",
+    "objective": "Compare running shoes",
+    "consent_scope": ["product_discovery", "price_comparison", "purchase_negotiation"],
+    "session_limits": {
+      "max_messages": 50,
+      "max_duration_seconds": 300,
+      "max_payload_bytes": 65536
+    },
+    "expires_at": 4102444800
+  },
+  "meta": {
+    "now": 1893456000,
+    "roles": ["user_proxy", "brand_proxy"]
+  }
+}

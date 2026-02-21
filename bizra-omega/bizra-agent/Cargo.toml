@@ -13,7 +13,12 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 bizra-hooks = { path = "../bizra-hooks" }
 bizra-memory = { path = "../bizra-memory" }
+bizra-telescript = { path = "../bizra-telescript" }
 blake3 = { workspace = true }
+toml = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [features]
 default = []

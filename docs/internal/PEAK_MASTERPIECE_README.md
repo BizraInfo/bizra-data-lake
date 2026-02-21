@@ -174,9 +174,9 @@ python -m pytest test_peak_masterpiece.py --cov=peak_masterpiece --cov-report=ht
 
 | File | Purpose | LOC |
 |------|---------|-----|
-| [peak_masterpiece.py](peak_masterpiece.py) | Unified engine implementation | ~1,400 |
-| [test_peak_masterpiece.py](test_peak_masterpiece.py) | Comprehensive test suite | ~600 |
-| [DDAGI_CONSTITUTION_v1.1.0-FINAL.md](DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Supreme governing framework | ~1,100 |
+| [peak_masterpiece.py](../../core/apex/peak_masterpiece.py) | Unified engine implementation | ~1,400 |
+| [test_peak_masterpiece.py](../../tests/root_legacy/test_peak_masterpiece.py) | Comprehensive test suite | ~600 |
+| [DDAGI_CONSTITUTION_v1.1.0-FINAL.md](../DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Supreme governing framework | ~1,100 |
 
 ## 🎯 Performance Metrics
 

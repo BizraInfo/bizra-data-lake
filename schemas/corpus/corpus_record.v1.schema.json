@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/corpus/corpus_record.v1.schema.json",
+  "title": "CorpusRecordV1",
+  "type": "object",
+  "required": [
+    "provider",
+    "account_scope",
+    "conversation_id",
+    "message_id",
+    "role",
+    "timestamp",
+    "content_hash",
+    "source_path",
+    "import_run_id"
+  ],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "chatgpt_openai",
+        "claude",
+        "gemini_google",
+        "deepseek",
+        "qwen",
+        "kimi",
+        "perplexity",
+        "zhipu",
+        "generic"
+      ]
+    },
+    "account_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant",
+        "system",
+        "tool",
+        "unknown"
+      ]
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "import_run_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

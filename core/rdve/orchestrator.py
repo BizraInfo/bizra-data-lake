@@ -43,8 +43,8 @@ from core.autopoiesis.hypothesis_generator import (
 )
 from core.autopoiesis.loop_engine import AutopoieticLoop
 from core.integration.constants import (
-    STRICT_IHSAN_THRESHOLD,
     SNR_THRESHOLD_T1_HIGH,
+    STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
@@ -254,6 +254,7 @@ class RDVEOrchestrator:
             self._generator = generator
         else:
             from pathlib import Path
+
             _mem = Path("sovereign_state/rdve_hypotheses")
             _mem.parent.mkdir(parents=True, exist_ok=True)
             self._generator = HypothesisGenerator(memory_path=_mem)
@@ -262,6 +263,7 @@ class RDVEOrchestrator:
             self._explorer = explorer
         else:
             from core.autopoiesis.got_integration import GoTBridge
+
             self._explorer = GoTHypothesisExplorer(got_bridge=GoTBridge())
 
         self._snr = snr_filter or SNRMaximizer()
@@ -323,26 +325,32 @@ class RDVEOrchestrator:
                 )
 
             duration = (time.time() - start) * 1000
-            return StageResult(
-                stage=RDVEStage.OBSERVE,
-                success=True,
-                duration_ms=duration,
-                artifacts={
-                    "ihsan_score": observation.ihsan_score,
-                    "snr_score": observation.snr_score,
-                    "error_rate": observation.error_rate,
-                },
-            ), observation
+            return (
+                StageResult(
+                    stage=RDVEStage.OBSERVE,
+                    success=True,
+                    duration_ms=duration,
+                    artifacts={
+                        "ihsan_score": observation.ihsan_score,
+                        "snr_score": observation.snr_score,
+                        "error_rate": observation.error_rate,
+                    },
+                ),
+                observation,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Observe failed: {e}")
-            return StageResult(
-                stage=RDVEStage.OBSERVE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), None
+            return (
+                StageResult(
+                    stage=RDVEStage.OBSERVE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                None,
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 2: GENERATE
@@ -363,25 +371,31 @@ class RDVEOrchestrator:
             duration = (time.time() - start) * 1000
             logger.info(f"RDVE Generate: {len(ranked)} hypotheses produced")
 
-            return StageResult(
-                stage=RDVEStage.GENERATE,
-                success=len(ranked) > 0,
-                duration_ms=duration,
-                artifacts={
-                    "count": len(ranked),
-                    "categories": list({h.category.value for h in ranked}),
-                },
-            ), ranked
+            return (
+                StageResult(
+                    stage=RDVEStage.GENERATE,
+                    success=len(ranked) > 0,
+                    duration_ms=duration,
+                    artifacts={
+                        "count": len(ranked),
+                        "categories": list({h.category.value for h in ranked}),
+                    },
+                ),
+                ranked,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Generate failed: {e}")
-            return StageResult(
-                stage=RDVEStage.GENERATE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), []
+            return (
+                StageResult(
+                    stage=RDVEStage.GENERATE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                [],
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 3: EXPLORE (GoT Tree Search)
@@ -418,30 +432,36 @@ class RDVEOrchestrator:
                 f"{'MCTS' if self.config.use_mcts else 'GoT'}"
             )
 
-            return StageResult(
-                stage=RDVEStage.EXPLORE,
-                success=len(explored) > 0,
-                duration_ms=duration,
-                artifacts={
-                    "paths_explored": len(explored),
-                    "method": "mcts" if self.config.use_mcts else "got",
-                    "avg_depth": (
-                        sum(e.exploration_depth for e in explored) / len(explored)
-                        if explored
-                        else 0
-                    ),
-                },
-            ), explored
+            return (
+                StageResult(
+                    stage=RDVEStage.EXPLORE,
+                    success=len(explored) > 0,
+                    duration_ms=duration,
+                    artifacts={
+                        "paths_explored": len(explored),
+                        "method": "mcts" if self.config.use_mcts else "got",
+                        "avg_depth": (
+                            sum(e.exploration_depth for e in explored) / len(explored)
+                            if explored
+                            else 0
+                        ),
+                    },
+                ),
+                explored,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Explore failed: {e}")
-            return StageResult(
-                stage=RDVEStage.EXPLORE,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), []
+            return (
+                StageResult(
+                    stage=RDVEStage.EXPLORE,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                [],
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 4: FILTER (SNR Quality Gate)
@@ -466,7 +486,10 @@ class RDVEOrchestrator:
             ihsan_impact = eh.ihsan_score
 
             # Gate: both SNR and Ihsan must meet floor
-            if path_snr >= self.config.snr_floor and ihsan_impact >= self.config.ihsan_floor:
+            if (
+                path_snr >= self.config.snr_floor
+                and ihsan_impact >= self.config.ihsan_floor
+            ):
                 passed.append(eh)
             else:
                 rejected += 1
@@ -489,17 +512,20 @@ class RDVEOrchestrator:
             f"(floor: SNR>={self.config.snr_floor}, Ihsan>={self.config.ihsan_floor})"
         )
 
-        return StageResult(
-            stage=RDVEStage.FILTER,
-            success=len(passed) > 0,
-            duration_ms=duration,
-            artifacts={
-                "passed": len(passed),
-                "rejected": rejected,
-                "best_snr": passed[0].snr_score if passed else 0.0,
-                "best_ihsan": passed[0].ihsan_score if passed else 0.0,
-            },
-        ), passed
+        return (
+            StageResult(
+                stage=RDVEStage.FILTER,
+                success=len(passed) > 0,
+                duration_ms=duration,
+                artifacts={
+                    "passed": len(passed),
+                    "rejected": rejected,
+                    "best_snr": passed[0].snr_score if passed else 0.0,
+                    "best_ihsan": passed[0].ihsan_score if passed else 0.0,
+                },
+            ),
+            passed,
+        )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 5: VERIFY (Constitutional Validation)
@@ -535,23 +561,24 @@ class RDVEOrchestrator:
 
         duration = (time.time() - start) * 1000
 
-        return StageResult(
-            stage=RDVEStage.VERIFY,
-            success=len(verified) > 0,
-            duration_ms=duration,
-            artifacts={
-                "verified": len(verified),
-                "rejected": len(candidates) - len(verified),
-            },
-        ), verified
+        return (
+            StageResult(
+                stage=RDVEStage.VERIFY,
+                success=len(verified) > 0,
+                duration_ms=duration,
+                artifacts={
+                    "verified": len(verified),
+                    "rejected": len(candidates) - len(verified),
+                },
+            ),
+            verified,
+        )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 6: IMPLEMENT
     # ═══════════════════════════════════════════════════════════════════════
 
-    async def _implement(
-        self, best: ExploredHypothesis
-    ) -> Tuple[StageResult, bool]:
+    async def _implement(self, best: ExploredHypothesis) -> Tuple[StageResult, bool]:
         """Implement the best verified hypothesis. (Deming: Do)"""
         start = time.time()
 
@@ -564,33 +591,37 @@ class RDVEOrchestrator:
             duration = (time.time() - start) * 1000
             success = result.success if hasattr(result, "success") else True
 
-            return StageResult(
-                stage=RDVEStage.IMPLEMENT,
-                success=success,
-                duration_ms=duration,
-                artifacts={
-                    "hypothesis_id": best.hypothesis.id,
-                    "description": best.hypothesis.description[:100],
-                },
-            ), success
+            return (
+                StageResult(
+                    stage=RDVEStage.IMPLEMENT,
+                    success=success,
+                    duration_ms=duration,
+                    artifacts={
+                        "hypothesis_id": best.hypothesis.id,
+                        "description": best.hypothesis.description[:100],
+                    },
+                ),
+                success,
+            )
 
         except Exception as e:
             duration = (time.time() - start) * 1000
             logger.error(f"RDVE Implement failed: {e}")
-            return StageResult(
-                stage=RDVEStage.IMPLEMENT,
-                success=False,
-                duration_ms=duration,
-                error=str(e),
-            ), False
+            return (
+                StageResult(
+                    stage=RDVEStage.IMPLEMENT,
+                    success=False,
+                    duration_ms=duration,
+                    error=str(e),
+                ),
+                False,
+            )
 
     # ═══════════════════════════════════════════════════════════════════════
     # STAGE 7: INTEGRATE
     # ═══════════════════════════════════════════════════════════════════════
 
-    async def _integrate(
-        self, best: ExploredHypothesis
-    ) -> StageResult:
+    async def _integrate(self, best: ExploredHypothesis) -> StageResult:
         """Integrate successful implementation. (Deming: Check + Act)"""
         import inspect
 
@@ -844,9 +875,7 @@ class RDVEOrchestrator:
         max_cycles = max_cycles or self.config.max_cycles
         results: List[RDVECycleResult] = []
 
-        logger.info(
-            f"=== RDVE Campaign START (max_cycles={max_cycles}) ==="
-        )
+        logger.info(f"=== RDVE Campaign START (max_cycles={max_cycles}) ===")
 
         for i in range(max_cycles):
             # Convergence check
@@ -874,9 +903,7 @@ class RDVEOrchestrator:
                 break
 
         # Campaign summary
-        discoveries = sum(
-            1 for r in results if r.outcome == CycleOutcome.DISCOVERY
-        )
+        discoveries = sum(1 for r in results if r.outcome == CycleOutcome.DISCOVERY)
         logger.info(
             f"=== RDVE Campaign COMPLETE: {len(results)} cycles, "
             f"{discoveries} discoveries ==="
@@ -896,8 +923,7 @@ class RDVEOrchestrator:
             "status": self._status.value,
             "cycle_count": self._cycle_count,
             "total_discoveries": sum(
-                1 for r in self._history
-                if r.outcome == CycleOutcome.DISCOVERY
+                1 for r in self._history if r.outcome == CycleOutcome.DISCOVERY
             ),
             "consecutive_failures": self._consecutive_failures,
             "converged": self._check_convergence(),
@@ -925,8 +951,7 @@ class RDVEOrchestrator:
         if not self._history:
             return 0.0
         discoveries = sum(
-            1 for r in self._history
-            if r.outcome == CycleOutcome.DISCOVERY
+            1 for r in self._history if r.outcome == CycleOutcome.DISCOVERY
         )
         return discoveries / len(self._history)
 

@@ -16,6 +16,7 @@
 use std::io::{self, BufRead, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
+use bizra_agent::action_types::ActionReceipt;
 use bizra_agent::hash_namespace::{parse_hex_32, TriggerHash};
 use bizra_agent::reflex_cache::{ActionTemplate, QuarantineReason, ReflexRule};
 
@@ -102,7 +103,6 @@ pub fn save_state(node: &Node, path: &Path) -> io::Result<usize> {
     writeln!(writer, "# saved: {}", timestamp_now())?;
     writeln!(writer)?;
 
-    // Query each atom kind and write as TEACH commands
     let kinds = [
         ("fact", bizra_memory::AtomKind::Fact),
         ("preference", bizra_memory::AtomKind::Preference),
@@ -116,29 +116,38 @@ pub fn save_state(node: &Node, path: &Path) -> io::Result<usize> {
         ("negation", bizra_memory::AtomKind::Negation),
     ];
 
-    // We need a mutable pipeline to query, but we only have &Node.
-    // For save, we use the runtime's health data to determine if there's
-    // anything worth saving, and query the pipeline for atom contents.
-    //
-    // Since we cannot mutably borrow through &Node, we save basic metadata.
-    // Full atom export requires mutable access due to query stats tracking.
-    // This is acceptable for v0.1 — the seed file is supplementary to the
-    // in-memory state which persists across the process lifetime.
-
     let health = node.runtime().health();
-
-    // Write profile summary as comment
     writeln!(writer, "# fragments: {}", health.fragments_stored)?;
     writeln!(writer, "# insights: {}", health.insights_stored)?;
     writeln!(writer, "# knows_me: {:.4}", health.knows_me_score)?;
     writeln!(writer)?;
 
-    // For now, we indicate the count of items that exist but cannot
-    // export individual atoms without &mut. This is a known v0.1 limitation.
-    // The actual knowledge persists in the runtime between sessions.
-    let _ = kinds;
+    // Export atoms as TEACH commands via immutable pipeline access.
+    let store = node.runtime().pipeline().store();
+    let mut saved = 0usize;
 
-    Ok(0)
+    for (kind_name, kind_enum) in &kinds {
+        for atom in store.atoms_by_kind(*kind_enum) {
+            if let Some(content) = store.atom_content(atom) {
+                let confidence = atom.header.confidence.base;
+                let ihsan = (confidence * 10000.0) as u32;
+                let ts = atom.header.confidence.last_reinforced;
+                // Escape tabs and newlines in content for protocol safety
+                let escaped = content
+                    .replace('\\', "\\\\")
+                    .replace('\t', "\\t")
+                    .replace('\n', "\\n");
+                writeln!(
+                    writer,
+                    "TEACH\t{}\t{}\t{}\t{}",
+                    kind_name, escaped, ihsan, ts
+                )?;
+                saved += 1;
+            }
+        }
+    }
+
+    Ok(saved)
 }
 
 /// Load compiled reflex rules from `reflex.cache`.
@@ -190,6 +199,52 @@ pub fn save_reflex_cache(node: &Node, path: &Path) -> io::Result<usize> {
     for rule in rules {
         let line = serialize_reflex_rule_line(&rule);
         writeln!(writer, "{}", line)?;
+        saved += 1;
+    }
+    Ok(saved)
+}
+
+/// Load hash-chained action receipts from `actions.log`.
+///
+/// Returns `(loaded_count, rejected_count)`.
+pub fn load_action_log(node: &mut Node, path: &Path) -> io::Result<(usize, usize)> {
+    let file = std::fs::File::open(path)?;
+    let reader = io::BufReader::new(file);
+
+    let mut loaded = Vec::new();
+    let mut rejected = 0usize;
+    let mut expected_prev = [0u8; 32];
+
+    for line_result in reader.lines() {
+        let line = line_result?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some(receipt) = ActionReceipt::from_jsonl(trimmed) else {
+            rejected += 1;
+            continue;
+        };
+        if !receipt.verify_chain(&expected_prev) {
+            rejected += 1;
+            continue;
+        }
+        expected_prev = receipt.receipt_hash;
+        loaded.push(receipt);
+    }
+
+    let loaded_count = loaded.len();
+    node.action_executor_mut().import_receipts(loaded);
+    Ok((loaded_count, rejected))
+}
+
+/// Save action receipt history to `actions.log` as compact JSONL.
+pub fn save_action_log(node: &Node, path: &Path) -> io::Result<usize> {
+    let file = std::fs::File::create(path)?;
+    let mut writer = BufWriter::new(file);
+    let mut saved = 0usize;
+    for receipt in node.action_executor().receipts() {
+        writeln!(writer, "{}", receipt.to_jsonl())?;
         saved += 1;
     }
     Ok(saved)
@@ -271,7 +326,7 @@ fn parse_reflex_rule_line(line: &str) -> Option<ReflexRule> {
 }
 
 fn sanitize(s: &str) -> String {
-    s.replace('\t', " ").replace('\n', " ")
+    s.replace(['\t', '\n'], " ")
 }
 
 // ============================================================
@@ -282,6 +337,7 @@ fn sanitize(s: &str) -> String {
 mod tests {
     use super::*;
     use crate::node::NodeConfig;
+    use bizra_agent::action_types::{ActionChannel, ActionKind, ActionReceipt};
     use bizra_agent::reflex_cache::{ActionTemplate, ReflexRule};
 
     #[test]
@@ -352,7 +408,7 @@ mod tests {
         });
 
         let count = save_state(&node, &seed_path).unwrap();
-        assert_eq!(count, 0); // fresh node, no knowledge
+        assert_eq!(count, 0); // fresh node has no atoms to export
 
         // File should exist and contain header
         let content = std::fs::read_to_string(&seed_path).unwrap();
@@ -406,6 +462,130 @@ mod tests {
 
         let stats = restored.runtime().reflex_stats();
         assert_eq!(stats.size, 1);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_and_load_action_log_roundtrip() {
+        let dir = std::env::temp_dir().join("bizra-test-action-log");
+        let _ = std::fs::create_dir_all(&dir);
+        let log_path = dir.join("actions.log");
+
+        let mut node = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+
+        let mut r1 = ActionReceipt {
+            action_id: "act_1".to_string(),
+            plan_id: "pln_1".to_string(),
+            channel: ActionChannel::DesktopRpc,
+            kind: ActionKind::Click,
+            timestamp: 100,
+            result: "ok".to_string(),
+            guardian_verdict: true,
+            permit_hash: [1u8; 32],
+            policy_hash: [2u8; 32],
+            receipt_hash: [0u8; 32],
+            prev_receipt_hash: [0u8; 32],
+        };
+        r1.seal();
+        let mut r2 = ActionReceipt {
+            action_id: "act_2".to_string(),
+            plan_id: "pln_1".to_string(),
+            channel: ActionChannel::DesktopRpc,
+            kind: ActionKind::TypeText,
+            timestamp: 101,
+            result: "ok".to_string(),
+            guardian_verdict: true,
+            permit_hash: [1u8; 32],
+            policy_hash: [2u8; 32],
+            receipt_hash: [0u8; 32],
+            prev_receipt_hash: r1.receipt_hash,
+        };
+        r2.seal();
+        node.action_executor_mut()
+            .import_receipts(vec![r1.clone(), r2.clone()]);
+
+        let saved = save_action_log(&node, &log_path).unwrap();
+        assert_eq!(saved, 2);
+
+        let mut restored = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+        let (loaded, rejected) = load_action_log(&mut restored, &log_path).unwrap();
+        assert_eq!(loaded, 2);
+        assert_eq!(rejected, 0);
+        assert_eq!(restored.action_executor().receipts().len(), 2);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn action_log_tamper_is_rejected_by_hash_chain() {
+        let dir = std::env::temp_dir().join("bizra-test-action-log-tamper");
+        let _ = std::fs::create_dir_all(&dir);
+        let log_path = dir.join("actions.log");
+
+        let mut node = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+
+        let mut r1 = ActionReceipt {
+            action_id: "act_1".to_string(),
+            plan_id: "pln_1".to_string(),
+            channel: ActionChannel::DesktopRpc,
+            kind: ActionKind::Click,
+            timestamp: 100,
+            result: "ok".to_string(),
+            guardian_verdict: true,
+            permit_hash: [1u8; 32],
+            policy_hash: [2u8; 32],
+            receipt_hash: [0u8; 32],
+            prev_receipt_hash: [0u8; 32],
+        };
+        r1.seal();
+        let mut r2 = ActionReceipt {
+            action_id: "act_2".to_string(),
+            plan_id: "pln_1".to_string(),
+            channel: ActionChannel::DesktopRpc,
+            kind: ActionKind::TypeText,
+            timestamp: 101,
+            result: "ok".to_string(),
+            guardian_verdict: true,
+            permit_hash: [1u8; 32],
+            policy_hash: [2u8; 32],
+            receipt_hash: [0u8; 32],
+            prev_receipt_hash: r1.receipt_hash,
+        };
+        r2.seal();
+        node.action_executor_mut().import_receipts(vec![r1, r2]);
+        let saved = save_action_log(&node, &log_path).unwrap();
+        assert_eq!(saved, 2);
+
+        // Tamper with second row without recomputing receipt hash.
+        let original = std::fs::read_to_string(&log_path).unwrap();
+        let mut lines = original.lines().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        lines[1] = lines[1].replace("\"result\":\"ok\"", "\"result\":\"tampered\"");
+        let tampered = format!("{}\n{}\n", lines[0], lines[1]);
+        std::fs::write(&log_path, tampered).unwrap();
+
+        let mut restored = Node::new(NodeConfig {
+            show_banner: false,
+            auto_start_session: false,
+            ..Default::default()
+        });
+        let (loaded, rejected) = load_action_log(&mut restored, &log_path).unwrap();
+        assert_eq!(loaded, 1);
+        assert_eq!(rejected, 1);
+        assert_eq!(restored.action_executor().receipts().len(), 1);
 
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -60,7 +60,11 @@ class BloomFilter:
         self._expected_items = expected_items
 
         # Optimal sizing: m = -(n * ln(p)) / (ln(2))^2
-        m = int(math.ceil(-(expected_items * math.log(false_positive_rate)) / (math.log(2) ** 2)))
+        m = int(
+            math.ceil(
+                -(expected_items * math.log(false_positive_rate)) / (math.log(2) ** 2)
+            )
+        )
         m = min(m, BLOOM_MAX_BITS)
         # Round up to multiple of 8 for byte alignment
         m = ((m + 7) // 8) * 8
@@ -181,8 +185,8 @@ class BloomFilter:
         if len(data) < header_size:
             raise ValueError("Data too short for Bloom filter header")
 
-        magic, version, num_bits, num_hashes, expected_items, count = struct.unpack_from(
-            "<4sBIBII", data
+        magic, version, num_bits, num_hashes, expected_items, count = (
+            struct.unpack_from("<4sBIBII", data)
         )
 
         if magic != _MAGIC:
@@ -192,9 +196,7 @@ class BloomFilter:
 
         expected_byte_len = header_size + (num_bits // 8)
         if len(data) != expected_byte_len:
-            raise ValueError(
-                f"Expected {expected_byte_len} bytes, got {len(data)}"
-            )
+            raise ValueError(f"Expected {expected_byte_len} bytes, got {len(data)}")
 
         bf = cls.__new__(cls)
         bf._num_bits = num_bits

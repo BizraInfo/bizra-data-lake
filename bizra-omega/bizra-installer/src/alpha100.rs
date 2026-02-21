@@ -120,10 +120,7 @@ pub fn run_doctor() -> Result<()> {
 pub fn run_install(args: &InstallArgs) -> Result<()> {
     println!("\n  Alpha-100 Install\n");
 
-    let base_dir = args
-        .state_dir
-        .clone()
-        .unwrap_or_else(config::alpha100_dir);
+    let base_dir = args.state_dir.clone().unwrap_or_else(config::alpha100_dir);
 
     // Compute policy hash
     let policy_hash = if let Some(ref pf) = args.policy_file {
@@ -203,12 +200,25 @@ pub fn run_install(args: &InstallArgs) -> Result<()> {
     println!("  Backend:       {}", cfg.local_backend);
     println!("  Model:         {}", cfg.model);
     println!("  Reflex Mode:   {}", cfg.reflex_mode);
-    println!("  Policy Hash:   {}", if cfg.policy_hash.is_empty() { "(none)" } else { &cfg.policy_hash });
+    println!(
+        "  Policy Hash:   {}",
+        if cfg.policy_hash.is_empty() {
+            "(none)"
+        } else {
+            &cfg.policy_hash
+        }
+    );
     println!("  State Dir:     {}", cfg.state_dir);
     println!("  Installed At:  {}", cfg.installed_at);
     println!();
-    println!("  Config saved to: {}", base_dir.join("install.toml").display());
-    println!("  Env saved to:    {}", base_dir.join("provider.env").display());
+    println!(
+        "  Config saved to: {}",
+        base_dir.join("install.toml").display()
+    );
+    println!(
+        "  Env saved to:    {}",
+        base_dir.join("provider.env").display()
+    );
     println!();
 
     Ok(())
@@ -245,9 +255,9 @@ pub fn run_launch() -> Result<()> {
         cmd.arg("--reflex-mode").arg(&cfg.reflex_mode);
     }
 
-    let child = cmd.spawn().with_context(|| {
-        format!("Failed to spawn bizra-node at {}", node_path.display())
-    })?;
+    let child = cmd
+        .spawn()
+        .with_context(|| format!("Failed to spawn bizra-node at {}", node_path.display()))?;
 
     println!();
     println!("  Node launched (PID: {})", child.id());
@@ -278,14 +288,22 @@ pub fn run_status() -> Result<()> {
     println!("  Backend:       {}", cfg.local_backend);
     println!("  Model:         {}", cfg.model);
     println!("  Reflex Mode:   {}", cfg.reflex_mode);
-    println!("  Policy Hash:   {}", if cfg.policy_hash.is_empty() { "(none)" } else { &cfg.policy_hash });
+    println!(
+        "  Policy Hash:   {}",
+        if cfg.policy_hash.is_empty() {
+            "(none)"
+        } else {
+            &cfg.policy_hash
+        }
+    );
     println!("  State Dir:     {}", cfg.state_dir);
     println!("  Installed At:  {}", cfg.installed_at);
 
     // Ping node if running
     let node_path = PathBuf::from(&cfg.node_binary_path);
     let node_exists = node_path.exists();
-    println!("  Node Binary:   {} ({})",
+    println!(
+        "  Node Binary:   {} ({})",
         cfg.node_binary_path,
         if node_exists { "found" } else { "missing" }
     );
@@ -303,7 +321,8 @@ pub fn run_status() -> Result<()> {
         _ => (false, 0),
     };
 
-    println!("  Provider:      {} ({} model(s))",
+    println!(
+        "  Provider:      {} ({} model(s))",
         if provider_status { "online" } else { "offline" },
         model_count
     );

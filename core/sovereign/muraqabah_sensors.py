@@ -35,12 +35,12 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Optional
 
-from .event_bus import EventBus, EventPriority, get_event_bus
-
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
+
+from .event_bus import EventBus, EventPriority, get_event_bus
 
 logger = logging.getLogger(__name__)
 

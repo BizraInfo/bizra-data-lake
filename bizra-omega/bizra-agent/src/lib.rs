@@ -24,25 +24,43 @@
 // External deps: ZERO. Sovereign Rust.
 // ============================================================
 
+pub mod action_bus;
+pub mod action_types;
 pub mod context;
 pub mod decision_registry;
 pub mod ffi;
 pub mod hash_namespace;
+pub mod key_vault;
 pub mod orchestrator;
+pub mod parallel_executor;
+pub mod permit_guard;
 pub mod reflex_cache;
 pub mod reflex_compiler;
 pub mod roster;
 pub mod runtime;
+pub mod spawn_policy;
+pub mod sub_agent;
 pub mod types;
+pub mod vault_env;
+pub mod vault_file;
+pub mod vault_toml;
 
 // Re-exports for clean API
+pub use action_bus::ActionBus;
+pub use action_types::{
+    ActionChannel, ActionError, ActionExecutionStatus, ActionKind, ActionPlan, ActionReceipt,
+    ActionResult, PlannedStep,
+};
 pub use context::{ContextAssembler, ContextConfig, IntentClassifier, UserIntent};
 pub use decision_registry::{
     CognitiveMode, DecisionArtifact, DecisionRegistry, MissionPhase, RejectedAlternative,
 };
 pub use ffi::{AgentRuntimeHandle, FfiHealth, FfiMessage, FfiResponse, FfiResult, FfiStringBuffer};
 pub use hash_namespace::{ActionHash, ArtifactHash, TriggerHash};
+pub use key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError};
 pub use orchestrator::{ExecutionPlan, OrchestrationResult, OrchestratorConfig, TaskOrchestrator};
+pub use parallel_executor::{ParallelExecutor, SubAgentResult};
+pub use permit_guard::{PermitBudgetConfig, PermitGuard, PermitUsage};
 pub use reflex_cache::{
     ActionTemplate, QuarantineReason, ReflexCache, ReflexMode, ReflexRule, ReflexStats,
 };
@@ -51,8 +69,11 @@ pub use reflex_compiler::{
 };
 pub use roster::{AgentEntry, AgentRoster, AgentState, RosterSnapshot, PAT_SIZE};
 pub use runtime::{
-    AgentRuntime, ConversationSession, RuntimeConfig, RuntimeHealth, RuntimeResponse, RuntimeState,
+    ActionMode, AgentRuntime, ConversationSession, RuntimeConfig, RuntimeHealth, RuntimeResponse,
+    RuntimeState,
 };
+pub use spawn_policy::{SpawnDenied, SpawnPolicy};
+pub use sub_agent::{SubAgent, SubAgentPermit, SubAgentSpawner, SubAgentStatus};
 pub use types::{
     AgentContext, AgentId, AgentRole, Message, MessageContent, MessageDirection, MessageId,
     Response, ResponseContent, RuntimeMetrics, Task, TaskId, TaskKind, TaskOutput, TaskPriority,

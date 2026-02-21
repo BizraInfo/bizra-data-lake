@@ -19,6 +19,8 @@ path = "src/lib.rs"
 bizra-hooks = { path = "../bizra-hooks" }
 bizra-memory = { path = "../bizra-memory" }
 bizra-agent = { path = "../bizra-agent" }
+bizra-telescript = { path = "../bizra-telescript" }
+serde_json = { workspace = true }
 
 [features]
 default = []

@@ -1161,7 +1161,7 @@ impl PyThoughtGraph {
     ///
     /// Returns dict with thought fields, or None if all explored.
     fn backtrack(&self) -> Option<pyo3::PyObject> {
-        self.inner.backtrack().map(|node| thought_to_pyobject(node))
+        self.inner.backtrack().map(thought_to_pyobject)
     }
 
     /// VALIDATE — Get conclusions that meet the SNR threshold.
@@ -1169,7 +1169,7 @@ impl PyThoughtGraph {
         self.inner
             .get_conclusions(min_snr)
             .into_iter()
-            .map(|node| thought_to_pyobject(node))
+            .map(thought_to_pyobject)
             .collect()
     }
 
@@ -1178,7 +1178,7 @@ impl PyThoughtGraph {
         self.inner
             .get_frontier()
             .into_iter()
-            .map(|node| thought_to_pyobject(node))
+            .map(thought_to_pyobject)
             .collect()
     }
 
@@ -1219,7 +1219,7 @@ impl PyThoughtGraph {
     ) -> Option<pyo3::PyObject> {
         self.inner
             .explore_with_backtrack(max_iterations, target_snr)
-            .map(|node| thought_to_pyobject(node))
+            .map(thought_to_pyobject)
     }
 
     fn __len__(&self) -> usize {

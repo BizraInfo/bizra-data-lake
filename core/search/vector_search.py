@@ -32,9 +32,11 @@ from core.memory.types import MemoryKind, MemoryRecord, SearchResult
 logger = logging.getLogger(__name__)
 
 # Feature flag — callers check this; the engine itself works regardless.
-PHASE46_ENABLED: bool = (
-    os.getenv("BIZRA_PHASE46_SEARCH_ENABLED", "0").lower() in {"1", "true", "yes"}
-)
+PHASE46_ENABLED: bool = os.getenv("BIZRA_PHASE46_SEARCH_ENABLED", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 def _resolve_root() -> Path:
@@ -78,7 +80,8 @@ class VectorSearchEngine:
             self._loaded = True
             logger.info(
                 "VectorSearchEngine ready — %d vectors, dim=%d",
-                self._index.ntotal, FAISS_EMBEDDING_DIM,  # type: ignore[union-attr]
+                self._index.ntotal,
+                FAISS_EMBEDDING_DIM,  # type: ignore[union-attr]
             )
 
     def _load_index(self) -> None:
@@ -90,7 +93,9 @@ class VectorSearchEngine:
                 f"FAISS index not found: {index_path}. Run vector_engine.py to build it."
             )
         self._index = faiss.read_index(str(index_path))
-        logger.info("Loaded FAISS index: %s (%d vectors)", index_path, self._index.ntotal)
+        logger.info(
+            "Loaded FAISS index: %s (%d vectors)", index_path, self._index.ntotal
+        )
 
         meta_path = self._root / FAISS_META_PATH
         if meta_path.exists():
@@ -115,7 +120,10 @@ class VectorSearchEngine:
                 ordered_files.append(entry.split("(")[0].strip())
         else:
             ordered_files = sorted(f.name for f in gold_dir.glob("*chunks*.parquet"))
-            if "chunks.parquet" not in ordered_files and (gold_dir / "chunks.parquet").exists():
+            if (
+                "chunks.parquet" not in ordered_files
+                and (gold_dir / "chunks.parquet").exists()
+            ):
                 ordered_files.insert(0, "chunks.parquet")
 
         texts: List[str] = []
@@ -146,7 +154,8 @@ class VectorSearchEngine:
         if self._index is not None and len(texts) != self._index.ntotal:
             logger.warning(
                 "Text count (%d) != index vectors (%d) — content may be misaligned.",
-                len(texts), self._index.ntotal,
+                len(texts),
+                self._index.ntotal,
             )
         self._texts = texts
         self._sources = sources
@@ -157,6 +166,7 @@ class VectorSearchEngine:
     def _get_embedding_service(self) -> Any:
         if self._embedding_service is None:
             from core.embedding.service import EmbeddingService
+
             self._embedding_service = EmbeddingService()
         return self._embedding_service
 
@@ -178,7 +188,10 @@ class VectorSearchEngine:
     # ---- Core search ----
 
     def _raw_search(
-        self, query_vec: np.ndarray, top_k: int, min_score: float,
+        self,
+        query_vec: np.ndarray,
+        top_k: int,
+        min_score: float,
     ) -> List[SearchResult]:
         """Run FAISS search and hydrate results."""
         import faiss as _faiss  # type: ignore[import-untyped]

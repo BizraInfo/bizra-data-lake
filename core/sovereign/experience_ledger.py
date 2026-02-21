@@ -237,9 +237,7 @@ def _compute_episode_hash(
     return _blake3_hash(b"".join(parts))
 
 
-def _compute_chain_hash(
-    parent_chain_hashes: str | list[str], episode_hash: str
-) -> str:
+def _compute_chain_hash(parent_chain_hashes: str | list[str], episode_hash: str) -> str:
     """Compute chain hash from one or more parent chain hashes.
 
     Accepts either a single parent hash (str) for backward compatibility,

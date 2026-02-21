@@ -30,6 +30,9 @@ Migrated: 2026-02-05 | Files now in dedicated reasoning package
 # Bicameral Engine
 from .bicameral_engine import BicameralReasoningEngine
 
+# Entropy Router — System 1/2 query routing
+from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
+
 # graph_core: Main composed class
 from .graph_core import GraphOfThoughts
 
@@ -60,9 +63,6 @@ from .guardian_council import (
 from .snr_maximizer import (
     SNRMaximizer,
 )
-
-# Entropy Router — System 1/2 query routing
-from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
 
 # --------------------------------------------------------------------------
 # PHASE 2: Lazy imports for modules with cross-package dependencies.

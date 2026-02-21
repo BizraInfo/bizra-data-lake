@@ -17,9 +17,11 @@ from core.memory.types import SearchResult
 
 logger = logging.getLogger(__name__)
 
-PHASE46_ENABLED: bool = (
-    os.getenv("BIZRA_PHASE46_SEARCH_ENABLED", "0").lower() in {"1", "true", "yes"}
-)
+PHASE46_ENABLED: bool = os.getenv("BIZRA_PHASE46_SEARCH_ENABLED", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 @dataclass(frozen=True)
@@ -75,7 +77,9 @@ class CognitiveResonance:
                 if search_results:
                     max_vector_score = max(r.score for r in search_results)
                 path.append(f"search:{len(search_results)}_hits")
-                logger.debug("Resonance search returned %d results", len(search_results))
+                logger.debug(
+                    "Resonance search returned %d results", len(search_results)
+                )
             except Exception as exc:
                 logger.warning("Resonance search failed: %s", exc)
                 path.append("search:error")
@@ -106,9 +110,7 @@ class CognitiveResonance:
                 path.append("prediction:error")
 
         # ---- Compute combined SNR ----
-        combined_snr = _compute_combined_snr(
-            reasoning_result, max_vector_score
-        )
+        combined_snr = _compute_combined_snr(reasoning_result, max_vector_score)
         path.append(f"snr:{combined_snr:.3f}")
 
         return ResonanceResult(
@@ -179,7 +181,9 @@ def _compute_combined_snr(
     - Only search:             max_vector_score
     - Neither:                 0.0
     """
-    has_reasoning = reasoning_result is not None and hasattr(reasoning_result, "snr_score")
+    has_reasoning = reasoning_result is not None and hasattr(
+        reasoning_result, "snr_score"
+    )
     has_search = max_vector_score > 0.0
 
     if has_reasoning and has_search:

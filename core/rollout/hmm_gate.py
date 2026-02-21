@@ -44,9 +44,7 @@ class HMMCallerGate:
 
     def __init__(self, hmm_engine: Any) -> None:
         self._engine = hmm_engine
-        self._mode = os.getenv(
-            "BIZRA_PHASE46_HMM_CALLER_MODE", HMM_CALLER_MODE_DEFAULT
-        )
+        self._mode = os.getenv("BIZRA_PHASE46_HMM_CALLER_MODE", HMM_CALLER_MODE_DEFAULT)
         self._allowed = os.getenv(
             "BIZRA_PHASE46_HMM_ALLOWED_CALLER", HMM_ALLOWED_CALLER_DEFAULT
         )

@@ -147,6 +147,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Validate SAP v0 conformance + release gate
+        run: python scripts/spec/sap_release_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate PromQL guard patterns
         run: python scripts/ci_promql_guard.py
 
@@ -320,6 +325,31 @@ jobs:
           assert constitution.check_snr(0.90), 'SNR check failed'
           print('All PyO3 binding tests passed!')
           "
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 2b: Frontend Build (filedfs/)
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-frontend:
+    name: Build Frontend (filedfs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: filedfs/package-lock.json
+
+      - name: Install dependencies
+        working-directory: filedfs
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: filedfs
+        run: npx vite build
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 3: Quality Gates (FATE Score Validation)

@@ -27,14 +27,13 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
+from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 from core.integration.constants import (
     SNR_THRESHOLD_T0_ELITE,
     STRICT_IHSAN_THRESHOLD,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-
-from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,9 @@ logger = logging.getLogger(__name__)
 class RoutingResult:
     """Result of MoE complexity routing."""
 
-    complexity_class: str = "STANDARD"  # TRIVIAL | STANDARD | COMPLEX | EXPERT | FRONTIER
+    complexity_class: str = (
+        "STANDARD"  # TRIVIAL | STANDARD | COMPLEX | EXPERT | FRONTIER
+    )
     expert_tier: str = "EDGE"
     confidence: float = 0.85
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -313,7 +314,9 @@ class CognitiveFusionEngine:
             try:
                 return self._moe_router.route(query, constraints=ctx)
             except Exception:
-                logger.warning("MoE router failed — falling back to STANDARD", exc_info=True)
+                logger.warning(
+                    "MoE router failed — falling back to STANDARD", exc_info=True
+                )
         return RoutingResult(
             complexity_class="STANDARD",
             expert_tier="EDGE",
@@ -321,9 +324,7 @@ class CognitiveFusionEngine:
             metadata={"source": "default"},
         )
 
-    def _run_hrm(
-        self, target_level: str, query: str, ctx: Dict[str, Any]
-    ) -> HRMResult:
+    def _run_hrm(self, target_level: str, query: str, ctx: Dict[str, Any]) -> HRMResult:
         """Stage 3: HRM reasoning cycle (or default)."""
         if self._hrm_engine is not None:
             try:
@@ -334,7 +335,9 @@ class CognitiveFusionEngine:
                 }
                 return self._hrm_engine.run_cycle(observation)
             except Exception:
-                logger.warning("HRM engine failed — using default result", exc_info=True)
+                logger.warning(
+                    "HRM engine failed — using default result", exc_info=True
+                )
         return HRMResult(
             compound_snr=UNIFIED_SNR_THRESHOLD,
             level_reached=target_level,
@@ -347,7 +350,9 @@ class CognitiveFusionEngine:
         """Stage 4: HyperGraph RAG retrieval (or empty list)."""
         if self._hypergraph_rag is not None:
             try:
-                return self._hypergraph_rag.retrieve(query, query_embedding, top_k=top_k)
+                return self._hypergraph_rag.retrieve(
+                    query, query_embedding, top_k=top_k
+                )
             except Exception:
                 logger.warning("RAG retrieval failed — returning empty", exc_info=True)
         return []

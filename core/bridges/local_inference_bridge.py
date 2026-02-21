@@ -23,11 +23,10 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-
-from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 from typing import Any, Optional
 
 from core.inference.response_utils import strip_think_tokens
+from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
 
 logger = logging.getLogger(__name__)
 

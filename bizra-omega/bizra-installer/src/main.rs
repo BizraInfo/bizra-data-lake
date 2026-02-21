@@ -9,9 +9,11 @@ mod model_cache;
 
 // Alpha-100 Sprint 1 modules (re-exported via lib.rs)
 mod alpha100;
+#[allow(dead_code)]
 mod binary_fetch;
 mod config;
 mod policy;
+#[allow(dead_code)]
 mod provider;
 
 use clap::{Args, Parser, Subcommand};

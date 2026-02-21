@@ -461,8 +461,8 @@ impl TaskOrchestrator {
 
         // Extract preferences (ingest as UserMessage; the pipeline's rule_extract
         // will pull Preference atoms from "I prefer" patterns)
-        if content.to_lowercase().contains("prefer") || content.to_lowercase().contains("like") {
-            if pipeline
+        if (content.to_lowercase().contains("prefer") || content.to_lowercase().contains("like"))
+            && pipeline
                 .ingest(
                     FragmentKind::UserMessage,
                     content,
@@ -471,17 +471,15 @@ impl TaskOrchestrator {
                     message.timestamp,
                 )
                 .is_ok()
-            {
-                extracted += 1;
-            }
+        {
+            extracted += 1;
         }
 
         // Extract goals
-        if content.to_lowercase().contains("want")
+        if (content.to_lowercase().contains("want")
             || content.to_lowercase().contains("goal")
-            || content.to_lowercase().contains("need")
-        {
-            if pipeline
+            || content.to_lowercase().contains("need"))
+            && pipeline
                 .ingest(
                     FragmentKind::UserMessage,
                     content,
@@ -490,9 +488,8 @@ impl TaskOrchestrator {
                     message.timestamp,
                 )
                 .is_ok()
-            {
-                extracted += 1;
-            }
+        {
+            extracted += 1;
         }
 
         // Always extract interaction pattern

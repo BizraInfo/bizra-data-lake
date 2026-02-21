@@ -161,12 +161,10 @@ impl EventBus {
 
     /// Pause/resume a subscription.
     pub fn set_active(&mut self, sub_id: SubscriptionId, active: bool) -> bool {
-        for entry in self.handlers.iter_mut() {
-            if let Some(h) = entry {
-                if h.sub.id == sub_id {
-                    h.sub.active = active;
-                    return true;
-                }
+        for h in self.handlers.iter_mut().flatten() {
+            if h.sub.id == sub_id {
+                h.sub.active = active;
+                return true;
             }
         }
         false
@@ -198,25 +196,23 @@ impl EventBus {
         // Collect matching handlers and dispatch
         // We iterate in subscription order (FIFO registration)
         // Priority filtering happens in Subscription::matches()
-        for entry in self.handlers.iter() {
-            if let Some(h) = entry {
-                if h.sub.matches(&event) {
-                    let result = (h.handler)(&event);
-                    delivered += 1;
+        for h in self.handlers.iter().flatten() {
+            if h.sub.matches(&event) {
+                let result = (h.handler)(&event);
+                delivered += 1;
 
-                    match result {
-                        HookResult::Continue => continue,
-                        HookResult::Skip => break,
-                        HookResult::Halt => {
-                            // Event was halted by a subscriber
-                            self.total_delivered += delivered as u64;
-                            return delivered;
-                        }
-                        HookResult::Transform => {
-                            // In a full implementation, the handler would
-                            // modify the event. For now, continue.
-                            continue;
-                        }
+                match result {
+                    HookResult::Continue => continue,
+                    HookResult::Skip => break,
+                    HookResult::Halt => {
+                        // Event was halted by a subscriber
+                        self.total_delivered += delivered as u64;
+                        return delivered;
+                    }
+                    HookResult::Transform => {
+                        // In a full implementation, the handler would
+                        // modify the event. For now, continue.
+                        continue;
                     }
                 }
             }
@@ -328,11 +324,9 @@ impl EventBus {
 
     /// Pause/resume all subscriptions for a component.
     pub fn set_active_for_component(&mut self, id: &ComponentId, active: bool) {
-        for entry in self.handlers.iter_mut() {
-            if let Some(h) = entry {
-                if h.sub.component == *id {
-                    h.sub.active = active;
-                }
+        for h in self.handlers.iter_mut().flatten() {
+            if h.sub.component == *id {
+                h.sub.active = active;
             }
         }
     }

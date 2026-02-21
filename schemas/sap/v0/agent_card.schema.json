@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/agent_card.schema.json",
+  "title": "SovereignAgentCard",
+  "type": "object",
+  "required": [
+    "agent_id",
+    "owner_node_id",
+    "role",
+    "policy_hash",
+    "capabilities",
+    "endpoints",
+    "version",
+    "compilation"
+  ],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "owner_node_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "navigator",
+        "scholar",
+        "artisan",
+        "guardian",
+        "mentor",
+        "diplomat",
+        "oracle",
+        "user_proxy",
+        "brand_proxy",
+        "marketplace_proxy",
+        "auditor",
+        "mediator"
+      ]
+    },
+    "policy_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "Compute",
+          "Network",
+          "Store",
+          "Negotiate",
+          "Disclose",
+          "Consent",
+          "Transact",
+          "Observe"
+        ]
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "compilation": {
+      "type": "object",
+      "required": [
+        "genesis_version",
+        "ihsan_threshold",
+        "compiled_reflex_count",
+        "compilation_coverage"
+      ],
+      "properties": {
+        "genesis_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ihsan_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "compiled_reflex_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "compilation_coverage": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "issued_at": {
+      "type": "integer"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{128}$"
+    }
+  },
+  "additionalProperties": false
+}

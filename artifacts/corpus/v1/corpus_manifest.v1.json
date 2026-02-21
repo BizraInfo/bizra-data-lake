@@ -1,0 +1,30 @@
+{
+  "providers_covered": [
+    "chatgpt_openai",
+    "claude",
+    "gemini_google",
+    "deepseek",
+    "qwen",
+    "kimi",
+    "perplexity",
+    "zhipu"
+  ],
+  "raw_conversations": 2153,
+  "raw_messages": 83242,
+  "unique_conversations": 1549,
+  "unique_messages": 31968,
+  "duplication_factor": 2.603916,
+  "coverage_notes": [
+    "chatgpt_openai: detected",
+    "claude: detected",
+    "gemini_google: detected",
+    "deepseek: detected",
+    "qwen: detected",
+    "kimi: detected",
+    "perplexity: detected",
+    "zhipu: detected"
+  ],
+  "generated_at": "2026-02-21T04:51:05.511134+00:00",
+  "manifest_hash": "504145f781412a4103249f78f46d61609eb1d02f81a1c2fa2f051184b23c6e09",
+  "signature": "pending_internal_attestation"
+}

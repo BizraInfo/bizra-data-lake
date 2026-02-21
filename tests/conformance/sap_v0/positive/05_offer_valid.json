@@ -1,0 +1,23 @@
+{
+  "name": "offer_valid",
+  "schema": "offer.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "offer_id": "offer_001",
+    "product_sku": "shoe-pegasus-42",
+    "price": 129.99,
+    "currency": "USD",
+    "terms": {
+      "return_days": 30,
+      "shipping": "standard"
+    },
+    "expiry": 4102444800,
+    "provenance_hashes": [
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    ]
+  },
+  "meta": {
+    "requires_data_shared": false,
+    "consent_present": false
+  }
+}

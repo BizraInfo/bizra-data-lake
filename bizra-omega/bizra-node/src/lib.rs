@@ -17,7 +17,10 @@
 // The complete sovereign AI node.
 // ============================================================
 
+pub mod action_executor;
+pub mod audit_hook;
 pub mod handler;
+pub mod mcp_transport;
 pub mod node;
 pub mod persistence;
 pub mod protocol;
