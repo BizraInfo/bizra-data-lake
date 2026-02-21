@@ -708,6 +708,24 @@ Examples:
     genesis_parser.add_argument("--node-dir", help="Node data directory")
     genesis_parser.add_argument("--guild", help="Guild to join (default: sovereigns)")
     genesis_parser.add_argument("--json", action="store_true", help="JSON output")
+    # Extended orchestrator flags (8-step protocol)
+    genesis_parser.add_argument(
+        "--all", action="store_true", dest="all_steps",
+        help="Run full 8-step genesis orchestration"
+    )
+    genesis_parser.add_argument(
+        "--hardware-scan", action="store_true", dest="hardware_scan",
+        help="Fingerprint hardware covenant (CPU/GPU/RAM)"
+    )
+    genesis_parser.add_argument(
+        "--quest", metavar="QUEST_ID", dest="quest_accept",
+        help="Accept a quest, e.g. '001-sustainable-water'"
+    )
+    genesis_parser.add_argument(
+        "--ihsan", metavar="FLOAT", dest="ihsan_target",
+        type=float, default=0.999,
+        help="Constitutional Ihsan target (default: 0.999)"
+    )
 
     # Dashboard command
     dashboard_parser = subparsers.add_parser("dashboard", help="View node identity")
@@ -760,9 +778,34 @@ Examples:
     elif args.command == "onboard":
         run_onboard(args.name, args.node_dir, args.json)
     elif args.command == "genesis":
-        from .genesis_ceremony import run_genesis_ceremony
+        # Route to orchestrator when new flags are present
+        uses_orchestrator = getattr(args, "all_steps", False) or getattr(
+            args, "hardware_scan", False
+        ) or getattr(args, "quest_accept", None)
+        if uses_orchestrator:
+            from core.genesis.cli import build_config, run_genesis
 
-        run_genesis_ceremony(args.name, args.node_dir, args.guild, args.json)
+            # Build a namespace compatible with genesis CLI
+            import argparse as _argparse
+
+            _ns = _argparse.Namespace(
+                all_steps=getattr(args, "all_steps", False),
+                identity_genesis=getattr(args, "all_steps", False),
+                hardware_scan=getattr(args, "hardware_scan", False)
+                or getattr(args, "all_steps", False),
+                hda_bridge=False,
+                mobile_pair=None,
+                guild_join=getattr(args, "guild", None),
+                quest_accept=getattr(args, "quest_accept", None),
+                ihsan_target=getattr(args, "ihsan_target", 0.999),
+                node_dir=getattr(args, "node_dir", None),
+                json_output=getattr(args, "json", False),
+            )
+            run_genesis(_ns)
+        else:
+            from .genesis_ceremony import run_genesis_ceremony
+
+            run_genesis_ceremony(args.name, args.node_dir, args.guild, args.json)
     elif args.command == "dashboard":
         run_dashboard(args.node_dir, args.json)
     elif args.command == "impact":
