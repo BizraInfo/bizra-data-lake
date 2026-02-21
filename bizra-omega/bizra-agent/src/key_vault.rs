@@ -156,7 +156,7 @@ impl fmt::Display for VaultError {
 // ── VaultBackend trait ───────────────────────────────────────
 
 /// Pluggable backend for secret storage.
-pub trait VaultBackend {
+pub trait VaultBackend: Send {
     /// Retrieve a secret by key name.
     fn get(&self, key: &str) -> Result<SecretString, VaultError>;
 

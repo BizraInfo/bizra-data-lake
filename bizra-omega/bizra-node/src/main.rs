@@ -11,6 +11,7 @@
 //   bizra-node --ihsan <floor>         # إحسان floor
 //   bizra-node --seed <file>           # Pre-load knowledge
 //   bizra-node --state-dir <path>      # Persist across sessions
+//   bizra-node --mcp-port 9741         # JSON-RPC 2.0 over TCP
 //   bizra-node --no-banner             # Suppress banner
 //   bizra-node --no-auto-session       # Manual session control
 //
@@ -20,16 +21,19 @@
 use bizra_agent::reflex_cache::ReflexMode;
 use bizra_agent::runtime::ActionMode;
 use bizra_hooks::IhsanScore;
+use bizra_node::mcp_transport::{self, McpTransportConfig};
 use bizra_node::node::{Node, NodeConfig};
 use bizra_node::persistence;
 use std::path::PathBuf;
 use std::process;
+use std::sync::{Arc, Mutex};
 
 struct CliConfig {
     node_config: NodeConfig,
     seed_file: Option<PathBuf>,
     state_dir: Option<PathBuf>,
     auto_persist: bool,
+    mcp_port: Option<u16>,
 }
 
 fn main() {
@@ -125,40 +129,66 @@ fn main() {
         }
     }
 
-    // Run the node
-    if let Err(e) = node.run() {
-        eprintln!("bizra-node: fatal error: {}", e);
+    // Run the node — either MCP TCP mode or stdin/stdout mode
+    if let Some(port) = cli.mcp_port {
+        // MCP JSON-RPC 2.0 over TCP
+        let config = McpTransportConfig {
+            port,
+            ..McpTransportConfig::default()
+        };
+        let node_mutex = Arc::new(Mutex::new(node));
+        let handler_ref = Arc::clone(&node_mutex);
+        let handler = Arc::new(move |cmd| {
+            let mut n = handler_ref.lock().expect("node lock poisoned");
+            n.handle_command(cmd)
+        });
 
-        // Still try to save state on error
+        mcp_transport::start_tcp_listener(config, handler);
+
+        // TCP listener returns on bind failure — save state
+        let node = Arc::try_unwrap(node_mutex)
+            .unwrap_or_else(|_| panic!("node still referenced"))
+            .into_inner()
+            .unwrap();
         if auto_persist {
             let _ = save_state_quietly(&node, &state_dir);
         }
+    } else {
+        // Standard stdin/stdout protocol loop
+        if let Err(e) = node.run() {
+            eprintln!("bizra-node: fatal error: {}", e);
 
-        process::exit(1);
-    }
+            // Still try to save state on error
+            if auto_persist {
+                let _ = save_state_quietly(&node, &state_dir);
+            }
 
-    // Save state on shutdown
-    if auto_persist {
-        match save_state_quietly(&node, &state_dir) {
-            Ok(count) => {
-                if count > 0 {
-                    eprintln!(
-                        "  state: saved {} fragments to {}",
-                        count,
-                        state_dir.join("knowledge.seed").display()
-                    );
+            process::exit(1);
+        }
+
+        // Save state on shutdown
+        if auto_persist {
+            match save_state_quietly(&node, &state_dir) {
+                Ok(count) => {
+                    if count > 0 {
+                        eprintln!(
+                            "  state: saved {} fragments to {}",
+                            count,
+                            state_dir.join("knowledge.seed").display()
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("  state: error saving: {}", e);
                 }
             }
-            Err(e) => {
-                eprintln!("  state: error saving: {}", e);
-            }
-        }
 
-        if let Err(e) = save_reflex_cache_quietly(&node, &state_dir) {
-            eprintln!("  reflex: error saving cache: {}", e);
-        }
-        if let Err(e) = save_action_log_quietly(&node, &state_dir) {
-            eprintln!("  actions: error saving log: {}", e);
+            if let Err(e) = save_reflex_cache_quietly(&node, &state_dir) {
+                eprintln!("  reflex: error saving cache: {}", e);
+            }
+            if let Err(e) = save_action_log_quietly(&node, &state_dir) {
+                eprintln!("  actions: error saving log: {}", e);
+            }
         }
     }
 
@@ -190,6 +220,7 @@ fn parse_args() -> CliConfig {
     let mut state_dir = None;
     let mut auto_persist = true;
     let mut cli_policy_hash: Option<String> = None;
+    let mut mcp_port: Option<u16> = None;
 
     let mut i = 1;
     while i < args.len() {
@@ -264,6 +295,15 @@ fn parse_args() -> CliConfig {
                     node_config.runtime_config.action_mode = mode;
                 }
             }
+            "--mcp-port" => {
+                i += 1;
+                if i < args.len() {
+                    mcp_port = Some(args[i].parse().unwrap_or_else(|_| {
+                        eprintln!("bizra-node: invalid --mcp-port value: {}", args[i]);
+                        process::exit(2);
+                    }));
+                }
+            }
             "--no-persist" => {
                 auto_persist = false;
             }
@@ -303,6 +343,7 @@ fn parse_args() -> CliConfig {
         seed_file,
         state_dir,
         auto_persist,
+        mcp_port,
     }
 }
 
@@ -322,6 +363,7 @@ OPTIONS:
     --reflex-mode <m>   Reflex routing mode: disabled|shadow|active
     --action-mode <m>   Action execution mode: disabled|shadow|active
     --policy-hash <h>   Genesis policy hash (64 hex). Or env BIZRA_GENESIS_POLICY_HASH.
+    --mcp-port <port>   Enable MCP JSON-RPC 2.0 TCP transport (default: stdin/stdout)
     --no-persist        Disable auto-save on shutdown
     --no-banner         Suppress startup banner
     --no-auto-session   Don't auto-start a conversation session
@@ -357,6 +399,14 @@ COMMANDS:
     PING                               Keepalive check
     VERSION                            Node version info
     SHUTDOWN                           Graceful shutdown
+
+  SAP v0 Protocol:
+    SAP_MEET_OPEN <profile> <role> <ts>    Open SAP session
+    SAP_MESSAGE <sid> <content> <ts>       Send message in session
+    SAP_DISCLOSURE <sid>                   Request disclosure
+    SAP_CONSENT_REQUEST <sid> <scopes>     Request consent
+    SAP_CONSENT_REVOKE <sid> <receipt_id>  Revoke consent
+    SAP_SESSION_CLOSE <sid> <ts>           Close session
 
     Every seed has infinite potential. ربي لا يعرف المستحيل
 "#

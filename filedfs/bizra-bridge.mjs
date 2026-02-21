@@ -33,7 +33,9 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws"; // npm install ws
 import { createInterface } from "node:readline";
-import { resolve } from "node:path";
+import { resolve, dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // ============================================================
 // CONFIGURATION
@@ -64,6 +66,9 @@ function parseArgs() {
       case "--user":
         config.binaryArgs.push("--user", args[++i]);
         break;
+      case "--seed":
+        config.binaryArgs.push("--seed", resolve(args[++i]));
+        break;
       case "--help":
         console.log(`
 bizra-bridge — WebSocket bridge to bizra-node
@@ -75,9 +80,26 @@ Options:
   --binary <path>   Path to bizra-node binary (default: ${DEFAULT_BINARY})
   --ihsan <score>   إحسان floor for the node (0-10000)
   --user <hash>     User identity hash
+  --seed <file>     Knowledge seed file to load at startup
   --help            Show this help
         `);
         process.exit(0);
+    }
+  }
+
+  // Auto-detect genesis seed if no explicit --seed was provided
+  if (!config.binaryArgs.includes("--seed")) {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const seedCandidates = [
+      join(__dirname, "genesis_mumo.seed"),
+      join(__dirname, "..", "filedfs", "genesis_mumo.seed"),
+    ];
+    for (const candidate of seedCandidates) {
+      if (existsSync(candidate)) {
+        config.binaryArgs.push("--seed", candidate);
+        console.log(`[bridge] Auto-detected genesis seed: ${candidate}`);
+        break;
+      }
     }
   }
 

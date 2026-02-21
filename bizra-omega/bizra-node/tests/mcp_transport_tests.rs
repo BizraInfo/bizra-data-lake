@@ -615,3 +615,181 @@ fn tcp_error_for_unknown_method() {
     assert_eq!(v["error"]["code"], -32601);
     assert_eq!(v["id"], 99);
 }
+
+// ============================================================
+// SAP v0 INTEGRATION TESTS — full TCP round-trip through Node
+// ============================================================
+
+use bizra_node::node::{Node, NodeConfig};
+use std::sync::Mutex;
+
+fn make_sap_tcp_test_node() -> (u16, Arc<Mutex<Node>>) {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+
+    let node = Node::new(NodeConfig {
+        show_banner: false,
+        auto_start_session: false,
+        ..Default::default()
+    });
+    let node_arc = Arc::new(Mutex::new(node));
+
+    let handler_node = Arc::clone(&node_arc);
+    let handler = Arc::new(move |cmd: Command| -> Response {
+        let mut n = handler_node.lock().expect("lock");
+        n.handle_command(cmd)
+    });
+
+    let config = McpTransportConfig {
+        host: "127.0.0.1".to_string(),
+        port,
+        max_connections: 4,
+        read_timeout_ms: 5000,
+    };
+
+    std::thread::spawn(move || {
+        start_tcp_listener(config, handler);
+    });
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    (port, node_arc)
+}
+
+fn tcp_send_recv(stream: &TcpStream, request: &str) -> Value {
+    let mut writer = std::io::BufWriter::new(stream);
+    writeln!(writer, "{}", request).unwrap();
+    writer.flush().unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
+    serde_json::from_str(line.trim()).expect("valid JSON response")
+}
+
+#[test]
+fn sap_tcp_meet_open_creates_session() {
+    let (port, _node) = make_sap_tcp_test_node();
+    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+
+    let v = tcp_send_recv(
+        &stream,
+        r#"{"jsonrpc":"2.0","method":"sap_meet_open","params":{"profile":"sap-ads-retail-v0","initiator_role":"visitor","timestamp":1000},"id":1}"#,
+    );
+
+    assert_eq!(v["jsonrpc"], "2.0");
+    assert_eq!(v["id"], 1);
+    assert!(v["result"].is_object(), "should be OK result");
+    let session_id = v["result"]["session_id"].as_str().expect("session_id");
+    assert!(
+        session_id.starts_with("sap_"),
+        "session_id should start with sap_"
+    );
+    assert_eq!(v["result"]["profile"], "sap-ads-retail-v0");
+    // Disclosure and agent_card should be present
+    assert!(
+        v["result"]["disclosure"].is_string(),
+        "should have disclosure"
+    );
+    assert!(
+        v["result"]["agent_card"].is_string(),
+        "should have agent_card"
+    );
+}
+
+#[test]
+fn sap_tcp_full_session_lifecycle() {
+    let (port, _node) = make_sap_tcp_test_node();
+    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+
+    // Step 1: SAP_MEET_OPEN
+    let v1 = tcp_send_recv(
+        &stream,
+        r#"{"jsonrpc":"2.0","method":"sap_meet_open","params":{"timestamp":1000},"id":1}"#,
+    );
+    assert!(v1["result"]["session_id"].is_string());
+    let sid = v1["result"]["session_id"].as_str().unwrap();
+
+    // Step 2: SAP_MESSAGE
+    let msg_req = format!(
+        r#"{{"jsonrpc":"2.0","method":"sap_message","params":{{"session_id":"{}","content":"Hello BIZRA","timestamp":1001}},"id":2}}"#,
+        sid
+    );
+    let v2 = tcp_send_recv(&stream, &msg_req);
+    assert!(v2["result"].is_object(), "message should succeed");
+    assert!(
+        v2["result"]["receipt_hash"].is_string(),
+        "should have receipt_hash"
+    );
+
+    // Step 3: SAP_DISCLOSURE
+    let disc_req = format!(
+        r#"{{"jsonrpc":"2.0","method":"sap_disclosure","params":{{"session_id":"{}"}},"id":3}}"#,
+        sid
+    );
+    let v3 = tcp_send_recv(&stream, &disc_req);
+    assert!(v3["result"].is_object(), "disclosure should succeed");
+
+    // Step 4: SAP_SESSION_CLOSE
+    let close_req = format!(
+        r#"{{"jsonrpc":"2.0","method":"sap_session_close","params":{{"session_id":"{}","timestamp":1002}},"id":4}}"#,
+        sid
+    );
+    let v4 = tcp_send_recv(&stream, &close_req);
+    assert!(v4["result"].is_object(), "close should succeed");
+    assert_eq!(v4["result"]["closed"], "true");
+    assert!(
+        v4["result"]["final_receipt_hash"].is_string(),
+        "should have final_receipt_hash"
+    );
+}
+
+#[test]
+fn sap_tcp_message_invalid_session_rejected() {
+    let (port, _node) = make_sap_tcp_test_node();
+    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+
+    let v = tcp_send_recv(
+        &stream,
+        r#"{"jsonrpc":"2.0","method":"sap_message","params":{"session_id":"fake_session","content":"hello","timestamp":1000},"id":1}"#,
+    );
+
+    // Should return an error — session doesn't exist
+    assert!(
+        v["error"].is_object(),
+        "should be error for invalid session"
+    );
+}
+
+#[test]
+fn sap_tcp_consent_flow() {
+    let (port, _node) = make_sap_tcp_test_node();
+    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+
+    // Open session
+    let v1 = tcp_send_recv(
+        &stream,
+        r#"{"jsonrpc":"2.0","method":"sap_meet_open","params":{"timestamp":2000},"id":1}"#,
+    );
+    let sid = v1["result"]["session_id"].as_str().unwrap();
+
+    // Request consent
+    let consent_req = format!(
+        r#"{{"jsonrpc":"2.0","method":"sap_consent_request","params":{{"session_id":"{}","scopes":["name","email"]}},"id":2}}"#,
+        sid
+    );
+    let v2 = tcp_send_recv(&stream, &consent_req);
+    assert!(v2["result"].is_object(), "consent request should succeed");
+}
