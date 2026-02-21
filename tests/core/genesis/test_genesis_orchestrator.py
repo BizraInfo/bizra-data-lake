@@ -19,7 +19,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.genesis import GenesisConfig, GenesisOrchestrator, GenesisResult, GenesisStep
+from core.genesis import GenesisConfig, GenesisResult, GenesisStep
+from core.genesis.orchestrator import GenesisOrchestrator
 from core.genesis.hardware import HardwareScanner
 from core.genesis.mobile_pairing import MobilePairResult, pair_mobile
 from core.genesis.urp import URPPledge, pledge_resources
@@ -32,7 +33,7 @@ from core.genesis.urp import URPPledge, pledge_resources
 
 class TestGenesisImports:
     def test_import_orchestrator(self):
-        from core.genesis import GenesisOrchestrator
+        from core.genesis.orchestrator import GenesisOrchestrator
         assert GenesisOrchestrator is not None
 
     def test_import_types(self):
