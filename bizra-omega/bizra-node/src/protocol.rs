@@ -497,7 +497,7 @@ fn parse_u16(s: &str, field: &str) -> Result<u16, (ErrorCode, String)> {
 }
 
 /// Validate a TEACH kind string.
-/// Accepted: fact, preference, pattern, relationship, goal, expertise, context, principle
+/// Accepted: fact, preference, pattern, relationship, goal, expertise, context, principle, temporal, negation
 fn validate_teach_kind(kind: &str) -> Result<(), (ErrorCode, String)> {
     match kind {
         "fact" | "preference" | "pattern" | "relationship" | "goal" | "expertise" | "context"
