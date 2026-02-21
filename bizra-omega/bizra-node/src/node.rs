@@ -191,6 +191,39 @@ impl Node {
         response.to_wire()
     }
 
+    /// Execute a pre-parsed Command directly (for MCP transport).
+    ///
+    /// Skips the parse step. Returns a Response object.
+    pub fn handle_command(&mut self, cmd: protocol::Command) -> Response {
+        self.commands_processed += 1;
+
+        let mut stopped = false;
+        let response = {
+            let mut internals = NodeInternals {
+                runtime: &mut self.runtime,
+                ihsan: &mut self.ihsan,
+                session_counter: &mut self.session_counter,
+                message_counter: &mut self.message_counter,
+                ihsan_floor: self.config.ihsan_floor,
+                user_hash: self.config.user_hash,
+                stopped: &mut stopped,
+                action_executor: &mut self.action_executor,
+                sap_sessions: &mut self.sap_sessions,
+            };
+            handler::handle(cmd, &mut internals)
+        };
+
+        if stopped {
+            self.state = NodeState::Stopped;
+        }
+
+        if response.is_err() {
+            self.errors_encountered += 1;
+        }
+
+        response
+    }
+
     /// Run the stdin/stdout protocol loop.
     ///
     /// Reads lines from stdin, processes each through `execute()`,
