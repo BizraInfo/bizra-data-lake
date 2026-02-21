@@ -314,6 +314,20 @@ const createBrowserBridge = () => {
                 compliance_assertions: [{ standard: "SAP_v0", status: "conformant", evidence: "22/22 tests" }],
               }),
               ihsan_score: "0.97",
+              agent_card: JSON.stringify({
+                agent_id: "node0-user-zero",
+                owner_node_id: "node0",
+                role: "sovereign_personal",
+                version: "0.1.0",
+                policy_hash: "504145f781412a4103249f78f46d61609eb1d02f",
+                capabilities: ["chat", "teach", "synthesize", "disclose"],
+                compilation: {
+                  genesis_version: "GENESIS",
+                  ihsan_threshold: 0.95,
+                  compiled_reflex_count: 81,
+                  compilation_coverage: 0.92,
+                },
+              }),
             },
           };
         }
