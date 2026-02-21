@@ -36,8 +36,10 @@ WORKDIR /app
 # --------------------------------------------------------------------------
 COPY Cargo.toml Cargo.lock ./
 
-# All 13 workspace members — must match [workspace] members in Cargo.toml
+# All workspace members — must match [workspace] members in Cargo.toml
+# Platform Layer
 COPY bizra-core/Cargo.toml bizra-core/
+COPY bizra-hypergraph/Cargo.toml bizra-hypergraph/
 COPY bizra-inference/Cargo.toml bizra-inference/
 COPY bizra-federation/Cargo.toml bizra-federation/
 COPY bizra-autopoiesis/Cargo.toml bizra-autopoiesis/
@@ -50,6 +52,12 @@ COPY bizra-telescript/Cargo.toml bizra-telescript/
 COPY bizra-proofspace/Cargo.toml bizra-proofspace/
 COPY bizra-resourcepool/Cargo.toml bizra-resourcepool/
 COPY bizra-cli/Cargo.toml bizra-cli/
+# Cognitive Layer
+COPY bizra-hooks/Cargo.toml bizra-hooks/
+COPY bizra-memory/Cargo.toml bizra-memory/
+# Desktop Node Layer
+COPY bizra-agent/Cargo.toml bizra-agent/
+COPY bizra-node/Cargo.toml bizra-node/
 
 # --------------------------------------------------------------------------
 # Create dummy source files so cargo can resolve the dependency graph and
@@ -63,8 +71,9 @@ COPY bizra-cli/Cargo.toml bizra-cli/
 # --------------------------------------------------------------------------
 RUN set -eux && \
     # Library crates (lib.rs only)
-    for crate in bizra-core bizra-inference bizra-federation bizra-autopoiesis \
-                 bizra-python bizra-hunter bizra-telescript bizra-proofspace; do \
+    for crate in bizra-core bizra-hypergraph bizra-inference bizra-federation \
+                 bizra-autopoiesis bizra-python bizra-hunter bizra-telescript \
+                 bizra-proofspace bizra-hooks bizra-memory bizra-agent; do \
         mkdir -p "$crate/src" && \
         echo "pub fn _dummy() {}" > "$crate/src/lib.rs"; \
     done && \
@@ -75,6 +84,10 @@ RUN set -eux && \
     # bizra-installer: binary only (bizra-install)
     mkdir -p bizra-installer/src && \
     echo "fn main() {}" > bizra-installer/src/main.rs && \
+    # bizra-node: lib + binary (bizra-node)
+    mkdir -p bizra-node/src && \
+    echo "pub fn _dummy() {}" > bizra-node/src/lib.rs && \
+    echo "fn main() {}" > bizra-node/src/main.rs && \
     # bizra-cli: binary only (bizra)
     mkdir -p bizra-cli/src && \
     echo "fn main() {}" > bizra-cli/src/main.rs && \
@@ -93,7 +106,12 @@ RUN set -eux && \
     echo "#[test] fn dummy() {}" > bizra-tests/tests/inference_fallback.rs
 
 # Pre-compile dependencies (this layer is cached until Cargo.toml changes)
-RUN cargo build --release --workspace 2>&1 || true
+# Exclude fate-binding (requires Z3) and iceoryx-bridge (requires iceoryx2)
+# which need system libraries not available in the Docker build environment.
+RUN cargo build --release --workspace \
+    --exclude fate-binding \
+    --exclude iceoryx-bridge \
+    2>&1 || true
 # Note: The dummy sources may cause some workspace crates to fail to compile
 # (missing actual types). That is expected — the goal is to cache *dependency*
 # downloads and compilation. The real build below will succeed.
@@ -102,6 +120,7 @@ RUN cargo build --release --workspace 2>&1 || true
 # Copy actual source code (invalidates cache only when source changes)
 # --------------------------------------------------------------------------
 COPY bizra-core/src bizra-core/src/
+COPY bizra-hypergraph/src bizra-hypergraph/src/
 COPY bizra-inference/src bizra-inference/src/
 COPY bizra-federation/src bizra-federation/src/
 COPY bizra-autopoiesis/src bizra-autopoiesis/src/
@@ -113,6 +132,10 @@ COPY bizra-cli/src bizra-cli/src/
 COPY bizra-telescript/src bizra-telescript/src/
 COPY bizra-proofspace/src bizra-proofspace/src/
 COPY bizra-resourcepool/src bizra-resourcepool/src/
+COPY bizra-hooks/src bizra-hooks/src/
+COPY bizra-memory/src bizra-memory/src/
+COPY bizra-agent/src bizra-agent/src/
+COPY bizra-node/src bizra-node/src/
 COPY bizra-tests/tests bizra-tests/tests/
 COPY bizra-tests/benches bizra-tests/benches/
 
@@ -122,12 +145,14 @@ RUN find /app -name "*.rs" -newer /app/Cargo.lock -exec touch {} +
 # Build release binaries
 # - bizra-api:          REST/WebSocket API gateway
 # - bizra-install:      Universal installer (from bizra-installer)
+# - bizra-node:         Desktop sovereign node (from bizra-node)
 # - bizra:              CLI/TUI (from bizra-cli)
 # - resourcepool-node:  Resource pool daemon (from bizra-resourcepool)
 # - node0-genesis:      Genesis ceremony (from bizra-resourcepool)
 RUN cargo build --release \
     -p bizra-api \
     -p bizra-installer \
+    -p bizra-node \
     -p bizra-cli \
     -p bizra-resourcepool
 
@@ -149,6 +174,7 @@ RUN useradd -m -s /bin/bash bizra
 COPY --from=builder /app/target/release/bizra-api /usr/local/bin/
 COPY --from=builder /app/target/release/bizra /usr/local/bin/
 COPY --from=builder /app/target/release/bizra-install /usr/local/bin/
+COPY --from=builder /app/target/release/bizra-node /usr/local/bin/
 COPY --from=builder /app/target/release/node0-genesis /usr/local/bin/
 COPY --from=builder /app/target/release/resourcepool-node /usr/local/bin/
 
@@ -163,8 +189,8 @@ RUN mkdir -p ~/.bizra ~/.bizra/sovereign_state ~/.bizra/pat ~/.bizra/sat
 ENV BIZRA_ENV=production \
     RUST_LOG=info
 
-# Expose ports: API, Gossip UDP, Gossip TCP
-EXPOSE 3001 7946/udp 8946/tcp
+# Expose ports: API, MCP TCP, Gossip UDP, Gossip TCP
+EXPOSE 3001 9470 7946/udp 8946/tcp
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
@@ -191,6 +217,7 @@ RUN useradd -m -s /bin/bash bizra
 COPY --from=builder /app/target/release/bizra-api /usr/local/bin/
 COPY --from=builder /app/target/release/bizra /usr/local/bin/
 COPY --from=builder /app/target/release/bizra-install /usr/local/bin/
+COPY --from=builder /app/target/release/bizra-node /usr/local/bin/
 COPY --from=builder /app/target/release/node0-genesis /usr/local/bin/
 COPY --from=builder /app/target/release/resourcepool-node /usr/local/bin/
 
@@ -207,8 +234,8 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     BIZRA_ENV=production \
     RUST_LOG=info
 
-# Expose ports
-EXPOSE 3001 7946/udp 8946/tcp
+# Expose ports: API, MCP TCP, Gossip UDP, Gossip TCP
+EXPOSE 3001 9470 7946/udp 8946/tcp
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
