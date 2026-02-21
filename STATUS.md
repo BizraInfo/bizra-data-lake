@@ -1,6 +1,6 @@
 # BIZRA Implementation Status
 
-Updated: 2026-02-22T05:00Z
+Updated: 2026-02-22T08:00Z
 
 ## Measured Snapshot
 1. SAP conformance: `22/22` passing.
@@ -9,7 +9,7 @@ Updated: 2026-02-22T05:00Z
 4. Manifest hash: `504145f781412a4103249f78f46d61609eb1d02f81a1c2fa2f051184b23c6e09`.
 5. Provider normalizer tests: `31/31` passing.
 6. Desktop bridge tests: `33/33` passing.
-7. Rust workspace tests: `1,008/1,008` passing (0 failed, 0 ignored).
+7. Rust workspace tests: `1,015/1,015` passing (0 failed, 0 ignored).
 8. CI lint checks: `5/5` passing (cargo fmt, clippy, ruff, black, isort).
 9. Python full suite: `6,887/6,889` passing (99.97%, 2 skipped).
 10. DevOps review findings: `4/4` resolved (3 P1, 1 P2).
@@ -19,6 +19,8 @@ Updated: 2026-02-22T05:00Z
 14. MCP transport SAP v0: All 6 SAP methods mapped in JSON-RPC 2.0 transport (8 new tests).
 15. MCP TCP listener: `--mcp-port` CLI flag wired into binary with Node handle_command() API.
 16. SAP TCP integration: 4 full lifecycle tests (meet_open, message, disclosure, consent, close).
+17. Alpha-100 smoke tests: `7/7` passing (full onboarding lifecycle, SAP session, all TEACH kinds, familiarity growth, conversation flow, ping/version, graceful shutdown).
+18. Release binaries: Both `bizra-node` (929 KB) and `bizra-install` (4.0 MB) compile and run on release profile.
 
 | Component | Specified | Implemented | Verified (test/evidence link) | Notes/Risk |
 |---|---|---|---|---|
@@ -33,9 +35,11 @@ Updated: 2026-02-22T05:00Z
 | User Zero shadow marketing pilot | Yes | Yes (internal shadow) | `scripts/pilot/run_user_zero_shadow.py`, `tests/pilot/test_shadow_marketing_flow.py` | Fail-closed evidence/consent behavior; 4/4 pass. |
 | SAP v0 frontend wiring (bridge + hook + UI) | Yes | Yes | `filedfs/bizra-bridge.mjs`, `filedfs/useNode.js`, `filedfs/App.jsx` | 6 SAP verbs, SAPBadge, inline DisclosurePanel, SovereignAgentCard, receipt chain, session controls. |
 | User Zero Bootstrap spec package | Yes | Yes (spec layer) | `specs/user-zero-bootstrap/` (6 files, 2263 lines) | SPARC spec-pseudocode for 5-phase bootstrap. |
-| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 1,008 tests, 0 failures, 18 crates, release profile. |
+| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 1,015 tests, 0 failures, 18 crates, release profile. |
 | Desktop bridge integration | Yes | Yes | `tests/core/bridges/test_desktop_bridge.py` | 33/33 passing. |
 | MCP transport SAP v0 support | Yes | Yes | `bizra-node/src/mcp_transport.rs` | 6 SAP methods, 8 parser tests, JSON-RPC 2.0 framing. |
+| Alpha-100 onboarding smoke test | Yes | Yes | `bizra-node/tests/alpha100_smoke.rs` | 7 tests: lifecycle, SAP, TEACH kinds, familiarity, conversation, keepalive, shutdown. |
+| Release binary pipeline | Yes | Yes | `.github/workflows/alpha100-release-binaries.yml` | 3-target matrix (Linux, Windows, macOS), SHA-256 checksums, GitHub Release. |
 | Cross-node GO/MEET transport | Yes | No (post-v0) | N/A | Out of scope for this milestone. |
 | Token economics/federation rollout | Yes | No (post-v0) | N/A | Deferred beyond current milestone. |
 
@@ -48,3 +52,20 @@ G = min(CR, SR, CV) = 1.0000
 ```
 
 Interpretation: All three quality gates are green. SAP v0 internal release candidate is GO.
+
+## User Zero Readiness Assessment
+
+Node0 must fully serve User Zero (Mumo) before any Alpha-100 scaling.
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Genesis seed loading (81 fragments) | Working | `alpha100_smoke::full_onboarding_lifecycle` |
+| Conversation processing (RECEIVE) | Working | `alpha100_smoke::conversation_flow` |
+| Memory extraction (TEACH all 10 kinds) | Working | `alpha100_smoke::all_teach_kinds_accepted` |
+| Familiarity growth over time | Working | `alpha100_smoke::conversation_builds_familiarity` |
+| SAP v0 protocol (MeetOpen + Disclosure) | Working | `alpha100_smoke::sap_meet_open_after_teach` |
+| WebSocket bridge (stdio relay) | Working | `filedfs/bizra-bridge.mjs` |
+| Frontend chat UI | Working | 42-module clean build |
+| State persistence (knowledge + reflex) | Working | `persistence.rs` save/load tests |
+| Graceful shutdown | Working | `alpha100_smoke::graceful_shutdown` |
+| Release binary (929 KB, zero deps) | Working | `bizra-node --version` = 0.1.0 |
