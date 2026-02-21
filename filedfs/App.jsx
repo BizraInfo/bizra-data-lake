@@ -86,6 +86,7 @@ const AgentBadge = ({ name, active }) => {
 
 const Bubble = ({ role, content, meta }) => {
   const isUser = role === "user";
+  const [discOpen, setDiscOpen] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 12, maxWidth: "85%", alignSelf: isUser ? "flex-end" : "flex-start" }}>
       <div style={{
@@ -96,12 +97,17 @@ const Bubble = ({ role, content, meta }) => {
         color: "rgba(255,255,255,0.88)", fontFamily: "var(--sans)", fontSize: 13.5, lineHeight: 1.55,
       }}>{content}</div>
       {meta && (
-        <div style={{ display: "flex", gap: 10, marginTop: 4, padding: "0 4px", flexWrap: "wrap", alignItems: "center" }}>
-          {meta.agents && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(212,165,71,0.4)" }}>{meta.agents} agents</span>}
-          {meta.fragments > 0 && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(91,186,111,0.5)" }}>+{meta.fragments} learned</span>}
-          {meta.confidence && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{(parseFloat(meta.confidence) * 100).toFixed(0)}% conf</span>}
-          {meta.ihsanScore && <SAPBadge ihsanScore={meta.ihsanScore} sessionActive={true} />}
-          {meta.receiptHash && <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(107,155,247,0.3)" }} title={`Receipt: ${meta.receiptHash}`}>#{meta.receiptHash.slice(0, 8)}</span>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4, padding: "0 4px", width: "100%" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            {meta.agents && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(212,165,71,0.4)" }}>{meta.agents} agents</span>}
+            {meta.fragments > 0 && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(91,186,111,0.5)" }}>+{meta.fragments} learned</span>}
+            {meta.confidence && <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{(parseFloat(meta.confidence) * 100).toFixed(0)}% conf</span>}
+            {meta.ihsanScore && <SAPBadge ihsanScore={meta.ihsanScore} sessionActive={true} />}
+            {meta.receiptHash && <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(107,155,247,0.3)" }} title={`Receipt: ${meta.receiptHash}`}>#{meta.receiptHash.slice(0, 8)}</span>}
+          </div>
+          {meta.disclosure && (
+            <DisclosurePanel disclosure={meta.disclosure} collapsed={!discOpen} onToggle={() => setDiscOpen((o) => !o)} />
+          )}
         </div>
       )}
     </div>
@@ -204,6 +210,40 @@ const DisclosurePanel = ({ disclosure, collapsed, onToggle }) => {
   );
 };
 
+// ── Sovereign Agent Card ──────────────────────────────────────
+
+const SovereignAgentCard = ({ agentData }) => {
+  if (!agentData) return null;
+  const compilation = agentData.compilation || {};
+  return (
+    <div style={{
+      padding: "10px 12px", background: "rgba(212,165,71,0.04)",
+      border: "1px solid rgba(212,165,71,0.12)", borderRadius: 8,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: "linear-gradient(135deg, #D4A547, #8B6914)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#0A0B0F", fontFamily: "var(--mono)" }}>S</div>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(212,165,71,0.8)", letterSpacing: 0.5, fontWeight: 600 }}>SovereignAgentCard</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {agentData.agent_id && <CardRow label="agent" value={agentData.agent_id} />}
+        {agentData.role && <CardRow label="role" value={agentData.role} />}
+        {agentData.version && <CardRow label="version" value={agentData.version} />}
+        {compilation.compiled_reflex_count != null && <CardRow label="reflexes" value={compilation.compiled_reflex_count} />}
+        {compilation.ihsan_threshold != null && <CardRow label="ihsan gate" value={`${(compilation.ihsan_threshold * 100).toFixed(1)}%`} />}
+        {compilation.compilation_coverage != null && <CardRow label="coverage" value={`${(compilation.compilation_coverage * 100).toFixed(1)}%`} />}
+        {agentData.policy_hash && <CardRow label="policy" value={agentData.policy_hash.slice(0, 16) + "..."} />}
+      </div>
+    </div>
+  );
+};
+
+const CardRow = ({ label, value }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 0.6, textTransform: "uppercase" }}>{label}</span>
+    <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(255,255,255,0.6)" }}>{value}</span>
+  </div>
+);
+
 // ============================================================
 // MAIN DASHBOARD
 // ============================================================
@@ -230,6 +270,9 @@ export default function App() {
   // SAP v0 session state
   const [sapSession, setSapSession] = useState(null);
   const [sapDisclosureData, setSapDisclosureData] = useState(null);
+  const [sapIhsanScore, setSapIhsanScore] = useState(null);
+  const [sapAgentCard, setSapAgentCard] = useState(null);
+  const [sapReceiptChain, setSapReceiptChain] = useState([]);
   const [disclosureCollapsed, setDisclosureCollapsed] = useState(true);
   const [onboarded, setOnboarded] = useState(() => {
     try { return localStorage.getItem("bizra_onboarded") === "1"; } catch { return false; }
@@ -311,6 +354,15 @@ export default function App() {
         currentSession = meetResult.fields.session_id;
         setSapSession(currentSession);
         setSapDisclosureData(meetResult.fields.disclosure);
+        if (meetResult.fields.ihsan_score) {
+          setSapIhsanScore(meetResult.fields.ihsan_score);
+        }
+        if (meetResult.fields.agent_card) {
+          try {
+            const card = typeof meetResult.fields.agent_card === "string" ? JSON.parse(meetResult.fields.agent_card) : meetResult.fields.agent_card;
+            setSapAgentCard(card);
+          } catch { /* non-critical */ }
+        }
       }
     }
 
@@ -330,9 +382,15 @@ export default function App() {
       setActiveAgents(activeNames);
       setTimeout(() => setActiveAgents([]), 1500);
 
-      // Update disclosure data if present in response
+      // Update SAP session state from response
       if (f.disclosure) {
         setSapDisclosureData(f.disclosure);
+      }
+      if (f.ihsan_score) {
+        setSapIhsanScore(f.ihsan_score);
+      }
+      if (f.receipt_hash) {
+        setSapReceiptChain((prev) => [...prev, { hash: f.receipt_hash, ts: Date.now() }]);
       }
 
       setMessages((prev) => [
@@ -673,13 +731,52 @@ export default function App() {
 
           {/* SAP v0 Transparency */}
           {sapSession && (
-            <div style={{ width: "100%", padding: "10px 12px", background: "rgba(91,186,111,0.03)", border: "1px solid rgba(91,186,111,0.08)", borderRadius: 8 }}>
-              <SectionLabel extra="SAP v0">Transparency</SectionLabel>
-              <SAPBadge ihsanScore="0.97" sessionActive={!!sapSession} />
-              <DisclosurePanel disclosure={sapDisclosureData} collapsed={disclosureCollapsed} onToggle={() => setDisclosureCollapsed((c) => !c)} />
-              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
-                Session: {sapSession.slice(0, 12)}...
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ padding: "10px 12px", background: "rgba(91,186,111,0.03)", border: "1px solid rgba(91,186,111,0.08)", borderRadius: 8 }}>
+                <SectionLabel extra="SAP v0">Transparency</SectionLabel>
+                <SAPBadge ihsanScore={sapIhsanScore || "0.95"} sessionActive={true} />
+                <DisclosurePanel disclosure={sapDisclosureData} collapsed={disclosureCollapsed} onToggle={() => setDisclosureCollapsed((c) => !c)} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(255,255,255,0.2)" }}>
+                    Session: {sapSession.slice(0, 12)}...
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={async () => {
+                      const d = await sapDisclosure(sapSession);
+                      if (d?.ok && d.fields?.disclosure) setSapDisclosureData(d.fields.disclosure);
+                    }} style={{ background: "none", border: "1px solid rgba(91,186,111,0.2)", borderRadius: 4, padding: "2px 6px", fontFamily: "var(--mono)", fontSize: 8, color: "rgba(91,186,111,0.5)", cursor: "pointer" }} title="Refresh disclosure">
+                      Refresh
+                    </button>
+                    <button onClick={async () => {
+                      await sapSessionClose(sapSession);
+                      setSapSession(null);
+                      setSapDisclosureData(null);
+                      setSapIhsanScore(null);
+                      setSapAgentCard(null);
+                      setSapReceiptChain([]);
+                    }} style={{ background: "none", border: "1px solid rgba(232,93,74,0.2)", borderRadius: 4, padding: "2px 6px", fontFamily: "var(--mono)", fontSize: 8, color: "rgba(232,93,74,0.5)", cursor: "pointer" }} title="Close SAP session">
+                      Close
+                    </button>
+                  </div>
+                </div>
+                {sapReceiptChain.length > 0 && (
+                  <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(107,155,247,0.4)", letterSpacing: 0.8, textTransform: "uppercase" }}>Receipt Chain ({sapReceiptChain.length})</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: 3, maxHeight: 60, overflowY: "auto" }}>
+                      {sapReceiptChain.slice(-5).map((r, i) => (
+                        <span key={i} style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(107,155,247,0.3)" }}>#{r.hash.slice(0, 12)}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+              <SovereignAgentCard agentData={sapAgentCard || {
+                agent_id: "node0-user-zero",
+                role: "sovereign_personal",
+                version: "0.1.0",
+                compilation: { genesis_version: "GENESIS", ihsan_threshold: 0.95, compiled_reflex_count: 81, compilation_coverage: 0.92 },
+                policy_hash: "504145f781412a4103249f78f46d61609eb1d02f",
+              }} />
             </div>
           )}
 
