@@ -52,7 +52,9 @@ pub use bridge::{
     BridgeHealth, BridgeStatus, ExtractionBatch, ExtractionContent, ExtractionResult, Extractor,
     RuleExtractor, SearchBatch, SearchResult, Searcher,
 };
-pub use pipeline::{KnowledgeSummary, MemoryPipeline, PipelineConfig, PipelineStats};
+pub use pipeline::{
+    GenesisSeedResult, KnowledgeSummary, MemoryPipeline, PipelineConfig, PipelineStats,
+};
 pub use store::{InMemoryStore, StoreError};
 pub use synthesis::{SynthesisConfig, SynthesisEngine};
 pub use types::*;
@@ -224,6 +226,16 @@ impl BizraMemory {
     /// Force a synthesis pass (regardless of batch threshold).
     pub fn force_synthesis(&mut self, now: u64) {
         self.pipeline.force_synthesize(now);
+    }
+
+    /// Load a genesis seed file (TEACH format) with HHMM-aware TTL.
+    ///
+    /// Each atom kind gets the appropriate half-life for its cognitive layer:
+    /// - Glacial (facts, principles, negations): 182-day half-life
+    /// - Slow (expertise, patterns, preferences): 45-90 day half-life
+    /// - Fast (goals, temporals, context): 3.5-15 day half-life
+    pub fn load_genesis_seed(&mut self, seed_text: &str, base_timestamp: u64) -> GenesisSeedResult {
+        self.pipeline.load_genesis_seed(seed_text, base_timestamp)
     }
 
     /// Get the component ID for BizraSystem registration.

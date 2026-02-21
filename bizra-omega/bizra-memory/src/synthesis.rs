@@ -187,6 +187,32 @@ impl SynthesisEngine {
             }
         }
 
+        // Strategy 4: HHMM TTL-aware reaping and promotion
+        // Reap expired atoms (Pass 1 of two-pass eviction)
+        let reaped = store.reap_expired(now);
+        if reaped > 0 {
+            result.atoms_superseded += reaped;
+        }
+
+        // Attempt promotion for heavily-reinforced atoms
+        // An atom that has been reinforced past its promotion_threshold
+        // transcends to the next HHMM layer (Markov state transition)
+        let promotable: Vec<AtomId> = store
+            .reliable_atoms(now)
+            .filter(|a| {
+                let threshold = a.header.kind.promotion_threshold();
+                a.header.confidence.reinforcement_count >= threshold
+                    && a.header.kind.promotion_target().is_some()
+            })
+            .map(|a| a.header.id)
+            .collect();
+
+        for atom_id in promotable {
+            if let Some(_new_kind) = store.try_promote_atom(&atom_id) {
+                result.atoms_reinforced += 1; // reusing field for promotion count
+            }
+        }
+
         // Update profile sections
         store.update_profile_sections();
 

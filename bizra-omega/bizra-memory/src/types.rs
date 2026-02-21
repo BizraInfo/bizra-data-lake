@@ -130,9 +130,25 @@ impl Confidence {
         }
     }
 
+    /// Create confidence with HHMM-aware TTL for a specific atom kind.
+    /// The half-life is derived from the atom kind's temporal layer.
+    pub fn for_kind(base: f32, timestamp: u64, kind: AtomKind) -> Self {
+        Confidence {
+            base: base.clamp(0.0, 1.0),
+            last_reinforced: timestamp,
+            reinforcement_count: 1,
+            half_life_nanos: kind.half_life_nanos(),
+        }
+    }
+
     /// High confidence (0.95) — directly stated by user.
     pub fn stated(timestamp: u64) -> Self {
         Self::new(0.95, timestamp)
+    }
+
+    /// High confidence with HHMM-aware TTL.
+    pub fn stated_for(timestamp: u64, kind: AtomKind) -> Self {
+        Self::for_kind(0.95, timestamp, kind)
     }
 
     /// Medium confidence (0.70) — inferred from behavior.
@@ -140,9 +156,19 @@ impl Confidence {
         Self::new(0.70, timestamp)
     }
 
+    /// Medium confidence with HHMM-aware TTL.
+    pub fn inferred_for(timestamp: u64, kind: AtomKind) -> Self {
+        Self::for_kind(0.70, timestamp, kind)
+    }
+
     /// Low confidence (0.40) — speculative pattern.
     pub fn speculative(timestamp: u64) -> Self {
         Self::new(0.40, timestamp)
+    }
+
+    /// Low confidence with HHMM-aware TTL.
+    pub fn speculative_for(timestamp: u64, kind: AtomKind) -> Self {
+        Self::for_kind(0.40, timestamp, kind)
     }
 
     /// Calculate current effective confidence with temporal decay.
@@ -287,6 +313,102 @@ pub enum AtomKind {
     Temporal = 8,
     /// Negation: "user does NOT want centralized dependencies"
     Negation = 9,
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HHMM Temporal Granularity Decoupling
+// Standing on: Ebbinghaus (forgetting curves), Kahneman (dual process),
+//   Shannon (information density), Markov (state transitions)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// HHMM cognitive layer — determines temporal resolution.
+/// Layer 3 = glacial identity core (years)
+/// Layer 2 = slow behavioral patterns (months)
+/// Layer 1 = fast ephemeral context (days/weeks)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum HhmmLayer {
+    /// Fast: goals, deadlines, current mood. High churn, short TTL.
+    Fast = 1,
+    /// Slow: expertise, patterns, preferences. Stable but refineable.
+    Slow = 2,
+    /// Glacial: identity facts, principles, negations. Near-permanent.
+    Glacial = 3,
+}
+
+impl AtomKind {
+    /// Time-To-Live in days — how long this kind of knowledge persists
+    /// before natural decay makes it unreliable.
+    ///
+    /// Derived from Ebbinghaus: meaningful material (facts, principles)
+    /// persists far longer than arbitrary associations (context, mood).
+    pub const fn ttl_days(&self) -> u32 {
+        match self {
+            // Layer 3 — Glacial: identity core
+            Self::Fact => 365,
+            Self::Principle => 365,
+            Self::Negation => 365,
+            Self::Relationship => 270,
+            // Layer 2 — Slow: behavioral
+            Self::Expertise => 180,
+            Self::Pattern => 120,
+            Self::Preference => 90,
+            // Layer 1 — Fast: ephemeral
+            Self::Goal => 30,
+            Self::Temporal => 14,
+            Self::Context => 7,
+        }
+    }
+
+    /// Which HHMM layer this atom kind belongs to.
+    pub const fn hhmm_layer(&self) -> HhmmLayer {
+        match self {
+            Self::Fact | Self::Principle | Self::Negation | Self::Relationship => {
+                HhmmLayer::Glacial
+            }
+            Self::Expertise | Self::Pattern | Self::Preference => HhmmLayer::Slow,
+            Self::Goal | Self::Temporal | Self::Context => HhmmLayer::Fast,
+        }
+    }
+
+    /// Half-life in nanoseconds derived from TTL.
+    /// Half-life ≈ TTL / 2 — atom reaches ~25% confidence at TTL boundary.
+    pub const fn half_life_nanos(&self) -> u64 {
+        let days = self.ttl_days() as u64;
+        // half_life = ttl_days / 2, converted to nanos
+        (days / 2) * 24 * 3600 * 1_000_000_000
+    }
+
+    /// Promotion target: what an atom becomes when reinforced enough times
+    /// to transcend its current HHMM layer.
+    ///
+    /// Follows Markov adjacency: atoms promote through neighboring layers,
+    /// never skip. A Goal mentioned 10 times across months becomes a Pattern.
+    /// A Context expressed consistently becomes a Preference.
+    pub const fn promotion_target(&self) -> Option<Self> {
+        match self {
+            // Layer 1 → Layer 2 promotions
+            Self::Context => Some(Self::Preference), // consistent context → preference
+            Self::Goal => Some(Self::Pattern),       // enduring goal → behavioral pattern
+            Self::Temporal => Some(Self::Goal),      // recurring deadline → persistent goal
+            // Layer 2 → Layer 3 promotions
+            Self::Preference => Some(Self::Principle), // deep preference → guiding principle
+            Self::Pattern => Some(Self::Fact),         // confirmed pattern → identity fact
+            Self::Expertise => Some(Self::Fact),       // proven expertise → identity fact
+            // Layer 3: no promotion (already at ceiling)
+            Self::Fact | Self::Principle | Self::Negation | Self::Relationship => None,
+        }
+    }
+
+    /// Minimum reinforcement count required to trigger promotion.
+    /// Higher layers require more evidence to promote into.
+    pub const fn promotion_threshold(&self) -> u32 {
+        match self.hhmm_layer() {
+            HhmmLayer::Fast => 5,           // 5 reinforcements to promote from fast → slow
+            HhmmLayer::Slow => 10,          // 10 reinforcements to promote from slow → glacial
+            HhmmLayer::Glacial => u32::MAX, // never promotes (already at top)
+        }
+    }
 }
 
 /// Fixed-size atom header for event transport.
@@ -554,6 +676,101 @@ mod tests {
         assert!(c.is_reliable(20 * one_day));
         // After ~50 days, should drop below 0.30
         assert!(!c.is_reliable(60 * one_day));
+    }
+
+    // ━━━ HHMM Temporal Granularity Tests ━━━
+
+    #[test]
+    fn hhmm_layer_assignment() {
+        use super::HhmmLayer;
+        assert_eq!(AtomKind::Fact.hhmm_layer(), HhmmLayer::Glacial);
+        assert_eq!(AtomKind::Principle.hhmm_layer(), HhmmLayer::Glacial);
+        assert_eq!(AtomKind::Negation.hhmm_layer(), HhmmLayer::Glacial);
+        assert_eq!(AtomKind::Relationship.hhmm_layer(), HhmmLayer::Glacial);
+        assert_eq!(AtomKind::Expertise.hhmm_layer(), HhmmLayer::Slow);
+        assert_eq!(AtomKind::Pattern.hhmm_layer(), HhmmLayer::Slow);
+        assert_eq!(AtomKind::Preference.hhmm_layer(), HhmmLayer::Slow);
+        assert_eq!(AtomKind::Goal.hhmm_layer(), HhmmLayer::Fast);
+        assert_eq!(AtomKind::Temporal.hhmm_layer(), HhmmLayer::Fast);
+        assert_eq!(AtomKind::Context.hhmm_layer(), HhmmLayer::Fast);
+    }
+
+    #[test]
+    fn hhmm_ttl_ordering() {
+        // Glacial TTL > Slow TTL > Fast TTL
+        assert!(AtomKind::Fact.ttl_days() > AtomKind::Expertise.ttl_days());
+        assert!(AtomKind::Expertise.ttl_days() > AtomKind::Goal.ttl_days());
+        assert!(AtomKind::Pattern.ttl_days() > AtomKind::Temporal.ttl_days());
+        assert_eq!(AtomKind::Context.ttl_days(), 7); // fastest decay
+        assert_eq!(AtomKind::Fact.ttl_days(), 365); // slowest decay
+    }
+
+    #[test]
+    fn hhmm_half_life_scales_with_ttl() {
+        let fact_hl = AtomKind::Fact.half_life_nanos();
+        let context_hl = AtomKind::Context.half_life_nanos();
+        // Fact half-life should be ~52x longer than Context
+        // (365/2) / (7/2) = 52.1
+        assert!(fact_hl > context_hl * 50);
+    }
+
+    #[test]
+    fn hhmm_promotion_chain() {
+        // Fast → Slow
+        assert_eq!(
+            AtomKind::Context.promotion_target(),
+            Some(AtomKind::Preference)
+        );
+        assert_eq!(AtomKind::Goal.promotion_target(), Some(AtomKind::Pattern));
+        assert_eq!(AtomKind::Temporal.promotion_target(), Some(AtomKind::Goal));
+        // Slow → Glacial
+        assert_eq!(
+            AtomKind::Preference.promotion_target(),
+            Some(AtomKind::Principle)
+        );
+        assert_eq!(AtomKind::Pattern.promotion_target(), Some(AtomKind::Fact));
+        assert_eq!(AtomKind::Expertise.promotion_target(), Some(AtomKind::Fact));
+        // Glacial: ceiling
+        assert_eq!(AtomKind::Fact.promotion_target(), None);
+        assert_eq!(AtomKind::Principle.promotion_target(), None);
+        assert_eq!(AtomKind::Negation.promotion_target(), None);
+    }
+
+    #[test]
+    fn hhmm_promotion_thresholds_scale_by_layer() {
+        assert_eq!(AtomKind::Context.promotion_threshold(), 5);
+        assert_eq!(AtomKind::Preference.promotion_threshold(), 10);
+        assert_eq!(AtomKind::Fact.promotion_threshold(), u32::MAX);
+    }
+
+    #[test]
+    fn confidence_for_kind_uses_hhmm_half_life() {
+        let fact_conf = Confidence::for_kind(0.95, 1000, AtomKind::Fact);
+        let ctx_conf = Confidence::for_kind(0.95, 1000, AtomKind::Context);
+        // Fact has much longer half-life
+        assert!(fact_conf.half_life_nanos > ctx_conf.half_life_nanos * 50);
+    }
+
+    #[test]
+    fn hhmm_context_decays_faster_than_fact() {
+        let one_day: u64 = 24 * 3600 * 1_000_000_000;
+        let fact = Confidence::for_kind(0.95, 0, AtomKind::Fact);
+        let ctx = Confidence::for_kind(0.95, 0, AtomKind::Context);
+
+        // After 10 days: Context should be nearly gone, Fact barely affected
+        let fact_10d = fact.effective_at(10 * one_day);
+        let ctx_10d = ctx.effective_at(10 * one_day);
+
+        assert!(
+            fact_10d > 0.90,
+            "Fact after 10d should be >0.90, got {}",
+            fact_10d
+        );
+        assert!(
+            ctx_10d < 0.10,
+            "Context after 10d should be <0.10, got {}",
+            ctx_10d
+        );
     }
 
     #[test]

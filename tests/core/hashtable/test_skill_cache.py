@@ -10,7 +10,11 @@ from unittest.mock import patch
 
 import pytest
 
-from core.hashtable.skill_cache import CachedSkillResult, SkillCache
+from core.hashtable.skill_cache import (
+    CachedSkillResult,
+    SkillCache,
+    TemporalGranularityPolicy,
+)
 
 
 @pytest.fixture
@@ -99,6 +103,22 @@ class TestSkillCacheTTL:
         cache = SkillCache(max_size=10, default_ttl=3600, ihsan_floor=0.90)
         cache.put("k", {"v": 1}, snr_score=0.95)
         assert cache.get("k") is not None
+
+    def test_hhmm_lower_layer_gets_shorter_ttl_than_upper(self):
+        cache = SkillCache(max_size=10, default_ttl=100, ihsan_floor=0.90)
+
+        cache.put("low", {"v": 1}, snr_score=0.95, hhmm_layer=0)
+        cache.put("high", {"v": 2}, snr_score=0.95, hhmm_layer=4)
+
+        low_ttl = cache._cache["low"].ttl_seconds
+        high_ttl = cache._cache["high"].ttl_seconds
+
+        assert low_ttl < high_ttl
+
+    def test_explicit_ttl_overrides_hhmm_layer(self):
+        cache = SkillCache(max_size=10, default_ttl=100, ihsan_floor=0.90)
+        cache.put("k", {"v": 1}, snr_score=0.95, ttl=7, hhmm_layer=4)
+        assert cache._cache["k"].ttl_seconds == 7
 
 
 class TestSkillCacheIhsanFloor:
@@ -212,6 +232,12 @@ class TestSkillCacheStats:
         r2 = cache.get("k")
         assert r2 is not None
         assert r2.hit_count == 2
+
+    def test_temporal_policy_in_stats(self, cache):
+        stats = cache.stats()
+        assert "temporal_policy" in stats
+        policy = stats["temporal_policy"]
+        assert policy["hierarchy_levels"] >= 2
 
 
 class TestSkillCacheInvalidation:
@@ -327,3 +353,25 @@ class TestSkillCacheRepr:
         r = repr(cache)
         assert "SkillCache" in r
         assert "0/4" in r
+
+
+class TestTemporalGranularityPolicy:
+    def test_ttl_for_layer_monotonic(self):
+        policy = TemporalGranularityPolicy(
+            min_ttl_seconds=10,
+            max_ttl_seconds=100,
+            hierarchy_levels=5,
+        )
+        values = [policy.ttl_for_layer(i) for i in range(5)]
+        assert values[0] == 10
+        assert values[-1] == 100
+        assert values == sorted(values)
+
+    def test_layer_clamped_to_bounds(self):
+        policy = TemporalGranularityPolicy(
+            min_ttl_seconds=5,
+            max_ttl_seconds=50,
+            hierarchy_levels=5,
+        )
+        assert policy.ttl_for_layer(-9) == 5
+        assert policy.ttl_for_layer(99) == 50
