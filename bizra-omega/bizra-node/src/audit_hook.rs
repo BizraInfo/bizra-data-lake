@@ -21,6 +21,14 @@ pub const AUDIT_LOG_PATH: &str = "data/audit/action_receipts.jsonl";
 /// Max audit file size before rotation (50 MB).
 pub const MAX_AUDIT_FILE_SIZE: u64 = 50_000_000;
 
+/// Resolve the active audit log path.
+///
+/// Allows tests and controlled migration to override the path while
+/// keeping the production default stable.
+pub fn audit_log_path() -> String {
+    std::env::var("BIZRA_AUDIT_LOG_PATH").unwrap_or_else(|_| AUDIT_LOG_PATH.to_string())
+}
+
 /// PostDeliver hook function for action.receipt events.
 ///
 /// Extracts receipt metadata from the event payload and appends
@@ -48,7 +56,8 @@ pub fn audit_receipt_hook(event: &Event) -> (HookResult, Option<Event>) {
         "topic": event.topic.as_str(),
     });
 
-    if let Err(e) = append_audit_line(AUDIT_LOG_PATH, &entry.to_string()) {
+    let path = audit_log_path();
+    if let Err(e) = append_audit_line(&path, &entry.to_string()) {
         eprintln!("[WARN] Audit log write failed: {e}");
     }
 

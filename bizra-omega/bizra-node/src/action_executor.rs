@@ -16,6 +16,10 @@ use bizra_agent::action_types::{
 use bizra_agent::hash_namespace::parse_hex_32;
 use bizra_agent::key_vault::KeyVault;
 use bizra_agent::permit_guard::PermitUsage;
+use bizra_hooks::{
+    ComponentId, Event, EventBus, HookError, HookFn, HookId, HookPhase, HookPipeline, IhsanScore,
+    Payload, Priority, Topic,
+};
 use bizra_telescript::{Authority, Capability, Permit, ResourceLimits};
 use serde_json::{json, Value};
 
@@ -46,10 +50,19 @@ pub struct ActionExecutor {
     actions: HashMap<String, ActionResult>,
     receipts: Vec<ActionReceipt>,
     prev_receipt_hash: [u8; 32],
+    event_bus: EventBus,
+    post_deliver_pipeline: HookPipeline,
+    executor_component: ComponentId,
+    event_ihsan_score: IhsanScore,
+    receipt_events_enabled: bool,
     /// Optional KeyVault for secure secret resolution (Phase 4).
     key_vault: Option<KeyVault>,
     /// Whether to write audit log entries on each receipt.
     audit_log_enabled: bool,
+    /// Transitional guard: allow direct-audit fallback even when EventBus path is active.
+    direct_audit_fallback_on_eventbus: bool,
+    /// Optional audit path override (primarily for deterministic tests/migration checks).
+    audit_log_path_override: Option<String>,
 }
 
 impl ActionExecutor {
@@ -66,6 +79,7 @@ impl ActionExecutor {
             ResourceLimits::default(),
             600,
         );
+        let executor_component = ComponentId::from_name("action_executor", "1.0.0");
 
         Self {
             config,
@@ -78,8 +92,15 @@ impl ActionExecutor {
             actions: HashMap::new(),
             receipts: Vec::new(),
             prev_receipt_hash: [0u8; 32],
+            event_bus: EventBus::new(),
+            post_deliver_pipeline: HookPipeline::new(),
+            executor_component,
+            event_ihsan_score: IhsanScore::from_raw(9900),
+            receipt_events_enabled: false,
             key_vault: None,
             audit_log_enabled: false,
+            direct_audit_fallback_on_eventbus: false,
+            audit_log_path_override: None,
         }
     }
 
@@ -103,6 +124,45 @@ impl ActionExecutor {
     /// Set audit logging on/off at runtime.
     pub fn set_audit_log_enabled(&mut self, enabled: bool) {
         self.audit_log_enabled = enabled;
+    }
+
+    /// Register a PostDeliver hook for receipt events.
+    pub fn register_post_deliver_hook(
+        &mut self,
+        name: &str,
+        priority: u8,
+        hook_fn: HookFn,
+    ) -> Result<HookId, HookError> {
+        let hook_id =
+            self.post_deliver_pipeline
+                .register(HookPhase::PostDeliver, name, priority, hook_fn)?;
+        self.receipt_events_enabled = true;
+        Ok(hook_id)
+    }
+
+    /// Set ihsan score carried in emitted action.receipt events.
+    pub fn set_event_ihsan_score(&mut self, score: IhsanScore) {
+        self.event_ihsan_score = score;
+    }
+
+    /// Enable/disable direct-audit fallback when EventBus path is active.
+    pub fn set_direct_audit_fallback_on_eventbus(&mut self, enabled: bool) {
+        self.direct_audit_fallback_on_eventbus = enabled;
+    }
+
+    /// Override direct-write audit path.
+    pub fn set_audit_log_path_override(&mut self, path: Option<String>) {
+        self.audit_log_path_override = path;
+    }
+
+    /// Number of emitted receipt events (for diagnostics/tests).
+    pub fn receipt_events_emitted(&self) -> u64 {
+        self.event_bus.total_emitted()
+    }
+
+    /// Number of registered PostDeliver hooks.
+    pub fn post_deliver_hook_count(&self) -> usize {
+        self.post_deliver_pipeline.total_hooks()
     }
 
     pub fn plan_action(&mut self, payload_json: &str, now: u64) -> Result<ActionPlan, ActionError> {
@@ -275,10 +335,34 @@ impl ActionExecutor {
         };
         receipt.seal();
         self.prev_receipt_hash = receipt.receipt_hash;
-        if self.audit_log_enabled {
+        if self.receipt_events_enabled {
+            self.emit_receipt_event(&receipt);
+        }
+        if self.audit_log_enabled
+            && (!self.receipt_events_enabled || self.direct_audit_fallback_on_eventbus)
+        {
             self.write_audit_entry(&receipt);
         }
         self.receipts.push(receipt);
+    }
+
+    fn emit_receipt_event(&mut self, receipt: &ActionReceipt) {
+        let mut payload_bytes = Vec::with_capacity(32 + 1 + receipt.action_id.len());
+        payload_bytes.extend_from_slice(&receipt.receipt_hash);
+        payload_bytes.push(0x00);
+        payload_bytes.extend_from_slice(receipt.action_id.as_bytes());
+
+        let ts_nanos = receipt.timestamp.saturating_mul(1_000_000_000);
+        let event = Event {
+            id: self.event_bus.next_event_id(ts_nanos),
+            source: self.executor_component,
+            topic: Topic::new("action.receipt"),
+            priority: Priority::High,
+            payload: Payload::new(&payload_bytes),
+            ihsan_score: self.event_ihsan_score,
+        };
+        let _ = self.event_bus.emit(event);
+        self.post_deliver_pipeline.process_post_delivery(&event);
     }
 
     /// Write a single receipt to the JSONL audit log.
@@ -293,10 +377,12 @@ impl ActionExecutor {
             "result": &receipt.result,
             "guardian_verdict": receipt.guardian_verdict,
         });
-        if let Err(e) = crate::audit_hook::append_audit_line(
-            crate::audit_hook::AUDIT_LOG_PATH,
-            &entry.to_string(),
-        ) {
+        let audit_path = self
+            .audit_log_path_override
+            .as_deref()
+            .map(str::to_string)
+            .unwrap_or_else(crate::audit_hook::audit_log_path);
+        if let Err(e) = crate::audit_hook::append_audit_line(&audit_path, &entry.to_string()) {
             eprintln!("[WARN] Audit log write failed: {e}");
         }
     }
@@ -530,6 +616,49 @@ pub fn parse_policy_hash_hex(hex: Option<String>) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::OnceLock;
+
+    static RECEIPT_HOOK_INVOCATIONS: AtomicUsize = AtomicUsize::new(0);
+    static CUSTOM_HOOK_AUDIT_PATH: OnceLock<String> = OnceLock::new();
+
+    fn counting_post_deliver_hook(_event: &Event) -> (bizra_hooks::HookResult, Option<Event>) {
+        RECEIPT_HOOK_INVOCATIONS.fetch_add(1, Ordering::Relaxed);
+        (bizra_hooks::HookResult::Continue, None)
+    }
+
+    fn file_post_deliver_hook(event: &Event) -> (bizra_hooks::HookResult, Option<Event>) {
+        let path = match CUSTOM_HOOK_AUDIT_PATH.get() {
+            Some(p) => p,
+            None => return (bizra_hooks::HookResult::Continue, None),
+        };
+        let bytes = event.payload.as_bytes();
+        if bytes.len() < 32 {
+            return (bizra_hooks::HookResult::Continue, None);
+        }
+        let receipt_hash = bytes[..32]
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        let action_id = if bytes.len() > 33 && bytes[32] == 0 {
+            std::str::from_utf8(&bytes[33..]).unwrap_or("unknown")
+        } else {
+            "unknown"
+        };
+        let entry = serde_json::json!({
+            "ts": event.id.timestamp_nanos(),
+            "receipt_hash": receipt_hash,
+            "action_id": action_id,
+            "topic": event.topic.as_str(),
+        });
+        let _ = crate::audit_hook::append_audit_line(path, &entry.to_string());
+        (bizra_hooks::HookResult::Continue, None)
+    }
+
+    fn denied_step_payload() -> &'static str {
+        r#"{"steps":[{"channel":"DesktopRpc","kind":"Click","payload":"rm -rf /"}]}"#
+    }
 
     #[test]
     fn plan_and_history_roundtrip() {
@@ -547,5 +676,53 @@ mod tests {
     fn policy_hash_parse_fallback() {
         let out = parse_policy_hash_hex(None);
         assert_eq!(out, [0u8; 32]);
+    }
+
+    #[test]
+    fn receipt_emits_post_deliver_event() {
+        RECEIPT_HOOK_INVOCATIONS.store(0, Ordering::Relaxed);
+        let mut exec = ActionExecutor::default();
+        exec.register_post_deliver_hook("test.count", 0, counting_post_deliver_hook)
+            .expect("hook registration");
+
+        let result = exec
+            .run_action("", denied_step_payload(), 100, [0u8; 32])
+            .expect("run_action should produce denied result");
+        assert_eq!(result.status, ActionExecutionStatus::Denied);
+        assert_eq!(exec.receipt_events_emitted(), 1);
+        assert_eq!(RECEIPT_HOOK_INVOCATIONS.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn transitional_guard_prevents_duplicate_audit_writes() {
+        let default_path = format!(
+            "{}/bizra_audit_guard_action_executor.jsonl",
+            std::env::temp_dir().display()
+        );
+        let hook_path = CUSTOM_HOOK_AUDIT_PATH
+            .get_or_init(|| default_path.clone())
+            .clone();
+        let path = std::path::PathBuf::from(&hook_path);
+        let _ = fs::remove_file(&path);
+
+        let mut exec = ActionExecutor::default().with_audit();
+        exec.set_audit_log_path_override(Some(hook_path.clone()));
+        exec.register_post_deliver_hook("audit.receipt", 0, file_post_deliver_hook)
+            .expect("hook registration");
+        exec.set_direct_audit_fallback_on_eventbus(false);
+
+        let result = exec
+            .run_action("", denied_step_payload(), 200, [0u8; 32])
+            .expect("run_action should produce denied result");
+        assert_eq!(result.status, ActionExecutionStatus::Denied);
+
+        let lines = fs::read_to_string(&path)
+            .expect("audit file should exist")
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .count();
+        assert_eq!(lines, 1);
+
+        let _ = fs::remove_file(&path);
     }
 }
