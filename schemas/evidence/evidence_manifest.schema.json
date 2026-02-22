@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/evidence/evidence_manifest.schema.json",
+  "title": "EvidenceManifest",
+  "type": "object",
+  "required": [
+    "generated_at",
+    "stage",
+    "tier",
+    "policy_version",
+    "manifest_content_hash",
+    "entries"
+  ],
+  "properties": {
+    "generated_at": {"type": "string"},
+    "stage": {"type": "string", "enum": ["scaffold", "final"]},
+    "tier": {"type": "string", "enum": ["private_full", "public_redacted"]},
+    "policy_version": {"type": "string"},
+    "manifest_content_hash": {"type": "string"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EvidenceManifestEntry"
+      }
+    }
+  },
+  "definitions": {
+    "EvidenceManifestEntry": {
+      "type": "object",
+      "required": [
+        "logical_path",
+        "source_path",
+        "source_root",
+        "discovery_rule",
+        "visibility",
+        "public_mode",
+        "classification",
+        "duplicate_of"
+      ],
+      "properties": {
+        "logical_path": {"type": "string"},
+        "source_path": {"type": "string"},
+        "source_root": {"type": "string"},
+        "discovery_rule": {"type": "string"},
+        "visibility": {"type": "string"},
+        "public_mode": {"type": "string"},
+        "classification": {"type": "string"},
+        "duplicate_of": {"type": ["string", "null"]},
+        "required_scaffold": {"type": "boolean"},
+        "required_final": {"type": "boolean"},
+        "source_exists": {"type": "boolean"},
+        "copied_path": {"type": ["string", "null"]},
+        "size_bytes": {"type": ["integer", "null"]},
+        "sha256": {"type": ["string", "null"]},
+        "blake3": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

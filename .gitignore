@@ -182,3 +182,13 @@ users.db
 
 # ── MagicMock / pytest file-leak artifacts ────────────────────
 <MagicMock*
+
+# ── Evidence Package Generated Outputs ─────────────────────────
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/private_full/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/public_redacted/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/integrity/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/release/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/manifest/import_receipt.json
+
+# Founding originals are source-locked from local vault paths; avoid accidental public commit
+00_GENESIS/01_ARABIC_FOUNDING/*.pdf

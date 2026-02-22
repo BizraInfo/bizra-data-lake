@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/evidence/evidence_gate_report.schema.json",
+  "title": "EvidenceGateReport",
+  "type": "object",
+  "required": [
+    "generated_at",
+    "stage",
+    "tier",
+    "policy_version",
+    "required_gates",
+    "gate_results",
+    "passed",
+    "reasons",
+    "required_artifacts_missing",
+    "research_discovered_count",
+    "research_indexed_count",
+    "research_unindexed_count",
+    "founding_docs_present",
+    "theological_bridge_present"
+  ],
+  "properties": {
+    "generated_at": {"type": "string"},
+    "stage": {"type": "string"},
+    "tier": {"type": "string"},
+    "policy_version": {"type": "string"},
+    "required_gates": {"type": "array", "items": {"type": "string"}},
+    "gate_results": {"type": "object"},
+    "passed": {"type": "boolean"},
+    "reasons": {"type": "array", "items": {"type": "string"}},
+    "required_artifacts_missing": {"type": "array", "items": {"type": "string"}},
+    "research_discovered_count": {"type": "integer"},
+    "research_indexed_count": {"type": "integer"},
+    "research_unindexed_count": {"type": "integer"},
+    "founding_docs_present": {"type": "boolean"},
+    "theological_bridge_present": {"type": "boolean"}
+  }
+}
