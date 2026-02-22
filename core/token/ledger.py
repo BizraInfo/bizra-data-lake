@@ -38,6 +38,7 @@ from core.integration.constants import (
 )
 from core.sovereign.adl_invariant import UBC_POOL_ID, calculate_gini
 from core.token.types import (
+    GENESIS_EPOCH_ID,
     TokenBalance,
     TokenOp,
     TokenReceipt,
@@ -457,6 +458,84 @@ class TokenLedger:
                 (TokenType.SEED.value,),
             )
             return {row[0]: row[1] for row in cursor.fetchall()}
+
+    # =========================================================================
+    # GENESIS GRANT — Cold-start allocation for new nodes
+    # =========================================================================
+
+    def _has_genesis_grant(self, node_id: str, epoch_id: str) -> bool:
+        """Check whether *node_id* already received a GENESIS_MINT in *epoch_id*.
+
+        Uses the SQLite transaction mirror so the check is O(1) index-lookup.
+        Must be called **inside** ``_lock`` or from ``genesis_grant`` (which
+        delegates to ``record_transaction`` which acquires the lock).
+        """
+        with sqlite3.connect(str(self._db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM token_transactions "
+                "WHERE op = ? AND to_account = ? AND epoch_id = ? LIMIT 1",
+                (TokenOp.GENESIS_MINT.value, node_id, epoch_id),
+            )
+            return cursor.fetchone() is not None
+
+    def genesis_grant(
+        self,
+        node_id: str,
+        amount: float = 100.0,
+        epoch_id: str = "",
+        memo: str = "",
+    ) -> TokenReceipt:
+        """Grant initial SEED tokens to a newly created node.
+
+        Mints tokens from the __UBC_POOL__ (Universal Basic Compute) pool.
+        This is a one-time genesis allocation that gives new users
+        immediate participation capability in the token economy.
+
+        Standing on Giants:
+        - Rawls (1971): The veil of ignorance demands a fair starting position
+        - Sen (1999): Capability approach — resources enable agency
+
+        Args:
+            node_id: The new node's identifier (e.g. "BIZRA-A1B2C3D4")
+            amount: SEED tokens to grant (default: 100.0)
+            epoch_id: Epoch identifier (default: GENESIS_EPOCH_ID)
+            memo: Optional memo (default: auto-generated)
+
+        Returns:
+            TokenReceipt with success status and new balance
+
+        Raises:
+            ValueError: If node_id is empty or amount <= 0
+        """
+        if not node_id or not node_id.strip():
+            raise ValueError("node_id must be a non-empty string")
+        if amount <= 0:
+            raise ValueError(f"amount must be positive, got {amount}")
+
+        # Enforce one-time semantics: reject if this node already received
+        # a GENESIS_MINT in the target epoch (idempotency guard).
+        effective_epoch = epoch_id or GENESIS_EPOCH_ID
+        if self._has_genesis_grant(node_id, effective_epoch):
+            return TokenReceipt(
+                success=False,
+                error=(
+                    f"genesis_grant already minted for node={node_id} "
+                    f"in epoch={effective_epoch}"
+                ),
+            )
+
+        tx = TransactionEntry(
+            op=TokenOp.GENESIS_MINT,
+            token_type=TokenType.SEED,
+            from_account="",  # Mints have no source
+            to_account=node_id,
+            amount=amount,
+            epoch_id=epoch_id or GENESIS_EPOCH_ID,
+            memo=memo or f"genesis_grant:{node_id}",
+        )
+
+        return self.record_transaction(tx)
 
     # =========================================================================
     # HARBERGER TAX — Continuous redistribution toward equality

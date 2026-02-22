@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from .hardware import HardwareInfo, HardwareScanner
 from .mobile_pairing import pair_mobile
@@ -70,6 +70,9 @@ class GenesisOrchestrator:
         self._node_id: str = ""
         self._genesis_hash: str = ""
         self._current_ihsan: float = 0.0
+        self._identity_private_key: Optional[str] = None
+        self._identity_public_key: Optional[str] = None
+        self._reason_codes: list[str] = []
 
     def run(self) -> GenesisResult:
         """
@@ -142,10 +145,77 @@ class GenesisOrchestrator:
 
         # Finalize
         result.total_duration_ms = (time.monotonic() - start_time) * 1000
-        result.success = result.failed_steps == 0
+        result.degraded = any(step.degraded for step in result.steps)
+        result.reason_codes = list(dict.fromkeys(self._reason_codes))
+
+        if result.failed_steps > 0:
+            result.status = "failed"
+            result.success = False
+        elif result.degraded:
+            result.status = "degraded"
+            result.success = False
+        else:
+            result.status = "success"
+            result.success = True
+
+        result.strict_gate_passed = (
+            result.failed_steps == 0
+            if self.config.strict_bootstrap
+            else (result.failed_steps == 0 and not result.degraded)
+        )
+        result.reason_code = (
+            result.reason_codes[0]
+            if result.reason_codes
+            else (
+                None
+                if result.status == "success"
+                else f"GENESIS_{result.status.upper()}"
+            )
+        )
         result.compute_hash()
 
         return result
+
+    def _step_reason_from_details(
+        self, name: str, details: Dict[str, Any]
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Classify whether a step is degraded and derive a stable reason code."""
+        degraded = bool(details.get("degraded", False))
+        reason_code = details.get("reason_code")
+        reason = details.get("reason") or details.get("error")
+
+        status_text = str(details.get("status", "")).strip().lower()
+        note_text = str(details.get("note", "")).strip().lower()
+        protocol_text = str(details.get("protocol", "")).strip().lower()
+        enforced = details.get("enforced")
+        signed = details.get("signed")
+
+        if status_text in {"stub", "deferred", "degraded", "module pending"}:
+            degraded = True
+        if "stub" in note_text or "deferred" in note_text:
+            degraded = True
+        if protocol_text.startswith("stub"):
+            degraded = True
+        if enforced is False or signed is False:
+            degraded = True
+
+        if not degraded:
+            return False, None, None
+
+        if isinstance(reason_code, str) and reason_code.strip():
+            return True, reason_code.strip(), reason
+
+        default_reason_codes = {
+            "token_allocation": "GENESIS_TOKEN_ALLOCATION_DEFERRED",
+            "urp_pledge": "GENESIS_URP_UNSIGNED_STUB",
+            "hda_bridge": "GENESIS_HDA_BRIDGE_STUB",
+            "mobile_pair": "GENESIS_MOBILE_PAIR_STUB",
+        }
+        return (
+            True,
+            default_reason_codes.get(name, f"GENESIS_{name.upper()}_DEGRADED"),
+            reason,
+        )
 
     def _run_step(
         self,
@@ -158,11 +228,38 @@ class GenesisOrchestrator:
 
         try:
             details = step_fn()
-            step.status = GenesisStepStatus.SUCCESS
             step.details = details
+            explicit_success = details.get("success")
+
+            degraded, reason_code, reason = self._step_reason_from_details(
+                name, details
+            )
+            step.degraded = degraded
+            step.reason_code = reason_code
+
+            if degraded:
+                if self.config.strict_bootstrap and not self.config.allow_degraded:
+                    step.status = GenesisStepStatus.FAILED
+                    step.error = (
+                        reason or f"{name} degraded in strict mode ({reason_code})"
+                    )
+                else:
+                    step.status = GenesisStepStatus.SKIPPED
+                    step.error = reason or f"{name} degraded ({reason_code})"
+                if reason_code:
+                    self._reason_codes.append(reason_code)
+            elif explicit_success is False:
+                step.status = GenesisStepStatus.FAILED
+                step.error = reason or f"{name} reported success=false"
+                if reason_code:
+                    self._reason_codes.append(reason_code)
+            else:
+                step.status = GenesisStepStatus.SUCCESS
         except Exception as e:
             step.status = GenesisStepStatus.FAILED
             step.error = str(e)
+            step.reason_code = f"GENESIS_{name.upper()}_EXCEPTION"
+            self._reason_codes.append(step.reason_code)
             logger.warning("Genesis step '%s' failed: %s", name, e)
 
         step.duration_ms = (time.monotonic() - start) * 1000
@@ -177,7 +274,9 @@ class GenesisOrchestrator:
         from core.pat.identity_card import generate_identity_keypair
         from core.pat.minting import mint_genesis_node
 
-        private_key, public_key = generate_identity_keypair()
+        private_key, public_key, _ = generate_identity_keypair()
+        self._identity_private_key = private_key
+        self._identity_public_key = public_key
         result = mint_genesis_node(
             architect_public_key=public_key,
             architect_name=self.config.architect_name,
@@ -224,8 +323,10 @@ class GenesisOrchestrator:
 
     def _step_sat_activation(self) -> Dict[str, Any]:
         """Step 4: SAT agent activation."""
+        sat_mode = "full49" if self.config.sat_count >= 49 else "mini5"
         return {
             "sat_count": self.config.sat_count,
+            "sat_mode": sat_mode,
             "status": "active",
             "urp_pledged": self._hardware_info is not None,
         }
@@ -237,20 +338,36 @@ class GenesisOrchestrator:
 
             minter = TokenMinter.create()
             receipts = minter.genesis_mint()
+            all_success = all(r.success for r in receipts)
             return {
                 "receipts": len(receipts),
-                "success": all(r.success for r in receipts),
+                "success": all_success,
+                "status": "active" if all_success else "failed",
+                "reason_code": (
+                    None if all_success else "GENESIS_TOKEN_ALLOCATION_FAILED"
+                ),
             }
         except Exception as e:
-            # Token allocation is not critical for genesis bootstrap
-            logger.warning("Token allocation skipped: %s", e)
-            return {"receipts": 0, "success": True, "note": "deferred"}
+            logger.warning("Token allocation unavailable: %s", e)
+            return {
+                "receipts": 0,
+                "success": False,
+                "status": "deferred",
+                "note": "deferred: token minter unavailable",
+                "degraded": True,
+                "reason": str(e),
+                "reason_code": "GENESIS_TOKEN_ALLOCATION_DEFERRED",
+            }
 
     def _step_urp_pledge(self) -> Dict[str, Any]:
         """Step 6: URP resource pledge."""
         node_id = self._node_id or "BIZRA-00000000"
         hw_dict = self._hardware_info.to_dict() if self._hardware_info else {}
-        pledge = pledge_resources(node_id, hw_dict)
+        pledge = pledge_resources(
+            node_id,
+            hw_dict,
+            signing_private_key_hex=self._identity_private_key,
+        )
         return pledge.to_dict()
 
     def _step_hda_bridge(self) -> Dict[str, Any]:
@@ -259,9 +376,16 @@ class GenesisOrchestrator:
         try:
             from core.bridges import SovereignBridge  # noqa: F401
 
-            return {"bridge": "AutoHotkey-Rust IPC", "status": "ready"}
+            return {"bridge": "AutoHotkey-Rust IPC", "status": "ready", "success": True}
         except ImportError:
-            return {"bridge": "AutoHotkey-Rust IPC", "status": "ready (module pending)"}
+            return {
+                "bridge": "AutoHotkey-Rust IPC",
+                "status": "stub",
+                "success": False,
+                "degraded": True,
+                "reason_code": "GENESIS_HDA_BRIDGE_STUB",
+                "reason": "Bridge module unavailable",
+            }
 
     def _step_mobile_pair(self) -> Dict[str, Any]:
         """Step 8: Mobile device pairing."""
@@ -419,13 +543,22 @@ class GenesisOrchestrator:
 
         elif step.name == "sat_activation":
             count = d.get("sat_count", 5)
+            sat_mode = d.get("sat_mode", "mini5")
             hw = self._hardware_info
             if hw:
-                return f"{mark} SAT-{count} active: URP {hw.ram_gb}GB + {hw.vram_gb}GB VRAM pledged"
-            return f"{mark} SAT-{count} active: URP pledged"
+                return (
+                    f"{mark} SAT-{count} ({sat_mode}) active: "
+                    f"URP {hw.ram_gb}GB + {hw.vram_gb}GB VRAM pledged"
+                )
+            return f"{mark} SAT-{count} ({sat_mode}) active: URP pledged"
 
         elif step.name == "token_allocation":
-            return f"{mark} Token genesis allocation complete"
+            if step.status == GenesisStepStatus.SUCCESS:
+                return f"{mark} Token genesis allocation complete"
+            return (
+                f"{mark} Token genesis allocation unavailable "
+                f"({step.reason_code or 'GENESIS_TOKEN_ALLOCATION_FAILED'})"
+            )
 
         elif step.name == "urp_pledge":
             ram = d.get("ram_gb", 0)
@@ -434,10 +567,20 @@ class GenesisOrchestrator:
 
         elif step.name == "hda_bridge":
             status = d.get("status", "ready")
+            if step.status != GenesisStepStatus.SUCCESS:
+                return (
+                    f"{mark} HDA bridge unavailable "
+                    f"({step.reason_code or 'GENESIS_HDA_BRIDGE_STUB'})"
+                )
             return f"{mark} HDA bridge: AutoHotkey{chr(0x2194)}Rust IPC {status}"
 
         elif step.name == "mobile_pair":
             name = d.get("device_name", "Device")
+            if step.status != GenesisStepStatus.SUCCESS:
+                return (
+                    f"{mark} {name} pairing degraded "
+                    f"({step.reason_code or 'GENESIS_MOBILE_PAIR_STUB'})"
+                )
             return f"{mark} {name} paired: proximity routing enabled"
 
         elif step.name == "guild_join":

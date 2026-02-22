@@ -72,6 +72,12 @@ def build_genesis_parser(subparsers: Any) -> argparse.ArgumentParser:
         help="Instantiate 5 SAT (System Agentic Team) agents",
     )
     genesis_parser.add_argument(
+        "--sat-49",
+        action="store_true",
+        dest="sat_49",
+        help="Instantiate full SAT-49 operating profile",
+    )
+    genesis_parser.add_argument(
         "--pat-count",
         type=int,
         default=None,
@@ -82,6 +88,12 @@ def build_genesis_parser(subparsers: Any) -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Custom SAT agent count (default: 5)",
+    )
+    genesis_parser.add_argument(
+        "--sat-mode",
+        choices=["mini5", "full49"],
+        default=None,
+        help="SAT operating profile (mini5 for User Zero, full49 for parity mode)",
     )
 
     # Bridge
@@ -123,6 +135,20 @@ def build_genesis_parser(subparsers: Any) -> argparse.ArgumentParser:
         default=0.999,
         help="Ihsan excellence target (default: 0.999)",
     )
+    strict_group = genesis_parser.add_mutually_exclusive_group()
+    strict_group.add_argument(
+        "--strict-bootstrap",
+        dest="strict_bootstrap",
+        action="store_true",
+        help="Fail-closed bootstrap: reject any deferred/stub step",
+    )
+    strict_group.add_argument(
+        "--allow-degraded",
+        dest="strict_bootstrap",
+        action="store_false",
+        help="Allow degraded bootstrap steps (diagnostic mode only)",
+    )
+    genesis_parser.set_defaults(strict_bootstrap=True)
 
     # Output
     genesis_parser.add_argument(
@@ -151,18 +177,36 @@ def handle_genesis(args: argparse.Namespace) -> None:
     """
     # Resolve PAT/SAT counts
     pat_count = 7 if getattr(args, "pat_7", False) else (args.pat_count or 7)
-    sat_count = 5 if getattr(args, "sat_5", False) else (args.sat_count or 5)
+    sat_mode = args.sat_mode
+    if getattr(args, "sat_49", False):
+        sat_mode = "full49"
+        sat_count = 49
+    elif getattr(args, "sat_5", False):
+        sat_mode = "mini5"
+        sat_count = 5
+    else:
+        sat_count = args.sat_count or 5
+        if sat_mode is None:
+            sat_mode = "full49" if sat_count >= 49 else "mini5"
+    if sat_mode == "full49":
+        sat_count = max(sat_count, 49)
+    elif sat_mode == "mini5" and sat_count == 5:
+        pass  # default mini5 — no override
+    # else: honour explicit --sat-count as-is
 
     config = GenesisConfig(
         identity_genesis=args.identity_genesis,
         hardware_scan=args.hardware_scan,
         pat_count=pat_count,
         sat_count=sat_count,
+        sat_mode=sat_mode,
         hda_bridge=args.hda_bridge,
         mobile_pair=args.mobile_pair,
         guild_join=args.guild_join,
         quest_accept=args.quest_accept,
         ihsan_target=args.ihsan_target,
+        strict_bootstrap=getattr(args, "strict_bootstrap", True),
+        allow_degraded=not getattr(args, "strict_bootstrap", True),
         architect_name=getattr(args, "architect", "MoMo"),
     )
 
