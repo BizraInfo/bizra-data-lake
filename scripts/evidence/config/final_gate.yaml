@@ -1,0 +1,13 @@
+policy_version: evidence-v1.0
+fail_closed: true
+stages:
+  scaffold:
+    required_gates:
+      - FOUNDING_DOCS_PRESENT
+      - REQUIRED_ARTIFACTS_PRESENT
+  final:
+    required_gates:
+      - FOUNDING_DOCS_PRESENT
+      - REQUIRED_ARTIFACTS_PRESENT
+      - THEOLOGICAL_BRIDGE_PRESENT
+      - RESEARCH_MANIFEST_COMPLETE

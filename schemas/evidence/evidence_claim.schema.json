@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/evidence/evidence_claim.schema.json",
+  "title": "EvidenceClaim",
+  "type": "object",
+  "required": ["id", "claim", "status", "evidence"],
+  "properties": {
+    "id": {"type": "string"},
+    "claim": {"type": "string"},
+    "status": {"type": "string"},
+    "value": {},
+    "evidence": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

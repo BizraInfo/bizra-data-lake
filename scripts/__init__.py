@@ -1,0 +1,1 @@
+"""Scripts namespace package."""

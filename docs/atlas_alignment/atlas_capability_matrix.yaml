@@ -1,0 +1,171 @@
+{
+  "schema_version": "1.0",
+  "source": "Atlas-to-Code Alignment Plan",
+  "capabilities": [
+    {
+      "capability": "7-layer stack + constitutional gates",
+      "status": "implemented",
+      "evidence": [
+        "core/governance/crown_layer.py",
+        "core/proof_engine/gates.py",
+        "bizra-omega/tests/integration_tests.rs"
+      ],
+      "owner": "governance",
+      "target_phase": "baseline"
+    },
+    {
+      "capability": "PAT-7",
+      "status": "implemented",
+      "evidence": [
+        "bizra-omega/bizra-agent/src/roster.rs",
+        "bizra-omega/bizra-agent/src/lib.rs"
+      ],
+      "owner": "agent-core",
+      "target_phase": "baseline"
+    },
+    {
+      "capability": "SAT-49",
+      "status": "partial",
+      "evidence": [
+        "bizra-omega/bizra-core/src/pat/mod.rs",
+        "bizra-omega/bizra-resourcepool/src/lib.rs",
+        "core/bridges/dual_agentic_bridge.py"
+      ],
+      "owner": "federation",
+      "target_phase": "P1"
+    },
+    {
+      "capability": "PAT-SAT negotiation protocol",
+      "status": "implemented",
+      "evidence": [
+        "core/bridges/dual_agentic_bridge.py",
+        "tests/core/sovereign/test_proactive_integration.py"
+      ],
+      "owner": "bridges",
+      "target_phase": "P1"
+    },
+    {
+      "capability": "Federation transport hardening",
+      "status": "partial",
+      "evidence": [
+        "core/federation/secure_transport.py"
+      ],
+      "owner": "federation",
+      "target_phase": "P0"
+    },
+    {
+      "capability": "HyperBlockTree / BlockGraph ledger",
+      "status": "partial",
+      "evidence": [
+        "bizra-omega/bizra-proofspace/src/lib.rs",
+        "bizra-omega/bizra-hypergraph/src/lib.rs"
+      ],
+      "owner": "ledger",
+      "target_phase": "P2"
+    },
+    {
+      "capability": "PoI + token economy",
+      "status": "partial",
+      "evidence": [
+        "core/proof_engine/poi_engine.py",
+        "core/token/ledger.py",
+        "core/token/mint.py"
+      ],
+      "owner": "economy",
+      "target_phase": "P1"
+    },
+    {
+      "capability": "URP resource pooling",
+      "status": "implemented",
+      "evidence": [
+        "core/genesis/urp.py",
+        "bizra-omega/bizra-resourcepool/src/lib.rs",
+        "tests/core/genesis/test_smoke_genesis.py"
+      ],
+      "owner": "resourcepool",
+      "target_phase": "P1"
+    },
+    {
+      "capability": "Node genesis lifecycle",
+      "status": "partial",
+      "evidence": [
+        "core/genesis/orchestrator.py",
+        "core/genesis/mobile_pairing.py"
+      ],
+      "owner": "genesis",
+      "target_phase": "P0"
+    },
+    {
+      "capability": "HDA/Desktop bridge truthfulness",
+      "status": "partial",
+      "evidence": [
+        "core/genesis/orchestrator.py",
+        "core/bridges/bridge.py"
+      ],
+      "owner": "bridges",
+      "target_phase": "P0"
+    },
+    {
+      "capability": "MCP/API external interface",
+      "status": "implemented",
+      "evidence": [
+        "bizra-omega/bizra-node/src/mcp_transport.rs",
+        "bizra-omega/bizra-node/src/node.rs"
+      ],
+      "owner": "node",
+      "target_phase": "baseline"
+    },
+    {
+      "capability": "A2A transport",
+      "status": "partial",
+      "evidence": [
+        "core/a2a/engine.py",
+        "core/a2a/transport.py"
+      ],
+      "owner": "a2a",
+      "target_phase": "P1"
+    },
+    {
+      "capability": "Memory synthesis + stereoscopic ingest",
+      "status": "implemented",
+      "evidence": [
+        "bizra-normalizers/normalizers",
+        "bizra-normalizers/tests/test_normalizers.py",
+        "bizra-omega/bizra-memory/src"
+      ],
+      "owner": "memory",
+      "target_phase": "baseline"
+    },
+    {
+      "capability": "Error handling / self-healing",
+      "status": "partial",
+      "evidence": [
+        "core/sovereign/runtime_stubs.py",
+        "core/sovereign/runtime_core.py"
+      ],
+      "owner": "runtime",
+      "target_phase": "P0"
+    },
+    {
+      "capability": "DevOps + release infrastructure",
+      "status": "implemented",
+      "evidence": [
+        "STATUS.md",
+        ".github/workflows",
+        "deploy",
+        "bizra-omega/Dockerfile"
+      ],
+      "owner": "devops",
+      "target_phase": "baseline"
+    },
+    {
+      "capability": "BIZRA Box appliance architecture",
+      "status": "missing",
+      "evidence": [
+        "bizra-omega/bizra-installer"
+      ],
+      "owner": "appliance",
+      "target_phase": "P2"
+    }
+  ]
+}

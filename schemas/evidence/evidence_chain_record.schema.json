@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.ai/schemas/evidence/evidence_chain_record.schema.json",
+  "title": "EvidenceChainRecord",
+  "type": "object",
+  "required": [
+    "seq",
+    "timestamp_utc",
+    "manifest_blake3",
+    "manifest_sha256",
+    "previous_chain_blake3",
+    "chain_blake3",
+    "sha256_compat",
+    "signer_pubkey",
+    "ed25519_signature",
+    "policy_version",
+    "tier",
+    "stage"
+  ],
+  "properties": {
+    "seq": {"type": "integer"},
+    "timestamp_utc": {"type": "string"},
+    "manifest_blake3": {"type": "string"},
+    "manifest_sha256": {"type": "string"},
+    "previous_chain_blake3": {"type": "string"},
+    "chain_blake3": {"type": "string"},
+    "sha256_compat": {"type": "string"},
+    "signer_pubkey": {"type": "string"},
+    "ed25519_signature": {"type": "string"},
+    "policy_version": {"type": "string"},
+    "tier": {"type": "string"},
+    "stage": {"type": "string"}
+  }
+}
