@@ -17,6 +17,22 @@ bin/bizra text eol=lf
 *.yml text eol=lf
 *.json text eol=lf
 
+# Markdown / docs
+*.md text eol=lf
+
+# JSX / JS / TS
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+
+# AHK (AutoHotKey)
+*.ahk text eol=lf
+
+# Seed files
+*.seed text eol=lf
+
 # Binary
 *.wasm binary
 *.parquet binary
+*.jsonl text eol=lf

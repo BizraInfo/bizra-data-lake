@@ -1,7 +1,7 @@
 """
 SpearPoint Pipeline — The Cockpit
 ===================================
-Unified orchestrator that consolidates the 7 fire-and-forget post-query
+Unified orchestrator that consolidates the post-query
 operations + SAT health check into a single, observable, fault-tolerant pipeline.
 
 Each step runs with independent error handling so one failure never
@@ -16,18 +16,20 @@ Standing on Giants:
 - Tulving (1972): Episodic memory encoding
 
 Pipeline stages (ordered by dependency):
-  1. graph_artifact   — Store GoT graph for retrieval
-  2. evidence_receipt  — Emit hash-chained receipt to Evidence Ledger
-  3. record_impact     — Record sovereignty impact (UERSScore)
-  4. poi_contribution  — Register PoI contribution (requires SNR score)
-  5. living_memory     — Encode experience into Living Memory
-  6. experience_ledger — Auto-commit episode to SEL on SNR_OK
-  7. judgment_observe  — SJE Phase A telemetry observation
-  8. sat_health        — SAT ecosystem Gini health check (observational)
+  1. graph_artifact      — Store GoT graph for retrieval
+  2. evidence_receipt    — Emit hash-chained receipt to Evidence Ledger
+  3. sense_reinforcement — Reinforce/flag source memories from receipt outcome
+  4. record_impact       — Record sovereignty impact (UERSScore)
+  5. poi_contribution    — Register PoI contribution (requires SNR score)
+  6. living_memory       — Encode experience into Living Memory
+  7. experience_ledger   — Auto-commit episode to SEL on SNR_OK
+  8. judgment_observe    — SJE Phase A telemetry observation
+  9. sat_health          — SAT ecosystem Gini health check (observational)
 """
 
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 from dataclasses import dataclass, field
@@ -86,7 +88,7 @@ class SpearPointResult:
 class SpearPointPipeline:
     """Unified post-query orchestrator — the cockpit.
 
-    Consolidates 7 fire-and-forget operations + SAT health check into one observable pipeline.
+    Consolidates post-query operations + SAT health checks into one observable pipeline.
     Each step is independently error-isolated. Failure in one step never
     blocks or corrupts another.
 
@@ -147,22 +149,25 @@ class SpearPointPipeline:
         # Step 2: Emit evidence receipt
         sp_result.steps.append(self._step_evidence_receipt(result, query))
 
-        # Step 3: Record impact (sovereignty progression)
+        # Step 3: SEL SENSE reinforcement from receipt outcome
+        sp_result.steps.append(await self._step_sense_reinforcement(result, query))
+
+        # Step 4: Record impact (sovereignty progression)
         sp_result.steps.append(self._step_record_impact(result))
 
-        # Step 4: Register PoI contribution
+        # Step 5: Register PoI contribution
         sp_result.steps.append(self._step_poi_contribution(result, query))
 
-        # Step 5: Encode living memory
+        # Step 6: Encode living memory
         sp_result.steps.append(await self._step_living_memory(result, query))
 
-        # Step 6: Commit experience to SEL
+        # Step 7: Commit experience to SEL
         sp_result.steps.append(self._step_experience_ledger(result, query))
 
-        # Step 7: Judgment telemetry
+        # Step 8: Judgment telemetry
         sp_result.steps.append(self._step_judgment_observe(result))
 
-        # Step 8: SAT ecosystem health check (observational)
+        # Step 9: SAT ecosystem health check (observational)
         sp_result.steps.append(self._step_sat_health_check(result))
 
         # Finalize
@@ -220,6 +225,16 @@ class SpearPointPipeline:
                 error=str(e),
             )
 
+    @staticmethod
+    def _receipt_outcome(result: Any) -> tuple[str, str, list[str]]:
+        """Compute canonical receipt decision/status/reason codes.
+
+        Delegates to the single source of truth in receipt_outcome module.
+        """
+        from core.sovereign.receipt_outcome import receipt_outcome
+
+        return receipt_outcome(result)
+
     def _step_evidence_receipt(self, result: Any, query: Any) -> StepResult:
         """Step 2: Emit hash-chained receipt into Evidence Ledger."""
         t0 = time.perf_counter()
@@ -233,21 +248,8 @@ class SpearPointPipeline:
         try:
             from core.proof_engine.evidence_ledger import emit_receipt
 
-            decision = "APPROVED"
-            reason_codes: list = []
-            status = "accepted"
+            decision, status, reason_codes = self._receipt_outcome(result)
             ihsan_threshold = getattr(self._config, "ihsan_threshold", 0.95)
-
-            if not result.validation_passed:
-                decision = "REJECTED"
-                reason_codes.append("IHSAN_BELOW_THRESHOLD")
-                status = "rejected"
-            if result.snr_score < 0.85:
-                if "SNR_BELOW_THRESHOLD" not in reason_codes:
-                    reason_codes.append("SNR_BELOW_THRESHOLD")
-                if decision == "APPROVED":
-                    decision = "QUARANTINED"
-                    status = "quarantined"
 
             query_digest = hex_digest(
                 query.text.encode("utf-8")
@@ -257,10 +259,11 @@ class SpearPointPipeline:
             )  # SEC-001: BLAKE3 for Rust interop
 
             node_id = getattr(self._config, "node_id", "BIZRA-00000000")
+            receipt_id = result.query_id.replace("-", "")[:32]
 
-            emit_receipt(
+            entry = emit_receipt(
                 self._evidence_ledger,
-                receipt_id=result.query_id.replace("-", "")[:32],
+                receipt_id=receipt_id,
                 node_id=node_id,
                 policy_version="1.0.0",
                 status=status,
@@ -304,6 +307,12 @@ class SpearPointPipeline:
                 ),
                 critical_decision=True,
             )
+            if isinstance(getattr(query, "context", None), dict):
+                query.context["_last_receipt_id"] = receipt_id
+                query.context["_last_receipt_decision"] = decision
+                query.context["_last_receipt_entry_hash"] = getattr(
+                    entry, "entry_hash", None
+                )
             # Clear trace after emission
             if self._snr_trace_ref:
                 self._snr_trace_ref[0] = None
@@ -322,8 +331,94 @@ class SpearPointPipeline:
                 error=str(e),
             )
 
+    async def _step_sense_reinforcement(self, result: Any, query: Any) -> StepResult:
+        """Step 3: Feed receipt outcome back into source-memory trust dynamics."""
+        t0 = time.perf_counter()
+        if self._living_memory is None:
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail="skipped (no living memory)",
+            )
+        context = getattr(query, "context", None)
+        if not isinstance(context, dict):
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail="skipped (no query context)",
+            )
+        source_ids_raw = context.get("_source_memory_ids")
+        if not isinstance(source_ids_raw, list) or not source_ids_raw:
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail="skipped (no source memory ids)",
+            )
+
+        source_ids = [mid for mid in source_ids_raw if isinstance(mid, str) and mid]
+        if not source_ids:
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail="skipped (no valid source memory ids)",
+            )
+
+        apply_feedback = getattr(self._living_memory, "apply_execution_feedback", None)
+        if apply_feedback is None:
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail="skipped (memory feedback API unavailable)",
+            )
+
+        try:
+            decision, _, reason_codes = self._receipt_outcome(result)
+            success = decision == "APPROVED"
+            reason = ",".join(reason_codes) if reason_codes else decision
+            receipt_ref = context.get("_last_receipt_id") or result.query_id
+
+            feedback_or_coro = apply_feedback(
+                source_ids,
+                success=success,
+                reason=reason,
+                receipt_ref=receipt_ref,
+            )
+            feedback = (
+                await feedback_or_coro
+                if inspect.isawaitable(feedback_or_coro)
+                else feedback_or_coro
+            )
+            if not isinstance(feedback, dict):
+                feedback = {}
+
+            action_key = "reinforced" if success else "flagged"
+            action_count = int(feedback.get(action_key, 0) or 0)
+            processed = int(feedback.get("processed", 0) or 0)
+            missing = int(feedback.get("missing", 0) or 0)
+            return StepResult(
+                name="sense_reinforcement",
+                success=True,
+                duration_ms=_elapsed(t0),
+                detail=(
+                    f"{action_key}={action_count} "
+                    f"(processed={processed}, missing={missing}, decision={decision})"
+                ),
+            )
+        except Exception as e:
+            return StepResult(
+                name="sense_reinforcement",
+                success=False,
+                duration_ms=_elapsed(t0),
+                error=str(e),
+            )
+
     def _step_record_impact(self, result: Any) -> StepResult:
-        """Step 3: Record query impact for sovereignty progression."""
+        """Step 4: Record query impact for sovereignty progression."""
         t0 = time.perf_counter()
         if not self._impact_tracker:
             return StepResult(
@@ -364,7 +459,7 @@ class SpearPointPipeline:
             )
 
     def _step_poi_contribution(self, result: Any, query: Any) -> StepResult:
-        """Step 4: Register PoI contribution."""
+        """Step 5: Register PoI contribution."""
         t0 = time.perf_counter()
         if self._poi_orchestrator is None:
             return StepResult(
@@ -412,7 +507,7 @@ class SpearPointPipeline:
             )
 
     async def _step_living_memory(self, result: Any, query: Any) -> StepResult:
-        """Step 5: Encode experience into Living Memory."""
+        """Step 6: Encode experience into Living Memory."""
         t0 = time.perf_counter()
         if self._living_memory is None or not result.success:
             return StepResult(
@@ -461,7 +556,7 @@ class SpearPointPipeline:
             )
 
     def _step_experience_ledger(self, result: Any, query: Any) -> StepResult:
-        """Step 6: Auto-commit episode to SEL on SNR_OK."""
+        """Step 7: Auto-commit episode to SEL on SNR_OK."""
         t0 = time.perf_counter()
         if self._experience_ledger is None:
             return StepResult(
@@ -534,7 +629,7 @@ class SpearPointPipeline:
             )
 
     def _step_judgment_observe(self, result: Any) -> StepResult:
-        """Step 7: SJE Phase A telemetry observation."""
+        """Step 8: SJE Phase A telemetry observation."""
         t0 = time.perf_counter()
         if self._judgment_telemetry is None:
             return StepResult(
@@ -573,7 +668,7 @@ class SpearPointPipeline:
             )
 
     def _step_sat_health_check(self, result: Any) -> StepResult:
-        """Step 8: SAT ecosystem health check (observational, non-blocking).
+        """Step 9: SAT ecosystem health check (observational, non-blocking).
 
         Checks URP Gini coefficient. If above threshold, logs a warning
         but does NOT fail the step — this is an observation for v1.
