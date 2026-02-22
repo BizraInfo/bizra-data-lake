@@ -39,6 +39,12 @@ Standing on Giants:
 from core.genesis.hardware import HardwareInfo, HardwareScanner
 from core.genesis.mobile_pairing import MobilePairResult, pair_mobile
 from core.genesis.orchestrator import GenesisOrchestrator
+from core.genesis.state_persistence import (
+    SovereignState,
+    load_sovereign_state,
+    save_sovereign_state,
+    state_exists,
+)
 from core.genesis.types import (
     CHECKMARK,
     CROSSMARK,
@@ -47,12 +53,6 @@ from core.genesis.types import (
     GenesisResult,
     GenesisStep,
     GenesisStepStatus,
-)
-from core.genesis.state_persistence import (
-    SovereignState,
-    load_sovereign_state,
-    save_sovereign_state,
-    state_exists,
 )
 from core.genesis.urp import URPPledge, pledge_resources
 

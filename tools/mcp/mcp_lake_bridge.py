@@ -80,19 +80,16 @@ def process_mcp_request(request):
         if tool_name == "knowledge_retrieve":
             query_text = args.get("query", "")
 
-            # Intercept stdout to capture query_graph's print statements
-            # This is crucial for both HTTP and Stdio modes
-            old_stdout = sys.stdout
-            sys.stdout = mystdout = StringIO()
+            # Thread-safe stdout capture via contextlib
+            import contextlib
+            captured = StringIO()
 
             try:
-                # Assuming query_graph prints results to stdout
-                query_graph(query_text)
-                results = mystdout.getvalue()
+                with contextlib.redirect_stdout(captured):
+                    query_graph(query_text)
+                results = captured.getvalue()
             except Exception as e:
                 results = f"Error executing query: {str(e)}"
-            finally:
-                sys.stdout = old_stdout
 
             return {
                 "jsonrpc": "2.0",
@@ -266,8 +263,8 @@ def generate_self_signed_cert(cert_dir: Path):
         ], check=True, capture_output=True)
         print("[BRIDGE] ✅ SSL certificate generated successfully")
         return str(cert_file), str(key_file)
-    except Exception:
-        # Simplified fallback logic if certificates missing
+    except Exception as e:
+        sys.stderr.write(f"[BRIDGE] SSL cert generation failed: {e}\n")
         return None, None
 
 def run_server(port=8443, secure=True, localhost_only=True):

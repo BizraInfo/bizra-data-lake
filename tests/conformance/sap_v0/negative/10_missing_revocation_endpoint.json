@@ -1,0 +1,23 @@
+{
+  "name": "missing_revocation_endpoint",
+  "schema": "consent_receipt.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "consent_receipt_id": "consent_002",
+    "session_id": "session_001",
+    "user_agent_id": "agent_user_001",
+    "brand_agent_id": "agent_brand_001",
+    "data_shared": [
+      {
+        "field": "shoe_size",
+        "purpose": "fit_recommendation"
+      }
+    ],
+    "data_withheld": [
+      "payment_info"
+    ],
+    "consent_timestamp": 1893456002,
+    "consent_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+    "revocation_endpoint": ""
+  }
+}

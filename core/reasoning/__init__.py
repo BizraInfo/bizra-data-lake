@@ -30,6 +30,9 @@ Migrated: 2026-02-05 | Files now in dedicated reasoning package
 # Bicameral Engine
 from .bicameral_engine import BicameralReasoningEngine
 
+# Entropy Router — System 1/2 query routing
+from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
+
 # graph_core: Main composed class
 from .graph_core import GraphOfThoughts
 
@@ -69,6 +72,8 @@ from .snr_maximizer import (
 _LAZY_MODULES = {
     "CollectiveIntelligence": (".collective_intelligence", "CollectiveIntelligence"),
     "CollectiveSynthesizer": (".collective_synthesizer", "CollectiveSynthesizer"),
+    "GoTBridge": (".got_bridge", "GoTBridge"),
+    "GoTBridgeResult": (".got_bridge", "GoTBridgeResult"),
 }
 
 
@@ -107,7 +112,14 @@ __all__ = [
     "SNRMaximizer",
     # Bicameral Engine
     "BicameralReasoningEngine",
+    # Entropy Router
+    "EntropyRouter",
+    "QueryComplexity",
+    "RoutingDecision",
     # Collective (lazy-loaded)
     "CollectiveIntelligence",
     "CollectiveSynthesizer",
+    # GoT Bridge — Phase 46 (lazy-loaded)
+    "GoTBridge",
+    "GoTBridgeResult",
 ]

@@ -995,3 +995,301 @@ class TestChainIntegrity:
         # The prev_hash tamper breaks both the chain link AND the hash (since
         # prev_hash is part of canonical_bytes used to compute tx_hash)
         assert "break" in error.lower() or "mismatch" in error.lower()
+
+
+# =============================================================================
+# TestAdlGiniGate
+# =============================================================================
+
+
+class TestAdlGiniGate:
+    """Tests for the ADL Gini gate in TokenLedger._validate_transaction().
+
+    The Gini gate rejects SEED transfers/mints that would push the network's
+    wealth distribution beyond the ADL_GINI_THRESHOLD (0.35).
+
+    Standing on Giants:
+    - Gini (1912): Statistical measure of inequality
+    - Rawls (1971): Veil of Ignorance — design as if position unknown
+    """
+
+    def test_transfer_allowed_below_threshold(self, tmp_path: Path) -> None:
+        """Transfers that keep Gini below threshold are allowed."""
+        ledger = make_ledger(tmp_path)
+        # Equal distribution: 6 accounts with 100 each → Gini ≈ 0
+        # (>= ADL_GINI_MIN_ACCOUNTS so Gini gate is active)
+        for i in range(6):
+            mint_seed_to(ledger, f"node-{i}", 100.0)
+
+        # Transfer 10 from node-0 to node-1: still very equal
+        tx = TransactionEntry(
+            op=TokenOp.TRANSFER,
+            token_type=TokenType.SEED,
+            from_account="node-0",
+            to_account="node-1",
+            amount=10.0,
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+    def test_transfer_blocked_above_threshold(self, tmp_path: Path) -> None:
+        """Transfer that would push Gini above 0.35 is rejected."""
+        ledger = make_ledger(tmp_path)
+        # Use GENESIS_MINT (exempt from Gini gate) to create initial unequal state
+        # Need >= ADL_GINI_MIN_ACCOUNTS (5) non-pool accounts for gate activation
+        for name, amount in [
+            ("node-0", 10.0),
+            ("node-1", 10.0),
+            ("node-2", 10.0),
+            ("node-3", 10.0),
+            ("whale", 500.0),
+        ]:
+            tx = TransactionEntry(
+                op=TokenOp.GENESIS_MINT,
+                token_type=TokenType.SEED,
+                to_account=name,
+                amount=amount,
+            )
+            assert ledger.record_transaction(tx).success
+
+        # Try to transfer more to the whale — would worsen inequality → blocked
+        tx = TransactionEntry(
+            op=TokenOp.TRANSFER,
+            token_type=TokenType.SEED,
+            from_account="node-0",
+            to_account="whale",
+            amount=5.0,
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is False
+        assert "Gini" in receipt.error
+        assert "Plutocratic" in receipt.error
+
+    def test_mint_blocked_above_threshold(self, tmp_path: Path) -> None:
+        """Mint that would push Gini above 0.35 is rejected."""
+        ledger = make_ledger(tmp_path)
+        # Use GENESIS_MINT (exempt) for equal base distribution
+        for i in range(5):
+            tx = TransactionEntry(
+                op=TokenOp.GENESIS_MINT,
+                token_type=TokenType.SEED,
+                to_account=f"node-{i}",
+                amount=100.0,
+            )
+            assert ledger.record_transaction(tx).success
+
+        # Regular MINT of massive amount to one account — should push Gini past threshold
+        tx = TransactionEntry(
+            op=TokenOp.MINT,
+            token_type=TokenType.SEED,
+            to_account="node-whale",
+            amount=100_000.0,
+            memo="giant mint",
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is False
+        assert "Gini" in receipt.error
+
+    def test_genesis_mint_exempt_from_gini(self, tmp_path: Path) -> None:
+        """GENESIS_MINT ops are exempt from the Gini gate (bootstrapping)."""
+        ledger = make_ledger(tmp_path)
+        # Mint a small amount first
+        mint_seed_to(ledger, "node-0", 1.0)
+
+        # Genesis mint a huge amount — should pass (exempt)
+        tx = TransactionEntry(
+            op=TokenOp.GENESIS_MINT,
+            token_type=TokenType.SEED,
+            to_account="founder",
+            amount=100_000.0,
+            memo="genesis allocation",
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+    def test_zakat_exempt_from_gini(self, tmp_path: Path) -> None:
+        """ZAKAT ops are exempt from the Gini gate (redistribution)."""
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "node-0", 1.0)
+
+        tx = TransactionEntry(
+            op=TokenOp.ZAKAT,
+            token_type=TokenType.SEED,
+            to_account="community-fund",
+            amount=50_000.0,
+            memo="computational zakat",
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+    def test_bloom_transfer_exempt_from_gini(self, tmp_path: Path) -> None:
+        """BLOOM (governance) transfers are not subject to the Gini gate."""
+        ledger = make_ledger(tmp_path)
+        # Mint BLOOM tokens
+        tx_mint = TransactionEntry(
+            op=TokenOp.MINT,
+            token_type=TokenType.BLOOM,
+            to_account="node-0",
+            amount=100_000.0,
+        )
+        ledger.record_transaction(tx_mint)
+
+        # Transfer BLOOM — not gated by Gini
+        tx = TransactionEntry(
+            op=TokenOp.TRANSFER,
+            token_type=TokenType.BLOOM,
+            from_account="node-0",
+            to_account="node-1",
+            amount=50_000.0,
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+    def test_gini_with_few_accounts_passes(self, tmp_path: Path) -> None:
+        """Gini gate skipped during bootstrap (fewer than ADL_GINI_MIN_ACCOUNTS)."""
+        ledger = make_ledger(tmp_path)
+        # Only one account in the system — below minimum for Gini enforcement
+        mint_seed_to(ledger, "solo-node", 100.0)
+
+        # Mint more to same account — no Gini enforcement during bootstrap
+        tx = TransactionEntry(
+            op=TokenOp.MINT,
+            token_type=TokenType.SEED,
+            to_account="solo-node",
+            amount=999_999.0,
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+    def test_equalizing_transfer_allowed(self, tmp_path: Path) -> None:
+        """Transfers that reduce inequality are always allowed."""
+        ledger = make_ledger(tmp_path)
+        # Use GENESIS_MINT (exempt) to create initial unequal state
+        tx_whale = TransactionEntry(
+            op=TokenOp.GENESIS_MINT,
+            token_type=TokenType.SEED,
+            to_account="whale",
+            amount=900.0,
+        )
+        assert ledger.record_transaction(tx_whale).success
+        for i in range(10):
+            tx_node = TransactionEntry(
+                op=TokenOp.GENESIS_MINT,
+                token_type=TokenType.SEED,
+                to_account=f"node-{i}",
+                amount=100.0,
+            )
+            assert ledger.record_transaction(tx_node).success
+
+        # Whale distributes to a small node — reduces Gini
+        tx = TransactionEntry(
+            op=TokenOp.TRANSFER,
+            token_type=TokenType.SEED,
+            from_account="whale",
+            to_account="node-0",
+            amount=100.0,
+        )
+        receipt = ledger.record_transaction(tx)
+        assert receipt.success is True
+
+
+# =============================================================================
+# TestHarbergerTax
+# =============================================================================
+
+
+class TestHarbergerTax:
+    """Tests for the Harberger tax sweep on TokenLedger.
+
+    Standing on Giants - Harberger (1962):
+    Self-assessed value with continuous taxation prevents hoarding
+    and ensures resources flow to the Universal Basic Compute pool.
+    """
+
+    def test_basic_tax_sweep(self, tmp_path: Path) -> None:
+        """Tax sweep collects from all SEED holders and credits UBC pool."""
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "alice", 1000.0)
+        mint_seed_to(ledger, "bob", 500.0)
+
+        result = ledger.apply_harberger_tax(tax_rate=0.10, epoch_id="test-epoch-1")
+
+        assert result["accounts_affected"] == 2
+        assert result["tax_rate"] == 0.10
+        # Expected: alice taxed 100, bob taxed 50, total 150
+        assert abs(result["total_taxed"] - 150.0) < 0.01
+        assert abs(result["ubc_pool_credit"] - 150.0) < 0.01
+
+        # Verify balances
+        alice_bal = ledger.get_balance("alice", TokenType.SEED)
+        bob_bal = ledger.get_balance("bob", TokenType.SEED)
+        ubc_bal = ledger.get_balance("__UBC_POOL__", TokenType.SEED)
+
+        assert abs(alice_bal.balance - 900.0) < 0.01
+        assert abs(bob_bal.balance - 450.0) < 0.01
+        assert abs(ubc_bal.balance - 150.0) < 0.01
+
+    def test_ubc_pool_not_taxed(self, tmp_path: Path) -> None:
+        """The UBC pool itself is exempt from Harberger taxation."""
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "alice", 1000.0)
+
+        # First sweep: 10% of 1000 = 100 → UBC
+        ledger.apply_harberger_tax(tax_rate=0.10)
+        ubc_after_first = ledger.get_balance("__UBC_POOL__", TokenType.SEED).balance
+        assert abs(ubc_after_first - 100.0) < 0.01
+
+        # Second sweep: should tax alice's remaining 900, NOT the UBC pool
+        result = ledger.apply_harberger_tax(tax_rate=0.10)
+        assert result["accounts_affected"] == 1  # Only alice, not UBC
+
+        ubc_after_second = ledger.get_balance("__UBC_POOL__", TokenType.SEED).balance
+        assert abs(ubc_after_second - 190.0) < 0.01  # 100 + 90
+
+    def test_default_rate_from_constants(self, tmp_path: Path) -> None:
+        """Default rate uses ADL_HARBERGER_TAX_RATE from constants.py (0.07)."""
+        from core.integration.constants import ADL_HARBERGER_TAX_RATE
+
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "alice", 1000.0)
+
+        result = ledger.apply_harberger_tax()
+        assert result["tax_rate"] == ADL_HARBERGER_TAX_RATE
+        expected_tax = 1000.0 * ADL_HARBERGER_TAX_RATE
+        assert abs(result["total_taxed"] - expected_tax) < 0.01
+
+    def test_tax_transactions_are_hash_chained(self, tmp_path: Path) -> None:
+        """Harberger tax transactions participate in the hash chain."""
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "alice", 1000.0)
+        seq_before = ledger.sequence
+
+        ledger.apply_harberger_tax(tax_rate=0.05)
+
+        # Sequence should have advanced (1 tax tx)
+        assert ledger.sequence == seq_before + 1
+
+        # Chain should still verify
+        valid, count, error = ledger.verify_chain()
+        assert valid is True
+        assert error is None
+
+    def test_empty_ledger_tax_sweep(self, tmp_path: Path) -> None:
+        """Tax sweep on empty ledger is a no-op."""
+        ledger = make_ledger(tmp_path)
+        result = ledger.apply_harberger_tax(tax_rate=0.10)
+        assert result["accounts_affected"] == 0
+        assert result["total_taxed"] == 0.0
+
+    def test_tax_with_epoch_id(self, tmp_path: Path) -> None:
+        """Epoch ID is recorded in the tax transaction memo."""
+        ledger = make_ledger(tmp_path)
+        mint_seed_to(ledger, "alice", 1000.0)
+
+        result = ledger.apply_harberger_tax(tax_rate=0.05, epoch_id="epoch-42")
+        assert result["epoch_id"] == "epoch-42"
+
+        # Check the recorded transaction has the epoch memo
+        history = ledger.get_transaction_history(account_id="__UBC_POOL__")
+        assert len(history) >= 1
+        assert "epoch-42" in history[0].memo

@@ -186,7 +186,7 @@ class TestSNRAnalysis:
     """SNRAnalysis: snr_linear, snr_db, Ihsan enforcement, dict serialization."""
 
     def test_high_snr_analysis(self):
-        """High signal + zero noise produces very large snr_linear and positive snr_db."""
+        """High signal + zero noise produces large snr_linear and bounded snr_normalized."""
         signal = SignalProfile(
             relevance=0.9,
             novelty=0.9,
@@ -198,10 +198,15 @@ class TestSNRAnalysis:
         noise = NoiseProfile()  # All zeros
         analysis = SNRAnalysis(signal=signal, noise=noise)
 
-        # signal / (0 + 1e-10) is huge
+        # snr_linear is unbounded (diagnostic), snr_normalized is bounded [0,1]
         assert analysis.snr_linear > 1e6
         assert analysis.snr_db > 0
-        assert analysis.ihsan_achieved is True
+        assert 0.0 <= analysis.snr_normalized <= 1.0
+        # With high signal and zero noise, snr_normalized = signal.total_signal
+        assert analysis.snr_normalized > 0.8
+        # Note: ihsan_achieved uses UNIFIED_IHSAN_THRESHOLD (0.95) in __post_init__.
+        # Signal=0.9 geometric mean = 0.9 which is correctly below 0.95.
+        assert analysis.ihsan_achieved is False
 
     def test_low_snr_analysis(self):
         """Low signal + high noise produces small snr_linear and negative snr_db."""
@@ -229,19 +234,19 @@ class TestSNRAnalysis:
         assert analysis.ihsan_achieved is False
 
     def test_ihsan_achieved_when_above_threshold(self):
-        """ihsan_achieved is True when snr_linear >= UNIFIED_IHSAN_THRESHOLD (0.95)."""
+        """ihsan_achieved is True when snr_normalized >= UNIFIED_IHSAN_THRESHOLD (0.95)."""
         from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
-        # Craft signal/noise to push snr_linear well above 0.95
+        # Craft signal high enough that total_signal >= 0.95 (geometric mean)
         signal = SignalProfile(
-            relevance=0.8,
-            novelty=0.8,
-            groundedness=0.8,
-            coherence=0.8,
-            actionability=0.8,
-            specificity=0.8,
+            relevance=0.98,
+            novelty=0.98,
+            groundedness=0.98,
+            coherence=0.98,
+            actionability=0.98,
+            specificity=0.98,
         )
-        noise = NoiseProfile()  # Zero noise => snr_linear = 0.8 / 1e-10 => huge
+        noise = NoiseProfile()  # Zero noise => snr_normalized = total_signal * 1.0
         analysis = SNRAnalysis(signal=signal, noise=noise)
 
         assert analysis.snr_linear >= UNIFIED_IHSAN_THRESHOLD
@@ -438,8 +443,8 @@ class TestSNRMaximizer:
         assert 0.0 <= result.score <= 1.0
         assert result.engine == "text"
 
-    def test_high_quality_text_passes_ihsan(self):
-        """Clean, citation-rich, first-seen text passes the Ihsan gate."""
+    def test_high_quality_text_scores_honestly(self):
+        """Clean, citation-rich, first-seen text gets honest score (may not pass 0.95)."""
         maximizer = SNRMaximizer()
         text = (
             "The FATE gate chain validates every inference through seven stages: "
@@ -448,9 +453,13 @@ class TestSNRMaximizer:
         )
         passed, analysis = maximizer.gate(text)
 
-        # First-seen text with citations => low noise, decent signal => passes
-        assert passed is True
-        assert analysis.snr_linear >= maximizer.ihsan_threshold
+        # Honest scoring: decent text gets decent score, not rubber-stamped
+        assert 0.0 < analysis.snr_normalized < 1.0
+        # The bounded score should be the actual quality, not inflated
+        assert analysis.snr_normalized == pytest.approx(
+            analysis.signal.total_signal * (1.0 - analysis.noise.total_noise),
+            abs=0.01,
+        )
 
     def test_noise_text_fails_ihsan(self):
         """Highly redundant and ambiguous content fails the Ihsan gate."""
@@ -593,13 +602,13 @@ class TestSNRAnalysisDeep:
     """Deep coverage for SNRAnalysis dataclass."""
 
     def test_to_dict_has_all_keys(self):
-        """to_dict returns signal, noise, snr_linear, snr_db, ihsan_achieved, recommendations."""
+        """to_dict returns signal, noise, snr_linear, snr_normalized, snr_db, ihsan_achieved, recommendations."""
         signal = SignalProfile()
         noise = NoiseProfile()
         analysis = SNRAnalysis(signal=signal, noise=noise)
         d = analysis.to_dict()
         assert set(d.keys()) == {
-            "signal", "noise", "snr_linear", "snr_db",
+            "signal", "noise", "snr_linear", "snr_normalized", "snr_db",
             "ihsan_achieved", "recommendations",
         }
         assert isinstance(d["signal"], dict)
@@ -877,12 +886,13 @@ class TestSNRMaximizerDeep:
 
     def test_maximize_stops_early_when_ihsan_achieved(self):
         """maximize() breaks out of iterations when ihsan is already achieved."""
+        # Use very low threshold so even modest text passes
         maximizer = SNRMaximizer(ihsan_threshold=0.01)
-        text = "Clean text that passes low threshold."
+        text = "Clean text that passes low threshold with some specific details."
         optimized, analysis = maximizer.maximize(text, max_iterations=5)
-        # Should have stopped after first analysis (ihsan_achieved=True)
-        # Stats should show 1 analysis (the initial one)
+        # snr_normalized should exceed the low 0.01 threshold
         assert analysis.ihsan_achieved is True
+        assert analysis.snr_normalized >= 0.01
 
     def test_maximize_stops_when_no_improvement(self):
         """maximize() breaks when filtering doesn't improve SNR."""
@@ -988,8 +998,9 @@ class TestSNRMaximizerDeep:
 
     def test_stats_ihsan_pass_count(self):
         """Stats correctly count ihsan passes and fails."""
+        # Use extremely low threshold to guarantee pass with bounded scoring
         maximizer = SNRMaximizer(ihsan_threshold=0.001)
-        maximizer.analyze("Clean text passes easily.")
+        maximizer.analyze("Clean text passes easily with some reasonable content here.")
         assert maximizer.stats["ihsan_passes"] == 1
         assert maximizer.stats["ihsan_fails"] == 0
 

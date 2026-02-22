@@ -62,6 +62,8 @@ from typing import Any, Optional
 
 from core.integration.constants import (
     IHSAN_WEIGHTS,
+    LMSTUDIO_HOST,
+    LMSTUDIO_PORT,
     SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
@@ -106,8 +108,8 @@ class LocalModelConfig:
     3. Minimal latency for real-time processing
     """
 
-    host: str = "192.168.56.1"
-    port: int = 1234
+    host: str = LMSTUDIO_HOST
+    port: int = int(LMSTUDIO_PORT)
     timeout_ms: int = 120000
     backend_type: BackendType = BackendType.LMSTUDIO
 
@@ -1366,7 +1368,51 @@ class ApexSovereignEngine:
         context: dict[str, Any],
         input_snr: float,
     ) -> dict[str, Any]:
-        """Explore multiple reasoning paths with Graph-of-Thoughts (Besta 2024)."""
+        """Explore multiple reasoning paths with Graph-of-Thoughts (Besta 2024).
+
+        Phase 46: When BIZRA_PHASE46_GOT_BRIDGE_ENABLED is set, prefers the
+        GoTBridge which injects FAISS vector evidence into GoT reasoning.
+        Falls back to the canonical got_engine.reason() path otherwise.
+        """
+        # --- Phase 46: GoT Bridge path (evidence-grounded reasoning) ---
+        try:
+            from core.rollout.canary import CanaryRouter
+            from core.rollout.metrics import get_shared_metrics
+
+            if not hasattr(self, "_canary_router"):
+                self._canary_router = CanaryRouter()
+            if not hasattr(self, "_phase46_metrics"):
+                self._phase46_metrics = get_shared_metrics()
+            if self._canary_router.should_route("got_bridge", query):
+                self._phase46_metrics.inc("got_requests")
+                try:
+                    from core.reasoning.got_bridge import GoTBridge
+
+                    bridge = GoTBridge(got_engine=self.got_engine)
+                    bridge_result = await bridge.reason(query, context)
+                    return {
+                        "conclusion": bridge_result.answer,
+                        "snr_score": bridge_result.snr_score or input_snr,
+                        "ihsan_score": (
+                            bridge_result.snr_score * 0.95
+                            if bridge_result.snr_score
+                            else 0.0
+                        ),
+                        "passes_threshold": bridge_result.converged,
+                        "explored_nodes": bridge_result.hypotheses_explored,
+                        "depth_reached": bridge_result.reasoning_depth,
+                        "best_path": bridge_result.convergence_path,
+                    }
+                except Exception as bridge_exc:
+                    self._phase46_metrics.inc("got_fallback")
+                    logger.warning(
+                        "GoT Bridge failed, falling back to direct GoT: %s",
+                        bridge_exc,
+                    )
+        except Exception:
+            logger.debug("GoT bridge rollout init failed", exc_info=True)
+
+        # --- Canonical GoT engine path ---
         try:
             if hasattr(self.got_engine, "reason"):
                 result = await self.got_engine.reason(
@@ -1888,8 +1934,8 @@ def create_apex_engine(
     snr_floor: float = UNIFIED_SNR_THRESHOLD,
     enable_autopoiesis: bool = True,
     enable_proactive_entity: bool = True,
-    model_host: str = "192.168.56.1",
-    model_port: int = 1234,
+    model_host: str = LMSTUDIO_HOST,
+    model_port: int = int(LMSTUDIO_PORT),
 ) -> ApexSovereignEngine:
     """
     Factory function to create a configured Apex Sovereign Engine.

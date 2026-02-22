@@ -1,0 +1,19 @@
+{
+  "name": "outcome_receipt_valid",
+  "schema": "outcome_receipt.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "action_id": "action_001",
+    "session_id": "session_001",
+    "guardian_verdict": true,
+    "permit_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+    "policy_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+    "receipt_hash": "5555555555555555555555555555555555555555555555555555555555555555",
+    "prev_receipt_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+    "status": "ok",
+    "timestamp": 1893456003
+  },
+  "meta": {
+    "expected_prev_receipt_hash": "6666666666666666666666666666666666666666666666666666666666666666"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "invalid_role_pairing",
+  "schema": "meet_open.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "session_id": "session_003",
+    "initiator_agent_id": "agent_brand_001",
+    "responder_agent_id": "agent_brand_002",
+    "place_id": "place_feed_001",
+    "objective": "Compare shoes",
+    "consent_scope": ["product_discovery"],
+    "session_limits": {
+      "max_messages": 50,
+      "max_duration_seconds": 300,
+      "max_payload_bytes": 65536
+    },
+    "expires_at": 4102444800
+  },
+  "meta": {
+    "now": 1893456000,
+    "roles": ["brand_proxy", "brand_proxy"]
+  }
+}

@@ -121,3 +121,87 @@ spec:
   selector:
     matchLabels:
       app: bizra-omega
+---
+# MCP Gateway HPA — scales the unified entry point
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bizra-mcp-gateway-hpa
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bizra-mcp-gateway
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+      selectPolicy: Max
+---
+# MCP PDBs — prevent simultaneous eviction during node drains
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bizra-mcp-gateway-pdb
+  namespace: bizra
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bizra-mcp-sovereign-pdb
+  namespace: bizra
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: sovereign
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bizra-mcp-ecosystem-pdb
+  namespace: bizra
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: ecosystem

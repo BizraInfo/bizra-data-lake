@@ -1,6 +1,6 @@
 # BIZRA Token System
 
-Last updated: 2026-02-14
+Last updated: 2026-02-18
 
 The token module (`core/token/`) implements a three-token economy with hash-chained ledger, Ed25519-signed transactions, and Proof of Impact (PoI) driven distribution.
 
@@ -39,11 +39,15 @@ The token module (`core/token/`) implements a three-token economy with hash-chai
                                 │ 2.5% zakat       │ SQLite (balances)│
                                 ▼                  │ JSONL (hash      │
                         ┌───────────────┐          │  chain log)      │
-                        │ Community Fund│          └──────────────────┘
-                        │ (BIZRA-       │
-                        │  COMMUNITY-   │
-                        │  FUND)        │
-                        └───────────────┘
+                        │ Community Fund│          │ ADL Gini gate    │
+                        │ (BIZRA-       │          │ Harberger tax    │
+                        │  COMMUNITY-   │          └────────┬─────────┘
+                        │  FUND)        │                   │ 7%/epoch
+                        └───────────────┘                   ▼
+                                                   ┌──────────────┐
+                                                   │  UBC Pool    │
+                                                   │(__UBC_POOL__)│
+                                                   └──────────────┘
 ```
 
 ### Module Layout
@@ -52,7 +56,7 @@ The token module (`core/token/`) implements a three-token economy with hash-chai
 |------|---------|-------|
 | `core/token/__init__.py` | Re-exports all public symbols | 54 |
 | `core/token/types.py` | Enums, dataclasses, constants | 269 |
-| `core/token/ledger.py` | Hash-chained ledger + SQLite balances | 594 |
+| `core/token/ledger.py` | Hash-chained ledger + SQLite balances + ADL Gini gate + Harberger tax | 837 |
 | `core/token/mint.py` | Minting engine + zakat + genesis | 577 |
 
 ---
@@ -71,6 +75,23 @@ All constants are defined in `core/token/types.py`:
 | `GENESIS_EPOCH_ID` | `"epoch-0-genesis"` | First epoch identifier |
 | `TOKEN_DOMAIN_PREFIX` | `"bizra-token-v1:"` | BLAKE3 hash domain separator |
 | `IHSAN_THRESHOLD` | Imported from `core/integration/constants.py` | Quality gate for operations |
+
+ADL-related constants from `core/integration/constants.py` (authoritative):
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `ADL_GINI_THRESHOLD` | 0.35 | Maximum allowed Gini coefficient for SEED distribution |
+| `ADL_HARBERGER_TAX_RATE` | 0.07 (7%) | Per-epoch Harberger tax rate on SEED holdings |
+
+System pool accounts from `core/token/ledger.py`:
+
+| Account | Constant | Purpose |
+|---------|----------|---------|
+| `__UBC_POOL__` | `UBC_POOL_ID` | Universal Basic Compute redistribution pool |
+| `BIZRA-COMMUNITY-FUND` | `COMMUNITY_FUND_ACCOUNT` | Computational zakat recipient |
+| `SYSTEM-TREASURY` | `SYSTEM_TREASURY_ACCOUNT` | System treasury |
+
+These are collected in `SYSTEM_POOL_IDS` (frozenset) and excluded from individual Gini computation.
 
 ---
 
@@ -235,14 +256,131 @@ yearly = ledger.get_yearly_minted(TokenType.SEED, 2026)
 
 ---
 
+## ADL Gini Gate
+
+The ledger enforces the Adl (Justice) invariant at the transaction level. Every SEED `TRANSFER` or `MINT` operation is pre-validated against the Gini coefficient of the resulting balance distribution. If a transaction would push inequality above `ADL_GINI_THRESHOLD` (0.35), it is rejected before any state change.
+
+### How It Works
+
+1. **Scope**: Only SEED token. BLOOM and IMPT are exempt.
+2. **Exempt operations**: `GENESIS_MINT`, `ZAKAT`, `BURN`, `STAKE`, `UNSTAKE` bypass the gate.
+3. **System pool exclusion**: Communal accounts (`SYSTEM_POOL_IDS`) are excluded from Gini calculation — they are redistribution pools, not individual wealth.
+4. **Bootstrap exemption**: Gini enforcement activates only when `ADL_GINI_MIN_ACCOUNTS` (5) non-pool accounts exist. Gini coefficient is statistically meaningless with fewer data points, and the genesis phase must distribute to initial participants.
+5. **Directional awareness**: Transfers that *reduce* Gini are always allowed, even if the absolute level remains above threshold. This prevents system lockup when bootstrapping from unequal initial allocations.
+6. **Transfers to system pools**: Always allowed (redistributive by nature).
+
+### Validation Flow
+
+```
+_validate_transaction(tx)
+  └─ if tx.token_type == SEED and tx.op in (TRANSFER, MINT):
+       └─ _check_gini_impact(tx)
+            ├─ target in SYSTEM_POOL_IDS? → ALLOW
+            ├─ simulate post-tx balances (exclude system pools)
+            ├─ compute pre_gini and post_gini
+            ├─ post_gini <= pre_gini? → ALLOW (directionally improving)
+            └─ post_gini > 0.35? → REJECT ("Plutocratic concentration rejected")
+```
+
+### Example: Blocked Concentration
+
+```python
+ledger = TokenLedger()
+# After genesis: whale has 90,000 SEED, 5 nodes have 2,000 each
+tx = TransactionEntry(
+    op=TokenOp.MINT, token_type=TokenType.SEED,
+    to_account="whale", amount=50000.0,
+)
+receipt = ledger.record_transaction(tx)
+# receipt.success == False
+# receipt.error == "ADL Gini gate: transaction would push Gini to 0.6821
+#                   (threshold=0.35). Plutocratic concentration rejected."
+```
+
+### Example: Allowed Equalization
+
+```python
+# whale (90,000 SEED) transfers to small-node (2,000 SEED)
+tx = TransactionEntry(
+    op=TokenOp.TRANSFER, token_type=TokenType.SEED,
+    from_account="whale", to_account="small-node", amount=10000.0,
+)
+receipt = ledger.record_transaction(tx)
+# receipt.success == True (Gini decreased, directionally improving)
+```
+
+---
+
+## Harberger Tax
+
+Per-epoch taxation on all SEED holdings, flowing proceeds to the Universal Basic Compute (UBC) pool. The Harberger mechanism ensures that resources held but not productively used are gradually redistributed.
+
+### Configuration
+
+| Parameter | Default | Source |
+|-----------|---------|--------|
+| Tax rate | 7% per epoch | `ADL_HARBERGER_TAX_RATE` in `core/integration/constants.py` |
+| Recipient | `__UBC_POOL__` | `UBC_POOL_ID` in `core/sovereign/adl_invariant.py` |
+| UBC pool exempt | Yes | Pool is not taxed on its own holdings |
+
+### Usage
+
+```python
+ledger = TokenLedger()
+
+# Apply tax with default rate (7%)
+result = ledger.apply_harberger_tax(epoch_id="epoch-12")
+print(result)
+# {
+#     "total_taxed": 7000.0,
+#     "accounts_affected": 5,
+#     "ubc_pool_credit": 7000.0,
+#     "tax_rate": 0.07,
+#     "epoch_id": "epoch-12"
+# }
+
+# Override rate for special epochs
+result = ledger.apply_harberger_tax(tax_rate=0.03, epoch_id="epoch-13")
+```
+
+### Tax Transfer Bypass
+
+Tax transfers use `_record_tax_transfer()`, which bypasses the Gini gate. This is necessary because:
+
+- Harberger taxes are inherently redistributive (they reduce Gini)
+- The Gini gate would block transfers *to* the UBC pool if the pool's exclusion from the Gini calculation were not in place
+- All other validations (balance sufficiency, hash chaining, signature) still apply
+
+### Interaction with ADL Gini Gate
+
+The Gini gate and Harberger tax form a complementary pair:
+
+```
+Gini Gate (preventive)              Harberger Tax (corrective)
+├─ Blocks concentrating transfers   ├─ Taxies all SEED holdings per epoch
+├─ Allows equalizing transfers      ├─ Proceeds flow to UBC pool
+├─ Pre-transaction validation       ├─ Post-epoch redistribution
+└─ Threshold: 0.35                  └─ Rate: 7% per epoch
+```
+
+Together they enforce the ADL invariant: Gini < 0.35 under normal operation, with continuous pressure toward equality.
+
+---
+
 ## Testing
 
 ```bash
-# Run token system tests
-PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE pytest tests/core/token/ -v
+# Run all token system tests (68 tests, including ADL Gini + Harberger)
+pytest tests/core/token/ -v
 
-# Run integration tests that exercise token + PoI pipeline
-PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE pytest tests/integration/test_token_integration.py -v
+# Run ADL Gini gate tests only
+pytest tests/core/token/test_token_ledger.py -v -k "TestAdlGiniGate"
+
+# Run Harberger tax tests only
+pytest tests/core/token/test_token_ledger.py -v -k "TestHarbergerTax"
+
+# Run token + ADL + FATE regression suite
+pytest tests/core/token/ tests/core/sovereign/test_adl_invariant.py tests/core/sovereign/test_fate_validation.py -v
 ```
 
 ---
@@ -257,6 +395,8 @@ PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE pytest tests/integration/test_token_integratio
 | Duplicate genesis mint | Blocked by ledger check + in-memory flag | No action needed |
 | SQLite write failure | Sequence rolled back, error logged | Retry or investigate disk |
 | Chain break detected | `verify_chain()` returns `(False, count, error_msg)` | Investigate JSONL tampering |
+| ADL Gini gate rejection | `"ADL Gini gate: transaction would push Gini to X.XXXX..."` | Redistribute SEED first, or use equalizing transfers |
+| Harberger tax insufficient balance | Tax transfer fails for individual account, logged as warning | Account effectively exempt for that epoch |
 
 ---
 
@@ -267,7 +407,9 @@ PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE pytest tests/integration/test_token_integratio
 - **Merkle (1979)**: Hash chains for tamper detection
 - **Shannon (1948)**: SNR as quality gate for PoI scoring
 - **Al-Ghazali (1058-1111)**: Zakat (2.5%) as computational distributive justice
-- **Gini (1912)**: Inequality measurement for ADL constraint
+- **Gini (1912)**: Inequality measurement for ADL Gini gate
+- **Harberger (1962)**: Self-assessed value taxation for redistribution
+- **Rawls (1971)**: Justice as a hard gate, not a soft metric
 - **Szabo (1997)**: Smart contracts as automated enforcement
 
 ---

@@ -1,0 +1,26 @@
+[package]
+name = "bizra-node"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Node0 — The sovereign node binary. Stands on hooks (nerves), memory (brain), agent (being). Speaks a stdio protocol that any host can drive."
+publish = false
+
+[[bin]]
+name = "bizra-node"
+path = "src/main.rs"
+
+[lib]
+name = "bizra_node"
+path = "src/lib.rs"
+
+[dependencies]
+bizra-hooks = { path = "../bizra-hooks" }
+bizra-memory = { path = "../bizra-memory" }
+bizra-agent = { path = "../bizra-agent" }
+bizra-telescript = { path = "../bizra-telescript" }
+serde_json = { workspace = true }
+
+[features]
+default = []

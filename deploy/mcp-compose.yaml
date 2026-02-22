@@ -1,0 +1,271 @@
+# BIZRA MCP Service Mesh — Docker Compose
+# DevOps v2.0.0 | Local Development + Staging
+#
+# Standing on Giants: Docker Compose + MCP Protocol + Anthropic
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Usage:
+#   docker compose -f deploy/mcp-compose.yaml up -d
+#   docker compose -f deploy/mcp-compose.yaml ps
+#   docker compose -f deploy/mcp-compose.yaml logs -f mcp-gateway
+
+x-mcp-common: &mcp-common
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile.mcp
+  env_file:
+    - .env
+  environment:
+    - BIZRA_ENV=${BIZRA_ENV:-production}
+    - IHSAN_THRESHOLD=0.95
+    - SNR_THRESHOLD=0.85
+    - TOOL_TIMEOUT_SECONDS=30
+    - REDIS_URL=redis://:${REDIS_PASSWORD}@bizra-redis:6379
+    - PYTHONPATH=/app
+    # Phase 46 Canary Routing — Stage 1
+    # SEARCH_ENABLED deliberately unset: percent routing controls search.
+    - BIZRA_PHASE46_GOT_BRIDGE_ENABLED=0
+    - BIZRA_PHASE46_HMM_ENABLED=0
+    - BIZRA_PHASE46_SEARCH_PERCENT=${BIZRA_PHASE46_SEARCH_PERCENT:-10}
+    - BIZRA_PHASE46_GOT_BRIDGE_PERCENT=0
+    - BIZRA_PHASE46_HMM_PERCENT=0
+    - BIZRA_PHASE46_CANARY_SALT=bizra-phase46-canary-v1
+    - BIZRA_PHASE46_HMM_CALLER_MODE=single
+    - BIZRA_PHASE46_HMM_ALLOWED_CALLER=mcp
+  networks:
+    - bizra-network
+  restart: unless-stopped
+  stop_grace_period: 30s
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  cap_add:
+    - NET_BIND_SERVICE
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "5"
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 2G
+      reservations:
+        cpus: '0.5'
+        memory: 512M
+
+services:
+  # ============================================================================
+  # MCP GATEWAY — Unified entry point (FastAPI)
+  # ============================================================================
+
+  mcp-gateway:
+    <<: *mcp-common
+    container_name: bizra-mcp-gateway
+    environment:
+      - MCP_SERVER=gateway
+      - MCP_HTTP_PORT=8080
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@bizra-redis:6379
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      bizra-redis:
+        condition: service_healthy
+    labels:
+      - "bizra.component=mcp-gateway"
+      - "bizra.tier=sovereign"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics"
+
+  # ============================================================================
+  # SOVEREIGN MCP — House of Wisdom Brain (488 nodes, 2 engines)
+  # ============================================================================
+
+  mcp-sovereign:
+    <<: *mcp-common
+    container_name: bizra-mcp-sovereign
+    environment:
+      - MCP_SERVER=sovereign
+      - MCP_HTTP_PORT=8081
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8081/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+    labels:
+      - "bizra.component=mcp-sovereign"
+      - "bizra.tier=sovereign"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8081"
+
+  # ============================================================================
+  # ECOSYSTEM MCP — Unified BIZRA OS (6 sub-engines)
+  # ============================================================================
+
+  mcp-ecosystem:
+    <<: *mcp-common
+    container_name: bizra-mcp-ecosystem
+    environment:
+      - MCP_SERVER=ecosystem
+      - MCP_HTTP_PORT=8082
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8082/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+    labels:
+      - "bizra.component=mcp-ecosystem"
+      - "bizra.tier=sovereign"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8082"
+
+  # ============================================================================
+  # BIZRA MCP — DDAGI OS v3 (FastMCP)
+  # ============================================================================
+
+  mcp-bizra:
+    <<: *mcp-common
+    container_name: bizra-mcp-ddagi
+    environment:
+      - MCP_SERVER=bizra
+      - MCP_HTTP_PORT=8083
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8083/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    labels:
+      - "bizra.component=mcp-ddagi"
+      - "bizra.tier=sovereign"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8083"
+
+  # ============================================================================
+  # PEAK MCP — Masterpiece Engine (GoT + Hypergraph + SNR)
+  # ============================================================================
+
+  mcp-peak:
+    <<: *mcp-common
+    container_name: bizra-mcp-peak
+    environment:
+      - MCP_SERVER=peak
+      - MCP_HTTP_PORT=8084
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8084/health"]
+      interval: 20s
+      timeout: 10s
+      start_period: 45s
+      retries: 3
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    labels:
+      - "bizra.component=mcp-peak"
+      - "bizra.tier=sovereign"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8084"
+
+  # ============================================================================
+  # LAKE MCP — Data Lake Bridge (Hypergraph 9,961 nodes)
+  # ============================================================================
+
+  mcp-lake:
+    <<: *mcp-common
+    container_name: bizra-mcp-lake
+    environment:
+      - MCP_SERVER=lake
+      - MCP_HTTP_PORT=8085
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8085/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    volumes:
+      - ../04_GOLD:/app/data/gold:ro
+      - ../03_INDEXED:/app/data/indexed:ro
+    labels:
+      - "bizra.component=mcp-lake"
+      - "bizra.tier=data"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8085"
+
+  # ============================================================================
+  # INFRASTRUCTURE (shared with elite-compose)
+  # ============================================================================
+
+  bizra-redis:
+    image: redis:7-alpine@sha256:b9f6cf0cab55fdd102fd2182deeae150457943d33439d18c6e2fc5666d3228c1
+    container_name: bizra-mcp-redis
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"]
+    ports:
+      - "6380:6379"
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    stop_grace_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "25m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+
+networks:
+  bizra-network:
+    driver: bridge
+    name: bizra-mcp-network

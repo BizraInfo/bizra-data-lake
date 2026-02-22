@@ -46,7 +46,6 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # GOLDEN RATIO — The pulse of convergence-divergence
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -61,23 +60,23 @@ PHI: float = (1.0 + math.sqrt(5)) / 2  # φ ≈ 1.618033988749895
 class ThoughtFlowType(Enum):
     """The 4 meta-level thought flow patterns."""
 
-    CROSS_LEVEL_CASCADE = auto()    # L0 improvements cascade super-linearly
-    PERMEABLE_BOUNDARY = auto()     # Level boundaries as selective membranes
-    COMPOUND_LEARNING = auto()      # C(t+dt) = C(t) + g(C(t))·dt
-    LEARNING_RESONANCE = auto()     # Cross-level acceleration events
+    CROSS_LEVEL_CASCADE = auto()  # L0 improvements cascade super-linearly
+    PERMEABLE_BOUNDARY = auto()  # Level boundaries as selective membranes
+    COMPOUND_LEARNING = auto()  # C(t+dt) = C(t) + g(C(t))·dt
+    LEARNING_RESONANCE = auto()  # Cross-level acceleration events
 
 
 class PhasePatternType(Enum):
     """The 8 phase-level hidden patterns."""
 
-    OBSERVATION_PARADOX = auto()        # Most valuable observations surprise
-    DIVERSITY_SPECIFICITY = auto()      # 80/20 portfolio balance
-    CONVERGENCE_DIVERGENCE = auto()     # Golden ratio φ rhythm
-    SIGNAL_NOISE_PHASE_SHIFT = auto()   # Phase transition in noise
-    PARADOX_TOLERANCE = auto()          # Learning at paradox threshold
-    IMPLEMENTATION_GAP = auto()         # Gap = tacit knowledge
-    INTEGRATION_DEPTH = auto()          # Surface → Foundational gradient
-    META_LEARNING_ACCELERATION = auto() # 10% L0 → cascade whole hierarchy
+    OBSERVATION_PARADOX = auto()  # Most valuable observations surprise
+    DIVERSITY_SPECIFICITY = auto()  # 80/20 portfolio balance
+    CONVERGENCE_DIVERGENCE = auto()  # Golden ratio φ rhythm
+    SIGNAL_NOISE_PHASE_SHIFT = auto()  # Phase transition in noise
+    PARADOX_TOLERANCE = auto()  # Learning at paradox threshold
+    IMPLEMENTATION_GAP = auto()  # Gap = tacit knowledge
+    INTEGRATION_DEPTH = auto()  # Surface → Foundational gradient
+    META_LEARNING_ACCELERATION = auto()  # 10% L0 → cascade whole hierarchy
 
 
 # Origin SNR scores for phase patterns
@@ -104,8 +103,8 @@ class FlowActivation:
 
     flow_type: ThoughtFlowType
     evidence: str
-    magnitude: float          # [0, 1] — strength of flow
-    direction: str            # "ascending" | "descending" | "lateral" | "resonant"
+    magnitude: float  # [0, 1] — strength of flow
+    direction: str  # "ascending" | "descending" | "lateral" | "resonant"
     insight: str
     timestamp: float = field(default_factory=time.time)
     affected_levels: Tuple[int, ...] = ()  # HRM levels involved
@@ -125,9 +124,9 @@ class PhaseActivation:
     """A phase-level hidden pattern activation."""
 
     pattern_type: PhasePatternType
-    phase_index: int           # 0-7 lifecycle phase
+    phase_index: int  # 0-7 lifecycle phase
     evidence: str
-    intensity: float           # [0, 1]
+    intensity: float  # [0, 1]
     insight: str
     timestamp: float = field(default_factory=time.time)
 
@@ -154,7 +153,9 @@ class FlowReport:
     def mean_flow_magnitude(self) -> float:
         if not self.flow_activations:
             return 0.0
-        return sum(f.magnitude for f in self.flow_activations) / len(self.flow_activations)
+        return sum(f.magnitude for f in self.flow_activations) / len(
+            self.flow_activations
+        )
 
     @property
     def cascade_depth(self) -> int:
@@ -168,7 +169,8 @@ class FlowReport:
     def resonance_count(self) -> int:
         """Number of resonance events detected."""
         return sum(
-            1 for f in self.flow_activations
+            1
+            for f in self.flow_activations
             if f.flow_type == ThoughtFlowType.LEARNING_RESONANCE
         )
 
@@ -188,7 +190,8 @@ class FlowReport:
     def _phi_alignment(self) -> float:
         """How close the convergence-divergence ratio is to φ."""
         conv_divs = [
-            p for p in self.phase_activations
+            p
+            for p in self.phase_activations
             if p.pattern_type == PhasePatternType.CONVERGENCE_DIVERGENCE
         ]
         if not conv_divs:
@@ -352,8 +355,7 @@ class ThoughtFlowDetector:
 
         # Second derivative (acceleration)
         accelerations = [
-            velocities[i + 1] - velocities[i]
-            for i in range(len(velocities) - 1)
+            velocities[i + 1] - velocities[i] for i in range(len(velocities) - 1)
         ]
 
         mean_acceleration = sum(accelerations) / len(accelerations)
@@ -429,10 +431,11 @@ class ThoughtFlowDetector:
         if magnitude < self.min_magnitude:
             return None
 
-        affected = tuple(sorted(set(
-            level for pair in harmonic_pairs
-            for level in (pair[0], pair[1])
-        )))
+        affected = tuple(
+            sorted(
+                set(level for pair in harmonic_pairs for level in (pair[0], pair[1]))
+            )
+        )
 
         harmonic_desc = "; ".join(
             f"L{p[0]}-L{p[1]} ratio≈{p[2]:.3f}" for p in harmonic_pairs[:3]
@@ -599,7 +602,9 @@ class ThoughtFlowDetector:
         alignment = 0.0
         for key in expected:
             if expected[key] > 0:
-                alignment += 1.0 - min(1.0, abs(actual[key] - expected[key]) / expected[key])
+                alignment += 1.0 - min(
+                    1.0, abs(actual[key] - expected[key]) / expected[key]
+                )
         alignment /= len(expected)
 
         intensity = min(1.0, alignment * (1.0 + self.sensitivity))

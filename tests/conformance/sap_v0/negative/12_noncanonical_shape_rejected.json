@@ -1,0 +1,16 @@
+{
+  "name": "noncanonical_shape_rejected",
+  "schema": "meet_message.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "session_id": "session_001",
+    "message_id": "msg_legacy_01",
+    "sender_id": "agent_brand_001",
+    "intent": "discover",
+    "payload": {
+      "legacy": true
+    },
+    "timestamp": 1893456010,
+    "signature": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  }
+}

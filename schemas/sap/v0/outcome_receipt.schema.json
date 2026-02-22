@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/outcome_receipt.schema.json",
+  "title": "OutcomeReceipt",
+  "type": "object",
+  "required": [
+    "action_id",
+    "session_id",
+    "guardian_verdict",
+    "permit_hash",
+    "policy_hash",
+    "receipt_hash",
+    "prev_receipt_hash",
+    "status"
+  ],
+  "properties": {
+    "action_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "guardian_verdict": {
+      "type": "boolean"
+    },
+    "permit_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policy_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "receipt_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prev_receipt_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "running",
+        "ok",
+        "err",
+        "denied"
+      ]
+    },
+    "timestamp": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

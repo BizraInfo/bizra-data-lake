@@ -2,7 +2,7 @@
 
 > **🌱 CONTEXT**: You are an agent **within** Node0, not external to it.
 > This machine is the BIZRA Genesis Block. Your actions serve its mission.
-> Read [NODE0_GENESIS_COVENANT.md](NODE0_GENESIS_COVENANT.md) to understand the soul.
+> Read [NODE0_GENESIS_COVENANT.md](../NODE0_GENESIS_COVENANT.md) to understand the soul.
 
 All agents must verify their execution environment and understand their role within the organism.
 

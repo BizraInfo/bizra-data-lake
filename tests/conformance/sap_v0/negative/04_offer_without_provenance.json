@@ -1,0 +1,16 @@
+{
+  "name": "offer_without_provenance",
+  "schema": "offer.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "offer_id": "offer_002",
+    "product_sku": "shoe-pegasus-42",
+    "price": 129.99,
+    "currency": "USD",
+    "terms": {
+      "return_days": 30
+    },
+    "expiry": 4102444800,
+    "provenance_hashes": []
+  }
+}

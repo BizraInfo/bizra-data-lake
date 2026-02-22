@@ -1,0 +1,26 @@
+{
+  "name": "consent_receipt_valid",
+  "schema": "consent_receipt.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "consent_receipt_id": "consent_001",
+    "session_id": "session_001",
+    "user_agent_id": "agent_user_001",
+    "brand_agent_id": "agent_brand_001",
+    "data_shared": [
+      {
+        "field": "shoe_size",
+        "purpose": "fit_recommendation",
+        "retention_seconds": 86400,
+        "granularity": "exact"
+      }
+    ],
+    "data_withheld": [
+      "full_name",
+      "payment_info"
+    ],
+    "consent_timestamp": 1893456002,
+    "consent_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+    "revocation_endpoint": "https://node0.local/revoke/consent_001"
+  }
+}

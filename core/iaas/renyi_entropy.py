@@ -78,18 +78,21 @@ RD_NUM_POINTS: Final[int] = 50  # Points on R(D) curve
 @dataclass
 class RenyiResult:
     """Result of Rényi entropy computation."""
-    alpha: float               # Order parameter
-    entropy: float             # H_α in bits
-    shannon_entropy: float     # H₁ for comparison
-    min_entropy: float         # H_∞ (worst-case)
-    max_entropy: float         # log₂(N) — uniform distribution
-    normalized: float          # H_α / H_max ∈ [0, 1]
+
+    alpha: float  # Order parameter
+    entropy: float  # H_α in bits
+    shannon_entropy: float  # H₁ for comparison
+    min_entropy: float  # H_∞ (worst-case)
+    max_entropy: float  # log₂(N) — uniform distribution
+    normalized: float  # H_α / H_max ∈ [0, 1]
     collision_probability: float  # Σ pᵢ² (for α=2)
-    effective_support: float   # 2^H_α — effective number of categories
+    effective_support: float  # 2^H_α — effective number of categories
 
     def to_dict(self) -> Dict[str, Any]:
-        return {k: round(v, 6) if isinstance(v, float) else v
-                for k, v in self.__dict__.items()}
+        return {
+            k: round(v, 6) if isinstance(v, float) else v
+            for k, v in self.__dict__.items()
+        }
 
 
 def renyi_entropy(
@@ -119,9 +122,14 @@ def renyi_entropy(
 
     if len(probs) == 0:
         return RenyiResult(
-            alpha=alpha, entropy=0.0, shannon_entropy=0.0,
-            min_entropy=0.0, max_entropy=0.0, normalized=0.0,
-            collision_probability=1.0, effective_support=1.0,
+            alpha=alpha,
+            entropy=0.0,
+            shannon_entropy=0.0,
+            min_entropy=0.0,
+            max_entropy=0.0,
+            normalized=0.0,
+            collision_probability=1.0,
+            effective_support=1.0,
         )
 
     # Normalize
@@ -136,23 +144,23 @@ def renyi_entropy(
     min_entropy = float(-math.log2(np.max(probs)))
 
     # Collision probability
-    collision_prob = float(np.sum(probs ** 2))
+    collision_prob = float(np.sum(probs**2))
 
     # Rényi entropy (H_α)
     if abs(alpha - 1.0) < 1e-10:
         # α → 1: Shannon limit
         entropy = shannon
-    elif alpha == float('inf'):
+    elif alpha == float("inf"):
         entropy = min_entropy
     else:
-        sum_p_alpha = float(np.sum(probs ** alpha))
+        sum_p_alpha = float(np.sum(probs**alpha))
         if sum_p_alpha > 0:
             entropy = float((1.0 / (1.0 - alpha)) * math.log2(sum_p_alpha))
         else:
             entropy = 0.0
 
     # Effective support: 2^H_α
-    effective_support = 2.0 ** entropy if entropy >= 0 else 1.0
+    effective_support = 2.0**entropy if entropy >= 0 else 1.0
 
     normalized = entropy / max_entropy if max_entropy > 0 else 0.0
 
@@ -188,7 +196,7 @@ def renyi_divergence(
     mask = (p > 0) & (q > 0)
     p, q = p[mask], q[mask]
     if len(p) == 0:
-        return float('inf')
+        return float("inf")
 
     p, q = p / p.sum(), q / q.sum()
 
@@ -196,9 +204,9 @@ def renyi_divergence(
         # KL divergence (Shannon limit)
         return float(np.sum(p * np.log2(p / q)))
 
-    sum_term = float(np.sum(p ** alpha * q ** (1 - alpha)))
+    sum_term = float(np.sum(p**alpha * q ** (1 - alpha)))
     if sum_term <= 0:
-        return float('inf')
+        return float("inf")
 
     return float((1.0 / (alpha - 1.0)) * math.log2(sum_term))
 
@@ -211,22 +219,24 @@ def renyi_divergence(
 @dataclass
 class RateDistortionPoint:
     """Single point on the rate-distortion curve R(D)."""
-    distortion: float   # D — expected distortion
-    rate: float         # R(D) — minimum bits needed
+
+    distortion: float  # D — expected distortion
+    rate: float  # R(D) — minimum bits needed
     compression_ratio: float  # 1 - D (approximate)
 
 
 @dataclass
 class RateDistortionResult:
     """Complete rate-distortion analysis."""
-    source_entropy: float              # H(X) — source entropy
+
+    source_entropy: float  # H(X) — source entropy
     rd_curve: List[RateDistortionPoint]  # R(D) curve
-    optimal_distortion: float          # D* for target compression
-    optimal_rate: float                # R(D*) — bits needed
-    achievable_compression: float      # Maximum compression at tolerance
-    target_compression: float          # User's target (default 0.7)
-    is_feasible: bool                  # Can we achieve target?
-    efficiency: float                  # How close to theoretical limit
+    optimal_distortion: float  # D* for target compression
+    optimal_rate: float  # R(D*) — bits needed
+    achievable_compression: float  # Maximum compression at tolerance
+    target_compression: float  # User's target (default 0.7)
+    is_feasible: bool  # Can we achieve target?
+    efficiency: float  # How close to theoretical limit
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -277,7 +287,9 @@ def estimate_rate_distortion(
 
     for d in distortions:
         # Gaussian R(D)
-        rate_gaussian = max(0.0, 0.5 * math.log2(variance / d)) if d > 0 else source_entropy
+        rate_gaussian = (
+            max(0.0, 0.5 * math.log2(variance / d)) if d > 0 else source_entropy
+        )
 
         # Discrete approximation
         rate_discrete = max(0.0, source_entropy * (1.0 - d / RD_MAX_DISTORTION))
@@ -285,25 +297,37 @@ def estimate_rate_distortion(
         # Blended estimate (practical sources are between Gaussian and discrete)
         rate = 0.6 * rate_gaussian + 0.4 * rate_discrete
 
-        rd_curve.append(RateDistortionPoint(
-            distortion=float(d),
-            rate=float(rate),
-            compression_ratio=float(1.0 - d),
-        ))
+        rd_curve.append(
+            RateDistortionPoint(
+                distortion=float(d),
+                rate=float(rate),
+                compression_ratio=float(1.0 - d),
+            )
+        )
 
     # Find optimal operating point for target
-    optimal_rate = max(0.0, 0.5 * math.log2(variance / target_distortion)) if target_distortion > 0 else source_entropy
-    optimal_rate_discrete = max(0.0, source_entropy * (1.0 - target_distortion / RD_MAX_DISTORTION))
+    optimal_rate = (
+        max(0.0, 0.5 * math.log2(variance / target_distortion))
+        if target_distortion > 0
+        else source_entropy
+    )
+    optimal_rate_discrete = max(
+        0.0, source_entropy * (1.0 - target_distortion / RD_MAX_DISTORTION)
+    )
     optimal_rate = 0.6 * optimal_rate + 0.4 * optimal_rate_discrete
 
     # Achievable compression
     achievable = 1.0 - (optimal_rate / source_entropy) if source_entropy > 0 else 0.0
 
     # Feasibility
-    is_feasible = achievable >= (1.0 - target_compression) * 0.8  # 80% of target is feasible
+    is_feasible = (
+        achievable >= (1.0 - target_compression) * 0.8
+    )  # 80% of target is feasible
 
     # Efficiency: how close to theoretical limit
-    efficiency = min(1.0, target_compression / max(achievable, 0.01)) if achievable > 0 else 0.0
+    efficiency = (
+        min(1.0, target_compression / max(achievable, 0.01)) if achievable > 0 else 0.0
+    )
 
     return RateDistortionResult(
         source_entropy=source_entropy,
@@ -383,24 +407,26 @@ def enhanced_diversity_score(
 
     # Blended diversity score
     diversity = (
-        shannon_weight * renyi_result.normalized +
-        renyi_weight * renyi_result.normalized +  # H₂ always ≤ H₁, so more conservative
-        anti_redundancy_weight * (1.0 - redundancy)
+        shannon_weight * renyi_result.normalized
+        + renyi_weight * renyi_result.normalized  # H₂ always ≤ H₁, so more conservative
+        + anti_redundancy_weight * (1.0 - redundancy)
     )
 
     # Use Rényi-2 specifically for the Rényi component
     renyi_2 = renyi_entropy(probs, alpha=2.0)
     diversity = (
-        shannon_weight * (renyi_result.shannon_entropy / max(renyi_result.max_entropy, 1.0)) +
-        renyi_weight * renyi_2.normalized +
-        anti_redundancy_weight * (1.0 - redundancy)
+        shannon_weight
+        * (renyi_result.shannon_entropy / max(renyi_result.max_entropy, 1.0))
+        + renyi_weight * renyi_2.normalized
+        + anti_redundancy_weight * (1.0 - redundancy)
     )
 
     details = {
         "shannon_entropy": renyi_result.shannon_entropy,
         "renyi_2_entropy": renyi_2.entropy,
         "max_entropy": renyi_result.max_entropy,
-        "shannon_normalized": renyi_result.shannon_entropy / max(renyi_result.max_entropy, 1.0),
+        "shannon_normalized": renyi_result.shannon_entropy
+        / max(renyi_result.max_entropy, 1.0),
         "renyi_2_normalized": renyi_2.normalized,
         "collision_probability": renyi_2.collision_probability,
         "effective_support": renyi_2.effective_support,
@@ -520,8 +546,7 @@ class SDPOCompressionAdvisor:
             "ranked_indices": ranked_indices[:keep_count],
             "text_importance": text_importance,
             "recommendation": (
-                "compression_safe" if rd_result.is_feasible
-                else "compression_risky"
+                "compression_safe" if rd_result.is_feasible else "compression_risky"
             ),
         }
 

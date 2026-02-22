@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 # MESSAGE TYPES & DATA STRUCTURES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class MessageType(str, Enum):
     """Types of cross-level messages."""
 
@@ -56,9 +57,9 @@ class MessageType(str, Enum):
 class PropagationDirection(str, Enum):
     """Direction of message propagation."""
 
-    UPWARD = "upward"      # Evidence ascending (bottom-up)
+    UPWARD = "upward"  # Evidence ascending (bottom-up)
     DOWNWARD = "downward"  # Goals descending (top-down)
-    BOTH = "both"          # Bidirectional
+    BOTH = "both"  # Bidirectional
 
 
 @dataclass
@@ -101,9 +102,7 @@ class CascadeResult:
 
     request_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     requesting_level: AbstractionLevel = AbstractionLevel.TACTICAL
-    responses: Dict[AbstractionLevel, Dict[str, Any]] = field(
-        default_factory=dict
-    )
+    responses: Dict[AbstractionLevel, Dict[str, Any]] = field(default_factory=dict)
     consensus_reached: bool = False
     aggregate_confidence: float = 0.0
     cascade_depth: int = 0
@@ -135,6 +134,7 @@ class SyncResult:
 # ═══════════════════════════════════════════════════════════════════════════════
 # CROSS-LEVEL BRIDGE — The Integration Engine
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class CrossLevelBridge:
     """
@@ -349,11 +349,13 @@ class CrossLevelBridge:
                 upper_avg = sum(upper_scores) / len(upper_scores)
                 if abs(lower_avg - upper_avg) > 0.2:
                     result.contradictions_found += 1
-                    result.resolution_actions.append({
-                        "type": "contradiction",
-                        "between": (levels[i].name, levels[i + 1].name),
-                        "delta": abs(lower_avg - upper_avg),
-                    })
+                    result.resolution_actions.append(
+                        {
+                            "type": "contradiction",
+                            "between": (levels[i].name, levels[i + 1].name),
+                            "delta": abs(lower_avg - upper_avg),
+                        }
+                    )
 
             # Gap: level has no recent hypotheses
             if not lower.get("active_hypotheses"):
@@ -361,7 +363,7 @@ class CrossLevelBridge:
 
         # Discover transfer opportunities
         for i, level_a in enumerate(levels):
-            for level_b in levels[i + 1:]:
+            for level_b in levels[i + 1 :]:
                 state_a = level_states.get(level_a, {})
                 state_b = level_states.get(level_b, {})
                 if state_a.get("insights") and state_b.get("insights"):
@@ -394,9 +396,7 @@ class CrossLevelBridge:
         if target_levels is None:
             # Default: all levels below the priority level
             target_levels = [
-                l
-                for l in AbstractionLevel
-                if int(l) < int(priority_level)
+                l for l in AbstractionLevel if int(l) < int(priority_level)
             ]
 
         for target in target_levels:
@@ -447,9 +447,7 @@ class CrossLevelBridge:
             distance = i - src_idx
 
             # Confidence attenuates with distance
-            attenuated_confidence = max(
-                0.3, surprise_magnitude * (0.9 ** distance)
-            )
+            attenuated_confidence = max(0.3, surprise_magnitude * (0.9**distance))
 
             msg = CrossLevelMessage(
                 source_level=source_level,
@@ -500,13 +498,15 @@ class CrossLevelBridge:
         health = []
         for (src, tgt), boundary in self._boundaries.items():
             total = boundary.message_count + boundary.blocked_count
-            health.append({
-                "boundary": f"{src.name}→{tgt.name}",
-                "permeability": boundary.permeability,
-                "messages_passed": boundary.message_count,
-                "messages_blocked": boundary.blocked_count,
-                "utilization": total,
-            })
+            health.append(
+                {
+                    "boundary": f"{src.name}→{tgt.name}",
+                    "permeability": boundary.permeability,
+                    "messages_passed": boundary.message_count,
+                    "messages_blocked": boundary.blocked_count,
+                    "utilization": total,
+                }
+            )
         return health
 
     def _simulate_validation(

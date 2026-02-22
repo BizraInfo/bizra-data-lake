@@ -69,13 +69,22 @@ _REAL_DATA_AVAILABLE: Optional[bool] = None
 
 
 def _check_real_data() -> bool:
-    """Check once whether the real parquet + index data is present."""
+    """Check once whether the real parquet + index data AND retrieval engine are present."""
     global _REAL_DATA_AVAILABLE
     if _REAL_DATA_AVAILABLE is None:
         chunks_ok = CHUNKS_TABLE_PATH.exists() and CHUNKS_TABLE_PATH.stat().st_size > 0
         index_dir = INDEXED_PATH / "graph"
         index_ok = index_dir.exists() and any(index_dir.iterdir()) if index_dir.exists() else False
-        _REAL_DATA_AVAILABLE = chunks_ok and index_ok
+        # Also verify the RAG engine module is importable — without it the
+        # orchestrator falls back to an empty response with execution_time=0.
+        try:
+            import importlib
+
+            importlib.import_module("core.hypergraph_rag")
+            rag_ok = True
+        except (ImportError, ModuleNotFoundError):
+            rag_ok = False
+        _REAL_DATA_AVAILABLE = chunks_ok and index_ok and rag_ok
     return _REAL_DATA_AVAILABLE
 
 

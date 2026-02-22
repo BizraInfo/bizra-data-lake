@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/corpus/dedup_report.v1.schema.json",
+  "title": "DedupReportV1",
+  "type": "object",
+  "required": [
+    "run_id",
+    "generated_at",
+    "raw_records",
+    "unique_records",
+    "duplication_factor",
+    "providers_detected",
+    "raw_conversations",
+    "unique_conversations",
+    "duplicate_clusters"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "raw_records": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unique_records": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplication_factor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "providers_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "raw_conversations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unique_conversations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_clusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "count",
+          "kept_message_id",
+          "dropped_message_ids"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "fallback"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "kept_message_id": {
+            "type": "string"
+          },
+          "dropped_message_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

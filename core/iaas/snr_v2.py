@@ -579,6 +579,11 @@ class SNRCalculatorV2:
         """
         Compute diversity from entropy and anti-redundancy.
 
+        Uses Rényi-2 entropy when available (catches dominance patterns
+        earlier than Shannon). Falls back to Shannon-only if import fails.
+
+        Standing on Giants: Rényi (1961) + Shannon (1948)
+
         Returns: (diversity, entropy, redundancy)
         """
         if not texts:
@@ -594,7 +599,26 @@ class SNRCalculatorV2:
                     pairwise_sims.append(sim)
             redundancy = float(np.mean(pairwise_sims)) if pairwise_sims else 0.0
 
-        # Compute entropy (vocabulary diversity)
+        # Try enhanced diversity with Rényi-2 entropy
+        try:
+            from core.iaas.renyi_entropy import enhanced_diversity_score
+
+            diversity, details = enhanced_diversity_score(texts)
+            normalized_entropy = details.get(
+                "shannon_normalized", details.get("renyi_2_normalized", 0.0)
+            )
+            # Override redundancy with embedding-based if available
+            if embeddings is not None and len(embeddings) > 1:
+                diversity = (
+                    0.4 * details.get("shannon_normalized", 0.0)
+                    + 0.4 * details.get("renyi_2_normalized", 0.0)
+                    + 0.2 * (1 - redundancy)
+                )
+            return float(diversity), float(normalized_entropy), float(redundancy)
+        except (ImportError, Exception) as e:
+            logger.debug(f"Rényi entropy unavailable, using Shannon-only: {e}")
+
+        # Fallback: Shannon-only diversity
         all_words = []
         for text in texts:
             all_words.extend(text.lower().split())

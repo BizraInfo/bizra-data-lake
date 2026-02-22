@@ -68,10 +68,10 @@ TIER_TO_LEVEL: Final[Dict[str, str]] = {v: k for k, v in LEVEL_TO_TIER.items()}
 # Level-specific SNR requirements (gradient)
 # Lower levels tolerate more noise; higher levels demand purer signal.
 SNR_REQUIREMENTS: Final[Dict[str, float]] = {
-    "PERCEPTUAL": UNIFIED_SNR_THRESHOLD,       # 0.85
-    "OPERATIONAL": UNIFIED_SNR_THRESHOLD,      # 0.85
-    "TACTICAL": SNR_THRESHOLD_T2_STANDARD,     # 0.90
-    "STRATEGIC": SNR_THRESHOLD_T1_HIGH,        # 0.95
+    "PERCEPTUAL": UNIFIED_SNR_THRESHOLD,  # 0.85
+    "OPERATIONAL": UNIFIED_SNR_THRESHOLD,  # 0.85
+    "TACTICAL": SNR_THRESHOLD_T2_STANDARD,  # 0.90
+    "STRATEGIC": SNR_THRESHOLD_T1_HIGH,  # 0.95
     "META_COGNITIVE": SNR_THRESHOLD_T0_ELITE,  # 0.98
 }
 

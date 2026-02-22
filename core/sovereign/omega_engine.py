@@ -35,10 +35,7 @@ from typing import Any, Callable, Optional
 
 import numpy as np
 
-try:
-    from core.integration.constants import ADL_GINI_THRESHOLD
-except ImportError:
-    ADL_GINI_THRESHOLD = 0.40  # type: ignore[misc]
+from core.integration.constants import ADL_GINI_THRESHOLD
 
 logger = logging.getLogger(__name__)
 

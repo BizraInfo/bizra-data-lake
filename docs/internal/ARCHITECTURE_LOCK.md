@@ -4,7 +4,7 @@
 **Status:** **ACTIVE & ENFORCED**
 
 > **🌱 FOUNDATIONAL CONTEXT**: Before reading this technical document, understand the **soul** of BIZRA.
-> Read [NODE0_GENESIS_COVENANT.md](NODE0_GENESIS_COVENANT.md) first.
+> Read [NODE0_GENESIS_COVENANT.md](../NODE0_GENESIS_COVENANT.md) first.
 
 ## ⚠️ CRITICAL INSTRUCTION FOR ALL AGENTS AND LLMs
 

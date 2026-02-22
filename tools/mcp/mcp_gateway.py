@@ -26,6 +26,13 @@ import redis.asyncio as redis
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bizra.mcp_gateway")
 
+# Phase46 metrics (live observability — replaces hardcoded Prometheus values)
+try:
+    from core.rollout.metrics import Phase46Metrics
+    _gateway_metrics = Phase46Metrics()
+except ImportError:
+    _gateway_metrics = None
+
 # Configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
@@ -160,13 +167,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware — restrict origins in production (BIZRA_CORS_ORIGINS csv).
+# allow_credentials requires explicit origins; wildcard + credentials is
+# rejected by browsers per the Fetch spec and is a security misconfiguration.
+_cors_origins = [
+    o.strip()
+    for o in os.getenv("BIZRA_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
 
 
@@ -186,6 +200,8 @@ async def mcp_handler(request: MCPRequest):
     - capabilities: List available capabilities
     """
     receipt_id = generate_receipt_id(request.method, json.dumps(request.params or {}))
+    if _gateway_metrics is not None:
+        _gateway_metrics.inc("gateway_requests")
 
     try:
         if request.method == "query":
@@ -340,7 +356,8 @@ async def health_ready(request: Request):
         # Check Redis connection
         await request.app.state.redis.ping()
         redis_status = "ready"
-    except Exception:
+    except Exception as e:
+        logger.debug("Redis readiness check failed: %s", e)
         redis_status = "not_ready"
 
     status = "ready" if redis_status == "ready" else "not_ready"
@@ -422,23 +439,90 @@ async def knowledge_status():
     }
 
 
+@app.get("/metrics")
 @app.get("/metrics/prometheus")
 async def prometheus_metrics():
-    """Prometheus metrics endpoint."""
-    metrics = [
-        "# HELP bizra_mcp_requests_total Total MCP requests",
+    """Prometheus metrics endpoint with live Phase46 metrics.
+
+    Served on both /metrics (K8s annotation default) and /metrics/prometheus
+    (backward compatibility).
+    """
+    snap = _gateway_metrics.snapshot() if _gateway_metrics is not None else {}
+    counters = snap.get("counters", {})
+    search = snap.get("search", {})
+    resonance = snap.get("resonance", {})
+    hmm = snap.get("hmm", {})
+
+    lines = [
+        "# HELP bizra_mcp_requests_total Total MCP gateway requests",
         "# TYPE bizra_mcp_requests_total counter",
-        "bizra_mcp_requests_total 0",
+        f"bizra_mcp_requests_total {counters.get('gateway_requests', 0)}",
         "",
-        "# HELP bizra_ihsan_score Current Ihsan score",
-        "# TYPE bizra_ihsan_score gauge",
-        f"bizra_ihsan_score {IHSAN_THRESHOLD}",
+        "# HELP bizra_phase46_search_requests_total Phase46 search requests",
+        "# TYPE bizra_phase46_search_requests_total counter",
+        f"bizra_phase46_search_requests_total {counters.get('search_requests', 0)}",
         "",
-        "# HELP bizra_snr_score Current SNR score",
-        "# TYPE bizra_snr_score gauge",
-        f"bizra_snr_score {SNR_THRESHOLD}",
+        "# HELP bizra_phase46_search_hits_total Phase46 search hits",
+        "# TYPE bizra_phase46_search_hits_total counter",
+        f"bizra_phase46_search_hits_total {counters.get('search_hits', 0)}",
+        "",
+        "# HELP bizra_phase46_search_errors_total Phase46 search errors",
+        "# TYPE bizra_phase46_search_errors_total counter",
+        f"bizra_phase46_search_errors_total {counters.get('search_errors', 0)}",
+        "",
+        "# HELP bizra_phase46_resonance_requests_total Phase46 resonance requests",
+        "# TYPE bizra_phase46_resonance_requests_total counter",
+        f"bizra_phase46_resonance_requests_total {counters.get('resonance_requests', 0)}",
+        "",
+        "# HELP bizra_phase46_resonance_errors_total Phase46 resonance errors",
+        "# TYPE bizra_phase46_resonance_errors_total counter",
+        f"bizra_phase46_resonance_errors_total {counters.get('resonance_errors', 0)}",
+        "",
+        "# HELP bizra_phase46_hmm_requests_total Phase46 HMM requests",
+        "# TYPE bizra_phase46_hmm_requests_total counter",
+        f"bizra_phase46_hmm_requests_total {counters.get('hmm_requests', 0)}",
+        "",
+        "# HELP bizra_phase46_got_requests_total Phase46 GoT bridge requests",
+        "# TYPE bizra_phase46_got_requests_total counter",
+        f"bizra_phase46_got_requests_total {counters.get('got_requests', 0)}",
+        "",
+        "# HELP bizra_phase46_got_fallback_total Phase46 GoT bridge fallbacks",
+        "# TYPE bizra_phase46_got_fallback_total counter",
+        f"bizra_phase46_got_fallback_total {counters.get('got_fallback', 0)}",
+        "",
+        "# HELP bizra_phase46_search_latency_p95_ms Phase46 search p95 latency",
+        "# TYPE bizra_phase46_search_latency_p95_ms gauge",
+        f"bizra_phase46_search_latency_p95_ms {search.get('latency_p95_ms', 0.0)}",
+        "",
+        "# HELP bizra_phase46_search_hit_rate Phase46 search hit rate",
+        "# TYPE bizra_phase46_search_hit_rate gauge",
+        f"bizra_phase46_search_hit_rate {search.get('hit_rate', 0.0)}",
+        "",
+        "# HELP bizra_phase46_resonance_snr_p50 Phase46 resonance SNR p50",
+        "# TYPE bizra_phase46_resonance_snr_p50 gauge",
+        f"bizra_phase46_resonance_snr_p50 {resonance.get('combined_snr_p50', 0.0)}",
+        "",
+        "# HELP bizra_phase46_hmm_confidence_p50 Phase46 HMM confidence p50",
+        "# TYPE bizra_phase46_hmm_confidence_p50 gauge",
+        f"bizra_phase46_hmm_confidence_p50 {hmm.get('confidence_p50', 0.0)}",
+        "",
+        "# HELP bizra_phase46_hmm_entropy Phase46 HMM observation entropy",
+        "# TYPE bizra_phase46_hmm_entropy gauge",
+        f"bizra_phase46_hmm_entropy {hmm.get('observation_entropy', 0.0)}",
+        "",
+        "# HELP bizra_ihsan_threshold Ihsan quality threshold",
+        "# TYPE bizra_ihsan_threshold gauge",
+        f"bizra_ihsan_threshold {IHSAN_THRESHOLD}",
+        "",
+        "# HELP bizra_snr_threshold SNR quality threshold",
+        "# TYPE bizra_snr_threshold gauge",
+        f"bizra_snr_threshold {SNR_THRESHOLD}",
+        "",
+        "# HELP bizra_phase46_uptime_seconds Phase46 metrics uptime",
+        "# TYPE bizra_phase46_uptime_seconds gauge",
+        f"bizra_phase46_uptime_seconds {snap.get('uptime_seconds', 0.0)}",
     ]
-    return Response(content="\n".join(metrics), media_type="text/plain")
+    return Response(content="\n".join(lines), media_type="text/plain")
 
 
 # ============================================================================

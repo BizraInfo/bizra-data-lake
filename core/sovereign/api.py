@@ -1020,17 +1020,23 @@ def create_fastapi_app(runtime: Any) -> Any:
         stub_count = sum(1 for v in subsystems.values() if v == "stub")
         unavailable_count = sum(1 for v in subsystems.values() if v == "unavailable")
 
-        # Override status if many subsystems degraded
-        health_status = status["health"]["status"]
-        if unavailable_count > 3:
+        # Compute health score from subsystem availability
+        total = len(subsystems)
+        active_count = sum(1 for v in subsystems.values() if v == "active")
+        health_score = active_count / total if total > 0 else 0.0
+
+        # Derive status from score
+        if health_score >= 0.8:
+            health_status = "healthy"
+        elif health_score >= 0.5:
             health_status = "degraded"
-        elif health_status == "unknown" and stub_count == 0:
-            health_status = "partial"
+        else:
+            health_status = "unhealthy"
 
         return {
             "status": health_status,
             "version": status["identity"]["version"],
-            "health_score": status["health"]["score"],
+            "health_score": round(health_score, 4),
             "subsystems": subsystems,
             "stub_count": stub_count,
             "unavailable_count": unavailable_count,
@@ -2530,17 +2536,20 @@ def create_fastapi_app(runtime: Any) -> Any:
             "subsystems": {
                 "moe_router": (
                     getattr(fusion_engine, "_moe_router", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "hrm_engine": hrm is not None,
                 "hypergraph_rag": (
                     getattr(fusion_engine, "_hypergraph_rag", None) is not None
-                    if fusion_engine else False
+                    if fusion_engine
+                    else False
                 ),
                 "northstar_engine": northstar is not None,
             },
             "hypergraph_store": hypergraph is not None,
-            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None) is not None,
+            "memory_synthesizer": getattr(runtime, "_memory_synthesizer", None)
+            is not None,
             "pattern_codebook": getattr(runtime, "_pattern_codebook", None) is not None,
         }
 
