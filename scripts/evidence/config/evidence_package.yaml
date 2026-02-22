@@ -1,0 +1,108 @@
+policy_version: evidence-v1.0
+package:
+  root: artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS
+  tiers:
+    - private_full
+    - public_redacted
+  default_stage: scaffold
+
+# Used in CHAIN_ANCHOR.json; external TSA/OTS fields remain null unless provided.
+genesis_anchor: Ω
+constitution_policy_source: docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md
+
+founding_import:
+  receipt_path: artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/manifest/import_receipt.json
+  assets:
+    - logical_path: 00_GENESIS/01_ARABIC_FOUNDING/al_risalah_original.pdf
+      source: /mnt/c/Users/BIZRA-OS/Downloads/Documents/PDFs/the massage.pdf
+      expected_sha256: e05b73b933df31964b96255dca673300b01caea3bce8bd283e7f6440a876d3ce
+      source_root: /mnt/c/Users/BIZRA-OS/Downloads/Documents/PDFs
+      discovery_rule: source_lock
+      visibility: private_only
+      public_mode: hash_metadata
+      classification: founding_document
+      required_scaffold: true
+      required_final: true
+      provenance: Written Ramadan 2023, founding covenant document
+
+    - logical_path: 00_GENESIS/01_ARABIC_FOUNDING/al_bazrah_original.pdf
+      source: /mnt/c/Users/BIZRA-OS/Downloads/Documents/PDFs/البذرة.pdf
+      expected_sha256: f95bc6f76acdc9339e005411a17810c50624784f18b55811d8339fcef6601538
+      source_root: /mnt/c/Users/BIZRA-OS/Downloads/Documents/PDFs
+      discovery_rule: source_lock
+      visibility: private_only
+      public_mode: hash_metadata
+      classification: founding_document
+      required_scaffold: true
+      required_final: true
+      provenance: Written Ramadan 2023, founding vision document
+
+artifacts:
+  - logical_path: 00_GENESIS/03_SPIRITUAL_TECHNICAL/ihsan_as_architecture.md
+    source: 00_GENESIS/03_SPIRITUAL_TECHNICAL/ihsan_as_architecture.md
+    source_root: 00_GENESIS/03_SPIRITUAL_TECHNICAL
+    discovery_rule: canonical_repo_path
+    visibility: both
+    public_mode: full
+    classification: theological_bridge
+    required_scaffold: false
+    required_final: true
+
+  - logical_path: 02_ARCHITECTURE/03_ATLAS_v4_1/atlas_capability_matrix.yaml
+    source: docs/atlas_alignment/atlas_capability_matrix.yaml
+    source_root: docs/atlas_alignment
+    discovery_rule: canonical_repo_path
+    visibility: both
+    public_mode: full
+    classification: architecture_matrix
+    required_scaffold: false
+    required_final: true
+
+  - logical_path: 01_FOUNDATION/01_CONSTITUTION/DDAGI_CONSTITUTION_v1.1.0-FINAL.md
+    source: docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md
+    source_root: docs
+    discovery_rule: canonical_repo_path
+    visibility: both
+    public_mode: full
+    classification: constitution
+    required_scaffold: false
+    required_final: true
+
+  - logical_path: 03_IMPLEMENTATION/01_GITHUB_PROFILE/README.md
+    source: deploy/github-profile/README.md
+    source_root: deploy/github-profile
+    discovery_rule: canonical_repo_path
+    visibility: both
+    public_mode: full
+    classification: public_presence
+    required_scaffold: false
+    required_final: false
+
+  - logical_path: 04_INTELLIGENCE/03_DATA_ANALYSES/latest_stereoscopic_report.json
+    source: artifacts/corpus/v1/stereoscopic_drift/latest_report.json
+    source_root: artifacts/corpus/v1/stereoscopic_drift
+    discovery_rule: canonical_repo_path
+    visibility: both
+    public_mode: full
+    classification: drift_artifact
+    required_scaffold: false
+    required_final: false
+
+research_policy:
+  gate_mode: manifest_completeness
+  fixed_minimum: null
+  approved_roots:
+    - research_archive
+    - /mnt/c/Users/BIZRA-OS/Downloads/Documents/PDFs
+    - /mnt/c/Users/BIZRA-OS/Downloads/Documents/Markdown
+    - /mnt/c/Users/BIZRA-OS/Downloads/Documents/Text
+    - 02_PROCESSED/text/research_papers
+  exclude_patterns:
+    - "*/02_PROCESSED/code/*"
+    - "*/_Duplicates/*"
+    - "*/__pycache__/*"
+    - "*/node_modules/*"
+    - "*/.git/*"
+    - "*/temp/*"
+    - "*/tmp/*"
+    - "*.log"
