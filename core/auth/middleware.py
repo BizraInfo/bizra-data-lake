@@ -119,9 +119,7 @@ class AuthMiddleware:
             # Evict stale buckets when approaching limit
             if len(self._buckets) >= self._BUCKET_MAX:
                 stale_cutoff = now - 600  # 10 min idle = stale
-                stale = [
-                    k for k, v in self._buckets.items() if v["last"] < stale_cutoff
-                ]
+                stale = [k for k, v in self._buckets.items() if v["last"] < stale_cutoff]
                 for k in stale:
                     del self._buckets[k]
             self._buckets[user_id] = {"tokens": float(self._burst), "last": now}

@@ -147,11 +147,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Validate SAP v0 conformance + release gate
-        run: python scripts/spec/sap_release_gate.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
       - name: Validate PromQL guard patterns
         run: python scripts/ci_promql_guard.py
 

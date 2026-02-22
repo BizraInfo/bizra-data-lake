@@ -173,6 +173,9 @@ class SovereignRuntime:
         self._embedding_gate: Optional[object] = None  # EmbeddingQualityGate
         self._ntu_adapter: Optional[object] = None  # NTUFusionAdapter
 
+        # Phase 33: RDVE Engine (Recursive Discovery & Verification)
+        self._rdve_engine: Optional[object] = None  # RDVEOrchestrator
+
         # SpearPoint Pipeline — unified post-query cockpit
         self._spearpoint: Optional[object] = None  # SpearPointPipeline
 
@@ -410,6 +413,9 @@ class SovereignRuntime:
 
         # Initialize Phase 25-28: Ecosystem subsystems (HRM + NorthStar + Guild + Quest)
         self._init_ecosystem_subsystems()
+
+        # Initialize Phase 33: RDVE Engine (Recursive Discovery & Verification)
+        self._init_rdve_engine()
 
         # Initialize impact tracker (sovereignty growth engine)
         self._init_impact_tracker()
@@ -1634,6 +1640,34 @@ class SovereignRuntime:
                 self.logger.warning(f"⚠ QuestEngine init failed: {e}")
         else:
             self.logger.info("○ QuestEngine disabled by config")
+
+    def _init_rdve_engine(self) -> None:
+        """Initialize Phase 33: RDVE Engine (Recursive Discovery & Verification).
+
+        Wires the RDVEOrchestrator into the sovereign runtime as a background
+        campaign runner. RDVE is NOT in the per-query pipeline — it is an async
+        "slower scientist" that runs discovery cycles via run_campaign().
+
+        The orchestrator self-wires its subcomponents (HypothesisGenerator,
+        GoTHypothesisExplorer, SNRMaximizer, AutopoieticLoop) using sensible
+        defaults, so no explicit dependency injection is needed here.
+
+        Standing on: Shannon (SNR) + Besta (GoT) + Maturana (autopoiesis) +
+                     Boyd (OODA) + Deming (PDCA) + Al-Ghazali (Ihsan)
+        """
+        try:
+            from core.rdve import RDVEConfig, RDVEOrchestrator
+
+            self._rdve_engine = RDVEOrchestrator(config=RDVEConfig())
+            self.logger.info(
+                f"✓ RDVE Engine initialized "
+                f"(SNR floor={self._rdve_engine.config.snr_floor:.2f}, "
+                f"Ihsan floor={self._rdve_engine.config.ihsan_floor:.2f})"
+            )
+        except ImportError:
+            self.logger.warning("⚠ RDVE Engine unavailable (missing dependencies)")
+        except Exception as e:
+            self.logger.warning(f"⚠ RDVE Engine init failed: {e}")
 
     def _init_impact_tracker(self) -> None:
         """Initialize the impact tracker for sovereignty progression."""
