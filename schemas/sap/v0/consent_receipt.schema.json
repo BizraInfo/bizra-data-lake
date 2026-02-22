@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/consent_receipt.schema.json",
+  "title": "ConsentReceipt",
+  "type": "object",
+  "required": [
+    "consent_receipt_id",
+    "session_id",
+    "user_agent_id",
+    "brand_agent_id",
+    "data_shared",
+    "data_withheld",
+    "consent_timestamp",
+    "consent_hash",
+    "revocation_endpoint"
+  ],
+  "properties": {
+    "consent_receipt_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "user_agent_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "brand_agent_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "data_shared": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "field",
+          "purpose"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retention_seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "granularity": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "aggregated",
+              "anonymized",
+              "differential_privacy"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "data_withheld": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "consent_timestamp": {
+      "type": "integer"
+    },
+    "consent_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "revocation_endpoint": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

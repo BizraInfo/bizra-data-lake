@@ -27,6 +27,8 @@ from typing import (
     TypedDict,
 )
 
+from core.integration.constants import LMSTUDIO_URL
+
 # Note: ``Any`` is used for the ``InferenceConfig.connection_pool`` field to
 # break a circular import with ``_connection_pool.ConnectionPoolConfig``.
 # The real default is injected lazily in ``InferenceConfig.__post_init__``.
@@ -296,12 +298,7 @@ class InferenceConfig:
             "OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")
         )
     )
-    lmstudio_url: str = field(
-        default_factory=lambda: os.getenv(
-            "LMSTUDIO_URL",
-            f"http://{os.getenv('LMSTUDIO_HOST', '192.168.56.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
-        )
-    )
+    lmstudio_url: str = field(default_factory=lambda: LMSTUDIO_URL)
 
     # Batching settings (P0-P1 optimization)
     enable_batching: bool = True

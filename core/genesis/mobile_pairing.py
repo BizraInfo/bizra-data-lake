@@ -71,6 +71,7 @@ def pair_mobile(device_spec: str) -> MobilePairResult:
 
     logger.info(
         "Mobile paired (stub): %s [%s] — proximity routing enabled",
-        device_name, model,
+        device_name,
+        model,
     )
     return result

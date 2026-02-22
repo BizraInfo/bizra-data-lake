@@ -1,3 +1,24 @@
+"""
+BIZRA Graph Semantic Layer — Dual-overlay topology separation.
+
+Separates semantic edges from structural PART_OF edges in the knowledge graph.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import math
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Final, List, Optional, Set, Tuple
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -5,53 +26,57 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Structural edge types (hierarchical containment)
-STRUCTURAL_EDGE_TYPES: Final[frozenset] = frozenset({
-    "PART_OF",
-    "CONTAINS",
-    "HAS_CHILD",
-    "HAS_PARENT",
-    "IN_DIRECTORY",
-    "IN_FOLDER",
-    "CHILD_OF",
-    "PARENT_OF",
-    "HAS_FILE",
-    "BELONGS_TO",
-})
+STRUCTURAL_EDGE_TYPES: Final[frozenset] = frozenset(
+    {
+        "PART_OF",
+        "CONTAINS",
+        "HAS_CHILD",
+        "HAS_PARENT",
+        "IN_DIRECTORY",
+        "IN_FOLDER",
+        "CHILD_OF",
+        "PARENT_OF",
+        "HAS_FILE",
+        "BELONGS_TO",
+    }
+)
 
 # Semantic edge types (knowledge relationships)
-SEMANTIC_EDGE_TYPES: Final[frozenset] = frozenset({
-    "RELATES_TO",
-    "DEPENDS_ON",
-    "REFERENCES",
-    "SIMILAR_TO",
-    "IMPLEMENTS",
-    "EXTENDS",
-    "USES",
-    "IMPORTS",
-    "CALLS",
-    "INHERITS",
-    "INSTANTIATES",
-    "CONFIGURED_BY",
-    "TESTED_BY",
-    "VALIDATES",
-    "CONTRADICTS",
-    "SUPERSEDES",
-    "COMPLEMENTS",
-    "CO_OCCURS",
-    "CAUSED_BY",
-    "ENABLES",
-    "CONSTRAINS",
-    "DERIVES_FROM",
-    "EXPORTS",
-    "EMBEDS",
-    "WRAPS",
-    "DELEGATES_TO",
-    "TRIGGERS",
-    "MONITORS",
-    "GATES",
-    "PROVES",
-    "DISPROVES",
-})
+SEMANTIC_EDGE_TYPES: Final[frozenset] = frozenset(
+    {
+        "RELATES_TO",
+        "DEPENDS_ON",
+        "REFERENCES",
+        "SIMILAR_TO",
+        "IMPLEMENTS",
+        "EXTENDS",
+        "USES",
+        "IMPORTS",
+        "CALLS",
+        "INHERITS",
+        "INSTANTIATES",
+        "CONFIGURED_BY",
+        "TESTED_BY",
+        "VALIDATES",
+        "CONTRADICTS",
+        "SUPERSEDES",
+        "COMPLEMENTS",
+        "CO_OCCURS",
+        "CAUSED_BY",
+        "ENABLES",
+        "CONSTRAINS",
+        "DERIVES_FROM",
+        "EXPORTS",
+        "EMBEDS",
+        "WRAPS",
+        "DELEGATES_TO",
+        "TRIGGERS",
+        "MONITORS",
+        "GATES",
+        "PROVES",
+        "DISPROVES",
+    }
+)
 
 # Small-world detection thresholds (Watts & Strogatz, 1998)
 SMALL_WORLD_SIGMA_THRESHOLD: Final[float] = 1.0  # σ > 1 → small-world
@@ -65,6 +90,7 @@ SCALE_FREE_GAMMA_RANGE: Final[Tuple[float, float]] = (2.0, 3.0)  # Barabási
 
 class EdgeClassification(str, Enum):
     """Classification of an edge in the knowledge graph."""
+
     STRUCTURAL = "structural"
     SEMANTIC = "semantic"
     AMBIGUOUS = "ambiguous"  # Could not classify — needs review
@@ -73,6 +99,7 @@ class EdgeClassification(str, Enum):
 @dataclass(frozen=True)
 class ClassifiedEdge:
     """An edge with its classification and metadata."""
+
     source: str
     target: str
     edge_type: str
@@ -84,6 +111,7 @@ class ClassifiedEdge:
 @dataclass
 class TopologyMetrics:
     """Small-world and scale-free metrics for a graph layer."""
+
     node_count: int = 0
     edge_count: int = 0
     avg_degree: float = 0.0
@@ -93,12 +121,12 @@ class TopologyMetrics:
     # Clustering (Watts & Strogatz)
     avg_clustering: float = 0.0
     random_clustering: float = 0.0  # Expected C for random graph
-    clustering_ratio: float = 0.0   # C_actual / C_random
+    clustering_ratio: float = 0.0  # C_actual / C_random
 
     # Path length (Watts & Strogatz)
     avg_path_length: float = 0.0
     random_path_length: float = 0.0  # Expected L for random graph
-    path_ratio: float = 0.0          # L_actual / L_random
+    path_ratio: float = 0.0  # L_actual / L_random
 
     # Small-world coefficient: σ = (C/C_rand) / (L/L_rand)
     small_world_sigma: float = 0.0
@@ -126,6 +154,7 @@ class TopologyMetrics:
 @dataclass
 class GraphTopologyReport:
     """Complete topology report for the dual-overlay graph."""
+
     timestamp: str = ""
     total_nodes: int = 0
     total_edges: int = 0
@@ -144,8 +173,10 @@ class GraphTopologyReport:
     edge_type_counts: Dict[str, int] = field(default_factory=dict)
 
     # Semantic bridge analysis
-    bridge_nodes: List[str] = field(default_factory=list)  # Nodes connecting communities
-    hub_nodes: List[str] = field(default_factory=list)      # High-degree semantic nodes
+    bridge_nodes: List[str] = field(
+        default_factory=list
+    )  # Nodes connecting communities
+    hub_nodes: List[str] = field(default_factory=list)  # High-degree semantic nodes
 
     # SNR improvement estimate
     pre_separation_snr: float = 0.0
@@ -156,8 +187,11 @@ class GraphTopologyReport:
     confidence: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {k: v for k, v in self.__dict__.items()
-                  if not isinstance(v, TopologyMetrics) and v is not None}
+        result = {
+            k: v
+            for k, v in self.__dict__.items()
+            if not isinstance(v, TopologyMetrics) and v is not None
+        }
         if self.structural_topology:
             result["structural_topology"] = self.structural_topology.to_dict()
         if self.semantic_topology:
@@ -221,15 +255,13 @@ class DualOverlayGraph:
     @property
     def structural_edge_count(self) -> int:
         return sum(
-            1 for e in self._edges
-            if e.classification == EdgeClassification.STRUCTURAL
+            1 for e in self._edges if e.classification == EdgeClassification.STRUCTURAL
         )
 
     @property
     def semantic_edge_count(self) -> int:
         return sum(
-            1 for e in self._edges
-            if e.classification == EdgeClassification.SEMANTIC
+            1 for e in self._edges if e.classification == EdgeClassification.SEMANTIC
         )
 
     def structural_degree(self, node: str) -> int:
@@ -253,10 +285,14 @@ class DualOverlayGraph:
         return nodes
 
     def get_semantic_edges(self) -> List[ClassifiedEdge]:
-        return [e for e in self._edges if e.classification == EdgeClassification.SEMANTIC]
+        return [
+            e for e in self._edges if e.classification == EdgeClassification.SEMANTIC
+        ]
 
     def get_structural_edges(self) -> List[ClassifiedEdge]:
-        return [e for e in self._edges if e.classification == EdgeClassification.STRUCTURAL]
+        return [
+            e for e in self._edges if e.classification == EdgeClassification.STRUCTURAL
+        ]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -315,7 +351,7 @@ class TopologyAnalyzer:
             triangles = 0
             for i, n1 in enumerate(neighbors):
                 n1_neighbors = set(adj.get(n1, {}).keys())
-                for n2 in neighbors[i + 1:]:
+                for n2 in neighbors[i + 1 :]:
                     if n2 in n1_neighbors:
                         triangles += 1
 
@@ -339,11 +375,13 @@ class TopologyAnalyzer:
             return 0.0
 
         rng = np.random.default_rng(42)
-        sample_nodes = list(rng.choice(
-            nodes,
-            size=min(sample_size, len(nodes)),
-            replace=False,
-        ))
+        sample_nodes = list(
+            rng.choice(
+                nodes,
+                size=min(sample_size, len(nodes)),
+                replace=False,
+            )
+        )
 
         path_lengths = []
         for source in sample_nodes:
@@ -414,9 +452,9 @@ class TopologyAnalyzer:
         sum_x = np.sum(log_k)
         sum_y = np.sum(log_c)
         sum_xy = np.sum(log_k * log_c)
-        sum_x2 = np.sum(log_k ** 2)
+        sum_x2 = np.sum(log_k**2)
 
-        denom = n * sum_x2 - sum_x ** 2
+        denom = n * sum_x2 - sum_x**2
         if abs(denom) < 1e-10:
             return 0.0, 0.0
 
@@ -486,7 +524,8 @@ class TopologyAnalyzer:
         metrics.random_clustering = metrics.avg_degree / n if n > 0 else 0.0
         metrics.clustering_ratio = (
             metrics.avg_clustering / metrics.random_clustering
-            if metrics.random_clustering > 0 else 0.0
+            if metrics.random_clustering > 0
+            else 0.0
         )
 
         # Average path length (sampled)
@@ -494,15 +533,14 @@ class TopologyAnalyzer:
 
         # Random graph expected path length: L_rand ≈ ln(N) / ln(<k>)
         if metrics.avg_degree > 1:
-            metrics.random_path_length = (
-                math.log(n) / math.log(metrics.avg_degree)
-            )
+            metrics.random_path_length = math.log(n) / math.log(metrics.avg_degree)
         else:
             metrics.random_path_length = float(n)
 
         metrics.path_ratio = (
             metrics.avg_path_length / metrics.random_path_length
-            if metrics.random_path_length > 0 else 0.0
+            if metrics.random_path_length > 0
+            else 0.0
         )
 
         # Small-world coefficient: σ = (C/C_rand) / (L/L_rand)
@@ -515,8 +553,7 @@ class TopologyAnalyzer:
         metrics.degree_power_law_gamma = gamma
         metrics.degree_power_law_r_squared = r2
         metrics.is_scale_free = (
-            SCALE_FREE_GAMMA_RANGE[0] <= gamma <= SCALE_FREE_GAMMA_RANGE[1]
-            and r2 > 0.8
+            SCALE_FREE_GAMMA_RANGE[0] <= gamma <= SCALE_FREE_GAMMA_RANGE[1] and r2 > 0.8
         )
 
         # Connected components
@@ -576,12 +613,28 @@ class SemanticLayerSeparator:
             return EdgeClassification.SEMANTIC
 
         # Heuristic fallback: containment-like names → structural
-        containment_signals = {"PART", "CHILD", "PARENT", "FOLDER", "DIR", "FILE", "BELONG"}
+        containment_signals = {
+            "PART",
+            "CHILD",
+            "PARENT",
+            "FOLDER",
+            "DIR",
+            "FILE",
+            "BELONG",
+        }
         if any(s in normalized for s in containment_signals):
             return EdgeClassification.STRUCTURAL
 
         # Relationship-like names → semantic
-        relation_signals = {"RELATE", "DEPEND", "REFER", "SIMILAR", "IMPL", "USE", "CALL"}
+        relation_signals = {
+            "RELATE",
+            "DEPEND",
+            "REFER",
+            "SIMILAR",
+            "IMPL",
+            "USE",
+            "CALL",
+        }
         if any(s in normalized for s in relation_signals):
             return EdgeClassification.SEMANTIC
 
@@ -612,7 +665,9 @@ class SemanticLayerSeparator:
         for edge in graph_data.get("edges", []):
             source = str(edge.get("source", edge.get("from", "")))
             target = str(edge.get("target", edge.get("to", "")))
-            edge_type = str(edge.get("type", edge.get("label", edge.get("relationship", "UNKNOWN"))))
+            edge_type = str(
+                edge.get("type", edge.get("label", edge.get("relationship", "UNKNOWN")))
+            )
             weight = float(edge.get("weight", edge.get("score", 1.0)))
 
             classification = self.classify_edge(edge_type)
@@ -623,8 +678,12 @@ class SemanticLayerSeparator:
                 edge_type=edge_type,
                 classification=classification,
                 weight=weight,
-                metadata={k: v for k, v in edge.items()
-                          if k not in ("source", "target", "from", "to", "type", "label", "weight")},
+                metadata={
+                    k: v
+                    for k, v in edge.items()
+                    if k
+                    not in ("source", "target", "from", "to", "type", "label", "weight")
+                },
             )
             graph.add_edge(classified)
 
@@ -666,12 +725,14 @@ class SemanticLayerSeparator:
                 doc_id = str(row["doc_id"])
                 graph.add_node(chunk_id, "CHUNK")
                 graph.add_node(doc_id, "DOCUMENT")
-                graph.add_edge(ClassifiedEdge(
-                    source=chunk_id,
-                    target=doc_id,
-                    edge_type="PART_OF",
-                    classification=EdgeClassification.STRUCTURAL,
-                ))
+                graph.add_edge(
+                    ClassifiedEdge(
+                        source=chunk_id,
+                        target=doc_id,
+                        edge_type="PART_OF",
+                        classification=EdgeClassification.STRUCTURAL,
+                    )
+                )
 
         # Load documents if available
         if docs_path and docs_path.exists():
@@ -685,12 +746,14 @@ class SemanticLayerSeparator:
                 if "folder" in row:
                     folder = str(row["folder"])
                     graph.add_node(folder, "FOLDER")
-                    graph.add_edge(ClassifiedEdge(
-                        source=doc_id,
-                        target=folder,
-                        edge_type="IN_FOLDER",
-                        classification=EdgeClassification.STRUCTURAL,
-                    ))
+                    graph.add_edge(
+                        ClassifiedEdge(
+                            source=doc_id,
+                            target=folder,
+                            edge_type="IN_FOLDER",
+                            classification=EdgeClassification.STRUCTURAL,
+                        )
+                    )
 
         # Infer semantic edges from chunk metadata
         if "tags" in chunks_df.columns or "concepts" in chunks_df.columns:
@@ -711,14 +774,16 @@ class SemanticLayerSeparator:
             for tag, chunk_ids in tag_to_chunks.items():
                 if 2 <= len(chunk_ids) <= 50:  # Avoid noise from very common tags
                     for i, c1 in enumerate(chunk_ids):
-                        for c2 in chunk_ids[i + 1:]:
-                            graph.add_edge(ClassifiedEdge(
-                                source=c1,
-                                target=c2,
-                                edge_type="RELATES_TO",
-                                classification=EdgeClassification.SEMANTIC,
-                                metadata={"via_tag": tag},
-                            ))
+                        for c2 in chunk_ids[i + 1 :]:
+                            graph.add_edge(
+                                ClassifiedEdge(
+                                    source=c1,
+                                    target=c2,
+                                    edge_type="RELATES_TO",
+                                    classification=EdgeClassification.SEMANTIC,
+                                    metadata={"via_tag": tag},
+                                )
+                            )
 
         return graph
 
@@ -736,7 +801,9 @@ class SemanticLayerSeparator:
         report.total_edges = len(graph._edges)
         report.structural_edges = graph.structural_edge_count
         report.semantic_edges = graph.semantic_edge_count
-        report.ambiguous_edges = report.total_edges - report.structural_edges - report.semantic_edges
+        report.ambiguous_edges = (
+            report.total_edges - report.structural_edges - report.semantic_edges
+        )
 
         if report.total_edges > 0:
             report.structural_fraction = report.structural_edges / report.total_edges
@@ -771,8 +838,7 @@ class SemanticLayerSeparator:
 
         # Identify bridge nodes (high semantic degree + connects structural clusters)
         semantic_degrees = {
-            node: graph.semantic_degree(node)
-            for node in semantic_nodes
+            node: graph.semantic_degree(node) for node in semantic_nodes
         }
         if semantic_degrees:
             sorted_by_deg = sorted(semantic_degrees.items(), key=lambda x: -x[1])
@@ -789,11 +855,13 @@ class SemanticLayerSeparator:
             # After: semantic layer has small-world properties → high SNR
             report.post_separation_snr = min(
                 0.99,
-                semantic_entropy * 0.4 +
-                (1.0 if report.semantic_topology.is_small_world else 0.6) * 0.3 +
-                report.semantic_topology.largest_component_fraction * 0.3
+                semantic_entropy * 0.4
+                + (1.0 if report.semantic_topology.is_small_world else 0.6) * 0.3
+                + report.semantic_topology.largest_component_fraction * 0.3,
             )
-            report.snr_improvement = report.post_separation_snr - report.pre_separation_snr
+            report.snr_improvement = (
+                report.post_separation_snr - report.pre_separation_snr
+            )
 
         # Confidence based on data quality
         report.confidence = self._compute_confidence(report)
@@ -822,7 +890,10 @@ class SemanticLayerSeparator:
         # Factor 3: Semantic layer shows small-world properties
         if report.semantic_topology and report.semantic_topology.is_small_world:
             factors.append(1.0)
-        elif report.semantic_topology and report.semantic_topology.small_world_sigma > 0.5:
+        elif (
+            report.semantic_topology
+            and report.semantic_topology.small_world_sigma > 0.5
+        ):
             factors.append(0.7)
         else:
             factors.append(0.4)
@@ -862,25 +933,29 @@ class SemanticLayerSeparator:
         semantic_path = output_dir / "semantic_edges.jsonl"
         with open(semantic_path, "w") as f:
             for edge in graph.get_semantic_edges():
-                line = json.dumps({
-                    "source": edge.source,
-                    "target": edge.target,
-                    "type": edge.edge_type,
-                    "weight": edge.weight,
-                    **edge.metadata,
-                })
+                line = json.dumps(
+                    {
+                        "source": edge.source,
+                        "target": edge.target,
+                        "type": edge.edge_type,
+                        "weight": edge.weight,
+                        **edge.metadata,
+                    }
+                )
                 f.write(line + "\n")
 
         # Structural edges
         structural_path = output_dir / "structural_edges.jsonl"
         with open(structural_path, "w") as f:
             for edge in graph.get_structural_edges():
-                line = json.dumps({
-                    "source": edge.source,
-                    "target": edge.target,
-                    "type": edge.edge_type,
-                    "weight": edge.weight,
-                })
+                line = json.dumps(
+                    {
+                        "source": edge.source,
+                        "target": edge.target,
+                        "type": edge.edge_type,
+                        "weight": edge.weight,
+                    }
+                )
                 f.write(line + "\n")
 
         logger.info(

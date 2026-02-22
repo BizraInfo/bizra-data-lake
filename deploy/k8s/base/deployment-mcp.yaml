@@ -1,0 +1,492 @@
+# BIZRA MCP Service Mesh — Kubernetes Deployment
+# Model Context Protocol servers for the Sovereign Organism
+#
+# Standing on Giants: Kubernetes, MCP (Anthropic), Lamport (distributed ordering)
+# Constitutional Constraint: Ihsan >= 0.95
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-mcp-gateway
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-gateway
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-mcp
+        component: gateway
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: mcp-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-gateway
+          image: bizra-mcp:RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MCP_SERVER
+              value: "gateway"
+            - name: MCP_HTTP_PORT
+              value: "8080"
+            - name: REDIS_URL
+              value: "redis://bizra-redis:6379"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+            - configMapRef:
+                name: bizra-mcp-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            sizeLimit: 512Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: component
+                      operator: In
+                      values:
+                        - gateway
+                topologyKey: kubernetes.io/hostname
+---
+# Sovereign MCP — House of Wisdom Brain
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-mcp-sovereign
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-sovereign
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: sovereign
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-mcp
+        component: sovereign
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: mcp-sovereign
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-sovereign
+          image: bizra-mcp:RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: MCP_SERVER
+              value: "sovereign"
+            - name: MCP_HTTP_PORT
+              value: "8081"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+            - configMapRef:
+                name: bizra-mcp-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+            - name: logs
+              mountPath: /app/logs
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: logs
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: data
+          persistentVolumeClaim:
+            claimName: bizra-data-pvc
+---
+# Ecosystem MCP — Unified BIZRA OS (6 engines)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-mcp-ecosystem
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-ecosystem
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: ecosystem
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-mcp
+        component: ecosystem
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: mcp-ecosystem
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-ecosystem
+          image: bizra-mcp:RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+          env:
+            - name: MCP_SERVER
+              value: "ecosystem"
+            - name: MCP_HTTP_PORT
+              value: "8082"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+            - configMapRef:
+                name: bizra-mcp-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: data
+          persistentVolumeClaim:
+            claimName: bizra-data-pvc
+---
+# Peak MCP — Masterpiece Engine (heavy: GoT + Hypergraph)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizra-mcp-peak
+  namespace: bizra
+  labels:
+    app: bizra-mcp
+    app.kubernetes.io/name: bizra
+    app.kubernetes.io/component: mcp-peak
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bizra-mcp
+      component: peak
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bizra-mcp
+        component: peak
+        app.kubernetes.io/name: bizra
+        app.kubernetes.io/component: mcp-peak
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: bizra-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-peak
+          image: bizra-mcp:RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8084
+              protocol: TCP
+          env:
+            - name: MCP_SERVER
+              value: "peak"
+            - name: MCP_HTTP_PORT
+              value: "8084"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: bizra-config
+            - configMapRef:
+                name: bizra-mcp-config
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8084
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8084
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 18
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: data
+          persistentVolumeClaim:
+            claimName: bizra-data-pvc

@@ -21,15 +21,10 @@ from typing import Any, Optional
 
 import blake3
 
-try:
-    from core.integration.constants import (
-        PILLAR_3_SANDBOX_SNR_FLOOR,
-        UNIFIED_SNR_THRESHOLD,
-    )
-except ImportError:
-    UNIFIED_SNR_THRESHOLD = 0.85  # type: ignore[misc]
-    PILLAR_3_SANDBOX_SNR_FLOOR = 0.70  # type: ignore[misc]
-
+from core.integration.constants import (
+    PILLAR_3_SANDBOX_SNR_FLOOR,
+    UNIFIED_SNR_THRESHOLD,
+)
 from core.pci.crypto import canonical_json, verify_signature
 
 from .integration_types import (

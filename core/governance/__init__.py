@@ -46,6 +46,14 @@ from .constitutional_gate import (  # type: ignore[attr-defined]
     AdmissionStatus,
     ConstitutionalGate,
 )
+from .crown_layer import (
+    CROWNHorizon,
+    CROWNLayer,
+    CROWNStatus,
+    CROWNVerdict,
+    HorizonVerdict,
+    SystemState,
+)
 from .ihsan_projector import (
     IhsanProjector,
 )
@@ -87,6 +95,13 @@ __all__ = [
     # Autonomy Engine
     "AutonomousLoop",
     "DecisionGate",
+    # CROWN Layer
+    "CROWNLayer",
+    "CROWNHorizon",
+    "CROWNStatus",
+    "CROWNVerdict",
+    "HorizonVerdict",
+    "SystemState",
     # Key Registry
     "TrustedKeyRegistry",
     "RegisteredKey",

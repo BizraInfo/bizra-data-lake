@@ -12,7 +12,7 @@ dependencies = [
     "numpy>=1.24.0,<3.0",
     "pandas>=2.0.0,<3.0",
     "torch>=2.0.0,<3.0",
-    "cryptography>=41.0.0,<45.0",
+    "cryptography>=41.0.0,<46.0",
     "httpx>=0.24.0,<1.0",
     "pydantic>=2.0.0,<3.0",
     "fastapi>=0.100.0,<1.0",
@@ -118,9 +118,9 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-# Coverage gate: 60% floor enforced in CI
-# Ratcheted: 30% → 55% → 60% (Phase 3). Target: 95% (Ihsān threshold) — reached incrementally
-fail_under = 60
+# Coverage gate: 65% floor enforced in CI
+# Ratcheted: 30% → 55% → 60% → 65% (Phase 49). Target: 95% (Ihsān threshold) — reached incrementally
+fail_under = 65
 show_missing = true
 precision = 2
 

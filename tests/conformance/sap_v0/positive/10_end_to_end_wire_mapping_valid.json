@@ -1,0 +1,38 @@
+{
+  "name": "end_to_end_wire_mapping_valid",
+  "schema": "wire_mapping",
+  "expect_valid": true,
+  "instance": {
+    "profile": "sap-ads-retail-v0",
+    "steps": [
+      {
+        "verb": "PLAN_ACTION",
+        "sap_type": "MeetOpen"
+      },
+      {
+        "verb": "PLAN_ACTION",
+        "sap_type": "Disclosure"
+      },
+      {
+        "verb": "PLAN_ACTION",
+        "sap_type": "Offer"
+      },
+      {
+        "verb": "PLAN_ACTION",
+        "sap_type": "ConsentReceipt"
+      },
+      {
+        "verb": "RUN_ACTION"
+      },
+      {
+        "verb": "ACTION_STATUS"
+      },
+      {
+        "verb": "ACTION_HISTORY"
+      },
+      {
+        "verb": "EXPLAIN"
+      }
+    ]
+  }
+}

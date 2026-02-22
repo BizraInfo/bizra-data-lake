@@ -100,16 +100,16 @@ def equal_holdings():
 
 @pytest.fixture
 def moderate_holdings():
-    """Holdings with moderate inequality (Gini ~ 0.3)."""
+    """Holdings with moderate inequality (Gini ~ 0.30, below 0.35 threshold)."""
     return {
-        "node_0": 300.0,
+        "node_0": 250.0,
         "node_1": 200.0,
         "node_2": 150.0,
-        "node_3": 100.0,
+        "node_3": 120.0,
         "node_4": 100.0,
-        "node_5": 75.0,
-        "node_6": 50.0,
-        "node_7": 25.0,
+        "node_5": 80.0,
+        "node_6": 60.0,
+        "node_7": 40.0,
     }
 
 
@@ -333,9 +333,9 @@ class TestAdlInvariant:
         Gini coefficient must be below threshold (spec says 0.35, impl uses 0.40).
         Any transaction pushing Gini above threshold must be REJECTED.
         """
-        # The implementation uses 0.40, but we test both
-        assert ADL_GINI_THRESHOLD == 0.40
-        assert ADL_MODULE_GINI_THRESHOLD == 0.40
+        # Threshold aligned to 0.35 across Python + Rust (constants.py + adl_invariant.py)
+        assert ADL_GINI_THRESHOLD == 0.35
+        assert ADL_MODULE_GINI_THRESHOLD == 0.35
 
         # Calculate current Gini
         current_gini = calculate_gini(moderate_holdings)

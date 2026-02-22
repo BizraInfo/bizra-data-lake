@@ -105,7 +105,7 @@ jobs:
       - name: Build Rust binaries
         working-directory: bizra-omega
         run: |
-          cargo build --release --target ${{ matrix.target }} -p bizra-api -p bizra-installer
+          cargo build --release --target ${{ matrix.target }} -p bizra-api -p bizra-installer -p bizra-node
 
       - name: Package artifacts
         run: |
@@ -114,8 +114,10 @@ jobs:
           # Copy binaries
           cp bizra-omega/target/${{ matrix.target }}/release/bizra-api \
              artifacts/bizra-api-${{ matrix.suffix }}
-          cp bizra-omega/target/${{ matrix.target }}/release/bizra \
-             artifacts/bizra-${{ matrix.suffix }}
+          cp bizra-omega/target/${{ matrix.target }}/release/bizra-install \
+             artifacts/bizra-install-${{ matrix.suffix }}
+          cp bizra-omega/target/${{ matrix.target }}/release/bizra-node \
+             artifacts/bizra-node-${{ matrix.suffix }}
 
           # Create checksum
           cd artifacts

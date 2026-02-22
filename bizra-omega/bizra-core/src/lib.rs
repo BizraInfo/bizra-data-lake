@@ -159,7 +159,7 @@ pub use sovereign::{
     CircuitState, Episode, EpisodeAction, EpisodeImpact, ErrorContext, ExperienceLedger,
     GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics, OrchestratorConfig, RIRConfig,
     ReasoningPath, SNRConfig, SNREngine, SignalMetrics, SovereignError, SovereignOrchestrator,
-    SovereignResult, ThoughtGraph, ThoughtNode,
+    SovereignResult, ThoughtGraph, ThoughtNode, ThoughtType,
 };
 
 /// Domain separation prefix for all cryptographic operations

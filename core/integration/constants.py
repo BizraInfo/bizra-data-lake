@@ -162,17 +162,25 @@ CONFIDENCE_MINIMUM: Final[float] = 0.50
 # "Adl (عدل) - Justice is not optional. It is a hard constraint."
 
 # Maximum Gini coefficient - HARD GATE, not warning
-# 0.40 represents moderate inequality (below most developed nations)
+# 0.35 represents moderate inequality — aligned with Rust bizra-resourcepool
 # Transactions that would push Gini above this are REJECTED
-ADL_GINI_THRESHOLD: Final[float] = 0.40
+ADL_GINI_THRESHOLD: Final[float] = 0.35
 
 # Harberger tax rate (annual, applied continuously)
 # Flows to Universal Basic Compute (UBC) pool
-ADL_HARBERGER_TAX_RATE: Final[float] = 0.05
+# Aligned with Rust bizra-resourcepool HARBERGER_TAX_RATE = 0.07
+ADL_HARBERGER_TAX_RATE: Final[float] = 0.07
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
 ADL_MINIMUM_HOLDING: Final[float] = 1e-9
+
+# Minimum non-pool accounts before Gini enforcement activates
+# Gini coefficient is statistically meaningless with < 5 data points.
+# During genesis bootstrap, the system must distribute to initial participants
+# before equality enforcement can meaningfully apply.
+# Standing on Giants — Gini (1912): sample-size requirement for robust estimation
+ADL_GINI_MIN_ACCOUNTS: Final[int] = 5
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -212,9 +220,10 @@ MAX_RETRY_ATTEMPTS = 3
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Primary LLM backend (env override: LMSTUDIO_URL or LMSTUDIO_HOST + LMSTUDIO_PORT)
-_lmstudio_host = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
-_lmstudio_port = os.getenv("LMSTUDIO_PORT", "1234")
-LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", f"http://{_lmstudio_host}:{_lmstudio_port}")
+# Single source of truth — all core/ modules must import these instead of hardcoding.
+LMSTUDIO_HOST: str = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+LMSTUDIO_PORT: str = os.getenv("LMSTUDIO_PORT", "1234")
+LMSTUDIO_URL: str = os.getenv("LMSTUDIO_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}")
 
 # Fallback LLM backend (env override: OLLAMA_URL or OLLAMA_HOST)
 OLLAMA_URL = os.getenv("OLLAMA_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434"))
@@ -241,8 +250,149 @@ CANONICAL_THRESHOLDS = {
     "SNR_THRESHOLD_T0_ELITE": 0.98,
     "MUSEUM_SNR_FLOOR": 0.85,
     "RUNTIME_IHSAN": 1.0,
-    "ADL_GINI_THRESHOLD": 0.40,  # Justice invariant - anti-plutocracy
+    "ADL_GINI_THRESHOLD": 0.35,  # Justice invariant - anti-plutocracy
 }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRI-TEMPORAL INTEGRATION (Golden Gem #10)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Friston (Free Energy, 2006) · Boyd (OODA, 1976) · Besta (GoT, 2024)
+#
+# Definition (Tri-Temporal Integration):
+#   T = T1(ms) ⊗ T2(min) ⊗ T3(days)
+# where ⊗ denotes temporal coupling:
+#   T1 generates observations that T2 interprets
+#   T2 generates plans that T1 executes
+#   T2 generates skills that T3 consolidates
+#   T3 generates priors that bias T2 and calibrate T1
+#
+# BIZRA is the first system to integrate all three timescales into a closed loop.
+
+# Timescale 1 — Reactive (Cerebellum): HMM Micro-States, AHK, Receipts
+TIMESCALE_T1_CYCLE_MS: Final[int] = 50  # Reactive sensorimotor loop
+TIMESCALE_T1_PROACTIVE_MS: Final[int] = 5  # Pre-staged via HMM prediction
+
+# Timescale 2 — Deliberative (Prefrontal): GoT Diffusion, PAT agents
+TIMESCALE_T2_CYCLE_SECONDS: Final[float] = 5.0  # OODA cycle interval
+TIMESCALE_T2_GOT_HYPOTHESES: Final[int] = 3  # Min GoT hypothesis branches
+
+# Timescale 3 — Adaptive (Hippocampal): Federated Memory, PoI, Adl convergence
+TIMESCALE_T3_CONSOLIDATION_HOURS: Final[int] = 24  # Skill consolidation window
+TIMESCALE_T3_FEDERATION_DAYS: Final[int] = 7  # Cross-node sync period
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SOVEREIGN EMPOWERMENT LOOP (SEL) — Golden Gem #4
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Friston (Active Inference) · Deming (PDCA) · Boyd (OODA)
+#
+# SEL = Perceive(W) → GoT{h1..hk} → diffusion(p*) → Act(p*) → receipt(r)
+#       → verify(r) → Learn(r) → federate → Share(r)
+#
+# The first digital sensorimotor loop — AI that touches physical reality,
+# feels the result through verification, and develops procedural memory.
+
+SEL_STAGES: Final[tuple] = (
+    "PERCEIVE",  # OS-level awareness (file system, UI state, user context)
+    "THINK",  # Diffusion reasoning (parallel GoT hypotheses)
+    "PLAN",  # PAT agent team (7 agents, ranked action plans)
+    "ACT",  # Desktop automation (real keystrokes, real file moves)
+    "SENSE",  # Receipt pipeline (verify what actually happened)
+    "LEARN",  # Layer 2 memory (encrypted personal episodic storage)
+    "REMEMBER",  # Layer 3 memory (federated skill aggregation)
+    "SHARE",  # PoI consensus (network-wide skill propagation)
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACTIVE INFERENCE CONSTANTS — Golden Gem #13
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Friston (Free Energy Principle, 2006) · Shannon (1948)
+#
+# BIZRA is an Active Inference agent at civilization scale.
+# Each node minimizes its own free energy (personal prediction accuracy).
+# The network minimizes collective free energy (shared knowledge quality).
+# The economic system (PoI + Adl) maintains allostatic balance.
+# The Three Facts are the prior beliefs constraining all inference.
+
+# Prediction-Verification Duality (Golden Gem #14)
+# System acts only when prediction (HMM) and verification (FATE) agree.
+# Prediction: P(o_{t+1} | o_{1:t}) — "what WILL happen?"
+# Verification: P(safe(a) | C) — "what SHOULD happen?"
+PREDICTION_VERIFICATION_AGREEMENT_THRESHOLD: Final[float] = 0.90
+
+# Takaful Bootstrap Protocol (Golden Gem #11)
+# New nodes inherit collective intelligence from behaviorally similar peers.
+# KL-divergence between HMM transition matrices groups similar users.
+TAKAFUL_BOOTSTRAP_OBSERVATION_MINUTES: Final[int] = 10
+TAKAFUL_KL_DIVERGENCE_THRESHOLD: Final[float] = 0.5
+
+# Constitutional Immune System (Golden Gem #12)
+# HMM anomaly detection = runtime enforcement of Three Invariants
+ANOMALY_LOG_LIKELIHOOD_THRESHOLD: Final[float] = -3.0  # Standard deviations
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# THREE KERNEL INVARIANTS — Immutable Constitutional Axioms
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Al-Ghazali (Ihsan, 1095) · Shannon (1948) · البذرة (2023)
+
+KERNEL_INVARIANTS: Final[tuple] = (
+    "RIBA_ZERO",  # No exploitation. No interest. No harm.
+    "CLAIM_MUST_BIND",  # No hallucination. Every claim has evidence. (ZANN_ZERO)
+    "IHSAN_FLOOR",  # Excellence is the minimum. 0.99 threshold.
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DUAL-TOKEN ECONOMY — Golden Gem #3
+# ═══════════════════════════════════════════════════════════════════════════════
+# SEED = معاملات (muamalat) — worldly transactions, pegged to compute hours
+# BLOOM = عبادة (ibadah) — worship/service, minted from verified impact
+SEED_COMPUTE_HOUR_PEG: Final[float] = 1.0  # 1 SEED = 1 compute hour
+BLOOM_REDISTRIBUTION_RATE: Final[float] = 0.50  # 50% — thermodynamic necessity
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HASH TABLE INFRASTRUCTURE — Phase 44
+# Standing on Giants: Bloom (1970), Merkle (1979), Kirsch & Mitzenmacher (2006)
+# ═══════════════════════════════════════════════════════════════════════════════
+BLOOM_DEFAULT_FPR: Final[float] = 0.01
+BLOOM_MAX_BITS: Final[int] = 10_000_000  # ~1.2 MB cap
+MERKLE_LEAF_PREFIX: Final[bytes] = b"\x00"  # RFC 6962 domain separation
+MERKLE_NODE_PREFIX: Final[bytes] = b"\x01"
+SKILL_CACHE_MAX_SIZE: Final[int] = 256
+SKILL_CACHE_DEFAULT_TTL: Final[int] = 3600  # seconds
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COGNITIVE RESONANCE — Phase 46
+# Standing on Giants: Shannon (1948), Johnson/FAISS (2021), Rabiner (1989)
+# ═══════════════════════════════════════════════════════════════════════════════
+FAISS_INDEX_PATH: Final[str] = "04_GOLD/node0_faiss.index"
+FAISS_META_PATH: Final[str] = "04_GOLD/node0_faiss_meta.json"
+FAISS_GOLD_DIR: Final[str] = "04_GOLD"
+FAISS_EMBEDDING_DIM: Final[int] = 384
+FAISS_DEFAULT_TOP_K: Final[int] = 10
+FAISS_SIMILARITY_FLOOR: Final[float] = 0.35
+HMM_NUM_HIDDEN_STATES: Final[int] = 6
+HMM_OBSERVATION_WINDOW: Final[int] = 50
+HMM_CONVERGENCE_THRESHOLD: Final[float] = 1e-4
+HMM_MAX_EM_ITERATIONS: Final[int] = 100
+GOT_MAX_HYPOTHESES: Final[int] = 5
+GOT_CONVERGENCE_SNR: Final[float] = 0.90
+GOT_MAX_DEPTH: Final[int] = 4
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SAFE ACTIVATION — Phase 47.1
+# Standing on Giants: Fowler (canary, 2010), Nygard (Release It!, 2007)
+# ═══════════════════════════════════════════════════════════════════════════════
+CANARY_PERCENT_MIN: Final[int] = 0
+CANARY_PERCENT_MAX: Final[int] = 100
+CANARY_DEFAULT_SALT: Final[str] = "bizra-phase46-canary-v1"
+HMM_CALLER_MODE_DEFAULT: Final[str] = "single"
+HMM_ALLOWED_CALLER_DEFAULT: Final[str] = "mcp"
+ROLLBACK_CONSECUTIVE_BREACHES: Final[int] = 2
+ROLLBACK_SEARCH_ERROR_THRESHOLD: Final[float] = 0.02  # 2%
+ROLLBACK_GOT_FALLBACK_THRESHOLD: Final[float] = 0.20  # 20%
+ROLLBACK_HMM_CONFIDENCE_FLOOR: Final[float] = 0.55
+ROLLBACK_SNR_DROP_THRESHOLD: Final[float] = 0.15  # 15% drop from baseline
+ROLLBACK_LATENCY_DELTA_THRESHOLD: Final[float] = 0.30  # 30% p95 regression
 
 
 def validate_cross_repo_consistency() -> dict:

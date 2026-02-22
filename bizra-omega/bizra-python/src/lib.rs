@@ -882,6 +882,375 @@ impl PyExperienceLedger {
     }
 }
 
+// =============================================================================
+// Cognitive Layer Bindings — Memory Synthesis (bizra-memory)
+// =============================================================================
+
+/// Python wrapper for BizraMemory — the soul of "My AI Knows Me".
+///
+/// Transforms conversations into understanding through a synthesis pipeline:
+/// Fragment → Atom → Insight → Profile.
+///
+/// Standing on Giants: Maturana (autopoiesis) · Shannon (information density)
+#[pyclass(name = "BizraMemory")]
+pub struct PyBizraMemory {
+    inner: bizra_memory::BizraMemory,
+}
+
+#[pymethods]
+impl PyBizraMemory {
+    /// Create a new memory synthesis system.
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: bizra_memory::BizraMemory::new(),
+        }
+    }
+
+    /// Process a user message through the full pipeline.
+    ///
+    /// Returns dict with: ingested, atoms_extracted, insights_produced, synthesis_triggered.
+    fn process_user_turn(
+        &mut self,
+        content: &str,
+        session_id: u64,
+        turn: u32,
+        timestamp: u64,
+    ) -> pyo3::PyObject {
+        let result = self
+            .inner
+            .process_user_turn(content, session_id, turn, timestamp);
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("ingested", result.ingested);
+            let _ = dict.set_item("atoms_extracted", result.atoms_extracted);
+            let _ = dict.set_item("insights_produced", result.insights_produced);
+            let _ = dict.set_item("synthesis_triggered", result.synthesis_triggered);
+            dict.into()
+        })
+    }
+
+    /// Process an assistant message (lower priority, context enrichment).
+    fn process_assistant_turn(
+        &mut self,
+        content: &str,
+        session_id: u64,
+        turn: u32,
+        timestamp: u64,
+    ) -> pyo3::PyObject {
+        let result = self
+            .inner
+            .process_assistant_turn(content, session_id, turn, timestamp);
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("ingested", result.ingested);
+            let _ = dict.set_item("atoms_extracted", result.atoms_extracted);
+            let _ = dict.set_item("insights_produced", result.insights_produced);
+            let _ = dict.set_item("synthesis_triggered", result.synthesis_triggered);
+            dict.into()
+        })
+    }
+
+    /// "What do I know?" — all reliable facts with confidence scores.
+    fn what_do_i_know(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .what_do_i_know(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// User preferences with confidence scores.
+    fn user_preferences(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .user_preferences(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// Active user goals with confidence scores.
+    fn user_goals(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .user_goals(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// User boundaries and negations with confidence scores.
+    fn user_boundaries(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .user_boundaries(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// Observed behavioral patterns with confidence scores.
+    fn user_patterns(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .user_patterns(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// User principles and values with confidence scores.
+    fn user_principles(&mut self, now: u64) -> Vec<(String, f32)> {
+        self.inner
+            .user_principles(now)
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// Synthesized insights — connected understanding.
+    fn insights(&mut self) -> Vec<(String, f32)> {
+        self.inner
+            .insights()
+            .into_iter()
+            .map(|(s, c)| (s.to_string(), c))
+            .collect()
+    }
+
+    /// Force a synthesis pass (regardless of batch threshold).
+    fn force_synthesis(&mut self, now: u64) {
+        self.inner.force_synthesis(now);
+    }
+
+    /// Activate the memory system.
+    fn activate(&mut self) {
+        self.inner.activate();
+    }
+
+    /// Deactivate (pause processing).
+    fn deactivate(&mut self) {
+        self.inner.deactivate();
+    }
+
+    /// Is the system active?
+    #[getter]
+    fn is_active(&self) -> bool {
+        self.inner.is_active()
+    }
+
+    /// Full health snapshot as dict.
+    fn health(&self) -> pyo3::PyObject {
+        let h = self.inner.health();
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("active", h.active);
+            let _ = dict.set_item("turns_processed", h.turns_processed);
+            let _ = dict.set_item("fragments", h.fragments);
+            let _ = dict.set_item("atoms", h.atoms);
+            let _ = dict.set_item("active_atoms", h.active_atoms);
+            let _ = dict.set_item("insights", h.insights);
+            let _ = dict.set_item("profile_completeness", h.profile_completeness);
+            let _ = dict.set_item("synthesis_passes", h.synthesis_passes);
+            let _ = dict.set_item("queries_served", h.queries_served);
+            dict.into()
+        })
+    }
+
+    fn __repr__(&self) -> String {
+        let h = self.inner.health();
+        format!(
+            "BizraMemory(turns={}, atoms={}, insights={}, profile={:.0}%)",
+            h.turns_processed,
+            h.atoms,
+            h.insights,
+            h.profile_completeness * 100.0
+        )
+    }
+}
+
+// =============================================================================
+// Graph-of-Thoughts Bindings — Besta et al. (2024) 6 Operations
+// =============================================================================
+
+/// Python wrapper for ThoughtGraph — Graph-of-Thoughts reasoning engine.
+///
+/// Implements all 6 GoT operations: GENERATE, AGGREGATE, REFINE, VALIDATE, PRUNE, BACKTRACK.
+/// Each thought node carries an SNR score for quality-driven exploration.
+///
+/// Standing on Giants: Besta et al. (Graph-of-Thoughts, 2024) · Shannon (SNR)
+#[pyclass(name = "ThoughtGraph")]
+pub struct PyThoughtGraph {
+    inner: bizra_core::ThoughtGraph,
+}
+
+#[pymethods]
+impl PyThoughtGraph {
+    /// Create a new empty thought graph.
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: bizra_core::ThoughtGraph::new(),
+        }
+    }
+
+    /// Create a thought node (GENERATE operation).
+    ///
+    /// Args:
+    ///     description: The thought content.
+    ///     parent: Optional parent thought ID for tree structure.
+    ///
+    /// Returns: The new thought's ID (string).
+    #[pyo3(signature = (description, parent=None))]
+    fn create_thought(&mut self, description: &str, parent: Option<&str>) -> String {
+        self.inner.create_thought(description, parent)
+    }
+
+    /// Create a typed thought node.
+    ///
+    /// thought_type: "hypothesis", "evidence", "reasoning", "synthesis",
+    ///               "refinement", "validation", "conclusion", "question", "counterpoint"
+    #[pyo3(signature = (description, thought_type, parent=None))]
+    fn create_typed_thought(
+        &mut self,
+        description: &str,
+        thought_type: &str,
+        parent: Option<&str>,
+    ) -> PyResult<String> {
+        let tt = match thought_type.to_lowercase().as_str() {
+            "hypothesis" => bizra_core::ThoughtType::Hypothesis,
+            "evidence" => bizra_core::ThoughtType::Evidence,
+            "reasoning" => bizra_core::ThoughtType::Reasoning,
+            "synthesis" => bizra_core::ThoughtType::Synthesis,
+            "refinement" => bizra_core::ThoughtType::Refinement,
+            "validation" => bizra_core::ThoughtType::Validation,
+            "conclusion" => bizra_core::ThoughtType::Conclusion,
+            "question" => bizra_core::ThoughtType::Question,
+            "counterpoint" => bizra_core::ThoughtType::Counterpoint,
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Unknown thought type: '{}'. Use: hypothesis, evidence, reasoning, synthesis, \
+                 refinement, validation, conclusion, question, counterpoint",
+                    thought_type
+                )))
+            }
+        };
+        Ok(self.inner.create_thought_with_type(description, parent, tt))
+    }
+
+    /// Set a thought's result and confidence (REFINE operation).
+    fn complete_thought(&mut self, id: &str, result: bool, confidence: f64) -> PyResult<()> {
+        let node = self
+            .inner
+            .get_thought_mut(id)
+            .ok_or_else(|| PyValueError::new_err(format!("Thought '{}' not found", id)))?;
+        node.complete(result, confidence);
+        Ok(())
+    }
+
+    /// Set a thought's SNR score.
+    fn set_snr(&mut self, id: &str, snr: f64) -> PyResult<()> {
+        let node = self
+            .inner
+            .get_thought_mut(id)
+            .ok_or_else(|| PyValueError::new_err(format!("Thought '{}' not found", id)))?;
+        node.set_snr(snr);
+        Ok(())
+    }
+
+    /// BACKTRACK — Return to highest-SNR unexplored frontier node.
+    ///
+    /// The 6th GoT operation (Besta et al., 2024). Enables recovery from dead-ends
+    /// by returning to promising unexplored branches.
+    ///
+    /// Returns dict with thought fields, or None if all explored.
+    fn backtrack(&self) -> Option<pyo3::PyObject> {
+        self.inner.backtrack().map(thought_to_pyobject)
+    }
+
+    /// VALIDATE — Get conclusions that meet the SNR threshold.
+    fn get_conclusions(&self, min_snr: f64) -> Vec<pyo3::PyObject> {
+        self.inner
+            .get_conclusions(min_snr)
+            .into_iter()
+            .map(thought_to_pyobject)
+            .collect()
+    }
+
+    /// Get frontier (leaf) nodes — candidates for expansion.
+    fn get_frontier(&self) -> Vec<pyo3::PyObject> {
+        self.inner
+            .get_frontier()
+            .into_iter()
+            .map(thought_to_pyobject)
+            .collect()
+    }
+
+    /// AGGREGATE — Aggregate all reasoning paths from a root.
+    fn aggregate(&self, root_id: &str) -> pyo3::PyObject {
+        let paths = self.inner.explore_parallel(root_id);
+        let agg = self.inner.aggregate_paths(&paths);
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("total_paths", agg.total_paths);
+            let _ = dict.set_item("complete_paths", agg.complete_paths);
+            let _ = dict.set_item("successful_paths", agg.successful_paths);
+            let _ = dict.set_item("average_confidence", agg.average_confidence);
+            let _ = dict.set_item("consensus", agg.consensus);
+            dict.into()
+        })
+    }
+
+    /// Graph statistics.
+    fn stats(&self) -> pyo3::PyObject {
+        let s = self.inner.stats();
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("total_thoughts", s.total_thoughts);
+            let _ = dict.set_item("total_paths", s.total_paths);
+            let _ = dict.set_item("root_count", s.root_count);
+            dict.into()
+        })
+    }
+
+    /// Explore with automatic backtracking until target SNR reached.
+    ///
+    /// Returns the best thought found, or None if exhausted.
+    fn explore_with_backtrack(
+        &self,
+        max_iterations: usize,
+        target_snr: f64,
+    ) -> Option<pyo3::PyObject> {
+        self.inner
+            .explore_with_backtrack(max_iterations, target_snr)
+            .map(thought_to_pyobject)
+    }
+
+    fn __len__(&self) -> usize {
+        self.inner.stats().total_thoughts
+    }
+
+    fn __repr__(&self) -> String {
+        let s = self.inner.stats();
+        format!(
+            "ThoughtGraph(thoughts={}, paths={}, roots={})",
+            s.total_thoughts, s.total_paths, s.root_count
+        )
+    }
+}
+
+/// Convert a ThoughtNode to a Python dict.
+fn thought_to_pyobject(node: &bizra_core::ThoughtNode) -> pyo3::PyObject {
+    Python::with_gil(|py| {
+        let dict = pyo3::types::PyDict::new(py);
+        let _ = dict.set_item("id", &node.id);
+        let _ = dict.set_item("description", &node.description);
+        let _ = dict.set_item("thought_type", format!("{:?}", node.thought_type));
+        let _ = dict.set_item("result", node.result);
+        let _ = dict.set_item("confidence", node.confidence);
+        let _ = dict.set_item("snr_score", node.snr_score);
+        let _ = dict.set_item("children", &node.children);
+        let _ = dict.set_item("parent", &node.parent);
+        dict.into()
+    })
+}
+
 /// BIZRA Python Module
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -910,13 +1279,19 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Sovereign Experience Ledger (episodic memory)
     m.add_class::<PyExperienceLedger>()?;
 
+    // Cognitive Layer: Memory Synthesis (bizra-memory)
+    m.add_class::<PyBizraMemory>()?;
+
+    // Cognitive Layer: Graph-of-Thoughts (bizra-core::sovereign)
+    m.add_class::<PyThoughtGraph>()?;
+
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;
     m.add_function(wrap_pyfunction!(get_ihsan_threshold, m)?)?;
     m.add_function(wrap_pyfunction!(get_snr_threshold, m)?)?;
 
     // Module metadata
-    m.add("__version__", "1.0.0")?;
+    m.add("__version__", "2.0.0")?;
     m.add("IHSAN_THRESHOLD", IHSAN_THRESHOLD)?;
     m.add("SNR_THRESHOLD", SNR_THRESHOLD)?;
 

@@ -1,0 +1,107 @@
+# BIZRA MCP Service Mesh — Production Dockerfile
+# DevOps v1.0.0 | MCP Server Containerization
+#
+# Multi-stage build for all 6 MCP servers in a single image.
+# Entrypoint selected via MCP_SERVER environment variable.
+#
+# Build context: repository root (BIZRA-DATA-LAKE/)
+# CI usage:  docker build -f deploy/Dockerfile.mcp -t bizra-mcp .
+#
+# Standing on Giants: Docker BuildKit, MCP Protocol (Anthropic), FastMCP, FastAPI
+# Constitutional Constraint: Ihsan >= 0.95
+
+# =============================================================================
+# Stage 1: Builder — install dependencies into isolated venv
+# =============================================================================
+FROM python:3.12-slim-bookworm AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency definitions first (layer cache optimization)
+COPY pyproject.toml ./
+COPY core/ core/
+
+# Create isolated virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install base dependencies + MCP-specific packages
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir . && \
+    pip install --no-cache-dir \
+        fastmcp \
+        fastapi \
+        uvicorn[standard] \
+        httpx \
+        "redis[hiredis]" \
+        python-dotenv
+
+# =============================================================================
+# Stage 2: Runtime — minimal production image
+# =============================================================================
+FROM python:3.12-slim-bookworm AS runtime
+
+LABEL org.opencontainers.image.title="BIZRA MCP Service Mesh"
+LABEL org.opencontainers.image.description="Model Context Protocol servers for the BIZRA Sovereign Organism"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="BIZRA"
+LABEL org.opencontainers.image.source="https://github.com/BizraInfo/bizra-data-lake"
+
+# Install curl for health checks (lightweight)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (UID/GID 1000 — matches K8s securityContext)
+RUN groupadd -g 1000 bizra && useradd -u 1000 -g 1000 -d /home/bizra -m bizra
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY --chown=bizra:bizra core/ core/
+COPY --chown=bizra:bizra tools/ tools/
+COPY --chown=bizra:bizra bizra_config.py ./
+COPY --chown=bizra:bizra pyproject.toml ./
+
+# Copy data assets needed by MCP servers
+COPY --chown=bizra:bizra 04_GOLD/ data/gold/
+
+# Create runtime directories
+RUN mkdir -p /app/cache /app/logs /app/tmp \
+    && chown -R bizra:bizra /app/cache /app/logs /app/tmp
+
+# Environment — no secrets, only operational config
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    BIZRA_ENV=production \
+    IHSAN_THRESHOLD=0.95 \
+    SNR_THRESHOLD=0.85 \
+    MCP_SERVER=gateway \
+    MCP_HTTP_PORT=8080 \
+    TOOL_TIMEOUT_SECONDS=30
+
+# Switch to non-root user
+USER bizra
+
+# Expose HTTP port for gateway/health and metrics
+EXPOSE 8080 9090
+
+# Health check — validates MCP server responds
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -sf http://localhost:${MCP_HTTP_PORT}/health || exit 1
+
+# Entrypoint script selects the correct MCP server
+COPY --chown=bizra:bizra deploy/mcp-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

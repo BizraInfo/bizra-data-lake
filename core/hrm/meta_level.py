@@ -36,10 +36,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.hrm.abstraction_levels import (
-    AbstractionLevel,
-    LevelConfig,
-    LevelBoundary,
     HRM_SNR_GRADIENT,
+    AbstractionLevel,
+    LevelBoundary,
+    LevelConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,13 +49,14 @@ logger = logging.getLogger(__name__)
 # META-OPERATIONS — How Level N Modifies the Hierarchy
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class MetaOperation(str, Enum):
     """Operations Level N can perform on the hierarchy itself."""
 
-    LEVEL_ADDITION = "level_addition"        # Create new abstraction layer
-    LEVEL_MERGER = "level_merger"            # Combine redundant levels
-    BOUNDARY_TUNING = "boundary_tuning"      # Adjust permeability
-    SNR_REBALANCING = "snr_rebalancing"      # Shift quality thresholds
+    LEVEL_ADDITION = "level_addition"  # Create new abstraction layer
+    LEVEL_MERGER = "level_merger"  # Combine redundant levels
+    BOUNDARY_TUNING = "boundary_tuning"  # Adjust permeability
+    SNR_REBALANCING = "snr_rebalancing"  # Shift quality thresholds
     PROTOCOL_EVOLUTION = "protocol_evolution"  # Modify cross-level mechanisms
 
 
@@ -78,18 +79,12 @@ class MetaObservation:
     and architectural fitness indicators.
     """
 
-    observation_id: str = field(
-        default_factory=lambda: str(uuid.uuid4())[:12]
-    )
+    observation_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
     timestamp: float = field(default_factory=time.time)
 
     # Per-level performance
-    level_snr_scores: Dict[AbstractionLevel, float] = field(
-        default_factory=dict
-    )
-    level_cycle_counts: Dict[AbstractionLevel, int] = field(
-        default_factory=dict
-    )
+    level_snr_scores: Dict[AbstractionLevel, float] = field(default_factory=dict)
+    level_cycle_counts: Dict[AbstractionLevel, int] = field(default_factory=dict)
     level_learning_velocities: Dict[AbstractionLevel, float] = field(
         default_factory=dict
     )
@@ -123,10 +118,7 @@ class MetaObservation:
         if not self.level_snr_scores:
             return 0.0
 
-        snr_mean = (
-            sum(self.level_snr_scores.values())
-            / len(self.level_snr_scores)
-        )
+        snr_mean = sum(self.level_snr_scores.values()) / len(self.level_snr_scores)
         bottleneck_penalty = min(len(self.bottlenecks) * 0.1, 0.5)
         redundancy_penalty = min(len(self.redundancies) * 0.05, 0.3)
 
@@ -157,6 +149,7 @@ class MetaProposal:
 # ═══════════════════════════════════════════════════════════════════════════════
 # META-AUTOPOIETIC LEVEL — The Hierarchy Reasoning About Itself
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class MetaAutopoieticLevel:
     """
@@ -202,9 +195,7 @@ class MetaAutopoieticLevel:
         for level, state in level_states.items():
             obs.level_snr_scores[level] = state.get("snr_score", 0.0)
             obs.level_cycle_counts[level] = state.get("cycle_count", 0)
-            obs.level_learning_velocities[level] = state.get(
-                "learning_velocity", 0.0
-            )
+            obs.level_learning_velocities[level] = state.get("learning_velocity", 0.0)
 
         # Extract bridge metrics
         obs.message_pass_rate = bridge_metrics.get("pass_rate", 0.0)
@@ -214,9 +205,9 @@ class MetaAutopoieticLevel:
         # Detect bottlenecks (low pass rate between specific levels)
         boundary_health = bridge_metrics.get("boundary_health", [])
         for bh in boundary_health:
-            if bh.get("utilization", 0) > 10 and bh.get(
-                "messages_blocked", 0
-            ) > bh.get("messages_passed", 0):
+            if bh.get("utilization", 0) > 10 and bh.get("messages_blocked", 0) > bh.get(
+                "messages_passed", 0
+            ):
                 # Parse boundary name
                 parts = bh.get("boundary", "").split("→")
                 if len(parts) == 2:
@@ -341,9 +332,7 @@ class MetaAutopoieticLevel:
     def apply_modification(
         self,
         proposal: MetaProposal,
-        boundaries: Dict[
-            tuple, LevelBoundary
-        ],
+        boundaries: Dict[tuple, LevelBoundary],
         level_configs: List[LevelConfig],
     ) -> bool:
         """
@@ -372,9 +361,7 @@ class MetaAutopoieticLevel:
                 key = (src, tgt)
                 if key in boundaries:
                     old_perm = boundaries[key].permeability
-                    boundaries[key].permeability = min(
-                        1.0, old_perm + delta
-                    )
+                    boundaries[key].permeability = min(1.0, old_perm + delta)
                     logger.info(
                         "Boundary %s→%s permeability: %.2f → %.2f",
                         src_name,

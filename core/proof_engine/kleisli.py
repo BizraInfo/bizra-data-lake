@@ -44,6 +44,7 @@ Complexity: O(N) where N = number of gates (currently 6, constant)
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -59,8 +60,6 @@ from typing import (
     TypeVar,
     Union,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +79,7 @@ class Evidence:
     Acts as the Writer monad's log — each gate appends its evidence.
     Immutable to preserve audit integrity.
     """
+
     entries: Tuple[Dict[str, Any], ...] = ()
 
     def append(self, gate_name: str, data: Dict[str, Any]) -> "Evidence":
@@ -106,6 +106,7 @@ class Ok(Generic[A]):
 
     Carries the value forward with accumulated evidence.
     """
+
     value: A
     evidence: Evidence = field(default_factory=Evidence)
     duration_us: int = 0
@@ -119,6 +120,7 @@ class Err:
     Short-circuits the chain — no further gates are evaluated.
     Carries the gate name and reason for audit.
     """
+
     gate_name: str
     reason: str
     evidence: Evidence = field(default_factory=Evidence)
@@ -198,9 +200,11 @@ def kleisli_compose(f: KleisliArrow, g: KleisliArrow) -> KleisliArrow:
 
     Standing on: Kleisli (1965), Moggi (1991).
     """
+
     def composed(value: Any, evidence: Evidence) -> Result:
         result_f = f(value, evidence)
         return bind(result_f, g)
+
     return composed
 
 
@@ -251,8 +255,11 @@ class KleisliGate:
     - postcondition: What must be true AFTER the gate passes
     - invariant:     What must be true BEFORE AND AFTER
     """
+
     gate_name: str
-    evaluate_fn: Callable[[Any, Dict[str, Any]], Tuple[bool, Dict[str, Any], Optional[str]]]
+    evaluate_fn: Callable[
+        [Any, Dict[str, Any]], Tuple[bool, Dict[str, Any], Optional[str]]
+    ]
     precondition: Optional[Callable[[Any], bool]] = None
     postcondition: Optional[Callable[[Any, Dict[str, Any]], bool]] = None
     invariant: Optional[Callable[[Any], bool]] = None
@@ -263,15 +270,19 @@ class KleisliGate:
 
         The arrow signature: (GateInput, Evidence) → Result[GateInput]
         """
+
         def arrow(value: Any, evidence: Evidence) -> Result:
             # Check precondition
             if self.precondition and not self.precondition(value):
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Precondition failed for {self.gate_name}",
-                    evidence=evidence.append(self.gate_name, {
-                        "status": "precondition_failed",
-                    }),
+                    evidence=evidence.append(
+                        self.gate_name,
+                        {
+                            "status": "precondition_failed",
+                        },
+                    ),
                 )
 
             # Check invariant (before)
@@ -279,9 +290,12 @@ class KleisliGate:
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Invariant violated before {self.gate_name}",
-                    evidence=evidence.append(self.gate_name, {
-                        "status": "invariant_violated_pre",
-                    }),
+                    evidence=evidence.append(
+                        self.gate_name,
+                        {
+                            "status": "invariant_violated_pre",
+                        },
+                    ),
                 )
 
             # Evaluate the gate
@@ -292,19 +306,25 @@ class KleisliGate:
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Gate raised exception: {e}",
-                    evidence=evidence.append(self.gate_name, {
-                        "status": "exception",
-                        "error": str(e),
-                    }),
+                    evidence=evidence.append(
+                        self.gate_name,
+                        {
+                            "status": "exception",
+                            "error": str(e),
+                        },
+                    ),
                 )
             elapsed_us = (time.perf_counter_ns() - start) // 1000
 
             # Append evidence
-            new_evidence = evidence.append(self.gate_name, {
-                "status": "passed" if passed else "failed",
-                "duration_us": elapsed_us,
-                **gate_evidence,
-            })
+            new_evidence = evidence.append(
+                self.gate_name,
+                {
+                    "status": "passed" if passed else "failed",
+                    "duration_us": elapsed_us,
+                    **gate_evidence,
+                },
+            )
 
             if not passed:
                 return Err(
@@ -318,9 +338,12 @@ class KleisliGate:
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Postcondition failed for {self.gate_name}",
-                    evidence=new_evidence.append(self.gate_name, {
-                        "status": "postcondition_failed",
-                    }),
+                    evidence=new_evidence.append(
+                        self.gate_name,
+                        {
+                            "status": "postcondition_failed",
+                        },
+                    ),
                 )
 
             # Check invariant (after)
@@ -328,9 +351,12 @@ class KleisliGate:
                 return Err(
                     gate_name=self.gate_name,
                     reason=f"Invariant violated after {self.gate_name}",
-                    evidence=new_evidence.append(self.gate_name, {
-                        "status": "invariant_violated_post",
-                    }),
+                    evidence=new_evidence.append(
+                        self.gate_name,
+                        {
+                            "status": "invariant_violated_post",
+                        },
+                    ),
                 )
 
             return Ok(value=value, evidence=new_evidence)
@@ -346,6 +372,7 @@ class KleisliGate:
 @dataclass
 class KleisliChainResult:
     """Result of executing the Kleisli gate chain."""
+
     passed: bool
     value: Any
     evidence: Evidence
@@ -506,18 +533,24 @@ def adapt_legacy_gate(legacy_gate: Any) -> KleisliGate:
         from core.proof_engine.gates import SchemaGate
         kleisli_schema = adapt_legacy_gate(SchemaGate())
     """
+
     def evaluate_fn(
         value: Any, context: Dict[str, Any]
     ) -> Tuple[bool, Dict[str, Any], Optional[str]]:
         # Legacy gates expect (query, policy, context)
         if hasattr(value, "query") and hasattr(value, "policy"):
-            result = legacy_gate.evaluate(value.query, value.policy, value.context or {})
+            result = legacy_gate.evaluate(
+                value.query, value.policy, value.context or {}
+            )
         else:
             # Fallback: pass value directly as context
             from core.proof_engine.canonical import CanonPolicy, CanonQuery
+
             dummy_query = CanonQuery(intent="", user_id="system")
             dummy_policy = CanonPolicy()
-            result = legacy_gate.evaluate(dummy_query, dummy_policy, value if isinstance(value, dict) else {})
+            result = legacy_gate.evaluate(
+                dummy_query, dummy_policy, value if isinstance(value, dict) else {}
+            )
 
         return (
             result.passed,
@@ -546,12 +579,12 @@ def build_standard_kleisli_chain() -> KleisliGateChain:
     formal category-theoretic semantics.
     """
     from core.proof_engine.gates import (
-        SchemaGate,
-        ProvenanceGate,
-        SNRGate,
-        ConstraintGate,
-        SafetyGate,
         CommitGate,
+        ConstraintGate,
+        ProvenanceGate,
+        SafetyGate,
+        SchemaGate,
+        SNRGate,
     )
 
     chain = KleisliGateChain()

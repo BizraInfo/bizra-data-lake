@@ -1,0 +1,237 @@
+# BIZRA Alpha-100 Release Binaries
+# Cross-platform binary builds for bizra-install and bizra-node
+#
+# Standing on Giants: Rust cross-compilation, GitHub Actions matrix
+# Constitutional Constraint: Deterministic builds with SHA-256 verification
+#
+# Architecture:
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  BUILD (3x matrix)  →  CHECKSUM (SHA256SUMS)  →  RELEASE (GitHub)      │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+name: Alpha-100 Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (without v prefix, e.g. 0.1.0-alpha.100)'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+# Only one release workflow at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 1: Build Binaries (3-target matrix)
+  # ═══════════════════════════════════════════════════════════════════════════
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            os: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+          - target: windows-x86_64
+            os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            archive_ext: zip
+          - target: macos-aarch64
+            os: macos-14
+            rust_target: aarch64-apple-darwin
+            archive_ext: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bizra-omega/target
+          key: ${{ runner.os }}-cargo-release-${{ matrix.rust_target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-${{ matrix.rust_target }}-
+
+      - name: Build release binaries
+        working-directory: bizra-omega
+        shell: bash
+        run: |
+          cargo build --release --target ${{ matrix.rust_target }} \
+            -p bizra-installer \
+            -p bizra-node
+
+      - name: Package (Linux / macOS)
+        if: matrix.target != 'windows-x86_64'
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          TARGET="${{ matrix.target }}"
+          ARCHIVE_NAME="bizra-install-${VERSION}-${TARGET}.tar.gz"
+          STAGE_DIR="bizra-install-${VERSION}-${TARGET}"
+
+          mkdir -p "${STAGE_DIR}"
+          cp "bizra-omega/target/${{ matrix.rust_target }}/release/bizra-install" "${STAGE_DIR}/"
+          cp "bizra-omega/target/${{ matrix.rust_target }}/release/bizra-node" "${STAGE_DIR}/"
+
+          tar czf "${ARCHIVE_NAME}" "${STAGE_DIR}"
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+
+      - name: Package (Windows)
+        if: matrix.target == 'windows-x86_64'
+        shell: pwsh
+        run: |
+          $Version = "${{ steps.version.outputs.tag }}"
+          $ArchiveName = "bizra-install-${Version}-windows-x86_64.zip"
+          $StageDir = "bizra-install-${Version}-windows-x86_64"
+
+          New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
+          Copy-Item "bizra-omega\target\${{ matrix.rust_target }}\release\bizra-install.exe" -Destination $StageDir
+          Copy-Item "bizra-omega\target\${{ matrix.rust_target }}\release\bizra-node.exe" -Destination $StageDir
+
+          Compress-Archive -Path "$StageDir\*" -DestinationPath $ArchiveName
+          echo "ARCHIVE_NAME=$ArchiveName" >> $env:GITHUB_ENV
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 7
+          if-no-files-found: error
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 2: Generate SHA-256 Checksums
+  # ═══════════════════════════════════════════════════════════════════════════
+  checksum:
+    name: Generate Checksums
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: artifacts
+
+      - name: Generate SHA256SUMS
+        working-directory: artifacts
+        run: |
+          sha256sum * | tee SHA256SUMS
+          echo ""
+          echo "--- Verification ---"
+          sha256sum --check SHA256SUMS
+
+      - name: Upload checksum artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: checksums
+          path: artifacts/SHA256SUMS
+          retention-days: 7
+          if-no-files-found: error
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 3: Create GitHub Release
+  # ═══════════════════════════════════════════════════════════════════════════
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [checksum]
+    permissions:
+      contents: write
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Download checksums
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: checksums
+          path: release-assets
+
+      - name: List release assets
+        run: ls -lh release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "BIZRA Alpha-100 ${{ steps.version.outputs.tag }}"
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            release-assets/bizra-install-*.tar.gz
+            release-assets/bizra-install-*.zip
+            release-assets/SHA256SUMS
+          body: |
+            ## BIZRA Alpha-100 Release — ${{ steps.version.outputs.tag }}
+
+            Cross-platform binaries for the BIZRA sovereign node.
+
+            ### Included Binaries
+            | Binary | Description |
+            |--------|-------------|
+            | `bizra-install` | Sovereign node installer |
+            | `bizra-node` | BIZRA desktop node runtime |
+
+            ### Platforms
+            | Archive | OS | Architecture |
+            |---------|----|--------------|
+            | `bizra-install-${{ steps.version.outputs.tag }}-linux-x86_64.tar.gz` | Linux | x86_64 |
+            | `bizra-install-${{ steps.version.outputs.tag }}-windows-x86_64.zip` | Windows | x86_64 |
+            | `bizra-install-${{ steps.version.outputs.tag }}-macos-aarch64.tar.gz` | macOS | Apple Silicon (aarch64) |
+
+            ### Verification
+            ```bash
+            sha256sum --check SHA256SUMS
+            ```

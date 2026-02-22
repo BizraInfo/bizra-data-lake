@@ -93,7 +93,10 @@ class HardwareScanner:
 
         logger.info(
             "Hardware scan: %s, %dGB RAM, %s (%dGB VRAM)",
-            info.cpu, info.ram_gb, info.gpu, info.vram_gb,
+            info.cpu,
+            info.ram_gb,
+            info.gpu,
+            info.vram_gb,
         )
         return info
 
@@ -113,10 +116,13 @@ class HardwareScanner:
 
                 result = subprocess.run(
                     ["wmic", "computersystem", "get", "TotalPhysicalMemory"],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 lines = [
-                    l.strip() for l in result.stdout.split("\n")
+                    l.strip()
+                    for l in result.stdout.split("\n")
                     if l.strip() and not l.strip().startswith("Total")
                 ]
                 if lines:
@@ -134,16 +140,22 @@ class HardwareScanner:
             if platform.system() == "Windows":
                 result = subprocess.run(
                     ["wmic", "path", "win32_videocontroller", "get", "name"],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 lines = [
-                    l.strip() for l in result.stdout.split("\n")
+                    l.strip()
+                    for l in result.stdout.split("\n")
                     if l.strip() and l.strip() != "Name"
                 ]
                 return lines[0] if lines else "Unknown"
             elif platform.system() == "Linux":
                 result = subprocess.run(
-                    ["lspci"], capture_output=True, text=True, timeout=10,
+                    ["lspci"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 for line in result.stdout.split("\n"):
                     if "VGA" in line or "3D" in line:
@@ -159,8 +171,14 @@ class HardwareScanner:
             import subprocess
 
             result = subprocess.run(
-                ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=10,
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0:
                 mb = int(result.stdout.strip().split("\n")[0])

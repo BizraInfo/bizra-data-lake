@@ -55,6 +55,52 @@ scrape_configs:
     metrics_path: /metrics
     scrape_interval: 30s
 
+  # =========================================================================
+  # MCP Service Mesh metrics
+  # =========================================================================
+
+  # MCP Gateway (unified entry point)
+  - job_name: 'bizra-mcp-gateway'
+    static_configs:
+      - targets: ['bizra-mcp-gateway:8080']
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Sovereign MCP (House of Wisdom)
+  - job_name: 'bizra-mcp-sovereign'
+    static_configs:
+      - targets: ['bizra-mcp-sovereign:8081']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Ecosystem MCP (Unified BIZRA OS)
+  - job_name: 'bizra-mcp-ecosystem'
+    static_configs:
+      - targets: ['bizra-mcp-ecosystem:8082']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # BIZRA DDAGI MCP (no K8s deployment yet — scrape disabled until deployed)
+  # - job_name: 'bizra-mcp-ddagi'
+  #   static_configs:
+  #     - targets: ['bizra-mcp-ddagi:8083']
+  #   metrics_path: /metrics
+  #   scrape_interval: 15s
+
+  # Peak Masterpiece Engine MCP
+  - job_name: 'bizra-mcp-peak'
+    static_configs:
+      - targets: ['bizra-mcp-peak:8084']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Lake Bridge MCP (no K8s deployment yet — scrape disabled until deployed)
+  # - job_name: 'bizra-mcp-lake'
+  #   static_configs:
+  #     - targets: ['bizra-mcp-lake:8085']
+  #   metrics_path: /metrics
+  #   scrape_interval: 15s
+
   # Docker daemon metrics (if available)
   - job_name: 'docker'
     static_configs:

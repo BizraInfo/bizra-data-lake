@@ -1,0 +1,28 @@
+[package]
+name = "bizra-memory"
+version = "0.1.0"
+edition = "2021"
+description = "BIZRA Memory Synthesis Pipeline — The soul. Transforms conversations into understanding."
+license = "MIT"
+authors = ["BIZRA Collective"]
+
+# Memory Synthesis Pipeline: Ingest → Extract → Synthesize → Index → Query
+#
+# This crate defines the PROTOCOL for memory synthesis.
+# Types, traits, and pipeline stages are pure Rust.
+# Python engines (VectorSearch, CognitiveResonance, HMM) plug in via FFI.
+#
+# RSI Pillar I alignment: Memory is part of the self-model.
+# The system knows what it knows about the user.
+
+[lib]
+name = "bizra_memory"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+bizra-hooks = { path = "../bizra-hooks" }
+# That's it. One internal dependency. The soul depends on the nervous system.
+
+[features]
+default = []
+ffi = []       # Enable C-ABI exports for Python/Node bridge

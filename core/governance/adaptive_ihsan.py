@@ -95,9 +95,10 @@ DIMENSION_ORDER: Final[Tuple[str, ...]] = (
 
 class UpdateOutcome(str, Enum):
     """Outcome of an observation for Bayesian update."""
-    SUCCESS = "success"       # Dimension contributed to good outcome
-    FAILURE = "failure"       # Dimension was bottleneck
-    NEUTRAL = "neutral"       # No signal
+
+    SUCCESS = "success"  # Dimension contributed to good outcome
+    FAILURE = "failure"  # Dimension was bottleneck
+    NEUTRAL = "neutral"  # No signal
 
 
 @dataclass(frozen=True)
@@ -109,19 +110,21 @@ class DirichletObservation:
     enabling the system to learn which ethical emphases
     produce the best results in practice.
     """
-    dimension: str                    # Which dimension was observed
-    outcome: UpdateOutcome            # What happened
-    magnitude: float = 1.0            # Strength of observation [0, 1]
-    context: str = ""                 # Execution context for audit
+
+    dimension: str  # Which dimension was observed
+    outcome: UpdateOutcome  # What happened
+    magnitude: float = 1.0  # Strength of observation [0, 1]
+    context: str = ""  # Execution context for audit
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        default_factory=lambda: datetime.now(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
     )
 
     def __post_init__(self) -> None:
         if self.dimension not in DIMENSION_ORDER:
             raise ValueError(
-                f"Unknown dimension '{self.dimension}'. "
-                f"Valid: {DIMENSION_ORDER}"
+                f"Unknown dimension '{self.dimension}'. " f"Valid: {DIMENSION_ORDER}"
             )
         if not 0.0 <= self.magnitude <= 1.0:
             raise ValueError(f"Magnitude must be in [0, 1], got {self.magnitude}")
@@ -135,8 +138,9 @@ class DirichletState:
     The concentration parameters α fully characterize the distribution.
     Mode (most likely weights) = (α_i - 1) / (Σα - K) for α_i > 1.
     """
-    alphas: Dict[str, float]          # Concentration parameters
-    observation_count: int = 0        # Total observations processed
+
+    alphas: Dict[str, float]  # Concentration parameters
+    observation_count: int = 0  # Total observations processed
     created_at: str = ""
     last_updated: str = ""
 
@@ -273,6 +277,7 @@ class UpdateReceipt:
 
     INV-6: All updates produce audit receipt — no silent mutations.
     """
+
     observation: DirichletObservation
     prior_weights: Dict[str, float]
     posterior_weights: Dict[str, float]
@@ -292,7 +297,9 @@ class UpdateReceipt:
                 "context": self.observation.context,
             },
             "prior_weights": {k: round(v, 6) for k, v in self.prior_weights.items()},
-            "posterior_weights": {k: round(v, 6) for k, v in self.posterior_weights.items()},
+            "posterior_weights": {
+                k: round(v, 6) for k, v in self.posterior_weights.items()
+            },
             "kl_divergence": round(self.kl_divergence, 8),
             "invariant_checks": self.invariant_checks,
             "accepted": self.accepted,
@@ -431,8 +438,11 @@ class AdaptiveIhsan:
 
         if delta == 0.0:
             return self._make_receipt(
-                observation, prior_weights, prior_weights,
-                accepted=True, reason=None,
+                observation,
+                prior_weights,
+                prior_weights,
+                accepted=True,
+                reason=None,
             )
 
         # Conjugate update: α_new = α_old + count
@@ -457,16 +467,24 @@ class AdaptiveIhsan:
                 datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             )
             receipt = self._make_receipt(
-                observation, prior_weights, candidate_weights,
-                accepted=True, reason=None, invariants=invariants,
+                observation,
+                prior_weights,
+                candidate_weights,
+                accepted=True,
+                reason=None,
+                invariants=invariants,
             )
         else:
             # Reject update — constitutional violation
             failed = [k for k, v in invariants.items() if not v]
             reason = f"Constitutional violation: {', '.join(failed)}"
             receipt = self._make_receipt(
-                observation, prior_weights, prior_weights,
-                accepted=False, reason=reason, invariants=invariants,
+                observation,
+                prior_weights,
+                prior_weights,
+                accepted=False,
+                reason=reason,
+                invariants=invariants,
             )
             logger.warning(f"Ihsān update REJECTED: {reason}")
 
@@ -563,15 +581,19 @@ class AdaptiveIhsan:
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         # Compute receipt hash
-        receipt_data = json.dumps({
-            "observation": observation.dimension,
-            "outcome": observation.outcome.value,
-            "prior": {k: round(v, 8) for k, v in prior_weights.items()},
-            "posterior": {k: round(v, 8) for k, v in posterior_weights.items()},
-            "kl": round(kl, 8),
-            "accepted": accepted,
-            "timestamp": now,
-        }, sort_keys=True, separators=(",", ":"))
+        receipt_data = json.dumps(
+            {
+                "observation": observation.dimension,
+                "outcome": observation.outcome.value,
+                "prior": {k: round(v, 8) for k, v in prior_weights.items()},
+                "posterior": {k: round(v, 8) for k, v in posterior_weights.items()},
+                "kl": round(kl, 8),
+                "accepted": accepted,
+                "timestamp": now,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         receipt_hash = hex_digest(receipt_data.encode())
 
         return UpdateReceipt(

@@ -111,9 +111,7 @@ class MemoryMigrator:
 
         # Open source DB read-only
         try:
-            source_conn = sqlite3.connect(
-                f"file:{self._source_path}?mode=ro", uri=True
-            )
+            source_conn = sqlite3.connect(f"file:{self._source_path}?mode=ro", uri=True)
             source_conn.row_factory = sqlite3.Row
         except Exception as e:
             logger.error(f"Failed to open source DB: {e}")

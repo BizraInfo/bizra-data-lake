@@ -6,11 +6,13 @@
 //!
 //! Standing on Giants: Lamport (BFT), Das (SWIM)
 
+pub mod attestation;
 pub mod bootstrap;
 pub mod consensus;
 pub mod gossip;
 pub mod node;
 
+pub use attestation::{AttestationError, Attestor, Challenge, ChallengeResponse};
 pub use bootstrap::{BootstrapConfig, BootstrapResult, Bootstrapper, PeerInfo};
 pub use consensus::{
     ConsensusEngine, ConsensusError, ConsensusState, KnownPeer, Proposal, SignedVote, Vote,

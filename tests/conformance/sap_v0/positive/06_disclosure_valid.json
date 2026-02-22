@@ -1,0 +1,27 @@
+{
+  "name": "disclosure_valid",
+  "schema": "disclosure.schema.json",
+  "expect_valid": true,
+  "instance": {
+    "disclosure_id": "disclosure_001",
+    "claims": [
+      "Battery life averages 14 hours under mixed usage."
+    ],
+    "source_refs": [
+      {
+        "ref_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "ref_type": "dataset",
+        "ref_uri": "urn:dataset:battery-lab-run"
+      }
+    ],
+    "uncertainty": {
+      "score": 0.88,
+      "method": "ensemble_variance",
+      "notes": "Variance grows at high screen brightness."
+    },
+    "compliance_assertions": [
+      "Claims are tied to source refs.",
+      "No hidden personalization used."
+    ]
+  }
+}

@@ -45,11 +45,10 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BRIDGE NODE TAXONOMY
@@ -59,11 +58,11 @@ from core.integration.constants import (
 class BridgeType(Enum):
     """The 5 cross-document bridge nodes."""
 
-    AUTOPOIESIS_RDVE = auto()         # Autopoiesis ↔ RDVE Resonance
-    HRM_FOUR_PILLARS = auto()         # HRM ↔ Four Pillars (Curry-Howard)
-    SNR_SHANNON_CHANNEL = auto()      # SNR ↔ Shannon Channel Duality
-    GOT_SACRED_GEOMETRY = auto()      # GoT ↔ Sacred Geometry / Small-World
-    COMPOUND_RECURSIVE = auto()       # Compound Learning ↔ Recursive Acceleration
+    AUTOPOIESIS_RDVE = auto()  # Autopoiesis ↔ RDVE Resonance
+    HRM_FOUR_PILLARS = auto()  # HRM ↔ Four Pillars (Curry-Howard)
+    SNR_SHANNON_CHANNEL = auto()  # SNR ↔ Shannon Channel Duality
+    GOT_SACRED_GEOMETRY = auto()  # GoT ↔ Sacred Geometry / Small-World
+    COMPOUND_RECURSIVE = auto()  # Compound Learning ↔ Recursive Acceleration
 
 
 # Origin SNR scores from cross-document synthesis
@@ -91,28 +90,28 @@ AUTOPOIESIS_RDVE_ROLES: Dict[str, str] = {
 
 # Bridge 2: HRM Level ↔ Four Pillars mapping (Curry-Howard)
 HRM_PILLAR_MAP: Dict[str, str] = {
-    "L0_perceptual": "genesis_sandbox",     # Pillar 4: Genesis Cutoff
-    "L1_operational": "museum",             # Pillar 2: Museum (The Ark)
-    "L2_tactical": "museum",               # Pillar 2: Museum (The Ark)
-    "L3_strategic": "runtime",             # Pillar 1: Runtime (The Fortress)
-    "LN_meta": "adaptive_ihsan",           # Ihsān as Level N autopoiesis
+    "L0_perceptual": "genesis_sandbox",  # Pillar 4: Genesis Cutoff
+    "L1_operational": "museum",  # Pillar 2: Museum (The Ark)
+    "L2_tactical": "museum",  # Pillar 2: Museum (The Ark)
+    "L3_strategic": "runtime",  # Pillar 1: Runtime (The Fortress)
+    "LN_meta": "adaptive_ihsan",  # Ihsān as Level N autopoiesis
 }
 
 # Bridge 3: SNR Noise ↔ Shannon Classification
 SHANNON_NOISE_MAP: Dict[str, str] = {
-    "measurement_noise": "channel_noise",       # Physical noise
-    "model_noise": "source_coding_loss",        # Encoding imperfection
-    "structural_noise": "capacity_mismatch",    # Channel capacity < required
-    "epistemological_noise": "fundamental_limit", # Shannon limit approach
+    "measurement_noise": "channel_noise",  # Physical noise
+    "model_noise": "source_coding_loss",  # Encoding imperfection
+    "structural_noise": "capacity_mismatch",  # Channel capacity < required
+    "epistemological_noise": "fundamental_limit",  # Shannon limit approach
 }
 
 # Bridge 4: GoT Node ↔ Sacred Geometry / Small-World Constants
 GOT_TOPOLOGY_CONSTANTS: Dict[str, float] = {
-    "optimal_clustering": 0.4,     # Small-world clustering coefficient
-    "optimal_path_length": 3.2,    # Average shortest path
-    "hub_threshold": 0.8,          # Degree centrality for hub classification
-    "bridge_threshold": 0.6,       # Betweenness centrality for bridge
-    "frontier_threshold": 0.3,     # Low centrality = frontier node
+    "optimal_clustering": 0.4,  # Small-world clustering coefficient
+    "optimal_path_length": 3.2,  # Average shortest path
+    "hub_threshold": 0.8,  # Degree centrality for hub classification
+    "bridge_threshold": 0.6,  # Betweenness centrality for bridge
+    "frontier_threshold": 0.3,  # Low centrality = frontier node
 }
 
 
@@ -126,9 +125,9 @@ class BridgeActivation:
     """Record of a bridge node being traversed."""
 
     bridge_type: BridgeType
-    source_domain: str       # Where the signal originates
-    target_domain: str       # Where the signal transfers to
-    transfer_strength: float # [0, 1] — how much signal crosses
+    source_domain: str  # Where the signal originates
+    target_domain: str  # Where the signal transfers to
+    transfer_strength: float  # [0, 1] — how much signal crosses
     evidence: str
     insight: str
     timestamp: float = field(default_factory=time.time)
@@ -168,7 +167,9 @@ class BridgeReport:
     def mean_transfer_strength(self) -> float:
         if not self.activations:
             return 0.0
-        return sum(a.transfer_strength for a in self.activations) / len(self.activations)
+        return sum(a.transfer_strength for a in self.activations) / len(
+            self.activations
+        )
 
     @property
     def mean_snr(self) -> float:
@@ -198,12 +199,18 @@ class BridgeReport:
             "active_bridge_types": self.active_bridge_count,
             "mean_snr": self.mean_snr,
             "mean_transfer_strength": self.mean_transfer_strength,
-            "strongest_bridge": self.strongest_bridge.name if self.strongest_bridge else None,
+            "strongest_bridge": (
+                self.strongest_bridge.name if self.strongest_bridge else None
+            ),
             "ihsan_meta_active": self.ihsan_meta_active,
             "supreme_insight": (
-                "Structure enables capability. Autopoiesis enables evolution. "
-                "The fusion enables transcendence."
-            ) if self.ihsan_meta_active else None,
+                (
+                    "Structure enables capability. Autopoiesis enables evolution. "
+                    "The fusion enables transcendence."
+                )
+                if self.ihsan_meta_active
+                else None
+            ),
         }
 
 
@@ -442,8 +449,13 @@ class BridgeNodeDetector:
             return None
 
         # Check for compounding: second derivative > 0
-        velocities = [learning_rates[i + 1] - learning_rates[i] for i in range(len(learning_rates) - 1)]
-        accelerations = [velocities[i + 1] - velocities[i] for i in range(len(velocities) - 1)]
+        velocities = [
+            learning_rates[i + 1] - learning_rates[i]
+            for i in range(len(learning_rates) - 1)
+        ]
+        accelerations = [
+            velocities[i + 1] - velocities[i] for i in range(len(velocities) - 1)
+        ]
 
         mean_accel = sum(accelerations) / len(accelerations) if accelerations else 0.0
         is_compound = mean_accel > 0
@@ -451,10 +463,9 @@ class BridgeNodeDetector:
         # Punctuated equilibrium check
         equilibrium_proximity = 1.0 - min(1.0, abs(sigma_squared_over_s - 2.3) / 2.3)
 
-        transfer = min(1.0, (
-            (0.5 if is_compound else 0.2) +
-            equilibrium_proximity * 0.5
-        ))
+        transfer = min(
+            1.0, ((0.5 if is_compound else 0.2) + equilibrium_proximity * 0.5)
+        )
 
         if transfer < self.min_transfer:
             return None

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bizra.io/schemas/sap/v0/meet_message.schema.json",
+  "title": "MeetMessage",
+  "type": "object",
+  "required": [
+    "session_id",
+    "message_id",
+    "sender_role",
+    "intent",
+    "payload_hash",
+    "content_ref",
+    "timestamp",
+    "signature"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256
+    },
+    "sender_role": {
+      "type": "string",
+      "enum": [
+        "user_proxy",
+        "brand_proxy",
+        "mediator",
+        "auditor"
+      ]
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "content_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{128}$"
+    }
+  },
+  "additionalProperties": false
+}

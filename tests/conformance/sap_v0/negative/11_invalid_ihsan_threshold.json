@@ -1,0 +1,22 @@
+{
+  "name": "invalid_ihsan_threshold",
+  "schema": "agent_card.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "agent_id": "agent_user_001",
+    "owner_node_id": "node_owner_001",
+    "role": "user_proxy",
+    "policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "capabilities": ["Compute", "Consent"],
+    "endpoints": {
+      "local": "ipc://node0/user-proxy"
+    },
+    "version": "0.1.0",
+    "compilation": {
+      "genesis_version": "3.0.0",
+      "ihsan_threshold": 1.1,
+      "compiled_reflex_count": 100,
+      "compilation_coverage": 0.5
+    }
+  }
+}

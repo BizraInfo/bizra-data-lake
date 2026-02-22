@@ -98,6 +98,12 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           components: clippy, rustfmt
 
+      - name: Install Z3 (required by fate-binding)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
+
       - name: Cache cargo registry
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
@@ -154,6 +160,38 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 1c: Cross-Language Constant Synchronization Gate
+  # Standing on Giants: Lamport (distributed consistency), Shannon (SNR)
+  # ═══════════════════════════════════════════════════════════════════════════
+  cross-lang-sync:
+    name: Cross-Language Sync
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Audit Python/Rust constant alignment
+        run: python3 .claude/skills/cross-lang-sync/audit_constants.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Verify no rogue constant definitions
+        run: |
+          echo "Checking for IHSAN_THRESHOLD defined outside constants.py..."
+          ROGUES=$(grep -rn 'IHSAN_THRESHOLD\s*[:=]\s*0\.' core/ --include="*.py" | grep -v constants.py | grep -v __pycache__ || true)
+          if [ -n "$ROGUES" ]; then
+            echo "::error::Rogue IHSAN_THRESHOLD definitions found outside constants.py:"
+            echo "$ROGUES"
+            exit 1
+          fi
+          echo "No rogue definitions found."
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # Stage 2: Test Matrix (Python + Rust)
   # ═══════════════════════════════════════════════════════════════════════════
   test-python:
@@ -193,6 +231,15 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: "ROLLOUT-001: Phase 46/47 rollout infrastructure regression"
+        run: |
+          pytest tests/core/rollout/ \
+            tests/core/mcp/test_sovereign_phase46_tools.py \
+            tests/integration/test_phase46_full_pipeline.py \
+            -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Upload coverage
         if: matrix.coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4
@@ -216,6 +263,12 @@ jobs:
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Install Z3 (required by fate-binding)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libz3-dev
+          echo "Z3_SYS_Z3_HEADER=/usr/include/z3.h" >> "$GITHUB_ENV"
 
       - name: Cache cargo registry
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
@@ -301,6 +354,31 @@ jobs:
           "
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # Stage 2b: Frontend Build (filedfs/)
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-frontend:
+    name: Build Frontend (filedfs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: filedfs/package-lock.json
+
+      - name: Install dependencies
+        working-directory: filedfs
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: filedfs
+        run: npx vite build
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # Stage 3: Quality Gates (FATE Score Validation)
   # ═══════════════════════════════════════════════════════════════════════════
   # Audit trail: log who bypassed quality gates and why
@@ -330,7 +408,7 @@ jobs:
     name: Quality Gates
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    needs: [test-python, test-rust, validate-schemas]
+    needs: [test-python, test-rust, validate-schemas, cross-lang-sync]
     if: ${{ github.event.inputs.skip_quality_gate != 'true' }}
     outputs:
       snr_score: ${{ steps.quality.outputs.snr_score }}

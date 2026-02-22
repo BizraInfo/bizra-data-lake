@@ -33,6 +33,18 @@ data:
   # Feature flags for canary testing (enable experimental features)
   ENABLE_EXPERIMENTAL: "true"
   ENABLE_PROFILING: "true"
+
+  # Phase 46 Canary Routing — Stage 1
+  # SEARCH_ENABLED deliberately unset: percent routing controls search.
+  # Kill switch ("0"/"1") ALWAYS overrides percent — leave unset for gradual rollout.
+  BIZRA_PHASE46_GOT_BRIDGE_ENABLED: "0"
+  BIZRA_PHASE46_HMM_ENABLED: "0"
+  BIZRA_PHASE46_SEARCH_PERCENT: "10"
+  BIZRA_PHASE46_GOT_BRIDGE_PERCENT: "0"
+  BIZRA_PHASE46_HMM_PERCENT: "0"
+  BIZRA_PHASE46_CANARY_SALT: "bizra-phase46-canary-v1"
+  BIZRA_PHASE46_HMM_CALLER_MODE: "single"
+  BIZRA_PHASE46_HMM_ALLOWED_CALLER: "mcp"
 ---
 # Stable Deployment (existing pods get this label)
 # This patch ensures stable pods are properly labeled

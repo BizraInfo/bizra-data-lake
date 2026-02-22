@@ -1,0 +1,19 @@
+{
+  "name": "tampered_receipt_chain",
+  "schema": "outcome_receipt.schema.json",
+  "expect_valid": false,
+  "instance": {
+    "action_id": "action_002",
+    "session_id": "session_001",
+    "guardian_verdict": true,
+    "permit_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+    "policy_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+    "receipt_hash": "5555555555555555555555555555555555555555555555555555555555555555",
+    "prev_receipt_hash": "9999999999999999999999999999999999999999999999999999999999999999",
+    "status": "ok",
+    "timestamp": 1893456006
+  },
+  "meta": {
+    "expected_prev_receipt_hash": "6666666666666666666666666666666666666666666666666666666666666666"
+  }
+}

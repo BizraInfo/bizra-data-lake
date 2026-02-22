@@ -21,7 +21,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-
 from .types import Guild, GuildJoinResult, GuildMember, GuildRole, GuildStatus
 
 logger = logging.getLogger(__name__)
@@ -29,11 +28,31 @@ logger = logging.getLogger(__name__)
 
 # Pre-seeded guilds aligned with BIZRA impact domains
 DEFAULT_GUILDS = [
-    ("agriculture", "Agriculture & Food Security", "Sustainable farming, water management, food sovereignty"),
-    ("healthcare", "Healthcare & Wellbeing", "Community health, telemedicine, preventive care"),
-    ("education", "Education & Knowledge", "Open learning, skill development, mentorship"),
-    ("energy", "Energy & Environment", "Renewable energy, conservation, climate action"),
-    ("finance", "Finance & Economic Justice", "Microfinance, cooperative economics, fair trade"),
+    (
+        "agriculture",
+        "Agriculture & Food Security",
+        "Sustainable farming, water management, food sovereignty",
+    ),
+    (
+        "healthcare",
+        "Healthcare & Wellbeing",
+        "Community health, telemedicine, preventive care",
+    ),
+    (
+        "education",
+        "Education & Knowledge",
+        "Open learning, skill development, mentorship",
+    ),
+    (
+        "energy",
+        "Energy & Environment",
+        "Renewable energy, conservation, climate action",
+    ),
+    (
+        "finance",
+        "Finance & Economic Justice",
+        "Microfinance, cooperative economics, fair trade",
+    ),
 ]
 
 
@@ -136,7 +155,9 @@ class GuildRegistry:
 
         logger.info(
             "Node %s joined guild %s (members: %d)",
-            node_id, guild_id, guild.member_count,
+            node_id,
+            guild_id,
+            guild.member_count,
         )
         self._persist()
 

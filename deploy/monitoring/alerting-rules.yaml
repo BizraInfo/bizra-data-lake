@@ -352,8 +352,8 @@ spec:
         # WARNING: High decision rejection rate
         - alert: BizraDecisionRejectionHigh
           expr: |
-            sovereign_decisions_rejected_total /
-            (sovereign_decisions_made_total > 0) > 0.3
+            (sovereign_decisions_rejected_total / sovereign_decisions_made_total) > 0.3
+            and sovereign_decisions_made_total > 0
           for: 10m
           labels:
             severity: warning
@@ -372,8 +372,8 @@ spec:
         # WARNING: Guardian rejection rate high
         - alert: BizraGuardianRejectionHigh
           expr: |
-            sovereign_council_rejections_total /
-            (sovereign_council_invocations_total > 0) > 0.2
+            (sovereign_council_rejections_total / sovereign_council_invocations_total) > 0.2
+            and sovereign_council_invocations_total > 0
           for: 10m
           labels:
             severity: warning
@@ -419,9 +419,8 @@ spec:
         # WARNING: Bridge FATE gate rejection rate > 20%
         - alert: BizraBridgeFateRejectionHigh
           expr: |
-            rate(bridge_requests_total{fate_result="rejected"}[5m])
-            /
-            (rate(bridge_requests_total[5m]) > 0) > 0.2
+            (rate(bridge_requests_total{fate_result="rejected"}[5m]) / rate(bridge_requests_total[5m])) > 0.2
+            and rate(bridge_requests_total[5m]) > 0
           for: 5m
           labels:
             severity: warning
@@ -481,9 +480,8 @@ spec:
         # WARNING: RDVE high rejection rate
         - alert: BizraRDVERejectionRateHigh
           expr: |
-            rate(rdve_missions_total{outcome="rejected"}[15m])
-            /
-            (rate(rdve_missions_total[15m]) > 0) > 0.5
+            (rate(rdve_missions_total{outcome="rejected"}[15m]) / rate(rdve_missions_total[15m])) > 0.5
+            and rate(rdve_missions_total[15m]) > 0
           for: 15m
           labels:
             severity: warning
@@ -507,3 +505,146 @@ spec:
             description: |
               No RDVE missions recorded for pod {{ $labels.pod }}.
               Research heartbeat may be stopped or not configured.
+
+    # =========================================================================
+    # Phase 46 — Cognitive Resonance Canary Alerts (Phase 47.1)
+    # Thresholds from core/integration/constants.py
+    # =========================================================================
+    - name: bizra.phase46.alerts
+      rules:
+        # WARNING: Search error rate > 2% over 15m
+        - alert: Phase46SearchErrorRate
+          expr: |
+            (
+              rate(bizra_phase46_search_errors_total[15m])
+              / rate(bizra_phase46_search_requests_total[15m])
+            ) > 0.02
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "2%"
+          annotations:
+            summary: "Phase 46 search error rate exceeds 2%"
+            description: |
+              Search error rate {{ $value | printf "%.2f" }}% over 15m window
+              for pod {{ $labels.pod }}.
+              Check FAISS index availability and embedding dimension match.
+
+        # WARNING: GoT bridge fallback rate > 20% over 15m
+        - alert: Phase46GoTFallbackRate
+          expr: |
+            (
+              rate(bizra_phase46_got_fallback_total[15m])
+              / rate(bizra_phase46_got_requests_total[15m])
+            ) > 0.20
+          for: 5m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "20%"
+          annotations:
+            summary: "Phase 46 GoT fallback rate exceeds 20%"
+            description: |
+              GoT bridge falling back {{ $value | printf "%.1f" }}% of the time
+              for pod {{ $labels.pod }}.
+              Check inference backend availability and convergence threshold.
+
+        # WARNING: End-to-end p95 latency delta > 30% over 30m
+        - alert: Phase46LatencyRegression
+          expr: |
+            bizra_phase46_search_latency_p95_ms
+            > 1.3 * bizra_phase46_search_latency_p95_ms offset 1h
+          for: 10m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "30%"
+          annotations:
+            summary: "Phase 46 resonance p95 latency regressed > 30%"
+            description: |
+              Resonance pipeline p95 latency has increased by more than 30%
+              compared to 1 hour ago for pod {{ $labels.pod }}.
+
+        # WARNING: HMM confidence p50 < 0.55 over 30m
+        - alert: Phase46HMMConfidenceLow
+          expr: bizra_phase46_hmm_confidence_p50 < 0.55
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "0.55"
+          annotations:
+            summary: "Phase 46 HMM prediction confidence below 0.55"
+            description: |
+              HMM median confidence at {{ $value | printf "%.3f" }}
+              for pod {{ $labels.pod }}.
+              May indicate insufficient observation diversity or model drift.
+
+        # CRITICAL: Resonance combined_snr p50 drops > 15% from baseline
+        - alert: Phase46ResonanceSNRDrop
+          expr: |
+            bizra_phase46_resonance_snr_p50
+            < 0.85 * bizra_phase46_resonance_snr_p50 offset 1h
+          for: 30m
+          labels:
+            severity: critical
+            team: sovereign
+            phase: "46"
+            constitutional: "true"
+            threshold: "15%"
+          annotations:
+            summary: "Phase 46 combined SNR dropped > 15% from baseline"
+            description: |
+              Combined SNR at {{ $value | printf "%.3f" }} for pod {{ $labels.pod }}.
+              Baseline breach detected. Triggers strict rollback evaluation.
+
+        # WARNING: Search hit rate drops below 10% over 30m (search returning empty)
+        - alert: Phase46SearchHitRateLow
+          expr: bizra_phase46_search_hit_rate < 0.10
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "10%"
+          annotations:
+            summary: "Phase 46 search hit rate below 10%"
+            description: |
+              Search hit rate at {{ $value | printf "%.2f" }} for pod {{ $labels.pod }}.
+              FAISS index may be stale or embedding dimension mismatch.
+
+        # WARNING: HMM entropy drops to zero over 30m (no observation diversity)
+        - alert: Phase46HMMEntropyZero
+          expr: bizra_phase46_hmm_entropy == 0
+          for: 30m
+          labels:
+            severity: warning
+            team: sovereign
+            phase: "46"
+            threshold: "0"
+          annotations:
+            summary: "Phase 46 HMM observation entropy is zero"
+            description: |
+              HMM observation entropy at zero for pod {{ $labels.pod }}.
+              No diverse symbols being observed. Check proactive retriever pipeline.
+
+        # INFO: Search producing zero hits for extended period
+        - alert: Phase46SearchZeroHits
+          expr: |
+            increase(bizra_phase46_search_hits_total[1h]) == 0
+            and increase(bizra_phase46_search_requests_total[1h]) > 0
+          for: 1h
+          labels:
+            severity: info
+            team: sovereign
+            phase: "46"
+          annotations:
+            summary: "Phase 46 search has produced zero hits for 1 hour"
+            description: |
+              Search requests are being processed but returning zero hits
+              for pod {{ $labels.pod }}. Index may need rebuilding.

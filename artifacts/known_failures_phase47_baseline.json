@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-02-19T19:00:00Z",
+  "baseline_commit": "477e9d9",
+  "phase46_commit": "366774c",
+  "total_known_failures": 28,
+  "origin": "Phase 19 (commit 3afe972) — pre-existing, not related to Phase 46/47",
+  "test_modules": [
+    "tests/integration/test_gate_chain_integration.py",
+    "tests/integration/test_omega_integration.py",
+    "tests/integration/test_swarm_integration.py",
+    "tests/integration/test_spearpoint_api.py",
+    "tests/integration/test_e2e_integration.py"
+  ],
+  "note": "All 28 failures are import-time errors in Phase 19 integration tests. They predate Phase 46 and are not affected by Phase 46/47 changes. Any new failure signature NOT in this module list indicates a genuine regression."
+}
