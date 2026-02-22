@@ -5,7 +5,34 @@
 
 use std::collections::{HashMap, VecDeque};
 
+use blake3::Hasher;
+
 use crate::hash_namespace::TriggerHash;
+
+/// All-zeros policy hash identifying bootstrap (pre-compiled) rules.
+/// Bootstrap rules are loaded on cold start and replaced once the
+/// reflex compiler produces higher-SNR compiled rules.
+pub const BOOTSTRAP_POLICY_HASH: [u8; 32] = [0u8; 32];
+
+/// Domain prefix used when hashing bootstrap trigger pattern names.
+const BOOTSTRAP_TRIGGER_DOMAIN: &str = "genesis/bootstrap/v1";
+
+/// Compute a deterministic `TriggerHash` for a bootstrap pattern name
+/// (e.g. `"bootstrap:greeting"`).  Uses BLAKE3 with domain separation
+/// identical in structure to `hash_namespace::domain_hash`.
+fn bootstrap_trigger_hash(pattern_name: &str) -> TriggerHash {
+    let mut hasher = Hasher::new();
+    hasher.update(BOOTSTRAP_TRIGGER_DOMAIN.as_bytes());
+    hasher.update(b":");
+    hasher.update(pattern_name.as_bytes());
+    TriggerHash(*hasher.finalize().as_bytes())
+}
+
+/// Returns `true` when `rule` was loaded as a bootstrap reflex
+/// (policy_hash == all-zeros).
+pub fn is_bootstrap_rule(rule: &ReflexRule) -> bool {
+    rule.policy_hash == BOOTSTRAP_POLICY_HASH
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReflexMode {
@@ -113,6 +140,84 @@ impl ReflexCache {
             max_entries: max_entries.max(1),
             stats: ReflexStats::default(),
         }
+    }
+
+    /// Seed the cache with universal bootstrap reflexes that cover the
+    /// most common cold-start message patterns (~40% of traffic).
+    ///
+    /// Bootstrap rules are only loaded when the cache is completely empty
+    /// -- they never overwrite compiled rules.  Each rule carries:
+    ///   - `policy_hash = BOOTSTRAP_POLICY_HASH` (all zeros)
+    ///   - `compiled_at = 0`, `last_validated_at = 0`
+    ///   - `compile_ihsan = 0.95`, `compile_snr = 0.90`
+    ///
+    /// Returns the number of bootstrap rules inserted (0 when the cache
+    /// already contains rules).
+    pub fn load_bootstrap_rules(&mut self) -> usize {
+        if !self.by_trigger.is_empty() {
+            return 0;
+        }
+
+        let bootstrap_defs: &[(&str, &str, &str, f32)] = &[
+            // (pattern_name, primary_agent, route_signature, confidence)
+            (
+                "bootstrap:greeting",
+                "Diplomat",
+                "GreetUser>GenerateResponse",
+                0.95,
+            ),
+            (
+                "bootstrap:help",
+                "Scholar",
+                "RetrieveContext>GenerateResponse",
+                0.90,
+            ),
+            (
+                "bootstrap:remember",
+                "Oracle",
+                "RecallMemory>GenerateResponse",
+                0.92,
+            ),
+            (
+                "bootstrap:profile_recall",
+                "Oracle",
+                "ProfileRecall>GenerateResponse",
+                0.95,
+            ),
+        ];
+
+        let mut loaded: usize = 0;
+
+        for &(pattern_name, agent, route, confidence) in bootstrap_defs {
+            let trigger = bootstrap_trigger_hash(pattern_name);
+            let rule = ReflexRule {
+                trigger_hash: trigger,
+                action_template: ActionTemplate {
+                    route_signature: route.to_string(),
+                    primary_agent: agent.to_string(),
+                },
+                compile_ihsan: confidence,
+                compile_snr: 0.90,
+                compiled_at: 0,
+                use_count: 0,
+                last_used_at: 0,
+                last_validated_at: 0,
+                quarantined: false,
+                quarantine_reason: None,
+                policy_hash: BOOTSTRAP_POLICY_HASH,
+            };
+
+            self.by_trigger.insert(trigger, rule);
+            self.lru.push_back(trigger);
+            loaded += 1;
+        }
+
+        self.stats.size = self.by_trigger.len();
+        // Track bootstrap rules in `compiled` so stats reflect cache
+        // population, but the caller can distinguish them via
+        // `is_bootstrap_rule()`.
+        self.stats.compiled += loaded as u64;
+        loaded
     }
 
     pub fn get_active(
@@ -331,5 +436,147 @@ mod tests {
         r.last_validated_at = 10;
         cache.insert_compiled(ReflexMode::Active, r);
         assert!(cache.needs_revalidation(&t, 20, 604800, 200));
+    }
+
+    // ── Bootstrap reflex tests ──────────────────────────────────
+
+    #[test]
+    fn bootstrap_rules_load_when_empty() {
+        let mut cache = ReflexCache::new(64);
+        assert!(cache.by_trigger.is_empty());
+
+        let loaded = cache.load_bootstrap_rules();
+        assert_eq!(loaded, 4, "should load exactly 4 bootstrap reflexes");
+        assert_eq!(cache.by_trigger.len(), 4);
+        assert_eq!(cache.lru.len(), 4);
+        assert_eq!(cache.stats().compiled, 4);
+        assert_eq!(cache.stats().size, 4);
+
+        // Verify each rule has bootstrap markers
+        for rule in cache.all_rules() {
+            assert_eq!(rule.policy_hash, BOOTSTRAP_POLICY_HASH);
+            assert_eq!(rule.compiled_at, 0);
+            assert_eq!(rule.last_validated_at, 0);
+            assert!(rule.compile_ihsan >= 0.90, "bootstrap ihsan must be >= 0.90");
+            assert!((rule.compile_snr - 0.90).abs() < f32::EPSILON);
+            assert!(!rule.quarantined);
+            assert!(is_bootstrap_rule(&rule));
+        }
+
+        // Verify expected agents are present
+        let mut agents: Vec<String> = cache
+            .all_rules()
+            .iter()
+            .map(|r| r.action_template.primary_agent.clone())
+            .collect();
+        agents.sort();
+        assert_eq!(agents, vec!["Diplomat", "Oracle", "Oracle", "Scholar"]);
+
+        // Verify expected route signatures are present
+        let mut routes: Vec<String> = cache
+            .all_rules()
+            .iter()
+            .map(|r| r.action_template.route_signature.clone())
+            .collect();
+        routes.sort();
+        assert_eq!(
+            routes,
+            vec![
+                "GreetUser>GenerateResponse",
+                "ProfileRecall>GenerateResponse",
+                "RecallMemory>GenerateResponse",
+                "RetrieveContext>GenerateResponse",
+            ]
+        );
+    }
+
+    #[test]
+    fn bootstrap_rules_skip_when_populated() {
+        let mut cache = ReflexCache::new(64);
+
+        // Insert a compiled rule first
+        let t = TriggerHash([42u8; 32]);
+        cache.insert_compiled(ReflexMode::Active, rule(t, [7u8; 32]));
+        assert_eq!(cache.by_trigger.len(), 1);
+        let compiled_before = cache.stats().compiled;
+
+        // Attempt to load bootstrap rules -- should be a no-op
+        let loaded = cache.load_bootstrap_rules();
+        assert_eq!(loaded, 0, "bootstrap must not overwrite existing rules");
+        assert_eq!(cache.by_trigger.len(), 1);
+        assert_eq!(cache.stats().compiled, compiled_before);
+
+        // The existing rule should be untouched
+        let existing = cache.by_trigger.get(&t).unwrap();
+        assert_eq!(existing.policy_hash, [7u8; 32]);
+        assert!(!is_bootstrap_rule(existing));
+    }
+
+    #[test]
+    fn bootstrap_rule_identification() {
+        // A rule with BOOTSTRAP_POLICY_HASH is a bootstrap rule
+        let bootstrap = ReflexRule {
+            trigger_hash: TriggerHash([1u8; 32]),
+            action_template: ActionTemplate {
+                route_signature: "GreetUser>GenerateResponse".to_string(),
+                primary_agent: "Diplomat".to_string(),
+            },
+            compile_ihsan: 0.95,
+            compile_snr: 0.90,
+            compiled_at: 0,
+            use_count: 0,
+            last_used_at: 0,
+            last_validated_at: 0,
+            quarantined: false,
+            quarantine_reason: None,
+            policy_hash: BOOTSTRAP_POLICY_HASH,
+        };
+        assert!(is_bootstrap_rule(&bootstrap));
+
+        // A rule with a non-zero policy hash is NOT a bootstrap rule
+        let compiled = rule(TriggerHash([2u8; 32]), [7u8; 32]);
+        assert!(!is_bootstrap_rule(&compiled));
+
+        // Edge case: a rule with almost-zero hash (only last byte differs)
+        let mut nearly_zero = BOOTSTRAP_POLICY_HASH;
+        nearly_zero[31] = 1;
+        let edge = rule(TriggerHash([3u8; 32]), nearly_zero);
+        assert!(!is_bootstrap_rule(&edge));
+    }
+
+    #[test]
+    fn bootstrap_trigger_hashes_are_deterministic() {
+        let h1 = bootstrap_trigger_hash("bootstrap:greeting");
+        let h2 = bootstrap_trigger_hash("bootstrap:greeting");
+        assert_eq!(h1, h2, "same pattern name must produce identical hash");
+
+        let h3 = bootstrap_trigger_hash("bootstrap:help");
+        assert_ne!(h1, h3, "different patterns must produce different hashes");
+    }
+
+    #[test]
+    fn bootstrap_rules_are_retrievable_with_bootstrap_policy() {
+        let mut cache = ReflexCache::new(64);
+        cache.load_bootstrap_rules();
+
+        // Bootstrap rules should be retrievable when the caller
+        // presents BOOTSTRAP_POLICY_HASH as the current policy.
+        let greeting_trigger = bootstrap_trigger_hash("bootstrap:greeting");
+        let result = cache.get_active(
+            ReflexMode::Active,
+            &greeting_trigger,
+            Some(BOOTSTRAP_POLICY_HASH),
+            100,
+        );
+        assert!(
+            result.is_some(),
+            "bootstrap rule should match on bootstrap policy"
+        );
+        let matched = result.unwrap();
+        assert_eq!(matched.action_template.primary_agent, "Diplomat");
+        assert_eq!(
+            matched.action_template.route_signature,
+            "GreetUser>GenerateResponse"
+        );
     }
 }

@@ -2,6 +2,13 @@
 # BIZRA-DATA-LAKE .gitignore
 # ═══════════════════════════════════════════════════════════════
 
+# ── Pytest MagicMock leak artifacts ────────────────────────────
+# Mock objects using __truediv__ (pathlib Path division) can
+# escape to disk when state_dir is not properly patched.
+*MagicMock*
+nul
+cleanup_mocks.py
+
 # ── Secrets & Environment ─────────────────────────────────────
 .env
 .env.local
@@ -191,6 +198,13 @@ users.db
 
 # ── MagicMock / pytest file-leak artifacts ────────────────────
 <MagicMock*
+
+# ── Audit Trail Data (generated at runtime) ───────────────────────
+bizra-omega/bizra-node/data/audit/
+
+# ── External Repos (submodules / clones) ───────────────────────
+personaplex/
+xtr-warp/
 
 # ── Evidence Package Generated Outputs ─────────────────────────
 artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/private_full/

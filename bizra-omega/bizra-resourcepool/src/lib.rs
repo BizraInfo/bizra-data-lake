@@ -27,7 +27,7 @@
 
 use blake3::Hasher;
 use chrono::{DateTime, Utc};
-use ed25519_dalek::VerifyingKey;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -85,6 +85,13 @@ pub const PAT_SIZE: usize = 7;
 
 /// SAT: Shared Agent Team size (5 agents per community)
 pub const SAT_SIZE: usize = 5;
+
+/// SAT full topology target (Atlas parity mode)
+pub const SAT_SIZE_FULL49: usize = 49;
+
+/// SAT operating profile labels used in status/reporting.
+pub const SAT_MODE_MINI5: &str = "mini5";
+pub const SAT_MODE_FULL49: &str = "full49";
 
 /// Genesis epoch timestamp (pool creation)
 pub const GENESIS_EPOCH: u64 = 1704067200000; // 2024-01-01 00:00:00 UTC in ms
@@ -170,6 +177,23 @@ pub enum NodeClass {
     Edge,
     /// Observer node - read-only access
     Observer,
+}
+
+impl NodeClass {
+    /// Stable string representation for signature payloads.
+    ///
+    /// Uses SCREAMING_SNAKE_CASE to match the serde serialization format,
+    /// ensuring the signing payload is deterministic across code changes
+    /// (unlike `Debug` which could change formatting).
+    pub fn as_registration_label(&self) -> &'static str {
+        match self {
+            Self::Genesis => "GENESIS",
+            Self::Sovereign => "SOVEREIGN",
+            Self::Delegate => "DELEGATE",
+            Self::Edge => "EDGE",
+            Self::Observer => "OBSERVER",
+        }
+    }
 }
 
 /// Node registration status
@@ -781,6 +805,26 @@ pub struct ResourcePool {
 }
 
 impl ResourcePool {
+    fn registration_signature_payload(request: &RegistrationRequest) -> Vec<u8> {
+        let mut hasher = Hasher::new();
+        hasher.update(b"bizra-resourcepool-registration-v1:");
+        hasher.update(request.node_id.as_bytes());
+        hasher.update(request.name.as_bytes());
+        hasher.update(request.requested_class.as_registration_label().as_bytes());
+        hasher.update(&request.requested_at.timestamp_millis().to_le_bytes());
+        hasher.update(&request.resources.cpu_millicores.to_le_bytes());
+        hasher.update(request.resources.gpu_tflops.to_string().as_bytes());
+        hasher.update(&request.resources.memory_bytes.to_le_bytes());
+        hasher.update(&request.resources.storage_bytes.to_le_bytes());
+        hasher.update(&request.resources.network_bps.to_le_bytes());
+        hasher.update(&request.resources.inference_tps.to_le_bytes());
+        hasher.update(&request.resources.self_assessment.to_le_bytes());
+        hasher.update(request.resources.availability.to_string().as_bytes());
+        hasher.update(request.sponsor_node.as_deref().unwrap_or("").as_bytes());
+        hasher.update(request.identity_proof.as_deref().unwrap_or("").as_bytes());
+        hasher.finalize().as_bytes().to_vec()
+    }
+
     /// Create a new Resource Pool with Genesis Node (Node0)
     pub async fn genesis(
         genesis_node_id: String,
@@ -914,6 +958,22 @@ impl ResourcePool {
             })?)
             .map_err(|e| PoolError::CryptoError {
                 reason: format!("Invalid public key: {}", e),
+            })?;
+
+        // Verify requester signature against canonical registration payload
+        let sig_bytes =
+            hex::decode(&request.signature).map_err(|e| PoolError::InvalidSignature {
+                reason: format!("Malformed signature hex: {}", e),
+            })?;
+        let signature =
+            Signature::from_slice(&sig_bytes).map_err(|e| PoolError::InvalidSignature {
+                reason: format!("Malformed Ed25519 signature: {}", e),
+            })?;
+        let signing_payload = Self::registration_signature_payload(&request);
+        verifying_key
+            .verify(&signing_payload, &signature)
+            .map_err(|e| PoolError::InvalidSignature {
+                reason: format!("Signature verification failed: {}", e),
             })?;
 
         // Create the new node
@@ -1504,7 +1564,7 @@ mod hex_verifying_key {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::SigningKey;
+    use ed25519_dalek::{Signer, SigningKey};
     use rand::rngs::OsRng;
 
     fn generate_keypair() -> (SigningKey, VerifyingKey) {
@@ -1541,10 +1601,10 @@ mod tests {
             .unwrap();
 
         // Register a new node
-        let (_, new_key) = generate_keypair();
+        let (new_signing_key, new_key) = generate_keypair();
         let new_id = hex::encode(new_key.as_bytes());
 
-        let request = RegistrationRequest {
+        let mut request = RegistrationRequest {
             node_id: new_id.clone(),
             name: "Node1".to_string(),
             requested_class: NodeClass::Sovereign,
@@ -1554,12 +1614,45 @@ mod tests {
             requested_at: Utc::now(),
             signature: String::new(),
         };
+        let payload = ResourcePool::registration_signature_payload(&request);
+        let signature = new_signing_key.sign(&payload);
+        request.signature = hex::encode(signature.to_bytes());
 
         let response = pool.register_node(request).await.unwrap();
         assert!(response.approved);
 
         let stats = pool.stats().await;
         assert_eq!(stats.total_nodes, 2);
+    }
+
+    #[tokio::test]
+    async fn test_node_registration_rejects_invalid_signature() {
+        let (_, genesis_key) = generate_keypair();
+        let genesis_id = hex::encode(genesis_key.as_bytes());
+        let pool = ResourcePool::genesis(genesis_id.clone(), "Node0".to_string(), genesis_key)
+            .await
+            .unwrap();
+
+        let (_new_signing_key, new_key) = generate_keypair();
+        let new_id = hex::encode(new_key.as_bytes());
+
+        let request = RegistrationRequest {
+            node_id: new_id,
+            name: "NodeBadSig".to_string(),
+            requested_class: NodeClass::Sovereign,
+            resources: NodeResources::default(),
+            sponsor_node: Some(genesis_id),
+            identity_proof: None,
+            requested_at: Utc::now(),
+            signature: "00".repeat(64),
+        };
+
+        let result = pool.register_node(request).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PoolError::InvalidSignature { .. } => {}
+            other => panic!("expected InvalidSignature, got {:?}", other),
+        }
     }
 
     #[tokio::test]
@@ -1663,5 +1756,8 @@ mod tests {
         assert_eq!(HARBERGER_TAX_RATE, Decimal::from_str("0.07").unwrap());
         assert_eq!(PAT_SIZE, 7);
         assert_eq!(SAT_SIZE, 5);
+        assert_eq!(SAT_SIZE_FULL49, 49);
+        assert_eq!(SAT_MODE_MINI5, "mini5");
+        assert_eq!(SAT_MODE_FULL49, "full49");
     }
 }

@@ -89,6 +89,9 @@ class SovereignRuntime:
         self._initialized: bool = False
         self._running: bool = False
         self._shutdown_event: asyncio.Event = asyncio.Event()
+        self._strict_gate_passed: bool = True
+        self._strict_gate_reason_codes: list[str] = []
+        self._stub_components: list[str] = []
 
         # Components (initialized lazily) - using Protocol types for type safety
         self._graph_reasoner: Optional[GraphReasonerProtocol] = None
@@ -392,6 +395,7 @@ class SovereignRuntime:
         await self._run_zpk_preflight()
 
         await self._init_components()
+        self._enforce_stub_budget_gate()
 
         if self.config.autonomous_enabled:
             await self._start_autonomous_loop()
@@ -429,6 +433,68 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
         self.logger.info("=" * 60)
+
+    @staticmethod
+    def _is_stub_component(component: Optional[object]) -> bool:
+        """Return True when a component is a stub/fallback implementation."""
+        if component is None:
+            return True
+        if getattr(component, "is_stub", False):
+            return True
+        return "stub" in type(component).__name__.lower()
+
+    def _enforce_stub_budget_gate(self) -> None:
+        """Fail-closed startup gate for strict runtime profiles."""
+        self._stub_components = []
+        self._strict_gate_reason_codes = []
+
+        tracked_components = [
+            (
+                "graph_reasoner",
+                self.config.enable_graph_reasoning,
+                self._graph_reasoner,
+            ),
+            ("snr_optimizer", self.config.enable_snr_optimization, self._snr_optimizer),
+            (
+                "guardian_council",
+                self.config.enable_guardian_validation,
+                self._guardian_council,
+            ),
+            (
+                "autonomous_loop",
+                self.config.enable_autonomous_loop,
+                self._autonomous_loop,
+            ),
+        ]
+
+        for name, enabled, component in tracked_components:
+            if enabled and self._is_stub_component(component):
+                self._stub_components.append(name)
+
+        if not self.config.strict_stub_budget:
+            self._strict_gate_passed = True
+            return
+
+        if self.config.reject_stub_inference and any(
+            name in {"graph_reasoner", "snr_optimizer", "guardian_council"}
+            for name in self._stub_components
+        ):
+            self._strict_gate_reason_codes.append("STRICT_STUB_INFERENCE_COMPONENT")
+
+        if len(self._stub_components) > self.config.stub_budget_max:
+            self._strict_gate_reason_codes.append("STRICT_STUB_BUDGET_EXCEEDED")
+
+        if self._strict_gate_reason_codes:
+            self._strict_gate_passed = False
+            reasons = ",".join(self._strict_gate_reason_codes)
+            components = ",".join(self._stub_components)
+            raise RuntimeError(
+                "Strict startup gate failed "
+                f"(reasons={reasons}, stub_components={components}, "
+                f"budget={self.config.stub_budget_max})"
+            )
+
+        self._strict_gate_passed = True
 
     def _init_evidence_ledger(self) -> None:
         """Initialize the Evidence Ledger — append-only, hash-chained audit trail.
@@ -774,20 +840,7 @@ class SovereignRuntime:
             from core.proof_engine.canonical import hex_digest
             from core.proof_engine.evidence_ledger import emit_receipt
 
-            decision = "APPROVED"
-            reason_codes: list = []
-            status = "accepted"
-
-            if not result.validation_passed:
-                decision = "REJECTED"
-                reason_codes.append("IHSAN_BELOW_THRESHOLD")
-                status = "rejected"
-            if result.snr_score < 0.85:
-                if "SNR_BELOW_THRESHOLD" not in reason_codes:
-                    reason_codes.append("SNR_BELOW_THRESHOLD")
-                if decision == "APPROVED":
-                    decision = "QUARANTINED"
-                    status = "quarantined"
+            decision, status, reason_codes = self._receipt_outcome(result)
 
             query_digest = hex_digest(
                 query.text.encode("utf-8")
@@ -797,9 +850,10 @@ class SovereignRuntime:
                 (result.response or "").encode("utf-8")
             )  # SEC-001: BLAKE3 for Rust interop
 
-            emit_receipt(
+            receipt_id = result.query_id.replace("-", "")[:32]
+            entry = emit_receipt(
                 self._evidence_ledger,
-                receipt_id=result.query_id.replace("-", "")[:32],
+                receipt_id=receipt_id,
                 node_id=self.config.node_id,
                 policy_version="1.0.0",
                 status=status,
@@ -842,10 +896,86 @@ class SovereignRuntime:
                 node_role=self._node_role,
                 state_dir=self.config.state_dir,
             )
+            if isinstance(query.context, dict):
+                query.context["_last_receipt_id"] = receipt_id
+                query.context["_last_receipt_decision"] = decision
+                query.context["_last_receipt_entry_hash"] = getattr(
+                    entry, "entry_hash", None
+                )
             # Clear trace after emission
             self._last_snr_trace = None
         except Exception as e:
             self.logger.warning(f"Receipt emission failed (non-fatal): {e}")
+
+    @staticmethod
+    def _receipt_outcome(
+        result: "SovereignResult",
+    ) -> tuple[str, str, list[str]]:
+        """Compute canonical receipt decision/status/reason codes.
+
+        Delegates to the single source of truth in receipt_outcome module.
+        """
+        from .receipt_outcome import receipt_outcome
+
+        return receipt_outcome(result)
+
+    async def _apply_receipt_memory_feedback(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """
+        SEL SENSE stage feedback: reinforce/flag source memories from receipt outcome.
+
+        Success path reinforces memory IDs used in contextual retrieval.
+        Rejected/quarantined path marks those IDs for healing revalidation.
+        """
+        if self._living_memory is None or not isinstance(query.context, dict):
+            return
+        source_ids = query.context.get("_source_memory_ids")
+        if not isinstance(source_ids, list) or not source_ids:
+            return
+
+        apply_feedback = getattr(self._living_memory, "apply_execution_feedback", None)
+        if apply_feedback is None:
+            return
+
+        decision, _, reason_codes = self._receipt_outcome(result)
+        success = decision == "APPROVED"
+        reason = ",".join(reason_codes) if reason_codes else decision
+        receipt_ref = query.context.get("_last_receipt_id") or result.query_id
+        try:
+            feedback_or_coro = apply_feedback(
+                source_ids,
+                success=success,
+                reason=reason,
+                receipt_ref=receipt_ref,
+            )
+            feedback = (
+                await feedback_or_coro
+                if inspect.isawaitable(feedback_or_coro)
+                else feedback_or_coro
+            )
+            if isinstance(feedback, dict):
+                action = "reinforced" if success else "flagged"
+                self.logger.debug(
+                    "Memory receipt feedback %s=%s decision=%s receipt=%s",
+                    action,
+                    feedback.get(action, 0),
+                    decision,
+                    receipt_ref,
+                )
+        except Exception as e:
+            self.logger.warning(f"Memory receipt feedback skipped (non-fatal): {e}")
+
+    def _schedule_receipt_memory_feedback(
+        self, result: "SovereignResult", query: "SovereignQuery"
+    ) -> None:
+        """Schedule non-blocking SEL SENSE feedback wiring."""
+        try:
+            asyncio.ensure_future(self._apply_receipt_memory_feedback(result, query))
+        except Exception as e:
+            self.logger.warning(
+                f"Failed to schedule receipt memory feedback (non-fatal): {e}"
+            )
 
     def _register_poi_contribution(
         self, result: "SovereignResult", query: "SovereignQuery"
@@ -1449,6 +1579,70 @@ class SovereignRuntime:
                     f"✓ AgentDB initialized: {self._agent_db.count} records, "
                     f"{self._agent_db.hnsw.count} vectors"
                 )
+
+                # Wire embedding function into AgentDB (if service already up)
+                if (
+                    hasattr(self, "_embedding_service")
+                    and self._embedding_service is not None
+                ):
+                    try:
+                        self._agent_db.set_embedding_fn(self._embedding_service.embed)
+                        self.logger.debug("AgentDB embedding function wired (early)")
+                    except Exception as emb_err:
+                        self.logger.debug(f"AgentDB embedding fn not wired: {emb_err}")
+
+                # Import existing memories via LivingMemory adapter (non-blocking)
+                try:
+                    from core.memory.adapters.living_memory import (
+                        LivingMemoryAdapter,
+                    )
+
+                    if self._living_memory is not None:
+                        adapter = LivingMemoryAdapter(self._living_memory)
+                        records = adapter.export_all()
+                        imported = 0
+                        for rec in records:
+                            try:
+                                self._agent_db.store_record(rec)
+                                imported += 1
+                            except Exception:
+                                pass
+                        if imported > 0:
+                            self.logger.info(
+                                f"AgentDB imported {imported} records "
+                                f"from LivingMemory"
+                            )
+                except Exception as adapt_err:
+                    self.logger.debug(
+                        f"LivingMemory adapter import skipped: {adapt_err}"
+                    )
+
+                # Import from ExperienceLedger adapter (read-only, non-blocking)
+                try:
+                    from core.memory.adapters.experience_ledger import (
+                        ExperienceLedgerAdapter,
+                    )
+
+                    if self._experience_ledger is not None:
+                        sel_adapter = ExperienceLedgerAdapter(self._experience_ledger)
+                        sel_records = sel_adapter.export_all()
+                        sel_imported = 0
+                        for rec in sel_records:
+                            try:
+                                self._agent_db.store_record(rec)
+                                sel_imported += 1
+                            except Exception:
+                                pass
+                        if sel_imported > 0:
+                            self.logger.info(
+                                f"AgentDB imported {sel_imported} records "
+                                f"from ExperienceLedger"
+                            )
+                except Exception as sel_err:
+                    self.logger.debug(
+                        f"ExperienceLedger adapter import skipped: {sel_err}"
+                    )
+
             except ImportError:
                 self.logger.warning("⚠ AgentDB unavailable (core.memory not installed)")
             except Exception as e:
@@ -1551,6 +1745,18 @@ class SovereignRuntime:
             self._embedding_service = EmbeddingService(EmbeddingConfig.from_env())
             self._embedding_gate = EmbeddingQualityGate()
             self.logger.info("✓ EmbeddingService initialized (tiered fallback)")
+
+            # Late-bind embedding function into AgentDB (initialized earlier)
+            if self._agent_db is not None:
+                try:
+                    self._agent_db.set_embedding_fn(self._embedding_service.embed)
+                    self.logger.info(
+                        "AgentDB embedding function wired via EmbeddingService"
+                    )
+                except Exception as wire_err:
+                    self.logger.debug(
+                        f"AgentDB embedding fn late-wire failed: {wire_err}"
+                    )
         except ImportError:
             self.logger.warning("⚠ EmbeddingService unavailable")
         except Exception as e:
@@ -2147,6 +2353,7 @@ class SovereignRuntime:
             else:
                 self._record_query_impact(result)
                 self._emit_query_receipt(result, query)
+                self._schedule_receipt_memory_feedback(result, query)
                 self._encode_query_memory(result, query)
                 self._commit_experience_episode(result, query)
                 self._observe_judgment(result)
@@ -2192,6 +2399,7 @@ class SovereignRuntime:
             self._query_times.append(gate_rejection.processing_time_ms)
             self.metrics.update_query_stats(False, gate_rejection.processing_time_ms)
             self._emit_query_receipt(gate_rejection, query)
+            self._schedule_receipt_memory_feedback(gate_rejection, query)
             return gate_rejection
 
         # STAGE 0: Select compute tier
@@ -2300,6 +2508,7 @@ class SovereignRuntime:
             self._record_query_impact(result)
             self._register_poi_contribution(result, query)
             self._emit_query_receipt(result, query)
+            self._schedule_receipt_memory_feedback(result, query)
             self._encode_query_memory(result, query)
             self._commit_experience_episode(result, query)
             self._observe_judgment(result)
@@ -2449,6 +2658,7 @@ class SovereignRuntime:
 
         # RAG retrieval from living memory
         memory_context = ""
+        query.context.pop("_source_memory_ids", None)
         living_memory = getattr(self, "_living_memory", None)
         if living_memory:
             try:
@@ -2458,6 +2668,7 @@ class SovereignRuntime:
                 )
                 if memories:
                     parts = []
+                    source_ids: list[str] = []
                     for mem in memories:
                         label = mem.memory_type.value.upper()
                         # Truncate long memories to keep prompt manageable
@@ -2465,7 +2676,12 @@ class SovereignRuntime:
                         if len(content) > 800:
                             content = content[:800] + "..."
                         parts.append(f"[{label}] {content}")
+                        mem_id = getattr(mem, "id", None)
+                        if isinstance(mem_id, str) and mem_id:
+                            source_ids.append(mem_id)
                     memory_context = "\n\n".join(parts)
+                    if source_ids:
+                        query.context["_source_memory_ids"] = source_ids
                     self.logger.debug(
                         f"RAG: retrieved {len(memories)} memories for query"
                     )
@@ -2779,6 +2995,115 @@ class SovereignRuntime:
         result = await self.query(question, max_depth=depth)
         return result.thoughts
 
+    def _collect_pat_sat_receipt_chain_status(self) -> dict[str, Any]:
+        """Collect PAT↔SAT negotiation receipt-chain telemetry from evidence ledger."""
+        status: dict[str, Any] = {
+            "available": False,
+            "total_entries": 0,
+            "total_negotiation_receipts": 0,
+            "chain_valid": None,
+            "chain_error_count": 0,
+            "chain_error": None,
+            "verified_end_to_end": False,
+            "latest_receipt_id": None,
+            "latest_sequence": None,
+            "latest_entry_hash": None,
+            "latest_payload_digest": None,
+            "latest_signed": False,
+            "latest_decision": None,
+            "latest_timestamp": None,
+            "ledger_last_hash": None,
+        }
+
+        ledger = self._evidence_ledger
+        if ledger is None:
+            return status
+
+        status["available"] = True
+        sequence = getattr(ledger, "sequence", 0)
+        status["total_entries"] = sequence if isinstance(sequence, int) else 0
+
+        last_hash = getattr(ledger, "last_hash", None)
+        if isinstance(last_hash, str) and last_hash:
+            status["ledger_last_hash"] = last_hash
+
+        verify_chain = getattr(ledger, "verify_chain", None)
+        if callable(verify_chain) and status["total_entries"] > 0:
+            try:
+                chain_valid, chain_errors = verify_chain()
+                status["chain_valid"] = bool(chain_valid)
+                if isinstance(chain_errors, list):
+                    status["chain_error_count"] = len(chain_errors)
+                else:
+                    status["chain_error_count"] = 0
+            except Exception as exc:
+                status["chain_valid"] = False
+                status["chain_error"] = str(exc)
+
+        entries_fn = getattr(ledger, "entries", None)
+        if not callable(entries_fn) or status["total_entries"] <= 0:
+            return status
+
+        try:
+            entries = entries_fn()
+        except Exception as exc:
+            status["chain_error"] = str(exc)
+            return status
+
+        if not isinstance(entries, list):
+            return status
+
+        latest_entry = None
+        receipt_count = 0
+        for entry in entries:
+            receipt = getattr(entry, "receipt", None)
+            if not isinstance(receipt, dict):
+                continue
+            origin = receipt.get("origin", {})
+            if not isinstance(origin, dict) or origin.get("channel") != "pat_sat":
+                continue
+            receipt_count += 1
+            latest_entry = entry
+
+        status["total_negotiation_receipts"] = receipt_count
+        if latest_entry is None:
+            status["verified_end_to_end"] = bool(
+                status["chain_valid"] is True and receipt_count > 0
+            )
+            return status
+
+        latest_receipt = (
+            latest_entry.receipt if isinstance(latest_entry.receipt, dict) else {}
+        )
+        status["latest_receipt_id"] = latest_receipt.get("receipt_id")
+        latest_sequence = getattr(latest_entry, "sequence", None)
+        status["latest_sequence"] = (
+            latest_sequence if isinstance(latest_sequence, int) else None
+        )
+        latest_hash = getattr(latest_entry, "entry_hash", None)
+        status["latest_entry_hash"] = (
+            latest_hash if isinstance(latest_hash, str) else None
+        )
+        status["latest_timestamp"] = getattr(latest_entry, "timestamp", None)
+        status["latest_decision"] = latest_receipt.get("decision")
+
+        outputs = latest_receipt.get("outputs", {})
+        if isinstance(outputs, dict):
+            status["latest_payload_digest"] = outputs.get("payload_digest")
+
+        signature = latest_receipt.get("signature", {})
+        status["latest_signed"] = (
+            isinstance(signature, dict)
+            and isinstance(signature.get("value"), str)
+            and bool(signature["value"])
+        )
+        status["verified_end_to_end"] = bool(
+            status["chain_valid"] is True
+            and receipt_count > 0
+            and status["latest_signed"]
+        )
+        return status
+
     # -------------------------------------------------------------------------
     # STATUS & METRICS
     # -------------------------------------------------------------------------
@@ -2827,11 +3152,16 @@ class SovereignRuntime:
             identity_info["public_key"] = self._genesis.identity.public_key[:16] + "..."
             identity_info["pat_agents"] = len(self._genesis.pat_team)
             identity_info["sat_agents"] = len(self._genesis.sat_team)
+            identity_info["sat_mode"] = (
+                "full49" if len(self._genesis.sat_team) >= 49 else "mini5"
+            )
             identity_info["genesis_hash"] = (
                 self._genesis.genesis_hash.hex()[:16] + "..."
                 if self._genesis.genesis_hash
                 else "none"
             )
+        else:
+            identity_info["sat_mode"] = self.config.sat_mode
 
         memory_status = (
             self._memory_coordinator.stats()
@@ -2859,6 +3189,8 @@ class SovereignRuntime:
                 "initialized": self._initialized,
                 "running": self._running,
                 "mode": self.config.mode.name,
+                "sat_mode": self.config.sat_mode,
+                "strict_gate_passed": self._strict_gate_passed,
             },
             "health": {
                 "status": self._health_status().value,
@@ -2866,11 +3198,21 @@ class SovereignRuntime:
                 "ihsan_watchdog": (
                     self._ihsan_watchdog.status() if self._ihsan_watchdog else None
                 ),
+                "strict_gate": {
+                    "enabled": self.config.strict_stub_budget,
+                    "passed": self._strict_gate_passed,
+                    "reason_codes": list(self._strict_gate_reason_codes),
+                    "stub_components": list(self._stub_components),
+                    "stub_budget_max": self.config.stub_budget_max,
+                },
             },
             "autonomous": loop_status,
             "omega_point": omega_status,
             "memory": memory_status,
             "sovereignty": sovereignty_info,
+            "pat_sat": {
+                "negotiation_receipt_chain": self._collect_pat_sat_receipt_chain_status()
+            },
             "metrics": self.metrics.to_dict(),
         }
 
