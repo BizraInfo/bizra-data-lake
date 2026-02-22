@@ -149,6 +149,7 @@ research_archive/
 # ── Local Claude Config ───────────────────────────────────────
 .claude/CLAUDE.local.md
 .claude/agents/
+!.claude/agents/pyo3-boundary-reviewer.md
 .claude/commands/
 .claude/helpers/
 .claude/hooks/
@@ -157,8 +158,12 @@ research_archive/
 .claude/skills/
 !.claude/skills/bizra-node0-proactive-pilot/
 !.claude/skills/bizra-node0-proactive-pilot/**
+!.claude/skills/cross-lang-sync/
+!.claude/skills/cross-lang-sync/**
+!.claude/skills/data-pipeline-run/
+!.claude/skills/data-pipeline-run/**
 .claude/statusline.*
-.mcp.json
+# .mcp.json — tracked for team MCP server sharing
 
 # ── Gemini ────────────────────────────────────────────────────
 .gemini/

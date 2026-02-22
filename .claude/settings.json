@@ -81,6 +81,17 @@
             "statusMessage": "FATE validation..."
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(echo \"$TOOL_INPUT\" | grep -oP \"(?<=file_path|path)[\\\":\\s]+\\K[^\\\"]+\" | head -1); if echo \"$FILE\" | grep -qE \"(ci\\.yml|release\\.yml|docker-compose\\.yml|Cargo\\.lock|requirements\\.lock)\"; then echo \"WARNING: Pinned dependency file — verify SHA/digest pins are preserved after edit.\" >&2; fi'",
+            "timeout": 3,
+            "statusMessage": "Dependency pin guard..."
+          }
+        ]
       }
     ],
 
@@ -93,6 +104,18 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bizra_hook_engine.py post_tool",
             "timeout": 5,
             "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(echo \"$TOOL_INPUT\" | grep -oP \"(?<=file_path|path)[\\\":\\s]+\\K[^\\\"]+\" | head -1); if echo \"$FILE\" | grep -qE \"\\.rs$\"; then cd \"$CLAUDE_PROJECT_DIR/bizra-omega\" && cargo fmt --all 2>/dev/null; fi'",
+            "timeout": 10,
+            "async": true,
+            "statusMessage": "Auto-formatting Rust..."
           }
         ]
       }

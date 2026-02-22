@@ -58,3 +58,14 @@ repos:
         types: [rust]
         pass_filenames: false
         stages: [pre-push]
+
+  # Cross-language constant synchronization (Lamport consistency)
+  # Prevents Python/Rust constitutional threshold drift
+  - repo: local
+    hooks:
+      - id: cross-lang-sync
+        name: cross-lang-sync audit
+        entry: python3 .claude/skills/cross-lang-sync/audit_constants.py
+        language: system
+        files: (constants\.py|lib\.rs|omega\.rs|constitution\.rs)
+        pass_filenames: false

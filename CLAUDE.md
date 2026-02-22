@@ -146,6 +146,22 @@ Release profile uses fat LTO + single codegen unit + `panic = "abort"`. The `ome
 
 **Note:** `native/` is deprecated. All Rust development happens in `bizra-omega/`.
 
+## Claude Code Automation
+
+### Skills (invoke via `/skill-name`)
+- `/cross-lang-sync` — Audit Python/Rust constitutional constant alignment. Runs `audit_constants.py` to detect drift in IHSAN, SNR, ADL Gini thresholds. Also enforced in CI and pre-commit.
+- `/data-pipeline-run` — Orchestrate the 4-stage data pipeline (corpus → vectors → extraction → ARTE) with inter-stage validation. User-only (side effects).
+
+### Agents
+- `pyo3-boundary-reviewer` — Reviews PyO3 FFI boundary changes between `bizra-python/` and `core/`. Catches type mismatches, missing bindings, and API drift.
+
+### Hooks (in `settings.json`)
+- **PreToolUse: Pinned Dependency Guard** — Warns when editing CI, Docker, or lock files to prevent accidental SHA/digest unpin.
+- **PostToolUse: Rust Auto-Format** — Runs `cargo fmt --all` async after any `.rs` file edit.
+
+### MCP Servers (in `.mcp.json`)
+Team-shared MCP configuration checked into repo. Includes `context7` for live library documentation lookup.
+
 ## Important Patterns
 
 - All Python paths use forward slashes for cross-platform compatibility
@@ -154,3 +170,4 @@ Release profile uses fat LTO + single codegen unit + `panic = "abort"`. The `ome
 - The `core/protocols/` package defines interface contracts via structural typing (Protocol classes)
 - Ruff ignores `E402` (deferred imports for performance) and `E501` (Black handles line length)
 - MyPy runs in strict mode globally but relaxes `core.*` and `tests.*` modules — strict enforcement is being adopted incrementally
+- Cross-language constant sync is enforced at three levels: pre-commit hook, CI gate, and `/cross-lang-sync` skill
