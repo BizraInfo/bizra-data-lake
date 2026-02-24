@@ -34,6 +34,14 @@ pub const PAT_TEAM_SIZE: usize = 7;
 /// SAT team size — 5 shared agents (public utility)
 pub const SAT_TEAM_SIZE: usize = 5;
 
+/// SAT team size for Atlas parity mode (full federation topology)
+pub const SAT_TEAM_SIZE_FULL49: usize = 49;
+
+/// SAT operating profile labels.
+pub const SAT_MODE_MINI5: &str = "mini5";
+/// SAT operating profile label for full 49-validator topology.
+pub const SAT_MODE_FULL49: &str = "full49";
+
 /// Minimum Ihsan threshold for agent minting
 pub const AGENT_MINT_IHSAN_THRESHOLD: f64 = 0.95;
 

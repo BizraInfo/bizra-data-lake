@@ -332,6 +332,7 @@ impl ActionExecutor {
             policy_hash,
             receipt_hash: [0u8; 32],
             prev_receipt_hash: self.prev_receipt_hash,
+            outcome_hash: None,
         };
         receipt.seal();
         self.prev_receipt_hash = receipt.receipt_hash;
@@ -367,6 +368,10 @@ impl ActionExecutor {
 
     /// Write a single receipt to the JSONL audit log.
     fn write_audit_entry(&self, receipt: &ActionReceipt) {
+        let outcome_hex: Value = match &receipt.outcome_hash {
+            Some(h) => Value::String(h.iter().map(|b| format!("{b:02x}")).collect()),
+            None => Value::Null,
+        };
         let entry = json!({
             "ts": receipt.timestamp,
             "receipt_hash": receipt.receipt_hash_hex(),
@@ -376,6 +381,7 @@ impl ActionExecutor {
             "kind": receipt.kind.as_str(),
             "result": &receipt.result,
             "guardian_verdict": receipt.guardian_verdict,
+            "outcome_hash": outcome_hex,
         });
         let audit_path = self
             .audit_log_path_override

@@ -250,6 +250,118 @@ impl Extractor for RuleExtractor {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Self-Compilation — Conversation Genesis Feedback Loop
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Wire format matching the Python ConversationTurn schema
+/// for cross-boundary serialization into the stereoscopic engine.
+///
+/// This struct carries a single atom's data in the shape expected
+/// by the Python `ConversationTurn` normalizer pipeline, enabling
+/// Rust-extracted atoms to flow back through the identity compiler.
+#[derive(Debug, Clone)]
+pub struct ConversationTurnWire {
+    /// Always "bizra_self" — local interaction, not an import.
+    pub provider: &'static str,
+    /// Session-scoped conversation identifier.
+    pub conversation_id: String,
+    /// Deterministic turn ID derived from content hash.
+    pub turn_id: String,
+    /// Role of the speaker: "user" for all locally-extracted atoms.
+    pub role: &'static str,
+    /// The atom content wrapped in a fixed-buffer ExtractionContent.
+    pub content: ExtractionContent,
+    /// Unix timestamp (seconds) of the original atom.
+    pub timestamp: u64,
+    /// Model label: always "sovereign-node" for local atoms.
+    pub model: &'static str,
+    /// The semantic kind of the atom (Fact, Preference, Goal, etc.).
+    pub kind: AtomKind,
+    /// Confidence score carried from extraction.
+    pub confidence: f32,
+}
+
+/// Map an `AtomKind` to the canonical Python `FragmentKind` string
+/// used by the stereoscopic engine's `FragmentHint.kind` field.
+fn atom_kind_to_fragment_label(kind: AtomKind) -> &'static str {
+    match kind {
+        AtomKind::Fact => "Fact",
+        AtomKind::Preference => "Preference",
+        AtomKind::Pattern => "Pattern",
+        AtomKind::Relationship => "Relationship",
+        AtomKind::Goal => "Goal",
+        AtomKind::Expertise => "Expertise",
+        AtomKind::Context => "Emotion", // Context maps to Emotion in the Python schema
+        AtomKind::Principle => "Style", // Principle maps to Style (value/style signal)
+        AtomKind::Temporal => "Temporal",
+        AtomKind::Negation => "Fact", // Negation is a factual assertion (negative)
+    }
+}
+
+/// Export stored atoms as wire-format conversation turns for
+/// self-compilation by the stereoscopic engine.
+///
+/// Each atom becomes a pseudo-ConversationTurn with:
+/// - provider = "bizra_self" (local interaction, not an import)
+/// - conversation_id = session ID from the pipeline
+/// - role = "user" (all atoms originate from user interaction)
+/// - content = the atom content
+/// - fragment_hints = [{kind, signal, confidence, source}]
+///
+/// This closes the identity loop: use BIZRA -> atoms extracted ->
+/// exported as turns -> stereoscopic engine compiles -> identity grows.
+///
+/// # Arguments
+/// * `atoms` - Slice of tuples: (AtomKind, content_str, confidence, timestamp)
+/// * `session_id` - The pipeline session ID for conversation grouping
+///
+/// # Returns
+/// A `Vec<ConversationTurnWire>` ready for JSON serialization to the
+/// Python stereoscopic compiler.
+pub fn export_atoms_as_turns(
+    atoms: &[(AtomKind, &str, f32, u64)],
+    session_id: u64,
+) -> Vec<ConversationTurnWire> {
+    let conversation_id = format!("session-{}", session_id);
+
+    atoms
+        .iter()
+        .map(|&(kind, content, confidence, timestamp)| {
+            // Deterministic turn_id: FNV-1a hash of (kind_byte ++ content_bytes),
+            // truncated to 12 hex chars for readability.
+            let mut hash: u64 = 0xcbf29ce484222325;
+            let prime: u64 = 0x100000001b3;
+            hash ^= kind as u64;
+            hash = hash.wrapping_mul(prime);
+            for &byte in content.as_bytes() {
+                hash ^= byte as u64;
+                hash = hash.wrapping_mul(prime);
+            }
+            let turn_id = format!("bizra_self-{:012x}", hash);
+
+            ConversationTurnWire {
+                provider: "bizra_self",
+                conversation_id: conversation_id.clone(),
+                turn_id,
+                role: "user",
+                content: ExtractionContent::new(content),
+                timestamp,
+                model: "sovereign-node",
+                kind,
+                confidence,
+            }
+        })
+        .collect()
+}
+
+impl ConversationTurnWire {
+    /// The canonical fragment kind label for the Python schema.
+    pub fn fragment_kind_label(&self) -> &'static str {
+        atom_kind_to_fragment_label(self.kind)
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Search Trait — How knowledge is retrieved
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -525,6 +637,85 @@ mod tests {
             avg_latency_us: 1500,
         };
         assert!(healthy.success_rate() > 0.96);
+    }
+
+    // ━━━ Self-Compilation Feedback Loop Tests ━━━
+
+    #[test]
+    fn export_atoms_produces_correct_count() {
+        let atoms: Vec<(AtomKind, &str, f32, u64)> = vec![
+            (AtomKind::Fact, "I am the founder of BIZRA", 0.95, 1000),
+            (AtomKind::Preference, "I prefer Rust for core", 0.90, 2000),
+            (AtomKind::Goal, "Building a sovereign system", 0.70, 3000),
+        ];
+        let turns = export_atoms_as_turns(&atoms, 42);
+        assert_eq!(turns.len(), 3);
+    }
+
+    #[test]
+    fn export_atoms_sets_provider_and_model() {
+        let atoms = vec![(AtomKind::Fact, "name is Mumo", 0.95, 100)];
+        let turns = export_atoms_as_turns(&atoms, 1);
+
+        let turn = &turns[0];
+        assert_eq!(turn.provider, "bizra_self");
+        assert_eq!(turn.model, "sovereign-node");
+        assert_eq!(turn.role, "user");
+    }
+
+    #[test]
+    fn export_atoms_session_id_format() {
+        let atoms = vec![(AtomKind::Preference, "likes Rust", 0.90, 500)];
+        let turns = export_atoms_as_turns(&atoms, 777);
+        assert_eq!(turns[0].conversation_id, "session-777");
+    }
+
+    #[test]
+    fn export_atoms_deterministic_turn_id() {
+        let atoms = vec![(AtomKind::Fact, "same content", 0.95, 100)];
+        let turns_a = export_atoms_as_turns(&atoms, 1);
+        let turns_b = export_atoms_as_turns(&atoms, 1);
+        assert_eq!(turns_a[0].turn_id, turns_b[0].turn_id);
+    }
+
+    #[test]
+    fn export_atoms_different_content_different_id() {
+        let a = vec![(AtomKind::Fact, "content A", 0.95, 100)];
+        let b = vec![(AtomKind::Fact, "content B", 0.95, 100)];
+        let ta = export_atoms_as_turns(&a, 1);
+        let tb = export_atoms_as_turns(&b, 1);
+        assert_ne!(ta[0].turn_id, tb[0].turn_id);
+    }
+
+    #[test]
+    fn export_atoms_empty_input() {
+        let atoms: Vec<(AtomKind, &str, f32, u64)> = vec![];
+        let turns = export_atoms_as_turns(&atoms, 0);
+        assert!(turns.is_empty());
+    }
+
+    #[test]
+    fn export_atoms_preserves_content_and_confidence() {
+        let atoms = vec![(AtomKind::Expertise, "knows distributed systems", 0.80, 9000)];
+        let turns = export_atoms_as_turns(&atoms, 5);
+        assert_eq!(turns[0].content.as_str(), "knows distributed systems");
+        assert!((turns[0].confidence - 0.80).abs() < f32::EPSILON);
+        assert_eq!(turns[0].timestamp, 9000);
+    }
+
+    #[test]
+    fn export_atoms_fragment_kind_label() {
+        let atoms = vec![
+            (AtomKind::Fact, "fact", 0.90, 1),
+            (AtomKind::Preference, "pref", 0.90, 2),
+            (AtomKind::Goal, "goal", 0.90, 3),
+            (AtomKind::Temporal, "deadline", 0.90, 4),
+        ];
+        let turns = export_atoms_as_turns(&atoms, 1);
+        assert_eq!(turns[0].fragment_kind_label(), "Fact");
+        assert_eq!(turns[1].fragment_kind_label(), "Preference");
+        assert_eq!(turns[2].fragment_kind_label(), "Goal");
+        assert_eq!(turns[3].fragment_kind_label(), "Temporal");
     }
 
     #[test]
