@@ -60,6 +60,7 @@ jobs:
 
       - name: Security audit dependencies (pip-audit)
         run: |
+          # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
           pip-audit --strict --ignore-vuln PYSEC-2024-48 || echo "::warning::pip-audit found vulnerabilities"
 
       - name: Check formatting with Black
@@ -929,6 +930,7 @@ jobs:
       - name: Python Dependency Scan (pip-audit)
         run: |
           pip install -e ".[dev]"
+          # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
           pip-audit --strict --desc --ignore-vuln PYSEC-2024-48
 
       - name: Rust Security Audit
@@ -945,11 +947,12 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
       - name: Upload Security Results
         uses: github/codeql-action/upload-sarif@60d8f0d1f1f8c8d07ef53bd027032705d414ec28  # v3
         if: always() && hashFiles('trivy-results.sarif') != ''
-        continue-on-error: true
+        continue-on-error: true  # GitHub API upload failures are non-blocking
         with:
           sarif_file: 'trivy-results.sarif'
 
