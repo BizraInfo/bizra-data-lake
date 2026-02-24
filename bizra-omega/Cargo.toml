@@ -19,6 +19,8 @@ members = [
     # ━━━ Node0 Cognitive Layer (merged from native/) ━━━
     "bizra-hooks",
     "bizra-memory",
+    # ━━━ Action Bus (muscle system — Event→Action→Receipt) ━━━
+    "bizra-action",
     # ━━━ Desktop Node Layer (sovereign agent + binary) ━━━
     "bizra-agent",
     "bizra-node",
