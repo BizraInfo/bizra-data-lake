@@ -85,6 +85,9 @@ fi
 export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 export BIZRA_PROACTIVE_MODE="$MODE"
 export BIZRA_CONFIG_FILE="$CONFIG_FILE"
+# Windows MINGW64/Git Bash: force UTF-8 to prevent cp1252 UnicodeEncodeError
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
 
 echo "============================================================================"
 echo "    PROACTIVE SOVEREIGN ENTITY - STARTING"
