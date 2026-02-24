@@ -1,6 +1,6 @@
 [package]
 name = "bizra-memory"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "BIZRA Memory Synthesis Pipeline — The soul. Transforms conversations into understanding."
 license = "MIT"

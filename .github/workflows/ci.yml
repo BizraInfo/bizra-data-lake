@@ -247,6 +247,7 @@ jobs:
           pytest tests/ \
             -v \
             --tb=short \
+            -n auto \
             -m "not requires_ollama and not requires_gpu and not slow" \
             ${{ matrix.coverage && '--cov=core --cov-report=xml --cov-report=term-missing' || '' }}
         env:
@@ -959,7 +960,6 @@ jobs:
     name: Build Python Image
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    continue-on-error: true  # Soft-gated until Docker builds verified in CI
     needs: [quality-gates, quality-gate-bypass-audit, security-scan]
     if: ${{ needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
     steps:
@@ -990,7 +990,6 @@ jobs:
     name: Build Rust Image
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    continue-on-error: true  # Soft-gated until Docker builds verified in CI
     needs: [quality-gates, quality-gate-bypass-audit, security-scan]
     if: ${{ needs.security-scan.result == 'success' && (needs.quality-gates.result == 'success' || needs.quality-gate-bypass-audit.result == 'success') }}
     defaults:
@@ -1027,7 +1026,6 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    continue-on-error: true  # Depends on Docker images (not building yet)
     needs: [build-python-image, build-rust-image]
     services:
       redis:
