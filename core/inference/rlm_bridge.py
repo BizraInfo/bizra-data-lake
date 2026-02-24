@@ -44,11 +44,128 @@ _SAFE_BUILTINS: tuple[str, ...] = (
     "zip",
 )
 
-_BLOCKED_NODES: tuple[type[ast.AST], ...] = (
-    ast.Import,
-    ast.ImportFrom,
-    ast.Global,
-    ast.Nonlocal,
+# ── Allowlist-based AST validation (replaces former denylist) ──────────
+# Standing on Giants: Saltzer & Schroeder (1975) — "fail-safe defaults"
+# Only node types explicitly listed here are permitted.  Everything else
+# (including ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal) is
+# rejected BEFORE compile(), closing object-introspection escape surfaces.
+
+_ALLOWED_AST_NODES: frozenset[type[ast.AST]] = frozenset(
+    {
+        # Structural
+        ast.Module,
+        ast.Expression,
+        ast.Interactive,
+        # Statements
+        ast.Expr,
+        ast.Assign,
+        ast.AugAssign,
+        ast.AnnAssign,
+        ast.Return,
+        ast.If,
+        ast.For,
+        ast.While,
+        ast.Break,
+        ast.Continue,
+        ast.Pass,
+        ast.FunctionDef,
+        ast.AsyncFunctionDef,
+        # Expressions
+        ast.Name,
+        ast.Constant,
+        ast.BinOp,
+        ast.UnaryOp,
+        ast.BoolOp,
+        ast.Compare,
+        ast.Call,
+        ast.IfExp,
+        ast.Lambda,
+        ast.FormattedValue,
+        ast.JoinedStr,
+        ast.Starred,
+        # Data structures
+        ast.List,
+        ast.Dict,
+        ast.Tuple,
+        ast.Set,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+        ast.comprehension,
+        # Access
+        ast.Subscript,
+        ast.Attribute,
+        ast.Slice,
+        ast.Index,  # kept for Python 3.8 compat; no-op in 3.9+
+        # Operators / context
+        ast.Load,
+        ast.Store,
+        ast.Del,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.FloorDiv,
+        ast.Mod,
+        ast.Pow,
+        ast.LShift,
+        ast.RShift,
+        ast.BitOr,
+        ast.BitXor,
+        ast.BitAnd,
+        ast.MatMult,
+        ast.And,
+        ast.Or,
+        ast.Not,
+        ast.Invert,
+        ast.UAdd,
+        ast.USub,
+        ast.Eq,
+        ast.NotEq,
+        ast.Lt,
+        ast.LtE,
+        ast.Gt,
+        ast.GtE,
+        ast.Is,
+        ast.IsNot,
+        ast.In,
+        ast.NotIn,
+        # Arguments
+        ast.arguments,
+        ast.arg,
+        ast.keyword,
+        # Other safe nodes
+        ast.Await,
+        ast.Yield,
+    }
+)
+
+# Dunder attributes that enable sandbox escape via object introspection.
+_BLOCKED_DUNDER_ATTRS: frozenset[str] = frozenset(
+    {
+        "__class__",
+        "__bases__",
+        "__subclasses__",
+        "__globals__",
+        "__builtins__",
+        "__import__",
+        "__loader__",
+        "__spec__",
+        "__code__",
+        "__func__",
+        "__self__",
+        "__module__",
+        "__dict__",
+        "__mro__",
+        "__init_subclass__",
+        "__set_name__",
+        "__reduce__",
+        "__reduce_ex__",
+        "__getattr__",
+        "__setattr__",
+        "__delattr__",
+    }
 )
 
 _BLOCKED_NAMES: frozenset[str] = frozenset(
@@ -67,18 +184,6 @@ _BLOCKED_NAMES: frozenset[str] = frozenset(
         "os",
         "pathlib",
         "quit",
-        "requests",
-        "shutil",
-        "socket",
-        "subprocess",
-        "sys",
-    }
-)
-
-_BLOCKED_ATTR_BASES: frozenset[str] = frozenset(
-    {
-        "os",
-        "pathlib",
         "requests",
         "shutil",
         "socket",
@@ -134,7 +239,13 @@ class RLMSandbox:
         self._max_sub_calls = max(0, max_sub_calls)
 
     def validate_code(self, code: str) -> tuple[bool, str]:
-        """Return `(allowed, reason)` after static validation."""
+        """Return `(allowed, reason)` after allowlist-based AST validation.
+
+        Every AST node type must appear in ``_ALLOWED_AST_NODES``.
+        Dunder attribute access and blocked built-in names are rejected
+        regardless of node type.  This closes object-introspection escape
+        surfaces that a denylist approach would miss.
+        """
         stripped = _strip_code_fences(code)
         if not stripped.strip():
             return False, "empty code"
@@ -145,20 +256,19 @@ class RLMSandbox:
             return False, f"syntax error: {exc.msg}"
 
         for node in ast.walk(tree):
-            if isinstance(node, _BLOCKED_NODES):
+            # 1. Allowlist gate: reject any node type not explicitly permitted
+            if type(node) not in _ALLOWED_AST_NODES:
                 return False, f"blocked node: {type(node).__name__}"
 
+            # 2. Block dangerous built-in / module names
             if isinstance(node, ast.Name) and node.id in _BLOCKED_NAMES:
                 return False, f"blocked name: {node.id}"
 
-            if isinstance(node, ast.Attribute):
-                is_blocked_attr = (
-                    isinstance(node.value, ast.Name)
-                    and node.value.id in _BLOCKED_ATTR_BASES
-                )
-                if is_blocked_attr:
-                    return False, f"blocked attribute: {node.value.id}.{node.attr}"
+            # 3. Block dunder attribute access (object-introspection escape)
+            if isinstance(node, ast.Attribute) and node.attr in _BLOCKED_DUNDER_ATTRS:
+                return False, f"blocked dunder attribute: {node.attr}"
 
+            # 4. Block calls to blocked names
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 if node.func.id in _BLOCKED_NAMES:
                     return False, f"blocked call: {node.func.id}()"

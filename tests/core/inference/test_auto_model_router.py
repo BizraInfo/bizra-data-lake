@@ -99,7 +99,7 @@ async def test_preload_mission_fleet():
     }}
 
     with patch(
-        "scripts.node0_activate._resolve_model_for_agent",
+        "core.inference.model_routing.resolve_model_for_agent",
     ) as mock_resolve:
         def resolve(aid, cfg):
             purposes = {
@@ -141,7 +141,7 @@ async def test_preload_mission_fleet_deduplication():
     config = {}
 
     with patch(
-        "scripts.node0_activate._resolve_model_for_agent",
+        "core.inference.model_routing.resolve_model_for_agent",
         return_value="same-model",
     ):
         status = await router.preload_mission_fleet(
@@ -172,7 +172,7 @@ async def test_preload_skips_already_loaded():
     router._get_loaded_models = AsyncMock(return_value={"already-loaded"})  # type: ignore[assignment]
 
     with patch(
-        "scripts.node0_activate._resolve_model_for_agent",
+        "core.inference.model_routing.resolve_model_for_agent",
         return_value="already-loaded",
     ):
         status = await router.preload_mission_fleet(["agent1"], {})
