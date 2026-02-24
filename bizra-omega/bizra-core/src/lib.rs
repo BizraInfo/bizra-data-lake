@@ -151,25 +151,49 @@ pub use pat::{
     MAX_AGENT_DELEGATION_DEPTH,
     // Constants
     PAT_TEAM_SIZE,
+    SAT_MODE_FULL49,
+    SAT_MODE_MINI5,
     SAT_TEAM_SIZE,
+    SAT_TEAM_SIZE_FULL49,
 };
 pub use pci::{Gate, GateChain, GateContext, GateResult, PCIEnvelope, RejectCode};
 pub use simd::{blake3_parallel, validate_gates_batch, verify_signatures_batch};
 pub use sovereign::{
     CircuitState, Episode, EpisodeAction, EpisodeImpact, ErrorContext, ExperienceLedger,
     GiantRegistry, OmegaConfig, OmegaEngine, OmegaMetrics, OrchestratorConfig, RIRConfig,
-    ReasoningPath, SNRConfig, SNREngine, SignalMetrics, SovereignError, SovereignOrchestrator,
+    ReasoningPath, SNRConfig, SNREngine, SNRStats, SignalMetrics, SovereignError,
+    SovereignOrchestrator,
     SovereignResult, ThoughtGraph, ThoughtNode, ThoughtType,
 };
 
 /// Domain separation prefix for all cryptographic operations
 pub const DOMAIN_PREFIX: &[u8] = b"bizra-pci-v1:";
 
-/// Ihsan threshold — hard constraint for excellence
+// =============================================================================
+// CONSTITUTIONAL CONSTANTS — LOCKED, require constitutional amendment.
+//
+// Cross-repo alignment:
+//   Python: core/integration/constants.py (authoritative)
+//   Rust:   this file (bizra-omega/bizra-core/src/lib.rs) + omega.rs
+//   TS:     src/core/sovereign/capability-card.ts
+//
+// Standing on Giants: Shannon · Lamport · Al-Ghazali · Anthropic
+// =============================================================================
+
+/// Ihsan threshold — hard constraint for excellence (production)
 pub const IHSAN_THRESHOLD: f64 = 0.95;
 
-/// SNR threshold — minimum signal quality
+/// Strict Ihsan — consensus and constitutional operations
+pub const STRICT_IHSAN_THRESHOLD: f64 = 0.99;
+
+/// SNR threshold — minimum signal quality (museum floor)
 pub const SNR_THRESHOLD: f64 = 0.85;
+
+/// SNR Tier 1 — high-quality operations
+pub const SNR_THRESHOLD_T1_HIGH: f64 = 0.95;
+
+/// SNR Tier 0 — elite operations
+pub const SNR_THRESHOLD_T0_ELITE: f64 = 0.98;
 
 /// Maximum envelope TTL in seconds
 pub const MAX_TTL_SECONDS: u64 = 3600;

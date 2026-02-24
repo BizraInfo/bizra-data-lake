@@ -622,6 +622,154 @@ fn parse_tier(tier: &str) -> PyResult<bizra_inference::ModelTier> {
 }
 
 // =============================================================================
+// SNR Engine Bindings (Rust-native signal quality measurement)
+// =============================================================================
+
+/// Python wrapper for SNREngine — Shannon-inspired signal quality measurement.
+///
+/// Exposes the Rust SNR engine's weighted geometric mean computation to Python,
+/// completing the Rust→Python SNR bridge (Gap G-2).
+///
+/// Standing on Giants: Shannon (information theory, 1948) · Gerganov (SIMD optimization)
+#[pyclass(name = "SNREngine")]
+pub struct PySNREngine {
+    inner: bizra_core::SNREngine,
+}
+
+#[pymethods]
+impl PySNREngine {
+    /// Create a new SNR engine with floor and target thresholds.
+    ///
+    /// Args:
+    ///     snr_floor: Minimum acceptable SNR (default: 0.85)
+    ///     ihsan_target: Ihsan excellence target (default: 0.95)
+    #[new]
+    #[pyo3(signature = (snr_floor=0.85, ihsan_target=0.95))]
+    fn new(snr_floor: f64, ihsan_target: f64) -> Self {
+        Self {
+            inner: bizra_core::SNREngine::new(snr_floor, ihsan_target),
+        }
+    }
+
+    /// Create with full configuration.
+    ///
+    /// Args:
+    ///     snr_floor: Minimum acceptable SNR
+    ///     ihsan_target: Ihsan excellence target
+    ///     weight_signal: Signal strength weight (default: 0.30)
+    ///     weight_diversity: Diversity weight (default: 0.25)
+    ///     weight_grounding: Grounding weight (default: 0.25)
+    ///     weight_balance: Balance weight (default: 0.20)
+    #[staticmethod]
+    #[pyo3(signature = (snr_floor=0.85, ihsan_target=0.95, weight_signal=0.30, weight_diversity=0.25, weight_grounding=0.25, weight_balance=0.20))]
+    fn with_config(
+        snr_floor: f64,
+        ihsan_target: f64,
+        weight_signal: f64,
+        weight_diversity: f64,
+        weight_grounding: f64,
+        weight_balance: f64,
+    ) -> Self {
+        let config = bizra_core::SNRConfig {
+            snr_floor,
+            ihsan_target,
+            weight_signal,
+            weight_diversity,
+            weight_grounding,
+            weight_balance,
+            ..Default::default()
+        };
+        Self {
+            inner: bizra_core::SNREngine::with_config(config),
+        }
+    }
+
+    /// Analyze text and return signal metrics as a dict.
+    ///
+    /// Returns dict with: snr, signal_strength, noise_level, diversity,
+    /// grounding, balance, input_size, word_count, unique_words, analysis_duration_us
+    ///
+    /// Raises:
+    ///     ValueError: If text is empty or exceeds 1MB
+    fn analyze_text(&self, text: &str) -> PyResult<pyo3::PyObject> {
+        let metrics = self
+            .inner
+            .analyze_text(text)
+            .map_err(|e| PyValueError::new_err(format!("SNR analysis error: {}", e)))?;
+        Ok(signal_metrics_to_pyobject(&metrics))
+    }
+
+    /// Analyze and validate against SNR floor.
+    ///
+    /// Returns metrics dict if SNR >= floor, raises ValueError otherwise.
+    fn validate(&self, text: &str) -> PyResult<pyo3::PyObject> {
+        let metrics = self
+            .inner
+            .validate(text)
+            .map_err(|e| PyValueError::new_err(format!("SNR validation failed: {}", e)))?;
+        Ok(signal_metrics_to_pyobject(&metrics))
+    }
+
+    /// Analyze and validate against Ihsan target.
+    ///
+    /// Returns metrics dict if SNR >= ihsan_target, raises ValueError otherwise.
+    fn validate_ihsan(&self, text: &str) -> PyResult<pyo3::PyObject> {
+        let metrics = self
+            .inner
+            .validate_ihsan(text)
+            .map_err(|e| PyValueError::new_err(format!("Ihsan validation failed: {}", e)))?;
+        Ok(signal_metrics_to_pyobject(&metrics))
+    }
+
+    /// Get rolling average SNR across the history window.
+    fn average_snr(&self) -> f64 {
+        self.inner.average_snr()
+    }
+
+    /// Get engine statistics as a dict.
+    ///
+    /// Returns dict with: total_measurements, history_size, average_snr, snr_floor, ihsan_target
+    fn stats(&self) -> pyo3::PyObject {
+        let s = self.inner.stats();
+        Python::with_gil(|py| {
+            let dict = pyo3::types::PyDict::new(py);
+            let _ = dict.set_item("total_measurements", s.total_measurements);
+            let _ = dict.set_item("history_size", s.history_size);
+            let _ = dict.set_item("average_snr", s.average_snr);
+            let _ = dict.set_item("snr_floor", s.snr_floor);
+            let _ = dict.set_item("ihsan_target", s.ihsan_target);
+            dict.into()
+        })
+    }
+
+    fn __repr__(&self) -> String {
+        let s = self.inner.stats();
+        format!(
+            "SNREngine(measurements={}, avg_snr={:.4}, floor={}, target={})",
+            s.total_measurements, s.average_snr, s.snr_floor, s.ihsan_target
+        )
+    }
+}
+
+/// Convert SignalMetrics to a Python dict.
+fn signal_metrics_to_pyobject(metrics: &bizra_core::SignalMetrics) -> pyo3::PyObject {
+    Python::with_gil(|py| {
+        let dict = pyo3::types::PyDict::new(py);
+        let _ = dict.set_item("snr", metrics.snr);
+        let _ = dict.set_item("signal_strength", metrics.signal_strength);
+        let _ = dict.set_item("noise_level", metrics.noise_level);
+        let _ = dict.set_item("diversity", metrics.diversity);
+        let _ = dict.set_item("grounding", metrics.grounding);
+        let _ = dict.set_item("balance", metrics.balance);
+        let _ = dict.set_item("input_size", metrics.input_size);
+        let _ = dict.set_item("word_count", metrics.word_count);
+        let _ = dict.set_item("unique_words", metrics.unique_words);
+        let _ = dict.set_item("analysis_duration_us", metrics.analysis_duration_us);
+        dict.into()
+    })
+}
+
+// =============================================================================
 // Autopoiesis Bindings (10-100x faster pattern learning)
 // =============================================================================
 
@@ -1267,6 +1415,9 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Gate chain
     m.add_class::<PyGateChain>()?;
+
+    // SNR Engine (Rust-native signal quality measurement)
+    m.add_class::<PySNREngine>()?;
 
     // Inference gateway (Python↔Rust unified path)
     m.add_class::<PyInferenceGateway>()?;

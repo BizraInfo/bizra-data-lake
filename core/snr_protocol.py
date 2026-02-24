@@ -94,13 +94,14 @@ class SNRFacade:
     Unified SNR entry point for the orchestrator.
 
     Routes to the appropriate engine based on available inputs:
-    - v2_engine (preferred): SNRv2Adapter wrapping SNRCalculatorV2
+    - rust_engine (highest priority): Rust SNREngine via PyO3 (Gap G-2 bridge)
+    - v2_engine (preferred Python): SNRv2Adapter wrapping SNRCalculatorV2
     - embedding_engine (legacy): arte_engine.SNREngine
     - text_engine: snr_maximizer.SNRMaximizer
     - ensemble: geometric mean when multiple engines available
 
     Usage:
-        facade = SNRFacade(v2_engine=adapter, text_engine=maximizer)
+        facade = SNRFacade(rust_engine=adapter, v2_engine=v2_adapter, text_engine=maximizer)
         result = facade.calculate(text=answer, query="question")
     """
 
@@ -109,8 +110,10 @@ class SNRFacade:
         embedding_engine: Optional[Any] = None,
         text_engine: Optional[Any] = None,
         v2_engine: Optional[Any] = None,
+        rust_engine: Optional[Any] = None,
         ihsan_threshold: float = 0.95,
     ):
+        self.rust_engine = rust_engine
         self.embedding_engine = embedding_engine
         self.text_engine = text_engine
         self.v2_engine = v2_engine
@@ -135,6 +138,7 @@ class SNRFacade:
         Returns a single canonical SNRResult.
         """
 
+        has_rust = self.rust_engine is not None and text is not None
         has_v2 = self.v2_engine is not None and text is not None
         has_embeddings = (
             query_embedding is not None
@@ -143,8 +147,10 @@ class SNRFacade:
         )
         has_text = text is not None and self.text_engine is not None
 
-        # Priority: v2+text ensemble > v2-only > legacy embedding+text > legacy embedding > text > none
-        if has_v2 and has_text:
+        # Priority: rust > v2+text > v2 > emb+text > emb > text > none
+        if has_rust:
+            return self._from_rust_engine(text=text or "", query=query)
+        elif has_v2 and has_text:
             return self._ensemble_v2(
                 text=text or "",
                 query=query,
@@ -180,6 +186,34 @@ class SNRFacade:
                 ihsan_achieved=False,
                 engine="none",
                 recommendations=["Provide text or embeddings for SNR calculation"],
+            )
+
+    def _from_rust_engine(
+        self,
+        text: str,
+        query: Optional[str] = None,
+    ) -> SNRResult:
+        """Delegate to Rust SNREngine via PyO3 bridge (Gap G-2)."""
+        if self.rust_engine is None:
+            raise RuntimeError("Rust SNR engine not available")
+        try:
+            return self.rust_engine.calculate_snr_normalized(
+                text=text, query=query or ""
+            )
+        except Exception as e:
+            logger.warning("Rust SNR engine failed, falling back: %s", e)
+            # Graceful degradation: try v2, then text, then baseline
+            if self.v2_engine is not None:
+                return self.v2_engine.calculate_snr_normalized(
+                    text=text, query=query or ""
+                )
+            if self.text_engine is not None:
+                return self._from_text_engine(text=text, query=query)
+            return SNRResult(
+                score=0.0,
+                ihsan_achieved=False,
+                engine="rust_fallback",
+                recommendations=[f"All SNR engines failed. Rust error: {e}"],
             )
 
     def _from_embedding_engine(self, **kwargs: Any) -> SNRResult:
