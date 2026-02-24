@@ -2,12 +2,92 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
+import socket
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+
+
+# ── SSRF Protection ──────────────────────────────────────────────────
+# Standing on Giants: OWASP SSRF Prevention Cheat Sheet
+# Validates URLs before any outbound HTTP fetch to prevent Server-Side
+# Request Forgery attacks against internal/private network resources.
+
+_ALLOWED_SCHEMES: frozenset[str] = frozenset({"http", "https"})
+
+
+class SSRFValidationError(ValueError):
+    """Raised when a URL targets a private/reserved network range."""
+
+
+def _is_private_ip(addr: str) -> bool:
+    """Return True if *addr* resolves to a private or reserved IP range."""
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+    )
+
+
+def _validate_url(url: str) -> str:
+    """Validate a URL against SSRF attack surfaces.
+
+    Checks:
+      1. Only http/https schemes are allowed.
+      2. Hostname must resolve to a public (non-private) IP address.
+      3. Explicit IP literals in the URL are also checked.
+
+    Returns the validated URL (unchanged) on success.
+    Raises :class:`SSRFValidationError` on failure.
+    """
+    parsed = urlparse(url)
+
+    # 1. Scheme allowlist
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise SSRFValidationError(
+            f"URL scheme '{parsed.scheme}' not allowed; must be http or https"
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise SSRFValidationError("URL has no hostname")
+
+    # 2. Check IP literal
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if _is_private_ip(str(ip)):
+            raise SSRFValidationError(
+                f"URL targets private/reserved IP: {ip}"
+            )
+        return url
+    except ValueError:
+        pass  # hostname is not an IP literal — resolve via DNS
+
+    # 3. DNS resolution check
+    try:
+        resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+    except socket.gaierror:
+        raise SSRFValidationError(f"Cannot resolve hostname: {hostname}")
+
+    for _family, _type, _proto, _canonname, sockaddr in resolved:
+        addr = sockaddr[0]
+        if _is_private_ip(addr):
+            raise SSRFValidationError(
+                f"Hostname '{hostname}' resolves to private/reserved IP: {addr}"
+            )
+
+    return url
 
 
 @dataclass(frozen=True)
@@ -79,10 +159,33 @@ class BrowserMCPClient:
             return f"[mock page] {url}"
 
         try:
+            _validate_url(url)
+        except SSRFValidationError as exc:
+            logger.warning("URL blocked by SSRF guard: %s (%s)", url, exc)
+            return ""
+
+        try:
             import httpx
 
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            # Disable automatic redirects to prevent redirect-to-private SSRF.
+            # Each redirect target is validated before following.
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 response = await client.get(url)
+
+                # Manually follow up to 5 redirects with SSRF validation
+                redirects_left = 5
+                while response.is_redirect and redirects_left > 0:
+                    redirect_url = str(response.next_request.url) if response.next_request else None
+                    if redirect_url is None:
+                        break
+                    try:
+                        _validate_url(redirect_url)
+                    except SSRFValidationError as exc:
+                        logger.warning("Redirect blocked by SSRF guard: %s (%s)", redirect_url, exc)
+                        return ""
+                    response = await client.get(redirect_url)
+                    redirects_left -= 1
+
                 response.raise_for_status()
                 return response.text
         except Exception as exc:
@@ -133,8 +236,10 @@ class BrowserMCPClient:
         try:
             import httpx
 
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-                ddg_url = "https://lite.duckduckgo.com/lite/"
+            ddg_url = "https://lite.duckduckgo.com/lite/"
+            _validate_url(ddg_url)
+
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 response = await client.get(
                     ddg_url, params={"q": query}
                 )
@@ -142,6 +247,8 @@ class BrowserMCPClient:
                 parsed = self._parse_ddg_lite(response.text, limit)
                 if parsed:
                     return parsed
+        except SSRFValidationError as exc:
+            logger.warning("Direct search URL blocked by SSRF guard (%s)", exc)
         except Exception as exc:
             logger.warning("Direct browser search failed (%s)", exc)
 
@@ -171,4 +278,4 @@ class BrowserMCPClient:
         return results
 
 
-__all__ = ["BrowserMCPClient", "SearchResult"]
+__all__ = ["BrowserMCPClient", "SSRFValidationError", "SearchResult"]
