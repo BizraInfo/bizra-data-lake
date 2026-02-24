@@ -1,136 +1,97 @@
 # MCP Server Configuration
 
-> 11 Model Context Protocol servers powering the BIZRA agentic ecosystem.
+> 8 Model Context Protocol servers powering the BIZRA agentic ecosystem.
 
 ## Server Inventory
 
-| # | Server | Transport | Command | Status |
-|---|--------|-----------|---------|--------|
-| 1 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | Active |
-| 2 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | Active |
-| 3 | `github` | stdio | `npx @modelcontextprotocol/server-github` | Active |
-| 4 | `fetch` | stdio | `uvx mcp-server-fetch` | Active |
-| 5 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Active |
-| 6 | `sqlite` | stdio | `uvx mcp-server-sqlite` | Active |
-| 7 | `claude-flow-sqlite` | stdio | `uvx mcp-server-sqlite` | Active |
-| 8 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Active |
-| 9 | `bizra-sovereign` | stdio | `/usr/bin/python3 sovereign_mcp_server.py --stdio` | Active |
-| 10 | `bizra-ecosystem` | stdio | `/usr/bin/python3 ecosystem_mcp_server.py --stdio` | Active |
-| 11 | `bizra-ddagi` | stdio | `/usr/bin/python3 bizra_mcp.py` | Active |
+| # | Server | Transport | Command | Tools | Status |
+|---|--------|-----------|---------|-------|--------|
+| 1 | `context7` | stdio | `npx @upstash/context7-mcp` | Library docs | Active |
+| 2 | `filesystem` | stdio | `npx @modelcontextprotocol/server-filesystem` | File ops | Active |
+| 3 | `memory` | stdio | `npx @modelcontextprotocol/server-memory` | KG memory | Active |
+| 4 | `sequential-thinking` | stdio | `npx @modelcontextprotocol/server-sequential-thinking` | Reasoning | Active |
+| 5 | `github` | stdio | `npx @modelcontextprotocol/server-github` | GitHub API | Active |
+| 6 | `brave-search` | stdio | `npx @modelcontextprotocol/server-brave-search` | Web search | Active |
+| 7 | `bizra-sovereign` | stdio | `python tools/mcp/sovereign_mcp_server.py --stdio` | 10 tools | Active |
+| 8 | `bizra-ecosystem` | stdio | `python tools/mcp/ecosystem_mcp_server.py --stdio` | 5 tools | Active |
 
-## Configuration File
+## Configuration
 
-Location: `.mcp.json` (project root)
+**File**: `.mcp.json` (project root, v1.1.0)
 
-### Community Servers (npm/uvx)
+Claude Code reads this file on startup. Community servers are fetched on-demand via `npx -y`.
+Custom Python servers use `python` which resolves to `/usr/bin/python` (has `mcp` 1.26.0 + `fastmcp` 2.14.5 installed).
 
-```json
-{
-  "filesystem": {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/mnt/c/BIZRA-DATA-LAKE"]
-  },
-  "fetch": {
-    "command": "uvx",
-    "args": ["mcp-server-fetch"]
-  },
-  "sqlite": {
-    "command": "uvx",
-    "args": ["mcp-server-sqlite", "--db-path", "/mnt/c/BIZRA-DATA-LAKE/04_GOLD/bizra.db"]
-  }
-}
-```
-
-### BIZRA Python Servers
-
-All three use WSL Python with Linux paths. Claude Code runs in WSL and spawns
-servers directly:
-
-```json
-{
-  "bizra-sovereign": {
-    "command": "/usr/bin/python3",
-    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/sovereign_mcp_server.py", "--stdio"]
-  },
-  "bizra-ecosystem": {
-    "command": "/usr/bin/python3",
-    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/ecosystem_mcp_server.py", "--stdio"]
-  },
-  "bizra-ddagi": {
-    "command": "/usr/bin/python3",
-    "args": ["/mnt/c/BIZRA-DATA-LAKE/tools/mcp/bizra_mcp.py"]
-  }
-}
-```
-
-## Environment Variables
+### Environment Variables
 
 | Variable | Used By | Description |
 |----------|---------|-------------|
-| `GITHUB_TOKEN` | github | GitHub Personal Access Token |
+| `GITHUB_TOKEN` | github | GitHub Personal Access Token (needs `repo` scope for push) |
 | `BRAVE_API_KEY` | brave-search | Brave Search API key |
 
 Set in shell profile or `.env`. Referenced in `.mcp.json` via `${VAR}` syntax.
 
-## Server Capabilities
+## Custom Python Servers
 
 ### bizra-sovereign (Sovereign Brain)
 
+**File**: `tools/mcp/sovereign_mcp_server.py` (V4 Phase 46, ~48 KB)
+
 | Tool | Description |
 |------|-------------|
-| `sovereign_query` | Unified search across 488 knowledge nodes |
-| `sovereign_patterns` | Hub nodes, type bridges, co-occurrence |
+| `sovereign_query` | Unified search across 488 knowledge nodes (Apex + Nexus engines) |
+| `sovereign_patterns` | Hub nodes, type bridges, co-occurrence patterns |
 | `sovereign_communities` | Knowledge community clusters |
 | `sovereign_health` | Engine status and diagnostics |
-| `sovereign_stats` | Node/edge counts and engine status |
+| `sovereign_stats` | Node/edge counts and engine statistics |
 | `sovereign_reason` | Deep Graph-of-Thoughts reasoning (1-5 depth) |
+| `sovereign_search` | FAISS vector search (102K vectors, 384-dim) |
+| `sovereign_resonance` | Cognitive resonance pipeline (search + predict) |
+| `sovereign_predict` | HMM cognitive state prediction |
 | `mcp_health` | Server performance metrics |
 
 ### bizra-ecosystem (Ecosystem Bridge)
+
+**File**: `tools/mcp/ecosystem_mcp_server.py` (v3.0.0, ~21 KB)
 
 | Tool | Description |
 |------|-------------|
 | `ecosystem_query` | Unified query across all 6 sub-engines |
 | `ecosystem_health` | Detailed health of all sub-engines |
-| `check_compliance` | Verify text against BIZRA Constitution (RIBA, ZANN) |
+| `check_compliance` | Verify text against BIZRA Constitution (RIBA, ZANN, IHSAN) |
 | `perform_daughter_test` | "Would I be proud if my daughter saw this?" |
 | `mcp_health` | Server performance metrics |
 
-### bizra-ddagi (FastMCP)
+### Additional Servers (Not in .mcp.json)
 
-| Tool | Description |
-|------|-------------|
-| `query_bizra` | Cognitive query with SNR threshold and deep scan |
-| `get_system_health` | Kernel invariant verification |
-| `mcp_health` | Server performance metrics |
+| Server | File | Framework | Tools |
+|--------|------|-----------|-------|
+| `bizra_mcp.py` | `tools/mcp/bizra_mcp.py` | FastMCP | `query_bizra`, `get_system_health`, `mcp_health` |
+| `peak_mcp_server.py` | `tools/mcp/peak_mcp_server.py` | MCP SDK | `peak_query`, `peak_verify`, `peak_status`, `peak_command` |
+| `mcp_gateway.py` | `tools/mcp/mcp_gateway.py` | FastAPI | HTTP REST (`/query`, `/ingest`, `/health`) |
+| `mcp_lake_bridge.py` | `tools/mcp/mcp_lake_bridge.py` | MCP SDK | Data pipeline bridge (ingest, chunks, search) |
 
 ## V3 Performance Optimizations
 
-All three custom BIZRA MCP servers include V3 optimizations (2026-02-18):
+All custom BIZRA MCP servers include V3 optimizations (2026-02-18):
 
 ### Response Caching
 
 - **LRU + TTL**: 256 entries, 300s TTL
-- **Cacheable tools**: Read-only tools (`sovereign_query`, `sovereign_patterns`, `sovereign_communities`, `sovereign_health`, `sovereign_stats`, `ecosystem_query`, `ecosystem_health`, `check_compliance`, `perform_daughter_test`)
+- **Cacheable**: Read-only tools (`sovereign_query`, `sovereign_patterns`, `sovereign_communities`, `sovereign_health`, `sovereign_stats`, `ecosystem_query`, `ecosystem_health`, `check_compliance`, `perform_daughter_test`)
 - **Not cached**: `sovereign_reason` (varied output), `query_bizra` (deep scan)
 
 ### Compact JSON Serialization
 
-All STDIO transport paths use `json.dumps(result, separators=(',', ':'))` for ~30% payload reduction. HTTP/HTML paths retain `indent=2` for readability.
+STDIO transport uses `json.dumps(result, separators=(',', ':'))` for ~30% payload reduction.
 
 ### Timeout Guards
 
-Every tool handler wrapped with `asyncio.wait_for(..., timeout=30.0)`. Returns structured error `{"error":"timeout","message":"...","elapsed_ms":...}` instead of hanging.
+Every tool handler wrapped with `asyncio.wait_for(..., timeout=30.0)`. Returns structured error on timeout instead of hanging.
 
 ### Health Monitoring
 
-Every server exposes `mcp_health` tool returning:
-- `uptime_seconds`, `query_count`, `error_count`
-- `cache_hit_rate`, `cache_size`, `avg_response_ms`
-
-### Parallel Initialization
-
-`ecosystem_bridge.py` initializes Orchestrator and SovereignBridge in parallel via `asyncio.gather()` for faster startup.
+Every server exposes `mcp_health` returning: `uptime_seconds`, `query_count`, `error_count`, `cache_hit_rate`, `cache_size`, `avg_response_ms`.
 
 ### Performance Targets
 
@@ -140,66 +101,43 @@ Every server exposes `mcp_health` tool returning:
 | JSON payload | +30% (indent) | baseline | Compact separators |
 | Cache hit rate | 0% | >90% | LRU+TTL ResponseCache |
 | Response p95 | unmeasured | <100ms | Caching + timeouts |
-| Tool lookup | O(n) | O(1) <5ms | TypeScript FastToolRegistry |
 
-## TypeScript Optimization Layer
+## Core Integration Points
 
-The `src/core/mcp/` module provides a high-performance TypeScript layer:
-
-| Module | Purpose |
-|--------|---------|
-| `connection-pool.ts` | Managed connections with health checks |
-| `fast-tool-registry.ts` | O(1) tool lookup via Map |
-| `load-balancer.ts` | Least-latency / round-robin / weighted selection |
-| `multi-level-cache.ts` | L1 Map + L2 LRU caching |
-| `optimized-transport.ts` | Request batching + deduplication |
-| `metrics.ts` | Real-time p50/p95/p99 latency tracking |
-
-Import: `import { MCPConnectionPool, FastToolRegistry, ... } from '@mcp/index'`
+| File | Purpose |
+|------|---------|
+| `core/skills/mcp_bridge.py` | MCPBridge class: maps skills to MCP tools + permissions |
+| `core/skills/router.py` | Imports MCPBridge for routing decisions |
+| `core/sovereign/mcp_disclosure.py` | Progressive disclosure (3-layer: Index/Context/Deep) |
+| `core/bridges/browser_mcp_client.py` | Custom Brave Search wrapper with mock support |
+| `core/nexus/sovereign_nexus.py` | Lazy MCPBridge initialization at runtime |
 
 ## Troubleshooting
 
 ### Server won't start
 
-1. **Check Python path**: Python MCP servers use `/usr/bin/python3` (WSL system Python).
-   Ensure the `mcp` package is installed: `pip3 install mcp` or from `pyproject.toml`.
+1. **Check Python has MCP**: `python -c "from mcp.server import Server; print('OK')"`
+2. **Check FastMCP**: `python -c "from fastmcp import FastMCP; print('OK')"`
+3. **Install if missing**: `pip install mcp fastmcp` (or use venv: `source .venv-linux/bin/activate`)
 
-2. **Check sys.path**: All three Python servers need `tools/bridges/`, `tools/engines/`,
-   and the project root on `sys.path`. This is configured in each server file.
+### "Server disconnected" error
 
-3. **Missing database**: The `sqlite` server requires `04_GOLD/bizra.db` to exist.
-   Create it with: `sqlite3 04_GOLD/bizra.db "CREATE TABLE IF NOT EXISTS metadata(key TEXT, value TEXT)"`
+Usually means the Python executable can't be found or MCP SDK not installed.
+Verify: `which python && python --version`
 
-4. **"Server disconnected" error**: Usually means the Python executable can't be found.
-   Verify `/usr/bin/python3` exists and has the MCP SDK installed.
+### Brain shows 0 nodes (DEGRADED)
 
-5. **Brain shows 0 nodes (DEGRADED)**: The knowledge YAML files use relative paths resolved
-   from the server's working directory. When launched from the project root, the YAML files
-   resolve correctly (488 nodes expected).
+Knowledge YAML files use relative paths. Launch from project root so they resolve correctly (488 nodes expected).
 
-### npm packages removed
+### .mcp.json parse error in /doctor
 
-The `@modelcontextprotocol/server-fetch` and `@modelcontextprotocol/server-sqlite` npm
-packages were removed. Use `uvx` alternatives instead:
+If `/doctor` shows "MCP config is not a valid JSON", check that `.mcp.json` has no embedded git metadata. Regenerate from the template in this doc if needed.
 
-```json
-"fetch": { "command": "uvx", "args": ["mcp-server-fetch"] },
-"sqlite": { "command": "uvx", "args": ["mcp-server-sqlite", "--db-path", "..."] }
-```
-
-### Ecosystem server flags
-
-`bizra-ecosystem` now accepts `--stdio` (default) and `--http`. The `--stdio` flag uses
-proper MCP SDK transport with content-length framing.
-
-### Verify a server
-
-Test from WSL:
+### Verify a server manually
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' \
-  | timeout 35 /usr/bin/python3 \
-    /mnt/c/BIZRA-DATA-LAKE/tools/mcp/sovereign_mcp_server.py --stdio 2>/dev/null | head -1
+  | timeout 35 python tools/mcp/sovereign_mcp_server.py --stdio 2>/dev/null | head -1
 ```
 
 Expected: JSON response with `protocolVersion` and `serverInfo`.
@@ -209,11 +147,12 @@ Expected: JSON response with `protocolVersion` and `serverInfo`.
 | File | Purpose |
 |------|---------|
 | `.mcp.json` | MCP server configuration (Claude Code reads this) |
-| `tools/mcp/sovereign_mcp_server.py` | Sovereign Brain MCP server (v1.2.0) |
+| `.claude/settings.local.json` | Enabled servers list + tool permissions |
+| `tools/mcp/sovereign_mcp_server.py` | Sovereign Brain MCP server (V4 Phase 46) |
 | `tools/mcp/ecosystem_mcp_server.py` | Ecosystem Bridge MCP server (v3.0.0) |
 | `tools/mcp/bizra_mcp.py` | DDAGI OS MCP server (FastMCP, v3.0.0) |
+| `tools/mcp/peak_mcp_server.py` | PEAK Masterpiece Engine (v3.0.0-SINGULARITY) |
+| `tools/mcp/mcp_gateway.py` | FastAPI HTTP gateway (v1.0.0) |
+| `tools/mcp/mcp_lake_bridge.py` | Data lake pipeline bridge |
 | `tools/bridges/ecosystem_bridge.py` | Shared bridge (imported by MCP servers) |
 | `tools/engines/sovereign_brain.py` | Shared engine (imported by MCP servers) |
-| `src/core/mcp/` | TypeScript optimization layer (7 modules) |
-| `04_GOLD/bizra.db` | SQLite database for the sqlite MCP server |
-| `.swarm/memory.db` | SQLite database for the claude-flow-sqlite server |
