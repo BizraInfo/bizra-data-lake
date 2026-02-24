@@ -21,6 +21,7 @@ import pytest
 from core.pat.onboarding import (
     DEFAULT_NODE_DIR,
     NodeCredentials,
+    NodeTemplate,
     OnboardingWizard,
     get_node_credentials,
     is_onboarded,
@@ -279,3 +280,143 @@ class TestNodeDirDefault:
     def test_custom_dir(self, tmp_node_dir):
         wizard = OnboardingWizard(node_dir=tmp_node_dir)
         assert wizard.node_dir == tmp_node_dir
+
+
+class TestNodeTemplate:
+    """Test the MMORPG-inspired NodeTemplate dataclass."""
+
+    def test_default_template_values(self):
+        tmpl = NodeTemplate.default()
+        assert tmpl.pat_count == 7
+        assert tmpl.sat_count == 5
+        assert tmpl.initial_seed_grant == 100.0
+        assert tmpl.initial_bloom == 0.0
+        assert tmpl.initial_impt == 0.0
+        assert tmpl.ihsan_floor == 0.95
+        assert tmpl.adl_gini_threshold == 0.35
+        assert tmpl.snr_minimum == 0.85
+        assert tmpl.desktop_rpc_enabled is True
+        assert tmpl.tool_call_enabled is True
+        assert tmpl.llm_call_locked is True
+        assert tmpl.file_op_locked is True
+        assert tmpl.browser_nav_locked is True
+        assert tmpl.bootstrap_reflex_count == 4
+        assert tmpl.max_cpu_percent == 25.0
+        assert tmpl.max_memory_mb == 512
+        assert tmpl.max_inference_tokens_per_day == 50_000
+        assert tmpl.initial_stage == "seed"
+
+    def test_alpha_100_template(self):
+        tmpl = NodeTemplate.alpha_100()
+        assert tmpl.initial_seed_grant == 500.0
+        assert tmpl.max_inference_tokens_per_day == 100_000
+        assert tmpl.bootstrap_reflex_count == 4
+        # Inherits defaults for everything else
+        assert tmpl.pat_count == 7
+        assert tmpl.sat_count == 5
+        assert tmpl.ihsan_floor == 0.95
+
+    def test_to_dict_roundtrip(self):
+        tmpl = NodeTemplate.default()
+        d = tmpl.to_dict()
+        assert d["pat_count"] == 7
+        assert d["sat_count"] == 5
+        assert d["initial_seed_grant"] == 100.0
+
+        restored = NodeTemplate.from_dict(d)
+        assert restored.pat_count == tmpl.pat_count
+        assert restored.sat_count == tmpl.sat_count
+        assert restored.initial_seed_grant == tmpl.initial_seed_grant
+        assert restored.ihsan_floor == tmpl.ihsan_floor
+
+    def test_from_dict_ignores_extra_fields(self):
+        d = NodeTemplate.default().to_dict()
+        d["unknown_field"] = "should_be_ignored"
+        d["another_unknown"] = 42
+
+        restored = NodeTemplate.from_dict(d)
+        assert restored.pat_count == 7
+        assert not hasattr(restored, "unknown_field")
+
+    def test_from_dict_partial(self):
+        """from_dict with a subset of fields uses defaults for the rest."""
+        d = {"pat_count": 3, "sat_count": 2}
+        tmpl = NodeTemplate.from_dict(d)
+        assert tmpl.pat_count == 3
+        assert tmpl.sat_count == 2
+        # Everything else should be default
+        assert tmpl.initial_seed_grant == 100.0
+        assert tmpl.ihsan_floor == 0.95
+
+    def test_fork_from_inherits_base(self):
+        base = NodeTemplate.alpha_100()
+        forked = NodeTemplate.fork_from(base)
+        assert forked.initial_seed_grant == 500.0
+        assert forked.max_inference_tokens_per_day == 100_000
+        assert forked.pat_count == 7
+
+    def test_fork_from_with_overrides(self):
+        base = NodeTemplate.default()
+        forked = NodeTemplate.fork_from(base, pat_count=10, sat_count=8)
+        assert forked.pat_count == 10
+        assert forked.sat_count == 8
+        # Non-overridden values inherited from base
+        assert forked.initial_seed_grant == 100.0
+        assert forked.ihsan_floor == 0.95
+
+    def test_fork_from_does_not_mutate_source(self):
+        base = NodeTemplate.default()
+        NodeTemplate.fork_from(base, pat_count=99)
+        assert base.pat_count == 7  # Source unchanged
+
+    def test_fork_chain(self):
+        """Forks can be forked — template inheritance chain."""
+        gen1 = NodeTemplate.default()
+        gen2 = NodeTemplate.fork_from(gen1, initial_seed_grant=200.0)
+        gen3 = NodeTemplate.fork_from(gen2, max_memory_mb=1024)
+        assert gen3.initial_seed_grant == 200.0
+        assert gen3.max_memory_mb == 1024
+        assert gen3.pat_count == 7  # Inherited from gen1 through gen2
+
+
+class TestOnboardingWithTemplate:
+    """Test that OnboardingWizard respects NodeTemplate configuration."""
+
+    def test_wizard_uses_default_template(self, tmp_node_dir):
+        wizard = OnboardingWizard(node_dir=tmp_node_dir)
+        assert wizard._template.pat_count == 7
+        assert wizard._template.sat_count == 5
+
+    def test_wizard_with_custom_template(self, tmp_node_dir):
+        tmpl = NodeTemplate(pat_count=3, sat_count=2)
+        wizard = OnboardingWizard(node_dir=tmp_node_dir, template=tmpl)
+        credentials = wizard.onboard()
+
+        assert len(credentials.pat_agent_ids) == 3
+        assert len(credentials.sat_agent_ids) == 2
+
+    def test_wizard_with_alpha_100_template(self, tmp_node_dir):
+        tmpl = NodeTemplate.alpha_100()
+        wizard = OnboardingWizard(node_dir=tmp_node_dir, template=tmpl)
+        credentials = wizard.onboard()
+
+        # Agent counts should still be default (7+5) since alpha_100
+        # only overrides token economy and inference limits
+        assert len(credentials.pat_agent_ids) == 7
+        assert len(credentials.sat_agent_ids) == 5
+
+    def test_agents_manifest_respects_template(self, tmp_node_dir):
+        tmpl = NodeTemplate(pat_count=3, sat_count=2)
+        wizard = OnboardingWizard(node_dir=tmp_node_dir, template=tmpl)
+        wizard.onboard()
+
+        agents_data = json.loads(wizard.agents_file.read_text())
+        assert agents_data["total"] == 5
+        assert len(agents_data["pat_agents"]) == 3
+        assert len(agents_data["sat_agents"]) == 2
+
+    def test_template_import_from_package(self):
+        """NodeTemplate is importable from the core.pat package."""
+        from core.pat import NodeTemplate as PkgNodeTemplate
+
+        assert PkgNodeTemplate is NodeTemplate

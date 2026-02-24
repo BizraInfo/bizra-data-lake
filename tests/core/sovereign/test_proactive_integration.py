@@ -6,6 +6,7 @@ Comprehensive tests for the complete proactive sovereign architecture.
 
 import asyncio
 import pytest
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 # Event Bus
@@ -23,6 +24,7 @@ from core.sovereign.team_planner import (
 from core.sovereign.dual_agentic_bridge import (
     DualAgenticBridge, ActionProposal, ConsensusResult, VetoReason
 )
+from core.proof_engine.evidence_ledger import EvidenceLedger
 
 # Collective Intelligence
 from core.sovereign.collective_intelligence import (
@@ -186,6 +188,11 @@ class TestDualAgenticBridge:
 
         assert outcome.result == ConsensusResult.APPROVED
         assert outcome.quorum_met
+        receipt = bridge.get_receipt(proposal.id)
+        assert receipt is not None
+        assert receipt.result == ConsensusResult.APPROVED
+        assert receipt.verify_signatures() is True
+        assert bridge.verify_receipt(proposal.id) is True
 
     @pytest.mark.asyncio
     async def test_proposal_veto_security(self):
@@ -204,6 +211,108 @@ class TestDualAgenticBridge:
         outcome = await bridge.validate(proposal.id)
 
         assert outcome.result == ConsensusResult.VETOED
+        receipt = bridge.get_receipt(proposal.id)
+        assert receipt is not None
+        assert receipt.result == ConsensusResult.VETOED
+        assert receipt.verify_signatures() is True
+
+    def test_sat_mode_stats_mini5(self):
+        """Bridge must report mini5 profile truthfully by default."""
+        bridge = DualAgenticBridge(ihsan_threshold=0.95)
+        stats = bridge.stats()
+
+        assert stats["sat_mode"] == "mini5"
+        assert stats["expected_validators"] == 5
+        assert stats["active_validators"] == 5
+        assert stats["consensus_threshold"] == 3
+        assert stats["sat_claim_truthful"] is True
+
+    @pytest.mark.asyncio
+    async def test_sat_mode_full49_fails_closed_without_roster(self):
+        """full49 profile must fail when validator roster is incomplete."""
+        bridge = DualAgenticBridge(ihsan_threshold=0.95, sat_mode="full49")
+        proposal = ActionProposal(task_id="task-3", action_type="safe_action")
+        await bridge.submit_proposal(proposal)
+
+        with pytest.raises(RuntimeError, match="SAT validator roster incomplete"):
+            await bridge.validate(proposal.id)
+
+    @pytest.mark.asyncio
+    async def test_receipt_includes_budget_and_party_context(self):
+        """Signed receipt must include budget context and both party IDs."""
+        bridge = DualAgenticBridge(ihsan_threshold=0.95)
+        proposal = ActionProposal(
+            task_id="task-4",
+            action_type="resource_plan",
+            parameters={
+                "resource_budget": {
+                    "cpu_millicores": 1000,
+                    "memory_bytes": 1024 * 1024 * 512,
+                },
+                "tokens": 250,
+            },
+            ihsan_estimate=0.97,
+            risk_estimate=0.2,
+        )
+        await bridge.submit_proposal(proposal)
+        await bridge.validate(proposal.id)
+
+        receipt = bridge.get_receipt(proposal.id)
+        assert receipt is not None
+        assert receipt.resource_budget["cpu_millicores"] == 1000
+        assert receipt.proposer_agent_id.startswith("pat-")
+        assert receipt.sat_agent_id.startswith("sat-")
+        assert len(receipt.payload_digest) == 64
+        assert bridge.stats()["signed_receipts"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_receipt_emits_to_evidence_ledger(self, tmp_path):
+        """Negotiation receipts should append to the evidence ledger hash chain."""
+        ledger = EvidenceLedger(Path(tmp_path) / "pat_sat_evidence.jsonl")
+        bridge = DualAgenticBridge(ihsan_threshold=0.95, evidence_ledger=ledger)
+        proposal = ActionProposal(
+            task_id="task-5",
+            action_type="safe_action",
+            ihsan_estimate=0.98,
+            risk_estimate=0.1,
+        )
+        await bridge.submit_proposal(proposal)
+        await bridge.validate(proposal.id)
+
+        receipt = bridge.get_receipt(proposal.id)
+        assert receipt is not None
+        assert receipt.ledger_sequence == 1
+        assert isinstance(receipt.ledger_entry_hash, str)
+        assert len(receipt.ledger_entry_hash) == 64
+        assert bridge.stats()["evidence_entries"] == 1
+        assert bridge.stats()["evidence_failures"] == 0
+
+        is_valid, errors = ledger.verify_chain()
+        assert is_valid is True, f"evidence ledger chain invalid: {errors}"
+
+    @pytest.mark.asyncio
+    async def test_receipt_ledger_fail_closed_on_append_error(self):
+        """Fail-closed mode should raise when evidence receipt append fails."""
+
+        class _BrokenLedger:
+            def append(self, _receipt):
+                raise RuntimeError("ledger write failed")
+
+        bridge = DualAgenticBridge(
+            ihsan_threshold=0.95,
+            evidence_ledger=_BrokenLedger(),
+            fail_closed_on_ledger_error=True,
+        )
+        proposal = ActionProposal(
+            task_id="task-6",
+            action_type="safe_action",
+            ihsan_estimate=0.97,
+            risk_estimate=0.2,
+        )
+        await bridge.submit_proposal(proposal)
+
+        with pytest.raises(RuntimeError, match="Evidence ledger append failed"):
+            await bridge.validate(proposal.id)
 
 
 # =============================================================================

@@ -39,6 +39,7 @@ from core.federation.secure_transport import (
     SymmetricState,
     ReplayWindow,
     SecureSession,
+    HandshakeOutcome,
     HandshakeState,
     MessageType,
     # Transports
@@ -444,6 +445,15 @@ class TestNoiseTransportHandshake:
         assert state['phase'] == 'init_sent'
 
     @pytest.mark.asyncio
+    async def test_handshake_initiator_returns_outcome(self, noise_transport):
+        """Initiator API should return explicit handshake state, not placeholders."""
+        outcome = await noise_transport.handshake_initiator("127.0.0.1:8001")
+        assert isinstance(outcome, HandshakeOutcome)
+        assert outcome.state == HandshakeState.AWAITING_RESPONSE
+        assert outcome.transport == "noise"
+        assert outcome.session_id is not None
+
+    @pytest.mark.asyncio
     async def test_handshake_responder(self, noise_transport, noise_transport_peer):
         """Responder should process init and create response."""
         # Initiator creates init
@@ -654,6 +664,14 @@ class TestDTLSTransportHandshake:
         assert 'e_private' in state
 
     @pytest.mark.asyncio
+    async def test_handshake_initiator_returns_outcome(self, dtls_transport):
+        """DTLS initiator API should return explicit handshake state."""
+        outcome = await dtls_transport.handshake_initiator("127.0.0.1:8001")
+        assert isinstance(outcome, HandshakeOutcome)
+        assert outcome.state == HandshakeState.AWAITING_RESPONSE
+        assert outcome.transport == "dtls"
+
+    @pytest.mark.asyncio
     async def test_handshake_responder(self, dtls_transport, dtls_transport_peer):
         """Responder should process ClientHello and create ServerHello."""
         init_msg, _ = dtls_transport.create_handshake_init()
@@ -703,6 +721,38 @@ class TestDTLSTransportHandshake:
         with pytest.raises(HandshakeError):
             loop.run_until_complete(
                 dtls_transport.handshake_responder(wrong_msg, "127.0.0.1:8001")
+            )
+        loop.close()
+
+    def test_dtls_invalid_cookie_length_rejected(self, dtls_transport):
+        """Invalid cookie lengths must be rejected before key exchange."""
+        init_msg, _ = dtls_transport.create_handshake_init()
+        bad = bytearray(init_msg)
+        cookie_len_offset = 1 + 2 + 32 + 1
+        bad[cookie_len_offset] = 1
+
+        loop = asyncio.new_event_loop()
+        with pytest.raises(HandshakeError, match="Invalid cookie length"):
+            loop.run_until_complete(
+                dtls_transport.handshake_responder(bytes(bad), "127.0.0.1:8001")
+            )
+        loop.close()
+
+    def test_dtls_cookie_enforcement_rejects_missing_cookie(self, keypair):
+        """When cookie enforcement is enabled, missing cookies fail closed."""
+        priv, pub = keypair
+        dtls = DTLSTransport(
+            static_private_key=bytes.fromhex(priv),
+            static_public_key=bytes.fromhex(pub),
+            node_id="strict_dtls",
+            enforce_cookie=True,
+        )
+        init_msg, _ = dtls.create_handshake_init()
+
+        loop = asyncio.new_event_loop()
+        with pytest.raises(HandshakeError, match="Missing DTLS cookie"):
+            loop.run_until_complete(
+                dtls.handshake_responder(init_msg, "127.0.0.1:8001")
             )
         loop.close()
 

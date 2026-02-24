@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 from pathlib import Path
 
+import pytest
 import yaml
 
 from scripts.evidence.build_evidence_package import run as build_run
@@ -349,6 +352,36 @@ def test_chain_verification_detects_tamper(tmp_path: Path) -> None:
     tamper_path.write_text("tampered", encoding="utf-8")
 
     assert verify_run(package_root=ctx["package_root"], tier="private_full", stage="scaffold") == 1
+
+
+def test_signing_key_file_permissions_are_restricted(tmp_path: Path) -> None:
+    ctx = _bootstrap_repo(tmp_path)
+    assert import_run(config_path=ctx["config"], repo_root=ctx["repo"]) == 0
+    assert (
+        build_run(
+            config_path=ctx["config"],
+            gate_config_path=ctx["gate"],
+            stage="scaffold",
+            tier="private_full",
+            repo_root=ctx["repo"],
+            package_root=ctx["package_root"],
+            allow_fail=False,
+            json_stdout=False,
+        )
+        == 0
+    )
+    assert sign_run(package_root=ctx["package_root"], tier="private_full", config_path=ctx["config"]) == 0
+
+    key_path = ctx["package_root"] / "integrity" / "operator_signing_key.json"
+    assert key_path.exists()
+
+    # POSIX world/group bits must be clear for private signing material when
+    # filesystem metadata supports chmod semantics (e.g., not WSL /mnt/c).
+    if os.name != "nt":
+        if key_path.as_posix().startswith("/mnt/"):
+            pytest.skip("POSIX mode bits are not reliably enforced on mounted filesystems")
+        mode = stat.S_IMODE(key_path.stat().st_mode)
+        assert (mode & 0o077) == 0
 
 
 def test_deterministic_manifest_ordering_and_stable_hash(tmp_path: Path) -> None:

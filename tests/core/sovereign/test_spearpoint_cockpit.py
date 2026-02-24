@@ -1,13 +1,12 @@
 """
 Tests for SpearPointPipeline — the unified post-query cockpit.
 
-Verifies that all 7 pipeline steps execute independently with proper
+Verifies that all pipeline steps execute independently with proper
 error isolation, and that the SpearPointResult reports per-step status.
 """
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -53,6 +52,7 @@ class FakeQuery:
     id: str = "q-001"
     text: str = "What is the meaning of life?"
     user_id: str = "user-001"
+    context: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -78,7 +78,7 @@ class TestPipelineNoSubsystems:
     async def test_all_steps_skip(self, pipeline):
         result = await pipeline.execute(FakeResult(), FakeQuery())
         assert result.all_passed is True
-        assert len(result.steps) == 8
+        assert len(result.steps) == 9
         for step in result.steps:
             assert step.success is True
             assert "skipped" in step.detail
@@ -95,7 +95,7 @@ class TestPipelineNoSubsystems:
         d = result.to_dict()
         assert "all_passed" in d
         assert "steps" in d
-        assert len(d["steps"]) == 8
+        assert len(d["steps"]) == 9
         assert "total_duration_ms" in d
 
 
@@ -133,7 +133,7 @@ class TestStepIsolation:
             assert "evidence_receipt" in result.failed_steps
             # All other steps should pass (skipped = success)
             passed = [s for s in result.steps if s.success]
-            assert len(passed) == 7
+            assert len(passed) == 8
 
     @pytest.mark.asyncio
     async def test_poi_failure_doesnt_block_judgment(self):
@@ -355,6 +355,54 @@ class TestLivingMemoryStep:
         mem_step = next(s for s in result.steps if s.name == "living_memory")
         assert "skipped" in mem_step.detail
         mock_memory.encode.assert_not_awaited()
+
+
+class TestSenseReinforcementStep:
+    """Test receipt outcome feedback into living memory."""
+
+    @pytest.mark.asyncio
+    async def test_reinforces_on_approved_outcome(self):
+        mock_memory = AsyncMock()
+        mock_memory.apply_execution_feedback = AsyncMock(
+            return_value={"reinforced": 2, "processed": 2, "missing": 0}
+        )
+        pipeline = SpearPointPipeline(living_memory=mock_memory, config=FakeConfig())
+
+        query = FakeQuery(context={"_source_memory_ids": ["m1", "m2"]})
+        result = await pipeline.execute(FakeResult(), query)
+
+        sense = next(s for s in result.steps if s.name == "sense_reinforcement")
+        assert sense.success
+        assert "reinforced=2" in sense.detail
+        mock_memory.apply_execution_feedback.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_flags_on_rejected_outcome(self):
+        mock_memory = AsyncMock()
+        mock_memory.apply_execution_feedback = AsyncMock(
+            return_value={"flagged": 1, "processed": 1, "missing": 0}
+        )
+        pipeline = SpearPointPipeline(living_memory=mock_memory, config=FakeConfig())
+
+        query = FakeQuery(context={"_source_memory_ids": ["m1"]})
+        rejected = FakeResult(validation_passed=False)
+        result = await pipeline.execute(rejected, query)
+
+        sense = next(s for s in result.steps if s.name == "sense_reinforcement")
+        assert sense.success
+        assert "decision=REJECTED" in sense.detail
+        kwargs = mock_memory.apply_execution_feedback.await_args.kwargs
+        assert kwargs["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_skips_without_source_memory_ids(self):
+        mock_memory = AsyncMock()
+        pipeline = SpearPointPipeline(living_memory=mock_memory, config=FakeConfig())
+
+        result = await pipeline.execute(FakeResult(), FakeQuery())
+        sense = next(s for s in result.steps if s.name == "sense_reinforcement")
+        assert sense.success
+        assert "skipped" in sense.detail
 
 
 # ---------------------------------------------------------------------------

@@ -241,6 +241,54 @@ class TestFeatureFlagsRespected:
         assert config.enable_guardian_validation is True
 
 
+class TestStrictStubBudgetGate:
+    """Verify strict startup gate rejects runtime stub overuse."""
+
+    def test_strict_stub_budget_fails_closed(self):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        config = RuntimeConfig(
+            strict_stub_budget=True,
+            stub_budget_max=0,
+            enable_graph_reasoning=True,
+            enable_snr_optimization=False,
+            enable_guardian_validation=False,
+            enable_autonomous_loop=False,
+        )
+        runtime = SovereignRuntime(config)
+        runtime._graph_reasoner = SimpleNamespace(is_stub=True)
+        runtime._snr_optimizer = object()
+        runtime._guardian_council = object()
+        runtime._autonomous_loop = object()
+
+        with pytest.raises(RuntimeError, match="Strict startup gate failed"):
+            runtime._enforce_stub_budget_gate()
+
+    def test_strict_stub_budget_records_status(self):
+        from core.sovereign.runtime_core import SovereignRuntime
+
+        config = RuntimeConfig(
+            strict_stub_budget=True,
+            stub_budget_max=1,
+            enable_graph_reasoning=True,
+            enable_snr_optimization=False,
+            enable_guardian_validation=False,
+            enable_autonomous_loop=False,
+        )
+        runtime = SovereignRuntime(config)
+        runtime._graph_reasoner = object()
+        runtime._snr_optimizer = object()
+        runtime._guardian_council = object()
+        runtime._autonomous_loop = None
+
+        runtime._enforce_stub_budget_gate()
+        status = runtime.status()
+        strict_gate = status["health"]["strict_gate"]
+        assert strict_gate["enabled"] is True
+        assert strict_gate["passed"] is True
+        assert strict_gate["reason_codes"] == []
+
+
 # =============================================================================
 # RFC-02: RuntimeMetrics.started_at Declared
 # =============================================================================

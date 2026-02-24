@@ -45,6 +45,8 @@ from core.integration.constants import (
     PILLAR_1_RUNTIME_IHSAN,
     PILLAR_2_MUSEUM_SNR_FLOOR,
     PILLAR_3_SANDBOX_SNR_FLOOR,
+    SAT_FRONTIER_QUORUM_DEFAULT,
+    SAT_VALIDATORS_PER_NODE,
     RUNTIME_IHSAN_THRESHOLD,
     SNR_THRESHOLD,
     SNR_THRESHOLD_T0_ELITE,
@@ -60,6 +62,7 @@ from core.integration.constants import (
     UNIFIED_NONCE_TTL_SECONDS,
     UNIFIED_SNR_THRESHOLD,
     UNIFIED_SYNC_INTERVAL_SECONDS,
+    sat_frontier_quorum,
     validate_cross_repo_consistency,
 )
 
@@ -271,6 +274,27 @@ class TestNetworkConstants:
     def test_max_retry_attempts_positive(self):
         assert MAX_RETRY_ATTEMPTS > 0
         assert MAX_RETRY_ATTEMPTS == 3
+
+
+class TestFederatedSATQuorum:
+
+    def test_validators_per_node_is_sat5(self):
+        assert SAT_VALIDATORS_PER_NODE == 5
+
+    def test_frontier_quorum_default(self):
+        # Default federation node count is 10 -> 50 SAT validators -> quorum 33.
+        assert SAT_FRONTIER_QUORUM_DEFAULT == 33
+
+    def test_frontier_quorum_scales_for_alpha_100(self):
+        assert sat_frontier_quorum(100) == 333
+
+    @pytest.mark.parametrize("nodes,expected", [
+        (1, 3),     # 5 validators -> f=1 -> 3
+        (10, 33),   # 50 validators -> f=16 -> 33
+        (100, 333), # 500 validators -> f=166 -> 333
+    ])
+    def test_frontier_quorum_examples(self, nodes, expected):
+        assert sat_frontier_quorum(nodes) == expected
 
 
 # ---------------------------------------------------------------------------

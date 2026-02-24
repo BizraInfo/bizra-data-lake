@@ -15,6 +15,7 @@ import argparse
 
 import pytest
 
+from core.pci.crypto import generate_keypair
 from core.genesis import (
     CHECKMARK,
     CROSSMARK,
@@ -30,6 +31,7 @@ from core.genesis import (
     URPPledge,
     pair_mobile,
     pledge_resources,
+    verify_pledge_signature,
 )
 from core.genesis.cli import build_genesis_parser
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
@@ -46,11 +48,14 @@ class TestGenesisTypes:
         assert config.hardware_scan is False
         assert config.pat_count == 7
         assert config.sat_count == 5
+        assert config.sat_mode == "mini5"
         assert config.hda_bridge is False
         assert config.mobile_pair is None
         assert config.guild_join is None
         assert config.quest_accept is None
         assert config.ihsan_target == 0.999
+        assert config.strict_bootstrap is True
+        assert config.allow_degraded is False
 
     # ── test_02: GenesisConfig with all flags ────────────────────────────
     def test_02_genesis_config_all_flags(self) -> None:
@@ -71,6 +76,8 @@ class TestGenesisTypes:
         assert d["pat_count"] == 7
         assert d["guild_join"] == "agriculture"
         assert d["ihsan_target"] == 0.999
+        assert d["sat_mode"] == "mini5"
+        assert d["strict_bootstrap"] is True
 
     # ── test_03: GenesisStep timing ──────────────────────────────────────
     def test_03_genesis_step_timing(self) -> None:
@@ -125,6 +132,26 @@ class TestHardwareAndURP:
         assert pledge.vram_gb == 16
         assert len(pledge.pledge_hash) == 16
         assert pledge.pledged_at != ""
+        assert pledge.signed is False
+        assert pledge.reason_code == "GENESIS_URP_UNSIGNED_STUB"
+        assert verify_pledge_signature(pledge) is False
+
+    def test_06b_urp_pledge_signed_enforced(self) -> None:
+        """URP pledge signs and verifies when private key is provided."""
+        private_key, public_key = generate_keypair()
+        pledge = pledge_resources(
+            node_id="BIZRA-00000002",
+            hardware_info={"ram_gb": 64, "vram_gb": 12, "storage_gb": 2048},
+            signing_private_key_hex=private_key,
+        )
+        assert pledge.signed is True
+        assert pledge.enforced is True
+        assert pledge.enforcement_mode == "single_node_signed"
+        assert pledge.reason_code == "GENESIS_URP_SIGNED"
+        assert pledge.signer_public_key == public_key
+        assert len(pledge.payload_digest) == 64
+        assert len(pledge.signature) == 128
+        assert verify_pledge_signature(pledge) is True
 
     # ── test_07: MobilePairResult parsing ────────────────────────────────
     def test_07_mobile_pair_parsing(self) -> None:
@@ -135,6 +162,8 @@ class TestHardwareAndURP:
         assert result.paired is True
         assert result.proximity_routing is True
         assert result.protocol == "stub-v1"
+        assert result.status == "stub"
+        assert result.reason_code == "GENESIS_MOBILE_PAIR_STUB"
 
 
 class TestGenesisOrchestrator:
@@ -154,6 +183,8 @@ class TestGenesisOrchestrator:
             identity_genesis=False,
             hardware_scan=False,
             ihsan_target=0.999,
+            strict_bootstrap=False,
+            allow_degraded=True,
         )
         orchestrator = GenesisOrchestrator(config)
         result = orchestrator.run()
@@ -171,11 +202,14 @@ class TestGenesisOrchestrator:
             hardware_scan=False,  # Skip system calls
             pat_count=7,
             sat_count=5,
+            sat_mode="mini5",
             hda_bridge=False,  # Skip bridge check
             mobile_pair="Z Fold 6:SM-F956B",
             guild_join="agriculture",
             quest_accept="001-sustainable-water",
             ihsan_target=0.999,
+            strict_bootstrap=False,
+            allow_degraded=True,
         )
         orchestrator = GenesisOrchestrator(config)
         result = orchestrator.run()
@@ -237,6 +271,7 @@ class TestGenesisOrchestrator:
         assert args.guild_join == "agriculture"
         assert args.quest_accept == "001-sustainable-water"
         assert args.ihsan_target == 0.999
+        assert args.strict_bootstrap is True
 
 
 class TestConstitutionalGates:
@@ -299,6 +334,8 @@ class TestConstitutionalGates:
             guild_join="agriculture",
             quest_accept="001-sustainable-water",
             ihsan_target=0.999,
+            strict_bootstrap=False,
+            allow_degraded=True,
         )
         orchestrator = GenesisOrchestrator(config)
         result = orchestrator.run()
@@ -312,3 +349,56 @@ class TestConstitutionalGates:
         # Genesis hash must be non-empty
         assert result.genesis_hash != ""
         assert len(result.genesis_hash) == 16
+
+    def test_17_strict_bootstrap_fails_on_stub_steps(self) -> None:
+        """Strict mode must fail closed when a step returns stub/deferred."""
+        config = GenesisConfig(
+            mobile_pair="Z Fold 6:SM-F956B",
+            strict_bootstrap=True,
+        )
+        orchestrator = GenesisOrchestrator(config)
+        result = orchestrator.run()
+
+        mobile_step = next((s for s in result.steps if s.name == "mobile_pair"), None)
+        assert mobile_step is not None
+        assert mobile_step.status == GenesisStepStatus.FAILED
+        assert mobile_step.reason_code == "GENESIS_MOBILE_PAIR_STUB"
+        assert result.strict_gate_passed is False
+        assert "GENESIS_MOBILE_PAIR_STUB" in result.reason_codes
+
+    def test_18_non_strict_marks_stub_steps_as_skipped(self) -> None:
+        """Non-strict mode must not mark stub/deferred steps as successful."""
+        config = GenesisConfig(
+            mobile_pair="Z Fold 6:SM-F956B",
+            strict_bootstrap=False,
+            allow_degraded=True,
+        )
+        orchestrator = GenesisOrchestrator(config)
+        result = orchestrator.run()
+
+        mobile_step = next((s for s in result.steps if s.name == "mobile_pair"), None)
+        assert mobile_step is not None
+        assert mobile_step.status == GenesisStepStatus.SKIPPED
+        assert mobile_step.reason_code == "GENESIS_MOBILE_PAIR_STUB"
+        assert "GENESIS_MOBILE_PAIR_STUB" in result.reason_codes
+
+    def test_19_strict_bootstrap_fails_on_unsigned_urp(self) -> None:
+        """Strict mode must fail when URP pledge has no signature."""
+        config = GenesisConfig(strict_bootstrap=True)
+        orchestrator = GenesisOrchestrator(config)
+        orchestrator._hardware_info = HardwareInfo(
+            cpu="TestCPU",
+            gpu="TestGPU",
+            ram_gb=64,
+            vram_gb=12,
+            platform_name="Linux",
+            os_version="test",
+        )
+        result = orchestrator.run()
+
+        urp_step = next((s for s in result.steps if s.name == "urp_pledge"), None)
+        assert urp_step is not None
+        assert urp_step.status == GenesisStepStatus.FAILED
+        assert urp_step.reason_code == "GENESIS_URP_UNSIGNED_STUB"
+        assert result.strict_gate_passed is False
+        assert "GENESIS_URP_UNSIGNED_STUB" in result.reason_codes

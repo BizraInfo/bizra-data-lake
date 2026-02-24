@@ -10,6 +10,7 @@ Created: 2026-02-18 | BIZRA Node0 | Reasoning Module
 
 import pytest
 
+from core.integration.constants import sat_frontier_quorum
 from core.reasoning.entropy_router import (
     EntropyRouter,
     QueryComplexity,
@@ -109,10 +110,35 @@ class TestTierRouting:
         )
         # Frontier-level queries typically arrive with upstream context
         # signaling high complexity (e.g., from a research agent).
-        decision = router.route(query, context={"complexity_hint": 0.25})
+        # Default federation size in constants is 10 nodes -> quorum 33.
+        decision = router.route(
+            query,
+            context={"complexity_hint": 0.25, "federation_node_count": 10},
+        )
         assert decision.query_complexity == QueryComplexity.FRONTIER
-        assert decision.quorum_size == 33
+        assert decision.quorum_size == sat_frontier_quorum(10)
         assert decision.snr_requirement == 0.98
+
+    def test_frontier_quorum_scales_with_federation_size(
+        self, router: EntropyRouter
+    ) -> None:
+        query = (
+            "Analyze and evaluate the intersection of quantum field theory "
+            "and algebraic topology from a mathematical perspective. "
+            "Compare and contrast the implications of string theory "
+            "and loop quantum gravity. How does the holographic principle "
+            "relate to information theory? What are the implications for "
+            "condensed matter physics? Additionally, synthesize these "
+            "considerations with recent advances in topological quantum "
+            "computing from a computational perspective."
+        )
+        decision = router.route(
+            query,
+            context={"complexity_hint": 1.0, "federation_node_count": 100},
+        )
+        assert decision.query_complexity == QueryComplexity.FRONTIER
+        assert decision.quorum_size == sat_frontier_quorum(100)
+        assert decision.quorum_size == 333
 
     def test_empty_query_is_trivial(self, router: EntropyRouter) -> None:
         decision = router.route("")

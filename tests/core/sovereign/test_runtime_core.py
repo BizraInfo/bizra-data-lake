@@ -1162,6 +1162,75 @@ class TestEncodeQueryMemory:
 
 
 # ---------------------------------------------------------------------------
+# 15b. Receipt → Memory feedback (SEL SENSE)
+# ---------------------------------------------------------------------------
+
+
+class TestReceiptMemoryFeedback:
+    """Tests for receipt outcome feedback into living memory."""
+
+    @pytest.mark.asyncio
+    async def test_apply_feedback_reinforces_on_approved(self, rt: SovereignRuntime) -> None:
+        mock_memory = MagicMock()
+        mock_memory.apply_execution_feedback = AsyncMock(
+            return_value={"processed": 1, "reinforced": 1, "flagged": 0, "missing": 0}
+        )
+        rt._living_memory = mock_memory
+
+        result = SovereignResult(
+            query_id="q1",
+            success=True,
+            validation_passed=True,
+            snr_score=0.92,
+        )
+        query = SovereignQuery(text="q", context={"_source_memory_ids": ["m1"]})
+
+        await rt._apply_receipt_memory_feedback(result, query)
+
+        mock_memory.apply_execution_feedback.assert_awaited_once()
+        kwargs = mock_memory.apply_execution_feedback.await_args.kwargs
+        assert kwargs["success"] is True
+        assert kwargs["reason"] == "APPROVED"
+
+    @pytest.mark.asyncio
+    async def test_apply_feedback_flags_on_rejected(self, rt: SovereignRuntime) -> None:
+        mock_memory = MagicMock()
+        mock_memory.apply_execution_feedback = AsyncMock(
+            return_value={"processed": 1, "reinforced": 0, "flagged": 1, "missing": 0}
+        )
+        rt._living_memory = mock_memory
+
+        result = SovereignResult(
+            query_id="q2",
+            success=False,
+            validation_passed=False,
+            snr_score=0.95,
+        )
+        query = SovereignQuery(
+            text="q",
+            context={"_source_memory_ids": ["m1"], "_last_receipt_id": "rid-1"},
+        )
+
+        await rt._apply_receipt_memory_feedback(result, query)
+
+        kwargs = mock_memory.apply_execution_feedback.await_args.kwargs
+        assert kwargs["success"] is False
+        assert kwargs["reason"] == "IHSAN_BELOW_THRESHOLD"
+        assert kwargs["receipt_ref"] == "rid-1"
+
+    def test_schedule_feedback_non_blocking(self, rt: SovereignRuntime) -> None:
+        with patch("asyncio.ensure_future") as mock_ensure:
+            rt._schedule_receipt_memory_feedback(
+                SovereignResult(query_id="q3"),
+                SovereignQuery(text="q", context={"_source_memory_ids": ["m1"]}),
+            )
+        mock_ensure.assert_called_once()
+        scheduled = mock_ensure.call_args.args[0]
+        assert asyncio.iscoroutine(scheduled)
+        scheduled.close()
+
+
+# ---------------------------------------------------------------------------
 # 16. _store_graph_artifact
 # ---------------------------------------------------------------------------
 
@@ -1826,7 +1895,15 @@ class TestStatus:
         assert "omega_point" in status
         assert "memory" in status
         assert "sovereignty" in status
+        assert "pat_sat" in status
         assert "metrics" in status
+
+    def test_pat_sat_status_defaults_without_ledger(self, rt: SovereignRuntime) -> None:
+        status = rt.status()
+        chain = status["pat_sat"]["negotiation_receipt_chain"]
+        assert chain["available"] is False
+        assert chain["total_negotiation_receipts"] == 0
+        assert chain["verified_end_to_end"] is False
 
     def test_identity_fields(self, rt: SovereignRuntime) -> None:
         status = rt.status()
@@ -1974,3 +2051,49 @@ class TestStatus:
         status = rt.status()
         gw = status["omega_point"]["gateway"]
         assert gw["connected"] is False
+
+    def test_pat_sat_status_with_signed_receipt_chain(
+        self, rt: SovereignRuntime, tmp_path: Path
+    ) -> None:
+        from core.pci.crypto import generate_keypair
+        from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
+
+        priv_hex, pub_hex = generate_keypair()
+        ledger = EvidenceLedger(tmp_path / "evidence_pat_sat.jsonl", validate_on_append=True)
+        emit_receipt(
+            ledger,
+            receipt_id="a" * 32,
+            node_id="sat-test-001",
+            policy_version="1.0.0",
+            status="accepted",
+            decision="APPROVED",
+            reason_codes=[],
+            snr_score=0.96,
+            ihsan_score=0.97,
+            ihsan_threshold=0.95,
+            seal_digest="b" * 64,
+            payload_digest="b" * 64,
+            gate_passed="sat_consensus",
+            signer_private_key_hex=priv_hex,
+            signer_public_key_hex=pub_hex,
+            origin={
+                "channel": "pat_sat",
+                "proposer_agent_id": "pat-test-001",
+                "sat_agent_id": "sat-test-001",
+                "sat_mode": "mini5",
+            },
+            critical_decision=True,
+        )
+        rt._evidence_ledger = ledger
+
+        status = rt.status()
+        chain = status["pat_sat"]["negotiation_receipt_chain"]
+        assert chain["available"] is True
+        assert chain["total_entries"] == 1
+        assert chain["total_negotiation_receipts"] == 1
+        assert chain["chain_valid"] is True
+        assert chain["latest_signed"] is True
+        assert chain["verified_end_to_end"] is True
+        assert chain["latest_receipt_id"] == "a" * 32
+        assert isinstance(chain["latest_entry_hash"], str)
+        assert len(chain["latest_entry_hash"]) == 64
