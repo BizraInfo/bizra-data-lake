@@ -1,6 +1,6 @@
 [package]
 name = "fate-binding"
-version = "2.2.0"
+version.workspace = true
 edition = "2021"
 description = "FATE (Formal Assertion Through Execution) binding for BIZRA Sovereign LLM"
 license = "MIT"
@@ -24,6 +24,9 @@ pqcrypto-traits = { workspace = true }
 # Ed25519 for CapabilityCard signatures
 ed25519-dalek = { workspace = true }
 rand = { workspace = true }
+
+# BIZRA core — constitutional thresholds (single source of truth)
+bizra-core = { path = "../bizra-core" }
 
 # Serialization
 serde = { workspace = true }

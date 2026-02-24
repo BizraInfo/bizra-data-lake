@@ -20,9 +20,9 @@ pub use dilithium::*;
 pub use gate_chain::*;
 pub use z3_ihsan::*;
 
-/// BIZRA Constitutional Thresholds
-pub const IHSAN_THRESHOLD: f64 = 0.95;
-pub const SNR_THRESHOLD: f64 = 0.85;
+// Constitutional thresholds — re-exported from bizra-core (single source of truth).
+pub use bizra_core::IHSAN_THRESHOLD;
+pub use bizra_core::SNR_THRESHOLD;
 
 /// Model capability tiers
 #[napi]
