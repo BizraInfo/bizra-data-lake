@@ -248,6 +248,23 @@ except ImportError:
         return False
 
 
+# AutoModelRouter — VRAM pre-loader + Equalizer command consumer (requires httpx)
+_AUTO_ROUTER_AVAILABLE = False
+try:
+    from .auto_model_router import AutoModelRouter
+
+    _AUTO_ROUTER_AVAILABLE = True
+except ImportError:
+
+    class AutoModelRouter:  # type: ignore
+        """Placeholder - requires httpx."""
+
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "AutoModelRouter requires httpx. Install with: pip install httpx"
+            )
+
+
 # LM Studio backend (optional - requires httpx)
 _LMSTUDIO_AVAILABLE = False
 try:
@@ -359,6 +376,8 @@ __all__ = [
     "VoiceResponse",
     "get_voice_backend",
     "check_voice_availability",
+    # AutoModelRouter (VRAM pre-loader + Equalizer consumer)
+    "AutoModelRouter",
     # Bicameral Mind Local-First Config
     "ModelRole",
     "TaskType",
