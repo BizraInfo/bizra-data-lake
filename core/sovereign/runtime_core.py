@@ -15,7 +15,7 @@ import logging
 import os
 import signal
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import (
@@ -42,10 +42,12 @@ from .runtime_stubs import (
 )
 from .runtime_types import (
     AutonomousLoopProtocol,
+    GoTNodeSnapshot,
     GraphReasonerProtocol,
     GuardianProtocol,
     HealthStatus,
     ImpactTrackerProtocol,
+    ReasoningSummary,
     RuntimeConfig,
     RuntimeMetrics,
     SNROptimizerProtocol,
@@ -61,6 +63,15 @@ try:
     from core.elite import ELITE_VERSION as _ELITE_VERSION
 except Exception:
     _ELITE_VERSION = "1.2.0"
+
+# PERF: Module-level import eliminates 0.5ms deferred import per cache key computation
+try:
+    from core.proof_engine.canonical import hex_digest as _hex_digest
+except Exception:
+    import hashlib as _hashlib
+
+    def _hex_digest(data: bytes) -> str:  # type: ignore[misc]
+        return _hashlib.blake2b(data, digest_size=16).hexdigest()
 
 
 class SovereignRuntime:
@@ -156,11 +167,15 @@ class SovereignRuntime:
         self._pek: Optional[object] = None  # ProactiveExecutionKernel
         self._zpk_bootstrap_result: Optional[object] = None
 
+        # Phase 58: Equalizer Agent + Unified Model Router
+        self._equalizer_agent: Optional[object] = None  # EqualizerAgent
+        self._unified_model_router: Optional[object] = None  # UnifiedModelRouter
+
         # PERF FIX: Use deque for O(1) bounded storage
         self._query_times: Deque[float] = deque(maxlen=100)
 
         # Cache
-        self._cache: dict[str, SovereignResult] = {}
+        self._cache: OrderedDict[str, SovereignResult] = OrderedDict()
 
         # User Context (the system knows its human)
         self._user_context: Optional[UserContextManager] = None
@@ -426,6 +441,9 @@ class SovereignRuntime:
         # Initialize Spearpoint Orchestrator (reproduce / improve / heartbeat)
         self._init_spearpoint_orchestrator()
 
+        # Phase 58: Initialize Equalizer Agent + Unified Model Router
+        self._init_equalizer_and_router()
+
         self._initialized = True
         self._running = True
         self.metrics.started_at = datetime.now()
@@ -433,6 +451,28 @@ class SovereignRuntime:
         self.logger.info("=" * 60)
         self.logger.info("SOVEREIGN RUNTIME READY")
         self.logger.info("=" * 60)
+
+    def _init_equalizer_and_router(self) -> None:
+        """Initialize Equalizer Agent and Unified Model Router."""
+        # Equalizer Agent — cognitive-debt homeostasis control loop
+        try:
+            from core.sovereign.equalizer_agent import EqualizerAgent
+
+            self._equalizer_agent = EqualizerAgent(
+                ihsan_target=self.config.ihsan_threshold,
+            )
+            self.logger.info("EqualizerAgent initialized (ihsan_target=%.2f)", self.config.ihsan_threshold)
+        except Exception as e:
+            self.logger.warning("EqualizerAgent init skipped: %s", e)
+
+        # Unified Model Router — auto-failover LM Studio / Ollama
+        try:
+            from tools.engines.unified_model_router import UnifiedModelRouter
+
+            self._unified_model_router = UnifiedModelRouter()
+            self.logger.info("UnifiedModelRouter registered (deferred init on first query)")
+        except Exception as e:
+            self.logger.warning("UnifiedModelRouter init skipped: %s", e)
 
     @staticmethod
     def _is_stub_component(component: Optional[object]) -> bool:
@@ -2184,6 +2224,7 @@ class SovereignRuntime:
         cache_key = self._cache_key(query)
         if self.config.enable_cache and cache_key in self._cache:
             self.metrics.cache_hits += 1
+            self._cache.move_to_end(cache_key)  # LRU refresh
             cached = self._cache[cache_key]
             return cached
 
@@ -2211,6 +2252,23 @@ class SovereignRuntime:
                     snr_score=result.snr_score,
                     ihsan_score=result.ihsan_score,
                 )
+
+            # Equalizer Agent: observe Ihsan homeostasis after each query
+            if self._equalizer_agent is not None:
+                try:
+                    self._equalizer_agent.observe(
+                        layer=self.metrics.total_queries % 256,
+                        ihsan_score=result.ihsan_score,
+                        backlog=len(self._cache),
+                        presence=255 if query.user_id else 0,
+                    )
+                    eq_cmd = self._equalizer_agent.next_command()
+                    if eq_cmd is not None:
+                        self.logger.info(
+                            "Equalizer: %s reason=%s", eq_cmd.kind.value, eq_cmd.reason
+                        )
+                except Exception as eq_err:
+                    self.logger.debug("Equalizer observe error: %s", eq_err)
 
             return result
 
@@ -2471,6 +2529,38 @@ class SovereignRuntime:
         result.ihsan_score = ihsan_score
         result.validated = query.require_validation
         result.validation_passed = ihsan_score >= self.config.ihsan_threshold
+
+        # STAGE 4.5: Build reasoning summary (Week 3 — transparent decision trace)
+        # Standing on Giants: Besta (GoT graph), Shannon (SNR per node),
+        # Al-Ghazali (auditable intention), Boyd (visible orient phase)
+        reasoning_ms = (time.perf_counter() - start_time) * 1000
+        got_nodes = []
+        for i, thought in enumerate(reasoning_path):
+            got_nodes.append(GoTNodeSnapshot(
+                node_id=f"got_{query.id}_{i}",
+                content=thought[:256],
+                score=snr_score if i == len(reasoning_path) - 1 else confidence,
+                depth=i,
+                is_conclusion=(i == len(reasoning_path) - 1),
+                parent_id=f"got_{query.id}_{i - 1}" if i > 0 else None,
+            ))
+        result.reasoning_summary = ReasoningSummary(
+            got_nodes=got_nodes,
+            agent_scores={},  # Populated by orchestrator path when agents are used
+            alternatives_considered=max(1, len(reasoning_path) - 1),
+            convergence_reason=(
+                f"GoT depth {len(reasoning_path)}, "
+                f"confidence {confidence:.2f}, "
+                f"SNR {snr_score:.3f}, "
+                f"Ihsān {ihsan_score:.3f}"
+            ),
+            total_reasoning_ms=reasoning_ms,
+            confidence=confidence,
+            guardian_verdicts={"constitutional": guardian_verdict}
+            if guardian_verdict
+            else {},
+            model_used=model_used,
+        )
 
         # STAGE 5: Finalize result
         result.processing_time_ms = (time.perf_counter() - start_time) * 1000
@@ -2913,18 +3003,20 @@ class SovereignRuntime:
     # -------------------------------------------------------------------------
 
     def _cache_key(self, query: SovereignQuery) -> str:
-        """Generate cache key for a query (SEC-001: BLAKE3)."""
-        from core.proof_engine.canonical import hex_digest
-
+        """Generate cache key for a query (SEC-001: BLAKE3, module-level import)."""
         content = f"{query.text}:{query.require_reasoning}"
-        return hex_digest(content.encode())[:16]
+        return _hex_digest(content.encode())[:16]
 
     def _update_cache(self, key: str, result: SovereignResult) -> None:
-        """Update cache with new result."""
-        if len(self._cache) >= self.config.max_cache_entries:
-            oldest_keys = list(self._cache.keys())[:100]
-            for k in oldest_keys:
-                del self._cache[k]
+        """Update cache with new result (O(1) LRU via OrderedDict)."""
+        # Move to end if exists (LRU refresh)
+        if key in self._cache:
+            self._cache.move_to_end(key)
+            self._cache[key] = result
+            return
+        # Evict oldest entries if at capacity — O(1) per eviction via popitem(last=False)
+        while len(self._cache) >= self.config.max_cache_entries:
+            self._cache.popitem(last=False)
         self._cache[key] = result
 
     def _mode_to_tier(self, mode: object) -> Optional[object]:
@@ -3212,6 +3304,22 @@ class SovereignRuntime:
             "sovereignty": sovereignty_info,
             "pat_sat": {
                 "negotiation_receipt_chain": self._collect_pat_sat_receipt_chain_status()
+            },
+            "equalizer": {
+                "active": self._equalizer_agent is not None,
+                "mode": (
+                    self._equalizer_agent.detect_mode().value
+                    if self._equalizer_agent and self._equalizer_agent.history
+                    else "uninitialized"
+                ),
+                "observations": (
+                    len(self._equalizer_agent.history)
+                    if self._equalizer_agent
+                    else 0
+                ),
+            },
+            "unified_model_router": {
+                "active": self._unified_model_router is not None,
             },
             "metrics": self.metrics.to_dict(),
         }

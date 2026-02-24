@@ -20,6 +20,19 @@ Standing on Giants:
 
 from core.token.ledger import TokenLedger
 from core.token.mint import TokenMinter
+from core.token.rl_rewards import (
+    composite_reward,
+    compute_agent_reward,
+    enforce_agent_gini,
+    token_efficiency_reward,
+    update_agent_reputation,
+)
+from core.token.strategy import (
+    AgentStrategy,
+    load_strategy,
+    persist_strategy,
+    update_strategy,
+)
 from core.token.types import (
     BLOOM_SYMBOL,
     GENESIS_EPOCH_ID,
@@ -49,4 +62,15 @@ __all__ = [
     # Core classes
     "TokenLedger",
     "TokenMinter",
+    # RL Rewards
+    "composite_reward",
+    "token_efficiency_reward",
+    "compute_agent_reward",
+    "update_agent_reputation",
+    "enforce_agent_gini",
+    # Strategy
+    "AgentStrategy",
+    "update_strategy",
+    "persist_strategy",
+    "load_strategy",
 ]

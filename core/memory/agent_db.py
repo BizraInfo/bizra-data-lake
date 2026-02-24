@@ -148,6 +148,34 @@ class AgentDB:
             last_accessed=now,
         )
 
+        # Constitutional gate: Ihsan threshold
+        if record.ihsan_score < self._config.ihsan_threshold:
+            logger.warning(
+                f"Record below Ihsan threshold "
+                f"({record.ihsan_score:.3f} < {self._config.ihsan_threshold:.3f}), "
+                f"tagging as low-quality"
+            )
+            # Don't reject — tag for review (cold-start users may have low scores)
+            record = MemoryRecord(
+                id=record.id,
+                content=record.content,
+                kind=record.kind,
+                state=record.state,
+                embedding=record.embedding,
+                ihsan_score=record.ihsan_score,
+                snr_score=record.snr_score,
+                importance=max(record.importance * 0.5, 0.01),
+                source=record.source,
+                source_id=record.source_id,
+                related_ids=record.related_ids,
+                tags=list(set(record.tags + ["low_ihsan"])),
+                metadata=record.metadata,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+                last_accessed=record.last_accessed,
+                access_count=record.access_count,
+            )
+
         # Persist to SQLite + FTS
         self._store.upsert(record)
 
@@ -161,6 +189,34 @@ class AgentDB:
     def store_record(self, record: MemoryRecord) -> None:
         """Store a pre-built MemoryRecord (used by adapters and migrator)."""
         self._ensure_initialized()
+
+        # Constitutional gate: Ihsan threshold (same gate as store())
+        if record.ihsan_score < self._config.ihsan_threshold:
+            logger.warning(
+                f"Record {record.id[:8]}... below Ihsan threshold "
+                f"({record.ihsan_score:.3f} < {self._config.ihsan_threshold:.3f}), "
+                f"tagging as low-quality"
+            )
+            record = MemoryRecord(
+                id=record.id,
+                content=record.content,
+                kind=record.kind,
+                state=record.state,
+                embedding=record.embedding,
+                ihsan_score=record.ihsan_score,
+                snr_score=record.snr_score,
+                importance=max(record.importance * 0.5, 0.01),
+                source=record.source,
+                source_id=record.source_id,
+                related_ids=record.related_ids,
+                tags=list(set(record.tags + ["low_ihsan"])),
+                metadata=record.metadata,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+                last_accessed=record.last_accessed,
+                access_count=record.access_count,
+            )
+
         self._store.upsert(record)
         if record.embedding is not None:
             self._hnsw.add(record.id, record.embedding)

@@ -551,6 +551,7 @@ class SovereignAPIServer:
     async def _handle_health(self) -> str:
         """Handle health check."""
         status = self.runtime.status()
+        pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
         health = HealthResponse(
             status=status["health"]["status"],
             version=status["identity"]["version"],
@@ -558,6 +559,9 @@ class SovereignAPIServer:
             checks={
                 "runtime": status["state"]["running"],
                 "autonomous": status["autonomous"].get("running", False),
+                "pat_sat_receipt_chain_verified": bool(
+                    pat_sat_chain.get("verified_end_to_end", False)
+                ),
             },
         )
         return self._json_response(health.to_dict())
@@ -992,6 +996,8 @@ def create_fastapi_app(runtime: Any) -> Any:
     @app.get("/v1/health")
     async def health():
         status = runtime.status()
+        strict_gate = status.get("health", {}).get("strict_gate", {})
+        pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
 
         # Subsystem availability check
         subsystems: dict[str, str] = {}
@@ -1030,6 +1036,10 @@ def create_fastapi_app(runtime: Any) -> Any:
         else:
             health_status = "unhealthy"
 
+        # Strict startup gate overrides aggregate scoring when enabled.
+        if strict_gate.get("enabled") and not strict_gate.get("passed", True):
+            health_status = "unhealthy"
+
         return {
             "status": health_status,
             "version": status["identity"]["version"],
@@ -1037,6 +1047,19 @@ def create_fastapi_app(runtime: Any) -> Any:
             "subsystems": subsystems,
             "stub_count": stub_count,
             "unavailable_count": unavailable_count,
+            "strict_gate": strict_gate,
+            "pat_sat_receipt_chain": {
+                "verified_end_to_end": bool(
+                    pat_sat_chain.get("verified_end_to_end", False)
+                ),
+                "chain_valid": pat_sat_chain.get("chain_valid"),
+                "total_negotiation_receipts": pat_sat_chain.get(
+                    "total_negotiation_receipts", 0
+                ),
+                "latest_sequence": pat_sat_chain.get("latest_sequence"),
+                "latest_entry_hash": pat_sat_chain.get("latest_entry_hash"),
+                "latest_receipt_id": pat_sat_chain.get("latest_receipt_id"),
+            },
         }
 
     @app.get("/v1/status")

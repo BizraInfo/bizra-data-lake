@@ -43,13 +43,27 @@ class GenesisConfig:
     hardware_scan: bool = False
     pat_count: int = 7
     sat_count: int = 5
+    sat_mode: str = "mini5"  # mini5 | full49
     hda_bridge: bool = False
     mobile_pair: Optional[str] = None  # e.g. "Z Fold 6:SM-F956B"
     guild_join: Optional[str] = None  # e.g. "agriculture"
     quest_accept: Optional[str] = None  # e.g. "001-sustainable-water"
     ihsan_target: float = 0.999
+    strict_bootstrap: bool = True
+    allow_degraded: bool = False
     node_dir: Optional[str] = None
     architect_name: str = "MoMo"
+
+    def __post_init__(self) -> None:
+        mode = (self.sat_mode or "").strip().lower() or "mini5"
+        if mode not in {"mini5", "full49"}:
+            raise ValueError(f"Invalid sat_mode: {self.sat_mode}")
+        self.sat_mode = mode
+
+        if self.sat_mode == "mini5":
+            self.sat_count = 5
+        elif self.sat_mode == "full49":
+            self.sat_count = 49
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -57,11 +71,14 @@ class GenesisConfig:
             "hardware_scan": self.hardware_scan,
             "pat_count": self.pat_count,
             "sat_count": self.sat_count,
+            "sat_mode": self.sat_mode,
             "hda_bridge": self.hda_bridge,
             "mobile_pair": self.mobile_pair,
             "guild_join": self.guild_join,
             "quest_accept": self.quest_accept,
             "ihsan_target": self.ihsan_target,
+            "strict_bootstrap": self.strict_bootstrap,
+            "allow_degraded": self.allow_degraded,
         }
 
 
@@ -74,6 +91,8 @@ class GenesisStep:
     duration_ms: float = 0.0
     details: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
+    degraded: bool = False
+    reason_code: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -82,6 +101,8 @@ class GenesisStep:
             "duration_ms": round(self.duration_ms, 2),
             "details": self.details,
             "error": self.error,
+            "degraded": self.degraded,
+            "reason_code": self.reason_code,
         }
 
 
@@ -97,6 +118,11 @@ class GenesisResult:
     genesis_hash: str = ""
     total_duration_ms: float = 0.0
     success: bool = False
+    status: str = "pending"
+    reason_code: Optional[str] = None
+    reason_codes: List[str] = field(default_factory=list)
+    degraded: bool = False
+    strict_gate_passed: bool = False
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc)
         .isoformat()
@@ -135,6 +161,11 @@ class GenesisResult:
             "node_id": self.node_id,
             "genesis_hash": self.genesis_hash,
             "success": self.success,
+            "status": self.status,
+            "reason_code": self.reason_code,
+            "reason_codes": self.reason_codes,
+            "degraded": self.degraded,
+            "strict_gate_passed": self.strict_gate_passed,
             "total_duration_ms": round(self.total_duration_ms, 2),
             "successful_steps": self.successful_steps,
             "failed_steps": self.failed_steps,

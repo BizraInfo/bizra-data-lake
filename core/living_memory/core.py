@@ -59,6 +59,28 @@ class MemoryState(str, Enum):
     DELETED = "deleted"  # Marked for removal
 
 
+# HHMM promotion mirror (Rust parity):
+# Fast layer (5 reinforcements): working/episodic/prospective
+# Slow layer (10 reinforcements): procedural
+# Glacial layer (ceiling): semantic
+_HHMM_FAST_TYPES = frozenset(
+    (
+        MemoryType.WORKING,
+        MemoryType.EPISODIC,
+        MemoryType.PROSPECTIVE,
+    )
+)
+_HHMM_SLOW_TYPES = frozenset((MemoryType.PROCEDURAL,))
+_HHMM_FAST_PROMOTION_THRESHOLD = 5
+_HHMM_SLOW_PROMOTION_THRESHOLD = 10
+_HHMM_PROMOTION_TARGET: Dict[MemoryType, MemoryType] = {
+    MemoryType.WORKING: MemoryType.EPISODIC,
+    MemoryType.PROSPECTIVE: MemoryType.EPISODIC,
+    MemoryType.EPISODIC: MemoryType.PROCEDURAL,
+    MemoryType.PROCEDURAL: MemoryType.SEMANTIC,
+}
+
+
 @dataclass
 class MemoryEntry:
     """A single memory entry in the living system."""
@@ -72,6 +94,7 @@ class MemoryEntry:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_accessed: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     access_count: int = 0
+    reinforcement_count: int = 1
 
     # Quality metrics
     ihsan_score: float = 1.0
@@ -98,6 +121,7 @@ class MemoryEntry:
             "created_at": self.created_at.isoformat(),
             "last_accessed": self.last_accessed.isoformat(),
             "access_count": self.access_count,
+            "reinforcement_count": self.reinforcement_count,
             "ihsan_score": self.ihsan_score,
             "snr_score": self.snr_score,
             "confidence": self.confidence,
@@ -122,6 +146,13 @@ class MemoryEntry:
             data.get("last_accessed", datetime.now(timezone.utc).isoformat())
         )
         entry.access_count = data.get("access_count", 0)
+        legacy_access = entry.access_count
+        entry.reinforcement_count = data.get(
+            "reinforcement_count",
+            legacy_access if legacy_access > 0 else 1,
+        )
+        if entry.reinforcement_count < 1:
+            entry.reinforcement_count = 1
         entry.ihsan_score = data.get("ihsan_score", 1.0)
         entry.snr_score = data.get("snr_score", 1.0)
         entry.confidence = data.get("confidence", 1.0)
@@ -184,6 +215,7 @@ class MemoryStats:
     avg_ihsan: float = 1.0
     avg_snr: float = 1.0
     avg_access_count: float = 0.0
+    avg_reinforcement_count: float = 0.0
 
     last_consolidation: Optional[datetime] = None
     last_cleanup: Optional[datetime] = None
@@ -200,6 +232,7 @@ class MemoryStats:
             "avg_ihsan": self.avg_ihsan,
             "avg_snr": self.avg_snr,
             "avg_access_count": self.avg_access_count,
+            "avg_reinforcement_count": self.avg_reinforcement_count,
             "last_consolidation": (
                 self.last_consolidation.isoformat() if self.last_consolidation else None
             ),
@@ -243,6 +276,18 @@ def _keyword_relevance(query_keywords: Set[str], content: str) -> float:
     # Jaccard-like but weighted toward query coverage
     coverage = len(overlap) / len(query_keywords)
     return min(1.0, coverage)
+
+
+def _corroboration_signature(content: str) -> str:
+    """
+    Deterministic semantic signature for cross-entry corroboration.
+
+    Requires at least 3 meaningful keywords to avoid reinforcing sparse/noisy text.
+    """
+    keywords = sorted(_extract_keywords(content))
+    if len(keywords) < 3:
+        return ""
+    return "|".join(keywords[:3])
 
 
 class LivingMemoryCore:
@@ -505,6 +550,7 @@ class LivingMemoryCore:
             # Update access stats
             entry.last_accessed = datetime.now(timezone.utc)
             entry.access_count += 1
+            self._reinforce(entry)
             results.append(entry)
 
         return results
@@ -564,6 +610,109 @@ class LivingMemoryCore:
         logger.info(f"Cleaned up {removed} low-value memories")
         return removed
 
+    def _promotion_threshold(self, memory_type: MemoryType) -> Optional[int]:
+        """Return HHMM reinforcement threshold for a memory type."""
+        if memory_type in _HHMM_FAST_TYPES:
+            return _HHMM_FAST_PROMOTION_THRESHOLD
+        if memory_type in _HHMM_SLOW_TYPES:
+            return _HHMM_SLOW_PROMOTION_THRESHOLD
+        return None
+
+    @staticmethod
+    def _reinforce(entry: MemoryEntry, delta: int = 1) -> None:
+        """Increment semantic reinforcement count with a hard floor of 1."""
+        entry.reinforcement_count = max(1, entry.reinforcement_count + delta)
+
+    def _try_promote_entry(self, entry_id: str, entry: MemoryEntry) -> bool:
+        """
+        Promote one HHMM layer when reinforcement threshold is met.
+
+        Promotion uses explicit semantic reinforcement count rather than raw reads.
+        Transition remains one-step per consolidation cycle to preserve adjacency.
+        """
+        target_type = _HHMM_PROMOTION_TARGET.get(entry.memory_type)
+        if target_type is None:
+            return False
+        threshold = self._promotion_threshold(entry.memory_type)
+        if threshold is None or entry.reinforcement_count < threshold:
+            return False
+        prior_type = entry.memory_type
+        if prior_type == target_type:
+            return False
+        entry.memory_type = target_type
+        self._type_index[prior_type].discard(entry_id)
+        self._type_index[target_type].add(entry_id)
+        return True
+
+    async def apply_execution_feedback(
+        self,
+        entry_ids: List[str],
+        *,
+        success: bool,
+        reason: str = "",
+        receipt_ref: Optional[str] = None,
+    ) -> Dict[str, int]:
+        """
+        Apply execution-outcome feedback to source memories.
+
+        `success=True` reinforces memories that informed a successful outcome.
+        `success=False` marks memories as corrupted so healing can revalidate them.
+        """
+        stats = {
+            "requested": len(entry_ids),
+            "processed": 0,
+            "missing": 0,
+            "reinforced": 0,
+            "flagged": 0,
+            "promoted": 0,
+        }
+        if not entry_ids:
+            return stats
+
+        now = datetime.now(timezone.utc)
+        seen: Set[str] = set()
+
+        for entry_id in entry_ids:
+            if not entry_id or entry_id in seen:
+                continue
+            seen.add(entry_id)
+
+            entry = self._memories.get(entry_id)
+            if entry is None:
+                stats["missing"] += 1
+                continue
+            if entry.state == MemoryState.DELETED:
+                continue
+
+            stats["processed"] += 1
+            entry.last_accessed = now
+
+            if success:
+                self._reinforce(entry)
+                if entry.state == MemoryState.CORRUPTED:
+                    entry.state = MemoryState.ACTIVE
+                if self._try_promote_entry(entry_id, entry):
+                    stats["promoted"] += 1
+                stats["reinforced"] += 1
+            else:
+                entry.state = MemoryState.CORRUPTED
+                entry.confidence = max(0.0, entry.confidence - 0.1)
+                stats["flagged"] += 1
+
+            await self._save_entry(entry)
+
+        if not success and stats["flagged"] > 0:
+            suffix = f" receipt={receipt_ref}" if receipt_ref else ""
+            reason_note = f" reason={reason}" if reason else ""
+            logger.warning(
+                "Execution feedback flagged %d memory entries as CORRUPTED%s%s",
+                stats["flagged"],
+                reason_note,
+                suffix,
+            )
+
+        return stats
+
     async def consolidate(self) -> Dict[str, int]:
         """
         Consolidate memories (merge similar, archive old).
@@ -571,11 +720,19 @@ class LivingMemoryCore:
         This is the "sleep" function of living memory.
         """
         async with self._consolidation_lock:
-            stats = {"merged": 0, "archived": 0, "repaired": 0}
+            stats = {
+                "merged": 0,
+                "archived": 0,
+                "repaired": 0,
+                "promoted": 0,
+                "reinforced": 0,
+                "corroborated": 0,
+            }
 
             now = datetime.now(timezone.utc)
             archive_threshold = now - timedelta(days=7)
 
+            # Pass 1: archival + repair.
             for entry_id, entry in list(self._memories.items()):
                 # Archive old episodic memories
                 if (
@@ -585,16 +742,42 @@ class LivingMemoryCore:
                 ):
                     entry.state = MemoryState.ARCHIVED
                     stats["archived"] += 1
+                    continue
 
                 # Repair corrupted entries
                 if entry.state == MemoryState.CORRUPTED:
-                    # Attempt repair by recomputing quality
                     ihsan, snr = await self._compute_quality(entry.content)
                     entry.ihsan_score = ihsan
                     entry.snr_score = snr
                     if ihsan >= self.ihsan_threshold * 0.8:
                         entry.state = MemoryState.ACTIVE
+                        self._reinforce(entry)
                         stats["repaired"] += 1
+                        stats["reinforced"] += 1
+
+            # Pass 2: cross-entry corroboration (3+ entries in same semantic cluster).
+            buckets: Dict[str, list[MemoryEntry]] = {}
+            for entry in self._memories.values():
+                if entry.state != MemoryState.ACTIVE:
+                    continue
+                signature = _corroboration_signature(entry.content)
+                if not signature:
+                    continue
+                buckets.setdefault(signature, []).append(entry)
+            for group in buckets.values():
+                if len(group) < 3:
+                    continue
+                for entry in group:
+                    self._reinforce(entry)
+                    stats["reinforced"] += 1
+                    stats["corroborated"] += 1
+
+            # Pass 3: HHMM promotion (fast->slow at 5, slow->glacial at 10).
+            for entry_id, entry in list(self._memories.items()):
+                if entry.state == MemoryState.ACTIVE and self._try_promote_entry(
+                    entry_id, entry
+                ):
+                    stats["promoted"] += 1
 
             # Save after consolidation
             await self._save_memories()
@@ -621,6 +804,7 @@ class LivingMemoryCore:
         ihsan_sum = 0.0
         snr_sum = 0.0
         access_sum = 0
+        reinforcement_sum = 0
 
         for entry in self._memories.values():
             if entry.state == MemoryState.ACTIVE:
@@ -637,10 +821,12 @@ class LivingMemoryCore:
             ihsan_sum += entry.ihsan_score
             snr_sum += entry.snr_score
             access_sum += entry.access_count
+            reinforcement_sum += entry.reinforcement_count
 
         if stats.total_entries > 0:
             stats.avg_ihsan = ihsan_sum / stats.total_entries
             stats.avg_snr = snr_sum / stats.total_entries
             stats.avg_access_count = access_sum / stats.total_entries
+            stats.avg_reinforcement_count = reinforcement_sum / stats.total_entries
 
         return stats

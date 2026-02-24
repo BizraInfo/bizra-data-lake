@@ -23,10 +23,13 @@ from enum import Enum, auto
 from typing import Any, Optional
 
 from core.integration.constants import (
+    FEDERATION_NODE_COUNT_DEFAULT,
+    SAT_VALIDATORS_PER_NODE,
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
     UNIFIED_AGENT_TIMEOUT_MS,
     UNIFIED_SNR_THRESHOLD,
+    sat_frontier_quorum,
 )
 
 
@@ -96,7 +99,7 @@ class EntropyRouter:
         context = context or {}
         complexity_score = self.estimate_complexity(query_text, context)
         complexity = self._score_to_tier(complexity_score)
-        return self._build_decision(complexity, complexity_score, query_text)
+        return self._build_decision(complexity, complexity_score, query_text, context)
 
     def estimate_complexity(
         self, query_text: str, context: Optional[dict[str, Any]] = None
@@ -167,9 +170,26 @@ class EntropyRouter:
 
     @staticmethod
     def _build_decision(
-        complexity: QueryComplexity, score: float, query: str
+        complexity: QueryComplexity,
+        score: float,
+        query: str,
+        context: Optional[dict[str, Any]] = None,
     ) -> RoutingDecision:
         """Build routing decision from classified complexity."""
+        context = context or {}
+        federation_nodes = EntropyRouter._coerce_positive_int(
+            context.get("federation_node_count"),
+            FEDERATION_NODE_COUNT_DEFAULT,
+        )
+        sat_validators_per_node = EntropyRouter._coerce_positive_int(
+            context.get("sat_validators_per_node"),
+            SAT_VALIDATORS_PER_NODE,
+        )
+        frontier_quorum = sat_frontier_quorum(
+            federation_nodes,
+            sat_validators_per_node=sat_validators_per_node,
+        )
+
         tier_config = {
             QueryComplexity.TRIVIAL: {
                 "system": "S1_REFLEXIVE",
@@ -206,7 +226,7 @@ class EntropyRouter:
             QueryComplexity.FRONTIER: {
                 "system": "S2_DELIBERATIVE",
                 "max_latency_ms": UNIFIED_AGENT_TIMEOUT_MS,
-                "quorum_size": 33,  # Full SAT-49 quorum (2f+1)
+                "quorum_size": frontier_quorum,  # Federated SAT quorum (2f+1)
                 "snr_requirement": SNR_THRESHOLD_T0_ELITE,
                 "use_got": True,
                 "use_orchestrator": True,
@@ -214,8 +234,24 @@ class EntropyRouter:
         }
         config = tier_config[complexity]
         short_query = query[:60] + "..." if len(query) > 60 else query
+        extra = ""
+        if complexity == QueryComplexity.FRONTIER:
+            extra = (
+                f", federation_nodes={federation_nodes},"
+                f" sat_per_node={sat_validators_per_node},"
+                f" quorum={frontier_quorum}"
+            )
         return RoutingDecision(
             query_complexity=complexity,
-            reasoning=f"score={score:.3f} -> {complexity.name} for '{short_query}'",
+            reasoning=f"score={score:.3f} -> {complexity.name} for '{short_query}'{extra}",
             **config,
         )
+
+    @staticmethod
+    def _coerce_positive_int(value: Any, default: int) -> int:
+        """Parse positive integer with bounded fallback."""
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed > 0 else default

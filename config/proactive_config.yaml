@@ -79,10 +79,17 @@ model_routing:
   backend: lm_studio                     # Primary: LM Studio at 192.168.56.1:1234
   fallback: ollama                       # Fallback: Ollama at localhost:11434
 
-  # PAT Agent → Model assignments
-  planner: agentflow-planner-7b-i1       # PAT Master Reasoner — planning, decomposition
-  reasoner: deepseek/deepseek-r1-0528-qwen3-8b  # Deep analysis, OODA Orient phase
-  fast: qwen2.5-0.5b-instruct           # Quick classification, routing, triage
+  # PAT Agent → Model assignments (multi-model fleet: small specialized > one big generic)
+  # Each agent gets a DIFFERENT model optimized for its role.
+  # LM Studio auto-loads models on request — no pre-loading needed.
+  planner: agentflow-planner-7b-i1       # Executor — planning, decomposition (7B)
+  reasoner: deepseek/deepseek-r1-0528-qwen3-8b  # Researcher — deep analysis, chain-of-thought (8B)
+  reasoner_large: mistralai/ministral-3-14b-reasoning  # Guardian — ethical oversight needs depth (14B)
+  thinker: qwen/qwen3-4b-thinking-2507  # Strategist — deliberate thinking, long-horizon (4B)
+  general: liquid/lfm2.5-1.2b           # Analyst — fast pattern recognition (1.2B)
+  creative: chuanli11_-_llama-3.2-3b-instruct-uncensored  # Creator — unrestricted creativity (3B)
+  nano: qwen2.5-0.5b-instruct           # Coordinator — fast synthesis, triage (0.5B)
+  fast: qwen2.5-0.5b-instruct           # Quick classification, routing, triage (0.5B)
   vision: qwen/qwen3-vl-8b              # Complex visual reasoning (on-demand)
   vision_light: qwen/qwen3-vl-4b        # Lightweight visual tasks (default)
   voice: deephat-v1-7b                   # Voice interaction (on-demand hot-swap)
