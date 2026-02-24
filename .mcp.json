@@ -1,72 +1,100 @@
-{
-  "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
-  "_version": "1.0.0",
+commit acafe7aa473ed9179cd3ce975b3593ef80ac8134
+Author: bizrainfo <m.beshr@bizra.info>
+Date:   Tue Feb 24 20:51:58 2026 +0400
 
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"],
-      "description": "Live documentation lookup for libraries (tokio, pyo3, pydantic, fastapi, etc.)"
-    },
+    chore: normalize CRLF→LF line endings, fix MCP config, add test collection guard
+    
+    - Normalize 148 Python files from CRLF to LF line endings across core/ and tests/
+    - Fix .mcp.json: correct npm scope (@anthropic-ai → @modelcontextprotocol), bump to v1.1.0
+    - Add torch/pandas collection guard in tests/integration/conftest.py to prevent
+      pandas.__spec__ failures during full-suite collection
+    - Add sape_metrics.py utility script
+    - Update .gitignore: exclude BIZRA-DATA-LAKE/ worktree and .codeviz/ tool output
+    
+    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-filesystem@latest", "."],
-      "description": "Local filesystem access for the repo"
-    },
-
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-memory@latest"],
-      "description": "Cross-session persistent memory"
-    },
-
-    "fetch": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-fetch@latest"],
-      "description": "HTTP fetch for external resources"
-    },
-
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-sequential-thinking@latest"],
-      "description": "Multi-step reasoning and problem decomposition"
-    },
-
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-github@latest"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
-      },
-      "description": "GitHub issues, PRs, actions integration — set token in .env"
-    },
-
-    "brave-search": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-brave-search@latest"],
-      "env": {
-        "BRAVE_API_KEY": ""
-      },
-      "description": "Web search — set API key in .env"
-    },
-
-    "sqlite": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-sqlite@latest", "./data/bizra.db"],
-      "description": "SQLite database for local data queries"
-    },
-
-    "bizra-sovereign": {
-      "command": "python3",
-      "args": ["tools/mcp/sovereign_mcp_server.py", "--stdio"],
-      "description": "BIZRA Sovereign Engine MCP — constitutional gates, SNR, Ihsan"
-    },
-
-    "bizra-ecosystem": {
-      "command": "python3",
-      "args": ["tools/mcp/ecosystem_mcp_server.py", "--stdio"],
-      "description": "BIZRA Ecosystem health, status, and monitoring"
-    }
-  }
-}
+diff --git a/.mcp.json b/.mcp.json
+index b6ef232..2fa85de 100644
+--- a/.mcp.json
++++ b/.mcp.json
+@@ -1,6 +1,7 @@
+ {
+   "_comment": "BIZRA Team MCP Configuration — checked into repo for team-wide consistency",
+-  "_version": "1.0.0",
++  "_version": "1.1.0",
++  "_updated": "2026-02-24 — Fixed: wrong npm scope (@anthropic-ai → @modelcontextprotocol), python3→python on Windows, missing data/bizra.db, empty API keys",
+ 
+   "mcpServers": {
+     "context7": {
+@@ -11,60 +12,48 @@
+ 
+     "filesystem": {
+       "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-filesystem@latest", "."],
++      "args": ["-y", "@modelcontextprotocol/server-filesystem@latest", "."],
+       "description": "Local filesystem access for the repo"
+     },
+ 
+     "memory": {
+       "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-memory@latest"],
++      "args": ["-y", "@modelcontextprotocol/server-memory@latest"],
+       "description": "Cross-session persistent memory"
+     },
+ 
+-    "fetch": {
+-      "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-fetch@latest"],
+-      "description": "HTTP fetch for external resources"
+-    },
+-
+     "sequential-thinking": {
+       "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-sequential-thinking@latest"],
++      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@latest"],
+       "description": "Multi-step reasoning and problem decomposition"
+     },
+ 
+     "github": {
+       "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-github@latest"],
++      "args": ["-y", "@modelcontextprotocol/server-github@latest"],
+       "env": {
+-        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
++        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+       },
+-      "description": "GitHub issues, PRs, actions integration — set token in .env"
++      "description": "GitHub issues, PRs, actions integration — reads GITHUB_TOKEN from .env"
+     },
+ 
+     "brave-search": {
+       "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-brave-search@latest"],
++      "args": ["-y", "@modelcontextprotocol/server-brave-search@latest"],
+       "env": {
+-        "BRAVE_API_KEY": ""
++        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+       },
+-      "description": "Web search — set API key in .env"
+-    },
+-
+-    "sqlite": {
+-      "command": "npx",
+-      "args": ["-y", "@anthropic-ai/mcp-sqlite@latest", "./data/bizra.db"],
+-      "description": "SQLite database for local data queries"
++      "description": "Web search — requires BRAVE_API_KEY env var"
+     },
+ 
+     "bizra-sovereign": {
+-      "command": "python3",
++      "command": "python",
+       "args": ["tools/mcp/sovereign_mcp_server.py", "--stdio"],
+       "description": "BIZRA Sovereign Engine MCP — constitutional gates, SNR, Ihsan"
+     },
+ 
+     "bizra-ecosystem": {
+-      "command": "python3",
++      "command": "python",
+       "args": ["tools/mcp/ecosystem_mcp_server.py", "--stdio"],
+       "description": "BIZRA Ecosystem health, status, and monitoring"
+     }
