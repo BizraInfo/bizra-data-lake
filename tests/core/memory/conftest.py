@@ -20,10 +20,12 @@ def tmp_memory_dir(tmp_path):
 @pytest.fixture
 def memory_config(tmp_memory_dir):
     """MemoryConfig pointing to a temp directory."""
-    return MemoryConfig(
+    cfg = MemoryConfig(
         data_dir=tmp_memory_dir,
         hnsw=HNSWConfig(dimensions=8, max_elements=1000),
     )
+    cfg.auto_embed = False
+    return cfg
 
 
 @pytest.fixture
