@@ -55,6 +55,7 @@ class SQLiteMemoryStore:
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._create_schema()
+        self._ensure_columns()
         logger.info(f"SQLite memory store opened: {self.db_path}")
 
     def close(self) -> None:
@@ -81,6 +82,7 @@ class SQLiteMemoryStore:
                 created_at TEXT NOT NULL,
                 last_accessed TEXT NOT NULL,
                 access_count INTEGER DEFAULT 0,
+                reinforcement_count INTEGER DEFAULT 1,
                 ihsan_score REAL DEFAULT 1.0,
                 snr_score REAL DEFAULT 1.0,
                 confidence REAL DEFAULT 1.0,
@@ -108,6 +110,30 @@ class SQLiteMemoryStore:
         """)
         self._conn.commit()
 
+    def _ensure_columns(self) -> None:
+        """Apply additive column migrations for existing databases."""
+        if self._conn is None:
+            raise RuntimeError(
+                "Database connection is closed — call initialize() first"
+            )
+        rows = self._conn.execute("PRAGMA table_info(memories)").fetchall()
+        columns = {
+            (row["name"] if isinstance(row, sqlite3.Row) else row[1]) for row in rows
+        }
+        if "reinforcement_count" not in columns:
+            self._conn.execute(
+                "ALTER TABLE memories ADD COLUMN reinforcement_count INTEGER DEFAULT 1"
+            )
+        self._conn.execute("""
+            UPDATE memories
+            SET reinforcement_count = CASE
+                WHEN reinforcement_count IS NULL OR reinforcement_count < 1
+                    THEN CASE WHEN access_count > 0 THEN access_count ELSE 1 END
+                ELSE reinforcement_count
+            END
+            """)
+        self._conn.commit()
+
     # ── CRUD Operations ─────────────────────────────────────────────────
 
     def save_entry(self, entry: MemoryEntry) -> None:
@@ -123,10 +149,10 @@ class SQLiteMemoryStore:
             """
             INSERT OR REPLACE INTO memories (
                 id, content, memory_type, created_at, last_accessed,
-                access_count, ihsan_score, snr_score, confidence,
+                access_count, reinforcement_count, ihsan_score, snr_score, confidence,
                 state, source, importance, emotional_weight,
                 related_ids, parent_id, embedding
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 entry.id,
@@ -135,6 +161,7 @@ class SQLiteMemoryStore:
                 entry.created_at.isoformat(),
                 entry.last_accessed.isoformat(),
                 entry.access_count,
+                entry.reinforcement_count,
                 entry.ihsan_score,
                 entry.snr_score,
                 entry.confidence,
@@ -165,10 +192,10 @@ class SQLiteMemoryStore:
                     """
                     INSERT OR REPLACE INTO memories (
                         id, content, memory_type, created_at, last_accessed,
-                        access_count, ihsan_score, snr_score, confidence,
+                        access_count, reinforcement_count, ihsan_score, snr_score, confidence,
                         state, source, importance, emotional_weight,
                         related_ids, parent_id, embedding
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         entry.id,
@@ -177,6 +204,7 @@ class SQLiteMemoryStore:
                         entry.created_at.isoformat(),
                         entry.last_accessed.isoformat(),
                         entry.access_count,
+                        entry.reinforcement_count,
                         entry.ihsan_score,
                         entry.snr_score,
                         entry.confidence,
@@ -310,6 +338,10 @@ class SQLiteMemoryStore:
         entry.created_at = datetime.fromisoformat(row["created_at"])
         entry.last_accessed = datetime.fromisoformat(row["last_accessed"])
         entry.access_count = row["access_count"]
+        reinforcement = row["reinforcement_count"]
+        if reinforcement is None or reinforcement < 1:
+            reinforcement = entry.access_count if entry.access_count > 0 else 1
+        entry.reinforcement_count = reinforcement
         entry.ihsan_score = row["ihsan_score"]
         entry.snr_score = row["snr_score"]
         entry.confidence = row["confidence"]

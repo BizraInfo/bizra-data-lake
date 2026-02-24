@@ -349,6 +349,18 @@ class SecureSession:
         self.last_activity = time.time()
 
 
+@dataclass(frozen=True)
+class HandshakeOutcome:
+    """Handshake initiation result with explicit transport state."""
+
+    peer_address: str
+    state: HandshakeState
+    session_id: Optional[str] = None
+    reason: Optional[str] = None
+    transport: str = ""
+    initiated_at: float = field(default_factory=time.time)
+
+
 # =============================================================================
 # SECURE CHANNEL INTERFACE
 # =============================================================================
@@ -364,7 +376,7 @@ class SecureChannel(ABC):
     @abstractmethod
     async def handshake_initiator(
         self, peer_address: str, peer_static_public: Optional[bytes] = None
-    ) -> SecureSession:
+    ) -> HandshakeOutcome:
         """
         Initiate handshake as the initiator.
 
@@ -373,7 +385,7 @@ class SecureChannel(ABC):
             peer_static_public: Optional known peer Ed25519 public key
 
         Returns:
-            Established secure session
+            Handshake outcome with explicit state
 
         Raises:
             HandshakeError: If handshake fails
@@ -539,7 +551,7 @@ class NoiseTransport(SecureChannel):
 
     async def handshake_initiator(
         self, peer_address: str, peer_static_public: Optional[bytes] = None
-    ) -> SecureSession:
+    ) -> HandshakeOutcome:
         """
         Initiate Noise_XX handshake.
 
@@ -570,9 +582,13 @@ class NoiseTransport(SecureChannel):
         if self.send_callback:
             self.send_callback(peer_address, msg)
 
-        # In async implementation, wait for response
-        # For now, return placeholder - actual session created in process_handshake_response
-        raise HandshakeError("Handshake initiated, awaiting response")
+        return HandshakeOutcome(
+            peer_address=peer_address,
+            state=HandshakeState.AWAITING_RESPONSE,
+            session_id=handshake_id,
+            reason=None,
+            transport="noise",
+        )
 
     def create_handshake_init(self) -> Tuple[bytes, dict]:
         """
@@ -882,6 +898,7 @@ class DTLSTransport(SecureChannel):
         static_public_key: bytes,
         node_id: str,
         cipher_suite: str = "chacha20-poly1305",
+        enforce_cookie: bool = False,
     ):
         """
         Initialize DTLS transport.
@@ -896,6 +913,7 @@ class DTLSTransport(SecureChannel):
         self.static_public = static_public_key
         self.node_id = node_id
         self.cipher_suite = cipher_suite
+        self.enforce_cookie = enforce_cookie
 
         # DTLS-specific state
         self._cookie_secret = os.urandom(32)
@@ -941,7 +959,7 @@ class DTLSTransport(SecureChannel):
 
     async def handshake_initiator(
         self, peer_address: str, peer_static_public: Optional[bytes] = None
-    ) -> SecureSession:
+    ) -> HandshakeOutcome:
         """Initiate DTLS handshake."""
         # Generate client random
         client_random = os.urandom(32)
@@ -959,7 +977,7 @@ class DTLSTransport(SecureChannel):
         hello += struct.pack("!B", 0)  # Cookie length (0 for initial hello)
         hello += e_public  # Key share
 
-        struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
+        msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
 
         # Store pending state
         self._pending_handshakes[peer_address] = {
@@ -970,7 +988,16 @@ class DTLSTransport(SecureChannel):
             "initiated_at": time.time(),
         }
 
-        raise HandshakeError("DTLS handshake initiated, awaiting ServerHello")
+        if hasattr(self, "send_callback") and getattr(self, "send_callback"):
+            self.send_callback(peer_address, msg)  # type: ignore[attr-defined]
+
+        return HandshakeOutcome(
+            peer_address=peer_address,
+            state=HandshakeState.AWAITING_RESPONSE,
+            session_id=None,
+            reason=None,
+            transport="dtls",
+        )
 
     def create_handshake_init(self) -> Tuple[bytes, dict]:
         """Create DTLS ClientHello."""
@@ -1025,12 +1052,16 @@ class DTLSTransport(SecureChannel):
         cookie_len = handshake_init[offset]
         offset += 1
 
-        # TODO: Implement cookie verification for DoS protection
+        if cookie_len not in (0, DTLS_COOKIE_LENGTH):
+            raise HandshakeError(f"Invalid cookie length: {cookie_len}")
+
         if cookie_len > 0:
             cookie = handshake_init[offset : offset + cookie_len]
             offset += cookie_len
             if not self._verify_cookie(peer_address, client_random, cookie):
                 raise HandshakeError("Invalid cookie")
+        elif self.enforce_cookie:
+            raise HandshakeError("Missing DTLS cookie")
 
         client_e_public = handshake_init[offset : offset + NOISE_DH_SIZE]
 
@@ -1487,6 +1518,7 @@ __all__ = [
     "SymmetricState",
     "ReplayWindow",
     "SecureSession",
+    "HandshakeOutcome",
     "HandshakeState",
     "MessageType",
     # Transport implementations

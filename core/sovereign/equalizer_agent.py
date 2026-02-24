@@ -68,7 +68,9 @@ class EqualizerAgent:
     history: list[EqualizerState] = field(default_factory=list)
     pending_patterns: list[PatternCandidate] = field(default_factory=list)
 
-    def observe(self, *, layer: int, ihsan_score: float, backlog: int, presence: int) -> EqualizerState:
+    def observe(
+        self, *, layer: int, ihsan_score: float, backlog: int, presence: int
+    ) -> EqualizerState:
         deficit = max(0.0, self.ihsan_target - ihsan_score)
         deficit_u8 = min(255, int(round(deficit * 255)))
         state = EqualizerState(
@@ -130,12 +132,18 @@ class EqualizerAgent:
             )
 
         if mode is OperationalMode.RECOVERY:
-            return EqualizerCommand(kind=EqualizerCommandKind.RESUME, reason="recovery_detected")
+            return EqualizerCommand(
+                kind=EqualizerCommandKind.RESUME, reason="recovery_detected"
+            )
 
         return None
 
     def select_critical_pattern(self) -> bytes:
-        candidates = [p for p in self.pending_patterns if p.snr < 0.90 and p.ihsan < self.ihsan_target]
+        candidates = [
+            p
+            for p in self.pending_patterns
+            if p.snr < 0.90 and p.ihsan < self.ihsan_target
+        ]
         if not candidates:
             return b""
         best = max(candidates, key=lambda p: p.downstream_blocked)

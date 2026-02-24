@@ -38,6 +38,69 @@ class ReasoningResult(TypedDict, total=False):
     depth_reached: int
 
 
+@dataclass
+class GoTNodeSnapshot:
+    """Snapshot of a single Graph-of-Thoughts node for reasoning traces.
+
+    Standing on Giants: Besta (GoT, 2024) — reasoning as directed graph.
+    """
+
+    node_id: str = ""
+    content: str = ""  # Truncated to 256 chars for payload efficiency
+    score: float = 0.0  # SNR score for this node
+    depth: int = 0
+    is_conclusion: bool = False
+    parent_id: Optional[str] = None
+
+
+@dataclass
+class ReasoningSummary:
+    """Structured reasoning trace for transparent AI decision-making.
+
+    Captures the full GoT reasoning graph in a compact, UI-renderable form.
+    Every non-trivial SovereignResult carries one of these so users can
+    audit WHY the system reached its conclusion.
+
+    Standing on Giants:
+    - Besta (2024): GoT graph structure (nodes, edges, convergence)
+    - Shannon (1948): SNR scores per node prune low-signal reasoning
+    - Al-Ghazali (1095): Transparent intention = ethical minimum for autonomy
+    - Boyd (1976): Orient phase made visible to the human in the OODA loop
+    """
+
+    got_nodes: list[GoTNodeSnapshot] = field(default_factory=list)
+    agent_scores: dict[str, float] = field(default_factory=dict)  # agent_name -> score
+    alternatives_considered: int = 0
+    convergence_reason: str = ""  # Why GoT converged on this conclusion
+    total_reasoning_ms: float = 0.0
+    confidence: float = 0.0
+    guardian_verdicts: dict[str, str] = field(default_factory=dict)  # agent -> APPROVED/DENIED
+    model_used: Optional[str] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Compact serialization for JSON-RPC transport (capped at ~2KB)."""
+        return {
+            "got_nodes": [
+                {
+                    "id": n.node_id,
+                    "content": n.content[:256],
+                    "score": round(n.score, 3),
+                    "depth": n.depth,
+                    "is_conclusion": n.is_conclusion,
+                    "parent_id": n.parent_id,
+                }
+                for n in self.got_nodes[:10]  # Cap at 10 nodes for payload
+            ],
+            "agent_scores": {k: round(v, 3) for k, v in self.agent_scores.items()},
+            "alternatives_considered": self.alternatives_considered,
+            "convergence_reason": self.convergence_reason[:512],
+            "total_reasoning_ms": round(self.total_reasoning_ms, 2),
+            "confidence": round(self.confidence, 3),
+            "guardian_verdicts": self.guardian_verdicts,
+            "model_used": self.model_used,
+        }
+
+
 class SNRResult(TypedDict, total=False):
     """type definition for SNR optimization results."""
 
@@ -184,6 +247,7 @@ class RuntimeConfig:
 
     # Mode
     mode: RuntimeMode = RuntimeMode.STANDARD
+    sat_mode: str = "mini5"  # mini5 | full49
 
     # LLM Backend (env vars override defaults)
     lm_studio_url: str = field(default_factory=lambda: LMSTUDIO_URL)
@@ -259,6 +323,17 @@ class RuntimeConfig:
     zpk_min_ihsan_policy: float = 0.95
     zpk_emit_bootstrap_events: bool = False
     zpk_event_topic: str = "zpk.bootstrap.receipt"
+
+    # Strict runtime startup gate (fail-closed on stub budget breach)
+    strict_stub_budget: bool = False
+    stub_budget_max: int = 0
+    reject_stub_inference: bool = True
+
+    def __post_init__(self) -> None:
+        mode = (self.sat_mode or "").strip().lower() or "mini5"
+        if mode not in {"mini5", "full49"}:
+            raise ValueError(f"Invalid sat_mode: {self.sat_mode}")
+        self.sat_mode = mode
 
     @classmethod
     def minimal(cls) -> "RuntimeConfig":
@@ -626,6 +701,9 @@ class SovereignResult:
     # Error handling
     error: Optional[str] = None
 
+    # Week 3: Structured reasoning trace for transparent decision-making
+    reasoning_summary: Optional[ReasoningSummary] = None
+
     def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         return {
@@ -637,6 +715,11 @@ class SovereignResult:
                 "depth": self.reasoning_depth,
                 "thoughts": self.thoughts,
             },
+            "reasoning_summary": (
+                self.reasoning_summary.to_dict()
+                if self.reasoning_summary
+                else None
+            ),
             "quality": {
                 "ihsan_score": round(self.ihsan_score, 3),
                 "snr_score": round(self.snr_score, 3),
@@ -663,6 +746,9 @@ __all__ = [
     "ValidationResult",
     "AutonomousCycleResult",
     "LoopStatus",
+    # Reasoning trace
+    "GoTNodeSnapshot",
+    "ReasoningSummary",
     # Protocols
     "GraphReasonerProtocol",
     "SNROptimizerProtocol",

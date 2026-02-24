@@ -240,10 +240,14 @@ class InferenceConnector(SubsystemConnector):
         self,
         ollama_url: str = "http://localhost:11434",
         lmstudio_url: str = LMSTUDIO_URL,
+        strict_mode: bool = False,
+        allow_stub_fallback: bool = True,
     ):
         super().__init__("inference")
         self.ollama_url = ollama_url
         self.lmstudio_url = lmstudio_url
+        self.strict_mode = strict_mode
+        self.allow_stub_fallback = allow_stub_fallback
         self._available_models: list[str] = []
         self._tier_backends: dict[InferenceTier, str] = {}
 
@@ -292,9 +296,21 @@ class InferenceConnector(SubsystemConnector):
             self._connected = True
             return True
 
+        # Fail-closed in strict mode; otherwise fall back to stub mode.
+        if self.strict_mode and not self.allow_stub_fallback:
+            self._connected = False
+            self.health.status = SubsystemStatus.ERROR
+            self.health.last_error = "STRICT_STUB_INFERENCE_REJECTED"
+            logger.error(
+                "Inference strict mode rejected startup: no LOCAL backend discovered"
+            )
+            return False
+
         # Fall back to stub mode
         self.health.status = SubsystemStatus.DEGRADED
         self._connected = True
+        self.health.metadata["strict_mode"] = self.strict_mode
+        self.health.metadata["stub_fallback"] = True
         logger.warning("Inference running in stub mode")
         return True
 
@@ -740,6 +756,10 @@ class SovereignBridge:
                 "federation": self.federation.health.status.name,
                 "memory": self.memory.health.status.name,
                 "a2a": self.a2a.health.status.name,
+            },
+            "strict_profile": {
+                "inference_strict_mode": self.inference.strict_mode,
+                "inference_allow_stub_fallback": self.inference.allow_stub_fallback,
             },
         }
 

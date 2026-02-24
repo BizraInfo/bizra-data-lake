@@ -479,6 +479,8 @@ class ApexSovereignEngine:
         self._autopoietic_loop: Optional[Any] = None
         self._proactive_entity: Optional[Any] = None
         self._multi_model_manager: Optional[Any] = None
+        self._equalizer_agent: Optional[Any] = None
+        self._unified_model_router: Optional[Any] = None
 
         # State
         self._request_count = 0
@@ -644,6 +646,36 @@ class ApexSovereignEngine:
         return self._multi_model_manager
 
     @property
+    def equalizer_agent(self):
+        """Get Equalizer Agent — cognitive-debt homeostasis control loop."""
+        if self._equalizer_agent is None:
+            try:
+                from core.sovereign.equalizer_agent import EqualizerAgent
+
+                self._equalizer_agent = EqualizerAgent(
+                    ihsan_target=self.config.ihsan_threshold,
+                )
+                logger.debug("EqualizerAgent initialized (lazy)")
+            except ImportError:
+                logger.warning("EqualizerAgent not available")
+        return self._equalizer_agent
+
+    @property
+    def unified_model_router(self):
+        """Get Unified Model Router — auto-failover between LM Studio/Ollama."""
+        if self._unified_model_router is None:
+            try:
+                from tools.engines.unified_model_router import UnifiedModelRouter
+
+                self._unified_model_router = UnifiedModelRouter(
+                    lm_studio_url=f"http://{self.config.model_config.host}:{self.config.model_config.port}/v1",
+                )
+                logger.debug("UnifiedModelRouter initialized (lazy)")
+            except ImportError:
+                logger.warning("UnifiedModelRouter not available")
+        return self._unified_model_router
+
+    @property
     def proactive_entity(self):
         """Get Proactive Sovereign Entity (24/7 proactive mode)."""
         if self._proactive_entity is None:
@@ -681,6 +713,15 @@ class ApexSovereignEngine:
             # Initialize multi-model manager for local inference
             if hasattr(self.multi_model_manager, "initialize"):
                 await self.multi_model_manager.initialize()
+
+            # Initialize Unified Model Router (auto-failover LM Studio/Ollama)
+            router = self.unified_model_router
+            if router is not None and hasattr(router, "initialize"):
+                await router.initialize()
+                logger.info("UnifiedModelRouter backends discovered")
+
+            # Initialize Equalizer Agent (cognitive-debt homeostasis)
+            _ = self.equalizer_agent
 
             # Touch other components to trigger lazy initialization
             _ = self.snr_maximizer
@@ -746,6 +787,10 @@ class ApexSovereignEngine:
         # Close multi-model manager
         if self._multi_model_manager and hasattr(self._multi_model_manager, "close"):
             await self._multi_model_manager.close()
+
+        # Close unified model router
+        if self._unified_model_router and hasattr(self._unified_model_router, "close"):
+            await self._unified_model_router.close()
 
         logger.info("ApexSovereignEngine shutdown complete")
 
@@ -1039,6 +1084,24 @@ class ApexSovereignEngine:
                 self._metrics["ihsan_fails"] += 1
 
             self._update_running_averages(final_snr, final_ihsan)
+
+            # Equalizer Agent: observe Ihsan homeostasis after each query
+            equalizer_cmd = None
+            if self._equalizer_agent is not None or self.config.enable_proactive_entity:
+                eq = self.equalizer_agent
+                if eq is not None:
+                    eq.observe(
+                        layer=self._request_count % 256,
+                        ihsan_score=final_ihsan,
+                        backlog=len(self._pattern_memory),
+                        presence=255 if context else 0,
+                    )
+                    equalizer_cmd = eq.next_command()
+                    if equalizer_cmd is not None:
+                        logger.info(
+                            f"[{request_id}] Equalizer: {equalizer_cmd.kind.value} "
+                            f"reason={equalizer_cmd.reason}"
+                        )
 
             result = ApexResult(
                 answer=final_answer,
@@ -1807,6 +1870,20 @@ class ApexSovereignEngine:
                 "autopoietic_loop": self._autopoietic_loop is not None,
                 "proactive_entity": self._proactive_entity is not None,
                 "multi_model_manager": self._multi_model_manager is not None,
+                "equalizer_agent": self._equalizer_agent is not None,
+                "unified_model_router": self._unified_model_router is not None,
+            },
+            "equalizer": {
+                "mode": (
+                    self._equalizer_agent.detect_mode().value
+                    if self._equalizer_agent and self._equalizer_agent.history
+                    else "uninitialized"
+                ),
+                "observations": (
+                    len(self._equalizer_agent.history)
+                    if self._equalizer_agent
+                    else 0
+                ),
             },
             "fitness": self._compute_fitness(),
             "standing_on_giants": [str(g) for g in GIANTS_REGISTRY.values()],

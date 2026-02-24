@@ -33,6 +33,8 @@ class MobilePairResult:
     paired: bool = True
     proximity_routing: bool = True
     protocol: str = "stub-v1"  # Will be "ble-v1" or "nfc-v1" in production
+    status: str = "stub"
+    reason_code: str = "GENESIS_MOBILE_PAIR_STUB"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -41,6 +43,8 @@ class MobilePairResult:
             "paired": self.paired,
             "proximity_routing": self.proximity_routing,
             "protocol": self.protocol,
+            "status": self.status,
+            "reason_code": self.reason_code,
         }
 
 
@@ -67,6 +71,8 @@ def pair_mobile(device_spec: str) -> MobilePairResult:
         model=model,
         paired=True,
         proximity_routing=True,
+        status="stub",
+        reason_code="GENESIS_MOBILE_PAIR_STUB",
     )
 
     logger.info(

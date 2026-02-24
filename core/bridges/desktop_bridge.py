@@ -36,6 +36,11 @@ from core.sovereign.origin_guard import (
     normalize_node_role,
     resolve_origin_snapshot,
 )
+from core.sovereign.permit import (
+    Permit,
+    PermitVerification,
+    create_hda_permit,
+)
 
 logger = logging.getLogger("bizra.desktop_bridge")
 
@@ -56,6 +61,8 @@ except ImportError:
 
 BRIDGE_HOST = "127.0.0.1"
 BRIDGE_PORT = 9742
+AHK_BRIDGE_HOST = "127.0.0.1"
+AHK_BRIDGE_PORT = int(os.getenv("BIZRA_AHK_BRIDGE_PORT", os.getenv("BIZRA_BRIDGE_PORT", "9742")))
 MAX_MESSAGE_BYTES = 1_048_576  # 1 MB safety limit
 ACTUATOR_ENTROPY_THRESHOLD = 3.5  # Shannon bits/char — blocks low-signal instructions
 RATE_LIMIT_TOKENS_PER_SEC = 20.0
@@ -168,6 +175,11 @@ class DesktopBridge:
         self._nonce_seen: dict[str, int] = {}
         self._node_role: str = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         self._origin_snapshot: dict[str, Any] = self._default_origin_snapshot()
+        self._hda_permit: Optional[Permit] = None
+        self._permit_signing_key: Optional[str] = os.getenv(
+            "BIZRA_PERMIT_SIGNING_KEY",
+            os.getenv("BIZRA_BRIDGE_TOKEN", ""),
+        ) or None
         self._guardian_wire_mode = (
             os.getenv(GUARDIAN_WIRE_MODE_ENV, "best_effort").strip().lower()
         )
@@ -384,6 +396,15 @@ class DesktopBridge:
             "get_context": self._handle_get_context,
             "verify_action_outcome": self._handle_verify_action_outcome,
             "capture_screenshot": self._handle_capture_screenshot,
+            # 8 productized HDA skills (Task 1.2)
+            "open_app": self._handle_hda_proxy,
+            "switch_window": self._handle_hda_proxy,
+            "type_text": self._handle_hda_proxy,
+            "click_element": self._handle_hda_proxy,
+            "screenshot": self._handle_hda_proxy,
+            "read_clipboard": self._handle_hda_proxy,
+            "file_open": self._handle_hda_proxy,
+            "browser_navigate": self._handle_hda_proxy,
         }
 
         handler = handlers.get(method)
@@ -402,6 +423,9 @@ class DesktopBridge:
                 f"Method not found: {method}",
                 data={"code": "METHOD_NOT_FOUND", "receipt": receipt},
             )
+
+        # Set current HDA method for proxy dispatch
+        self._current_hda_method = method
 
         try:
             result = await handler(params)
@@ -1021,24 +1045,337 @@ class DesktopBridge:
             "instruction_length": len(code),
         }
 
+    # -- HDA skill proxy (Task 1.2) -------------------------------------------
+
+    def _ensure_hda_permit(self) -> Permit:
+        """Return a valid HDA permit, creating or refreshing as needed.
+
+        Permits have a TTL (default 300s) and a budget (default 30 actions).
+        When either is exhausted a fresh permit is issued automatically.
+
+        Standing on Giants: General Magic (auto-renewing Telescript permits)
+        """
+        import time as _time
+
+        if self._hda_permit is not None:
+            verification = self._hda_permit.verify(
+                signing_key=self._permit_signing_key
+            )
+            if verification.valid:
+                return self._hda_permit
+
+        # Create fresh permit
+        self._hda_permit = create_hda_permit(
+            signing_key=self._permit_signing_key or "bizra-dev-permit-key",
+        )
+        return self._hda_permit
+
+    async def _handle_hda_proxy(self, params: Any) -> dict[str, Any]:
+        """Proxy HDA skill calls to the AHK bridge.
+
+        The 8 productized HDA skills (open_app, switch_window, type_text,
+        click_element, screenshot, read_clipboard, file_open, browser_navigate)
+        are implemented in AHK and proxied through this method.
+
+        Gate pipeline: Permit check -> Guardian check -> FATE gate -> AHK RPC.
+
+        Standing on Giants:
+        - General Magic (Telescript permits, 1994): capability-scoped authority
+        - Lamport (1978): hash-chained delegation
+        - Shannon (1948): 6 capabilities = minimal signal set
+        """
+        if not isinstance(params, dict):
+            params = {}
+
+        # Extract the method name from the call context.
+        # The handler dispatch passes the params but the method name
+        # is available from the _current_method attribute set by the router.
+        method = getattr(self, "_current_hda_method", "unknown")
+
+        # --- Gate 0: Telescript Permit verification ---
+        permit = self._ensure_hda_permit()
+        permit_check = permit.check_action(
+            method, signing_key=self._permit_signing_key
+        )
+        if not permit_check.valid:
+            return {
+                "error": f"Permit denied for {method}",
+                "permit": permit_check.to_dict(),
+                "method": method,
+            }
+
+        # --- Gate 1: Guardian wire preflight ---
+        guardian = await self._check_rust_guardian(
+            f"hda:{method}:{json.dumps(params, default=str)[:256]}",
+            source=f"desktop_bridge.hda.{method}",
+        )
+        if not guardian.get("allowed", False):
+            return {
+                "error": f"Guardian veto on {method}",
+                "guardian": guardian,
+            }
+
+        # --- Gate 2: FATE gate check ---
+        fate_result = self._validate_fate(f"hda:{method}")
+        if not fate_result.get("passed", False):
+            return {"error": "FATE gate blocked", "fate": fate_result}
+
+        # --- Execute: Forward to AHK bridge ---
+        ahk_result = await self._rpc_to_ahk(method, params)
+        if ahk_result is None:
+            return {
+                "error": f"AHK bridge unreachable for {method}",
+                "method": method,
+                "fallback": "AHK bridge must be running for HDA skills",
+            }
+
+        # Consume budget on successful execution
+        permit.consume()
+
+        # Attach permit verification to result for audit trail
+        ahk_result["permit"] = {
+            "permit_id": permit.permit_id,
+            "capability_checked": method,
+            "actions_remaining": permit.budget.actions_remaining,
+            "ttl_remaining": round(
+                max(0.0, permit.expires_at - time.time()), 1
+            ),
+        }
+
+        return ahk_result
+
+    async def _rpc_to_ahk(
+        self, method: str, params: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Send a JSON-RPC call to the AHK bridge and return the result."""
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(AHK_BRIDGE_HOST, AHK_BRIDGE_PORT),
+                timeout=2.0,
+            )
+        except (OSError, asyncio.TimeoutError):
+            return None
+
+        try:
+            import secrets
+
+            nonce = secrets.token_hex(16)
+            ts = str(int(time.time() * 1000))
+            token = self._auth_token or os.getenv(AUTH_TOKEN_ENV, "")
+
+            rpc_request = {
+                "jsonrpc": "2.0",
+                "method": method,
+                "params": params,
+                "id": f"hda_{nonce[:8]}",
+                "headers": {
+                    AUTH_HEADER_TOKEN: token,
+                    AUTH_HEADER_TS: ts,
+                    AUTH_HEADER_NONCE: nonce,
+                },
+            }
+
+            writer.write(json.dumps(rpc_request).encode() + b"\n")
+            await writer.drain()
+
+            raw = await asyncio.wait_for(reader.readline(), timeout=10.0)
+            if not raw:
+                return None
+
+            response = json.loads(raw)
+            if "result" in response:
+                result = response["result"]
+                # AHK sends full result Map with "result" field plus optional
+                # perception-action metadata (pre_hash, post_hash, etc.).
+                # Return the entire map so callers see all fields.
+                return result if isinstance(result, dict) else {"result": result}
+            if "error" in response:
+                return {"error": response["error"].get("message", "AHK error")}
+            return None
+        except (asyncio.TimeoutError, json.JSONDecodeError, OSError) as exc:
+            logger.debug("AHK RPC %s failed: %s", method, exc)
+            return None
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except OSError:
+                pass
+
     async def _handle_get_context(self, params: Any) -> dict[str, Any]:
         """
-        Return the UIA context fingerprint schema.
+        Return live desktop context via AHK RPC or local fallback.
 
-        The actual structural data is extracted by the AHK client using
-        UIA-v2 Element.DumpAll(). This method defines the expected schema.
+        Privacy-by-design: window titles are SHA-256 hashed by default.
+        Plaintext requires explicit opt-in via params.plaintext_titles.
+
+        On Windows/WSL: calls AHK bridge get_context method.
+        On Linux: falls back to /proc-based process detection.
+
+        Standing on Giants:
+        - Boyd (OODA observe phase — raw perception before orientation)
+        - Shannon (hash reduces channel bandwidth, preserves identity signal)
         """
-        return {
-            "schema_version": "1.0",
-            "expected_fields": [
-                "title",
-                "class",
-                "process",
-                "structure",
-                "hash",
-            ],
-            "note": "Context data populated by AHK actuator client via UIA-v2",
+        if not isinstance(params, dict):
+            params = {}
+
+        plaintext = bool(params.get("plaintext_titles", False))
+
+        # Try AHK bridge first (Windows/WSL with AHK running)
+        ahk_context = await self._get_context_via_ahk(plaintext)
+        if ahk_context and not ahk_context.get("error"):
+            return ahk_context
+
+        # Fallback: local process-based context (Linux/WSL without AHK)
+        return self._get_context_local(plaintext)
+
+    async def _get_context_via_ahk(
+        self, plaintext: bool = False
+    ) -> dict[str, Any] | None:
+        """Call the AHK bridge get_context method via JSON-RPC.
+
+        Returns None if AHK bridge is unreachable, allowing local fallback.
+        """
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(AHK_BRIDGE_HOST, AHK_BRIDGE_PORT),
+                timeout=2.0,
+            )
+        except (OSError, asyncio.TimeoutError):
+            return None
+
+        try:
+            # Build JSON-RPC request with auth headers
+            import secrets
+            import time as _time
+
+            nonce = secrets.token_hex(16)
+            ts = str(int(_time.time() * 1000))
+            token = self._auth_token or os.getenv(AUTH_TOKEN_ENV, "")
+
+            rpc_request = {
+                "jsonrpc": "2.0",
+                "method": "get_context",
+                "params": {"plaintext_titles": plaintext},
+                "id": f"ctx_{nonce[:8]}",
+                "headers": {
+                    AUTH_HEADER_TOKEN: token,
+                    AUTH_HEADER_TS: ts,
+                    AUTH_HEADER_NONCE: nonce,
+                },
+            }
+
+            writer.write(json.dumps(rpc_request).encode() + b"\n")
+            await writer.drain()
+
+            raw = await asyncio.wait_for(reader.readline(), timeout=5.0)
+            if not raw:
+                return None
+
+            response = json.loads(raw)
+            if "result" in response:
+                result = response["result"]
+                if isinstance(result, dict) and "result" in result:
+                    return result["result"]
+                return result
+            return None
+        except (asyncio.TimeoutError, json.JSONDecodeError, OSError) as exc:
+            logger.debug("AHK get_context failed: %s", exc)
+            return None
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except OSError:
+                pass
+
+    def _get_context_local(self, plaintext: bool = False) -> dict[str, Any]:
+        """Gather desktop context from local system (Linux/WSL fallback).
+
+        Uses /proc filesystem for process detection when AHK is unavailable.
+        Window titles are hashed by default for privacy.
+        """
+        import subprocess
+
+        result: dict[str, Any] = {
+            "schema_version": "2.0",
+            "source": "local_fallback",
+            "privacy_mode": "plaintext" if plaintext else "hashed",
+            "timestamp": time.time(),
         }
+
+        # Process list (top 32 by CPU, non-kernel)
+        processes: list[dict[str, Any]] = []
+        try:
+            ps_output = subprocess.run(
+                ["ps", "aux", "--sort=-%cpu"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            for line in ps_output.stdout.strip().split("\n")[1:33]:
+                parts = line.split(None, 10)
+                if len(parts) >= 11:
+                    proc_name = parts[10]
+                    if proc_name.startswith("["):
+                        continue  # Skip kernel threads
+                    processes.append(
+                        {
+                            "process": proc_name.split("/")[-1][:64],
+                            "pid": int(parts[1]),
+                            "cpu": parts[2],
+                            "mem": parts[3],
+                        }
+                    )
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
+
+        result["processes"] = processes
+        result["process_count"] = len(processes)
+
+        # Clipboard hash (xclip fallback)
+        try:
+            clip = subprocess.run(
+                ["xclip", "-selection", "clipboard", "-o"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            clip_text = clip.stdout
+            if clip_text:
+                result["clipboard_hash"] = hashlib.sha256(
+                    clip_text.encode()
+                ).hexdigest()
+                result["clipboard_length"] = len(clip_text)
+            else:
+                result["clipboard_hash"] = ""
+                result["clipboard_length"] = 0
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            result["clipboard_hash"] = ""
+            result["clipboard_length"] = 0
+
+        # Foreground window (xdotool fallback for X11)
+        try:
+            xdo = subprocess.run(
+                ["xdotool", "getactivewindow", "getwindowname"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            title = xdo.stdout.strip()
+            if title:
+                result["foreground"] = {
+                    "title": title if plaintext else hashlib.sha256(
+                        title.encode()
+                    ).hexdigest(),
+                    "title_hashed": not plaintext,
+                }
+            else:
+                result["foreground"] = {"title": "", "title_hashed": False}
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            result["foreground"] = {"title": "", "title_hashed": False}
+
+        return result
 
     # -- perception-action loop (Phase 21) -----------------------------------
 

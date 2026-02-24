@@ -77,6 +77,19 @@ if _lm_token:
 # Canonical export for direct import
 LM_API_TOKEN: Final[str] = os.getenv("LM_API_TOKEN", "")
 
+
+def _env_int(name: str, default: int) -> int:
+    """Read integer env var with safe fallback."""
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # IHSĀN (إحسان) CONSTITUTIONAL THRESHOLDS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -313,6 +326,32 @@ SEL_STAGES: Final[tuple] = (
 # The network minimizes collective free energy (shared knowledge quality).
 # The economic system (PoI + Adl) maintains allostatic balance.
 # The Three Facts are the prior beliefs constraining all inference.
+
+# SAT federation sizing for FRONTIER governance routing.
+# SAT-5 is per-node. Federation-wide quorum scales with node count.
+SAT_VALIDATORS_PER_NODE: Final[int] = 5
+FEDERATION_NODE_COUNT_DEFAULT: Final[int] = _env_int("BIZRA_FEDERATION_NODE_COUNT", 10)
+
+
+def sat_frontier_quorum(
+    federation_nodes: int,
+    sat_validators_per_node: int = SAT_VALIDATORS_PER_NODE,
+) -> int:
+    """Compute BFT quorum across federated SAT validators (2f+1)."""
+    nodes = federation_nodes if federation_nodes > 0 else 1
+    validators_per_node = (
+        sat_validators_per_node
+        if sat_validators_per_node > 0
+        else SAT_VALIDATORS_PER_NODE
+    )
+    total_sat_validators = nodes * validators_per_node
+    faulty = (total_sat_validators - 1) // 3
+    return max(1, (2 * faulty) + 1)
+
+
+SAT_FRONTIER_QUORUM_DEFAULT: Final[int] = sat_frontier_quorum(
+    FEDERATION_NODE_COUNT_DEFAULT
+)
 
 # Prediction-Verification Duality (Golden Gem #14)
 # System acts only when prediction (HMM) and verification (FATE) agree.

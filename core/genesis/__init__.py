@@ -54,7 +54,7 @@ from core.genesis.types import (
     GenesisStep,
     GenesisStepStatus,
 )
-from core.genesis.urp import URPPledge, pledge_resources
+from core.genesis.urp import URPPledge, pledge_resources, verify_pledge_signature
 
 __version__ = "1.0.0"
 
@@ -77,6 +77,7 @@ __all__ = [
     "state_exists",
     # Functions
     "pledge_resources",
+    "verify_pledge_signature",
     "pair_mobile",
     # Constants
     "CHECKMARK",

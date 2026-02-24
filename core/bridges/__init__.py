@@ -46,6 +46,13 @@ from .rust_lifecycle import (
 _LAZY_MODULES = {
     "DualAgenticBridge": (".dual_agentic_bridge", "DualAgenticBridge"),
     "SwarmKnowledgeBridge": (".swarm_knowledge_bridge", "SwarmKnowledgeBridge"),
+    "ChannelDispatcher": (".channel_dispatcher", "ChannelDispatcher"),
+    "Channel": (".channel_dispatcher", "Channel"),
+    "MissionPlan": (".channel_dispatcher", "MissionPlan"),
+    "SubTask": (".channel_dispatcher", "SubTask"),
+    "BrowserMCPClient": (".browser_mcp_client", "BrowserMCPClient"),
+    "SearchResult": (".browser_mcp_client", "SearchResult"),
+    "OBSTrigger": (".obs_trigger", "OBSTrigger"),
 }
 
 
@@ -67,6 +74,13 @@ __all__ = [
     "DualAgenticBridge",
     "LocalInferenceBridge",
     "SwarmKnowledgeBridge",
+    "ChannelDispatcher",
+    "Channel",
+    "MissionPlan",
+    "SubTask",
+    "BrowserMCPClient",
+    "SearchResult",
+    "OBSTrigger",
     "Iceoryx2Bridge",
     # Rust Integration
     "RustLifecycle",

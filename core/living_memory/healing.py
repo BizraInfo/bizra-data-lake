@@ -367,6 +367,7 @@ class MemoryHealer:
 
         # Merge metadata
         keep.access_count += merge.access_count
+        keep.reinforcement_count += merge.reinforcement_count
         keep.related_ids.update(merge.related_ids)
         keep.related_ids.discard(merge_id)  # Don't relate to self
 

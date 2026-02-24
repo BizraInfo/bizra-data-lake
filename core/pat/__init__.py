@@ -202,6 +202,10 @@ def __getattr__(name: str):
         from .onboarding import NodeCredentials
 
         return NodeCredentials
+    elif name == "NodeTemplate":
+        from .onboarding import NodeTemplate
+
+        return NodeTemplate
     elif name == "quick_onboard":
         from .onboarding import quick_onboard
 
@@ -331,6 +335,7 @@ __all__ = [
     # Onboarding
     "OnboardingWizard",
     "NodeCredentials",
+    "NodeTemplate",
     "quick_onboard",
     "is_onboarded",
     "get_node_credentials",
