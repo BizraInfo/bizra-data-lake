@@ -34,7 +34,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from dotenv import load_dotenv
@@ -56,6 +56,63 @@ try:
     import uuid
 except ImportError:
     pass
+
+# ═══ MoneyShot Channel Dispatcher + RL Rewards (Phase 50) ═══
+_CHANNEL_DISPATCHER = None
+_VOICE_BRIDGE = None
+_RLM_BRIDGE = None
+_AGENT_STRATEGIES: dict = {}
+_STRATEGY_STORE: dict = {}
+
+def _init_moneyshot_subsystems():
+    """Initialize MoneyShot channel dispatcher and RL subsystems.
+
+    All imports are optional — failures never break the existing pipeline.
+    """
+    global _CHANNEL_DISPATCHER, _VOICE_BRIDGE, _RLM_BRIDGE
+
+    try:
+        from core.bridges.channel_dispatcher import ChannelDispatcher
+        from core.bridges.browser_mcp_client import BrowserMCPClient
+
+        browser = BrowserMCPClient(mode="mock")
+        voice = None
+        try:
+            from core.voice.personaplex_bridge import PersonaPlexBridge
+
+            voice = PersonaPlexBridge()
+            _VOICE_BRIDGE = voice
+        except Exception:
+            pass
+
+        _CHANNEL_DISPATCHER = ChannelDispatcher(
+            browser_client=browser,
+            voice_bridge=voice,
+        )
+        logger.info("  MoneyShot channels: initialized (browser + voice)")
+    except Exception as e:
+        logger.debug("  MoneyShot channels: unavailable (%s)", e)
+
+    try:
+        from core.inference.rlm_bridge import BizraRLMBridge
+        from core.token.strategy import AgentStrategy
+
+        _RLM_BRIDGE = BizraRLMBridge(max_iterations=20, max_sub_calls=60)
+
+        for agent_id in (
+            "strategist",
+            "researcher",
+            "analyst",
+            "creator",
+            "executor",
+            "guardian",
+            "coordinator",
+        ):
+            _AGENT_STRATEGIES.setdefault(agent_id, AgentStrategy(agent_id=agent_id))
+
+        logger.info("  Agent strategies: %d initialized", len(_AGENT_STRATEGIES))
+    except Exception as e:
+        logger.debug("  Agent strategy subsystem unavailable (%s)", e)
 
 # ═══ Verified Intelligence Pipeline — Standing on Giants ═══
 # Shannon (1948): SNR as information quality measure
@@ -150,7 +207,7 @@ PAT_AGENTS = {
         "name": "Strategist",
         "role": "Strategic planning and long-term thinking",
         "giants": "Sun Tzu, John Boyd, Michael Porter",
-        "model_purpose": "reasoning",
+        "model_purpose": "thinking",
     },
     "researcher": {
         "name": "Researcher",
@@ -162,13 +219,13 @@ PAT_AGENTS = {
         "name": "Analyst",
         "role": "Data analysis and pattern recognition",
         "giants": "Herbert Simon, Daniel Kahneman, Judea Pearl",
-        "model_purpose": "reasoning",
+        "model_purpose": "thinking",
     },
     "creator": {
         "name": "Creator",
         "role": "Content creation and design",
         "giants": "Leonardo da Vinci, Steve Jobs, Dieter Rams",
-        "model_purpose": "general",
+        "model_purpose": "creative",
     },
     "executor": {
         "name": "Executor",
@@ -180,7 +237,7 @@ PAT_AGENTS = {
         "name": "Guardian",
         "role": "Ethical oversight and security",
         "giants": "Al-Ghazali, John Rawls, Anthropic",
-        "model_purpose": "reasoning",
+        "model_purpose": "reasoning_large",
     },
     "coordinator": {
         "name": "Coordinator",
@@ -192,21 +249,33 @@ PAT_AGENTS = {
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# MODEL ROUTING — Maps PAT agent purpose to proactive_config.yaml models
+# MODEL ROUTING — Multi-model fleet: small specialized > one big generic
+# Each PAT agent gets a different model optimized for its role.
+# LM Studio auto-loads models on request — no pre-loading needed.
 # ════════════════════════════════════════════════════════════════════════════════
 
 _PURPOSE_TO_ROLE = {
     "reasoning": "reasoner",
-    "general": "planner",
+    "reasoning_large": "reasoner_large",
+    "thinking": "thinker",
+    "general": "general",
+    "creative": "creative",
     "agentic": "planner",
+    "nano": "nano",
+    "vision": "vision",
+    "voice": "voice",
 }
 
 _DEFAULT_MODEL_ROUTING = {
     "planner": "agentflow-planner-7b-i1",
     "reasoner": "deepseek/deepseek-r1-0528-qwen3-8b",
-    "fast": "qwen2.5-0.5b-instruct",
-    "vision": "qwen/qwen3-vl-8b",
-    "vision_light": "qwen/qwen3-vl-4b",
+    "reasoner_large": "mistralai/ministral-3-14b-reasoning",
+    "thinker": "qwen/qwen3-4b-thinking-2507",
+    "general": "liquid/lfm2.5-1.2b",
+    "creative": "chuanli11_-_llama-3.2-3b-instruct-uncensored",
+    "nano": "qwen2.5-0.5b-instruct",
+    "vision": "qwen/qwen3-vl-4b",
+    "vision_large": "qwen/qwen3-vl-8b",
     "voice": "deephat-v1-7b",
     "embedding": "text-embedding-nomic-embed-text-v1.5",
 }
@@ -586,12 +655,28 @@ class Node0ProactiveKernel:
     Loop: SENSE → PREDICT → SCORE → VERIFY → EXECUTE → PROVE → LEARN
     """
 
+    # Backend endpoints (local-first, Ollama as fallback)
+    _LM_STUDIO_URL = "http://192.168.56.1:1234"
+    _OLLAMA_URL = "http://localhost:11434"
+
+    # Mapping from LM Studio model names → Ollama equivalents
+    _OLLAMA_MODEL_MAP = {
+        "deepseek/deepseek-r1-0528-qwen3-8b": "deepseek-r1:14b",
+        "agentflow-planner-7b-i1": "llama3.1:8b",
+        "qwen2.5-0.5b-instruct": "phi3:mini",
+        "qwen/qwen3-vl-8b": "llama3.1:8b",
+        "qwen/qwen3-vl-4b": "llama3.1:8b",
+        "deephat-v1-7b": "mistral:latest",
+        "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text:latest",
+    }
+
     def __init__(self, config: Dict[str, Any] = None):
         # Load proactive_config.yaml as base, merge explicit overrides
         self._yaml_config = _load_proactive_config()
         self.config = {**self._yaml_config, **(config or {})}
         self.token = _resolve_lm_token()
-        self.base_url = "http://192.168.56.1:1234"
+        self.base_url = self._LM_STUDIO_URL
+        self._backend_name = "lm_studio"  # or "ollama"
 
         # Knowledge retriever — connects PAT agents to FAISS index
         self._knowledge = KnowledgeRetriever(self._yaml_config)
@@ -612,8 +697,39 @@ class Node0ProactiveKernel:
         # Load baseline for impact tracking
         self._baseline = self._load_baseline()
 
+        # AutoModelRouter — pre-loads models into VRAM before agent calls
+        self._model_router: Optional[Any] = None
+
         # Initialize Verified Intelligence Pipeline
         _init_verified_pipeline()
+
+        # Initialize MoneyShot channels + RL (Phase 50)
+        _init_moneyshot_subsystems()
+        self._strategy_memory = _STRATEGY_STORE
+        self._token_minter = None
+        self._emission_gate = None
+
+        try:
+            from core.living_memory.core import LivingMemoryCore
+
+            strategy_memory_path = Path(PROJECT_ROOT) / "sovereign_state" / "strategy_memory"
+            self._strategy_memory = LivingMemoryCore(storage_path=strategy_memory_path)
+        except Exception as e:
+            logger.debug("  Strategy memory unavailable: %s", e)
+
+        try:
+            from core.token.emission_decay import LogisticEmissionGate
+            from core.token.mint import TokenMinter
+
+            token_state = Path(PROJECT_ROOT) / "sovereign_state" / "token_state"
+            token_state.mkdir(parents=True, exist_ok=True)
+            self._token_minter = TokenMinter.create(
+                db_path=token_state / "token_ledger.db",
+                log_path=token_state / "token_ledger.jsonl",
+            )
+            self._emission_gate = LogisticEmissionGate()
+        except Exception as e:
+            logger.debug("  Token reward subsystem unavailable: %s", e)
 
         # Cycle timing
         cycles_cfg = self.config.get("cycles", {})
@@ -638,14 +754,107 @@ class Node0ProactiveKernel:
             logger.debug(f"  Baseline not loaded: {e}")
         return {}
 
+    async def _discover_backend(self) -> None:
+        """Auto-discover the best available LLM backend (local-first).
+
+        Priority: LM Studio (primary, auto-loads models on request) → Ollama (fallback).
+        Standing on Giants: Boyd (OODA sense phase) · Shannon (signal availability)
+        """
+        import httpx
+
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+
+        # 1. Try LM Studio — primary backend (auto-loads models on request)
+        try:
+            async with httpx.AsyncClient(headers=headers, timeout=5.0) as client:
+                resp = await client.get(f"{self._LM_STUDIO_URL}/v1/models")
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    loaded = [m for m in models if m.get("loaded")]
+                    self.base_url = self._LM_STUDIO_URL
+                    self._backend_name = "lm_studio"
+                    logger.info(
+                        f"  Backend: LM Studio ({len(models)} models, "
+                        f"{len(loaded)} pre-loaded, auto-load enabled)"
+                    )
+                    return
+        except Exception:
+            logger.info("  LM Studio: unreachable")
+
+        # 2. Try Ollama as fallback
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{self._OLLAMA_URL}/v1/models")
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    if models:
+                        self.base_url = self._OLLAMA_URL
+                        self._backend_name = "ollama"
+                        self.token = ""  # Ollama doesn't need auth
+                        model_names = [m["id"] for m in models[:5]]
+                        logger.info(f"  Backend: Ollama fallback ({len(models)} models: {', '.join(model_names)})")
+                        return
+        except Exception:
+            logger.info("  Ollama: unreachable")
+
+        # 3. Last resort — assume LM Studio will come back
+        self.base_url = self._LM_STUDIO_URL
+        self._backend_name = "lm_studio_offline"
+        logger.warning("  Backend: No backend reachable — will retry on first request")
+
+    def _resolve_model(self, lm_studio_model: str) -> str:
+        """Resolve model name for the active backend.
+
+        If using Ollama, maps LM Studio model names to Ollama equivalents.
+        """
+        if self._backend_name == "ollama":
+            return self._OLLAMA_MODEL_MAP.get(lm_studio_model, "llama3.1:8b")
+        return lm_studio_model
+
+    async def _raw_llm_call(
+        self,
+        model: str,
+        prompt: str,
+        *,
+        max_tokens: int = 900,
+        temperature: float = 0.6,
+    ) -> str:
+        """Direct model call helper used by RLM and strategy-adapted flows."""
+        import httpx
+
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        try:
+            async with httpx.AsyncClient(headers=headers, timeout=120.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/v1/chat/completions",
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": max_tokens,
+                        "temperature": temperature,
+                    },
+                )
+                if response.status_code != 200:
+                    return ""
+                payload = response.json()
+                msg = payload.get("choices", [{}])[0].get("message", {})
+                return msg.get("content", "") or msg.get("reasoning_content", "")
+        except Exception:
+            return ""
+
     async def start(self):
         """Start the proactive kernel."""
         self._running = True
+
+        # Auto-discover the best available backend
+        await self._discover_backend()
+
         mode = self.config.get("mode", "proactive_partner")
         logger.info("═" * 60)
         logger.info("NODE0 PROACTIVE KERNEL ACTIVATED")
         logger.info("═" * 60)
         logger.info(f"  Mode: {mode}")
+        logger.info(f"  Backend: {self._backend_name} ({self.base_url})")
         logger.info(f"  Cycle Interval: {self.cycle_interval}s")
         logger.info(f"  Ihsān Threshold: {self.ihsan_threshold}")
         logger.info(f"  PAT Agents: {len(PAT_AGENTS)}")
@@ -734,96 +943,222 @@ class Node0ProactiveKernel:
             await asyncio.sleep(sleep_time)
 
     def _select_agents(self, mission: Dict) -> List[str]:
-        """Select appropriate agents for mission."""
+        """Select appropriate agents for mission.
+
+        Multi-model fleet: each agent uses a DIFFERENT specialized model.
+        More agents = more diverse perspectives at minimal cost (small models).
+        """
         desc = mission["description"].lower()
 
-        agents = ["coordinator"]  # Always include coordinator
+        agents = ["coordinator"]  # Always include — synthesizes all agent outputs
 
-        if any(w in desc for w in ["plan", "strategy", "approach"]):
+        if any(w in desc for w in ["plan", "strategy", "approach", "priority", "roadmap", "think", "decide"]):
             agents.append("strategist")
-        if any(w in desc for w in ["research", "investigate", "find"]):
+        if any(w in desc for w in ["research", "investigate", "find", "evidence", "paper", "study", "learn"]):
             agents.append("researcher")
-        if any(w in desc for w in ["analyze", "data", "pattern"]):
+        if any(w in desc for w in ["analyze", "data", "pattern", "metric", "measure", "evaluate", "assess"]):
             agents.append("analyst")
-        if any(w in desc for w in ["create", "design", "build"]):
+        if any(w in desc for w in ["create", "design", "build", "write", "generate", "draft", "compose"]):
             agents.append("creator")
-        if any(w in desc for w in ["security", "safe", "risk", "ethic"]):
+        if any(w in desc for w in ["security", "safe", "risk", "ethic", "threat", "protect", "guard", "review"]):
             agents.append("guardian")
+        if any(w in desc for w in ["execute", "implement", "run", "deploy", "automate", "action", "do"]):
+            agents.append("executor")
 
-        # Default to strategist + guardian + coordinator
-        if len(agents) == 1:
-            agents = ["strategist", "guardian", "coordinator"]
+        # Default: engage at least 3 agents for diverse perspectives
+        if len(agents) <= 2:
+            for fallback in ["strategist", "analyst", "guardian"]:
+                if fallback not in agents:
+                    agents.append(fallback)
+                if len(agents) >= 4:
+                    break
 
         return agents
 
     async def _execute_mission(self, mission: Dict, agents: List[str]) -> Dict:
-        """Execute mission with PAT team — model-routed + RAG-augmented."""
+        """Execute mission with PAT team — parallel, model-routed, RAG-augmented.
+
+        Standing on Giants: Amdahl (1967) — parallelize the independent fraction.
+        Sequential: RAG retrieval (shared context).
+        Parallel: all agent LLM calls via asyncio.gather (N agents in ~1 agent's time).
+        """
         import httpx
 
-        results = []
         total_tokens = 0
 
-        # RAG: retrieve relevant knowledge context for this mission
+        # RAG: retrieve relevant knowledge context (sequential — shared input)
         rag_context = self._knowledge.retrieve(mission["description"])
         if rag_context:
             logger.info(f"    📚 Knowledge context retrieved ({len(rag_context)} chars)")
 
-        for agent_id in agents:
+        # Build shared request context
+        user_content = f"Mission: {mission['description']}"
+        if rag_context:
+            user_content += f"\n\nRelevant knowledge from Node0 memory:\n{rag_context}"
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+
+        async def _call_agent(agent_id: str) -> Dict:
+            """Call a single PAT agent with 30s timeout guard."""
             agent = PAT_AGENTS[agent_id]
-            model = _resolve_model_for_agent(agent_id, self._yaml_config)
+            lm_model = _resolve_model_for_agent(agent_id, self._yaml_config)
+            model = self._resolve_model(lm_model)
 
-            system_prompt = f"""You are the PAT {agent['name']}. Your role is {agent['role']}.
-Standing on Giants: {agent['giants']}.
-Be concise (2-3 paragraphs). Focus on actionable insights."""
+            system_prompt = (
+                f"You are the PAT {agent['name']}. Your role is {agent['role']}.\n"
+                f"Standing on Giants: {agent['giants']}.\n"
+                f"Be concise (2-3 paragraphs). Focus on actionable insights."
+            )
 
-            # Build user message with optional RAG context
-            user_content = f"Mission: {mission['description']}"
-            if rag_context:
-                user_content += f"\n\nRelevant knowledge from Node0 memory:\n{rag_context}"
-
-            logger.info(f"    🤖 {agent['name']} ({model.split('/')[-1]})...")
-
-            headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+            logger.info(f"    🤖 {agent['name']} ({model.split('/')[-1]}) via {self._backend_name}...")
 
             try:
-                async with httpx.AsyncClient(headers=headers, timeout=180.0) as client:
+                from core.inference.rlm_bridge import should_use_rlm
+                from core.token.strategy import load_strategy
+
+                if agent_id not in _AGENT_STRATEGIES:
+                    _AGENT_STRATEGIES[agent_id] = await load_strategy(
+                        self._strategy_memory,
+                        agent_id,
+                    )
+
+                strategy = _AGENT_STRATEGIES.get(agent_id)
+                strategy_temp = (
+                    float(getattr(strategy, "temperature", 0.6))
+                    if strategy is not None
+                    else 0.6
+                )
+
+                # Thinking models (DeepSeek-R1, Qwen3-thinking) need longer
+                # timeouts — they reason for 10-30s before producing content.
+                is_thinking = any(t in model for t in ("r1", "thinking", "reasoning"))
+                req_timeout = 120.0 if is_thinking else 30.0
+                req_max_tokens = 1200 if is_thinking else 600
+                if strategy is not None:
+                    req_max_tokens = min(
+                        req_max_tokens,
+                        int(getattr(strategy, "max_tokens", req_max_tokens)),
+                    )
+
+                use_rlm = False
+                try:
+                    use_rlm = bool(getattr(strategy, "use_rlm", False)) or should_use_rlm(
+                        agent_type=agent_id,
+                        prompt_length=len(user_content),
+                        task_complexity=float(mission.get("complexity", 0.7)),
+                    )
+                except Exception:
+                    use_rlm = bool(getattr(strategy, "use_rlm", False))
+
+                if use_rlm and _RLM_BRIDGE is not None:
+                    try:
+                        rlm_result = await _RLM_BRIDGE.execute_rlm(
+                            prompt=user_content,
+                            task=(
+                                f"Role: {agent['role']}\n"
+                                f"Mission: {mission['description']}\n"
+                                "Return concise actionable output."
+                            ),
+                            agent_model=lambda repl_prompt: self._raw_llm_call(
+                                model,
+                                f"{system_prompt}\n\n{repl_prompt}",
+                                max_tokens=req_max_tokens,
+                                temperature=strategy_temp,
+                            ),
+                        )
+
+                        if rlm_result.final_answer.strip():
+                            approx_tokens = max(
+                                1,
+                                int((len(user_content) + len(rlm_result.final_answer)) / 4),
+                            )
+                            return {
+                                "agent": agent_id,
+                                "name": agent["name"],
+                                "model": model,
+                                "content": rlm_result.final_answer,
+                                "tokens": approx_tokens,
+                                "success": True,
+                                "rlm": True,
+                                "rlm_iterations": rlm_result.iterations,
+                                "rlm_sub_calls": rlm_result.sub_calls,
+                            }
+                    except Exception as rlm_exc:
+                        logger.debug("RLM fallback to direct call for %s: %s", agent_id, rlm_exc)
+
+                async with httpx.AsyncClient(headers=headers, timeout=req_timeout) as client:
                     resp = await client.post(f"{self.base_url}/v1/chat/completions", json={
                         "model": model,
                         "messages": [
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_content},
                         ],
-                        "max_tokens": 600,
+                        "max_tokens": req_max_tokens,
+                        "temperature": strategy_temp,
                     })
 
                     if resp.status_code == 200:
                         data = resp.json()
-                        content = data["choices"][0]["message"].get("content", "")
+                        msg = data["choices"][0]["message"]
+                        content = msg.get("content", "") or msg.get("reasoning_content", "")
                         tokens = data.get("usage", {}).get("total_tokens", 0)
-                        total_tokens += tokens
-
-                        results.append({
+                        return {
                             "agent": agent_id,
                             "name": agent["name"],
                             "model": model,
                             "content": content,
                             "tokens": tokens,
                             "success": True,
-                        })
-                    else:
-                        results.append({
-                            "agent": agent_id,
-                            "model": model,
-                            "success": False,
-                            "error": f"HTTP {resp.status_code}",
-                        })
+                            "rlm": False,
+                        }
+                    return {
+                        "agent": agent_id,
+                        "model": model,
+                        "success": False,
+                        "error": f"HTTP {resp.status_code}",
+                    }
             except Exception as e:
-                results.append({
+                return {
                     "agent": agent_id,
                     "model": model,
                     "success": False,
                     "error": str(e),
-                })
+                }
+
+        # ═══ Pre-load models into VRAM before agent calls ═══
+        # Standing on Giants: Boyd (OODA pre-staging) — absorb cold-start latency up front
+        try:
+            if self._model_router is None:
+                from core.inference.auto_model_router import AutoModelRouter
+                from core.sovereign.equalizer_agent import EqualizerAgent
+
+                self._model_router = AutoModelRouter(
+                    base_url=self.base_url,
+                    token=self.token,
+                    equalizer=EqualizerAgent(),
+                )
+
+            fleet_status = await self._model_router.preload_mission_fleet(
+                agent_ids=agents,
+                config=self._yaml_config,
+            )
+            loaded_count = sum(1 for v in fleet_status.values() if v)
+            logger.info(
+                "    Pre-loaded %d/%d models into VRAM",
+                loaded_count,
+                len(fleet_status),
+            )
+        except Exception as e:
+            logger.debug("  Model pre-load skipped: %s", e)
+
+        # Sequential execution — LM Studio loads one model at a time; parallel
+        # requests to different models causes silent failures. Process agents
+        # sequentially so each model loads and responds before the next request.
+        # Standing on Giants: Amdahl (1967) — sequential fraction dominates here.
+        results = []
+        for a in agents:
+            result_item = await _call_agent(a)
+            results.append(result_item)
+        total_tokens = sum(r.get("tokens", 0) for r in results if r.get("success"))
 
         # ═══ Phase 42: GoT Synthesis (Graph-of-Thoughts on agent outputs) ═══
         # Standing on Giants: Besta (GoT, 2024) · Boyd (OODA synthesis)
@@ -883,6 +1218,120 @@ Be concise (2-3 paragraphs). Focus on actionable insights."""
         receipt = _emit_verified_receipt(mission, result, snr_data)
         self._receipts.append(receipt)
         result["receipt"] = receipt
+
+        # ═══ Post-mission: feed results to Equalizer for model adjustment ═══
+        try:
+            if self._model_router is not None:
+                eq_action = await self._model_router.check_equalizer(
+                    ihsan_score=ihsan_score,
+                    backlog=len(agents),
+                    presence=255 if mission.get("interactive") else 0,
+                )
+                if eq_action:
+                    logger.info("    Equalizer: %s", eq_action)
+        except Exception as e:
+            logger.debug("  Equalizer check skipped: %s", e)
+
+        # ═══ Phase 50: Multi-Channel Dispatch + RL Rewards ═══
+        # Failures in new subsystems never break the existing pipeline.
+        try:
+            if _CHANNEL_DISPATCHER is not None:
+                plan = _CHANNEL_DISPATCHER.decompose(
+                    mission["id"],
+                    mission["description"],
+                    agent_results=results,
+                )
+                if plan.subtasks:
+                    channel_results = await _CHANNEL_DISPATCHER.dispatch_all(plan)
+                    result["channel_dispatch"] = {
+                        "subtasks": len(plan.subtasks),
+                        "succeeded": sum(
+                            1 for r in channel_results.values() if r.get("success")
+                        ),
+                        "channels": list({
+                            r.get("channel", "?") for r in channel_results.values()
+                        }),
+                    }
+                    logger.info(
+                        "    Channels: %d/%d subtasks dispatched",
+                        result["channel_dispatch"]["succeeded"],
+                        result["channel_dispatch"]["subtasks"],
+                    )
+        except Exception as e:
+            logger.debug("  Channel dispatch skipped: %s", e)
+
+        try:
+            from core.token.rl_rewards import (
+                composite_reward,
+                compute_agent_reward,
+                enforce_agent_gini,
+                update_agent_reputation,
+            )
+            from core.token.strategy import load_strategy, persist_strategy, update_strategy
+
+            efficiency = successful / len(results) if results else 0.0
+            reward_payload = {
+                "snr": snr_data.get("snr_score", 0.0),
+                "ihsan": ihsan_score,
+                "efficiency": efficiency,
+                "user_feedback": 0.8,
+                "tokens_used": total_tokens,
+                "quality": snr_data.get("snr_score", 0.0),
+            }
+            reward = composite_reward(reward_payload)
+            result["rl_reward"] = reward
+
+            token_receipts = {}
+            epoch_id = datetime.now(timezone.utc).strftime("epoch-%Y%m%d-%H%M%S")
+
+            for agent_id in agents:
+                if agent_id not in _AGENT_STRATEGIES:
+                    _AGENT_STRATEGIES[agent_id] = await load_strategy(
+                        self._strategy_memory,
+                        agent_id,
+                    )
+
+                _AGENT_STRATEGIES[agent_id] = update_strategy(
+                    _AGENT_STRATEGIES[agent_id],
+                    reward,
+                    {
+                        "task_complexity": float(mission.get("complexity", 0.7)),
+                        "prompt_length": len(user_content),
+                        "success_rate": efficiency,
+                    },
+                )
+                await persist_strategy(
+                    self._strategy_memory,
+                    agent_id,
+                    _AGENT_STRATEGIES[agent_id],
+                )
+
+                if self._token_minter is not None:
+                    seed_receipt = compute_agent_reward(
+                        agent_id=agent_id,
+                        mission_result=reward_payload,
+                        minter=self._token_minter,
+                        emission_gate=self._emission_gate,
+                        epoch_id=epoch_id,
+                    )
+                    impt_receipt = update_agent_reputation(
+                        agent_id=agent_id,
+                        reward_score=reward,
+                        minter=self._token_minter,
+                    )
+                    token_receipts[agent_id] = {
+                        "seed": seed_receipt.to_dict(),
+                        "impt": impt_receipt.to_dict(),
+                    }
+
+            if token_receipts:
+                result["token_receipts"] = token_receipts
+                result["agent_gini"] = enforce_agent_gini(
+                    self._token_minter,
+                    agent_ids=agents,
+                )
+        except Exception as e:
+            logger.debug("  RL rewards skipped: %s", e)
 
         return result
 
@@ -944,12 +1393,14 @@ class Node0Orchestrator:
         logger.info("Node0 shutdown complete.")
 
     async def _check_connection(self) -> bool:
-        """Check LM Studio connection."""
+        """Check LLM backend connection (LM Studio or Ollama)."""
+        # Backend discovery happens in kernel.start() — just verify base_url is reachable
         import httpx
 
         token = _resolve_lm_token()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
 
+        # Try LM Studio first
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
                 resp = await client.get("http://192.168.56.1:1234/v1/models")
@@ -959,8 +1410,20 @@ class Node0Orchestrator:
                     logger.info(f"✓ LM Studio connected: {len(models)} models, {len(loaded)} loaded")
                     return True
         except Exception as e:
-            logger.error(f"Connection failed: {e}")
+            logger.debug(f"LM Studio: {e}")
 
+        # Try Ollama fallback
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get("http://localhost:11434/v1/models")
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    logger.info(f"✓ Ollama connected: {len(models)} models")
+                    return True
+        except Exception as e:
+            logger.debug(f"Ollama: {e}")
+
+        logger.error("No LLM backend reachable (tried LM Studio + Ollama)")
         return False
 
     def _handle_shutdown(self):
@@ -1040,11 +1503,13 @@ async def cmd_status(args):
 async def cmd_mission(args):
     """Run a single mission."""
     kernel = Node0ProactiveKernel({"cycle_interval": 5.0})
+    await kernel._discover_backend()
 
     print("\n" + "═" * 60)
     print("NODE0 MISSION EXECUTION")
     print("═" * 60)
     print(f"Mission: {args.task[:60]}...")
+    print(f"Backend: {kernel._backend_name} ({kernel.base_url})")
     print("═" * 60 + "\n")
 
     mission = await kernel.add_mission(args.task)
