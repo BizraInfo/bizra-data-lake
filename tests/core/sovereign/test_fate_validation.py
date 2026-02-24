@@ -338,7 +338,7 @@ class TestAdlInvariant:
 
     def test_gini_coefficient_must_be_below_035(self, adl_invariant, moderate_holdings):
         """
-        Gini coefficient must be below threshold (spec says 0.35, impl uses 0.40).
+        Gini coefficient must be below threshold (0.35 — aligned across spec and impl).
         Any transaction pushing Gini above threshold must be REJECTED.
         """
         # Threshold aligned to 0.35 across Python + Rust (constants.py + adl_invariant.py)

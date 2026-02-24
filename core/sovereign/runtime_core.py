@@ -123,6 +123,8 @@ class SovereignRuntime:
 
         # AgentDB (V3 unified memory with HNSW indexing)
         self._agent_db: Optional[object] = None
+        self._agent_db_bridge: Optional[object] = None  # AgentDBBridge
+        self._agent_db_health: Optional[object] = None  # AgentDBHealthChecker
 
         # Impact Tracker (sovereignty growth engine)
         self._impact_tracker: Optional[ImpactTrackerProtocol] = None
@@ -1612,6 +1614,9 @@ class SovereignRuntime:
             # Initialize AgentDB (V3 unified memory with HNSW indexing)
             try:
                 from core.memory import AgentDB, MemoryConfig
+                from core.memory.coordinator_bridge import AgentDBBridge
+                from core.memory.health import AgentDBHealthChecker
+                from core.memory.orchestrator import MigrationOrchestrator
 
                 agent_db_config = MemoryConfig(
                     data_dir=self.config.state_dir / "agent_db",
@@ -1621,11 +1626,17 @@ class SovereignRuntime:
                 )
                 self._agent_db = AgentDB(agent_db_config)
                 self._agent_db.initialize()
-                self._memory_coordinator.register_state_provider(
-                    "agent_db",
-                    self._agent_db.get_persistable_state,
-                    RestorePriority.CORE,
+
+                # V3 Bridge: register AgentDB with MemoryCoordinator
+                # (replaces manual state_provider + adds HNSW flush on save)
+                self._agent_db_bridge = AgentDBBridge(
+                    self._agent_db, self._memory_coordinator
                 )
+                self._agent_db_bridge.register()
+
+                # V3 Health: wire health checker for monitoring
+                self._agent_db_health = AgentDBHealthChecker(self._agent_db)
+
                 self.logger.info(
                     f"✓ AgentDB initialized: {self._agent_db.count} records, "
                     f"{self._agent_db.hnsw.count} vectors"
@@ -1642,56 +1653,22 @@ class SovereignRuntime:
                     except Exception as emb_err:
                         self.logger.debug(f"AgentDB embedding fn not wired: {emb_err}")
 
-                # Import existing memories via LivingMemory adapter (non-blocking)
+                # V3 Migration Orchestrator: import from all legacy sources
                 try:
-                    from core.memory.adapters.living_memory import (
-                        LivingMemoryAdapter,
-                    )
-
+                    orch = MigrationOrchestrator(self._agent_db)
                     if self._living_memory is not None:
-                        adapter = LivingMemoryAdapter(self._living_memory)
-                        records = adapter.export_all()
-                        imported = 0
-                        for rec in records:
-                            try:
-                                self._agent_db.store_record(rec)
-                                imported += 1
-                            except Exception:
-                                pass
-                        if imported > 0:
-                            self.logger.info(
-                                f"AgentDB imported {imported} records "
-                                f"from LivingMemory"
-                            )
-                except Exception as adapt_err:
-                    self.logger.debug(
-                        f"LivingMemory adapter import skipped: {adapt_err}"
-                    )
-
-                # Import from ExperienceLedger adapter (read-only, non-blocking)
-                try:
-                    from core.memory.adapters.experience_ledger import (
-                        ExperienceLedgerAdapter,
-                    )
-
+                        orch.set_living_memory(self._living_memory)
                     if self._experience_ledger is not None:
-                        sel_adapter = ExperienceLedgerAdapter(self._experience_ledger)
-                        sel_records = sel_adapter.export_all()
-                        sel_imported = 0
-                        for rec in sel_records:
-                            try:
-                                self._agent_db.store_record(rec)
-                                sel_imported += 1
-                            except Exception:
-                                pass
-                        if sel_imported > 0:
-                            self.logger.info(
-                                f"AgentDB imported {sel_imported} records "
-                                f"from ExperienceLedger"
-                            )
-                except Exception as sel_err:
+                        orch.set_experience_ledger(self._experience_ledger)
+                    result = orch.run()
+                    if result.total_imported > 0:
+                        self.logger.info(
+                            f"AgentDB migration: {result.total_imported} records "
+                            f"imported ({result.total_errors} errors)"
+                        )
+                except Exception as mig_err:
                     self.logger.debug(
-                        f"ExperienceLedger adapter import skipped: {sel_err}"
+                        f"AgentDB migration skipped: {mig_err}"
                     )
 
             except ImportError:

@@ -1,6 +1,6 @@
 [package]
 name = "bizra-cli"
-version = "1.0.0"
+version.workspace = true
 edition = "2021"
 authors = ["MoMo (محمد) <sovereign@bizra.node0>"]
 description = "BIZRA Sovereign CLI/TUI — Your Personal Command Center"

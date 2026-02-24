@@ -24,11 +24,7 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::{Any, CorsLayer},
-    trace::TraceLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 /// API version
 pub const API_VERSION: &str = "v1";
@@ -75,12 +71,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .nest(&format!("/api/{}", API_VERSION), api_routes)
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
+        .layer(CorsLayer::permissive()) // TODO: restrict origins via ServerConfig in production
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             middleware::rate_limit::rate_limiter,
@@ -101,7 +92,7 @@ pub struct ServerConfig {
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
-            host: "0.0.0.0".into(),
+            host: "127.0.0.1".into(),
             port: 3001,
             enable_metrics: true,
             max_connections: 10000,

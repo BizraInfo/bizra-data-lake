@@ -234,7 +234,7 @@ MAX_RETRY_ATTEMPTS = 3
 
 # Primary LLM backend (env override: LMSTUDIO_URL or LMSTUDIO_HOST + LMSTUDIO_PORT)
 # Single source of truth — all core/ modules must import these instead of hardcoding.
-LMSTUDIO_HOST: str = os.getenv("LMSTUDIO_HOST", "192.168.56.1")
+LMSTUDIO_HOST: str = os.getenv("LMSTUDIO_HOST", "172.22.48.1")
 LMSTUDIO_PORT: str = os.getenv("LMSTUDIO_PORT", "1234")
 LMSTUDIO_URL: str = os.getenv("LMSTUDIO_URL", f"http://{LMSTUDIO_HOST}:{LMSTUDIO_PORT}")
 

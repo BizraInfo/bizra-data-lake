@@ -19,19 +19,29 @@ Architecture:
 
 from .agent_db import AgentDB
 from .config import HNSWConfig, MemoryConfig
+from .coordinator_bridge import AgentDBBridge
+from .health import AgentDBHealthChecker, AgentDBMetrics, HealthReport, HealthStatus
 from .hnsw_index import HNSWIndex
 from .hybrid_query import HybridQueryEngine
+from .orchestrator import MigrationOrchestrator, OrchestratorResult
 from .types import MemoryKind, MemoryRecord, QueryOptions, RecordState, SearchResult
 from .unified_store import UnifiedStore
 
 __all__ = [
     "AgentDB",
+    "AgentDBBridge",
+    "AgentDBHealthChecker",
+    "AgentDBMetrics",
     "HNSWConfig",
     "HNSWIndex",
+    "HealthReport",
+    "HealthStatus",
     "HybridQueryEngine",
     "MemoryConfig",
     "MemoryKind",
     "MemoryRecord",
+    "MigrationOrchestrator",
+    "OrchestratorResult",
     "QueryOptions",
     "RecordState",
     "SearchResult",

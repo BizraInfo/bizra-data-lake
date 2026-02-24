@@ -221,7 +221,7 @@ CANONICAL_PATTERNS: Final[List[DomainPattern]] = [
             {
                 "from": "Income inequality (Gini, 1912)",
                 "to": "Compute resource fairness",
-                "result": "ADL_GINI_THRESHOLD=0.40 in BIZRA constitution",
+                "result": "ADL_GINI_THRESHOLD=0.35 in BIZRA constitution",
             },
         ],
         target_domains=[Domain.DISTRIBUTED_SYSTEMS, Domain.GAME_THEORY],

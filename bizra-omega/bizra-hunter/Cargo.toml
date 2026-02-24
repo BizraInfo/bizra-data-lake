@@ -1,6 +1,6 @@
 [package]
 name = "bizra-hunter"
-version = "1.0.0"
+version.workspace = true
 edition = "2021"
 authors = ["BIZRA Node0 <node0@bizra.io>"]
 description = "SNR-Maximized Vulnerability Hunter - 47.9M ops/sec"

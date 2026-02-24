@@ -40,8 +40,9 @@ try:
     from dotenv import load_dotenv
 
     # Load .env from project root (supports both LM_STUDIO_API_KEY and LM_API_TOKEN)
+    # override=True ensures .env file is authoritative over stale shell exports
     _env_path = Path(__file__).resolve().parent.parent / ".env"
-    load_dotenv(_env_path)
+    load_dotenv(_env_path, override=True)
 except ImportError:
     pass
 
@@ -726,8 +727,12 @@ class Node0ProactiveKernel:
     """
 
     # Backend endpoints (local-first, Ollama as fallback)
-    _LM_STUDIO_URL = "http://192.168.56.1:1234"
-    _OLLAMA_URL = "http://localhost:11434"
+    # Resolve from env → constants.py → default (WSL gateway)
+    _LM_STUDIO_URL = os.getenv(
+        "LM_STUDIO_URL",
+        f"http://{os.getenv('LMSTUDIO_HOST', '172.22.48.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
+    ).rstrip("/").replace("/v1", "")  # Normalize to base URL without /v1 suffix
+    _OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
     # Mapping from LM Studio model names → Ollama equivalents
     _OLLAMA_MODEL_MAP = {
@@ -1578,7 +1583,7 @@ class Node0Orchestrator:
         # Try LM Studio first
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-                resp = await client.get("http://192.168.56.1:1234/v1/models")
+                resp = await client.get(f"{self._LM_STUDIO_URL}/v1/models")
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     loaded = [m for m in models if m.get("loaded")]
@@ -1662,7 +1667,7 @@ async def cmd_status(args):
     # Check LM Studio
     try:
         async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-            resp = await client.get("http://192.168.56.1:1234/v1/models")
+            resp = await client.get(f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models")
             if resp.status_code == 200:
                 models = resp.json().get("data", [])
                 loaded = [m for m in models if m.get("loaded")]

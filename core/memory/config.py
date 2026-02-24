@@ -66,6 +66,20 @@ class MemoryConfig:
     weight_importance: float = 0.15
     weight_graph: float = 0.10
 
+    # Embedding pipeline
+    auto_embed: bool = True
+    embed_model: str = "all-MiniLM-L6-v2"
+    embed_device: str = "cpu"  # "cpu", "cuda", "auto"
+    embed_batch_size: int = 64
+    ollama_embed_url: str = "http://localhost:11434"
+    ollama_embed_model: str = "nomic-embed-text"
+
+    # Cross-agent sync via Redis synapse
+    sync_enabled: bool = False
+    sync_redis_url: str = "redis://localhost:6380"
+    sync_channel: str = "bizra:memory:new"
+    sync_agent_id: str = "node0"
+
     # Optional: existing LivingMemory path for migration
     living_memory_db: Optional[Path] = None
 

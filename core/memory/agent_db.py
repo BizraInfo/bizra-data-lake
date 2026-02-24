@@ -90,6 +90,17 @@ class AgentDB:
         # Wire up query engine
         self._query_engine = HybridQueryEngine(self._store, self._hnsw, self._config)
 
+        # Wire default embedding function if not already set
+        if self._embedding_fn is None and getattr(self._config, "auto_embed", True):
+            try:
+                from .embedding import create_default_embedding_fn
+
+                fn = create_default_embedding_fn(self._config)
+                if fn is not None:
+                    self._embedding_fn = fn
+            except Exception as e:
+                logger.debug(f"Auto-embed setup skipped: {e}")
+
         self._initialized = True
         logger.info(
             f"AgentDB initialized: {self._store.count()} records, "

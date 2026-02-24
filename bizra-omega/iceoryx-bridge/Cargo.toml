@@ -1,6 +1,6 @@
 [package]
 name = "iceoryx-bridge"
-version = "2.2.0"
+version.workspace = true
 edition = "2021"
 description = "Zero-copy IPC bridge for BIZRA Sovereign LLM using Iceoryx2"
 license = "MIT"

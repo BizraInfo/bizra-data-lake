@@ -25,7 +25,7 @@ from core.marketplace.expert_registry import (
 logger = logging.getLogger(__name__)
 
 # Harberger tax rate for marketplace listings (annual, applied per-query)
-HARBERGER_ANNUAL_RATE = 0.05  # 5% annual
+HARBERGER_ANNUAL_RATE = 0.07  # 7% annual — aligned with constants.py
 
 # Seconds in a year for pro-rating
 SECONDS_PER_YEAR = 365.25 * 24 * 3600

@@ -1,6 +1,6 @@
 [package]
 name = "bizra-python"
-version = "1.0.0"
+version.workspace = true
 edition = "2021"
 description = "BIZRA Python Bindings — PyO3 bridge to Rust core"
 

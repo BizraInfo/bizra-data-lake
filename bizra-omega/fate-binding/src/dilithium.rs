@@ -66,9 +66,20 @@ impl DilithiumKeypair {
         Ok(mldsa87::verify_detached_signature(&sig, message, &pk).is_ok())
     }
 
-    /// Export keypair to JSON
+    /// Export public key only (safe for sharing).
     #[napi]
-    pub fn to_json(&self) -> Result<String> {
+    pub fn to_public_json(&self) -> Result<String> {
+        let data = PublicKeyData {
+            algorithm: "ML-DSA-87".to_string(),
+            public_key: hex::encode(&self.public_key),
+        };
+        serde_json::to_string(&data)
+            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+    }
+
+    /// Export full keypair to JSON (contains secret key — handle with care).
+    #[napi]
+    pub fn to_keypair_json(&self) -> Result<String> {
         let keypair_data = KeypairData {
             algorithm: "ML-DSA-87".to_string(),
             public_key: hex::encode(&self.public_key),
@@ -77,6 +88,16 @@ impl DilithiumKeypair {
 
         serde_json::to_string(&keypair_data)
             .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+    }
+
+    /// Backward-compatible alias — delegates to [`to_keypair_json`].
+    #[deprecated(
+        note = "Use to_public_json() for safe sharing or to_keypair_json() for full export"
+    )]
+    #[allow(deprecated)]
+    #[napi]
+    pub fn to_json(&self) -> Result<String> {
+        self.to_keypair_json()
     }
 
     /// Import keypair from JSON
@@ -98,6 +119,12 @@ impl DilithiumKeypair {
                 .map_err(|_| Error::from_reason("Invalid secret key hex"))?,
         })
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct PublicKeyData {
+    algorithm: String,
+    public_key: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -192,10 +219,18 @@ mod tests {
     #[test]
     fn test_keypair_serialization() {
         let keypair = DilithiumKeypair::generate().unwrap();
-        let json = keypair.to_json().unwrap();
+        let json = keypair.to_keypair_json().unwrap();
         let restored = DilithiumKeypair::from_json(json).unwrap();
 
         assert_eq!(keypair.public_key, restored.public_key);
+    }
+
+    #[test]
+    fn test_public_json_excludes_secret() {
+        let keypair = DilithiumKeypair::generate().unwrap();
+        let public_json = keypair.to_public_json().unwrap();
+        assert!(!public_json.contains("secret_key"));
+        assert!(public_json.contains("public_key"));
     }
 
     #[test]

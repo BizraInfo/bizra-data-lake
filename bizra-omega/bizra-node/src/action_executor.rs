@@ -27,6 +27,9 @@ pub struct ActionExecutorConfig {
     pub bridge_host: String,
     pub bridge_port: u16,
     pub timeout_ms: u64,
+    /// When true, route actions through bizra-action's constitutional Dispatcher
+    /// instead of the raw TCP bridge path. Default: false (legacy path).
+    pub use_constitutional_dispatcher: bool,
 }
 
 impl Default for ActionExecutorConfig {
@@ -35,6 +38,7 @@ impl Default for ActionExecutorConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 9742,
             timeout_ms: 3000,
+            use_constitutional_dispatcher: false,
         }
     }
 }
@@ -63,6 +67,10 @@ pub struct ActionExecutor {
     direct_audit_fallback_on_eventbus: bool,
     /// Optional audit path override (primarily for deterministic tests/migration checks).
     audit_log_path_override: Option<String>,
+    /// Production constitutional Dispatcher (bizra-action).
+    /// When present and config.use_constitutional_dispatcher is true,
+    /// actions route through the 7-gate Guardian pipeline.
+    constitutional_dispatcher: Option<bizra_action::Dispatcher>,
 }
 
 impl ActionExecutor {
@@ -80,6 +88,12 @@ impl ActionExecutor {
             600,
         );
         let executor_component = ComponentId::from_name("action_executor", "1.0.0");
+
+        let constitutional_dispatcher = if config.use_constitutional_dispatcher {
+            Some(crate::action_bridge::create_default_dispatcher())
+        } else {
+            None
+        };
 
         Self {
             config,
@@ -101,6 +115,7 @@ impl ActionExecutor {
             audit_log_enabled: false,
             direct_audit_fallback_on_eventbus: false,
             audit_log_path_override: None,
+            constitutional_dispatcher,
         }
     }
 
@@ -169,8 +184,14 @@ impl ActionExecutor {
         let mut plan = self.parse_plan(payload_json, now)?;
         self.plan_seq += 1;
         plan.plan_id = format!("pln_{:08x}", self.plan_seq);
-        self.action_bus
-            .validate_plan(&plan, &self.permit, &self.usage, now)?;
+        // When constitutional dispatcher is active, skip legacy executor validation
+        // (the Dispatcher has its own channel registry and Guardian gating).
+        if self.constitutional_dispatcher.is_none() {
+            self.action_bus
+                .validate_plan(&plan, &self.permit, &self.usage, now)?;
+        } else {
+            plan.validate()?;
+        }
         self.plans.insert(plan.plan_id.clone(), plan.clone());
         Ok(plan)
     }
@@ -190,8 +211,12 @@ impl ActionExecutor {
             return Err(ActionError::new("PLAN_NOT_FOUND", "Plan not found"));
         };
 
-        self.action_bus
-            .validate_plan(&plan, &self.permit, &self.usage, now)?;
+        if self.constitutional_dispatcher.is_none() {
+            self.action_bus
+                .validate_plan(&plan, &self.permit, &self.usage, now)?;
+        } else {
+            plan.validate()?;
+        }
 
         self.action_seq += 1;
         let action_id = format!("act_{:08x}", self.action_seq);
@@ -452,6 +477,18 @@ impl ActionExecutor {
     }
 
     fn execute_step(&mut self, step: &PlannedStep, now: u64) -> Result<(), ActionError> {
+        // ── Constitutional Dispatcher path (production) ──────
+        if let Some(ref mut dispatcher) = self.constitutional_dispatcher {
+            let action = crate::action_bridge::translate_step(step)?;
+            let permit = bizra_action::Permit::user_default();
+            let ihsan = bizra_action::IhsanScore::new(self.event_ihsan_score.as_f64());
+            match dispatcher.dispatch(action, permit, ihsan, "action_executor") {
+                Ok(_result) => return Ok(()),
+                Err(e) => return Err(crate::action_bridge::dispatch_error_to_legacy(&e)),
+            }
+        }
+
+        // ── Legacy bridge path (MVP) ─────────────────────────
         let _ = self
             .action_bus
             .dispatch_step(step, &self.permit, &mut self.usage, now)?;
@@ -599,6 +636,16 @@ impl ActionExecutor {
     /// Mutable reference to the KeyVault (if set).
     pub fn vault_mut(&mut self) -> Option<&mut KeyVault> {
         self.key_vault.as_mut()
+    }
+
+    /// Whether the constitutional Dispatcher is active.
+    pub fn uses_constitutional_dispatcher(&self) -> bool {
+        self.constitutional_dispatcher.is_some()
+    }
+
+    /// Get constitutional Dispatcher health (if active).
+    pub fn dispatcher_health(&self) -> Option<bizra_action::DispatcherHealth> {
+        self.constitutional_dispatcher.as_ref().map(|d| d.health())
     }
 }
 
