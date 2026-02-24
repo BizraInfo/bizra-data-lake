@@ -1,0 +1,4 @@
+interface:
+  display_name: "True Spearpoint"
+  short_description: "Run strict benchmark dominance campaigns"
+  default_prompt: "Use $true-spearpoint to run a fail-closed benchmark campaign for SWE, HLE, or AgentBeats."

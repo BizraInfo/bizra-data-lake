@@ -1,0 +1,52 @@
+# True Spearpoint 2026 configuration (strict fail-closed defaults)
+
+# Canonical battlefields for campaign routing.
+benchmark_targets:
+  - swe_bench_verified
+  - hle
+  - agentbeats
+
+# Execution mode: strict|balanced|explore.
+execution_mode: strict_fail_closed
+
+# Budget constraints used by cost and submission gates.
+budget_policy:
+  max_cost_per_task_usd: 1.50
+  max_total_campaign_cost_usd: 15.00
+  max_p95_latency_ms: 45000
+  max_tokens_per_task: 120000
+  max_tokens_total: 600000
+
+# Integrity checks enforced before submission.
+integrity_profile:
+  seed_sweep: 3
+  leak_scan: true
+  null_model_probe: true
+  injection_probes: true
+  require_repro_script: true
+  block_on_gate_failure: true
+  max_seed_variance: 0.02
+
+# Submission policy and quality blocking behavior.
+submission_policy:
+  require_integrity_pass: true
+  require_cost_gate_pass: true
+  require_anti_gaming_pass: true
+  auto_submit: false
+
+# Model and solver topology for evaluation and ablations.
+models:
+  planner:
+    name: open_source_planner_7b
+  solver:
+    name: deepseek_8b_base
+  verifier:
+    name: small_verifier_model
+
+# Runtime routing approach across model tiers.
+routing:
+  strategy: federated
+  fallback_order:
+    - planner
+    - solver
+    - verifier
