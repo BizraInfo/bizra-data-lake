@@ -76,7 +76,7 @@ predictions:
 # VRAM budget: Planner(~4GB) + Reasoner(~5GB) + Vision4B(~3GB) = ~12GB with headroom
 # Voice and Vision-8B load on-demand via hot-swap; Embedding runs CPU-side
 model_routing:
-  backend: lm_studio                     # Primary: LM Studio at 192.168.56.1:1234
+  backend: lm_studio                     # Primary: LM Studio at 172.22.48.1:1234 (WSL gateway)
   fallback: ollama                       # Fallback: Ollama at localhost:11434
 
   # PAT Agent → Model assignments (multi-model fleet: small specialized > one big generic)
