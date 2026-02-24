@@ -21,6 +21,12 @@ export interface TransportConfig {
 
   /** Request timeout in ms */
   readonly requestTimeoutMs: number;
+
+  /** Maximum retry attempts for transient failures */
+  readonly maxRetries: number;
+
+  /** Base delay for exponential backoff in ms */
+  readonly retryBaseDelayMs: number;
 }
 
 export interface BatchedRequest {
@@ -52,6 +58,9 @@ export interface TransportStats {
 
   /** Bytes saved by compact serialization */
   readonly bytesSaved: number;
+
+  /** Total retries performed */
+  readonly totalRetries: number;
 }
 
 const DEFAULT_TRANSPORT_CONFIG: TransportConfig = {
@@ -60,6 +69,8 @@ const DEFAULT_TRANSPORT_CONFIG: TransportConfig = {
   deduplicateRequests: true,
   compactSerialization: true,
   requestTimeoutMs: 30000,
+  maxRetries: 2,
+  retryBaseDelayMs: 100,
 };
 
 type RequestResolver = {
@@ -81,6 +92,7 @@ export class OptimizedTransport {
   private totalBatched: number = 0;
   private totalDeduplicated: number = 0;
   private bytesSaved: number = 0;
+  private totalRetries: number = 0;
 
   constructor(config: Partial<TransportConfig> = {}) {
     this.config = { ...DEFAULT_TRANSPORT_CONFIG, ...config };
@@ -146,6 +158,7 @@ export class OptimizedTransport {
       totalDeduplicated: this.totalDeduplicated,
       avgBatchSize: Math.round(batches * 100) / 100,
       bytesSaved: this.bytesSaved,
+      totalRetries: this.totalRetries,
     };
   }
 
@@ -211,40 +224,64 @@ export class OptimizedTransport {
     this.pendingResolvers.clear();
     this.totalBatched++;
 
-    try {
-      const responses = await Promise.race([
-        executeFn(batch),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Batch timeout')),
-            this.config.requestTimeoutMs
-          )
-        ),
-      ]);
+    let lastError: Error | null = null;
+    const maxAttempts = 1 + this.config.maxRetries;
 
-      for (const response of responses) {
-        const resolver = resolvers.get(response.requestId);
-        if (resolver) {
-          if (response.error) {
-            resolver.reject(new Error(response.error));
-          } else {
-            resolver.resolve(response.result ?? '');
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        // Exponential backoff with jitter
+        const delay = this.config.retryBaseDelayMs * Math.pow(2, attempt - 1);
+        const jitter = delay * 0.2 * Math.random();
+        await new Promise((r) => setTimeout(r, delay + jitter));
+        this.totalRetries++;
+      }
+
+      try {
+        const responses = await Promise.race([
+          executeFn(batch),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Batch timeout')),
+              this.config.requestTimeoutMs
+            )
+          ),
+        ]);
+
+        for (const response of responses) {
+          const resolver = resolvers.get(response.requestId);
+          if (resolver) {
+            if (response.error) {
+              resolver.reject(new Error(response.error));
+            } else {
+              resolver.resolve(response.result ?? '');
+            }
+            resolvers.delete(response.requestId);
           }
-          resolvers.delete(response.requestId);
+        }
+
+        // Reject any unresolved requests
+        for (const [, resolver] of resolvers) {
+          resolver.reject(new Error('No response received'));
+        }
+        return; // Success — exit retry loop
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Only retry on timeout or transient errors, not on explicit errors
+        if (lastError.message === 'Batch timeout' && attempt < maxAttempts - 1) {
+          continue;
+        }
+
+        // Non-retryable error — break immediately
+        if (lastError.message !== 'Batch timeout') {
+          break;
         }
       }
+    }
 
-      // Reject any unresolved requests
-      for (const [, resolver] of resolvers) {
-        resolver.reject(new Error('No response received'));
-      }
-    } catch (error) {
-      // Reject all requests in batch
-      for (const [, resolver] of resolvers) {
-        resolver.reject(
-          error instanceof Error ? error : new Error(String(error))
-        );
-      }
+    // All retries exhausted — reject remaining
+    for (const [, resolver] of resolvers) {
+      resolver.reject(lastError ?? new Error('Batch failed after retries'));
     }
   }
 

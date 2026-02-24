@@ -93,6 +93,9 @@ export class MultiLevelCache<T = string> {
         this.l1.delete(key);
       } else {
         l1Entry.accessedAt = Date.now();
+        // Move to end of Map for O(1) LRU: delete+re-insert
+        this.l1.delete(key);
+        this.l1.set(key, l1Entry);
         this.l1Hits++;
         return l1Entry.value;
       }
@@ -107,6 +110,9 @@ export class MultiLevelCache<T = string> {
         return undefined;
       }
       l2Entry.accessedAt = Date.now();
+      // Move to end of Map for O(1) LRU
+      this.l2.delete(key);
+      this.l2.set(key, l2Entry);
       this.l2Hits++;
 
       // Promote to L1
@@ -221,47 +227,27 @@ export class MultiLevelCache<T = string> {
     this.evictL1IfNeeded();
   }
 
+  /**
+   * O(1) LRU eviction using Map insertion order.
+   *
+   * JS Maps iterate in insertion order. On access, we delete+re-insert
+   * the key so it moves to the end. The first key is always the LRU.
+   */
   private evictL1IfNeeded(): void {
     while (this.l1.size > this.config.l1MaxEntries) {
-      // Evict oldest accessed
-      let oldestKey: string | null = null;
-      let oldestTime = Infinity;
-
-      for (const [key, entry] of this.l1) {
-        if (entry.accessedAt < oldestTime) {
-          oldestTime = entry.accessedAt;
-          oldestKey = key;
-        }
-      }
-
-      if (oldestKey) {
-        this.l1.delete(oldestKey);
-        this.evictions++;
-      } else {
-        break;
-      }
+      const oldest = this.l1.keys().next();
+      if (oldest.done) break;
+      this.l1.delete(oldest.value);
+      this.evictions++;
     }
   }
 
   private evictL2IfNeeded(): void {
     while (this.l2.size > this.config.l2MaxEntries) {
-      // Evict oldest accessed (LRU)
-      let oldestKey: string | null = null;
-      let oldestTime = Infinity;
-
-      for (const [key, entry] of this.l2) {
-        if (entry.accessedAt < oldestTime) {
-          oldestTime = entry.accessedAt;
-          oldestKey = key;
-        }
-      }
-
-      if (oldestKey) {
-        this.l2.delete(oldestKey);
-        this.evictions++;
-      } else {
-        break;
-      }
+      const oldest = this.l2.keys().next();
+      if (oldest.done) break;
+      this.l2.delete(oldest.value);
+      this.evictions++;
     }
   }
 

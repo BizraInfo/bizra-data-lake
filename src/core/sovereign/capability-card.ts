@@ -34,9 +34,22 @@ export enum TaskType {
 /** Quantization levels */
 export type Quantization = 'f16' | 'q8' | 'q4' | 'q2' | 'unknown';
 
-/** Constitutional thresholds */
+/**
+ * Constitutional thresholds — LOCKED, require constitutional amendment.
+ *
+ * Cross-repo alignment:
+ *   Python: core/integration/constants.py
+ *   Rust:   bizra-omega/bizra-core/src/lib.rs + omega.rs
+ *   TS:     this file (src/core/sovereign/capability-card.ts)
+ *
+ * Standing on Giants: Shannon · Lamport · Al-Ghazali · Anthropic
+ */
 export const IHSAN_THRESHOLD = 0.95;
+export const STRICT_IHSAN_THRESHOLD = 0.99;
 export const SNR_THRESHOLD = 0.85;
+export const SNR_THRESHOLD_T1_HIGH = 0.95;
+export const SNR_THRESHOLD_T0_ELITE = 0.98;
+export const ADL_GINI_THRESHOLD = 0.35;
 
 /**
  * CapabilityCard structure

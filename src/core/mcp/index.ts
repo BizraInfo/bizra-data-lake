@@ -22,6 +22,7 @@ export {
   type PoolStats,
   type ManagedConnection,
   ConnectionState,
+  CircuitState,
 } from './connection-pool';
 
 export {

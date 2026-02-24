@@ -1,5 +1,6 @@
 /**
- * Tests for MCP Connection Pool, Cache, Registry, and Load Balancer
+ * Tests for MCP Connection Pool, Cache, Registry, Load Balancer,
+ * Metrics (quickselect), and Transport (retry).
  */
 
 import { describe, it, beforeEach } from 'node:test';
@@ -7,11 +8,13 @@ import assert from 'node:assert/strict';
 import {
   MCPConnectionPool,
   ConnectionState,
+  CircuitState,
 } from '../connection-pool';
 import { FastToolRegistry } from '../fast-tool-registry';
 import { MultiLevelCache } from '../multi-level-cache';
 import { MCPLoadBalancer, BalancingStrategy } from '../load-balancer';
 import { MCPMetrics } from '../metrics';
+import { OptimizedTransport, type BatchedResponse } from '../optimized-transport';
 
 // ============================================================================
 // Connection Pool Tests
@@ -102,6 +105,86 @@ describe('MCPConnectionPool', () => {
 });
 
 // ============================================================================
+// Circuit Breaker Tests
+// ============================================================================
+
+describe('MCPConnectionPool - Circuit Breaker', () => {
+  let pool: MCPConnectionPool;
+
+  beforeEach(() => {
+    pool = new MCPConnectionPool({
+      maxConnectionsPerServer: 3,
+      minIdleConnections: 1,
+      connectionTimeoutMs: 1000,
+      healthCheckIntervalMs: 60000,
+      maxConsecutiveFailures: 2,
+    });
+  });
+
+  it('should start with circuit CLOSED', () => {
+    pool.registerServer('s1');
+    assert.equal(pool.getCircuitState('s1'), CircuitState.CLOSED);
+  });
+
+  it('should open circuit after max consecutive failures on same connection', () => {
+    pool.registerServer('s1');
+
+    const events: string[] = [];
+    pool.on('circuit-opened', () => events.push('opened'));
+
+    // Use same connection — 2 consecutive failures triggers unhealthy + circuit open
+    const conn = pool.acquire('s1');
+    assert.ok(conn);
+    pool.markFailed(conn); // failure 1 -> idle, circuit failures = 1
+
+    // Re-acquire same connection (it went back to idle)
+    const conn2 = pool.acquire('s1');
+    assert.ok(conn2);
+    pool.markFailed(conn2); // failure 2 -> unhealthy, circuit failures = 2 -> OPEN
+
+    assert.equal(pool.getCircuitState('s1'), CircuitState.OPEN);
+    assert.ok(events.includes('opened'));
+  });
+
+  it('should block acquire when circuit is OPEN', () => {
+    pool.registerServer('s1');
+
+    // Force circuit open via consecutive failures on same connection
+    const conn = pool.acquire('s1');
+    assert.ok(conn);
+    pool.markFailed(conn);
+    const conn2 = pool.acquire('s1');
+    assert.ok(conn2);
+    pool.markFailed(conn2);
+
+    assert.equal(pool.getCircuitState('s1'), CircuitState.OPEN);
+
+    // Acquire should return null while circuit is open
+    const conn3 = pool.acquire('s1');
+    assert.equal(conn3, null);
+  });
+
+  it('should track circuit failures across different connections', () => {
+    pool.registerServer('s1');
+
+    // Fail two different connections — circuit sees 2 failures total
+    const c1 = pool.acquire('s1');
+    assert.ok(c1);
+    pool.markFailed(c1); // conn failure 1, circuit failure 1
+
+    const c2 = pool.acquire('s1');
+    assert.ok(c2);
+    pool.markFailed(c2); // conn failure 1 (different conn), circuit failure 2 -> OPEN
+
+    assert.equal(pool.getCircuitState('s1'), CircuitState.OPEN);
+  });
+
+  it('should return CLOSED for unregistered server circuit', () => {
+    assert.equal(pool.getCircuitState('nonexistent'), CircuitState.CLOSED);
+  });
+});
+
+// ============================================================================
 // Fast Tool Registry Tests
 // ============================================================================
 
@@ -182,7 +265,7 @@ describe('FastToolRegistry', () => {
 });
 
 // ============================================================================
-// Multi-Level Cache Tests
+// Multi-Level Cache Tests (with O(1) LRU)
 // ============================================================================
 
 describe('MultiLevelCache', () => {
@@ -227,6 +310,25 @@ describe('MultiLevelCache', () => {
     const stats = cache.getStats();
     assert.ok(stats.l1Size <= 4);
     assert.ok(stats.evictions > 0);
+  });
+
+  it('should evict LRU entries (O(1) Map insertion order)', () => {
+    // Insert 4 entries (max L1 = 4)
+    cache.set('a', '1');
+    cache.set('b', '2');
+    cache.set('c', '3');
+    cache.set('d', '4');
+
+    // Access 'a' to move it to end (most recently used)
+    cache.get('a');
+
+    // Insert 5th entry — should evict 'b' (oldest untouched)
+    cache.set('e', '5');
+
+    assert.equal(cache.getStats().l1Size, 4);
+    // 'a' should survive (was accessed), 'b' should be evicted from L1
+    assert.equal(cache.get('a'), '1');
+    assert.equal(cache.get('e'), '5');
   });
 
   it('should generate consistent cache keys', () => {
@@ -327,7 +429,7 @@ describe('MCPLoadBalancer', () => {
 });
 
 // ============================================================================
-// Metrics Tests
+// Metrics Tests (with quickselect percentiles)
 // ============================================================================
 
 describe('MCPMetrics', () => {
@@ -385,5 +487,94 @@ describe('MCPMetrics', () => {
 
     const snapshot = metrics.getSnapshot();
     assert.ok(snapshot.qualityScore > 0.5);
+  });
+
+  it('should compute correct percentiles via quickselect', () => {
+    // Insert known distribution: 1, 2, 3, ..., 100
+    for (let i = 1; i <= 100; i++) {
+      metrics.recordRequest('s1', i);
+    }
+
+    const snapshot = metrics.getSnapshot();
+    // p50 should be around 50
+    assert.ok(snapshot.p50ResponseMs >= 49 && snapshot.p50ResponseMs <= 51,
+      `p50 was ${snapshot.p50ResponseMs}, expected ~50`);
+    // p95 should be around 95
+    assert.ok(snapshot.p95ResponseMs >= 94 && snapshot.p95ResponseMs <= 96,
+      `p95 was ${snapshot.p95ResponseMs}, expected ~95`);
+    // p99 should be around 99
+    assert.ok(snapshot.p99ResponseMs >= 98 && snapshot.p99ResponseMs <= 100,
+      `p99 was ${snapshot.p99ResponseMs}, expected ~99`);
+  });
+});
+
+// ============================================================================
+// Optimized Transport Tests (with retry)
+// ============================================================================
+
+describe('OptimizedTransport', () => {
+  it('should batch requests and resolve them', async () => {
+    const transport = new OptimizedTransport({
+      maxBatchSize: 2,
+      maxBatchWaitMs: 10,
+      maxRetries: 0,
+    });
+
+    const executeFn = async (reqs: { id: string; toolName: string }[]): Promise<BatchedResponse[]> => {
+      return reqs.map((r) => ({
+        requestId: r.id,
+        result: `result-${r.toolName}`,
+        error: null,
+        durationMs: 5,
+      }));
+    };
+
+    const result = await transport.send('tool1', { a: 1 }, executeFn);
+    assert.equal(result, 'result-tool1');
+  });
+
+  it('should deduplicate identical in-flight requests', async () => {
+    let callCount = 0;
+    const transport = new OptimizedTransport({
+      maxBatchSize: 10,
+      maxBatchWaitMs: 10,
+      deduplicateRequests: true,
+      maxRetries: 0,
+    });
+
+    const executeFn = async (reqs: { id: string; toolName: string }[]): Promise<BatchedResponse[]> => {
+      callCount++;
+      return reqs.map((r) => ({
+        requestId: r.id,
+        result: 'deduped',
+        error: null,
+        durationMs: 5,
+      }));
+    };
+
+    // Send identical requests concurrently
+    const [r1, r2] = await Promise.all([
+      transport.send('same', { x: 1 }, executeFn),
+      transport.send('same', { x: 1 }, executeFn),
+    ]);
+
+    assert.equal(r1, 'deduped');
+    assert.equal(r2, 'deduped');
+
+    const stats = transport.getStats();
+    assert.ok(stats.totalDeduplicated >= 1);
+  });
+
+  it('should track retry stats', () => {
+    const transport = new OptimizedTransport({ maxRetries: 3 });
+    const stats = transport.getStats();
+    assert.equal(stats.totalRetries, 0);
+  });
+
+  it('should serialize with compact mode', () => {
+    const transport = new OptimizedTransport({ compactSerialization: true });
+    const result = transport.serialize({ hello: 'world', nested: { a: 1 } });
+    assert.ok(!result.includes('\n'));
+    assert.ok(transport.getStats().bytesSaved > 0);
   });
 });
