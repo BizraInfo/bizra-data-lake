@@ -15,7 +15,7 @@ use std::sync::Arc;
 #[test]
 fn server_config_default_values() {
     let cfg = ServerConfig::default();
-    assert_eq!(cfg.host, "0.0.0.0");
+    assert_eq!(cfg.host, "127.0.0.1");
     assert_eq!(cfg.port, 3001);
     assert!(cfg.enable_metrics);
     assert_eq!(cfg.max_connections, 10000);

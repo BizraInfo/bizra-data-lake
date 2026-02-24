@@ -46,6 +46,9 @@ WARP_PATH = Path(__file__).parent / "xtr-warp"
 if WARP_PATH.exists() and str(WARP_PATH) not in sys.path:
     sys.path.insert(0, str(WARP_PATH))
 
+# FAISS environment detection (centralized, lazy — no GPU probe at import)
+from faiss_env import FAISS_AVAILABLE, faiss_summary
+
 # Import BIZRA config
 from bizra_config import (
     WARP_INDEX_ROOT, WARP_EXPERIMENT_ROOT, WARP_CHECKPOINT,
@@ -164,6 +167,7 @@ class WARPBridge:
             from warp.engine.config import WARPRunConfig
             self._warp_available = True
             logger.info("[OK] WARP dependencies available")
+            logger.info("[OK] FAISS: %s", faiss_summary())
             return True
         except ImportError as e:
             logger.warning(f"[WARN] WARP not available: {e}")
@@ -475,6 +479,9 @@ class WARPBridge:
         """Check engine health."""
         if not self._warp_available:
             return False, "WARP dependencies not installed"
+        
+        if not FAISS_AVAILABLE:
+            return False, "FAISS not installed"
         
         if self.status == WARPStatus.ERROR:
             return False, "Engine in error state"

@@ -102,7 +102,7 @@ IHSAN_DIMENSIONS: Final[tuple[str, ...]] = (
 )
 
 # Adl (Justice) constraint
-ADL_GINI_THRESHOLD: Final[float] = 0.40  # Constitutional maximum
+ADL_GINI_THRESHOLD: Final[float] = 0.35  # Constitutional maximum — aligned with constants.py
 ADL_GINI_EMERGENCY: Final[float] = 0.60  # Emergency redistribution trigger
 
 # Byzantine consensus
@@ -1108,7 +1108,7 @@ TREASURY_MODES: dict[TreasuryMode, TreasuryModeConfig] = {
     TreasuryMode.ETHICAL: TreasuryModeConfig(
         mode=TreasuryMode.ETHICAL,
         compute_budget_percent=100.0,
-        gini_threshold=ADL_GINI_THRESHOLD,  # 0.40
+        gini_threshold=ADL_GINI_THRESHOLD,  # 0.35
         ihsan_threshold=UNIFIED_IHSAN_THRESHOLD,  # 0.95
         max_concurrent_ops=100,
         description="Full ethical operation with all constraints enforced",

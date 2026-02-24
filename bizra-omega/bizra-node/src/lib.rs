@@ -17,6 +17,7 @@
 // The complete sovereign AI node.
 // ============================================================
 
+pub mod action_bridge;
 pub mod action_executor;
 pub mod audit_hook;
 pub mod handler;
@@ -383,6 +384,133 @@ mod integration_tests {
         assert_eq!(node.errors_encountered(), 0);
 
         node.execute("SHUTDOWN");
+    }
+
+    // ========================================================
+    // TEST 11: Five-crate integration proof
+    // hooks → memory → agent → action → node — all connected
+    // ========================================================
+    #[test]
+    fn five_crate_integration_proof() {
+        use bizra_action::{Channel, IhsanScore as ActionIhsan, Permit as ActionPermit};
+        use bizra_agent::action_types::{ActionChannel, ActionKind, PlannedStep};
+
+        // ── 1. Prove bizra-action types are usable from bizra-node ──
+        let ihsan = ActionIhsan::new(0.97);
+        assert!(ihsan.meets_constitutional());
+
+        let permit = ActionPermit::user_default();
+        assert!(permit.allows_channel(&Channel::Llm));
+        assert!(permit.allows_channel(&Channel::Ahk));
+
+        // ── 2. Bridge translation: MVP step → production action ──
+        let step = PlannedStep {
+            channel: ActionChannel::LlmCall,
+            kind: ActionKind::Query,
+            payload: r#"{"model":"qwen2","prompt":"test integration"}"#.to_string(),
+        };
+        let action = crate::action_bridge::translate_step(&step).expect("translate");
+        assert_eq!(action.channel(), Channel::Llm);
+        assert!(action.summary().contains("qwen2"));
+
+        // ── 3. Dispatch through constitutional pipeline ──
+        let mut dispatcher = crate::action_bridge::create_default_dispatcher();
+        let result = dispatcher
+            .dispatch(action, permit, ihsan, "five_crate_test")
+            .expect("dispatch should succeed");
+        assert!(result.success);
+
+        // ── 4. Verify receipt chain integrity ──
+        let chain = dispatcher.receipt_chain();
+        assert_eq!(chain.len(), 1);
+        assert!(chain.verify_chain().is_ok());
+
+        // ── 5. Dispatcher health reflects the dispatch ──
+        let health = dispatcher.health();
+        assert_eq!(health.total_dispatched, 1);
+        assert_eq!(health.total_completed, 1);
+        assert_eq!(health.total_denied, 0);
+
+        // ── 6. Guardian denies low-Ihsan desktop action ──
+        let desktop_step = PlannedStep {
+            channel: ActionChannel::DesktopRpc,
+            kind: ActionKind::Click,
+            payload: r#"{"target":"ok","target_app":"Notepad"}"#.to_string(),
+        };
+        let desktop_action =
+            crate::action_bridge::translate_step(&desktop_step).expect("translate");
+        let low_ihsan = ActionIhsan::new(0.50);
+        let err = dispatcher.dispatch(
+            desktop_action,
+            ActionPermit::user_default(),
+            low_ihsan,
+            "five_crate_test",
+        );
+        assert!(err.is_err());
+        assert_eq!(health.total_denied, 0); // health is a snapshot, re-check
+        let health2 = dispatcher.health();
+        assert_eq!(health2.total_denied, 1);
+    }
+
+    // ========================================================
+    // TEST 12: ActionExecutor with constitutional dispatcher
+    // ========================================================
+    #[test]
+    fn action_executor_constitutional_mode() {
+        use crate::action_executor::{ActionExecutor, ActionExecutorConfig};
+        use bizra_agent::action_types::ActionExecutionStatus;
+        use bizra_hooks::IhsanScore;
+
+        let config = ActionExecutorConfig {
+            use_constitutional_dispatcher: true,
+            ..Default::default()
+        };
+        let mut exec = ActionExecutor::new(config);
+        assert!(exec.uses_constitutional_dispatcher());
+        // Set Ihsan score high enough for bizra-action's Guardian (0.99 in hooks scale).
+        // hooks IhsanScore uses u16/65535 scale; from_f64(0.99) converts correctly.
+        exec.set_event_ihsan_score(IhsanScore::from_f64(0.99));
+
+        // Plan an LLM action (should succeed — low risk, high Ihsan)
+        let plan = exec
+            .plan_action(
+                r#"{"steps":[{"channel":"LlmCall","kind":"Query","payload":"{\"model\":\"test\",\"prompt\":\"hello\"}"}]}"#,
+                100,
+            )
+            .expect("plan should parse");
+        assert!(plan.plan_id.starts_with("pln_"));
+
+        // Execute through constitutional Dispatcher
+        let result = exec
+            .run_action(&plan.plan_id, "", 200, [0u8; 32])
+            .expect("should execute via constitutional dispatcher");
+        assert_eq!(result.status, ActionExecutionStatus::Completed);
+
+        // Dispatcher health should be populated
+        let dh = exec.dispatcher_health().expect("dispatcher present");
+        assert_eq!(dh.total_dispatched, 1);
+        assert_eq!(dh.total_completed, 1);
+    }
+
+    // ========================================================
+    // TEST 13: Bridge channel mapping completeness
+    // ========================================================
+    #[test]
+    fn bridge_channel_mapping_complete() {
+        use bizra_agent::action_types::ActionChannel;
+
+        // Every MVP channel maps to a production channel
+        for ch in [
+            ActionChannel::DesktopRpc,
+            ActionChannel::ToolCall,
+            ActionChannel::LlmCall,
+            ActionChannel::FileOp,
+            ActionChannel::BrowserNav,
+        ] {
+            let prod = crate::action_bridge::map_channel(ch);
+            let back = crate::action_bridge::map_channel_reverse(prod);
+            assert_eq!(back, ch, "Roundtrip failed for {:?}", ch);
+        }
     }
 
     #[test]

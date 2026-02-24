@@ -60,7 +60,7 @@ OMEGA_MAX: float = 0.05  # Maximum 5% drag
 OMEGA_STEEPNESS: float = 10.0  # Exponential steepness factor
 
 # Harberger Tax parameters
-HARBERGER_TAX_RATE: float = 0.05  # 5% annual rate
+HARBERGER_TAX_RATE: float = 0.07  # 7% annual — aligned with constants.py
 HARBERGER_MIN_PERIOD_DAYS: float = 1.0  # Minimum tax period
 
 # Bias parity parameters

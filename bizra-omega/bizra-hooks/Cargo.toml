@@ -1,6 +1,6 @@
 [package]
 name = "bizra-hooks"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "BIZRA Hook System — The sovereign nervous system. Zero dependencies. Pure Rust."
 license = "MIT"

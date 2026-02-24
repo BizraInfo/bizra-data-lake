@@ -1,0 +1,45 @@
+[package]
+name = "bizra-action"
+version.workspace = true
+edition = "2021"
+authors = ["BIZRA Labs <engineering@bizra.io>"]
+description = """
+The Action Bus — BIZRA's muscle system.
+
+Events are observations (safe, information-only).
+Actions are commands (dangerous, world-changing).
+The Guardian gates every action before execution.
+
+Every dispatched action:
+  1. Passes through the Iḥsān constitutional gate
+  2. Routes to the correct channel (AHK, LLM, Memory, MCP, Response)
+  3. Executes under permit constraints
+  4. Produces a signed receipt (BLAKE3 + Ed25519)
+  5. Emits a completion event back to the Event Bus
+
+Zero external dependencies. Pure Rust. Sovereign.
+
+Standing on the shoulders of giants:
+  - Shannon (1948): Action channels maximize information throughput
+  - Boyd (1976): OODA loop — Action is the 'Act' that closes the loop
+  - Lamport (1978): Happens-before ordering of actions ensures consistency
+  - Al-Ghazali: إحسان — excellence in execution, not just preparation
+"""
+license = "BUSL-1.1"
+
+[lib]
+name = "bizra_action"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+# ZERO external dependencies.
+# The muscle system depends on nothing external.
+# bizra-hooks is a workspace sibling, not an external crate.
+# When used standalone (outside workspace), types are re-defined locally.
+
+[dev-dependencies]
+
+[features]
+default = []
+# Enable when used within bizra-omega workspace alongside bizra-hooks
+# workspace = ["dep:bizra-hooks"]

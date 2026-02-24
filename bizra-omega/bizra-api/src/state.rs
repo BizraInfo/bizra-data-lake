@@ -74,10 +74,11 @@ impl AppState {
         self.start_time.elapsed().as_secs()
     }
 
-    /// Increment request counter
-    pub fn increment_requests(&self) {
+    /// Increment request counter, returning the new count.
+    pub fn increment_requests(&self) -> u64 {
         self.request_count
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            + 1
     }
 
     /// Get request count

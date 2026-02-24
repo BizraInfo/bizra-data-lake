@@ -55,6 +55,8 @@ COPY bizra-cli/Cargo.toml bizra-cli/
 # Cognitive Layer
 COPY bizra-hooks/Cargo.toml bizra-hooks/
 COPY bizra-memory/Cargo.toml bizra-memory/
+# Action Bus (muscle system)
+COPY bizra-action/Cargo.toml bizra-action/
 # Desktop Node Layer
 COPY bizra-agent/Cargo.toml bizra-agent/
 COPY bizra-node/Cargo.toml bizra-node/
@@ -73,7 +75,7 @@ RUN set -eux && \
     # Library crates (lib.rs only)
     for crate in bizra-core bizra-hypergraph bizra-inference bizra-federation \
                  bizra-autopoiesis bizra-python bizra-hunter bizra-telescript \
-                 bizra-proofspace bizra-hooks bizra-memory bizra-agent; do \
+                 bizra-proofspace bizra-hooks bizra-memory bizra-action bizra-agent; do \
         mkdir -p "$crate/src" && \
         echo "pub fn _dummy() {}" > "$crate/src/lib.rs"; \
     done && \
@@ -134,6 +136,8 @@ COPY bizra-proofspace/src bizra-proofspace/src/
 COPY bizra-resourcepool/src bizra-resourcepool/src/
 COPY bizra-hooks/src bizra-hooks/src/
 COPY bizra-memory/src bizra-memory/src/
+COPY bizra-action/src bizra-action/src/
+COPY bizra-action/tests bizra-action/tests/
 COPY bizra-agent/src bizra-agent/src/
 COPY bizra-node/src bizra-node/src/
 COPY bizra-tests/tests bizra-tests/tests/

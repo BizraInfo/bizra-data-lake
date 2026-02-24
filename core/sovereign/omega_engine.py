@@ -291,20 +291,20 @@ class AdlInvariant:
 
     GINI_THRESHOLD: float = ADL_GINI_THRESHOLD
     GINI_EMERGENCY: float = 0.60
-    HARBERGER_TAX_RATE: float = 0.05  # 5% annual
+    HARBERGER_TAX_RATE: float = 0.07  # 7% annual — aligned with constants.py
 
     def __init__(
         self,
-        gini_threshold: float = 0.40,
-        harberger_rate: float = 0.05,
+        gini_threshold: float = 0.35,
+        harberger_rate: float = 0.07,
         on_violation: Optional[Callable[[AdlViolation], None]] = None,
     ):
         """
         Initialize Adl Invariant enforcer.
 
         Args:
-            gini_threshold: Maximum allowed Gini coefficient (default: 0.40)
-            harberger_rate: Annual Harberger tax rate (default: 5%)
+            gini_threshold: Maximum allowed Gini coefficient (default: 0.35)
+            harberger_rate: Annual Harberger tax rate (default: 7%)
             on_violation: Callback for violation events (logging, alerts)
         """
         self.gini_threshold = gini_threshold
@@ -836,7 +836,7 @@ class OmegaEngine:
 
 
 def create_omega_engine(
-    gini_threshold: float = 0.40,
+    gini_threshold: float = 0.35,
     initial_reserves_days: float = 90.0,
 ) -> OmegaEngine:
     """

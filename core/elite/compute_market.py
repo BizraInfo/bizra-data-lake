@@ -60,7 +60,7 @@ DEFAULT_TAX_RATE = 0.05
 TAX_PERIOD_SECONDS = 3600
 
 # Gini coefficient threshold for redistribution
-GINI_THRESHOLD = 0.40
+GINI_THRESHOLD = 0.35  # Aligned with constants.py ADL_GINI_THRESHOLD
 
 # Maximum Gini before emergency redistribution
 GINI_EMERGENCY = 0.60
