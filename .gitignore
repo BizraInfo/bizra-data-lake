@@ -84,6 +84,9 @@ filedfs/bizra-node-binary
 04_GOLD/
 99_QUARANTINE/
 
+# ── Reference PDFs (large, not source code) ──────────────────
+*.pdf
+
 # ── Large Binaries & Archives ─────────────────────────────────
 *.zip
 *.tgz
