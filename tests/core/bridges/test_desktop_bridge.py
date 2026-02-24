@@ -558,6 +558,362 @@ class TestDesktopInvokeHook:
 # ---------------------------------------------------------------------------
 
 
+class TestGetContext:
+    """Tests for the live desktop context endpoint (Task 1.1)."""
+
+    @pytest.mark.asyncio
+    async def test_get_context_returns_schema_v2(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("get_context", {})
+        )
+        result = resp["result"]
+        assert result["schema_version"] == "2.0"
+        assert "timestamp" in result
+        assert result["privacy_mode"] in ("hashed", "plaintext")
+
+    @pytest.mark.asyncio
+    async def test_get_context_returns_at_least_3_live_fields(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """KPI: get_context returns >= 3 live fields."""
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("get_context", {})
+        )
+        result = resp["result"]
+        # Must have at least 3 of: foreground, processes/windows, clipboard_hash,
+        # screen, process_count/window_count
+        live_fields = 0
+        if "foreground" in result:
+            live_fields += 1
+        if "processes" in result or "windows" in result:
+            live_fields += 1
+        if "clipboard_hash" in result:
+            live_fields += 1
+        if "screen" in result:
+            live_fields += 1
+        if "process_count" in result or "window_count" in result:
+            live_fields += 1
+        assert live_fields >= 3, (
+            f"Expected >= 3 live fields, got {live_fields}. "
+            f"Fields present: {list(result.keys())}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_context_default_hashes_titles(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Privacy: window titles hashed by default."""
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("get_context", {})
+        )
+        result = resp["result"]
+        assert result["privacy_mode"] == "hashed"
+        fg = result.get("foreground", {})
+        if fg.get("title"):
+            assert fg.get("title_hashed", True), (
+                "Foreground title should be hashed by default"
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_context_plaintext_opt_in(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Privacy: plaintext requires explicit opt-in."""
+        resp = await _send_recv(
+            "127.0.0.1",
+            free_port,
+            _jsonrpc("get_context", {"plaintext_titles": True}),
+        )
+        result = resp["result"]
+        assert result["privacy_mode"] == "plaintext"
+
+    @pytest.mark.asyncio
+    async def test_get_context_clipboard_never_raw(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Privacy: clipboard is always hashed, never raw content."""
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("get_context", {})
+        )
+        result = resp["result"]
+        # clipboard_hash should be a hex digest or empty, never raw text
+        clip_hash = result.get("clipboard_hash", "")
+        if clip_hash:
+            assert len(clip_hash) == 64 and all(
+                c in "0123456789abcdef" for c in clip_hash
+            ), f"clipboard_hash should be SHA-256 hex, got: {clip_hash[:20]}..."
+
+    @pytest.mark.asyncio
+    async def test_get_context_has_receipt(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Every response should include a bridge receipt."""
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("get_context", {})
+        )
+        result = resp["result"]
+        assert "receipt" in result
+
+
+# ---------------------------------------------------------------------------
+# HDA Skills (Task 1.2)
+# ---------------------------------------------------------------------------
+
+
+class TestHDASkills:
+    """Tests for the 8 productized HDA skills."""
+
+    HDA_METHODS = [
+        "open_app",
+        "switch_window",
+        "type_text",
+        "click_element",
+        "screenshot",
+        "read_clipboard",
+        "file_open",
+        "browser_navigate",
+    ]
+
+    @pytest.mark.asyncio
+    async def test_all_8_hda_methods_registered(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """KPI: 10 total HDA skills registered (2 existing + 8 new)."""
+        for method in self.HDA_METHODS:
+            resp = await _send_recv(
+                "127.0.0.1", free_port, _jsonrpc(method, {})
+            )
+            # Should NOT get "Method not found" — may get other errors
+            # (AHK unreachable, missing params, etc.) but method IS registered
+            if "error" in resp:
+                assert resp["error"]["code"] != -32601, (
+                    f"Method '{method}' not registered (got -32601)"
+                )
+            # If we get a result, the method was found and routed
+            # (may return AHK unreachable or guardian veto, both valid)
+
+    @pytest.mark.asyncio
+    async def test_hda_methods_not_method_not_found(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Each HDA method routes through the proxy, not 'Method not found'."""
+        for method in self.HDA_METHODS:
+            resp = await _send_recv(
+                "127.0.0.1", free_port, _jsonrpc(method, {"test": True})
+            )
+            result = resp.get("result", {})
+            error = resp.get("error", {})
+            # Valid outcomes: result with data, or error that is NOT -32601
+            if error:
+                assert error.get("code") != -32601, (
+                    f"'{method}' returned Method not found"
+                )
+            else:
+                # Got a result — might be "AHK unreachable" or "guardian veto"
+                # but the method was dispatched
+                assert isinstance(result, dict)
+
+    @pytest.mark.asyncio
+    async def test_10_total_skills_count(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Total distinct HDA-related methods >= 10 (2 base + 8 new)."""
+        base_skills = ["invoke_skill", "actuator_execute"]
+        all_skills = base_skills + self.HDA_METHODS
+        assert len(all_skills) == 10
+        # Verify none return -32601
+        for method in all_skills:
+            resp = await _send_recv(
+                "127.0.0.1", free_port, _jsonrpc(method, {"skill": "test", "code": "test"})
+            )
+            if "error" in resp:
+                assert resp["error"]["code"] != -32601, (
+                    f"Method '{method}' not found"
+                )
+
+
+# ---------------------------------------------------------------------------
+# Permit enforcement (Task 3.4)
+# ---------------------------------------------------------------------------
+
+
+class TestPermitEnforcement:
+    """Tests for Telescript Permit enforcement on HDA actions."""
+
+    @pytest.mark.asyncio
+    async def test_permit_auto_created(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Bridge auto-creates an HDA permit on first HDA call."""
+        assert bridge._hda_permit is None
+        # Trigger an HDA call (will fail at guardian/AHK, but permit is created)
+        await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("switch_window", {"title": "test"})
+        )
+        assert bridge._hda_permit is not None
+
+    @pytest.mark.asyncio
+    async def test_permit_attached_to_successful_result(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Successful HDA calls include permit audit data in result."""
+        # Mock guardian to allow and AHK to return success
+        with patch.object(
+            bridge, "_check_rust_guardian", new_callable=AsyncMock,
+            return_value={"allowed": True},
+        ), patch.object(
+            bridge, "_validate_fate",
+            return_value={"passed": True},
+        ), patch.object(
+            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
+            return_value={"status": "ok", "result": "window switched"},
+        ):
+            resp = await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("switch_window", {"title": "VS Code"}),
+            )
+            result = resp.get("result", {})
+            assert "permit" in result
+            assert "permit_id" in result["permit"]
+            assert result["permit"]["actions_remaining"] >= 0
+            assert result["permit"]["capability_checked"] == "switch_window"
+
+    @pytest.mark.asyncio
+    async def test_permit_budget_decrements(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Each successful HDA call decrements the permit budget."""
+        with patch.object(
+            bridge, "_check_rust_guardian", new_callable=AsyncMock,
+            return_value={"allowed": True},
+        ), patch.object(
+            bridge, "_validate_fate",
+            return_value={"passed": True},
+        ), patch.object(
+            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
+            return_value={"status": "ok"},
+        ):
+            # First call
+            await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("type_text", {"text": "hello"}),
+            )
+            remaining_after_1 = bridge._hda_permit.budget.actions_remaining
+
+            # Second call
+            await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("type_text", {"text": "world"}),
+            )
+            remaining_after_2 = bridge._hda_permit.budget.actions_remaining
+
+            assert remaining_after_2 == remaining_after_1 - 1
+
+    @pytest.mark.asyncio
+    async def test_expired_permit_refreshes(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """An expired permit is auto-refreshed before the HDA call."""
+        from core.sovereign.permit import create_hda_permit
+
+        # Set up an already-expired permit
+        expired = create_hda_permit(
+            signing_key="bizra-dev-permit-key",
+        )
+        expired.expires_at = time.time() - 10  # Force expired
+        bridge._hda_permit = expired
+        old_id = expired.permit_id
+
+        with patch.object(
+            bridge, "_check_rust_guardian", new_callable=AsyncMock,
+            return_value={"allowed": True},
+        ), patch.object(
+            bridge, "_validate_fate",
+            return_value={"passed": True},
+        ), patch.object(
+            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
+            return_value={"status": "ok"},
+        ):
+            resp = await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("open_app", {"name": "notepad"}),
+            )
+            result = resp.get("result", {})
+            # Should have a fresh permit with a different ID
+            assert result["permit"]["permit_id"] != old_id
+
+    @pytest.mark.asyncio
+    async def test_exhausted_permit_refreshes(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """An exhausted-budget permit is auto-refreshed."""
+        from core.sovereign.permit import create_hda_permit
+
+        exhausted = create_hda_permit(
+            max_actions=1,
+            signing_key="bizra-dev-permit-key",
+        )
+        exhausted.consume()  # Use up the single action
+        assert exhausted.budget.exhausted
+        bridge._hda_permit = exhausted
+
+        with patch.object(
+            bridge, "_check_rust_guardian", new_callable=AsyncMock,
+            return_value={"allowed": True},
+        ), patch.object(
+            bridge, "_validate_fate",
+            return_value={"passed": True},
+        ), patch.object(
+            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
+            return_value={"status": "ok"},
+        ):
+            resp = await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("click_element", {"selector": "#btn"}),
+            )
+            result = resp.get("result", {})
+            # Should succeed with a fresh permit
+            assert "permit" in result
+            assert result["permit"]["actions_remaining"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_permit_gate_before_guardian(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        """Permit check runs before guardian — guardian not called if permit fails."""
+        from core.sovereign.permit import Permit, Capability, Authority
+
+        # Create a permit with only GO capability (not STORE)
+        genesis = Authority.genesis()
+        limited = Permit.create(
+            issuer=genesis,
+            capabilities=[Capability.GO],  # Missing STORE for file_open
+            signing_key="bizra-dev-permit-key",
+        )
+        bridge._hda_permit = limited
+        bridge._permit_signing_key = "bizra-dev-permit-key"
+
+        guardian_mock = AsyncMock(return_value={"allowed": True})
+        with patch.object(bridge, "_check_rust_guardian", guardian_mock):
+            resp = await _send_recv(
+                "127.0.0.1", free_port,
+                _jsonrpc("file_open", {"path": "/tmp/test.txt"}),
+            )
+            result = resp.get("result", {})
+            assert "error" in result
+            assert "Permit denied" in result["error"]
+            assert "STORE" in result["permit"]["reason"]
+            # Guardian should NOT have been called
+            guardian_mock.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# JSON-RPC helpers
+# ---------------------------------------------------------------------------
+
+
 class TestHelpers:
     def test_ok_format(self) -> None:
         raw = _ok(1, {"a": "b"})

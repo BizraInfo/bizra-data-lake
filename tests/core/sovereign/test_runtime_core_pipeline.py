@@ -748,6 +748,7 @@ class TestBuildContextualPrompt:
         rt._genesis = None
 
         mem_entry = SimpleNamespace(
+            id="mem-001",
             memory_type=SimpleNamespace(value="episodic"),
             content="Past conversation about X",
         )
@@ -766,6 +767,7 @@ class TestBuildContextualPrompt:
         call_kwargs = mock_ctx.build_system_prompt.call_args
         memory_arg = call_kwargs.kwargs.get("memory_context") or call_kwargs[1].get("memory_context", "")
         assert "EPISODIC" in memory_arg or "Past conversation" in memory_arg
+        assert query.context.get("_source_memory_ids") == ["mem-001"]
 
     @pytest.mark.asyncio
     async def test_memory_retrieval_failure_falls_back_to_working_context(self, tmp_path: Path) -> None:

@@ -568,8 +568,16 @@ def test_timestamp_parsing() -> None:
 
 
 def test_core8_set_complete() -> None:
-    """CORE8 constant contains exactly 8 providers."""
+    """CORE8 constant contains exactly 8 providers (conversation + search)."""
     m = _load_module()
     assert len(m.CORE8) == 8
     expected = {"chatgpt_openai", "claude", "gemini_google", "deepseek", "qwen", "kimi", "perplexity", "zhipu"}
     assert m.CORE8 == expected
+
+
+def test_conversation_platforms_excludes_search_aggregators() -> None:
+    """CONVERSATION_PLATFORMS contains 7 identity-building conversation platforms."""
+    m = _load_module()
+    assert len(m.CONVERSATION_PLATFORMS) == 7
+    assert "perplexity" not in m.CONVERSATION_PLATFORMS
+    assert m.SEARCH_AGGREGATORS == {"perplexity"}

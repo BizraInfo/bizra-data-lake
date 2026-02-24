@@ -10,11 +10,8 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-import asyncio
 import pytest
 import numpy as np
-from pathlib import Path
-from unittest.mock import MagicMock
 
 from core.living_memory.core import (
     LivingMemoryCore,
@@ -73,6 +70,7 @@ class TestMemoryEntry:
         assert e.id == "abc"
         assert e.state == MemoryState.ACTIVE
         assert e.access_count == 0
+        assert e.reinforcement_count == 1
 
     def test_to_dict(self):
         e = MemoryEntry(id="x", content="c", memory_type=MemoryType.EPISODIC)
@@ -88,6 +86,7 @@ class TestMemoryEntry:
         assert e2.id == "r"
         assert e2.memory_type == MemoryType.PROCEDURAL
         assert e2.importance == 0.8
+        assert e2.reinforcement_count == e.reinforcement_count
 
     def test_retrieval_score(self):
         e = MemoryEntry(id="s", content="score", memory_type=MemoryType.SEMANTIC)
@@ -134,6 +133,7 @@ class TestEncode:
         assert entry.memory_type == MemoryType.SEMANTIC
         assert entry.source == "physics"
         assert entry.embedding is not None
+        assert entry.reinforcement_count == 1
 
     @pytest.mark.asyncio
     async def test_encode_empty_returns_none(self, core):
@@ -189,10 +189,15 @@ class TestRetrieve:
     @pytest.mark.asyncio
     async def test_retrieve_updates_access(self, core):
         await core.initialize()
-        entry = await core.encode("Access tracking content")
+        entry = await core.encode(
+            "Access tracking content with enough structure for quality validation"
+        )
+        assert entry is not None
+        baseline = entry.reinforcement_count
         results = await core.retrieve("Access tracking")
         if results:
             assert results[0].access_count >= 1
+            assert results[0].reinforcement_count >= baseline + 1
 
     @pytest.mark.asyncio
     async def test_retrieve_top_k(self, core):
@@ -260,6 +265,7 @@ class TestConsolidate:
         stats = await core.consolidate()
         assert stats["merged"] == 0
         assert stats["archived"] == 0
+        assert stats["promoted"] == 0
 
     @pytest.mark.asyncio
     async def test_consolidate_repairs_corrupted(self, core):
@@ -269,6 +275,149 @@ class TestConsolidate:
         stats = await core.consolidate()
         assert stats["repaired"] >= 1
         assert entry.state == MemoryState.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_consolidate_promotes_fast_to_slow(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "Repeated operations pattern observed across incident response sessions",
+            memory_type=MemoryType.EPISODIC,
+        )
+        assert entry is not None
+        entry.reinforcement_count = 5  # Rust parity: fast layer threshold
+
+        stats = await core.consolidate()
+        assert stats["promoted"] == 1
+        assert entry.memory_type == MemoryType.PROCEDURAL
+        assert entry.id in core._type_index[MemoryType.PROCEDURAL]
+        assert entry.id not in core._type_index[MemoryType.EPISODIC]
+
+    @pytest.mark.asyncio
+    async def test_consolidate_promotes_slow_to_glacial(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "Validated optimization procedure became stable institutional knowledge",
+            memory_type=MemoryType.PROCEDURAL,
+        )
+        assert entry is not None
+        entry.reinforcement_count = 10  # Rust parity: slow layer threshold
+
+        stats = await core.consolidate()
+        assert stats["promoted"] == 1
+        assert entry.memory_type == MemoryType.SEMANTIC
+        assert entry.id in core._type_index[MemoryType.SEMANTIC]
+        assert entry.id not in core._type_index[MemoryType.PROCEDURAL]
+
+    @pytest.mark.asyncio
+    async def test_consolidate_promotion_is_adjacency_preserving(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "Immediate context repeated heavily through active troubleshooting",
+            memory_type=MemoryType.WORKING,
+        )
+        assert entry is not None
+        entry.reinforcement_count = 100  # very high reinforcement must still promote one step
+
+        stats1 = await core.consolidate()
+        assert stats1["promoted"] == 1
+        assert entry.memory_type == MemoryType.EPISODIC
+
+        stats2 = await core.consolidate()
+        assert stats2["promoted"] == 1
+        assert entry.memory_type == MemoryType.PROCEDURAL
+
+    @pytest.mark.asyncio
+    async def test_consolidate_access_count_alone_does_not_promote(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "High read traffic should not promote without semantic reinforcement signal",
+            memory_type=MemoryType.EPISODIC,
+        )
+        assert entry is not None
+        entry.access_count = 100
+        entry.reinforcement_count = 1
+
+        stats = await core.consolidate()
+        assert stats["promoted"] == 0
+        assert entry.memory_type == MemoryType.EPISODIC
+
+    @pytest.mark.asyncio
+    async def test_consolidate_corroborates_three_semantic_peers(self, core):
+        await core.initialize()
+        e1 = await core.encode(
+            "architecture memory pipeline quality rust zebraone",
+            memory_type=MemoryType.SEMANTIC,
+        )
+        e2 = await core.encode(
+            "architecture memory pipeline quality rust zebratwo",
+            memory_type=MemoryType.SEMANTIC,
+        )
+        e3 = await core.encode(
+            "architecture memory pipeline quality rust zebrathree",
+            memory_type=MemoryType.SEMANTIC,
+        )
+        assert e1 and e2 and e3
+        baseline = (e1.reinforcement_count, e2.reinforcement_count, e3.reinforcement_count)
+
+        stats = await core.consolidate()
+        assert stats["corroborated"] >= 3
+        assert stats["reinforced"] >= 3
+        assert e1.reinforcement_count >= baseline[0] + 1
+        assert e2.reinforcement_count >= baseline[1] + 1
+        assert e3.reinforcement_count >= baseline[2] + 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Execution feedback
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestExecutionFeedback:
+
+    @pytest.mark.asyncio
+    async def test_success_feedback_reinforces_and_promotes(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "validated source memory for execution outcome reinforcement",
+            memory_type=MemoryType.EPISODIC,
+        )
+        assert entry is not None
+        entry.reinforcement_count = 4
+
+        stats = await core.apply_execution_feedback([entry.id], success=True)
+
+        assert stats["processed"] == 1
+        assert stats["reinforced"] == 1
+        assert stats["promoted"] == 1
+        assert entry.memory_type == MemoryType.PROCEDURAL
+
+    @pytest.mark.asyncio
+    async def test_failure_feedback_flags_corrupted(self, core):
+        await core.initialize()
+        entry = await core.encode(
+            "candidate memory that should be quarantined on failed execution",
+            memory_type=MemoryType.SEMANTIC,
+        )
+        assert entry is not None
+        entry.state = MemoryState.ACTIVE
+
+        stats = await core.apply_execution_feedback(
+            [entry.id],
+            success=False,
+            reason="IHSAN_BELOW_THRESHOLD",
+            receipt_ref="receipt-123",
+        )
+
+        assert stats["processed"] == 1
+        assert stats["flagged"] == 1
+        assert entry.state == MemoryState.CORRUPTED
+
+    @pytest.mark.asyncio
+    async def test_feedback_reports_missing_entries(self, core):
+        await core.initialize()
+        stats = await core.apply_execution_feedback(["missing-id"], success=True)
+        assert stats["missing"] == 1
+        assert stats["processed"] == 0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -335,9 +484,13 @@ class TestPersistence:
         c1 = LivingMemoryCore(storage_path=storage, ihsan_threshold=0.80)
         await c1.initialize()
         entry = await c1.encode("Persistent memory content here")
+        assert entry is not None
+        await c1.retrieve("Persistent memory content")
         await c1.consolidate()
 
         # Second core: load from disk
         c2 = LivingMemoryCore(storage_path=storage, ihsan_threshold=0.80)
         await c2.initialize()
         assert len(c2._memories) >= 1
+        loaded = next(iter(c2._memories.values()))
+        assert loaded.reinforcement_count >= 1

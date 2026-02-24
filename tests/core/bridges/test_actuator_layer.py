@@ -230,8 +230,8 @@ class TestGetContext:
             "127.0.0.1", free_port, _jsonrpc("get_context")
         )
         result = resp["result"]
-        assert result["schema_version"] == "1.0"
-        assert "expected_fields" in result
+        assert result["schema_version"] == "2.0"
+        assert "privacy_mode" in result
 
     @pytest.mark.asyncio
     async def test_get_context_schema_fields_complete(
@@ -240,9 +240,9 @@ class TestGetContext:
         resp = await _send_recv(
             "127.0.0.1", free_port, _jsonrpc("get_context")
         )
-        fields = resp["result"]["expected_fields"]
-        for expected in ["title", "class", "process", "structure", "hash"]:
-            assert expected in fields
+        result = resp["result"]
+        for expected in ["schema_version", "privacy_mode", "foreground"]:
+            assert expected in result
 
 
 # ===========================================================================

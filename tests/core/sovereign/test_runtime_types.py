@@ -308,12 +308,15 @@ class TestRuntimeConfig:
         assert cfg.ihsan_threshold == 0.95
         assert cfg.snr_threshold == 0.85
         assert cfg.mode is RuntimeMode.STANDARD
+        assert cfg.sat_mode == "mini5"
         assert cfg.max_reasoning_depth == 5
         assert cfg.enable_graph_reasoning is True
         assert cfg.enable_snr_optimization is True
         assert cfg.enable_guardian_validation is True
         assert cfg.enable_autonomous_loop is False
         assert cfg.enable_proactive_kernel is False
+        assert cfg.strict_stub_budget is False
+        assert cfg.stub_budget_max == 0
 
     def test_node_id_auto_generated(self) -> None:
         cfg = RuntimeConfig()
@@ -356,6 +359,12 @@ class TestRuntimeConfig:
         assert cfg.mode is RuntimeMode.AUTONOMOUS
         assert cfg.enable_autonomous_loop is True
         assert cfg.enable_proactive_kernel is True
+
+    def test_sat_mode_validation(self) -> None:
+        assert RuntimeConfig(sat_mode="mini5").sat_mode == "mini5"
+        assert RuntimeConfig(sat_mode="full49").sat_mode == "full49"
+        with pytest.raises(ValueError, match="Invalid sat_mode"):
+            RuntimeConfig(sat_mode="invalid")
 
     def test_lm_studio_url_defaults(self) -> None:
         # Clear env vars to guarantee defaults

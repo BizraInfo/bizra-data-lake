@@ -13,8 +13,6 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any, Dict
-
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -189,7 +187,7 @@ class TestSNRSmoke:
 
 
 # ---------------------------------------------------------------------------
-# Pillar 5: SpearPoint pipeline executes all 8 steps
+# Pillar 5: SpearPoint pipeline executes all cockpit steps
 # ---------------------------------------------------------------------------
 
 
@@ -198,7 +196,7 @@ class TestSpearPointSmoke:
 
     @pytest.mark.asyncio
     async def test_spearpoint_pipeline_all_steps(self):
-        """Pipeline with no subsystems skips all 8 steps gracefully."""
+        """Pipeline with no subsystems skips all cockpit steps gracefully."""
         from dataclasses import dataclass, field
         from typing import List, Optional
 
@@ -238,7 +236,7 @@ class TestSpearPointSmoke:
 
         assert isinstance(result, SpearPointResult)
         assert result.all_passed is True
-        assert len(result.steps) == 8
+        assert len(result.steps) == 9
         assert result.total_duration_ms >= 0
 
 
