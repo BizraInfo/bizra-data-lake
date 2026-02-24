@@ -1,0 +1,107 @@
+version: 1
+description: >
+  SNR policy for worktree hygiene. Signal means integrated architectural value;
+  noise means generated/transient artifacts or ad-hoc exports.
+
+groups:
+  keep_track:
+    - pattern: "core/**"
+      reason: "Runtime/governance/security code; tracked changes are high-signal."
+      snr_tier: high
+      hhmm_layer: glacial
+    - pattern: "tests/**"
+      reason: "Regression evidence for runtime behavior."
+      snr_tier: high
+      hhmm_layer: slow
+    - pattern: "bizra-omega/**"
+      reason: "Node/agent/resourcepool implementation."
+      snr_tier: high
+      hhmm_layer: glacial
+    - pattern: "scripts/**"
+      reason: "Operational and build workflows."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: "docs/**"
+      reason: "Architectural provenance and runbook traceability."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: ".github/**"
+      reason: "CI quality gates and release controls."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: ".gitignore"
+      reason: "Repository hygiene control surface."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: "STATUS.md"
+      reason: "Top-level delivery/status contract."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: "requirements.txt"
+      reason: "Release SBOM input contract."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: "bizra-normalizers/**"
+      reason: "Canonical multi-platform normalization and gate tooling."
+      snr_tier: high
+      hhmm_layer: glacial
+    - pattern: "bizra-normalizers/"
+      reason: "Canonical multi-platform normalization and gate tooling."
+      snr_tier: high
+      hhmm_layer: glacial
+    - pattern: "personaplex"
+      reason: "Tracked integration pointer."
+      snr_tier: medium
+      hhmm_layer: slow
+    - pattern: "xtr-warp"
+      reason: "Tracked integration pointer."
+      snr_tier: medium
+      hhmm_layer: slow
+
+  keep_untracked:
+    - pattern: ".agentdb/**"
+      reason: "Local cognitive state store (not deterministic release artifact)."
+      snr_tier: medium
+      hhmm_layer: fast
+    - pattern: ".agentdb/"
+      reason: "Local cognitive state store (not deterministic release artifact)."
+      snr_tier: medium
+      hhmm_layer: fast
+    - pattern: "agentdb.db"
+      reason: "Local sqlite state snapshot."
+      snr_tier: medium
+      hhmm_layer: fast
+    - pattern: "artifacts/corpus/v1/stereoscopic_drift/**"
+      reason: "Generated drift checkpoints used during local validation."
+      snr_tier: medium
+      hhmm_layer: fast
+    - pattern: "artifacts/corpus/v1/stereoscopic_drift/"
+      reason: "Generated drift checkpoints used during local validation."
+      snr_tier: medium
+      hhmm_layer: fast
+    - pattern: "artifacts/ops/**"
+      reason: "Generated local triage reports; keep local, not tracked."
+      snr_tier: low
+      hhmm_layer: fast
+    - pattern: "artifacts/ops/"
+      reason: "Generated local triage reports; keep local, not tracked."
+      snr_tier: low
+      hhmm_layer: fast
+
+  archive:
+    - pattern: "my cowork output/**"
+      reason: "Ad-hoc external exports; archive outside repo root."
+      snr_tier: low
+      hhmm_layer: fast
+    - pattern: "my cowork output/"
+      reason: "Ad-hoc external exports; archive outside repo root."
+      snr_tier: low
+      hhmm_layer: fast
+    - pattern: "artifacts/normalizers/**"
+      reason: "Regenerable pipeline output; archive if needed."
+      snr_tier: low
+      hhmm_layer: fast
+    - pattern: "artifacts/normalizers/"
+      reason: "Regenerable pipeline output; archive if needed."
+      snr_tier: low
+      hhmm_layer: fast

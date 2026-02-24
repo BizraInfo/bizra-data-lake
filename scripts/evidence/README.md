@@ -27,3 +27,19 @@
   - `.tar.gz.blake3`
   - `.tar.gz.sha256`
   - `.tar.gz.sig`
+
+## Expected Release Outputs (Both Tiers)
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.private_full.tar.gz`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.private_full.tar.gz.blake3`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.private_full.tar.gz.sha256`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.private_full.tar.gz.sig`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.public_redacted.tar.gz`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.public_redacted.tar.gz.blake3`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.public_redacted.tar.gz.sha256`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.public_redacted.tar.gz.sig`
+- `BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS.release_manifest.json`
+
+## Verification Contract
+- `release_pack.py` verifies each requested tier before packaging unless `--skip-verify` is set.
+- If any tier verification fails, packaging aborts with non-zero exit.
+- Deterministic packaging is guaranteed by fixed tar ordering and normalized archive metadata.

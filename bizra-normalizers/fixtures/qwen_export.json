@@ -1,0 +1,13 @@
+{
+  "provider": "qwen",
+  "conversations": [
+    {
+      "id": "qw-conv-1",
+      "model_id": "qwen-max",
+      "history": [
+        ["请帮我写Python function to parse CSV", "当然，可以使用 `csv` 模块。"],
+        ["and add error handling", "你可以用 try/except and logging for robustness."]
+      ]
+    }
+  ]
+}

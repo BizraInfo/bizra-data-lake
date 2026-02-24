@@ -58,6 +58,11 @@ def _load_or_create_key(key_path: Path) -> tuple[SigningKey, str]:
             "generated_at": utc_now_iso(),
         },
     )
+    # Keep signing material private on POSIX systems.
+    try:
+        key_path.chmod(0o600)
+    except OSError:
+        pass
     return sk, pk
 
 

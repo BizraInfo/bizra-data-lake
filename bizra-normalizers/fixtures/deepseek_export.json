@@ -1,0 +1,24 @@
+{
+  "provider": "deepseek",
+  "conversations": [
+    {
+      "id": "ds-conv-1",
+      "model": "deepseek-reasoner",
+      "messages": [
+        {
+          "id": "ds-1",
+          "role": "user",
+          "content": "Please optimize this O(n^2) loop.",
+          "created_at": "2026-02-20T10:00:00Z"
+        },
+        {
+          "id": "ds-2",
+          "role": "assistant",
+          "content": "<think>Need to trade memory for speed.</think>Use a hash map to get O(n).",
+          "reasoning_content": "Consider collision handling and memory overhead.",
+          "created_at": "2026-02-20T10:00:01Z"
+        }
+      ]
+    }
+  ]
+}

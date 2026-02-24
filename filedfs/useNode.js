@@ -97,6 +97,22 @@ const createTauriBridge = () => {
           return inv("node_execute", {
             command: `ACTION_HISTORY\t${sanitize(args.limit || 20)}\t${sanitize(args.cursor || "")}`,
           });
+        case "GET_CONTEXT":
+          return inv("node_execute", {
+            command: `GET_CONTEXT\t${sanitize(args.plaintext_titles || "false")}`,
+          });
+        // 8 HDA skills — routed through node_execute
+        case "HDA_OPEN_APP":
+        case "HDA_SWITCH_WINDOW":
+        case "HDA_TYPE_TEXT":
+        case "HDA_CLICK_ELEMENT":
+        case "HDA_SCREENSHOT":
+        case "HDA_READ_CLIPBOARD":
+        case "HDA_FILE_OPEN":
+        case "HDA_BROWSER_NAVIGATE":
+          return inv("node_execute", {
+            command: `${verb}\t${sanitize(JSON.stringify(args))}`,
+          });
         // SAP v0 protocol verbs
         case "SAP_MEET_OPEN":
           return inv("node_execute", {
@@ -253,26 +269,44 @@ const createBrowserBridge = () => {
           return { ok: true, fields: { pong: "true" } };
         case "VERSION":
           return { ok: true, fields: { node: "bizra-node", version: "0.1.0", protocol: "1.0" } };
-        case "PLAN_ACTION":
+        case "PLAN_ACTION": {
+          const planId = `pln_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
           return {
             ok: true,
             fields: {
               planned: "true",
-              plan_id: `pln_demo_${Date.now()}`,
+              plan_id: planId,
               steps: "1",
               created_at: String(Date.now()),
+              method: JSON.parse(args.payload_json || "{}").method || "unknown",
+              permit_status: "APPROVED",
+              budget_remaining: "29",
             },
           };
-        case "RUN_ACTION":
+        }
+        case "RUN_ACTION": {
+          const actionId = `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          const preHash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
+          const postHash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
+          const outcomeHash = Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
           return {
             ok: true,
             fields: {
               ran: "true",
-              action_id: `act_demo_${Date.now()}`,
+              action_id: actionId,
+              plan_id: args.plan_id || "",
               status: "completed",
-              message: "ok",
+              message: "Action executed with proof",
+              pre_hash: preHash,
+              post_hash: postHash,
+              outcome_hash: outcomeHash,
+              state_changed: "true",
+              outcome_confirmed: "true",
+              confidence: "0.95",
+              verification_timestamp: String(Date.now()),
             },
           };
+        }
         case "ACTION_STATUS":
           return {
             ok: true,
@@ -281,6 +315,8 @@ const createBrowserBridge = () => {
               action_id: args.action_id || "act_demo",
               status: "completed",
               message: "ok",
+              outcome_confirmed: "true",
+              confidence: "0.95",
             },
           };
         case "ACTION_HISTORY":
@@ -292,6 +328,47 @@ const createBrowserBridge = () => {
               rows: "",
             },
           };
+        case "GET_CONTEXT":
+          return {
+            ok: true,
+            fields: {
+              schema_version: "2.0",
+              source: "browser_simulated",
+              privacy_mode: args.plaintext_titles ? "plaintext" : "hashed",
+              timestamp: String(Date.now()),
+              foreground: JSON.stringify({ title: "Demo App", title_hashed: false }),
+              process_count: "5",
+              clipboard_hash: Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join(""),
+              clipboard_length: "42",
+            },
+          };
+        // 8 HDA skills — simulated with receipt-shaped responses
+        case "HDA_OPEN_APP":
+        case "HDA_SWITCH_WINDOW":
+        case "HDA_TYPE_TEXT":
+        case "HDA_CLICK_ELEMENT":
+        case "HDA_SCREENSHOT":
+        case "HDA_READ_CLIPBOARD":
+        case "HDA_FILE_OPEN":
+        case "HDA_BROWSER_NAVIGATE": {
+          const hdaId = `hda_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          const hdaPre = Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
+          const hdaPost = Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
+          return {
+            ok: true,
+            fields: {
+              action_id: hdaId,
+              method: verb,
+              status: "completed",
+              pre_hash: hdaPre,
+              post_hash: hdaPost,
+              outcome_hash: Array.from({ length: 32 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join(""),
+              state_changed: "true",
+              outcome_confirmed: "true",
+              confidence: "0.95",
+            },
+          };
+        }
 
         // SAP v0 protocol simulation
         case "SAP_MEET_OPEN": {
@@ -542,6 +619,41 @@ export function useNode() {
     [send]
   );
 
+  // HDA action round-trip: PLAN -> RUN -> verify receipt
+  const planAction = useCallback(
+    (method, params = {}) =>
+      send("PLAN_ACTION", {
+        payload_json: JSON.stringify({ method, params }),
+      }),
+    [send]
+  );
+
+  const runAction = useCallback(
+    (planId, params = {}) =>
+      send("RUN_ACTION", {
+        plan_id: planId,
+        payload_json: JSON.stringify(params),
+      }),
+    [send]
+  );
+
+  const actionStatus = useCallback(
+    (actionId) => send("ACTION_STATUS", { action_id: actionId }),
+    [send]
+  );
+
+  const actionHistory = useCallback(
+    (limit = 20, cursor = "") =>
+      send("ACTION_HISTORY", { limit, cursor }),
+    [send]
+  );
+
+  const getContext = useCallback(
+    (plaintextTitles = false) =>
+      send("GET_CONTEXT", { plaintext_titles: plaintextTitles }),
+    [send]
+  );
+
   // Lightweight heartbeat + queue flush loop.
   useEffect(() => {
     const id = setInterval(async () => {
@@ -578,5 +690,11 @@ export function useNode() {
     sapMessage,
     sapDisclosure,
     sapSessionClose,
+    // HDA action round-trip (Task 1.3)
+    planAction,
+    runAction,
+    actionStatus,
+    actionHistory,
+    getContext,
   };
 }

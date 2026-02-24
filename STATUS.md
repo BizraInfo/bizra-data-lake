@@ -1,15 +1,15 @@
 # BIZRA Implementation Status
 
-Updated: 2026-02-22T10:00Z
+Updated: 2026-02-22T17:20Z
 
 ## Measured Snapshot
 1. SAP conformance: `22/22` passing.
 2. Shadow pilot tests: `4/4` passing.
-3. Corpus Core-8 coverage: `8/8 = 1.0000` (all providers detected).
+3. Conversation platform coverage: `7/7 = 1.0000` (all identity-building platforms detected). Perplexity reclassified as search aggregator.
 4. Manifest hash: `504145f781412a4103249f78f46d61609eb1d02f81a1c2fa2f051184b23c6e09`.
-5. Provider normalizer tests: `31/31` passing.
+5. Provider normalizer tests: `32/32` passing.
 6. Desktop bridge tests: `33/33` passing.
-7. Rust workspace tests: `1,015/1,015` passing (0 failed, 0 ignored).
+7. Rust workspace tests: `1,016/1,016` passing (0 failed, 0 ignored).
 8. CI lint checks: `5/5` passing (cargo fmt, clippy, ruff, black, isort).
 9. Python full suite: `6,887/6,889` passing (99.97%, 2 skipped).
 10. DevOps review findings: `4/4` resolved (3 P1, 1 P2).
@@ -24,6 +24,14 @@ Updated: 2026-02-22T10:00Z
 19. CI/CD action pins: `7/7` workflows use SHA-256 pinned action versions (supply chain hardened).
 20. Docker images: Both `Dockerfile.elite` (Python) and `bizra-omega/Dockerfile` (Rust, 18 crates) validated against current workspace.
 21. Release pipeline: `release.yml` corrected — builds `bizra-api` + `bizra-install` + `bizra-node` (was missing `bizra-node`, had wrong binary name).
+22. Multi-platform normalizers: `118/118` passing (116 normalizer + 2 unified corpus tests, 10/10 parsers, BLAKE3 dedup, Parquet output).
+23. Security review: 0 hardcoded secrets in git, `.env` gitignored and never committed, MagicMock contamination resolved, supply chain pinned.
+24. SBOM generation: `requirements.txt` added (18 deps) for CycloneDX pipeline in `release.yml`.
+25. Live corpus build: `605` files → `41,636` raw turns → `27,044` unified (14,592 dedup'd) across 6 platforms.
+26. GENESIS compilation: `58,402` hints → `12` signal nodes → `7` elite (SNR>=0.95) → `46` edges. Gate: PASS (CV 1.0, 0 gaps).
+29. Perplexity reclassified: Search aggregator, not conversation platform. Data still collected (user's asset). GENESIS target = 7 conversation platforms. Gate reasons: `[]` (clean).
+27. Genesis seed verification: Both copies (`filedfs/genesis_mumo.seed`, `bizra-omega/tests/fixtures/genesis_seed_user_zero.txt`) match — 81/81 fragments, achievement facts updated to current metrics.
+28. Identity alignment: `NODE0_IDENTITY.yaml` corrected (memory 64→128 GB, removed duplicate sections).
 
 | Component | Specified | Implemented | Verified (test/evidence link) | Notes/Risk |
 |---|---|---|---|---|
@@ -33,12 +41,12 @@ Updated: 2026-02-22T10:00Z
 | SAP v0 evidence truth matrix | Yes | Yes | `docs/internal/SAP_V0_EVIDENCE_MATRIX.md` | Includes numeric score model and claim mapping. |
 | Agentic Ads Retail profile v0 | Yes | Yes (profile spec) | `specs/sap-v0/profiles/agentic-ads-retail-v0.md` | Internal profile only. |
 | Corpus Truth Model v1 (deterministic dedup) | Yes | Yes (artifact layer) | `scripts/corpus/dedup_core8.py`, `scripts/corpus/build_corpus_manifest.py`, `schemas/corpus/*.schema.json` | Deterministic outputs and reproducible hash. |
-| Core-8 provider normalization coverage | Yes | Yes | `artifacts/corpus/v1/corpus_manifest.v1.json`, `docs/internal/CORPUS_PROVIDER_COVERAGE_V1.md` | `8/8` covered; 31 normalizer tests passing. |
+| Core-8 provider normalization coverage | Yes | Yes | `artifacts/corpus/v1/corpus_manifest.v1.json`, `docs/internal/CORPUS_PROVIDER_COVERAGE_V1.md` | `7/7` conversation + 1 search aggregator; 32 normalizer tests passing. |
 | Manifest-attested baseline refresh | Yes | Yes | `artifacts/corpus/v1/corpus_manifest.v1.json`, `sovereign_state/node0_baseline.json` | Baseline derived from manifest outputs. |
 | User Zero shadow marketing pilot | Yes | Yes (internal shadow) | `scripts/pilot/run_user_zero_shadow.py`, `tests/pilot/test_shadow_marketing_flow.py` | Fail-closed evidence/consent behavior; 4/4 pass. |
 | SAP v0 frontend wiring (bridge + hook + UI) | Yes | Yes | `filedfs/bizra-bridge.mjs`, `filedfs/useNode.js`, `filedfs/App.jsx` | 6 SAP verbs, SAPBadge, inline DisclosurePanel, SovereignAgentCard, receipt chain, session controls. |
 | User Zero Bootstrap spec package | Yes | Yes (spec layer) | `specs/user-zero-bootstrap/` (6 files, 2263 lines) | SPARC spec-pseudocode for 5-phase bootstrap. |
-| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 1,015 tests, 0 failures, 18 crates, release profile. |
+| Rust workspace health (bizra-omega) | Yes | Yes | `cargo test --workspace --release` | 1,016 tests, 0 failures, 20 crates, release profile. |
 | Desktop bridge integration | Yes | Yes | `tests/core/bridges/test_desktop_bridge.py` | 33/33 passing. |
 | MCP transport SAP v0 support | Yes | Yes | `bizra-node/src/mcp_transport.rs` | 6 SAP methods, 8 parser tests, JSON-RPC 2.0 framing. |
 | Alpha-100 onboarding smoke test | Yes | Yes | `bizra-node/tests/alpha100_smoke.rs` | 7 tests: lifecycle, SAP, TEACH kinds, familiarity, conversation, keepalive, shutdown. |
@@ -47,6 +55,16 @@ Updated: 2026-02-22T10:00Z
 | Docker images (Python + Rust) | Yes | Yes | `deploy/Dockerfile.elite`, `bizra-omega/Dockerfile` | Multi-stage builds, non-root user, health checks, 18-crate workspace. |
 | Full release pipeline | Yes | Yes | `.github/workflows/release.yml` | SBOM, PyPI publish, multi-target binaries, auto-changelog. |
 | Performance CI benchmarks | Yes | Yes | `.github/workflows/performance.yml` | 4 benchmarks: latency, throughput, memory, startup. Regression gates. |
+| Multi-platform normalizer suite (10/10) | Yes | Yes | `bizra-normalizers/tests/test_normalizers.py` (114 tests) | ChatGPT, OpenAI API, Claude, Grok, Gemini, Perplexity, DeepSeek, Qwen, Kimi, Zhipu. |
+| Unified corpus builder + dedup | Yes | Yes | `bizra-normalizers/tests/test_unified_corpus.py` (2 tests) | BLAKE3 dedup, Parquet output, 4 index files. |
+| GENESIS compilation engine | Yes | Yes | `bizra-normalizers/engine.py` + tests | AutonomousSNRGoTEngine with 6-factor SNR scoring, cross-platform boost, edge detection. |
+| Genesis quality gate | Yes | Yes | `bizra-normalizers/genesis_gate.py` + tests | Fail-closed with CV, node count, elite count thresholds. |
+| Memory bridge (stereoscopic→bizra-memory) | Yes | Yes | `bizra-normalizers/memory_bridge.py` + tests | Typed fragment bridge with JSONL export. |
+| Security review | Yes | Yes (Phase 57) | Inline audit report | 0 hardcoded secrets, .env gitignored + never committed, supply chain pinned. |
+| SBOM generation support | Yes | Yes | `requirements.txt` | 18 production deps for CycloneDX SBOM in release.yml. |
+| Live corpus pipeline (User Zero) | Yes | Yes | `04_GOLD/conversations_unified.parquet` (43 MB), 4 indexes | 605 files, 6 platforms, 27,044 unified turns. |
+| GENESIS graph compilation (User Zero) | Yes | Yes | `04_GOLD/stereoscopic_report.json`, `04_GOLD/genesis_ingest.jsonl` | 12 nodes, 7 elite, 46 edges. Gate: PASS. |
+| Genesis seed identity sync | Yes | Yes | `filedfs/genesis_mumo.seed`, `bizra-omega/tests/fixtures/genesis_seed_user_zero.txt` | 81 fragments, achievements updated to current metrics. |
 | Cross-node GO/MEET transport | Yes | No (post-v0) | N/A | Out of scope for this milestone. |
 | Token economics/federation rollout | Yes | No (post-v0) | N/A | Deferred beyond current milestone. |
 
@@ -76,6 +94,14 @@ Node0 must fully serve User Zero (Mumo) before any Alpha-100 scaling.
 | State persistence (knowledge + reflex) | Working | `persistence.rs` save/load tests |
 | Graceful shutdown | Working | `alpha100_smoke::graceful_shutdown` |
 | Release binary (929 KB, zero deps) | Working | `bizra-node --version` = 0.1.0 |
+| Multi-platform ingestion (10 parsers) | Working | `bizra-normalizers/` — 118 tests, all CORE10 parsers |
+| Unified corpus builder (dedup + Parquet) | Working | `build_unified_corpus.py` — BLAKE3, zstd, 4 indexes |
+| GENESIS compilation engine | Working | `engine.py` — 6-factor SNR, cross-platform boost, CV against 7 conversation platforms |
+| Memory bridge to bizra-memory | Working | `memory_bridge.py` — typed fragments, JSONL export |
+| Live corpus (User Zero data) | Verified | `04_GOLD/conversations_unified.parquet` — 27,044 turns from 605 files, 6 platforms |
+| Live GENESIS compilation | Verified | `04_GOLD/stereoscopic_report.json` — 7 elite nodes, PASS gate, CV 1.0 (0 gaps) |
+| Genesis seed identity sync | Verified | Both seed copies match, 81/81 fragments, achievement metrics current |
+| Provider taxonomy reclassification | Verified | Perplexity = search aggregator. CONVERSATION_PLATFORMS = 7. Data still collected. |
 
 ## DevOps Readiness Assessment
 

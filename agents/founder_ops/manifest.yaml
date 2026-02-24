@@ -1,0 +1,210 @@
+# Founder Ops Agent — Agent Manifest v1.0
+# ========================================
+# The flagship BIZRA agent: runs the daily operational loop for the founder.
+# Morning brief -> Desktop observation -> Propose actions -> Execute with proof
+# -> Log to memory -> Surface reasoning.
+#
+# Standing on Giants:
+# - General Magic (Telescript, 1994): Agent = persona + capabilities + permits
+# - Shannon (1948): Minimal capability set = maximal signal
+# - Al-Ghazali (1095): Budget constraint = ethical limit on autonomy
+# - Boyd (1976): OODA loop = observe-orient-decide-act cycle
+#
+# Created: 2026-02-23 | BIZRA Agent Manifest v1.0
+
+# ---------------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------------
+agent:
+  name: founder-ops-agent
+  display_name: Founder Ops Agent
+  version: 1.0.0
+  description: >
+    Personal AI operations agent for the BIZRA founder. Runs the daily
+    operational loop: morning briefs, desktop automation, proactive task
+    management, and verified action execution with full reasoning transparency.
+  author: Node0-Genesis
+  license: BIZRA-Internal
+
+# ---------------------------------------------------------------------------
+# Persona (PAT Agent Configuration)
+# ---------------------------------------------------------------------------
+persona:
+  role: strategist
+  tone: professional
+  traits:
+    - proactive
+    - precise
+    - transparent
+  communication_style: concise
+  # PAT team composition for this agent's queries
+  pat_agents:
+    - strategist     # Planning, decomposition
+    - analyst        # Data analysis, pattern recognition
+    - guardian       # Constitutional oversight, ethics
+  sat_validators:
+    - security_guardian
+    - ethics_validator
+
+# ---------------------------------------------------------------------------
+# Telescript Capabilities (maps to core.sovereign.permit.Capability)
+# ---------------------------------------------------------------------------
+capabilities:
+  telescript:
+    - GO           # Window/app switching
+    - CREATE       # Open applications
+    - COMPUTE      # Type text, click elements
+    - STORE        # File operations, clipboard
+    - NETWORK      # Browser navigation
+  # Note: MEET capability not included — this agent operates solo
+
+  # A2A capability declarations (maps to core.a2a.schema.CapabilityType)
+  a2a:
+    - type: reasoning
+      name: ops.reasoning.got
+      description: Graph-of-Thoughts reasoning for operational decisions
+    - type: code_execution
+      name: ops.desktop.hda
+      description: Desktop automation via 8 HDA skills
+    - type: orchestration
+      name: ops.proactive.missions
+      description: Scheduled mission execution with approval gates
+
+# ---------------------------------------------------------------------------
+# HDA Skills (the 8 productized desktop actions)
+# ---------------------------------------------------------------------------
+hda_skills:
+  - open_app
+  - switch_window
+  - type_text
+  - click_element
+  - screenshot
+  - read_clipboard
+  - file_open
+  - browser_navigate
+
+# ---------------------------------------------------------------------------
+# Schedule (maps to MissionScheduler cron patterns)
+# ---------------------------------------------------------------------------
+schedule:
+  timezone: Asia/Riyadh   # Founder's timezone — override via onboarding
+
+  missions:
+    - name: morning-brief
+      description: Daily morning briefing — overnight alerts, priority tasks
+      cron: "0 8 * * 1-5"    # 08:00 weekdays
+      agents:
+        - strategist
+        - analyst
+        - guardian
+      auto_execute: false     # Requires user approval
+
+    - name: standup
+      description: Daily standup summary — progress, blockers, plan
+      cron: "0 10 * * 1-5"   # 10:00 weekdays
+      agents:
+        - strategist
+        - analyst
+      auto_execute: false
+
+    - name: health-check
+      description: System health monitoring — Node0 subsystems
+      cron: "*/15 * * * *"   # Every 15 minutes
+      agents:
+        - analyst
+      auto_execute: true      # Auto-execute (low risk)
+
+    - name: weekly-review
+      description: Weekly review — accomplishments, metrics, next week
+      cron: "0 16 * * 5"     # 16:00 Friday
+      agents:
+        - strategist
+        - analyst
+        - guardian
+      auto_execute: false
+
+# ---------------------------------------------------------------------------
+# Permit Defaults (Telescript budget/TTL)
+# ---------------------------------------------------------------------------
+permits:
+  default_ttl_seconds: 300          # 5 minutes per permit
+  default_max_actions: 30           # 30 actions per permit
+  default_max_tokens: 4096          # 4K inference tokens per permit
+  auto_renew: true                  # Auto-refresh expired/exhausted permits
+  signing_key_env: BIZRA_PERMIT_SIGNING_KEY   # Never hardcode the key
+
+# ---------------------------------------------------------------------------
+# Model Routing (per-role assignments from proactive_config.yaml)
+# ---------------------------------------------------------------------------
+models:
+  primary_backend: lm_studio
+  fallback_backend: ollama
+  assignments:
+    strategist: agentflow-planner-7b-i1
+    analyst: liquid/lfm2.5-1.2b
+    guardian: deepseek/deepseek-r1-0528-qwen3-8b
+
+# ---------------------------------------------------------------------------
+# Quality Gates
+# ---------------------------------------------------------------------------
+quality:
+  min_ihsan: 0.95                   # From core/integration/constants.py
+  min_snr: 0.85                     # From core/integration/constants.py
+  auto_execute_confidence: 0.75     # PEK confidence gate for auto-execution
+  min_confidence: 0.58              # Below this, skip mission entirely
+  daughter_test: true               # Constitutional ethics filter
+
+# ---------------------------------------------------------------------------
+# Onboarding Questions (used by TeachStep in onboarding flow)
+# ---------------------------------------------------------------------------
+onboarding:
+  questions:
+    - id: work_schedule
+      prompt: "What's your typical work schedule? (e.g., 8am-6pm)"
+      type: text
+      default: "8:00-18:00"
+      maps_to: schedule.timezone
+
+    - id: primary_tools
+      prompt: "Which apps do you use most? (select all that apply)"
+      type: multi_select
+      options:
+        - VS Code
+        - Chrome
+        - Slack
+        - Terminal
+        - Notion
+        - Figma
+        - Excel
+      maps_to: persona.primary_tools
+
+    - id: communication_pref
+      prompt: "How should I communicate with you?"
+      type: single_select
+      options:
+        - Concise bullet points
+        - Detailed explanations
+        - Only when critical
+      default: Concise bullet points
+      maps_to: persona.communication_style
+
+    - id: priority_domains
+      prompt: "What are your top priority domains?"
+      type: multi_select
+      options:
+        - Engineering
+        - Business strategy
+        - Marketing
+        - Operations
+        - Research
+      maps_to: persona.priority_domains
+
+    - id: automation_comfort
+      prompt: "How much autonomy should I have?"
+      type: single_select
+      options:
+        - Ask before every action
+        - Auto-execute low-risk, ask for high-risk
+        - Full autonomous within budget
+      default: Auto-execute low-risk, ask for high-risk
+      maps_to: quality.auto_execute_confidence
