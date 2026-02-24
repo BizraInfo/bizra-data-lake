@@ -322,3 +322,65 @@ pub struct DispatcherHealth {
     pub channels_registered: u64,
     pub completion_rate: f64,
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Event Emitter Trait (bridge back to Event Bus)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Bridge to the Event Bus for emitting completion events.
+/// When the Action Bus completes an action, it emits an event
+/// back to the Event Bus, closing the cognitive loop:
+///
+/// `EVENT → THINK → **ACTION** → **EVENT** (completion)`
+pub trait EventEmitter {
+    /// Emit an action completion event.
+    fn emit_action_completed(
+        &mut self,
+        action_id: ActionId,
+        channel: Channel,
+        success: bool,
+        ihsan_score: IhsanScore,
+        receipt_hash: [u8; 32],
+    );
+
+    /// Emit an action denied event.
+    fn emit_action_denied(&mut self, action_id: ActionId, channel: Channel, reason: String);
+}
+
+/// An event emitter that records events in memory. Used for testing.
+pub struct RecordingEmitter {
+    pub completed: Vec<(ActionId, Channel, bool, IhsanScore)>,
+    pub denied: Vec<(ActionId, Channel, String)>,
+}
+
+impl RecordingEmitter {
+    pub fn new() -> Self {
+        Self {
+            completed: Vec::new(),
+            denied: Vec::new(),
+        }
+    }
+}
+
+impl Default for RecordingEmitter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EventEmitter for RecordingEmitter {
+    fn emit_action_completed(
+        &mut self,
+        action_id: ActionId,
+        channel: Channel,
+        success: bool,
+        ihsan_score: IhsanScore,
+        _receipt_hash: [u8; 32],
+    ) {
+        self.completed.push((action_id, channel, success, ihsan_score));
+    }
+
+    fn emit_action_denied(&mut self, action_id: ActionId, channel: Channel, reason: String) {
+        self.denied.push((action_id, channel, reason));
+    }
+}

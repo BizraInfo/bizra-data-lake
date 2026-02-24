@@ -531,3 +531,49 @@ impl ChannelHandler for TelescriptChannel {
         "Telescript: stub".into()
     }
 }
+
+/// Echo channel — returns a text summary of any action. Used for testing.
+/// Adapted from bizra-action zip session (2026-02-24).
+pub struct EchoChannel {
+    chan: Channel,
+    call_count: u64,
+}
+
+impl EchoChannel {
+    pub fn new(chan: Channel) -> Self {
+        Self { chan, call_count: 0 }
+    }
+
+    pub fn call_count(&self) -> u64 {
+        self.call_count
+    }
+}
+
+impl Default for EchoChannel {
+    fn default() -> Self {
+        Self::new(Channel::Response)
+    }
+}
+
+impl ChannelHandler for EchoChannel {
+    fn channel(&self) -> Channel {
+        self.chan
+    }
+
+    fn execute(&mut self, action: &BizraAction) -> ChannelResult {
+        self.call_count += 1;
+        Ok(ActionPayload::Text(format!(
+            "[ECHO:{}] {}",
+            self.chan.name(),
+            action.summary()
+        )))
+    }
+
+    fn is_available(&self) -> bool {
+        true
+    }
+
+    fn status(&self) -> String {
+        format!("Echo({}, calls={})", self.chan.name(), self.call_count)
+    }
+}
