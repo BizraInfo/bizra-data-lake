@@ -1,9 +1,15 @@
 # BIZRA Documentation Portal
 
-Last updated: 2026-02-18
+Last updated: 2026-02-23
 
 This is the canonical entry point for BIZRA system documentation.
 Use this file first, then follow the role-based reading paths below.
+
+## Project Handover
+
+**Start here for a complete project overview:** [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md)
+
+The handover document covers: identity, architecture, metrics (582K lines, 7,907 tests), timeline (Ramadan 2023 to present), security posture, economic model, roadmap, and full documentation index. It references the authoritative genesis documents in `00_GENESIS/`.
 
 ## Why This Exists
 
@@ -13,9 +19,13 @@ Use this file first, then follow the role-based reading paths below.
 
 ## Role-Based Reading Paths
 
+### 0. Full Project Handover (any audience)
+
+1. [Project Handover](PROJECT_HANDOVER.md) — single document covering everything
+
 ### 1. New Engineer (30-60 minutes)
 
-1. [README.md](../README.md)
+1. [Project Handover](PROJECT_HANDOVER.md) — start here
 2. [Quick Start](QUICK-START.md)
 3. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
 4. [Integration Contracts](INTEGRATION_CONTRACTS.md)
@@ -48,24 +58,28 @@ Use this file first, then follow the role-based reading paths below.
 
 ### 5. Investor / Business Stakeholder
 
-1. [Technical Brief](BIZRA_TECHNICAL_BRIEF_INVESTORS.md)
-2. [Strategy Deck](BIZRA_STRATEGY_DECK_2026.md)
-3. [Evidence Pack](EVIDENCE_PACK_A_PLUS.md)
-4. [Ecosystem Map](BIZRA-ECOSYSTEM-MAP.md)
+1. [Project Handover](PROJECT_HANDOVER.md) — complete overview with metrics
+2. [Genesis Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) — the full narrative
+3. [Technical Brief](BIZRA_TECHNICAL_BRIEF_INVESTORS.md)
+4. [Strategy Deck](BIZRA_STRATEGY_DECK_2026.md)
+5. [Evidence Pack](EVIDENCE_PACK_A_PLUS.md)
+6. [Ecosystem Map](BIZRA-ECOSYSTEM-MAP.md)
 
 ### 6. System Designer / Architect
 
 1. [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md)
 2. [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)
-3. [Rust Integration](RUST_INTEGRATION.md)
-4. [Integration Contracts](INTEGRATION_CONTRACTS.md)
-5. [Spearpoint (RDVE)](SPEARPOINT.md)
+3. [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md)
+4. [Rust Integration](RUST_INTEGRATION.md)
+5. [Integration Contracts](INTEGRATION_CONTRACTS.md)
+6. [Spearpoint (RDVE)](SPEARPOINT.md)
 
 ## System Documentation Map
 
 | Domain | Primary Doc | Source of Truth in Code |
 |---|---|---|
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
+| Canonical cognitive flow | [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md) | `core/pci/`, `core/reasoning/`, `core/sovereign/`, `core/bridges/` |
 | API contracts | [Integration Contracts](INTEGRATION_CONTRACTS.md) | `core/sovereign/api.py`, `bizra-omega/bizra-api/` |
 | Security model | [Threat Model](THREAT-MODEL-V3.md) | `core/pci/`, `core/sovereign/model_license_gate.py` |
 | Operations | [Operations Runbook](OPERATIONS_RUNBOOK.md) | `deploy/`, `.github/workflows/`, `scripts/` |
@@ -82,11 +96,24 @@ Use this file first, then follow the role-based reading paths below.
 | Smart File Management | [Smart File Management](SMART_FILE_MANAGEMENT.md) | `core/skills/`, `tests/core/skills/` |
 | Architecture diagrams | [Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md) | Companion to Architecture Blueprint |
 | Ihsan compliance | [Ihsan Compliance Matrix](IHSAN_COMPLIANCE_MATRIX.md) | `core/integration/constants.py` |
+| Project handover | [Project Handover](PROJECT_HANDOVER.md) | Complete project overview |
+| Genesis narrative | [Complete Story](../00_GENESIS/BIZRA_COMPLETE_STORY_AUTHORITATIVE.md) | Authoritative history |
+| RLM integration | [Phase 50 Overview](../specs/phase-50-rlm-sovereign-cognition/00_overview.md) | `core/inference/rlm_bridge.py` (planned) |
+| Token incentive RL | [Phase 50.3 Spec](../specs/phase-50-rlm-sovereign-cognition/03_token_incentive_rl.md) | `core/token/rl_rewards.py` (planned) |
+| Voice pipeline | [Phase 50.4 Spec](../specs/phase-50-rlm-sovereign-cognition/04_personaplex_voice_pipeline.md) | `core/voice/` (planned) |
+| PersonaPlex | [PersonaPlex Integration](PERSONAPLEX_INTEGRATION.md) | `personaplex/` |
 
 ## Specifications
 
 | Spec | Status |
 |------|--------|
+| [Phase 50: RLM Sovereign Cognition](../specs/phase-50-rlm-sovereign-cognition/00_overview.md) | Specified (active) |
+| [Phase 49: Refinement Consolidation](../specs/phase-49-refinement-consolidation/01_current_state.md) | Specified |
+| [Phase 48: Rust Workspace Unification](../specs/phase-48-rust-workspace-unification/01_current_state_inventory.md) | Specified |
+| [Phase 47: Cognitive Resonance](../specs/phase-47-cognitive-resonance-activation/00_overview.md) | Specified |
+| [Phase 45: Distributed Cognitive Scaling](../specs/phase-45-distributed-cognitive-scaling/00_overview_distributed_cognitive_scaling.md) | Specified |
+| [Phase 43: Node0 Identity Awakening](../specs/phase-43-node0-identity-awakening/00_overview.md) | Specified |
+| [Phase 42: SNR Unification](../specs/phase-42-snr-unification/00_overview.md) | Specified |
 | [True Spearpoint v9](specs/true_spearpoint_v9/phase_00_overview.md) | Active |
 | [Phase 20.1: SAPE Dashboard](specs/phase20_sape_sovereign_dashboard.md) | Implemented |
 | [Phase 20: RDVE Actuator Layer](specs/phase20_rdve_actuator_layer.md) | Implemented |
