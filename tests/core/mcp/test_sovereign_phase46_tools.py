@@ -868,6 +868,8 @@ class TestHeadlessMode:
     Uses subprocess isolation to avoid SIGTERM killing pytest.
     Timeout is generous (30s) because the subprocess must import FAISS,
     numpy, and the full core/ tree before the health server binds.
+
+    Skips on Windows when asyncio subprocess init fails (WinError 10106).
     """
 
     # Use high non-default ports to avoid conflicts with other tests
@@ -897,7 +899,7 @@ class TestHeadlessMode:
         env = os.environ.copy()
         env["MCP_HTTP_PORT"] = str(port)
         env["PYTHONPATH"] = _project_root
-        return subprocess.Popen(
+        proc = subprocess.Popen(
             [sys.executable, "-m", "tools.mcp.sovereign_mcp_server"],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -905,6 +907,15 @@ class TestHeadlessMode:
             cwd=_project_root,
             env=env,
         )
+        # Quick check: if the process crashes immediately with _overlapped error
+        # (Windows async socket init failure), skip instead of failing.
+        time.sleep(1.0)
+        if proc.poll() is not None:
+            _, stderr = proc.communicate(timeout=5)
+            stderr_str = stderr.decode(errors="replace")
+            if "_overlapped" in stderr_str or "WinError 10106" in stderr_str:
+                pytest.skip("asyncio subprocess init fails on this Windows env")
+        return proc
 
     @staticmethod
     def _kill_proc(proc: "subprocess.Popen") -> bytes:

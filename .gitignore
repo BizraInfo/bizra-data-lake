@@ -1,27 +1,239 @@
-commit acafe7aa473ed9179cd3ce975b3593ef80ac8134
-Author: bizrainfo <m.beshr@bizra.info>
-Date:   Tue Feb 24 20:51:58 2026 +0400
+# ═══════════════════════════════════════════════════════════════
+# BIZRA-DATA-LAKE .gitignore
+# ═══════════════════════════════════════════════════════════════
 
-    chore: normalize CRLF→LF line endings, fix MCP config, add test collection guard
-    
-    - Normalize 148 Python files from CRLF to LF line endings across core/ and tests/
-    - Fix .mcp.json: correct npm scope (@anthropic-ai → @modelcontextprotocol), bump to v1.1.0
-    - Add torch/pandas collection guard in tests/integration/conftest.py to prevent
-      pandas.__spec__ failures during full-suite collection
-    - Add sape_metrics.py utility script
-    - Update .gitignore: exclude BIZRA-DATA-LAKE/ worktree and .codeviz/ tool output
-    
-    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+# ── Pytest MagicMock leak artifacts ────────────────────────────
+# Mock objects using __truediv__ (pathlib Path division) can
+# escape to disk when state_dir is not properly patched.
+*MagicMock*
+nul
+cleanup_mocks.py
 
-diff --git a/.gitignore b/.gitignore
-index a5fb26e..adac443 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -223,3 +223,7 @@ artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/manifest/import_receipt.j
- 
- # Founding originals are source-locked from local vault paths; avoid accidental public commit
- 00_GENESIS/01_ARABIC_FOUNDING/*.pdf
-+
-+# Worktree and tool output
-+BIZRA-DATA-LAKE/
-+.codeviz/
+# ── Secrets & Environment ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── Deploy runtime state ────────────────────────────────────
+deploy/.deploy-version
+deploy/.deploy-version.prev
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual Environments ──────────────────────────────────────
+.venv/
+.venv-*/
+venv/
+env/
+ENV/
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints
+*-checkpoint.ipynb
+
+# ── Node.js ───────────────────────────────────────────────────
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+package-lock.json
+
+# ── Rust Build Artifacts ──────────────────────────────────────
+bizra-omega/target/
+target/
+
+# ── Legacy Workspaces (merged into bizra-omega/) ─────────────
+native/
+filedfs/mnt/
+filedfs/*.so
+filedfs/bizra-node-binary
+
+# ── Data Pipeline (large generated data) ──────────────────────
+00_INTAKE/
+01_RAW/
+02_PROCESSED/
+03_INDEXED/
+04_GOLD/
+99_QUARANTINE/
+
+# ── Reference PDFs (large, not source code) ──────────────────
+*.pdf
+
+# ── Large Binaries & Archives ─────────────────────────────────
+*.zip
+*.tgz
+*.tar.gz
+*.deb
+*.rpm
+*.dmg
+*.iso
+voices/
+voices.tgz
+dist.tgz
+cuda-keyring_*.deb
+
+# ── State & Checkpoints ──────────────────────────────────────
+sovereign_state/
+checkpoints/
+
+# ── BIZRA Identity & Vault ───────────────────────────────────
+.bizra/
+
+# ── Claude / AI Tooling ──────────────────────────────────────
+.claude-flow/
+.swarm/
+.claude/logs/
+.claude/state/
+.claude/settings.local.json
+
+# ── IDE & Editors ─────────────────────────────────────────────
+.vscode/
+*.code-workspace
+.idea/
+*.swp
+*~
+*.bak
+
+# ── OS Files ──────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+nul
+
+# ── Test & Coverage ───────────────────────────────────────────
+test_results/
+coverage/
+htmlcov/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+*.tmp
+
+# ── Compiled Binaries ─────────────────────────────────────────
+bizra
+*.exe
+
+# ── ML Models (large files) ───────────────────────────────────
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# ── Research Archive (large files) ────────────────────────────
+research_archive/
+
+# ── Local Claude Config ───────────────────────────────────────
+.claude/CLAUDE.local.md
+.claude/agents/
+!.claude/agents/pyo3-boundary-reviewer.md
+.claude/commands/
+.claude/helpers/
+.claude/hooks/
+.claude/memory/
+.claude/rules/
+.claude/skills/
+!.claude/skills/bizra-node0-proactive-pilot/
+!.claude/skills/bizra-node0-proactive-pilot/**
+!.claude/skills/cross-lang-sync/
+!.claude/skills/cross-lang-sync/**
+!.claude/skills/data-pipeline-run/
+!.claude/skills/data-pipeline-run/**
+.claude/statusline.*
+# .mcp.json — tracked for team MCP server sharing
+
+# ── Gemini ────────────────────────────────────────────────────
+.gemini/
+
+# ── Build / Benchmark Output ──────────────────────────────────
+out/
+
+# ── One-off Noise (untracked root artifacts) ─────────────────
+mypy_full.txt
+analyze_mypy.py
+fix_mypy_batch.py
+DATA4LLM_full_extract.txt
+
+# ── Raw Agent / Session Dumps ────────────────────────────────
+docs/SAPE_AGENT_FULL_OUTPUT.jsonl
+**/memory.db
+
+# ── Misc ──────────────────────────────────────────────────────
+C:/
+
+# Hypothesis test database
+.hypothesis/
+
+# ── Worktrees (Claude parallel checkouts) ─────────────────────
+.claude/worktrees/
+
+# ── Runtime SQLite State ──────────────────────────────────────
+tmp_state/
+users.db
+
+# ── MagicMock / pytest file-leak artifacts ────────────────────
+<MagicMock*
+
+# ── Audit Trail Data (generated at runtime) ───────────────────────
+bizra-omega/bizra-node/data/audit/
+
+# ── External Repos (submodules / clones) ───────────────────────
+personaplex/
+xtr-warp/
+
+# ── Evidence Package Generated Outputs ─────────────────────────
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/private_full/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/public_redacted/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/integrity/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/release/
+artifacts/evidence/BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS/manifest/import_receipt.json
+
+# Founding originals are source-locked from local vault paths; avoid accidental public commit
+00_GENESIS/01_ARABIC_FOUNDING/*.pdf
+
+# ── Worktree and tool output ──────────────────────────────────
+BIZRA-DATA-LAKE/
+.codeviz/
+
+# ── Claude Code local state ──────────────────────────────────
+.claude/logs/
+.claude/memory/
+.claude-flow/
+
+# ── Misc build / runtime artifacts ───────────────────────────
+.swarm/
+tmp_state/
+sovereign_state/

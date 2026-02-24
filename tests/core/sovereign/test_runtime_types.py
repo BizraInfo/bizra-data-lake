@@ -373,8 +373,9 @@ class TestRuntimeConfig:
             saved[k] = os.environ.pop(k, None)
         try:
             cfg = RuntimeConfig()
-            assert "192.168.56.1" in cfg.lm_studio_url
-            assert "1234" in cfg.lm_studio_url
+            # Assert structure, not specific IP (env-dependent)
+            assert cfg.lm_studio_url.startswith("http")
+            assert ":1234" in cfg.lm_studio_url
         finally:
             for k, v in saved.items():
                 if v is not None:

@@ -268,7 +268,9 @@ class TestMultiModalConfig:
         """Test default configuration."""
         config = MultiModalConfig()
 
-        assert config.lmstudio_endpoint == "192.168.56.1:1234"
+        from core.integration.constants import LMSTUDIO_HOST, LMSTUDIO_PORT
+
+        assert config.lmstudio_endpoint == f"{LMSTUDIO_HOST}:{LMSTUDIO_PORT}"
         assert config.ollama_endpoint == "localhost:11434"
         assert config.prefer_reasoning_models is True
         assert config.enable_fallback is True
