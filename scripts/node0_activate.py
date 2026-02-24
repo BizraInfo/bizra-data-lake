@@ -694,6 +694,9 @@ class Node0ProactiveKernel:
         # Knowledge retriever — connects PAT agents to FAISS index
         self._knowledge = KnowledgeRetriever(self._yaml_config)
 
+        # Knowledge retriever — connects PAT agents to FAISS index
+        self._knowledge = KnowledgeRetriever(self._yaml_config)
+
         # State
         self._running = False
         self._cycle_count = 0

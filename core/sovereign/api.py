@@ -1002,14 +1002,17 @@ def create_fastapi_app(runtime: Any) -> Any:
         # Subsystem availability check
         subsystems: dict[str, str] = {}
         _checks = [
-            ("graph_of_thoughts", "_got_reasoner"),
-            ("snr_maximizer", "_snr"),
-            ("guardian_council", "_guardian"),
+            ("graph_of_thoughts", "_graph_reasoner"),
+            ("snr_maximizer", "_snr_optimizer"),
+            ("guardian_council", "_guardian_council"),
             ("autonomous_loop", "_autonomous_loop"),
             ("cognitive_fusion", "_cognitive_fusion"),
             ("embedding_service", "_embedding_service"),
             ("memory_coordinator", "_memory_coordinator"),
             ("evidence_ledger", "_evidence_ledger"),
+            ("rdve_engine", "_rdve_engine"),
+            ("fate_gate", "_ihsan_watchdog"),
+            ("sat_controller", "_sat_controller"),
         ]
         for name, attr in _checks:
             instance = getattr(runtime, attr, None)
