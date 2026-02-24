@@ -65,4 +65,4 @@ pub use graph_of_thoughts::{
 pub use judgment_telemetry::{simulate_epoch_distribution, JudgmentTelemetry, JudgmentVerdict};
 pub use omega::{CircuitState, OmegaConfig, OmegaEngine, OmegaMetrics};
 pub use orchestrator::{OrchestratorConfig, SovereignOrchestrator};
-pub use snr_engine::{SNRConfig, SNREngine, SignalMetrics};
+pub use snr_engine::{SNRConfig, SNREngine, SNRStats, SignalMetrics};
