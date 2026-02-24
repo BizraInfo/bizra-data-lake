@@ -173,7 +173,14 @@ export class FateValidator {
       return nativeBinding.validateOutput(JSON.stringify(output));
     }
 
-    // TypeScript fallback - run gates in order
+    // TypeScript fallback - run gates in order.
+    // Gate ordering encodes trust level:
+    //   TS (local inference):   SCHEMA → SNR → IHSAN → LICENSE
+    //   Python PCI (untrusted): SCHEMA → SIG → TIME → REPLAY → IHSAN → SNR → POLICY
+    // TS checks SNR before Ihsan because local models are trusted sources
+    // (signal quality is the dominant risk). Python checks Ihsan before SNR
+    // because untrusted peers may send ethically harmful high-SNR content.
+    // See docs/adr/ADR-011-gate-ordering-trust-encoding.md
     const gates: Array<{ name: string; check: () => GateResult }> = [
       {
         name: 'SCHEMA',

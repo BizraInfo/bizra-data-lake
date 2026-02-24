@@ -60,6 +60,26 @@ export enum ConnectionState {
   CLOSED = 'closed',
 }
 
+/**
+ * Circuit breaker states for server-level health tracking.
+ *
+ * CLOSED: Normal operation — requests flow freely.
+ * OPEN: Server is failing — all requests short-circuit for cooldown period.
+ * HALF_OPEN: After cooldown, allow one probe request to test recovery.
+ */
+export enum CircuitState {
+  CLOSED = 'closed',
+  OPEN = 'open',
+  HALF_OPEN = 'half_open',
+}
+
+interface CircuitBreaker {
+  state: CircuitState;
+  failures: number;
+  lastFailureAt: number;
+  cooldownMs: number;
+}
+
 export interface ManagedConnection {
   readonly id: string;
   readonly serverId: string;
@@ -86,6 +106,7 @@ export class MCPConnectionPool extends EventEmitter {
   private readonly config: PoolConfig;
   private readonly connections: Map<string, ManagedConnection[]> = new Map();
   private readonly serverHealth: Map<string, boolean> = new Map();
+  private readonly circuits: Map<string, CircuitBreaker> = new Map();
   private healthCheckTimer: ReturnType<typeof setInterval> | undefined;
   private idCounter: number = 0;
   private totalCreated: number = 0;
@@ -132,6 +153,12 @@ export class MCPConnectionPool extends EventEmitter {
     if (!this.connections.has(serverId)) {
       this.connections.set(serverId, []);
       this.serverHealth.set(serverId, true);
+      this.circuits.set(serverId, {
+        state: CircuitState.CLOSED,
+        failures: 0,
+        lastFailureAt: 0,
+        cooldownMs: 30_000,
+      });
 
       // Create minimum idle connections
       for (let i = 0; i < this.config.minIdleConnections; i++) {
@@ -146,6 +173,21 @@ export class MCPConnectionPool extends EventEmitter {
   acquire(serverId: string): ManagedConnection | null {
     const conns = this.connections.get(serverId);
     if (!conns) return null;
+
+    // Circuit breaker check
+    const circuit = this.circuits.get(serverId);
+    if (circuit) {
+      if (circuit.state === CircuitState.OPEN) {
+        const elapsed = Date.now() - circuit.lastFailureAt;
+        if (elapsed < circuit.cooldownMs) {
+          this.emit('pool-exhausted', { serverId, reason: 'circuit-open' });
+          return null;
+        }
+        // Cooldown expired — transition to HALF_OPEN
+        circuit.state = CircuitState.HALF_OPEN;
+        this.emit('circuit-half-open', { serverId });
+      }
+    }
 
     // Find an idle connection
     for (const conn of conns) {
@@ -190,18 +232,64 @@ export class MCPConnectionPool extends EventEmitter {
   markFailed(connection: ManagedConnection): void {
     connection.consecutiveFailures++;
 
+    // Update circuit breaker on every failure
+    const circuit = this.circuits.get(connection.serverId);
+    if (circuit) {
+      circuit.failures++;
+      circuit.lastFailureAt = Date.now();
+    }
+
     if (connection.consecutiveFailures >= this.config.maxConsecutiveFailures) {
       connection.state = ConnectionState.UNHEALTHY;
       this.emit('connection-unhealthy', {
         serverId: connection.serverId,
         connectionId: connection.id,
       });
-
       // Check if all connections are unhealthy
       this.checkServerHealth(connection.serverId);
     } else {
       connection.state = ConnectionState.IDLE;
     }
+
+    // Transition circuit breaker (checked on every failure, regardless of
+    // whether the individual connection reached its threshold)
+    if (circuit) {
+      if (circuit.state === CircuitState.HALF_OPEN) {
+        circuit.state = CircuitState.OPEN;
+        circuit.cooldownMs = Math.min(300_000, circuit.cooldownMs * 2);
+        this.emit('circuit-opened', { serverId: connection.serverId });
+      } else if (
+        circuit.state === CircuitState.CLOSED &&
+        circuit.failures >= this.config.maxConsecutiveFailures
+      ) {
+        circuit.state = CircuitState.OPEN;
+        this.emit('circuit-opened', { serverId: connection.serverId });
+      }
+    }
+  }
+
+  /**
+   * Mark a connection as successfully used. Resets circuit breaker on success.
+   */
+  markSuccess(connection: ManagedConnection): void {
+    const circuit = this.circuits.get(connection.serverId);
+    if (circuit && circuit.state === CircuitState.HALF_OPEN) {
+      // Probe succeeded — close circuit, reset counters
+      circuit.state = CircuitState.CLOSED;
+      circuit.failures = 0;
+      circuit.cooldownMs = 30_000;
+      this.emit('circuit-closed', { serverId: connection.serverId });
+    } else if (circuit && circuit.state === CircuitState.CLOSED) {
+      // Decay failure count on success
+      circuit.failures = Math.max(0, circuit.failures - 1);
+    }
+  }
+
+  /**
+   * Get the circuit breaker state for a server.
+   */
+  getCircuitState(serverId: string): CircuitState {
+    return this.circuits.get(serverId)?.state ?? CircuitState.CLOSED;
   }
 
   /**
@@ -340,11 +428,15 @@ export class MCPConnectionPool extends EventEmitter {
           this.totalDestroyed++;
         }
 
-        // Reset unhealthy connections
+        // Reset unhealthy connections only if circuit is closed or half-open
         if (conn.state === ConnectionState.UNHEALTHY) {
-          conn.state = ConnectionState.IDLE;
-          conn.consecutiveFailures = 0;
-          conn.lastHealthCheckAt = now;
+          const circuit = this.circuits.get(serverId);
+          const circuitState = circuit?.state ?? CircuitState.CLOSED;
+          if (circuitState !== CircuitState.OPEN) {
+            conn.state = ConnectionState.IDLE;
+            conn.consecutiveFailures = 0;
+            conn.lastHealthCheckAt = now;
+          }
         }
       }
 

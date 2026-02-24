@@ -24,7 +24,11 @@ export {
   TaskType,
   Quantization,
   IHSAN_THRESHOLD,
+  STRICT_IHSAN_THRESHOLD,
   SNR_THRESHOLD,
+  SNR_THRESHOLD_T1_HIGH,
+  SNR_THRESHOLD_T0_ELITE,
+  ADL_GINI_THRESHOLD,
   createCapabilityCard,
   getCardCanonicalBytes,
   signCapabilityCard,
@@ -95,8 +99,20 @@ export const CONSTITUTION = {
   /** إحسان (Ihsān) - Excellence threshold */
   IHSAN_THRESHOLD: 0.95,
 
-  /** Shannon SNR threshold */
+  /** Strict Ihsān - Consensus operations */
+  STRICT_IHSAN_THRESHOLD: 0.99,
+
+  /** Shannon SNR threshold (museum floor) */
   SNR_THRESHOLD: 0.85,
+
+  /** SNR Tier 1 - High quality */
+  SNR_THRESHOLD_T1_HIGH: 0.95,
+
+  /** SNR Tier 0 - Elite operations */
+  SNR_THRESHOLD_T0_ELITE: 0.98,
+
+  /** ADL Gini - Justice anti-monopoly gate */
+  ADL_GINI_THRESHOLD: 0.35,
 
   /** Card validity period in days */
   CARD_VALIDITY_DAYS: 90,

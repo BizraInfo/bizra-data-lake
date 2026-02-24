@@ -7,6 +7,49 @@
 
 import { IHSAN_THRESHOLD } from '../sovereign/capability-card';
 
+/**
+ * Quickselect — O(n) average-case k-th smallest element.
+ * Replaces full O(n log n) sort for percentile calculations.
+ */
+function quickselect(arr: number[], k: number): number {
+  let lo = 0;
+  let hi = arr.length - 1;
+
+  while (lo < hi) {
+    const pivotIdx = lo + ((hi - lo) >>> 1);
+    const pivot = arr[pivotIdx] ?? 0;
+
+    // Three-way partition (Dutch national flag)
+    let i = lo;
+    let j = lo;
+    let n = hi;
+
+    while (j <= n) {
+      const v = arr[j] ?? 0;
+      if (v < pivot) {
+        [arr[i], arr[j]] = [v, arr[i] ?? 0];
+        i++;
+        j++;
+      } else if (v > pivot) {
+        [arr[j], arr[n]] = [arr[n] ?? 0, v];
+        n--;
+      } else {
+        j++;
+      }
+    }
+
+    if (k < i) {
+      hi = i - 1;
+    } else if (k > n) {
+      lo = n + 1;
+    } else {
+      return pivot;
+    }
+  }
+
+  return arr[lo] ?? 0;
+}
+
 export interface MetricSnapshot {
   /** Timestamp of snapshot */
   readonly timestamp: number;
@@ -72,14 +115,16 @@ class LatencyBuffer {
     }
   }
 
+  /**
+   * O(n) average-case percentile via quickselect (Floyd-Rivest).
+   * Avoids O(n log n) full sort for each snapshot.
+   */
   percentile(p: number): number {
     if (this.count === 0) return 0;
 
-    const sorted = Array.from(this.buffer.subarray(0, this.count)).sort(
-      (a, b) => a - b
-    );
-    const idx = Math.ceil((p / 100) * sorted.length) - 1;
-    return sorted[Math.max(0, idx)] ?? 0;
+    const arr = Array.from(this.buffer.subarray(0, this.count));
+    const k = Math.max(0, Math.ceil((p / 100) * arr.length) - 1);
+    return quickselect(arr, k);
   }
 
   average(): number {
