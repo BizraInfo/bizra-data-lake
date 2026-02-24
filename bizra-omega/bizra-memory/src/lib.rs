@@ -49,8 +49,9 @@ pub mod types;
 
 // Re-exports for convenience
 pub use bridge::{
-    BridgeHealth, BridgeStatus, ExtractionBatch, ExtractionContent, ExtractionResult, Extractor,
-    RuleExtractor, SearchBatch, SearchResult, Searcher,
+    export_atoms_as_turns, BridgeHealth, BridgeStatus, ConversationTurnWire, ExtractionBatch,
+    ExtractionContent, ExtractionResult, Extractor, RuleExtractor, SearchBatch, SearchResult,
+    Searcher,
 };
 pub use pipeline::{
     GenesisSeedResult, KnowledgeSummary, MemoryPipeline, PipelineConfig, PipelineStats,

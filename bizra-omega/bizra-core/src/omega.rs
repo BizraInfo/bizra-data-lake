@@ -30,7 +30,9 @@ use crate::IHSAN_THRESHOLD;
 // =============================================================================
 
 /// Constitutional Gini threshold for Adl (Justice)
-pub const ADL_GINI_THRESHOLD: f64 = 0.40;
+/// Cross-repo alignment: Python core/integration/constants.py = 0.35
+/// Transactions pushing Gini above this are REJECTED.
+pub const ADL_GINI_THRESHOLD: f64 = 0.35;
 
 /// Emergency Gini threshold (triggers redistribution)
 pub const ADL_GINI_EMERGENCY: f64 = 0.60;

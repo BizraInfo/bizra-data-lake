@@ -576,6 +576,7 @@ mod tests {
             policy_hash: [2u8; 32],
             receipt_hash: [0u8; 32],
             prev_receipt_hash: [0u8; 32],
+            outcome_hash: None,
         };
         r1.seal();
         let mut r2 = ActionReceipt {
@@ -590,6 +591,7 @@ mod tests {
             policy_hash: [2u8; 32],
             receipt_hash: [0u8; 32],
             prev_receipt_hash: r1.receipt_hash,
+            outcome_hash: None,
         };
         r2.seal();
         node.action_executor_mut()
@@ -635,6 +637,7 @@ mod tests {
             policy_hash: [2u8; 32],
             receipt_hash: [0u8; 32],
             prev_receipt_hash: [0u8; 32],
+            outcome_hash: None,
         };
         r1.seal();
         let mut r2 = ActionReceipt {
@@ -649,6 +652,7 @@ mod tests {
             policy_hash: [2u8; 32],
             receipt_hash: [0u8; 32],
             prev_receipt_hash: r1.receipt_hash,
+            outcome_hash: None,
         };
         r2.seal();
         node.action_executor_mut().import_receipts(vec![r1, r2]);

@@ -181,12 +181,20 @@ pub struct ActionReceipt {
     pub policy_hash: [u8; 32],
     pub receipt_hash: [u8; 32],
     pub prev_receipt_hash: [u8; 32],
+    /// SHA-256 hash of post-action screenshot, proving the action's
+    /// effect on the desktop. Currently only proves attempt, not success;
+    /// this field proves both.  `None` when no screenshot was captured.
+    pub outcome_hash: Option<[u8; 32]>,
 }
 
 impl ActionReceipt {
     pub fn canonical_without_hash(&self) -> String {
+        let outcome = match &self.outcome_hash {
+            Some(h) => to_hex(*h),
+            None => "none".to_string(),
+        };
         format!(
-            "v=1|id={}|plan={}|ch={}|kind={}|ts={}|guardian={}|permit={}|policy={}|result={}|prev={}",
+            "v=2|id={}|plan={}|ch={}|kind={}|ts={}|guardian={}|permit={}|policy={}|result={}|prev={}|outcome={}",
             self.action_id,
             self.plan_id,
             self.channel.as_str(),
@@ -197,6 +205,7 @@ impl ActionReceipt {
             to_hex(self.policy_hash),
             self.result,
             to_hex(self.prev_receipt_hash),
+            outcome,
         )
     }
 
@@ -217,8 +226,12 @@ impl ActionReceipt {
     }
 
     pub fn to_jsonl(&self) -> String {
+        let outcome_str = match &self.outcome_hash {
+            Some(h) => format!(",\"outcome\":\"{}\"", to_hex(*h)),
+            None => String::new(),
+        };
         format!(
-            "{{\"v\":1,\"id\":\"{}\",\"plan\":\"{}\",\"ch\":\"{}\",\"kind\":\"{}\",\"ts\":{},\"guardian\":{},\"permit\":\"{}\",\"policy\":\"{}\",\"result\":\"{}\",\"receipt\":\"{}\",\"prev\":\"{}\"}}",
+            "{{\"v\":2,\"id\":\"{}\",\"plan\":\"{}\",\"ch\":\"{}\",\"kind\":\"{}\",\"ts\":{},\"guardian\":{},\"permit\":\"{}\",\"policy\":\"{}\",\"result\":\"{}\",\"receipt\":\"{}\",\"prev\":\"{}\"{}}}",
             sanitize(self.action_id.as_str()),
             sanitize(self.plan_id.as_str()),
             self.channel.as_str(),
@@ -230,6 +243,7 @@ impl ActionReceipt {
             sanitize(self.result.as_str()),
             to_hex(self.receipt_hash),
             to_hex(self.prev_receipt_hash),
+            outcome_str,
         )
     }
 
@@ -252,6 +266,9 @@ impl ActionReceipt {
         let receipt_hash = parse_hex_32(get("receipt")?.as_str())?;
         let prev_receipt_hash = parse_hex_32(get("prev")?.as_str())?;
 
+        // outcome_hash is optional — absent in v1 receipts
+        let outcome_hash = get("outcome").and_then(|h| parse_hex_32(h.as_str()));
+
         Some(Self {
             action_id,
             plan_id,
@@ -264,6 +281,7 @@ impl ActionReceipt {
             policy_hash,
             receipt_hash,
             prev_receipt_hash,
+            outcome_hash,
         })
     }
 
@@ -356,6 +374,7 @@ mod tests {
             policy_hash: [2u8; 32],
             receipt_hash: [0u8; 32],
             prev_receipt_hash: [0u8; 32],
+            outcome_hash: None,
         };
         r.seal();
         assert!(r.verify_chain(&[0u8; 32]));

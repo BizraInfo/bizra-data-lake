@@ -21,6 +21,8 @@ use std::io::{self, BufRead, Write};
 use bizra_agent::runtime::{AgentRuntime, RuntimeConfig};
 use bizra_hooks::IhsanScore;
 
+use bizra_memory::bridge::export_atoms_as_turns;
+
 use crate::action_executor::ActionExecutor;
 use crate::handler::{self, NodeInternals, SapSessionState};
 use crate::protocol::{self, Response, NODE_NAME, NODE_VERSION};
@@ -68,6 +70,19 @@ impl Default for NodeConfig {
         }
     }
 }
+
+// ============================================================
+// SELF-COMPILATION — Conversation Genesis Feedback Loop
+// ============================================================
+
+/// Number of commands between automatic self-compilation passes.
+///
+/// Every N commands the node exports its accumulated memory atoms as
+/// ConversationTurnWire records suitable for the Python stereoscopic
+/// compiler.  This closes the identity loop: use BIZRA -> atoms
+/// extracted -> exported as turns -> stereoscopic engine compiles ->
+/// identity grows.
+const SELF_COMPILE_INTERVAL: usize = 50;
 
 // ============================================================
 // NODE — the living process
@@ -188,6 +203,15 @@ impl Node {
             self.errors_encountered += 1;
         }
 
+        // Periodic self-compilation: export atoms for stereoscopic identity
+        if self.commands_processed > 0
+            && self
+                .commands_processed
+                .is_multiple_of(SELF_COMPILE_INTERVAL)
+        {
+            self.trigger_self_compilation();
+        }
+
         response.to_wire()
     }
 
@@ -306,6 +330,72 @@ impl Node {
     // INTERNAL
     // ================================================================
 
+    /// Trigger periodic self-compilation of memory atoms.
+    ///
+    /// Exports all atoms currently in the memory pipeline as
+    /// `ConversationTurnWire` records compatible with the Python
+    /// stereoscopic engine. In the current implementation the
+    /// turns are logged to stderr (Node0 bootstrap). In production
+    /// this will write to a JSONL file or call the Python engine
+    /// via FFI for full identity compilation.
+    fn trigger_self_compilation(&self) {
+        let summary = self.runtime.pipeline().knowledge_summary();
+        if summary.total_atoms == 0 {
+            return;
+        }
+
+        // Collect atoms from the store that have not been superseded.
+        // We iterate all AtomKind variants and gather (kind, content, confidence, timestamp).
+        let store = self.runtime.pipeline().store();
+        let mut atom_tuples: Vec<(bizra_memory::types::AtomKind, String, f32, u64)> = Vec::new();
+
+        let kinds = [
+            bizra_memory::types::AtomKind::Fact,
+            bizra_memory::types::AtomKind::Preference,
+            bizra_memory::types::AtomKind::Pattern,
+            bizra_memory::types::AtomKind::Relationship,
+            bizra_memory::types::AtomKind::Goal,
+            bizra_memory::types::AtomKind::Expertise,
+            bizra_memory::types::AtomKind::Context,
+            bizra_memory::types::AtomKind::Principle,
+            bizra_memory::types::AtomKind::Temporal,
+            bizra_memory::types::AtomKind::Negation,
+        ];
+
+        for kind in &kinds {
+            for atom in store.atoms_by_kind(*kind) {
+                if let Some(content) = store.atom_content(atom) {
+                    atom_tuples.push((
+                        atom.header.kind,
+                        content.to_owned(),
+                        atom.header.confidence.base,
+                        atom.header.provenance.extracted_at,
+                    ));
+                }
+            }
+        }
+
+        if atom_tuples.is_empty() {
+            return;
+        }
+
+        // Build borrow-compatible slice of (&str) references for export
+        let refs: Vec<(bizra_memory::types::AtomKind, &str, f32, u64)> = atom_tuples
+            .iter()
+            .map(|(k, c, conf, ts)| (*k, c.as_str(), *conf, *ts))
+            .collect();
+
+        let turns = export_atoms_as_turns(&refs, self.session_counter);
+
+        eprintln!(
+            "[self-compile] exported {} atoms as {} turns (session={}, commands={})",
+            summary.total_atoms,
+            turns.len(),
+            self.session_counter,
+            self.commands_processed,
+        );
+    }
+
     /// Print the startup banner to stderr.
     fn print_banner(&self) {
         eprintln!();
@@ -390,5 +480,53 @@ mod tests {
     fn node_registers_action_receipt_post_deliver_hook() {
         let node = Node::new(NodeConfig::default());
         assert!(node.action_executor().post_deliver_hook_count() >= 1);
+    }
+
+    #[test]
+    fn self_compile_interval_constant() {
+        // Verify the constant is a reasonable value (not 0, not too large).
+        let interval = SELF_COMPILE_INTERVAL;
+        assert!(interval >= 10);
+        assert!(interval <= 1000);
+    }
+
+    #[test]
+    fn self_compile_does_not_panic_on_empty_pipeline() {
+        // The trigger should be a no-op when no atoms exist.
+        let node = Node::new(NodeConfig::default());
+        node.trigger_self_compilation(); // must not panic
+    }
+
+    #[test]
+    fn self_compile_triggers_at_interval() {
+        // Feed SELF_COMPILE_INTERVAL PINGs and verify the node survives.
+        // Self-compilation fires at exactly SELF_COMPILE_INTERVAL commands.
+        let mut node = Node::new(NodeConfig::default());
+        for _ in 0..SELF_COMPILE_INTERVAL {
+            node.execute("PING");
+        }
+        assert_eq!(node.commands_processed(), SELF_COMPILE_INTERVAL);
+        // No panic, no errors from self-compilation on an empty pipeline
+        assert_eq!(node.errors_encountered(), 0);
+    }
+
+    #[test]
+    fn self_compile_with_atoms() {
+        // Teach some atoms, then hit the interval to trigger self-compilation.
+        let mut node = Node::new(NodeConfig::default());
+
+        // Teach a few atoms via the protocol (format: TEACH\tkind\tcontent\tihsan\ttimestamp)
+        node.execute("TEACH\tfact\tI am the founder of BIZRA\t9500\t1000");
+        node.execute("TEACH\tpreference\tI prefer Rust for sovereignty\t9500\t2000");
+        node.execute("TEACH\tpattern\tBuilding a decentralized future every day\t9500\t3000");
+
+        // Fill up to the interval with PINGs
+        let remaining = SELF_COMPILE_INTERVAL - 3;
+        for _ in 0..remaining {
+            node.execute("PING");
+        }
+
+        assert_eq!(node.commands_processed(), SELF_COMPILE_INTERVAL);
+        assert_eq!(node.errors_encountered(), 0);
     }
 }
