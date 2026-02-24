@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import gzip
-import hashlib
 import io
 import json
 import tarfile
@@ -98,7 +97,9 @@ def _build_deterministic_tar_gz(src_root: Path, archive_path: Path, tier: str) -
                     tar.addfile(info, io.BytesIO(data))
 
 
-def _signature_payload(*, archive_name: str, tier: str, stage: str, blake3: str, sha256: str) -> dict[str, str]:
+def _signature_payload(
+    *, archive_name: str, tier: str, stage: str, blake3: str, sha256: str
+) -> dict[str, str]:
     return {
         "archive_name": archive_name,
         "tier": tier,
@@ -207,7 +208,9 @@ def run(
         (archive_path.with_suffix(archive_path.suffix + ".sha256")).write_text(
             f"{sha256}  {archive_name}\n", encoding="utf-8"
         )
-        (archive_path.with_suffix(archive_path.suffix + ".sig")).write_text(sig + "\n", encoding="utf-8")
+        (archive_path.with_suffix(archive_path.suffix + ".sig")).write_text(
+            sig + "\n", encoding="utf-8"
+        )
 
         archive_records.append(
             {
@@ -251,7 +254,9 @@ def run(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Pack evidence tiers into signed release archives")
+    parser = argparse.ArgumentParser(
+        description="Pack evidence tiers into signed release archives"
+    )
     parser.add_argument("--package-root", type=Path, default=DEFAULT_PACKAGE_ROOT)
     parser.add_argument("--stage", choices=["scaffold", "final"], default="final")
     parser.add_argument(

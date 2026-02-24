@@ -39,7 +39,6 @@ from core.sovereign.autonomy import (
     create_autonomous_loop,
 )
 
-
 # =============================================================================
 # ENUM TESTS
 # =============================================================================
@@ -969,9 +968,7 @@ class TestAutonomousLoop:
         loop = AutonomousLoop(max_decisions_per_cycle=1)
 
         async def many_candidates(m):
-            return [
-                DecisionCandidate(action=f"action_{i}") for i in range(5)
-            ]
+            return [DecisionCandidate(action=f"action_{i}") for i in range(5)]
 
         loop.register_analyzer(many_candidates)
         metrics = SystemMetrics(snr_score=0.95, ihsan_score=0.95, error_rate=0.01)
@@ -1312,9 +1309,7 @@ class TestLearnPhase:
         """learn() should detect no patterns with < 10 outcomes."""
         loop = AutonomousLoop()
         for i in range(5):
-            loop.outcomes.append(
-                DecisionOutcome(decision_id=f"d{i}", success=False)
-            )
+            loop.outcomes.append(DecisionOutcome(decision_id=f"d{i}", success=False))
         outcomes = list(loop.outcomes)
         reflection = {"success_rate": 0.0}
         learning = await loop.learn(outcomes, reflection)

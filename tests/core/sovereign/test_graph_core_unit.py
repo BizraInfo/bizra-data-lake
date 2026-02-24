@@ -24,7 +24,6 @@ from core.sovereign.graph_types import (
     ThoughtType,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -256,11 +255,20 @@ class TestGraphArtifact:
         """Each node in the artifact has the required node fields."""
         artifact = seeded_graph.to_artifact()
         assert len(artifact["nodes"]) == len(seeded_graph.nodes)
-        node_required_keys = {"id", "content", "type", "content_hash", "confidence", "snr", "ihsan", "depth"}
+        node_required_keys = {
+            "id",
+            "content",
+            "type",
+            "content_hash",
+            "confidence",
+            "snr",
+            "ihsan",
+            "depth",
+        }
         for node_dict in artifact["nodes"]:
-            assert node_required_keys.issubset(node_dict.keys()), (
-                f"Missing keys in node: {node_required_keys - node_dict.keys()}"
-            )
+            assert node_required_keys.issubset(
+                node_dict.keys()
+            ), f"Missing keys in node: {node_required_keys - node_dict.keys()}"
 
     def test_to_artifact_edges_serialized(self, seeded_graph: GraphOfThoughts):
         """Each edge in the artifact has source, target, type, weight."""

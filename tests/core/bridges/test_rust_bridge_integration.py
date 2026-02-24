@@ -24,12 +24,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from core.bridges.desktop_bridge import (
+    _RUST_AVAILABLE,
     BRIDGE_HOST,
     DesktopBridge,
-    _RUST_AVAILABLE,
     _ok,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -198,7 +197,11 @@ class TestBLAKE3Digest:
 
         with (
             patch("core.bridges.desktop_bridge._RUST_AVAILABLE", True),
-            patch("core.bridges.desktop_bridge.domain_separated_digest", mock_digest, create=True),
+            patch(
+                "core.bridges.desktop_bridge.domain_separated_digest",
+                mock_digest,
+                create=True,
+            ),
         ):
             result = bridge._blake3_digest("hello world")
 
@@ -212,7 +215,11 @@ class TestBLAKE3Digest:
 
         with (
             patch("core.bridges.desktop_bridge._RUST_AVAILABLE", True),
-            patch("core.bridges.desktop_bridge.domain_separated_digest", mock_digest, create=True),
+            patch(
+                "core.bridges.desktop_bridge.domain_separated_digest",
+                mock_digest,
+                create=True,
+            ),
         ):
             assert bridge._blake3_digest("test") is None
 

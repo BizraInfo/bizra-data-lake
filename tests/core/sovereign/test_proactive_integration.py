@@ -5,66 +5,94 @@ Comprehensive tests for the complete proactive sovereign architecture.
 """
 
 import asyncio
-import pytest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
 
-# Event Bus
-from core.sovereign.event_bus import EventBus, Event, EventPriority, get_event_bus
+import pytest
 
-# State Checkpointer
-from core.sovereign.state_checkpointer import StateCheckpointer, Checkpoint
+from core.proof_engine.evidence_ledger import EvidenceLedger
 
-# Team Planner
-from core.sovereign.team_planner import (
-    TeamPlanner, Goal, TeamTask, AgentRole, TaskComplexity, TaskAllocation
+# Autonomy Matrix
+from core.sovereign.autonomy_matrix import (
+    ActionContext,
+    AutonomyConstraints,
+    AutonomyLevel,
+    AutonomyMatrix,
+)
+
+# Collective Intelligence
+from core.sovereign.collective_intelligence import (
+    AgentContribution,
+    AggregationMethod,
+    CollectiveIntelligence,
 )
 
 # Dual-Agentic Bridge
 from core.sovereign.dual_agentic_bridge import (
-    DualAgenticBridge, ActionProposal, ConsensusResult, VetoReason
-)
-from core.proof_engine.evidence_ledger import EvidenceLedger
-
-# Collective Intelligence
-from core.sovereign.collective_intelligence import (
-    CollectiveIntelligence, AgentContribution, AggregationMethod
-)
-
-# Proactive Scheduler
-from core.sovereign.proactive_scheduler import (
-    ProactiveScheduler, ScheduledJob, ScheduleType, JobPriority
-)
-
-# Predictive Monitor
-from core.sovereign.predictive_monitor import (
-    PredictiveMonitor, TrendDirection, AlertSeverity
-)
-
-# Muraqabah Engine
-from core.sovereign.muraqabah_engine import (
-    MuraqabahEngine, MonitorDomain, Opportunity, SensorReading
-)
-
-# Autonomy Matrix
-from core.sovereign.autonomy_matrix import (
-    AutonomyMatrix, AutonomyLevel, ActionContext, AutonomyConstraints
+    ActionProposal,
+    ConsensusResult,
+    DualAgenticBridge,
+    VetoReason,
 )
 
 # Enhanced Team Planner
 from core.sovereign.enhanced_team_planner import (
-    EnhancedTeamPlanner, ProactiveGoal, ExecutionPlan
+    EnhancedTeamPlanner,
+    ExecutionPlan,
+    ProactiveGoal,
+)
+
+# Event Bus
+from core.sovereign.event_bus import Event, EventBus, EventPriority, get_event_bus
+
+# Muraqabah Engine
+from core.sovereign.muraqabah_engine import (
+    MonitorDomain,
+    MuraqabahEngine,
+    Opportunity,
+    SensorReading,
+)
+
+# Predictive Monitor
+from core.sovereign.predictive_monitor import (
+    AlertSeverity,
+    PredictiveMonitor,
+    TrendDirection,
 )
 
 # Proactive Integration
 from core.sovereign.proactive_integration import (
-    ProactiveSovereignEntity, EntityConfig, EntityMode, create_proactive_entity
+    EntityConfig,
+    EntityMode,
+    ProactiveSovereignEntity,
+    create_proactive_entity,
 )
 
+# Proactive Scheduler
+from core.sovereign.proactive_scheduler import (
+    JobPriority,
+    ProactiveScheduler,
+    ScheduledJob,
+    ScheduleType,
+)
+
+# State Checkpointer
+from core.sovereign.state_checkpointer import Checkpoint, StateCheckpointer
+
+# Team Planner
+from core.sovereign.team_planner import (
+    AgentRole,
+    Goal,
+    TaskAllocation,
+    TaskComplexity,
+    TeamPlanner,
+    TeamTask,
+)
 
 # =============================================================================
 # EVENT BUS TESTS
 # =============================================================================
+
 
 class TestEventBus:
     """Tests for EventBus."""
@@ -115,6 +143,7 @@ class TestEventBus:
 # =============================================================================
 # AUTONOMY MATRIX TESTS
 # =============================================================================
+
 
 class TestAutonomyMatrix:
     """Tests for AutonomyMatrix."""
@@ -167,6 +196,7 @@ class TestAutonomyMatrix:
 # =============================================================================
 # DUAL-AGENTIC BRIDGE TESTS
 # =============================================================================
+
 
 class TestDualAgenticBridge:
     """Tests for DualAgenticBridge."""
@@ -319,6 +349,7 @@ class TestDualAgenticBridge:
 # COLLECTIVE INTELLIGENCE TESTS
 # =============================================================================
 
+
 class TestCollectiveIntelligence:
     """Tests for CollectiveIntelligence."""
 
@@ -367,6 +398,7 @@ class TestCollectiveIntelligence:
 # TEAM PLANNER TESTS
 # =============================================================================
 
+
 class TestTeamPlanner:
     """Tests for TeamPlanner."""
 
@@ -406,6 +438,7 @@ class TestTeamPlanner:
 # PREDICTIVE MONITOR TESTS
 # =============================================================================
 
+
 class TestPredictiveMonitor:
     """Tests for PredictiveMonitor."""
 
@@ -427,6 +460,7 @@ class TestPredictiveMonitor:
 # =============================================================================
 # MURAQABAH ENGINE TESTS
 # =============================================================================
+
 
 class TestMuraqabahEngine:
     """Tests for MuraqabahEngine."""
@@ -458,6 +492,7 @@ class TestMuraqabahEngine:
 # =============================================================================
 # PROACTIVE SOVEREIGN ENTITY TESTS
 # =============================================================================
+
 
 class TestProactiveSovereignEntity:
     """Tests for ProactiveSovereignEntity."""
@@ -501,6 +536,7 @@ class TestProactiveSovereignEntity:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for the complete system."""

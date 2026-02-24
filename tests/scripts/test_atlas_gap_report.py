@@ -39,7 +39,9 @@ def _write_matrix(path: Path) -> None:
     path.write_text(json.dumps(matrix), encoding="utf-8")
 
 
-def test_atlas_report_marks_pat_sat_verified_from_runtime_status(tmp_path: Path) -> None:
+def test_atlas_report_marks_pat_sat_verified_from_runtime_status(
+    tmp_path: Path,
+) -> None:
     matrix_path = tmp_path / "matrix.json"
     runtime_status_path = tmp_path / "runtime_status.json"
     out_path = tmp_path / "atlas_report.json"

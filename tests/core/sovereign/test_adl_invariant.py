@@ -11,30 +11,31 @@ These tests verify:
 5. Edge cases and invariants
 """
 
-import pytest
 from typing import Dict
 
+import pytest
+
 from core.sovereign.adl_invariant import (
-    AdlInvariant,
-    AdlGate,
-    AdlRejectCode,
-    AdlValidationResult,
-    RedistributionResult,
-    Transaction,
-    calculate_gini,
-    calculate_gini_components,
-    assert_adl_invariant,
-    simulate_transaction_impact,
     ADL_GINI_THRESHOLD,
     HARBERGER_TAX_RATE,
     MINIMUM_HOLDING,
     UBC_POOL_ID,
+    AdlGate,
+    AdlInvariant,
+    AdlRejectCode,
+    AdlValidationResult,
+    RedistributionResult,
+    Transaction,
+    assert_adl_invariant,
+    calculate_gini,
+    calculate_gini_components,
+    simulate_transaction_impact,
 )
-
 
 # =============================================================================
 # GINI COEFFICIENT TESTS
 # =============================================================================
+
 
 class TestCalculateGini:
     """Tests for the Gini coefficient calculation."""
@@ -132,8 +133,15 @@ class TestCalculateGiniComponents:
         components = calculate_gini_components(holdings)
 
         expected_keys = [
-            "gini", "n", "total", "mean", "median",
-            "min", "max", "top_10_pct_share", "bottom_50_pct_share"
+            "gini",
+            "n",
+            "total",
+            "mean",
+            "median",
+            "min",
+            "max",
+            "top_10_pct_share",
+            "bottom_50_pct_share",
         ]
         for key in expected_keys:
             assert key in components, f"Missing key: {key}"
@@ -153,6 +161,7 @@ class TestCalculateGiniComponents:
 # =============================================================================
 # TRANSACTION VALIDATION TESTS
 # =============================================================================
+
 
 class TestAdlInvariantValidation:
     """Tests for transaction validation against Adl invariant."""
@@ -297,6 +306,7 @@ class TestAdlInvariantValidation:
 # HARBERGER TAX REDISTRIBUTION TESTS
 # =============================================================================
 
+
 class TestRedistributeSoilTax:
     """Tests for Harberger-style tax redistribution."""
 
@@ -398,6 +408,7 @@ class TestRedistributionResult:
 # ADL GATE (PCI INTEGRATION) TESTS
 # =============================================================================
 
+
 class TestAdlGate:
     """Tests for PCI envelope integration."""
 
@@ -426,6 +437,7 @@ class TestAdlGate:
 # =============================================================================
 # UTILITY FUNCTION TESTS
 # =============================================================================
+
 
 class TestAssertAdlInvariant:
     """Tests for the assertion helper."""
@@ -493,6 +505,7 @@ class TestSimulateTransactionImpact:
 # INVARIANT PROPERTY TESTS
 # =============================================================================
 
+
 class TestInvariantProperties:
     """Property-based tests for invariants."""
 
@@ -513,7 +526,7 @@ class TestInvariantProperties:
 
         # Each step should increase or maintain Gini
         for i in range(1, len(ginis)):
-            assert ginis[i] >= ginis[i-1] - 1e-6, f"Gini decreased at step {i}"
+            assert ginis[i] >= ginis[i - 1] - 1e-6, f"Gini decreased at step {i}"
 
     def test_redistribution_always_reduces_or_maintains_gini(self):
         """Harberger tax should never increase Gini."""
@@ -531,9 +544,9 @@ class TestInvariantProperties:
             new_holdings = invariant.redistribute_soil_tax(holdings)
             post_gini = calculate_gini(new_holdings)
 
-            assert post_gini <= pre_gini + 1e-9, (
-                f"Redistribution increased Gini from {pre_gini} to {post_gini}"
-            )
+            assert (
+                post_gini <= pre_gini + 1e-9
+            ), f"Redistribution increased Gini from {pre_gini} to {post_gini}"
 
     def test_stats_tracking(self):
         """Test that validation stats are tracked."""
@@ -542,7 +555,9 @@ class TestInvariantProperties:
 
         # Run some validations
         tx1 = Transaction(tx_id="1", sender="a", recipient="b", amount=10.0)
-        tx2 = Transaction(tx_id="2", sender="a", recipient="b", amount=200.0)  # Will fail
+        tx2 = Transaction(
+            tx_id="2", sender="a", recipient="b", amount=200.0
+        )  # Will fail
 
         invariant.validate_transaction(tx1, holdings)
         invariant.validate_transaction(tx2, holdings)
@@ -557,6 +572,7 @@ class TestInvariantProperties:
 # =============================================================================
 # EDGE CASE TESTS
 # =============================================================================
+
 
 class TestEdgeCases:
     """Edge case tests for robustness."""

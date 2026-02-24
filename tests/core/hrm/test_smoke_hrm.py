@@ -17,10 +17,10 @@ Constitutional Alignment:
 Created: 2026-02-15 | BIZRA Node0 Proactive Pilot | Peak Masterpiece Protocol
 """
 
-import pytest
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
+import pytest
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PILLAR A: Package Imports & Exports
@@ -33,15 +33,15 @@ class TestPillarA_PackageImports:
     def test_a1_abstraction_level_imports(self):
         """Import all abstraction level types from core.hrm."""
         from core.hrm import (
+            HRM_SNR_GRADIENT,
+            HRM_TEMPORAL_SCALE,
             AbstractionLevel,
             BridgeNodeType,
             LevelBoundary,
             LevelConfig,
             TemporalScale,
-            HRM_SNR_GRADIENT,
-            HRM_TEMPORAL_SCALE,
-            default_level_configs,
             default_boundaries,
+            default_level_configs,
         )
 
         assert AbstractionLevel is not None
@@ -122,30 +122,32 @@ class TestPillarB_AbstractionLevels:
 
     def test_b2_snr_gradient_constitutional_alignment(self):
         """SNR gradient matches constitutional thresholds from SSOT."""
-        from core.hrm import AbstractionLevel, HRM_SNR_GRADIENT
+        from core.hrm import HRM_SNR_GRADIENT, AbstractionLevel
         from core.integration.constants import (
-            UNIFIED_SNR_THRESHOLD,
             SNR_THRESHOLD_T0_ELITE,
             SNR_THRESHOLD_T1_HIGH,
             SNR_THRESHOLD_T2_STANDARD,
             SNR_THRESHOLD_T3_ACCEPTABLE,
+            UNIFIED_SNR_THRESHOLD,
         )
 
         # Verify gradient is monotonically non-decreasing
         levels = sorted(HRM_SNR_GRADIENT.keys())
         values = [HRM_SNR_GRADIENT[l] for l in levels]
         for i in range(len(values) - 1):
-            assert values[i] <= values[i + 1], (
-                f"SNR gradient violated: L{i}={values[i]} > L{i+1}={values[i+1]}"
-            )
+            assert (
+                values[i] <= values[i + 1]
+            ), f"SNR gradient violated: L{i}={values[i]} > L{i+1}={values[i+1]}"
 
         # Verify constitutional alignment
         assert HRM_SNR_GRADIENT[AbstractionLevel.PERCEPTUAL] == UNIFIED_SNR_THRESHOLD
-        assert HRM_SNR_GRADIENT[AbstractionLevel.META_COGNITIVE] == SNR_THRESHOLD_T0_ELITE
+        assert (
+            HRM_SNR_GRADIENT[AbstractionLevel.META_COGNITIVE] == SNR_THRESHOLD_T0_ELITE
+        )
 
     def test_b3_default_level_configs(self):
         """Default configs cover all 5 levels with decreasing learning rates."""
-        from core.hrm import default_level_configs, AbstractionLevel
+        from core.hrm import AbstractionLevel, default_level_configs
 
         configs = default_level_configs()
         assert len(configs) == 5
@@ -164,7 +166,7 @@ class TestPillarB_AbstractionLevels:
 
     def test_b4_default_boundaries(self):
         """Default boundaries create bidirectional links between adjacent levels."""
-        from core.hrm import default_boundaries, AbstractionLevel
+        from core.hrm import AbstractionLevel, default_boundaries
 
         boundaries = default_boundaries()
         # 4 pairs × 2 directions = 8 boundaries
@@ -176,7 +178,7 @@ class TestPillarB_AbstractionLevels:
 
     def test_b5_boundary_should_pass(self):
         """Boundary permeability correctly gates messages by confidence."""
-        from core.hrm import LevelBoundary, AbstractionLevel
+        from core.hrm import AbstractionLevel, LevelBoundary
 
         boundary = LevelBoundary(
             source_level=AbstractionLevel.PERCEPTUAL,
@@ -206,7 +208,7 @@ class TestPillarC_CrossLevelBridge:
 
     def test_c1_hypothesis_propagation_upward(self):
         """Hypothesis propagates upward to adjacent level."""
-        from core.hrm import CrossLevelBridge, AbstractionLevel, PropagationDirection
+        from core.hrm import AbstractionLevel, CrossLevelBridge, PropagationDirection
 
         bridge = CrossLevelBridge()
         messages = bridge.propagate_hypothesis(
@@ -224,7 +226,7 @@ class TestPillarC_CrossLevelBridge:
 
     def test_c2_hypothesis_propagation_bidirectional(self):
         """Bidirectional propagation reaches both adjacent levels."""
-        from core.hrm import CrossLevelBridge, AbstractionLevel, PropagationDirection
+        from core.hrm import AbstractionLevel, CrossLevelBridge, PropagationDirection
 
         bridge = CrossLevelBridge()
         messages = bridge.propagate_hypothesis(
@@ -236,11 +238,14 @@ class TestPillarC_CrossLevelBridge:
 
         # Should reach both L1 (down) and L3 (up)
         targets = {m.target_level for m in messages}
-        assert AbstractionLevel.OPERATIONAL in targets or AbstractionLevel.STRATEGIC in targets
+        assert (
+            AbstractionLevel.OPERATIONAL in targets
+            or AbstractionLevel.STRATEGIC in targets
+        )
 
     def test_c3_validation_cascade(self):
         """Validation cascade collects responses from multiple levels."""
-        from core.hrm import CrossLevelBridge, AbstractionLevel
+        from core.hrm import AbstractionLevel, CrossLevelBridge
 
         bridge = CrossLevelBridge()
         result = bridge.request_validation(
@@ -254,7 +259,7 @@ class TestPillarC_CrossLevelBridge:
 
     def test_c4_integration_sync(self):
         """Integration sync detects contradictions and transfer opportunities."""
-        from core.hrm import CrossLevelBridge, AbstractionLevel
+        from core.hrm import AbstractionLevel, CrossLevelBridge
 
         bridge = CrossLevelBridge()
 
@@ -291,7 +296,7 @@ class TestPillarC_CrossLevelBridge:
 
     def test_c5_surprise_reporting_and_attention(self):
         """Surprise reports propagate upward; attention allocates downward."""
-        from core.hrm import CrossLevelBridge, AbstractionLevel
+        from core.hrm import AbstractionLevel, CrossLevelBridge
 
         bridge = CrossLevelBridge()
 
@@ -331,7 +336,7 @@ class TestPillarD_MetaLevel:
 
     def test_d1_observe_hierarchy(self):
         """Meta-level observation captures level states and computes fitness."""
-        from core.hrm import MetaAutopoieticLevel, AbstractionLevel
+        from core.hrm import AbstractionLevel, MetaAutopoieticLevel
 
         meta = MetaAutopoieticLevel()
         level_states = {
@@ -367,10 +372,10 @@ class TestPillarD_MetaLevel:
     def test_d2_propose_bottleneck_fix(self):
         """Meta-level proposes boundary tuning for detected bottleneck."""
         from core.hrm import (
+            AbstractionLevel,
             MetaAutopoieticLevel,
             MetaObservation,
             MetaOperation,
-            AbstractionLevel,
         )
 
         meta = MetaAutopoieticLevel()
@@ -390,10 +395,10 @@ class TestPillarD_MetaLevel:
     def test_d3_propose_snr_rebalancing(self):
         """Meta-level proposes SNR rebalancing for underperforming level."""
         from core.hrm import (
+            AbstractionLevel,
             MetaAutopoieticLevel,
             MetaObservation,
             MetaOperation,
-            AbstractionLevel,
         )
 
         meta = MetaAutopoieticLevel()
@@ -410,7 +415,7 @@ class TestPillarD_MetaLevel:
 
     def test_d4_evaluate_modification(self):
         """Evaluation scores proposals based on improvement vs risk."""
-        from core.hrm import MetaAutopoieticLevel, MetaProposal, MetaOperation
+        from core.hrm import MetaAutopoieticLevel, MetaOperation, MetaProposal
 
         meta = MetaAutopoieticLevel(
             min_improvement_threshold=0.02,
@@ -447,12 +452,12 @@ class TestPillarD_MetaLevel:
     def test_d5_apply_boundary_tuning(self):
         """Applying boundary tuning modifies permeability."""
         from core.hrm import (
-            MetaAutopoieticLevel,
-            MetaProposal,
-            MetaOperation,
-            TriggerCondition,
-            LevelBoundary,
             AbstractionLevel,
+            LevelBoundary,
+            MetaAutopoieticLevel,
+            MetaOperation,
+            MetaProposal,
+            TriggerCondition,
             default_level_configs,
         )
 
@@ -479,9 +484,7 @@ class TestPillarD_MetaLevel:
             risk_level=0.1,
         )
 
-        applied = meta.apply_modification(
-            proposal, boundaries, default_level_configs()
-        )
+        applied = meta.apply_modification(proposal, boundaries, default_level_configs())
         assert applied is True
         assert boundary.permeability == pytest.approx(0.6, abs=0.01)
 
@@ -507,10 +510,10 @@ class TestPillarE_HierarchicalEngine:
     def test_e2_single_cycle_produces_results(self):
         """A single cycle runs all 5 levels and produces compound SNR."""
         from core.hrm import (
+            AbstractionLevel,
             HierarchicalReasoningModel,
             HRMConfig,
             HRMStatus,
-            AbstractionLevel,
         )
 
         hrm = HierarchicalReasoningModel()
@@ -524,9 +527,9 @@ class TestPillarE_HierarchicalEngine:
         assert len(result.level_results) == 5
 
         # Compound SNR is reasonable (above floor)
-        assert result.compound_snr > 0.0, (
-            f"Compound SNR should be positive: {result.compound_snr}"
-        )
+        assert (
+            result.compound_snr > 0.0
+        ), f"Compound SNR should be positive: {result.compound_snr}"
 
         # Each level produced hypotheses
         for level, lr in result.level_results.items():
@@ -536,8 +539,8 @@ class TestPillarE_HierarchicalEngine:
     def test_e3_learning_cascade_mechanics(self):
         """Learning cascade correctly propagates positive deltas across levels."""
         from core.hrm import (
-            HierarchicalReasoningModel,
             AbstractionLevel,
+            HierarchicalReasoningModel,
             LevelCycleResult,
         )
 
@@ -568,21 +571,21 @@ class TestPillarE_HierarchicalEngine:
 
         # L0 delta=0.05 cascades upward to L1, L2 (at least 2 events)
         # L1 delta=0.02 cascades upward to L2 and downward to L0
-        assert cascade_count >= 2, (
-            f"Expected at least 2 cascade events, got {cascade_count}"
-        )
+        assert (
+            cascade_count >= 2
+        ), f"Expected at least 2 cascade events, got {cascade_count}"
 
         # Verify cumulative_learning was boosted at receiving levels
         l1_state = hrm.get_level_state(AbstractionLevel.OPERATIONAL)
-        assert l1_state.get("cumulative_learning", 0.0) > 0, (
-            "L1 should receive cascaded learning from L0"
-        )
+        assert (
+            l1_state.get("cumulative_learning", 0.0) > 0
+        ), "L1 should receive cascaded learning from L0"
 
     def test_e4_compound_snr_weighted_correctly(self):
         """Compound SNR uses correct level weights (L0=0.10 ... LN=0.30)."""
         from core.hrm import (
-            HierarchicalReasoningModel,
             AbstractionLevel,
+            HierarchicalReasoningModel,
             LevelCycleResult,
         )
 
@@ -598,13 +601,13 @@ class TestPillarE_HierarchicalEngine:
 
         compound = hrm._compute_compound_snr(level_results)
         # With uniform 0.90 and weights summing to 1.0, result ≈ 0.90
-        assert compound == pytest.approx(0.90, abs=0.01), (
-            f"Uniform 0.90 across all levels should give ~0.90, got {compound}"
-        )
+        assert compound == pytest.approx(
+            0.90, abs=0.01
+        ), f"Uniform 0.90 across all levels should give ~0.90, got {compound}"
 
     def test_e5_level_cycle_success_property(self):
         """LevelCycleResult.success checks against level-specific SNR threshold."""
-        from core.hrm import LevelCycleResult, AbstractionLevel, HRM_SNR_GRADIENT
+        from core.hrm import HRM_SNR_GRADIENT, AbstractionLevel, LevelCycleResult
 
         # L0 threshold = 0.85
         passing = LevelCycleResult(
@@ -660,7 +663,7 @@ class TestPillarF_CampaignAndTelemetry:
 
     def test_f3_hierarchy_status_comprehensive(self):
         """get_hierarchy_status returns all expected fields."""
-        from core.hrm import HierarchicalReasoningModel, AbstractionLevel
+        from core.hrm import AbstractionLevel, HierarchicalReasoningModel
 
         hrm = HierarchicalReasoningModel()
         hrm.run_cycle()

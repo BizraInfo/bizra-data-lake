@@ -20,7 +20,6 @@ from core.sovereign.spearpoint_pipeline import (
     StepResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fake SovereignResult / SovereignQuery for testing
 # ---------------------------------------------------------------------------
@@ -284,7 +283,10 @@ class TestSpearPointResult:
 
     def test_failed_steps_empty_on_all_pass(self):
         r = SpearPointResult(
-            steps=[StepResult(name="a", success=True), StepResult(name="b", success=True)]
+            steps=[
+                StepResult(name="a", success=True),
+                StepResult(name="b", success=True),
+            ]
         )
         assert r.failed_steps == []
         assert r.all_passed is True
@@ -308,16 +310,12 @@ class TestSpearPointResult:
         assert r.step_summary == {"x": True, "y": False}
 
     def test_to_dict_excludes_error_on_success(self):
-        r = SpearPointResult(
-            steps=[StepResult(name="a", success=True, detail="ok")]
-        )
+        r = SpearPointResult(steps=[StepResult(name="a", success=True, detail="ok")])
         d = r.to_dict()
         assert "error" not in d["steps"][0]
 
     def test_to_dict_includes_error_on_failure(self):
-        r = SpearPointResult(
-            steps=[StepResult(name="a", success=False, error="boom")]
-        )
+        r = SpearPointResult(steps=[StepResult(name="a", success=False, error="boom")])
         d = r.to_dict()
         assert d["steps"][0]["error"] == "boom"
 

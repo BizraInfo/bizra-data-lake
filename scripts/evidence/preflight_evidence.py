@@ -8,8 +8,18 @@ import json
 from pathlib import Path
 
 try:
-    from build_evidence_package import evaluate_gates, load_artifact_entries, collect_research
-    from common import DEFAULT_CONFIG_PATH, DEFAULT_GATE_CONFIG_PATH, REPO_ROOT, load_yaml, resolve_path
+    from build_evidence_package import (
+        collect_research,
+        evaluate_gates,
+        load_artifact_entries,
+    )
+    from common import (
+        DEFAULT_CONFIG_PATH,
+        DEFAULT_GATE_CONFIG_PATH,
+        REPO_ROOT,
+        load_yaml,
+        resolve_path,
+    )
 except ModuleNotFoundError:
     from scripts.evidence.build_evidence_package import (
         collect_research,
@@ -81,11 +91,15 @@ def run(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Preflight readiness scanner for evidence package")
+    parser = argparse.ArgumentParser(
+        description="Preflight readiness scanner for evidence package"
+    )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--gate-config", type=Path, default=DEFAULT_GATE_CONFIG_PATH)
     parser.add_argument("--stage", choices=["scaffold", "final"], default="scaffold")
-    parser.add_argument("--tier", choices=["private_full", "public_redacted"], default="private_full")
+    parser.add_argument(
+        "--tier", choices=["private_full", "public_redacted"], default="private_full"
+    )
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()

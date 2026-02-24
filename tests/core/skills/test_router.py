@@ -10,22 +10,22 @@ Standing on the Shoulders of Giants:
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from core.skills.router import (
-    SkillRouter,
-    SkillInvocationResult,
-)
-from core.skills.registry import (
-    SkillRegistry,
-    SkillManifest,
-    SkillContext,
-    SkillStatus,
-    RegisteredSkill,
-)
-from core.skills.mcp_bridge import MCPBridge
+import pytest
 
+from core.skills.mcp_bridge import MCPBridge
+from core.skills.registry import (
+    RegisteredSkill,
+    SkillContext,
+    SkillManifest,
+    SkillRegistry,
+    SkillStatus,
+)
+from core.skills.router import (
+    SkillInvocationResult,
+    SkillRouter,
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES

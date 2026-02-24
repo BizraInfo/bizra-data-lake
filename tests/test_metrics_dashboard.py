@@ -1,10 +1,11 @@
 # BIZRA Metrics Dashboard Tests
 # Unit tests for operational metrics and SNR monitoring
 
-import pytest
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,11 +18,13 @@ class TestMetricsCollector:
     def collector(self, tmp_path):
         """Create metrics collector with temp directory"""
         import metrics_dashboard
+
         original_root = metrics_dashboard.METRICS_ROOT
         metrics_dashboard.METRICS_ROOT = tmp_path / "metrics"
         metrics_dashboard.METRICS_ROOT.mkdir(parents=True, exist_ok=True)
 
         from metrics_dashboard import MetricsCollector
+
         collector = MetricsCollector()
 
         yield collector
@@ -45,7 +48,7 @@ class TestMetricsCollector:
             symbolic_grounding=0.90,
             coverage_balance=0.85,
             ihsan_achieved=False,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
         )
 
         collector.record_snr(metrics)
@@ -81,7 +84,7 @@ class TestMetricsCollector:
                 symbolic_grounding=0.9,
                 coverage_balance=0.9,
                 ihsan_achieved=snr_value >= 0.99,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             collector.record_snr(metrics)
 
@@ -120,7 +123,7 @@ class TestMetricsCollector:
                 symbolic_grounding=0.9,
                 coverage_balance=0.9,
                 ihsan_achieved=False,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             collector.record_snr(metrics)
 
@@ -141,11 +144,13 @@ class TestMetricsDashboard:
     def dashboard(self, tmp_path):
         """Create dashboard with temp directory"""
         import metrics_dashboard
+
         original_root = metrics_dashboard.METRICS_ROOT
         metrics_dashboard.METRICS_ROOT = tmp_path / "metrics"
         metrics_dashboard.METRICS_ROOT.mkdir(parents=True, exist_ok=True)
 
         from metrics_dashboard import MetricsDashboard
+
         dashboard = MetricsDashboard()
 
         yield dashboard
@@ -177,7 +182,7 @@ class TestMetricsDashboard:
                 symbolic_grounding=0.96,
                 coverage_balance=0.95,
                 ihsan_achieved=True,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             dashboard.collector.record_snr(metrics)
 
@@ -199,7 +204,7 @@ class TestMetricsDashboard:
                 symbolic_grounding=0.77,
                 coverage_balance=0.79,
                 ihsan_achieved=False,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             dashboard.collector.record_snr(metrics)
 
@@ -221,7 +226,7 @@ class TestMetricsDashboard:
                 symbolic_grounding=0.9,
                 coverage_balance=0.9,
                 ihsan_achieved=False,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             dashboard.collector.record_snr(metrics)
 
@@ -241,11 +246,13 @@ class TestAlerts:
     def collector(self, tmp_path):
         """Create metrics collector with temp directory"""
         import metrics_dashboard
+
         original_root = metrics_dashboard.METRICS_ROOT
         metrics_dashboard.METRICS_ROOT = tmp_path / "metrics"
         metrics_dashboard.METRICS_ROOT.mkdir(parents=True, exist_ok=True)
 
         from metrics_dashboard import MetricsCollector
+
         collector = MetricsCollector()
 
         yield collector
@@ -263,7 +270,7 @@ class TestAlerts:
             symbolic_grounding=0.81,
             coverage_balance=0.80,
             ihsan_achieved=False,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
         )
 
         collector.record_snr(metrics)
@@ -296,11 +303,13 @@ class TestIhsanCompliance:
     def collector(self, tmp_path):
         """Create metrics collector"""
         import metrics_dashboard
+
         original_root = metrics_dashboard.METRICS_ROOT
         metrics_dashboard.METRICS_ROOT = tmp_path / "metrics"
         metrics_dashboard.METRICS_ROOT.mkdir(parents=True, exist_ok=True)
 
         from metrics_dashboard import MetricsCollector
+
         collector = MetricsCollector()
 
         yield collector
@@ -321,7 +330,7 @@ class TestIhsanCompliance:
                 symbolic_grounding=0.9,
                 coverage_balance=0.9,
                 ihsan_achieved=snr >= 0.99,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
             collector.record_snr(metrics)
 

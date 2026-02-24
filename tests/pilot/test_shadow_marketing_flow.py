@@ -3,8 +3,12 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
-MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "pilot" / "run_user_zero_shadow.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "pilot"
+    / "run_user_zero_shadow.py"
+)
 
 spec = importlib.util.spec_from_file_location("shadow_pilot", MODULE_PATH)
 shadow = importlib.util.module_from_spec(spec)

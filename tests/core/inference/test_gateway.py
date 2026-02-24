@@ -5,28 +5,29 @@ Tests for the tiered inference gateway with fail-closed semantics.
 Target: 70% coverage of core/inference/gateway.py (705 lines)
 """
 
-import pytest
 import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.inference.gateway import (
-    InferenceGateway,
+    TIER_CONFIGS,
+    ComputeTier,
+    InferenceBackend,
     InferenceConfig,
+    InferenceGateway,
     InferenceResult,
     InferenceStatus,
-    InferenceBackend,
-    ComputeTier,
-    TaskComplexity,
     LlamaCppBackend,
     OllamaBackend,
+    TaskComplexity,
     get_inference_gateway,
-    TIER_CONFIGS,
 )
 
 
@@ -256,9 +257,19 @@ class TestRequireLocalBlocking:
         gateway = InferenceGateway(config)
 
         # Mock all backends to fail initialization
-        with patch('core.inference.gateway.LMSTUDIO_AVAILABLE', False):
-            with patch.object(LlamaCppBackend, 'initialize', new_callable=AsyncMock, return_value=False):
-                with patch.object(OllamaBackend, 'initialize', new_callable=AsyncMock, return_value=False):
+        with patch("core.inference.gateway.LMSTUDIO_AVAILABLE", False):
+            with patch.object(
+                LlamaCppBackend,
+                "initialize",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                with patch.object(
+                    OllamaBackend,
+                    "initialize",
+                    new_callable=AsyncMock,
+                    return_value=False,
+                ):
                     success = await gateway.initialize()
 
         assert not success
@@ -271,9 +282,19 @@ class TestRequireLocalBlocking:
         gateway = InferenceGateway(config)
 
         # Mock LM Studio to fail, Ollama to succeed
-        with patch('core.inference.gateway.LMSTUDIO_AVAILABLE', False):
-            with patch.object(LlamaCppBackend, 'initialize', new_callable=AsyncMock, return_value=False):
-                with patch.object(OllamaBackend, 'initialize', new_callable=AsyncMock, return_value=True):
+        with patch("core.inference.gateway.LMSTUDIO_AVAILABLE", False):
+            with patch.object(
+                LlamaCppBackend,
+                "initialize",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                with patch.object(
+                    OllamaBackend,
+                    "initialize",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ):
                     success = await gateway.initialize()
 
         assert success
@@ -355,6 +376,7 @@ class TestSingleton:
         """get_inference_gateway should return same instance."""
         # Reset singleton for test
         import core.inference.gateway as gw_module
+
         gw_module._gateway_instance = None
 
         gw1 = get_inference_gateway()

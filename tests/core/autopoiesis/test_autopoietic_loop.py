@@ -14,65 +14,67 @@ Standing on Giants: Maturana & Varela + Holland + Anthropic
 Genesis Strict Synthesis v2.2.2
 """
 
-import pytest
 import asyncio
 import copy
 import time
-from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    ADL_GINI_THRESHOLD,
+import pytest
+
+from core.autopoiesis import MUTATION_RATE, POPULATION_SIZE
+from core.autopoiesis.emergence import (
+    BehaviorSignature,
+    EmergenceDetector,
+    EmergenceReport,
+    EmergenceType,
+    EmergentProperty,
+    NoveltyLevel,
 )
-from core.autopoiesis import POPULATION_SIZE, MUTATION_RATE
+from core.autopoiesis.evolution import (
+    EvolutionConfig,
+    EvolutionEngine,
+    EvolutionResult,
+    EvolutionStatus,
+)
+from core.autopoiesis.fitness import (
+    EvaluationContext,
+    FitnessComponent,
+    FitnessEvaluator,
+    FitnessResult,
+    SelectionPressure,
+)
 from core.autopoiesis.genome import (
     AgentGenome,
     Gene,
     GeneType,
     GenomeFactory,
 )
-from core.autopoiesis.fitness import (
-    FitnessEvaluator,
-    FitnessResult,
-    EvaluationContext,
-    SelectionPressure,
-    FitnessComponent,
-)
-from core.autopoiesis.evolution import (
-    EvolutionEngine,
-    EvolutionConfig,
-    EvolutionResult,
-    EvolutionStatus,
-)
-from core.autopoiesis.emergence import (
-    EmergenceDetector,
-    EmergenceReport,
-    EmergenceType,
-    NoveltyLevel,
-    BehaviorSignature,
-    EmergentProperty,
-)
 from core.autopoiesis.loop import (
-    AutopoieticLoop,
     AutopoiesisConfig,
     AutopoiesisPhase,
     AutopoiesisState,
+    AutopoieticLoop,
     IntegrationCandidate,
     create_autopoietic_loop,
 )
-
+from core.integration.constants import (
+    ADL_GINI_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 # ===============================================================================
 # MOCK FIXTURES - FATE Gate, Metrics, Hypothesis Outcomes
 # ===============================================================================
 
+
 class FATEDecision(Enum):
     """Mock FATE gate decisions."""
+
     APPROVED = "approved"
     REJECTED = "rejected"
     PENDING_REVIEW = "pending_review"
@@ -81,6 +83,7 @@ class FATEDecision(Enum):
 @dataclass
 class FATEGateResult:
     """Result from FATE gate validation."""
+
     decision: FATEDecision
     ihsan_score: float
     z3_verified: bool
@@ -92,6 +95,7 @@ class FATEGateResult:
 @dataclass
 class MockMetrics:
     """Simulated system metrics for testing."""
+
     ihsan_score: float = 0.97
     snr_score: float = 0.92
     latency_p99_ms: float = 150.0
@@ -116,6 +120,7 @@ class MockMetrics:
 @dataclass
 class HypothesisOutcome:
     """Simulated outcome of a hypothesis test."""
+
     hypothesis_id: str
     success: bool
     improvement_delta: float
@@ -136,7 +141,9 @@ class MockFATEGate:
         """Add a custom rejection rule."""
         self._rejection_rules.append(rule)
 
-    def validate(self, genome: AgentGenome, change_type: str = "evolution") -> FATEGateResult:
+    def validate(
+        self, genome: AgentGenome, change_type: str = "evolution"
+    ) -> FATEGateResult:
         """Validate a genome change through the FATE gate."""
         # Check Ihsan compliance
         ihsan_gene = genome.get_gene("ihsan_threshold")
@@ -170,14 +177,23 @@ class MockFATEGate:
                 return result
 
         # Final decision
-        if ihsan_score >= UNIFIED_IHSAN_THRESHOLD and snr_compliant and fate_compliant and z3_verified:
+        if (
+            ihsan_score >= UNIFIED_IHSAN_THRESHOLD
+            and snr_compliant
+            and fate_compliant
+            and z3_verified
+        ):
             decision = FATEDecision.APPROVED
             reason = "All constraints satisfied"
         elif ihsan_score < UNIFIED_IHSAN_THRESHOLD:
             decision = FATEDecision.REJECTED
             reason = f"Ihsan score {ihsan_score:.3f} below threshold {UNIFIED_IHSAN_THRESHOLD}"
         else:
-            decision = FATEDecision.PENDING_REVIEW if self.default_approve else FATEDecision.REJECTED
+            decision = (
+                FATEDecision.PENDING_REVIEW
+                if self.default_approve
+                else FATEDecision.REJECTED
+            )
             reason = "Requires manual review"
 
         result = FATEGateResult(
@@ -185,22 +201,30 @@ class MockFATEGate:
             ihsan_score=ihsan_score,
             z3_verified=z3_verified,
             adl_preserved=adl_preserved,
-            audit_trail=[{
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "change_type": change_type,
-                "genome_id": genome.id,
-                "decision": decision.value,
-            }],
+            audit_trail=[
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "change_type": change_type,
+                    "genome_id": genome.id,
+                    "decision": decision.value,
+                }
+            ],
             reason=reason,
         )
         self.validation_history.append(result)
         return result
 
-    def require_human_approval(self, genome: AgentGenome, reason: str) -> FATEGateResult:
+    def require_human_approval(
+        self, genome: AgentGenome, reason: str
+    ) -> FATEGateResult:
         """Require human approval for structural changes."""
         result = FATEGateResult(
             decision=FATEDecision.PENDING_REVIEW,
-            ihsan_score=genome.get_gene("ihsan_threshold").value if genome.get_gene("ihsan_threshold") else 0.0,
+            ihsan_score=(
+                genome.get_gene("ihsan_threshold").value
+                if genome.get_gene("ihsan_threshold")
+                else 0.0
+            ),
             z3_verified=False,
             adl_preserved=True,
             reason=f"Human approval required: {reason}",
@@ -223,10 +247,16 @@ class MockMetricsCollector:
 
     def simulate_improvement(self, factor: float = 1.0):
         """Simulate metric improvement."""
-        self.metrics.ihsan_score = min(1.0, self.metrics.ihsan_score + self._improvement_rate * factor)
-        self.metrics.snr_score = min(1.0, self.metrics.snr_score + self._improvement_rate * factor * 0.8)
-        self.metrics.latency_p99_ms = max(10, self.metrics.latency_p99_ms * (1 - 0.05 * factor))
-        self.metrics.throughput_rps *= (1 + 0.02 * factor)
+        self.metrics.ihsan_score = min(
+            1.0, self.metrics.ihsan_score + self._improvement_rate * factor
+        )
+        self.metrics.snr_score = min(
+            1.0, self.metrics.snr_score + self._improvement_rate * factor * 0.8
+        )
+        self.metrics.latency_p99_ms = max(
+            10, self.metrics.latency_p99_ms * (1 - 0.05 * factor)
+        )
+        self.metrics.throughput_rps *= 1 + 0.02 * factor
         self.metrics.error_rate = max(0, self.metrics.error_rate * (1 - 0.1 * factor))
         self.history.append(copy.deepcopy(self.metrics))
 
@@ -234,8 +264,8 @@ class MockMetricsCollector:
         """Simulate metric regression."""
         self.metrics.ihsan_score = max(0.5, self.metrics.ihsan_score - 0.05 * factor)
         self.metrics.snr_score = max(0.5, self.metrics.snr_score - 0.05 * factor)
-        self.metrics.latency_p99_ms *= (1 + 0.2 * factor)
-        self.metrics.throughput_rps *= (1 - 0.1 * factor)
+        self.metrics.latency_p99_ms *= 1 + 0.2 * factor
+        self.metrics.throughput_rps *= 1 - 0.1 * factor
         self.metrics.error_rate = min(1.0, self.metrics.error_rate * (1 + 0.5 * factor))
         self.history.append(copy.deepcopy(self.metrics))
 
@@ -284,9 +314,13 @@ class MockHypothesisGenerator:
         self.hypotheses_generated.append(hypothesis)
         return hypothesis
 
-    def rank_by_expected_value(self, hypotheses: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def rank_by_expected_value(
+        self, hypotheses: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Rank hypotheses by expected value."""
-        return sorted(hypotheses, key=lambda h: h.get("expected_value", 0), reverse=True)
+        return sorted(
+            hypotheses, key=lambda h: h.get("expected_value", 0), reverse=True
+        )
 
     def record_success(self, hypothesis_id: str):
         """Record a successful hypothesis."""
@@ -323,6 +357,7 @@ class ControlledTimeProgression:
 # ===============================================================================
 # FIXTURES
 # ===============================================================================
+
 
 @pytest.fixture
 def mock_fate_gate():
@@ -379,6 +414,7 @@ def initialized_loop(loop_with_config):
 # 1. STATE MACHINE TESTS
 # ===============================================================================
 
+
 class TestStateMachine:
     """Test state machine behavior of the autopoietic loop."""
 
@@ -409,7 +445,9 @@ class TestStateMachine:
 
         # Verify valid transitions occurred
         # Expected: OBSERVING -> EVOLVING -> DETECTING -> INTEGRATING -> REFLECTING -> IDLE
-        assert AutopoiesisPhase.OBSERVING in [loop.state.phase] or len(phase_history) > 0
+        assert (
+            AutopoiesisPhase.OBSERVING in [loop.state.phase] or len(phase_history) > 0
+        )
 
     @pytest.mark.asyncio
     async def test_cannot_skip_validation_phase(self, initialized_loop):
@@ -438,7 +476,9 @@ class TestStateMachine:
         loop = initialized_loop
 
         # Simulate stall by making fitness stagnant
-        loop.evolution_engine._stall_counter = loop.evolution_engine.config.stall_generations - 1
+        loop.evolution_engine._stall_counter = (
+            loop.evolution_engine.config.stall_generations - 1
+        )
 
         # Run cycle - should detect potential stall
         await loop._run_cycle()
@@ -480,6 +520,7 @@ class TestStateMachine:
 # 2. SAFETY INVARIANT TESTS
 # ===============================================================================
 
+
 class TestSafetyInvariants:
     """Test safety invariants that must never be violated."""
 
@@ -511,7 +552,10 @@ class TestSafetyInvariants:
         assert result.decision == FATEDecision.APPROVED
         assert result.z3_verified
         assert len(mock_fate_gate.validation_history) == 1
-        assert mock_fate_gate.validation_history[0].audit_trail[0]["change_type"] == "implementation"
+        assert (
+            mock_fate_gate.validation_history[0].audit_trail[0]["change_type"]
+            == "implementation"
+        )
 
     def test_fate_rejects_non_compliant_genome(self, mock_fate_gate):
         """Test that FATE gate rejects non-compliant genomes."""
@@ -571,6 +615,7 @@ class TestSafetyInvariants:
 # ===============================================================================
 # 3. HYPOTHESIS GENERATION TESTS
 # ===============================================================================
+
 
 class TestHypothesisGeneration:
     """Test hypothesis generation and learning behavior."""
@@ -650,6 +695,7 @@ class TestHypothesisGeneration:
 # 4. SHADOW DEPLOYMENT TESTS
 # ===============================================================================
 
+
 class TestShadowDeployment:
     """Test shadow deployment functionality for safe evolution."""
 
@@ -676,7 +722,9 @@ class TestShadowDeployment:
         shadow_ids = {g.id for g in shadow.evolution_engine.population}
 
         # IDs should be different (independent populations)
-        assert len(prod_ids & shadow_ids) == 0, "Shadow should have independent population"
+        assert (
+            len(prod_ids & shadow_ids) == 0
+        ), "Shadow should have independent population"
 
     @pytest.mark.asyncio
     async def test_traffic_mirroring_works(self, shadow_environment):
@@ -699,7 +747,9 @@ class TestShadowDeployment:
         assert shadow.state.evolution_cycle > 0
 
     @pytest.mark.asyncio
-    async def test_comparison_detects_improvement(self, shadow_environment, mock_metrics):
+    async def test_comparison_detects_improvement(
+        self, shadow_environment, mock_metrics
+    ):
         """Test that comparison between shadow and production detects improvement."""
         prod = shadow_environment["production"]
         shadow = shadow_environment["shadow"]
@@ -804,6 +854,7 @@ class TestShadowDeployment:
 # 5. INTEGRATION TESTS
 # ===============================================================================
 
+
 class TestIntegration:
     """Integration tests for the complete autopoietic loop."""
 
@@ -883,14 +934,15 @@ class TestIntegration:
             ihsan_rates.append(loop.state.ihsan_compliance_rate)
 
         # All rates should be high (compliant population)
-        assert all(rate >= 0.9 for rate in ihsan_rates), (
-            f"Ihsan compliance rates dropped below 90%: {ihsan_rates}"
-        )
+        assert all(
+            rate >= 0.9 for rate in ihsan_rates
+        ), f"Ihsan compliance rates dropped below 90%: {ihsan_rates}"
 
 
 # ===============================================================================
 # 6. CONSTITUTIONAL TESTS
 # ===============================================================================
+
 
 class TestConstitutional:
     """Test constitutional constraints and formal verification."""
@@ -902,12 +954,14 @@ class TestConstitutional:
         # Validate all genomes through FATE
         for genome in loop.evolution_engine.population:
             result = mock_fate_gate.validate(genome, "initialization")
-            assert result.decision == FATEDecision.APPROVED, (
-                f"Genome {genome.id} failed FATE validation: {result.reason}"
-            )
+            assert (
+                result.decision == FATEDecision.APPROVED
+            ), f"Genome {genome.id} failed FATE validation: {result.reason}"
 
         # Verify all validations were recorded
-        assert len(mock_fate_gate.validation_history) == len(loop.evolution_engine.population)
+        assert len(mock_fate_gate.validation_history) == len(
+            loop.evolution_engine.population
+        )
 
     def test_z3_proof_required(self, mock_fate_gate):
         """Test that Z3 verification is required for approval."""
@@ -954,6 +1008,7 @@ class TestConstitutional:
 # ===============================================================================
 # ADDITIONAL EDGE CASE TESTS
 # ===============================================================================
+
 
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
@@ -1054,9 +1109,9 @@ class TestPerformance:
         await loop._run_cycle()
         elapsed = time.time() - start
 
-        assert elapsed < max_time_seconds, (
-            f"Cycle took {elapsed:.2f}s, exceeding {max_time_seconds}s limit"
-        )
+        assert (
+            elapsed < max_time_seconds
+        ), f"Cycle took {elapsed:.2f}s, exceeding {max_time_seconds}s limit"
 
     def test_population_scaling(self):
         """Test that larger populations are handled correctly."""
@@ -1110,11 +1165,15 @@ if __name__ == "__main__":
         # Run cycles
         for i in range(3):
             await loop._run_cycle()
-            print(f"Cycle {i+1}: fitness={loop.state.best_fitness:.3f}, "
-                  f"ihsan_rate={loop.state.ihsan_compliance_rate:.2%}")
+            print(
+                f"Cycle {i+1}: fitness={loop.state.best_fitness:.3f}, "
+                f"ihsan_rate={loop.state.ihsan_compliance_rate:.2%}"
+            )
 
         # Verify all genomes are compliant
-        compliant = all(g.is_ihsan_compliant() for g in loop.evolution_engine.population)
+        compliant = all(
+            g.is_ihsan_compliant() for g in loop.evolution_engine.population
+        )
         print(f"All genomes Ihsan compliant: {compliant}")
 
         # Test FATE gate

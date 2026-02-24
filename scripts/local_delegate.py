@@ -13,8 +13,8 @@ Usage:
 
 import asyncio
 import sys
+
 import httpx
-from typing import Optional
 
 LM_STUDIO_URL = "http://192.168.56.1:1234/v1"
 
@@ -25,7 +25,10 @@ MODELS = {
     "fast": "chuanli11_-_llama-3.2-3b-instruct-uncensored",
 }
 
-async def delegate(prompt: str, task_type: str = "general", max_tokens: int = 4096) -> str:
+
+async def delegate(
+    prompt: str, task_type: str = "general", max_tokens: int = 4096
+) -> str:
     """Delegate task to local model."""
     model = MODELS.get(task_type, MODELS["general"])
 
@@ -37,10 +40,11 @@ async def delegate(prompt: str, task_type: str = "general", max_tokens: int = 40
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": max_tokens,
                 "temperature": 0.1 if task_type == "reasoning" else 0.7,
-            }
+            },
         )
         data = response.json()
         return data["choices"][0]["message"]["content"]
+
 
 async def main():
     if len(sys.argv) < 2:
@@ -61,6 +65,7 @@ async def main():
     print(f"Delegating to local {task_type} model...")
     result = await delegate(prompt, task_type)
     print(result)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

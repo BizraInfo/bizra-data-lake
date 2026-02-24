@@ -171,9 +171,9 @@ def test_missing_audit_trail_triggers_warn(crown: CROWNLayer) -> None:
 def test_worst_status_propagates(crown: CROWNLayer) -> None:
     """Overall status is the worst across all horizons (H0=PASS, H1=WARN, H2=HALT)."""
     state = SystemState(
-        ihsan_score=0.97,       # H0 PASS
-        latency_ms=50000.0,     # H1 WARN
-        is_reversible=False,    # H2 HALT
+        ihsan_score=0.97,  # H0 PASS
+        latency_ms=50000.0,  # H1 WARN
+        is_reversible=False,  # H2 HALT
     )
     verdict = crown.render_verdict(state)
 
@@ -223,7 +223,7 @@ def test_halted_property(crown: CROWNLayer) -> None:
 def test_warnings_property(crown: CROWNLayer) -> None:
     """verdict.warnings returns only the WARN horizon verdicts."""
     state = SystemState(
-        latency_ms=50000.0,           # H1 WARN
+        latency_ms=50000.0,  # H1 WARN
         human_override_available=False,  # H2 WARN
     )
     verdict = crown.render_verdict(state)

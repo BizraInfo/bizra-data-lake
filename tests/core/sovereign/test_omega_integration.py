@@ -14,18 +14,20 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from dataclasses import dataclass
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # =============================================================================
 # MOCK CLASSES (for isolated testing without external dependencies)
 # =============================================================================
 
+
 @dataclass
 class MockInferenceResult:
     """Mock result from InferenceGateway."""
+
     content: str = "This is a mock LLM response."
     model: str = "mock-model"
     tier: str = "local"
@@ -34,6 +36,7 @@ class MockInferenceResult:
 @dataclass
 class MockNTUState:
     """Mock NTU state from OmegaEngine."""
+
     belief: float = 0.95
     doubt: float = 0.05
     potential: float = 0.90
@@ -68,6 +71,7 @@ class MockOmegaEngine:
         # Import the real TreasuryMode enum for compatibility
         try:
             from core.sovereign.omega_engine import TreasuryMode
+
             self._treasury_mode = TreasuryMode.ETHICAL
         except ImportError:
             self._treasury_mode = None
@@ -88,6 +92,7 @@ class MockOmegaEngine:
 # =============================================================================
 # UNIT TESTS
 # =============================================================================
+
 
 class TestTreasuryModeToTier:
     """Test the Treasury Mode → Compute Tier mapping."""
@@ -153,7 +158,7 @@ class TestRuntimeComponentInit:
 
     def test_runtime_creates_with_defaults(self):
         """Runtime should create with default config."""
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
 
         runtime = SovereignRuntime()
         assert runtime.config is not None
@@ -161,7 +166,7 @@ class TestRuntimeComponentInit:
 
     def test_runtime_config_custom_thresholds(self):
         """Runtime should respect custom thresholds."""
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig
+        from core.sovereign.runtime import RuntimeConfig, SovereignRuntime
 
         config = RuntimeConfig(
             snr_threshold=0.90,
@@ -208,13 +213,14 @@ class TestOmegaPointStatus:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestFullPipeline:
     """Test the complete inference pipeline with mocks."""
 
     @pytest.mark.asyncio
     async def test_query_uses_gateway_when_available(self):
         """Query should route through InferenceGateway when available."""
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig, RuntimeMode
+        from core.sovereign.runtime import RuntimeConfig, RuntimeMode, SovereignRuntime
 
         config = RuntimeConfig(
             mode=RuntimeMode.DEBUG,
@@ -241,7 +247,7 @@ class TestFullPipeline:
     @pytest.mark.asyncio
     async def test_query_validates_ihsan_via_omega(self):
         """Query should validate Ihsan score via OmegaEngine."""
-        from core.sovereign.runtime import SovereignRuntime, RuntimeConfig, RuntimeMode
+        from core.sovereign.runtime import RuntimeConfig, RuntimeMode, SovereignRuntime
 
         config = RuntimeConfig(
             mode=RuntimeMode.DEBUG,
@@ -270,6 +276,7 @@ class TestFullPipeline:
 # STANDING ON GIANTS VERIFICATION
 # =============================================================================
 
+
 class TestStandingOnGiants:
     """Verify the theoretical foundations are properly applied."""
 
@@ -286,7 +293,7 @@ class TestStandingOnGiants:
 
         runtime = SovereignRuntime()
         # The mapping exists
-        assert hasattr(runtime, '_mode_to_tier')
+        assert hasattr(runtime, "_mode_to_tier")
 
     def test_anthropic_ihsan_enforcement(self):
         """Anthropic's Constitutional AI: Ihsan threshold enforcement."""

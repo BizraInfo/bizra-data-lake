@@ -85,7 +85,9 @@ def load_artifact_entries(cfg: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def collect_research(policy: dict[str, Any], repo_root: Path) -> dict[str, Any]:
-    approved_roots = [resolve_path(repo_root, str(p)) for p in policy.get("approved_roots", [])]
+    approved_roots = [
+        resolve_path(repo_root, str(p)) for p in policy.get("approved_roots", [])
+    ]
     exclude_patterns = [str(p) for p in policy.get("exclude_patterns", [])]
 
     discovered = 0
@@ -106,9 +108,9 @@ def collect_research(policy: dict[str, Any], repo_root: Path) -> dict[str, Any]:
 
             rel_repo = rel_posix(fp, repo_root)
             rel_root = rel_posix(fp, root)
-            if path_matches_patterns(rel_repo, exclude_patterns) or path_matches_patterns(
-                rel_root, exclude_patterns
-            ):
+            if path_matches_patterns(
+                rel_repo, exclude_patterns
+            ) or path_matches_patterns(rel_root, exclude_patterns):
                 continue
 
             discovered += 1
@@ -175,7 +177,15 @@ def write_research_outputs(package_tier_root: Path, research: dict[str, Any]) ->
     for root in research.get("approved_roots", []):
         lines.append(f"- `{root}`")
 
-    lines.extend(["", "## Records (first 200)", "", "| Path | SHA256 | BLAKE3 | Duplicate Of |", "|---|---|---|---|"])
+    lines.extend(
+        [
+            "",
+            "## Records (first 200)",
+            "",
+            "| Path | SHA256 | BLAKE3 | Duplicate Of |",
+            "|---|---|---|---|",
+        ]
+    )
 
     for rec in research.get("records", [])[:200]:
         dup = rec.get("duplicate_of") or "-"
@@ -203,7 +213,8 @@ def evaluate_gates(
     ]
 
     founding_docs_present = all(
-        bool(by_path.get(path, {}).get("source_exists", False)) for path in FOUNDING_LOGICAL_PATHS
+        bool(by_path.get(path, {}).get("source_exists", False))
+        for path in FOUNDING_LOGICAL_PATHS
     )
     theological_bridge_present = bool(
         by_path.get(THEOLOGICAL_LOGICAL_PATH, {}).get("source_exists", False)
@@ -269,7 +280,9 @@ def run(
 ) -> int:
     cfg = load_yaml(config_path)
     gate_cfg = load_yaml(gate_config_path)
-    policy_version = str(cfg.get("policy_version", gate_cfg.get("policy_version", "evidence-v1.0")))
+    policy_version = str(
+        cfg.get("policy_version", gate_cfg.get("policy_version", "evidence-v1.0"))
+    )
 
     ensure_package_layout(package_root)
     tier_root = package_root / tier
@@ -283,15 +296,21 @@ def run(
         origin_source_path = resolve_path(repo_root, str(raw["source"]))
         discovery_rule = str(raw.get("discovery_rule", "canonical_repo_path"))
         canonical_source_path = (
-            repo_root / logical_path if discovery_rule == "source_lock" else origin_source_path
+            repo_root / logical_path
+            if discovery_rule == "source_lock"
+            else origin_source_path
         )
-        source_exists = canonical_source_path.exists() and canonical_source_path.is_file()
+        source_exists = (
+            canonical_source_path.exists() and canonical_source_path.is_file()
+        )
 
         entry: dict[str, Any] = {
             "logical_path": logical_path,
             "source_path": canonical_source_path.as_posix(),
             "origin_source_path": origin_source_path.as_posix(),
-            "source_root": str(raw.get("source_root", canonical_source_path.parent.as_posix())),
+            "source_root": str(
+                raw.get("source_root", canonical_source_path.parent.as_posix())
+            ),
             "discovery_rule": discovery_rule,
             "visibility": str(raw.get("visibility", "both")),
             "public_mode": str(raw.get("public_mode", "full")),
@@ -315,10 +334,9 @@ def run(
             if tier == "private_full":
                 should_copy = True
             elif tier == "public_redacted":
-                should_copy = (
-                    entry["public_mode"] == "full"
-                    and entry["visibility"] in {"both", "public_only"}
-                )
+                should_copy = entry["public_mode"] == "full" and entry[
+                    "visibility"
+                ] in {"both", "public_only"}
 
             if should_copy:
                 dest = tier_root / logical_path
@@ -348,7 +366,9 @@ def run(
         "stage": stage,
         "tier": tier,
         "policy_version": policy_version,
-        "manifest_content_hash": manifest_content_hash(stage, tier, policy_version, manifest_entries),
+        "manifest_content_hash": manifest_content_hash(
+            stage, tier, policy_version, manifest_entries
+        ),
         "entries": manifest_entries,
     }
 
@@ -391,7 +411,9 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--gate-config", type=Path, default=DEFAULT_GATE_CONFIG_PATH)
     parser.add_argument("--stage", choices=["scaffold", "final"], default="scaffold")
-    parser.add_argument("--tier", choices=["private_full", "public_redacted"], default="private_full")
+    parser.add_argument(
+        "--tier", choices=["private_full", "public_redacted"], default="private_full"
+    )
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--package-root", type=Path, default=DEFAULT_PACKAGE_ROOT)
     parser.add_argument("--allow-fail", action="store_true")

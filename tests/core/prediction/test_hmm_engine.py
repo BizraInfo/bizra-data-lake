@@ -21,7 +21,6 @@ from core.prediction.hmm_engine import (
     PredictionResult,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -192,7 +191,9 @@ class TestObserve:
 
         # After observing search, EXPLORING should dominate
         result = engine.observe("search")
-        assert result.state_probabilities["exploring"] > result.state_probabilities["idle"]
+        assert (
+            result.state_probabilities["exploring"] > result.state_probabilities["idle"]
+        )
 
     def test_observe_search_favors_exploring(self, engine: HMMEngine):
         """Repeated 'search' observations should push belief toward EXPLORING."""
@@ -311,7 +312,17 @@ class TestDecode:
 
     def test_decode_mixed_sequence(self, engine: HMMEngine):
         """A realistic sequence should produce a sensible state path."""
-        obs = ["idle", "search", "search", "navigate", "edit", "edit", "compile", "test", "review"]
+        obs = [
+            "idle",
+            "search",
+            "search",
+            "navigate",
+            "edit",
+            "edit",
+            "compile",
+            "test",
+            "review",
+        ]
         states = engine.decode(obs)
         # First state should lean IDLE, middle should lean EXPLORING/CREATING
         assert states[0] == HMMState.IDLE
@@ -417,14 +428,25 @@ class TestSerialization:
 
         assert r1.most_likely_state == r2.most_likely_state
         for key in r1.state_probabilities:
-            assert abs(r1.state_probabilities[key] - r2.state_probabilities[key]) < 1e-10
+            assert (
+                abs(r1.state_probabilities[key] - r2.state_probabilities[key]) < 1e-10
+            )
 
     def test_dict_has_required_keys(self, engine: HMMEngine):
         data = engine.to_dict()
         required_keys = {
-            "n_hidden", "n_obs", "observation_symbols", "pi", "A", "B",
-            "current_state_dist", "observation_history", "log_likelihood_accum",
-            "convergence_threshold", "max_iterations", "observation_window",
+            "n_hidden",
+            "n_obs",
+            "observation_symbols",
+            "pi",
+            "A",
+            "B",
+            "current_state_dist",
+            "observation_history",
+            "log_likelihood_accum",
+            "convergence_threshold",
+            "max_iterations",
+            "observation_window",
         }
         assert required_keys.issubset(set(data.keys()))
 

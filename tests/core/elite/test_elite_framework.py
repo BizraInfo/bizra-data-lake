@@ -8,55 +8,55 @@ Tests:
 - SAPE optimizer with Graph-of-Thoughts
 """
 
-import pytest
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
+
+import pytest
 
 from core.elite import (
     ELITE_VERSION,
-    PMBOK_KNOWLEDGE_AREAS,
     IHSAN_DIMENSIONS,
+    PMBOK_KNOWLEDGE_AREAS,
     SAPE_LAYERS,
     SNR_TARGETS,
 )
-from core.elite.quality_gates import (
-    QualityGate,
-    QualityGateChain,
-    GateCriterion,
-    GateResult,
-    GateStatus,
-    GateLevel,
-)
 from core.elite.pipeline import (
+    BuildStageHandler,
     ElitePipeline,
+    PipelineRun,
     PipelineStage,
     PipelineStatus,
-    PipelineRun,
-    StageResult,
-    SourceStageHandler,
-    BuildStageHandler,
-    TestStageHandler,
-    SecurityStageHandler,
     QualityStageHandler,
+    SecurityStageHandler,
+    SourceStageHandler,
+    StageResult,
+    TestStageHandler,
+)
+from core.elite.quality_gates import (
+    GateCriterion,
+    GateLevel,
+    GateResult,
+    GateStatus,
+    QualityGate,
+    QualityGateChain,
 )
 from core.elite.risk import (
-    RiskManager,
+    CascadeAnalysis,
+    MitigationStrategy,
     Risk,
     RiskCategory,
+    RiskManager,
     RiskSeverity,
     RiskStatus,
-    MitigationStrategy,
-    CascadeAnalysis,
 )
 from core.elite.sape import (
-    SAPEOptimizer,
     GraphOfThoughts,
+    SAPELayer,
+    SAPEOptimizer,
+    SAPEResult,
     ThoughtNode,
     ThoughtNodeType,
-    SAPELayer,
-    SAPEResult,
 )
-
 
 # =============================================================================
 # MODULE CONSTANTS TESTS
@@ -75,8 +75,16 @@ class TestEliteConstants:
     def test_pmbok_knowledge_areas_complete(self):
         """All 10 PMBOK knowledge areas mapped."""
         expected_areas = [
-            "integration", "scope", "schedule", "cost", "quality",
-            "resource", "communications", "risk", "procurement", "stakeholder"
+            "integration",
+            "scope",
+            "schedule",
+            "cost",
+            "quality",
+            "resource",
+            "communications",
+            "risk",
+            "procurement",
+            "stakeholder",
         ]
         for area in expected_areas:
             assert area in PMBOK_KNOWLEDGE_AREAS

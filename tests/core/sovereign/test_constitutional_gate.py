@@ -42,7 +42,6 @@ from core.sovereign.integration_types import (
     Z3Certificate,
 )
 
-
 # =============================================================================
 # HELPERS
 # =============================================================================
@@ -115,7 +114,9 @@ def _write_cert_file(
     return path
 
 
-def _make_gate(tmp_path: Path, env_overrides: Dict[str, str] | None = None) -> ConstitutionalGate:
+def _make_gate(
+    tmp_path: Path, env_overrides: Dict[str, str] | None = None
+) -> ConstitutionalGate:
     """Create a ConstitutionalGate with clean env and tmp paths."""
     env = _clean_env()
     if env_overrides:
@@ -185,43 +186,58 @@ class TestConstitutionalGateInit:
     def test_production_rejects_unsigned(self, tmp_path: Path) -> None:
         """Production env must raise RuntimeError if unsigned certs allowed."""
         with pytest.raises(RuntimeError, match="SECURITY HALT"):
-            _make_gate(tmp_path, {
-                "BIZRA_ENV": "production",
-                "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
-            })
+            _make_gate(
+                tmp_path,
+                {
+                    "BIZRA_ENV": "production",
+                    "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
+                },
+            )
 
     def test_production_rejects_self_signed(self, tmp_path: Path) -> None:
         """Production env must raise RuntimeError if self-signed certs allowed."""
         with pytest.raises(RuntimeError, match="SECURITY HALT"):
-            _make_gate(tmp_path, {
-                "BIZRA_ENV": "production",
-                "BIZRA_Z3_CERT_ALLOW_SELF_SIGNED": "1",
-            })
+            _make_gate(
+                tmp_path,
+                {
+                    "BIZRA_ENV": "production",
+                    "BIZRA_Z3_CERT_ALLOW_SELF_SIGNED": "1",
+                },
+            )
 
     def test_production_override_allows_unsigned(self, tmp_path: Path) -> None:
         """Production with explicit override should not raise."""
-        gate = _make_gate(tmp_path, {
-            "BIZRA_ENV": "production",
-            "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
-            "BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE": "1",
-        })
+        gate = _make_gate(
+            tmp_path,
+            {
+                "BIZRA_ENV": "production",
+                "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
+                "BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE": "1",
+            },
+        )
         assert gate._allow_unsigned_z3 is True
 
     def test_production_override_allows_self_signed(self, tmp_path: Path) -> None:
         """Production with explicit override should not raise for self-signed."""
-        gate = _make_gate(tmp_path, {
-            "BIZRA_ENV": "production",
-            "BIZRA_Z3_CERT_ALLOW_SELF_SIGNED": "1",
-            "BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE": "1",
-        })
+        gate = _make_gate(
+            tmp_path,
+            {
+                "BIZRA_ENV": "production",
+                "BIZRA_Z3_CERT_ALLOW_SELF_SIGNED": "1",
+                "BIZRA_PRODUCTION_ALLOW_UNSIGNED_OVERRIDE": "1",
+            },
+        )
         assert gate._allow_self_signed_z3 is True
 
     def test_non_production_allows_unsigned(self, tmp_path: Path) -> None:
         """Non-production env should not raise even if unsigned allowed."""
-        gate = _make_gate(tmp_path, {
-            "BIZRA_ENV": "development",
-            "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
-        })
+        gate = _make_gate(
+            tmp_path,
+            {
+                "BIZRA_ENV": "development",
+                "BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1",
+            },
+        )
         assert gate._allow_unsigned_z3 is True
 
     def test_loads_trusted_pubkey_from_env(self, tmp_path: Path) -> None:
@@ -265,6 +281,7 @@ class TestComputeHash:
         gate = _make_gate(tmp_path)
         content = "test content"
         from core.proof_engine.canonical import hex_digest
+
         expected = hex_digest(content.encode())[:16]
         assert gate._compute_hash(content) == expected
 
@@ -362,7 +379,9 @@ class TestAdmission:
         cert_dir = tmp_path / "proofs"
         _write_cert_file(cert_dir, candidate_id, cert_data)
 
-        result = await gate.admit("some candidate", "some query", candidate_id=candidate_id)
+        result = await gate.admit(
+            "some candidate", "some query", candidate_id=candidate_id
+        )
 
         assert result.status == AdmissionStatus.RUNTIME
         assert result.score == 1.0
@@ -422,7 +441,9 @@ class TestAdmission:
         assert "0.70" in result.evidence["reason"]
 
     @pytest.mark.asyncio
-    async def test_admit_uses_compute_hash_when_no_candidate_id(self, tmp_path: Path) -> None:
+    async def test_admit_uses_compute_hash_when_no_candidate_id(
+        self, tmp_path: Path
+    ) -> None:
         """When candidate_id is None, admit should compute hash from content."""
         gate = _make_gate(tmp_path)
         gate.calculator = None
@@ -445,7 +466,9 @@ class TestAdmission:
         assert result.status == AdmissionStatus.RUNTIME
 
     @pytest.mark.asyncio
-    async def test_admit_with_invalid_z3_cert_falls_through(self, tmp_path: Path) -> None:
+    async def test_admit_with_invalid_z3_cert_falls_through(
+        self, tmp_path: Path
+    ) -> None:
         """Invalid Z3 cert (valid=False) should fall through to SNR check."""
         gate = _make_gate(tmp_path, {"BIZRA_Z3_CERT_ALLOW_UNSIGNED": "1"})
         gate.calculator = None
@@ -504,7 +527,9 @@ class TestZ3CertificateVerification:
         """Self-signed cert should be rejected when no trusted pubkey and self-sign not allowed."""
         gate = _make_gate(tmp_path)
         # Has a signature and pubkey, but no trusted key and self-signed not allowed
-        data = _make_z3_cert_data(signature="aabbccdd" * 16, public_key="1122334455" * 6)
+        data = _make_z3_cert_data(
+            signature="aabbccdd" * 16, public_key="1122334455" * 6
+        )
         result = gate._verify_z3_certificate_signature(data, "cid")
         assert result is False
 
@@ -557,7 +582,9 @@ class TestZ3CertificateVerification:
         trusted_key = PrivateKeyWrapper.generate()
         other_key = PrivateKeyWrapper.generate()
 
-        gate = _make_gate(tmp_path, {"BIZRA_Z3_CERT_PUBKEY": trusted_key.public_key_hex})
+        gate = _make_gate(
+            tmp_path, {"BIZRA_Z3_CERT_PUBKEY": trusted_key.public_key_hex}
+        )
 
         cid = "mismatch_cert_id"
         data = _make_z3_cert_data(
@@ -577,7 +604,9 @@ class TestZ3CertificateVerification:
         gate = _make_gate(tmp_path, {"BIZRA_Z3_CERT_PUBKEY": key.public_key_hex})
 
         cid = "bad_sig_id"
-        data = _make_z3_cert_data(candidate_id=cid, valid=True, public_key=key.public_key_hex)
+        data = _make_z3_cert_data(
+            candidate_id=cid, valid=True, public_key=key.public_key_hex
+        )
         data["signature"] = "ff" * 64  # Garbage signature
 
         result = gate._verify_z3_certificate_signature(data, cid)
@@ -595,7 +624,12 @@ class TestZ3Digest:
     def test_digest_is_hex_string(self, tmp_path: Path) -> None:
         """Digest should be a valid hex string."""
         gate = _make_gate(tmp_path)
-        signable = {"hash": "abc", "valid": True, "proof_type": "z3-smt2", "verified_at": ""}
+        signable = {
+            "hash": "abc",
+            "valid": True,
+            "proof_type": "z3-smt2",
+            "verified_at": "",
+        }
         digest = gate._z3_digest(signable)
         # Should be valid hex
         int(digest, 16)
@@ -605,7 +639,12 @@ class TestZ3Digest:
     def test_digest_deterministic(self, tmp_path: Path) -> None:
         """Same signable should produce the same digest."""
         gate = _make_gate(tmp_path)
-        signable = {"hash": "xyz", "valid": False, "proof_type": "z3-smt2", "verified_at": "t"}
+        signable = {
+            "hash": "xyz",
+            "valid": False,
+            "proof_type": "z3-smt2",
+            "verified_at": "t",
+        }
         d1 = gate._z3_digest(signable)
         d2 = gate._z3_digest(signable)
         assert d1 == d2
@@ -613,7 +652,12 @@ class TestZ3Digest:
     def test_digest_includes_domain_prefix(self, tmp_path: Path) -> None:
         """Digest should differ from one computed without domain prefix."""
         gate = _make_gate(tmp_path)
-        signable = {"hash": "test", "valid": True, "proof_type": "z3-smt2", "verified_at": ""}
+        signable = {
+            "hash": "test",
+            "valid": True,
+            "proof_type": "z3-smt2",
+            "verified_at": "",
+        }
         domain_digest = gate._z3_digest(signable)
 
         # Compute without domain prefix
@@ -693,7 +737,9 @@ class TestGetZ3Certificate:
         assert cert2 is not None
         assert cert2.hash == cid
 
-    def test_returns_none_when_signature_verification_fails(self, tmp_path: Path) -> None:
+    def test_returns_none_when_signature_verification_fails(
+        self, tmp_path: Path
+    ) -> None:
         """Should return None if cert file exists but signature fails."""
         gate = _make_gate(tmp_path)  # unsigned not allowed
         cid = "unsigned_cert"
@@ -988,10 +1034,13 @@ class TestLoadTrustedZ3Pubkey:
         with open(keypair_path, "w") as f:
             json.dump({"public_key": "file_key"}, f)
 
-        gate = _make_gate(tmp_path, {
-            "BIZRA_Z3_CERT_PUBKEY": "env_key",
-            "BIZRA_KEYPAIR_PATH": str(keypair_path),
-        })
+        gate = _make_gate(
+            tmp_path,
+            {
+                "BIZRA_Z3_CERT_PUBKEY": "env_key",
+                "BIZRA_KEYPAIR_PATH": str(keypair_path),
+            },
+        )
         assert gate._trusted_z3_pubkey == "env_key"
 
     def test_returns_empty_for_corrupt_keypair_file(self, tmp_path: Path) -> None:
@@ -1061,7 +1110,8 @@ class TestIntegrationScenarios:
 
         # Runtime candidate (has valid cert)
         _write_cert_file(
-            tmp_path / "proofs", "runtime_cand",
+            tmp_path / "proofs",
+            "runtime_cand",
             _make_z3_cert_data(candidate_id="runtime_cand", valid=True),
         )
         r1 = await gate.admit("c1", "q", candidate_id="runtime_cand")

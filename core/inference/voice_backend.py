@@ -133,7 +133,9 @@ class VoiceBackend:
     async def transcribe(self, audio: np.ndarray) -> VoiceResponse:
         return await self.process(VoiceRequest(audio=audio, mode="stt"))
 
-    async def converse(self, audio: np.ndarray, guardian: str = "coordinator") -> VoiceResponse:
+    async def converse(
+        self, audio: np.ndarray, guardian: str = "coordinator"
+    ) -> VoiceResponse:
         return await self.process(
             VoiceRequest(audio=audio, guardian=guardian, mode="full_duplex")
         )

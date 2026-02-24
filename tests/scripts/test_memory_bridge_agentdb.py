@@ -18,10 +18,11 @@ for _p in (_PROJECT_ROOT, _NORMALIZERS_DIR):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
+from memory_bridge import ingest_report_to_agent_db
+
 from core.memory.agent_db import AgentDB
 from core.memory.config import MemoryConfig
 from core.memory.types import MemoryKind
-from memory_bridge import ingest_report_to_agent_db
 
 
 def _make_report(nodes: list[dict]) -> dict:
@@ -111,7 +112,9 @@ class TestIngestReportToAgentDB:
 
         # Search by kind to verify mapping.
         semantic = agent_db.search(query="dark mode", kinds=[MemoryKind.SEMANTIC])
-        procedural = agent_db.search(query="short bursts", kinds=[MemoryKind.PROCEDURAL])
+        procedural = agent_db.search(
+            query="short bursts", kinds=[MemoryKind.PROCEDURAL]
+        )
         episodic = agent_db.search(query="frustration", kinds=[MemoryKind.EPISODIC])
 
         assert len(semantic) >= 1, "fact -> SEMANTIC should be searchable"
@@ -157,9 +160,9 @@ class TestIngestReportToAgentDB:
 
     def test_unknown_kind_defaults_to_semantic(self, agent_db: AgentDB) -> None:
         """An unrecognized node kind should default to SEMANTIC."""
-        report = _make_report([
-            {"kind": "alien_concept", "signal": "Something new", "snr_score": 0.9}
-        ])
+        report = _make_report(
+            [{"kind": "alien_concept", "signal": "Something new", "snr_score": 0.9}]
+        )
         result = ingest_report_to_agent_db(report, agent_db)
         assert result["stored"] == 1
 

@@ -5,8 +5,9 @@ Validates Python-Rust integration lifecycle management.
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from core.sovereign.rust_lifecycle import (
     RustAPIClient,
@@ -18,10 +19,10 @@ from core.sovereign.rust_lifecycle import (
     create_rust_lifecycle,
 )
 
-
 # =============================================================================
 # SERVICE HEALTH TESTS
 # =============================================================================
+
 
 class TestRustServiceHealth:
     """Tests for RustServiceHealth dataclass."""
@@ -59,6 +60,7 @@ class TestRustServiceHealth:
 # API CLIENT TESTS
 # =============================================================================
 
+
 class TestRustAPIClient:
     """Tests for RustAPIClient."""
 
@@ -92,6 +94,7 @@ class TestRustAPIClient:
 # PROCESS MANAGER TESTS
 # =============================================================================
 
+
 class TestRustProcessManager:
     """Tests for RustProcessManager."""
 
@@ -116,6 +119,7 @@ class TestRustProcessManager:
 # =============================================================================
 # LIFECYCLE MANAGER TESTS
 # =============================================================================
+
 
 class TestRustLifecycleManager:
     """Tests for RustLifecycleManager."""
@@ -210,6 +214,7 @@ class TestRustLifecycleManager:
 # FACTORY TESTS
 # =============================================================================
 
+
 class TestFactory:
     """Tests for factory functions."""
 
@@ -243,6 +248,7 @@ class TestFactory:
 # GATE FILTER INTEGRATION TESTS
 # =============================================================================
 
+
 class TestRustGateFilter:
     """Tests for Rust gate filter integration."""
 
@@ -259,8 +265,9 @@ class TestRustGateFilter:
     @pytest.mark.asyncio
     async def test_rust_gate_filter_python_fallback(self):
         """Test Rust gate filter with Python fallback."""
-        from core.sovereign.opportunity_pipeline import PipelineOpportunity
         import time
+
+        from core.sovereign.opportunity_pipeline import PipelineOpportunity
 
         manager = RustLifecycleManager(use_pyo3=False)
         filter_instance = create_rust_gate_filter(manager)
@@ -283,8 +290,9 @@ class TestRustGateFilter:
     @pytest.mark.asyncio
     async def test_rust_gate_filter_with_pyo3_mock(self):
         """Test Rust gate filter with mocked PyO3."""
-        from core.sovereign.opportunity_pipeline import PipelineOpportunity
         import time
+
+        from core.sovereign.opportunity_pipeline import PipelineOpportunity
 
         manager = RustLifecycleManager(use_pyo3=False)
         # Simulate PyO3 available
@@ -315,18 +323,20 @@ class TestRustGateFilter:
 # INTEGRATION WITH OPPORTUNITY PIPELINE TESTS
 # =============================================================================
 
+
 class TestPipelineIntegration:
     """Tests for integration with OpportunityPipeline."""
 
     @pytest.mark.asyncio
     async def test_pipeline_with_rust_filter(self):
         """Test OpportunityPipeline with Rust gate filter."""
+        import time
+
+        from core.sovereign.autonomy_matrix import AutonomyLevel
         from core.sovereign.opportunity_pipeline import (
             OpportunityPipeline,
             PipelineOpportunity,
         )
-        from core.sovereign.autonomy_matrix import AutonomyLevel
-        import time
 
         # Create Rust lifecycle (no actual Rust needed)
         manager = RustLifecycleManager(use_pyo3=False)

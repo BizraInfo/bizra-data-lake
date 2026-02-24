@@ -39,7 +39,6 @@ from core.sovereign.guardian_council import (
     create_council,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -244,13 +243,7 @@ class TestIhsanVector:
         """Score with default weights must sum correctly."""
         # Default weights: correctness=0.25, safety=0.25, beneficence=0.20,
         #                  transparency=0.15, sustainability=0.15
-        expected = (
-            0.98 * 0.25
-            + 0.97 * 0.25
-            + 0.96 * 0.20
-            + 0.95 * 0.15
-            + 0.94 * 0.15
-        )
+        expected = 0.98 * 0.25 + 0.97 * 0.25 + 0.96 * 0.20 + 0.95 * 0.15 + 0.94 * 0.15
         assert abs(high_ihsan.score() - expected) < 1e-9
 
     def test_score_with_custom_weights(self):
@@ -415,7 +408,7 @@ class TestGuardianVote:
 
         # Tamper with the signature (flip last byte)
         sig_bytes = bytes.fromhex(vote.signature)
-        tampered = sig_bytes[:-1] + bytes([(sig_bytes[-1] ^ 0xFF)])
+        tampered = sig_bytes[:-1] + bytes([sig_bytes[-1] ^ 0xFF])
         vote.signature = tampered.hex()
 
         assert vote.verify() is False
@@ -635,7 +628,13 @@ class TestGuardian:
 
     def test_domain_weights_all_dimensions(self):
         """Each role's weights include all five Ihsan dimensions."""
-        dims = {"correctness", "safety", "beneficence", "transparency", "sustainability"}
+        dims = {
+            "correctness",
+            "safety",
+            "beneficence",
+            "transparency",
+            "sustainability",
+        }
         for role in GuardianRole:
             assert set(Guardian.DOMAIN_WEIGHTS[role].keys()) == dims
 
@@ -701,8 +700,14 @@ class TestGuardian:
         """Test vote type determination at different score levels."""
         cases = [
             (IhsanVector(1.0, 1.0, 1.0, 1.0, 1.0), VoteType.APPROVE),
-            (IhsanVector(0.5, 0.5, 0.5, 0.5, 0.5), VoteType.REJECT_SOFT),  # score=0.5, >= 0.50
-            (IhsanVector(0.3, 0.3, 0.3, 0.3, 0.3), VoteType.REJECT_HARD),  # score=0.3, < 0.50
+            (
+                IhsanVector(0.5, 0.5, 0.5, 0.5, 0.5),
+                VoteType.REJECT_SOFT,
+            ),  # score=0.5, >= 0.50
+            (
+                IhsanVector(0.3, 0.3, 0.3, 0.3, 0.3),
+                VoteType.REJECT_HARD,
+            ),  # score=0.3, < 0.50
         ]
         for ihsan, expected_type in cases:
             g = Guardian(
@@ -763,7 +768,9 @@ class TestGuardianCouncil:
 
     def test_nucleus_has_highest_weight(self):
         """NUCLEUS has the highest voting power."""
-        max_role = max(GuardianCouncil.VOTING_POWER, key=GuardianCouncil.VOTING_POWER.get)
+        max_role = max(
+            GuardianCouncil.VOTING_POWER, key=GuardianCouncil.VOTING_POWER.get
+        )
         assert max_role == GuardianRole.NUCLEUS
 
     def test_set_guardian_evaluator(self, council):
@@ -1058,7 +1065,9 @@ class TestGuardianCouncil:
         council = GuardianCouncil(ihsan_threshold=0.80)
 
         def weak_eval(p: Proposal) -> IhsanVector:
-            return IhsanVector(0.9, 0.9, 0.5, 0.5, 0.9)  # beneficence & transparency weak
+            return IhsanVector(
+                0.9, 0.9, 0.5, 0.5, 0.9
+            )  # beneficence & transparency weak
 
         for role in GuardianRole:
             council.set_guardian_evaluator(role, weak_eval)
@@ -1071,7 +1080,10 @@ class TestGuardianCouncil:
         )
         verdict = await council.deliberate(proposal)
         recommendation_text = " ".join(verdict.recommendations).lower()
-        assert "beneficence" in recommendation_text or "transparency" in recommendation_text
+        assert (
+            "beneficence" in recommendation_text
+            or "transparency" in recommendation_text
+        )
 
     def test_combine_ihsan_vectors_empty(self, council):
         """Combining empty vote list returns zero vector."""

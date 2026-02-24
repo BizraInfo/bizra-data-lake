@@ -30,13 +30,14 @@ from core.reasoning.got_bridge import (
     GoTBridgeResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_search_result(content: str = "evidence text", score: float = 0.9) -> SearchResult:
+def _make_search_result(
+    content: str = "evidence text", score: float = 0.9
+) -> SearchResult:
     """Build a fake SearchResult for testing."""
     record = MemoryRecord(
         id="test-id",

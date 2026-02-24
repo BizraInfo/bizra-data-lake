@@ -82,10 +82,7 @@ class TestStoreDelete:
 
 class TestStoreBatch:
     def test_upsert_batch(self, store):
-        records = [
-            make_record(f"r{i}", content=f"content {i}")
-            for i in range(10)
-        ]
+        records = [make_record(f"r{i}", content=f"content {i}") for i in range(10)]
         count = store.upsert_batch(records)
         assert count == 10
         assert store.count() == 10

@@ -19,7 +19,10 @@ def _runtime_with_metrics() -> MagicMock:
         avg_query_time_ms=123.4,
     )
     runtime.status.return_value = {
-        "health": {"status": "healthy", "strict_gate": {"enabled": False, "passed": True}},
+        "health": {
+            "status": "healthy",
+            "strict_gate": {"enabled": False, "passed": True},
+        },
         "identity": {"version": "test"},
         "state": {"running": True},
         "autonomous": {"running": False},

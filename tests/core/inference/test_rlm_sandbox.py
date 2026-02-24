@@ -78,9 +78,7 @@ def test_execute_lm_query_with_limit() -> None:
 
     sandbox = RLMSandbox(REPLState(), lm_query_fn=lm_query, max_sub_calls=2)
     state, _ = sandbox.execute(
-        "a = lm_query('one')\n"
-        "b = lm_query('two')\n"
-        "c = lm_query('three')"
+        "a = lm_query('one')\n" "b = lm_query('two')\n" "c = lm_query('three')"
     )
 
     assert state.sub_calls == 2

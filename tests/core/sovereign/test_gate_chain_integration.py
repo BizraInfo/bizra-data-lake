@@ -10,16 +10,17 @@ Standing on Giants:
 - BIZRA Spearpoint PRD: "6 gates, fail fast, fail closed"
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from core.sovereign.runtime_core import SovereignRuntime
 from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
 
-
 # =============================================================================
 # GATE CHAIN INITIALIZATION
 # =============================================================================
+
 
 class TestGateChainInit:
     """Tests for GateChain initialization in SovereignRuntime."""
@@ -52,7 +53,12 @@ class TestGateChainInit:
 
         gate_names = [g.name for g in runtime._gate_chain.gates]
         assert gate_names == [
-            "schema", "provenance", "snr", "constraint", "safety", "commit"
+            "schema",
+            "provenance",
+            "snr",
+            "constraint",
+            "safety",
+            "commit",
         ]
 
     def test_gate_chain_stats_none_when_not_init(self):
@@ -76,6 +82,7 @@ class TestGateChainInit:
 # PRE-FLIGHT CHECK
 # =============================================================================
 
+
 class TestGateChainPreflight:
     """Tests for GateChain pre-flight check in query pipeline."""
 
@@ -87,7 +94,9 @@ class TestGateChainPreflight:
         runtime = SovereignRuntime(config)
         runtime._init_gate_chain()
 
-        query = SovereignQuery(text="What is the meaning of life?", id="a1b2c3d4e5f60001")
+        query = SovereignQuery(
+            text="What is the meaning of life?", id="a1b2c3d4e5f60001"
+        )
         result = SovereignResult(query_id=query.id)
 
         rejection = await runtime._run_gate_chain_preflight(query, result)
@@ -166,7 +175,8 @@ class TestGateChainPreflight:
         runtime._init_gate_chain()
 
         query = SovereignQuery(
-            text="What is the meaning?", id="a1b2c3d4e5f60006",
+            text="What is the meaning?",
+            id="a1b2c3d4e5f60006",
             context={"user_state": "privileged"},
         )
         result = SovereignResult(query_id=query.id)
@@ -183,9 +193,7 @@ class TestGateChainPreflight:
         runtime._init_gate_chain()
 
         for i in range(5):
-            query = SovereignQuery(
-                text=f"Query {i}", id=f"a1b2c3d4e5f6{i:04x}"
-            )
+            query = SovereignQuery(text=f"Query {i}", id=f"a1b2c3d4e5f6{i:04x}")
             result = SovereignResult(query_id=query.id)
             await runtime._run_gate_chain_preflight(query, result)
 

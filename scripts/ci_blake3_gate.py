@@ -70,9 +70,7 @@ def main() -> int:
                     total_violations += 1
 
     if total_violations > 0:
-        print(
-            f"\n  {total_violations} SHA-256 violation(s) in PCI/proof paths."
-        )
+        print(f"\n  {total_violations} SHA-256 violation(s) in PCI/proof paths.")
         print("  Use core.proof_engine.canonical.hex_digest() for content hashing.")
         print("  HMAC-SHA256 (hmac.new(..., hashlib.sha256)) is allowed (RFC 2104).")
         return 1

@@ -37,7 +37,11 @@ def _write_valid_genesis_fixture(state_dir: Path) -> None:
             "owner_node": "node0_fixture_0001",
             "agents": [],
             "team_hash": [3] * 32,
-            "governance": {"quorum": 0.67, "voting_period_hours": 72, "upgrade_threshold": 0.8},
+            "governance": {
+                "quorum": 0.67,
+                "voting_period_hours": 72,
+                "upgrade_threshold": 0.8,
+            },
         },
         "partnership_hash": [4] * 32,
         "genesis_hash": list(bytes.fromhex(genesis_hash_hex)),
@@ -83,7 +87,9 @@ def test_resolve_origin_snapshot_defaults_to_ephemeral(tmp_path: Path) -> None:
     assert snapshot["hash_validated"] is False
 
 
-def test_resolve_origin_snapshot_node0_returns_genesis_projection(tmp_path: Path) -> None:
+def test_resolve_origin_snapshot_node0_returns_genesis_projection(
+    tmp_path: Path,
+) -> None:
     state_dir = tmp_path / "state"
     _write_valid_genesis_fixture(state_dir)
     snapshot = resolve_origin_snapshot(state_dir, "node0")
@@ -122,4 +128,3 @@ async def test_runtime_initialize_fails_closed_for_node0_without_genesis(
     runtime = SovereignRuntime(cfg)
     with pytest.raises(RuntimeError, match="Node0 genesis enforcement failed"):
         await runtime.initialize()
-

@@ -7,9 +7,9 @@ import secrets
 import pytest
 
 from core.pat.hardware_rotation import (
+    MAX_ROTATION_CHAIN_LENGTH,
     DIDHandoff,
     HardwareRotationCeremony,
-    MAX_ROTATION_CHAIN_LENGTH,
     RotationCertificate,
     RotationHistory,
     compute_fingerprint_hash,
@@ -73,12 +73,8 @@ class TestHardwareRotationCeremony:
         ceremony = HardwareRotationCeremony()
         stored = compute_fingerprint_hash({"cpu": "Intel i9"})
 
-        assert not ceremony.detect_hardware_change(
-            stored, {"cpu": "Intel i9"}
-        )
-        assert ceremony.detect_hardware_change(
-            stored, {"cpu": "AMD Ryzen"}
-        )
+        assert not ceremony.detect_hardware_change(stored, {"cpu": "Intel i9"})
+        assert ceremony.detect_hardware_change(stored, {"cpu": "AMD Ryzen"})
 
     def test_initiate_rotation(self):
         ceremony = HardwareRotationCeremony()

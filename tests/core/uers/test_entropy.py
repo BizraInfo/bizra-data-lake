@@ -17,7 +17,6 @@ from core.uers.entropy import (
     ManifoldState,
 )
 
-
 # ---------------------------------------------------------------------------
 # FIXTURES
 # ---------------------------------------------------------------------------
@@ -74,14 +73,17 @@ class TestEntropyMeasurement:
     def test_is_low_entropy_false(self, high_entropy_measurement):
         assert high_entropy_measurement.is_low_entropy is False
 
-    @pytest.mark.parametrize("normalized,expected_high,expected_low", [
-        (0.0, False, True),
-        (0.24, False, True),
-        (0.25, False, False),
-        (0.75, False, False),
-        (0.76, True, False),
-        (1.0, True, False),
-    ])
+    @pytest.mark.parametrize(
+        "normalized,expected_high,expected_low",
+        [
+            (0.0, False, True),
+            (0.24, False, True),
+            (0.25, False, False),
+            (0.75, False, False),
+            (0.76, True, False),
+            (1.0, True, False),
+        ],
+    )
     def test_entropy_boundaries(self, normalized, expected_high, expected_low):
         m = EntropyMeasurement("test", 0.0, normalized)
         assert m.is_high_entropy == expected_high
@@ -120,7 +122,13 @@ class TestManifoldState:
 
     def test_to_dict_has_all_vectors(self, sample_manifold):
         d = sample_manifold.to_dict()
-        for key in ("surface", "structural", "behavioral", "hypothetical", "contextual"):
+        for key in (
+            "surface",
+            "structural",
+            "behavioral",
+            "hypothetical",
+            "contextual",
+        ):
             assert key in d
         assert "total_entropy" in d
         assert "average_entropy" in d
@@ -220,7 +228,9 @@ class TestStructuralEntropy:
         assert m.normalized == 0.0
 
     def test_cfg_entropy_complex(self, calculator):
-        m = calculator.cfg_entropy(basic_blocks=50, branch_edges=30, call_edges=20, loop_count=5)
+        m = calculator.cfg_entropy(
+            basic_blocks=50, branch_edges=30, call_edges=20, loop_count=5
+        )
         assert 0.0 < m.normalized <= 1.0
         assert "cyclomatic_complexity" in m.metadata
 
@@ -261,7 +271,9 @@ class TestPathEntropy:
         assert m.normalized == 0.0
 
     def test_all_explored(self, calculator):
-        m = calculator.path_entropy(explored_paths=100, total_paths=100, feasible_paths=80)
+        m = calculator.path_entropy(
+            explored_paths=100, total_paths=100, feasible_paths=80
+        )
         assert m.normalized < 0.1  # Should be very low
 
     def test_none_explored(self, calculator):
@@ -273,7 +285,9 @@ class TestPathEntropy:
         assert m.normalized > 0.5  # Under-constrained -> high entropy
 
     def test_constraint_entropy_overconstrained(self, calculator):
-        m = calculator.constraint_entropy(constraint_count=20, variable_count=10, satisfiable=True)
+        m = calculator.constraint_entropy(
+            constraint_count=20, variable_count=10, satisfiable=True
+        )
         assert m.normalized < 0.5
 
     def test_constraint_entropy_zero_variables(self, calculator):

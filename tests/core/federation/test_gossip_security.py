@@ -5,28 +5,29 @@ Tests for Ed25519 cryptographic signing and signature verification (SEC-016/SEC-
 Target: 80% coverage of gossip.py security-critical paths
 """
 
-import pytest
 import asyncio
-import sys
 import json
+import sys
 import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add project root to path
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.federation.gossip import (
+    DEAD_TIMEOUT_MS,
+    GOSSIP_INTERVAL_MS,
+    MAX_FANOUT,
+    SUSPICION_TIMEOUT_MS,
     GossipEngine,
     GossipMessage,
     MessageType,
     NodeInfo,
     NodeState,
-    GOSSIP_INTERVAL_MS,
-    SUSPICION_TIMEOUT_MS,
-    DEAD_TIMEOUT_MS,
-    MAX_FANOUT,
 )
 from core.pci.crypto import generate_keypair
 
@@ -255,7 +256,9 @@ class TestCachePoisoningPrevention:
     """
 
     @pytest.mark.asyncio
-    async def test_unsigned_message_does_not_pollute_cache(self, gossip_engine, peer_keypair):
+    async def test_unsigned_message_does_not_pollute_cache(
+        self, gossip_engine, peer_keypair
+    ):
         """Unsigned messages should NOT be added to seen_messages cache."""
         peer_priv, peer_pub = peer_keypair
 
@@ -279,7 +282,9 @@ class TestCachePoisoningPrevention:
         assert message_id not in gossip_engine._seen_messages
 
     @pytest.mark.asyncio
-    async def test_signed_message_added_to_cache_after_verification(self, gossip_engine, peer_keypair):
+    async def test_signed_message_added_to_cache_after_verification(
+        self, gossip_engine, peer_keypair
+    ):
         """Signed messages should be added to cache AFTER verification."""
         peer_priv, peer_pub = peer_keypair
 
@@ -356,8 +361,7 @@ class TestNewNodeAnnouncement:
         )
 
         announce_msg = new_engine._create_message(
-            MessageType.ANNOUNCE,
-            {"public_key": peer_pub, "ihsan_average": 0.96}
+            MessageType.ANNOUNCE, {"public_key": peer_pub, "ihsan_average": 0.96}
         )
 
         await gossip_engine.handle_message(announce_msg.to_bytes())
@@ -385,7 +389,12 @@ class TestNewNodeAnnouncement:
         )
 
         # Sign with valid key but don't include public_key in payload
-        from core.pci.crypto import sign_message, domain_separated_digest, canonical_json
+        from core.pci.crypto import (
+            canonical_json,
+            domain_separated_digest,
+            sign_message,
+        )
+
         digest = domain_separated_digest(canonical_json(msg._signable_dict()))
         msg.signature = sign_message(digest, peer_priv)
 
@@ -424,8 +433,9 @@ class TestMessageDomainSeparation:
             original = getattr(msg, field_name)
             setattr(msg, field_name, tampered_value)
 
-            assert msg.verify_signature(pub) is False, \
-                f"Tampering with {field_name} should invalidate signature"
+            assert (
+                msg.verify_signature(pub) is False
+            ), f"Tampering with {field_name} should invalidate signature"
 
             setattr(msg, field_name, original)  # Restore
 
@@ -447,8 +457,7 @@ class TestPublicKeyInPayload:
         custom_key = "a" * 64
 
         msg = gossip_engine._create_message(
-            MessageType.ANNOUNCE,
-            {"public_key": custom_key}  # User provides key
+            MessageType.ANNOUNCE, {"public_key": custom_key}  # User provides key
         )
 
         # Should preserve user's key (though this is unusual)
@@ -480,7 +489,9 @@ class TestPiggybackedUpdateSecurity:
     """Tests for piggybacked state update validation."""
 
     @pytest.mark.asyncio
-    async def test_piggyback_with_invalid_pubkey_rejected(self, gossip_engine, peer_keypair):
+    async def test_piggyback_with_invalid_pubkey_rejected(
+        self, gossip_engine, peer_keypair
+    ):
         """Piggybacked node info without valid pubkey should be ignored."""
         peer_priv, peer_pub = peer_keypair
 

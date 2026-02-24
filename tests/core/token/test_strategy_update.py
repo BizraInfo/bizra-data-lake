@@ -5,7 +5,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from core.token.strategy import AgentStrategy, load_strategy, persist_strategy, update_strategy
+from core.token.strategy import (
+    AgentStrategy,
+    load_strategy,
+    persist_strategy,
+    update_strategy,
+)
 
 
 @dataclass
@@ -33,7 +38,9 @@ class _FakeMemory:
 
 
 def test_update_strategy_bounds_temperature_and_tokens() -> None:
-    base = AgentStrategy(agent_id="researcher", temperature=0.9, max_tokens=1900, ema_reward=0.8)
+    base = AgentStrategy(
+        agent_id="researcher", temperature=0.9, max_tokens=1900, ema_reward=0.8
+    )
     updated = update_strategy(base, reward=0.95, mission_context={"complexity": 0.9})
 
     assert 0.3 <= updated.temperature <= 1.0
@@ -50,7 +57,9 @@ def test_update_strategy_can_enable_rlm() -> None:
 @pytest.mark.asyncio
 async def test_persist_and_load_strategy_with_dict_store() -> None:
     memory: dict[str, str] = {}
-    strategy = AgentStrategy(agent_id="creator", temperature=0.55, max_tokens=777, use_rlm=True)
+    strategy = AgentStrategy(
+        agent_id="creator", temperature=0.55, max_tokens=777, use_rlm=True
+    )
 
     await persist_strategy(memory, "creator", strategy)
     loaded = await load_strategy(memory, "creator")
@@ -64,7 +73,9 @@ async def test_persist_and_load_strategy_with_dict_store() -> None:
 @pytest.mark.asyncio
 async def test_persist_and_load_strategy_with_memory_interface() -> None:
     memory = _FakeMemory()
-    strategy = AgentStrategy(agent_id="strategist", temperature=0.61, max_tokens=888, use_rlm=True)
+    strategy = AgentStrategy(
+        agent_id="strategist", temperature=0.61, max_tokens=888, use_rlm=True
+    )
 
     await persist_strategy(memory, "strategist", strategy)
 

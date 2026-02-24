@@ -45,9 +45,9 @@ from core.integration.constants import (
     PILLAR_1_RUNTIME_IHSAN,
     PILLAR_2_MUSEUM_SNR_FLOOR,
     PILLAR_3_SANDBOX_SNR_FLOOR,
+    RUNTIME_IHSAN_THRESHOLD,
     SAT_FRONTIER_QUORUM_DEFAULT,
     SAT_VALIDATORS_PER_NODE,
-    RUNTIME_IHSAN_THRESHOLD,
     SNR_THRESHOLD,
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
@@ -66,7 +66,6 @@ from core.integration.constants import (
     validate_cross_repo_consistency,
 )
 
-
 # ---------------------------------------------------------------------------
 # IHSAN THRESHOLD RANGE TESTS
 # ---------------------------------------------------------------------------
@@ -74,16 +73,19 @@ from core.integration.constants import (
 
 class TestIhsanThresholds:
 
-    @pytest.mark.parametrize("name,value", [
-        ("UNIFIED_IHSAN_THRESHOLD", UNIFIED_IHSAN_THRESHOLD),
-        ("IHSAN_THRESHOLD", IHSAN_THRESHOLD),
-        ("STRICT_IHSAN_THRESHOLD", STRICT_IHSAN_THRESHOLD),
-        ("RUNTIME_IHSAN_THRESHOLD", RUNTIME_IHSAN_THRESHOLD),
-        ("IHSAN_THRESHOLD_PRODUCTION", IHSAN_THRESHOLD_PRODUCTION),
-        ("IHSAN_THRESHOLD_STAGING", IHSAN_THRESHOLD_STAGING),
-        ("IHSAN_THRESHOLD_CI", IHSAN_THRESHOLD_CI),
-        ("IHSAN_THRESHOLD_DEV", IHSAN_THRESHOLD_DEV),
-    ])
+    @pytest.mark.parametrize(
+        "name,value",
+        [
+            ("UNIFIED_IHSAN_THRESHOLD", UNIFIED_IHSAN_THRESHOLD),
+            ("IHSAN_THRESHOLD", IHSAN_THRESHOLD),
+            ("STRICT_IHSAN_THRESHOLD", STRICT_IHSAN_THRESHOLD),
+            ("RUNTIME_IHSAN_THRESHOLD", RUNTIME_IHSAN_THRESHOLD),
+            ("IHSAN_THRESHOLD_PRODUCTION", IHSAN_THRESHOLD_PRODUCTION),
+            ("IHSAN_THRESHOLD_STAGING", IHSAN_THRESHOLD_STAGING),
+            ("IHSAN_THRESHOLD_CI", IHSAN_THRESHOLD_CI),
+            ("IHSAN_THRESHOLD_DEV", IHSAN_THRESHOLD_DEV),
+        ],
+    )
     def test_ihsan_in_valid_range(self, name, value):
         assert 0.0 <= value <= 1.0, f"{name}={value} out of [0.0, 1.0]"
 
@@ -111,16 +113,19 @@ class TestIhsanThresholds:
 
 class TestSNRThresholds:
 
-    @pytest.mark.parametrize("name,value", [
-        ("UNIFIED_SNR_THRESHOLD", UNIFIED_SNR_THRESHOLD),
-        ("SNR_THRESHOLD", SNR_THRESHOLD),
-        ("MUSEUM_SNR_FLOOR", MUSEUM_SNR_FLOOR),
-        ("SNR_THRESHOLD_T0_ELITE", SNR_THRESHOLD_T0_ELITE),
-        ("SNR_THRESHOLD_T1_HIGH", SNR_THRESHOLD_T1_HIGH),
-        ("SNR_THRESHOLD_T2_STANDARD", SNR_THRESHOLD_T2_STANDARD),
-        ("SNR_THRESHOLD_T3_ACCEPTABLE", SNR_THRESHOLD_T3_ACCEPTABLE),
-        ("SNR_THRESHOLD_T4_MINIMUM", SNR_THRESHOLD_T4_MINIMUM),
-    ])
+    @pytest.mark.parametrize(
+        "name,value",
+        [
+            ("UNIFIED_SNR_THRESHOLD", UNIFIED_SNR_THRESHOLD),
+            ("SNR_THRESHOLD", SNR_THRESHOLD),
+            ("MUSEUM_SNR_FLOOR", MUSEUM_SNR_FLOOR),
+            ("SNR_THRESHOLD_T0_ELITE", SNR_THRESHOLD_T0_ELITE),
+            ("SNR_THRESHOLD_T1_HIGH", SNR_THRESHOLD_T1_HIGH),
+            ("SNR_THRESHOLD_T2_STANDARD", SNR_THRESHOLD_T2_STANDARD),
+            ("SNR_THRESHOLD_T3_ACCEPTABLE", SNR_THRESHOLD_T3_ACCEPTABLE),
+            ("SNR_THRESHOLD_T4_MINIMUM", SNR_THRESHOLD_T4_MINIMUM),
+        ],
+    )
     def test_snr_in_valid_range(self, name, value):
         assert 0.0 <= value <= 1.0, f"{name}={value} out of [0.0, 1.0]"
 
@@ -153,8 +158,14 @@ class TestIhsanWeights:
 
     def test_expected_dimensions(self):
         expected_keys = {
-            "correctness", "safety", "user_benefit", "efficiency",
-            "auditability", "anti_centralization", "robustness", "adl_fairness",
+            "correctness",
+            "safety",
+            "user_benefit",
+            "efficiency",
+            "auditability",
+            "anti_centralization",
+            "robustness",
+            "adl_fairness",
         }
         assert set(IHSAN_WEIGHTS.keys()) == expected_keys
 
@@ -202,12 +213,15 @@ class TestFourPillars:
 
 class TestConfidenceThresholds:
 
-    @pytest.mark.parametrize("name,value", [
-        ("CONFIDENCE_HIGH", CONFIDENCE_HIGH),
-        ("CONFIDENCE_MEDIUM", CONFIDENCE_MEDIUM),
-        ("CONFIDENCE_LOW", CONFIDENCE_LOW),
-        ("CONFIDENCE_MINIMUM", CONFIDENCE_MINIMUM),
-    ])
+    @pytest.mark.parametrize(
+        "name,value",
+        [
+            ("CONFIDENCE_HIGH", CONFIDENCE_HIGH),
+            ("CONFIDENCE_MEDIUM", CONFIDENCE_MEDIUM),
+            ("CONFIDENCE_LOW", CONFIDENCE_LOW),
+            ("CONFIDENCE_MINIMUM", CONFIDENCE_MINIMUM),
+        ],
+    )
     def test_confidence_in_valid_range(self, name, value):
         assert 0.0 <= value <= 1.0, f"{name}={value} out of [0.0, 1.0]"
 
@@ -288,11 +302,14 @@ class TestFederatedSATQuorum:
     def test_frontier_quorum_scales_for_alpha_100(self):
         assert sat_frontier_quorum(100) == 333
 
-    @pytest.mark.parametrize("nodes,expected", [
-        (1, 3),     # 5 validators -> f=1 -> 3
-        (10, 33),   # 50 validators -> f=16 -> 33
-        (100, 333), # 500 validators -> f=166 -> 333
-    ])
+    @pytest.mark.parametrize(
+        "nodes,expected",
+        [
+            (1, 3),  # 5 validators -> f=1 -> 3
+            (10, 33),  # 50 validators -> f=16 -> 33
+            (100, 333),  # 500 validators -> f=166 -> 333
+        ],
+    )
     def test_frontier_quorum_examples(self, nodes, expected):
         assert sat_frontier_quorum(nodes) == expected
 

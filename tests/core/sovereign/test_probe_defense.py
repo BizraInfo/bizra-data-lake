@@ -12,43 +12,37 @@ Tests cover:
 Standing on Giants: Turing, LeCun, Pearl, Shannon, OWASP
 """
 
-import pytest
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from core.sovereign.probe_defense import (
-    # Enums
-    ProbeType,
-    # Data classes
-    ProbeResult,
-    ProbeReport,
-    CandidateContext,
-    # Base class
-    Probe,
-    # Concrete probes
-    CounterfactualProbe,
-    AdversarialProbe,
-    InvariantProbe,
-    EfficiencyProbe,
-    PrivacyProbe,
-    SycophancyProbe,
-    CausalityProbe,
-    HallucinationProbe,
-    LivenessProbe,
-    # Matrix classes
-    ProbeMatrix,
-    IntegratedProbeMatrix,
-    # Factory functions
-    create_probe_matrix,
-    create_candidate_context,
-    # Constants
+import pytest
+
+from core.sovereign.probe_defense import (  # Enums; Data classes; Base class; Concrete probes; Matrix classes; Factory functions; Constants
     DEFAULT_FAIL_THRESHOLD,
     PII_PATTERNS,
+    AdversarialProbe,
+    CandidateContext,
+    CausalityProbe,
+    CounterfactualProbe,
+    EfficiencyProbe,
+    HallucinationProbe,
+    IntegratedProbeMatrix,
+    InvariantProbe,
+    LivenessProbe,
+    PrivacyProbe,
+    Probe,
+    ProbeMatrix,
+    ProbeReport,
+    ProbeResult,
+    ProbeType,
+    SycophancyProbe,
+    create_candidate_context,
+    create_probe_matrix,
 )
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def clean_content() -> str:
@@ -138,6 +132,7 @@ def basic_context(clean_content: str) -> CandidateContext:
 # PROBE RESULT TESTS
 # =============================================================================
 
+
 class TestProbeResult:
     """Tests for ProbeResult dataclass."""
 
@@ -211,6 +206,7 @@ class TestProbeResult:
 # PROBE REPORT TESTS
 # =============================================================================
 
+
 class TestProbeReport:
     """Tests for ProbeReport dataclass."""
 
@@ -231,7 +227,7 @@ class TestProbeReport:
 
         assert report.passed_count == 2
         assert report.failed_count == 1
-        assert report.pass_rate == pytest.approx(2/3, rel=0.01)
+        assert report.pass_rate == pytest.approx(2 / 3, rel=0.01)
 
     def test_get_failed_probes(self) -> None:
         """Should return only failed probes."""
@@ -293,6 +289,7 @@ class TestProbeReport:
 # =============================================================================
 # INDIVIDUAL PROBE TESTS
 # =============================================================================
+
 
 class TestCounterfactualProbe:
     """Tests for CounterfactualProbe."""
@@ -626,6 +623,7 @@ class TestLivenessProbe:
 # PROBE MATRIX TESTS
 # =============================================================================
 
+
 class TestProbeMatrix:
     """Tests for ProbeMatrix orchestration."""
 
@@ -687,7 +685,9 @@ class TestProbeMatrix:
         report = matrix.execute(basic_context)
 
         # Product should be heavily influenced by invariant probe
-        invariant_result = next(r for r in report.results if r.probe_type == ProbeType.INVARIANT)
+        invariant_result = next(
+            r for r in report.results if r.probe_type == ProbeType.INVARIANT
+        )
         # If invariant passes with high score, product should be high
         if invariant_result.passed:
             assert report.attack_matrix_product >= 0.5
@@ -713,7 +713,9 @@ class TestIntegratedProbeMatrix:
         # Ihsan integration may or may not be available
         assert report.ihsan_integration is not None
 
-    def test_execution_context_affects_threshold(self, basic_context: CandidateContext) -> None:
+    def test_execution_context_affects_threshold(
+        self, basic_context: CandidateContext
+    ) -> None:
         """Different execution contexts should use different thresholds."""
         matrix = IntegratedProbeMatrix()
 
@@ -721,10 +723,16 @@ class TestIntegratedProbeMatrix:
         report_prod = matrix.execute_with_verification(basic_context, "production")
 
         # Both should have ihsan integration
-        if report_dev.ihsan_integration and report_dev.ihsan_integration.get("available"):
+        if report_dev.ihsan_integration and report_dev.ihsan_integration.get(
+            "available"
+        ):
             dev_threshold = report_dev.ihsan_integration.get("required_threshold", 0)
-            if report_prod.ihsan_integration and report_prod.ihsan_integration.get("available"):
-                prod_threshold = report_prod.ihsan_integration.get("required_threshold", 0)
+            if report_prod.ihsan_integration and report_prod.ihsan_integration.get(
+                "available"
+            ):
+                prod_threshold = report_prod.ihsan_integration.get(
+                    "required_threshold", 0
+                )
                 # Production should have higher threshold
                 assert prod_threshold >= dev_threshold
 
@@ -732,6 +740,7 @@ class TestIntegratedProbeMatrix:
 # =============================================================================
 # FACTORY FUNCTION TESTS
 # =============================================================================
+
 
 class TestFactoryFunctions:
     """Tests for factory functions."""
@@ -772,6 +781,7 @@ class TestFactoryFunctions:
 # =============================================================================
 # EDGE CASE TESTS
 # =============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
@@ -820,6 +830,7 @@ class TestEdgeCases:
 # PROBE TYPE ENUMERATION TESTS
 # =============================================================================
 
+
 class TestProbeType:
     """Tests for ProbeType enumeration."""
 
@@ -842,6 +853,7 @@ class TestProbeType:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests combining multiple components."""
@@ -867,12 +879,19 @@ class TestIntegration:
             user_query="How should we implement this?",
             claimed_facts=["The solution handles edge cases"],
             verified_facts={"The solution handles edge cases"},
-            execution_plan={"steps": ["analyze", "implement", "test"], "error_handling": True},
+            execution_plan={
+                "steps": ["analyze", "implement", "test"],
+                "error_handling": True,
+            },
         )
 
         # Execute with integrated matrix
         matrix = create_probe_matrix(enable_integration=True)
-        report = matrix.execute(context) if isinstance(matrix, ProbeMatrix) else matrix.execute_with_verification(context)
+        report = (
+            matrix.execute(context)
+            if isinstance(matrix, ProbeMatrix)
+            else matrix.execute_with_verification(context)
+        )
 
         # Verify comprehensive report
         assert report.candidate_id == "integration-test"

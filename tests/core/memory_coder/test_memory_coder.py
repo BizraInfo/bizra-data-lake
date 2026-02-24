@@ -3,6 +3,7 @@
 Covers: SynthesizedPattern, PatternCodebook, MemorySynthesizer,
 clustering, centroid extraction, and linear-scan fallback.
 """
+
 from __future__ import annotations
 
 import math
@@ -18,10 +19,10 @@ from core.memory_coder.pattern_codebook import (
     cosine_similarity,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_pattern(
     *,

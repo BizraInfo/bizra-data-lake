@@ -47,7 +47,6 @@ from core.sovereign.swarm_integration import (
     ServiceType,
 )
 
-
 # =============================================================================
 # HELPERS
 # =============================================================================
@@ -303,22 +302,40 @@ class TestRustServiceAdapterStatusMapping:
         self.adapter = RustServiceAdapter("test-svc")
 
     def test_healthy_maps_to_healthy(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.HEALTHY) == HealthStatus.HEALTHY
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.HEALTHY)
+            == HealthStatus.HEALTHY
+        )
 
     def test_starting_maps_to_degraded(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.STARTING) == HealthStatus.DEGRADED
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.STARTING)
+            == HealthStatus.DEGRADED
+        )
 
     def test_degraded_maps_to_degraded(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.DEGRADED) == HealthStatus.DEGRADED
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.DEGRADED)
+            == HealthStatus.DEGRADED
+        )
 
     def test_unhealthy_maps_to_unhealthy(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.UNHEALTHY) == HealthStatus.UNHEALTHY
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.UNHEALTHY)
+            == HealthStatus.UNHEALTHY
+        )
 
     def test_stopped_maps_to_unhealthy(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.STOPPED) == HealthStatus.UNHEALTHY
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.STOPPED)
+            == HealthStatus.UNHEALTHY
+        )
 
     def test_unknown_maps_to_unknown(self):
-        assert self.adapter._map_rust_status(RustServiceStatus.UNKNOWN) == HealthStatus.UNKNOWN
+        assert (
+            self.adapter._map_rust_status(RustServiceStatus.UNKNOWN)
+            == HealthStatus.UNKNOWN
+        )
 
     def test_all_rust_statuses_covered(self):
         """Every RustServiceStatus member must have a mapping."""
@@ -344,6 +361,7 @@ class TestRustServiceAdapterHealthCheck:
 
         # Actually exercise the real code with aiohttp import failure
         import sys
+
         original = sys.modules.get("aiohttp")
         sys.modules["aiohttp"] = None  # type: ignore[assignment]
         try:
@@ -357,7 +375,10 @@ class TestRustServiceAdapterHealthCheck:
         except TypeError:
             # On some Python versions, None in modules raises TypeError
             # which is caught by the generic except -> UNHEALTHY
-            assert adapter2.last_health in (HealthStatus.UNHEALTHY, HealthStatus.HEALTHY)
+            assert adapter2.last_health in (
+                HealthStatus.UNHEALTHY,
+                HealthStatus.HEALTHY,
+            )
         finally:
             if original is not None:
                 sys.modules["aiohttp"] = original
@@ -403,7 +424,9 @@ class TestRustServiceAdapterHealthCheck:
         adapter = RustServiceAdapter("error-svc")
 
         mock_get_cm = MagicMock()
-        mock_get_cm.__aenter__ = AsyncMock(side_effect=ConnectionRefusedError("refused"))
+        mock_get_cm.__aenter__ = AsyncMock(
+            side_effect=ConnectionRefusedError("refused")
+        )
         mock_get_cm.__aexit__ = AsyncMock(return_value=False)
 
         mock_session = MagicMock()
@@ -498,6 +521,7 @@ class TestRustServiceAdapterHealthCheck:
         assert adapter.last_check is None
         # Use ImportError fallback path by removing aiohttp
         import sys
+
         original = sys.modules.get("aiohttp")
         sys.modules["aiohttp"] = None  # type: ignore[assignment]
         try:
@@ -546,7 +570,10 @@ class TestRustServiceAdapterRestart:
         # Mock sleep to avoid delays and health_check to return HEALTHY
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, return_value=HealthStatus.HEALTHY
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                return_value=HealthStatus.HEALTHY,
             ):
                 result = await adapter.restart()
 
@@ -561,7 +588,10 @@ class TestRustServiceAdapterRestart:
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, return_value=HealthStatus.UNHEALTHY
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                return_value=HealthStatus.UNHEALTHY,
             ):
                 result = await adapter.restart()
 
@@ -576,7 +606,10 @@ class TestRustServiceAdapterRestart:
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, side_effect=RuntimeError("boom")
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("boom"),
             ):
                 result = await adapter.restart()
 
@@ -595,14 +628,17 @@ class TestRustServiceAdapterRestart:
 
         with patch("asyncio.sleep", side_effect=capture_sleep):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, return_value=HealthStatus.HEALTHY
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                return_value=HealthStatus.HEALTHY,
             ):
                 # First restart: backoff = 5 * 2^0 = 5
                 adapter.restart_count = 0
                 await adapter.restart()
 
         # sleep is called twice: once for backoff, once for startup wait
-        assert sleep_calls[0] == RESTART_BACKOFF_BASE * (2 ** 0)  # 5
+        assert sleep_calls[0] == RESTART_BACKOFF_BASE * (2**0)  # 5
         assert sleep_calls[1] == 2  # startup wait
 
     @pytest.mark.asyncio
@@ -617,13 +653,16 @@ class TestRustServiceAdapterRestart:
 
         with patch("asyncio.sleep", side_effect=capture_sleep):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, return_value=HealthStatus.UNHEALTHY
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                return_value=HealthStatus.UNHEALTHY,
             ):
                 adapter.restart_count = 2
                 await adapter.restart()
 
         # backoff = 5 * 2^2 = 20
-        assert sleep_calls[0] == RESTART_BACKOFF_BASE * (2 ** 2)  # 20
+        assert sleep_calls[0] == RESTART_BACKOFF_BASE * (2**2)  # 20
 
     @pytest.mark.asyncio
     async def test_restart_success_resets_start_time(self):
@@ -633,7 +672,10 @@ class TestRustServiceAdapterRestart:
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with patch.object(
-                adapter, "health_check", new_callable=AsyncMock, return_value=HealthStatus.HEALTHY
+                adapter,
+                "health_check",
+                new_callable=AsyncMock,
+                return_value=HealthStatus.HEALTHY,
             ):
                 await adapter.restart()
 
@@ -851,7 +893,9 @@ class TestCheckAllHealth:
         orch.register_rust_service("svc-1")
 
         # Mock the health_check on the adapter
-        orch.rust_adapters["svc-1"].health_check = AsyncMock(return_value=HealthStatus.HEALTHY)
+        orch.rust_adapters["svc-1"].health_check = AsyncMock(
+            return_value=HealthStatus.HEALTHY
+        )
 
         result = await orch.check_all_health()
         assert "rust:svc-1" in result
@@ -877,7 +921,9 @@ class TestCheckAllHealth:
         swarm.agents["rust:svc-1"] = _make_rust_agent("svc-1")
         orch._swarms["s1"] = swarm
         orch.register_rust_service("svc-1")
-        orch.rust_adapters["svc-1"].health_check = AsyncMock(return_value=HealthStatus.DEGRADED)
+        orch.rust_adapters["svc-1"].health_check = AsyncMock(
+            return_value=HealthStatus.DEGRADED
+        )
 
         result = await orch.check_all_health()
         assert result["rust:svc-1"] == HealthStatus.DEGRADED
@@ -891,7 +937,9 @@ class TestCheckAllHealth:
         swarm.agents["rust:svc-1"] = _make_rust_agent("svc-1")
         orch._swarms["s1"] = swarm
         orch.register_rust_service("svc-1")
-        orch.rust_adapters["svc-1"].health_check = AsyncMock(return_value=HealthStatus.HEALTHY)
+        orch.rust_adapters["svc-1"].health_check = AsyncMock(
+            return_value=HealthStatus.HEALTHY
+        )
 
         result = await orch.check_all_health()
         assert len(result) == 2
@@ -1063,12 +1111,14 @@ class TestScaling:
 
         await orch.apply_scaling_decision(decision, "s1")
 
-        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        python_agents = [
+            a for a in swarm.agents.values() if not a.id.startswith("rust:")
+        ]
         rust_agents = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         # Delta = 10. Python delta = int(10 * 0.7) = 7. Rust delta = 10 - 7 = 3.
         assert len(python_agents) == 3 + 7  # 10
-        assert len(rust_agents) == 1 + 3    # 4
+        assert len(rust_agents) == 1 + 3  # 4
 
     @pytest.mark.asyncio
     async def test_scale_up_unknown_swarm_is_noop(self):
@@ -1116,7 +1166,9 @@ class TestScaling:
 
         await orch.apply_scaling_decision(decision, "s1")
 
-        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        python_agents = [
+            a for a in swarm.agents.values() if not a.id.startswith("rust:")
+        ]
         rust_agents = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         # delta=3. Python can shrink by min(3, 5-1)=3. Rust delta = 3-3 = 0.
@@ -1138,7 +1190,9 @@ class TestScaling:
 
         await orch.apply_scaling_decision(decision, "s1")
 
-        python_agents = [a for a in swarm.agents.values() if not a.id.startswith("rust:")]
+        python_agents = [
+            a for a in swarm.agents.values() if not a.id.startswith("rust:")
+        ]
         rust_agents = [a for a in swarm.agents.values() if a.id.startswith("rust:")]
 
         # delta=3. Python delta = min(3, 2-1) = 1. Remaining delta = 2.

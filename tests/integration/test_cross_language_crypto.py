@@ -92,9 +92,9 @@ class TestBLAKE3BareHash:
         from core.proof_engine.canonical import hex_digest
 
         result = hex_digest(b"")
-        assert result == BLAKE3_EMPTY, (
-            f"BLAKE3('') mismatch: got {result}, expected {BLAKE3_EMPTY}"
-        )
+        assert (
+            result == BLAKE3_EMPTY
+        ), f"BLAKE3('') mismatch: got {result}, expected {BLAKE3_EMPTY}"
 
     def test_hex_digest_uses_blake3_not_sha256(self, blake3_mod):
         """Verify hex_digest is NOT producing SHA-256 output."""
@@ -106,9 +106,9 @@ class TestBLAKE3BareHash:
         blake3_result = hex_digest(msg)
         sha256_result = hashlib.sha256(msg).hexdigest()
 
-        assert blake3_result != sha256_result, (
-            "hex_digest() returned SHA-256 output — SEC-001 regression!"
-        )
+        assert (
+            blake3_result != sha256_result
+        ), "hex_digest() returned SHA-256 output — SEC-001 regression!"
 
     def test_deterministic(self, blake3_mod):
         """Same input always produces same output."""
@@ -175,9 +175,9 @@ class TestDomainSeparatedDigest:
         msg = b"test separation"
         bare = hex_digest(msg)
         separated = domain_separated_digest(msg)
-        assert bare != separated, (
-            "Domain-separated hash equals bare hash — prefix not applied!"
-        )
+        assert (
+            bare != separated
+        ), "Domain-separated hash equals bare hash — prefix not applied!"
 
     def test_domain_separated_matches_manual_computation(self, blake3_mod):
         """Manual blake3(prefix + msg) matches domain_separated_digest()."""
@@ -191,9 +191,9 @@ class TestDomainSeparatedDigest:
         expected = hasher.hexdigest()
 
         result = domain_separated_digest(msg)
-        assert result == expected, (
-            f"domain_separated_digest mismatch: got {result}, expected {expected}"
-        )
+        assert (
+            result == expected
+        ), f"domain_separated_digest mismatch: got {result}, expected {expected}"
 
     def test_empty_message_with_domain(self, blake3_mod):
         """Domain-separated hash of empty message = blake3(prefix)."""
@@ -558,9 +558,9 @@ class TestSEC001RegressionGuard:
             sort_keys=True,
         ).encode("utf-8")
         sha256_hash = hashlib.sha256(canonical).hexdigest()
-        assert entry.entry_hash != sha256_hash, (
-            "EvidenceLedger still uses SHA-256 — SEC-001 regression!"
-        )
+        assert (
+            entry.entry_hash != sha256_hash
+        ), "EvidenceLedger still uses SHA-256 — SEC-001 regression!"
 
     def test_receipt_builder_produces_blake3_digests(self, blake3_mod):
         """ReceiptBuilder receipts use BLAKE3 for all digests."""

@@ -13,20 +13,21 @@ Standing on Giants: Shannon, Anthropic, Friston
 """
 
 import math
-import pytest
-import numpy as np
 from typing import List, Tuple
 
+import numpy as np
+import pytest
+
+from core.ntu import NTUState
 from core.sovereign.ihsan_projector import (
+    IHSAN_ARABIC_NAMES,
+    IhsanDimension,
     IhsanProjector,
     IhsanVector,
-    IhsanDimension,
     ProjectorConfig,
-    project_ihsan_to_ntu,
     create_ihsan_from_scores,
-    IHSAN_ARABIC_NAMES,
+    project_ihsan_to_ntu,
 )
-from core.ntu import NTUState
 
 
 class TestIhsanVector:
@@ -56,15 +57,29 @@ class TestIhsanVector:
     def test_constitutional_violation_detection(self) -> None:
         """Vectors with any dimension < 0.5 should flag violation."""
         # No violation
-        v_ok = IhsanVector(truthfulness=0.6, justice=0.7, excellence=0.8,
-                          trustworthiness=0.6, wisdom=0.6, compassion=0.6,
-                          patience=0.6, gratitude=0.6)
+        v_ok = IhsanVector(
+            truthfulness=0.6,
+            justice=0.7,
+            excellence=0.8,
+            trustworthiness=0.6,
+            wisdom=0.6,
+            compassion=0.6,
+            patience=0.6,
+            gratitude=0.6,
+        )
         assert not v_ok.has_constitutional_violation
 
         # Single violation
-        v_violation = IhsanVector(truthfulness=0.3, justice=0.7, excellence=0.8,
-                                 trustworthiness=0.6, wisdom=0.6, compassion=0.6,
-                                 patience=0.6, gratitude=0.6)
+        v_violation = IhsanVector(
+            truthfulness=0.3,
+            justice=0.7,
+            excellence=0.8,
+            trustworthiness=0.6,
+            wisdom=0.6,
+            compassion=0.6,
+            patience=0.6,
+            gratitude=0.6,
+        )
         assert v_violation.has_constitutional_violation
         min_dim, min_val = v_violation.min_dimension
         assert min_dim == IhsanDimension.TRUTHFULNESS
@@ -103,15 +118,24 @@ class TestIhsanVector:
         assert balanced.aggregate_score == pytest.approx(0.8, abs=0.01)
 
         # Imbalanced vector (one low dimension penalizes heavily)
-        imbalanced = IhsanVector.from_array(np.array([0.1, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]))
+        imbalanced = IhsanVector.from_array(
+            np.array([0.1, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9])
+        )
         # Geometric mean of (0.1 * 0.9^7)^(1/8) should be less than arithmetic mean
         assert imbalanced.aggregate_score < 0.7
 
     def test_serialization_roundtrip(self) -> None:
         """to_dict and from_dict should preserve values."""
-        v1 = IhsanVector(truthfulness=0.9, justice=0.7, excellence=0.95,
-                        trustworthiness=0.85, wisdom=0.8, compassion=0.75,
-                        patience=0.7, gratitude=0.65)
+        v1 = IhsanVector(
+            truthfulness=0.9,
+            justice=0.7,
+            excellence=0.95,
+            trustworthiness=0.85,
+            wisdom=0.8,
+            compassion=0.75,
+            patience=0.7,
+            gratitude=0.65,
+        )
         d = v1.to_dict()
         v2 = IhsanVector.from_dict(d)
         assert np.allclose(v1.as_array, v2.as_array)
@@ -205,14 +229,18 @@ class TestIhsanProjector:
         # Low entropy (high certainty)
         assert ntu.entropy < 0.5
 
-    def test_constitutional_violation_penalizes_belief(self, projector: IhsanProjector) -> None:
+    def test_constitutional_violation_penalizes_belief(
+        self, projector: IhsanProjector
+    ) -> None:
         """Constitutional violation should reduce belief."""
         # Good vector
         good = IhsanVector.from_array(np.array([0.8] * 8))
         ntu_good = projector.project(good)
 
         # Violation vector (one dimension below 0.5)
-        violation = IhsanVector.from_array(np.array([0.3, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]))
+        violation = IhsanVector.from_array(
+            np.array([0.3, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+        )
         ntu_violation = projector.project(violation)
 
         # Violation should have lower belief
@@ -222,17 +250,27 @@ class TestIhsanProjector:
         """Justice should have largest impact on potential."""
         # High justice
         high_justice = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.95,
-            excellence=0.5, wisdom=0.5, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.95,
+            excellence=0.5,
+            wisdom=0.5,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_high = projector.project(high_justice)
 
         # Low justice
         low_justice = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.55,
-            excellence=0.5, wisdom=0.5, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.55,
+            excellence=0.5,
+            wisdom=0.5,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_low = projector.project(low_justice)
 
@@ -243,17 +281,27 @@ class TestIhsanProjector:
         """Excellence should be primary belief contributor."""
         # High excellence
         high_excellence = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.5,
-            excellence=0.95, wisdom=0.5, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.5,
+            excellence=0.95,
+            wisdom=0.5,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_high = projector.project(high_excellence)
 
         # Low excellence
         low_excellence = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.5,
-            excellence=0.55, wisdom=0.5, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.5,
+            excellence=0.55,
+            wisdom=0.5,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_low = projector.project(low_excellence)
 
@@ -264,17 +312,27 @@ class TestIhsanProjector:
         """High wisdom should reduce entropy (more certainty)."""
         # High wisdom
         high_wisdom = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.5,
-            excellence=0.5, wisdom=0.95, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.5,
+            excellence=0.5,
+            wisdom=0.95,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_high = projector.project(high_wisdom)
 
         # Low wisdom
         low_wisdom = IhsanVector(
-            truthfulness=0.5, trustworthiness=0.5, justice=0.5,
-            excellence=0.5, wisdom=0.55, compassion=0.5,
-            patience=0.5, gratitude=0.5
+            truthfulness=0.5,
+            trustworthiness=0.5,
+            justice=0.5,
+            excellence=0.5,
+            wisdom=0.55,
+            compassion=0.5,
+            patience=0.5,
+            gratitude=0.5,
         )
         ntu_low = projector.project(low_wisdom)
 
@@ -316,9 +374,14 @@ class TestIhsanProjector:
     def test_inverse_projection(self, projector: IhsanProjector) -> None:
         """Inverse projection should approximate original."""
         original = IhsanVector(
-            truthfulness=0.8, trustworthiness=0.7, justice=0.9,
-            excellence=0.85, wisdom=0.75, compassion=0.8,
-            patience=0.7, gratitude=0.65
+            truthfulness=0.8,
+            trustworthiness=0.7,
+            justice=0.9,
+            excellence=0.85,
+            wisdom=0.75,
+            compassion=0.8,
+            patience=0.7,
+            gratitude=0.65,
         )
         ntu = projector.project(original)
         recovered = projector.inverse_project(ntu, prior=IhsanVector.neutral())
@@ -344,7 +407,7 @@ class TestCalibration:
             (IhsanVector.neutral(), NTUState(belief=0.5, entropy=0.5, potential=0.5)),
             (
                 IhsanVector.from_array(np.array([0.7] * 8)),
-                NTUState(belief=0.7, entropy=0.3, potential=0.6)
+                NTUState(belief=0.7, entropy=0.3, potential=0.6),
             ),
         ]
 
@@ -377,10 +440,7 @@ class TestConvenienceFunctions:
     def test_create_ihsan_from_scores(self) -> None:
         """Score mapping should produce valid Ihsan vector."""
         ihsan = create_ihsan_from_scores(
-            correctness=0.9,
-            safety=0.85,
-            helpfulness=0.8,
-            efficiency=0.75
+            correctness=0.9, safety=0.85, helpfulness=0.8, efficiency=0.75
         )
 
         assert isinstance(ihsan, IhsanVector)
@@ -464,4 +524,6 @@ class TestDiagnostics:
 
         # Dominant dimensions should be valid names
         assert diag["dominant_dimensions"]["belief"] in [d.name for d in IhsanDimension]
-        assert diag["dominant_dimensions"]["potential"] in [d.name for d in IhsanDimension]
+        assert diag["dominant_dimensions"]["potential"] in [
+            d.name for d in IhsanDimension
+        ]

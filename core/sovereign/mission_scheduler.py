@@ -24,7 +24,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.sovereign.proactive_scheduler import (
@@ -164,11 +164,9 @@ class MissionPersistence:
 
     def get_pending(self) -> list[MissionRecord]:
         """Get all pending missions ordered by next_run."""
-        rows = self._conn.execute(
-            """SELECT * FROM proactive_missions
+        rows = self._conn.execute("""SELECT * FROM proactive_missions
                WHERE status = 'pending'
-               ORDER BY next_run ASC"""
-        ).fetchall()
+               ORDER BY next_run ASC""").fetchall()
         return [self._row_to_record(r) for r in rows]
 
     def get_history(self, limit: int = 20) -> list[MissionRecord]:
@@ -200,7 +198,9 @@ class MissionPersistence:
         self._conn.close()
 
 
-def _parse_schedule(schedule: str) -> tuple[ScheduleType, Optional[float], Optional[datetime]]:
+def _parse_schedule(
+    schedule: str,
+) -> tuple[ScheduleType, Optional[float], Optional[datetime]]:
     """Parse a schedule string into ProactiveScheduler parameters.
 
     Supports:
@@ -256,8 +256,13 @@ def _next_daily_time(hour: int, minute: int) -> datetime:
 def _next_weekday_time(day_name: str, hour: int, minute: int) -> datetime:
     """Next occurrence of 'DayName HH:MM' (UTC)."""
     days = {
-        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-        "friday": 4, "saturday": 5, "sunday": 6,
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6,
     }
     target_day = days.get(day_name.lower(), 0)
     now = datetime.now(timezone.utc)
@@ -407,16 +412,12 @@ class MissionScheduler:
             self._persistence.upsert(record)
 
         self._running = True
-        logger.info(
-            "MissionScheduler started with %d missions", len(self._missions)
-        )
+        logger.info("MissionScheduler started with %d missions", len(self._missions))
 
         # Start scheduler in background
         asyncio.create_task(self._scheduler.start())
 
-    def _make_handler(
-        self, name: str, mission: MissionDefinition
-    ) -> Callable:
+    def _make_handler(self, name: str, mission: MissionDefinition) -> Callable:
         """Create an async handler for a mission that respects PEK gates.
 
         PEK confidence gate (from runtime_types.py):
@@ -434,13 +435,20 @@ class MissionScheduler:
             confidence = self._estimate_confidence(name, mission)
             logger.info(
                 "Mission %s confidence=%.2f (auto_tau=%.2f, min=%.2f)",
-                name, confidence, self._auto_execute_tau, self._min_confidence,
+                name,
+                confidence,
+                self._auto_execute_tau,
+                self._min_confidence,
             )
 
             # Gate 1: Below minimum confidence -> skip
             if confidence < self._min_confidence:
-                logger.info("Mission %s skipped: confidence %.2f < min %.2f",
-                            name, confidence, self._min_confidence)
+                logger.info(
+                    "Mission %s skipped: confidence %.2f < min %.2f",
+                    name,
+                    confidence,
+                    self._min_confidence,
+                )
                 record = MissionRecord(
                     mission_name=name,
                     cron=mission.schedule,
@@ -455,7 +463,8 @@ class MissionScheduler:
             if confidence < self._auto_execute_tau:
                 logger.info(
                     "Mission %s proposed for approval: confidence %.2f",
-                    name, confidence,
+                    name,
+                    confidence,
                 )
                 approval_item = {
                     "name": name,  # React reads mission.name
@@ -479,8 +488,12 @@ class MissionScheduler:
                 return {"status": "pending_approval", "confidence": confidence}
 
             # Gate 3: Above auto_execute_tau -> execute automatically
-            logger.info("Mission %s auto-executing: confidence %.2f >= %.2f",
-                        name, confidence, self._auto_execute_tau)
+            logger.info(
+                "Mission %s auto-executing: confidence %.2f >= %.2f",
+                name,
+                confidence,
+                self._auto_execute_tau,
+            )
 
             # Build mission dict for execute_fn
             mission_dict = {
@@ -505,9 +518,7 @@ class MissionScheduler:
             # Execute via the wired execution function
             if self._execute_fn:
                 try:
-                    result = await self._execute_fn(
-                        mission_dict, mission.agents
-                    )
+                    result = await self._execute_fn(mission_dict, mission.agents)
                     ihsan = result.get("ihsan_score", 0.0)
                     snr = result.get("snr_score", 0.0)
 
@@ -525,7 +536,10 @@ class MissionScheduler:
 
                     logger.info(
                         "Mission %s completed: ihsan=%.2f snr=%.2f tokens=%d",
-                        name, ihsan, snr, record.total_tokens,
+                        name,
+                        ihsan,
+                        snr,
+                        record.total_tokens,
                     )
                     return result
 
@@ -538,7 +552,9 @@ class MissionScheduler:
             else:
                 # No execute_fn wired — log-only mode
                 record.status = "completed"
-                record.result_summary = f"dry-run (no execute_fn) confidence={confidence:.2f}"
+                record.result_summary = (
+                    f"dry-run (no execute_fn) confidence={confidence:.2f}"
+                )
                 self._persistence.upsert(record)
                 return {"status": "dry-run", "mission": name, "confidence": confidence}
 
@@ -579,7 +595,6 @@ class MissionScheduler:
         # Cap at 1.0
         return min(1.0, max(0.0, confidence))
 
-
     async def stop(self) -> None:
         """Graceful shutdown."""
         self._running = False
@@ -600,16 +615,18 @@ class MissionScheduler:
         result = []
         for name, mission in self._missions.items():
             record = self._persistence.get_by_name(name)
-            result.append({
-                "name": name,
-                "description": mission.description,
-                "schedule": mission.schedule,
-                "agents": mission.agents,
-                "enabled": mission.enabled,
-                "last_run": record.last_run if record else None,
-                "status": record.status if record else "never_run",
-                "ihsan_score": record.ihsan_score if record else 0.0,
-            })
+            result.append(
+                {
+                    "name": name,
+                    "description": mission.description,
+                    "schedule": mission.schedule,
+                    "agents": mission.agents,
+                    "enabled": mission.enabled,
+                    "last_run": record.last_run if record else None,
+                    "status": record.status if record else "never_run",
+                    "ihsan_score": record.ihsan_score if record else 0.0,
+                }
+            )
         return result
 
     def get_history(self, limit: int = 20) -> list[MissionRecord]:

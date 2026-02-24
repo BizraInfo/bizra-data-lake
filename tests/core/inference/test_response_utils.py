@@ -9,13 +9,14 @@ Created: 2026-02-05 | BIZRA Node0 Genesis
 """
 
 import pytest
+
 from core.inference.response_utils import (
-    strip_think_tokens,
-    strip_reasoning_tokens,
-    strip_all_reasoning_tokens,
-    normalize_response,
     extract_think_content,
     has_think_tokens,
+    normalize_response,
+    strip_all_reasoning_tokens,
+    strip_reasoning_tokens,
+    strip_think_tokens,
 )
 
 
@@ -37,7 +38,9 @@ class TestStripThinkTokens:
             "Option B is also valid. The best choice is A."
         )
         result = strip_think_tokens(content)
-        assert result == "Option A is valid. Option B is also valid. The best choice is A."
+        assert (
+            result == "Option A is valid. Option B is also valid. The best choice is A."
+        )
 
     def test_multiline_think_block(self):
         """Test stripping <think> block with multiple lines."""

@@ -37,7 +37,6 @@ from core.rdve.orchestrator import (
     StageResult,
 )
 
-
 # ============================================================================
 # RDVEStage Enum
 # ============================================================================
@@ -49,8 +48,14 @@ class TestRDVEStage:
 
     def test_values_match_pipeline_order(self):
         expected = [
-            "observe", "generate", "explore", "filter",
-            "verify", "implement", "integrate", "learn",
+            "observe",
+            "generate",
+            "explore",
+            "filter",
+            "verify",
+            "implement",
+            "integrate",
+            "learn",
         ]
         actual = [s.value for s in RDVEStage]
         assert actual == expected

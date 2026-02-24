@@ -12,9 +12,10 @@ Verifies:
 - Golden-path: spearpoint.reproduce on a known deterministic claim
 """
 
-import pytest
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from core.proof_engine.evidence_ledger import EvidenceLedger
 from core.proof_engine.ihsan_gate import IhsanComponents
@@ -96,7 +97,11 @@ class TestCLEARScoring:
         high = evaluator.evaluate(
             claim="High quality output with strong performance characteristics and excellent reliability across all dimensions of evaluation",
             response="Detailed analysis showing high accuracy performance measurements across multiple runs with consistent results and data",
-            metrics={"accuracy": 0.98, "task_completion": 0.95, "goal_achievement": 0.9},
+            metrics={
+                "accuracy": 0.98,
+                "task_completion": 0.95,
+                "goal_achievement": 0.9,
+            },
         )
         low = evaluator.evaluate(
             claim="Low quality output with weak performance characteristics and poor reliability across evaluation dimensions being measured",
@@ -138,7 +143,11 @@ class TestReceiptEmission:
         result = evaluator.evaluate(
             claim="Valid deterministic claim that passes all quality gates with high confidence and verified reproducibility across all runs",
             response="This valid claim passes all quality gates including guardrails CLEAR metrics and Ihsan threshold requirements for excellence",
-            metrics={"accuracy": 0.98, "task_completion": 0.95, "goal_achievement": 0.95},
+            metrics={
+                "accuracy": 0.98,
+                "task_completion": 0.95,
+                "goal_achievement": 0.95,
+            },
             ihsan_components=IhsanComponents(
                 correctness=0.99, safety=0.99, efficiency=0.95, user_benefit=0.95
             ),
@@ -225,8 +234,10 @@ class TestTierPolicy:
         """REJECT tier produces no permitted actions."""
         result = evaluator.evaluate(claim="Bad", response="Bad")
         if result.verdict == Verdict.REJECTED:
-            assert not result.tier_decision.permitted_actions or \
-                len(result.tier_decision.restrictions) > 0
+            assert (
+                not result.tier_decision.permitted_actions
+                or len(result.tier_decision.restrictions) > 0
+            )
 
 
 class TestINCONCLUSIVE:

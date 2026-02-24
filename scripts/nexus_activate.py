@@ -39,8 +39,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -65,7 +64,6 @@ Standing on Giants:
 - Peter Drucker (1954): Management by objectives
 
 Provide strategic analysis with clear priorities. Be concise and actionable.""",
-
     "researcher": """You are the RESEARCHER agent in the BIZRA Sovereign Nexus.
 
 Your role: Deep investigation, knowledge synthesis, evidence gathering.
@@ -76,7 +74,6 @@ Standing on Giants:
 - Tim Berners-Lee (1989): Hyperlinked knowledge
 
 Provide well-sourced insights. Cite evidence. Be thorough but focused.""",
-
     "guardian": """You are the GUARDIAN agent in the BIZRA Sovereign Nexus.
 
 Your role: Security, ethics, compliance, risk assessment.
@@ -87,7 +84,6 @@ Standing on Giants:
 - Anthropic (2023): Constitutional AI
 
 Identify risks and ethical concerns. Enforce Ihsān (≥0.95). Be vigilant but constructive.""",
-
     "analyst": """You are the ANALYST agent in the BIZRA Sovereign Nexus.
 
 Your role: Data analysis, pattern recognition, quantitative reasoning.
@@ -98,7 +94,6 @@ Standing on Giants:
 - Edward Tufte (1983): Data visualization
 
 Provide data-driven insights. Quantify when possible. Be precise.""",
-
     "creator": """You are the CREATOR agent in the BIZRA Sovereign Nexus.
 
 Your role: Design, implementation, creative problem-solving.
@@ -109,7 +104,6 @@ Standing on Giants:
 - Rich Hickey (2007): Simple Made Easy
 
 Create elegant, maintainable solutions. Show code when appropriate.""",
-
     "coordinator": """You are the COORDINATOR agent in the BIZRA Sovereign Nexus.
 
 Your role: Orchestration, synthesis, team alignment.
@@ -228,6 +222,7 @@ async def run_status():
     print("\n▸ Sovereign Nexus:")
     try:
         from core.nexus import create_nexus
+
         nexus = create_nexus(lm_studio_token=LM_STUDIO_TOKEN)
         stats = nexus.get_stats()
         print(f"  ✓ State: {stats['state']}")
@@ -242,6 +237,7 @@ async def run_status():
     print("\n▸ Skill Registry:")
     try:
         from core.skills import get_skill_registry
+
         registry = get_skill_registry()
         stats = registry.get_stats()
         print(f"  ✓ Total skills: {stats['total_skills']}")
@@ -286,18 +282,22 @@ async def run_query(prompt: str, agents: list[str] = None):
             print(f"✓ ({tokens} tokens)")
             print(f"    └─ {display_content}\n")
 
-            results.append({
-                "agent": agent,
-                "content": content,
-                "tokens": tokens,
-            })
+            results.append(
+                {
+                    "agent": agent,
+                    "content": content,
+                    "tokens": tokens,
+                }
+            )
 
         except Exception as e:
             print(f"✗ Error: {e}\n")
-            results.append({
-                "agent": agent,
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "agent": agent,
+                    "error": str(e),
+                }
+            )
 
     # Synthesis
     print("  [SYNTHESIS] Combining insights...", end=" ", flush=True)
@@ -323,7 +323,7 @@ Keep the synthesis concise and focused."""
 
     except Exception as e:
         synthesis = f"Synthesis failed: {e}"
-        print(f"✗")
+        print("✗")
 
     # Results
     duration = time.perf_counter() - start_time
@@ -362,7 +362,7 @@ async def run_skill(skill_name: str, inputs: Dict[str, Any] = None):
     print("═" * 70)
 
     try:
-        from core.skills import get_skill_registry, SkillRouter
+        from core.skills import SkillRouter, get_skill_registry
 
         registry = get_skill_registry()
         skill = registry.get(skill_name)
@@ -380,6 +380,7 @@ async def run_skill(skill_name: str, inputs: Dict[str, Any] = None):
 
         # Get MCP tools
         from core.skills.mcp_bridge import MCPBridge
+
         bridge = MCPBridge()
         tools = bridge.get_all_tools(skill_name)
         print(f"▸ MCP Tools: {tools or 'Not mapped'}")
@@ -388,7 +389,7 @@ async def run_skill(skill_name: str, inputs: Dict[str, Any] = None):
         router = SkillRouter(registry=registry)
         result = await router.invoke(skill_name, inputs, ihsan_score=0.96)
 
-        print(f"\n▸ Result:")
+        print("\n▸ Result:")
         print(f"  Success: {result.success}")
         print(f"  Agent: {result.agent_used}")
         print(f"  Ihsān: {'✓' if result.ihsan_passed else '✗'}")
@@ -455,7 +456,7 @@ Environment:
   LM_API_TOKEN - LM Studio API token
 
 إحسان — Excellence in all things
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -467,10 +468,11 @@ Environment:
     query_parser = subparsers.add_parser("query", help="Process a query")
     query_parser.add_argument("prompt", help="The query to process")
     query_parser.add_argument(
-        "--agents", "-a",
+        "--agents",
+        "-a",
         nargs="+",
         default=["strategist", "guardian", "coordinator"],
-        help="Agents to use"
+        help="Agents to use",
     )
 
     # Skill

@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from common import DEFAULT_PACKAGE_ROOT, manifest_content_hash, utc_now_iso, write_json
+    from common import (
+        DEFAULT_PACKAGE_ROOT,
+        manifest_content_hash,
+        utc_now_iso,
+        write_json,
+    )
 except ModuleNotFoundError:
     from scripts.evidence.common import (
         DEFAULT_PACKAGE_ROOT,
@@ -43,7 +48,11 @@ def run(package_root: Path, from_tier: str, to_tier: str) -> int:
 
         should_copy = public_mode == "full" and visibility in {"both", "public_only"}
 
-        if should_copy and source_from_private.exists() and source_from_private.is_file():
+        if (
+            should_copy
+            and source_from_private.exists()
+            and source_from_private.is_file()
+        ):
             dest = to_root / logical
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_from_private, dest)
@@ -62,7 +71,9 @@ def run(package_root: Path, from_tier: str, to_tier: str) -> int:
         "stage": stage,
         "tier": to_tier,
         "policy_version": policy_version,
-        "manifest_content_hash": manifest_content_hash(stage, to_tier, policy_version, exported_entries),
+        "manifest_content_hash": manifest_content_hash(
+            stage, to_tier, policy_version, exported_entries
+        ),
         "entries": exported_entries,
     }
 
@@ -89,7 +100,13 @@ def main() -> None:
     parser.add_argument("--from", dest="from_tier", default="private_full")
     parser.add_argument("--to", dest="to_tier", default="public_redacted")
     args = parser.parse_args()
-    raise SystemExit(run(package_root=args.package_root, from_tier=args.from_tier, to_tier=args.to_tier))
+    raise SystemExit(
+        run(
+            package_root=args.package_root,
+            from_tier=args.from_tier,
+            to_tier=args.to_tier,
+        )
+    )
 
 
 if __name__ == "__main__":

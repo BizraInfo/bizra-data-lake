@@ -12,24 +12,25 @@ Standing on Giants:
 """
 
 import json
-import pytest
 from datetime import datetime, timezone
 
-from core.proof_engine.canonical import CanonQuery, CanonPolicy, blake3_digest
+import pytest
+
+from core.proof_engine.canonical import CanonPolicy, CanonQuery, blake3_digest
 from core.proof_engine.receipt import (
+    Metrics,
     Receipt,
-    ReceiptStatus,
     ReceiptBuilder,
+    ReceiptStatus,
     ReceiptVerifier,
     SimpleSigner,
-    Metrics,
 )
 from core.proof_engine.snr import SNREngine, SNRInput, SNRTrace
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def signer():
@@ -41,8 +42,10 @@ def signer():
 def query():
     """Standard test query."""
     return CanonQuery(
-        user_id="alice", user_state="active",
-        intent="What is sovereignty?", nonce="nonce_001",
+        user_id="alice",
+        user_state="active",
+        intent="What is sovereignty?",
+        nonce="nonce_001",
     )
 
 
@@ -50,8 +53,10 @@ def query():
 def policy():
     """Standard test policy."""
     return CanonPolicy(
-        policy_id="pol_test", version="1.0.0",
-        rules={"snr_min": 0.95}, thresholds={"ihsan": 0.95},
+        policy_id="pol_test",
+        version="1.0.0",
+        rules={"snr_min": 0.95},
+        thresholds={"ihsan": 0.95},
     )
 
 
@@ -64,6 +69,7 @@ def builder(signer):
 # =============================================================================
 # RECEIPT STATUS
 # =============================================================================
+
 
 class TestReceiptStatus:
     """Tests for ReceiptStatus enum."""
@@ -79,6 +85,7 @@ class TestReceiptStatus:
 # =============================================================================
 # SIMPLE SIGNER
 # =============================================================================
+
 
 class TestSimpleSigner:
     """Tests for SimpleSigner HMAC-based signing."""
@@ -172,6 +179,7 @@ class TestSimpleSigner:
 # METRICS
 # =============================================================================
 
+
 class TestMetrics:
     """Tests for Metrics dataclass."""
 
@@ -195,6 +203,7 @@ class TestMetrics:
 # RECEIPT
 # =============================================================================
 
+
 class TestReceipt:
     """Tests for Receipt dataclass."""
 
@@ -206,7 +215,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(query.canonical_bytes()),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         b1 = receipt.body_bytes()
@@ -221,7 +231,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         assert receipt.signature == b""
@@ -237,7 +248,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         receipt.sign_with(signer)
@@ -251,7 +263,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         receipt.sign_with(signer)
@@ -267,7 +280,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         d_unsigned = receipt.digest()
@@ -283,7 +297,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
         )
         hd = receipt.hex_digest()
@@ -298,7 +313,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
             gate_passed="commit",
             reason=None,
         )
@@ -325,7 +341,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.50, ihsan_score=0.80,
+            snr=0.50,
+            ihsan_score=0.80,
             gate_passed="snr",
             reason="SNR below threshold",
         )
@@ -343,7 +360,8 @@ class TestReceipt:
             query_digest=query.digest(),
             policy_digest=policy.digest(),
             payload_digest=blake3_digest(b""),
-            snr=0.0, ihsan_score=0.0,
+            snr=0.0,
+            ihsan_score=0.0,
             gate_passed="none",
         )
         assert receipt.timestamp is not None
@@ -354,15 +372,18 @@ class TestReceipt:
 # RECEIPT BUILDER
 # =============================================================================
 
+
 class TestReceiptBuilder:
     """Tests for ReceiptBuilder."""
 
     def test_accepted_receipt(self, builder, query, policy):
         """accepted() creates an ACCEPTED receipt."""
         receipt = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         assert receipt.status == ReceiptStatus.ACCEPTED
         assert receipt.gate_passed == "commit"
@@ -371,8 +392,10 @@ class TestReceiptBuilder:
     def test_rejected_receipt(self, builder, query, policy):
         """rejected() creates a REJECTED receipt."""
         receipt = builder.rejected(
-            query=query, policy=policy,
-            snr=0.50, ihsan_score=0.80,
+            query=query,
+            policy=policy,
+            snr=0.50,
+            ihsan_score=0.80,
             gate_failed="snr",
             reason="SNR below threshold",
         )
@@ -383,9 +406,11 @@ class TestReceiptBuilder:
     def test_amber_restricted_receipt(self, builder, query, policy):
         """amber_restricted() creates an AMBER_RESTRICTED receipt."""
         receipt = builder.amber_restricted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.92, ihsan_score=0.90,
+            snr=0.92,
+            ihsan_score=0.90,
             restriction_reason="Safety concerns",
         )
         assert receipt.status == ReceiptStatus.AMBER_RESTRICTED
@@ -395,14 +420,18 @@ class TestReceiptBuilder:
     def test_receipt_ids_unique(self, builder, query, policy):
         """Each receipt gets a unique ID."""
         r1 = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         r2 = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         assert r1.receipt_id != r2.receipt_id
 
@@ -411,8 +440,11 @@ class TestReceiptBuilder:
         ids = []
         for _ in range(5):
             r = builder.accepted(
-                query=query, policy=policy,
-                payload=b"", snr=0.96, ihsan_score=0.97,
+                query=query,
+                policy=policy,
+                payload=b"",
+                snr=0.96,
+                ihsan_score=0.97,
             )
             ids.append(r.receipt_id)
         # All unique
@@ -422,8 +454,11 @@ class TestReceiptBuilder:
         """accepted() accepts Metrics."""
         metrics = Metrics(p99_us=500, duration_ms=0.5)
         receipt = builder.accepted(
-            query=query, policy=policy,
-            payload=b"", snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.96,
+            ihsan_score=0.97,
             metrics=metrics,
         )
         assert receipt.metrics.p99_us == 500
@@ -435,8 +470,11 @@ class TestReceiptBuilder:
         _, trace = engine.compute(inputs)
 
         receipt = builder.accepted(
-            query=query, policy=policy,
-            payload=b"", snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.96,
+            ihsan_score=0.97,
             snr_trace=trace,
         )
         assert receipt.snr_trace is not None
@@ -447,16 +485,26 @@ class TestReceiptBuilder:
     def test_all_receipts_are_signed(self, builder, query, policy):
         """All builder methods produce signed receipts."""
         accepted = builder.accepted(
-            query=query, policy=policy, payload=b"",
-            snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.96,
+            ihsan_score=0.97,
         )
         rejected = builder.rejected(
-            query=query, policy=policy, snr=0.5, ihsan_score=0.8,
-            gate_failed="snr", reason="test",
+            query=query,
+            policy=policy,
+            snr=0.5,
+            ihsan_score=0.8,
+            gate_failed="snr",
+            reason="test",
         )
         amber = builder.amber_restricted(
-            query=query, policy=policy, payload=b"",
-            snr=0.92, ihsan_score=0.9,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.92,
+            ihsan_score=0.9,
             restriction_reason="test",
         )
         for r in [accepted, rejected, amber]:
@@ -468,15 +516,18 @@ class TestReceiptBuilder:
 # RECEIPT VERIFIER
 # =============================================================================
 
+
 class TestReceiptVerifier:
     """Tests for ReceiptVerifier."""
 
     def test_verify_valid_receipt(self, signer, builder, query, policy):
         """Valid receipt verifies successfully."""
         receipt = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         verifier = ReceiptVerifier(signer)
         valid, error = verifier.verify(receipt)
@@ -486,9 +537,11 @@ class TestReceiptVerifier:
     def test_verify_tampered_receipt(self, signer, builder, query, policy):
         """Tampered receipt fails verification."""
         receipt = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         receipt.snr = 0.01  # Tamper
         verifier = ReceiptVerifier(signer)
@@ -499,9 +552,11 @@ class TestReceiptVerifier:
     def test_verify_wrong_signer(self, builder, query, policy):
         """Receipt from different signer fails."""
         receipt = builder.accepted(
-            query=query, policy=policy,
+            query=query,
+            policy=policy,
             payload=query.canonical_bytes(),
-            snr=0.96, ihsan_score=0.97,
+            snr=0.96,
+            ihsan_score=0.97,
         )
         other_signer = SimpleSigner(secret=b"different_key")
         verifier = ReceiptVerifier(other_signer)
@@ -514,15 +569,21 @@ class TestReceiptVerifier:
 
         # Valid
         r1 = builder.accepted(
-            query=query, policy=policy, payload=b"",
-            snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.96,
+            ihsan_score=0.97,
         )
         verifier.verify(r1)
 
         # Tampered
         r2 = builder.accepted(
-            query=query, policy=policy, payload=b"",
-            snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"",
+            snr=0.96,
+            ihsan_score=0.97,
         )
         r2.snr = 0.01
         verifier.verify(r2)

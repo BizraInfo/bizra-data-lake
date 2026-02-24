@@ -12,7 +12,7 @@ import os
 import subprocess
 import sys
 import time
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -32,10 +32,10 @@ from core.memory.types import MemoryKind, MemoryRecord, SearchResult
 from core.prediction import HMMState, PredictionResult
 from core.resonance import ResonanceResult
 
-
 # ---------------------------------------------------------------------------
 # Module-wide fixture: enable all Phase 46 canary routes for unit tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(autouse=True)
 def _enable_phase46_canary(monkeypatch):
@@ -50,7 +50,10 @@ def _enable_phase46_canary(monkeypatch):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_search_result(content: str, score: float, source: str = "test.parquet") -> SearchResult:
+
+def _make_search_result(
+    content: str, score: float, source: str = "test.parquet"
+) -> SearchResult:
     """Build a SearchResult with a realistic MemoryRecord."""
     record = MemoryRecord(
         id="test-id-001",
@@ -82,12 +85,14 @@ def _make_prediction_result(
 # 1. TestPhase46Interface — initialization and status
 # ===========================================================================
 
+
 class TestPhase46Interface:
     """Verify Phase46Interface lazy init, partial init, and status reporting."""
 
     def _make_interface(self):
         """Import and instantiate a fresh Phase46Interface."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         return Phase46Interface()
 
     def test_not_initialized_by_default(self):
@@ -100,17 +105,21 @@ class TestPhase46Interface:
     def test_initialize_all_components(self):
         """When all three imports succeed, initialize returns True."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
 
         mock_search_cls = MagicMock()
         mock_hmm_cls = MagicMock()
         mock_resonance_cls = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.search": MagicMock(VectorSearchEngine=mock_search_cls),
-            "core.prediction": MagicMock(HMMEngine=mock_hmm_cls),
-            "core.resonance": MagicMock(CognitiveResonance=mock_resonance_cls),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.search": MagicMock(VectorSearchEngine=mock_search_cls),
+                "core.prediction": MagicMock(HMMEngine=mock_hmm_cls),
+                "core.resonance": MagicMock(CognitiveResonance=mock_resonance_cls),
+            },
+        ):
             result = iface.initialize()
 
         assert result is True
@@ -122,6 +131,7 @@ class TestPhase46Interface:
     def test_partial_init_search_fails(self):
         """When VectorSearchEngine import raises, HMM + resonance still init."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
 
         mock_hmm_cls = MagicMock()
@@ -160,6 +170,7 @@ class TestPhase46Interface:
     def test_partial_init_hmm_fails(self):
         """When HMMEngine import raises, search still inits, resonance has search but no prediction."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
 
         # Simulate: search succeeds, hmm fails, resonance inits with search only
@@ -178,6 +189,7 @@ class TestPhase46Interface:
     def test_status_reports_correctly(self):
         """After full init, status dict has correct booleans and state."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
 
         mock_hmm = MagicMock()
@@ -202,11 +214,13 @@ class TestPhase46Interface:
 # 2. TestSearchTool — Phase46Interface.search()
 # ===========================================================================
 
+
 class TestSearchTool:
     """Verify search serialization, top_k passthrough, and error handling."""
 
     def _make_interface_with_search(self, mock_engine=None):
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface._search = mock_engine or MagicMock()
         iface.initialized = True
@@ -253,6 +267,7 @@ class TestSearchTool:
     def test_search_no_engine_returns_error(self):
         """When _search is None, return error dict with empty results."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface.initialized = True
         iface._search = None
@@ -278,11 +293,13 @@ class TestSearchTool:
 # 3. TestPredictTool — Phase46Interface.predict()
 # ===========================================================================
 
+
 class TestPredictTool:
     """Verify HMM predict serialization, error paths, and state changes."""
 
     def _make_interface_with_hmm(self, mock_engine=None):
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface._hmm = mock_engine or MagicMock()
         iface.initialized = True
@@ -320,6 +337,7 @@ class TestPredictTool:
     def test_predict_no_engine_returns_error(self):
         """When _hmm is None, return error dict."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface.initialized = True
         iface._hmm = None
@@ -355,11 +373,13 @@ class TestPredictTool:
 # 4. TestResonanceTool — Phase46Interface.resonance()
 # ===========================================================================
 
+
 class TestResonanceTool:
     """Verify resonance pipeline serialization and error handling."""
 
     def _make_interface_with_resonance(self, mock_engine=None):
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface._resonance = mock_engine or MagicMock()
         iface.initialized = True
@@ -390,7 +410,11 @@ class TestResonanceTool:
         assert result["search_results"] == []
         assert result["search_count"] == 0
         assert result["combined_snr"] == 0.85
-        assert result["processing_path"] == ["search:0_hits", "prediction:analyzing", "snr:0.850"]
+        assert result["processing_path"] == [
+            "search:0_hits",
+            "prediction:analyzing",
+            "snr:0.850",
+        ]
         assert result["prediction"]["most_likely_state"] == "analyzing"
         assert result["prediction"]["predicted_next"] == "creating"
         assert result["prediction"]["confidence"] == 0.67
@@ -404,6 +428,7 @@ class TestResonanceTool:
     async def test_resonance_no_engine_returns_error(self):
         """When _resonance is None, return error dict."""
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         iface = Phase46Interface()
         iface.initialized = True
         iface._resonance = None
@@ -445,11 +470,13 @@ class TestResonanceTool:
 # 5. TestRollbackIntegration — RollbackEngine wired into Phase46Interface
 # ===========================================================================
 
+
 class TestRollbackIntegration:
     """Verify RollbackEngine is wired into Phase46Interface and evaluates after tool calls."""
 
     def _make_interface(self):
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         return Phase46Interface()
 
     def test_rollback_engine_instantiated(self):
@@ -457,6 +484,7 @@ class TestRollbackIntegration:
         iface = self._make_interface()
         assert hasattr(iface, "_rollback")
         from core.rollout.rollback import RollbackEngine
+
         assert isinstance(iface._rollback, RollbackEngine)
 
     def test_rollback_engine_receives_metrics(self):
@@ -504,12 +532,18 @@ class TestRollbackIntegration:
         iface._metrics.inc("search_requests", 15)
         iface._metrics.inc("search_errors", 5)
         iface._evaluate_rollback()
-        assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 1
+        assert (
+            iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"]
+            == 1
+        )
 
         # Second eval: clean (reset counter manually for clean run)
         iface._metrics._counters["search_errors"] = 0
         iface._evaluate_rollback()
-        assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 0
+        assert (
+            iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"]
+            == 0
+        )
 
     def test_two_consecutive_breaches_trigger_rollback(self, tmp_path):
         """Two consecutive error breaches trigger RollbackEngine rollback."""
@@ -526,12 +560,22 @@ class TestRollbackIntegration:
         try:
             # First breach
             iface._evaluate_rollback()
-            assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 1
+            assert (
+                iface._rollback.status["breach_windows"]["search_error_rate"][
+                    "consecutive"
+                ]
+                == 1
+            )
 
             # Second consecutive breach -> triggers rollback
             iface._evaluate_rollback()
             # After rollback, consecutive resets to 0
-            assert iface._rollback.status["breach_windows"]["search_error_rate"]["consecutive"] == 0
+            assert (
+                iface._rollback.status["breach_windows"]["search_error_rate"][
+                    "consecutive"
+                ]
+                == 0
+            )
 
             # Verify receipt was written
             receipts = list(tmp_path.glob("rollback_*.json"))
@@ -579,12 +623,14 @@ class TestRollbackIntegration:
 # 6. TestCanaryGateEnforcement — P0 fix: canary actually blocks after rollback
 # ===========================================================================
 
+
 class TestCanaryGateEnforcement:
     """Verify that CanaryRouter gate in Phase46Interface actually stops traffic
     when env vars are zeroed by rollback."""
 
     def _make_interface(self):
         from tools.mcp.sovereign_mcp_server import Phase46Interface
+
         return Phase46Interface()
 
     def test_search_blocked_when_canary_disabled(self, monkeypatch):
@@ -690,6 +736,7 @@ class TestCanaryGateEnforcement:
 # HTTP Health/Metrics Server Tests
 # ===========================================================================
 
+
 class TestHTTPHealthServer:
     """Validate the HTTP health/metrics handler for K8s probes."""
 
@@ -697,6 +744,7 @@ class TestHTTPHealthServer:
     def _patch_globals(self, monkeypatch):
         """Patch global state read by _http_handler."""
         from tools.mcp import sovereign_mcp_server as mod
+
         monkeypatch.setattr(mod, "_query_count", 42)
         monkeypatch.setattr(mod, "_error_count", 3)
         return mod
@@ -736,6 +784,7 @@ class TestHTTPHealthServer:
     async def test_health_returns_200(self, _patch_globals):
         """GET /health returns 200 with JSON status."""
         from tools.mcp.sovereign_mcp_server import _http_handler
+
         response = await self._simulate_request(_http_handler, "/health")
         assert "200 OK" in response
         assert '"status": "healthy"' in response
@@ -745,6 +794,7 @@ class TestHTTPHealthServer:
     async def test_metrics_returns_prometheus_format(self, _patch_globals):
         """GET /metrics returns Prometheus text format."""
         from tools.mcp.sovereign_mcp_server import _http_handler
+
         response = await self._simulate_request(_http_handler, "/metrics")
         assert "200 OK" in response
         assert "bizra_phase46_search_requests_total" in response
@@ -755,6 +805,7 @@ class TestHTTPHealthServer:
     async def test_metrics_prometheus_alias(self, _patch_globals):
         """GET /metrics/prometheus also returns metrics (backward compat)."""
         from tools.mcp.sovereign_mcp_server import _http_handler
+
         response = await self._simulate_request(_http_handler, "/metrics/prometheus")
         assert "200 OK" in response
         assert "bizra_phase46_search_requests_total" in response
@@ -763,6 +814,7 @@ class TestHTTPHealthServer:
     async def test_unknown_path_returns_404(self, _patch_globals):
         """Unknown path returns 404."""
         from tools.mcp.sovereign_mcp_server import _http_handler
+
         response = await self._simulate_request(_http_handler, "/nonexistent")
         assert "404 Not Found" in response
 
@@ -770,13 +822,13 @@ class TestHTTPHealthServer:
     async def test_header_bomb_returns_431(self, _patch_globals):
         """Oversized headers (>8 KB) get rejected with 431."""
         import asyncio
+
         from tools.mcp.sovereign_mcp_server import _http_handler
 
         # Build a request with >8 KB of header data
         big_header = "X-Bomb: " + "A" * 9000 + "\r\n"
         request_bytes = (
-            "GET /health HTTP/1.1\r\n"
-            f"Host: localhost\r\n{big_header}\r\n"
+            "GET /health HTTP/1.1\r\n" f"Host: localhost\r\n{big_header}\r\n"
         ).encode()
 
         reader = asyncio.StreamReader()
@@ -808,6 +860,7 @@ class TestHTTPHealthServer:
 # 9. TestHeadlessMode — P0 fix: health server survives stdin close
 # ===========================================================================
 
+
 class TestHeadlessMode:
     """Verify that the sovereign MCP server keeps health server alive
     after stdio transport exits (K8s headless container mode).
@@ -823,8 +876,8 @@ class TestHeadlessMode:
     @staticmethod
     def _wait_for_health(port: int, timeout: float = 30.0) -> bool:
         """Poll /health until 200 or timeout.  Returns True if reachable."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -857,6 +910,7 @@ class TestHeadlessMode:
     def _kill_proc(proc: "subprocess.Popen") -> bytes:
         """Kill a subprocess and return its stderr."""
         import signal as _signal
+
         if proc.poll() is None:
             try:
                 proc.send_signal(_signal.SIGTERM)
@@ -864,7 +918,9 @@ class TestHeadlessMode:
             except Exception:
                 proc.kill()
                 proc.wait(timeout=3)
-        _, stderr = proc.communicate(timeout=5) if proc.returncode is None else (None, b"")
+        _, stderr = (
+            proc.communicate(timeout=5) if proc.returncode is None else (None, b"")
+        )
         # communicate may have already been called by wait; safe no-op
         try:
             _, stderr = proc.communicate(timeout=1)

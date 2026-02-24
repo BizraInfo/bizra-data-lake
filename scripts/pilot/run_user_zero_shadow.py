@@ -11,7 +11,6 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_OUTDIR = REPO / "artifacts" / "pilot"
 
@@ -21,7 +20,9 @@ def _sha256_text(text: str) -> str:
 
 
 def _sha256_obj(obj: dict[str, Any]) -> str:
-    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(
+        obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -31,7 +32,16 @@ def is_claim_bearing(prompt: str) -> bool:
 
 def is_consent_sensitive(prompt: str) -> bool:
     p = prompt.lower()
-    keys = ["share", "address", "payment", "email", "phone", "budget", "shoe size", "size"]
+    keys = [
+        "share",
+        "address",
+        "payment",
+        "email",
+        "phone",
+        "budget",
+        "shoe size",
+        "size",
+    ]
     return any(k in p for k in keys)
 
 
@@ -174,7 +184,9 @@ def run(args: argparse.Namespace) -> int:
     outdir.mkdir(parents=True, exist_ok=True)
 
     prompts = load_prompts(args)
-    evidence_map = load_evidence_map(Path(args.evidence_map) if args.evidence_map else None)
+    evidence_map = load_evidence_map(
+        Path(args.evidence_map) if args.evidence_map else None
+    )
 
     records: list[dict[str, Any]] = []
     prev = "0" * 64
@@ -211,7 +223,9 @@ def run(args: argparse.Namespace) -> int:
     }
 
     summary_path = outdir / "user_zero_shadow_summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     print(f"Wrote {records_path}")
     print(f"Wrote {summary_path}")

@@ -113,7 +113,11 @@ def main() -> int:
 
     # 1) Required docs must exist.
     for doc in REQUIRED_DOCS:
-        _assert(doc.exists(), f"Missing required documentation file: {doc.relative_to(ROOT)}", failures)
+        _assert(
+            doc.exists(),
+            f"Missing required documentation file: {doc.relative_to(ROOT)}",
+            failures,
+        )
 
     if failures:
         print("Documentation quality gate failed.")
@@ -129,13 +133,21 @@ def main() -> int:
     contributing = _read(ROOT / "CONTRIBUTING.md")
 
     for token in REQUIRED_README_TOKENS:
-        _assert(token in readme, f"README.md missing required docs link: {token}", failures)
+        _assert(
+            token in readme, f"README.md missing required docs link: {token}", failures
+        )
 
     for token in REQUIRED_PORTAL_TOKENS:
-        _assert(token in portal, f"docs/README.md missing required token: {token}", failures)
+        _assert(
+            token in portal, f"docs/README.md missing required token: {token}", failures
+        )
 
     for token in REQUIRED_CONTRIBUTING_TOKENS:
-        _assert(token in contributing, f"CONTRIBUTING.md missing required token: {token}", failures)
+        _assert(
+            token in contributing,
+            f"CONTRIBUTING.md missing required token: {token}",
+            failures,
+        )
 
     _parse_last_updated(portal, failures, "docs/README.md")
     _parse_last_updated(runbook, failures, "docs/OPERATIONS_RUNBOOK.md")

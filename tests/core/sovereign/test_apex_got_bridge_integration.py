@@ -23,14 +23,16 @@ import pytest
 # Required dict contract keys returned by _explore_thoughts
 # ---------------------------------------------------------------------------
 # These keys are present in ALL code paths (including the error fallback).
-_REQUIRED_KEYS = frozenset({
-    "conclusion",
-    "snr_score",
-    "passes_threshold",
-    "explored_nodes",
-    "depth_reached",
-    "best_path",
-})
+_REQUIRED_KEYS = frozenset(
+    {
+        "conclusion",
+        "snr_score",
+        "passes_threshold",
+        "explored_nodes",
+        "depth_reached",
+        "best_path",
+    }
+)
 
 # These additional keys are present in the success paths (bridge, canonical,
 # and no-reason fallback) but NOT in the exception-recovery path.
@@ -67,10 +69,10 @@ def _make_engine_self(got_engine: Any = None, got_max_depth: int = 5) -> MagicMo
 # on our minimal mock.
 from core.sovereign.apex_engine import ApexSovereignEngine
 
-
 # =========================================================================
 # 1. Bridge enabled -- GoTBridge preferred
 # =========================================================================
+
 
 class TestBridgeEnabled:
     """When BIZRA_PHASE46_GOT_BRIDGE_ENABLED=true AND GoTBridge is importable,
@@ -89,13 +91,16 @@ class TestBridgeEnabled:
 
         engine_self = _make_engine_self(got_engine=got_engine)
 
-        with patch(
-            "core.sovereign.apex_engine.GoTBridge",
-            fake_bridge_cls,
-            create=True,
-        ), patch.dict(
-            "sys.modules",
-            {"core.reasoning.got_bridge": MagicMock(GoTBridge=fake_bridge_cls)},
+        with (
+            patch(
+                "core.sovereign.apex_engine.GoTBridge",
+                fake_bridge_cls,
+                create=True,
+            ),
+            patch.dict(
+                "sys.modules",
+                {"core.reasoning.got_bridge": MagicMock(GoTBridge=fake_bridge_cls)},
+            ),
         ):
             result = await ApexSovereignEngine._explore_thoughts(
                 engine_self, "test query", {}, 0.85
@@ -139,21 +144,24 @@ class TestBridgeEnabled:
 # 2. Bridge disabled -- canonical got_engine.reason() used
 # =========================================================================
 
+
 class TestBridgeDisabled:
     """When the env var is unset (or '0'), the canonical GoT path is used."""
 
     @patch.dict(os.environ, {"BIZRA_PHASE46_GOT_BRIDGE_ENABLED": "0"})
     async def test_canonical_path_used(self):
         got_engine = MagicMock()
-        got_engine.reason = AsyncMock(return_value={
-            "conclusion": "canonical answer",
-            "snr_score": 0.88,
-            "ihsan_score": 0.90,
-            "passes_threshold": True,
-            "graph_stats": {"nodes_created": 4},
-            "depth_reached": 3,
-            "thoughts": ["t1", "t2"],
-        })
+        got_engine.reason = AsyncMock(
+            return_value={
+                "conclusion": "canonical answer",
+                "snr_score": 0.88,
+                "ihsan_score": 0.90,
+                "passes_threshold": True,
+                "graph_stats": {"nodes_created": 4},
+                "depth_reached": 3,
+                "thoughts": ["t1", "t2"],
+            }
+        )
 
         engine_self = _make_engine_self(got_engine=got_engine, got_max_depth=5)
 
@@ -172,26 +180,27 @@ class TestBridgeDisabled:
         os.environ.pop("BIZRA_PHASE46_GOT_BRIDGE_ENABLED", None)
 
         got_engine = MagicMock()
-        got_engine.reason = AsyncMock(return_value={
-            "conclusion": "fallback canonical",
-            "snr_score": 0.87,
-            "ihsan_score": 0.89,
-            "passes_threshold": True,
-            "graph_stats": {"nodes_created": 2},
-            "depth_reached": 2,
-            "thoughts": ["h1"],
-        })
+        got_engine.reason = AsyncMock(
+            return_value={
+                "conclusion": "fallback canonical",
+                "snr_score": 0.87,
+                "ihsan_score": 0.89,
+                "passes_threshold": True,
+                "graph_stats": {"nodes_created": 2},
+                "depth_reached": 2,
+                "thoughts": ["h1"],
+            }
+        )
 
         engine_self = _make_engine_self(got_engine=got_engine)
-        result = await ApexSovereignEngine._explore_thoughts(
-            engine_self, "q", {}, 0.80
-        )
+        result = await ApexSovereignEngine._explore_thoughts(engine_self, "q", {}, 0.80)
         assert result["conclusion"] == "fallback canonical"
 
 
 # =========================================================================
 # 3. Bridge fails -- falls back to canonical path
 # =========================================================================
+
 
 class TestBridgeFailsFallback:
     """When the bridge import or execution raises, the method must fall
@@ -201,20 +210,23 @@ class TestBridgeFailsFallback:
     async def test_import_error_fallback(self):
         """If core.reasoning.got_bridge cannot be imported, canonical path is used."""
         got_engine = MagicMock()
-        got_engine.reason = AsyncMock(return_value={
-            "conclusion": "fallback used",
-            "snr_score": 0.86,
-            "ihsan_score": 0.88,
-            "passes_threshold": True,
-            "graph_stats": {"nodes_created": 1},
-            "depth_reached": 1,
-            "thoughts": [],
-        })
+        got_engine.reason = AsyncMock(
+            return_value={
+                "conclusion": "fallback used",
+                "snr_score": 0.86,
+                "ihsan_score": 0.88,
+                "passes_threshold": True,
+                "graph_stats": {"nodes_created": 1},
+                "depth_reached": 1,
+                "thoughts": [],
+            }
+        )
 
         engine_self = _make_engine_self(got_engine=got_engine)
 
         # Ensure importing GoTBridge raises ImportError
         import sys
+
         saved = sys.modules.get("core.reasoning.got_bridge")
         sys.modules["core.reasoning.got_bridge"] = None  # type: ignore[assignment]
         try:
@@ -240,15 +252,17 @@ class TestBridgeFailsFallback:
         fake_bridge_cls = MagicMock(return_value=fake_bridge_instance)
 
         got_engine = MagicMock()
-        got_engine.reason = AsyncMock(return_value={
-            "conclusion": "recovered",
-            "snr_score": 0.85,
-            "ihsan_score": 0.87,
-            "passes_threshold": True,
-            "graph_stats": {"nodes_created": 2},
-            "depth_reached": 2,
-            "thoughts": ["r1"],
-        })
+        got_engine.reason = AsyncMock(
+            return_value={
+                "conclusion": "recovered",
+                "snr_score": 0.85,
+                "ihsan_score": 0.87,
+                "passes_threshold": True,
+                "graph_stats": {"nodes_created": 2},
+                "depth_reached": 2,
+                "thoughts": ["r1"],
+            }
+        )
 
         engine_self = _make_engine_self(got_engine=got_engine)
 
@@ -267,6 +281,7 @@ class TestBridgeFailsFallback:
 # =========================================================================
 # 4. Dict contract -- all required keys present
 # =========================================================================
+
 
 class TestDictContract:
     """Regardless of code path, the returned dict must contain all required keys."""
@@ -288,32 +303,32 @@ class TestDictContract:
             )
 
         all_expected = _REQUIRED_KEYS | _SUCCESS_EXTRA_KEYS
-        assert all_expected.issubset(result.keys()), (
-            f"Missing keys: {all_expected - result.keys()}"
-        )
+        assert all_expected.issubset(
+            result.keys()
+        ), f"Missing keys: {all_expected - result.keys()}"
 
     @patch.dict(os.environ, {"BIZRA_PHASE46_GOT_BRIDGE_ENABLED": "0"})
     async def test_canonical_path_contract(self):
         got_engine = MagicMock()
-        got_engine.reason = AsyncMock(return_value={
-            "conclusion": "c",
-            "snr_score": 0.88,
-            "ihsan_score": 0.90,
-            "passes_threshold": True,
-            "graph_stats": {"nodes_created": 3},
-            "depth_reached": 2,
-            "thoughts": [],
-        })
+        got_engine.reason = AsyncMock(
+            return_value={
+                "conclusion": "c",
+                "snr_score": 0.88,
+                "ihsan_score": 0.90,
+                "passes_threshold": True,
+                "graph_stats": {"nodes_created": 3},
+                "depth_reached": 2,
+                "thoughts": [],
+            }
+        )
 
         engine_self = _make_engine_self(got_engine=got_engine)
-        result = await ApexSovereignEngine._explore_thoughts(
-            engine_self, "q", {}, 0.80
-        )
+        result = await ApexSovereignEngine._explore_thoughts(engine_self, "q", {}, 0.80)
 
         all_expected = _REQUIRED_KEYS | _SUCCESS_EXTRA_KEYS
-        assert all_expected.issubset(result.keys()), (
-            f"Missing keys: {all_expected - result.keys()}"
-        )
+        assert all_expected.issubset(
+            result.keys()
+        ), f"Missing keys: {all_expected - result.keys()}"
 
     async def test_fallback_path_contract(self):
         """When got_engine has no .reason method, the fallback dict is returned."""
@@ -328,9 +343,9 @@ class TestDictContract:
             )
 
         all_expected = _REQUIRED_KEYS | _SUCCESS_EXTRA_KEYS
-        assert all_expected.issubset(result.keys()), (
-            f"Missing keys: {all_expected - result.keys()}"
-        )
+        assert all_expected.issubset(
+            result.keys()
+        ), f"Missing keys: {all_expected - result.keys()}"
 
     async def test_error_path_contract(self):
         """When got_engine.reason() raises, the error fallback dict is returned."""
@@ -344,7 +359,7 @@ class TestDictContract:
                 engine_self, "q", {}, 0.80
             )
 
-        assert _REQUIRED_KEYS.issubset(result.keys()), (
-            f"Missing keys: {_REQUIRED_KEYS - result.keys()}"
-        )
+        assert _REQUIRED_KEYS.issubset(
+            result.keys()
+        ), f"Missing keys: {_REQUIRED_KEYS - result.keys()}"
         assert result["passes_threshold"] is False

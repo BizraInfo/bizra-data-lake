@@ -27,9 +27,9 @@ Skip Ollama-dependent tests:
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
-import re
 from pathlib import Path
 
 import pytest
@@ -84,6 +84,7 @@ skip_no_ollama = pytest.mark.skipif(
 def event_loop():
     """Single event loop shared by all tests in this module."""
     import asyncio
+
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -95,7 +96,7 @@ def orchestrator(event_loop):
     orch = BIZRAOrchestrator(
         enable_pat=True,
         enable_kep=True,
-        enable_multimodal=False,   # no vision/audio needed for text tests
+        enable_multimodal=False,  # no vision/audio needed for text tests
         enable_discipline=True,
         ollama_model="liquid/lfm2.5-1.2b",
     )
@@ -138,11 +139,23 @@ class TestLivePipelineSimple:
         answer_lower = resp.answer.lower()
         # The data lake processes images, documents, code, text, data --
         # the answer must reference at least one concrete file-related term.
-        file_terms = ["pdf", "image", "document", "text", "csv", "json",
-                      "parquet", "code", "file", "markdown", "docx", "png"]
-        assert any(t in answer_lower for t in file_terms), (
-            f"Answer does not mention any file type. Got: {resp.answer[:300]}"
-        )
+        file_terms = [
+            "pdf",
+            "image",
+            "document",
+            "text",
+            "csv",
+            "json",
+            "parquet",
+            "code",
+            "file",
+            "markdown",
+            "docx",
+            "png",
+        ]
+        assert any(
+            t in answer_lower for t in file_terms
+        ), f"Answer does not mention any file type. Got: {resp.answer[:300]}"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
@@ -160,9 +173,9 @@ class TestLivePipelineSimple:
         assert "score" in first, "Source missing score"
         # numpy float32 is not a Python float, so check for numeric type
         score = first["score"]
-        assert isinstance(score, (int, float)) or hasattr(score, "__float__"), (
-            f"Source score is not numeric: {type(score)}"
-        )
+        assert isinstance(score, (int, float)) or hasattr(
+            score, "__float__"
+        ), f"Source score is not numeric: {type(score)}"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
@@ -175,9 +188,9 @@ class TestLivePipelineSimple:
         )
         # Real data SNR is ~0.08-0.15 due to aggressive diversity penalty;
         # we just verify it is computed and positive.
-        assert resp.snr_score > 0, (
-            f"SNR should be positive for a well-formed query, got {resp.snr_score}"
-        )
+        assert (
+            resp.snr_score > 0
+        ), f"SNR should be positive for a well-formed query, got {resp.snr_score}"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
@@ -188,9 +201,9 @@ class TestLivePipelineSimple:
             "What is the BIZRA data lake?",
             complexity=QueryComplexity.SIMPLE,
         )
-        assert resp.execution_time < 15.0, (
-            f"Simple query took too long: {resp.execution_time:.2f}s"
-        )
+        assert (
+            resp.execution_time < 15.0
+        ), f"Simple query took too long: {resp.execution_time:.2f}s"
 
 
 # ===================================================================
@@ -209,11 +222,20 @@ class TestLivePipelineModerate:
             complexity=QueryComplexity.MODERATE,
         )
         answer_lower = resp.answer.lower()
-        embedding_terms = ["embed", "vector", "minilm", "dimension", "384",
-                           "faiss", "sentence", "transformer", "encoding"]
-        assert any(t in answer_lower for t in embedding_terms), (
-            f"Answer does not mention embeddings or vectors. Got: {resp.answer[:300]}"
-        )
+        embedding_terms = [
+            "embed",
+            "vector",
+            "minilm",
+            "dimension",
+            "384",
+            "faiss",
+            "sentence",
+            "transformer",
+            "encoding",
+        ]
+        assert any(
+            t in answer_lower for t in embedding_terms
+        ), f"Answer does not mention embeddings or vectors. Got: {resp.answer[:300]}"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
@@ -224,13 +246,15 @@ class TestLivePipelineModerate:
             "What is the architecture of the BIZRA data processing system?",
             complexity=QueryComplexity.MODERATE,
         )
-        assert len(resp.answer) > 100, (
-            f"Answer too short ({len(resp.answer)} chars) for an architecture question"
-        )
+        assert (
+            len(resp.answer) > 100
+        ), f"Answer too short ({len(resp.answer)} chars) for an architecture question"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
-    async def test_live_moderate_multiple_sources(self, orchestrator: BIZRAOrchestrator):
+    async def test_live_moderate_multiple_sources(
+        self, orchestrator: BIZRAOrchestrator
+    ):
         """Moderate queries should retrieve at least 2 distinct sources."""
         resp = await _query(
             orchestrator,
@@ -238,9 +262,7 @@ class TestLivePipelineModerate:
             complexity=QueryComplexity.MODERATE,
             require_sources=True,
         )
-        assert len(resp.sources) >= 2, (
-            f"Expected >= 2 sources, got {len(resp.sources)}"
-        )
+        assert len(resp.sources) >= 2, f"Expected >= 2 sources, got {len(resp.sources)}"
 
     @skip_no_ollama
     @pytest.mark.requires_ollama
@@ -275,26 +297,40 @@ class TestLivePipelineComplex:
         )
         # The pipeline should flow through all stages — verify via trace
         trace_text = " ".join(resp.reasoning_trace).lower()
-        assert "arte" in trace_text or "tension" in trace_text, (
-            "COMPLEX query should reach ARTE stage"
-        )
+        assert (
+            "arte" in trace_text or "tension" in trace_text
+        ), "COMPLEX query should reach ARTE stage"
         # If LLM backend is available, answer should be rich; if not,
         # the PAT fallback message is acceptable as long as the pipeline ran.
-        is_fallback = "fallback" in resp.answer.lower() or "unavailable" in resp.answer.lower()
+        is_fallback = (
+            "fallback" in resp.answer.lower() or "unavailable" in resp.answer.lower()
+        )
         if not is_fallback:
-            assert len(resp.answer) > 150, (
-                f"Answer too shallow ({len(resp.answer)} chars) for a COMPLEX query"
-            )
+            assert (
+                len(resp.answer) > 150
+            ), f"Answer too shallow ({len(resp.answer)} chars) for a COMPLEX query"
             answer_lower = resp.answer.lower()
-            concept_terms = ["symbolic", "neural", "retriev", "graph", "snr",
-                             "arte", "tension", "source", "score", "knowledge"]
+            concept_terms = [
+                "symbolic",
+                "neural",
+                "retriev",
+                "graph",
+                "snr",
+                "arte",
+                "tension",
+                "source",
+                "score",
+                "knowledge",
+            ]
             matches = [t for t in concept_terms if t in answer_lower]
-            assert len(matches) >= 2, (
-                f"Answer lacks depth -- only matched {matches} from concept terms."
-            )
+            assert (
+                len(matches) >= 2
+            ), f"Answer lacks depth -- only matched {matches} from concept terms."
         else:
             # Fallback is OK — verify the pipeline still processed the query
-            assert resp.snr_score > 0, "Pipeline should compute SNR even with LLM fallback"
+            assert (
+                resp.snr_score > 0
+            ), "Pipeline should compute SNR even with LLM fallback"
             assert len(resp.sources) > 0, "Pipeline should still retrieve sources"
 
     @skip_no_ollama
@@ -407,9 +443,7 @@ class TestLivePipelineQuality:
             pytest.skip("No sources returned -- cannot verify grounding")
 
         # Gather all source preview text
-        source_text = " ".join(
-            s.get("text_preview", "") for s in resp.sources
-        ).lower()
+        source_text = " ".join(s.get("text_preview", "") for s in resp.sources).lower()
         answer_lower = resp.answer.lower()
 
         # Extract words from the answer (3+ chars) and check overlap with sources
@@ -417,10 +451,31 @@ class TestLivePipelineQuality:
         source_words = set(re.findall(r"[a-z]{3,}", source_text))
         overlap = answer_words & source_words
         # Remove trivially common English words
-        trivial = {"the", "and", "for", "from", "with", "that", "this",
-                   "are", "was", "were", "has", "have", "been", "will",
-                   "not", "can", "but", "its", "also", "into", "more",
-                   "based", "about"}
+        trivial = {
+            "the",
+            "and",
+            "for",
+            "from",
+            "with",
+            "that",
+            "this",
+            "are",
+            "was",
+            "were",
+            "has",
+            "have",
+            "been",
+            "will",
+            "not",
+            "can",
+            "but",
+            "its",
+            "also",
+            "into",
+            "more",
+            "based",
+            "about",
+        }
         meaningful_overlap = overlap - trivial
 
         # The assembled answer pulls from source text, so overlap should exist.
@@ -467,7 +522,9 @@ class TestLivePipelineResilience:
         assert isinstance(resp, BIZRAResponse)
         assert isinstance(resp.answer, str)
 
-    async def test_live_handles_special_characters(self, orchestrator: BIZRAOrchestrator):
+    async def test_live_handles_special_characters(
+        self, orchestrator: BIZRAOrchestrator
+    ):
         """Unicode, emoji, and special characters must not crash the pipeline."""
         resp = await _query(
             orchestrator,

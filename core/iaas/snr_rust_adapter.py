@@ -72,9 +72,7 @@ class SNRRustAdapter:
                 "Rust SNR engine not available. "
                 "Build with: cd bizra-omega/bizra-python && maturin develop --release"
             )
-        self._engine = _RustSNREngine(
-            snr_floor=snr_floor, ihsan_target=ihsan_target
-        )
+        self._engine = _RustSNREngine(snr_floor=snr_floor, ihsan_target=ihsan_target)
         self._ihsan_threshold = ihsan_target
 
     def calculate_snr_normalized(self, **kwargs: Any) -> SNRResult:

@@ -30,10 +30,13 @@ import pytest
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
-from core.sovereign.graph_reasoning import _compute_content_quality, GraphReasoningMixin
-from core.sovereign.graph_reasoner import GraphOfThoughts, ThoughtType, ReasoningStrategy
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
-
+from core.sovereign.graph_reasoner import (
+    GraphOfThoughts,
+    ReasoningStrategy,
+    ThoughtType,
+)
+from core.sovereign.graph_reasoning import GraphReasoningMixin, _compute_content_quality
 
 # =============================================================================
 # FIXTURES
@@ -43,6 +46,7 @@ from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRE
 @dataclass
 class MockInferenceResult:
     """Mock inference result from gateway."""
+
     content: str
     model: str = "test-model-7b"
     tokens_used: int = 100
@@ -76,7 +80,9 @@ def _make_mock_gateway(responses: Optional[List[str]] = None) -> MagicMock:
 
     all_responses = responses if responses else default_responses
 
-    async def mock_infer(prompt: str, max_tokens: int = 256, temperature: float = 0.7, **kwargs):
+    async def mock_infer(
+        prompt: str, max_tokens: int = 256, temperature: float = 0.7, **kwargs
+    ):
         idx = _call_count["n"] % len(all_responses)
         _call_count["n"] += 1
         return MockInferenceResult(content=all_responses[idx])
@@ -138,7 +144,9 @@ class TestContentQuality:
 
     def test_scores_vary_between_inputs(self):
         """Different content produces different scores (not constant)."""
-        s1 = _compute_content_quality("test test test test test test test test test test test test")
+        s1 = _compute_content_quality(
+            "test test test test test test test test test test test test"
+        )
         s2 = _compute_content_quality(
             "The fundamental theorem implies that every continuous function on a closed "
             "interval achieves its maximum. This conclusion follows directly from the "
@@ -153,7 +161,9 @@ class TestContentQuality:
         for text in ["", "x", "a " * 500, "The quick brown fox. " * 50]:
             scores = _compute_content_quality(text)
             for key, val in scores.items():
-                assert 0.0 <= val <= 1.0, f"{key}={val} out of bounds for text={text[:30]}..."
+                assert (
+                    0.0 <= val <= 1.0
+                ), f"{key}={val} out of bounds for text={text[:30]}..."
 
 
 # =============================================================================
@@ -242,7 +252,10 @@ class TestGoTWithoutLLM:
         )
         # Check that template phrases appear in thoughts
         thought_text = " ".join(result["thoughts"])
-        assert "Analytical approach" in thought_text or "Synthesis approach" in thought_text
+        assert (
+            "Analytical approach" in thought_text
+            or "Synthesis approach" in thought_text
+        )
 
 
 # =============================================================================
@@ -269,7 +282,9 @@ class TestStubWedge:
         query.text = "test"
         query.context = {}
 
-        answer, model_used = await runtime._perform_llm_inference("test prompt", None, query)
+        answer, model_used = await runtime._perform_llm_inference(
+            "test prompt", None, query
+        )
 
         # The old behavior was: return f"Reasoned response for: {query.text}", "stub"
         # Now it should be the thought_prompt passthrough, tagged NO_LLM
@@ -293,7 +308,9 @@ class TestStubWedge:
         query.text = "test"
         query.context = {}
 
-        answer, model_used = await runtime._perform_llm_inference("test prompt", None, query)
+        answer, model_used = await runtime._perform_llm_inference(
+            "test prompt", None, query
+        )
 
         assert model_used == "test-model-7b"
         assert "real LLM response" in answer
@@ -402,7 +419,9 @@ class TestSpearpoint_FullPipeline:
         assert isinstance(content_hash, str)
         assert len(content_hash) == 64  # SHA-256 hex
 
-    @pytest.mark.skip(reason="ClaimTag removed from SNR module; claim_tags field not in SNRInput")
+    @pytest.mark.skip(
+        reason="ClaimTag removed from SNR module; claim_tags field not in SNRInput"
+    )
     def test_snr_claim_tags_from_engine(self):
         """SNR Engine produces claim tags on traces (Pillar 3)."""
         from core.proof_engine.snr import SNREngine, SNRInput
@@ -445,6 +464,7 @@ class TestSpearpoint_FullPipeline:
     def test_pci_envelope_roundtrip(self):
         """PCI envelope signs and verifies (Pillar 1 + 2 bridge)."""
         import hashlib
+
         from core.pci.crypto import generate_keypair, sign_message, verify_signature
 
         priv_hex, pub_hex = generate_keypair()
@@ -458,6 +478,7 @@ class TestSpearpoint_FullPipeline:
     def test_evidence_receipt_signing(self):
         """Evidence receipts are Ed25519-signed (Pillar 5)."""
         import hashlib
+
         from core.pci.crypto import generate_keypair, sign_message, verify_signature
 
         priv_hex, pub_hex = generate_keypair()
@@ -513,6 +534,7 @@ class TestSpearpoint_FullPipeline:
 
         # Initialize SNR manually
         from core.sovereign.snr_maximizer import SNRMaximizer
+
         runtime._snr_optimizer = SNRMaximizer(ihsan_threshold=0.85)
 
         runtime._guardian_council = None

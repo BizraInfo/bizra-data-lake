@@ -22,7 +22,6 @@ import pytest
 
 from core.bridges.bridge_receipt import BridgeReceiptEngine, load_signer
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -153,18 +152,26 @@ class TestReceiptCreation:
 
     def test_receipt_id_is_unique(self, engine: BridgeReceiptEngine) -> None:
         r1 = engine.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         r2 = engine.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         assert r1["receipt_id"] != r2["receipt_id"]
 
-    def test_receipt_digests_are_deterministic(
-        self, tmp_receipt_dir: Path
-    ) -> None:
+    def test_receipt_digests_are_deterministic(self, tmp_receipt_dir: Path) -> None:
         """Same input -> same digests (excluding timestamp/id)."""
         e1 = BridgeReceiptEngine(receipt_dir=tmp_receipt_dir)
         e2 = BridgeReceiptEngine(receipt_dir=tmp_receipt_dir)
@@ -197,8 +204,13 @@ class TestPersistence:
         self, engine: BridgeReceiptEngine, tmp_receipt_dir: Path
     ) -> None:
         receipt = engine.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         path = tmp_receipt_dir / f"{receipt['receipt_id']}.json"
         assert path.exists()
@@ -211,8 +223,13 @@ class TestPersistence:
         self, engine: BridgeReceiptEngine, tmp_receipt_dir: Path
     ) -> None:
         engine.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         tmp_files = list(tmp_receipt_dir.glob("*.tmp"))
         assert len(tmp_files) == 0, "Temp files should not remain after atomic write"
@@ -224,8 +241,13 @@ class TestPersistence:
         assert new_dir.exists()
         # Still functional
         receipt = engine.create_receipt(
-            method="test", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="test",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         assert (new_dir / f"{receipt['receipt_id']}.json").exists()
 
@@ -238,21 +260,29 @@ class TestPersistence:
 class TestRetrieval:
     def test_get_receipt_from_cache(self, engine: BridgeReceiptEngine) -> None:
         receipt = engine.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
         retrieved = engine.get_receipt(receipt["receipt_id"])
         assert retrieved is not None
         assert retrieved["receipt_id"] == receipt["receipt_id"]
 
-    def test_get_receipt_from_disk(
-        self, tmp_receipt_dir: Path
-    ) -> None:
+    def test_get_receipt_from_disk(self, tmp_receipt_dir: Path) -> None:
         # Create with one engine
         e1 = BridgeReceiptEngine(receipt_dir=tmp_receipt_dir)
         receipt = e1.create_receipt(
-            method="ping", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all", status="accepted",
+            method="ping",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
+            status="accepted",
         )
 
         # Retrieve with a fresh engine (empty cache)
@@ -272,8 +302,12 @@ class TestRetrieval:
         ids = []
         for i in range(_MAX_CACHE + 5):
             r = engine.create_receipt(
-                method="ping", query_data={"i": i}, result_data={},
-                fate_score=1.0, snr_score=0.95, gate_passed="all",
+                method="ping",
+                query_data={"i": i},
+                result_data={},
+                fate_score=1.0,
+                snr_score=0.95,
+                gate_passed="all",
                 status="accepted",
             )
             ids.append(r["receipt_id"])

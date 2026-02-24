@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ===========================================================================
 # 1. TestRDVEImports — Verify all RDVE components are importable
 # ===========================================================================
@@ -100,8 +99,8 @@ class TestRDVEOrchestratorUnit:
     def test_config_thresholds_match_constants(self) -> None:
         """Config thresholds match core/integration/constants.py values."""
         from core.integration.constants import (
-            STRICT_IHSAN_THRESHOLD,
             SNR_THRESHOLD_T1_HIGH,
+            STRICT_IHSAN_THRESHOLD,
             UNIFIED_IHSAN_THRESHOLD,
             UNIFIED_SNR_THRESHOLD,
         )
@@ -168,9 +167,9 @@ class TestRDVERuntimeWiring:
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
-            assert runtime._rdve_engine is not None, (
-                "RDVE Engine should be initialized after runtime.initialize()"
-            )
+            assert (
+                runtime._rdve_engine is not None
+            ), "RDVE Engine should be initialized after runtime.initialize()"
         finally:
             await runtime.shutdown()
 
@@ -245,12 +244,12 @@ class TestRDVEHealthVisibility:
         await runtime.initialize()
         try:
             instance = getattr(runtime, "_rdve_engine", None)
-            assert instance is not None, (
-                "Health endpoint check for _rdve_engine should find a non-None value"
-            )
-            assert "Stub" not in type(instance).__name__, (
-                "RDVE engine should be real, not a stub"
-            )
+            assert (
+                instance is not None
+            ), "Health endpoint check for _rdve_engine should find a non-None value"
+            assert (
+                "Stub" not in type(instance).__name__
+            ), "RDVE engine should be real, not a stub"
         finally:
             await runtime.shutdown()
 
@@ -267,9 +266,9 @@ class TestRDVEHealthVisibility:
         await runtime.initialize()
         try:
             instance = getattr(runtime, "_ihsan_watchdog", None)
-            assert instance is not None, (
-                "Health endpoint check for _ihsan_watchdog (fate_gate) should find a value"
-            )
+            assert (
+                instance is not None
+            ), "Health endpoint check for _ihsan_watchdog (fate_gate) should find a value"
         finally:
             await runtime.shutdown()
 
@@ -300,9 +299,9 @@ class TestRDVEHealthVisibility:
                 "_sat_controller",
             ]
             for attr in health_attrs:
-                assert hasattr(runtime, attr), (
-                    f"Runtime must have attribute '{attr}' for health endpoint"
-                )
+                assert hasattr(
+                    runtime, attr
+                ), f"Runtime must have attribute '{attr}' for health endpoint"
         finally:
             await runtime.shutdown()
 
@@ -319,8 +318,8 @@ class TestRDVEHealthVisibility:
         await runtime.initialize()
         try:
             score = runtime._calculate_health()
-            assert score >= 0.0, (
-                "Health score should be non-negative after initialization"
-            )
+            assert (
+                score >= 0.0
+            ), "Health score should be non-negative after initialization"
         finally:
             await runtime.shutdown()

@@ -21,7 +21,6 @@ from core.sovereign.graph_types import (
     ThoughtType,
 )
 
-
 # ---------------------------------------------------------------------------
 # ConcreteGraph -- Concrete class inheriting GraphSearchMixin
 # ---------------------------------------------------------------------------
@@ -125,7 +124,9 @@ def build_linear_chain(
     ids = [chr(65 + i) for i in range(length)]  # A, B, C, ...
     for idx, nid in enumerate(ids):
         ttype = terminal_type if idx == length - 1 else ThoughtType.REASONING
-        g.add_node(nid, thought_type=ttype, snr_score=snr_values[idx], is_root=(idx == 0))
+        g.add_node(
+            nid, thought_type=ttype, snr_score=snr_values[idx], is_root=(idx == 0)
+        )
     for i in range(length - 1):
         g.add_edge(ids[i], ids[i + 1])
     return g
@@ -842,7 +843,10 @@ class TestBacktrack:
         # L3 is CONCLUSION, L4 is VALIDATION -- both filtered
         # L5 (hypothesis, 0.95) > L1 (reasoning, 0.9) > L2 (evidence, 0.8)
         assert result.id == "L5"
-        assert result.thought_type not in (ThoughtType.CONCLUSION, ThoughtType.VALIDATION)
+        assert result.thought_type not in (
+            ThoughtType.CONCLUSION,
+            ThoughtType.VALIDATION,
+        )
 
     def test_mixed_conclusion_and_reasoning(self):
         """Only non-terminal leaves are candidates for backtracking."""
@@ -1084,7 +1088,9 @@ class TestEdgeCases:
         assert "Y" in path.nodes
         assert "A" not in path.nodes
 
-    def test_frontier_and_backtrack_consistency(self, wide_frontier_graph: ConcreteGraph):
+    def test_frontier_and_backtrack_consistency(
+        self, wide_frontier_graph: ConcreteGraph
+    ):
         """Backtrack target is always a subset of the frontier."""
         frontier = wide_frontier_graph.get_frontier()
         frontier_ids = {n.id for n in frontier}

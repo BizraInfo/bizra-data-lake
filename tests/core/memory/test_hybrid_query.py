@@ -81,8 +81,14 @@ class TestHybridSearch:
 
     def test_kind_filter(self, engine):
         eng, store, hnsw = engine
-        store.upsert(make_record("r1", content="episodic memory test", kind=MemoryKind.EPISODIC))
-        store.upsert(make_record("r2", content="episodic semantic test", kind=MemoryKind.SEMANTIC))
+        store.upsert(
+            make_record("r1", content="episodic memory test", kind=MemoryKind.EPISODIC)
+        )
+        store.upsert(
+            make_record(
+                "r2", content="episodic semantic test", kind=MemoryKind.SEMANTIC
+            )
+        )
 
         options = QueryOptions(
             query_text="episodic test",
@@ -103,7 +109,9 @@ class TestHybridSearch:
     def test_score_components_sum_correctly(self, engine):
         eng, store, hnsw = engine
         vec = random_embedding(8)
-        store.upsert(make_record("r1", content="test data", embedding=vec, importance=0.8))
+        store.upsert(
+            make_record("r1", content="test data", embedding=vec, importance=0.8)
+        )
         hnsw.add("r1", vec)
 
         options = QueryOptions(query_text="test data", query_embedding=vec, top_k=5)

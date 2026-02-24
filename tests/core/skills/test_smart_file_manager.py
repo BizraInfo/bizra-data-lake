@@ -10,9 +10,10 @@ Uses tmp_path fixture for isolated filesystem tests -- no real files touched.
 
 import asyncio
 import os
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from core.skills.smart_file_manager import (
     SmartFileHandler,
@@ -21,7 +22,6 @@ from core.skills.smart_file_manager import (
     _validate_path,
     register_smart_files,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES
@@ -77,14 +77,24 @@ class TestExpandPattern:
     def test_no_tokens(self):
         result = _expand_pattern(
             "fixed_name.txt",
-            name="x", ext=".y", n=1, content_hash="h", date="d", cat="c",
+            name="x",
+            ext=".y",
+            n=1,
+            content_hash="h",
+            date="d",
+            cat="c",
         )
         assert result == "fixed_name.txt"
 
     def test_name_ext_only(self):
         result = _expand_pattern(
             "{name}{ext}",
-            name="file", ext=".md", n=0, content_hash="", date="", cat="",
+            name="file",
+            ext=".md",
+            n=0,
+            content_hash="",
+            date="",
+            cat="",
         )
         assert result == "file.md"
 
@@ -120,17 +130,19 @@ class TestScan:
         assert result["total_files"] == 7
         cats = result["categories"]
         assert cats["documents"]["count"] == 2  # pdf + txt
-        assert cats["images"]["count"] == 1     # jpg
-        assert cats["code"]["count"] == 1       # py
-        assert cats["data"]["count"] == 1       # csv
-        assert cats["archives"]["count"] == 1   # zip
-        assert cats["other"]["count"] == 1      # xyz
+        assert cats["images"]["count"] == 1  # jpg
+        assert cats["code"]["count"] == 1  # py
+        assert cats["data"]["count"] == 1  # csv
+        assert cats["archives"]["count"] == 1  # zip
+        assert cats["other"]["count"] == 1  # xyz
 
     def test_scan_with_filter(self, handler, populated_dir):
-        result = handler._op_scan({
-            "path": str(populated_dir),
-            "category_filter": "code",
-        })
+        result = handler._op_scan(
+            {
+                "path": str(populated_dir),
+                "category_filter": "code",
+            }
+        )
         assert result["total_files"] == 1
         assert "code" in result["categories"]
         assert len(result["categories"]) == 1
@@ -178,10 +190,12 @@ class TestOrganize:
         assert (populated_dir / "report.pdf").exists()
 
     def test_organize_execute(self, handler, populated_dir):
-        result = handler._op_organize({
-            "path": str(populated_dir),
-            "dry_run": False,
-        })
+        result = handler._op_organize(
+            {
+                "path": str(populated_dir),
+                "dry_run": False,
+            }
+        )
         assert result["dry_run"] is False
         assert result["executed"] == 7
         assert (populated_dir / "documents" / "report.pdf").exists()
@@ -190,11 +204,13 @@ class TestOrganize:
         assert not (populated_dir / "report.pdf").exists()
 
     def test_organize_copy_mode(self, handler, populated_dir):
-        result = handler._op_organize({
-            "path": str(populated_dir),
-            "dry_run": False,
-            "copy_mode": True,
-        })
+        result = handler._op_organize(
+            {
+                "path": str(populated_dir),
+                "dry_run": False,
+                "copy_mode": True,
+            }
+        )
         assert result["action"] == "copied"
         assert result["executed"] == 7
         # Originals still exist
@@ -204,11 +220,13 @@ class TestOrganize:
 
     def test_organize_with_target_path(self, handler, populated_dir, tmp_path):
         target = tmp_path / "organized_output"
-        result = handler._op_organize({
-            "path": str(populated_dir),
-            "target_path": str(target),
-            "dry_run": False,
-        })
+        result = handler._op_organize(
+            {
+                "path": str(populated_dir),
+                "target_path": str(target),
+                "dry_run": False,
+            }
+        )
         assert result["executed"] == 7
         assert (target / "documents" / "report.pdf").exists()
 
@@ -239,11 +257,13 @@ class TestRename:
 
     def test_rename_with_pattern(self, handler, tmp_path):
         (tmp_path / "doc.pdf").write_text("content")
-        result = handler._op_rename({
-            "path": str(tmp_path),
-            "pattern": "{name}_{date}{ext}",
-            "dry_run": True,
-        })
+        result = handler._op_rename(
+            {
+                "path": str(tmp_path),
+                "pattern": "{name}_{date}{ext}",
+                "dry_run": True,
+            }
+        )
         assert result["planned"] == 1
         rename = result["renames"][0]
         assert rename["old"] == "doc.pdf"
@@ -253,11 +273,13 @@ class TestRename:
 
     def test_rename_hash_suffix(self, handler, tmp_path):
         (tmp_path / "test.txt").write_text("hello world")
-        result = handler._op_rename({
-            "path": str(tmp_path),
-            "hash_suffix": True,
-            "dry_run": True,
-        })
+        result = handler._op_rename(
+            {
+                "path": str(tmp_path),
+                "hash_suffix": True,
+                "dry_run": True,
+            }
+        )
         rename = result["renames"][0]
         # Should have hash suffix: test_<16chars>.txt
         assert "_" in rename["new"]
@@ -266,23 +288,27 @@ class TestRename:
     def test_rename_execute(self, handler, tmp_path):
         (tmp_path / "a.txt").write_text("aaa")
         (tmp_path / "b.txt").write_text("bbb")
-        result = handler._op_rename({
-            "path": str(tmp_path),
-            "pattern": "file_{n}{ext}",
-            "dry_run": False,
-        })
+        result = handler._op_rename(
+            {
+                "path": str(tmp_path),
+                "pattern": "file_{n}{ext}",
+                "dry_run": False,
+            }
+        )
         assert result["executed"] == 2
         assert (tmp_path / "file_1.txt").exists()
         assert (tmp_path / "file_2.txt").exists()
 
     def test_rename_prefix_suffix(self, handler, tmp_path):
         (tmp_path / "doc.pdf").write_text("content")
-        result = handler._op_rename({
-            "path": str(tmp_path),
-            "prefix": "bizra_",
-            "suffix": "_v2",
-            "dry_run": True,
-        })
+        result = handler._op_rename(
+            {
+                "path": str(tmp_path),
+                "prefix": "bizra_",
+                "suffix": "_v2",
+                "dry_run": True,
+            }
+        )
         rename = result["renames"][0]
         assert rename["new"].startswith("bizra_")
         assert "_v2" in rename["new"]
@@ -320,10 +346,12 @@ class TestMerge:
             str(text_files / "part1.txt"),
             str(text_files / "part2.txt"),
         ]
-        result = handler._op_merge({
-            "paths": paths,
-            "separator": "\n---\n",
-        })
+        result = handler._op_merge(
+            {
+                "paths": paths,
+                "separator": "\n---\n",
+            }
+        )
         output = Path(result["output_path"])
         content = output.read_text()
         assert "\n---\n" in content
@@ -333,10 +361,12 @@ class TestMerge:
             str(text_files / "part1.txt"),
             str(text_files / "part2.txt"),
         ]
-        result = handler._op_merge({
-            "paths": paths,
-            "add_headers": False,
-        })
+        result = handler._op_merge(
+            {
+                "paths": paths,
+                "add_headers": False,
+            }
+        )
         output = Path(result["output_path"])
         content = output.read_text()
         assert "# ===" not in content
@@ -344,10 +374,12 @@ class TestMerge:
     def test_merge_custom_output(self, handler, text_files, tmp_path):
         out_file = tmp_path / "custom_merged.md"
         paths = [str(text_files / "part1.txt"), str(text_files / "part2.txt")]
-        result = handler._op_merge({
-            "paths": paths,
-            "output_path": str(out_file),
-        })
+        result = handler._op_merge(
+            {
+                "paths": paths,
+                "output_path": str(out_file),
+            }
+        )
         assert result["output_path"] == str(out_file)
         assert out_file.exists()
 
@@ -376,7 +408,10 @@ class TestPathTraversal:
         result = handler._op_scan({"path": str(tmp_path)})
         # tmp_path is outside DATA_LAKE_ROOT, should be blocked
         assert "error" in result
-        assert "outside" in result["error"].lower() or "traversal" in result["error"].lower()
+        assert (
+            "outside" in result["error"].lower()
+            or "traversal" in result["error"].lower()
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -409,8 +444,8 @@ class TestUnknownOperation:
 class TestRegistration:
     def test_registration(self):
         """Handler registers on a mock router correctly."""
-        from core.skills.registry import SkillRegistry
         from core.skills.mcp_bridge import MCPBridge
+        from core.skills.registry import SkillRegistry
         from core.skills.router import SkillRouter
 
         registry = SkillRegistry(skills_dir="/nonexistent")
@@ -431,16 +466,14 @@ class TestRegistration:
 
     def test_register_convenience_function(self):
         """register_smart_files() works end-to-end."""
-        from core.skills.registry import SkillRegistry
         from core.skills.mcp_bridge import MCPBridge
+        from core.skills.registry import SkillRegistry
         from core.skills.router import SkillRouter
 
         registry = SkillRegistry(skills_dir="/nonexistent")
         router = SkillRouter(registry=registry, mcp_bridge=MCPBridge())
 
-        with patch(
-            "core.skills.smart_file_manager._default_handler", None
-        ):
+        with patch("core.skills.smart_file_manager._default_handler", None):
             handler = register_smart_files(router)
 
         assert isinstance(handler, SmartFileHandler)

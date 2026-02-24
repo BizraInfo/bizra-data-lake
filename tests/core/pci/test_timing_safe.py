@@ -11,31 +11,32 @@ Standing on Giants:
 Reference: CWE-208 Observable Timing Discrepancy
 """
 
-import pytest
-import time
 import statistics
 import sys
+import time
 from pathlib import Path
+
+import pytest
 
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.pci.crypto import (
-    timing_safe_compare,
-    timing_safe_compare_hex,
-    verify_digest_match,
     domain_separated_digest,
     generate_keypair,
     sign_message,
+    timing_safe_compare,
+    timing_safe_compare_hex,
+    verify_digest_match,
     verify_signature,
 )
 from core.pci.envelope import (
-    PCIEnvelope,
     EnvelopeBuilder,
+    PCIEnvelope,
     _nonce_exists_and_record,
-    _seen_nonces,
     _nonce_lock,
+    _seen_nonces,
 )
 
 
@@ -253,9 +254,7 @@ class TestTimingAttackResistance:
 
         ratio = late_median / early_median if early_median > 0 else 1.0
 
-        assert 0.5 < ratio < 2.0, (
-            f"Hex timing ratio {ratio:.2f} suggests timing leak"
-        )
+        assert 0.5 < ratio < 2.0, f"Hex timing ratio {ratio:.2f} suggests timing leak"
 
     @pytest.mark.slow
     def test_nonce_lookup_timing_consistency(self):

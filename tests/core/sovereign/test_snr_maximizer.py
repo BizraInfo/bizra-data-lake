@@ -25,13 +25,12 @@ from core.sovereign.snr_maximizer import (
     NoiseFilter,
     NoiseProfile,
     NoiseType,
-    SNRAnalysis,
-    SNRMaximizer,
     SignalAmplifier,
     SignalProfile,
     SignalType,
+    SNRAnalysis,
+    SNRMaximizer,
 )
-
 
 # =============================================================================
 # 1. TestNoiseProfile (4 tests)
@@ -360,7 +359,9 @@ class TestSignalAmplifier:
     def test_novelty_with_indicators(self):
         """Text containing novelty indicator words scores higher than plain text."""
         amp = SignalAmplifier()
-        novel_text = "A breakthrough discovery reveals new insight into emerging patterns"
+        novel_text = (
+            "A breakthrough discovery reveals new insight into emerging patterns"
+        )
         plain_text = "The the the the the the the the the the"
         novel_profile = amp.analyze(novel_text)
         plain_profile = amp.analyze(plain_text)
@@ -608,8 +609,13 @@ class TestSNRAnalysisDeep:
         analysis = SNRAnalysis(signal=signal, noise=noise)
         d = analysis.to_dict()
         assert set(d.keys()) == {
-            "signal", "noise", "snr_linear", "snr_normalized", "snr_db",
-            "ihsan_achieved", "recommendations",
+            "signal",
+            "noise",
+            "snr_linear",
+            "snr_normalized",
+            "snr_db",
+            "ihsan_achieved",
+            "recommendations",
         }
         assert isinstance(d["signal"], dict)
         assert isinstance(d["noise"], dict)
@@ -620,7 +626,8 @@ class TestSNRAnalysisDeep:
         signal = SignalProfile()
         noise = NoiseProfile()
         analysis = SNRAnalysis(
-            signal=signal, noise=noise,
+            signal=signal,
+            noise=noise,
             recommendations=["Add citations"],
         )
         d = analysis.to_dict()
@@ -629,8 +636,12 @@ class TestSNRAnalysisDeep:
     def test_snr_db_formula(self):
         """snr_db = 10 * log10(snr_linear) for well-defined snr_linear."""
         signal = SignalProfile(
-            relevance=0.8, novelty=0.8, groundedness=0.8,
-            coherence=0.8, actionability=0.8, specificity=0.8,
+            relevance=0.8,
+            novelty=0.8,
+            groundedness=0.8,
+            coherence=0.8,
+            actionability=0.8,
+            specificity=0.8,
         )
         noise = NoiseProfile(redundancy=0.5, inconsistency=0.5)
         analysis = SNRAnalysis(signal=signal, noise=noise)
@@ -766,7 +777,9 @@ class TestSignalAmplifierDeep:
     def test_novelty_with_indicators(self):
         """Text with novelty words gets a boost."""
         amp = SignalAmplifier()
-        score = amp._compute_novelty("A novel breakthrough discovery reveals new patterns")
+        score = amp._compute_novelty(
+            "A novel breakthrough discovery reveals new patterns"
+        )
         # Multiple indicators + decent unique ratio
         assert score > 0.7
 
@@ -946,12 +959,21 @@ class TestSNRMaximizerDeep:
         # Recommendations only fire when ihsan_achieved=False.
         # Use direct SNRAnalysis construction to control noise levels.
         signal = SignalProfile(
-            relevance=0.01, novelty=0.01, groundedness=0.01,
-            coherence=0.01, actionability=0.01, specificity=0.01,
+            relevance=0.01,
+            novelty=0.01,
+            groundedness=0.01,
+            coherence=0.01,
+            actionability=0.01,
+            specificity=0.01,
         )
         noise = NoiseProfile(
-            redundancy=0.5, inconsistency=0.9, ambiguity=0.1,
-            irrelevance=0.9, hallucination=0.9, verbosity=0.9, bias=0.9,
+            redundancy=0.5,
+            inconsistency=0.9,
+            ambiguity=0.1,
+            irrelevance=0.9,
+            hallucination=0.9,
+            verbosity=0.9,
+            bias=0.9,
         )
         analysis = SNRAnalysis(signal=signal, noise=noise)
         assert analysis.ihsan_achieved is False
@@ -963,12 +985,21 @@ class TestSNRMaximizerDeep:
     def test_recommendations_ambiguity(self):
         """SNRAnalysis with low signal + high noise produces ihsan_achieved=False."""
         signal = SignalProfile(
-            relevance=0.01, novelty=0.01, groundedness=0.01,
-            coherence=0.01, actionability=0.01, specificity=0.01,
+            relevance=0.01,
+            novelty=0.01,
+            groundedness=0.01,
+            coherence=0.01,
+            actionability=0.01,
+            specificity=0.01,
         )
         noise = NoiseProfile(
-            redundancy=0.9, inconsistency=0.9, ambiguity=0.5,
-            irrelevance=0.9, hallucination=0.9, verbosity=0.9, bias=0.9,
+            redundancy=0.9,
+            inconsistency=0.9,
+            ambiguity=0.5,
+            irrelevance=0.9,
+            hallucination=0.9,
+            verbosity=0.9,
+            bias=0.9,
         )
         analysis = SNRAnalysis(signal=signal, noise=noise)
         assert analysis.ihsan_achieved is False
@@ -977,12 +1008,21 @@ class TestSNRMaximizerDeep:
     def test_recommendations_groundedness(self):
         """Low groundedness on direct analysis is detectable."""
         signal = SignalProfile(
-            relevance=0.01, novelty=0.01, groundedness=0.3,
-            coherence=0.01, actionability=0.01, specificity=0.01,
+            relevance=0.01,
+            novelty=0.01,
+            groundedness=0.3,
+            coherence=0.01,
+            actionability=0.01,
+            specificity=0.01,
         )
         noise = NoiseProfile(
-            redundancy=0.9, inconsistency=0.9, ambiguity=0.9,
-            irrelevance=0.9, hallucination=0.9, verbosity=0.9, bias=0.9,
+            redundancy=0.9,
+            inconsistency=0.9,
+            ambiguity=0.9,
+            irrelevance=0.9,
+            hallucination=0.9,
+            verbosity=0.9,
+            bias=0.9,
         )
         analysis = SNRAnalysis(signal=signal, noise=noise)
         assert analysis.ihsan_achieved is False
@@ -1040,8 +1080,12 @@ class TestSNRMaximizerDeep:
         result = asyncio.run(maximizer.optimize("Test sentence."))
         sc = result["signal_components"]
         assert set(sc.keys()) == {
-            "relevance", "novelty", "groundedness",
-            "coherence", "actionability", "specificity",
+            "relevance",
+            "novelty",
+            "groundedness",
+            "coherence",
+            "actionability",
+            "specificity",
         }
 
     def test_optimize_returns_none_when_no_change(self):

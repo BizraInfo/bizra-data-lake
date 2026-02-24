@@ -10,13 +10,13 @@ This integration test validates the complete sovereign LLM ecosystem:
 "We do not assume. We verify with formal proofs."
 """
 
-import pytest
-import random
 import hashlib
+import random
 import time
-from typing import List, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List
 
+import pytest
 
 # Constitutional thresholds
 IHSAN_THRESHOLD = 0.95
@@ -26,6 +26,7 @@ SNR_THRESHOLD = 0.85
 @dataclass
 class ByzantineAgent:
     """Simulated agent for Byzantine consensus testing."""
+
     id: str
     is_malicious: bool
     response_score: float
@@ -41,6 +42,7 @@ class ByzantineAgent:
 @dataclass
 class AdversarialModel:
     """Simulated adversarial model for supply chain testing."""
+
     id: str
     attack_type: str
     ihsan_score: float
@@ -65,7 +67,9 @@ class TestByzantineConsensus:
         honest_votes = [v for v in votes if v == correct_score]
         quorum = len(agents) * 2 // 3  # 4 out of 6
 
-        assert len(honest_votes) >= quorum, "Should reach consensus with 4 honest agents"
+        assert (
+            len(honest_votes) >= quorum
+        ), "Should reach consensus with 4 honest agents"
 
     def test_6_agent_consensus_3_malicious_fails(self):
         """Test that 3 malicious agents break consensus."""
@@ -81,7 +85,9 @@ class TestByzantineConsensus:
         quorum = len(agents) * 2 // 3
 
         # 3 honest is not enough for 2/3 quorum
-        assert len(honest_votes) < quorum, "Should NOT reach consensus with only 3 honest"
+        assert (
+            len(honest_votes) < quorum
+        ), "Should NOT reach consensus with only 3 honest"
 
     def test_consensus_score_aggregation(self):
         """Test score aggregation in consensus."""
@@ -238,7 +244,8 @@ class TestMaliciousModelRejection:
         expected_rejections = sum(1 for m in adversarial_models if m.should_be_rejected)
 
         actual_rejections = sum(
-            1 for m in adversarial_models
+            1
+            for m in adversarial_models
             if m.ihsan_score < IHSAN_THRESHOLD or m.snr_score < SNR_THRESHOLD
         )
 
@@ -271,11 +278,11 @@ class TestThresholdEnforcement:
     def test_combined_threshold(self):
         """Test combined threshold requirements."""
         test_cases = [
-            (0.96, 0.90, True),   # Both pass
+            (0.96, 0.90, True),  # Both pass
             (0.96, 0.80, False),  # SNR fails
             (0.90, 0.90, False),  # Ihsan fails
             (0.90, 0.80, False),  # Both fail
-            (0.95, 0.85, True),   # Exactly at threshold
+            (0.95, 0.85, True),  # Exactly at threshold
         ]
 
         for ihsan, snr, expected in test_cases:
@@ -373,7 +380,9 @@ class TestLiveFireScenario:
             (0.97, 0.91),  # Pass
             (0.98, 0.93),  # Pass
         ]
-        rejections = sum(1 for i, s in scores if i < IHSAN_THRESHOLD or s < SNR_THRESHOLD)
+        rejections = sum(
+            1 for i, s in scores if i < IHSAN_THRESHOLD or s < SNR_THRESHOLD
+        )
         results["malicious_rejection"] = rejections >= 7
 
         # 3. Ihsān enforcement
@@ -386,7 +395,9 @@ class TestLiveFireScenario:
         results["federation_mode"] = True  # HYBRID mode available
 
         # All tests must pass
-        assert all(results.values()), f"Failed tests: {[k for k, v in results.items() if not v]}"
+        assert all(
+            results.values()
+        ), f"Failed tests: {[k for k, v in results.items() if not v]}"
 
     def test_certification_output(self):
         """Verify certification output format."""

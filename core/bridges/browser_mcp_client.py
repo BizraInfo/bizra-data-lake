@@ -67,16 +67,16 @@ def _validate_url(url: str) -> str:
     try:
         ip = ipaddress.ip_address(hostname)
         if _is_private_ip(str(ip)):
-            raise SSRFValidationError(
-                f"URL targets private/reserved IP: {ip}"
-            )
+            raise SSRFValidationError(f"URL targets private/reserved IP: {ip}")
         return url
     except ValueError:
         pass  # hostname is not an IP literal — resolve via DNS
 
     # 3. DNS resolution check
     try:
-        resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        resolved = socket.getaddrinfo(
+            hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM
+        )
     except socket.gaierror:
         raise SSRFValidationError(f"Cannot resolve hostname: {hostname}")
 
@@ -117,16 +117,14 @@ _MOCK_RESULTS: tuple[SearchResult, ...] = (
         title="Paradigm",
         url="https://paradigm.xyz",
         snippet=(
-            "Engineering-heavy crypto investment firm"
-            " with deep technical diligence."
+            "Engineering-heavy crypto investment firm" " with deep technical diligence."
         ),
     ),
     SearchResult(
         title="Polychain Capital",
         url="https://polychain.capital",
         snippet=(
-            "Long-running crypto fund investing in"
-            " decentralized compute and infra."
+            "Long-running crypto fund investing in" " decentralized compute and infra."
         ),
     ),
 )
@@ -169,19 +167,27 @@ class BrowserMCPClient:
 
             # Disable automatic redirects to prevent redirect-to-private SSRF.
             # Each redirect target is validated before following.
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            async with httpx.AsyncClient(
+                timeout=10.0, follow_redirects=False
+            ) as client:
                 response = await client.get(url)
 
                 # Manually follow up to 5 redirects with SSRF validation
                 redirects_left = 5
                 while response.is_redirect and redirects_left > 0:
-                    redirect_url = str(response.next_request.url) if response.next_request else None
+                    redirect_url = (
+                        str(response.next_request.url)
+                        if response.next_request
+                        else None
+                    )
                     if redirect_url is None:
                         break
                     try:
                         _validate_url(redirect_url)
                     except SSRFValidationError as exc:
-                        logger.warning("Redirect blocked by SSRF guard: %s (%s)", redirect_url, exc)
+                        logger.warning(
+                            "Redirect blocked by SSRF guard: %s (%s)", redirect_url, exc
+                        )
                         return ""
                     response = await client.get(redirect_url)
                     redirects_left -= 1
@@ -239,10 +245,10 @@ class BrowserMCPClient:
             ddg_url = "https://lite.duckduckgo.com/lite/"
             _validate_url(ddg_url)
 
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
-                response = await client.get(
-                    ddg_url, params={"q": query}
-                )
+            async with httpx.AsyncClient(
+                timeout=10.0, follow_redirects=False
+            ) as client:
+                response = await client.get(ddg_url, params={"q": query})
                 response.raise_for_status()
                 parsed = self._parse_ddg_lite(response.text, limit)
                 if parsed:

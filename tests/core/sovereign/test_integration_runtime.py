@@ -36,7 +36,6 @@ from core.sovereign.integration_types import (
 )
 from core.sovereign.model_license_gate import GateChain, InMemoryRegistry
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -80,9 +79,7 @@ def _build_runtime(tmp_path: Path, **config_overrides):
     """Construct a SovereignRuntime with patched federation imports."""
     cfg = make_config(tmp_path, **config_overrides)
     # Patch ConstitutionalGate to avoid blake3 / pci.crypto dependency
-    with patch(
-        "core.sovereign.integration_runtime.ConstitutionalGate"
-    ) as MockGate:
+    with patch("core.sovereign.integration_runtime.ConstitutionalGate") as MockGate:
         MockGate.return_value = MagicMock()
         from core.sovereign.integration_runtime import SovereignRuntime
 
@@ -273,19 +270,13 @@ class TestCheckSovereignty:
         )
 
     def test_missing_ownership_fails(self, runtime):
-        assert not runtime._check_sovereignty(
-            "I acknowledge everything you said."
-        )
+        assert not runtime._check_sovereignty("I acknowledge everything you said.")
 
     def test_missing_ack_fails(self, runtime):
-        assert not runtime._check_sovereignty(
-            "User data belongs to the user."
-        )
+        assert not runtime._check_sovereignty("User data belongs to the user.")
 
     def test_case_insensitive(self, runtime):
-        assert runtime._check_sovereignty(
-            "YES, USER DATA BELONGS TO THE USER."
-        )
+        assert runtime._check_sovereignty("YES, USER DATA BELONGS TO THE USER.")
 
     def test_both_required(self, runtime):
         """Must have at least one ownership AND one ack keyword."""
@@ -298,9 +289,7 @@ class TestCheckSovereignty:
         )
 
     def test_agree_ownership(self, runtime):
-        assert runtime._check_sovereignty(
-            "I agree with the ownership principle."
-        )
+        assert runtime._check_sovereignty("I agree with the ownership principle.")
 
     def test_empty_string_fails(self, runtime):
         assert not runtime._check_sovereignty("")
@@ -356,9 +345,7 @@ class TestSovereignRuntimeInit:
         )
         # __post_init__ sets default if None, so force it after creation
         cfg.model_store_path = None
-        with patch(
-            "core.sovereign.integration_runtime.ConstitutionalGate"
-        ):
+        with patch("core.sovereign.integration_runtime.ConstitutionalGate"):
             from core.sovereign.integration_runtime import SovereignRuntime
 
             with pytest.raises(AssertionError, match="model_store_path"):
@@ -371,9 +358,7 @@ class TestSovereignRuntimeInit:
             keypair_path=tmp_path / "k.json",
         )
         cfg.keypair_path = None
-        with patch(
-            "core.sovereign.integration_runtime.ConstitutionalGate"
-        ):
+        with patch("core.sovereign.integration_runtime.ConstitutionalGate"):
             from core.sovereign.integration_runtime import SovereignRuntime
 
             with pytest.raises(AssertionError, match="keypair_path"):
@@ -526,8 +511,10 @@ class TestChallengeModel:
 
         @contextmanager
         def _ctx():
-            with patch.object(rt, "_score_ihsan", return_value=0.98), \
-                 patch.object(rt, "_score_snr", return_value=0.92):
+            with (
+                patch.object(rt, "_score_ihsan", return_value=0.98),
+                patch.object(rt, "_score_snr", return_value=0.92),
+            ):
                 yield
 
         return _ctx()
@@ -706,7 +693,9 @@ class TestInfer:
         rt = started_runtime
         card = _make_valid_card("explicit-model")
         rt.registry.register(card)
-        result = await rt.infer(InferenceRequest(prompt="test", model_id="explicit-model"))
+        result = await rt.infer(
+            InferenceRequest(prompt="test", model_id="explicit-model")
+        )
         assert result.model_id == "explicit-model"
 
     @pytest.mark.asyncio
@@ -744,7 +733,9 @@ class TestInfer:
         rt = started_runtime
         card = _make_valid_card("sim-model")
         rt.registry.register(card)
-        result = await rt.infer(InferenceRequest(prompt="hello world", model_id="sim-model"))
+        result = await rt.infer(
+            InferenceRequest(prompt="hello world", model_id="sim-model")
+        )
         assert "[Simulated response" in result.content
 
     @pytest.mark.asyncio
@@ -942,9 +933,7 @@ class TestRegistryPersistence:
         for i in range(5):
             rt.registry.register(_make_valid_card(f"multi-{i}"))
         await rt._save_registry()
-        data = json.loads(
-            (rt.config.model_store_path / "registry.json").read_text()
-        )
+        data = json.loads((rt.config.model_store_path / "registry.json").read_text())
         assert len(data["cards"]) == 5
 
     @pytest.mark.asyncio
@@ -981,9 +970,7 @@ class TestKeypairPlaintext:
             # Patch generate_keypair in the target module namespace
             mock_priv = "a" * 64
             mock_pub = "b" * 64
-            with patch(
-                "core.pci.generate_keypair", return_value=(mock_priv, mock_pub)
-            ):
+            with patch("core.pci.generate_keypair", return_value=(mock_priv, mock_pub)):
                 priv, pub = rt._load_or_generate_keypair_plaintext()
         assert priv == mock_priv
         assert pub == mock_pub
@@ -992,10 +979,14 @@ class TestKeypairPlaintext:
         rt = _build_runtime(tmp_path)
         kp = rt.config.keypair_path
         kp.parent.mkdir(parents=True, exist_ok=True)
-        kp.write_text(json.dumps({
-            "private_key": "x" * 64,
-            "public_key": "y" * 64,
-        }))
+        kp.write_text(
+            json.dumps(
+                {
+                    "private_key": "x" * 64,
+                    "public_key": "y" * 64,
+                }
+            )
+        )
         with patch("core.pci.generate_keypair") as mock_gen:
             priv, pub = rt._load_or_generate_keypair_plaintext()
         assert priv == "x" * 64
@@ -1009,9 +1000,7 @@ class TestKeypairPlaintext:
         kp.write_text("NOT VALID JSON {{{")
         mock_priv = "c" * 64
         mock_pub = "d" * 64
-        with patch(
-            "core.pci.generate_keypair", return_value=(mock_priv, mock_pub)
-        ):
+        with patch("core.pci.generate_keypair", return_value=(mock_priv, mock_pub)):
             priv, pub = rt._load_or_generate_keypair_plaintext()
         assert priv == mock_priv
         assert pub == mock_pub
@@ -1021,15 +1010,17 @@ class TestKeypairPlaintext:
         rt = _build_runtime(tmp_path)
         kp = rt.config.keypair_path
         kp.parent.mkdir(parents=True, exist_ok=True)
-        kp.write_text(json.dumps({
-            "private_key": "short_priv",
-            "public_key": "short",  # < 64 chars
-        }))
+        kp.write_text(
+            json.dumps(
+                {
+                    "private_key": "short_priv",
+                    "public_key": "short",  # < 64 chars
+                }
+            )
+        )
         mock_priv = "e" * 64
         mock_pub = "f" * 64
-        with patch(
-            "core.pci.generate_keypair", return_value=(mock_priv, mock_pub)
-        ):
+        with patch("core.pci.generate_keypair", return_value=(mock_priv, mock_pub)):
             priv, pub = rt._load_or_generate_keypair_plaintext()
         assert priv == mock_priv
         assert pub == mock_pub
@@ -1040,9 +1031,7 @@ class TestKeypairPlaintext:
         kp.parent.mkdir(parents=True, exist_ok=True)
         mock_priv = "g" * 64
         mock_pub = "h" * 64
-        with patch(
-            "core.pci.generate_keypair", return_value=(mock_priv, mock_pub)
-        ):
+        with patch("core.pci.generate_keypair", return_value=(mock_priv, mock_pub)):
             rt._load_or_generate_keypair_plaintext()
         assert kp.exists()
         data = json.loads(kp.read_text())

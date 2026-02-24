@@ -30,7 +30,6 @@ import pytest
 
 from core.sovereign.graph_types import EdgeType, ThoughtType
 
-
 # ---------------------------------------------------------------------------
 # Helpers: Lightweight fakes for SovereignResult / SovereignQuery
 # ---------------------------------------------------------------------------
@@ -373,7 +372,9 @@ class TestSpearPointCockpitE2E:
         # Build GoT graph (simulates Stage 1 reasoning)
         got = GraphOfThoughts()
         q = got.add_thought("What is truth?", ThoughtType.QUESTION)
-        h = got.add_thought("Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id)
+        h = got.add_thought(
+            "Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id
+        )
         e = got.add_thought("Ed25519 signatures.", ThoughtType.EVIDENCE, parent_id=h.id)
         got.add_edge(e.id, h.id, EdgeType.SUPPORTS)
         graph_hash = got.compute_graph_hash()
@@ -522,7 +523,9 @@ class TestTokenPoIIntegration:
                 reach_score=0.7,
                 longevity_score=0.6,
                 poi_score=0.8,
-                alpha=0.5, beta=0.3, gamma=0.2,
+                alpha=0.5,
+                beta=0.3,
+                gamma=0.2,
                 config_digest="test-hash",
                 computation_id="comp-A",
                 epoch_id="epoch-e2e-001",
@@ -533,7 +536,9 @@ class TestTokenPoIIntegration:
                 reach_score=0.4,
                 longevity_score=0.3,
                 poi_score=0.5,
-                alpha=0.5, beta=0.3, gamma=0.2,
+                alpha=0.5,
+                beta=0.3,
+                gamma=0.2,
                 config_digest="test-hash",
                 computation_id="comp-B",
                 epoch_id="epoch-e2e-001",
@@ -547,7 +552,9 @@ class TestTokenPoIIntegration:
             config_digest="test-hash",
         )
         summary = bridge.distribute_epoch(
-            audit=audit, epoch_reward=1000.0, mint_impt=True,
+            audit=audit,
+            epoch_reward=1000.0,
+            mint_impt=True,
         )
 
         assert "seed_receipts" in summary
@@ -584,7 +591,9 @@ class TestTokenPoIIntegration:
                 reach_score=1.0,
                 longevity_score=1.0,
                 poi_score=1.0,
-                alpha=0.5, beta=0.3, gamma=0.2,
+                alpha=0.5,
+                beta=0.3,
+                gamma=0.2,
                 config_digest="test-hash",
                 computation_id="comp-zakat-A",
                 epoch_id="epoch-zakat",
@@ -750,7 +759,9 @@ class TestFullE2E:
                 reach_score=0.80,
                 longevity_score=0.70,
                 poi_score=effective_snr,
-                alpha=0.5, beta=0.3, gamma=0.2,
+                alpha=0.5,
+                beta=0.3,
+                gamma=0.2,
                 config_digest="test-hash",
                 computation_id="comp-ultimate",
                 epoch_id="epoch-ultimate",

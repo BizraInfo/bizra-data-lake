@@ -15,23 +15,24 @@ Standing on Giants:
 
 import asyncio
 import hashlib
-import pytest
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from core.proof_engine.evidence_ledger import (
+    GENESIS_HASH,
     EvidenceLedger,
     VerifierResponse,
     emit_receipt,
-    GENESIS_HASH,
 )
 from core.proof_engine.reason_codes import ReasonCode
-
 
 # =============================================================================
 # RUNTIME INTEGRATION
 # =============================================================================
+
 
 class TestRuntimeLedgerInit:
     """Tests that SovereignRuntime can initialize the ledger."""
@@ -57,18 +58,20 @@ class TestRuntimeLedgerInit:
 
         # Pre-populate ledger
         ledger = EvidenceLedger(tmp_path / "evidence.jsonl", validate_on_append=False)
-        ledger.append({
-            "receipt_id": "a1b2c3d4e5f6a1b2",
-            "timestamp": "2026-02-10T19:00:00Z",
-            "node_id": "test-node",
-            "policy_version": "1.0.0",
-            "status": "accepted",
-            "decision": "APPROVED",
-            "reason_codes": [],
-            "snr": {"score": 0.95},
-            "ihsan": {"score": 0.97, "threshold": 0.95, "decision": "APPROVED"},
-            "seal": {"algorithm": "blake3", "digest": "a" * 64},
-        })
+        ledger.append(
+            {
+                "receipt_id": "a1b2c3d4e5f6a1b2",
+                "timestamp": "2026-02-10T19:00:00Z",
+                "node_id": "test-node",
+                "policy_version": "1.0.0",
+                "status": "accepted",
+                "decision": "APPROVED",
+                "reason_codes": [],
+                "snr": {"score": 0.95},
+                "ihsan": {"score": 0.97, "threshold": 0.95, "decision": "APPROVED"},
+                "seal": {"algorithm": "blake3", "digest": "a" * 64},
+            }
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -89,13 +92,18 @@ class TestRuntimeLedgerInit:
 # RECEIPT EMISSION
 # =============================================================================
 
+
 class TestEmitQueryReceipt:
     """Tests for _emit_query_receipt integration."""
 
     def test_emit_receipt_on_approved(self, tmp_path):
         """Approved query emits receipt to ledger."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
+        from core.sovereign.runtime_types import (
+            RuntimeConfig,
+            SovereignQuery,
+            SovereignResult,
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -126,7 +134,11 @@ class TestEmitQueryReceipt:
     def test_emit_receipt_on_rejected_ihsan(self, tmp_path):
         """Low ihsan query emits REJECTED receipt."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
+        from core.sovereign.runtime_types import (
+            RuntimeConfig,
+            SovereignQuery,
+            SovereignResult,
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -154,7 +166,11 @@ class TestEmitQueryReceipt:
     def test_emit_receipt_on_low_snr(self, tmp_path):
         """Low SNR query emits QUARANTINED receipt."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
+        from core.sovereign.runtime_types import (
+            RuntimeConfig,
+            SovereignQuery,
+            SovereignResult,
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -182,7 +198,11 @@ class TestEmitQueryReceipt:
     def test_emit_receipt_includes_graph_hash(self, tmp_path):
         """Receipt includes graph_hash when available."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
+        from core.sovereign.runtime_types import (
+            RuntimeConfig,
+            SovereignQuery,
+            SovereignResult,
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -229,7 +249,11 @@ class TestEmitQueryReceipt:
     def test_emit_receipt_chain_integrity(self, tmp_path):
         """Multiple receipts form a valid hash chain."""
         from core.sovereign.runtime_core import SovereignRuntime
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignQuery, SovereignResult
+        from core.sovereign.runtime_types import (
+            RuntimeConfig,
+            SovereignQuery,
+            SovereignResult,
+        )
 
         config = RuntimeConfig()
         config.state_dir = tmp_path
@@ -257,6 +281,7 @@ class TestEmitQueryReceipt:
 # =============================================================================
 # VERIFIER RESPONSE CONTRACT
 # =============================================================================
+
 
 class TestVerifierResponseContract:
     """Tests that VerifierResponse matches the ITP specification."""

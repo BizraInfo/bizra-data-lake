@@ -143,8 +143,12 @@ class TestSovereignResultIntegration:
         nodes = [
             GoTNodeSnapshot(node_id="g0", content="Analyze", score=0.8, depth=0),
             GoTNodeSnapshot(
-                node_id="g1", content="Conclude", score=0.95,
-                depth=1, is_conclusion=True, parent_id="g0",
+                node_id="g1",
+                content="Conclude",
+                score=0.95,
+                depth=1,
+                is_conclusion=True,
+                parent_id="g0",
             ),
         ]
         summary = ReasoningSummary(

@@ -30,7 +30,6 @@ from core.spearpoint.auto_researcher import (
 )
 from core.spearpoint.config import SpearpointConfig
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -79,20 +78,20 @@ def _mock_bridge(num_seeds: int = 2) -> MagicMock:
     # Mock seed hypotheses
     seeds = []
     for i in range(num_seeds):
-        seeds.append({
-            "hypothesis_type": "pattern_exemplar",
-            "pattern_id": "P01",
-            "pattern_name": "Gap-Driven Reframing",
-            "cognitive_move": "Identify a gap and reframe the problem",
-            "exemplar_title": f"Test Paper {i+1}",
-            "exemplar_conference": "NeurIPS",
-            "exemplar_year": 2024,
-            "exemplar_reasoning": "Novel reframing of the problem",
-            "complementary_patterns": [
-                {"id": "P02", "cooccurrence": 15}
-            ],
-            "learnable_insight": "Reframe the search space",
-        })
+        seeds.append(
+            {
+                "hypothesis_type": "pattern_exemplar",
+                "pattern_id": "P01",
+                "pattern_name": "Gap-Driven Reframing",
+                "cognitive_move": "Identify a gap and reframe the problem",
+                "exemplar_title": f"Test Paper {i+1}",
+                "exemplar_conference": "NeurIPS",
+                "exemplar_year": 2024,
+                "exemplar_reasoning": "Novel reframing of the problem",
+                "complementary_patterns": [{"id": "P02", "cooccurrence": 15}],
+                "learnable_insight": "Reframe the search space",
+            }
+        )
     bridge.seed_hypotheses.return_value = seeds
 
     return bridge
@@ -214,7 +213,9 @@ class TestResearchWithPattern:
         )
 
         call_args = evaluator.evaluate.call_args
-        claim = call_args.kwargs.get("claim", call_args.args[0] if call_args.args else "")
+        claim = call_args.kwargs.get(
+            "claim", call_args.args[0] if call_args.args else ""
+        )
         assert "Gap-Driven Reframing" in claim
         assert "Test Paper 1" in claim
         assert "Reduce memory usage" in claim
@@ -285,7 +286,12 @@ class TestResearchWithPattern:
 
         bridge.seed_hypotheses.assert_called_once()
         call_args = bridge.seed_hypotheses.call_args
-        assert call_args[1].get("top_k", call_args[0][1] if len(call_args[0]) > 1 else None) == 2
+        assert (
+            call_args[1].get(
+                "top_k", call_args[0][1] if len(call_args[0]) > 1 else None
+            )
+            == 2
+        )
 
     def test_all_15_patterns_accepted(self):
         """All 15 pattern IDs are valid inputs."""
@@ -301,7 +307,10 @@ class TestResearchWithPattern:
             results = researcher.research_with_pattern(pattern_id=pid)
             # Should not fail with invalid pattern
             assert len(results) >= 1
-            assert results[0].outcome != ResearchOutcome.NO_HYPOTHESES or "Unknown" not in results[0].reason
+            assert (
+                results[0].outcome != ResearchOutcome.NO_HYPOTHESES
+                or "Unknown" not in results[0].reason
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -438,9 +447,7 @@ class TestSpearpointPatternEndpoint:
             mission_id="mission_pattern_01",
             mission_type=MissionType.IMPROVE,
             success=True,
-            research_results=[
-                {"outcome": "approved", "pattern_id": "P01"}
-            ],
+            research_results=[{"outcome": "approved", "pattern_id": "P01"}],
             elapsed_ms=85.0,
         )
         runtime._spearpoint_orchestrator = MagicMock()
@@ -472,8 +479,10 @@ class TestSpearpointPatternEndpoint:
 
         runtime = MagicMock()
         runtime.metrics = RuntimeMetrics(
-            queries_processed=0, queries_succeeded=0,
-            current_snr_score=0.95, current_ihsan_score=0.96,
+            queries_processed=0,
+            queries_succeeded=0,
+            current_snr_score=0.95,
+            current_ihsan_score=0.96,
             avg_query_time_ms=50.0,
         )
         runtime.status.return_value = {
@@ -519,8 +528,10 @@ class TestSpearpointPatternEndpoint:
 
         runtime = MagicMock()
         runtime.metrics = RuntimeMetrics(
-            queries_processed=0, queries_succeeded=0,
-            current_snr_score=0.95, current_ihsan_score=0.96,
+            queries_processed=0,
+            queries_succeeded=0,
+            current_snr_score=0.95,
+            current_ihsan_score=0.96,
             avg_query_time_ms=50.0,
         )
         runtime.status.return_value = {
@@ -552,8 +563,10 @@ class TestSpearpointPatternEndpoint:
 
         runtime = MagicMock()
         runtime.metrics = RuntimeMetrics(
-            queries_processed=0, queries_succeeded=0,
-            current_snr_score=0.95, current_ihsan_score=0.96,
+            queries_processed=0,
+            queries_succeeded=0,
+            current_snr_score=0.95,
+            current_ihsan_score=0.96,
             avg_query_time_ms=50.0,
         )
         runtime.status.return_value = {

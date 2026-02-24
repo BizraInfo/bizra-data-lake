@@ -27,7 +27,6 @@ from core.command.sovereign_command import (
     SNRCalculator,
 )
 
-
 # ---------------------------------------------------------------------------
 # ENUM TESTS
 # ---------------------------------------------------------------------------
@@ -49,8 +48,13 @@ class TestEnums:
 
     def test_query_intents(self):
         expected = {
-            "FACTUAL", "ANALYTICAL", "CREATIVE", "TECHNICAL",
-            "CRITICAL", "SYNTHESIS", "UNKNOWN",
+            "FACTUAL",
+            "ANALYTICAL",
+            "CREATIVE",
+            "TECHNICAL",
+            "CRITICAL",
+            "SYNTHESIS",
+            "UNKNOWN",
         }
         actual = {i.name for i in QueryIntent}
         assert actual == expected
@@ -145,25 +149,31 @@ class TestQueryAnalyzer:
     def analyzer(self):
         return QueryAnalyzer()
 
-    @pytest.mark.parametrize("query,expected_intent", [
-        ("what is entropy", QueryIntent.FACTUAL),
-        ("analyze the system architecture", QueryIntent.ANALYTICAL),
-        ("create a new module", QueryIntent.CREATIVE),
-        ("implement a sorting algorithm", QueryIntent.TECHNICAL),
-        ("evaluate the performance", QueryIntent.CRITICAL),
-        ("synthesize the findings", QueryIntent.SYNTHESIS),
-        ("some random query", QueryIntent.UNKNOWN),
-    ])
+    @pytest.mark.parametrize(
+        "query,expected_intent",
+        [
+            ("what is entropy", QueryIntent.FACTUAL),
+            ("analyze the system architecture", QueryIntent.ANALYTICAL),
+            ("create a new module", QueryIntent.CREATIVE),
+            ("implement a sorting algorithm", QueryIntent.TECHNICAL),
+            ("evaluate the performance", QueryIntent.CRITICAL),
+            ("synthesize the findings", QueryIntent.SYNTHESIS),
+            ("some random query", QueryIntent.UNKNOWN),
+        ],
+    )
     def test_intent_detection(self, analyzer, query, expected_intent):
         analysis = analyzer.analyze(query)
         assert analysis.intent == expected_intent
 
-    @pytest.mark.parametrize("word_count,expected_complexity", [
-        (5, ComplexityTier.TRIVIAL),      # < 10 words
-        (20, ComplexityTier.SIMPLE),      # 10-29 words
-        (50, ComplexityTier.MODERATE),    # 30-99 words
-        (150, ComplexityTier.COMPLEX),    # 100+ words
-    ])
+    @pytest.mark.parametrize(
+        "word_count,expected_complexity",
+        [
+            (5, ComplexityTier.TRIVIAL),  # < 10 words
+            (20, ComplexityTier.SIMPLE),  # 10-29 words
+            (50, ComplexityTier.MODERATE),  # 30-99 words
+            (150, ComplexityTier.COMPLEX),  # 100+ words
+        ],
+    )
     def test_complexity_by_length(self, analyzer, word_count, expected_complexity):
         query = " ".join(["word"] * word_count)
         analysis = analyzer.analyze(query)
@@ -208,8 +218,15 @@ class TestSNRCalculator:
     def test_calculate_returns_all_components(self, calc):
         result = calc.calculate("This is a test response", "test query")
         expected_keys = {
-            "snr", "signal", "noise", "relevance", "novelty",
-            "groundedness", "coherence", "actionability", "ihsan_compliant",
+            "snr",
+            "signal",
+            "noise",
+            "relevance",
+            "novelty",
+            "groundedness",
+            "coherence",
+            "actionability",
+            "ihsan_compliant",
         }
         assert set(result.keys()) == expected_keys
 
@@ -218,7 +235,15 @@ class TestSNRCalculator:
             "A comprehensive analysis because the evidence shows",
             "analyze the evidence",
         )
-        for key in ["snr", "signal", "relevance", "novelty", "groundedness", "coherence", "actionability"]:
+        for key in [
+            "snr",
+            "signal",
+            "relevance",
+            "novelty",
+            "groundedness",
+            "coherence",
+            "actionability",
+        ]:
             assert 0.0 <= result[key] <= 1.0, f"{key}={result[key]} out of bounds"
 
     def test_noise_always_positive(self, calc):

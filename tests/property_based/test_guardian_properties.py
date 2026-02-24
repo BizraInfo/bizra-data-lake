@@ -19,7 +19,7 @@ Invariants verified:
 import asyncio
 
 import pytest
-from hypothesis import given, settings, assume, HealthCheck
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from core.sovereign.guardian_council import (
@@ -33,7 +33,6 @@ from core.sovereign.guardian_council import (
     Proposal,
     VoteType,
 )
-
 
 # ── Strategies ──────────────────────────────────────────────────────────
 
@@ -54,6 +53,7 @@ ihsan_vectors = st.builds(
 
 # ── IhsanVector Properties ─────────────────────────────────────────────
 
+
 class TestIhsanVectorProperties:
     """Algebraic properties of the Ihsān quality vector."""
 
@@ -69,13 +69,16 @@ class TestIhsanVectorProperties:
     def test_gate_requires_min_dimensions(self, vec: IhsanVector):
         """If any dimension < 0.7, passes_gate(0.95) must be False."""
         min_dim = min(
-            vec.correctness, vec.safety, vec.beneficence,
-            vec.transparency, vec.sustainability,
+            vec.correctness,
+            vec.safety,
+            vec.beneficence,
+            vec.transparency,
+            vec.sustainability,
         )
         if min_dim < 0.7:
-            assert not vec.passes_gate(0.95), (
-                f"Gate should fail when min dimension = {min_dim}"
-            )
+            assert not vec.passes_gate(
+                0.95
+            ), f"Gate should fail when min dimension = {min_dim}"
 
     def test_perfect_vector_passes(self):
         """A perfect vector (all 1.0) must always pass."""
@@ -91,6 +94,7 @@ class TestIhsanVectorProperties:
 
 
 # ── GuardianVote Properties ────────────────────────────────────────────
+
 
 class TestGuardianVoteProperties:
     """Invariants of Guardian votes."""
@@ -126,6 +130,7 @@ class TestGuardianVoteProperties:
 
 # ── Guardian Ed25519 Properties ─────────────────────────────────────────
 
+
 class TestGuardianEd25519Properties:
     """Every Guardian-produced vote is Ed25519-signed and verifiable."""
 
@@ -135,8 +140,11 @@ class TestGuardianEd25519Properties:
         """∀ guardian role: evaluate() produces Ed25519-signed vote."""
         g = Guardian(role)
         p = Proposal(
-            id="prop-test", title="Test", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.MAJORITY,
+            id="prop-test",
+            title="Test",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.MAJORITY,
         )
         vote = asyncio.run(g.evaluate(p))
         assert vote.signer_public_key == g.public_key
@@ -148,8 +156,11 @@ class TestGuardianEd25519Properties:
         """∀ guardian: tampering with vote signature → verify fails."""
         g = Guardian(role)
         p = Proposal(
-            id="prop-tamper", title="Tamper Test", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.MAJORITY,
+            id="prop-tamper",
+            title="Tamper Test",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.MAJORITY,
         )
         vote = asyncio.run(g.evaluate(p))
 
@@ -168,8 +179,11 @@ class TestGuardianEd25519Properties:
         assume(g1.public_key != g2.public_key)
 
         p = Proposal(
-            id="prop-xkey", title="Cross-Key Test", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.MAJORITY,
+            id="prop-xkey",
+            title="Cross-Key Test",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.MAJORITY,
         )
         vote = asyncio.run(g1.evaluate(p))
 
@@ -180,6 +194,7 @@ class TestGuardianEd25519Properties:
 
 # ── Council Verdict Properties ──────────────────────────────────────────
 
+
 class TestCouncilVerdictProperties:
     """Invariants of the council deliberation."""
 
@@ -187,8 +202,11 @@ class TestCouncilVerdictProperties:
         """A standard council deliberation always produces a verdict."""
         council = GuardianCouncil(ihsan_threshold=0.95)
         p = Proposal(
-            id="prop-council", title="Council Test", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.MAJORITY,
+            id="prop-council",
+            title="Council Test",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.MAJORITY,
         )
         verdict = asyncio.run(council.deliberate(p))
         assert isinstance(verdict, CouncilVerdict)
@@ -199,25 +217,32 @@ class TestCouncilVerdictProperties:
         """If verdict.unanimous == True, all votes are approve-type."""
         council = GuardianCouncil(ihsan_threshold=0.50)  # Low threshold
         p = Proposal(
-            id="prop-unan", title="Unanimity Test", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.UNANIMOUS,
+            id="prop-unan",
+            title="Unanimity Test",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.UNANIMOUS,
         )
         verdict = asyncio.run(council.deliberate(p))
         if verdict.unanimous:
             for vote in verdict.votes:
                 assert vote.vote_type in [
-                    VoteType.APPROVE, VoteType.APPROVE_WITH_CONCERNS
+                    VoteType.APPROVE,
+                    VoteType.APPROVE_WITH_CONCERNS,
                 ], f"Unanimous but {vote.guardian.name} voted {vote.vote_type.name}"
 
     def test_all_votes_verified(self):
         """Every vote in a verdict must pass Ed25519 verification."""
         council = GuardianCouncil(ihsan_threshold=0.95)
         p = Proposal(
-            id="prop-verify", title="Verify All", content="test",
-            proposer="hypothesis", required_mode=ConsensusMode.MAJORITY,
+            id="prop-verify",
+            title="Verify All",
+            content="test",
+            proposer="hypothesis",
+            required_mode=ConsensusMode.MAJORITY,
         )
         verdict = asyncio.run(council.deliberate(p))
         for vote in verdict.votes:
-            assert vote.verify(), (
-                f"Vote from {vote.guardian.name} failed Ed25519 verification"
-            )
+            assert (
+                vote.verify()
+            ), f"Vote from {vote.guardian.name} failed Ed25519 verification"

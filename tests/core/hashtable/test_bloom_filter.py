@@ -65,15 +65,14 @@ class TestBloomFilterFPR:
 
         # Test 10000 non-members
         false_positives = sum(
-            1 for i in range(10000)
-            if f"non-member-{i}".encode() in bf
+            1 for i in range(10000) if f"non-member-{i}".encode() in bf
         )
         empirical_fpr = false_positives / 10000
 
         # Allow 3x headroom (statistical variance)
-        assert empirical_fpr < fpr * 3, (
-            f"Empirical FPR {empirical_fpr:.4f} exceeds 3x target {fpr}"
-        )
+        assert (
+            empirical_fpr < fpr * 3
+        ), f"Empirical FPR {empirical_fpr:.4f} exceeds 3x target {fpr}"
 
     def test_estimated_fpr_increases_with_items(self):
         bf = BloomFilter(1000)
@@ -102,6 +101,7 @@ class TestBloomFilterSizing:
         """Filter with huge capacity doesn't exceed BLOOM_MAX_BITS."""
         bf = BloomFilter(100_000_000, false_positive_rate=0.0001)
         from core.integration.constants import BLOOM_MAX_BITS
+
         # Round max to byte boundary
         max_rounded = ((BLOOM_MAX_BITS + 7) // 8) * 8
         assert bf.num_bits <= max_rounded

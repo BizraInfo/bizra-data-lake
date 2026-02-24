@@ -55,10 +55,10 @@ from core.sovereign.runtime_types import (
     SovereignResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # FIXTURES
 # ---------------------------------------------------------------------------
+
 
 def _minimal_config(tmp_path: Path) -> RuntimeConfig:
     """Create minimal config with all optional features disabled."""
@@ -105,6 +105,7 @@ def _runtime_role_env(monkeypatch: pytest.MonkeyPatch) -> None:
 # ---------------------------------------------------------------------------
 # 1. __init__
 # ---------------------------------------------------------------------------
+
 
 class TestInit:
     """Tests for SovereignRuntime.__init__."""
@@ -174,6 +175,7 @@ class TestInit:
 # 2. _load_env_vars
 # ---------------------------------------------------------------------------
 
+
 class TestLoadEnvVars:
     """Tests for SovereignRuntime._load_env_vars."""
 
@@ -182,9 +184,7 @@ class TestLoadEnvVars:
         # state_dir does not exist yet — should handle gracefully
         rt._load_env_vars()  # should not raise
 
-    def test_loads_key_value(
-        self, rt: SovereignRuntime, tmp_state: Path
-    ) -> None:
+    def test_loads_key_value(self, rt: SovereignRuntime, tmp_state: Path) -> None:
         """Should load KEY=VALUE pairs into os.environ."""
         rt.config.state_dir = tmp_state
         env_file = tmp_state / ".env"
@@ -199,9 +199,7 @@ class TestLoadEnvVars:
         # cleanup
         os.environ.pop("MY_TEST_KEY_ALPHA", None)
 
-    def test_skips_comments(
-        self, rt: SovereignRuntime, tmp_state: Path
-    ) -> None:
+    def test_skips_comments(self, rt: SovereignRuntime, tmp_state: Path) -> None:
         """Lines starting with # should be skipped."""
         rt.config.state_dir = tmp_state
         env_file = tmp_state / ".env"
@@ -213,9 +211,7 @@ class TestLoadEnvVars:
         assert os.environ.get("TEST_LOAD_COMMENT") == "yes"
         os.environ.pop("TEST_LOAD_COMMENT", None)
 
-    def test_skips_empty_lines(
-        self, rt: SovereignRuntime, tmp_state: Path
-    ) -> None:
+    def test_skips_empty_lines(self, rt: SovereignRuntime, tmp_state: Path) -> None:
         """Empty lines should be skipped without error."""
         rt.config.state_dir = tmp_state
         env_file = tmp_state / ".env"
@@ -227,9 +223,7 @@ class TestLoadEnvVars:
         assert os.environ.get("TEST_LOAD_EMPTY") == "value"
         os.environ.pop("TEST_LOAD_EMPTY", None)
 
-    def test_strips_quotes(
-        self, rt: SovereignRuntime, tmp_state: Path
-    ) -> None:
+    def test_strips_quotes(self, rt: SovereignRuntime, tmp_state: Path) -> None:
         """Quoted values should have quotes stripped."""
         rt.config.state_dir = tmp_state
         env_file = tmp_state / ".env"
@@ -268,6 +262,7 @@ class TestLoadEnvVars:
 # 3. _parse_env_bool
 # ---------------------------------------------------------------------------
 
+
 class TestParseEnvBool:
     """Tests for SovereignRuntime._parse_env_bool (static method)."""
 
@@ -305,6 +300,7 @@ class TestParseEnvBool:
 # ---------------------------------------------------------------------------
 # 4. _apply_env_overrides
 # ---------------------------------------------------------------------------
+
 
 class TestApplyEnvOverrides:
     """Tests for SovereignRuntime._apply_env_overrides."""
@@ -376,7 +372,9 @@ class TestApplyEnvOverrides:
         try:
             rt._apply_env_overrides()
             # Should warn but not raise
-            assert any("Invalid ZPK_MIN_POLICY_VERSION" in r.message for r in caplog.records)
+            assert any(
+                "Invalid ZPK_MIN_POLICY_VERSION" in r.message for r in caplog.records
+            )
         finally:
             os.environ.pop("ZPK_MIN_POLICY_VERSION", None)
 
@@ -394,7 +392,9 @@ class TestApplyEnvOverrides:
         os.environ["ZPK_MIN_IHSAN_POLICY"] = "not_a_float"
         try:
             rt._apply_env_overrides()
-            assert any("Invalid ZPK_MIN_IHSAN_POLICY" in r.message for r in caplog.records)
+            assert any(
+                "Invalid ZPK_MIN_IHSAN_POLICY" in r.message for r in caplog.records
+            )
         finally:
             os.environ.pop("ZPK_MIN_IHSAN_POLICY", None)
 
@@ -435,8 +435,14 @@ class TestApplyEnvOverrides:
             assert rt.config.proactive_kernel_base_tau == pytest.approx(0.60)
             assert rt.config.proactive_kernel_auto_execute_tau == pytest.approx(0.85)
             assert rt.config.proactive_kernel_queue_silent_tau == pytest.approx(0.40)
-            assert rt.config.proactive_kernel_attention_budget_capacity == pytest.approx(12.0)
-            assert rt.config.proactive_kernel_attention_recovery_per_cycle == pytest.approx(1.5)
+            assert (
+                rt.config.proactive_kernel_attention_budget_capacity
+                == pytest.approx(12.0)
+            )
+            assert (
+                rt.config.proactive_kernel_attention_recovery_per_cycle
+                == pytest.approx(1.5)
+            )
         finally:
             for k in envs:
                 os.environ.pop(k, None)
@@ -447,7 +453,10 @@ class TestApplyEnvOverrides:
         os.environ["PEK_CYCLE_SECONDS"] = "not_a_number"
         try:
             rt._apply_env_overrides()
-            assert any("Invalid" in r.message and "PEK_CYCLE_SECONDS" in r.message for r in caplog.records)
+            assert any(
+                "Invalid" in r.message and "PEK_CYCLE_SECONDS" in r.message
+                for r in caplog.records
+            )
         finally:
             os.environ.pop("PEK_CYCLE_SECONDS", None)
 
@@ -463,11 +472,19 @@ class TestApplyEnvOverrides:
         """When no env vars are present, config should stay at defaults."""
         # Wipe all potentially conflicting env vars
         keys = [
-            "ZPK_MANIFEST_URI", "ZPK_RELEASE_PUBLIC_KEY", "ZPK_PREFLIGHT_ENABLED",
-            "ZPK_EMIT_BOOTSTRAP_EVENTS", "ZPK_EVENT_TOPIC", "ZPK_ALLOWED_VERSIONS",
-            "ZPK_MIN_POLICY_VERSION", "ZPK_MIN_IHSAN_POLICY",
-            "PEK_ENABLED", "PEK_EMIT_PROOF_EVENTS", "PEK_PROOF_EVENT_TOPIC",
-            "PEK_CYCLE_SECONDS", "PEK_MIN_CONFIDENCE",
+            "ZPK_MANIFEST_URI",
+            "ZPK_RELEASE_PUBLIC_KEY",
+            "ZPK_PREFLIGHT_ENABLED",
+            "ZPK_EMIT_BOOTSTRAP_EVENTS",
+            "ZPK_EVENT_TOPIC",
+            "ZPK_ALLOWED_VERSIONS",
+            "ZPK_MIN_POLICY_VERSION",
+            "ZPK_MIN_IHSAN_POLICY",
+            "PEK_ENABLED",
+            "PEK_EMIT_PROOF_EVENTS",
+            "PEK_PROOF_EVENT_TOPIC",
+            "PEK_CYCLE_SECONDS",
+            "PEK_MIN_CONFIDENCE",
         ]
         saved = {}
         for k in keys:
@@ -486,6 +503,7 @@ class TestApplyEnvOverrides:
 # 5. create() classmethod async context manager
 # ---------------------------------------------------------------------------
 
+
 class TestCreate:
     """Tests for SovereignRuntime.create() lifecycle."""
 
@@ -494,8 +512,14 @@ class TestCreate:
         """create() should call initialize(), yield runtime, then call shutdown()."""
         cfg = _minimal_config(tmp_path)
 
-        with patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock) as mock_init, \
-             patch.object(SovereignRuntime, "shutdown", new_callable=AsyncMock) as mock_shut:
+        with (
+            patch.object(
+                SovereignRuntime, "initialize", new_callable=AsyncMock
+            ) as mock_init,
+            patch.object(
+                SovereignRuntime, "shutdown", new_callable=AsyncMock
+            ) as mock_shut,
+        ):
 
             async with SovereignRuntime.create(cfg) as runtime:
                 assert isinstance(runtime, SovereignRuntime)
@@ -508,8 +532,12 @@ class TestCreate:
         """Shutdown should still be called even if body raises."""
         cfg = _minimal_config(tmp_path)
 
-        with patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock), \
-             patch.object(SovereignRuntime, "shutdown", new_callable=AsyncMock) as mock_shut:
+        with (
+            patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock),
+            patch.object(
+                SovereignRuntime, "shutdown", new_callable=AsyncMock
+            ) as mock_shut,
+        ):
 
             with pytest.raises(ValueError):
                 async with SovereignRuntime.create(cfg) as _runtime:
@@ -522,6 +550,7 @@ class TestCreate:
 # 6. _init_evidence_ledger
 # ---------------------------------------------------------------------------
 
+
 class TestInitEvidenceLedger:
     """Tests for _init_evidence_ledger."""
 
@@ -531,20 +560,26 @@ class TestInitEvidenceLedger:
         mock_ledger = MagicMock()
         mock_ledger.sequence = 0
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": MagicMock(
-                EvidenceLedger=MagicMock(return_value=mock_ledger)
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": MagicMock(
+                    EvidenceLedger=MagicMock(return_value=mock_ledger)
+                ),
+            },
+        ):
             rt._init_evidence_ledger()
 
         assert rt._evidence_ledger is mock_ledger
 
     def test_failure_non_fatal(self, rt: SovereignRuntime) -> None:
         """Import failure should set _evidence_ledger to None, not raise."""
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": None,
+            },
+        ):
             # Force import error
             rt._init_evidence_ledger()
 
@@ -555,6 +590,7 @@ class TestInitEvidenceLedger:
 # 7. _init_experience_ledger
 # ---------------------------------------------------------------------------
 
+
 class TestInitExperienceLedger:
     """Tests for _init_experience_ledger."""
 
@@ -564,19 +600,25 @@ class TestInitExperienceLedger:
             "core.sovereign.runtime_core.SovereignRuntime._init_experience_ledger",
             wraps=rt._init_experience_ledger,
         ):
-            with patch.dict("sys.modules", {
-                "core.sovereign.experience_ledger": MagicMock(
-                    SovereignExperienceLedger=MagicMock(return_value=mock_ledger)
-                ),
-            }):
+            with patch.dict(
+                "sys.modules",
+                {
+                    "core.sovereign.experience_ledger": MagicMock(
+                        SovereignExperienceLedger=MagicMock(return_value=mock_ledger)
+                    ),
+                },
+            ):
                 rt._init_experience_ledger()
 
         assert rt._experience_ledger is mock_ledger
 
     def test_failure_non_fatal(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.sovereign.experience_ledger": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.experience_ledger": None,
+            },
+        ):
             rt._init_experience_ledger()
         assert rt._experience_ledger is None
 
@@ -585,24 +627,31 @@ class TestInitExperienceLedger:
 # 8. _init_judgment_telemetry
 # ---------------------------------------------------------------------------
 
+
 class TestInitJudgmentTelemetry:
     """Tests for _init_judgment_telemetry."""
 
     def test_success_path(self, rt: SovereignRuntime) -> None:
         mock_telemetry = MagicMock()
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": MagicMock(
-                JudgmentTelemetry=MagicMock(return_value=mock_telemetry)
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": MagicMock(
+                    JudgmentTelemetry=MagicMock(return_value=mock_telemetry)
+                ),
+            },
+        ):
             rt._init_judgment_telemetry()
 
         assert rt._judgment_telemetry is mock_telemetry
 
     def test_failure_non_fatal(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": None,
+            },
+        ):
             rt._init_judgment_telemetry()
         assert rt._judgment_telemetry is None
 
@@ -610,6 +659,7 @@ class TestInitJudgmentTelemetry:
 # ---------------------------------------------------------------------------
 # 9. _observe_judgment
 # ---------------------------------------------------------------------------
+
 
 class TestObserveJudgment:
     """Tests for _observe_judgment."""
@@ -637,9 +687,12 @@ class TestObserveJudgment:
         mock_verdict_module = MagicMock()
         mock_verdict_module.JudgmentVerdict.FORBID = "FORBID"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
             rt._observe_judgment(self._make_result(success=False))
 
         mock_telemetry.observe.assert_called_once_with("FORBID")
@@ -651,9 +704,12 @@ class TestObserveJudgment:
         mock_verdict_module = MagicMock()
         mock_verdict_module.JudgmentVerdict.FORBID = "FORBID"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
             rt._observe_judgment(
                 self._make_result(validated=True, validation_passed=False)
             )
@@ -668,12 +724,13 @@ class TestObserveJudgment:
         mock_verdict_module.JudgmentVerdict.FORBID = "FORBID"
         mock_verdict_module.JudgmentVerdict.DEMOTE = "DEMOTE"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
-            rt._observe_judgment(
-                self._make_result(success=True, snr_ok=False)
-            )
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
+            rt._observe_judgment(self._make_result(success=True, snr_ok=False))
 
         mock_telemetry.observe.assert_called_once_with("DEMOTE")
 
@@ -686,16 +743,21 @@ class TestObserveJudgment:
         mock_verdict_module.JudgmentVerdict.DEMOTE = "DEMOTE"
         mock_verdict_module.JudgmentVerdict.PROMOTE = "PROMOTE"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
             rt._observe_judgment(
                 self._make_result(success=True, snr_ok=True, ihsan_score=0.97)
             )
 
         mock_telemetry.observe.assert_called_once_with("PROMOTE")
 
-    def test_neutral_when_snr_ok_but_ihsan_below_095(self, rt: SovereignRuntime) -> None:
+    def test_neutral_when_snr_ok_but_ihsan_below_095(
+        self, rt: SovereignRuntime
+    ) -> None:
         mock_telemetry = MagicMock()
         rt._judgment_telemetry = mock_telemetry
 
@@ -705,9 +767,12 @@ class TestObserveJudgment:
         mock_verdict_module.JudgmentVerdict.PROMOTE = "PROMOTE"
         mock_verdict_module.JudgmentVerdict.NEUTRAL = "NEUTRAL"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
             rt._observe_judgment(
                 self._make_result(success=True, snr_ok=True, ihsan_score=0.90)
             )
@@ -725,9 +790,12 @@ class TestObserveJudgment:
         mock_verdict_module.JudgmentVerdict.FORBID = "FORBID"
         mock_verdict_module.JudgmentVerdict.DEMOTE = "DEMOTE"
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": mock_verdict_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": mock_verdict_module,
+            },
+        ):
             # Should not raise
             rt._observe_judgment(
                 self._make_result(success=True, snr_ok=True, ihsan_score=0.96)
@@ -737,6 +805,7 @@ class TestObserveJudgment:
 # ---------------------------------------------------------------------------
 # 10. _commit_experience_episode
 # ---------------------------------------------------------------------------
+
 
 class TestCommitExperienceEpisode:
     """Tests for _commit_experience_episode."""
@@ -794,9 +863,7 @@ class TestCommitExperienceEpisode:
         # Verify graph_hash computed from thoughts (BLAKE3, SEC-001)
         from core.proof_engine.canonical import hex_digest
 
-        expected_hash = hex_digest(
-            "thought1|thought2".encode("utf-8")
-        )
+        expected_hash = hex_digest("thought1|thought2".encode("utf-8"))
         assert call_kwargs.kwargs["graph_hash"] == expected_hash
         assert call_kwargs.kwargs["graph_node_count"] == 2
         assert call_kwargs.kwargs["snr_score"] == pytest.approx(0.92)
@@ -849,6 +916,7 @@ class TestCommitExperienceEpisode:
 # 11. _init_gate_chain
 # ---------------------------------------------------------------------------
 
+
 class TestInitGateChain:
     """Tests for _init_gate_chain."""
 
@@ -860,18 +928,24 @@ class TestInitGateChain:
         mock_gates.GateChain = MagicMock(return_value=mock_chain)
         mock_receipt = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.gates": mock_gates,
-            "core.proof_engine.receipt": mock_receipt,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.gates": mock_gates,
+                "core.proof_engine.receipt": mock_receipt,
+            },
+        ):
             rt._init_gate_chain()
 
         assert rt._gate_chain is mock_chain
 
     def test_failure_non_fatal(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.proof_engine.gates": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.gates": None,
+            },
+        ):
             rt._init_gate_chain()
         assert rt._gate_chain is None
 
@@ -879,6 +953,7 @@ class TestInitGateChain:
 # ---------------------------------------------------------------------------
 # 12. _run_gate_chain_preflight
 # ---------------------------------------------------------------------------
+
 
 class TestRunGateChainPreflight:
     """Tests for _run_gate_chain_preflight (async)."""
@@ -904,9 +979,12 @@ class TestRunGateChainPreflight:
 
         mock_canonical = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": mock_canonical,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": mock_canonical,
+            },
+        ):
             query = SovereignQuery(text="test")
             result = SovereignResult(query_id="q1")
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -927,9 +1005,12 @@ class TestRunGateChainPreflight:
 
         mock_canonical = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": mock_canonical,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": mock_canonical,
+            },
+        ):
             query = SovereignQuery(text="test")
             result = SovereignResult(query_id="q1")
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -951,9 +1032,12 @@ class TestRunGateChainPreflight:
         mock_canonical = MagicMock()
         mock_canonical.CanonQuery.side_effect = RuntimeError("boom")
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": mock_canonical,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": mock_canonical,
+            },
+        ):
             query = SovereignQuery(text="test")
             result = SovereignResult(query_id="q1")
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -965,6 +1049,7 @@ class TestRunGateChainPreflight:
 # ---------------------------------------------------------------------------
 # 13. _emit_query_receipt
 # ---------------------------------------------------------------------------
+
 
 class TestEmitQueryReceipt:
     """Tests for _emit_query_receipt."""
@@ -993,9 +1078,12 @@ class TestEmitQueryReceipt:
 
         mock_el = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": mock_el,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": mock_el,
+            },
+        ):
             result = self._make_result(validation_passed=True, snr_score=0.92)
             query = SovereignQuery(text="hello world")
             rt._emit_query_receipt(result, query)
@@ -1011,9 +1099,12 @@ class TestEmitQueryReceipt:
 
         mock_el = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": mock_el,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": mock_el,
+            },
+        ):
             result = self._make_result(validation_passed=False, snr_score=0.92)
             query = SovereignQuery(text="test")
             rt._emit_query_receipt(result, query)
@@ -1028,9 +1119,12 @@ class TestEmitQueryReceipt:
 
         mock_el = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": mock_el,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": mock_el,
+            },
+        ):
             # validation_passed=True but snr < 0.85
             result = self._make_result(validation_passed=True, snr_score=0.60)
             query = SovereignQuery(text="test")
@@ -1044,17 +1138,21 @@ class TestEmitQueryReceipt:
         mock_ledger = MagicMock()
         rt._evidence_ledger = mock_ledger
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": MagicMock(
-                emit_receipt=MagicMock(side_effect=RuntimeError("boom"))
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": MagicMock(
+                    emit_receipt=MagicMock(side_effect=RuntimeError("boom"))
+                ),
+            },
+        ):
             rt._emit_query_receipt(self._make_result(), SovereignQuery(text="test"))
 
 
 # ---------------------------------------------------------------------------
 # 14. _register_poi_contribution
 # ---------------------------------------------------------------------------
+
 
 class TestRegisterPoiContribution:
     """Tests for _register_poi_contribution."""
@@ -1088,9 +1186,12 @@ class TestRegisterPoiContribution:
 
         mock_poi = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.poi_engine": mock_poi,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.poi_engine": mock_poi,
+            },
+        ):
             result = self._make_result()
             query = SovereignQuery(text="test query")
             rt._register_poi_contribution(result, query)
@@ -1104,9 +1205,12 @@ class TestRegisterPoiContribution:
 
         mock_poi = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.poi_engine": mock_poi,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.poi_engine": mock_poi,
+            },
+        ):
             # Should not raise
             rt._register_poi_contribution(self._make_result(), SovereignQuery(text="q"))
 
@@ -1114,6 +1218,7 @@ class TestRegisterPoiContribution:
 # ---------------------------------------------------------------------------
 # 15. _encode_query_memory
 # ---------------------------------------------------------------------------
+
 
 class TestEncodeQueryMemory:
     """Tests for _encode_query_memory."""
@@ -1151,9 +1256,15 @@ class TestEncodeQueryMemory:
 
         mock_memory_type = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.living_memory.core": mock_memory_type,
-        }), patch("asyncio.ensure_future") as mock_ensure:
+        with (
+            patch.dict(
+                "sys.modules",
+                {
+                    "core.living_memory.core": mock_memory_type,
+                },
+            ),
+            patch("asyncio.ensure_future") as mock_ensure,
+        ):
             result = self._make_result()
             query = SovereignQuery(text="test query")
             rt._encode_query_memory(result, query)
@@ -1170,7 +1281,9 @@ class TestReceiptMemoryFeedback:
     """Tests for receipt outcome feedback into living memory."""
 
     @pytest.mark.asyncio
-    async def test_apply_feedback_reinforces_on_approved(self, rt: SovereignRuntime) -> None:
+    async def test_apply_feedback_reinforces_on_approved(
+        self, rt: SovereignRuntime
+    ) -> None:
         mock_memory = MagicMock()
         mock_memory.apply_execution_feedback = AsyncMock(
             return_value={"processed": 1, "reinforced": 1, "flagged": 0, "missing": 0}
@@ -1234,6 +1347,7 @@ class TestReceiptMemoryFeedback:
 # 16. _store_graph_artifact
 # ---------------------------------------------------------------------------
 
+
 class TestStoreGraphArtifact:
     """Tests for _store_graph_artifact."""
 
@@ -1288,6 +1402,7 @@ class TestStoreGraphArtifact:
 # 17. get_graph_artifact
 # ---------------------------------------------------------------------------
 
+
 class TestGetGraphArtifact:
     """Tests for get_graph_artifact."""
 
@@ -1302,6 +1417,7 @@ class TestGetGraphArtifact:
 # ---------------------------------------------------------------------------
 # 18. get_gate_chain_stats
 # ---------------------------------------------------------------------------
+
 
 class TestGetGateChainStats:
     """Tests for get_gate_chain_stats."""
@@ -1324,6 +1440,7 @@ class TestGetGateChainStats:
 # 19. _init_poi_engine
 # ---------------------------------------------------------------------------
 
+
 class TestInitPoiEngine:
     """Tests for _init_poi_engine."""
 
@@ -1342,19 +1459,25 @@ class TestInitPoiEngine:
         mock_sat_ctrl = MagicMock()
         mock_sat_module.SATController.return_value = mock_sat_ctrl
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.poi_engine": mock_poi_module,
-            "core.sovereign.sat_controller": mock_sat_module,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.poi_engine": mock_poi_module,
+                "core.sovereign.sat_controller": mock_sat_module,
+            },
+        ):
             rt._init_poi_engine()
 
         assert rt._poi_orchestrator is mock_orch
         assert rt._sat_controller is mock_sat_ctrl
 
     def test_failure_non_fatal(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.proof_engine.poi_engine": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.poi_engine": None,
+            },
+        ):
             rt._init_poi_engine()
         assert rt._poi_orchestrator is None
         assert rt._sat_controller is None
@@ -1363,6 +1486,7 @@ class TestInitPoiEngine:
 # ---------------------------------------------------------------------------
 # 20. get_poi_stats, get_contributor_poi, compute_poi_epoch
 # ---------------------------------------------------------------------------
+
 
 class TestPoiDelegation:
     """Tests for PoI delegation methods."""
@@ -1419,6 +1543,7 @@ class TestPoiDelegation:
 # 21. get_sat_stats, finalize_sat_epoch
 # ---------------------------------------------------------------------------
 
+
 class TestSatDelegation:
     """Tests for SAT Controller delegation methods."""
 
@@ -1449,6 +1574,7 @@ class TestSatDelegation:
 # ---------------------------------------------------------------------------
 # 22. _health_status and _calculate_health
 # ---------------------------------------------------------------------------
+
 
 class TestHealth:
     """Tests for _health_status and _calculate_health."""
@@ -1544,6 +1670,7 @@ class TestHealth:
 # 23. _cache_key and _update_cache
 # ---------------------------------------------------------------------------
 
+
 class TestCaching:
     """Tests for _cache_key and _update_cache."""
 
@@ -1593,13 +1720,17 @@ class TestCaching:
 # 24. _mode_to_tier
 # ---------------------------------------------------------------------------
 
+
 class TestModeToTier:
     """Tests for _mode_to_tier."""
 
     def test_import_error_returns_none(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": None,
+            },
+        ):
             result = rt._mode_to_tier(MagicMock())
         assert result is None
 
@@ -1622,10 +1753,13 @@ class TestModeToTier:
         mock_omega_mod = MagicMock()
         mock_omega_mod.TreasuryMode = FakeTreasuryMode
 
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": mock_gateway_mod,
-            "core.sovereign.omega_engine": mock_omega_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": mock_gateway_mod,
+                "core.sovereign.omega_engine": mock_omega_mod,
+            },
+        ):
             # "not_a_mode" is not a FakeTreasuryMode instance
             result = rt._mode_to_tier("not_a_mode")
         assert result is None
@@ -1649,10 +1783,13 @@ class TestModeToTier:
         mock_omega_mod = MagicMock()
         mock_omega_mod.TreasuryMode = FakeTreasuryMode
 
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": mock_gateway_mod,
-            "core.sovereign.omega_engine": mock_omega_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": mock_gateway_mod,
+                "core.sovereign.omega_engine": mock_omega_mod,
+            },
+        ):
             result = rt._mode_to_tier(FakeTreasuryMode.ETHICAL)
         assert result == FakeComputeTier.LOCAL
 
@@ -1675,10 +1812,13 @@ class TestModeToTier:
         mock_omega_mod = MagicMock()
         mock_omega_mod.TreasuryMode = FakeTreasuryMode
 
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": mock_gateway_mod,
-            "core.sovereign.omega_engine": mock_omega_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": mock_gateway_mod,
+                "core.sovereign.omega_engine": mock_omega_mod,
+            },
+        ):
             result = rt._mode_to_tier(FakeTreasuryMode.HIBERNATION)
         assert result == FakeComputeTier.EDGE
 
@@ -1701,10 +1841,13 @@ class TestModeToTier:
         mock_omega_mod = MagicMock()
         mock_omega_mod.TreasuryMode = FakeTreasuryMode
 
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": mock_gateway_mod,
-            "core.sovereign.omega_engine": mock_omega_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": mock_gateway_mod,
+                "core.sovereign.omega_engine": mock_omega_mod,
+            },
+        ):
             result = rt._mode_to_tier(FakeTreasuryMode.EMERGENCY)
         assert result == FakeComputeTier.EDGE
 
@@ -1713,13 +1856,17 @@ class TestModeToTier:
 # 25. _extract_ihsan_from_response
 # ---------------------------------------------------------------------------
 
+
 class TestExtractIhsanFromResponse:
     """Tests for _extract_ihsan_from_response."""
 
     def test_import_error_returns_none(self, rt: SovereignRuntime) -> None:
-        with patch.dict("sys.modules", {
-            "core.sovereign.omega_engine": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.omega_engine": None,
+            },
+        ):
             result = rt._extract_ihsan_from_response("hello", {})
         assert result is None
 
@@ -1728,12 +1875,13 @@ class TestExtractIhsanFromResponse:
         mock_ihsan = MagicMock(return_value="ihsan_vector")
         mock_omega.ihsan_from_scores = mock_ihsan
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.omega_engine": mock_omega,
-        }):
-            result = rt._extract_ihsan_from_response(
-                "you should kill the process", {}
-            )
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.omega_engine": mock_omega,
+            },
+        ):
+            result = rt._extract_ihsan_from_response("you should kill the process", {})
 
         mock_ihsan.assert_called_once()
         call_kwargs = mock_ihsan.call_args
@@ -1745,9 +1893,12 @@ class TestExtractIhsanFromResponse:
         mock_ihsan = MagicMock(return_value="ihsan_vector")
         mock_omega.ihsan_from_scores = mock_ihsan
 
-        with patch.dict("sys.modules", {
-            "core.sovereign.omega_engine": mock_omega,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.omega_engine": mock_omega,
+            },
+        ):
             result = rt._extract_ihsan_from_response(
                 "This is a perfectly safe response about cooking.", {}
             )
@@ -1760,6 +1911,7 @@ class TestExtractIhsanFromResponse:
 # ---------------------------------------------------------------------------
 # 26. _estimate_complexity
 # ---------------------------------------------------------------------------
+
 
 class TestEstimateComplexity:
     """Tests for _estimate_complexity."""
@@ -1821,6 +1973,7 @@ class TestEstimateComplexity:
 # 27. _checkpoint
 # ---------------------------------------------------------------------------
 
+
 class TestCheckpoint:
     """Tests for _checkpoint (async)."""
 
@@ -1881,6 +2034,7 @@ class TestCheckpoint:
 # ---------------------------------------------------------------------------
 # 28. status()
 # ---------------------------------------------------------------------------
+
 
 class TestStatus:
     """Tests for status() — integration-style test of the full status dict."""
@@ -2059,7 +2213,9 @@ class TestStatus:
         from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
 
         priv_hex, pub_hex = generate_keypair()
-        ledger = EvidenceLedger(tmp_path / "evidence_pat_sat.jsonl", validate_on_append=True)
+        ledger = EvidenceLedger(
+            tmp_path / "evidence_pat_sat.jsonl", validate_on_append=True
+        )
         emit_receipt(
             ledger,
             receipt_id="a" * 32,

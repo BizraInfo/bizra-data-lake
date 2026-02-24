@@ -12,8 +12,9 @@ Standing on Giants:
 
 import hashlib
 import json
-import pytest
 from typing import Any, Dict
+
+import pytest
 
 from core.sovereign.graph_core import GraphOfThoughts
 from core.sovereign.graph_types import (
@@ -23,10 +24,10 @@ from core.sovereign.graph_types import (
     ThoughtType,
 )
 
-
 # =============================================================================
 # HELPERS
 # =============================================================================
+
 
 def _build_simple_graph() -> GraphOfThoughts:
     """Build a minimal graph for testing."""
@@ -65,6 +66,7 @@ def _build_complex_graph() -> GraphOfThoughts:
 # to_artifact() SCHEMA COMPLIANCE
 # =============================================================================
 
+
 class TestGraphArtifactShape:
     """Tests that to_artifact() produces schema-compliant output."""
 
@@ -94,8 +96,15 @@ class TestGraphArtifactShape:
     def test_artifact_node_types_valid(self):
         """Node types match schema enum values."""
         valid_types = {
-            "hypothesis", "evidence", "reasoning", "synthesis",
-            "refinement", "validation", "conclusion", "question", "counterpoint",
+            "hypothesis",
+            "evidence",
+            "reasoning",
+            "synthesis",
+            "refinement",
+            "validation",
+            "conclusion",
+            "question",
+            "counterpoint",
         }
         graph = _build_simple_graph()
         artifact = graph.to_artifact()
@@ -106,8 +115,13 @@ class TestGraphArtifactShape:
     def test_artifact_edge_types_valid(self):
         """Edge types match schema enum values."""
         valid_types = {
-            "supports", "refutes", "derives",
-            "synthesizes", "refines", "questions", "validates",
+            "supports",
+            "refutes",
+            "derives",
+            "synthesizes",
+            "refines",
+            "questions",
+            "validates",
         }
         graph = _build_simple_graph()
         artifact = graph.to_artifact()
@@ -169,6 +183,7 @@ class TestGraphArtifactShape:
 # =============================================================================
 # to_artifact() OPTIONAL FIELDS
 # =============================================================================
+
 
 class TestGraphArtifactOptionalFields:
     """Tests for optional artifact fields."""
@@ -257,6 +272,7 @@ class TestGraphArtifactOptionalFields:
 # DETERMINISM AND INTEGRITY
 # =============================================================================
 
+
 class TestGraphArtifactIntegrity:
     """Tests for artifact determinism and integrity."""
 
@@ -304,6 +320,7 @@ class TestGraphArtifactIntegrity:
 # COMPLEX GRAPH SCENARIOS
 # =============================================================================
 
+
 class TestComplexGraphArtifact:
     """Tests for complex multi-branch graph artifacts."""
 
@@ -348,6 +365,7 @@ class TestComplexGraphArtifact:
 # =============================================================================
 # RUNTIME INTEGRATION
 # =============================================================================
+
 
 class TestRuntimeGraphArtifactStore:
     """Tests for graph artifact storage in SovereignRuntime."""
@@ -427,6 +445,7 @@ class TestRuntimeGraphArtifactStore:
 # =============================================================================
 # SCHEMA VALIDATION INTEGRATION
 # =============================================================================
+
 
 class TestGraphArtifactSchemaValidation:
     """Tests that artifacts pass the reasoning_graph JSON schema."""

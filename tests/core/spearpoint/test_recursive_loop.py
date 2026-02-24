@@ -10,14 +10,15 @@ Verifies:
 """
 
 import asyncio
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from core.spearpoint.auto_evaluator import AutoEvaluator
 from core.spearpoint.auto_researcher import AutoResearcher, ResearchOutcome
 from core.spearpoint.config import SpearpointConfig
-from core.spearpoint.recursive_loop import RecursiveLoop, LoopMetrics
+from core.spearpoint.recursive_loop import LoopMetrics, RecursiveLoop
 
 
 @pytest.fixture
@@ -180,10 +181,9 @@ class TestGracefulShutdown:
     """Verify graceful shutdown via asyncio.Event."""
 
     @pytest.mark.asyncio
-    async def test_stop_event_stops_loop(
-        self, loop: RecursiveLoop
-    ):
+    async def test_stop_event_stops_loop(self, loop: RecursiveLoop):
         """request_stop() causes the loop to exit gracefully."""
+
         # Schedule stop after a short delay
         async def stop_after_delay():
             await asyncio.sleep(0.05)

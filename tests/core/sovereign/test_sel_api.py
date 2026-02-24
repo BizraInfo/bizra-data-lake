@@ -17,7 +17,6 @@ from core.sovereign.experience_ledger import (
     SovereignExperienceLedger,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -110,9 +109,16 @@ class TestSELEpisodeListing:
         d = ep.to_dict()
 
         required_fields = [
-            "sequence", "timestamp_secs", "context", "graph_hash",
-            "graph_node_count", "snr_score", "ihsan_score", "snr_ok",
-            "episode_hash", "chain_hash",
+            "sequence",
+            "timestamp_secs",
+            "context",
+            "graph_hash",
+            "graph_node_count",
+            "snr_score",
+            "ihsan_score",
+            "snr_ok",
+            "episode_hash",
+            "chain_hash",
         ]
         for field in required_fields:
             assert field in d, f"Missing field: {field}"
@@ -316,6 +322,7 @@ class TestSELPydanticModels:
         """SELRetrieveModel should be importable."""
         try:
             from core.sovereign.api import SELRetrieveModel
+
             assert SELRetrieveModel is not None
         except ImportError:
             pytest.skip("pydantic not available")
@@ -324,6 +331,7 @@ class TestSELPydanticModels:
         """SELRetrieveModel should have correct defaults."""
         try:
             from core.sovereign.api import SELRetrieveModel
+
             model = SELRetrieveModel(query="test query")
             assert model.query == "test query"
             assert model.top_k == 5
@@ -334,6 +342,7 @@ class TestSELPydanticModels:
         """SELRetrieveModel should accept custom top_k."""
         try:
             from core.sovereign.api import SELRetrieveModel
+
             model = SELRetrieveModel(query="test", top_k=10)
             assert model.top_k == 10
         except ImportError:

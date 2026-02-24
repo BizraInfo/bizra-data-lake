@@ -105,7 +105,9 @@ class TestZ3Constraint:
         from z3 import Bool
 
         expr = Bool("test_flag")
-        c = Z3Constraint(constraint_id="test_id", expression=expr, description="A test constraint")
+        c = Z3Constraint(
+            constraint_id="test_id", expression=expr, description="A test constraint"
+        )
         assert c.constraint_id == "test_id"
         assert c.expression is expr
         assert c.description == "A test constraint"
@@ -389,7 +391,10 @@ class TestGenerateProof:
         proof = gate.generate_proof(ctx)
         assert proof.satisfiable is False
         assert proof.counterexample is not None
-        assert "high_risk" in proof.counterexample.lower() or "revers" in proof.counterexample.lower()
+        assert (
+            "high_risk" in proof.counterexample.lower()
+            or "revers" in proof.counterexample.lower()
+        )
 
     def test_high_risk_with_reversible_succeeds(self, gate, valid_context):
         ctx = {
@@ -411,7 +416,9 @@ class TestGenerateProof:
         proof = gate.generate_proof(ctx)
         assert proof.satisfiable is True
 
-    def test_high_risk_with_both_reversible_and_approved_succeeds(self, gate, valid_context):
+    def test_high_risk_with_both_reversible_and_approved_succeeds(
+        self, gate, valid_context
+    ):
         ctx = {
             **valid_context,
             "risk_level": 0.8,
@@ -421,7 +428,9 @@ class TestGenerateProof:
         proof = gate.generate_proof(ctx)
         assert proof.satisfiable is True
 
-    def test_risk_at_boundary_0_7_does_not_trigger_reversibility(self, gate, valid_context):
+    def test_risk_at_boundary_0_7_does_not_trigger_reversibility(
+        self, gate, valid_context
+    ):
         """risk_level == 0.7 does NOT exceed 0.7 threshold, so reversibility not required."""
         ctx = {
             **valid_context,
@@ -665,7 +674,12 @@ class TestGetConstraints:
 
     def test_keys_are_constraint_ids(self, gate):
         result = gate.get_constraints()
-        expected_keys = {"ihsan_threshold", "snr_floor", "reversibility", "resource_bounds"}
+        expected_keys = {
+            "ihsan_threshold",
+            "snr_floor",
+            "reversibility",
+            "resource_bounds",
+        }
         assert set(result.keys()) == expected_keys
 
     def test_values_are_descriptions(self, gate):

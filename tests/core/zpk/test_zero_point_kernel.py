@@ -19,9 +19,13 @@ def _write_worker_bundle(
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     worker_path = bundle_dir / "worker.py"
-    worker_code = "def main(context):\n    return {'ok': True, 'version': context['version']}\n"
+    worker_code = (
+        "def main(context):\n    return {'ok': True, 'version': context['version']}\n"
+    )
     worker_bytes = worker_code.encode("utf-8")
-    worker_path.write_bytes(worker_bytes)  # write_bytes avoids \r\n conversion on Windows
+    worker_path.write_bytes(
+        worker_bytes
+    )  # write_bytes avoids \r\n conversion on Windows
 
     worker_hash = hex_digest(worker_bytes)
     signature = sign_message(worker_hash, release_private_key_hex)
@@ -184,7 +188,9 @@ async def test_attestation_challenge_response_verifies(tmp_path: Path):
         release_public_key_hex=release_public_key_hex,
     )
 
-    challenge = kernel.issue_attestation_challenge("federation-verifier", ttl_seconds=300)
+    challenge = kernel.issue_attestation_challenge(
+        "federation-verifier", ttl_seconds=300
+    )
     response = await kernel.answer_attestation_challenge(challenge)
     ok, reason = ZeroPointKernel.verify_attestation_response(challenge, response)
 

@@ -25,7 +25,6 @@ import pytest
 
 from core.bridges.desktop_bridge import DesktopBridge
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -148,12 +147,14 @@ class TestInvokeSkill:
 
         # Mock receipt engine
         from core.bridges.bridge_receipt import BridgeReceiptEngine
+
         bridge._receipt_engine = BridgeReceiptEngine(receipt_dir=tmp_path / "receipts")
 
         await bridge.start()
         try:
             resp = await _tcp_call(
-                port, "invoke_skill",
+                port,
+                "invoke_skill",
                 {"skill": "test-skill", "inputs": {"query": "hello"}},
             )
             result = resp["result"]
@@ -204,9 +205,7 @@ class TestInvokeSkill:
 
         await bridge.start()
         try:
-            resp = await _tcp_call(
-                port, "invoke_skill", {"skill": "test"}
-            )
+            resp = await _tcp_call(port, "invoke_skill", {"skill": "test"})
             result = resp["result"]
             assert "error" in result
             assert "SkillRouter" in result["error"]
@@ -226,13 +225,12 @@ class TestInvokeSkill:
         bridge._fate_gate.validate.return_value = mock_score
 
         from core.bridges.bridge_receipt import BridgeReceiptEngine
+
         bridge._receipt_engine = BridgeReceiptEngine(receipt_dir=tmp_path / "receipts")
 
         await bridge.start()
         try:
-            resp = await _tcp_call(
-                port, "invoke_skill", {"skill": "test"}
-            )
+            resp = await _tcp_call(port, "invoke_skill", {"skill": "test"})
             result = resp["result"]
             assert "error" in result
             assert "FATE" in result["error"]
@@ -256,7 +254,9 @@ class TestListSkills:
         mock_registry = MagicMock()
         mock_registry.get_all.return_value = [
             _MockSkillEntry(_MockManifest("skill-a", "Skill A", "coder", ["dev"])),
-            _MockSkillEntry(_MockManifest("skill-b", "Skill B", "researcher", ["research"])),
+            _MockSkillEntry(
+                _MockManifest("skill-b", "Skill B", "researcher", ["research"])
+            ),
         ]
         mock_router = MagicMock()
         mock_router.registry = mock_registry
@@ -327,20 +327,26 @@ class TestGetReceipt:
         bridge = DesktopBridge(host="127.0.0.1", port=port)
 
         from core.bridges.bridge_receipt import BridgeReceiptEngine
+
         engine = BridgeReceiptEngine(receipt_dir=tmp_path / "receipts")
         bridge._receipt_engine = engine
 
         # Create a receipt directly
         receipt = engine.create_receipt(
-            method="test", query_data={}, result_data={},
-            fate_score=1.0, snr_score=0.95, gate_passed="all",
+            method="test",
+            query_data={},
+            result_data={},
+            fate_score=1.0,
+            snr_score=0.95,
+            gate_passed="all",
             status="accepted",
         )
 
         await bridge.start()
         try:
             resp = await _tcp_call(
-                port, "get_receipt",
+                port,
+                "get_receipt",
                 {"receipt_id": receipt["receipt_id"]},
             )
             result = resp["result"]
@@ -355,12 +361,14 @@ class TestGetReceipt:
         bridge = DesktopBridge(host="127.0.0.1", port=port)
 
         from core.bridges.bridge_receipt import BridgeReceiptEngine
+
         bridge._receipt_engine = BridgeReceiptEngine(receipt_dir=tmp_path / "receipts")
 
         await bridge.start()
         try:
             resp = await _tcp_call(
-                port, "get_receipt",
+                port,
+                "get_receipt",
                 {"receipt_id": "br-nonexistent"},
             )
             assert "error" in resp
@@ -388,11 +396,11 @@ class TestReceiptEmission:
     def test_emit_receipt_returns_dict(self, tmp_path: Path) -> None:
         bridge = DesktopBridge(host="127.0.0.1", port=9742)
         from core.bridges.bridge_receipt import BridgeReceiptEngine
+
         bridge._receipt_engine = BridgeReceiptEngine(receipt_dir=tmp_path / "receipts")
 
         result = bridge._emit_receipt(
-            "ping", {"method": "ping"}, {"status": "alive"},
-            "accepted", "all", 1.0
+            "ping", {"method": "ping"}, {"status": "alive"}, "accepted", "all", 1.0
         )
         assert result is not None
         assert "receipt_id" in result
@@ -402,7 +410,5 @@ class TestReceiptEmission:
         bridge = DesktopBridge(host="127.0.0.1", port=9742)
         bridge._get_receipt_engine = lambda: None
 
-        result = bridge._emit_receipt(
-            "ping", {}, {}, "accepted", "all"
-        )
+        result = bridge._emit_receipt("ping", {}, {}, "accepted", "all")
         assert result is None

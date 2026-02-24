@@ -14,8 +14,12 @@ import yaml
 from blake3 import blake3
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG_PATH = REPO_ROOT / "scripts" / "evidence" / "config" / "evidence_package.yaml"
-DEFAULT_GATE_CONFIG_PATH = REPO_ROOT / "scripts" / "evidence" / "config" / "final_gate.yaml"
+DEFAULT_CONFIG_PATH = (
+    REPO_ROOT / "scripts" / "evidence" / "config" / "evidence_package.yaml"
+)
+DEFAULT_GATE_CONFIG_PATH = (
+    REPO_ROOT / "scripts" / "evidence" / "config" / "final_gate.yaml"
+)
 DEFAULT_PACKAGE_ROOT = (
     REPO_ROOT / "artifacts" / "evidence" / "BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS"
 )
@@ -75,7 +79,9 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 def write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def resolve_path(repo_root: Path, raw_path: str) -> Path:
@@ -122,7 +128,9 @@ def ensure_package_layout(package_root: Path) -> None:
     (package_root / "manifest").mkdir(parents=True, exist_ok=True)
 
 
-def manifest_content_hash(stage: str, tier: str, policy_version: str, entries: list[dict[str, Any]]) -> str:
+def manifest_content_hash(
+    stage: str, tier: str, policy_version: str, entries: list[dict[str, Any]]
+) -> str:
     payload = {
         "stage": stage,
         "tier": tier,

@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from core.inference.auto_model_router import AutoModelRouter, _ESCALATION_MAP
-
+from core.inference.auto_model_router import _ESCALATION_MAP, AutoModelRouter
 
 # ── Helpers ──────────────────────────────────────────────────────────
+
 
 def _mock_response(status_code: int = 200, json_data: dict | None = None):
     """Create a mock httpx.Response."""
@@ -40,12 +40,15 @@ def _router(**kwargs) -> AutoModelRouter:
 
 # ── ensure_model_loaded ──────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_ensure_model_loaded_success():
     router = _router()
     mock_client = _make_mock_client(post_resp=_mock_response(200))
 
-    with patch("core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client
+    ):
         result = await router.ensure_model_loaded("test-model")
 
     assert result is True
@@ -67,8 +70,12 @@ async def test_ensure_model_loaded_failure():
     router = _router()
     mock_client = _make_mock_client(post_resp=_mock_response(500))
 
-    with patch("core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client):
-        with patch("core.inference.auto_model_router.asyncio.sleep", new_callable=AsyncMock):
+    with patch(
+        "core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client
+    ):
+        with patch(
+            "core.inference.auto_model_router.asyncio.sleep", new_callable=AsyncMock
+        ):
             result = await router.ensure_model_loaded("bad-model")
 
     assert result is False
@@ -76,6 +83,7 @@ async def test_ensure_model_loaded_failure():
 
 
 # ── preload_mission_fleet ────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_preload_mission_fleet():
@@ -91,16 +99,19 @@ async def test_preload_mission_fleet():
     router.ensure_model_loaded = fake_ensure  # type: ignore[assignment]
     router._get_loaded_models = AsyncMock(return_value=set())  # type: ignore[assignment]
 
-    config = {"model_routing": {
-        "reasoner": "model-A",
-        "thinker": "model-B",
-        "creative": "model-C",
-        "planner": "model-A",
-    }}
+    config = {
+        "model_routing": {
+            "reasoner": "model-A",
+            "thinker": "model-B",
+            "creative": "model-C",
+            "planner": "model-A",
+        }
+    }
 
     with patch(
         "core.inference.model_routing.resolve_model_for_agent",
     ) as mock_resolve:
+
         def resolve(aid, cfg):
             purposes = {
                 "coordinator": "reasoner",
@@ -182,6 +193,7 @@ async def test_preload_skips_already_loaded():
 
 
 # ── check_equalizer ─────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_check_equalizer_escalate():
@@ -293,26 +305,33 @@ async def test_check_equalizer_none_when_no_equalizer():
 
 # ── _get_loaded_models ───────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_loaded_models():
     router = _router()
     mock_client = _make_mock_client(
-        get_resp=_mock_response(200, {
-            "data": [
-                {"id": "model-a", "loaded": True},
-                {"id": "model-b", "loaded": False},
-                {"id": "model-c", "loaded": True},
-            ],
-        }),
+        get_resp=_mock_response(
+            200,
+            {
+                "data": [
+                    {"id": "model-a", "loaded": True},
+                    {"id": "model-b", "loaded": False},
+                    {"id": "model-c", "loaded": True},
+                ],
+            },
+        ),
     )
 
-    with patch("core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client
+    ):
         loaded = await router._get_loaded_models()
 
     assert loaded == {"model-a", "model-c"}
 
 
 # ── _load_model retry ───────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_load_model_retry():
@@ -327,8 +346,12 @@ async def test_load_model_retry():
             return _make_mock_client(post_resp=_mock_response(500))
         return _make_mock_client(post_resp=_mock_response(200))
 
-    with patch("core.inference.auto_model_router.httpx.AsyncClient", side_effect=make_client):
-        with patch("core.inference.auto_model_router.asyncio.sleep", new_callable=AsyncMock):
+    with patch(
+        "core.inference.auto_model_router.httpx.AsyncClient", side_effect=make_client
+    ):
+        with patch(
+            "core.inference.auto_model_router.asyncio.sleep", new_callable=AsyncMock
+        ):
             result = await router._load_model("retry-model")
 
     assert result is True
@@ -337,13 +360,16 @@ async def test_load_model_retry():
 
 # ── _unload_model ────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_unload_model():
     router = _router()
     router._loaded_models.add("to-unload")
     mock_client = _make_mock_client(post_resp=_mock_response(200))
 
-    with patch("core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "core.inference.auto_model_router.httpx.AsyncClient", return_value=mock_client
+    ):
         result = await router._unload_model("to-unload")
 
     assert result is True
@@ -351,6 +377,7 @@ async def test_unload_model():
 
 
 # ── Escalation map coverage ─────────────────────────────────────────
+
 
 def test_escalation_map_coverage():
     """Every role in the escalation map has two valid model strings."""

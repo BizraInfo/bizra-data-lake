@@ -10,17 +10,16 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from core.living_memory.core import (
     LivingMemoryCore,
     MemoryEntry,
-    MemoryType,
     MemoryState,
     MemoryStats,
+    MemoryType,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES
@@ -66,7 +65,9 @@ def core_no_embed(storage):
 class TestMemoryEntry:
 
     def test_creation(self):
-        e = MemoryEntry(id="abc", content="Hello world", memory_type=MemoryType.SEMANTIC)
+        e = MemoryEntry(
+            id="abc", content="Hello world", memory_type=MemoryType.SEMANTIC
+        )
         assert e.id == "abc"
         assert e.state == MemoryState.ACTIVE
         assert e.access_count == 0
@@ -80,7 +81,12 @@ class TestMemoryEntry:
         assert "importance" in d
 
     def test_from_dict_roundtrip(self):
-        e = MemoryEntry(id="r", content="roundtrip", memory_type=MemoryType.PROCEDURAL, importance=0.8)
+        e = MemoryEntry(
+            id="r",
+            content="roundtrip",
+            memory_type=MemoryType.PROCEDURAL,
+            importance=0.8,
+        )
         d = e.to_dict()
         e2 = MemoryEntry.from_dict(d)
         assert e2.id == "r"
@@ -144,7 +150,9 @@ class TestEncode:
     @pytest.mark.asyncio
     async def test_encode_episodic(self, core):
         await core.initialize()
-        entry = await core.encode("I debugged the auth module today", memory_type=MemoryType.EPISODIC)
+        entry = await core.encode(
+            "I debugged the auth module today", memory_type=MemoryType.EPISODIC
+        )
         assert entry is not None
         assert entry.memory_type == MemoryType.EPISODIC
 
@@ -216,7 +224,9 @@ class TestRetrieve:
         results = await core_no_embed.retrieve("Python programming")
         # The Python entry should score higher with keyword matching
         if results:
-            assert "Python" in results[0].content or "python" in results[0].content.lower()
+            assert (
+                "Python" in results[0].content or "python" in results[0].content.lower()
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -316,7 +326,9 @@ class TestConsolidate:
             memory_type=MemoryType.WORKING,
         )
         assert entry is not None
-        entry.reinforcement_count = 100  # very high reinforcement must still promote one step
+        entry.reinforcement_count = (
+            100  # very high reinforcement must still promote one step
+        )
 
         stats1 = await core.consolidate()
         assert stats1["promoted"] == 1
@@ -357,7 +369,11 @@ class TestConsolidate:
             memory_type=MemoryType.SEMANTIC,
         )
         assert e1 and e2 and e3
-        baseline = (e1.reinforcement_count, e2.reinforcement_count, e3.reinforcement_count)
+        baseline = (
+            e1.reinforcement_count,
+            e2.reinforcement_count,
+            e3.reinforcement_count,
+        )
 
         stats = await core.consolidate()
         assert stats["corroborated"] >= 3

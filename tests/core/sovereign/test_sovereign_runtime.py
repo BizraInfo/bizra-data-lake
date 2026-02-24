@@ -8,40 +8,41 @@ Created: 2026-02-04
 """
 
 import asyncio
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 # Import from runtime package
 from core.sovereign.runtime_engines.giants_registry import (
     Giant,
     GiantCategory,
     GiantsRegistry,
-    get_giants_registry,
     attribute,
+    get_giants_registry,
+)
+from core.sovereign.runtime_engines.got_bridge import (
+    GoTBridge,
+    GoTResult,
+    ThoughtGraph,
+    ThoughtNode,
+    ThoughtType,
+    think,
 )
 from core.sovereign.runtime_engines.snr_maximizer import (
+    SNR_EXCELLENT,
+    SNR_FLOOR,
     Signal,
     SignalQuality,
     SNRMaximizer,
     get_snr_maximizer,
-    SNR_FLOOR,
-    SNR_EXCELLENT,
-)
-from core.sovereign.runtime_engines.got_bridge import (
-    ThoughtNode,
-    ThoughtGraph,
-    ThoughtType,
-    GoTResult,
-    GoTBridge,
-    think,
 )
 from core.sovereign.runtime_engines.sovereign_runtime import (
-    SovereignRuntime,
-    RuntimeInput,
-    RuntimeDecision,
-    RuntimePhase,
     ConstitutionalGate,
     ConstitutionalResult,
+    RuntimeDecision,
+    RuntimeInput,
+    RuntimePhase,
+    SovereignRuntime,
     get_sovereign_runtime,
     process,
 )

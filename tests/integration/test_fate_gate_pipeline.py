@@ -21,7 +21,7 @@ differentiator works correctly end-to-end.
 
 import secrets
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -45,7 +45,6 @@ from core.pci.gates import (
     VerificationResult,
 )
 from core.pci.reject_codes import RejectCode
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES
@@ -111,7 +110,13 @@ class TestFATEGateHappyPath:
         assert result.passed is True
         assert result.reject_code == RejectCode.SUCCESS
         assert result.gate_passed == [
-            "SCHEMA", "SIGNATURE", "TIMESTAMP", "REPLAY", "IHSAN", "SNR", "POLICY"
+            "SCHEMA",
+            "SIGNATURE",
+            "TIMESTAMP",
+            "REPLAY",
+            "IHSAN",
+            "SNR",
+            "POLICY",
         ]
 
     def test_envelope_roundtrip_dict_serialization(self, keypair, gatekeeper):
@@ -231,7 +236,9 @@ class TestTimestampGate:
         envelope = _build_valid_envelope(public_key)
 
         # Set timestamp to 10 minutes ago (exceeds MAX_CLOCK_SKEW_SECONDS)
-        old_time = datetime.now(timezone.utc) - timedelta(seconds=MAX_CLOCK_SKEW_SECONDS + 60)
+        old_time = datetime.now(timezone.utc) - timedelta(
+            seconds=MAX_CLOCK_SKEW_SECONDS + 60
+        )
         envelope.timestamp = old_time.isoformat().replace("+00:00", "Z")
         signed = _sign_envelope(envelope, private_key)
 
@@ -246,7 +253,9 @@ class TestTimestampGate:
         envelope = _build_valid_envelope(public_key)
 
         # Set timestamp to 10 minutes in the future
-        future_time = datetime.now(timezone.utc) + timedelta(seconds=MAX_CLOCK_SKEW_SECONDS + 60)
+        future_time = datetime.now(timezone.utc) + timedelta(
+            seconds=MAX_CLOCK_SKEW_SECONDS + 60
+        )
         envelope.timestamp = future_time.isoformat().replace("+00:00", "Z")
         signed = _sign_envelope(envelope, private_key)
 
@@ -417,7 +426,9 @@ class TestIhsanGate:
                 policy_hash="d9c9b5f7a3e2c8d4f1a6e9b2c5d8a3f7e0c2b5d8a1e4f7c0b3d6a9e2c5f8b1d926f",
                 state_hash=secrets.token_hex(32),
             )
-            .with_metadata(ihsan=0.50, snr=0.50)  # Both fail, but Ihsan should fire first
+            .with_metadata(
+                ihsan=0.50, snr=0.50
+            )  # Both fail, but Ihsan should fire first
             .build()
         )
         signed = _sign_envelope(envelope, private_key)
@@ -698,7 +709,9 @@ class TestAdversarialScenarios:
                 policy_hash="d9c9b5f7a3e2c8d4f1a6e9b2c5d8a3f7e0c2b5d8a1e4f7c0b3d6a9e2c5f8b1d926f",
                 state_hash=secrets.token_hex(32),
             )
-            .with_metadata(ihsan=0.50, snr=0.99)  # Clear signal, but ethically compromised
+            .with_metadata(
+                ihsan=0.50, snr=0.99
+            )  # Clear signal, but ethically compromised
             .build()
         )
         signed = _sign_envelope(envelope, private_key)

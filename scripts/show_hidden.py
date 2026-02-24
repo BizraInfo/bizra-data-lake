@@ -15,54 +15,54 @@ print("=" * 70)
 summary = engine.get_hidden_knowledge()
 
 # Numerical patterns
-num_patterns = summary.get('numerical_patterns', [])
+num_patterns = summary.get("numerical_patterns", [])
 if num_patterns:
     print("\n  🔢 NUMERICAL PATTERNS")
     print("  " + "-" * 50)
-    
+
     # Word counts
-    word_counts = [p for p in num_patterns if p['type'] == 'WORD_COUNT'][:10]
+    word_counts = [p for p in num_patterns if p["type"] == "WORD_COUNT"][:10]
     if word_counts:
         print("\n     Top Words in Quran:")
         for wc in word_counts:
             print(f"       {wc['word']:25} appears {wc['count']:5} times")
-    
+
     # Word pair balances
-    balances = [p for p in num_patterns if p['type'] == 'WORD_PAIR_BALANCE']
+    balances = [p for p in num_patterns if p["type"] == "WORD_PAIR_BALANCE"]
     if balances:
         print("\n     Word Pair Balances:")
         for b in balances:
-            w1, w2 = b['pair']
-            c1, c2 = b['counts']
-            note = b['note']
+            w1, w2 = b["pair"]
+            c1, c2 = b["counts"]
+            note = b["note"]
             print(f"       {w1:20} × {c1:4}  ↔  {w2:20} × {c2:4}  [{note}]")
 
 # Symmetries
-symmetries = summary.get('symmetries', [])
+symmetries = summary.get("symmetries", [])
 if symmetries:
     print("\n  🔄 STRUCTURAL SYMMETRIES")
     print("  " + "-" * 50)
     for sym in symmetries:
         print(f"\n     • {sym['description']}")
-        if sym.get('midpoint'):
+        if sym.get("midpoint"):
             print(f"       Midpoint: {sym['midpoint']}")
-        if sym.get('note'):
+        if sym.get("note"):
             print(f"       → {sym['note']}")
-        if sym.get('pattern'):
+        if sym.get("pattern"):
             print(f"       → {sym['pattern']}")
-        if sym.get('first'):
+        if sym.get("first"):
             print(f"       First: {sym['first']}")
-        if sym.get('last'):
+        if sym.get("last"):
             print(f"       Last: {sym['last']}")
 
 # Echoes
-echoes = summary.get('echoes', [])
+echoes = summary.get("echoes", [])
 if echoes:
     print("\n  🔊 CROSS-SOURCE ECHOES (Quran ↔ Hadith)")
     print("  " + "-" * 50)
     for echo in echoes:
-        concept = echo['concept']
-        qcount = echo['quran_count']
+        concept = echo["concept"]
+        qcount = echo["quran_count"]
         print(f"     • {concept:15}: {qcount} Quran verses echo across Hadith")
 
 print()

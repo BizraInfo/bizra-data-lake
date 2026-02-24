@@ -36,7 +36,9 @@ def test_composite_reward_bounded() -> None:
 
 
 def test_composite_reward_penalty_reduces_score() -> None:
-    base = composite_reward({"snr": 0.9, "ihsan": 0.9, "efficiency": 0.8, "user_feedback": 0.8})
+    base = composite_reward(
+        {"snr": 0.9, "ihsan": 0.9, "efficiency": 0.8, "user_feedback": 0.8}
+    )
     penalized = composite_reward(
         {
             "snr": 0.9,
@@ -59,7 +61,13 @@ def test_compute_agent_reward_mints_seed(tmp_path: Path) -> None:
     minter = _new_minter(tmp_path, "seed")
     receipt = compute_agent_reward(
         agent_id="researcher",
-        mission_result={"snr": 0.9, "ihsan": 0.95, "tokens_used": 500, "quality": 0.9, "user_feedback": 0.8},
+        mission_result={
+            "snr": 0.9,
+            "ihsan": 0.95,
+            "tokens_used": 500,
+            "quality": 0.9,
+            "user_feedback": 0.8,
+        },
         minter=minter,
         emission_gate=None,
         epoch_id="epoch-1",
@@ -117,7 +125,9 @@ def test_enforce_agent_gini_reports_noncompliance(tmp_path: Path) -> None:
     assert report["compliant"] is False
 
 
-def test_enforce_agent_gini_reports_compliance_for_equal_distribution(tmp_path: Path) -> None:
+def test_enforce_agent_gini_reports_compliance_for_equal_distribution(
+    tmp_path: Path,
+) -> None:
     minter = _new_minter(tmp_path, "gini-equal")
     minter.mint_seed("a", 10, epoch_id="epoch-1", poi_score=1.0)
     minter.mint_seed("b", 10, epoch_id="epoch-1", poi_score=1.0)

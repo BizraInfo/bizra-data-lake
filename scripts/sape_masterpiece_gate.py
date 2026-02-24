@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -75,7 +75,9 @@ def _jsonrpc(
     return json.dumps(msg).encode() + b"\n"
 
 
-async def _tcp_call(port: int, payload: bytes, timeout: float = 5.0) -> tuple[dict[str, Any], float]:
+async def _tcp_call(
+    port: int, payload: bytes, timeout: float = 5.0
+) -> tuple[dict[str, Any], float]:
     start = time.perf_counter()
     reader, writer = await asyncio.open_connection("127.0.0.1", port)
     try:
@@ -119,7 +121,11 @@ def _write_valid_genesis_fixture(state_dir: Path) -> None:
             "owner_node": "node0_fixture_0001",
             "agents": [],
             "team_hash": [3] * 32,
-            "governance": {"quorum": 0.67, "voting_period_hours": 72, "upgrade_threshold": 0.8},
+            "governance": {
+                "quorum": 0.67,
+                "voting_period_hours": 72,
+                "upgrade_threshold": 0.8,
+            },
         },
         "partnership_hash": [4] * 32,
         "genesis_hash": list(bytes.fromhex(genesis_hash_hex)),
@@ -164,18 +170,37 @@ async def _check_bridge_auth_receipts() -> GateCheck:
             _jsonrpc("ping", req_id=6, headers=_headers(nonce=nonce)),
         )
 
-        cond_missing = missing_headers_resp.get("error", {}).get("data", {}).get("code") == "AUTH_MISSING_HEADERS"
-        cond_wrong = wrong_token_resp.get("error", {}).get("data", {}).get("code") == "AUTH_INVALID_TOKEN"
+        cond_missing = (
+            missing_headers_resp.get("error", {}).get("data", {}).get("code")
+            == "AUTH_MISSING_HEADERS"
+        )
+        cond_wrong = (
+            wrong_token_resp.get("error", {}).get("data", {}).get("code")
+            == "AUTH_INVALID_TOKEN"
+        )
         cond_valid = (
             "result" in valid_resp
             and valid_resp["result"].get("status") == "alive"
             and isinstance(valid_resp["result"].get("receipt"), dict)
         )
-        cond_stale = stale_resp.get("error", {}).get("data", {}).get("code") == "AUTH_STALE_TIMESTAMP"
+        cond_stale = (
+            stale_resp.get("error", {}).get("data", {}).get("code")
+            == "AUTH_STALE_TIMESTAMP"
+        )
         cond_nonce_first = "result" in first_nonce_resp
-        cond_replay = replay_resp.get("error", {}).get("data", {}).get("code") == "AUTH_NONCE_REPLAY"
+        cond_replay = (
+            replay_resp.get("error", {}).get("data", {}).get("code")
+            == "AUTH_NONCE_REPLAY"
+        )
 
-        checks = [cond_missing, cond_wrong, cond_valid, cond_stale, cond_nonce_first, cond_replay]
+        checks = [
+            cond_missing,
+            cond_wrong,
+            cond_valid,
+            cond_stale,
+            cond_nonce_first,
+            cond_replay,
+        ]
         passed = all(checks)
         score = sum(1 for c in checks if c) / len(checks)
         return GateCheck(
@@ -342,7 +367,9 @@ async def _check_bridge_receipt_origin_proof() -> GateCheck:
                 details={
                     "receipt_id": receipt_id,
                     "origin": origin,
-                    "origin_digest_len": len(origin_digest) if isinstance(origin_digest, str) else 0,
+                    "origin_digest_len": (
+                        len(origin_digest) if isinstance(origin_digest, str) else 0
+                    ),
                     "signature_verified": verified,
                 },
             )
@@ -467,7 +494,11 @@ async def _check_control_plane_latency() -> GateCheck:
 
     await bridge.start()
     try:
-        latencies: dict[str, list[float]] = {"ping": [], "status": [], "list_skills": []}
+        latencies: dict[str, list[float]] = {
+            "ping": [],
+            "status": [],
+            "list_skills": [],
+        }
         req_id = 100
         for method in ("ping", "status", "list_skills"):
             for _ in range(20):
@@ -538,7 +569,9 @@ def _check_secret_hygiene() -> GateCheck:
         score=1.0 if passed else 0.0,
         details={
             "returncode": proc.returncode,
-            "stdout": proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "",
+            "stdout": (
+                proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
+            ),
             "stderr": proc.stderr.strip(),
         },
     )
@@ -597,7 +630,9 @@ async def run_gate(strict: bool = False) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run SAPE Masterpiece Gate")
     parser.add_argument("--json", action="store_true", help="Output JSON")
-    parser.add_argument("--strict", action="store_true", help="Require higher composite score")
+    parser.add_argument(
+        "--strict", action="store_true", help="Require higher composite score"
+    )
     args = parser.parse_args()
 
     result = asyncio.run(run_gate(strict=args.strict))

@@ -8,41 +8,42 @@ Created: 2026-02-04
 """
 
 import asyncio
-import pytest
 from datetime import datetime, timezone
 
+import pytest
+
+from core.apex import Relationship, RelationshipType
 from core.sovereign.apex_sovereign import (
-    ApexSovereignEntity,
     ApexOODAState,
-    create_apex_entity,
+    ApexSovereignEntity,
+    Decision,
     Observation,
+    Outcome,
     Prediction,
     TeamPlan,
-    Decision,
-    Outcome,
+    create_apex_entity,
 )
-from core.sovereign.social_integration import (
-    SociallyAwareBridge,
-    ScoredAgent,
-    CollaborationMatch,
-    NoCapableAgentError,
-)
+from core.sovereign.autonomy_matrix import AutonomyLevel
 from core.sovereign.market_integration import (
+    SNR_FLOOR,
     MarketAwareMuraqabah,
-    MarketSensorAdapter,
     MarketGoal,
+    MarketSensorAdapter,
     MarketSensorReading,
     MarketSensorType,
-    SNR_FLOOR,
+)
+from core.sovereign.social_integration import (
+    CollaborationMatch,
+    NoCapableAgentError,
+    ScoredAgent,
+    SociallyAwareBridge,
 )
 from core.sovereign.swarm_integration import (
+    HealthStatus,
     HybridSwarmOrchestrator,
     RustServiceAdapter,
     ServiceStatus,
-    HealthStatus,
 )
-from core.sovereign.autonomy_matrix import AutonomyLevel
-from core.apex import RelationshipType, Relationship
 
 
 class TestSocialIntegration:

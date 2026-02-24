@@ -19,7 +19,6 @@ import pytest
 
 from core.pat.identity_card import SovereigntyTier
 
-
 # ─── Onboarding → Impact Tracker Init ────────────────────────────────
 
 
@@ -63,8 +62,8 @@ class TestRuntimeImpactRecording:
     @pytest.mark.asyncio
     async def test_runtime_creates_impact_tracker(self, tmp_path):
         """Runtime should initialize impact tracker during init."""
-        from core.sovereign.runtime_types import RuntimeConfig
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -78,8 +77,8 @@ class TestRuntimeImpactRecording:
     @pytest.mark.asyncio
     async def test_query_records_impact(self, tmp_path):
         """A successful query should increase total bloom."""
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -110,8 +109,8 @@ class TestRuntimeImpactRecording:
     @pytest.mark.asyncio
     async def test_impact_failure_does_not_break_query(self, tmp_path):
         """If impact recording fails, the query should still succeed."""
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -143,8 +142,8 @@ class TestStatusSovereigntyInfo:
 
     @pytest.mark.asyncio
     async def test_status_includes_sovereignty(self, tmp_path):
-        from core.sovereign.runtime_types import RuntimeConfig
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -162,8 +161,8 @@ class TestStatusSovereigntyInfo:
 
     @pytest.mark.asyncio
     async def test_status_without_tracker(self, tmp_path):
-        from core.sovereign.runtime_types import RuntimeConfig
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -185,8 +184,8 @@ class TestMemoryCoordinatorIntegration:
 
     @pytest.mark.asyncio
     async def test_memory_coordinator_has_impact_provider(self, tmp_path):
-        from core.sovereign.runtime_types import RuntimeConfig
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -210,8 +209,8 @@ class TestImpactPersistence:
 
     @pytest.mark.asyncio
     async def test_impact_survives_restart(self, tmp_path):
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -249,8 +248,8 @@ class TestBloomCalculation:
     @pytest.mark.asyncio
     async def test_bloom_from_fast_query(self, tmp_path):
         """A fast, shallow query should produce moderate bloom."""
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -275,8 +274,8 @@ class TestBloomCalculation:
     @pytest.mark.asyncio
     async def test_bloom_from_deep_query(self, tmp_path):
         """A deep, reasoning-heavy query should produce more bloom."""
-        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
         from core.sovereign.runtime_core import SovereignRuntime
+        from core.sovereign.runtime_types import RuntimeConfig, SovereignResult
 
         config = RuntimeConfig(
             autonomous_enabled=False,
@@ -286,7 +285,9 @@ class TestBloomCalculation:
         async with SovereignRuntime.create(config) as runtime:
             result = SovereignResult(query_id="deep-001")
             result.success = True
-            result.response = "A detailed, well-reasoned answer with multiple perspectives." * 5
+            result.response = (
+                "A detailed, well-reasoned answer with multiple perspectives." * 5
+            )
             result.snr_score = 0.95
             result.ihsan_score = 0.98
             result.processing_time_ms = 2000.0  # Slow, deep reasoning

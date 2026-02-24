@@ -11,28 +11,29 @@ Standing on Giants:
 """
 
 import copy
+import hashlib
 import json
 import os
-import hashlib
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
+
+from core.pci.crypto import generate_keypair, verify_signature
 from core.proof_engine.evidence_ledger import (
+    GENESIS_HASH,
     EvidenceLedger,
     LedgerEntry,
     VerifierResponse,
-    emit_receipt,
-    GENESIS_HASH,
     _compute_entry_hash,
+    emit_receipt,
 )
 from core.proof_engine.reason_codes import ReasonCode
-from core.pci.crypto import generate_keypair, verify_signature
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def ledger_path(tmp_path):
@@ -86,6 +87,7 @@ def _legacy_sha256_entry_hash(sequence: int, receipt: dict, prev_hash: str) -> s
 # =============================================================================
 # LEDGER BASICS
 # =============================================================================
+
 
 class TestLedgerBasics:
     """Tests for basic ledger operations."""
@@ -155,6 +157,7 @@ class TestLedgerBasics:
 # =============================================================================
 # CHAIN INTEGRITY
 # =============================================================================
+
 
 class TestChainIntegrity:
     """Tests for hash-chain tamper detection."""
@@ -288,6 +291,7 @@ class TestChainIntegrity:
 # RESUME FROM EXISTING LEDGER
 # =============================================================================
 
+
 class TestLedgerResume:
     """Tests for resuming from an existing ledger file."""
 
@@ -327,6 +331,7 @@ class TestLedgerResume:
 # SCHEMA VALIDATION ON APPEND
 # =============================================================================
 
+
 class TestSchemaValidation:
     """Tests for schema validation on append."""
 
@@ -352,6 +357,7 @@ class TestSchemaValidation:
 # =============================================================================
 # RECEIPT EMISSION
 # =============================================================================
+
 
 class TestReceiptEmission:
     """Tests for the emit_receipt() bridge function."""
@@ -453,9 +459,7 @@ class TestReceiptEmission:
         )
         assert entry.receipt["ihsan"]["decision"] == "REJECTED"
 
-    def test_emit_receipt_attaches_ed25519_signature(
-        self, validated_ledger
-    ):
+    def test_emit_receipt_attaches_ed25519_signature(self, validated_ledger):
         """Configured signer key attaches schema-compliant Ed25519 signature."""
         private_key_hex, public_key_hex = generate_keypair()
         entry = emit_receipt(
@@ -528,7 +532,9 @@ class TestReceiptEmission:
         assert len(entry.receipt["origin_digest"]) == 64
         assert entry.receipt["signature"]["algorithm"] == "ed25519"
 
-    def test_emit_critical_node0_requires_signature_key(self, ledger, tmp_path, monkeypatch):
+    def test_emit_critical_node0_requires_signature_key(
+        self, ledger, tmp_path, monkeypatch
+    ):
         """Node0 critical receipts fail if signer key is unavailable."""
         monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
         with pytest.raises(RuntimeError, match="Unsigned critical receipt forbidden"):
@@ -549,6 +555,7 @@ class TestReceiptEmission:
 # =============================================================================
 # VERIFIER RESPONSE
 # =============================================================================
+
 
 class TestVerifierResponse:
     """Tests for the uniform verifier response shape."""
@@ -608,13 +615,20 @@ class TestVerifierResponse:
     def test_response_keys_match_spec(self):
         """Response keys match the ITP specification."""
         resp = VerifierResponse.approved("r1").to_dict()
-        expected_keys = {"decision", "reason_codes", "receipt_id", "receipt_signature", "artifacts"}
+        expected_keys = {
+            "decision",
+            "reason_codes",
+            "receipt_id",
+            "receipt_signature",
+            "artifacts",
+        }
         assert set(resp.keys()) == expected_keys
 
 
 # =============================================================================
 # JSONL SERIALIZATION ROUNDTRIP
 # =============================================================================
+
 
 class TestSerialization:
     """Tests for JSONL serialization roundtrip."""

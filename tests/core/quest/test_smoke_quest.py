@@ -53,7 +53,9 @@ class TestQuestSmoke:
         assert result.quest is not None
         assert result.quest.status == QuestStatus.ACCEPTED
         assert result.quest.accepted_by == "BIZRA-00000001"
-        assert "reward" in result.message.lower() or "accepted" in result.message.lower()
+        assert (
+            "reward" in result.message.lower() or "accepted" in result.message.lower()
+        )
 
     # ── test_03: list available quests by guild ──────────────────────────
     def test_03_list_available_by_guild(self) -> None:
@@ -102,7 +104,8 @@ class TestQuestSmoke:
 
         # Complete (with sufficient Ihsan)
         reward = engine.complete_quest(
-            "002-open-curriculum", "BIZRA-00000001",
+            "002-open-curriculum",
+            "BIZRA-00000001",
             ihsan_score=0.96,
         )
         assert reward is not None

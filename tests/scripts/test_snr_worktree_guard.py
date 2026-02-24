@@ -29,6 +29,8 @@ def test_classify_with_policy_groups() -> None:
 
     assert by_path["core/genesis/orchestrator.py"].recommendation == "KEEP_TRACK"
     assert by_path[".agentdb/reasoningbank.db"].recommendation == "KEEP_UNTRACKED"
-    assert by_path["artifacts/normalizers/ingest_payload.jsonl"].recommendation == "ARCHIVE"
+    assert (
+        by_path["artifacts/normalizers/ingest_payload.jsonl"].recommendation
+        == "ARCHIVE"
+    )
     assert by_path["unmatched/path.tmp"].recommendation == "REVIEW"
-

@@ -53,7 +53,10 @@ def _verify_chain(chain: list[dict[str, Any]]) -> tuple[bool, str | None]:
 
         verify_key = VerifyKey(bytes.fromhex(rec["signer_pubkey"]))
         try:
-            verify_key.verify(rec["chain_blake3"].encode("utf-8"), bytes.fromhex(rec["ed25519_signature"]))
+            verify_key.verify(
+                rec["chain_blake3"].encode("utf-8"),
+                bytes.fromhex(rec["ed25519_signature"]),
+            )
         except BadSignatureError:
             return False, f"signature_invalid:seq:{rec.get('seq')}"
 
@@ -162,12 +165,18 @@ def run(package_root: Path, tier: str, stage: str) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify evidence package integrity and gate status")
+    parser = argparse.ArgumentParser(
+        description="Verify evidence package integrity and gate status"
+    )
     parser.add_argument("--package-root", type=Path, default=DEFAULT_PACKAGE_ROOT)
-    parser.add_argument("--tier", choices=["private_full", "public_redacted"], default="private_full")
+    parser.add_argument(
+        "--tier", choices=["private_full", "public_redacted"], default="private_full"
+    )
     parser.add_argument("--stage", choices=["scaffold", "final"], default="final")
     args = parser.parse_args()
-    raise SystemExit(run(package_root=args.package_root, tier=args.tier, stage=args.stage))
+    raise SystemExit(
+        run(package_root=args.package_root, tier=args.tier, stage=args.stage)
+    )
 
 
 if __name__ == "__main__":

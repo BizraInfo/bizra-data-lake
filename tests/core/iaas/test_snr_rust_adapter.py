@@ -17,7 +17,6 @@ import pytest
 
 from core.snr_protocol import SNRFacade, SNRProtocol, SNRResult
 
-
 # ── Fixtures ────────────────────────────────────────────────────────────
 
 
@@ -72,9 +71,14 @@ class TestSNRRustAdapter:
         """SNRRustAdapter satisfies SNRProtocol structural typing."""
         # Patch the import to make Rust binding appear available
         mock_engine = _make_mock_rust_engine()
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -83,9 +87,14 @@ class TestSNRRustAdapter:
     def test_calculate_returns_snr_result(self):
         """calculate_snr_normalized returns canonical SNRResult."""
         mock_engine = _make_mock_rust_engine()
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -100,9 +109,14 @@ class TestSNRRustAdapter:
         """Score above ihsan_target sets ihsan_achieved=True."""
         metrics = _make_mock_metrics(snr=0.97)
         mock_engine = _make_mock_rust_engine(metrics)
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -114,9 +128,14 @@ class TestSNRRustAdapter:
         """Score below ihsan_target sets ihsan_achieved=False."""
         metrics = _make_mock_metrics(snr=0.80)
         mock_engine = _make_mock_rust_engine(metrics)
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -127,26 +146,44 @@ class TestSNRRustAdapter:
     def test_metrics_include_rust_fields(self):
         """Result metrics contain all Rust SignalMetrics fields."""
         mock_engine = _make_mock_rust_engine()
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
 
             result = adapter.calculate_snr_normalized(text="test")
-            for key in ("signal_strength", "diversity", "grounding", "balance",
-                        "noise_level", "word_count", "unique_words",
-                        "analysis_duration_us", "aggregation"):
+            for key in (
+                "signal_strength",
+                "diversity",
+                "grounding",
+                "balance",
+                "noise_level",
+                "word_count",
+                "unique_words",
+                "analysis_duration_us",
+                "aggregation",
+            ):
                 assert key in result.metrics, f"Missing metric: {key}"
             assert result.metrics["aggregation"] == "weighted_geometric_mean"
 
     def test_empty_text_returns_zero(self):
         """Empty text input returns zero-score SNRResult."""
         mock_engine = _make_mock_rust_engine()
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -160,9 +197,14 @@ class TestSNRRustAdapter:
         """If Rust engine raises, adapter returns zero SNRResult gracefully."""
         mock_engine = _make_mock_rust_engine()
         mock_engine.analyze_text.side_effect = ValueError("Input too large")
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -175,9 +217,14 @@ class TestSNRRustAdapter:
         """Low signal_strength triggers improvement recommendation."""
         metrics = _make_mock_metrics(signal_strength=0.3)
         mock_engine = _make_mock_rust_engine(metrics)
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -188,9 +235,14 @@ class TestSNRRustAdapter:
     def test_stats_delegates(self):
         """stats() delegates to Rust engine."""
         mock_engine = _make_mock_rust_engine()
-        with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True), \
-             patch("core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine):
+        with (
+            patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", True),
+            patch(
+                "core.iaas.snr_rust_adapter._RustSNREngine", lambda **kw: mock_engine
+            ),
+        ):
             from core.iaas.snr_rust_adapter import SNRRustAdapter
+
             adapter = SNRRustAdapter.__new__(SNRRustAdapter)
             adapter._engine = mock_engine
             adapter._ihsan_threshold = 0.95
@@ -207,6 +259,7 @@ class TestCreateRustSNRAdapter:
         """Factory returns None when Rust binding not available."""
         with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", False):
             from core.iaas.snr_rust_adapter import create_rust_snr_adapter
+
             result = create_rust_snr_adapter()
             assert result is None
 
@@ -214,6 +267,7 @@ class TestCreateRustSNRAdapter:
         """is_rust_snr_available returns False when binding missing."""
         with patch("core.iaas.snr_rust_adapter._RUST_SNR_AVAILABLE", False):
             from core.iaas.snr_rust_adapter import is_rust_snr_available
+
             assert is_rust_snr_available() is False
 
 

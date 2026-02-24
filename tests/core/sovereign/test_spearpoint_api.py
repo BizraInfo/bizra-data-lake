@@ -206,6 +206,7 @@ class TestRuntimeCoreWiring:
     def test_runtime_has_spearpoint_orchestrator_attribute(self):
         """runtime_core.py declares _spearpoint_orchestrator attribute."""
         import inspect
+
         from core.sovereign.runtime_core import SovereignRuntime
 
         source = inspect.getsource(SovereignRuntime.__init__)

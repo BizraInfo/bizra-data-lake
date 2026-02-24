@@ -14,21 +14,22 @@ Created: 2026-02-04 | BIZRA Sovereignty
 """
 
 import asyncio
-import pytest
 import time
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from core.inference.gateway import (
     BatchingInferenceQueue,
     InferenceConfig,
-    LlamaCppBackend,
     InferenceGateway,
+    LlamaCppBackend,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MOCK BACKEND
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class MockBackend:
     """Mock backend for testing batching without real LLM."""
@@ -41,12 +42,14 @@ class MockBackend:
     async def generate(self, prompt: str, max_tokens: int, temperature: float) -> str:
         """Simulate inference with delay."""
         self.call_count += 1
-        self.call_history.append({
-            "prompt": prompt,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "timestamp": time.time()
-        })
+        self.call_history.append(
+            {
+                "prompt": prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "timestamp": time.time(),
+            }
+        )
 
         await asyncio.sleep(self.delay_ms / 1000)
         return f"Response to: {prompt[:20]}..."
@@ -56,14 +59,13 @@ class MockBackend:
 # BATCHING QUEUE TESTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 async def test_batching_queue_single_request():
     """Test that a single request is processed correctly."""
     backend = MockBackend(delay_ms=50)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend.generate,
-        max_batch_size=8,
-        max_wait_ms=50
+        backend_generate_fn=backend.generate, max_batch_size=8, max_wait_ms=50
     )
 
     await queue.start()
@@ -81,9 +83,7 @@ async def test_batching_queue_multiple_requests_sequential():
     """Test that multiple sequential requests are batched by timeout."""
     backend = MockBackend(delay_ms=10)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend.generate,
-        max_batch_size=8,
-        max_wait_ms=50
+        backend_generate_fn=backend.generate, max_batch_size=8, max_wait_ms=50
     )
 
     await queue.start()
@@ -92,9 +92,7 @@ async def test_batching_queue_multiple_requests_sequential():
         # Submit 3 requests with small delays (should batch together)
         tasks = []
         for i in range(3):
-            tasks.append(asyncio.create_task(
-                queue.submit(f"Prompt {i}", 100, 0.7)
-            ))
+            tasks.append(asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7)))
             await asyncio.sleep(0.01)  # 10ms between requests
 
         results = await asyncio.gather(*tasks)
@@ -116,9 +114,7 @@ async def test_batching_queue_concurrent_requests():
     """Test that concurrent requests trigger batch processing."""
     backend = MockBackend(delay_ms=20)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend.generate,
-        max_batch_size=4,
-        max_wait_ms=100
+        backend_generate_fn=backend.generate, max_batch_size=4, max_wait_ms=100
     )
 
     await queue.start()
@@ -126,8 +122,7 @@ async def test_batching_queue_concurrent_requests():
     try:
         # Submit 4 requests concurrently (should fill batch)
         tasks = [
-            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7))
-            for i in range(4)
+            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7)) for i in range(4)
         ]
 
         results = await asyncio.gather(*tasks)
@@ -147,9 +142,7 @@ async def test_batching_queue_batch_size_limit():
     """Test that batch size is limited to MAX_BATCH_SIZE."""
     backend = MockBackend(delay_ms=10)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend.generate,
-        max_batch_size=4,
-        max_wait_ms=100
+        backend_generate_fn=backend.generate, max_batch_size=4, max_wait_ms=100
     )
 
     await queue.start()
@@ -182,7 +175,7 @@ async def test_batching_queue_timeout_flush():
     queue = BatchingInferenceQueue(
         backend_generate_fn=backend.generate,
         max_batch_size=8,
-        max_wait_ms=50  # Short timeout
+        max_wait_ms=50,  # Short timeout
     )
 
     await queue.start()
@@ -190,8 +183,7 @@ async def test_batching_queue_timeout_flush():
     try:
         # Submit 2 requests (not enough to fill batch)
         tasks = [
-            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7))
-            for i in range(2)
+            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7)) for i in range(2)
         ]
 
         results = await asyncio.gather(*tasks)
@@ -209,6 +201,7 @@ async def test_batching_queue_timeout_flush():
 @pytest.mark.asyncio
 async def test_batching_queue_error_handling():
     """Test that errors are propagated to individual requests."""
+
     async def failing_backend(prompt, max_tokens, temperature):
         if "fail" in prompt:
             raise ValueError("Simulated error")
@@ -216,9 +209,7 @@ async def test_batching_queue_error_handling():
         return f"Success: {prompt}"
 
     queue = BatchingInferenceQueue(
-        backend_generate_fn=failing_backend,
-        max_batch_size=4,
-        max_wait_ms=50
+        backend_generate_fn=failing_backend, max_batch_size=4, max_wait_ms=50
     )
 
     await queue.start()
@@ -242,7 +233,7 @@ async def test_batching_queue_error_handling():
                 errors.append(e)
 
         assert len(results) == 2  # Two successful
-        assert len(errors) == 1   # One failed
+        assert len(errors) == 1  # One failed
         assert isinstance(errors[0], ValueError)
 
     finally:
@@ -254,9 +245,7 @@ async def test_batching_queue_metrics():
     """Test that batching metrics are accurate."""
     backend = MockBackend(delay_ms=10)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend.generate,
-        max_batch_size=4,
-        max_wait_ms=50
+        backend_generate_fn=backend.generate, max_batch_size=4, max_wait_ms=50
     )
 
     await queue.start()
@@ -264,8 +253,7 @@ async def test_batching_queue_metrics():
     try:
         # Submit 8 requests (should create 2 batches of 4)
         tasks = [
-            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7))
-            for i in range(8)
+            asyncio.create_task(queue.submit(f"Prompt {i}", 100, 0.7)) for i in range(8)
         ]
 
         await asyncio.gather(*tasks)
@@ -286,6 +274,7 @@ async def test_batching_queue_metrics():
 # CONFIGURATION TESTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def test_inference_config_batching_defaults():
     """Test that batching is enabled by default with sane values."""
     config = InferenceConfig()
@@ -305,9 +294,7 @@ def test_inference_config_batching_disabled():
 def test_inference_config_batching_custom():
     """Test custom batching configuration."""
     config = InferenceConfig(
-        enable_batching=True,
-        max_batch_size=16,
-        max_batch_wait_ms=100
+        enable_batching=True, max_batch_size=16, max_batch_wait_ms=100
     )
 
     assert config.enable_batching is True
@@ -318,6 +305,7 @@ def test_inference_config_batching_custom():
 # ═══════════════════════════════════════════════════════════════════════════════
 # THROUGHPUT COMPARISON TEST (BENCHMARK)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.slow
 @pytest.mark.asyncio
@@ -348,9 +336,7 @@ async def test_batching_throughput_improvement():
     # ─────────────────────────────────────────────────────────────────────────
     backend_batched = MockBackend(delay_ms=BACKEND_DELAY_MS)
     queue = BatchingInferenceQueue(
-        backend_generate_fn=backend_batched.generate,
-        max_batch_size=8,
-        max_wait_ms=50
+        backend_generate_fn=backend_batched.generate, max_batch_size=8, max_wait_ms=50
     )
 
     await queue.start()
@@ -394,12 +380,15 @@ async def test_batching_throughput_improvement():
 
     # Assert significant improvement (at least 2x, ideally ~8x)
     # NOTE: Actual improvement depends on timing and asyncio scheduling
-    assert improvement >= 2.0, f"Expected at least 2x improvement, got {improvement:.2f}x"
+    assert (
+        improvement >= 2.0
+    ), f"Expected at least 2x improvement, got {improvement:.2f}x"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INTEGRATION TESTS (REQUIRES REAL BACKEND)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.requires_llama_cpp
 @pytest.mark.slow
@@ -413,9 +402,7 @@ async def test_llama_cpp_backend_batching_integration():
     - A model file available
     """
     config = InferenceConfig(
-        enable_batching=True,
-        max_batch_size=4,
-        max_batch_wait_ms=100
+        enable_batching=True, max_batch_size=4, max_batch_wait_ms=100
     )
 
     backend = LlamaCppBackend(config)
@@ -428,7 +415,9 @@ async def test_llama_cpp_backend_batching_integration():
 
         # Submit multiple requests
         tasks = [
-            asyncio.create_task(backend.generate(f"Test prompt {i}", max_tokens=50, temperature=0.7))
+            asyncio.create_task(
+                backend.generate(f"Test prompt {i}", max_tokens=50, temperature=0.7)
+            )
             for i in range(4)
         ]
 

@@ -7,6 +7,7 @@ Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT)
 
 Created: 2026-02-17 | Phase 31.1 — Pipeline Integration
 """
+
 from __future__ import annotations
 
 import pytest
@@ -15,7 +16,6 @@ from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
-
 
 # ─── CognitiveFusionEngine standalone pipeline ─────────────────────────────
 
@@ -31,7 +31,11 @@ class TestCognitiveFusionProcess:
 
         assert isinstance(result, FusionResult)
         assert result.routing.complexity_class in (
-            "TRIVIAL", "STANDARD", "COMPLEX", "EXPERT", "FRONTIER"
+            "TRIVIAL",
+            "STANDARD",
+            "COMPLEX",
+            "EXPERT",
+            "FRONTIER",
         )
 
     def test_process_passes_gate_with_defaults(self):
@@ -68,7 +72,11 @@ class TestCognitiveFusionProcess:
         result = engine.process("Query", [0.0] * 10)
 
         assert result.target_level in (
-            "PERCEPTUAL", "OPERATIONAL", "TACTICAL", "STRATEGIC", "META_COGNITIVE"
+            "PERCEPTUAL",
+            "OPERATIONAL",
+            "TACTICAL",
+            "STRATEGIC",
+            "META_COGNITIVE",
         )
 
     def test_process_empty_retrieval_without_rag(self):
@@ -105,7 +113,11 @@ class TestComplexityAdapterMapping:
         for cls in ("TRIVIAL", "STANDARD", "COMPLEX", "EXPERT", "FRONTIER"):
             level, snr = adapter.adapt(cls)
             assert level in (
-                "PERCEPTUAL", "OPERATIONAL", "TACTICAL", "STRATEGIC", "META_COGNITIVE"
+                "PERCEPTUAL",
+                "OPERATIONAL",
+                "TACTICAL",
+                "STRATEGIC",
+                "META_COGNITIVE",
             )
             assert snr > 0.0
 
@@ -123,7 +135,13 @@ class TestComplexityAdapterMapping:
         from core.cognitive_fusion import ComplexityAdapter
 
         adapter = ComplexityAdapter()
-        for level in ("PERCEPTUAL", "OPERATIONAL", "TACTICAL", "STRATEGIC", "META_COGNITIVE"):
+        for level in (
+            "PERCEPTUAL",
+            "OPERATIONAL",
+            "TACTICAL",
+            "STRATEGIC",
+            "META_COGNITIVE",
+        ):
             tier = adapter.level_to_tier(level)
             assert tier in ("NANO", "EDGE", "LOCAL", "POOL", "FRONTIER")
 
@@ -138,6 +156,7 @@ class TestRuntimeFusionHelpers:
         from core.sovereign.runtime_core import SovereignRuntime
 
         prompt = "What is X?"
+
         # Create a mock fusion result with no retrieval
         class FakeFusion:
             retrieval = []

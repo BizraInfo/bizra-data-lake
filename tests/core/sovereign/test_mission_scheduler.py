@@ -30,7 +30,6 @@ from core.sovereign.mission_scheduler import (
 )
 from core.sovereign.proactive_scheduler import ScheduleType
 
-
 # ---------------------------------------------------------------------------
 # Schedule parsing
 # ---------------------------------------------------------------------------
@@ -294,8 +293,13 @@ class TestMissionScheduler:
     async def test_health_check_always_high_confidence(self, tmp_path: Path) -> None:
         """Health-check missions always have high confidence."""
         mock_execute = AsyncMock(
-            return_value={"ihsan_score": 0.98, "snr_score": 0.95,
-                          "total_tokens": 10, "success_count": 1, "total_count": 1}
+            return_value={
+                "ihsan_score": 0.98,
+                "snr_score": 0.95,
+                "total_tokens": 10,
+                "success_count": 1,
+                "total_count": 1,
+            }
         )
 
         scheduler = MissionScheduler(

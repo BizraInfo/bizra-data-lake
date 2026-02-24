@@ -27,7 +27,6 @@ from core.sovereign.user_context import (
     select_pat_agent,
 )
 
-
 # =============================================================================
 # UserProfile
 # =============================================================================
@@ -97,7 +96,9 @@ class TestConversationMemory:
         with tempfile.TemporaryDirectory() as tmpdir:
             mem = ConversationMemory(Path(tmpdir))
             mem.add_human_turn("What is sovereignty?")
-            mem.add_pat_turn("Sovereignty is self-governance...", agent_role="strategist")
+            mem.add_pat_turn(
+                "Sovereignty is self-governance...", agent_role="strategist"
+            )
 
             assert mem.get_turn_count() == 2
 

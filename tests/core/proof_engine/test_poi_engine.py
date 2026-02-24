@@ -10,8 +10,9 @@ Standing on Giants:
 """
 
 import math
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from core.proof_engine.poi_engine import (
     AuditTrail,
@@ -33,10 +34,10 @@ from core.proof_engine.poi_engine import (
     compute_token_distribution,
 )
 
-
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def config():
@@ -80,6 +81,7 @@ def _make_contribution(
 # =============================================================================
 # POI CONFIG
 # =============================================================================
+
 
 class TestPoIConfig:
     """Tests for PoIConfig."""
@@ -134,6 +136,7 @@ class TestPoIConfig:
 # CONTRIBUTION TYPE
 # =============================================================================
 
+
 class TestContributionType:
     """Tests for ContributionType enum."""
 
@@ -149,6 +152,7 @@ class TestContributionType:
 # =============================================================================
 # CONTRIBUTION METADATA
 # =============================================================================
+
 
 class TestContributionMetadata:
     """Tests for ContributionMetadata."""
@@ -193,6 +197,7 @@ class TestContributionMetadata:
 # =============================================================================
 # STAGE 1: CONTRIBUTION VERIFIER
 # =============================================================================
+
 
 class TestContributionVerifier:
     """Tests for Stage 1: ContributionVerifier."""
@@ -278,6 +283,7 @@ class TestContributionVerifier:
 # =============================================================================
 # STAGE 2: CITATION GRAPH
 # =============================================================================
+
 
 class TestCitationGraph:
     """Tests for Stage 2: CitationGraph."""
@@ -391,6 +397,7 @@ class TestCitationGraph:
 # STAGE 3: TEMPORAL SCORER
 # =============================================================================
 
+
 class TestTemporalScorer:
     """Tests for Stage 3: TemporalScorer."""
 
@@ -486,6 +493,7 @@ class TestTemporalScorer:
 # GINI COEFFICIENT
 # =============================================================================
 
+
 class TestGiniCoefficient:
     """Tests for Gini coefficient computation."""
 
@@ -518,6 +526,7 @@ class TestGiniCoefficient:
     def test_gini_bounded(self):
         """Gini is always in [0, 1]."""
         import random
+
         random.seed(42)
         for _ in range(10):
             values = [random.random() for _ in range(20)]
@@ -534,6 +543,7 @@ class TestGiniCoefficient:
 # =============================================================================
 # SAT REBALANCER
 # =============================================================================
+
 
 class TestSATRebalancer:
     """Tests for SAT-based rebalancing."""
@@ -616,6 +626,7 @@ class TestSATRebalancer:
 # PROOF OF IMPACT
 # =============================================================================
 
+
 class TestProofOfImpact:
     """Tests for ProofOfImpact dataclass."""
 
@@ -647,7 +658,9 @@ class TestProofOfImpact:
             reach_score=0.7,
             longevity_score=0.8,
             poi_score=0.83,
-            alpha=0.5, beta=0.3, gamma=0.2,
+            alpha=0.5,
+            beta=0.3,
+            gamma=0.2,
             config_digest="abc123",
             computation_id="test_001",
             timestamp=ts,
@@ -660,9 +673,15 @@ class TestProofOfImpact:
         """PoI hex_digest is 64-char hex."""
         poi = ProofOfImpact(
             contributor_id="alice",
-            contribution_score=0.9, reach_score=0.7, longevity_score=0.8,
-            poi_score=0.83, alpha=0.5, beta=0.3, gamma=0.2,
-            config_digest="abc", computation_id="c1",
+            contribution_score=0.9,
+            reach_score=0.7,
+            longevity_score=0.8,
+            poi_score=0.83,
+            alpha=0.5,
+            beta=0.3,
+            gamma=0.2,
+            config_digest="abc",
+            computation_id="c1",
         )
         hd = poi.hex_digest()
         assert len(hd) == 64
@@ -672,6 +691,7 @@ class TestProofOfImpact:
 # =============================================================================
 # AUDIT TRAIL
 # =============================================================================
+
 
 class TestAuditTrail:
     """Tests for AuditTrail."""
@@ -709,6 +729,7 @@ class TestAuditTrail:
 # =============================================================================
 # POI ORCHESTRATOR
 # =============================================================================
+
 
 class TestPoIOrchestrator:
     """Tests for the full PoI orchestrator."""
@@ -853,6 +874,7 @@ class TestPoIOrchestrator:
 # =============================================================================
 # TOKEN DISTRIBUTION
 # =============================================================================
+
 
 class TestTokenDistribution:
     """Tests for token distribution."""

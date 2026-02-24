@@ -14,7 +14,6 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-
 ALLOWED_STATUSES = {"implemented", "partial", "missing"}
 
 # ── Quality Tier Definitions ────────────────────────────────────
@@ -135,9 +134,7 @@ def _load_matrix(path: Path) -> dict[str, Any]:
         if not capability:
             raise ValueError(f"Capability entry {idx} missing 'capability'")
         if status not in ALLOWED_STATUSES:
-            raise ValueError(
-                f"Capability '{capability}' has invalid status '{status}'"
-            )
+            raise ValueError(f"Capability '{capability}' has invalid status '{status}'")
         if not isinstance(evidence, list):
             raise ValueError(f"Capability '{capability}' evidence must be a list")
 
@@ -163,10 +160,7 @@ def _load_runtime_status(path: Path) -> dict[str, Any]:
 
 
 def _extract_pat_sat_chain(status_payload: dict[str, Any]) -> dict[str, Any]:
-    chain = (
-        status_payload.get("pat_sat", {})
-        .get("negotiation_receipt_chain", {})
-    )
+    chain = status_payload.get("pat_sat", {}).get("negotiation_receipt_chain", {})
     if not isinstance(chain, dict):
         chain = {}
     raw_total = chain.get("total_negotiation_receipts", 0)
@@ -230,9 +224,7 @@ def _build_report(
         "p0_regression_count": len(p0_regressions),
         "p0_regressions": p0_regressions,
         "overall_status": "pass" if not p0_regressions else "fail",
-        "pat_sat_receipt_chain_verified": bool(
-            pat_sat_runtime["verified_end_to_end"]
-        ),
+        "pat_sat_receipt_chain_verified": bool(pat_sat_runtime["verified_end_to_end"]),
         "pat_sat_receipt_chain": pat_sat_runtime,
         "runtime_status_path": (
             str(runtime_status_path) if runtime_status_path is not None else None

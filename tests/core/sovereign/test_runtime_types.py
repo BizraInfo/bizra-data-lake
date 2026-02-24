@@ -20,29 +20,24 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from core.sovereign.runtime_types import (
-    # TypedDicts
+from core.sovereign.runtime_types import (  # TypedDicts; Protocols; Enums; Config / Metrics / Query / Result
     AutonomousCycleResult,
-    LoopStatus,
-    ReasoningResult,
-    SNRResult,
-    ValidationResult,
-    # Protocols
     AutonomousLoopProtocol,
     GraphReasonerProtocol,
     GuardianProtocol,
-    ImpactTrackerProtocol,
-    SNROptimizerProtocol,
-    # Enums
     HealthStatus,
-    RuntimeMode,
-    # Config / Metrics / Query / Result
+    ImpactTrackerProtocol,
+    LoopStatus,
+    ReasoningResult,
     RuntimeConfig,
     RuntimeMetrics,
+    RuntimeMode,
+    SNROptimizerProtocol,
+    SNRResult,
     SovereignQuery,
     SovereignResult,
+    ValidationResult,
 )
-
 
 # =============================================================================
 # TYPED DICTS
@@ -844,7 +839,9 @@ class TestModuleExports:
         from core.sovereign import runtime_types
 
         for name in runtime_types.__all__:
-            assert hasattr(runtime_types, name), f"{name} listed in __all__ but not defined"
+            assert hasattr(
+                runtime_types, name
+            ), f"{name} listed in __all__ but not defined"
 
     def test_expected_names_in_all(self) -> None:
         from core.sovereign import runtime_types

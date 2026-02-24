@@ -13,38 +13,39 @@ Genesis Strict Synthesis v2.2.2
 """
 
 import asyncio
-import pytest
+import random
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
-import random
+
+import pytest
 
 from core.autopoiesis.shadow_deploy import (
+    IHSAN_KILL_THRESHOLD,
+    MIN_SAMPLE_SIZE,
+    AuditEntry,
+    CanaryDeployer,
+    ComparisonResult,
+    ComparisonStatus,
+    DeploymentVerdict,
+    IsolationLevel,
+    MetricComparison,
+    MetricSample,
+    ResourceLimits,
     ShadowDeployer,
     ShadowDeployment,
     ShadowEnvironment,
     ShadowHypothesis,
     ShadowRequest,
     ShadowResponse,
-    CanaryDeployer,
-    DeploymentVerdict,
-    ComparisonStatus,
-    ComparisonResult,
-    MetricComparison,
-    MetricSample,
-    ResourceLimits,
-    IsolationLevel,
-    TrafficMode,
     StatisticalAnalyzer,
-    AuditEntry,
-    IHSAN_KILL_THRESHOLD,
-    MIN_SAMPLE_SIZE,
+    TrafficMode,
 )
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def sample_hypothesis():
@@ -71,6 +72,7 @@ def production_config():
 @pytest.fixture
 async def shadow_handler():
     """Simple handler for testing shadow requests."""
+
     async def handler(request: ShadowRequest, config: Dict[str, Any]) -> Any:
         # Simulate processing with config-dependent behavior
         batch_size = config.get("batch_size", 16)
@@ -100,6 +102,7 @@ async def shadow_handler():
 # HYPOTHESIS TESTS
 # =============================================================================
 
+
 class TestShadowHypothesis:
     """Tests for ShadowHypothesis dataclass."""
 
@@ -127,11 +130,14 @@ class TestShadowHypothesis:
 # SHADOW ENVIRONMENT TESTS
 # =============================================================================
 
+
 class TestShadowEnvironment:
     """Tests for ShadowEnvironment class."""
 
     @pytest.mark.asyncio
-    async def test_environment_initialization(self, sample_hypothesis, production_config):
+    async def test_environment_initialization(
+        self, sample_hypothesis, production_config
+    ):
         """Test shadow environment initializes correctly."""
         env = ShadowEnvironment(
             hypothesis=sample_hypothesis,
@@ -194,7 +200,9 @@ class TestShadowEnvironment:
         await env.teardown()
 
     @pytest.mark.asyncio
-    async def test_process_request(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_process_request(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test processing a request in shadow environment."""
         env = ShadowEnvironment(
             hypothesis=sample_hypothesis,
@@ -216,7 +224,9 @@ class TestShadowEnvironment:
         await env.teardown()
 
     @pytest.mark.asyncio
-    async def test_metrics_collection(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_metrics_collection(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test that environment collects metrics."""
         env = ShadowEnvironment(
             hypothesis=sample_hypothesis,
@@ -242,6 +252,7 @@ class TestShadowEnvironment:
     @pytest.mark.asyncio
     async def test_timeout_handling(self, sample_hypothesis, production_config):
         """Test request timeout is enforced."""
+
         async def slow_handler(request, config):
             await asyncio.sleep(10)  # 10 seconds
             return None
@@ -267,6 +278,7 @@ class TestShadowEnvironment:
 # STATISTICAL ANALYZER TESTS
 # =============================================================================
 
+
 class TestStatisticalAnalyzer:
     """Tests for statistical analysis."""
 
@@ -274,9 +286,7 @@ class TestStatisticalAnalyzer:
         """Test comparison with identical samples."""
         samples = [1.0, 1.1, 0.9, 1.0, 1.05] * 10
 
-        result = StatisticalAnalyzer.compare_metrics(
-            samples, samples, "test_metric"
-        )
+        result = StatisticalAnalyzer.compare_metrics(samples, samples, "test_metric")
 
         assert result.delta == 0
         assert result.status == ComparisonStatus.NO_SIGNIFICANT_DIFFERENCE
@@ -328,9 +338,7 @@ class TestStatisticalAnalyzer:
 
     def test_compare_metrics_insufficient_samples(self):
         """Test handling of insufficient samples."""
-        result = StatisticalAnalyzer.compare_metrics(
-            [], [], "test_metric"
-        )
+        result = StatisticalAnalyzer.compare_metrics([], [], "test_metric")
 
         assert result.p_value == 1.0
         assert result.status == ComparisonStatus.NO_SIGNIFICANT_DIFFERENCE
@@ -351,11 +359,14 @@ class TestStatisticalAnalyzer:
 # SHADOW DEPLOYER TESTS
 # =============================================================================
 
+
 class TestShadowDeployer:
     """Tests for ShadowDeployer orchestrator."""
 
     @pytest.mark.asyncio
-    async def test_deploy_shadow(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_deploy_shadow(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test deploying a shadow."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -375,7 +386,9 @@ class TestShadowDeployer:
         await deployer._cleanup_deployment(deployment)
 
     @pytest.mark.asyncio
-    async def test_mirror_request(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_mirror_request(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test mirroring requests to shadow."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -402,7 +415,9 @@ class TestShadowDeployer:
         await deployer._cleanup_deployment(deployment)
 
     @pytest.mark.asyncio
-    async def test_evaluate_insufficient_data(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_evaluate_insufficient_data(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test evaluation with insufficient data."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -430,7 +445,9 @@ class TestShadowDeployer:
         await deployer._cleanup_deployment(deployment)
 
     @pytest.mark.asyncio
-    async def test_evaluate_with_sufficient_data(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_evaluate_with_sufficient_data(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test evaluation with sufficient data."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -462,10 +479,12 @@ class TestShadowDeployer:
     @pytest.mark.asyncio
     async def test_kill_switch_on_low_ihsan(self, production_config):
         """Test kill switch triggers on low Ihsan."""
+
         async def low_ihsan_handler(request, config):
             class Result:
                 ihsan_score = 0.80  # Below threshold
                 snr_score = 0.90
+
             return Result()
 
         hypothesis = ShadowHypothesis(
@@ -496,7 +515,9 @@ class TestShadowDeployer:
         await deployer._cleanup_deployment(deployment)
 
     @pytest.mark.asyncio
-    async def test_promote_deployment(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_promote_deployment(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test promoting a deployment to production."""
         deployer = ShadowDeployer(
             production_config=production_config.copy(),
@@ -523,7 +544,9 @@ class TestShadowDeployer:
         assert deployer._promoted_count == 1
 
     @pytest.mark.asyncio
-    async def test_rollback_deployment(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_rollback_deployment(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test rolling back a deployment."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -541,7 +564,9 @@ class TestShadowDeployer:
         assert deployer._rollback_count == 1
 
     @pytest.mark.asyncio
-    async def test_audit_logging(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_audit_logging(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test audit log is populated."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -553,14 +578,18 @@ class TestShadowDeployer:
 
         audit_log = deployer.get_audit_log()
 
-        assert len(audit_log) >= 2  # deploy_shadow_start, deploy_shadow_success, rollback
+        assert (
+            len(audit_log) >= 2
+        )  # deploy_shadow_start, deploy_shadow_success, rollback
 
         operations = [entry["operation"] for entry in audit_log]
         assert "deploy_shadow_start" in operations
         assert "rollback" in operations
 
     @pytest.mark.asyncio
-    async def test_sampled_traffic_mode(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_sampled_traffic_mode(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test sampled traffic mode."""
         deployer = ShadowDeployer(
             production_config=production_config,
@@ -600,11 +629,14 @@ class TestShadowDeployer:
 # CANARY DEPLOYER TESTS
 # =============================================================================
 
+
 class TestCanaryDeployer:
     """Tests for CanaryDeployer gradual rollout."""
 
     @pytest.mark.asyncio
-    async def test_deploy_canary(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_deploy_canary(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test canary deployment starts at initial traffic percent."""
         deployer = CanaryDeployer(
             production_config=production_config,
@@ -620,7 +652,9 @@ class TestCanaryDeployer:
         await deployer._cleanup_deployment(deployment)
 
     @pytest.mark.asyncio
-    async def test_increase_traffic(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_increase_traffic(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test gradual traffic increase."""
         deployer = CanaryDeployer(
             production_config=production_config,
@@ -651,12 +685,15 @@ class TestCanaryDeployer:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 @pytest.mark.integration
 class TestShadowDeploymentIntegration:
     """Integration tests for the full shadow deployment workflow."""
 
     @pytest.mark.asyncio
-    async def test_full_workflow_promotion(self, sample_hypothesis, production_config, shadow_handler):
+    async def test_full_workflow_promotion(
+        self, sample_hypothesis, production_config, shadow_handler
+    ):
         """Test complete workflow resulting in promotion."""
         deployer = ShadowDeployer(
             production_config=production_config.copy(),
@@ -721,6 +758,7 @@ class TestShadowDeploymentIntegration:
 # EDGE CASE TESTS
 # =============================================================================
 
+
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
@@ -748,6 +786,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_handler_exception(self, sample_hypothesis, production_config):
         """Test handling of handler exceptions."""
+
         async def failing_handler(request, config):
             raise RuntimeError("Handler failed")
 

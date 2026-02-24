@@ -15,27 +15,27 @@ Standing on Giants:
 - Shannon (1948): KL-divergence bounds
 """
 
-import pytest
-import math
 import json
+import math
 from copy import deepcopy
 
+import pytest
+
 from core.governance.adaptive_ihsan import (
+    DEFAULT_CONCENTRATION,
+    DIMENSION_ORDER,
+    MAX_KL_DRIFT,
+    SAFETY_CORRECTNESS_FLOOR,
+    WEIGHT_CEILING,
+    WEIGHT_FLOOR,
     AdaptiveIhsan,
     DirichletObservation,
     DirichletState,
     UpdateOutcome,
     UpdateReceipt,
     create_adaptive_ihsan,
-    WEIGHT_FLOOR,
-    WEIGHT_CEILING,
-    SAFETY_CORRECTNESS_FLOOR,
-    MAX_KL_DRIFT,
-    DEFAULT_CONCENTRATION,
-    DIMENSION_ORDER,
 )
 from core.integration.constants import IHSAN_WEIGHTS
-
 
 # =============================================================================
 # FIXTURES
@@ -88,9 +88,9 @@ class TestDirichletState:
         """Mode of prior should match IHSAN_WEIGHTS."""
         weights = engine.current_weights
         for dim in DIMENSION_ORDER:
-            assert abs(weights[dim] - IHSAN_WEIGHTS[dim]) < 0.01, (
-                f"Initial weight for {dim}: {weights[dim]:.4f} != {IHSAN_WEIGHTS[dim]}"
-            )
+            assert (
+                abs(weights[dim] - IHSAN_WEIGHTS[dim]) < 0.01
+            ), f"Initial weight for {dim}: {weights[dim]:.4f} != {IHSAN_WEIGHTS[dim]}"
 
     def test_weights_sum_to_one(self, engine):
         """INV-1: Weights must always sum to 1.0."""
@@ -111,9 +111,9 @@ class TestDirichletState:
     def test_effective_sample_size_equals_concentration(self, engine):
         """ESS should approximately equal concentration parameter."""
         ess = engine.state.effective_sample_size
-        assert abs(ess - DEFAULT_CONCENTRATION) < 1.0, (
-            f"ESS {ess} != concentration {DEFAULT_CONCENTRATION}"
-        )
+        assert (
+            abs(ess - DEFAULT_CONCENTRATION) < 1.0
+        ), f"ESS {ess} != concentration {DEFAULT_CONCENTRATION}"
 
     def test_all_dimensions_present(self, engine):
         """All 8 canonical dimensions must be present."""
@@ -149,9 +149,9 @@ class TestBayesianUpdate:
         after = engine.current_weights["efficiency"]
 
         assert receipt.accepted
-        assert after >= before, (
-            f"Efficiency: {before:.6f} -> {after:.6f} (bottleneck should increase)"
-        )
+        assert (
+            after >= before
+        ), f"Efficiency: {before:.6f} -> {after:.6f} (bottleneck should increase)"
 
     def test_neutral_produces_no_change(self, engine):
         """Neutral observation should not change weights."""
@@ -207,9 +207,9 @@ class TestConstitutionalInvariants:
             receipt = engine.update(obs)
             if receipt.accepted:
                 for dim, w in engine.current_weights.items():
-                    assert w >= WEIGHT_FLOOR - 1e-8, (
-                        f"INV-2 VIOLATED: {dim}={w:.6f} < floor={WEIGHT_FLOOR}"
-                    )
+                    assert (
+                        w >= WEIGHT_FLOOR - 1e-8
+                    ), f"INV-2 VIOLATED: {dim}={w:.6f} < floor={WEIGHT_FLOOR}"
 
     def test_inv3_ceiling_never_violated(self, low_concentration_engine):
         """INV-3: No weight exceeds WEIGHT_CEILING."""
@@ -219,24 +219,32 @@ class TestConstitutionalInvariants:
             receipt = engine.update(obs)
             if receipt.accepted:
                 for dim, w in engine.current_weights.items():
-                    assert w <= WEIGHT_CEILING + 1e-8, (
-                        f"INV-3 VIOLATED: {dim}={w:.6f} > ceiling={WEIGHT_CEILING}"
-                    )
+                    assert (
+                        w <= WEIGHT_CEILING + 1e-8
+                    ), f"INV-3 VIOLATED: {dim}={w:.6f} > ceiling={WEIGHT_CEILING}"
 
     def test_inv4_safety_correctness_floor(self, engine):
         """INV-4: Safety + Correctness >= SAFETY_CORRECTNESS_FLOOR."""
         # Push all OTHER dimensions with success
-        for dim in ["user_benefit", "efficiency", "auditability",
-                     "anti_centralization", "robustness", "adl_fairness"]:
+        for dim in [
+            "user_benefit",
+            "efficiency",
+            "auditability",
+            "anti_centralization",
+            "robustness",
+            "adl_fairness",
+        ]:
             for _ in range(20):
                 obs = DirichletObservation(dim, UpdateOutcome.SUCCESS, 1.0)
                 receipt = engine.update(obs)
                 if receipt.accepted:
-                    combined = (engine.current_weights["safety"]
-                                + engine.current_weights["correctness"])
-                    assert combined >= SAFETY_CORRECTNESS_FLOOR - 1e-8, (
-                        f"INV-4 VIOLATED: safety+correctness={combined:.6f}"
+                    combined = (
+                        engine.current_weights["safety"]
+                        + engine.current_weights["correctness"]
                     )
+                    assert (
+                        combined >= SAFETY_CORRECTNESS_FLOOR - 1e-8
+                    ), f"INV-4 VIOLATED: safety+correctness={combined:.6f}"
 
     def test_inv5_kl_drift_bounded(self, low_concentration_engine):
         """INV-5: KL-divergence from canonical never exceeds MAX_KL_DRIFT."""
@@ -291,7 +299,9 @@ class TestReceiptIntegrity:
     def test_different_updates_different_hashes(self, engine):
         """Different observations must produce different receipt hashes."""
         r1 = engine.update(DirichletObservation("safety", UpdateOutcome.SUCCESS, 1.0))
-        r2 = engine.update(DirichletObservation("correctness", UpdateOutcome.SUCCESS, 1.0))
+        r2 = engine.update(
+            DirichletObservation("correctness", UpdateOutcome.SUCCESS, 1.0)
+        )
         assert r1.receipt_hash != r2.receipt_hash
 
     def test_receipt_tracks_prior_and_posterior(self, engine, success_observation):
@@ -331,10 +341,14 @@ class TestConvergence:
         """Report must contain required fields."""
         report = engine.convergence_report()
         required_fields = [
-            "observation_count", "effective_sample_size",
-            "kl_divergence_from_canonical", "max_kl_allowed",
-            "drift_budget_remaining", "canonical_weights",
-            "current_weights", "drift_per_dimension",
+            "observation_count",
+            "effective_sample_size",
+            "kl_divergence_from_canonical",
+            "max_kl_allowed",
+            "drift_budget_remaining",
+            "canonical_weights",
+            "current_weights",
+            "drift_per_dimension",
         ]
         for field in required_fields:
             assert field in report, f"Missing field: {field}"
@@ -347,7 +361,10 @@ class TestConvergence:
             engine.update(DirichletObservation("safety", UpdateOutcome.SUCCESS, 1.0))
         report_after = engine.convergence_report()
 
-        assert report_after["drift_budget_remaining"] <= report_before["drift_budget_remaining"]
+        assert (
+            report_after["drift_budget_remaining"]
+            <= report_before["drift_budget_remaining"]
+        )
 
     def test_reset_restores_canonical(self, engine, success_observation):
         """Reset must restore canonical weights exactly."""
@@ -367,9 +384,9 @@ class TestConvergence:
         restored = AdaptiveIhsan.from_dict(data)
 
         for dim in DIMENSION_ORDER:
-            assert abs(
-                engine.current_weights[dim] - restored.current_weights[dim]
-            ) < 1e-6
+            assert (
+                abs(engine.current_weights[dim] - restored.current_weights[dim]) < 1e-6
+            )
 
 
 # =============================================================================

@@ -14,20 +14,19 @@ through interdisciplinary synthesis and autonomous optimization.
 from __future__ import annotations
 
 import asyncio
-import pytest
-import math
-from dataclasses import FrozenInstanceError
-from typing import TYPE_CHECKING
 
 # Import the module directly (avoids numpy dependency chain)
 import importlib.util
+import math
 import sys
+from dataclasses import FrozenInstanceError
+from typing import TYPE_CHECKING
+
+import pytest
 
 # Load module in isolation to avoid numpy dependency chain
 _spec = importlib.util.spec_from_file_location(
-    "snr_apex_engine",
-    "core/apex/snr_apex_engine.py",
-    submodule_search_locations=[]
+    "snr_apex_engine", "core/apex/snr_apex_engine.py", submodule_search_locations=[]
 )
 _apex = importlib.util.module_from_spec(_spec)
 sys.modules["snr_apex_engine"] = _apex
@@ -53,6 +52,7 @@ APEX_SNR_FLOOR = _apex.APEX_SNR_FLOOR
 # =============================================================================
 # Test Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def snr_engine():
@@ -98,6 +98,7 @@ def sample_noise():
 # =============================================================================
 # Giants Registry Tests
 # =============================================================================
+
 
 class TestGiantsRegistry:
     """Tests for the Giants Registry (attribution chain)."""
@@ -158,6 +159,7 @@ class TestGiantsRegistry:
 # Cognitive Topology Tests
 # =============================================================================
 
+
 class TestCognitiveTopology:
     """Tests for the 47-discipline cognitive topology."""
 
@@ -191,6 +193,7 @@ class TestCognitiveTopology:
 # =============================================================================
 # Graph-of-Thoughts Tests
 # =============================================================================
+
 
 class TestGraphOfThoughts:
     """Tests for Graph-of-Thoughts reasoning structure."""
@@ -235,9 +238,9 @@ class TestGraphOfThoughts:
         """Test graph statistics."""
         graph_of_thoughts.add_thought("A", ThoughtType.HYPOTHESIS, 0.9, 0.9)
         graph_of_thoughts.add_thought("B", ThoughtType.EVIDENCE, 0.8, 0.8)
-        
+
         stats = graph_of_thoughts.get_statistics()
-        
+
         assert stats["total_thoughts"] == 2
         assert "active" in stats
         assert "max_depth" in stats
@@ -259,7 +262,7 @@ class TestGraphOfThoughts:
         child = graph_of_thoughts.add_thought(
             "Child", ThoughtType.EVIDENCE, 0.95, 0.95, parent_id=root.id
         )
-        
+
         best_path = graph_of_thoughts.get_best_path()
         assert len(best_path) >= 1
 
@@ -267,6 +270,7 @@ class TestGraphOfThoughts:
 # =============================================================================
 # SNR Apex Engine Tests
 # =============================================================================
+
 
 class TestSNRApexEngine:
     """Tests for the SNR Apex Engine."""
@@ -279,7 +283,7 @@ class TestSNRApexEngine:
     def test_analyze_basic(self, snr_engine, sample_signal, sample_noise):
         """Test basic SNR analysis."""
         result = snr_engine.analyze(sample_signal, sample_noise)
-        
+
         assert isinstance(result, SNRAnalysis)
         assert result.snr_linear > 0
         assert result.snr_db > 0
@@ -289,7 +293,7 @@ class TestSNRApexEngine:
     def test_analyze_ihsan_status(self, snr_engine, sample_signal, sample_noise):
         """SNR analysis should include Ihsān status."""
         result = snr_engine.analyze(sample_signal, sample_noise)
-        
+
         assert hasattr(result, "ihsan_achieved")
         assert hasattr(result, "apex_achieved")
 
@@ -297,7 +301,7 @@ class TestSNRApexEngine:
         """Same input should give same SNR (deterministic)."""
         result1 = snr_engine.analyze(sample_signal, sample_noise)
         result2 = snr_engine.analyze(sample_signal, sample_noise)
-        
+
         assert result1.snr_linear == result2.snr_linear
         assert result1.snr_db == result2.snr_db
 
@@ -311,7 +315,7 @@ class TestSNRApexEngine:
         """Gate should reject low SNR signals."""
         low_signal = {"relevance": 0.1, "novelty": 0.1}
         high_noise = {"inconsistency": 0.9, "redundancy": 0.9}
-        
+
         passed, analysis = snr_engine.gate(low_signal, high_noise)
         # Low signal + high noise should fail
         assert isinstance(passed, bool)
@@ -319,14 +323,14 @@ class TestSNRApexEngine:
     def test_maximize_achieves_apex(self, snr_engine, sample_signal, sample_noise):
         """Maximize should achieve apex status."""
         analysis, iterations = snr_engine.maximize(sample_signal, sample_noise)
-        
+
         assert analysis.apex_achieved is True
         assert iterations >= 1
 
     def test_get_statistics(self, snr_engine, sample_signal, sample_noise):
         """Test engine statistics tracking."""
         snr_engine.analyze(sample_signal, sample_noise)
-        
+
         stats = snr_engine.get_statistics()
         assert "analyses" in stats
         assert stats["analyses"] >= 1
@@ -334,7 +338,7 @@ class TestSNRApexEngine:
     def test_get_giants_protocol(self, snr_engine):
         """Test giants protocol retrieval."""
         protocol = snr_engine.get_giants_protocol()
-        
+
         assert "giants_invoked" in protocol
         assert "principle" in protocol
         assert len(protocol["giants_invoked"]) >= 1
@@ -343,6 +347,7 @@ class TestSNRApexEngine:
 # =============================================================================
 # Apex Reasoning Engine Tests
 # =============================================================================
+
 
 class TestApexReasoningEngine:
     """Tests for the Apex Reasoning Engine (async)."""
@@ -353,7 +358,7 @@ class TestApexReasoningEngine:
         result = await reasoning_engine.reason(
             "What is the optimal SNR threshold for production systems?"
         )
-        
+
         assert isinstance(result, dict)
         assert "session_id" in result
         assert "snr_analysis" in result
@@ -363,14 +368,14 @@ class TestApexReasoningEngine:
     async def test_reason_achieves_apex(self, reasoning_engine):
         """Reasoning should achieve APEX status."""
         result = await reasoning_engine.reason("How do we maximize signal quality?")
-        
+
         assert result["status"] == "APEX_ACHIEVED"
 
     @pytest.mark.asyncio
     async def test_reason_includes_giants_protocol(self, reasoning_engine):
         """Reasoning result should include giants protocol."""
         result = await reasoning_engine.reason("Test query")
-        
+
         assert "giants_protocol" in result
         assert len(result["giants_protocol"]["giants_invoked"]) >= 1
 
@@ -378,7 +383,7 @@ class TestApexReasoningEngine:
     async def test_reason_graph_statistics(self, reasoning_engine):
         """Reasoning should produce graph statistics."""
         result = await reasoning_engine.reason("Test query")
-        
+
         stats = result["graph_statistics"]
         assert stats["total_thoughts"] >= 1
         assert stats["max_depth"] >= 1
@@ -387,7 +392,7 @@ class TestApexReasoningEngine:
     async def test_reason_has_best_path(self, reasoning_engine):
         """Reasoning should include best path."""
         result = await reasoning_engine.reason("Test query")
-        
+
         assert "best_path" in result
         assert len(result["best_path"]) >= 1
 
@@ -395,7 +400,7 @@ class TestApexReasoningEngine:
     async def test_reason_has_conclusion(self, reasoning_engine):
         """Reasoning should include conclusion."""
         result = await reasoning_engine.reason("Test query")
-        
+
         assert "conclusion" in result
         assert result["conclusion"]["type"] == "CONCLUSION"
 
@@ -404,6 +409,7 @@ class TestApexReasoningEngine:
 # Integration Tests
 # =============================================================================
 
+
 class TestApexIntegration:
     """Integration tests for the complete Apex pipeline."""
 
@@ -411,22 +417,24 @@ class TestApexIntegration:
     async def test_full_pipeline(self):
         """Test the complete Apex reasoning pipeline."""
         engine = ApexReasoningEngine()
-        
+
         result = await engine.reason(
             "Design a system that achieves Ihsān excellence through "
             "interdisciplinary synthesis of Graph-of-Thoughts."
         )
-        
+
         # Verify all pipeline components executed
         assert result["status"] == "APEX_ACHIEVED"
         assert result["graph_statistics"]["total_thoughts"] >= 3
         assert "giants_protocol" in result
 
-    def test_snr_engine_statistics_tracking(self, snr_engine, sample_signal, sample_noise):
+    def test_snr_engine_statistics_tracking(
+        self, snr_engine, sample_signal, sample_noise
+    ):
         """Engine should track statistics across calls."""
         for _ in range(5):
             snr_engine.analyze(sample_signal, sample_noise)
-        
+
         stats = snr_engine.get_statistics()
         assert stats["analyses"] == 5
 
@@ -443,6 +451,7 @@ class TestApexIntegration:
 # =============================================================================
 # Edge Cases and Error Handling
 # =============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
@@ -462,7 +471,7 @@ class TestEdgeCases:
         """Handle empty query in reasoning."""
         engine = ApexReasoningEngine()
         result = await engine.reason("")
-        
+
         assert isinstance(result, dict)
         assert "status" in result
 
@@ -470,13 +479,14 @@ class TestEdgeCases:
         """Graph should handle duplicate content with different IDs."""
         node1 = graph_of_thoughts.add_thought("Same", ThoughtType.HYPOTHESIS, 0.9, 0.9)
         node2 = graph_of_thoughts.add_thought("Same", ThoughtType.HYPOTHESIS, 0.9, 0.9)
-        
+
         assert node1.id != node2.id
 
 
 # =============================================================================
 # Performance Tests
 # =============================================================================
+
 
 class TestPerformance:
     """Performance benchmarks for Apex Engine."""
@@ -485,12 +495,12 @@ class TestPerformance:
     def test_snr_calculation_speed(self, snr_engine, sample_signal, sample_noise):
         """SNR calculation should be fast."""
         import time
-        
+
         start = time.perf_counter()
         for _ in range(100):
             snr_engine.analyze(sample_signal, sample_noise)
         elapsed = time.perf_counter() - start
-        
+
         # Should process 100 calculations in under 1 second
         assert elapsed < 1.0
         print(f"SNR throughput: {100 / elapsed:.0f} calculations/sec")
@@ -500,13 +510,13 @@ class TestPerformance:
     async def test_reasoning_speed(self):
         """Reasoning should complete in reasonable time."""
         import time
-        
+
         engine = ApexReasoningEngine()
-        
+
         start = time.perf_counter()
         result = await engine.reason("Quick test")
         elapsed = time.perf_counter() - start
-        
+
         # Should complete in under 5 seconds
         assert elapsed < 5.0
         print(f"Reasoning time: {elapsed:.2f}s")
@@ -515,6 +525,7 @@ class TestPerformance:
 # =============================================================================
 # Constants Validation
 # =============================================================================
+
 
 class TestConstants:
     """Tests for module constants."""

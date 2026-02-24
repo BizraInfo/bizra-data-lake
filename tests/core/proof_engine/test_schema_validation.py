@@ -12,24 +12,24 @@ Standing on Giants:
 
 import copy
 import json
-import pytest
 from pathlib import Path
 
-from core.proof_engine.schema_validator import (
-    validate,
-    validate_receipt,
-    validate_reasoning_graph,
-    validate_attestation,
-    list_schemas,
-    _load_schema,
-    _validate_structural,
-)
+import pytest
+
 from core.proof_engine.reason_codes import (
-    ReasonCode,
     REASON_DESCRIPTIONS,
+    ReasonCode,
     describe,
 )
-
+from core.proof_engine.schema_validator import (
+    _load_schema,
+    _validate_structural,
+    list_schemas,
+    validate,
+    validate_attestation,
+    validate_reasoning_graph,
+    validate_receipt,
+)
 
 # =============================================================================
 # FIXTURES
@@ -62,6 +62,7 @@ def valid_attestation():
 # =============================================================================
 # SCHEMA LOADING
 # =============================================================================
+
 
 class TestSchemaLoading:
     """Tests for schema loading and caching."""
@@ -108,6 +109,7 @@ class TestSchemaLoading:
 # =============================================================================
 # RECEIPT VALIDATION
 # =============================================================================
+
 
 class TestReceiptValidation:
     """Tests for receipt schema validation."""
@@ -190,6 +192,7 @@ class TestReceiptValidation:
 # REASONING GRAPH VALIDATION
 # =============================================================================
 
+
 class TestReasoningGraphValidation:
     """Tests for reasoning graph schema validation."""
 
@@ -271,6 +274,7 @@ class TestReasoningGraphValidation:
 # ATTESTATION VALIDATION
 # =============================================================================
 
+
 class TestAttestationValidation:
     """Tests for attestation envelope schema validation."""
 
@@ -348,6 +352,7 @@ class TestAttestationValidation:
 # STRUCTURAL FALLBACK VALIDATION
 # =============================================================================
 
+
 class TestStructuralFallback:
     """Tests for the lightweight structural validator (no jsonschema dep)."""
 
@@ -393,7 +398,9 @@ class TestStructuralFallback:
         """Structural validator catches invalid enum value."""
         schema = {
             "required": ["status"],
-            "properties": {"status": {"type": "string", "enum": ["active", "inactive"]}},
+            "properties": {
+                "status": {"type": "string", "enum": ["active", "inactive"]}
+            },
         }
         data = {"status": "unknown"}
         errors = []
@@ -478,6 +485,7 @@ class TestStructuralFallback:
 # REASON CODES
 # =============================================================================
 
+
 class TestReasonCodes:
     """Tests for the unified reason codes enum."""
 
@@ -502,7 +510,9 @@ class TestReasonCodes:
         """Quality gate codes exist."""
         assert ReasonCode.SNR_BELOW_THRESHOLD.value == "SNR_BELOW_THRESHOLD"
         assert ReasonCode.IHSAN_BELOW_THRESHOLD.value == "IHSAN_BELOW_THRESHOLD"
-        assert ReasonCode.CONFIDENCE_BELOW_THRESHOLD.value == "CONFIDENCE_BELOW_THRESHOLD"
+        assert (
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD.value == "CONFIDENCE_BELOW_THRESHOLD"
+        )
 
     def test_cryptographic_category(self):
         """Cryptographic codes exist."""
@@ -531,7 +541,9 @@ class TestReasonCodes:
     def test_every_code_has_description(self):
         """Every reason code has a human-readable description."""
         for code in ReasonCode:
-            assert code.value in REASON_DESCRIPTIONS, f"Missing description for {code.value}"
+            assert (
+                code.value in REASON_DESCRIPTIONS
+            ), f"Missing description for {code.value}"
             desc = REASON_DESCRIPTIONS[code.value]
             assert len(desc) > 10, f"Description too short for {code.value}"
 
@@ -562,6 +574,7 @@ class TestReasonCodes:
 # CROSS-ARTIFACT CONSISTENCY
 # =============================================================================
 
+
 class TestCrossArtifactConsistency:
     """Tests that schemas are mutually consistent."""
 
@@ -587,7 +600,9 @@ class TestCrossArtifactConsistency:
         """Graph hash pattern is consistent across receipt and graph schemas."""
         receipt_schema = _load_schema("receipt")
         graph_schema = _load_schema("reasoning_graph")
-        receipt_pattern = receipt_schema["properties"]["outputs"]["properties"]["graph_hash"]["pattern"]
+        receipt_pattern = receipt_schema["properties"]["outputs"]["properties"][
+            "graph_hash"
+        ]["pattern"]
         graph_pattern = graph_schema["properties"]["graph_hash"]["pattern"]
         assert receipt_pattern == graph_pattern
 
@@ -595,14 +610,19 @@ class TestCrossArtifactConsistency:
         """Signature algorithm enum is consistent across schemas."""
         receipt_schema = _load_schema("receipt")
         attestation_schema = _load_schema("attestation")
-        receipt_algo = receipt_schema["properties"]["signature"]["properties"]["algorithm"]["enum"]
-        attestation_algo = attestation_schema["properties"]["signature"]["properties"]["algorithm"]["enum"]
+        receipt_algo = receipt_schema["properties"]["signature"]["properties"][
+            "algorithm"
+        ]["enum"]
+        attestation_algo = attestation_schema["properties"]["signature"]["properties"][
+            "algorithm"
+        ]["enum"]
         assert receipt_algo == attestation_algo
 
 
 # =============================================================================
 # CONDITIONAL VALIDATION (RECEIPT)
 # =============================================================================
+
 
 class TestConditionalValidation:
     """Tests for receipt conditional validation (reason_codes on rejection)."""

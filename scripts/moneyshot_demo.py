@@ -175,10 +175,12 @@ async def run_demo(mock: bool = False, channel: str | None = None) -> dict[str, 
         "reward",
         "receipt_hash",
     )
-    print(json.dumps(
-        {k: summary[k] for k in summary_keys},
-        indent=2,
-    ))
+    print(
+        json.dumps(
+            {k: summary[k] for k in summary_keys},
+            indent=2,
+        )
+    )
 
     if mock and (os.environ.get("BIZRA_MONEYSHOT_ASSERT_DETERMINISTIC") == "1"):
         expected_channels = 1 if channel else 4

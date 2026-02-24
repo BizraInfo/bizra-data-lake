@@ -139,7 +139,12 @@ def _provider_from_signal(value: str) -> str | None:
         return "claude"
     if "perplexity" in v:
         return "perplexity"
-    if "chatgpt" in v or "openai" in v or v.startswith("gpt-") or v in {"o3", "o3-pro", "o4-mini", "o4-mini-high"}:
+    if (
+        "chatgpt" in v
+        or "openai" in v
+        or v.startswith("gpt-")
+        or v in {"o3", "o3-pro", "o4-mini", "o4-mini-high"}
+    ):
         return "chatgpt_openai"
     return None
 
@@ -218,7 +223,11 @@ def _extract_mapping_messages(mapping: dict[str, Any]) -> list[dict[str, Any]]:
         msg = (node or {}).get("message") or {}
         if not isinstance(msg, dict):
             continue
-        author = ((msg.get("author") or {}).get("role") or "") if isinstance(msg.get("author"), dict) else ""
+        author = (
+            ((msg.get("author") or {}).get("role") or "")
+            if isinstance(msg.get("author"), dict)
+            else ""
+        )
         author_role = _role(author)
         if author_role != "unknown":
             content = _collect_text(msg.get("content"))
@@ -228,7 +237,9 @@ def _extract_mapping_messages(mapping: dict[str, Any]) -> list[dict[str, Any]]:
                         "message_id": str(msg.get("id") or node_id),
                         "role": author_role,
                         "text": content,
-                        "timestamp": _parse_ts(msg.get("create_time") or msg.get("inserted_at")),
+                        "timestamp": _parse_ts(
+                            msg.get("create_time") or msg.get("inserted_at")
+                        ),
                     }
                 )
             continue
@@ -236,7 +247,11 @@ def _extract_mapping_messages(mapping: dict[str, Any]) -> list[dict[str, Any]]:
         # DeepSeek-style exports encode interaction turns as fragments with typed roles.
         fragments = msg.get("fragments")
         if isinstance(fragments, list):
-            fragment_ts = _parse_ts(msg.get("inserted_at") or msg.get("create_time") or msg.get("created_at"))
+            fragment_ts = _parse_ts(
+                msg.get("inserted_at")
+                or msg.get("create_time")
+                or msg.get("created_at")
+            )
             for idx, fragment in enumerate(fragments):
                 if not isinstance(fragment, dict):
                     continue
@@ -267,19 +282,35 @@ def _extract_mapping_messages(mapping: dict[str, Any]) -> list[dict[str, Any]]:
 def _extract_chat_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for idx, msg in enumerate(messages):
-        sender = msg.get("sender") or msg.get("role") or ((msg.get("author") or {}).get("role") if isinstance(msg.get("author"), dict) else "")
+        sender = (
+            msg.get("sender")
+            or msg.get("role")
+            or (
+                (msg.get("author") or {}).get("role")
+                if isinstance(msg.get("author"), dict)
+                else ""
+            )
+        )
         role = _role(str(sender) if sender is not None else None)
         if role == "unknown":
             continue
-        content = _collect_text(msg.get("text") or msg.get("content") or msg.get("message"))
+        content = _collect_text(
+            msg.get("text") or msg.get("content") or msg.get("message")
+        )
         if not content.strip():
             continue
         rows.append(
             {
-                "message_id": str(msg.get("uuid") or msg.get("id") or msg.get("message_id") or idx),
+                "message_id": str(
+                    msg.get("uuid") or msg.get("id") or msg.get("message_id") or idx
+                ),
                 "role": role,
                 "text": content,
-                "timestamp": _parse_ts(msg.get("created_at") or msg.get("inserted_at") or msg.get("timestamp")),
+                "timestamp": _parse_ts(
+                    msg.get("created_at")
+                    or msg.get("inserted_at")
+                    or msg.get("timestamp")
+                ),
             }
         )
     rows.sort(key=lambda x: (x["timestamp"], x["message_id"]))
@@ -295,9 +326,23 @@ def _extract_history_pairs(history: list[Any]) -> list[dict[str, Any]]:
         user_text = _collect_text(pair[0])
         bot_text = _collect_text(pair[1])
         if user_text.strip():
-            rows.append({"message_id": f"hist-{idx}-user", "role": "user", "text": user_text, "timestamp": 0})
+            rows.append(
+                {
+                    "message_id": f"hist-{idx}-user",
+                    "role": "user",
+                    "text": user_text,
+                    "timestamp": 0,
+                }
+            )
         if bot_text.strip():
-            rows.append({"message_id": f"hist-{idx}-assistant", "role": "assistant", "text": bot_text, "timestamp": 0})
+            rows.append(
+                {
+                    "message_id": f"hist-{idx}-assistant",
+                    "role": "assistant",
+                    "text": bot_text,
+                    "timestamp": 0,
+                }
+            )
     return rows
 
 
@@ -310,7 +355,9 @@ def _extract_segments(segments: list[Any]) -> list[dict[str, Any]]:
         role = _role(str(seg.get("role") or seg.get("type") or ""))
         if role == "unknown":
             continue
-        content = _collect_text(seg.get("content") or seg.get("text") or seg.get("value"))
+        content = _collect_text(
+            seg.get("content") or seg.get("text") or seg.get("value")
+        )
         if not content.strip():
             continue
         rows.append(
@@ -359,28 +406,63 @@ def _unwrap_data_envelope(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _extract_prompt_response(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract from prompt+response/output pair format."""
-    prompt = _collect_text(payload.get("prompt") or payload.get("query") or payload.get("input"))
-    response = _collect_text(payload.get("response") or payload.get("output") or payload.get("answer"))
+    prompt = _collect_text(
+        payload.get("prompt") or payload.get("query") or payload.get("input")
+    )
+    response = _collect_text(
+        payload.get("response") or payload.get("output") or payload.get("answer")
+    )
     rows: list[dict[str, Any]] = []
     if prompt.strip():
-        rows.append({"message_id": "prompt-0", "role": "user", "text": prompt, "timestamp": _parse_ts(payload.get("created_at") or payload.get("timestamp"))})
+        rows.append(
+            {
+                "message_id": "prompt-0",
+                "role": "user",
+                "text": prompt,
+                "timestamp": _parse_ts(
+                    payload.get("created_at") or payload.get("timestamp")
+                ),
+            }
+        )
     if response.strip():
-        rows.append({"message_id": "response-0", "role": "assistant", "text": response, "timestamp": _parse_ts(payload.get("created_at") or payload.get("timestamp"))})
+        rows.append(
+            {
+                "message_id": "response-0",
+                "role": "assistant",
+                "text": response,
+                "timestamp": _parse_ts(
+                    payload.get("created_at") or payload.get("timestamp")
+                ),
+            }
+        )
     return rows
 
 
 def _convo_id_from_dict(d: dict[str, Any]) -> str:
     return str(
-        d.get("id") or d.get("uuid") or d.get("conversation_id")
-        or d.get("task_id") or d.get("request_id") or d.get("kimiplus_id")
-        or d.get("invocation_id") or d.get("title") or d.get("name") or "single"
+        d.get("id")
+        or d.get("uuid")
+        or d.get("conversation_id")
+        or d.get("task_id")
+        or d.get("request_id")
+        or d.get("kimiplus_id")
+        or d.get("invocation_id")
+        or d.get("title")
+        or d.get("name")
+        or "single"
     )
 
 
 def _acct_from_dict(d: dict[str, Any]) -> str:
     return str(
-        ((d.get("account") or {}).get("uuid") if isinstance(d.get("account"), dict) else None)
-        or d.get("owner_id") or d.get("user_id") or "default"
+        (
+            (d.get("account") or {}).get("uuid")
+            if isinstance(d.get("account"), dict)
+            else None
+        )
+        or d.get("owner_id")
+        or d.get("user_id")
+        or "default"
     )
 
 

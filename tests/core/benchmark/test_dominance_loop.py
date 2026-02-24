@@ -10,20 +10,20 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from core.benchmark.clear_framework import CLEARMetrics, MetricWeight
 from core.benchmark.dominance_loop import (
     BenchmarkDominanceLoop,
-    LoopPhase,
-    LoopState,
     CycleOutcome,
     CycleResult,
     DominanceResult,
+    LoopPhase,
+    LoopState,
 )
 from core.benchmark.leaderboard import Benchmark, SubmissionResult, SubmissionStatus
-from core.benchmark.clear_framework import CLEARMetrics, MetricWeight
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Enums & Dataclasses
@@ -38,8 +38,14 @@ class TestLoopPhase:
         assert LoopPhase.IDLE in LoopPhase
 
     def test_ordering(self):
-        phases = [LoopPhase.EVALUATE, LoopPhase.ABLATE, LoopPhase.ARCHITECT,
-                  LoopPhase.SUBMIT, LoopPhase.ANALYZE, LoopPhase.IDLE]
+        phases = [
+            LoopPhase.EVALUATE,
+            LoopPhase.ABLATE,
+            LoopPhase.ARCHITECT,
+            LoopPhase.SUBMIT,
+            LoopPhase.ANALYZE,
+            LoopPhase.IDLE,
+        ]
         assert len(set(phases)) == 6
 
 
@@ -137,7 +143,9 @@ class TestBenchmarkDominanceLoopInit:
         assert loop.state.current_phase == LoopPhase.IDLE
 
     def test_init_custom_weights(self):
-        w = MetricWeight(cost=0.1, latency=0.1, efficacy=0.5, assurance=0.2, reliability=0.1)
+        w = MetricWeight(
+            cost=0.1, latency=0.1, efficacy=0.5, assurance=0.2, reliability=0.1
+        )
         loop = BenchmarkDominanceLoop(
             target_benchmark=Benchmark.MMLU_PRO,
             clear_weights=w,

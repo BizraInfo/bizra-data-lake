@@ -13,10 +13,10 @@ import time
 import pytest
 
 from core.sovereign.experience_ledger import (
-    SELIntegrityError,
     Episode,
     EpisodeAction,
     EpisodeImpact,
+    SELIntegrityError,
     SovereignExperienceLedger,
     _compute_chain_hash,
     _compute_efficiency_score,
@@ -25,7 +25,6 @@ from core.sovereign.experience_ledger import (
     _integer_log2,
     _keyword_similarity,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Episode Hash Determinism
@@ -157,10 +156,24 @@ class TestRIRRetrieval:
             weight_recency=0.0, weight_importance=1.0, weight_relevance=0.0
         )
 
-        sel.commit("low quality", "g1", 2, [("inference", "call", True, 1000)],
-                    snr_score=0.50, ihsan_score=0.50, snr_ok=False)
-        sel.commit("high quality", "g2", 5, [("inference", "call", True, 1000)],
-                    snr_score=0.99, ihsan_score=0.98, snr_ok=True)
+        sel.commit(
+            "low quality",
+            "g1",
+            2,
+            [("inference", "call", True, 1000)],
+            snr_score=0.50,
+            ihsan_score=0.50,
+            snr_ok=False,
+        )
+        sel.commit(
+            "high quality",
+            "g2",
+            5,
+            [("inference", "call", True, 1000)],
+            snr_score=0.99,
+            ihsan_score=0.98,
+            snr_ok=True,
+        )
 
         results = sel.retrieve("anything", top_k=2)
         assert len(results) == 2
@@ -172,10 +185,24 @@ class TestRIRRetrieval:
             weight_recency=0.0, weight_importance=0.0, weight_relevance=1.0
         )
 
-        sel.commit("chocolate cake recipe baking", "g1", 2,
-                    [("inference", "call", True, 1000)], 0.90, 0.90, True)
-        sel.commit("neural network machine learning training", "g2", 3,
-                    [("inference", "call", True, 1000)], 0.90, 0.90, True)
+        sel.commit(
+            "chocolate cake recipe baking",
+            "g1",
+            2,
+            [("inference", "call", True, 1000)],
+            0.90,
+            0.90,
+            True,
+        )
+        sel.commit(
+            "neural network machine learning training",
+            "g2",
+            3,
+            [("inference", "call", True, 1000)],
+            0.90,
+            0.90,
+            True,
+        )
 
         results = sel.retrieve("neural network architecture", top_k=2)
         assert len(results) == 2
@@ -191,8 +218,15 @@ class TestRIRRetrieval:
         """Results should not exceed top_k."""
         sel = SovereignExperienceLedger()
         for i in range(20):
-            sel.commit(f"query {i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)], 0.90, 0.92, True)
+            sel.commit(
+                f"query {i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                0.90,
+                0.92,
+                True,
+            )
 
         results = sel.retrieve("query", top_k=5)
         assert len(results) == 5
@@ -203,10 +237,26 @@ class TestRIRRetrieval:
             weight_recency=0.0, weight_importance=0.0, weight_relevance=1.0
         )
 
-        sel.commit("episode one", "g1", 2, [("inference", "call", True, 1000)],
-                    0.90, 0.90, True, context_embedding=[1.0, 0.0, 0.0])
-        sel.commit("episode two", "g2", 2, [("inference", "call", True, 1000)],
-                    0.90, 0.90, True, context_embedding=[0.0, 1.0, 0.0])
+        sel.commit(
+            "episode one",
+            "g1",
+            2,
+            [("inference", "call", True, 1000)],
+            0.90,
+            0.90,
+            True,
+            context_embedding=[1.0, 0.0, 0.0],
+        )
+        sel.commit(
+            "episode two",
+            "g2",
+            2,
+            [("inference", "call", True, 1000)],
+            0.90,
+            0.90,
+            True,
+            context_embedding=[0.0, 1.0, 0.0],
+        )
 
         results = sel.retrieve("anything", top_k=2, query_embedding=[0.9, 0.1, 0.0])
         assert results[0].context == "episode one"
@@ -281,7 +331,9 @@ class TestLedgerOperations:
 
     def test_get_by_hash(self):
         sel = SovereignExperienceLedger()
-        h = sel.commit("findme", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True)
+        h = sel.commit(
+            "findme", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True
+        )
 
         ep = sel.get_by_hash(h)
         assert ep is not None
@@ -302,8 +354,16 @@ class TestLedgerOperations:
 
     def test_episode_to_dict(self):
         sel = SovereignExperienceLedger()
-        sel.commit("test query", "graph_hash", 5, [("inference", "call", True, 1000)],
-                    0.95, 0.96, True, response_summary="test response")
+        sel.commit(
+            "test query",
+            "graph_hash",
+            5,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            response_summary="test response",
+        )
 
         ep = sel.get_by_sequence(0)
         d = ep.to_dict()
@@ -321,8 +381,15 @@ class TestLedgerOperations:
 
         for i in range(11):
             snr = 0.50 if i < 5 else 0.95
-            sel.commit(f"ep{i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)], snr, 0.90, snr >= 0.85)
+            sel.commit(
+                f"ep{i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                snr,
+                0.90,
+                snr >= 0.85,
+            )
 
         assert sel.distillation_count > 0
         assert len(sel) <= 11
@@ -347,7 +414,9 @@ class TestLedgerOperations:
     def test_episode_verify_hash(self):
         """Episode hash should verify after commit."""
         sel = SovereignExperienceLedger()
-        sel.commit("test", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True)
+        sel.commit(
+            "test", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True
+        )
 
         ep = sel.get_by_sequence(0)
         assert ep.verify_hash()
@@ -366,8 +435,15 @@ class TestHashMapIndex:
         sel = SovereignExperienceLedger()
         hashes = []
         for i in range(100):
-            h = sel.commit(f"query {i}", f"g{i}", 3,
-                           [("inference", "call", True, 1000)], 0.90, 0.92, True)
+            h = sel.commit(
+                f"query {i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                0.90,
+                0.92,
+                True,
+            )
             hashes.append(h)
 
         for i, h in enumerate(hashes):
@@ -379,8 +455,15 @@ class TestHashMapIndex:
         """All 50 sequences should be retrievable via O(1) index."""
         sel = SovereignExperienceLedger()
         for i in range(50):
-            sel.commit(f"query {i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)], 0.90, 0.92, True)
+            sel.commit(
+                f"query {i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                0.90,
+                0.92,
+                True,
+            )
 
         for seq in range(50):
             ep = sel.get_by_sequence(seq)
@@ -394,8 +477,15 @@ class TestHashMapIndex:
 
         for i in range(11):
             snr = 0.50 if i < 5 else 0.95
-            sel.commit(f"ep{i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)], snr, 0.90, snr >= 0.85)
+            sel.commit(
+                f"ep{i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                snr,
+                0.90,
+                snr >= 0.85,
+            )
 
         assert sel.distillation_count > 0
 
@@ -410,8 +500,15 @@ class TestHashMapIndex:
 
         for i in range(20):
             snr = 0.50 + (i % 10) * 0.05
-            sel.commit(f"ep{i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)], snr, 0.90, snr >= 0.85)
+            sel.commit(
+                f"ep{i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                snr,
+                0.90,
+                snr >= 0.85,
+            )
 
         assert sel.distillation_count > 1
 
@@ -489,9 +586,9 @@ class TestEfficiencyScore:
 
     def test_formula_manual_check(self):
         """Verify formula: (quantize(0.95) * quantize(0.98)) // max(1, log2(1002))."""
-        snr_q = int(0.95 * 1_000_000)   # 950000
+        snr_q = int(0.95 * 1_000_000)  # 950000
         ihsan_q = int(0.98 * 1_000_000)  # 980000
-        numerator = snr_q * ihsan_q       # 931000000000
+        numerator = snr_q * ihsan_q  # 931000000000
         log_val = max(1, _integer_log2(1000 + 2))  # log2(1002) = 9
         expected_fp = numerator // log_val
         expected = expected_fp / (1_000_000 * 1_000_000)
@@ -510,8 +607,13 @@ class TestImportanceWithEfficiency:
 
     def test_importance_with_efficiency(self):
         """With tokens, importance = SNR * Ihsan * Efficiency."""
-        impact = EpisodeImpact(0.95, 0.98, True, tokens_used=1000,
-                                efficiency_score=_compute_efficiency_score(0.95, 0.98, 1000))
+        impact = EpisodeImpact(
+            0.95,
+            0.98,
+            True,
+            tokens_used=1000,
+            efficiency_score=_compute_efficiency_score(0.95, 0.98, 1000),
+        )
         base = 0.95 * 0.98
         assert impact.importance() < base  # Efficiency < 1.0
         assert impact.importance() > 0.0
@@ -519,8 +621,16 @@ class TestImportanceWithEfficiency:
     def test_commit_with_tokens_used(self):
         """Committing with tokens_used should set efficiency_score."""
         sel = SovereignExperienceLedger()
-        h = sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                        0.95, 0.96, True, tokens_used=5000)
+        h = sel.commit(
+            "test",
+            "g1",
+            3,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            tokens_used=5000,
+        )
 
         ep = sel.get_by_hash(h)
         assert ep is not None
@@ -530,8 +640,9 @@ class TestImportanceWithEfficiency:
     def test_commit_without_tokens_used_backward_compat(self):
         """Committing without tokens_used should have zero efficiency."""
         sel = SovereignExperienceLedger()
-        h = sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                        0.95, 0.96, True)
+        h = sel.commit(
+            "test", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True
+        )
 
         ep = sel.get_by_hash(h)
         assert ep is not None
@@ -541,10 +652,26 @@ class TestImportanceWithEfficiency:
     def test_episode_hash_includes_efficiency(self):
         """Different efficiency scores should produce different hashes."""
         sel = SovereignExperienceLedger()
-        h1 = sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                         0.95, 0.96, True, tokens_used=100)
-        h2 = sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                         0.95, 0.96, True, tokens_used=100000)
+        h1 = sel.commit(
+            "test",
+            "g1",
+            3,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            tokens_used=100,
+        )
+        h2 = sel.commit(
+            "test",
+            "g1",
+            3,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            tokens_used=100000,
+        )
         # Different tokens_used -> different efficiency -> different hash
         # (Note: timestamps also differ, so hashes differ for that reason too)
         assert h1 != h2
@@ -553,16 +680,31 @@ class TestImportanceWithEfficiency:
         """Chain should verify with efficiency scores present."""
         sel = SovereignExperienceLedger()
         for i in range(5):
-            sel.commit(f"q{i}", f"g{i}", 3,
-                       [("inference", "call", True, 1000)],
-                       0.90, 0.92, True, tokens_used=1000 * (i + 1))
+            sel.commit(
+                f"q{i}",
+                f"g{i}",
+                3,
+                [("inference", "call", True, 1000)],
+                0.90,
+                0.92,
+                True,
+                tokens_used=1000 * (i + 1),
+            )
         assert sel.verify_chain_integrity()
 
     def test_to_dict_includes_efficiency(self):
         """to_dict should include efficiency when tokens_used > 0."""
         sel = SovereignExperienceLedger()
-        sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                    0.95, 0.96, True, tokens_used=5000)
+        sel.commit(
+            "test",
+            "g1",
+            3,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            tokens_used=5000,
+        )
 
         ep = sel.get_by_sequence(0)
         d = ep.to_dict()
@@ -574,8 +716,9 @@ class TestImportanceWithEfficiency:
     def test_to_dict_excludes_efficiency_when_no_tokens(self):
         """to_dict should not include efficiency when tokens_used = 0."""
         sel = SovereignExperienceLedger()
-        sel.commit("test", "g1", 3, [("inference", "call", True, 1000)],
-                    0.95, 0.96, True)
+        sel.commit(
+            "test", "g1", 3, [("inference", "call", True, 1000)], 0.95, 0.96, True
+        )
 
         ep = sel.get_by_sequence(0)
         d = ep.to_dict()
@@ -671,6 +814,7 @@ class TestSELSerialization:
             with open(path, "r") as f:
                 lines = f.readlines()
             import json as _json
+
             record = _json.loads(lines[2])
             record["context"] = "TAMPERED"
             lines[2] = _json.dumps(record) + "\n"
@@ -694,6 +838,7 @@ class TestSELSerialization:
             with open(path, "r") as f:
                 lines = f.readlines()
             import json as _json
+
             record = _json.loads(lines[1])
             record["context"] = "TAMPERED"
             lines[1] = _json.dumps(record) + "\n"
@@ -736,10 +881,17 @@ class TestSELSerialization:
     def test_roundtrip_with_embeddings(self):
         """Episodes with context embeddings should survive roundtrip."""
         sel = SovereignExperienceLedger()
-        sel.commit("q1", "g1", 3, [("inference", "call", True, 1000)],
-                    0.95, 0.96, True, context_embedding=[0.1, 0.2, 0.3])
-        sel.commit("q2", "g2", 3, [("inference", "call", True, 1000)],
-                    0.90, 0.92, True)
+        sel.commit(
+            "q1",
+            "g1",
+            3,
+            [("inference", "call", True, 1000)],
+            0.95,
+            0.96,
+            True,
+            context_embedding=[0.1, 0.2, 0.3],
+        )
+        sel.commit("q2", "g2", 3, [("inference", "call", True, 1000)], 0.90, 0.92, True)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             path = f.name

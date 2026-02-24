@@ -70,7 +70,12 @@ async def test_execute_rlm_sub_call_budget_halts() -> None:
     )
 
     assert result.sub_calls == 1
-    assert result.final_answer in {"[MAX_SUB_CALLS_REACHED]", "[SUB_MODEL_UNSET]", "[ASYNC_SUB_MODEL_UNSUPPORTED]", "y!"}
+    assert result.final_answer in {
+        "[MAX_SUB_CALLS_REACHED]",
+        "[SUB_MODEL_UNSET]",
+        "[ASYNC_SUB_MODEL_UNSUPPORTED]",
+        "y!",
+    }
 
 
 @pytest.mark.asyncio

@@ -10,41 +10,35 @@ Tests cover all four gap solutions:
 Standing on Giants: Shannon, Lamport, Landauer, Al-Ghazali
 """
 
-import pytest
-import numpy as np
 from datetime import datetime, timezone
 
-from core.constitutional import (
-    # Core Types
-    IhsanVector,
-    NTUState,
-    # GAP-C1
-    IhsanProjector,
-    # GAP-C2
+import numpy as np
+import pytest
+
+from core.constitutional import (  # Core Types; GAP-C1; GAP-C2; GAP-C3; GAP-C4; Unified; Constants
+    ADL_GINI_THRESHOLD,
+    BFT_QUORUM_FRACTION,
+    TREASURY_MODES,
     AdlInvariant,
     AdlInvariantResult,
-    AdlViolationType,
     AdlViolationError,
-    # GAP-C3
+    AdlViolationType,
     ByzantineConsensus,
     ByzantineVoteType,
     ConsensusState,
-    # GAP-C4
-    TreasuryMode,
-    TreasuryController,
-    TREASURY_MODES,
-    # Unified
     ConstitutionalEngine,
+    IhsanProjector,
+    IhsanVector,
+    NTUState,
+    TreasuryController,
+    TreasuryMode,
     create_constitutional_engine,
-    # Constants
-    ADL_GINI_THRESHOLD,
-    BFT_QUORUM_FRACTION,
 )
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def high_ihsan_vector():
@@ -104,6 +98,7 @@ def unfair_distribution():
 def mock_keys():
     """Create mock cryptographic keys for testing."""
     from core.pci.crypto import generate_keypair
+
     private_key_hex, public_key_hex = generate_keypair()
     return {
         "private_key": private_key_hex,
@@ -114,6 +109,7 @@ def mock_keys():
 # =============================================================================
 # GAP-C1: IHSAN PROJECTOR TESTS
 # =============================================================================
+
 
 class TestIhsanProjector:
     """Tests for O(1) Ihsan to NTU projection."""
@@ -186,6 +182,7 @@ class TestIhsanProjector:
 # GAP-C2: ADL INVARIANT TESTS
 # =============================================================================
 
+
 class TestAdlInvariant:
     """Tests for protocol-level Adl (Justice) enforcement."""
 
@@ -214,7 +211,8 @@ class TestAdlInvariant:
 
         # Find concentration violation
         concentration_violations = [
-            v for v in result.violations
+            v
+            for v in result.violations
             if v.violation_type == AdlViolationType.CONCENTRATION_DETECTED
         ]
         assert len(concentration_violations) > 0
@@ -234,7 +232,8 @@ class TestAdlInvariant:
         # Current distribution is fair, but proposed change is not
         assert not result.passed
         monopoly_violations = [
-            v for v in result.violations
+            v
+            for v in result.violations
             if v.violation_type == AdlViolationType.MONOPOLY_ATTEMPT
         ]
         assert len(monopoly_violations) > 0
@@ -287,6 +286,7 @@ class TestAdlInvariant:
 # =============================================================================
 # GAP-C3: BYZANTINE CONSENSUS TESTS
 # =============================================================================
+
 
 class TestByzantineConsensus:
     """Tests for Byzantine fault tolerant consensus."""
@@ -406,6 +406,7 @@ class TestByzantineConsensus:
 # GAP-C4: TREASURY CONTROLLER TESTS
 # =============================================================================
 
+
 class TestTreasuryController:
     """Tests for treasury with graceful degradation."""
 
@@ -486,8 +487,14 @@ class TestTreasuryController:
         emergency_thresholds = treasury.get_effective_thresholds()
 
         # Ethical has strictest thresholds
-        assert ethical_thresholds["gini_threshold"] < hibernation_thresholds["gini_threshold"]
-        assert hibernation_thresholds["gini_threshold"] < emergency_thresholds["gini_threshold"]
+        assert (
+            ethical_thresholds["gini_threshold"]
+            < hibernation_thresholds["gini_threshold"]
+        )
+        assert (
+            hibernation_thresholds["gini_threshold"]
+            < emergency_thresholds["gini_threshold"]
+        )
 
     def test_operation_execution_check(self):
         """Should check if operations can be executed."""
@@ -504,6 +511,7 @@ class TestTreasuryController:
 # =============================================================================
 # UNIFIED CONSTITUTIONAL ENGINE TESTS
 # =============================================================================
+
 
 class TestConstitutionalEngine:
     """Tests for the unified Constitutional Engine."""
@@ -657,6 +665,7 @@ class TestConstitutionalEngine:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for the complete Constitutional Engine."""
 
@@ -682,7 +691,9 @@ class TestIntegration:
         assert proposal_id is not None
         assert "consensus" in details
 
-    def test_graceful_degradation_flow(self, mock_keys, high_ihsan_vector, fair_distribution):
+    def test_graceful_degradation_flow(
+        self, mock_keys, high_ihsan_vector, fair_distribution
+    ):
         """Test graceful degradation under resource pressure."""
         engine = create_constitutional_engine(
             node_id="test_node",

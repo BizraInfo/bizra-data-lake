@@ -72,4 +72,3 @@ class TestHeartbeat:
         metrics = await orchestrator.run_heartbeat(max_cycles=1)
         assert metrics.cycles_completed == 1
         assert orchestrator.get_statistics()["heartbeat"] is not None
-

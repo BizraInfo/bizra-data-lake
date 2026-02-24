@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -55,7 +56,12 @@ class TestRuntimeBoot:
             assert "health" in status
             assert "state" in status
             assert status["identity"]["node_id"]
-            assert status["health"]["status"] in ("healthy", "degraded", "unhealthy", "unknown")
+            assert status["health"]["status"] in (
+                "healthy",
+                "degraded",
+                "unhealthy",
+                "unknown",
+            )
 
     @pytest.mark.asyncio
     async def test_runtime_context_manager_cleans_up(self):
@@ -200,7 +206,10 @@ class TestSpearPointSmoke:
         from dataclasses import dataclass, field
         from typing import List, Optional
 
-        from core.sovereign.spearpoint_pipeline import SpearPointPipeline, SpearPointResult
+        from core.sovereign.spearpoint_pipeline import (
+            SpearPointPipeline,
+            SpearPointResult,
+        )
 
         @dataclass
         class FakeResult:
@@ -372,7 +381,12 @@ class TestFullStackSmoke:
 
             # All fields must be populated
             assert health_summary["node_id"]
-            assert health_summary["runtime_health"] in ("healthy", "degraded", "unhealthy", "unknown")
+            assert health_summary["runtime_health"] in (
+                "healthy",
+                "degraded",
+                "unhealthy",
+                "unknown",
+            )
             assert health_summary["token_chain_valid"] is True
 
             # Must be JSON-serializable

@@ -5,10 +5,13 @@ Validates the nervous system connecting Muraqabah to execution.
 """
 
 import asyncio
-import pytest
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from core.sovereign.autonomy_matrix import AutonomyLevel
+from core.sovereign.event_bus import Event, EventBus
 from core.sovereign.opportunity_pipeline import (
     ConstitutionalFilter,
     DaughterTestFilter,
@@ -24,13 +27,11 @@ from core.sovereign.opportunity_pipeline import (
     connect_muraqabah_to_pipeline,
     create_opportunity_pipeline,
 )
-from core.sovereign.autonomy_matrix import AutonomyLevel
-from core.sovereign.event_bus import Event, EventBus
-
 
 # =============================================================================
 # DATA STRUCTURE TESTS
 # =============================================================================
+
 
 class TestPipelineOpportunity:
     """Tests for PipelineOpportunity dataclass."""
@@ -89,6 +90,7 @@ class TestPipelineOpportunity:
 # =============================================================================
 # FILTER TESTS
 # =============================================================================
+
 
 class TestSNRFilter:
     """Tests for SNR constitutional filter."""
@@ -297,6 +299,7 @@ class TestRateLimitFilter:
 # PIPELINE TESTS
 # =============================================================================
 
+
 class TestOpportunityPipeline:
     """Tests for OpportunityPipeline."""
 
@@ -465,6 +468,7 @@ class TestOpportunityPipeline:
 
         # Track execution
         executed = []
+
         async def track_execution(opp):
             executed.append(opp.id)
             return {"success": True}
@@ -603,6 +607,7 @@ class TestOpportunityPipeline:
 # FACTORY AND INTEGRATION TESTS
 # =============================================================================
 
+
 class TestPipelineFactory:
     """Tests for pipeline factory function."""
 
@@ -650,6 +655,7 @@ class TestPipelineConnectors:
 # =============================================================================
 # END-TO-END TESTS
 # =============================================================================
+
 
 class TestPipelineE2E:
     """End-to-end integration tests."""
@@ -746,6 +752,7 @@ class TestPipelineE2E:
 # =============================================================================
 # BOUNDED QUEUE TESTS (S-10)
 # =============================================================================
+
 
 def _make_opportunity(domain: str = "test", opp_id: str = None) -> PipelineOpportunity:
     """Create a test opportunity."""

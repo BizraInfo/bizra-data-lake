@@ -9,36 +9,35 @@ Standing on Giants: Maturana & Varela (1972) + Deming (1986) + Anthropic (2025)
 """
 
 import asyncio
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-from pathlib import Path
 import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from core.autopoiesis.loop_engine import (
     ActivationGuardrails,
-    AutopoieticState,
+    ApprovalRequest,
+    AuditLogEntry,
     AutopoieticLoop,
+    AutopoieticResult,
+    AutopoieticState,
+    HumanApprovalQueue,
     Hypothesis,
     HypothesisCategory,
-    RiskLevel,
-    SystemObservation,
-    ValidationResult,
     ImplementationResult,
     IntegrationResult,
-    AutopoieticResult,
-    AuditLogEntry,
-    ApprovalRequest,
-    RateLimiter,
-    RollbackManager,
-    HumanApprovalQueue,
     MockFATEGate,
     MockSensorHub,
+    RateLimiter,
+    RiskLevel,
+    RollbackManager,
+    SystemObservation,
+    ValidationResult,
     create_autopoietic_loop,
 )
-
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
-
 
 # =============================================================================
 # AUTOPOIETIC STATE TESTS
@@ -51,8 +50,15 @@ class TestAutopoieticState:
     def test_all_states_defined(self):
         """Verify all required states are defined."""
         required_states = [
-            "DORMANT", "OBSERVING", "HYPOTHESIZING", "VALIDATING",
-            "IMPLEMENTING", "INTEGRATING", "REFLECTING", "EMERGENCY_ROLLBACK", "HALTED"
+            "DORMANT",
+            "OBSERVING",
+            "HYPOTHESIZING",
+            "VALIDATING",
+            "IMPLEMENTING",
+            "INTEGRATING",
+            "REFLECTING",
+            "EMERGENCY_ROLLBACK",
+            "HALTED",
         ]
         for state in required_states:
             assert hasattr(AutopoieticState, state), f"Missing state: {state}"
@@ -407,7 +413,7 @@ class TestAutopoieticLoop:
     @pytest.fixture
     def temp_audit_log(self):
         """Create temporary audit log file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             yield Path(f.name)
 
     @pytest.fixture
@@ -677,7 +683,7 @@ class TestAutopoieticLoopIntegration:
     @pytest.mark.asyncio
     async def test_full_improvement_cycle(self):
         """Test a full improvement cycle from observation to integration."""
-        with tempfile.NamedTemporaryFile(suffix='.jsonl', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False) as f:
             audit_path = Path(f.name)
 
         loop = AutopoieticLoop(
@@ -716,7 +722,7 @@ class TestAutopoieticLoopIntegration:
         # Manually test rollback manager
         should_rollback, reason = loop._rollback_manager.should_rollback(
             current_ihsan=0.90,  # Below floor
-            current_snr=0.80,   # Below floor
+            current_snr=0.80,  # Below floor
             current_error_rate=0.15,  # High error rate
             baseline_error_rate=0.01,
         )

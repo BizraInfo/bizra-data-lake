@@ -4,20 +4,21 @@ Tests for BIZRA Capability Card
 Tests the CapabilityCard creation, signing, and validation.
 """
 
-import pytest
 from datetime import datetime, timedelta
 
+import pytest
+
 from core.sovereign.capability_card import (
+    CARD_VALIDITY_DAYS,
+    IHSAN_THRESHOLD,
+    SNR_THRESHOLD,
     CapabilityCard,
+    CardIssuer,
     ModelCapabilities,
     ModelTier,
     TaskType,
-    CardIssuer,
     create_capability_card,
     verify_capability_card,
-    IHSAN_THRESHOLD,
-    SNR_THRESHOLD,
-    CARD_VALIDITY_DAYS,
 )
 
 
@@ -326,6 +327,7 @@ class TestVerifyCapabilityCard:
 
         # Register the issuer's key in the trusted registry
         from core.sovereign.key_registry import get_key_registry
+
         registry = get_key_registry()
         registry.register(
             public_key_hex=issuer.public_key_hex(),

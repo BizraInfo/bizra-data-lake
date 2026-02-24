@@ -33,7 +33,11 @@ def _write_valid_genesis_fixture(state_dir: Path) -> None:
             "owner_node": "node0_fixture_0001",
             "agents": [],
             "team_hash": [3] * 32,
-            "governance": {"quorum": 0.67, "voting_period_hours": 72, "upgrade_threshold": 0.8},
+            "governance": {
+                "quorum": 0.67,
+                "voting_period_hours": 72,
+                "upgrade_threshold": 0.8,
+            },
         },
         "partnership_hash": [4] * 32,
         "genesis_hash": list(bytes.fromhex(genesis_hash_hex)),
@@ -97,4 +101,3 @@ def test_verify_genesis_rejects_invalid_chain(tmp_path: Path, monkeypatch) -> No
     assert header.status_code == 503
     header_body = header.json()
     assert header_body["hash_validated"] is False
-

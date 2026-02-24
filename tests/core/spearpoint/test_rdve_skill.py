@@ -28,7 +28,6 @@ from core.spearpoint.rdve_skill import (
     register_rdve_skill,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -150,7 +149,9 @@ class TestRegistration:
     def test_register_indexes_agent(self, handler, mock_router):
         """Registration indexes skill by agent."""
         handler.register(mock_router)
-        assert "rdve_research" in mock_router.registry._by_agent.get("rdve-researcher", [])
+        assert "rdve_research" in mock_router.registry._by_agent.get(
+            "rdve-researcher", []
+        )
 
     def test_register_wires_handler(self, handler, mock_router):
         """Registration calls register_handler on the router."""
@@ -186,9 +187,7 @@ class TestOperationDispatch:
     @pytest.mark.asyncio
     async def test_unknown_operation_returns_error(self, handler):
         """Unknown operation returns error with available operations list."""
-        result = await handler._handle(
-            MagicMock(), {"operation": "nonexistent"}, None
-        )
+        result = await handler._handle(MagicMock(), {"operation": "nonexistent"}, None)
         assert "error" in result
         assert "nonexistent" in result["error"]
         assert "available_operations" in result
@@ -360,9 +359,7 @@ class TestStatistics:
     @pytest.mark.asyncio
     async def test_statistics_returns_rdve_info(self, handler):
         """Statistics returns RDVE metadata."""
-        result = await handler._handle(
-            MagicMock(), {"operation": "statistics"}, None
-        )
+        result = await handler._handle(MagicMock(), {"operation": "statistics"}, None)
         assert result["operation"] == "statistics"
         assert result["rdve"]["version"] == "1.0.0"
         assert result["rdve"]["skill_name"] == "rdve_research"
@@ -376,9 +373,7 @@ class TestStatistics:
         await handler._handle(MagicMock(), {"operation": "statistics"}, None)
         await handler._handle(MagicMock(), {"operation": "statistics"}, None)
 
-        result = await handler._handle(
-            MagicMock(), {"operation": "statistics"}, None
-        )
+        result = await handler._handle(MagicMock(), {"operation": "statistics"}, None)
         assert result["rdve"]["invocation_count"] == 3  # Including this call
 
 
@@ -460,16 +455,21 @@ class TestBridgeIntegration:
         try:
             reader, writer = await asyncio.open_connection("127.0.0.1", port)
 
-            msg = json.dumps({
-                "jsonrpc": "2.0",
-                "method": "invoke_skill",
-                "params": {
-                    "skill": "rdve_research",
-                    "inputs": {"operation": "statistics"},
-                },
-                "id": 1,
-                "headers": _bridge_headers(),
-            }).encode() + b"\n"
+            msg = (
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "invoke_skill",
+                        "params": {
+                            "skill": "rdve_research",
+                            "inputs": {"operation": "statistics"},
+                        },
+                        "id": 1,
+                        "headers": _bridge_headers(),
+                    }
+                ).encode()
+                + b"\n"
+            )
 
             writer.write(msg)
             await writer.drain()
@@ -510,19 +510,24 @@ class TestBridgeIntegration:
         try:
             reader, writer = await asyncio.open_connection("127.0.0.1", port)
 
-            msg = json.dumps({
-                "jsonrpc": "2.0",
-                "method": "invoke_skill",
-                "params": {
-                    "skill": "rdve_research",
-                    "inputs": {
-                        "operation": "reproduce",
-                        "claim": "BIZRA latency < 200ms P99",
-                    },
-                },
-                "id": 2,
-                "headers": _bridge_headers(),
-            }).encode() + b"\n"
+            msg = (
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "invoke_skill",
+                        "params": {
+                            "skill": "rdve_research",
+                            "inputs": {
+                                "operation": "reproduce",
+                                "claim": "BIZRA latency < 200ms P99",
+                            },
+                        },
+                        "id": 2,
+                        "headers": _bridge_headers(),
+                    }
+                ).encode()
+                + b"\n"
+            )
 
             writer.write(msg)
             await writer.drain()

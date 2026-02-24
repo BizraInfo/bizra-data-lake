@@ -11,40 +11,37 @@ Created: 2026-02-04
 """
 
 import asyncio
-import pytest
 from datetime import datetime, timezone
 
+import pytest
+
 # Import the Apex system
-from core.apex import (
-    # Main unified interface
-    ApexSystem,
-    # Social Graph
-    SocialGraph,
-    RelationshipType,
-    InteractionType,
-    CollaborationStatus,
-    Relationship,
-    # Opportunity Engine
-    OpportunityEngine,
-    MarketCondition,
-    SignalType,
-    SignalStrength,
-    MarketData,
-    TradingSignal,
-    MarketAnalyzer,
-    SignalGenerator,
-    ArbitrageDetector,
-    # Swarm Orchestrator
-    SwarmOrchestrator,
+from core.apex import (  # Main unified interface; Social Graph; Opportunity Engine; Swarm Orchestrator
     AgentConfig,
     AgentInstance,
     AgentStatus,
-    HealthStatus,
-    SwarmTopology,
+    ApexSystem,
+    ArbitrageDetector,
+    CollaborationStatus,
     HealthMonitor,
-    ScalingManager,
-    ScalingDecision,
+    HealthStatus,
+    InteractionType,
+    MarketAnalyzer,
+    MarketCondition,
+    MarketData,
+    OpportunityEngine,
+    Relationship,
+    RelationshipType,
     ScalingAction,
+    ScalingDecision,
+    ScalingManager,
+    SignalGenerator,
+    SignalStrength,
+    SignalType,
+    SocialGraph,
+    SwarmOrchestrator,
+    SwarmTopology,
+    TradingSignal,
 )
 
 
@@ -53,55 +50,59 @@ class TestApexImports:
 
     def test_version(self):
         from core.apex import __version__
+
         assert __version__ == "1.0.0"
 
     def test_social_graph_imports(self):
         from core.apex import (
-            SocialGraph,
-            RelationshipType,
-            InteractionType,
+            CollaborationOpportunity,
             CollaborationStatus,
             Interaction,
-            Relationship,
-            CollaborationOpportunity,
+            InteractionType,
             NegotiationOffer,
+            Relationship,
+            RelationshipType,
+            SocialGraph,
         )
+
         assert SocialGraph is not None
 
     def test_opportunity_engine_imports(self):
         from core.apex import (
-            OpportunityEngine,
-            MarketCondition,
-            SignalType,
-            SignalStrength,
-            PositionStatus,
-            MarketData,
-            MarketAnalysis,
-            TradingSignal,
-            ArbitrageOpportunity,
-            Position,
-            MarketAnalyzer,
-            SignalGenerator,
             ArbitrageDetector,
+            ArbitrageOpportunity,
+            MarketAnalysis,
+            MarketAnalyzer,
+            MarketCondition,
+            MarketData,
+            OpportunityEngine,
+            Position,
+            PositionStatus,
+            SignalGenerator,
+            SignalStrength,
+            SignalType,
+            TradingSignal,
         )
+
         assert OpportunityEngine is not None
 
     def test_swarm_orchestrator_imports(self):
         from core.apex import (
-            SwarmOrchestrator,
-            AgentStatus,
-            ScalingAction,
-            HealthStatus,
-            SwarmTopology,
             AgentConfig,
             AgentInstance,
-            SwarmConfig,
-            Swarm,
-            ScalingDecision,
-            HealthReport,
+            AgentStatus,
             HealthMonitor,
+            HealthReport,
+            HealthStatus,
+            ScalingAction,
+            ScalingDecision,
             ScalingManager,
+            Swarm,
+            SwarmConfig,
+            SwarmOrchestrator,
+            SwarmTopology,
         )
+
         assert SwarmOrchestrator is not None
 
 

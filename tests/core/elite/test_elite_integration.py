@@ -15,71 +15,73 @@ Standing on Giants: pytest + asyncio + property-based testing
 import asyncio
 import hashlib
 import math
-import pytest
 import time
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 
-# Import modules under test
-from core.elite.hooks import (
-    FATEGate,
-    FATEScore,
-    HookRegistry,
-    HookExecutor,
-    HookPhase,
-    HookPriority,
-    HookContext,
-    HookResult,
-    FATEDimension,
-    register_hook,
-    fate_guarded,
-    FATEGateError,
-)
-from core.elite.session_dag import (
-    MerkleDAG,
-    MerkleNode,
-    SessionStateMachine,
-    SessionState,
-    TransitionType,
-    create_session,
-    InvalidTransitionError,
-    DAGError,
-)
+import pytest
+
 from core.elite.cognitive_budget import (
-    CognitiveBudgetAllocator,
+    DNA_BALANCE,
+    DNA_COMPLETE,
+    DNA_DEPTH,
+    DNA_TRACKS,
     BudgetAllocation,
     BudgetTier,
     BudgetTracker,
     BudgetUsage,
-    TaskType,
+    CognitiveBudgetAllocator,
     ComplexitySignal,
+    TaskType,
     allocate_budget,
-    DNA_DEPTH,
-    DNA_TRACKS,
-    DNA_BALANCE,
-    DNA_COMPLETE,
 )
 from core.elite.compute_market import (
-    ComputeMarket,
-    ComputeLicense,
-    ResourceUnit,
-    ResourceType,
-    LicenseStatus,
-    MarketTransaction,
-    create_market,
-    create_inference_license,
     DEFAULT_TAX_RATE,
     GINI_THRESHOLD,
+    ComputeLicense,
+    ComputeMarket,
+    LicenseStatus,
+    MarketTransaction,
+    ResourceType,
+    ResourceUnit,
+    create_inference_license,
+    create_market,
+)
+
+# Import modules under test
+from core.elite.hooks import (
+    FATEDimension,
+    FATEGate,
+    FATEGateError,
+    FATEScore,
+    HookContext,
+    HookExecutor,
+    HookPhase,
+    HookPriority,
+    HookRegistry,
+    HookResult,
+    fate_guarded,
+    register_hook,
+)
+from core.elite.session_dag import (
+    DAGError,
+    InvalidTransitionError,
+    MerkleDAG,
+    MerkleNode,
+    SessionState,
+    SessionStateMachine,
+    TransitionType,
+    create_session,
 )
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # ============================================================================
 # FATE GATE TESTS
 # ============================================================================
+
 
 class TestFATEScore:
     """Tests for FATEScore dataclass."""
@@ -94,12 +96,7 @@ class TestFATEScore:
         )
 
         # Weighted geometric mean
-        expected = (
-            (0.9 ** 0.25) *
-            (0.95 ** 0.25) *
-            (0.92 ** 0.25) *
-            (0.98 ** 0.25)
-        )
+        expected = (0.9**0.25) * (0.95**0.25) * (0.92**0.25) * (0.98**0.25)
 
         assert abs(score.overall - expected) < 0.001
 
@@ -133,7 +130,9 @@ class TestFATEScore:
 
     def test_serialization(self):
         """Test to_dict serialization."""
-        score = FATEScore(fidelity=0.9, accountability=0.9, transparency=0.9, ethics=0.9)
+        score = FATEScore(
+            fidelity=0.9, accountability=0.9, transparency=0.9, ethics=0.9
+        )
         d = score.to_dict()
 
         assert "fidelity" in d
@@ -220,8 +219,12 @@ class TestHookRegistry:
         registry = HookRegistry()
 
         registry.register("low", HookPhase.PRE_EXECUTE, lambda d: d, HookPriority.LOW)
-        registry.register("critical", HookPhase.PRE_EXECUTE, lambda d: d, HookPriority.CRITICAL)
-        registry.register("normal", HookPhase.PRE_EXECUTE, lambda d: d, HookPriority.NORMAL)
+        registry.register(
+            "critical", HookPhase.PRE_EXECUTE, lambda d: d, HookPriority.CRITICAL
+        )
+        registry.register(
+            "normal", HookPhase.PRE_EXECUTE, lambda d: d, HookPriority.NORMAL
+        )
 
         hooks = registry.get_hooks(HookPhase.PRE_EXECUTE)
         assert hooks[0].name == "critical"
@@ -311,7 +314,9 @@ class TestHookExecutor:
             operation_type="validated",
             declared_intent="tracked_op",  # Align for high fidelity
             snr_score=0.98,
-            metadata={"rationale": "tracking operation execution order"},  # Boost transparency
+            metadata={
+                "rationale": "tracking operation execution order"
+            },  # Boost transparency
         )
 
         assert result.success is True
@@ -321,6 +326,7 @@ class TestHookExecutor:
 # ============================================================================
 # SESSION DAG TESTS
 # ============================================================================
+
 
 class TestMerkleNode:
     """Tests for MerkleNode."""
@@ -510,6 +516,7 @@ class TestSessionStateMachine:
 # COGNITIVE BUDGET TESTS
 # ============================================================================
 
+
 class TestDNAConstants:
     """Tests for 7-3-6-9 DNA constants."""
 
@@ -674,6 +681,7 @@ class TestBudgetTracker:
 # COMPUTE MARKET TESTS
 # ============================================================================
 
+
 class TestResourceUnit:
     """Tests for ResourceUnit."""
 
@@ -793,7 +801,9 @@ class TestComputeMarket:
         """Test self-assessment update."""
         market = create_market()
 
-        license = market.issue_license("holder", ResourceUnit(ResourceType.CPU, 1, "cores"), 50.0)
+        license = market.issue_license(
+            "holder", ResourceUnit(ResourceType.CPU, 1, "cores"), 50.0
+        )
 
         success = market.reassess_value(license.license_id, 75.0, "holder")
         assert success is True
@@ -816,7 +826,9 @@ class TestComputeMarket:
         market = create_market()
 
         # Unequal distribution
-        market.issue_license("whale", ResourceUnit(ResourceType.CPU, 1, "cores"), 1000.0)
+        market.issue_license(
+            "whale", ResourceUnit(ResourceType.CPU, 1, "cores"), 1000.0
+        )
         market.issue_license("small1", ResourceUnit(ResourceType.CPU, 1, "cores"), 10.0)
         market.issue_license("small2", ResourceUnit(ResourceType.CPU, 1, "cores"), 10.0)
 
@@ -828,7 +840,9 @@ class TestComputeMarket:
         market = create_market(gini_threshold=0.3)
 
         # Create inequality
-        market.issue_license("whale", ResourceUnit(ResourceType.CPU, 1, "cores"), 1000.0)
+        market.issue_license(
+            "whale", ResourceUnit(ResourceType.CPU, 1, "cores"), 1000.0
+        )
         market.issue_license("small", ResourceUnit(ResourceType.CPU, 1, "cores"), 10.0)
 
         report = market.enforce_gini()
@@ -841,7 +855,9 @@ class TestComputeMarket:
         """Test periodic tax collection."""
         market = create_market()
 
-        market.issue_license("holder", ResourceUnit(ResourceType.CPU, 1, "cores"), 100.0)
+        market.issue_license(
+            "holder", ResourceUnit(ResourceType.CPU, 1, "cores"), 100.0
+        )
 
         # Simulate time passing
         for license in market._licenses.values():
@@ -877,6 +893,7 @@ class TestComputeMarket:
 # INTEGRATION TESTS
 # ============================================================================
 
+
 class TestEliteIntegration:
     """Integration tests across elite modules."""
 
@@ -894,7 +911,10 @@ class TestEliteIntegration:
             operation_name="compute_task",
             operation_type="validated",
             input_data={"task": "compute"},
-            metadata={"session_id": session.session_id, "rationale": "session compute task"},
+            metadata={
+                "session_id": session.session_id,
+                "rationale": "session compute task",
+            },
         )
         score = gate.validate(context, declared_intent="compute_task", snr_score=0.97)
 
@@ -959,7 +979,10 @@ class TestEliteIntegration:
                     fate_score=score.overall,
                 )
 
-            assert session.current_node.ihsan_achieved or target_state == SessionState.COMMITTED
+            assert (
+                session.current_node.ihsan_achieved
+                or target_state == SessionState.COMMITTED
+            )
 
         # Verify full lineage
         assert session.verify_integrity() is True
@@ -979,7 +1002,9 @@ class TestSNRCompliance:
             metadata={"rationale": "well documented"},
         )
 
-        score = gate.validate(context, declared_intent="quality operation", snr_score=0.98)
+        score = gate.validate(
+            context, declared_intent="quality operation", snr_score=0.98
+        )
 
         assert score.overall >= UNIFIED_IHSAN_THRESHOLD
 

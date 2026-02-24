@@ -21,15 +21,14 @@ import pytest
 
 from core.proof_engine.ihsan_gate import IhsanComponents
 from core.spearpoint.auto_researcher import ResearchOutcome, ResearchResult
+from core.spearpoint.config import SpearpointConfig
 from core.spearpoint.metrics_provider import MetricsProvider, SystemMetricsSnapshot
 from core.spearpoint.pattern_selector import (
     PatternOutcome,
     PatternSelectionResult,
     PatternStrategySelector,
 )
-from core.spearpoint.config import SpearpointConfig
 from core.spearpoint.recursive_loop import LoopMetrics, RecursiveLoop
-
 
 # ---------------------------------------------------------------------------
 # PatternStrategySelector Tests
@@ -67,11 +66,15 @@ class TestPatternStrategySelector:
     def test_complement_strategy_after_approval(self):
         """After an approval, selector should try complementary patterns."""
         selector = PatternStrategySelector(
-            seed=42, explore_probability=0.0, cooldown_cycles=0,
+            seed=42,
+            explore_probability=0.0,
+            cooldown_cycles=0,
         )
-        selector.load_cooccurrence({
-            "P01": {"P02": 50, "P03": 30},
-        })
+        selector.load_cooccurrence(
+            {
+                "P01": {"P02": 50, "P03": 30},
+            }
+        )
         selector.record_outcome("P01", approved=1, cycle=0)
 
         result = selector.select(cycle=1)
@@ -81,7 +84,9 @@ class TestPatternStrategySelector:
     def test_exploit_selects_best_success_rate(self):
         """Exploit strategy picks the pattern with highest success rate."""
         selector = PatternStrategySelector(
-            seed=42, explore_probability=0.0, cooldown_cycles=0,
+            seed=42,
+            explore_probability=0.0,
+            cooldown_cycles=0,
         )
         # P03 has best success rate
         selector.record_outcome("P01", approved=1, rejected=3, cycle=0)
@@ -98,7 +103,9 @@ class TestPatternStrategySelector:
     def test_rotate_picks_least_recently_used(self):
         """Rotation strategy picks least recently used pattern."""
         selector = PatternStrategySelector(
-            seed=42, explore_probability=0.0, cooldown_cycles=0,
+            seed=42,
+            explore_probability=0.0,
+            cooldown_cycles=0,
         )
         # Use P01 and P02 recently, P03-P15 never used
         selector.record_outcome("P01", approved=0, rejected=1, cycle=10)
@@ -132,7 +139,9 @@ class TestPatternStrategySelector:
     def test_chronic_failure_deprioritized(self):
         """Patterns with only failures are deprioritized in rotation."""
         selector = PatternStrategySelector(
-            seed=42, explore_probability=0.0, cooldown_cycles=0,
+            seed=42,
+            explore_probability=0.0,
+            cooldown_cycles=0,
         )
         # P01 fails 5 times with no approvals → chronic failure
         for i in range(5):
@@ -188,8 +197,11 @@ class TestMetricsProvider:
         provider = MetricsProvider()
         for _ in range(5):
             provider.record_cycle_metrics(
-                approved=2, rejected=0, inconclusive=0,
-                clear_score=0.90, ihsan_score=0.96,
+                approved=2,
+                rejected=0,
+                inconclusive=0,
+                clear_score=0.90,
+                ihsan_score=0.96,
             )
 
         snapshot = provider.current_snapshot()
@@ -201,8 +213,11 @@ class TestMetricsProvider:
         provider = MetricsProvider()
         for _ in range(5):
             provider.record_cycle_metrics(
-                approved=0, rejected=3, inconclusive=0,
-                clear_score=0.60, ihsan_score=0.70,
+                approved=0,
+                rejected=3,
+                inconclusive=0,
+                clear_score=0.60,
+                ihsan_score=0.70,
             )
 
         snapshot = provider.current_snapshot()
@@ -228,7 +243,9 @@ class TestLoopMetricsPatternAware:
 
     def test_pattern_aware_flag(self):
         """Pattern-aware metrics include pattern fields in dict."""
-        m = LoopMetrics(pattern_aware=True, last_pattern_id="P01", last_pattern_strategy="explore")
+        m = LoopMetrics(
+            pattern_aware=True, last_pattern_id="P01", last_pattern_strategy="explore"
+        )
         d = m.to_dict()
         assert d["pattern_aware"] is True
         assert d["last_pattern_id"] == "P01"
@@ -280,7 +297,9 @@ class TestPatternAwareLoop:
         return researcher
 
     @pytest.mark.asyncio
-    async def test_pattern_aware_loop_runs(self, mock_evaluator, mock_researcher, fast_config):
+    async def test_pattern_aware_loop_runs(
+        self, mock_evaluator, mock_researcher, fast_config
+    ):
         """Pattern-aware loop selects and uses patterns."""
         selector = PatternStrategySelector(seed=42)
         provider = MetricsProvider()
@@ -302,7 +321,9 @@ class TestPatternAwareLoop:
         assert mock_researcher.research_with_pattern.called
 
     @pytest.mark.asyncio
-    async def test_classic_mode_still_works(self, mock_evaluator, mock_researcher, fast_config):
+    async def test_classic_mode_still_works(
+        self, mock_evaluator, mock_researcher, fast_config
+    ):
         """Without selector, loop uses classic research() path."""
         loop = RecursiveLoop(
             evaluator=mock_evaluator,
@@ -318,7 +339,9 @@ class TestPatternAwareLoop:
         assert not mock_researcher.research_with_pattern.called
 
     @pytest.mark.asyncio
-    async def test_metrics_provider_receives_feedback(self, mock_evaluator, mock_researcher, fast_config):
+    async def test_metrics_provider_receives_feedback(
+        self, mock_evaluator, mock_researcher, fast_config
+    ):
         """MetricsProvider receives cycle feedback after each cycle."""
         selector = PatternStrategySelector(seed=42)
         provider = MetricsProvider()
@@ -337,7 +360,9 @@ class TestPatternAwareLoop:
         assert stats["total_cycles"] == 3
 
     @pytest.mark.asyncio
-    async def test_pattern_selector_receives_feedback(self, mock_evaluator, mock_researcher, fast_config):
+    async def test_pattern_selector_receives_feedback(
+        self, mock_evaluator, mock_researcher, fast_config
+    ):
         """PatternSelector receives outcome feedback after each cycle."""
         selector = PatternStrategySelector(seed=42)
 
@@ -354,7 +379,9 @@ class TestPatternAwareLoop:
         assert stats["patterns_tried"] >= 1
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_works_in_pattern_mode(self, mock_evaluator, fast_config):
+    async def test_circuit_breaker_works_in_pattern_mode(
+        self, mock_evaluator, fast_config
+    ):
         """Circuit breaker still trips in pattern-aware mode."""
         researcher = MagicMock()
         rejected = MagicMock(spec=ResearchResult)
@@ -397,14 +424,23 @@ class TestSystemMetricsSnapshot:
         """CLEAR metrics dict has all required keys."""
         s = SystemMetricsSnapshot(accuracy=0.9, task_completion=0.85)
         d = s.to_clear_metrics()
-        required = {"accuracy", "task_completion", "goal_achievement",
-                     "reproducibility", "consistency", "runs_completed"}
+        required = {
+            "accuracy",
+            "task_completion",
+            "goal_achievement",
+            "reproducibility",
+            "consistency",
+            "runs_completed",
+        }
         assert required.issubset(d.keys())
 
     def test_to_ihsan_components_values(self):
         """Ihsan components match snapshot values."""
         s = SystemMetricsSnapshot(
-            correctness=0.95, safety=1.0, efficiency=0.90, user_benefit=0.85,
+            correctness=0.95,
+            safety=1.0,
+            efficiency=0.90,
+            user_benefit=0.85,
         )
         c = s.to_ihsan_components()
         assert c.correctness == 0.95
@@ -470,7 +506,9 @@ class TestMetricsPassThrough:
         ), "ihsan_components should be passed to research_with_pattern"
 
     @pytest.mark.asyncio
-    async def test_metrics_values_are_real_not_hardcoded(self, mock_evaluator, fast_config):
+    async def test_metrics_values_are_real_not_hardcoded(
+        self, mock_evaluator, fast_config
+    ):
         """Passed metrics use MetricsProvider defaults (0.85+), not hardcoded (0.7/0.6/0.5)."""
         researcher = MagicMock()
         result = MagicMock(spec=ResearchResult)
@@ -507,7 +545,9 @@ class TestMetricsPassThrough:
         )
 
     @pytest.mark.asyncio
-    async def test_no_provider_uses_no_metrics_kwargs(self, mock_evaluator, fast_config):
+    async def test_no_provider_uses_no_metrics_kwargs(
+        self, mock_evaluator, fast_config
+    ):
         """Without MetricsProvider, no metrics kwargs are passed."""
         researcher = MagicMock()
         result = MagicMock(spec=ResearchResult)

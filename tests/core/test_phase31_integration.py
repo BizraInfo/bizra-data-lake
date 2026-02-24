@@ -4,6 +4,7 @@ MemoryCoder, AgentDB, and SovereignRuntime.
 
 Standing on: Berge (hypergraph) + Simon (hierarchy) + Shannon (SNR) + Deming (PDCA)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,6 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # ─── HyperGraph ↔ CognitiveFusion ───────────────────────────────────────────
 
 
@@ -24,13 +24,23 @@ class TestHyperGraphRAGIntegration:
     """Verify HyperGraph and RAG Fusion wire together correctly."""
 
     def test_rag_fusion_uses_hypergraph_store(self):
-        from core.hypergraph import HyperEdgeType, HyperGraphNode, HyperGraphStore
-        from core.hypergraph import HyperGraphRAGFusion
+        from core.hypergraph import (
+            HyperEdgeType,
+            HyperGraphNode,
+            HyperGraphRAGFusion,
+            HyperGraphStore,
+        )
 
         store = HyperGraphStore()
-        store.add_node(HyperGraphNode("a", "Node A", "science", embedding=[1.0, 0.0, 0.0]))
-        store.add_node(HyperGraphNode("b", "Node B", "science", embedding=[0.9, 0.1, 0.0]))
-        store.add_node(HyperGraphNode("c", "Node C", "ethics", embedding=[0.0, 0.0, 1.0]))
+        store.add_node(
+            HyperGraphNode("a", "Node A", "science", embedding=[1.0, 0.0, 0.0])
+        )
+        store.add_node(
+            HyperGraphNode("b", "Node B", "science", embedding=[0.9, 0.1, 0.0])
+        )
+        store.add_node(
+            HyperGraphNode("c", "Node C", "ethics", embedding=[0.0, 0.0, 1.0])
+        )
         store.add_hyperedge({"a", "b"}, HyperEdgeType.CONCEPT_CLUSTER, weight=0.95)
         store.add_hyperedge({"a", "c"}, HyperEdgeType.CROSS_DOMAIN_BRIDGE, weight=0.80)
 
@@ -96,7 +106,11 @@ class TestMemoryCoderIntegration:
     """Verify MemorySynthesizer wires with PatternCodebook correctly."""
 
     def test_synthesizer_codebook_roundtrip(self):
-        from core.memory_coder import MemorySynthesizer, PatternCodebook, SynthesizedPattern
+        from core.memory_coder import (
+            MemorySynthesizer,
+            PatternCodebook,
+            SynthesizedPattern,
+        )
 
         codebook = PatternCodebook()
         synthesizer = MemorySynthesizer(agent_db=None, codebook=codebook)
@@ -125,8 +139,12 @@ class TestMemoryCoderIntegration:
         from core.memory_coder import SynthesizedPattern
 
         # is_strong checks SNR >= SNR_THRESHOLD_T1_HIGH (0.95)
-        strong = SynthesizedPattern("s", [0.1], ["a"], snr=0.96, source_count=15, access_count=50)
-        weak = SynthesizedPattern("w", [0.1], ["a"], snr=0.94, source_count=15, access_count=50)
+        strong = SynthesizedPattern(
+            "s", [0.1], ["a"], snr=0.96, source_count=15, access_count=50
+        )
+        weak = SynthesizedPattern(
+            "w", [0.1], ["a"], snr=0.94, source_count=15, access_count=50
+        )
         assert strong.is_strong is True
         assert weak.is_strong is False
 
@@ -156,6 +174,7 @@ class TestCrossPackageIntegration:
     def test_runtime_state_includes_phase31_components(self):
         """Verify _get_runtime_state includes Phase 31 component status."""
         from unittest.mock import AsyncMock, patch
+
         from core.sovereign.runtime_core import SovereignRuntime
         from core.sovereign.runtime_types import RuntimeConfig
 

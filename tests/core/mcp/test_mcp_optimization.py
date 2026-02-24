@@ -1,8 +1,10 @@
 """
 Tests for MCP V3 Optimization: ResponseCache, compact JSON, timeout behavior.
 """
+
 import json
 import time
+
 import pytest
 
 
@@ -11,26 +13,29 @@ class TestResponseCache:
 
     def _make_cache(self, max_entries=256, ttl_seconds=300.0):
         """Create a ResponseCache instance by importing from ecosystem server."""
-        import sys
         import os
+        import sys
 
         # Add tools/mcp to path so we can import the cache class
         tools_mcp = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-            "tools", "mcp"
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            ),
+            "tools",
+            "mcp",
         )
         if tools_mcp not in sys.path:
             sys.path.insert(0, tools_mcp)
 
         # Import only the cache class (avoid importing MCP SDK at module level)
-        from importlib import import_module
         import importlib.util
+        from importlib import import_module
 
         # Direct import of the ResponseCache class from the module source
         spec = importlib.util.spec_from_file_location(
             "ecosystem_cache",
             os.path.join(tools_mcp, "ecosystem_mcp_server.py"),
-            submodule_search_locations=[]
+            submodule_search_locations=[],
         )
 
         # We can't import the full module (MCP SDK dep), so test the cache pattern directly
@@ -46,7 +51,10 @@ class TestResponseCache:
 
             def _make_key(self, tool_name, arguments):
                 import hashlib
-                raw = json.dumps({"t": tool_name, "a": arguments}, sort_keys=True, default=str)
+
+                raw = json.dumps(
+                    {"t": tool_name, "a": arguments}, sort_keys=True, default=str
+                )
                 return hashlib.md5(raw.encode()).hexdigest()
 
             def get(self, tool_name, arguments):
@@ -145,9 +153,9 @@ class TestCompactJSON:
             "snr_score": 0.95,
             "ihsan_score": 0.97,
             "components_used": ["UltimateEngine", "Orchestrator"],
-            "latency_ms": 123.45
+            "latency_ms": 123.45,
         }
-        compact = json.dumps(data, default=str, separators=(',', ':'))
+        compact = json.dumps(data, default=str, separators=(",", ":"))
         pretty = json.dumps(data, indent=2, default=str)
         assert len(compact) < len(pretty)
         savings_pct = (1 - len(compact) / len(pretty)) * 100
@@ -155,7 +163,7 @@ class TestCompactJSON:
 
     def test_compact_json_is_valid(self):
         data = {"key": "value", "nested": {"a": [1, 2, 3]}}
-        compact = json.dumps(data, separators=(',', ':'))
+        compact = json.dumps(data, separators=(",", ":"))
         parsed = json.loads(compact)
         assert parsed == data
 

@@ -22,7 +22,6 @@ from core.sovereign.muraqabah_engine import (
     SensorState,
 )
 
-
 # =============================================================================
 # ENUM TESTS
 # =============================================================================
@@ -81,7 +80,12 @@ class TestSensorState:
         assert len(SensorState) == 4
 
     def test_states_are_distinct(self):
-        states = [SensorState.ACTIVE, SensorState.INACTIVE, SensorState.ERROR, SensorState.CALIBRATING]
+        states = [
+            SensorState.ACTIVE,
+            SensorState.INACTIVE,
+            SensorState.ERROR,
+            SensorState.CALIBRATING,
+        ]
         assert len(set(states)) == 4
 
 
@@ -302,7 +306,9 @@ class TestSensorManagement:
         engine = MuraqabahEngine()
         new_sensor = lambda: {"new_metric": 99.0}
         engine.register_sensor(MonitorDomain.ENVIRONMENTAL, "system_health", new_sensor)
-        assert engine._sensors[MonitorDomain.ENVIRONMENTAL]["system_health"] is new_sensor
+        assert (
+            engine._sensors[MonitorDomain.ENVIRONMENTAL]["system_health"] is new_sensor
+        )
 
     def test_unregister_sensor(self):
         engine = MuraqabahEngine()
@@ -424,7 +430,9 @@ class TestScanDomain:
     @pytest.mark.asyncio
     async def test_scan_domain_multiple_sensors(self, engine):
         engine.register_sensor(MonitorDomain.FINANCIAL, "s1", lambda: {"a": 1.0})
-        engine.register_sensor(MonitorDomain.FINANCIAL, "s2", lambda: {"b": 2.0, "c": 3.0})
+        engine.register_sensor(
+            MonitorDomain.FINANCIAL, "s2", lambda: {"b": 2.0, "c": 3.0}
+        )
 
         readings = await engine._scan_domain(MonitorDomain.FINANCIAL)
         assert len(readings) == 3
@@ -930,9 +938,7 @@ class TestScan:
 
     @pytest.mark.asyncio
     async def test_scan_increments_scan_count(self, engine):
-        engine.register_sensor(
-            MonitorDomain.HEALTH, "test", lambda: {"value": 0.5}
-        )
+        engine.register_sensor(MonitorDomain.HEALTH, "test", lambda: {"value": 0.5})
         await engine.scan()
         assert engine._scan_count == 1
         await engine.scan()
@@ -943,9 +949,7 @@ class TestScan:
         engine.register_sensor(
             MonitorDomain.ENVIRONMENTAL, "test", lambda: {"val": 1.0}
         )
-        engine.register_sensor(
-            MonitorDomain.HEALTH, "test", lambda: {"val": 2.0}
-        )
+        engine.register_sensor(MonitorDomain.HEALTH, "test", lambda: {"val": 2.0})
         result = await engine.scan()
         assert result["domains_scanned"] == 5
         assert result["readings"] == 2
@@ -955,9 +959,7 @@ class TestScan:
         engine.register_sensor(
             MonitorDomain.ENVIRONMENTAL, "test", lambda: {"val": 1.0}
         )
-        engine.register_sensor(
-            MonitorDomain.HEALTH, "test", lambda: {"val": 2.0}
-        )
+        engine.register_sensor(MonitorDomain.HEALTH, "test", lambda: {"val": 2.0})
         result = await engine.scan(MonitorDomain.ENVIRONMENTAL)
         assert result["domains_scanned"] == 1
         assert result["readings"] == 1
@@ -1099,9 +1101,7 @@ class TestGetRecentOpportunities:
     def test_returns_limited_results(self):
         engine = MuraqabahEngine()
         for i in range(20):
-            engine._opportunities.append(
-                Opportunity(description=f"Opp {i}")
-            )
+            engine._opportunities.append(Opportunity(description=f"Opp {i}"))
         recent = engine.get_recent_opportunities(limit=5)
         assert len(recent) == 5
         # Should be the most recent
@@ -1173,9 +1173,7 @@ class TestStats:
         for domain in MonitorDomain:
             engine._sensors[domain] = {}
             engine._sensor_states.clear()
-        engine.register_sensor(
-            MonitorDomain.HEALTH, "test", lambda: {"metric": 1.0}
-        )
+        engine.register_sensor(MonitorDomain.HEALTH, "test", lambda: {"metric": 1.0})
         await engine.scan()
         s = engine.stats()
         assert s["scan_count"] == 1

@@ -3,6 +3,7 @@
 # Part of SAPE Implementation Blueprint
 
 import sys
+
 import numpy as np
 
 # Monkeypatch for libraries using deprecated np.object
@@ -10,12 +11,11 @@ if not hasattr(np, "object"):
     np.object = object
 import json
 import time
-import hashlib
-from pathlib import Path
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Tuple, Optional
 from enum import Enum
+from pathlib import Path
+from typing import Dict, List
 
 # BIZRA paths
 BIZRA_ROOT = Path("C:/BIZRA-DATA-LAKE")
@@ -369,9 +369,11 @@ class SystemValidator:
                 integrity = valid_hashes / len(entries) if entries else 0
                 self._record(
                     "POI Ledger",
-                    ValidationStatus.PASS
-                    if integrity >= 0.95
-                    else ValidationStatus.WARN,
+                    (
+                        ValidationStatus.PASS
+                        if integrity >= 0.95
+                        else ValidationStatus.WARN
+                    ),
                     f"{len(entries)} entries, {integrity * 100:.0f}% hash integrity",
                     duration,
                     {"entry_count": len(entries), "valid_hashes": valid_hashes},
@@ -496,8 +498,9 @@ class SystemValidator:
         start = time.time()
 
         try:
-            from arte_engine import SNREngine
             import numpy as np
+
+            from arte_engine import SNREngine
 
             engine = SNREngine()
 

@@ -4,10 +4,10 @@ SovereignRuntime correctly. Tests the full boot sequence from Phase 19-31.
 
 Standing on: Simon (hierarchy) + Ostrom (commons) + Csikszentmihalyi (flow) + Deming (PDCA)
 """
+
 from __future__ import annotations
 
 import pytest
-
 
 # ─── Package Imports via core ────────────────────────────────────────────────
 
@@ -16,31 +16,42 @@ class TestAllPackagesImportable:
     """Verify all packages are importable via core namespace."""
 
     def test_phase25_genesis_importable(self):
-        from core.genesis import GenesisOrchestrator, GenesisConfig, GenesisResult
+        from core.genesis import GenesisConfig, GenesisOrchestrator, GenesisResult
+
         assert GenesisOrchestrator is not None
 
     def test_phase26_guild_importable(self):
-        from core.guild import GuildRegistry, Guild, GuildMember
+        from core.guild import Guild, GuildMember, GuildRegistry
+
         assert GuildRegistry is not None
 
     def test_phase26_quest_importable(self):
-        from core.quest import QuestEngine, Quest, QuestDifficulty
+        from core.quest import Quest, QuestDifficulty, QuestEngine
+
         assert QuestEngine is not None
 
     def test_phase27_hrm_importable(self):
-        from core.hrm import HierarchicalReasoningModel, HRMConfig, AbstractionLevel
+        from core.hrm import AbstractionLevel, HierarchicalReasoningModel, HRMConfig
+
         assert HierarchicalReasoningModel is not None
 
     def test_phase28_northstar_importable(self):
-        from core.northstar import NorthStarEngine, GoldenGemDetector, BridgeNodeDetector
+        from core.northstar import (
+            BridgeNodeDetector,
+            GoldenGemDetector,
+            NorthStarEngine,
+        )
+
         assert NorthStarEngine is not None
 
     def test_phase_memory_agentdb_importable(self):
-        from core.memory import AgentDB, HNSWIndex, UnifiedStore, MemoryRecord
+        from core.memory import AgentDB, HNSWIndex, MemoryRecord, UnifiedStore
+
         assert AgentDB is not None
 
     def test_core_version_bumped(self):
         import core
+
         assert core.__version__ == "2.5.0"
 
     def test_all_32_subsystems_accessible_via_core(self):
@@ -49,14 +60,31 @@ class TestAllPackagesImportable:
 
         expected = [
             # Infrastructure (Phase 1-18)
-            "pci", "vault", "federation", "inference", "a2a",
-            "integration", "ntu", "protocols",
+            "pci",
+            "vault",
+            "federation",
+            "inference",
+            "a2a",
+            "integration",
+            "ntu",
+            "protocols",
             # Decomposed sovereign
-            "governance", "reasoning", "orchestration", "treasury", "bridges",
+            "governance",
+            "reasoning",
+            "orchestration",
+            "treasury",
+            "bridges",
             # Phase 31: Cognitive Fusion
-            "hypergraph", "cognitive_fusion", "memory_coder",
+            "hypergraph",
+            "cognitive_fusion",
+            "memory_coder",
             # Phase 25-28: Ecosystem
-            "genesis", "guild", "quest", "hrm", "northstar", "memory",
+            "genesis",
+            "guild",
+            "quest",
+            "hrm",
+            "northstar",
+            "memory",
         ]
         for pkg in expected:
             assert hasattr(core, pkg), f"core.{pkg} not importable"
@@ -162,7 +190,9 @@ class TestSubsystemStandalone:
 
         detector = GoldenGemDetector()
         # Detector has individual detect_* methods for each gem type
-        result = detector.detect_emergence(node_count=100, edge_count=500, clustering_coefficient=0.8)
+        result = detector.detect_emergence(
+            node_count=100, edge_count=500, clustering_coefficient=0.8
+        )
         # Result is GemActivation or None depending on thresholds
         assert result is None or hasattr(result, "gem_type")
 
@@ -179,7 +209,7 @@ class TestSubsystemStandalone:
         assert len(engine._quests) > 0
 
     def test_genesis_orchestrator_constructs(self):
-        from core.genesis import GenesisOrchestrator, GenesisConfig
+        from core.genesis import GenesisConfig, GenesisOrchestrator
 
         config = GenesisConfig(pat_count=1, sat_count=1)
         orch = GenesisOrchestrator(config)
@@ -202,8 +232,8 @@ class TestCrossSystemIntegration:
         """HRM SNR gradient must align with core.integration.constants."""
         from core.hrm import HRM_SNR_GRADIENT
         from core.integration.constants import (
-            UNIFIED_SNR_THRESHOLD,
             SNR_THRESHOLD_T0_ELITE,
+            UNIFIED_SNR_THRESHOLD,
         )
 
         # Lowest HRM level should use UNIFIED_SNR_THRESHOLD or higher

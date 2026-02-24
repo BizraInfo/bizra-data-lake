@@ -8,19 +8,19 @@ Tests cover:
 4. Integration with existing BIZRA modules
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 from core.ntu import NTU, NTUConfig, NTUState
 from core.ntu.bridge import (
     NTUBridge,
-    NTUSNRAdapter,
-    NTUMemoryAdapter,
     NTUBridgeConfig,
+    NTUMemoryAdapter,
+    NTUSNRAdapter,
 )
 
 
@@ -28,6 +28,7 @@ from core.ntu.bridge import (
 @dataclass
 class MockSNRComponents:
     """Mock SNR components for testing."""
+
     signal_strength: float = 0.8
     diversity: float = 0.7
     grounding: float = 0.75
@@ -39,6 +40,7 @@ class MockSNRComponents:
 @dataclass
 class MockMemoryEntry:
     """Mock memory entry for testing."""
+
     content: str = "test content"
     memory_type: str = "episodic"
     relevance: float = 0.7
@@ -458,8 +460,16 @@ class TestBridgeIntegration:
 
         # Simulate quality variations
         quality_sequence = [
-            0.95, 0.92, 0.88, 0.85, 0.87,  # Declining
-            0.89, 0.92, 0.94, 0.96, 0.97,  # Recovering
+            0.95,
+            0.92,
+            0.88,
+            0.85,
+            0.87,  # Declining
+            0.89,
+            0.92,
+            0.94,
+            0.96,
+            0.97,  # Recovering
         ]
 
         states = []

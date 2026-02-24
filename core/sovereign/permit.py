@@ -26,10 +26,9 @@ import os
 import time
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import Any, Optional
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -354,9 +353,7 @@ class Permit:
             f"{self.budget.max_actions}|"
             f"{self.created_at}"
         )
-        return hmac.new(
-            key.encode(), msg.encode(), hashlib.sha256
-        ).hexdigest()
+        return hmac.new(key.encode(), msg.encode(), hashlib.sha256).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
         return {

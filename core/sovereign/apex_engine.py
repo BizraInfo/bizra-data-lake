@@ -1880,9 +1880,7 @@ class ApexSovereignEngine:
                     else "uninitialized"
                 ),
                 "observations": (
-                    len(self._equalizer_agent.history)
-                    if self._equalizer_agent
-                    else 0
+                    len(self._equalizer_agent.history) if self._equalizer_agent else 0
                 ),
             },
             "fitness": self._compute_fitness(),

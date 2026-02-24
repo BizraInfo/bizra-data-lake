@@ -21,8 +21,6 @@ import argparse
 import asyncio
 import json
 import sys
-import time
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,9 +30,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import engines directly (avoid heavy core imports)
 import importlib.util
+
 spec = importlib.util.spec_from_file_location(
-    "peak_masterpiece", 
-    PROJECT_ROOT / "core" / "apex" / "peak_masterpiece.py"
+    "peak_masterpiece", PROJECT_ROOT / "core" / "apex" / "peak_masterpiece.py"
 )
 peak_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(peak_module)
@@ -49,7 +47,7 @@ async def run_query(query: str, verbose: bool = True) -> dict:
     """Execute a single query through the Peak Masterpiece."""
     orchestrator = PeakMasterpieceOrchestrator()
     result = await orchestrator.execute(query)
-    
+
     return {
         "query": result.query,
         "snr_score": result.snr_score,
@@ -74,9 +72,15 @@ async def run_query(query: str, verbose: bool = True) -> dict:
 async def run_benchmark() -> dict:
     """Run comprehensive CLEAR benchmark."""
     print("\n")
-    print("╔══════════════════════════════════════════════════════════════════════════════╗")
-    print("║            UNIFIED SOVEREIGN APEX — CLEAR BENCHMARK                          ║")
-    print("╚══════════════════════════════════════════════════════════════════════════════╝")
+    print(
+        "╔══════════════════════════════════════════════════════════════════════════════╗"
+    )
+    print(
+        "║            UNIFIED SOVEREIGN APEX — CLEAR BENCHMARK                          ║"
+    )
+    print(
+        "╚══════════════════════════════════════════════════════════════════════════════╝"
+    )
     print()
 
     orchestrator = PeakMasterpieceOrchestrator()
@@ -84,9 +88,15 @@ async def run_benchmark() -> dict:
     # Benchmark queries across different domains
     benchmark_queries = [
         # Analytical
-        ("Explain the mathematical foundations of cryptographic hash functions.", "analytical"),
+        (
+            "Explain the mathematical foundations of cryptographic hash functions.",
+            "analytical",
+        ),
         # Creative
-        ("Design an innovative approach to sustainable urban transportation.", "creative"),
+        (
+            "Design an innovative approach to sustainable urban transportation.",
+            "creative",
+        ),
         # Critical
         ("Evaluate the ethical implications of autonomous weapon systems.", "critical"),
         # Synthesis
@@ -103,21 +113,25 @@ async def run_benchmark() -> dict:
     for query, domain in benchmark_queries:
         print(f"\n🔄 Benchmarking [{domain.upper()}]: {query[:50]}...")
         result = await orchestrator.execute(query)
-        
+
         total_snr += result.snr_score
         total_clear += result.clear_score.overall()
         if result.ihsan_compliant:
             ihsan_passes += 1
 
-        results.append({
-            "domain": domain,
-            "query": query[:50] + "...",
-            "snr": result.snr_score,
-            "clear": result.clear_score.overall(),
-            "ihsan": result.ihsan_compliant,
-            "time_ms": result.execution_time_ms,
-        })
-        print(f"   SNR: {result.snr_score:.4f} | CLEAR: {result.clear_score.overall():.2f} | Ihsān: {'✓' if result.ihsan_compliant else '✗'}")
+        results.append(
+            {
+                "domain": domain,
+                "query": query[:50] + "...",
+                "snr": result.snr_score,
+                "clear": result.clear_score.overall(),
+                "ihsan": result.ihsan_compliant,
+                "time_ms": result.execution_time_ms,
+            }
+        )
+        print(
+            f"   SNR: {result.snr_score:.4f} | CLEAR: {result.clear_score.overall():.2f} | Ihsān: {'✓' if result.ihsan_compliant else '✗'}"
+        )
 
     # Summary
     n = len(benchmark_queries)
@@ -128,24 +142,24 @@ async def run_benchmark() -> dict:
     print("\n" + "═" * 78)
     print("                         BENCHMARK RESULTS")
     print("═" * 78)
-    
+
     def bar(v, w=30):
         f = int(v * w)
         return "█" * f + "░" * (w - f)
 
     print(f"\n  Queries Executed: {n}")
-    print(f"\n  ┌────────────────────────────────────────────────────────────┐")
+    print("\n  ┌────────────────────────────────────────────────────────────┐")
     print(f"  │  Average SNR:      {bar(avg_snr)} {avg_snr:.4f}   │")
     print(f"  │  Average CLEAR:    {bar(avg_clear)} {avg_clear:.4f}   │")
     print(f"  │  Ihsān Pass Rate:  {bar(pass_rate/100)} {pass_rate:.1f}%     │")
-    print(f"  └────────────────────────────────────────────────────────────┘")
+    print("  └────────────────────────────────────────────────────────────┘")
 
     status = "✅ OPERATIONAL" if pass_rate >= 80 else "⚠️  NEEDS IMPROVEMENT"
     print(f"\n  STATUS: {status}")
     print("═" * 78)
 
     stats = orchestrator.stats()
-    
+
     return {
         "benchmark_time": datetime.now(timezone.utc).isoformat(),
         "queries_executed": n,
@@ -213,9 +227,15 @@ Examples:
         """,
     )
     parser.add_argument("--query", "-q", type=str, help="Single query to execute")
-    parser.add_argument("--benchmark", "-b", action="store_true", help="Run CLEAR benchmark")
-    parser.add_argument("--demo", "-d", action="store_true", help="Run full demonstration")
-    parser.add_argument("--output", "-o", type=Path, help="Output path for JSON results")
+    parser.add_argument(
+        "--benchmark", "-b", action="store_true", help="Run CLEAR benchmark"
+    )
+    parser.add_argument(
+        "--demo", "-d", action="store_true", help="Run full demonstration"
+    )
+    parser.add_argument(
+        "--output", "-o", type=Path, help="Output path for JSON results"
+    )
 
     args = parser.parse_args()
 

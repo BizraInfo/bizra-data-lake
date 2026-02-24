@@ -16,11 +16,11 @@ Standing on Giants:
 - Shannon (1948): Signal integrity
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from core.proof_engine.canonical import blake3_digest, canonical_bytes
-from core.proof_engine.receipt import SimpleSigner
 from core.proof_engine.poi_engine import (
     AuditTrail,
     CitationGraph,
@@ -37,7 +37,7 @@ from core.proof_engine.poi_engine import (
     compute_gini,
     compute_token_distribution,
 )
-
+from core.proof_engine.receipt import SimpleSigner
 
 FIXED_TIME = datetime(2026, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
 FIXED_SIGNER = SimpleSigner(b"determinism-test-key")
@@ -68,6 +68,7 @@ def _make_contribution(
 # =============================================================================
 # RECEIPT DETERMINISM (100-iteration DoD)
 # =============================================================================
+
 
 class TestReceiptDeterminism:
     """Same input → same receipt hash, 100 times."""
@@ -139,6 +140,7 @@ class TestReceiptDeterminism:
 # PAGERANK DETERMINISM
 # =============================================================================
 
+
 class TestPageRankDeterminism:
     """Same citation graph → same PageRank scores, 100 times."""
 
@@ -162,15 +164,11 @@ class TestPageRankDeterminism:
             graph = self._build_graph()
             scores = graph.compute_pagerank()
             # Convert to canonical bytes for comparison
-            score_bytes = canonical_bytes(
-                {k: scores[k] for k in sorted(scores.keys())}
-            )
+            score_bytes = canonical_bytes({k: scores[k] for k in sorted(scores.keys())})
             if reference is None:
                 reference = score_bytes
             else:
-                assert score_bytes == reference, (
-                    f"PageRank diverged on iteration {i}"
-                )
+                assert score_bytes == reference, f"PageRank diverged on iteration {i}"
 
     def test_reach_scores_100_iterations(self):
         """compute_reach_scores() produces identical output 100 times."""
@@ -191,9 +189,9 @@ class TestPageRankDeterminism:
             if reference is None:
                 reference = score_bytes
             else:
-                assert score_bytes == reference, (
-                    f"Reach scores diverged on iteration {i}"
-                )
+                assert (
+                    score_bytes == reference
+                ), f"Reach scores diverged on iteration {i}"
 
     def test_pagerank_sorted_node_order(self):
         """PageRank iterates over sorted node list."""
@@ -207,6 +205,7 @@ class TestPageRankDeterminism:
 # =============================================================================
 # TEMPORAL SCORER DETERMINISM
 # =============================================================================
+
 
 class TestTemporalDeterminism:
     """Same activity + reference_time → same longevity, 100 times."""
@@ -236,12 +235,12 @@ class TestTemporalDeterminism:
                 reference_alice = la.normalized_longevity
                 reference_bob = lb.normalized_longevity
             else:
-                assert la.normalized_longevity == reference_alice, (
-                    f"Alice longevity diverged on iteration {i}"
-                )
-                assert lb.normalized_longevity == reference_bob, (
-                    f"Bob longevity diverged on iteration {i}"
-                )
+                assert (
+                    la.normalized_longevity == reference_alice
+                ), f"Alice longevity diverged on iteration {i}"
+                assert (
+                    lb.normalized_longevity == reference_bob
+                ), f"Bob longevity diverged on iteration {i}"
 
     def test_reference_time_required_for_determinism(self):
         """Without reference_time, longevity may vary (wall-clock)."""
@@ -258,6 +257,7 @@ class TestTemporalDeterminism:
 # =============================================================================
 # CONTRIBUTION VERIFIER DETERMINISM
 # =============================================================================
+
 
 class TestVerifierDeterminism:
     """Same contribution → same verification result, 100 times."""
@@ -291,6 +291,7 @@ class TestVerifierDeterminism:
 # =============================================================================
 # FULL EPOCH DETERMINISM (the money test)
 # =============================================================================
+
 
 class TestEpochDeterminism:
     """Same inputs → same AuditTrail digest, 100 times."""
@@ -350,9 +351,9 @@ class TestEpochDeterminism:
             if reference_receipts is None:
                 reference_receipts = receipt_digests
             else:
-                assert receipt_digests == reference_receipts, (
-                    f"Receipt digests diverged on iteration {i}"
-                )
+                assert (
+                    receipt_digests == reference_receipts
+                ), f"Receipt digests diverged on iteration {i}"
 
     def test_poi_scores_identical_100_iterations(self):
         """Every PoI score is identical across 100 runs."""
@@ -369,9 +370,9 @@ class TestEpochDeterminism:
                 reference_scores = scores
             else:
                 for cid in sorted(scores.keys()):
-                    assert scores[cid] == reference_scores[cid], (
-                        f"PoI score for {cid} diverged on iteration {i}"
-                    )
+                    assert (
+                        scores[cid] == reference_scores[cid]
+                    ), f"PoI score for {cid} diverged on iteration {i}"
 
     def test_token_distribution_deterministic(self):
         """Token distribution from same audit → same amounts."""
@@ -390,9 +391,9 @@ class TestEpochDeterminism:
             if reference is None:
                 reference = dist_bytes
             else:
-                assert dist_bytes == reference, (
-                    f"Token distribution diverged on iteration {i}"
-                )
+                assert (
+                    dist_bytes == reference
+                ), f"Token distribution diverged on iteration {i}"
 
     def test_gini_deterministic(self):
         """Gini coefficient is identical across 100 runs."""
@@ -408,14 +409,15 @@ class TestEpochDeterminism:
             if reference is None:
                 reference = gini
             else:
-                assert gini == reference, (
-                    f"Gini diverged on iteration {i}: {gini} != {reference}"
-                )
+                assert (
+                    gini == reference
+                ), f"Gini diverged on iteration {i}: {gini} != {reference}"
 
 
 # =============================================================================
 # REBALANCER DETERMINISM
 # =============================================================================
+
 
 class TestRebalancerDeterminism:
     """Same scores → same rebalance result, 100 times."""
@@ -429,27 +431,30 @@ class TestRebalancerDeterminism:
             rebalancer = SATRebalancer(config)
             scores = {"alice": 0.9, "bob": 0.5, "carol": 0.1, "dave": 0.3}
             result = rebalancer.rebalance(scores)
-            result_bytes = canonical_bytes({
-                "gini_before": result.gini_before,
-                "gini_after": result.gini_after,
-                "zakat_collected": result.zakat_collected,
-                "rebalanced": {
-                    k: result.rebalanced_scores[k]
-                    for k in sorted(result.rebalanced_scores.keys())
-                },
-            })
+            result_bytes = canonical_bytes(
+                {
+                    "gini_before": result.gini_before,
+                    "gini_after": result.gini_after,
+                    "zakat_collected": result.zakat_collected,
+                    "rebalanced": {
+                        k: result.rebalanced_scores[k]
+                        for k in sorted(result.rebalanced_scores.keys())
+                    },
+                }
+            )
 
             if reference is None:
                 reference = result_bytes
             else:
-                assert result_bytes == reference, (
-                    f"Rebalancer diverged on iteration {i}"
-                )
+                assert (
+                    result_bytes == reference
+                ), f"Rebalancer diverged on iteration {i}"
 
 
 # =============================================================================
 # REASON CODE COVERAGE
 # =============================================================================
+
 
 class TestReasonCodeCoverage:
     """Every reason code can be emitted."""
@@ -499,20 +504,45 @@ class TestReasonCodeCoverage:
         """All 10 reason codes exist."""
         assert len(PoIReasonCode) == 10
         assert PoIReasonCode.POI_OK.value == "POI_OK"
-        assert PoIReasonCode.POI_QUARANTINE_MISSING_EVIDENCE.value == "POI_QUARANTINE_MISSING_EVIDENCE"
-        assert PoIReasonCode.POI_REJECT_BAD_SIGNATURE.value == "POI_REJECT_BAD_SIGNATURE"
-        assert PoIReasonCode.POI_REJECT_DUPLICATE_ARTIFACT.value == "POI_REJECT_DUPLICATE_ARTIFACT"
-        assert PoIReasonCode.POI_REJECT_SNR_BELOW_THRESHOLD.value == "POI_REJECT_SNR_BELOW_THRESHOLD"
-        assert PoIReasonCode.POI_REJECT_EPOCH_MISMATCH.value == "POI_REJECT_EPOCH_MISMATCH"
-        assert PoIReasonCode.POI_REJECT_IHSAN_BELOW_THRESHOLD.value == "POI_REJECT_IHSAN_BELOW_THRESHOLD"
-        assert PoIReasonCode.POI_PENALTY_RING_DETECTED.value == "POI_PENALTY_RING_DETECTED"
-        assert PoIReasonCode.POI_PENALTY_RECIPROCAL_FARM.value == "POI_PENALTY_RECIPROCAL_FARM"
-        assert PoIReasonCode.POI_INTERNAL_INVARIANT_FAIL.value == "POI_INTERNAL_INVARIANT_FAIL"
+        assert (
+            PoIReasonCode.POI_QUARANTINE_MISSING_EVIDENCE.value
+            == "POI_QUARANTINE_MISSING_EVIDENCE"
+        )
+        assert (
+            PoIReasonCode.POI_REJECT_BAD_SIGNATURE.value == "POI_REJECT_BAD_SIGNATURE"
+        )
+        assert (
+            PoIReasonCode.POI_REJECT_DUPLICATE_ARTIFACT.value
+            == "POI_REJECT_DUPLICATE_ARTIFACT"
+        )
+        assert (
+            PoIReasonCode.POI_REJECT_SNR_BELOW_THRESHOLD.value
+            == "POI_REJECT_SNR_BELOW_THRESHOLD"
+        )
+        assert (
+            PoIReasonCode.POI_REJECT_EPOCH_MISMATCH.value == "POI_REJECT_EPOCH_MISMATCH"
+        )
+        assert (
+            PoIReasonCode.POI_REJECT_IHSAN_BELOW_THRESHOLD.value
+            == "POI_REJECT_IHSAN_BELOW_THRESHOLD"
+        )
+        assert (
+            PoIReasonCode.POI_PENALTY_RING_DETECTED.value == "POI_PENALTY_RING_DETECTED"
+        )
+        assert (
+            PoIReasonCode.POI_PENALTY_RECIPROCAL_FARM.value
+            == "POI_PENALTY_RECIPROCAL_FARM"
+        )
+        assert (
+            PoIReasonCode.POI_INTERNAL_INVARIANT_FAIL.value
+            == "POI_INTERNAL_INVARIANT_FAIL"
+        )
 
 
 # =============================================================================
 # RECEIPT FEATURES
 # =============================================================================
+
 
 class TestReceiptFeatures:
     """Tests for PoI receipt functionality."""
@@ -633,6 +663,7 @@ class TestReceiptFeatures:
 # AUDIT TRAIL DETERMINISM
 # =============================================================================
 
+
 class TestAuditTrailDeterminism:
     """AuditTrail canonical form excludes mutable timestamp."""
 
@@ -672,7 +703,9 @@ class TestAuditTrailDeterminism:
             reach_score=0.7,
             longevity_score=0.8,
             poi_score=0.83,
-            alpha=0.5, beta=0.3, gamma=0.2,
+            alpha=0.5,
+            beta=0.3,
+            gamma=0.2,
             config_digest="abc",
             computation_id="c1",
             epoch_id="e1",

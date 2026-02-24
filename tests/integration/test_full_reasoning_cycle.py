@@ -10,45 +10,47 @@
 Created: 2026-02-04 | BIZRA Sovereignty
 """
 
-import pytest
 import asyncio
-import time
 import hashlib
 import secrets
-from typing import Dict, List, Optional, Any
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
+
+from core.autonomous.nodes import NodeType, ReasoningGraph, ReasoningNode
+from core.federation.consensus import (
+    CommitMessage,
+    ConsensusEngine,
+    ConsensusPhase,
+    PrepareMessage,
+    Proposal,
+    ViewChangeRequest,
+    Vote,
+)
+from core.inference.gateway import (
+    ComputeTier,
+    InferenceBackend,
+    InferenceConfig,
+    InferenceGateway,
+    InferenceResult,
+    InferenceStatus,
+)
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.pci.crypto import generate_keypair, sign_message, verify_signature
 
 # Core modules
 from core.pci.envelope import (
-    PCIEnvelope,
-    EnvelopeBuilder,
-    EnvelopeSender,
-    EnvelopePayload,
-    EnvelopeMetadata,
     AgentType,
+    EnvelopeBuilder,
+    EnvelopeMetadata,
+    EnvelopePayload,
+    EnvelopeSender,
+    PCIEnvelope,
 )
-from core.pci.crypto import generate_keypair, sign_message, verify_signature
-from core.federation.consensus import (
-    ConsensusEngine,
-    Proposal,
-    Vote,
-    PrepareMessage,
-    CommitMessage,
-    ViewChangeRequest,
-    ConsensusPhase,
-)
-from core.inference.gateway import (
-    InferenceGateway,
-    InferenceConfig,
-    InferenceResult,
-    InferenceBackend,
-    ComputeTier,
-    InferenceStatus,
-)
-from core.autonomous.nodes import ReasoningGraph, ReasoningNode, NodeType
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
 # Test constants
 IHSAN_THRESHOLD = UNIFIED_IHSAN_THRESHOLD
@@ -59,6 +61,7 @@ TEST_TIMEOUT_MS = 5000
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def test_keypair():
@@ -94,12 +97,14 @@ def consensus_cluster():
         priv, pub = generate_keypair()
         node_id = f"node-{i}"
         engine = ConsensusEngine(node_id, priv, pub)
-        nodes.append({
-            "id": node_id,
-            "engine": engine,
-            "private_key": priv,
-            "public_key": pub,
-        })
+        nodes.append(
+            {
+                "id": node_id,
+                "engine": engine,
+                "private_key": priv,
+                "public_key": pub,
+            }
+        )
 
     # Register all peers with each other
     for node in nodes:
@@ -151,12 +156,15 @@ def reasoning_graph():
 # TEST CLASS 1: FULL REASONING PIPELINE
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.integration
 class TestFullReasoningPipeline:
     """E2E tests for Query → GoT → Guardian → PCI → Response."""
 
     @pytest.mark.asyncio
-    async def test_simple_query_completes_pipeline(self, mock_inference_gateway, test_keypair):
+    async def test_simple_query_completes_pipeline(
+        self, mock_inference_gateway, test_keypair
+    ):
         """Simple query should complete full pipeline."""
         # 1. Query arrives
         query = "What is the capital of France?"
@@ -199,7 +207,9 @@ class TestFullReasoningPipeline:
         print(f"✅ Simple query completed pipeline in {result.latency_ms:.2f}ms")
 
     @pytest.mark.asyncio
-    async def test_complex_query_uses_got(self, mock_inference_gateway, reasoning_graph):
+    async def test_complex_query_uses_got(
+        self, mock_inference_gateway, reasoning_graph
+    ):
         """Complex query should trigger Graph-of-Thoughts exploration."""
         # 1. Complex query requiring multi-step reasoning
         query = "Explain the Byzantine Generals Problem and how PBFT solves it."
@@ -235,7 +245,9 @@ class TestFullReasoningPipeline:
         print(f"✅ Complex query used GoT with path score {path_score:.3f}")
 
     @pytest.mark.asyncio
-    async def test_ihsan_validation_enforced(self, mock_inference_gateway, test_keypair):
+    async def test_ihsan_validation_enforced(
+        self, mock_inference_gateway, test_keypair
+    ):
         """Response must meet Ihsan threshold (0.95)."""
         query = "Test query"
 
@@ -320,6 +332,7 @@ class TestFullReasoningPipeline:
 # TEST CLASS 2: FEDERATION CONSENSUS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.integration
 class TestFederationConsensus:
     """E2E tests for PBFT consensus with Byzantine nodes."""
@@ -338,6 +351,7 @@ class TestFederationConsensus:
 
         # 2. Distribute proposal to all replicas
         from core.federation.consensus import ConsensusState
+
         for node in consensus_cluster:
             # Each node gets the proposal
             node["engine"].active_proposals[proposal.proposal_id] = proposal
@@ -412,6 +426,7 @@ class TestFederationConsensus:
 
         # 2. Distribute proposal to honest nodes (Byzantine nodes ignore)
         from core.federation.consensus import ConsensusState
+
         for node in honest_nodes:
             node["engine"].active_proposals[proposal.proposal_id] = proposal
             if proposal.proposal_id not in node["engine"]._consensus_state:
@@ -437,7 +452,9 @@ class TestFederationConsensus:
         # This is actually correct behavior - need f=1 for n=5, or n=7 for f=2
         assert state.prepare_count == 4, "Should have 4 prepares from honest replicas"
 
-        print(f"✅ Byzantine minority ({len(byzantine_nodes)} nodes) prevents immediate consensus without all honest nodes")
+        print(
+            f"✅ Byzantine minority ({len(byzantine_nodes)} nodes) prevents immediate consensus without all honest nodes"
+        )
 
     @pytest.mark.asyncio
     async def test_view_change_on_leader_failure(self, consensus_cluster):
@@ -457,8 +474,7 @@ class TestFederationConsensus:
         for request in view_change_requests:
             for node in consensus_cluster:
                 reached_quorum = node["engine"].receive_view_change(
-                    request,
-                    len(consensus_cluster)
+                    request, len(consensus_cluster)
                 )
 
         # 4. Verify view change occurred
@@ -470,12 +486,15 @@ class TestFederationConsensus:
         new_leader_id = consensus_cluster[0]["engine"].get_leader_for_view(new_view)
         assert new_leader_id != "node-0"  # Should rotate to next node
 
-        print(f"✅ View change completed: v{initial_view} → v{new_view}, new leader={new_leader_id}")
+        print(
+            f"✅ View change completed: v{initial_view} → v{new_view}, new leader={new_leader_id}"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TEST CLASS 3: OMEGA POINT INTEGRATION
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.integration
 class TestOmegaPointIntegration:
@@ -489,8 +508,7 @@ class TestOmegaPointIntegration:
         treasury_mode = "ABUNDANCE"
 
         result = await mock_inference_gateway.infer(
-            abundance_query,
-            tier=ComputeTier.LOCAL
+            abundance_query, tier=ComputeTier.LOCAL
         )
         assert result.tier == ComputeTier.LOCAL
 
@@ -502,8 +520,7 @@ class TestOmegaPointIntegration:
         complexity = mock_inference_gateway.estimate_complexity(scarcity_query)
         # Force EDGE tier in scarcity mode
         result = await mock_inference_gateway.infer(
-            scarcity_query,
-            tier=ComputeTier.EDGE
+            scarcity_query, tier=ComputeTier.EDGE
         )
 
         # Verify tier selection respects treasury mode
@@ -538,7 +555,18 @@ class TestOmegaPointIntegration:
         assert equal_gini < 0.1, "Equal distribution should have low Gini"
 
         # 3. Plutocratic distribution (high Gini)
-        plutocratic_distribution = [1000.0, 10.0, 10.0, 10.0, 10.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+        plutocratic_distribution = [
+            1000.0,
+            10.0,
+            10.0,
+            10.0,
+            10.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ]
         plutocratic_gini = calculate_gini(plutocratic_distribution)
         assert plutocratic_gini > 0.4, "Plutocratic distribution should have high Gini"
 
@@ -551,12 +579,15 @@ class TestOmegaPointIntegration:
         # Plutocratic distribution fails
         assert plutocratic_gini >= ADL_GINI_THRESHOLD
 
-        print(f"✅ Adl invariant blocks plutocracy (Gini threshold: {ADL_GINI_THRESHOLD})")
+        print(
+            f"✅ Adl invariant blocks plutocracy (Gini threshold: {ADL_GINI_THRESHOLD})"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TEST CLASS 4: PERFORMANCE BUDGETS
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.integration
 class TestPerformanceBudgets:
@@ -629,6 +660,7 @@ class TestPerformanceBudgets:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TEST CLASS 5: ERROR HANDLING & RESILIENCE
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.integration
 class TestErrorHandlingResilience:
@@ -726,16 +758,14 @@ class TestErrorHandlingResilience:
 # TEST CLASS 6: CROSS-COMPONENT INTEGRATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.integration
 class TestCrossComponentIntegration:
     """E2E tests validating multiple components working together."""
 
     @pytest.mark.asyncio
     async def test_inference_to_consensus_to_pci(
-        self,
-        mock_inference_gateway,
-        consensus_cluster,
-        test_keypair
+        self, mock_inference_gateway, consensus_cluster, test_keypair
     ):
         """Test complete flow: Inference → Consensus → PCI envelope."""
         # 1. INFERENCE: Generate response
@@ -757,13 +787,16 @@ class TestCrossComponentIntegration:
 
         # Distribute to replicas
         from core.federation.consensus import ConsensusState
+
         for replica in consensus_cluster[1:]:
             replica["engine"].active_proposals[proposal.proposal_id] = proposal
             if proposal.proposal_id not in replica["engine"]._consensus_state:
-                replica["engine"]._consensus_state[proposal.proposal_id] = ConsensusState(
-                    phase=ConsensusPhase.PRE_PREPARE,
-                    view_number=0,
-                    sequence_number=proposal.sequence_number,
+                replica["engine"]._consensus_state[proposal.proposal_id] = (
+                    ConsensusState(
+                        phase=ConsensusPhase.PRE_PREPARE,
+                        view_number=0,
+                        sequence_number=proposal.sequence_number,
+                    )
                 )
 
         # Replicas send prepares (need 6 prepares for quorum of 5)
@@ -790,10 +823,7 @@ class TestCrossComponentIntegration:
                 policy_hash=hashlib.sha256(b"policy").hexdigest(),
                 state_hash=hashlib.sha256(b"state").hexdigest(),
             )
-            .with_metadata(
-                ihsan=pattern["ihsan_score"],
-                snr=pattern["snr_score"]
-            )
+            .with_metadata(ihsan=pattern["ihsan_score"], snr=pattern["snr_score"])
             .build()
             .sign(priv)
         )
@@ -807,7 +837,9 @@ class TestCrossComponentIntegration:
         print("✅ Complete flow validated: Inference → Consensus → PCI")
 
     @pytest.mark.asyncio
-    async def test_got_with_consensus_validation(self, reasoning_graph, consensus_cluster):
+    async def test_got_with_consensus_validation(
+        self, reasoning_graph, consensus_cluster
+    ):
         """Test Graph-of-Thoughts with consensus validation."""
         # 1. GoT generates reasoning path
         best_path = reasoning_graph.find_best_path()
@@ -830,6 +862,7 @@ class TestCrossComponentIntegration:
             node["engine"].active_proposals[proposal.proposal_id] = proposal
             if proposal.proposal_id not in node["engine"]._consensus_state:
                 from core.federation.consensus import ConsensusState
+
                 node["engine"]._consensus_state[proposal.proposal_id] = ConsensusState(
                     phase=ConsensusPhase.PRE_PREPARE,
                     view_number=0,

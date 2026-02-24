@@ -20,7 +20,6 @@ import pytest
 from core.snr_protocol import SNRFacade, SNRProtocol, SNRResult
 from core.sovereign.snr_maximizer import SNRMaximizer
 
-
 # =============================================================================
 # 1. SNRResult
 # =============================================================================

@@ -37,7 +37,6 @@ from core.pat.impact_tracker import (
     UERSScore,
 )
 
-
 # ─── UERSScore ────────────────────────────────────────────────────────
 
 
@@ -50,8 +49,11 @@ class TestUERSScore:
 
     def test_weighted_total(self):
         score = UERSScore(
-            utility=1.0, efficiency=1.0,
-            resilience=1.0, sustainability=1.0, ethics=1.0,
+            utility=1.0,
+            efficiency=1.0,
+            resilience=1.0,
+            sustainability=1.0,
+            ethics=1.0,
         )
         # All dimensions at 1.0, weights sum to 1.0 → total = 1.0
         assert abs(score.weighted_total - 1.0) < 1e-6
@@ -71,15 +73,21 @@ class TestUERSScore:
 
     def test_clamped_to_one(self):
         score = UERSScore(
-            utility=2.0, efficiency=2.0,
-            resilience=2.0, sustainability=2.0, ethics=2.0,
+            utility=2.0,
+            efficiency=2.0,
+            resilience=2.0,
+            sustainability=2.0,
+            ethics=2.0,
         )
         assert score.weighted_total == 1.0
 
     def test_clamped_to_zero(self):
         score = UERSScore(
-            utility=-1.0, efficiency=-1.0,
-            resilience=-1.0, sustainability=-1.0, ethics=-1.0,
+            utility=-1.0,
+            efficiency=-1.0,
+            resilience=-1.0,
+            sustainability=-1.0,
+            ethics=-1.0,
         )
         assert score.weighted_total == 0.0
 
@@ -147,11 +155,15 @@ class TestImpactTracker:
     def test_sovereignty_capped_at_one(self, tracker):
         # Record enormous bloom
         tracker.record_event(
-            "ethics", "review",
+            "ethics",
+            "review",
             bloom=BLOOM_SCORE_CEILING * 10,
             uers=UERSScore(
-                utility=1.0, efficiency=1.0,
-                resilience=1.0, sustainability=1.0, ethics=1.0,
+                utility=1.0,
+                efficiency=1.0,
+                resilience=1.0,
+                sustainability=1.0,
+                ethics=1.0,
             ),
         )
         assert tracker.sovereignty_score <= 1.0
@@ -177,13 +189,22 @@ class TestTierProgression:
         # 0.6 * (bloom/ceiling) + 0.3 * 1.0 >= 0.25
         # If UERS=1.0: 0.3 alone is enough
         tracker.record_event(
-            "code", "contribution",
+            "code",
+            "contribution",
             bloom=100.0,
-            uers=UERSScore(utility=1.0, efficiency=1.0, resilience=1.0,
-                           sustainability=1.0, ethics=1.0),
+            uers=UERSScore(
+                utility=1.0,
+                efficiency=1.0,
+                resilience=1.0,
+                sustainability=1.0,
+                ethics=1.0,
+            ),
         )
-        assert tracker.sovereignty_tier in (SovereigntyTier.SPROUT, SovereigntyTier.TREE,
-                                             SovereigntyTier.FOREST)
+        assert tracker.sovereignty_tier in (
+            SovereigntyTier.SPROUT,
+            SovereigntyTier.TREE,
+            SovereigntyTier.FOREST,
+        )
 
     def test_tier_progress_report(self, tracker):
         info = tracker.get_tier_progress()
@@ -195,10 +216,16 @@ class TestTierProgression:
     def test_tier_progress_at_forest(self, tracker):
         # Push to forest
         tracker.record_event(
-            "ethics", "review",
+            "ethics",
+            "review",
             bloom=BLOOM_SCORE_CEILING,
-            uers=UERSScore(utility=1.0, efficiency=1.0, resilience=1.0,
-                           sustainability=1.0, ethics=1.0),
+            uers=UERSScore(
+                utility=1.0,
+                efficiency=1.0,
+                resilience=1.0,
+                sustainability=1.0,
+                ethics=1.0,
+            ),
         )
         info = tracker.get_tier_progress()
         assert info["current_tier"] == "forest"
@@ -223,10 +250,16 @@ class TestAchievements:
 
     def test_sprout_achievement_on_tier(self, tracker):
         tracker.record_event(
-            "code", "work",
+            "code",
+            "work",
             bloom=500.0,
-            uers=UERSScore(utility=1.0, efficiency=1.0, resilience=1.0,
-                           sustainability=1.0, ethics=1.0),
+            uers=UERSScore(
+                utility=1.0,
+                efficiency=1.0,
+                resilience=1.0,
+                sustainability=1.0,
+                ethics=1.0,
+            ),
         )
         assert Achievement.SPROUT_REACHED in tracker.achievements
 
@@ -273,6 +306,7 @@ class TestIdentityCardIntegration:
         # Create a card
         card = IdentityCard.create(public_key)
         from core.pci.crypto import generate_keypair
+
         minter_priv, minter_pub = generate_keypair()
         card.sign_as_minter(minter_priv, minter_pub)
         card.sign_as_owner(private_key)
@@ -280,10 +314,16 @@ class TestIdentityCardIntegration:
 
         # Record some impact
         tracker.record_event(
-            "knowledge", "synthesis",
+            "knowledge",
+            "synthesis",
             bloom=100.0,
-            uers=UERSScore(utility=0.8, efficiency=0.7, resilience=0.6,
-                           sustainability=0.5, ethics=0.9),
+            uers=UERSScore(
+                utility=0.8,
+                efficiency=0.7,
+                resilience=0.6,
+                sustainability=0.5,
+                ethics=0.9,
+            ),
         )
 
         # Update the card
@@ -442,9 +482,16 @@ class TestBoundaryConditions:
         # bloom_base = total_bloom / 10000, so bloom ≈ 4150 → score ≈ 0.249
         # But UERS also contributes. Use explicit UERS to control precisely.
         tracker.record_event(
-            "computation", "q", bloom=4100.0,
-            uers=UERSScore(utility=0.0, efficiency=0.0, resilience=0.0,
-                           sustainability=0.0, ethics=0.0),
+            "computation",
+            "q",
+            bloom=4100.0,
+            uers=UERSScore(
+                utility=0.0,
+                efficiency=0.0,
+                resilience=0.0,
+                sustainability=0.0,
+                ethics=0.0,
+            ),
         )
         # bloom_base = 4100/10000 = 0.41, score = 0.41*0.6 + 0*0.3 + 0.01 = 0.256
         # FIRST_QUERY adds 0.01. Adjust to hit < 0.25 before FIRST_QUERY bonus:
@@ -460,7 +507,9 @@ class TestBoundaryConditions:
         tracker = ImpactTracker(node_id="BIZRA-BNDRY002", state_dir=tmp_path)
         # bloom=4200, UERS=0 → base=0.42, score = 0.42*0.6 + 0 + 0.01 = 0.262
         tracker.record_event(
-            "computation", "q", bloom=4200.0,
+            "computation",
+            "q",
+            bloom=4200.0,
             uers=UERSScore(),
         )
         assert tracker.sovereignty_tier == SovereigntyTier.SPROUT
@@ -471,7 +520,9 @@ class TestBoundaryConditions:
         tracker = ImpactTracker(node_id="BIZRA-BNDRY003", state_dir=tmp_path)
         # bloom=3500, UERS=0 → base=0.35, score = 0.35*0.6 + 0 + 0.01 = 0.22
         tracker.record_event(
-            "computation", "q", bloom=3500.0,
+            "computation",
+            "q",
+            bloom=3500.0,
             uers=UERSScore(),
         )
         assert tracker.sovereignty_tier == SovereigntyTier.SEED
@@ -485,9 +536,16 @@ class TestBoundaryConditions:
         # Need uers contribution: bloom=8200, UERS all 0.5 → weighted_total=0.5
         # score = 0.82*0.6 + 0.5*0.3 + 0.01 = 0.492+0.15+0.01 = 0.652 → TREE
         tracker.record_event(
-            "computation", "q", bloom=8200.0,
-            uers=UERSScore(utility=0.5, efficiency=0.5, resilience=0.5,
-                           sustainability=0.5, ethics=0.5),
+            "computation",
+            "q",
+            bloom=8200.0,
+            uers=UERSScore(
+                utility=0.5,
+                efficiency=0.5,
+                resilience=0.5,
+                sustainability=0.5,
+                ethics=0.5,
+            ),
         )
         assert tracker.sovereignty_tier == SovereigntyTier.TREE
         assert tracker.sovereignty_score >= 0.50
@@ -498,9 +556,16 @@ class TestBoundaryConditions:
         # bloom=10000 (ceiling), UERS all 1.0
         # base=1.0, score = 1.0*0.6 + 1.0*0.3 + 0.01 = 0.91 → FOREST
         tracker.record_event(
-            "computation", "q", bloom=10000.0,
-            uers=UERSScore(utility=1.0, efficiency=1.0, resilience=1.0,
-                           sustainability=1.0, ethics=1.0),
+            "computation",
+            "q",
+            bloom=10000.0,
+            uers=UERSScore(
+                utility=1.0,
+                efficiency=1.0,
+                resilience=1.0,
+                sustainability=1.0,
+                ethics=1.0,
+            ),
         )
         assert tracker.sovereignty_tier == SovereigntyTier.FOREST
         assert tracker.sovereignty_score >= 0.75
@@ -509,9 +574,16 @@ class TestBoundaryConditions:
         """Even with massive bloom + UERS, sovereignty never exceeds 1.0."""
         tracker = ImpactTracker(node_id="BIZRA-BNDRY006", state_dir=tmp_path)
         tracker.record_event(
-            "computation", "q", bloom=999999.0,
-            uers=UERSScore(utility=10.0, efficiency=10.0, resilience=10.0,
-                           sustainability=10.0, ethics=10.0),
+            "computation",
+            "q",
+            bloom=999999.0,
+            uers=UERSScore(
+                utility=10.0,
+                efficiency=10.0,
+                resilience=10.0,
+                sustainability=10.0,
+                ethics=10.0,
+            ),
         )
         assert tracker.sovereignty_score <= 1.0
         assert tracker.sovereignty_tier == SovereigntyTier.FOREST

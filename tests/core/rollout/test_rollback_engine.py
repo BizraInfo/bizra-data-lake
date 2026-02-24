@@ -15,7 +15,6 @@ import pytest
 from core.rollout.metrics import Phase46Metrics
 from core.rollout.rollback import RollbackEngine, RollbackReceipt
 
-
 # ------------------------------------------------------------------
 # Env vars to clean between tests
 # ------------------------------------------------------------------
@@ -78,9 +77,7 @@ class TestBreachWindows:
         assert isinstance(result, RollbackReceipt)
         assert result.trigger == "search_error_rate"
 
-    def test_clean_window_resets_breach_counter(
-        self, engine: RollbackEngine
-    ) -> None:
+    def test_clean_window_resets_breach_counter(self, engine: RollbackEngine) -> None:
         engine.evaluate("search_error_rate", breached=True)
         # Clean window resets counter
         engine.evaluate("search_error_rate", breached=False)
@@ -109,9 +106,7 @@ class TestRollbackActions:
             assert receipt.action == "percent_zero"
             assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "0"
 
-    def test_hard_kill_when_all_percents_zero(
-        self, engine: RollbackEngine
-    ) -> None:
+    def test_hard_kill_when_all_percents_zero(self, engine: RollbackEngine) -> None:
         """When all percents are already 0, rollback escalates to hard kill."""
         with patch.dict(
             os.environ,
@@ -140,9 +135,7 @@ class TestRollbackActions:
 class TestRollbackOrder:
     """Reverse activation order: HMM -> GoT -> Search -> hard kill."""
 
-    def test_hmm_first_for_cross_cutting_trigger(
-        self, engine: RollbackEngine
-    ) -> None:
+    def test_hmm_first_for_cross_cutting_trigger(self, engine: RollbackEngine) -> None:
         """Cross-cutting trigger (latency) rolls back HMM first if active."""
         with patch.dict(
             os.environ,
@@ -211,9 +204,7 @@ class TestReceiptPersistence:
         assert "previous_config" in data
         assert "metrics_snapshot" in data
 
-    def test_receipt_contains_previous_config(
-        self, engine: RollbackEngine
-    ) -> None:
+    def test_receipt_contains_previous_config(self, engine: RollbackEngine) -> None:
         with patch.dict(
             os.environ,
             {

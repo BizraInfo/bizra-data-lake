@@ -15,7 +15,6 @@ import pytest
 
 from core.rollout.hmm_gate import HMMCallerGate
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
@@ -85,9 +84,7 @@ class TestSingleMode:
         assert result == "observed:search"
         assert engine.observations == ["search"]
 
-    def test_single_mode_drops_non_allowed_caller(
-        self, engine: FakeHMMEngine
-    ) -> None:
+    def test_single_mode_drops_non_allowed_caller(self, engine: FakeHMMEngine) -> None:
         gate = _make_gate(engine, mode="single", allowed="mcp")
         result = gate.observe("search", "proactive")
         assert result is None
@@ -139,9 +136,7 @@ class TestPredict:
     """predict() is always allowed regardless of mode."""
 
     @pytest.mark.parametrize("mode", ["single", "multi", "disabled"])
-    def test_predict_always_allowed(
-        self, engine: FakeHMMEngine, mode: str
-    ) -> None:
+    def test_predict_always_allowed(self, engine: FakeHMMEngine, mode: str) -> None:
         gate = _make_gate(engine, mode=mode, allowed="mcp")
         result = gate.predict("blocked_caller")
         assert result == "predicted_symbol"
@@ -173,9 +168,7 @@ class TestPredict:
 class TestStats:
     """Stats track accepted, dropped counts and timestamps."""
 
-    def test_stats_track_accepted_and_dropped(
-        self, engine: FakeHMMEngine
-    ) -> None:
+    def test_stats_track_accepted_and_dropped(self, engine: FakeHMMEngine) -> None:
         gate = _make_gate(engine, mode="single", allowed="mcp")
         gate.observe("s1", "mcp")
         gate.observe("s2", "mcp")

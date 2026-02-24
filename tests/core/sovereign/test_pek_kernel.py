@@ -49,7 +49,9 @@ class DummyGateway:
 
 
 class DummyMemoryStats:
-    def __init__(self, total_entries: int = 10, avg_snr: float = 0.9, avg_ihsan: float = 0.97):
+    def __init__(
+        self, total_entries: int = 10, avg_snr: float = 0.9, avg_ihsan: float = 0.97
+    ):
         self._total_entries = total_entries
         self._avg_snr = avg_snr
         self._avg_ihsan = avg_ihsan
@@ -63,7 +65,9 @@ class DummyMemoryStats:
 
 
 class DummyMemory:
-    def __init__(self, total_entries: int = 10, avg_snr: float = 0.9, avg_ihsan: float = 0.97):
+    def __init__(
+        self, total_entries: int = 10, avg_snr: float = 0.9, avg_ihsan: float = 0.97
+    ):
         self._stats = DummyMemoryStats(
             total_entries=total_entries,
             avg_snr=avg_snr,
