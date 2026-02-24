@@ -73,10 +73,12 @@ class TestInferenceConfig:
         assert config.require_local is False
 
     def test_lmstudio_url_default(self):
-        """LM Studio URL should default to 192.168.56.1:1234."""
+        """LM Studio URL should resolve from constants (env-aware)."""
+        from core.integration.constants import LMSTUDIO_URL
+
         config = InferenceConfig()
 
-        assert config.lmstudio_url == "http://192.168.56.1:1234"
+        assert config.lmstudio_url == LMSTUDIO_URL
 
 
 class TestInferenceResult:

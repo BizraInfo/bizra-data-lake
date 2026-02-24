@@ -37,7 +37,9 @@ from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 # Fixtures
 # ---------------------------------------------------------------------------
 
-FOUNDER_OPS_MANIFEST = Path("/mnt/c/BIZRA-DATA-LAKE/agents/founder_ops/manifest.yaml")
+# Cross-platform: resolve from repo root instead of hardcoded WSL path
+_REPO_ROOT = Path(__file__).resolve().parents[3]  # tests/core/a2a → repo root
+FOUNDER_OPS_MANIFEST = _REPO_ROOT / "agents" / "founder_ops" / "manifest.yaml"
 
 
 @pytest.fixture

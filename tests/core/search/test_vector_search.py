@@ -3,7 +3,8 @@
 Standing on Giants: Johnson (FAISS, 2021) . Shannon (1948)
 
 All external dependencies (faiss, pandas) are injected as mocks via
-sys.modules so that tests run in CI without optional heavyweight packages.
+sys.modules (in conftest.py) so that tests run in CI without optional
+heavyweight packages.  The conftest restores originals after this module.
 
 Test classes:
 1. TestVectorSearchEngineInit  - lazy load, root resolution
@@ -18,34 +19,14 @@ Test classes:
 import sys
 import uuid
 from pathlib import Path
-from types import ModuleType
 from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
-# ---------------------------------------------------------------------------
-# Inject mock faiss AND mock pandas into sys.modules BEFORE importing the
-# module under test, because vector_search.py does inline
-# ``import faiss`` and ``import pandas as pd`` inside methods.
-# ---------------------------------------------------------------------------
-
-# -- mock faiss --
-_mock_faiss = ModuleType("faiss")
-_mock_faiss.METRIC_L2 = 1  # type: ignore[attr-defined]
-_mock_faiss.METRIC_INNER_PRODUCT = 0  # type: ignore[attr-defined]
-_mock_faiss.read_index = MagicMock()  # type: ignore[attr-defined]
-
-_prev_faiss = sys.modules.get("faiss")
-sys.modules["faiss"] = _mock_faiss
-
-# -- mock pandas --
-_mock_pd_module = ModuleType("pandas")
-_mock_pd_module.read_parquet = MagicMock()  # type: ignore[attr-defined]
-_mock_pd_module.DataFrame = MagicMock  # type: ignore[attr-defined]
-
-_prev_pandas = sys.modules.get("pandas")
-sys.modules["pandas"] = _mock_pd_module
+# Mocks are injected by tests/core/search/conftest.py — import from there
+from tests.core.search.conftest import mock_faiss as _mock_faiss
+from tests.core.search.conftest import mock_pd_module as _mock_pd_module
 
 # ---------------------------------------------------------------------------
 # NOW safe to import the module under test
@@ -69,7 +50,7 @@ from core.search.vector_search import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def _reset_mocks():
-    """Reset mock faiss and pandas between tests."""
+    """Reset mock faiss and pandas between tests; restore originals at session end."""
     _mock_faiss.read_index.reset_mock()
     _mock_faiss.read_index.side_effect = None
     _mock_faiss.read_index.return_value = MagicMock()

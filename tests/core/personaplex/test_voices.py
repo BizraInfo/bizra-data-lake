@@ -144,7 +144,8 @@ class TestResolveVoicePath:
 
     def test_custom_base_dir(self):
         path = resolve_voice_path("NATM1", base_dir=Path("/tmp/voices"))
-        assert str(path) == "/tmp/voices/NATM1.pt"
+        # Compare with PurePosixPath for cross-platform consistency
+        assert path == Path("/tmp/voices") / "NATM1.pt"
 
     def test_unknown_voice_raises(self):
         with pytest.raises(ValueError, match="Unknown voice code"):

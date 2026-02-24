@@ -186,29 +186,39 @@ class TestBridgeLifecycle:
 class TestCLIParsing:
     def test_bridge_command_exists_in_help(self) -> None:
         """The 'bridge' subcommand is registered in the CLI."""
+        import os
         import subprocess
         import sys
+        from pathlib import Path
 
+        env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[3])}
         result = subprocess.run(
             [sys.executable, "-m", "core.sovereign", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
-            env={"PYTHONPATH": "/mnt/c/BIZRA-DATA-LAKE"},
+            env=env,
         )
+        if result.returncode != 0 and "_overlapped" in result.stderr:
+            pytest.skip("asyncio subprocess initialization fails on this Windows env")
         assert "bridge" in result.stdout
 
     def test_launcher_cli_has_bridge_flags(self) -> None:
         """launch.py CLI accepts --no-bridge and --bridge-port."""
+        import os
         import subprocess
         import sys
+        from pathlib import Path
 
+        env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[3])}
         result = subprocess.run(
             [sys.executable, "-m", "core.sovereign.launch", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
-            env={"PYTHONPATH": "/mnt/c/BIZRA-DATA-LAKE"},
+            env=env,
         )
+        if result.returncode != 0 and "_overlapped" in result.stderr:
+            pytest.skip("asyncio subprocess initialization fails on this Windows env")
         assert "--no-bridge" in result.stdout
         assert "--bridge-port" in result.stdout
