@@ -228,9 +228,8 @@ jobs:
           fi
 
       - name: Run pip-audit (vulnerability scan)
-        continue-on-error: true
         run: |
-          pip-audit --format json --output sbom/pip-audit-results.json 2>/dev/null || true
+          pip-audit --strict --desc --format json --output sbom/pip-audit-results.json --ignore-vuln PYSEC-2024-48
 
       - name: Compute SBOM checksums
         run: |
