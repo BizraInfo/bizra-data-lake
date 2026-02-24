@@ -457,7 +457,10 @@ mod tests {
             assert_eq!(rule.policy_hash, BOOTSTRAP_POLICY_HASH);
             assert_eq!(rule.compiled_at, 0);
             assert_eq!(rule.last_validated_at, 0);
-            assert!(rule.compile_ihsan >= 0.90, "bootstrap ihsan must be >= 0.90");
+            assert!(
+                rule.compile_ihsan >= 0.90,
+                "bootstrap ihsan must be >= 0.90"
+            );
             assert!((rule.compile_snr - 0.90).abs() < f32::EPSILON);
             assert!(!rule.quarantined);
             assert!(is_bootstrap_rule(&rule));
