@@ -8,13 +8,34 @@ and emergence detection.
 Genesis Strict Synthesis v2.2.2
 """
 
-import pytest
 import asyncio
 
+import pytest
+
 from core.autopoiesis import (
-    POPULATION_SIZE,
     MUTATION_RATE,
+    POPULATION_SIZE,
     UNIFIED_IHSAN_THRESHOLD,
+)
+from core.autopoiesis.emergence import (
+    BehaviorSignature,
+    EmergenceDetector,
+    EmergenceReport,
+    EmergenceType,
+    NoveltyLevel,
+)
+from core.autopoiesis.evolution import (
+    EvolutionConfig,
+    EvolutionEngine,
+    EvolutionResult,
+    EvolutionStatus,
+)
+from core.autopoiesis.fitness import (
+    EvaluationContext,
+    FitnessComponent,
+    FitnessEvaluator,
+    FitnessResult,
+    SelectionPressure,
 )
 from core.autopoiesis.genome import (
     AgentGenome,
@@ -22,30 +43,10 @@ from core.autopoiesis.genome import (
     GeneType,
     GenomeFactory,
 )
-from core.autopoiesis.fitness import (
-    FitnessEvaluator,
-    FitnessResult,
-    EvaluationContext,
-    SelectionPressure,
-    FitnessComponent,
-)
-from core.autopoiesis.evolution import (
-    EvolutionEngine,
-    EvolutionConfig,
-    EvolutionResult,
-    EvolutionStatus,
-)
-from core.autopoiesis.emergence import (
-    EmergenceDetector,
-    EmergenceReport,
-    EmergenceType,
-    NoveltyLevel,
-    BehaviorSignature,
-)
 from core.autopoiesis.loop import (
-    AutopoieticLoop,
     AutopoiesisConfig,
     AutopoiesisPhase,
+    AutopoieticLoop,
     create_autopoietic_loop,
 )
 
@@ -75,15 +76,14 @@ class TestAgentGenome:
     def test_genome_mutation(self):
         """Test genome mutation."""
         genome = AgentGenome()
-        original_genes = {
-            name: gene.value for name, gene in genome.genes.items()
-        }
+        original_genes = {name: gene.value for name, gene in genome.genes.items()}
 
         mutated = genome.mutate(rate=1.0)  # Force mutation
 
         # Some genes should have changed
         changed = sum(
-            1 for name, gene in mutated.genes.items()
+            1
+            for name, gene in mutated.genes.items()
             if gene.value != original_genes.get(name) and not gene.immutable
         )
 
@@ -317,8 +317,7 @@ class TestEmergenceDetector:
         # rather than "convergent" (low but non-zero variance)
         assert len(report.properties) > 0
         strategy_emergence = [
-            p for p in report.properties
-            if p.emergence_type == EmergenceType.STRATEGY
+            p for p in report.properties if p.emergence_type == EmergenceType.STRATEGY
         ]
         assert len(strategy_emergence) > 0
         assert strategy_emergence[0].confidence == 1.0  # 100% adoption
@@ -427,8 +426,9 @@ class TestIntegrationScenarios:
 
         # Check every genome
         for genome in result.final_population:
-            assert genome.is_ihsan_compliant(), \
-                f"Genome {genome.id} violated Ihsān constraint"
+            assert (
+                genome.is_ihsan_compliant()
+            ), f"Genome {genome.id} violated Ihsān constraint"
 
     @pytest.mark.asyncio
     async def test_diversity_maintained(self):
@@ -448,8 +448,9 @@ class TestIntegrationScenarios:
 
         # Stochastic simulation — use lenient threshold to avoid flaky failures
         # while still catching total diversity collapse (score ≈ 0.0)
-        assert report.diversity_score > 0.01, \
-            f"Population diversity collapsed (score={report.diversity_score:.4f})"
+        assert (
+            report.diversity_score > 0.01
+        ), f"Population diversity collapsed (score={report.diversity_score:.4f})"
 
 
 # Run quick integration test

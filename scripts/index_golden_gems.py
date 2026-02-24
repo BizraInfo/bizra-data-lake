@@ -17,7 +17,9 @@ import faiss
 import numpy as np
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -56,28 +58,34 @@ def chunk_gem(gem: dict) -> list[dict]:
         sentence = sentence.strip()
         if not sentence:
             continue
-        if len(current) + len(sentence) + 1 > MAX_CHUNK_CHARS and len(current) > len(prefix):
+        if len(current) + len(sentence) + 1 > MAX_CHUNK_CHARS and len(current) > len(
+            prefix
+        ):
             chunk_id = hashlib.blake2b(current.encode(), digest_size=8).hexdigest()
-            chunks.append({
-                "chunk_id": chunk_id,
-                "chunk_text": current.strip(),
-                "gem_id": gem_id,
-                "gem_title": title,
-                "snr_score": snr,
-            })
+            chunks.append(
+                {
+                    "chunk_id": chunk_id,
+                    "chunk_text": current.strip(),
+                    "gem_id": gem_id,
+                    "gem_title": title,
+                    "snr_score": snr,
+                }
+            )
             current = prefix
         current += sentence + " "
 
     # Flush remaining
     if len(current) > len(prefix):
         chunk_id = hashlib.blake2b(current.encode(), digest_size=8).hexdigest()
-        chunks.append({
-            "chunk_id": chunk_id,
-            "chunk_text": current.strip(),
-            "gem_id": gem_id,
-            "gem_title": title,
-            "snr_score": snr,
-        })
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "chunk_text": current.strip(),
+                "gem_id": gem_id,
+                "gem_title": title,
+                "snr_score": snr,
+            }
+        )
 
     return chunks
 
@@ -111,11 +119,14 @@ def main():
     # 3. Create parquet
     df = pd.DataFrame(all_chunks)
     df.to_parquet(PARQUET_PATH, index=False)
-    logger.info(f"Saved: {PARQUET_PATH} ({len(df)} rows, {PARQUET_PATH.stat().st_size:,} bytes)")
+    logger.info(
+        f"Saved: {PARQUET_PATH} ({len(df)} rows, {PARQUET_PATH.stat().st_size:,} bytes)"
+    )
 
     # 4. Embed all chunks
     logger.info("Loading embedding model...")
     from sentence_transformers import SentenceTransformer
+
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     texts = df["chunk_text"].tolist()
@@ -162,7 +173,9 @@ def main():
     n_vectors = unified_vectors.shape[0]
     n_centroids = min(320, int(np.sqrt(n_vectors)))
 
-    logger.info(f"Building IVF index: {n_vectors} vectors, {dim} dims, {n_centroids} centroids...")
+    logger.info(
+        f"Building IVF index: {n_vectors} vectors, {dim} dims, {n_centroids} centroids..."
+    )
 
     quantizer = faiss.IndexFlatIP(dim)
     index = faiss.IndexIVFFlat(quantizer, dim, n_centroids, faiss.METRIC_INNER_PRODUCT)
@@ -176,7 +189,9 @@ def main():
 
     # Save
     faiss.write_index(index, str(INDEX_PATH))
-    logger.info(f"FAISS index saved: {INDEX_PATH} ({INDEX_PATH.stat().st_size:,} bytes)")
+    logger.info(
+        f"FAISS index saved: {INDEX_PATH} ({INDEX_PATH.stat().st_size:,} bytes)"
+    )
 
     # 7. Update metadata
     meta = {

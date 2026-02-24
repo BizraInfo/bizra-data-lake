@@ -182,7 +182,9 @@ def classify(entries: list[GitEntry], policy: dict[str, Any]) -> list[Decision]:
                     snr_tier=str(keep_untracked_rule.get("snr_tier", "medium")),
                     hhmm_layer=str(keep_untracked_rule.get("hhmm_layer", "fast")),
                     reason=str(
-                        keep_untracked_rule.get("reason", "Local generated state to retain outside commits.")
+                        keep_untracked_rule.get(
+                            "reason", "Local generated state to retain outside commits."
+                        )
                     ),
                 )
             )
@@ -198,7 +200,9 @@ def classify(entries: list[GitEntry], policy: dict[str, Any]) -> list[Decision]:
                     recommendation="ARCHIVE",
                     snr_tier=str(archive_rule.get("snr_tier", "low")),
                     hhmm_layer=str(archive_rule.get("hhmm_layer", "fast")),
-                    reason=str(archive_rule.get("reason", "Archive outside repo root.")),
+                    reason=str(
+                        archive_rule.get("reason", "Archive outside repo root.")
+                    ),
                 )
             )
             continue
@@ -229,10 +233,14 @@ def _summary(decisions: list[Decision]) -> dict[str, int]:
 
 def _write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
-def _write_markdown(path: Path, decisions: list[Decision], summary: dict[str, int]) -> None:
+def _write_markdown(
+    path: Path, decisions: list[Decision], summary: dict[str, int]
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "# Worktree SNR Triage Report",
@@ -263,7 +271,11 @@ def _write_markdown(path: Path, decisions: list[Decision], summary: dict[str, in
 def _sync_exclude(repo_root: Path, patterns: list[str]) -> None:
     exclude_path = repo_root / ".git" / "info" / "exclude"
     exclude_path.parent.mkdir(parents=True, exist_ok=True)
-    existing = exclude_path.read_text(encoding="utf-8").splitlines() if exclude_path.exists() else []
+    existing = (
+        exclude_path.read_text(encoding="utf-8").splitlines()
+        if exclude_path.exists()
+        else []
+    )
     existing_set = set(existing)
     new_lines: list[str] = []
     if "# snr-worktree-guard" not in existing_set:
@@ -277,7 +289,9 @@ def _sync_exclude(repo_root: Path, patterns: list[str]) -> None:
                 f.write(line + "\n")
 
 
-def _archive_paths(repo_root: Path, decisions: list[Decision], archive_root: Path) -> list[str]:
+def _archive_paths(
+    repo_root: Path, decisions: list[Decision], archive_root: Path
+) -> list[str]:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     moved: list[str] = []
     for d in decisions:
@@ -319,7 +333,11 @@ def run(
     _write_markdown(out_md, decisions, summary)
 
     if sync_exclude:
-        patterns = [str(r.get("pattern", "")) for r in policy["groups"].get("keep_untracked", []) if r.get("pattern")]
+        patterns = [
+            str(r.get("pattern", ""))
+            for r in policy["groups"].get("keep_untracked", [])
+            if r.get("pattern")
+        ]
         _sync_exclude(repo_root, patterns)
 
     moved = _archive_paths(repo_root, decisions, archive_root) if apply_archive else []
@@ -345,10 +363,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="SNR worktree guard")
     parser.add_argument("--repo-root", type=Path, default=repo_root)
     parser.add_argument("--policy", type=Path, default=policy_default)
-    parser.add_argument("--out-json", type=Path, default=out_dir / "worktree_snr_report.json")
-    parser.add_argument("--out-md", type=Path, default=out_dir / "worktree_snr_report.md")
-    parser.add_argument("--sync-exclude", action="store_true", help="Append KEEP_UNTRACKED patterns to .git/info/exclude")
-    parser.add_argument("--apply-archive", action="store_true", help="Move ARCHIVE paths out of repo root")
+    parser.add_argument(
+        "--out-json", type=Path, default=out_dir / "worktree_snr_report.json"
+    )
+    parser.add_argument(
+        "--out-md", type=Path, default=out_dir / "worktree_snr_report.md"
+    )
+    parser.add_argument(
+        "--sync-exclude",
+        action="store_true",
+        help="Append KEEP_UNTRACKED patterns to .git/info/exclude",
+    )
+    parser.add_argument(
+        "--apply-archive",
+        action="store_true",
+        help="Move ARCHIVE paths out of repo root",
+    )
     parser.add_argument(
         "--archive-root",
         type=Path,

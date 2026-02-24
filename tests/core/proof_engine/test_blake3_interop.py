@@ -199,7 +199,7 @@ class TestEvidenceLedgerBlake3:
 
     def test_chain_integrity_after_multiple_entries(self, tmp_path):
         """Multi-entry chain maintains BLAKE3 integrity."""
-        from core.proof_engine.evidence_ledger import EvidenceLedger, GENESIS_HASH
+        from core.proof_engine.evidence_ledger import GENESIS_HASH, EvidenceLedger
 
         ledger = EvidenceLedger(tmp_path / "multi.jsonl", validate_on_append=False)
 

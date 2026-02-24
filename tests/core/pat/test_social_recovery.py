@@ -12,9 +12,9 @@ from core.pat.social_recovery import (
     SHAMIR_PRIME,
     GuardianRegistry,
     RecoveryCeremony,
-    Share,
     ShamirReconstructor,
     ShamirSplitter,
+    Share,
     generate_recovery_shares,
 )
 

@@ -70,7 +70,9 @@ class TestPATEndToEnd:
             )
 
             query = SovereignQuery(text="What should I focus on?")
-            prompt = await runtime._build_contextual_prompt("What should I focus on?", query)
+            prompt = await runtime._build_contextual_prompt(
+                "What should I focus on?", query
+            )
 
             assert "Mohammed" in prompt
             assert "Empower 8 billion humans" in prompt
@@ -92,7 +94,9 @@ class TestPATEndToEnd:
             runtime._user_context.conversation.add_pat_turn("PAT has 7 agents...")
 
             query = SovereignQuery(text="Which agent handles strategy?")
-            prompt = await runtime._build_contextual_prompt("Which agent handles strategy?", query)
+            prompt = await runtime._build_contextual_prompt(
+                "Which agent handles strategy?", query
+            )
 
             assert "Tell me about PAT" in prompt
             assert "PAT has 7 agents" in prompt
@@ -120,7 +124,11 @@ class TestPATEndToEnd:
     @pytest.mark.asyncio
     async def test_agent_routing_in_prompt(self):
         """Agent routing label appears in contextual prompt."""
-        from core.sovereign.genesis_identity import AgentIdentity, GenesisState, NodeIdentity
+        from core.sovereign.genesis_identity import (
+            AgentIdentity,
+            GenesisState,
+            NodeIdentity,
+        )
         from core.sovereign.runtime_core import SovereignRuntime
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -156,7 +164,9 @@ class TestPATEndToEnd:
             )
 
             query = SovereignQuery(text="What should our strategy be?")
-            prompt = await runtime._build_contextual_prompt("What should our strategy be?", query)
+            prompt = await runtime._build_contextual_prompt(
+                "What should our strategy be?", query
+            )
 
             assert "STRATEGIST" in prompt
             assert query.context.get("_responding_agent") == "strategist"
@@ -242,7 +252,9 @@ class TestProfilePersistence:
             # Session 1
             mgr1 = UserContextManager(Path(tmpdir))
             mgr1.conversation.add_human_turn("What is my mission?")
-            mgr1.conversation.add_pat_turn("Your mission is...", agent_role="strategist")
+            mgr1.conversation.add_pat_turn(
+                "Your mission is...", agent_role="strategist"
+            )
             mgr1.save()
 
             # Session 2

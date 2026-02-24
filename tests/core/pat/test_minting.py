@@ -12,42 +12,43 @@ Tests cover:
 Standing on Giants: pytest + Ed25519 + BLAKE3
 """
 
-import pytest
 from datetime import datetime, timezone
 
-from core.pci.crypto import generate_keypair
+import pytest
+
+from core.pat.agent import (
+    DEFAULT_CAPABILITIES,
+    SYSTEM_AGENT_ALLOCATION,
+    USER_AGENT_ALLOCATION,
+    AgentStatus,
+    AgentType,
+    OwnershipType,
+    PATAgent,
+    SATAgent,
+)
 from core.pat.identity_card import (
     IdentityCard,
     IdentityStatus,
     SovereigntyTier,
-    generate_identity_keypair,
     _generate_node_id,
-)
-from core.pat.agent import (
-    PATAgent,
-    SATAgent,
-    AgentType,
-    AgentStatus,
-    OwnershipType,
-    DEFAULT_CAPABILITIES,
-    USER_AGENT_ALLOCATION,
-    SYSTEM_AGENT_ALLOCATION,
+    generate_identity_keypair,
 )
 from core.pat.minting import (
+    PAT_AGENT_COUNT,
+    SAT_AGENT_COUNT,
+    SYSTEM_AGENT_COUNT,
+    SYSTEM_TREASURY_ID,
+    TOTAL_AGENTS_PER_USER,
+    USER_AGENT_COUNT,
     IdentityMinter,
     MinterState,
     OnboardingResult,
+    generate_and_onboard,
     mint_identity_card,
     mint_pat_agents,
     onboard_user,
-    generate_and_onboard,
-    PAT_AGENT_COUNT,
-    SAT_AGENT_COUNT,
-    USER_AGENT_COUNT,
-    SYSTEM_AGENT_COUNT,
-    TOTAL_AGENTS_PER_USER,
-    SYSTEM_TREASURY_ID,
 )
+from core.pci.crypto import generate_keypair
 
 
 class TestIdentityCard:

@@ -62,7 +62,6 @@ from core.search.vector_search import (  # noqa: E402
     _resolve_root,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixture: reset mocks between tests so side_effect / return_value don't leak
 # ---------------------------------------------------------------------------
@@ -153,7 +152,9 @@ class TestVectorSearchEngineInit:
 
     def test_not_loaded_on_construction(self):
         """Engine is not loaded immediately after construction."""
-        engine = VectorSearchEngine(root=Path("/tmp/fake"), embedding_service=MagicMock())
+        engine = VectorSearchEngine(
+            root=Path("/tmp/fake"), embedding_service=MagicMock()
+        )
         assert engine.is_loaded is False
 
     def test_root_from_constructor(self):
@@ -324,6 +325,7 @@ class TestSearch:
         engine = self._setup_engine(tmp_path)
         # Ensure the default argument matches the constant
         import inspect
+
         sig = inspect.signature(engine.search)
         assert sig.parameters["top_k"].default == FAISS_DEFAULT_TOP_K
 
@@ -331,6 +333,7 @@ class TestSearch:
         """Default min_score comes from FAISS_SIMILARITY_FLOOR constant."""
         engine = self._setup_engine(tmp_path)
         import inspect
+
         sig = inspect.signature(engine.search)
         assert sig.parameters["min_score"].default == FAISS_SIMILARITY_FLOOR
 
@@ -418,10 +421,12 @@ class TestMetadataLoading:
         gold_dir = tmp_path / "04_GOLD"
         gold_dir.mkdir(parents=True, exist_ok=True)
 
-        meta = {"sources": [
-            "chunks.parquet (100 vectors)",
-            "extra_chunks.parquet (50 vectors)",
-        ]}
+        meta = {
+            "sources": [
+                "chunks.parquet (100 vectors)",
+                "extra_chunks.parquet (50 vectors)",
+            ]
+        }
 
         engine = VectorSearchEngine(root=tmp_path)
         engine._index = _make_mock_index(ntotal=6)

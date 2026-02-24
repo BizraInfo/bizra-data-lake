@@ -9,8 +9,7 @@ from typing import Any, Dict, List
 import pytest
 
 from core.a2a.engine import A2AEngine, create_a2a_engine
-from core.a2a.schema import AgentCard, A2AMessage, Capability, CapabilityType
-
+from core.a2a.schema import A2AMessage, AgentCard, Capability, CapabilityType
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIXTURES
@@ -40,8 +39,16 @@ def agent_card() -> AgentCard:
         description="A peer agent for testing",
         public_key="0" * 64,  # Placeholder public key hex
         capabilities=[
-            Capability(name="inference", type=CapabilityType.REASONING, description="Run inference"),
-            Capability(name="embeddings", type=CapabilityType.CUSTOM, description="Generate embeddings"),
+            Capability(
+                name="inference",
+                type=CapabilityType.REASONING,
+                description="Run inference",
+            ),
+            Capability(
+                name="embeddings",
+                type=CapabilityType.CUSTOM,
+                description="Generate embeddings",
+            ),
         ],
         endpoint="http://localhost:9001/a2a",
     )
@@ -81,7 +88,9 @@ class TestAgentRegistry:
     def test_register_agent(self, engine: A2AEngine, agent_card: AgentCard) -> None:
         assert engine.register_agent(agent_card) is True
 
-    def test_get_registered_agent(self, engine: A2AEngine, agent_card: AgentCard) -> None:
+    def test_get_registered_agent(
+        self, engine: A2AEngine, agent_card: AgentCard
+    ) -> None:
         engine.register_agent(agent_card)
         found = engine.get_agent("peer-agent-002")
         assert found is not None
@@ -95,7 +104,9 @@ class TestAgentRegistry:
         engine.unregister_agent("peer-agent-002")
         assert engine.get_agent("peer-agent-002") is None
 
-    def test_find_agents_by_capability(self, engine: A2AEngine, agent_card: AgentCard) -> None:
+    def test_find_agents_by_capability(
+        self, engine: A2AEngine, agent_card: AgentCard
+    ) -> None:
         engine.register_agent(agent_card)
         results = engine.find_agents_by_capability("inference")
         assert len(results) >= 1

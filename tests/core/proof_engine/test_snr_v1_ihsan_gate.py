@@ -8,27 +8,28 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-004 + SP-005
 """
 
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any
 
 from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
+from core.proof_engine.ihsan_gate import (
+    IhsanComponents,
+    IhsanGate,
+    IhsanResult,
+)
+from core.proof_engine.reason_codes import ReasonCode
 from core.proof_engine.snr import (
     SNREngine,
     SNRInput,
     SNRPolicy,
     SNRTrace,
 )
-from core.proof_engine.ihsan_gate import (
-    IhsanGate,
-    IhsanResult,
-    IhsanComponents,
-)
-from core.proof_engine.reason_codes import ReasonCode
-
 
 # =============================================================================
 # SP-004: SNR ENGINE v1 — AUTHORITATIVE snr_score()
 # =============================================================================
+
 
 class TestSNRScoreAuthoritative:
     """Tests for the single authoritative snr_score() function."""
@@ -188,6 +189,7 @@ class TestSNRScoreAuthoritative:
 # =============================================================================
 # SP-005: IHSAN GATE — FAIL-CLOSED EXCELLENCE CONSTRAINT
 # =============================================================================
+
 
 class TestIhsanGate:
     """Tests for the Ihsan gate."""
@@ -393,6 +395,7 @@ class TestIhsanScore:
 # INTEGRATION: SNR + IHSAN TOGETHER
 # =============================================================================
 
+
 class TestSNRIhsanIntegration:
     """Tests that SNR and Ihsan work together."""
 
@@ -401,20 +404,24 @@ class TestSNRIhsanIntegration:
         snr_engine = SNREngine()
         ihsan_gate = IhsanGate(threshold=0.90)
 
-        snr_result = snr_engine.snr_score(SNRInput(
-            provenance_depth=5,
-            corroboration_count=3,
-            source_trust_score=0.95,
-            z3_satisfiable=True,
-            ihsan_score=0.99,
-        ))
+        snr_result = snr_engine.snr_score(
+            SNRInput(
+                provenance_depth=5,
+                corroboration_count=3,
+                source_trust_score=0.95,
+                z3_satisfiable=True,
+                ihsan_score=0.99,
+            )
+        )
 
-        ihsan_result = ihsan_gate.ihsan_score(IhsanComponents(
-            correctness=0.97,
-            safety=0.99,
-            efficiency=0.92,
-            user_benefit=0.95,
-        ))
+        ihsan_result = ihsan_gate.ihsan_score(
+            IhsanComponents(
+                correctness=0.97,
+                safety=0.99,
+                efficiency=0.92,
+                user_benefit=0.95,
+            )
+        )
 
         assert snr_result["passed"] is True
         assert ihsan_result["passed"] is True
@@ -424,18 +431,22 @@ class TestSNRIhsanIntegration:
         snr_engine = SNREngine()
         ihsan_gate = IhsanGate(threshold=0.90)
 
-        snr_result = snr_engine.snr_score(SNRInput(
-            provenance_depth=0,
-            source_trust_score=0.1,
-            contradiction_count=10,
-        ))
+        snr_result = snr_engine.snr_score(
+            SNRInput(
+                provenance_depth=0,
+                source_trust_score=0.1,
+                contradiction_count=10,
+            )
+        )
 
-        ihsan_result = ihsan_gate.ihsan_score(IhsanComponents(
-            correctness=0.97,
-            safety=0.99,
-            efficiency=0.92,
-            user_benefit=0.95,
-        ))
+        ihsan_result = ihsan_gate.ihsan_score(
+            IhsanComponents(
+                correctness=0.97,
+                safety=0.99,
+                efficiency=0.92,
+                user_benefit=0.95,
+            )
+        )
 
         assert snr_result["passed"] is False
         assert ihsan_result["passed"] is True
@@ -445,20 +456,24 @@ class TestSNRIhsanIntegration:
         snr_engine = SNREngine()
         ihsan_gate = IhsanGate(threshold=0.95)
 
-        snr_result = snr_engine.snr_score(SNRInput(
-            provenance_depth=5,
-            corroboration_count=3,
-            source_trust_score=0.95,
-            z3_satisfiable=True,
-            ihsan_score=0.99,
-        ))
+        snr_result = snr_engine.snr_score(
+            SNRInput(
+                provenance_depth=5,
+                corroboration_count=3,
+                source_trust_score=0.95,
+                z3_satisfiable=True,
+                ihsan_score=0.99,
+            )
+        )
 
-        ihsan_result = ihsan_gate.ihsan_score(IhsanComponents(
-            correctness=0.50,
-            safety=0.60,
-            efficiency=0.40,
-            user_benefit=0.30,
-        ))
+        ihsan_result = ihsan_gate.ihsan_score(
+            IhsanComponents(
+                correctness=0.50,
+                safety=0.60,
+                efficiency=0.40,
+                user_benefit=0.30,
+            )
+        )
 
         assert snr_result["passed"] is True
         assert ihsan_result["passed"] is False
@@ -469,12 +484,15 @@ class TestSNRIhsanIntegration:
         ihsan_gate = IhsanGate()
 
         snr_result = snr_engine.snr_score(SNRInput(source_trust_score=0.9))
-        ihsan_result = ihsan_gate.ihsan_score(IhsanComponents(
-            correctness=0.97, safety=0.99, efficiency=0.92, user_benefit=0.95
-        ))
+        ihsan_result = ihsan_gate.ihsan_score(
+            IhsanComponents(
+                correctness=0.97, safety=0.99, efficiency=0.92, user_benefit=0.95
+            )
+        )
 
         # Both should be JSON-serializable and match receipt schema
         import json
+
         snr_json = json.dumps(snr_result)
         ihsan_json = json.dumps(ihsan_result)
         assert isinstance(snr_json, str)

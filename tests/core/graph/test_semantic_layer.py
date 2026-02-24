@@ -34,7 +34,6 @@ from core.graph.semantic_layer import (
     create_semantic_separator,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -323,9 +322,7 @@ class TestTopologyAnalyzerDegreeDistribution:
 
     def test_isolated_nodes(self):
         """Nodes with no edges have degree 0."""
-        result = TopologyAnalyzer.compute_degree_distribution(
-            {}, {"A", "B", "C"}
-        )
+        result = TopologyAnalyzer.compute_degree_distribution({}, {"A", "B", "C"})
         assert result == {0: 3}
 
     def test_triangle(self):
@@ -524,8 +521,18 @@ class TestClassifyEdge:
 
     @pytest.mark.parametrize(
         "edge_type",
-        ["PART_OF", "CONTAINS", "HAS_CHILD", "HAS_PARENT", "IN_DIRECTORY",
-         "IN_FOLDER", "CHILD_OF", "PARENT_OF", "HAS_FILE", "BELONGS_TO"],
+        [
+            "PART_OF",
+            "CONTAINS",
+            "HAS_CHILD",
+            "HAS_PARENT",
+            "IN_DIRECTORY",
+            "IN_FOLDER",
+            "CHILD_OF",
+            "PARENT_OF",
+            "HAS_FILE",
+            "BELONGS_TO",
+        ],
     )
     def test_known_structural_types(self, separator, edge_type):
         assert separator.classify_edge(edge_type) == EdgeClassification.STRUCTURAL
@@ -534,12 +541,39 @@ class TestClassifyEdge:
 
     @pytest.mark.parametrize(
         "edge_type",
-        ["RELATES_TO", "DEPENDS_ON", "REFERENCES", "SIMILAR_TO", "IMPLEMENTS",
-         "EXTENDS", "USES", "IMPORTS", "CALLS", "INHERITS", "INSTANTIATES",
-         "CONFIGURED_BY", "TESTED_BY", "VALIDATES", "CONTRADICTS", "SUPERSEDES",
-         "COMPLEMENTS", "CO_OCCURS", "CAUSED_BY", "ENABLES", "CONSTRAINS",
-         "DERIVES_FROM", "EXPORTS", "EMBEDS", "WRAPS", "DELEGATES_TO",
-         "TRIGGERS", "MONITORS", "GATES", "PROVES", "DISPROVES"],
+        [
+            "RELATES_TO",
+            "DEPENDS_ON",
+            "REFERENCES",
+            "SIMILAR_TO",
+            "IMPLEMENTS",
+            "EXTENDS",
+            "USES",
+            "IMPORTS",
+            "CALLS",
+            "INHERITS",
+            "INSTANTIATES",
+            "CONFIGURED_BY",
+            "TESTED_BY",
+            "VALIDATES",
+            "CONTRADICTS",
+            "SUPERSEDES",
+            "COMPLEMENTS",
+            "CO_OCCURS",
+            "CAUSED_BY",
+            "ENABLES",
+            "CONSTRAINS",
+            "DERIVES_FROM",
+            "EXPORTS",
+            "EMBEDS",
+            "WRAPS",
+            "DELEGATES_TO",
+            "TRIGGERS",
+            "MONITORS",
+            "GATES",
+            "PROVES",
+            "DISPROVES",
+        ],
     )
     def test_known_semantic_types(self, separator, edge_type):
         assert separator.classify_edge(edge_type) == EdgeClassification.SEMANTIC
@@ -571,7 +605,9 @@ class TestClassifyEdge:
 
     def test_heuristic_containment_belong(self, separator):
         """'BELONG' signal triggers structural classification."""
-        assert separator.classify_edge("DOES_BELONG_HERE") == EdgeClassification.STRUCTURAL
+        assert (
+            separator.classify_edge("DOES_BELONG_HERE") == EdgeClassification.STRUCTURAL
+        )
 
     # -- Heuristic fallback: relation signals --
 
@@ -733,14 +769,28 @@ class TestAnalyzeTopology:
 
         # Structural star
         for i in range(1, 4):
-            g.add_edge(ClassifiedEdge(
-                f"chunk{i}", "doc", "PART_OF", EdgeClassification.STRUCTURAL
-            ))
+            g.add_edge(
+                ClassifiedEdge(
+                    f"chunk{i}", "doc", "PART_OF", EdgeClassification.STRUCTURAL
+                )
+            )
 
         # Semantic triangle
-        g.add_edge(ClassifiedEdge("chunk1", "chunk2", "RELATES_TO", EdgeClassification.SEMANTIC))
-        g.add_edge(ClassifiedEdge("chunk2", "chunk3", "RELATES_TO", EdgeClassification.SEMANTIC))
-        g.add_edge(ClassifiedEdge("chunk3", "chunk1", "RELATES_TO", EdgeClassification.SEMANTIC))
+        g.add_edge(
+            ClassifiedEdge(
+                "chunk1", "chunk2", "RELATES_TO", EdgeClassification.SEMANTIC
+            )
+        )
+        g.add_edge(
+            ClassifiedEdge(
+                "chunk2", "chunk3", "RELATES_TO", EdgeClassification.SEMANTIC
+            )
+        )
+        g.add_edge(
+            ClassifiedEdge(
+                "chunk3", "chunk1", "RELATES_TO", EdgeClassification.SEMANTIC
+            )
+        )
 
         return g
 
@@ -878,7 +928,9 @@ class TestComputeConfidence:
             structural_fraction=0.333,
         )
         # We need semantic_topology for factor 3
-        report.semantic_topology = TopologyMetrics(is_small_world=True, small_world_sigma=2.0)
+        report.semantic_topology = TopologyMetrics(
+            is_small_world=True, small_world_sigma=2.0
+        )
         confidence = separator._compute_confidence(report)
         # Factor 1: 1.0, Factor 2: 1.0, Factor 3: 1.0, Factor 4: 0.5 (struct_frac=0.333)
         assert confidence == pytest.approx((1.0 + 1.0 + 1.0 + 0.5) / 4.0)
@@ -892,7 +944,9 @@ class TestComputeConfidence:
             structural_edges=45,
             structural_fraction=0.45,
         )
-        report.semantic_topology = TopologyMetrics(is_small_world=False, small_world_sigma=0.1)
+        report.semantic_topology = TopologyMetrics(
+            is_small_world=False, small_world_sigma=0.1
+        )
         confidence = separator._compute_confidence(report)
         # Factor 1: 0.3, Factor 2: max(0.3, 1 - 0.5*5) = max(0.3, -1.5) = 0.3
         # Factor 3: 0.4, Factor 4: 0.5

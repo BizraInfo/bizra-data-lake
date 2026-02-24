@@ -9,33 +9,34 @@ Validates the state machine behavior for transitioning between:
 GAP-C4: Ensures the Wealth Engine can survive unethical market conditions.
 """
 
-import pytest
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from core.sovereign.treasury_mode import (
-    TreasuryMode,
-    TreasuryState,
-    TreasuryController,
-    TreasuryEvent,
-    TransitionTrigger,
-    TransitionEvent,
-    EthicsAssessment,
-    TreasuryPersistence,
-    create_treasury_controller,
+    COMPUTE_MULTIPLIERS,
+    DEFAULT_BURN_RATE,
+    EMERGENCY_TREASURY_UNLOCK_PERCENT,
     ETHICS_THRESHOLD_HIBERNATION,
     ETHICS_THRESHOLD_RECOVERY,
     RESERVES_THRESHOLD_EMERGENCY,
     RESERVES_THRESHOLD_HIBERNATION,
-    EMERGENCY_TREASURY_UNLOCK_PERCENT,
-    COMPUTE_MULTIPLIERS,
-    DEFAULT_BURN_RATE,
+    EthicsAssessment,
+    TransitionEvent,
+    TransitionTrigger,
+    TreasuryController,
+    TreasuryEvent,
+    TreasuryMode,
+    TreasuryPersistence,
+    TreasuryState,
+    create_treasury_controller,
 )
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def temp_db(tmp_path):
@@ -72,6 +73,7 @@ def low_reserves_controller(temp_db):
 # ENUM TESTS
 # =============================================================================
 
+
 class TestTreasuryMode:
     """Test TreasuryMode enum."""
 
@@ -93,7 +95,9 @@ class TestTransitionTrigger:
 
     def test_trigger_values(self):
         """Test trigger string values."""
-        assert TransitionTrigger.MARKET_ETHICS_DEGRADED.value == "market_ethics_degraded"
+        assert (
+            TransitionTrigger.MARKET_ETHICS_DEGRADED.value == "market_ethics_degraded"
+        )
         assert TransitionTrigger.RESERVES_DEPLETED.value == "reserves_depleted"
         assert TransitionTrigger.MANUAL_OVERRIDE.value == "manual_override"
 
@@ -101,6 +105,7 @@ class TestTransitionTrigger:
 # =============================================================================
 # DATA CLASS TESTS
 # =============================================================================
+
 
 class TestTreasuryState:
     """Test TreasuryState dataclass."""
@@ -188,6 +193,7 @@ class TestEthicsAssessment:
 # =============================================================================
 # CONTROLLER TESTS
 # =============================================================================
+
 
 class TestTreasuryController:
     """Test TreasuryController class."""
@@ -549,6 +555,7 @@ class TestFactoryFunction:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestFullWorkflow:
     """Integration tests for complete workflows."""
 
@@ -575,7 +582,9 @@ class TestFullWorkflow:
         }
         score = controller.evaluate_market_ethics(bad_market)
         # Ensure score is low enough to trigger hibernation (< 0.60)
-        assert score < ETHICS_THRESHOLD_HIBERNATION, f"Score {score} should be < {ETHICS_THRESHOLD_HIBERNATION}"
+        assert (
+            score < ETHICS_THRESHOLD_HIBERNATION
+        ), f"Score {score} should be < {ETHICS_THRESHOLD_HIBERNATION}"
         assert controller.should_hibernate()
 
         # Phase 3: Transition to hibernation
@@ -589,8 +598,9 @@ class TestFullWorkflow:
         # Starting with 5000, need to remove > 4825
         controller.update_reserves(-4900.0, "Operational costs")
         # Verify reserves are low enough
-        assert controller.state.reserves_days < RESERVES_THRESHOLD_EMERGENCY, \
-            f"Reserves {controller.state.reserves_days} should be < {RESERVES_THRESHOLD_EMERGENCY}"
+        assert (
+            controller.state.reserves_days < RESERVES_THRESHOLD_EMERGENCY
+        ), f"Reserves {controller.state.reserves_days} should be < {RESERVES_THRESHOLD_EMERGENCY}"
         assert controller.should_emergency()
 
         # Phase 5: Enter emergency

@@ -6,28 +6,24 @@ Standing on Giants: TDD (Kent Beck), Property-Based Testing (QuickCheck)
 """
 
 import math
-import pytest
-import numpy as np
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
-from core.sovereign.omega_engine import (
-    # GAP-C1: Ihsan Projector
-    NTUState,
-    IhsanVector,
-    IhsanProjector,
-    # GAP-C2: Adl Invariant
+import numpy as np
+import pytest
+
+from core.sovereign.omega_engine import (  # GAP-C1: Ihsan Projector; GAP-C2: Adl Invariant; GAP-C4: Treasury Mode; Unified
     AdlInvariant,
     AdlViolation,
-    # GAP-C4: Treasury Mode
+    IhsanProjector,
+    IhsanVector,
+    NTUState,
+    OmegaEngine,
+    TreasuryController,
     TreasuryMode,
     TreasuryState,
-    TreasuryController,
-    # Unified
-    OmegaEngine,
     create_omega_engine,
     ihsan_from_scores,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GAP-C1: IHSAN PROJECTOR TESTS

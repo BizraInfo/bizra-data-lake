@@ -26,7 +26,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -67,7 +66,9 @@ class TestOrchestratorWiring:
 
         orch = SovereignOrchestrator(routing_strategy=RoutingStrategy.ADAPTIVE)
         orch.register_default_agents()
-        assert len(orch.router.agents) >= 1, f"No agents registered: {orch.router.agents}"
+        assert (
+            len(orch.router.agents) >= 1
+        ), f"No agents registered: {orch.router.agents}"
 
     def test_set_gateway_and_memory(self) -> None:
         """set_gateway and set_memory accept arbitrary objects."""
@@ -294,15 +295,19 @@ class TestFullRoundTrip:
             # New instance should load from SQLite
             mem2 = LivingMemoryCore(storage_path=tmp)
             await mem2.initialize()
-            assert len(mem2._memories) >= 1, f"Persistence failed: {len(mem2._memories)}"
+            assert (
+                len(mem2._memories) >= 1
+            ), f"Persistence failed: {len(mem2._memories)}"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     @pytest.mark.asyncio
     async def test_orchestrator_decompose(self) -> None:
         """Orchestrator can decompose a query into a task plan."""
-        from core.sovereign.orchestrator import SovereignOrchestrator, TaskNode as TN
+        from core.sovereign.orchestrator import SovereignOrchestrator
+        from core.sovereign.orchestrator import TaskNode as TN
 
         orch = SovereignOrchestrator()
         orch.register_default_agents()
@@ -347,13 +352,13 @@ class TestCrossSystemE2E:
     @pytest.mark.asyncio
     async def test_full_stack_query_pipeline(self) -> None:
         """Complete round-trip: query → decompose → infer → score → respond."""
+        from core.living_memory.core import LivingMemoryCore, MemoryType
         from core.sovereign.orchestrator import (
             RoutingStrategy,
             SovereignOrchestrator,
             TaskComplexity,
             TaskNode,
         )
-        from core.living_memory.core import LivingMemoryCore, MemoryType
 
         tmp = pathlib.Path(tempfile.mkdtemp())
         try:
@@ -406,12 +411,15 @@ class TestCrossSystemE2E:
             # 5. Verify gateway was called with memory-enriched prompt
             mock_gw.infer.assert_called_once()
             call_args = mock_gw.infer.call_args
-            prompt_sent = call_args[0][0] if call_args[0] else call_args[1].get("prompt", "")
+            prompt_sent = (
+                call_args[0][0] if call_args[0] else call_args[1].get("prompt", "")
+            )
             # Memory context should be included in the prompt
             assert "BIZRA" in prompt_sent or "sovereignty" in prompt_sent.lower()
 
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     @pytest.mark.asyncio
@@ -456,9 +464,9 @@ class TestCrossSystemE2E:
         except asyncio.CancelledError:
             pass
 
-        assert task.id in orch.completed_tasks, (
-            f"Task not completed. Status: {orch.get_status()}"
-        )
+        assert (
+            task.id in orch.completed_tasks
+        ), f"Task not completed. Status: {orch.get_status()}"
 
     @pytest.mark.asyncio
     async def test_proactive_retriever_with_memory(self) -> None:
@@ -500,6 +508,7 @@ class TestCrossSystemE2E:
 
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_fastapi_new_endpoints(self) -> None:
@@ -517,14 +526,18 @@ class TestCrossSystemE2E:
 
         assert "/v1/suggestions" in routes, f"Missing /v1/suggestions: {routes}"
         # WebSocket route may show differently in FastAPI routing
-        ws_paths = [r.path for r in app.routes if hasattr(r, "path") and "stream" in r.path]
-        assert len(ws_paths) >= 1 or "/v1/stream" in routes, f"Missing /v1/stream: {routes}"
+        ws_paths = [
+            r.path for r in app.routes if hasattr(r, "path") and "stream" in r.path
+        ]
+        assert (
+            len(ws_paths) >= 1 or "/v1/stream" in routes
+        ), f"Missing /v1/stream: {routes}"
 
     @pytest.mark.asyncio
     async def test_a2a_task_manager_event_driven(self) -> None:
         """A2A TaskManager processes submitted tasks via its queue."""
-        from core.a2a.tasks import TaskManager
         from core.a2a.schema import TaskCard
+        from core.a2a.tasks import TaskManager
 
         tm = TaskManager(max_concurrent=2)
 
@@ -567,9 +580,9 @@ class TestCrossSystemE2E:
             # Instance 2: Should load all entries
             mem2 = LivingMemoryCore(storage_path=tmp)
             await mem2.initialize()
-            assert len(mem2._memories) >= 5, (
-                f"Persistence lost entries: {len(mem2._memories)} < 5"
-            )
+            assert (
+                len(mem2._memories) >= 5
+            ), f"Persistence lost entries: {len(mem2._memories)} < 5"
 
             # Verify data integrity
             for entry in entries:
@@ -578,4 +591,5 @@ class TestCrossSystemE2E:
 
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)

@@ -17,13 +17,17 @@ import pytest
 from core.memory.types import MemoryKind, MemoryRecord, SearchResult
 from core.resonance import CognitiveResonance, ResonanceResult, _compute_combined_snr
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_record(content: str = "test content", source: str = "unit_test") -> MemoryRecord:
-    return MemoryRecord(id="rec-1", content=content, kind=MemoryKind.SEMANTIC, source=source)
+
+def _make_record(
+    content: str = "test content", source: str = "unit_test"
+) -> MemoryRecord:
+    return MemoryRecord(
+        id="rec-1", content=content, kind=MemoryKind.SEMANTIC, source=source
+    )
 
 
 def _make_search_result(score: float = 0.9, vector_score: float = 0.0) -> SearchResult:
@@ -33,6 +37,7 @@ def _make_search_result(score: float = 0.9, vector_score: float = 0.0) -> Search
 @dataclass(frozen=True)
 class _FakePrediction:
     """Minimal stand-in for PredictionResult (avoids numpy import)."""
+
     most_likely_state: Any  # HMMState-like
     state_probabilities: dict
     predicted_next_state: Any
@@ -42,6 +47,7 @@ class _FakePrediction:
 
 class _FakeState:
     """HMMState-like enum stand-in with a .value attribute."""
+
     def __init__(self, value: str = "exploring"):
         self.value = value
 
@@ -49,6 +55,7 @@ class _FakeState:
 @dataclass
 class _FakeGoTBridgeResult:
     """Minimal stand-in for GoTBridgeResult."""
+
     answer: str = "got answer"
     snr_score: float = 0.92
     converged: bool = True
@@ -64,6 +71,7 @@ class _FakeGoTBridgeResult:
 # =========================================================================
 # 1. ResonanceResult frozen dataclass
 # =========================================================================
+
 
 class TestResonanceResult:
     """ResonanceResult must be an immutable frozen dataclass."""
@@ -82,8 +90,12 @@ class TestResonanceResult:
 
     def test_immutable(self):
         result = ResonanceResult(
-            query="q", search_results=[], reasoning=None,
-            prediction=None, combined_snr=0.0, processing_path=[],
+            query="q",
+            search_results=[],
+            reasoning=None,
+            prediction=None,
+            combined_snr=0.0,
+            processing_path=[],
         )
         with pytest.raises(AttributeError):
             result.query = "changed"  # type: ignore[misc]
@@ -92,6 +104,7 @@ class TestResonanceResult:
 # =========================================================================
 # 2. No components -- graceful degradation
 # =========================================================================
+
 
 class TestNoComponents:
     """CognitiveResonance with no components returns a minimal result."""
@@ -115,6 +128,7 @@ class TestNoComponents:
 # =========================================================================
 # 3. Search-only pipeline
 # =========================================================================
+
 
 class TestSearchOnly:
     """Pipeline with only a search engine wired in."""
@@ -150,6 +164,7 @@ class TestSearchOnly:
 # 4. Reasoning-only pipeline
 # =========================================================================
 
+
 class TestReasoningOnly:
     """Pipeline with only a GoT bridge wired in (no search)."""
 
@@ -183,6 +198,7 @@ class TestReasoningOnly:
 # 5. Full pipeline (search + reasoning + prediction)
 # =========================================================================
 
+
 class TestFullPipeline:
     """All three components wired in."""
 
@@ -211,21 +227,27 @@ class TestFullPipeline:
         search, reasoning, prediction = self._build_all(
             search_score=0.90, reasoning_snr=0.92
         )
-        cr = CognitiveResonance(search=search, reasoning=reasoning, prediction=prediction)
+        cr = CognitiveResonance(
+            search=search, reasoning=reasoning, prediction=prediction
+        )
         result = await cr.process("test query")
         expected = 0.7 * 0.92 + 0.3 * 0.90
         assert result.combined_snr == pytest.approx(expected)
 
     async def test_reason_with_evidence_called(self):
         search, reasoning, prediction = self._build_all()
-        cr = CognitiveResonance(search=search, reasoning=reasoning, prediction=prediction)
+        cr = CognitiveResonance(
+            search=search, reasoning=reasoning, prediction=prediction
+        )
         await cr.process("query")
         reasoning.reason_with_evidence.assert_awaited_once()
         reasoning.reason.assert_not_awaited()
 
     async def test_prediction_populated(self):
         search, reasoning, prediction = self._build_all()
-        cr = CognitiveResonance(search=search, reasoning=reasoning, prediction=prediction)
+        cr = CognitiveResonance(
+            search=search, reasoning=reasoning, prediction=prediction
+        )
         result = await cr.process("search for files")
         assert result.prediction is not None
         assert result.prediction.most_likely_state.value == "exploring"
@@ -234,6 +256,7 @@ class TestFullPipeline:
 # =========================================================================
 # 6. Combined-SNR policy (exact math, all 4 branches)
 # =========================================================================
+
 
 class TestCombinedSNRPolicy:
     """Verify _compute_combined_snr covers all four branches."""
@@ -263,6 +286,7 @@ class TestCombinedSNRPolicy:
 # =========================================================================
 # 7. Processing path audit trail
 # =========================================================================
+
 
 class TestProcessingPath:
     """Verify processing_path contains expected stage markers."""
@@ -304,6 +328,7 @@ class TestProcessingPath:
 # =========================================================================
 # 8. observe() convenience method
 # =========================================================================
+
 
 class TestObserve:
     """Test the observe-only shortcut (HMM only, no search/reason)."""

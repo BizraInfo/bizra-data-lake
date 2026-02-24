@@ -79,7 +79,11 @@ async def test_non_tool_control_plane_p95_under_200ms() -> None:
 
     await bridge.start()
     try:
-        latencies: dict[str, list[float]] = {"ping": [], "status": [], "list_skills": []}
+        latencies: dict[str, list[float]] = {
+            "ping": [],
+            "status": [],
+            "list_skills": [],
+        }
         req_id = 0
         for method in ("ping", "status", "list_skills"):
             for _ in range(30):
@@ -89,6 +93,8 @@ async def test_non_tool_control_plane_p95_under_200ms() -> None:
                 latencies[method].append(elapsed_ms)
 
         for method, values in latencies.items():
-            assert _p95(values) < 200.0, f"{method} P95 exceeded 200ms: {_p95(values):.2f}ms"
+            assert (
+                _p95(values) < 200.0
+            ), f"{method} P95 exceeded 200ms: {_p95(values):.2f}ms"
     finally:
         await bridge.stop()

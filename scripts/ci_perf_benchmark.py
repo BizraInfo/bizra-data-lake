@@ -33,10 +33,10 @@ import statistics
 import subprocess
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Ensure core module is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -47,7 +47,9 @@ try:
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
-    print("[WARN] psutil not available, resource metrics will be limited", file=sys.stderr)
+    print(
+        "[WARN] psutil not available, resource metrics will be limited", file=sys.stderr
+    )
 
 
 # =============================================================================
@@ -279,7 +281,9 @@ class CIPerfBenchmark:
         - Consensus round (mocked)
         - Cache operations
         """
-        self.log(f"Running inference latency benchmark ({self.iterations} iterations)...")
+        self.log(
+            f"Running inference latency benchmark ({self.iterations} iterations)..."
+        )
 
         latencies: List[float] = []
 
@@ -324,14 +328,26 @@ class CIPerfBenchmark:
                     signature=EnvelopeSignature(
                         algorithm="ed25519",
                         value="",
-                        signed_fields=["sender", "payload", "metadata", "timestamp", "nonce"],
+                        signed_fields=[
+                            "sender",
+                            "payload",
+                            "metadata",
+                            "timestamp",
+                            "nonce",
+                        ],
                     ),
                 )
                 digest = envelope.compute_digest()
                 envelope.signature = EnvelopeSignature(
                     algorithm="ed25519",
                     value=sign_message(digest, private_key),
-                    signed_fields=["sender", "payload", "metadata", "timestamp", "nonce"],
+                    signed_fields=[
+                        "sender",
+                        "payload",
+                        "metadata",
+                        "timestamp",
+                        "nonce",
+                    ],
                 )
                 return envelope
 
@@ -386,7 +402,9 @@ class CIPerfBenchmark:
             from core.inference.gateway import BatchingInferenceQueue
 
             # Mock backend for testing
-            async def mock_generate(prompt: str, max_tokens: int, temperature: float) -> str:
+            async def mock_generate(
+                prompt: str, max_tokens: int, temperature: float
+            ) -> str:
                 await asyncio.sleep(0.01)  # 10ms simulated latency
                 return f"Response to: {prompt[:20]}..."
 
@@ -430,7 +448,9 @@ class CIPerfBenchmark:
                 await asyncio.sleep(0.01)  # 10ms
 
             start_time = time.perf_counter()
-            tasks = [asyncio.create_task(mock_request(i)) for i in range(self.iterations)]
+            tasks = [
+                asyncio.create_task(mock_request(i)) for i in range(self.iterations)
+            ]
             await asyncio.gather(*tasks)
             duration = time.perf_counter() - start_time
 
@@ -457,7 +477,11 @@ class CIPerfBenchmark:
         memory_samples: List[float] = []
 
         try:
-            from core.sovereign.runtime import SovereignRuntime, RuntimeConfig, RuntimeMode
+            from core.sovereign.runtime import (
+                RuntimeConfig,
+                RuntimeMode,
+                SovereignRuntime,
+            )
 
             # Initialize runtime (this is where memory spikes)
             config = RuntimeConfig(
@@ -521,9 +545,9 @@ class CIPerfBenchmark:
                         if m in sys.modules:
                             del sys.modules[m]
 
-                import core.sovereign.runtime
-                import core.pci.envelope
                 import core.inference.gateway
+                import core.pci.envelope
+                import core.sovereign.runtime
 
                 cold_start_ms = (time.perf_counter() - start) * 1000
                 cold_starts.append(cold_start_ms)
@@ -536,9 +560,9 @@ class CIPerfBenchmark:
             start = time.perf_counter()
             try:
                 # These should be fast since modules are cached
-                import core.sovereign.runtime
-                import core.pci.envelope
                 import core.inference.gateway
+                import core.pci.envelope
+                import core.sovereign.runtime
 
                 warm_start_ms = (time.perf_counter() - start) * 1000
                 warm_starts.append(warm_start_ms)
@@ -810,7 +834,9 @@ async def run_benchmark(
             print(f"  Baseline: {regression_result['baseline_value']:.2f}")
             print(f"  Current: {regression_result['current_value']:.2f}")
             print(f"  Change: {regression_result['change_percent']:+.1f}%")
-            print(f"  Status: {'REGRESSED' if regression_result['regressed'] else 'OK'}")
+            print(
+                f"  Status: {'REGRESSED' if regression_result['regressed'] else 'OK'}"
+            )
 
         print("\n" + "-" * 70)
         if gate_passed:
@@ -840,7 +866,12 @@ Examples:
         "--benchmark",
         "-b",
         required=True,
-        choices=["inference-latency", "apex-throughput", "memory-usage", "startup-time"],
+        choices=[
+            "inference-latency",
+            "apex-throughput",
+            "memory-usage",
+            "startup-time",
+        ],
         help="Benchmark type to run",
     )
     parser.add_argument(

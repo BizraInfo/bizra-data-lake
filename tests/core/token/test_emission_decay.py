@@ -73,9 +73,9 @@ class TestLogisticEmission:
             actual = compute_logistic_emission(
                 gini=gini, e_max=e_max, g_target=g_target, steepness=k
             )
-            assert abs(actual - expected) < 0.001, (
-                f"At gini={gini}: expected={expected}, actual={actual}"
-            )
+            assert (
+                abs(actual - expected) < 0.001
+            ), f"At gini={gini}: expected={expected}, actual={actual}"
 
 
 class TestLogisticEmissionGate:
@@ -124,9 +124,9 @@ class TestLogisticEmissionGate:
 
         # Each subsequent rate should be lower
         for i in range(len(rates) - 1):
-            assert rates[i] > rates[i + 1], (
-                f"Emission should decrease: {rates[i]} -> {rates[i+1]}"
-            )
+            assert (
+                rates[i] > rates[i + 1]
+            ), f"Emission should decrease: {rates[i]} -> {rates[i+1]}"
 
         # The drop from 0.20 to 0.40 should be substantial
         drop_pct = (rates[0] - rates[-1]) / rates[0]

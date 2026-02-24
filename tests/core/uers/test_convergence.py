@@ -19,7 +19,6 @@ from core.uers.convergence import (
 )
 from core.uers.vectors import VectorType
 
-
 # ---------------------------------------------------------------------------
 # ENUM TESTS
 # ---------------------------------------------------------------------------
@@ -28,14 +27,26 @@ from core.uers.vectors import VectorType
 class TestEnums:
 
     def test_loop_stages(self):
-        expected = {"ingestion", "hypothesis", "probing", "evaluation", "update", "termination"}
+        expected = {
+            "ingestion",
+            "hypothesis",
+            "probing",
+            "evaluation",
+            "update",
+            "termination",
+        }
         actual = {s.value for s in LoopStage}
         assert actual == expected
 
     def test_convergence_states(self):
         expected = {
-            "initializing", "running", "converging",
-            "diverging", "singularity", "failed", "stopped",
+            "initializing",
+            "running",
+            "converging",
+            "diverging",
+            "singularity",
+            "failed",
+            "stopped",
         }
         actual = {s.value for s in ConvergenceState}
         assert actual == expected

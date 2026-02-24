@@ -15,7 +15,6 @@ from core.sovereign.judgment_telemetry import (
     simulate_epoch_distribution,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # JudgmentTelemetry Tests
 # ═══════════════════════════════════════════════════════════════════════════════

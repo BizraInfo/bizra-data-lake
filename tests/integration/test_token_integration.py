@@ -43,7 +43,6 @@ from core.token.types import (
     TokenType,
 )
 
-
 # =============================================================================
 # HELPERS
 # =============================================================================
@@ -104,8 +103,10 @@ def _make_audit_trail(
 
 def _make_patched_ledger_cls(db_path: Path, log_path: Path):
     """Create a TokenLedger class factory that uses the given paths."""
+
     def _factory(*args, **kwargs):
         return TokenLedger(db_path=db_path, log_path=log_path)
+
     return _factory
 
 
@@ -131,10 +132,14 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
-            response = await server._handle_token_balance({"account": GENESIS_NODE0_ACCOUNT})
+            response = await server._handle_token_balance(
+                {"account": GENESIS_NODE0_ACCOUNT}
+            )
 
         body = self._extract_json(response)
         assert body["account"] == GENESIS_NODE0_ACCOUNT
@@ -147,10 +152,14 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
-            response = await server._handle_token_balance({"account": SYSTEM_TREASURY_ACCOUNT})
+            response = await server._handle_token_balance(
+                {"account": SYSTEM_TREASURY_ACCOUNT}
+            )
 
         body = self._extract_json(response)
         assert body["account"] == SYSTEM_TREASURY_ACCOUNT
@@ -162,7 +171,9 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
             response = await server._handle_token_supply()
@@ -181,7 +192,9 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
             response = await server._handle_token_history({"limit": "10"})
@@ -195,7 +208,9 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
             response = await server._handle_token_history(
@@ -212,7 +227,9 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
             response = await server._handle_token_verify()
@@ -228,7 +245,9 @@ class TestTokenAPIEndpoints:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             server = self._make_server()
             response = await server._handle_token_balance({"account": "NONEXISTENT"})
@@ -256,9 +275,12 @@ class TestTokenCLICommands:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             from core.sovereign.__main__ import _handle_wallet_command
+
             _handle_wallet_command()
 
         output = capsys.readouterr().out
@@ -273,9 +295,12 @@ class TestTokenCLICommands:
         minter = _create_minter(tmp_path)
         minter.genesis_mint()
 
-        factory = _make_patched_ledger_cls(tmp_path / "test.db", tmp_path / "test_ledger.jsonl")
+        factory = _make_patched_ledger_cls(
+            tmp_path / "test.db", tmp_path / "test_ledger.jsonl"
+        )
         with patch("core.token.ledger.TokenLedger", factory):
             from core.sovereign.__main__ import _handle_tokens_command
+
             _handle_tokens_command()
 
         output = capsys.readouterr().out
@@ -292,6 +317,7 @@ class TestTokenCLICommands:
         factory = _make_patched_ledger_cls(db_path, log_path)
         with patch("core.token.ledger.TokenLedger", factory):
             from core.sovereign.__main__ import _handle_wallet_command
+
             _handle_wallet_command()
 
         output = capsys.readouterr().out
@@ -340,7 +366,9 @@ class TestPoITokenBridge:
         bridge = _create_bridge(tmp_path)
         audit = _make_audit_trail(epoch_id="epoch-3")
 
-        result = bridge.distribute_epoch(audit, epoch_reward=10000, impt_multiplier=100.0)
+        result = bridge.distribute_epoch(
+            audit, epoch_reward=10000, impt_multiplier=100.0
+        )
 
         ledger = bridge.minter.ledger
         alice_impt = ledger.get_balance("alice", TokenType.IMPT)
@@ -437,7 +465,9 @@ class TestTokenLifecycle:
         treasury_seed = ledger.get_balance(SYSTEM_TREASURY_ACCOUNT, TokenType.SEED)
         assert treasury_seed.balance == SYSTEM_TREASURY_ALLOCATION
 
-        zakat_amount = (FOUNDER_GENESIS_ALLOCATION + SYSTEM_TREASURY_ALLOCATION) * ZAKAT_RATE
+        zakat_amount = (
+            FOUNDER_GENESIS_ALLOCATION + SYSTEM_TREASURY_ALLOCATION
+        ) * ZAKAT_RATE
         community_seed = ledger.get_balance(COMMUNITY_FUND_ACCOUNT, TokenType.SEED)
         assert community_seed.balance == zakat_amount
 
@@ -606,25 +636,28 @@ class TestCrossModuleWiring:
     def test_token_module_imports(self):
         """All public token types are importable from core.token."""
         from core.token import (
+            TokenBalance,
             TokenLedger,
             TokenMinter,
-            TokenType,
             TokenOp,
-            TransactionEntry,
             TokenReceipt,
-            TokenBalance,
+            TokenType,
+            TransactionEntry,
         )
+
         assert TokenType.SEED.value == "SEED"
         assert TokenOp.MINT.value == "mint"
 
     def test_poi_bridge_imports(self):
         """PoI bridge imports resolve correctly."""
         from core.token.poi_bridge import PoITokenBridge
+
         assert hasattr(PoITokenBridge, "distribute_epoch")
 
     def test_api_token_handlers_exist(self):
         """API server has all 4 token handler methods."""
         from core.sovereign.api import SovereignAPIServer
+
         assert hasattr(SovereignAPIServer, "_handle_token_balance")
         assert hasattr(SovereignAPIServer, "_handle_token_supply")
         assert hasattr(SovereignAPIServer, "_handle_token_history")
@@ -633,8 +666,9 @@ class TestCrossModuleWiring:
     def test_cli_token_functions_exist(self):
         """CLI module has wallet and tokens handler functions."""
         from core.sovereign.__main__ import (
-            _handle_wallet_command,
             _handle_tokens_command,
+            _handle_wallet_command,
         )
+
         assert callable(_handle_wallet_command)
         assert callable(_handle_tokens_command)

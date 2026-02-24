@@ -17,7 +17,6 @@ import json
 import logging
 import os
 import threading
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path

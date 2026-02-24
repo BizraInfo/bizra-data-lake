@@ -44,23 +44,24 @@ sys.path.insert(0, str(_project_root))
 
 # Import core modules
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    STRICT_IHSAN_THRESHOLD,
     SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
+    STRICT_IHSAN_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
 )
 
 # Conditional imports with graceful degradation
 try:
     from core.inference.gateway import (
-        InferenceGateway,
+        ComputeTier,
+        InferenceBackend,
         InferenceConfig,
+        InferenceGateway,
         InferenceResult,
         InferenceStatus,
-        InferenceBackend,
-        ComputeTier,
     )
+
     GATEWAY_AVAILABLE = True
 except ImportError as e:
     GATEWAY_AVAILABLE = False
@@ -69,10 +70,11 @@ except ImportError as e:
 try:
     from core.sovereign.bicameral_engine import (
         BicameralReasoningEngine,
+        BicameralResult,
         ReasoningCandidate,
         VerificationResult,
-        BicameralResult,
     )
+
     BICAMERAL_AVAILABLE = True
 except ImportError as e:
     BICAMERAL_AVAILABLE = False
@@ -80,11 +82,12 @@ except ImportError as e:
 
 try:
     from core.sovereign.z3_fate_gate import (
+        Z3_AVAILABLE,
+        Z3Constraint,
         Z3FATEGate,
         Z3Proof,
-        Z3Constraint,
-        Z3_AVAILABLE,
     )
+
     FATE_GATE_AVAILABLE = Z3_AVAILABLE
 except ImportError as e:
     FATE_GATE_AVAILABLE = False
@@ -94,16 +97,17 @@ try:
     from core.autopoiesis.loop_engine import (
         ActivationGuardrails,
         AutopoieticLoop,
-        AutopoieticState,
         AutopoieticResult,
+        AutopoieticState,
         Hypothesis,
         HypothesisCategory,
-        RiskLevel,
-        ValidationResult,
         ImplementationResult,
         IntegrationResult,
+        RiskLevel,
+        ValidationResult,
         create_autopoietic_loop,
     )
+
     AUTOPOIETIC_AVAILABLE = True
 except ImportError as e:
     AUTOPOIETIC_AVAILABLE = False
@@ -111,14 +115,15 @@ except ImportError as e:
 
 try:
     from core.sovereign.runtime_engines.got_bridge import (
+        GoTBridge,
+        GoTResult,
         ThoughtGraph,
         ThoughtNode,
-        ThoughtType,
         ThoughtStatus,
-        GoTResult,
-        GoTBridge,
+        ThoughtType,
         think,
     )
+
     GOT_AVAILABLE = True
 except ImportError as e:
     GOT_AVAILABLE = False
@@ -142,9 +147,11 @@ MAX_MEMORY_MB = 512
 # MOCK FIXTURES
 # =============================================================================
 
+
 @dataclass
 class MockLocalEndpoint:
     """Mock local inference endpoint for testing."""
+
     response: str = "Mock generated response"
     delay_ms: float = 10.0
     fail_after: int = -1
@@ -161,6 +168,7 @@ class MockLocalEndpoint:
 @dataclass
 class MockAnalyticalClient:
     """Mock analytical client (Claude-style) for verification."""
+
     verify_result: bool = True
     confidence_delta: float = 0.1
 
@@ -168,13 +176,18 @@ class MockAnalyticalClient:
         return {
             "passes": self.verify_result,
             "confidence_delta": self.confidence_delta,
-            "critique": "Mock verification passed" if self.verify_result else "Mock verification failed",
+            "critique": (
+                "Mock verification passed"
+                if self.verify_result
+                else "Mock verification failed"
+            ),
         }
 
 
 @dataclass
 class MockSensorHub:
     """Mock sensor hub for autopoietic loop testing."""
+
     ihsan_score: float = 0.96
     snr_score: float = 0.91
     latency_ms: float = 15.0
@@ -199,6 +212,7 @@ class MockSensorHub:
 # =============================================================================
 # PYTEST FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_local_endpoint():
@@ -268,6 +282,7 @@ def autopoietic_loop(mock_sensor_hub):
 # 1. LOCAL-FIRST MODEL TESTS
 # =============================================================================
 
+
 class TestLocalFirstModel:
     """Test suite for local-first model selection and routing."""
 
@@ -282,7 +297,9 @@ class TestLocalFirstModel:
             pytest.skip("aiohttp not installed")
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{LMSTUDIO_URL}/v1/models", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                async with session.get(
+                    f"{LMSTUDIO_URL}/v1/models", timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
                     connected = resp.status == 200
         except Exception:
             connected = False
@@ -298,7 +315,11 @@ class TestLocalFirstModel:
 
         success = await gateway.initialize()
         assert success, "Gateway should initialize with LM Studio"
-        assert gateway.status in (InferenceStatus.READY, InferenceStatus.WARMING, InferenceStatus.DEGRADED)
+        assert gateway.status in (
+            InferenceStatus.READY,
+            InferenceStatus.WARMING,
+            InferenceStatus.DEGRADED,
+        )
 
     @pytest.mark.skipif(not GATEWAY_AVAILABLE, reason="Gateway not available")
     def test_model_routing_by_task(self):
@@ -329,21 +350,29 @@ class TestLocalFirstModel:
 
         # The key test: complexity scoring should reflect task difficulty
         # More complex tasks should have higher or equal complexity scores
-        assert complex_complexity.reasoning_depth >= simple_complexity.reasoning_depth or \
-               complex_complexity.domain_specificity >= simple_complexity.domain_specificity or \
-               complex_complexity.input_tokens >= simple_complexity.input_tokens, \
-               "Complex tasks should have higher complexity indicators"
+        assert (
+            complex_complexity.reasoning_depth >= simple_complexity.reasoning_depth
+            or complex_complexity.domain_specificity
+            >= simple_complexity.domain_specificity
+            or complex_complexity.input_tokens >= simple_complexity.input_tokens
+        ), "Complex tasks should have higher complexity indicators"
 
     @pytest.mark.skipif(not BICAMERAL_AVAILABLE, reason="Bicameral not available")
     @pytest.mark.asyncio
     async def test_bicameral_model_selection(self, bicameral_engine):
         """Test bicameral model selection (local + API)."""
-        assert bicameral_engine.is_bicameral, "Engine should be bicameral with both endpoints"
+        assert (
+            bicameral_engine.is_bicameral
+        ), "Engine should be bicameral with both endpoints"
 
         # Generate candidates using local endpoint
-        candidates = await bicameral_engine.generate_candidates("Test problem", num_candidates=2)
+        candidates = await bicameral_engine.generate_candidates(
+            "Test problem", num_candidates=2
+        )
         assert len(candidates) > 0, "Should generate candidates"
-        assert all(c.source == "r1" for c in candidates), "Candidates should be from local R1"
+        assert all(
+            c.source == "r1" for c in candidates
+        ), "Candidates should be from local R1"
 
     @pytest.mark.skipif(not GATEWAY_AVAILABLE, reason="Gateway not available")
     @pytest.mark.asyncio
@@ -367,16 +396,20 @@ class TestLocalFirstModel:
         gateway = InferenceGateway(config)
 
         # Default should not include external API backends
-        assert InferenceBackend.POOL.value not in [b.value for b in [
-            InferenceBackend.LLAMACPP,
-            InferenceBackend.OLLAMA,
-            InferenceBackend.LMSTUDIO,
-        ]]
+        assert InferenceBackend.POOL.value not in [
+            b.value
+            for b in [
+                InferenceBackend.LLAMACPP,
+                InferenceBackend.OLLAMA,
+                InferenceBackend.LMSTUDIO,
+            ]
+        ]
 
 
 # =============================================================================
 # 2. GRAPH-OF-THOUGHTS INTEGRATION TESTS
 # =============================================================================
+
 
 class TestGoTIntegration:
     """Test suite for Graph-of-Thoughts integration."""
@@ -389,7 +422,9 @@ class TestGoTIntegration:
         children = thought_graph.generate(root, "Solve this problem")
 
         assert len(children) > 0, "Should generate child thoughts"
-        assert len(children) <= thought_graph.max_branches, "Should respect max_branches"
+        assert (
+            len(children) <= thought_graph.max_branches
+        ), "Should respect max_branches"
 
         # Each child should have unique content
         contents = [c.content for c in children]
@@ -403,8 +438,7 @@ class TestGoTIntegration:
 
         # Create multiple nodes to aggregate
         nodes = [
-            ThoughtNode(content=f"Approach {i}", score=0.7 + i * 0.05)
-            for i in range(3)
+            ThoughtNode(content=f"Approach {i}", score=0.7 + i * 0.05) for i in range(3)
         ]
         for node in nodes:
             thought_graph._nodes[node.id] = node
@@ -439,13 +473,16 @@ class TestGoTIntegration:
 
         assert pruned_count > 0, "Should prune low-quality nodes"
         # Verify pruned nodes are marked
-        pruned_nodes = [n for n in thought_graph._nodes.values() if n.status == ThoughtStatus.PRUNED]
+        pruned_nodes = [
+            n for n in thought_graph._nodes.values() if n.status == ThoughtStatus.PRUNED
+        ]
         assert len(pruned_nodes) == pruned_count
 
     @pytest.mark.skipif(not GOT_AVAILABLE, reason="GoT not available")
     @pytest.mark.asyncio
     async def test_snr_maximized_across_paths(self, thought_graph):
         """Test that SNR is maximized across reasoning paths."""
+
         # Set up a custom scorer that prioritizes high SNR
         def snr_scorer(node: ThoughtNode) -> float:
             base_score = node.combined_score()
@@ -459,7 +496,9 @@ class TestGoTIntegration:
 
         if result.solution:
             final_snr = snr_scorer(result.solution)
-            assert final_snr >= UNIFIED_SNR_THRESHOLD * 0.8, "Solution should have acceptable SNR"
+            assert (
+                final_snr >= UNIFIED_SNR_THRESHOLD * 0.8
+            ), "Solution should have acceptable SNR"
 
     @pytest.mark.skipif(not GOT_AVAILABLE, reason="GoT not available")
     @pytest.mark.asyncio
@@ -490,7 +529,9 @@ class TestGoTIntegration:
 
         thought_graph.set_generator(converging_generator)
         thought_graph.set_scorer(high_scorer)
-        result = await thought_graph.reason("Converge test", max_iterations=20, min_solutions=1)
+        result = await thought_graph.reason(
+            "Converge test", max_iterations=20, min_solutions=1
+        )
 
         # The test verifies exploration happens, not necessarily finding a solution
         # since solution criteria may vary
@@ -501,6 +542,7 @@ class TestGoTIntegration:
 # =============================================================================
 # 3. BICAMERAL REASONING TESTS
 # =============================================================================
+
 
 class TestBicameralReasoning:
     """Test suite for bicameral reasoning (cold core + warm surface)."""
@@ -522,7 +564,9 @@ class TestBicameralReasoning:
 
     @pytest.mark.skipif(not BICAMERAL_AVAILABLE, reason="Bicameral not available")
     @pytest.mark.asyncio
-    async def test_warm_surface_verifies(self, bicameral_engine, mock_analytical_client):
+    async def test_warm_surface_verifies(
+        self, bicameral_engine, mock_analytical_client
+    ):
         """Test that warm surface (Claude/API) verifies candidates."""
         # Create a candidate
         candidate = ReasoningCandidate(
@@ -559,7 +603,9 @@ class TestBicameralReasoning:
     async def test_disagreement_handling(self, mock_local_endpoint):
         """Test handling when hemispheres disagree."""
         # Create analytical client that rejects
-        rejecting_client = MockAnalyticalClient(verify_result=False, confidence_delta=-0.2)
+        rejecting_client = MockAnalyticalClient(
+            verify_result=False, confidence_delta=-0.2
+        )
 
         engine = BicameralReasoningEngine(
             local_endpoint=mock_local_endpoint,
@@ -574,7 +620,9 @@ class TestBicameralReasoning:
 
         # Should still produce a result, but with lower consensus
         assert result.final_answer, "Should still produce an answer"
-        assert result.consensus_score < 0.95, "Consensus should be low when verification fails"
+        assert (
+            result.consensus_score < 0.95
+        ), "Consensus should be low when verification fails"
 
     @pytest.mark.skipif(not BICAMERAL_AVAILABLE, reason="Bicameral not available")
     @pytest.mark.asyncio
@@ -596,6 +644,7 @@ class TestBicameralReasoning:
 # =============================================================================
 # 4. FATE GATE INTEGRATION TESTS
 # =============================================================================
+
 
 class TestFATEGateIntegration:
     """Test suite for FATE gate formal verification."""
@@ -702,10 +751,13 @@ class TestFATEGateIntegration:
 # 5. AUTOPOIETIC INTEGRATION TESTS
 # =============================================================================
 
+
 class TestAutopoieticIntegration:
     """Test suite for autopoietic self-improvement loop."""
 
-    @pytest.mark.skipif(not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available")
+    @pytest.mark.skipif(
+        not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available"
+    )
     @pytest.mark.asyncio
     async def test_loop_improves_performance(self, autopoietic_loop):
         """Test that the autopoietic loop can improve performance."""
@@ -716,7 +768,9 @@ class TestAutopoieticIntegration:
         assert result.state in AutopoieticState
         assert result.observation is not None, "Should observe system state"
 
-    @pytest.mark.skipif(not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available")
+    @pytest.mark.skipif(
+        not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available"
+    )
     @pytest.mark.asyncio
     async def test_hypothesis_from_got(self, autopoietic_loop):
         """Test that hypotheses are generated from observations."""
@@ -743,22 +797,30 @@ class TestAutopoieticIntegration:
             assert hyp.description, "Hypothesis should have description"
             assert hyp.risk_level in RiskLevel
 
-    @pytest.mark.skipif(not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available")
+    @pytest.mark.skipif(
+        not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available"
+    )
     @pytest.mark.asyncio
     async def test_shadow_deployment_works(self, autopoietic_loop):
         """Test that shadow deployment mechanism works."""
-        from core.autopoiesis.loop_engine import Hypothesis, HypothesisCategory, RiskLevel
+        from core.autopoiesis.loop_engine import (
+            Hypothesis,
+            HypothesisCategory,
+            RiskLevel,
+        )
 
         hypothesis = Hypothesis(
             id="test_hyp_001",
             description="Test performance optimization",
             category=HypothesisCategory.PERFORMANCE,
             predicted_improvement=0.10,
-            required_changes=[{
-                "component": "test",
-                "parameter": "batch_size",
-                "action": "increase",
-            }],
+            required_changes=[
+                {
+                    "component": "test",
+                    "parameter": "batch_size",
+                    "action": "increase",
+                }
+            ],
             affected_components=["test"],
             risk_level=RiskLevel.LOW,
             reversibility_plan={"action": "restore", "value": 8},
@@ -771,7 +833,9 @@ class TestAutopoieticIntegration:
         assert result.hypothesis_id == hypothesis.id
         assert result.shadow_instance_id, "Should create shadow instance"
 
-    @pytest.mark.skipif(not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available")
+    @pytest.mark.skipif(
+        not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available"
+    )
     @pytest.mark.asyncio
     async def test_learning_persists(self, autopoietic_loop):
         """Test that learnings from improvements persist."""
@@ -788,7 +852,9 @@ class TestAutopoieticIntegration:
         status = autopoietic_loop.get_status()
         assert status["cycle_count"] >= 2
 
-    @pytest.mark.skipif(not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available")
+    @pytest.mark.skipif(
+        not AUTOPOIETIC_AVAILABLE, reason="Autopoietic loop not available"
+    )
     @pytest.mark.asyncio
     async def test_constitutional_preserved_during_evolution(self, autopoietic_loop):
         """Test that constitutional constraints are preserved during evolution."""
@@ -811,15 +877,18 @@ class TestAutopoieticIntegration:
 # 6. END-TO-END APEX TESTS
 # =============================================================================
 
+
 class TestApexEndToEnd:
     """End-to-end tests for the complete Apex engine."""
 
     @pytest.mark.skipif(
         not all([BICAMERAL_AVAILABLE, GOT_AVAILABLE, AUTOPOIETIC_AVAILABLE]),
-        reason="Not all components available"
+        reason="Not all components available",
     )
     @pytest.mark.asyncio
-    async def test_full_query_pipeline(self, mock_local_endpoint, mock_analytical_client, mock_sensor_hub):
+    async def test_full_query_pipeline(
+        self, mock_local_endpoint, mock_analytical_client, mock_sensor_hub
+    ):
         """Test full query pipeline: GoT -> Bicameral -> FATE -> Response."""
         # 1. Graph-of-Thoughts reasoning
         graph = ThoughtGraph(max_depth=3, max_branches=2)
@@ -873,9 +942,9 @@ class TestApexEndToEnd:
     def test_giants_attribution_complete(self):
         """Test that all standing-on-giants attributions are present."""
         attributions = [
-            "Besta",      # Graph of Thoughts
-            "Shannon",    # SNR
-            "Lamport",    # Distributed systems
+            "Besta",  # Graph of Thoughts
+            "Shannon",  # SNR
+            "Lamport",  # Distributed systems
             "Anthropic",  # Constitutional AI
         ]
 
@@ -884,14 +953,18 @@ class TestApexEndToEnd:
 
         if GOT_AVAILABLE:
             from core.sovereign.runtime_engines import got_bridge
+
             docstring = got_bridge.__doc__ or ""
             assert "Besta" in docstring, "GoT should cite Besta"
             modules_checked += 1
 
         if BICAMERAL_AVAILABLE:
             from core.sovereign import bicameral_engine
+
             docstring = bicameral_engine.__doc__ or ""
-            assert any(attr in docstring for attr in ["DeepSeek", "Jaynes"]), "Bicameral should cite sources"
+            assert any(
+                attr in docstring for attr in ["DeepSeek", "Jaynes"]
+            ), "Bicameral should cite sources"
             modules_checked += 1
 
         assert modules_checked > 0, "Should check at least one module"
@@ -913,7 +986,9 @@ class TestApexEndToEnd:
         mock_sensor_hub.ihsan_score = 0.96  # Above threshold
 
         readings = await mock_sensor_hub.poll_all_sensors()
-        ihsan_reading = next((r for r in readings if "ihsan" in r.sensor_id.lower()), None)
+        ihsan_reading = next(
+            (r for r in readings if "ihsan" in r.sensor_id.lower()), None
+        )
 
         assert ihsan_reading is not None
         assert ihsan_reading.value >= UNIFIED_IHSAN_THRESHOLD
@@ -923,12 +998,15 @@ class TestApexEndToEnd:
 # 7. PERFORMANCE TESTS
 # =============================================================================
 
+
 class TestPerformance:
     """Performance tests for latency, throughput, and memory."""
 
     @pytest.mark.skipif(not BICAMERAL_AVAILABLE, reason="Bicameral not available")
     @pytest.mark.asyncio
-    async def test_latency_under_100ms_local(self, mock_local_endpoint, mock_analytical_client):
+    async def test_latency_under_100ms_local(
+        self, mock_local_endpoint, mock_analytical_client
+    ):
         """Test that local inference latency is under 100ms."""
         mock_local_endpoint.delay_ms = 10.0  # 10ms mock delay
 
@@ -942,7 +1020,9 @@ class TestPerformance:
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         assert len(candidates) > 0
-        assert elapsed_ms < MAX_LOCAL_LATENCY_MS, f"Latency {elapsed_ms:.1f}ms exceeds {MAX_LOCAL_LATENCY_MS}ms"
+        assert (
+            elapsed_ms < MAX_LOCAL_LATENCY_MS
+        ), f"Latency {elapsed_ms:.1f}ms exceeds {MAX_LOCAL_LATENCY_MS}ms"
 
     @pytest.mark.skipif(not GOT_AVAILABLE, reason="GoT not available")
     @pytest.mark.asyncio
@@ -958,7 +1038,9 @@ class TestPerformance:
         elapsed = time.perf_counter() - start
         throughput = request_count / elapsed
 
-        assert throughput >= MIN_THROUGHPUT_QPS, f"Throughput {throughput:.1f} QPS below {MIN_THROUGHPUT_QPS}"
+        assert (
+            throughput >= MIN_THROUGHPUT_QPS
+        ), f"Throughput {throughput:.1f} QPS below {MIN_THROUGHPUT_QPS}"
 
     @pytest.mark.skipif(not GOT_AVAILABLE, reason="GoT not available")
     @pytest.mark.asyncio
@@ -977,7 +1059,9 @@ class TestPerformance:
         tracemalloc.stop()
 
         peak_mb = peak / (1024 * 1024)
-        assert peak_mb < MAX_MEMORY_MB, f"Peak memory {peak_mb:.1f}MB exceeds {MAX_MEMORY_MB}MB"
+        assert (
+            peak_mb < MAX_MEMORY_MB
+        ), f"Peak memory {peak_mb:.1f}MB exceeds {MAX_MEMORY_MB}MB"
 
     @pytest.mark.skipif(not GATEWAY_AVAILABLE, reason="Gateway not available")
     @pytest.mark.asyncio
@@ -990,7 +1074,7 @@ class TestPerformance:
         gateway = InferenceGateway(config)
 
         # Simulate all backends failing
-        with patch.object(gateway, '_backends', {}):
+        with patch.object(gateway, "_backends", {}):
             gateway.status = InferenceStatus.OFFLINE
 
             # Should not crash, should report offline status
@@ -1002,6 +1086,7 @@ class TestPerformance:
 # INTEGRATION MARKERS
 # =============================================================================
 
+
 def pytest_configure(config):
     """Configure custom pytest markers."""
     config.addinivalue_line(
@@ -1010,15 +1095,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_ollama: tests that require Ollama to be running"
     )
-    config.addinivalue_line(
-        "markers", "requires_z3: tests that require Z3 solver"
-    )
-    config.addinivalue_line(
-        "markers", "slow: tests that take a long time to run"
-    )
-    config.addinivalue_line(
-        "markers", "integration: integration tests"
-    )
+    config.addinivalue_line("markers", "requires_z3: tests that require Z3 solver")
+    config.addinivalue_line("markers", "slow: tests that take a long time to run")
+    config.addinivalue_line("markers", "integration: integration tests")
 
 
 # =============================================================================

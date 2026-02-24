@@ -8,39 +8,19 @@ Tests all four layers:
 4. Integration (Bounty Bridge)
 """
 
-import pytest
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+
 from core.bounty import (
+    BASE_PAYOUT_PER_DELTA_E,
+    BOUNTY_IHSAN_THRESHOLD,
+    BOUNTY_SNR_THRESHOLD,
     BOUNTY_VERSION,
+    SECURITY_VECTORS,
     SEVERITY_LEVELS,
     VULN_CATEGORIES,
-    SECURITY_VECTORS,
-    BASE_PAYOUT_PER_DELTA_E,
-    BOUNTY_SNR_THRESHOLD,
-    BOUNTY_IHSAN_THRESHOLD,
-)
-from core.bounty.impact_proof import (
-    ImpactProof,
-    ImpactProofBuilder,
-    ImpactProofVerifier,
-    EntropyMeasurement,
-    DomainEvent,
-    Severity,
-    VulnCategory,
-)
-from core.bounty.oracle import (
-    BountyOracle,
-    BountyCalculation,
-    BountyPayout,
-)
-from core.bounty.hunter import (
-    HunterAgent,
-    HunterSwarm,
-    ScanTarget,
-    ScanResult,
-    ScanStatus,
 )
 from core.bounty.bridge import (
     BountyBridge,
@@ -49,12 +29,33 @@ from core.bounty.bridge import (
     PlatformCredentials,
     SubmissionStatus,
 )
+from core.bounty.hunter import (
+    HunterAgent,
+    HunterSwarm,
+    ScanResult,
+    ScanStatus,
+    ScanTarget,
+)
+from core.bounty.impact_proof import (
+    DomainEvent,
+    EntropyMeasurement,
+    ImpactProof,
+    ImpactProofBuilder,
+    ImpactProofVerifier,
+    Severity,
+    VulnCategory,
+)
+from core.bounty.oracle import (
+    BountyCalculation,
+    BountyOracle,
+    BountyPayout,
+)
 from core.proof_engine.receipt import SimpleSigner
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def signer():
@@ -155,6 +156,7 @@ def scan_target():
 # MODULE CONSTANTS
 # =============================================================================
 
+
 class TestModuleConstants:
     """Tests for module-level constants."""
 
@@ -196,6 +198,7 @@ class TestModuleConstants:
 # =============================================================================
 # IMPACT PROOF
 # =============================================================================
+
 
 class TestImpactProof:
     """Tests for impact proof creation and verification."""
@@ -241,7 +244,9 @@ class TestImpactProof:
         assert valid is True
         assert error is None
 
-    def test_proof_verifier_low_snr(self, proof_builder, entropy_before, entropy_after, signer):
+    def test_proof_verifier_low_snr(
+        self, proof_builder, entropy_before, entropy_after, signer
+    ):
         """Verifier rejects low SNR proof."""
         proof = proof_builder.build(
             target_address="0x1234",
@@ -262,7 +267,9 @@ class TestImpactProof:
         assert valid is False
         assert "SNR" in error
 
-    def test_proof_verifier_low_ihsan(self, proof_builder, entropy_before, entropy_after, signer):
+    def test_proof_verifier_low_ihsan(
+        self, proof_builder, entropy_before, entropy_after, signer
+    ):
         """Verifier rejects low Ihsān proof."""
         proof = proof_builder.build(
             target_address="0x1234",
@@ -287,6 +294,7 @@ class TestImpactProof:
 # =============================================================================
 # BOUNTY ORACLE
 # =============================================================================
+
 
 class TestBountyOracle:
     """Tests for bounty calculation oracle."""
@@ -313,7 +321,9 @@ class TestBountyOracle:
         assert calculation.risk_bonus >= 0
         assert calculation.quality_bonus >= 0
 
-    def test_calculate_bounty_max_cap(self, bounty_oracle, proof_builder, entropy_before, entropy_after):
+    def test_calculate_bounty_max_cap(
+        self, bounty_oracle, proof_builder, entropy_before, entropy_after
+    ):
         """Bounty is capped at max_payout."""
         # Create proof with massive funds at risk
         proof = proof_builder.build(
@@ -371,6 +381,7 @@ class TestBountyOracle:
 # =============================================================================
 # HUNTER AGENT
 # =============================================================================
+
 
 class TestHunterAgent:
     """Tests for autonomous vulnerability hunter."""
@@ -447,6 +458,7 @@ class TestHunterSwarm:
 # BOUNTY BRIDGE
 # =============================================================================
 
+
 class TestBountyBridge:
     """Tests for bounty platform integration."""
 
@@ -510,6 +522,7 @@ class TestBountyBridge:
 # INTEGRATION
 # =============================================================================
 
+
 class TestIntegration:
     """End-to-end integration tests."""
 
@@ -530,7 +543,7 @@ class TestIntegration:
             chain="ethereum",
             name="VulnerableProtocol",
             tvl=2_000_000,
-            bytecode=bytes([0xf1, 0x55] * 100),  # CALL + SSTORE pattern
+            bytecode=bytes([0xF1, 0x55] * 100),  # CALL + SSTORE pattern
             abi=[{"type": "function", "name": "flashLoan", "inputs": []}],
         )
 
@@ -557,7 +570,9 @@ class TestIntegration:
             assert submission.proof.proof_id == proof.proof_id
 
     @pytest.mark.asyncio
-    async def test_payout_calculation_accuracy(self, signer, proof_builder, entropy_before, entropy_after):
+    async def test_payout_calculation_accuracy(
+        self, signer, proof_builder, entropy_before, entropy_after
+    ):
         """Verify payout calculation formula."""
         oracle = BountyOracle(signer, base_payout=500, max_payout=100_000)
 
@@ -570,9 +585,9 @@ class TestIntegration:
             description="Test",
             exploit_code=b"test",
             entropy_before=entropy_before,  # 3.5 total
-            entropy_after=entropy_after,    # 1.6 total
+            entropy_after=entropy_after,  # 1.6 total
             reproduction_steps=[],
-            funds_at_risk=10_000,           # $10K
+            funds_at_risk=10_000,  # $10K
             snr_score=0.95,
             ihsan_score=0.95,
         )

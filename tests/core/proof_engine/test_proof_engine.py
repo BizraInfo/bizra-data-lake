@@ -10,63 +10,64 @@ Tests all 4 deliverables:
 Plus the 6-Gate Chain implementation.
 """
 
-import pytest
 import time
 from datetime import datetime, timezone
 
+import pytest
+
 from core.proof_engine import (
-    PROOF_ENGINE_VERSION,
-    GATE_CHAIN,
-    PROOF_KPIS,
     DEFAULT_SNR_POLICY,
-)
-from core.proof_engine.canonical import (
-    CanonQuery,
-    CanonPolicy,
-    CanonEnvironment,
-    canonical_json,
-    canonical_bytes,
-    blake3_digest,
-    verify_determinism,
-)
-from core.proof_engine.snr import (
-    SNREngine,
-    SNRPolicy,
-    SNRInput,
-    SNRTrace,
-)
-from core.proof_engine.receipt import (
-    Receipt,
-    ReceiptStatus,
-    ReceiptBuilder,
-    ReceiptVerifier,
-    SimpleSigner,
-    Metrics,
-)
-from core.proof_engine.gates import (
-    GateChain,
-    GateResult,
-    GateChainResult,
-    GateStatus,
-    SchemaGate,
-    ProvenanceGate,
-    SNRGate,
-    ConstraintGate,
-    SafetyGate,
-    CommitGate,
+    GATE_CHAIN,
+    PROOF_ENGINE_VERSION,
+    PROOF_KPIS,
 )
 from core.proof_engine.bench import (
     BenchHarness,
-    BenchResult,
     BenchReceipt,
+    BenchResult,
     BenchSample,
     bench_to_receipt,
 )
-
+from core.proof_engine.canonical import (
+    CanonEnvironment,
+    CanonPolicy,
+    CanonQuery,
+    blake3_digest,
+    canonical_bytes,
+    canonical_json,
+    verify_determinism,
+)
+from core.proof_engine.gates import (
+    CommitGate,
+    ConstraintGate,
+    GateChain,
+    GateChainResult,
+    GateResult,
+    GateStatus,
+    ProvenanceGate,
+    SafetyGate,
+    SchemaGate,
+    SNRGate,
+)
+from core.proof_engine.receipt import (
+    Metrics,
+    Receipt,
+    ReceiptBuilder,
+    ReceiptStatus,
+    ReceiptVerifier,
+    SimpleSigner,
+)
+from core.proof_engine.snr import (
+    SNREngine,
+    SNRInput,
+    SNRPolicy,
+    SNRTrace,
+)
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def signer():
@@ -119,6 +120,7 @@ def gate_chain(signer):
 # =============================================================================
 # DELIVERABLE 1: DETERMINISTIC CANONICALIZATION
 # =============================================================================
+
 
 class TestDeterministicCanonicalization:
     """Tests for deterministic canonicalization."""
@@ -205,6 +207,7 @@ class TestDeterministicCanonicalization:
 # =============================================================================
 # DELIVERABLE 2: SNR SCORING AS VERIFIABLE FUNCTION
 # =============================================================================
+
 
 class TestSNRScoring:
     """Tests for SNR scoring with audit trail."""
@@ -318,6 +321,7 @@ class TestSNRScoring:
 # =============================================================================
 # DELIVERABLE 3: SIGNED REJECTION RECEIPTS
 # =============================================================================
+
 
 class TestSignedReceipts:
     """Tests for signed success/rejection receipts."""
@@ -459,6 +463,7 @@ class TestSignedReceipts:
 # DELIVERABLE 4: BENCH-AS-RECEIPT HARNESS
 # =============================================================================
 
+
 class TestBenchHarness:
     """Tests for benchmark-to-receipt harness."""
 
@@ -508,7 +513,7 @@ class TestBenchHarness:
         receipt = harness.bench_to_receipt(
             result,
             claimed_p99_us=1_000_000,  # 1 second
-            claimed_throughput=1,       # 1 op/sec
+            claimed_throughput=1,  # 1 op/sec
             claimed_allocs=1_000_000,
         )
 
@@ -525,7 +530,7 @@ class TestBenchHarness:
         # Claim impossible limits
         receipt = harness.bench_to_receipt(
             result,
-            claimed_p99_us=1,           # 1 microsecond
+            claimed_p99_us=1,  # 1 microsecond
             claimed_throughput=1_000_000,  # 1M ops/sec
             claimed_allocs=0,
         )
@@ -596,6 +601,7 @@ class TestBenchHarness:
 # =============================================================================
 # 6-GATE CHAIN
 # =============================================================================
+
 
 class TestGateChain:
     """Tests for the 6-gate execution chain."""
@@ -757,6 +763,7 @@ class TestIndividualGates:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for the complete proof engine."""

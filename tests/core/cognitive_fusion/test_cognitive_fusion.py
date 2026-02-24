@@ -17,13 +17,6 @@ Created: 2026-02-17 | BIZRA Node0 | Cognitive Fusion Phase
 
 from __future__ import annotations
 
-from core.integration.constants import (
-    SNR_THRESHOLD_T0_ELITE,
-    STRICT_IHSAN_THRESHOLD,
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-)
-
 from core.cognitive_fusion.complexity_adapter import ComplexityAdapter
 from core.cognitive_fusion.fusion_engine import (
     CognitiveFusionEngine,
@@ -32,7 +25,12 @@ from core.cognitive_fusion.fusion_engine import (
     NorthStarResult,
     RoutingResult,
 )
-
+from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
+    STRICT_IHSAN_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
 
 # =============================================================================
 # HELPERS

@@ -8,34 +8,19 @@ Validates:
 - Ecosystem integration
 """
 
-import pytest
 import asyncio
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-import tempfile
 
-# Living Memory
-from core.living_memory.core import (
-    LivingMemoryCore,
-    MemoryEntry,
-    MemoryType,
-    MemoryState,
-)
-from core.living_memory.proactive import (
-    ProactiveRetriever,
-    PredictionContext,
-)
-from core.living_memory.healing import (
-    MemoryHealer,
-    CorruptionType,
-)
+import pytest
 
 # Agentic System
 from core.agentic.agent import (
+    AgentState,
+    AgentTask,
     AutonomousAgent,
     SimpleAgent,
-    AgentTask,
-    AgentState,
     TaskPriority,
     TaskStatus,
 )
@@ -44,18 +29,34 @@ from core.agentic.orchestrator import (
     OrchestratorState,
 )
 
-# PAT Bridge
-from core.pat.bridge import (
-    PATBridge,
-    PATMessage,
-    MessageType,
-    ChannelType,
+# Living Memory
+from core.living_memory.core import (
+    LivingMemoryCore,
+    MemoryEntry,
+    MemoryState,
+    MemoryType,
+)
+from core.living_memory.healing import (
+    CorruptionType,
+    MemoryHealer,
+)
+from core.living_memory.proactive import (
+    PredictionContext,
+    ProactiveRetriever,
 )
 
+# PAT Bridge
+from core.pat.bridge import (
+    ChannelType,
+    MessageType,
+    PATBridge,
+    PATMessage,
+)
 
 # ============================================================================
 # LIVING MEMORY TESTS
 # ============================================================================
+
 
 class TestLivingMemoryCore:
     """Tests for living memory core."""
@@ -113,15 +114,15 @@ class TestLivingMemoryCore:
         # Encode some memories (longer content to pass quality filter)
         entry1 = await memory.encode(
             "Deep learning uses neural networks for pattern recognition and classification tasks.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
         entry2 = await memory.encode(
             "Machine learning algorithms learn patterns from training data to make predictions.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
         entry3 = await memory.encode(
             "Python is a programming language widely used for data science applications.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
 
         # Verify entries were created
@@ -146,7 +147,7 @@ class TestLivingMemoryCore:
         # Use longer content to pass quality filter
         entry = await memory.encode(
             "This is temporary information that will be forgotten soon after being stored.",
-            MemoryType.WORKING
+            MemoryType.WORKING,
         )
         assert entry is not None
 
@@ -287,11 +288,11 @@ class TestMemoryHealer:
         # Use longer content to pass quality filter
         await memory.encode(
             "This is the first test content for memory optimization testing purposes.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
         await memory.encode(
             "This is the second test content for memory optimization verification.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
 
         stats = await healer.optimize()
@@ -310,6 +311,7 @@ class TestMemoryHealer:
 # AGENTIC SYSTEM TESTS
 # ============================================================================
 
+
 class TestAutonomousAgent:
     """Tests for autonomous agents."""
 
@@ -327,6 +329,7 @@ class TestAutonomousAgent:
 
     def test_register_tool(self, agent):
         """Test tool registration."""
+
         def dummy_tool(x: int) -> int:
             return x * 2
 
@@ -445,6 +448,7 @@ class TestAgentOrchestrator:
 # PAT BRIDGE TESTS
 # ============================================================================
 
+
 class TestPATBridge:
     """Tests for PAT bridge."""
 
@@ -458,6 +462,7 @@ class TestPATBridge:
 
     def test_register_tool(self, bridge):
         """Test tool registration."""
+
         def echo(text: str) -> str:
             return text
 
@@ -502,16 +507,19 @@ class TestPATBridge:
 # INTEGRATION TESTS
 # ============================================================================
 
+
 class TestLivingEcosystemIntegration:
     """Integration tests for the living ecosystem."""
 
     @pytest.fixture
     def mock_llm(self):
         """Simple mock LLM for testing."""
+
         def llm_fn(prompt: str) -> str:
             if "safe" in prompt.lower() or "evaluate" in prompt.lower():
                 return "YES"
             return f"Response to: {prompt[:50]}..."
+
         return llm_fn
 
     @pytest.mark.asyncio
@@ -542,7 +550,7 @@ class TestLivingEcosystemIntegration:
         # Check memory is accessible (use longer content)
         await memory.encode(
             "This is integration test content for verifying memory and agent integration works correctly.",
-            MemoryType.SEMANTIC
+            MemoryType.SEMANTIC,
         )
         stats = memory.get_stats()
         assert stats.total_entries >= 1

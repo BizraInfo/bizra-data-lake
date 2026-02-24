@@ -10,36 +10,39 @@ Validates that all components work together correctly:
 "We do not assume. We verify with formal proofs."
 """
 
-import pytest
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from core.sovereign.capability_card import (
-    CapabilityCard,
-    ModelTier,
-    TaskType,
-    CardIssuer,
-    create_capability_card,
-    verify_capability_card,
     IHSAN_THRESHOLD,
     SNR_THRESHOLD,
-)
-from core.sovereign.model_license_gate import (
-    ModelLicenseGate,
-    InMemoryRegistry,
-    GateChain,
-    create_gate_chain,
+    CapabilityCard,
+    CardIssuer,
+    ModelTier,
+    TaskType,
+    create_capability_card,
+    verify_capability_card,
 )
 from core.sovereign.integration import (
-    SovereignRuntime,
-    SovereignConfig,
-    NetworkMode,
     InferenceRequest,
+    NetworkMode,
+    SovereignConfig,
+    SovereignRuntime,
     create_sovereign_runtime,
+)
+from core.sovereign.model_license_gate import (
+    GateChain,
+    InMemoryRegistry,
+    ModelLicenseGate,
+    create_gate_chain,
 )
 
 
@@ -62,9 +65,13 @@ class TestInterfaceConsistency:
     def test_task_types_complete(self):
         """Verify all task types are defined."""
         expected_tasks = [
-            "reasoning", "chat", "summarization",
-            "code_generation", "translation",
-            "classification", "embedding"
+            "reasoning",
+            "chat",
+            "summarization",
+            "code_generation",
+            "translation",
+            "classification",
+            "embedding",
         ]
         for task in expected_tasks:
             assert TaskType(task), f"TaskType.{task} should exist"
@@ -198,21 +205,25 @@ class TestGateChainIntegration:
         chain = create_gate_chain()
 
         # Empty content should fail at SCHEMA (first gate)
-        result = chain.validate_output({
-            "content": "",
-            "model_id": "",
-            "ihsan_score": 0.97,
-            "snr_score": 0.90,
-        })
+        result = chain.validate_output(
+            {
+                "content": "",
+                "model_id": "",
+                "ihsan_score": 0.97,
+                "snr_score": 0.90,
+            }
+        )
         assert result["gate_name"] == "SCHEMA"
 
         # Valid schema but low SNR should fail at SNR (second gate)
-        result = chain.validate_output({
-            "content": "Some content",
-            "model_id": "test",
-            "ihsan_score": 0.97,
-            "snr_score": 0.50,
-        })
+        result = chain.validate_output(
+            {
+                "content": "Some content",
+                "model_id": "test",
+                "ihsan_score": 0.97,
+                "snr_score": 0.50,
+            }
+        )
         assert result["gate_name"] == "SNR"
 
 
@@ -391,7 +402,7 @@ class TestThresholdEnforcement:
             model_id="threshold-exact",
             tier=ModelTier.LOCAL,
             ihsan_score=IHSAN_THRESHOLD,  # Exactly 0.95
-            snr_score=SNR_THRESHOLD,      # Exactly 0.85
+            snr_score=SNR_THRESHOLD,  # Exactly 0.85
             tasks_supported=[TaskType.CHAT],
         )
         assert card.capabilities.ihsan_score == 0.95

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,19 +28,15 @@ PATH_SKIP_PARTS = {
     ".pytest_cache/",
 }
 
-ASSIGNMENT_RE = re.compile(
-    r"""(?ix)
+ASSIGNMENT_RE = re.compile(r"""(?ix)
     \b(api[_-]?token|api[_-]?key|access[_-]?token|secret|password)\b
     \s*[:=]\s*
     ["']([^"'\n]{8,})["']
-    """
-)
+    """)
 
-HIGH_ENTROPY_RE = re.compile(
-    r"""(?ix)
+HIGH_ENTROPY_RE = re.compile(r"""(?ix)
     (sk-[a-z0-9:_-]{16,}|gh[pousr]_[a-z0-9]{20,}|xox[baprs]-[a-z0-9-]{20,})
-    """
-)
+    """)
 
 
 def tracked_files() -> list[Path]:

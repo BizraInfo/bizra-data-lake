@@ -10,24 +10,25 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 
 from core.pci.envelope import (
-    PCIEnvelope,
-    EnvelopeSender,
-    EnvelopePayload,
-    EnvelopeMetadata,
-    AgentType,
-    MAX_MESSAGE_AGE_SECONDS,
     MAX_FUTURE_TIMESTAMP_SECONDS,
+    MAX_MESSAGE_AGE_SECONDS,
+    AgentType,
+    EnvelopeMetadata,
+    EnvelopePayload,
+    EnvelopeSender,
+    PCIEnvelope,
     _seen_nonces,
 )
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def valid_envelope():
@@ -35,7 +36,7 @@ def valid_envelope():
     return PCIEnvelope(
         version="1.0.0",
         envelope_id="test-envelope-001",
-        timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         nonce="unique_nonce_12345",
         sender=EnvelopeSender(
             agent_type=AgentType.PAT,
@@ -68,6 +69,7 @@ def clear_nonce_cache():
 # TIMESTAMP VALIDATION TESTS
 # =============================================================================
 
+
 class TestTimestampValidation:
     """Test timestamp-based replay protection."""
 
@@ -77,22 +79,26 @@ class TestTimestampValidation:
 
     def test_old_message_expired(self, valid_envelope):
         """Message older than MAX_MESSAGE_AGE_SECONDS should be expired."""
-        old_time = datetime.now(timezone.utc) - timedelta(seconds=MAX_MESSAGE_AGE_SECONDS + 60)
-        valid_envelope.timestamp = old_time.isoformat().replace('+00:00', 'Z')
+        old_time = datetime.now(timezone.utc) - timedelta(
+            seconds=MAX_MESSAGE_AGE_SECONDS + 60
+        )
+        valid_envelope.timestamp = old_time.isoformat().replace("+00:00", "Z")
 
         assert valid_envelope.is_expired() is True
 
     def test_future_message_expired(self, valid_envelope):
         """Message from too far in future should be rejected (time-travel attack)."""
-        future_time = datetime.now(timezone.utc) + timedelta(seconds=MAX_FUTURE_TIMESTAMP_SECONDS + 60)
-        valid_envelope.timestamp = future_time.isoformat().replace('+00:00', 'Z')
+        future_time = datetime.now(timezone.utc) + timedelta(
+            seconds=MAX_FUTURE_TIMESTAMP_SECONDS + 60
+        )
+        valid_envelope.timestamp = future_time.isoformat().replace("+00:00", "Z")
 
         assert valid_envelope.is_expired() is True
 
     def test_slightly_future_message_ok(self, valid_envelope):
         """Message slightly in future (within tolerance) should be accepted."""
         future_time = datetime.now(timezone.utc) + timedelta(seconds=10)
-        valid_envelope.timestamp = future_time.isoformat().replace('+00:00', 'Z')
+        valid_envelope.timestamp = future_time.isoformat().replace("+00:00", "Z")
 
         assert valid_envelope.is_expired() is False
 
@@ -113,6 +119,7 @@ class TestTimestampValidation:
 # NONCE REPLAY TESTS
 # =============================================================================
 
+
 class TestNonceReplayProtection:
     """Test nonce-based replay protection."""
 
@@ -129,7 +136,7 @@ class TestNonceReplayProtection:
         replay_envelope = PCIEnvelope(
             version="1.0.0",
             envelope_id="different-id",
-            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             nonce=valid_envelope.nonce,  # Same nonce!
             sender=valid_envelope.sender,
             payload=valid_envelope.payload,
@@ -153,6 +160,7 @@ class TestNonceReplayProtection:
 # COMBINED FRESHNESS VALIDATION TESTS
 # =============================================================================
 
+
 class TestFreshnessValidation:
     """Test combined timestamp + nonce validation."""
 
@@ -165,8 +173,10 @@ class TestFreshnessValidation:
 
     def test_expired_message_fails(self, valid_envelope):
         """Expired message should fail validation."""
-        old_time = datetime.now(timezone.utc) - timedelta(seconds=MAX_MESSAGE_AGE_SECONDS + 60)
-        valid_envelope.timestamp = old_time.isoformat().replace('+00:00', 'Z')
+        old_time = datetime.now(timezone.utc) - timedelta(
+            seconds=MAX_MESSAGE_AGE_SECONDS + 60
+        )
+        valid_envelope.timestamp = old_time.isoformat().replace("+00:00", "Z")
 
         is_valid, error = valid_envelope.validate_freshness()
 
@@ -183,7 +193,7 @@ class TestFreshnessValidation:
         replay_envelope = PCIEnvelope(
             version="1.0.0",
             envelope_id="different-id",
-            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             nonce=valid_envelope.nonce,  # Same nonce
             sender=valid_envelope.sender,
             payload=valid_envelope.payload,
@@ -200,6 +210,7 @@ class TestFreshnessValidation:
 # =============================================================================
 # ATTACK SCENARIO TESTS
 # =============================================================================
+
 
 class TestAttackScenarios:
     """Test real-world attack scenarios."""
@@ -234,7 +245,7 @@ class TestAttackScenarios:
         """
         # Attacker sets timestamp 1 hour in future
         future_time = datetime.now(timezone.utc) + timedelta(hours=1)
-        valid_envelope.timestamp = future_time.isoformat().replace('+00:00', 'Z')
+        valid_envelope.timestamp = future_time.isoformat().replace("+00:00", "Z")
 
         is_valid, error = valid_envelope.validate_freshness()
 
@@ -248,7 +259,7 @@ class TestAttackScenarios:
         """
         # Node with clock 20 seconds ahead
         slightly_future = datetime.now(timezone.utc) + timedelta(seconds=20)
-        valid_envelope.timestamp = slightly_future.isoformat().replace('+00:00', 'Z')
+        valid_envelope.timestamp = slightly_future.isoformat().replace("+00:00", "Z")
 
         is_valid, _ = valid_envelope.validate_freshness()
         assert is_valid is True

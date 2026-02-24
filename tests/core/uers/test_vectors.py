@@ -18,7 +18,6 @@ from core.uers.vectors import (
     VectorType,
 )
 
-
 # ---------------------------------------------------------------------------
 # FIXTURES
 # ---------------------------------------------------------------------------
@@ -256,6 +255,7 @@ class TestManifoldState:
 
     def test_get_manifold_state(self, manifold):
         from core.uers.entropy import ManifoldState
+
         state = manifold.get_manifold_state()
         assert isinstance(state, ManifoldState)
 

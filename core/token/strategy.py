@@ -66,9 +66,7 @@ def update_strategy(
     adaptive_alpha = max(adaptive_alpha, strategy.ema_alpha)
 
     ema = adaptive_alpha * bounded_reward + (1.0 - adaptive_alpha) * strategy.ema_reward
-    raw_complexity = ctx.get(
-        "task_complexity", ctx.get("complexity", 0.5)
-    )
+    raw_complexity = ctx.get("task_complexity", ctx.get("complexity", 0.5))
     complexity = max(0.0, min(1.0, float(raw_complexity)))
 
     temperature = strategy.temperature
@@ -171,9 +169,7 @@ async def load_strategy(memory: Any, agent_id: str) -> AgentStrategy:
 
         if candidates:
             candidates.sort(
-                key=lambda e: getattr(
-                    e, "created_at", datetime.min
-                ),
+                key=lambda e: getattr(e, "created_at", datetime.min),
                 reverse=True,
             )
             prefix = f"{_STRATEGY_PREFIX}{agent_id}:"

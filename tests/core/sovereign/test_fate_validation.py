@@ -23,60 +23,61 @@ Test Categories:
 from __future__ import annotations
 
 import math
-import pytest
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
-from unittest.mock import Mock, patch, MagicMock
-import os
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Import from authoritative constants
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
+    ADL_GINI_THRESHOLD,
     IHSAN_THRESHOLD,
-    IHSAN_THRESHOLD_PRODUCTION,
-    IHSAN_THRESHOLD_STAGING,
     IHSAN_THRESHOLD_CI,
     IHSAN_THRESHOLD_DEV,
-    STRICT_IHSAN_THRESHOLD,
-    RUNTIME_IHSAN_THRESHOLD,
+    IHSAN_THRESHOLD_PRODUCTION,
+    IHSAN_THRESHOLD_STAGING,
     IHSAN_WEIGHTS,
-    UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD,
-    ADL_GINI_THRESHOLD,
     PILLAR_1_RUNTIME_IHSAN,
     PILLAR_2_MUSEUM_SNR_FLOOR,
     PILLAR_3_SANDBOX_SNR_FLOOR,
+    RUNTIME_IHSAN_THRESHOLD,
+    SNR_THRESHOLD,
+    STRICT_IHSAN_THRESHOLD,
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+)
+
+# Import from Adl invariant
+from core.sovereign.adl_invariant import ADL_GINI_THRESHOLD as ADL_MODULE_GINI_THRESHOLD
+from core.sovereign.adl_invariant import (
+    HARBERGER_TAX_RATE,
+    MINIMUM_HOLDING,
+    UBC_POOL_ID,
+    AdlGate,
+    AdlInvariant,
+    AdlRejectCode,
+    AdlValidationResult,
+    Transaction,
+    assert_adl_invariant,
+    calculate_gini,
+    calculate_gini_components,
 )
 
 # Import from Z3 FATE gate
 from core.sovereign.z3_fate_gate import (
-    Z3FATEGate,
-    Z3Constraint,
-    Z3Proof,
     Z3_AVAILABLE,
+    Z3Constraint,
+    Z3FATEGate,
+    Z3Proof,
 )
-
-# Import from Adl invariant
-from core.sovereign.adl_invariant import (
-    AdlInvariant,
-    AdlGate,
-    AdlRejectCode,
-    AdlValidationResult,
-    Transaction,
-    calculate_gini,
-    calculate_gini_components,
-    assert_adl_invariant,
-    ADL_GINI_THRESHOLD as ADL_MODULE_GINI_THRESHOLD,
-    HARBERGER_TAX_RATE,
-    MINIMUM_HOLDING,
-    UBC_POOL_ID,
-)
-
 
 # =============================================================================
 # TEST FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def z3_gate():
@@ -130,6 +131,7 @@ def high_inequality_holdings():
 # =============================================================================
 # 1. IHSAN THRESHOLD TESTS
 # =============================================================================
+
 
 class TestIhsanThresholds:
     """
@@ -228,6 +230,7 @@ class TestIhsanThresholds:
 # 2. DIMENSION INTEGRITY TESTS
 # =============================================================================
 
+
 class TestDimensionIntegrity:
     """
     Tests for 8-dimensional ethical scoring integrity.
@@ -252,9 +255,9 @@ class TestDimensionIntegrity:
         }
 
         actual_dimensions = set(IHSAN_WEIGHTS.keys())
-        assert actual_dimensions == required_dimensions, (
-            f"Missing dimensions: {required_dimensions - actual_dimensions}"
-        )
+        assert (
+            actual_dimensions == required_dimensions
+        ), f"Missing dimensions: {required_dimensions - actual_dimensions}"
 
     def test_dimension_reduction_attack_blocked(self):
         """Attempts to reduce dimension count must be blocked."""
@@ -267,17 +270,21 @@ class TestDimensionIntegrity:
         min_weight = min(IHSAN_WEIGHTS.values())
 
         # No single dimension should have more than 50% weight
-        assert max_weight <= 0.5, f"Dimension concentration attack: max weight {max_weight}"
+        assert (
+            max_weight <= 0.5
+        ), f"Dimension concentration attack: max weight {max_weight}"
 
         # Minimum dimension should have meaningful weight (>= 1%)
-        assert min_weight >= 0.01, f"Dimension elimination attack: min weight {min_weight}"
+        assert (
+            min_weight >= 0.01
+        ), f"Dimension elimination attack: min weight {min_weight}"
 
     def test_weights_sum_to_1(self):
         """Dimension weights must sum to exactly 1.0 (probability constraint)."""
         total_weight = sum(IHSAN_WEIGHTS.values())
-        assert total_weight == pytest.approx(1.0, abs=1e-9), (
-            f"Weights sum to {total_weight}, not 1.0"
-        )
+        assert total_weight == pytest.approx(
+            1.0, abs=1e-9
+        ), f"Weights sum to {total_weight}, not 1.0"
 
     def test_weight_distribution_fairness(self):
         """Weight distribution should not be excessively skewed."""
@@ -293,9 +300,9 @@ class TestDimensionIntegrity:
         weight_gini = max(0.0, min(1.0, weight_gini))
 
         # Weight Gini should be moderate (not too concentrated)
-        assert weight_gini <= 0.40, (
-            f"Weight distribution too unequal: Gini = {weight_gini:.3f}"
-        )
+        assert (
+            weight_gini <= 0.40
+        ), f"Weight distribution too unequal: Gini = {weight_gini:.3f}"
 
     def test_critical_dimensions_have_adequate_weight(self):
         """Safety and correctness must have substantial weights."""
@@ -305,20 +312,21 @@ class TestDimensionIntegrity:
         for dim in critical_dimensions:
             weight = IHSAN_WEIGHTS[dim]
             # Critical dimensions should have at least 10% weight
-            assert weight >= 0.10, (
-                f"Critical dimension {dim} has insufficient weight: {weight}"
-            )
+            assert (
+                weight >= 0.10
+            ), f"Critical dimension {dim} has insufficient weight: {weight}"
 
         # Combined critical weight should be significant
         critical_weight = sum(IHSAN_WEIGHTS[d] for d in critical_dimensions)
-        assert critical_weight >= 0.30, (
-            f"Combined critical dimension weight too low: {critical_weight}"
-        )
+        assert (
+            critical_weight >= 0.30
+        ), f"Combined critical dimension weight too low: {critical_weight}"
 
 
 # =============================================================================
 # 3. ADL (JUSTICE) INVARIANT TESTS
 # =============================================================================
+
 
 class TestAdlInvariant:
     """
@@ -341,9 +349,9 @@ class TestAdlInvariant:
         current_gini = calculate_gini(moderate_holdings)
 
         # Moderate holdings should be below threshold
-        assert current_gini <= ADL_GINI_THRESHOLD, (
-            f"Test fixture has Gini {current_gini:.3f} above threshold"
-        )
+        assert (
+            current_gini <= ADL_GINI_THRESHOLD
+        ), f"Test fixture has Gini {current_gini:.3f} above threshold"
 
         # Create a transaction that would push Gini above threshold
         # Concentrate wealth to the whale
@@ -359,11 +367,13 @@ class TestAdlInvariant:
         extreme_gini = calculate_gini(extreme_holdings)
 
         # This extreme distribution should exceed threshold
-        assert extreme_gini > ADL_GINI_THRESHOLD, (
-            f"Extreme holdings Gini {extreme_gini:.3f} should exceed threshold"
-        )
+        assert (
+            extreme_gini > ADL_GINI_THRESHOLD
+        ), f"Extreme holdings Gini {extreme_gini:.3f} should exceed threshold"
 
-    def test_anti_centralization_enforced(self, adl_invariant, high_inequality_holdings):
+    def test_anti_centralization_enforced(
+        self, adl_invariant, high_inequality_holdings
+    ):
         """
         Transactions that would centralize wealth must be blocked.
         """
@@ -399,9 +409,9 @@ class TestAdlInvariant:
         post_gini = calculate_gini(new_holdings)
 
         # Redistribution must reduce or maintain inequality
-        assert post_gini <= pre_gini, (
-            f"Redistribution increased Gini from {pre_gini:.4f} to {post_gini:.4f}"
-        )
+        assert (
+            post_gini <= pre_gini
+        ), f"Redistribution increased Gini from {pre_gini:.4f} to {post_gini:.4f}"
 
     def test_gini_calculation_correctness(self):
         """Verify Gini calculation against known values."""
@@ -443,6 +453,7 @@ class TestAdlInvariant:
 # =============================================================================
 # 4. Z3 SMT INTEGRATION TESTS
 # =============================================================================
+
 
 class TestZ3SMTIntegration:
     """
@@ -597,6 +608,7 @@ class TestZ3SMTIntegration:
 # 5. 9-PROBE DEFENSE MATRIX TESTS
 # =============================================================================
 
+
 class TestProbeDefenseMatrix:
     """
     Tests for the 9-Probe Defense Matrix.
@@ -706,9 +718,9 @@ class TestProbeDefenseMatrix:
 
                 # Invariant 1: Gini must stay below threshold
                 current_gini = calculate_gini(state)
-                assert current_gini <= ADL_GINI_THRESHOLD, (
-                    f"Gini invariant violated after transaction {i}"
-                )
+                assert (
+                    current_gini <= ADL_GINI_THRESHOLD
+                ), f"Gini invariant violated after transaction {i}"
 
                 # Invariant 2: All balances non-negative
                 for node, balance in state.items():
@@ -747,9 +759,9 @@ class TestProbeDefenseMatrix:
         assert elapsed < 1.0, f"100 proofs took {elapsed:.2f}s"
 
         # Individual proof should have reasonable timing
-        assert proof.generation_time_ms < 100, (
-            f"Single proof took {proof.generation_time_ms}ms"
-        )
+        assert (
+            proof.generation_time_ms < 100
+        ), f"Single proof took {proof.generation_time_ms}ms"
 
     def test_privacy_probe(self, adl_invariant, equal_holdings):
         """
@@ -773,9 +785,17 @@ class TestProbeDefenseMatrix:
         for key in details:
             if "balance" in key.lower():
                 # Only sender/recipient balances should be exposed
-                assert "sender" in key or "recipient" in key or key in ["sender_balance", "recipient_balance", "sender_post_balance", "recipient_post_balance"], (
-                    f"Privacy leak: {key} exposes non-participant data"
-                )
+                assert (
+                    "sender" in key
+                    or "recipient" in key
+                    or key
+                    in [
+                        "sender_balance",
+                        "recipient_balance",
+                        "sender_post_balance",
+                        "recipient_post_balance",
+                    ]
+                ), f"Privacy leak: {key} exposes non-participant data"
 
     def test_sycophancy_probe(self, z3_gate):
         """
@@ -841,9 +861,9 @@ class TestProbeDefenseMatrix:
         }
 
         for node, expected in expected_balances.items():
-            assert state[node] == pytest.approx(expected, abs=1e-9), (
-                f"Causal violation: {node} has {state[node]}, expected {expected}"
-            )
+            assert state[node] == pytest.approx(
+                expected, abs=1e-9
+            ), f"Causal violation: {node} has {state[node]}, expected {expected}"
 
     def test_hallucination_probe(self, z3_gate, adl_invariant):
         """
@@ -871,7 +891,10 @@ class TestProbeDefenseMatrix:
 
         proof = z3_gate.generate_proof(impossible_context)
         assert proof.satisfiable is False  # Resource constraint violated
-        assert "cost" in proof.counterexample.lower() or "limit" in proof.counterexample.lower()
+        assert (
+            "cost" in proof.counterexample.lower()
+            or "limit" in proof.counterexample.lower()
+        )
 
         # Test 3: Adl invariant rejects negative transaction amounts
         with pytest.raises(ValueError, match="cannot be negative"):
@@ -933,6 +956,7 @@ class TestProbeDefenseMatrix:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestFATEIntegration:
     """Integration tests combining multiple FATE components."""
@@ -996,6 +1020,7 @@ class TestFATEIntegration:
 # =============================================================================
 # STRESS TESTS
 # =============================================================================
+
 
 class TestFATEStress:
     """Stress tests for FATE validation under load."""

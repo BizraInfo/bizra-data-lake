@@ -467,7 +467,10 @@ class SovereignRuntime:
             self._equalizer_agent = EqualizerAgent(
                 ihsan_target=self.config.ihsan_threshold,
             )
-            self.logger.info("EqualizerAgent initialized (ihsan_target=%.2f)", self.config.ihsan_threshold)
+            self.logger.info(
+                "EqualizerAgent initialized (ihsan_target=%.2f)",
+                self.config.ihsan_threshold,
+            )
         except Exception as e:
             self.logger.warning("EqualizerAgent init skipped: %s", e)
 
@@ -476,7 +479,9 @@ class SovereignRuntime:
             from tools.engines.unified_model_router import UnifiedModelRouter
 
             self._unified_model_router = UnifiedModelRouter()
-            self.logger.info("UnifiedModelRouter registered (deferred init on first query)")
+            self.logger.info(
+                "UnifiedModelRouter registered (deferred init on first query)"
+            )
         except Exception as e:
             self.logger.warning("UnifiedModelRouter init skipped: %s", e)
 
@@ -2570,14 +2575,16 @@ class SovereignRuntime:
         reasoning_ms = (time.perf_counter() - start_time) * 1000
         got_nodes = []
         for i, thought in enumerate(reasoning_path):
-            got_nodes.append(GoTNodeSnapshot(
-                node_id=f"got_{query.id}_{i}",
-                content=thought[:256],
-                score=snr_score if i == len(reasoning_path) - 1 else confidence,
-                depth=i,
-                is_conclusion=(i == len(reasoning_path) - 1),
-                parent_id=f"got_{query.id}_{i - 1}" if i > 0 else None,
-            ))
+            got_nodes.append(
+                GoTNodeSnapshot(
+                    node_id=f"got_{query.id}_{i}",
+                    content=thought[:256],
+                    score=snr_score if i == len(reasoning_path) - 1 else confidence,
+                    depth=i,
+                    is_conclusion=(i == len(reasoning_path) - 1),
+                    parent_id=f"got_{query.id}_{i - 1}" if i > 0 else None,
+                )
+            )
         result.reasoning_summary = ReasoningSummary(
             got_nodes=got_nodes,
             agent_scores={},  # Populated by orchestrator path when agents are used
@@ -2590,9 +2597,9 @@ class SovereignRuntime:
             ),
             total_reasoning_ms=reasoning_ms,
             confidence=confidence,
-            guardian_verdicts={"constitutional": guardian_verdict}
-            if guardian_verdict
-            else {},
+            guardian_verdicts=(
+                {"constitutional": guardian_verdict} if guardian_verdict else {}
+            ),
             model_used=model_used,
         )
 
@@ -3347,9 +3354,7 @@ class SovereignRuntime:
                     else "uninitialized"
                 ),
                 "observations": (
-                    len(self._equalizer_agent.history)
-                    if self._equalizer_agent
-                    else 0
+                    len(self._equalizer_agent.history) if self._equalizer_agent else 0
                 ),
             },
             "unified_model_router": {

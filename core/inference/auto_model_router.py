@@ -97,7 +97,9 @@ class AutoModelRouter:
 
         Returns ``{model_id: loaded_ok}`` status dict.
         """
-        from core.inference.model_routing import resolve_model_for_agent as _resolve_model_for_agent
+        from core.inference.model_routing import (
+            resolve_model_for_agent as _resolve_model_for_agent,
+        )
 
         # Resolve unique models needed
         model_for_agent: Dict[str, str] = {}

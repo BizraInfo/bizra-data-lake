@@ -28,7 +28,9 @@ try:
 except ImportError:
     HAS_CRYPTO = False
 
-pytestmark = pytest.mark.skipif(not HAS_CRYPTO, reason="cryptography package not installed")
+pytestmark = pytest.mark.skipif(
+    not HAS_CRYPTO, reason="cryptography package not installed"
+)
 
 
 @pytest.fixture
@@ -52,7 +54,10 @@ def tmp_config(tmp_path):
 @pytest.fixture
 def runtime(tmp_config):
     """Create a SovereignRuntime with temporary config."""
-    with patch("core.sovereign.integration_runtime.SovereignConfig.from_env", return_value=tmp_config):
+    with patch(
+        "core.sovereign.integration_runtime.SovereignConfig.from_env",
+        return_value=tmp_config,
+    ):
         from core.sovereign.integration_runtime import SovereignRuntime
 
         rt = SovereignRuntime(config=tmp_config)
@@ -80,13 +85,17 @@ class TestKeypairSecurity:
         assert vault_idx.exists(), "Vault index should be created"
 
         # Plaintext file must NOT exist
-        assert not tmp_config.keypair_path.exists(), "Plaintext keypair.json must not exist"
+        assert (
+            not tmp_config.keypair_path.exists()
+        ), "Plaintext keypair.json must not exist"
 
         # Keys must be valid
         assert len(private_key) >= 64
         assert len(public_key) >= 64
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="chmod not effective on Windows")
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="chmod not effective on Windows"
+    )
     def test_vault_permissions_hardened(self, runtime, tmp_config):
         """Vault index file must have 0o600 permissions."""
         vault_secret = "test-vault-secret-for-perms"
@@ -120,7 +129,9 @@ class TestKeypairSecurity:
         assert loaded_public == public_key
 
         # Plaintext file must be deleted
-        assert not tmp_config.keypair_path.exists(), "Plaintext file should be deleted after migration"
+        assert (
+            not tmp_config.keypair_path.exists()
+        ), "Plaintext file should be deleted after migration"
 
         # Vault must exist
         vault_dir = tmp_config.keypair_path.parent / ".vault"

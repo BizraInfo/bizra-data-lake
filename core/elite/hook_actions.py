@@ -102,9 +102,7 @@ def action_health_check(data: dict[str, Any]) -> dict[str, Any]:
 def action_memory_save(data: dict[str, Any]) -> dict[str, Any]:
     """Save session memory state."""
     include_learnings = data.get("metadata", {}).get("include_learnings", True)
-    logger.info(
-        f"[hook:memory_save] Saving memory (learnings={include_learnings})"
-    )
+    logger.info(f"[hook:memory_save] Saving memory (learnings={include_learnings})")
     data.setdefault("metadata", {})["memory_saved"] = True
     return data
 
@@ -250,9 +248,7 @@ def action_task_estimate(data: dict[str, Any]) -> dict[str, Any]:
 def action_task_dependency_check(data: dict[str, Any]) -> dict[str, Any]:
     """Check task dependencies for blockers."""
     warn_if_blocked = data.get("metadata", {}).get("warn_if_blocked", True)
-    logger.info(
-        f"[hook:task_dependency_check] Checking deps (warn={warn_if_blocked})"
-    )
+    logger.info(f"[hook:task_dependency_check] Checking deps (warn={warn_if_blocked})")
     data.setdefault("metadata", {})["dependencies_checked"] = True
     return data
 
@@ -278,9 +274,7 @@ def action_agent_notify(data: dict[str, Any]) -> dict[str, Any]:
 def action_task_cascade(data: dict[str, Any]) -> dict[str, Any]:
     """Cascade task completion to update dependents."""
     unblock_dependents = data.get("metadata", {}).get("unblock_dependents", True)
-    logger.info(
-        f"[hook:task_cascade] Cascading (unblock={unblock_dependents})"
-    )
+    logger.info(f"[hook:task_cascade] Cascading (unblock={unblock_dependents})")
     data.setdefault("metadata", {})["task_cascaded"] = True
     return data
 
@@ -330,9 +324,7 @@ def action_change_track(data: dict[str, Any]) -> dict[str, Any]:
 def action_quality_check(data: dict[str, Any]) -> dict[str, Any]:
     """Check code quality metrics."""
     warn_on_degradation = data.get("metadata", {}).get("warn_on_degradation", True)
-    logger.info(
-        f"[hook:quality_check] Checking quality (warn={warn_on_degradation})"
-    )
+    logger.info(f"[hook:quality_check] Checking quality (warn={warn_on_degradation})")
     data.setdefault("metadata", {})["quality_checked"] = True
     return data
 

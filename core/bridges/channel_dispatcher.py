@@ -121,9 +121,7 @@ class ChannelDispatcher:
 
         if self._needs_channel(Channel.DESKTOP, lower):
             browser_ids = [
-                task.id
-                for task in subtasks
-                if task.channel is Channel.BROWSER
+                task.id for task in subtasks if task.channel is Channel.BROWSER
             ]
             subtasks.append(
                 SubTask(
@@ -194,10 +192,7 @@ class ChannelDispatcher:
             ready = [
                 task
                 for task in pending
-                if all(
-                    dep in completed
-                    for dep in task.depends_on
-                )
+                if all(dep in completed for dep in task.depends_on)
             ]
             if not ready:
                 ready = pending[:1]

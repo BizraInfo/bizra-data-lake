@@ -15,30 +15,31 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-001: "6 gates, fail fast, fail closed"
 """
 
-import pytest
 from datetime import datetime, timezone
 
-from core.proof_engine.canonical import CanonQuery, CanonPolicy
-from core.proof_engine.gates import (
-    Gate,
-    GateStatus,
-    GateResult,
-    GateChainResult,
-    GateChain,
-    SchemaGate,
-    ProvenanceGate,
-    SNRGate,
-    ConstraintGate,
-    SafetyGate,
-    CommitGate,
-)
-from core.proof_engine.receipt import SimpleSigner, ReceiptStatus
-from core.proof_engine.snr import SNREngine, SNRInput, SNRPolicy
+import pytest
 
+from core.proof_engine.canonical import CanonPolicy, CanonQuery
+from core.proof_engine.gates import (
+    CommitGate,
+    ConstraintGate,
+    Gate,
+    GateChain,
+    GateChainResult,
+    GateResult,
+    GateStatus,
+    ProvenanceGate,
+    SafetyGate,
+    SchemaGate,
+    SNRGate,
+)
+from core.proof_engine.receipt import ReceiptStatus, SimpleSigner
+from core.proof_engine.snr import SNREngine, SNRInput, SNRPolicy
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def query():
@@ -88,6 +89,7 @@ def signer():
 # GATE STATUS
 # =============================================================================
 
+
 class TestGateStatus:
     """Tests for GateStatus enum."""
 
@@ -102,6 +104,7 @@ class TestGateStatus:
 # =============================================================================
 # GATE RESULT
 # =============================================================================
+
 
 class TestGateResult:
     """Tests for GateResult dataclass."""
@@ -119,8 +122,11 @@ class TestGateResult:
     def test_to_dict_shape(self):
         """to_dict() has expected keys."""
         r = GateResult(
-            gate_name="schema", status=GateStatus.PASSED,
-            duration_us=100, reason=None, evidence={"key": "val"},
+            gate_name="schema",
+            status=GateStatus.PASSED,
+            duration_us=100,
+            reason=None,
+            evidence={"key": "val"},
         )
         d = r.to_dict()
         assert d["gate_name"] == "schema"
@@ -145,22 +151,29 @@ class TestGateResult:
 # GATE CHAIN RESULT
 # =============================================================================
 
+
 class TestGateChainResult:
     """Tests for GateChainResult dataclass."""
 
     def test_passed_property(self, query, policy):
         """passed is True when final_status is PASSED."""
         r = GateChainResult(
-            query=query, policy=policy, gate_results=[],
-            final_status=GateStatus.PASSED, last_gate_passed="commit",
+            query=query,
+            policy=policy,
+            gate_results=[],
+            final_status=GateStatus.PASSED,
+            last_gate_passed="commit",
         )
         assert r.passed is True
 
     def test_failed_property(self, query, policy):
         """passed is False when final_status is FAILED."""
         r = GateChainResult(
-            query=query, policy=policy, gate_results=[],
-            final_status=GateStatus.FAILED, last_gate_passed="schema",
+            query=query,
+            policy=policy,
+            gate_results=[],
+            final_status=GateStatus.FAILED,
+            last_gate_passed="schema",
             rejection_reason="Missing field",
         )
         assert r.passed is False
@@ -168,9 +181,13 @@ class TestGateChainResult:
     def test_to_dict_shape(self, query, policy):
         """to_dict() includes query/policy digests."""
         r = GateChainResult(
-            query=query, policy=policy, gate_results=[],
-            final_status=GateStatus.PASSED, last_gate_passed="commit",
-            snr=0.96, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            gate_results=[],
+            final_status=GateStatus.PASSED,
+            last_gate_passed="commit",
+            snr=0.96,
+            ihsan_score=0.97,
         )
         d = r.to_dict()
         assert "query_digest" in d
@@ -182,6 +199,7 @@ class TestGateChainResult:
 # =============================================================================
 # SCHEMA GATE (Gate 1)
 # =============================================================================
+
 
 class TestSchemaGate:
     """Tests for SchemaGate — input validation."""
@@ -226,7 +244,9 @@ class TestSchemaGate:
     def test_fails_payload_too_large(self, policy):
         """Payload exceeding max size fails."""
         q = CanonQuery(
-            user_id="alice", user_state="active", intent="test",
+            user_id="alice",
+            user_state="active",
+            intent="test",
             payload={"data": "x" * 100},
         )
         gate = SchemaGate(max_payload_size=50)
@@ -259,6 +279,7 @@ class TestSchemaGate:
 # =============================================================================
 # PROVENANCE GATE (Gate 2)
 # =============================================================================
+
 
 class TestProvenanceGate:
     """Tests for ProvenanceGate — source verification."""
@@ -320,6 +341,7 @@ class TestProvenanceGate:
 # SNR GATE (Gate 3)
 # =============================================================================
 
+
 class TestSNRGate:
     """Tests for SNRGate — signal-to-noise threshold."""
 
@@ -379,6 +401,7 @@ class TestSNRGate:
 # CONSTRAINT GATE (Gate 4)
 # =============================================================================
 
+
 class TestConstraintGate:
     """Tests for ConstraintGate — Z3 + Ihsan constraints."""
 
@@ -386,7 +409,9 @@ class TestConstraintGate:
         """High Ihsan score + Z3 satisfiable passes."""
         gate = ConstraintGate(ihsan_threshold=0.95)
         # CRITICAL-3: z3_satisfiable must be explicitly True (fail-closed default)
-        result = gate.evaluate(query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True})
+        result = gate.evaluate(
+            query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True}
+        )
         assert result.passed is True
 
     def test_fails_low_ihsan(self, query, policy):
@@ -399,39 +424,54 @@ class TestConstraintGate:
     def test_fails_z3_unsatisfiable(self, query, policy):
         """Z3 unsatisfiable fails."""
         gate = ConstraintGate()
-        result = gate.evaluate(query, policy, {
-            "ihsan_score": 0.99,
-            "z3_satisfiable": False,
-        })
+        result = gate.evaluate(
+            query,
+            policy,
+            {
+                "ihsan_score": 0.99,
+                "z3_satisfiable": False,
+            },
+        )
         assert result.passed is False
         assert "Z3" in result.reason
 
     def test_custom_validator_pass(self, query, policy):
         """Custom validator that passes."""
+
         def validator(q, p):
             return True, ""
 
         gate = ConstraintGate(constraint_validator=validator)
         # CRITICAL-3: z3_satisfiable must be explicit (fail-closed default)
-        result = gate.evaluate(query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True})
+        result = gate.evaluate(
+            query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True}
+        )
         assert result.passed is True
 
     def test_custom_validator_fail(self, query, policy):
         """Custom validator that fails."""
+
         def validator(q, p):
             return False, "custom error"
 
         gate = ConstraintGate(constraint_validator=validator)
-        result = gate.evaluate(query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True})
+        result = gate.evaluate(
+            query, policy, {"ihsan_score": 0.97, "z3_satisfiable": True}
+        )
         assert result.passed is False
         assert "custom error" in result.reason
 
     def test_evidence_includes_scores(self, query, policy):
         """Evidence includes ihsan and z3 info."""
         gate = ConstraintGate()
-        result = gate.evaluate(query, policy, {
-            "ihsan_score": 0.97, "z3_satisfiable": True,
-        })
+        result = gate.evaluate(
+            query,
+            policy,
+            {
+                "ihsan_score": 0.97,
+                "z3_satisfiable": True,
+            },
+        )
         assert result.evidence["ihsan_score"] == 0.97
         assert result.evidence["z3_satisfiable"] is True
 
@@ -439,6 +479,7 @@ class TestConstraintGate:
 # =============================================================================
 # SAFETY GATE (Gate 5)
 # =============================================================================
+
 
 class TestSafetyGate:
     """Tests for SafetyGate — constitutional safety."""
@@ -473,6 +514,7 @@ class TestSafetyGate:
 
     def test_custom_safety_checker_pass(self, query, policy):
         """Custom safety checker that passes."""
+
         def checker(intent):
             return True, ""
 
@@ -482,6 +524,7 @@ class TestSafetyGate:
 
     def test_custom_safety_checker_fail(self, query, policy):
         """Custom safety checker that fails."""
+
         def checker(intent):
             return False, "harmful content"
 
@@ -500,6 +543,7 @@ class TestSafetyGate:
 # =============================================================================
 # COMMIT GATE (Gate 6)
 # =============================================================================
+
 
 class TestCommitGate:
     """Tests for CommitGate — resource allocation."""
@@ -542,6 +586,7 @@ class TestCommitGate:
 
     def test_resource_checker_pass(self, query, policy):
         """Resource checker that passes."""
+
         def checker():
             return True, ""
 
@@ -551,6 +596,7 @@ class TestCommitGate:
 
     def test_resource_checker_fail(self, query, policy):
         """Resource checker that fails."""
+
         def checker():
             return False, "out of memory"
 
@@ -570,6 +616,7 @@ class TestCommitGate:
 # =============================================================================
 # GATE CHAIN — Full Pipeline
 # =============================================================================
+
 
 class TestGateChain:
     """Tests for GateChain — 6-gate execution pipeline."""
@@ -655,7 +702,14 @@ class TestGateChain:
         """Default gates are in correct order."""
         chain = GateChain(signer=signer)
         names = [g.name for g in chain.gates]
-        assert names == ["schema", "provenance", "snr", "constraint", "safety", "commit"]
+        assert names == [
+            "schema",
+            "provenance",
+            "snr",
+            "constraint",
+            "safety",
+            "commit",
+        ]
 
     def test_custom_gates(self, query, policy, signer):
         """Custom gates list respected."""
@@ -684,6 +738,7 @@ class TestGateChain:
 # =============================================================================
 # GATE CHAIN — Statistics
 # =============================================================================
+
 
 class TestGateChainStats:
     """Tests for GateChain statistics."""
@@ -735,6 +790,7 @@ class TestGateChainStats:
 # GATE CHAIN — Amber Restricted
 # =============================================================================
 
+
 class TestGateChainAmber:
     """Tests for amber-restricted fallback."""
 
@@ -776,6 +832,7 @@ class TestGateChainAmber:
 # =============================================================================
 # BASE GATE CLASS
 # =============================================================================
+
 
 class TestBaseGate:
     """Tests for Gate base class."""

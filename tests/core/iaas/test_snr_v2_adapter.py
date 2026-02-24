@@ -47,11 +47,16 @@ class TestSNRv2Adapter:
     def test_metrics_include_breakdown(self):
         """Result metrics include signal_strength, diversity, grounding, etc."""
         adapter = SNRv2Adapter(SNRCalculatorV2())
-        result = adapter.calculate_snr_normalized(
-            query="test", texts=["test text"]
-        )
-        for key in ("signal_strength", "diversity", "grounding", "iaas_score",
-                     "redundancy", "entropy", "quality_tier"):
+        result = adapter.calculate_snr_normalized(query="test", texts=["test text"])
+        for key in (
+            "signal_strength",
+            "diversity",
+            "grounding",
+            "iaas_score",
+            "redundancy",
+            "entropy",
+            "quality_tier",
+        ):
             assert key in result.metrics, f"Missing metric: {key}"
 
     def test_recommendations_generated(self):
@@ -70,6 +75,7 @@ class TestSNRv2Adapter:
         class BrokenCalculator:
             def compute_snr(self, **kwargs):
                 raise RuntimeError("GPU unavailable")
+
             def calculate_simple(self, **kwargs):
                 raise RuntimeError("GPU unavailable")
 
@@ -87,7 +93,9 @@ class TestSNRFacadeV2Routing:
             v2_engine=SNRv2Adapter(SNRCalculatorV2()),
             text_engine=SNRMaximizer(),
         )
-        result = facade.calculate(text="Signal processing fundamentals.", query="signal")
+        result = facade.calculate(
+            text="Signal processing fundamentals.", query="signal"
+        )
         assert result.engine == "ensemble_v2"
         assert 0.0 < result.score < 1.0
         assert "v2_snr" in result.metrics
@@ -118,7 +126,9 @@ class TestSNRFacadeV2Routing:
 
         v2_snr = result.metrics["v2_snr"]
         text_snr = result.metrics["text_snr"]
-        expected = math.exp(0.5 * math.log(v2_snr + 1e-10) + 0.5 * math.log(text_snr + 1e-10))
+        expected = math.exp(
+            0.5 * math.log(v2_snr + 1e-10) + 0.5 * math.log(text_snr + 1e-10)
+        )
         expected = min(max(expected, 0.0), 1.0)
 
         assert abs(result.score - round(expected, 4)) < 1e-4

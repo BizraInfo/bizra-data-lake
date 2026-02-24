@@ -4,6 +4,7 @@ Integration test configuration.
 These tests require external dependencies (python-dotenv, Ollama, etc.)
 and real data. Guard collection so missing deps don't break the full suite.
 """
+
 import importlib
 
 import pytest

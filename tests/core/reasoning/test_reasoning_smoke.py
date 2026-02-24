@@ -9,7 +9,6 @@ Created: 2026-02-07 | BIZRA Mastermind Sprint
 
 import pytest
 
-
 # ============================================================================
 # GraphOfThoughts — Core reasoning engine
 # ============================================================================
@@ -137,4 +136,6 @@ def test_all_exports_resolvable():
 
     for name in mod.__all__:
         attr = getattr(mod, name, None)
-        assert attr is not None, f"core.reasoning.__all__ exports '{name}' but it's None"
+        assert (
+            attr is not None
+        ), f"core.reasoning.__all__ exports '{name}' but it's None"

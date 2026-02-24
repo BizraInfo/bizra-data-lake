@@ -21,7 +21,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import shutil
 import tempfile
 import zipfile
 from dataclasses import asdict, dataclass, field
@@ -32,11 +31,10 @@ import yaml
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.sovereign.permit import (
-    Authority,
-    Capability as TelescriptCapability,
     DEFAULT_TTL_SECONDS,
     MAX_ACTIONS_PER_PERMIT,
 )
+from core.sovereign.permit import Capability as TelescriptCapability
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -207,9 +205,7 @@ def validate_manifest(manifest: AgentManifest) -> tuple[bool, list[str]]:
 # ---------------------------------------------------------------------------
 
 
-def create_permit_template(
-    manifest: AgentManifest, signing_key: str
-) -> dict[str, Any]:
+def create_permit_template(manifest: AgentManifest, signing_key: str) -> dict[str, Any]:
     """Generate a Telescript Permit template from manifest capabilities.
 
     The template captures all capability bindings and budget constraints
@@ -233,9 +229,7 @@ def create_permit_template(
 
     # Build template
     ttl = manifest.permit_defaults.get("ttl_seconds", DEFAULT_TTL_SECONDS)
-    max_actions = manifest.permit_defaults.get(
-        "max_actions", MAX_ACTIONS_PER_PERMIT
-    )
+    max_actions = manifest.permit_defaults.get("max_actions", MAX_ACTIONS_PER_PERMIT)
     max_tokens = manifest.permit_defaults.get("max_tokens", 4096)
 
     # Compute a deterministic template hash for integrity verification
@@ -277,9 +271,9 @@ def _generate_readme(manifest: AgentManifest) -> str:
     """Generate a README.md for inclusion in the agent archive."""
     caps = ", ".join(manifest.capabilities_telescript) or "(none)"
     skills = ", ".join(manifest.hda_skills) or "(none)"
-    mission_names = ", ".join(
-        m.get("name", "unnamed") for m in manifest.missions
-    ) or "(none)"
+    mission_names = (
+        ", ".join(m.get("name", "unnamed") for m in manifest.missions) or "(none)"
+    )
 
     return f"""\
 # {manifest.display_name}
@@ -341,17 +335,13 @@ def package_agent(
 
     manifest_path = agent_dir / MANIFEST_FILENAME
     if not manifest_path.exists():
-        raise FileNotFoundError(
-            f"No {MANIFEST_FILENAME} in {agent_dir}"
-        )
+        raise FileNotFoundError(f"No {MANIFEST_FILENAME} in {agent_dir}")
 
     # Parse and validate
     manifest = load_manifest(manifest_path)
     valid, errors = validate_manifest(manifest)
     if not valid:
-        raise ValueError(
-            f"Invalid manifest: {'; '.join(errors)}"
-        )
+        raise ValueError(f"Invalid manifest: {'; '.join(errors)}")
 
     # Generate permit template (use a placeholder key for template generation)
     permit_template = create_permit_template(manifest, signing_key="")
@@ -422,9 +412,7 @@ def load_agent(
     with zipfile.ZipFile(archive_path, "r") as zf:
         names = zf.namelist()
         if MANIFEST_FILENAME not in names:
-            raise KeyError(
-                f"{MANIFEST_FILENAME} not found in archive {archive_path}"
-            )
+            raise KeyError(f"{MANIFEST_FILENAME} not found in archive {archive_path}")
         zf.extractall(target_dir)
 
     manifest_path = target_dir / MANIFEST_FILENAME

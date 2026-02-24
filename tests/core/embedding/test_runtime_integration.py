@@ -82,9 +82,7 @@ class TestRuntimeCognitiveFusion:
 
         # Mock cognitive fusion
         mock_fusion = MagicMock()
-        mock_fusion.process.return_value = MagicMock(
-            passes_gate=True, snr_score=0.92
-        )
+        mock_fusion.process.return_value = MagicMock(passes_gate=True, snr_score=0.92)
         rt._cognitive_fusion = mock_fusion
 
         return rt, mock_embed_svc, mock_gate, mock_fusion
@@ -163,7 +161,13 @@ class TestRuntimeCognitiveFusion:
 
         mock_ntu = MagicMock()
         mock_ntu.enrich_context.return_value = {
-            "ntu_state": {"belief": 0.8, "entropy": 0.3, "potential": 0.7, "iteration": 5, "pattern": None},
+            "ntu_state": {
+                "belief": 0.8,
+                "entropy": 0.3,
+                "potential": 0.7,
+                "iteration": 5,
+                "pattern": None,
+            },
         }
         rt._ntu_adapter = mock_ntu
 
@@ -178,9 +182,7 @@ class TestRuntimeCognitiveFusion:
 
         # Fusion received enriched context
         call_kwargs = mock_fusion.process.call_args
-        context_arg = call_kwargs.kwargs.get(
-            "context", call_kwargs[1].get("context")
-        )
+        context_arg = call_kwargs.kwargs.get("context", call_kwargs[1].get("context"))
         assert "ntu_state" in context_arg
 
     def test_ntu_exception_does_not_block_fusion(self):

@@ -33,10 +33,10 @@ from core.bridges.desktop_bridge import (
     _ok,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _auth_headers(
     token: str = "test-bridge-token",
@@ -89,6 +89,7 @@ async def _send_recv(
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def free_port() -> int:
     """Get a free port to avoid collisions during parallel test runs."""
@@ -132,7 +133,9 @@ class TestServerLifecycle:
         assert not b.is_running
 
     @pytest.mark.asyncio
-    async def test_accepts_connection(self, bridge: DesktopBridge, free_port: int) -> None:
+    async def test_accepts_connection(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
         resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("ping"))
         assert resp["result"]["status"] == "alive"
 
@@ -165,7 +168,9 @@ class TestServerLifecycle:
         monkeypatch.setenv("BIZRA_BRIDGE_TOKEN", "test-bridge-token")
         monkeypatch.setenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", "11" * 32)
         monkeypatch.setenv("BIZRA_NODE_ROLE", "node0")
-        monkeypatch.setattr(bridge_mod, "GENESIS_STATE_DIR", tmp_path / "missing_genesis")
+        monkeypatch.setattr(
+            bridge_mod, "GENESIS_STATE_DIR", tmp_path / "missing_genesis"
+        )
         b = DesktopBridge(host="127.0.0.1", port=free_port)
         with pytest.raises(RuntimeError, match="Node0 genesis enforcement failed"):
             await b.start()
@@ -190,7 +195,9 @@ class TestServerLifecycle:
 
 class TestPing:
     @pytest.mark.asyncio
-    async def test_ping_returns_alive(self, bridge: DesktopBridge, free_port: int) -> None:
+    async def test_ping_returns_alive(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
         resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("ping"))
         assert "result" in resp
         result = resp["result"]
@@ -302,9 +309,7 @@ class TestSovereignQuery:
             await b.stop()
 
     @pytest.mark.asyncio
-    async def test_query_no_gateway_returns_error(
-        self, free_port: int
-    ) -> None:
+    async def test_query_no_gateway_returns_error(self, free_port: int) -> None:
         b = DesktopBridge(host="127.0.0.1", port=free_port, gateway=None)
         # Patch _get_gateway to return None (simulate no gateway available)
         b._get_gateway = lambda: None  # type: ignore[assignment]
@@ -387,9 +392,7 @@ class TestInvalidRequests:
 
     @pytest.mark.asyncio
     async def test_unknown_method(self, bridge: DesktopBridge, free_port: int) -> None:
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("nonexistent_method")
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("nonexistent_method"))
         assert resp["error"]["code"] == -32601
         assert "not found" in resp["error"]["message"].lower()
 
@@ -451,15 +454,21 @@ class TestGuardianWire:
 
 class TestAuthEnvelope:
     @pytest.mark.asyncio
-    async def test_missing_headers_rejected(self, bridge: DesktopBridge, free_port: int) -> None:
-        payload = json.dumps({"jsonrpc": "2.0", "method": "ping", "id": 1}).encode() + b"\n"
+    async def test_missing_headers_rejected(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        payload = (
+            json.dumps({"jsonrpc": "2.0", "method": "ping", "id": 1}).encode() + b"\n"
+        )
         resp = await _send_recv("127.0.0.1", free_port, payload)
         assert resp["error"]["code"] == -32001
         assert resp["error"]["data"]["code"] == "AUTH_MISSING_HEADERS"
         assert "receipt" in resp["error"]["data"]
 
     @pytest.mark.asyncio
-    async def test_wrong_token_rejected_all_methods(self, bridge: DesktopBridge, free_port: int) -> None:
+    async def test_wrong_token_rejected_all_methods(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
         bad_headers = _auth_headers(token="wrong-token")
         methods = [
             ("ping", None),
@@ -479,19 +488,29 @@ class TestAuthEnvelope:
             assert resp["error"]["data"]["code"] == "AUTH_INVALID_TOKEN"
 
     @pytest.mark.asyncio
-    async def test_stale_timestamp_rejected(self, bridge: DesktopBridge, free_port: int) -> None:
+    async def test_stale_timestamp_rejected(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
         stale_headers = _auth_headers(ts_ms=946684800000)  # 2000-01-01 UTC
-        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("ping", headers=stale_headers))
+        resp = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("ping", headers=stale_headers)
+        )
         assert resp["error"]["code"] == -32003
         assert resp["error"]["data"]["code"] == "AUTH_STALE_TIMESTAMP"
 
     @pytest.mark.asyncio
-    async def test_nonce_replay_rejected(self, bridge: DesktopBridge, free_port: int) -> None:
+    async def test_nonce_replay_rejected(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
         nonce = "fixed-nonce-for-replay-test"
         headers_1 = _auth_headers(nonce=nonce)
         headers_2 = _auth_headers(nonce=nonce)
-        first = await _send_recv("127.0.0.1", free_port, _jsonrpc("ping", headers=headers_1))
-        second = await _send_recv("127.0.0.1", free_port, _jsonrpc("ping", headers=headers_2))
+        first = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("ping", headers=headers_1)
+        )
+        second = await _send_recv(
+            "127.0.0.1", free_port, _jsonrpc("ping", headers=headers_2)
+        )
         assert "result" in first
         assert second["error"]["code"] == -32004
         assert second["error"]["data"]["code"] == "AUTH_NONCE_REPLAY"
@@ -565,9 +584,7 @@ class TestGetContext:
     async def test_get_context_returns_schema_v2(
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context", {})
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context", {}))
         result = resp["result"]
         assert result["schema_version"] == "2.0"
         assert "timestamp" in result
@@ -578,9 +595,7 @@ class TestGetContext:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """KPI: get_context returns >= 3 live fields."""
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context", {})
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context", {}))
         result = resp["result"]
         # Must have at least 3 of: foreground, processes/windows, clipboard_hash,
         # screen, process_count/window_count
@@ -605,16 +620,14 @@ class TestGetContext:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """Privacy: window titles hashed by default."""
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context", {})
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context", {}))
         result = resp["result"]
         assert result["privacy_mode"] == "hashed"
         fg = result.get("foreground", {})
         if fg.get("title"):
-            assert fg.get("title_hashed", True), (
-                "Foreground title should be hashed by default"
-            )
+            assert fg.get(
+                "title_hashed", True
+            ), "Foreground title should be hashed by default"
 
     @pytest.mark.asyncio
     async def test_get_context_plaintext_opt_in(
@@ -634,9 +647,7 @@ class TestGetContext:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """Privacy: clipboard is always hashed, never raw content."""
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context", {})
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context", {}))
         result = resp["result"]
         # clipboard_hash should be a hex digest or empty, never raw text
         clip_hash = result.get("clipboard_hash", "")
@@ -650,9 +661,7 @@ class TestGetContext:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """Every response should include a bridge receipt."""
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context", {})
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context", {}))
         result = resp["result"]
         assert "receipt" in result
 
@@ -682,15 +691,13 @@ class TestHDASkills:
     ) -> None:
         """KPI: 10 total HDA skills registered (2 existing + 8 new)."""
         for method in self.HDA_METHODS:
-            resp = await _send_recv(
-                "127.0.0.1", free_port, _jsonrpc(method, {})
-            )
+            resp = await _send_recv("127.0.0.1", free_port, _jsonrpc(method, {}))
             # Should NOT get "Method not found" — may get other errors
             # (AHK unreachable, missing params, etc.) but method IS registered
             if "error" in resp:
-                assert resp["error"]["code"] != -32601, (
-                    f"Method '{method}' not registered (got -32601)"
-                )
+                assert (
+                    resp["error"]["code"] != -32601
+                ), f"Method '{method}' not registered (got -32601)"
             # If we get a result, the method was found and routed
             # (may return AHK unreachable or guardian veto, both valid)
 
@@ -707,9 +714,9 @@ class TestHDASkills:
             error = resp.get("error", {})
             # Valid outcomes: result with data, or error that is NOT -32601
             if error:
-                assert error.get("code") != -32601, (
-                    f"'{method}' returned Method not found"
-                )
+                assert (
+                    error.get("code") != -32601
+                ), f"'{method}' returned Method not found"
             else:
                 # Got a result — might be "AHK unreachable" or "guardian veto"
                 # but the method was dispatched
@@ -726,12 +733,12 @@ class TestHDASkills:
         # Verify none return -32601
         for method in all_skills:
             resp = await _send_recv(
-                "127.0.0.1", free_port, _jsonrpc(method, {"skill": "test", "code": "test"})
+                "127.0.0.1",
+                free_port,
+                _jsonrpc(method, {"skill": "test", "code": "test"}),
             )
             if "error" in resp:
-                assert resp["error"]["code"] != -32601, (
-                    f"Method '{method}' not found"
-                )
+                assert resp["error"]["code"] != -32601, f"Method '{method}' not found"
 
 
 # ---------------------------------------------------------------------------
@@ -760,18 +767,28 @@ class TestPermitEnforcement:
     ) -> None:
         """Successful HDA calls include permit audit data in result."""
         # Mock guardian to allow and AHK to return success
-        with patch.object(
-            bridge, "_check_rust_guardian", new_callable=AsyncMock,
-            return_value={"allowed": True},
-        ), patch.object(
-            bridge, "_validate_fate",
-            return_value={"passed": True},
-        ), patch.object(
-            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
-            return_value={"status": "ok", "result": "window switched"},
+        with (
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                return_value={"status": "ok", "result": "window switched"},
+            ),
         ):
             resp = await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("switch_window", {"title": "VS Code"}),
             )
             result = resp.get("result", {})
@@ -785,26 +802,37 @@ class TestPermitEnforcement:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """Each successful HDA call decrements the permit budget."""
-        with patch.object(
-            bridge, "_check_rust_guardian", new_callable=AsyncMock,
-            return_value={"allowed": True},
-        ), patch.object(
-            bridge, "_validate_fate",
-            return_value={"passed": True},
-        ), patch.object(
-            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
-            return_value={"status": "ok"},
+        with (
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                return_value={"status": "ok"},
+            ),
         ):
             # First call
             await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("type_text", {"text": "hello"}),
             )
             remaining_after_1 = bridge._hda_permit.budget.actions_remaining
 
             # Second call
             await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("type_text", {"text": "world"}),
             )
             remaining_after_2 = bridge._hda_permit.budget.actions_remaining
@@ -826,18 +854,28 @@ class TestPermitEnforcement:
         bridge._hda_permit = expired
         old_id = expired.permit_id
 
-        with patch.object(
-            bridge, "_check_rust_guardian", new_callable=AsyncMock,
-            return_value={"allowed": True},
-        ), patch.object(
-            bridge, "_validate_fate",
-            return_value={"passed": True},
-        ), patch.object(
-            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
-            return_value={"status": "ok"},
+        with (
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                return_value={"status": "ok"},
+            ),
         ):
             resp = await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("open_app", {"name": "notepad"}),
             )
             result = resp.get("result", {})
@@ -859,18 +897,28 @@ class TestPermitEnforcement:
         assert exhausted.budget.exhausted
         bridge._hda_permit = exhausted
 
-        with patch.object(
-            bridge, "_check_rust_guardian", new_callable=AsyncMock,
-            return_value={"allowed": True},
-        ), patch.object(
-            bridge, "_validate_fate",
-            return_value={"passed": True},
-        ), patch.object(
-            bridge, "_rpc_to_ahk", new_callable=AsyncMock,
-            return_value={"status": "ok"},
+        with (
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                return_value={"status": "ok"},
+            ),
         ):
             resp = await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("click_element", {"selector": "#btn"}),
             )
             result = resp.get("result", {})
@@ -883,7 +931,7 @@ class TestPermitEnforcement:
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
         """Permit check runs before guardian — guardian not called if permit fails."""
-        from core.sovereign.permit import Permit, Capability, Authority
+        from core.sovereign.permit import Authority, Capability, Permit
 
         # Create a permit with only GO capability (not STORE)
         genesis = Authority.genesis()
@@ -898,7 +946,8 @@ class TestPermitEnforcement:
         guardian_mock = AsyncMock(return_value={"allowed": True})
         with patch.object(bridge, "_check_rust_guardian", guardian_mock):
             resp = await _send_recv(
-                "127.0.0.1", free_port,
+                "127.0.0.1",
+                free_port,
                 _jsonrpc("file_open", {"path": "/tmp/test.txt"}),
             )
             result = resp.get("result", {})

@@ -21,7 +21,6 @@ import pytest
 
 from core.bridges.desktop_bridge import BRIDGE_HOST, DesktopBridge
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -34,18 +33,21 @@ def _free_port() -> int:
 
 
 def _jsonrpc(method: str, id: int = 1) -> bytes:
-    return json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "method": method,
-            "id": id,
-            "headers": {
-                "X-BIZRA-TOKEN": "test-bridge-token",
-                "X-BIZRA-TS": int(time.time() * 1000),
-                "X-BIZRA-NONCE": uuid.uuid4().hex,
-            },
-        }
-    ).encode() + b"\n"
+    return (
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "method": method,
+                "id": id,
+                "headers": {
+                    "X-BIZRA-TOKEN": "test-bridge-token",
+                    "X-BIZRA-TS": int(time.time() * 1000),
+                    "X-BIZRA-NONCE": uuid.uuid4().hex,
+                },
+            }
+        ).encode()
+        + b"\n"
+    )
 
 
 async def _tcp_call(port: int, method: str) -> dict[str, Any]:

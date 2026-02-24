@@ -8,20 +8,21 @@ and Ihsan constraint enforcement.
 Genesis Strict Synthesis v2.2.2
 """
 
-import pytest
-from pathlib import Path
-from datetime import datetime, timezone
-import tempfile
 import shutil
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
 
 from core.autopoiesis.hypothesis_generator import (
-    HypothesisGenerator,
     Hypothesis,
     HypothesisCategory,
-    RiskLevel,
+    HypothesisGenerator,
     HypothesisStatus,
-    SystemObservation,
     ImprovementPattern,
+    RiskLevel,
+    SystemObservation,
     create_hypothesis_generator,
 )
 from core.integration.constants import (
@@ -29,10 +30,10 @@ from core.integration.constants import (
     UNIFIED_SNR_THRESHOLD,
 )
 
-
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def temp_memory_path():
@@ -84,37 +85,38 @@ def healthy_observation():
 def problematic_observation():
     """Create a system observation with multiple issues."""
     return SystemObservation(
-        avg_latency_ms=800,           # High latency
+        avg_latency_ms=800,  # High latency
         p95_latency_ms=1500,
         p99_latency_ms=3000,
-        throughput_rps=5,              # Low throughput
-        cache_hit_rate=0.5,            # Low cache hit rate
-        ihsan_score=0.92,              # Below threshold
-        snr_score=0.82,                # Below threshold
-        error_rate=0.08,               # High error rate
+        throughput_rps=5,  # Low throughput
+        cache_hit_rate=0.5,  # Low cache hit rate
+        ihsan_score=0.92,  # Below threshold
+        snr_score=0.82,  # Below threshold
+        error_rate=0.08,  # High error rate
         verification_failure_rate=0.15,  # High verification failures
-        cpu_percent=90,                # High CPU
-        memory_percent=88,             # High memory
-        gpu_percent=30,                # Low GPU utilization
-        token_usage_avg=3500,          # High token usage
-        batch_utilization=0.3,         # Low batch utilization
-        skill_coverage=0.6,            # Low skill coverage
+        cpu_percent=90,  # High CPU
+        memory_percent=88,  # High memory
+        gpu_percent=30,  # Low GPU utilization
+        token_usage_avg=3500,  # High token usage
+        batch_utilization=0.3,  # Low batch utilization
+        skill_coverage=0.6,  # Low skill coverage
         pattern_recognition_accuracy=0.7,  # Low pattern accuracy
         tool_success_rate=0.8,
         uptime_percent=98.0,
-        recovery_time_avg_ms=8000,     # Slow recovery
+        recovery_time_avg_ms=8000,  # Slow recovery
         retry_rate=0.1,
-        circuit_breaker_trips=5,       # Many circuit breaker trips
-        latency_trend=0.3,             # Worsening latency
-        quality_trend=-0.25,           # Declining quality
-        efficiency_trend=-0.3,         # Declining efficiency
-        error_trend=0.4,               # Worsening errors
+        circuit_breaker_trips=5,  # Many circuit breaker trips
+        latency_trend=0.3,  # Worsening latency
+        quality_trend=-0.25,  # Declining quality
+        efficiency_trend=-0.3,  # Declining efficiency
+        error_trend=0.4,  # Worsening errors
     )
 
 
 # =============================================================================
 # SYSTEM OBSERVATION TESTS
 # =============================================================================
+
 
 class TestSystemObservation:
     """Tests for SystemObservation dataclass."""
@@ -150,6 +152,7 @@ class TestSystemObservation:
 # =============================================================================
 # HYPOTHESIS TESTS
 # =============================================================================
+
 
 class TestHypothesis:
     """Tests for Hypothesis dataclass."""
@@ -265,6 +268,7 @@ class TestHypothesis:
 # HYPOTHESIS GENERATOR TESTS
 # =============================================================================
 
+
 class TestHypothesisGenerator:
     """Tests for HypothesisGenerator class."""
 
@@ -301,10 +305,7 @@ class TestHypothesisGenerator:
         hypotheses = generator.generate(obs)
 
         # Should include caching hypothesis
-        caching_hypos = [
-            h for h in hypotheses
-            if "cache" in h.description.lower()
-        ]
+        caching_hypos = [h for h in hypotheses if "cache" in h.description.lower()]
         assert len(caching_hypos) >= 1
 
     def test_pattern_matching_low_ihsan(self, generator):
@@ -317,7 +318,8 @@ class TestHypothesisGenerator:
 
         # Should include constraint tightening hypothesis
         ihsan_hypos = [
-            h for h in hypotheses
+            h
+            for h in hypotheses
             if "ihsan" in h.description.lower() or "constraint" in h.description.lower()
         ]
         assert len(ihsan_hypos) >= 1
@@ -331,10 +333,7 @@ class TestHypothesisGenerator:
         hypotheses = generator.generate(obs)
 
         # Should include memory optimization hypothesis
-        memory_hypos = [
-            h for h in hypotheses
-            if "memory" in h.description.lower()
-        ]
+        memory_hypos = [h for h in hypotheses if "memory" in h.description.lower()]
         assert len(memory_hypos) >= 1
 
     def test_pattern_matching_error_spike(self, generator):
@@ -348,18 +347,23 @@ class TestHypothesisGenerator:
 
         # Should include retry mechanism hypothesis
         retry_hypos = [
-            h for h in hypotheses
+            h
+            for h in hypotheses
             if "retry" in h.description.lower() or "error" in h.description.lower()
         ]
         assert len(retry_hypos) >= 1
 
-    def test_hypotheses_ranked_by_expected_value(self, generator, problematic_observation):
+    def test_hypotheses_ranked_by_expected_value(
+        self, generator, problematic_observation
+    ):
         """Test hypotheses are ranked by expected value."""
         hypotheses = generator.generate(problematic_observation)
 
         if len(hypotheses) >= 2:
             for i in range(len(hypotheses) - 1):
-                assert hypotheses[i].expected_value() >= hypotheses[i + 1].expected_value()
+                assert (
+                    hypotheses[i].expected_value() >= hypotheses[i + 1].expected_value()
+                )
 
     def test_ihsan_constraint_filtering(self, generator):
         """Test hypotheses with severely negative Ihsan impact are filtered."""
@@ -422,8 +426,7 @@ class TestHypothesisGenerator:
 
             # Find the pattern
             pattern = next(
-                (p for p in generator._patterns if p.name == pattern_name),
-                None
+                (p for p in generator._patterns if p.name == pattern_name), None
             )
 
             if pattern:
@@ -493,7 +496,9 @@ class TestHypothesisGenerator:
         hypotheses = generator.generate(obs)
 
         # Should potentially include compound stress hypothesis
-        compound_hypos = [h for h in hypotheses if "compound" in h.trigger_pattern.lower()]
+        compound_hypos = [
+            h for h in hypotheses if "compound" in h.trigger_pattern.lower()
+        ]
         # Note: This may or may not trigger depending on exact thresholds
         # The test verifies the mechanism works without hard assertions
 
@@ -501,6 +506,7 @@ class TestHypothesisGenerator:
 # =============================================================================
 # IMPROVEMENT PATTERN TESTS
 # =============================================================================
+
 
 class TestImprovementPattern:
     """Tests for ImprovementPattern class."""
@@ -532,6 +538,7 @@ class TestImprovementPattern:
 
     def test_pattern_error_handling(self):
         """Test pattern handles condition errors gracefully."""
+
         def broken_condition(obs):
             raise ValueError("Intentional error")
 
@@ -550,6 +557,7 @@ class TestImprovementPattern:
 # =============================================================================
 # FACTORY FUNCTION TESTS
 # =============================================================================
+
 
 class TestFactoryFunction:
     """Tests for create_hypothesis_generator factory."""
@@ -575,6 +583,7 @@ class TestFactoryFunction:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for hypothesis generator."""
@@ -630,6 +639,7 @@ class TestIntegration:
             if hypos:
                 # Learn from random outcome
                 import random
+
                 generator.learn_from_outcome(hypos[0], success=random.random() > 0.3)
 
         assert total_hypotheses > 0

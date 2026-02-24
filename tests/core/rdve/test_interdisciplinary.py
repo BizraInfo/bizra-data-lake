@@ -26,7 +26,6 @@ from core.rdve.interdisciplinary import (
     TransferResult,
 )
 
-
 # ============================================================================
 # Domain Enum
 # ============================================================================
@@ -122,7 +121,14 @@ class TestDomainPatternMatchesContext:
         assert empty_pattern.matches_context({"quality"}) == pytest.approx(0.0)
 
     def test_superset_context_still_bounded_by_tag_count(self):
-        context = {"quality", "filtering", "scoring", "multi-dimensional", "extra1", "extra2"}
+        context = {
+            "quality",
+            "filtering",
+            "scoring",
+            "multi-dimensional",
+            "extra1",
+            "extra2",
+        }
         # overlap=4, len(tags)=4 => 4/4 = 1.0
         assert self.pattern.matches_context(context) == pytest.approx(1.0)
 
@@ -148,9 +154,9 @@ class TestCanonicalPatterns:
     def test_proven_patterns_have_bizra_implementation(self):
         for p in CANONICAL_PATTERNS:
             if p.confidence == TransferConfidence.PROVEN:
-                assert p.bizra_implementation is not None, (
-                    f"Proven pattern '{p.id}' should have bizra_implementation set"
-                )
+                assert (
+                    p.bizra_implementation is not None
+                ), f"Proven pattern '{p.id}' should have bizra_implementation set"
 
     def test_multiple_source_domains_represented(self):
         domains = {p.source_domain for p in CANONICAL_PATTERNS}
@@ -249,9 +255,7 @@ class TestDomainQueries:
 
     def test_get_patterns_by_domain(self):
         info_theory = self.engine.get_patterns_by_domain(Domain.INFORMATION_THEORY)
-        assert all(
-            p.source_domain == Domain.INFORMATION_THEORY for p in info_theory
-        )
+        assert all(p.source_domain == Domain.INFORMATION_THEORY for p in info_theory)
         # At least the shannon_snr pattern
         assert len(info_theory) >= 1
 

@@ -34,7 +34,9 @@ API_STARTUP_TIMEOUT = int(os.getenv("BIZRA_API_STARTUP_TIMEOUT", "30"))
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "e2e_http: requires running Rust API server")
-    config.addinivalue_line("markers", "pyo3_bridge: requires PyO3 bindings (maturin develop)")
+    config.addinivalue_line(
+        "markers", "pyo3_bridge: requires PyO3 bindings (maturin develop)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -76,9 +78,12 @@ def bizra_module():
     """Import the PyO3 bizra module. Skip if not built."""
     try:
         import bizra
+
         return bizra
     except ImportError:
-        pytest.skip("PyO3 bizra module not built (run: cd bizra-omega/bizra-python && maturin develop --release)")
+        pytest.skip(
+            "PyO3 bizra module not built (run: cd bizra-omega/bizra-python && maturin develop --release)"
+        )
 
 
 @pytest.fixture(scope="session")

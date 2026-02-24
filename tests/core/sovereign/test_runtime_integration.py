@@ -34,6 +34,7 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_valid_receipt(
     receipt_id: str = "",
     node_id: str = "test-node",
@@ -155,9 +156,9 @@ class TestRuntimeInitialization:
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
-            assert runtime._evidence_ledger is not None, (
-                "Evidence Ledger should be initialized after runtime.initialize()"
-            )
+            assert (
+                runtime._evidence_ledger is not None
+            ), "Evidence Ledger should be initialized after runtime.initialize()"
         finally:
             await runtime.shutdown()
 
@@ -173,9 +174,9 @@ class TestRuntimeInitialization:
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
-            assert runtime._gate_chain is not None, (
-                "GateChain should be initialized after runtime.initialize()"
-            )
+            assert (
+                runtime._gate_chain is not None
+            ), "GateChain should be initialized after runtime.initialize()"
         finally:
             await runtime.shutdown()
 
@@ -191,9 +192,9 @@ class TestRuntimeInitialization:
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
-            assert runtime._poi_orchestrator is not None, (
-                "PoI Orchestrator should be initialized after runtime.initialize()"
-            )
+            assert (
+                runtime._poi_orchestrator is not None
+            ), "PoI Orchestrator should be initialized after runtime.initialize()"
         finally:
             await runtime.shutdown()
 
@@ -209,9 +210,9 @@ class TestRuntimeInitialization:
         runtime = SovereignRuntime(config)
         await runtime.initialize()
         try:
-            assert runtime._sat_controller is not None, (
-                "SAT Controller should be initialized after runtime.initialize()"
-            )
+            assert (
+                runtime._sat_controller is not None
+            ), "SAT Controller should be initialized after runtime.initialize()"
         finally:
             await runtime.shutdown()
 
@@ -242,9 +243,9 @@ class TestRealComponentsLoad:
         await runtime.initialize()
         try:
             assert runtime._graph_reasoner is not None
-            assert not getattr(runtime._graph_reasoner, "is_stub", False), (
-                "Graph reasoner should be real, not a stub"
-            )
+            assert not getattr(
+                runtime._graph_reasoner, "is_stub", False
+            ), "Graph reasoner should be real, not a stub"
         finally:
             await runtime.shutdown()
 
@@ -262,9 +263,9 @@ class TestRealComponentsLoad:
         await runtime.initialize()
         try:
             assert runtime._snr_optimizer is not None
-            assert not getattr(runtime._snr_optimizer, "is_stub", False), (
-                "SNR optimizer should be real, not a stub"
-            )
+            assert not getattr(
+                runtime._snr_optimizer, "is_stub", False
+            ), "SNR optimizer should be real, not a stub"
         finally:
             await runtime.shutdown()
 
@@ -282,9 +283,9 @@ class TestRealComponentsLoad:
         await runtime.initialize()
         try:
             assert runtime._guardian_council is not None
-            assert not getattr(runtime._guardian_council, "is_stub", False), (
-                "Guardian council should be real, not a stub"
-            )
+            assert not getattr(
+                runtime._guardian_council, "is_stub", False
+            ), "Guardian council should be real, not a stub"
         finally:
             await runtime.shutdown()
 
@@ -302,9 +303,9 @@ class TestRealComponentsLoad:
         await runtime.initialize()
         try:
             assert runtime._autonomous_loop is not None
-            assert not getattr(runtime._autonomous_loop, "is_stub", False), (
-                "Autonomous loop should be real, not a stub"
-            )
+            assert not getattr(
+                runtime._autonomous_loop, "is_stub", False
+            ), "Autonomous loop should be real, not a stub"
         finally:
             await runtime.shutdown()
 
@@ -331,9 +332,9 @@ class TestStubFallback:
         await runtime.initialize()
         try:
             assert runtime._graph_reasoner is not None
-            assert getattr(runtime._graph_reasoner, "is_stub", False) is True, (
-                "Graph reasoner should be a stub when disabled by config"
-            )
+            assert (
+                getattr(runtime._graph_reasoner, "is_stub", False) is True
+            ), "Graph reasoner should be a stub when disabled by config"
         finally:
             await runtime.shutdown()
 
@@ -351,9 +352,9 @@ class TestStubFallback:
         await runtime.initialize()
         try:
             assert runtime._snr_optimizer is not None
-            assert getattr(runtime._snr_optimizer, "is_stub", False) is True, (
-                "SNR optimizer should be a stub when disabled by config"
-            )
+            assert (
+                getattr(runtime._snr_optimizer, "is_stub", False) is True
+            ), "SNR optimizer should be a stub when disabled by config"
         finally:
             await runtime.shutdown()
 
@@ -371,9 +372,9 @@ class TestStubFallback:
         await runtime.initialize()
         try:
             assert runtime._guardian_council is not None
-            assert getattr(runtime._guardian_council, "is_stub", False) is True, (
-                "Guardian council should be a stub when disabled by config"
-            )
+            assert (
+                getattr(runtime._guardian_council, "is_stub", False) is True
+            ), "Guardian council should be a stub when disabled by config"
         finally:
             await runtime.shutdown()
 
@@ -391,9 +392,9 @@ class TestStubFallback:
         await runtime.initialize()
         try:
             assert runtime._autonomous_loop is not None
-            assert getattr(runtime._autonomous_loop, "is_stub", False) is True, (
-                "Autonomous loop should be a stub when disabled by config"
-            )
+            assert (
+                getattr(runtime._autonomous_loop, "is_stub", False) is True
+            ), "Autonomous loop should be a stub when disabled by config"
         finally:
             await runtime.shutdown()
 

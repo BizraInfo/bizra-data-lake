@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import time
 from pathlib import Path
 from typing import Any
 
@@ -160,7 +159,11 @@ def cross_validate(
             child_limits = instance.get("limits", {})
             for k, v in parent_limits.items():
                 cv = child_limits.get(k)
-                if isinstance(v, (int, float)) and isinstance(cv, (int, float)) and cv > v:
+                if (
+                    isinstance(v, (int, float))
+                    and isinstance(cv, (int, float))
+                    and cv > v
+                ):
                     errs.append(f"LIMIT_ESCALATION:{k}")
 
     if schema_name == "meet_open.schema.json":
@@ -216,7 +219,9 @@ def cross_validate(
     return errs
 
 
-def validate_fixture(path: Path, schemas: dict[str, dict[str, Any]]) -> tuple[bool, list[str], str]:
+def validate_fixture(
+    path: Path, schemas: dict[str, dict[str, Any]]
+) -> tuple[bool, list[str], str]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     errors: list[str] = []
 
@@ -230,7 +235,11 @@ def validate_fixture(path: Path, schemas: dict[str, dict[str, Any]]) -> tuple[bo
         return False, ["fixture missing object field: instance"], schema_name
 
     if schema_name == "wire_mapping":
-        errors.extend(cross_validate(schema_name, instance, meta if isinstance(meta, dict) else {}))
+        errors.extend(
+            cross_validate(
+                schema_name, instance, meta if isinstance(meta, dict) else {}
+            )
+        )
         return len(errors) == 0, errors, schema_name
 
     schema = schemas.get(schema_name)

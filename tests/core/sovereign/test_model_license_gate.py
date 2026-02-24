@@ -7,17 +7,17 @@ Tests the gate chain validation and license checks.
 import pytest
 
 from core.sovereign.capability_card import (
-    create_capability_card,
-    ModelTier,
-    TaskType,
-    CardIssuer,
     IHSAN_THRESHOLD,
     SNR_THRESHOLD,
+    CardIssuer,
+    ModelTier,
+    TaskType,
+    create_capability_card,
 )
 from core.sovereign.model_license_gate import (
-    ModelLicenseGate,
-    InMemoryRegistry,
     GateChain,
+    InMemoryRegistry,
+    ModelLicenseGate,
     create_gate_chain,
 )
 

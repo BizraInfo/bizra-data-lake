@@ -9,9 +9,10 @@ Verifies:
 - No direct CLEAR/guardrail calls (verify isolation)
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from core.autopoiesis.hypothesis_generator import SystemObservation
 from core.spearpoint.auto_evaluator import AutoEvaluator
@@ -67,9 +68,7 @@ class TestHypothesisGeneration:
         results = researcher.research(observation=obs)
         assert len(results) > 0
 
-    def test_no_hypotheses_from_healthy_observation(
-        self, researcher: AutoResearcher
-    ):
+    def test_no_hypotheses_from_healthy_observation(self, researcher: AutoResearcher):
         """Healthy system produces NO_HYPOTHESES or few results."""
         obs = SystemObservation(
             avg_latency_ms=50,
@@ -92,9 +91,7 @@ class TestHypothesisGeneration:
 class TestEvaluationGating:
     """Verify all hypotheses gate through AutoEvaluator."""
 
-    def test_every_hypothesis_gets_evaluated(
-        self, researcher: AutoResearcher
-    ):
+    def test_every_hypothesis_gets_evaluated(self, researcher: AutoResearcher):
         """Every hypothesis passes through the evaluator."""
         obs = SystemObservation(
             avg_latency_ms=800,
@@ -107,9 +104,7 @@ class TestEvaluationGating:
             if result.outcome != ResearchOutcome.NO_HYPOTHESES:
                 assert result.evaluation is not None
 
-    def test_rejected_hypothesis_not_promoted(
-        self, researcher: AutoResearcher
-    ):
+    def test_rejected_hypothesis_not_promoted(self, researcher: AutoResearcher):
         """Rejected hypotheses stay rejected."""
         obs = SystemObservation(error_rate=0.1)
         results = researcher.research(observation=obs)
@@ -139,17 +134,13 @@ class TestEvaluationGating:
 class TestNoDirectCLEAR:
     """Verify researcher never calls CLEAR/guardrails directly."""
 
-    def test_researcher_has_no_clear_attribute(
-        self, researcher: AutoResearcher
-    ):
+    def test_researcher_has_no_clear_attribute(self, researcher: AutoResearcher):
         """AutoResearcher has no direct reference to CLEAR framework."""
         assert not hasattr(researcher, "_clear")
         assert not hasattr(researcher, "_guardrails")
         assert not hasattr(researcher, "_ihsan_gate")
 
-    def test_researcher_uses_evaluator_only(
-        self, researcher: AutoResearcher
-    ):
+    def test_researcher_uses_evaluator_only(self, researcher: AutoResearcher):
         """AutoResearcher has _evaluator attribute (sole gateway)."""
         assert hasattr(researcher, "_evaluator")
         assert isinstance(researcher._evaluator, AutoEvaluator)
@@ -174,9 +165,7 @@ class TestConstitutionalIntegration:
 class TestMissionIDPropagation:
     """Verify mission_id flows through the entire chain."""
 
-    def test_mission_id_in_research_result(
-        self, researcher: AutoResearcher
-    ):
+    def test_mission_id_in_research_result(self, researcher: AutoResearcher):
         """Mission ID propagates to research results."""
         result = researcher.research_single(
             claim="Test claim for mission ID propagation with sufficient length to pass all guardrail minimum requirements",
@@ -214,9 +203,7 @@ class TestStatistics:
 class TestResearchReceipts:
     """Verify researcher-level receipt emission for auditability."""
 
-    def test_research_single_emits_receipt_hash(
-        self, researcher: AutoResearcher
-    ):
+    def test_research_single_emits_receipt_hash(self, researcher: AutoResearcher):
         """Single-claim research result carries ledger receipt hash."""
         result = researcher.research_single(
             claim="Research receipt claim with enough structure to run through evaluator and produce a deterministic audit trail entry",

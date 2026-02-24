@@ -20,7 +20,6 @@ import os
 
 import pytest
 
-
 pytestmark = pytest.mark.pyo3_bridge
 
 
@@ -75,9 +74,7 @@ class TestPyO3PCI:
 
     def test_pci_envelope_signature_verifiable(self, bizra_module, pyo3_identity):
         payload = json.dumps({"data": "signed_content"})
-        envelope = bizra_module.PCIEnvelope.create(
-            pyo3_identity, payload, 3600, []
-        )
+        envelope = bizra_module.PCIEnvelope.create(pyo3_identity, payload, 3600, [])
         # Signature was created with identity's key
         assert len(envelope.signature) > 0
         assert envelope.public_key == pyo3_identity.public_key
@@ -169,13 +166,17 @@ class TestPyO3InferenceGateway:
         # This tests the registration path, not the connection
         pyo3_gateway.register_ollama("llama3.2", "local", "http://localhost:11434")
 
-    def test_gateway_register_lmstudio(self, bizra_module, pyo3_identity, pyo3_constitution):
+    def test_gateway_register_lmstudio(
+        self, bizra_module, pyo3_identity, pyo3_constitution
+    ):
         """Registering LM Studio backend with custom host/port."""
         gw = bizra_module.InferenceGateway(pyo3_identity, pyo3_constitution)
         gw.register_lmstudio("local", host="192.168.56.1", port=1234)
 
     @pytest.mark.requires_ollama
-    def test_gateway_infer_through_ollama(self, bizra_module, pyo3_identity, pyo3_constitution):
+    def test_gateway_infer_through_ollama(
+        self, bizra_module, pyo3_identity, pyo3_constitution
+    ):
         """CRITICAL: Full Python → Rust → Ollama → Response path.
 
         This is the test that proves Gap #1 is closed.
@@ -198,7 +199,9 @@ class TestPyO3InferenceGateway:
         assert response.duration_ms > 0
 
     @pytest.mark.requires_ollama
-    def test_gateway_infer_with_system_prompt(self, bizra_module, pyo3_identity, pyo3_constitution):
+    def test_gateway_infer_with_system_prompt(
+        self, bizra_module, pyo3_identity, pyo3_constitution
+    ):
         """Test system prompt passthrough."""
         gw = bizra_module.InferenceGateway(pyo3_identity, pyo3_constitution)
         gw.register_ollama("llama3.2", "local")
@@ -227,11 +230,15 @@ class TestPyO3TaskComplexity:
         assert c.level == "Medium"
 
     def test_complex_prompt_with_code(self, bizra_module):
-        c = bizra_module.TaskComplexity.estimate("Write a function:\n```python\ndef foo():\n```", 100)
+        c = bizra_module.TaskComplexity.estimate(
+            "Write a function:\n```python\ndef foo():\n```", 100
+        )
         assert c.level == "Complex"
 
     def test_expert_prompt(self, bizra_module):
-        c = bizra_module.TaskComplexity.estimate("Explain quantum computing in full detail", 3000)
+        c = bizra_module.TaskComplexity.estimate(
+            "Explain quantum computing in full detail", 3000
+        )
         assert c.level == "Expert"
 
 
@@ -297,12 +304,14 @@ class TestFullPipelineIntegration:
         assert len(response.text) > 0
 
         # Step 4: Wrap in PCI envelope
-        payload = json.dumps({
-            "query": "What is the meaning of sovereignty?",
-            "response": response.text,
-            "model": response.model,
-            "tier": response.tier,
-        })
+        payload = json.dumps(
+            {
+                "query": "What is the meaning of sovereignty?",
+                "response": response.text,
+                "model": response.model,
+                "tier": response.tier,
+            }
+        )
         envelope = bizra_module.PCIEnvelope.create(
             identity, payload, 3600, ["inference_gateway"]
         )
@@ -314,9 +323,9 @@ class TestFullPipelineIntegration:
             snr_score=0.90,
             ihsan_score=0.96,
         )
-        assert bizra_module.GateChain.all_passed(gate_results), (
-            f"Gate chain failed: {gate_results}"
-        )
+        assert bizra_module.GateChain.all_passed(
+            gate_results
+        ), f"Gate chain failed: {gate_results}"
 
         # Proof: the envelope is signed and gates pass
         assert envelope.signature is not None

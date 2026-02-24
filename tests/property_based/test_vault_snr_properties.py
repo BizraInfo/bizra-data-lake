@@ -15,13 +15,13 @@ Invariants verified:
 5. SNR facade dispatch determinism
 """
 
-import pytest
-from hypothesis import given, settings, assume, HealthCheck
-from hypothesis import strategies as st
 from pathlib import Path
 
-from core.vault.vault import SovereignVault
+import pytest
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
 
+from core.vault.vault import SovereignVault
 
 # ── Strategies ──────────────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ vault_keys = st.text(
 # JSON-serializable values (vault stores via JSON round-trip)
 vault_values = st.one_of(
     st.text(min_size=0, max_size=256),
-    st.integers(min_value=-2**53, max_value=2**53),
+    st.integers(min_value=-(2**53), max_value=2**53),
     st.floats(allow_nan=False, allow_infinity=False),
     st.booleans(),
     st.none(),
@@ -44,6 +44,7 @@ vault_values = st.one_of(
 
 
 # ── Vault Roundtrip Properties ──────────────────────────────────────────
+
 
 class TestVaultRoundtrip:
     """AES-encrypted vault: put→get must return the original value."""
@@ -57,17 +58,23 @@ class TestVaultRoundtrip:
         )
 
     @given(key=vault_keys, value=vault_values)
-    @settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+    @settings(
+        max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+    )
     def test_put_get_roundtrip(self, key: str, value):
         """∀ (key, value): get(put(key, value)) == value"""
         self.vault.put(key, value)
         retrieved = self.vault.get(key)
-        assert retrieved == value, f"Roundtrip failed: put({key!r}, {value!r}) → get = {retrieved!r}"
+        assert (
+            retrieved == value
+        ), f"Roundtrip failed: put({key!r}, {value!r}) → get = {retrieved!r}"
         # Cleanup for next iteration
         self.vault.delete(key)
 
     @given(key=vault_keys, value=vault_values)
-    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+    @settings(
+        max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+    )
     def test_delete_removes(self, key: str, value):
         """∀ key: put(key, v); delete(key) → get(key) == None"""
         self.vault.put(key, value)
@@ -75,7 +82,9 @@ class TestVaultRoundtrip:
         assert self.vault.get(key) is None
 
     @given(key=vault_keys, v1=vault_values, v2=vault_values)
-    @settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+    @settings(
+        max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+    )
     def test_overwrite_semantics(self, key: str, v1, v2):
         """∀ key: put(key, v1); put(key, v2) → get(key) == v2"""
         self.vault.put(key, v1)
@@ -84,7 +93,9 @@ class TestVaultRoundtrip:
         self.vault.delete(key)
 
     @given(keys=st.lists(vault_keys, min_size=1, max_size=10, unique=True))
-    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+    @settings(
+        max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+    )
     def test_list_keys_consistency(self, keys):
         """∀ keys: put each → list_keys() contains all."""
         for k in keys:
@@ -99,12 +110,14 @@ class TestVaultRoundtrip:
 
 # ── SNR Score Properties ────────────────────────────────────────────────
 
+
 class TestSNRBounds:
     """SNR results must be normalized to [0, 1]."""
 
     def test_snr_result_dataclass(self):
         """SNRResult fields are correctly bounded."""
         from core.snr_protocol import SNRResult
+
         r = SNRResult(score=0.85, ihsan_achieved=True, engine="test")
         assert 0.0 <= r.score <= 1.0
         assert r.ihsan_achieved is True
@@ -115,11 +128,13 @@ class TestSNRBounds:
     def test_snr_result_score_bounds(self, score):
         """∀ score ∈ [0, 1]: SNRResult accepts it."""
         from core.snr_protocol import SNRResult
+
         r = SNRResult(score=score, ihsan_achieved=score >= 0.95, engine="hypothesis")
         assert 0.0 <= r.score <= 1.0
 
     def test_snr_facade_import(self):
         """SNRFacade can be instantiated."""
         from core.snr_protocol import SNRFacade
+
         facade = SNRFacade()
         assert facade is not None

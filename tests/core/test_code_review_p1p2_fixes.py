@@ -26,7 +26,12 @@ import pytest
 # P1 — strict_gate_passed requires failed_steps == 0 in non-strict mode
 # ---------------------------------------------------------------------------
 from core.genesis.orchestrator import GenesisOrchestrator
-from core.genesis.types import GenesisConfig, GenesisResult, GenesisStep, GenesisStepStatus
+from core.genesis.types import (
+    GenesisConfig,
+    GenesisResult,
+    GenesisStep,
+    GenesisStepStatus,
+)
 
 
 class TestStrictGatePassedRequiresNoFailures:
@@ -44,7 +49,11 @@ class TestStrictGatePassedRequiresNoFailures:
         original_run = orchestrator._step_token_allocation
 
         def _failing_step() -> dict:
-            return {"success": False, "status": "failed", "reason_code": "INJECTED_FAIL"}
+            return {
+                "success": False,
+                "status": "failed",
+                "reason_code": "INJECTED_FAIL",
+            }
 
         orchestrator._step_token_allocation = _failing_step
         result = orchestrator.run()
@@ -56,9 +65,9 @@ class TestStrictGatePassedRequiresNoFailures:
 
         # Critical assertion: strict_gate_passed must be False
         assert result.failed_steps > 0
-        assert result.strict_gate_passed is False, (
-            "strict_gate_passed should be False when failed_steps > 0"
-        )
+        assert (
+            result.strict_gate_passed is False
+        ), "strict_gate_passed should be False when failed_steps > 0"
 
     def test_non_strict_all_success_is_true(self) -> None:
         """Non-strict with no failures and no degradation → strict_gate_passed=True."""
@@ -77,7 +86,7 @@ class TestStrictGatePassedRequiresNoFailures:
 # ---------------------------------------------------------------------------
 # P2 — SAT count respects explicit --sat-count
 # ---------------------------------------------------------------------------
-from core.genesis.cli import handle_genesis, build_genesis_parser
+from core.genesis.cli import build_genesis_parser, handle_genesis
 
 
 class TestSATCountOverride:
@@ -206,13 +215,19 @@ class TestCaptureScreenshotHash:
 
         b64 = base64.b64encode(img).decode()
 
-        r1 = await bridge._handle_capture_screenshot({"label": "pre", "screenshot_base64": b64})
-        r2 = await bridge._handle_capture_screenshot({"label": "pre", "screenshot_base64": b64})
+        r1 = await bridge._handle_capture_screenshot(
+            {"label": "pre", "screenshot_base64": b64}
+        )
+        r2 = await bridge._handle_capture_screenshot(
+            {"label": "pre", "screenshot_base64": b64}
+        )
 
         assert r1["state_hash"] == r2["state_hash"], "Same bytes must yield same hash"
 
     @pytest.mark.asyncio
-    async def test_different_bytes_produce_different_hash(self, bridge: DesktopBridge) -> None:
+    async def test_different_bytes_produce_different_hash(
+        self, bridge: DesktopBridge
+    ) -> None:
         """Different screenshot bytes must yield different hashes."""
         import base64
 
@@ -222,7 +237,9 @@ class TestCaptureScreenshotHash:
         r1 = await bridge._handle_capture_screenshot({"screenshot_base64": img_a})
         r2 = await bridge._handle_capture_screenshot({"screenshot_base64": img_b})
 
-        assert r1["state_hash"] != r2["state_hash"], "Different bytes must yield different hash"
+        assert (
+            r1["state_hash"] != r2["state_hash"]
+        ), "Different bytes must yield different hash"
 
     @pytest.mark.asyncio
     async def test_no_bytes_fallback_still_unique(self, bridge: DesktopBridge) -> None:
@@ -236,7 +253,9 @@ class TestCaptureScreenshotHash:
         assert r1["state_hash"] != r2["state_hash"]
 
     @pytest.mark.asyncio
-    async def test_content_hash_matches_expected_sha256(self, bridge: DesktopBridge) -> None:
+    async def test_content_hash_matches_expected_sha256(
+        self, bridge: DesktopBridge
+    ) -> None:
         """Content-addressed hash matches manual SHA-256 of the raw bytes."""
         import base64
 

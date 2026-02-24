@@ -14,15 +14,15 @@ Standing on Giants: Event Sourcing + Snapshot Pattern + Write-Ahead Logging
 
 import asyncio
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from core.sovereign.memory_coordinator import (
     MemoryCoordinator,
     MemoryCoordinatorConfig,
 )
-
 
 # =============================================================================
 # FIXTURES
@@ -157,9 +157,7 @@ class TestSave:
 
     @pytest.mark.asyncio
     async def test_save_includes_provider_data(self, coordinator, state_dir):
-        coordinator.register_state_provider(
-            "test_data", lambda: {"answer": 42}
-        )
+        coordinator.register_state_provider("test_data", lambda: {"answer": 42})
         await coordinator.save_all()
         cp_file = list((state_dir / "checkpoints").glob("cp-*.json"))[0]
         data = json.loads(cp_file.read_text())
@@ -189,9 +187,7 @@ class TestRestore:
 
     @pytest.mark.asyncio
     async def test_restore_after_save(self, coordinator):
-        coordinator.register_state_provider(
-            "rt", lambda: {"cycles": 100}
-        )
+        coordinator.register_state_provider("rt", lambda: {"cycles": 100})
         await coordinator.save_all()
         state = await coordinator.restore_latest()
         assert state is not None
@@ -231,9 +227,9 @@ class TestLivingMemory:
     async def test_save_calls_living_memory_save(self, coordinator):
         mock_lm = MagicMock()
         mock_lm._save_memories = AsyncMock()
-        mock_lm.get_stats = MagicMock(return_value=MagicMock(
-            to_dict=lambda: {"total_entries": 5}
-        ))
+        mock_lm.get_stats = MagicMock(
+            return_value=MagicMock(to_dict=lambda: {"total_entries": 5})
+        )
         coordinator.register_living_memory(mock_lm)
 
         await coordinator.save_all()
@@ -243,9 +239,11 @@ class TestLivingMemory:
     async def test_save_includes_living_memory_stats(self, coordinator, state_dir):
         mock_lm = MagicMock()
         mock_lm._save_memories = AsyncMock()
-        mock_lm.get_stats = MagicMock(return_value=MagicMock(
-            to_dict=lambda: {"total_entries": 10, "active_entries": 8}
-        ))
+        mock_lm.get_stats = MagicMock(
+            return_value=MagicMock(
+                to_dict=lambda: {"total_entries": 10, "active_entries": 8}
+            )
+        )
         coordinator.register_living_memory(mock_lm)
 
         await coordinator.save_all()

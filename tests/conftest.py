@@ -1,9 +1,10 @@
 # BIZRA Test Configuration
 # Pytest fixtures and configuration
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -23,14 +24,14 @@ def sample_documents():
             "id": "doc1",
             "title": "Test Document 1",
             "content": "This is sample content for testing purposes.",
-            "source": "test"
+            "source": "test",
         },
         {
             "id": "doc2",
             "title": "Test Document 2",
             "content": "Another test document with different content.",
-            "source": "test"
-        }
+            "source": "test",
+        },
     ]
 
 
@@ -42,14 +43,14 @@ def sample_chunks():
             "chunk_id": "chunk1",
             "doc_id": "doc1",
             "text": "Sample chunk text for testing.",
-            "position": 0
+            "position": 0,
         },
         {
             "chunk_id": "chunk2",
             "doc_id": "doc1",
             "text": "Another chunk from the same document.",
-            "position": 1
-        }
+            "position": 1,
+        },
     ]
 
 
@@ -58,15 +59,11 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line(
         "markers", "requires_ollama: marks tests that require Ollama running"
     )
-    config.addinivalue_line(
-        "markers", "requires_gpu: marks tests that require GPU"
-    )
+    config.addinivalue_line("markers", "requires_gpu: marks tests that require GPU")
     config.addinivalue_line(
         "markers", "requires_real_data: marks tests that need real parquet/index data"
     )

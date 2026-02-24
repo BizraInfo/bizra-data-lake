@@ -27,7 +27,6 @@ from core.nexus.sovereign_nexus import (
     ThoughtType,
 )
 
-
 # ---------------------------------------------------------------------------
 # ENUM TESTS
 # ---------------------------------------------------------------------------
@@ -40,16 +39,27 @@ class TestEnums:
 
     def test_nexus_states(self):
         expected = {
-            "initializing", "ready", "processing", "reasoning",
-            "executing", "validating", "complete", "error",
+            "initializing",
+            "ready",
+            "processing",
+            "reasoning",
+            "executing",
+            "validating",
+            "complete",
+            "error",
         }
         actual = {s.value for s in NexusState}
         assert actual == expected
 
     def test_thought_types(self):
         expected = {
-            "hypothesis", "observation", "analysis", "synthesis",
-            "conclusion", "contradiction", "refinement",
+            "hypothesis",
+            "observation",
+            "analysis",
+            "synthesis",
+            "conclusion",
+            "contradiction",
+            "refinement",
         }
         actual = {t.value for t in ThoughtType}
         assert actual == expected
@@ -218,24 +228,34 @@ class TestSNRScore:
 
     def test_high_signal_components(self):
         score = SNRScore(
-            relevance=0.95, novelty=0.9, groundedness=0.9,
-            coherence=0.9, actionability=0.9,
+            relevance=0.95,
+            novelty=0.9,
+            groundedness=0.9,
+            coherence=0.9,
+            actionability=0.9,
         )
         assert score.signal_power > 0.5
 
     def test_noise_power(self):
         score = SNRScore(
-            inconsistency=0.5, redundancy=0.5,
-            ambiguity=0.5, hallucination_risk=0.5,
+            inconsistency=0.5,
+            redundancy=0.5,
+            ambiguity=0.5,
+            hallucination_risk=0.5,
         )
         assert score.noise_power > 0
 
     def test_passed_threshold(self):
         score = SNRScore(
-            relevance=0.95, novelty=0.9, groundedness=0.95,
-            coherence=0.9, actionability=0.9,
-            inconsistency=0.01, redundancy=0.01,
-            ambiguity=0.01, hallucination_risk=0.01,
+            relevance=0.95,
+            novelty=0.9,
+            groundedness=0.95,
+            coherence=0.9,
+            actionability=0.9,
+            inconsistency=0.01,
+            redundancy=0.01,
+            ambiguity=0.01,
+            hallucination_risk=0.01,
         )
         # With high signal and low noise, SNR should be high
         assert score.snr > 0.5
@@ -274,7 +294,9 @@ class TestSNRGate:
         assert score.groundedness > 0.5
 
     def test_validate_thought_updates_node(self, gate):
-        node = ThoughtNode(content="Implement a robust testing framework for quality assurance.")
+        node = ThoughtNode(
+            content="Implement a robust testing framework for quality assurance."
+        )
         score = gate.validate_thought(node)
         assert node.snr_score == score.snr
         assert node.validated == score.passed

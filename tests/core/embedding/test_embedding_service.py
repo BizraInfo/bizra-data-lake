@@ -67,9 +67,7 @@ class TestEmbeddingServiceTier2:
 
     def test_embed_ollama_fallback(self):
         """When sentence-transformers fails, falls back to Ollama."""
-        svc = EmbeddingService(
-            EmbeddingConfig(ollama_url="http://localhost:11434")
-        )
+        svc = EmbeddingService(EmbeddingConfig(ollama_url="http://localhost:11434"))
 
         fake_embedding = [0.1] * 768
 

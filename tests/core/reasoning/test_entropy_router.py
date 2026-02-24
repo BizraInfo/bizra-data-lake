@@ -50,9 +50,7 @@ class TestTierRouting:
         assert decision.quorum_size == 0
         assert decision.use_got is False
 
-    def test_moderate_query_routes_to_s1_5(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_moderate_query_routes_to_s1_5(self, router: EntropyRouter) -> None:
         query = (
             "Compare and contrast REST vs GraphQL APIs, "
             "considering the trade-offs for mobile applications "
@@ -64,9 +62,7 @@ class TestTierRouting:
         assert decision.use_got is True
         assert decision.use_orchestrator is False
 
-    def test_complex_query_routes_to_s2(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_complex_query_routes_to_s2(self, router: EntropyRouter) -> None:
         query = (
             "Analyze the implications of quantum computing on modern "
             "cryptographic systems. How does Shor's algorithm relate to "
@@ -86,9 +82,7 @@ class TestTierRouting:
         assert decision.use_got is True
         assert decision.use_orchestrator is True
 
-    def test_frontier_query_full_quorum(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_frontier_query_full_quorum(self, router: EntropyRouter) -> None:
         # Build a clearly frontier-level query with many complexity signals.
         # Must trigger enough sub-question patterns, multi-domain markers,
         # question marks, length, and entropy to exceed the 0.85 threshold.
@@ -154,9 +148,7 @@ class TestTierRouting:
 class TestContextHints:
     """Validate that external context influences routing."""
 
-    def test_complexity_hint_from_context(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_complexity_hint_from_context(self, router: EntropyRouter) -> None:
         base_score = router.estimate_complexity("Hello world")
         boosted_score = router.estimate_complexity(
             "Hello world", context={"complexity_hint": 1.0}
@@ -179,9 +171,7 @@ class TestContextHints:
 class TestTextEntropy:
     """Validate the Shannon entropy calculation."""
 
-    def test_text_entropy_normalized_0_to_1(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_text_entropy_normalized_0_to_1(self, router: EntropyRouter) -> None:
         for text in [
             "hello",
             "a" * 100,
@@ -189,27 +179,21 @@ class TestTextEntropy:
             "the quick brown fox jumps over the lazy dog",
         ]:
             entropy = router._text_entropy(text)
-            assert 0.0 <= entropy <= 1.0, (
-                f"Entropy {entropy} out of range for '{text[:30]}'"
-            )
+            assert (
+                0.0 <= entropy <= 1.0
+            ), f"Entropy {entropy} out of range for '{text[:30]}'"
 
-    def test_text_entropy_uniform_is_maximal(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_text_entropy_uniform_is_maximal(self, router: EntropyRouter) -> None:
         # All unique characters -> maximum entropy (1.0)
         text = "abcdefghijklmnopqrstuvwxyz"
         entropy = router._text_entropy(text)
         assert entropy > 0.99, f"Expected ~1.0 for uniform distribution, got {entropy}"
 
-    def test_text_entropy_single_char_is_zero(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_text_entropy_single_char_is_zero(self, router: EntropyRouter) -> None:
         entropy = router._text_entropy("aaaa")
         assert entropy == 0.0
 
-    def test_text_entropy_empty_is_zero(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_text_entropy_empty_is_zero(self, router: EntropyRouter) -> None:
         entropy = router._text_entropy("")
         assert entropy == 0.0
 
@@ -228,9 +212,7 @@ class TestRoutingDecision:
         with pytest.raises(AttributeError):
             decision.system = "HACKED"  # type: ignore[misc]
 
-    def test_routing_decision_has_reasoning(
-        self, router: EntropyRouter
-    ) -> None:
+    def test_routing_decision_has_reasoning(self, router: EntropyRouter) -> None:
         decision = router.route("explain gravity")
         assert "score=" in decision.reasoning
         assert decision.query_complexity.name in decision.reasoning
@@ -254,9 +236,7 @@ class TestSNRMonotonicity:
             QueryComplexity.COMPLEX,
             QueryComplexity.FRONTIER,
         ]
-        decisions = [
-            router._build_decision(tier, 0.5, "test") for tier in tiers
-        ]
+        decisions = [router._build_decision(tier, 0.5, "test") for tier in tiers]
         snr_values = [d.snr_requirement for d in decisions]
 
         for i in range(len(snr_values) - 1):

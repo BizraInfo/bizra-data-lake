@@ -11,22 +11,22 @@ Standing on the Shoulders of Giants:
 """
 
 import time
+
 import pytest
 
 from core.benchmark.clear_framework import (
-    CLEARFramework,
-    CLEARDimension,
-    CLEARMetrics,
-    MetricWeight,
-    EvaluationContext,
     AgenticBenchmarkChecklist,
-    CostMetrics,
-    LatencyMetrics,
-    EfficacyMetrics,
     AssuranceMetrics,
+    CLEARDimension,
+    CLEARFramework,
+    CLEARMetrics,
+    CostMetrics,
+    EfficacyMetrics,
+    EvaluationContext,
+    LatencyMetrics,
+    MetricWeight,
     ReliabilityMetrics,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MetricWeight
@@ -41,16 +41,26 @@ class TestMetricWeight:
         assert abs(total - 1.0) < 0.001
 
     def test_custom_valid(self):
-        w = MetricWeight(cost=0.2, latency=0.2, efficacy=0.2, assurance=0.2, reliability=0.2)
+        w = MetricWeight(
+            cost=0.2, latency=0.2, efficacy=0.2, assurance=0.2, reliability=0.2
+        )
         assert abs(sum(w.as_dict().values()) - 1.0) < 0.001
 
     def test_invalid_sum_raises(self):
         with pytest.raises(ValueError):
-            MetricWeight(cost=0.5, latency=0.5, efficacy=0.5, assurance=0.5, reliability=0.5)
+            MetricWeight(
+                cost=0.5, latency=0.5, efficacy=0.5, assurance=0.5, reliability=0.5
+            )
 
     def test_as_dict(self):
         d = MetricWeight().as_dict()
-        assert set(d.keys()) == {"cost", "latency", "efficacy", "assurance", "reliability"}
+        assert set(d.keys()) == {
+            "cost",
+            "latency",
+            "efficacy",
+            "assurance",
+            "reliability",
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -75,12 +85,22 @@ class TestMetricClasses:
         assert 0.0 <= s <= 1.0
 
     def test_efficacy_score(self):
-        m = EfficacyMetrics(accuracy=0.95, task_completion_rate=0.90, goal_achievement=0.85, partial_credit=0.80)
+        m = EfficacyMetrics(
+            accuracy=0.95,
+            task_completion_rate=0.90,
+            goal_achievement=0.85,
+            partial_credit=0.80,
+        )
         s = m.score()
         assert 0.0 <= s <= 1.0
 
     def test_assurance_perfect(self):
-        m = AssuranceMetrics(safety_violations=0, hallucination_rate=0.0, reproducibility=1.0, graceful_failures=5)
+        m = AssuranceMetrics(
+            safety_violations=0,
+            hallucination_rate=0.0,
+            reproducibility=1.0,
+            graceful_failures=5,
+        )
         s = m.score()
         assert s > 0.8
 
@@ -90,7 +110,12 @@ class TestMetricClasses:
         assert clean.score() > dirty.score()
 
     def test_reliability_score(self):
-        m = ReliabilityMetrics(consistency_across_runs=0.9, recovery_rate=0.8, runs_completed=5, runs_failed=1)
+        m = ReliabilityMetrics(
+            consistency_across_runs=0.9,
+            recovery_rate=0.8,
+            runs_completed=5,
+            runs_failed=1,
+        )
         s = m.score()
         assert 0.0 <= s <= 1.0
 
@@ -111,7 +136,13 @@ class TestCLEARMetrics:
     def test_dimension_scores(self):
         m = CLEARMetrics()
         ds = m.dimension_scores()
-        assert set(ds.keys()) == {"cost", "latency", "efficacy", "assurance", "reliability"}
+        assert set(ds.keys()) == {
+            "cost",
+            "latency",
+            "efficacy",
+            "assurance",
+            "reliability",
+        }
 
     def test_to_dict(self):
         m = CLEARMetrics(task_id="t1", agent_id="a1")
@@ -124,8 +155,12 @@ class TestCLEARMetrics:
         m = CLEARMetrics()
         m.efficacy.accuracy = 1.0
         m.efficacy.task_completion_rate = 1.0
-        w1 = MetricWeight(cost=0.05, latency=0.05, efficacy=0.80, assurance=0.05, reliability=0.05)
-        w2 = MetricWeight(cost=0.80, latency=0.05, efficacy=0.05, assurance=0.05, reliability=0.05)
+        w1 = MetricWeight(
+            cost=0.05, latency=0.05, efficacy=0.80, assurance=0.05, reliability=0.05
+        )
+        w2 = MetricWeight(
+            cost=0.80, latency=0.05, efficacy=0.05, assurance=0.05, reliability=0.05
+        )
         s1 = m.compute_overall_score(w1)
         s2 = m.compute_overall_score(w2)
         assert s1 != s2
@@ -175,7 +210,9 @@ class TestCLEARFramework:
         assert fw.abc_checker is not None
 
     def test_init_custom_weights(self):
-        w = MetricWeight(cost=0.1, latency=0.1, efficacy=0.5, assurance=0.2, reliability=0.1)
+        w = MetricWeight(
+            cost=0.1, latency=0.1, efficacy=0.5, assurance=0.2, reliability=0.1
+        )
         fw = CLEARFramework(weights=w)
         assert fw.weights.efficacy == 0.5
 
@@ -271,7 +308,9 @@ class TestEvaluationContext:
     def test_record_assurance(self):
         fw = CLEARFramework()
         with fw.evaluate("a-task", "a-agent") as ctx:
-            ctx.record_assurance(safety_violations=0, hallucination_rate=0.01, reproducibility=0.99)
+            ctx.record_assurance(
+                safety_violations=0, hallucination_rate=0.01, reproducibility=0.99
+            )
         m = fw.get_metrics("a-task")
         assert m.assurance.safety_violations == 0
         assert m.assurance.hallucination_rate == 0.01

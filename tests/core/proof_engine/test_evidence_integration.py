@@ -31,10 +31,10 @@ from core.proof_engine.evidence_ledger import (
 )
 from core.proof_engine.schema_validator import validate_receipt
 
-
 # =============================================================================
 # FIXTURES & HELPERS
 # =============================================================================
+
 
 @pytest.fixture
 def ledger_file(tmp_path: Path) -> Path:
@@ -85,6 +85,7 @@ def _make_receipt(
 # 1. TestLedgerLifecycle — Creation, append, file persistence, resume
 # =============================================================================
 
+
 class TestLedgerLifecycle:
     """Verify the full create-append-persist-resume lifecycle."""
 
@@ -98,7 +99,9 @@ class TestLedgerLifecycle:
     def test_append_increments_sequence(self, ledger: EvidenceLedger) -> None:
         """Each append call increments the sequence number by exactly one."""
         for expected_seq in range(1, 6):
-            entry = ledger.append(_make_receipt(receipt_id=f"a1b2c3d4e5f6a{expected_seq:03d}"))
+            entry = ledger.append(
+                _make_receipt(receipt_id=f"a1b2c3d4e5f6a{expected_seq:03d}")
+            )
             assert entry.sequence == expected_seq
             assert ledger.sequence == expected_seq
 
@@ -153,6 +156,7 @@ class TestLedgerLifecycle:
 # 2. TestHashChain — Cryptographic chain link integrity
 # =============================================================================
 
+
 class TestHashChain:
     """Verify the SHA-256 hash chain that makes tampering detectable."""
 
@@ -166,9 +170,7 @@ class TestHashChain:
         """Entry N's prev_hash equals entry N-1's entry_hash for all N > 1."""
         prev_entry = ledger.append(_make_receipt(receipt_id="a1b2c3d4e5f6e001"))
         for i in range(2, 8):
-            cur_entry = ledger.append(
-                _make_receipt(receipt_id=f"a1b2c3d4e5f6e{i:03d}")
-            )
+            cur_entry = ledger.append(_make_receipt(receipt_id=f"a1b2c3d4e5f6e{i:03d}"))
             assert cur_entry.prev_hash == prev_entry.entry_hash, (
                 f"Chain break at seq {i}: prev_hash={cur_entry.prev_hash[:16]}... "
                 f"!= expected={prev_entry.entry_hash[:16]}..."
@@ -217,6 +219,7 @@ class TestHashChain:
 # =============================================================================
 # 3. TestReceiptEmission — emit_receipt() bridge function
 # =============================================================================
+
 
 class TestReceiptEmission:
     """Verify emit_receipt produces schema-compliant, correctly populated entries."""
@@ -323,6 +326,7 @@ class TestReceiptEmission:
 # 4. TestVerifierResponse — Uniform response envelope
 # =============================================================================
 
+
 class TestVerifierResponse:
     """Verify VerifierResponse factory methods and serialization contract."""
 
@@ -391,6 +395,7 @@ class TestVerifierResponse:
 # 5. TestLedgerConcurrency — Thread safety and scale
 # =============================================================================
 
+
 class TestLedgerConcurrency:
     """Verify thread safety and correctness at scale."""
 
@@ -410,8 +415,7 @@ class TestLedgerConcurrency:
                 errors_from_threads.append(f"Thread {thread_id}: {exc}")
 
         threads = [
-            threading.Thread(target=_worker, args=(tid,))
-            for tid in range(num_threads)
+            threading.Thread(target=_worker, args=(tid,)) for tid in range(num_threads)
         ]
         for t in threads:
             t.start()
@@ -463,6 +467,7 @@ class TestLedgerConcurrency:
 # 6. TestSchemaValidation — Receipt schema enforcement
 # =============================================================================
 
+
 class TestSchemaValidation:
     """Verify schema validation gates on the ledger's append path."""
 
@@ -475,7 +480,10 @@ class TestSchemaValidation:
 
     def test_invalid_receipt_raises(self, validated_ledger: EvidenceLedger) -> None:
         """A receipt missing required fields is rejected with ValueError."""
-        incomplete = {"receipt_id": "a1b2c3d4e5f60099", "timestamp": "2026-02-11T00:00:00Z"}
+        incomplete = {
+            "receipt_id": "a1b2c3d4e5f60099",
+            "timestamp": "2026-02-11T00:00:00Z",
+        }
         with pytest.raises(ValueError, match="schema validation"):
             validated_ledger.append(incomplete)
         # Ledger state must not have advanced
@@ -508,6 +516,7 @@ class TestSchemaValidation:
 # =============================================================================
 # 7. BONUS — Edge cases and roundtrip fidelity
 # =============================================================================
+
 
 class TestEdgeCases:
     """Additional edge-case and roundtrip tests for robustness."""

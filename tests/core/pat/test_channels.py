@@ -28,7 +28,6 @@ from core.pat.channels import (
     QueryFn,
 )
 
-
 # ─── Concrete test adapter ────────────────────────────────────────
 
 
@@ -52,11 +51,13 @@ class MockAdapter(ChannelAdapter):
     async def send_response(
         self, platform_user_id: str, content: str, **kwargs: Any
     ) -> bool:
-        self.sent_messages.append({
-            "user_id": platform_user_id,
-            "content": content,
-            **kwargs,
-        })
+        self.sent_messages.append(
+            {
+                "user_id": platform_user_id,
+                "content": content,
+                **kwargs,
+            }
+        )
         return True
 
 
@@ -66,16 +67,20 @@ class MockAdapter(ChannelAdapter):
 @pytest.fixture
 def echo_query_fn():
     """Query function that echoes input."""
+
     async def fn(content: str, context: Optional[Dict] = None) -> str:
         return f"Response: {content}"
+
     return fn
 
 
 @pytest.fixture
 def failing_query_fn():
     """Query function that always fails."""
+
     async def fn(content: str, context: Optional[Dict] = None) -> str:
         raise RuntimeError("Query engine offline")
+
     return fn
 
 
@@ -181,6 +186,7 @@ class TestTelegramAdapter:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValueError, match="token required"):
                 from core.pat.adapters.telegram import TelegramAdapter
+
                 TelegramAdapter(token="")
 
     def test_accepts_token(self):
@@ -340,7 +346,5 @@ class TestTelegramAdapter:
         adapter = TelegramAdapter(token="test:TOKEN", query_fn=AsyncMock())
         adapter._started_at = time.time()
 
-        response = await adapter._handle_command(
-            "/help@mybotname", "12345", {}
-        )
+        response = await adapter._handle_command("/help@mybotname", "12345", {})
         assert "/status" in response

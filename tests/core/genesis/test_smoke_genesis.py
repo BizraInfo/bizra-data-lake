@@ -15,7 +15,6 @@ import argparse
 
 import pytest
 
-from core.pci.crypto import generate_keypair
 from core.genesis import (
     CHECKMARK,
     CROSSMARK,
@@ -35,6 +34,7 @@ from core.genesis import (
 )
 from core.genesis.cli import build_genesis_parser
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
+from core.pci.crypto import generate_keypair
 
 
 class TestGenesisTypes:
@@ -248,18 +248,24 @@ class TestGenesisOrchestrator:
         subparsers = parser.add_subparsers(dest="command")
         build_genesis_parser(subparsers)
 
-        args = parser.parse_args([
-            "genesis",
-            "--identity-genesis",
-            "--hardware-scan",
-            "--pat-7",
-            "--sat-5",
-            "--hda-bridge",
-            "--mobile-pair", "Z Fold 6:SM-F956B",
-            "--guild-join", "agriculture",
-            "--quest-accept", "001-sustainable-water",
-            "--ihsan-target", "0.999",
-        ])
+        args = parser.parse_args(
+            [
+                "genesis",
+                "--identity-genesis",
+                "--hardware-scan",
+                "--pat-7",
+                "--sat-5",
+                "--hda-bridge",
+                "--mobile-pair",
+                "Z Fold 6:SM-F956B",
+                "--guild-join",
+                "agriculture",
+                "--quest-accept",
+                "001-sustainable-water",
+                "--ihsan-target",
+                "0.999",
+            ]
+        )
 
         assert args.command == "genesis"
         assert args.identity_genesis is True

@@ -5,30 +5,31 @@ Tests for the Proof-Carrying Inference gate chain.
 Target: 70% coverage of core/pci/gates.py (139 lines)
 """
 
-import pytest
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.pci import (
-    PCIGateKeeper,
-    VerificationResult,
-    RejectCode,
-    EnvelopeBuilder,
-    generate_keypair,
     IHSAN_MINIMUM_THRESHOLD,
     SNR_MINIMUM_THRESHOLD,
+    EnvelopeBuilder,
+    PCIGateKeeper,
+    RejectCode,
+    VerificationResult,
+    generate_keypair,
 )
 from core.pci.gates import (
     MAX_CLOCK_SKEW_SECONDS,
-    NONCE_TTL_SECONDS,
     MAX_NONCE_CACHE_SIZE,
+    NONCE_TTL_SECONDS,
 )
 
 
@@ -133,7 +134,7 @@ class TestTimestampGate:
         )
         # Set timestamp to 10 minutes ago
         old_time = datetime.now(timezone.utc) - timedelta(minutes=10)
-        envelope.timestamp = old_time.isoformat().replace('+00:00', 'Z')
+        envelope.timestamp = old_time.isoformat().replace("+00:00", "Z")
         envelope.sign(priv)
 
         result = gatekeeper.verify(envelope)
@@ -153,7 +154,7 @@ class TestTimestampGate:
         )
         # Set timestamp to 10 minutes in future
         future_time = datetime.now(timezone.utc) + timedelta(minutes=10)
-        envelope.timestamp = future_time.isoformat().replace('+00:00', 'Z')
+        envelope.timestamp = future_time.isoformat().replace("+00:00", "Z")
         envelope.sign(priv)
 
         result = gatekeeper.verify(envelope)
@@ -371,7 +372,15 @@ class TestFullGateChain:
         result = gatekeeper.verify(envelope)
 
         # Verify expected order
-        expected_order = ["SCHEMA", "SIGNATURE", "TIMESTAMP", "REPLAY", "IHSAN", "SNR", "POLICY"]
+        expected_order = [
+            "SCHEMA",
+            "SIGNATURE",
+            "TIMESTAMP",
+            "REPLAY",
+            "IHSAN",
+            "SNR",
+            "POLICY",
+        ]
         assert result.gate_passed == expected_order
 
 
@@ -384,7 +393,7 @@ class TestVerificationResult:
             passed=True,
             reject_code=RejectCode.SUCCESS,
             details="All gates passed",
-            gate_passed=["SCHEMA", "SIGNATURE"]
+            gate_passed=["SCHEMA", "SIGNATURE"],
         )
 
         assert result.passed is True
@@ -397,7 +406,7 @@ class TestVerificationResult:
         result = VerificationResult(
             passed=False,
             reject_code=RejectCode.REJECT_SIGNATURE,
-            details="Invalid signature"
+            details="Invalid signature",
         )
 
         assert result.passed is False

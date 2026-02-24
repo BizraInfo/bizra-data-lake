@@ -22,7 +22,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ============================================================================
 # DISCOVERY: Find all modules under core/
 # ============================================================================
@@ -153,11 +152,11 @@ def test_tier2_all_exports_resolve(module_path):
 def test_constants_single_source_of_truth():
     """The constants module must export all threshold values."""
     from core.integration.constants import (
-        UNIFIED_IHSAN_THRESHOLD,
-        STRICT_IHSAN_THRESHOLD,
-        UNIFIED_SNR_THRESHOLD,
-        SNR_THRESHOLD_T1_HIGH,
         MAX_RETRY_ATTEMPTS,
+        SNR_THRESHOLD_T1_HIGH,
+        STRICT_IHSAN_THRESHOLD,
+        UNIFIED_IHSAN_THRESHOLD,
+        UNIFIED_SNR_THRESHOLD,
     )
 
     # Value assertions (these ARE the source of truth)

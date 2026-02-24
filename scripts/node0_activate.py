@@ -64,6 +64,7 @@ _RLM_BRIDGE = None
 _AGENT_STRATEGIES: dict = {}
 _STRATEGY_STORE: dict = {}
 
+
 def _init_moneyshot_subsystems():
     """Initialize MoneyShot channel dispatcher and RL subsystems.
 
@@ -72,8 +73,8 @@ def _init_moneyshot_subsystems():
     global _CHANNEL_DISPATCHER, _VOICE_BRIDGE, _RLM_BRIDGE
 
     try:
-        from core.bridges.channel_dispatcher import ChannelDispatcher
         from core.bridges.browser_mcp_client import BrowserMCPClient
+        from core.bridges.channel_dispatcher import ChannelDispatcher
 
         browser = BrowserMCPClient(mode="mock")
         voice = None
@@ -114,6 +115,7 @@ def _init_moneyshot_subsystems():
     except Exception as e:
         logger.debug("  Agent strategy subsystem unavailable (%s)", e)
 
+
 # ═══ Verified Intelligence Pipeline — Standing on Giants ═══
 # Shannon (1948): SNR as information quality measure
 # Lamport (1978): Logical clocks and event ordering
@@ -124,15 +126,19 @@ _EVIDENCE_LEDGER = None
 _SNR_CALCULATOR = None  # Legacy — kept for backward compat
 _SNR_FACADE = None  # Phase 42: Unified SNR (v2 + maximizer ensemble)
 
+
 def _init_verified_pipeline():
     """Initialize the Verified Intelligence Pipeline (VIP) components."""
     global _EVIDENCE_LEDGER, _SNR_CALCULATOR, _SNR_FACADE
     try:
         from core.proof_engine.evidence_ledger import EvidenceLedger
+
         ledger_path = Path(PROJECT_ROOT) / "sovereign_state" / "evidence.jsonl"
         ledger_path.parent.mkdir(parents=True, exist_ok=True)
         _EVIDENCE_LEDGER = EvidenceLedger(ledger_path, validate_on_append=True)
-        logger.info(f"  Evidence ledger: {ledger_path.name} (seq={_EVIDENCE_LEDGER.sequence})")
+        logger.info(
+            f"  Evidence ledger: {ledger_path.name} (seq={_EVIDENCE_LEDGER.sequence})"
+        )
     except Exception as e:
         logger.warning(f"  Evidence ledger: failed to init ({e})")
 
@@ -141,10 +147,12 @@ def _init_verified_pipeline():
     text_engine = None
     try:
         from core.iaas.snr_v2 import SNRCalculatorV2
+
         _SNR_CALCULATOR = SNRCalculatorV2()
         logger.info("  SNR v2 engine: initialized (Shannon + Renyi-2)")
         try:
             from core.iaas.snr_v2_adapter import SNRv2Adapter
+
             v2_adapter = SNRv2Adapter(_SNR_CALCULATOR)
         except Exception as e:
             logger.warning(f"  SNR v2 adapter: unavailable ({e})")
@@ -153,8 +161,11 @@ def _init_verified_pipeline():
 
     try:
         from core.sovereign.snr_maximizer import SNRMaximizer
+
         text_engine = SNRMaximizer()
-        logger.info("  SNR maximizer: initialized (7 noise dimensions, bounded scoring)")
+        logger.info(
+            "  SNR maximizer: initialized (7 noise dimensions, bounded scoring)"
+        )
     except Exception as e:
         logger.warning(f"  SNR maximizer: unavailable ({e})")
 
@@ -162,6 +173,7 @@ def _init_verified_pipeline():
     rust_engine = None
     try:
         from core.iaas.snr_rust_adapter import create_rust_snr_adapter
+
         rust_engine = create_rust_snr_adapter()
         if rust_engine:
             logger.info("  SNR Rust engine: initialized (PyO3 bridge)")
@@ -170,6 +182,7 @@ def _init_verified_pipeline():
 
     try:
         from core.snr_protocol import SNRFacade
+
         _SNR_FACADE = SNRFacade(
             rust_engine=rust_engine,
             v2_engine=v2_adapter,
@@ -194,6 +207,7 @@ def _resolve_lm_token() -> str:
     Mirrors the unification logic in core/integration/constants.py.
     """
     return os.getenv("LM_API_TOKEN") or os.getenv("LM_STUDIO_API_KEY") or ""
+
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -308,12 +322,15 @@ def _resolve_model_for_agent(agent_id: str, config: Dict[str, Any]) -> str:
     routing = config.get("model_routing", _DEFAULT_MODEL_ROUTING)
     purpose = PAT_AGENTS.get(agent_id, {}).get("model_purpose", "reasoning")
     role = _PURPOSE_TO_ROLE.get(purpose, "reasoner")
-    return routing.get(role, routing.get("reasoner", "deepseek/deepseek-r1-0528-qwen3-8b"))
+    return routing.get(
+        role, routing.get("reasoner", "deepseek/deepseek-r1-0528-qwen3-8b")
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════════════
 # FAISS KNOWLEDGE RETRIEVER — RAG context for PAT missions
 # ════════════════════════════════════════════════════════════════════════════════
+
 
 class KnowledgeRetriever:
     """Retrieves relevant context from the Node0 FAISS index for missions."""
@@ -330,7 +347,9 @@ class KnowledgeRetriever:
             return
 
         self._top_k = kb_cfg.get("top_k", 5)
-        index_path = Path(PROJECT_ROOT) / kb_cfg.get("faiss_index", "04_GOLD/node0_faiss.index")
+        index_path = Path(PROJECT_ROOT) / kb_cfg.get(
+            "faiss_index", "04_GOLD/node0_faiss.index"
+        )
         gold_dir = Path(PROJECT_ROOT) / "04_GOLD"
 
         try:
@@ -345,7 +364,12 @@ class KnowledgeRetriever:
             # Load ALL chunk parquets that feed the unified FAISS index
             # Order must match how the index was built: chunks → conversations → research → golden_gems
             frames = []
-            for parquet_name in ["chunks.parquet", "conversations_chunks.parquet", "research_chunks.parquet", "golden_gems_chunks.parquet"]:
+            for parquet_name in [
+                "chunks.parquet",
+                "conversations_chunks.parquet",
+                "research_chunks.parquet",
+                "golden_gems_chunks.parquet",
+            ]:
                 pq_path = gold_dir / parquet_name
                 if pq_path.exists():
                     df = pd.read_parquet(pq_path, columns=["chunk_id", "chunk_text"])
@@ -355,9 +379,13 @@ class KnowledgeRetriever:
             if frames:
                 self._chunks_df = pd.concat(frames, ignore_index=True)
                 self._enabled = True
-                logger.info(f"  Knowledge base: {self._index.ntotal} vectors, {len(self._chunks_df)} chunks loaded")
+                logger.info(
+                    f"  Knowledge base: {self._index.ntotal} vectors, {len(self._chunks_df)} chunks loaded"
+                )
         except ImportError:
-            logger.warning("  Knowledge base: faiss/pandas not installed — RAG disabled")
+            logger.warning(
+                "  Knowledge base: faiss/pandas not installed — RAG disabled"
+            )
         except Exception as e:
             logger.warning(f"  Knowledge base: {e}")
 
@@ -370,10 +398,14 @@ class KnowledgeRetriever:
         try:
             if self._model is None:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer("all-MiniLM-L6-v2")
 
             import numpy as np
-            vec = self._model.encode([query], normalize_embeddings=True).astype(np.float32)
+
+            vec = self._model.encode([query], normalize_embeddings=True).astype(
+                np.float32
+            )
             scores, indices = self._index.search(vec, k)
 
             context_parts = []
@@ -396,6 +428,7 @@ class KnowledgeRetriever:
 # Standing on Giants: Shannon (SNR) · Lamport (hash chains) · Merkle (tamper detection)
 # ════════════════════════════════════════════════════════════════════════════════
 
+
 def _compute_real_snr(
     query: str,
     agent_outputs: list,
@@ -410,7 +443,11 @@ def _compute_real_snr(
     """
     import numpy as np
 
-    texts = [r.get("content", "") for r in agent_outputs if r.get("success") and r.get("content")]
+    texts = [
+        r.get("content", "")
+        for r in agent_outputs
+        if r.get("success") and r.get("content")
+    ]
     if not texts:
         return {"snr_score": 0.0, "ihsan_score": 0.0, "method": "empty"}
 
@@ -428,7 +465,8 @@ def _compute_real_snr(
                 "ihsan_achieved": result.ihsan_achieved,
                 "v2_snr": result.metrics.get("v2_snr"),
                 "text_snr": result.metrics.get("text_snr"),
-                "quality_tier": result.metrics.get("v2_tier") or result.metrics.get("quality_tier"),
+                "quality_tier": result.metrics.get("v2_tier")
+                or result.metrics.get("quality_tier"),
                 "recommendations": result.recommendations,
             }
         except Exception as e:
@@ -443,8 +481,12 @@ def _compute_real_snr(
         text_embs = None
 
         if model is not None:
-            query_emb = model.encode([query], normalize_embeddings=True).astype(np.float32)[0]
-            text_embs = model.encode(texts, normalize_embeddings=True).astype(np.float32)
+            query_emb = model.encode([query], normalize_embeddings=True).astype(
+                np.float32
+            )[0]
+            text_embs = model.encode(texts, normalize_embeddings=True).astype(
+                np.float32
+            )
 
         components = _SNR_CALCULATOR.compute_snr(
             query=query,
@@ -456,7 +498,9 @@ def _compute_real_snr(
         return {
             "snr_score": components.snr,
             "ihsan_score": components.snr,
-            "method": "snr_v2_embeddings" if query_emb is not None else "snr_v2_lexical",
+            "method": (
+                "snr_v2_embeddings" if query_emb is not None else "snr_v2_lexical"
+            ),
             "signal_strength": components.signal_strength,
             "diversity": components.diversity,
             "grounding": components.grounding,
@@ -510,6 +554,7 @@ async def _synthesize_with_got(
         gateway = None
         try:
             from core.inference.gateway import InferenceGateway
+
             gateway = InferenceGateway()
         except Exception:
             pass
@@ -533,17 +578,21 @@ async def _synthesize_with_got(
         conclusion = reasoning_result.get("conclusion", "")
         thought_chain = []
         for node_id, node in got.nodes.items():
-            thought_chain.append({
-                "id": node.id[:12],
-                "type": node.thought_type.value,
-                "snr": round(node.snr_score, 3),
-                "ihsan": round(node.ihsan_score, 3),
-                "depth": node.depth,
-            })
+            thought_chain.append(
+                {
+                    "id": node.id[:12],
+                    "type": node.thought_type.value,
+                    "snr": round(node.snr_score, 3),
+                    "ihsan": round(node.ihsan_score, 3),
+                    "depth": node.depth,
+                }
+            )
 
         return {
             "conclusion": conclusion,
-            "thought_count": reasoning_result.get("graph_stats", {}).get("total_thoughts", len(got.nodes)),
+            "thought_count": reasoning_result.get("graph_stats", {}).get(
+                "total_thoughts", len(got.nodes)
+            ),
             "reasoning_paths": reasoning_result.get("depth_reached", 0),
             "snr_score": reasoning_result.get("snr_score", 0.0),
             "llm_used": reasoning_result.get("llm_used", False),
@@ -554,7 +603,8 @@ async def _synthesize_with_got(
         logger.warning(f"GoT synthesis failed (non-blocking): {e}")
         # Non-blocking fallback: concatenate agent outputs
         combined = "\n\n".join(
-            r.get("content", "") for r in agent_results
+            r.get("content", "")
+            for r in agent_results
             if r.get("success") and r.get("content")
         )
         return {
@@ -584,17 +634,20 @@ def _emit_verified_receipt(mission: Dict, result: Dict, snr_data: dict) -> Dict:
 
     if _EVIDENCE_LEDGER is not None:
         try:
-            from core.proof_engine.evidence_ledger import emit_receipt
             from core.proof_engine.canonical import hex_digest
+            from core.proof_engine.evidence_ledger import emit_receipt
 
             # Compute seal over mission payload
-            payload_bytes = _json.dumps({
-                "mission_id": mission.get("id"),
-                "description": mission.get("description", "")[:200],
-                "agents": [r.get("agent") for r in result.get("agents", [])],
-                "snr_score": snr_score,
-                "total_tokens": result.get("total_tokens", 0),
-            }, sort_keys=True).encode("utf-8")
+            payload_bytes = _json.dumps(
+                {
+                    "mission_id": mission.get("id"),
+                    "description": mission.get("description", "")[:200],
+                    "agents": [r.get("agent") for r in result.get("agents", [])],
+                    "snr_score": snr_score,
+                    "total_tokens": result.get("total_tokens", 0),
+                },
+                sort_keys=True,
+            ).encode("utf-8")
             seal_digest = hex_digest(payload_bytes)
 
             # Query digest
@@ -639,14 +692,17 @@ def _emit_verified_receipt(mission: Dict, result: Dict, snr_data: dict) -> Dict:
             logger.warning(f"  Ledger receipt failed, falling back: {e}")
 
     # Fallback: legacy SHA-256 stub (no chain, no ledger)
-    payload = _json.dumps({
-        "mission_id": mission.get("id"),
-        "description": mission.get("description", "")[:200],
-        "agents": [r.get("agent") for r in result.get("agents", [])],
-        "ihsan_score": ihsan_score,
-        "total_tokens": result.get("total_tokens", 0),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }, sort_keys=True)
+    payload = _json.dumps(
+        {
+            "mission_id": mission.get("id"),
+            "description": mission.get("description", "")[:200],
+            "agents": [r.get("agent") for r in result.get("agents", [])],
+            "ihsan_score": ihsan_score,
+            "total_tokens": result.get("total_tokens", 0),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+        sort_keys=True,
+    )
     return {
         "hash": hashlib.sha256(payload.encode()).hexdigest()[:16],
         "ihsan_score": ihsan_score,
@@ -660,6 +716,7 @@ def _emit_verified_receipt(mission: Dict, result: Dict, snr_data: dict) -> Dict:
 # ════════════════════════════════════════════════════════════════════════════════
 # NODE0 PROACTIVE KERNEL
 # ════════════════════════════════════════════════════════════════════════════════
+
 
 class Node0ProactiveKernel:
     """
@@ -728,7 +785,9 @@ class Node0ProactiveKernel:
         try:
             from core.living_memory.core import LivingMemoryCore
 
-            strategy_memory_path = Path(PROJECT_ROOT) / "sovereign_state" / "strategy_memory"
+            strategy_memory_path = (
+                Path(PROJECT_ROOT) / "sovereign_state" / "strategy_memory"
+            )
             self._strategy_memory = LivingMemoryCore(storage_path=strategy_memory_path)
         except Exception as e:
             logger.debug("  Strategy memory unavailable: %s", e)
@@ -764,7 +823,9 @@ class Node0ProactiveKernel:
             if baseline_path.exists():
                 with open(baseline_path) as f:
                     data = _json.load(f)
-                logger.info(f"  Baseline: {data.get('node_id', 'unknown')} (clarity={data.get('clarity_score')})")
+                logger.info(
+                    f"  Baseline: {data.get('node_id', 'unknown')} (clarity={data.get('clarity_score')})"
+                )
                 return data
         except Exception as e:
             logger.debug(f"  Baseline not loaded: {e}")
@@ -808,7 +869,9 @@ class Node0ProactiveKernel:
                         self._backend_name = "ollama"
                         self.token = ""  # Ollama doesn't need auth
                         model_names = [m["id"] for m in models[:5]]
-                        logger.info(f"  Backend: Ollama fallback ({len(models)} models: {', '.join(model_names)})")
+                        logger.info(
+                            f"  Backend: Ollama fallback ({len(models)} models: {', '.join(model_names)})"
+                        )
                         return
         except Exception:
             logger.info("  Ollama: unreachable")
@@ -874,9 +937,13 @@ class Node0ProactiveKernel:
         logger.info(f"  Cycle Interval: {self.cycle_interval}s")
         logger.info(f"  Ihsān Threshold: {self.ihsan_threshold}")
         logger.info(f"  PAT Agents: {len(PAT_AGENTS)}")
-        logger.info(f"  Knowledge Base: {'ACTIVE' if self._knowledge._enabled else 'DISABLED'}")
+        logger.info(
+            f"  Knowledge Base: {'ACTIVE' if self._knowledge._enabled else 'DISABLED'}"
+        )
         if self._baseline:
-            logger.info(f"  Baseline: {self._baseline.get('node_id', '?')} | goals={len(self._baseline.get('weekly_goals', []))}")
+            logger.info(
+                f"  Baseline: {self._baseline.get('node_id', '?')} | goals={len(self._baseline.get('weekly_goals', []))}"
+            )
         logger.info("═" * 60)
 
         await self._run_loop()
@@ -937,7 +1004,9 @@ class Node0ProactiveKernel:
                     self._missions.remove(mission)
                     self._metrics["missions_completed"] += 1
 
-                    logger.info(f"✓ Mission {mission['id']}: {'PASS' if ihsan_ok else 'REVIEW'}")
+                    logger.info(
+                        f"✓ Mission {mission['id']}: {'PASS' if ihsan_ok else 'REVIEW'}"
+                    )
                 else:
                     # Idle - proactive monitoring
                     logger.info("  ○ Idle - monitoring for opportunities")
@@ -968,17 +1037,84 @@ class Node0ProactiveKernel:
 
         agents = ["coordinator"]  # Always include — synthesizes all agent outputs
 
-        if any(w in desc for w in ["plan", "strategy", "approach", "priority", "roadmap", "think", "decide"]):
+        if any(
+            w in desc
+            for w in [
+                "plan",
+                "strategy",
+                "approach",
+                "priority",
+                "roadmap",
+                "think",
+                "decide",
+            ]
+        ):
             agents.append("strategist")
-        if any(w in desc for w in ["research", "investigate", "find", "evidence", "paper", "study", "learn"]):
+        if any(
+            w in desc
+            for w in [
+                "research",
+                "investigate",
+                "find",
+                "evidence",
+                "paper",
+                "study",
+                "learn",
+            ]
+        ):
             agents.append("researcher")
-        if any(w in desc for w in ["analyze", "data", "pattern", "metric", "measure", "evaluate", "assess"]):
+        if any(
+            w in desc
+            for w in [
+                "analyze",
+                "data",
+                "pattern",
+                "metric",
+                "measure",
+                "evaluate",
+                "assess",
+            ]
+        ):
             agents.append("analyst")
-        if any(w in desc for w in ["create", "design", "build", "write", "generate", "draft", "compose"]):
+        if any(
+            w in desc
+            for w in [
+                "create",
+                "design",
+                "build",
+                "write",
+                "generate",
+                "draft",
+                "compose",
+            ]
+        ):
             agents.append("creator")
-        if any(w in desc for w in ["security", "safe", "risk", "ethic", "threat", "protect", "guard", "review"]):
+        if any(
+            w in desc
+            for w in [
+                "security",
+                "safe",
+                "risk",
+                "ethic",
+                "threat",
+                "protect",
+                "guard",
+                "review",
+            ]
+        ):
             agents.append("guardian")
-        if any(w in desc for w in ["execute", "implement", "run", "deploy", "automate", "action", "do"]):
+        if any(
+            w in desc
+            for w in [
+                "execute",
+                "implement",
+                "run",
+                "deploy",
+                "automate",
+                "action",
+                "do",
+            ]
+        ):
             agents.append("executor")
 
         # Default: engage at least 3 agents for diverse perspectives
@@ -1005,7 +1141,9 @@ class Node0ProactiveKernel:
         # RAG: retrieve relevant knowledge context (sequential — shared input)
         rag_context = self._knowledge.retrieve(mission["description"])
         if rag_context:
-            logger.info(f"    📚 Knowledge context retrieved ({len(rag_context)} chars)")
+            logger.info(
+                f"    📚 Knowledge context retrieved ({len(rag_context)} chars)"
+            )
 
         # Build shared request context
         user_content = f"Mission: {mission['description']}"
@@ -1025,7 +1163,9 @@ class Node0ProactiveKernel:
                 f"Be concise (2-3 paragraphs). Focus on actionable insights."
             )
 
-            logger.info(f"    🤖 {agent['name']} ({model.split('/')[-1]}) via {self._backend_name}...")
+            logger.info(
+                f"    🤖 {agent['name']} ({model.split('/')[-1]}) via {self._backend_name}..."
+            )
 
             try:
                 from core.inference.rlm_bridge import should_use_rlm
@@ -1057,7 +1197,9 @@ class Node0ProactiveKernel:
 
                 use_rlm = False
                 try:
-                    use_rlm = bool(getattr(strategy, "use_rlm", False)) or should_use_rlm(
+                    use_rlm = bool(
+                        getattr(strategy, "use_rlm", False)
+                    ) or should_use_rlm(
                         agent_type=agent_id,
                         prompt_length=len(user_content),
                         task_complexity=float(mission.get("complexity", 0.7)),
@@ -1085,7 +1227,10 @@ class Node0ProactiveKernel:
                         if rlm_result.final_answer.strip():
                             approx_tokens = max(
                                 1,
-                                int((len(user_content) + len(rlm_result.final_answer)) / 4),
+                                int(
+                                    (len(user_content) + len(rlm_result.final_answer))
+                                    / 4
+                                ),
                             )
                             return {
                                 "agent": agent_id,
@@ -1099,23 +1244,32 @@ class Node0ProactiveKernel:
                                 "rlm_sub_calls": rlm_result.sub_calls,
                             }
                     except Exception as rlm_exc:
-                        logger.debug("RLM fallback to direct call for %s: %s", agent_id, rlm_exc)
+                        logger.debug(
+                            "RLM fallback to direct call for %s: %s", agent_id, rlm_exc
+                        )
 
-                async with httpx.AsyncClient(headers=headers, timeout=req_timeout) as client:
-                    resp = await client.post(f"{self.base_url}/v1/chat/completions", json={
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_content},
-                        ],
-                        "max_tokens": req_max_tokens,
-                        "temperature": strategy_temp,
-                    })
+                async with httpx.AsyncClient(
+                    headers=headers, timeout=req_timeout
+                ) as client:
+                    resp = await client.post(
+                        f"{self.base_url}/v1/chat/completions",
+                        json={
+                            "model": model,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_content},
+                            ],
+                            "max_tokens": req_max_tokens,
+                            "temperature": strategy_temp,
+                        },
+                    )
 
                     if resp.status_code == 200:
                         data = resp.json()
                         msg = data["choices"][0]["message"]
-                        content = msg.get("content", "") or msg.get("reasoning_content", "")
+                        content = msg.get("content", "") or msg.get(
+                            "reasoning_content", ""
+                        )
                         tokens = data.get("usage", {}).get("total_tokens", 0)
                         return {
                             "agent": agent_id,
@@ -1178,9 +1332,7 @@ class Node0ProactiveKernel:
 
         # ═══ Phase 42: GoT Synthesis (Graph-of-Thoughts on agent outputs) ═══
         # Standing on Giants: Besta (GoT, 2024) · Boyd (OODA synthesis)
-        got_data = await _synthesize_with_got(
-            mission["description"], results
-        )
+        got_data = await _synthesize_with_got(mission["description"], results)
         if got_data.get("thought_count", 0) > 0:
             logger.info(
                 f"    🧠 GoT synthesis: {got_data['thought_count']} thoughts, "
@@ -1198,7 +1350,9 @@ class Node0ProactiveKernel:
 
         # Use production SNR engine with real embeddings when available
         embedding_model = getattr(self._knowledge, "_model", None)
-        snr_data = _compute_real_snr(mission["description"], snr_inputs, model=embedding_model)
+        snr_data = _compute_real_snr(
+            mission["description"], snr_inputs, model=embedding_model
+        )
         ihsan_score = snr_data.get("ihsan_score", 0.0)
 
         # Ensure minimum score floor from agent success rate
@@ -1264,9 +1418,9 @@ class Node0ProactiveKernel:
                         "succeeded": sum(
                             1 for r in channel_results.values() if r.get("success")
                         ),
-                        "channels": list({
-                            r.get("channel", "?") for r in channel_results.values()
-                        }),
+                        "channels": list(
+                            {r.get("channel", "?") for r in channel_results.values()}
+                        ),
                     }
                     logger.info(
                         "    Channels: %d/%d subtasks dispatched",
@@ -1283,7 +1437,11 @@ class Node0ProactiveKernel:
                 enforce_agent_gini,
                 update_agent_reputation,
             )
-            from core.token.strategy import load_strategy, persist_strategy, update_strategy
+            from core.token.strategy import (
+                load_strategy,
+                persist_strategy,
+                update_strategy,
+            )
 
             efficiency = successful / len(results) if results else 0.0
             reward_payload = {
@@ -1366,6 +1524,7 @@ class Node0ProactiveKernel:
 # NODE0 ORCHESTRATOR
 # ════════════════════════════════════════════════════════════════════════════════
 
+
 class Node0Orchestrator:
     """
     Main Node0 orchestrator - coordinates all subsystems.
@@ -1423,7 +1582,9 @@ class Node0Orchestrator:
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     loaded = [m for m in models if m.get("loaded")]
-                    logger.info(f"✓ LM Studio connected: {len(models)} models, {len(loaded)} loaded")
+                    logger.info(
+                        f"✓ LM Studio connected: {len(models)} models, {len(loaded)} loaded"
+                    )
                     return True
         except Exception as e:
             logger.debug(f"LM Studio: {e}")
@@ -1450,7 +1611,11 @@ class Node0Orchestrator:
     def _print_banner(self):
         """Print Node0 banner."""
         kb_status = "ACTIVE" if self.kernel._knowledge._enabled else "DISABLED"
-        vectors = self.kernel._knowledge._index.ntotal if self.kernel._knowledge._enabled else 0
+        vectors = (
+            self.kernel._knowledge._index.ntotal
+            if self.kernel._knowledge._enabled
+            else 0
+        )
         baseline_id = self.kernel._baseline.get("node_id", "none")
         print(f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -1475,6 +1640,7 @@ class Node0Orchestrator:
 # ════════════════════════════════════════════════════════════════════════════════
 # CLI
 # ════════════════════════════════════════════════════════════════════════════════
+
 
 async def cmd_start(args):
     """Start Node0."""
@@ -1554,7 +1720,7 @@ async def cmd_mission(args):
 
     print("\n" + "─" * 60)
     print(f"Total Tokens: {result['total_tokens']}")
-    snr_method = result.get('snr_method', 'unknown')
+    snr_method = result.get("snr_method", "unknown")
     print(f"SNR Score:    {result.get('snr_score', 0):.4f} ({snr_method})")
     print(f"Ihsan Score:  {result['ihsan_score']:.2%}")
     print(f"Status:       {'✓ PASS' if result['ihsan_score'] >= 0.95 else '⚠ REVIEW'}")
@@ -1564,7 +1730,9 @@ async def cmd_mission(args):
         chain_seq = receipt.get("chain_seq", "?")
         print(f"Receipt:      {receipt.get('hash', '?')}...")
         if ledger != "none":
-            print(f"Evidence:     {ledger} (seq={chain_seq}, prev={receipt.get('prev_hash', '?')})")
+            print(
+                f"Evidence:     {ledger} (seq={chain_seq}, prev={receipt.get('prev_hash', '?')})"
+            )
     print("═" * 60 + "\n")
 
 
@@ -1588,6 +1756,7 @@ async def cmd_verify(args):
 
     try:
         from core.proof_engine.evidence_ledger import EvidenceLedger
+
         ledger = EvidenceLedger(ledger_path, validate_on_append=False)
 
         print(f"  Ledger:  {ledger_path.name}")
@@ -1615,7 +1784,9 @@ async def cmd_verify(args):
                 snr = receipt.get("snr", {}).get("score", "?")
                 ihsan = receipt.get("ihsan", {}).get("score", "?")
                 status = receipt.get("status", "?")
-                print(f"    seq={entry.sequence} | snr={snr} | ihsan={ihsan} | {status} | {entry.entry_hash[:12]}...")
+                print(
+                    f"    seq={entry.sequence} | snr={snr} | ihsan={ihsan} | {status} | {entry.entry_hash[:12]}..."
+                )
 
     except Exception as e:
         print(f"  Error:   {e}")

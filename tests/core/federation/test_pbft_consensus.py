@@ -7,19 +7,21 @@
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
-import pytest
 import time
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from core.federation.consensus import (
+    CommitMessage,
     ConsensusEngine,
     ConsensusPhase,
     ConsensusState,
-    Proposal,
-    Vote,
-    PrepareMessage,
-    CommitMessage,
-    ViewChangeRequest,
     NewViewMessage,
+    PrepareMessage,
+    Proposal,
+    ViewChangeRequest,
+    Vote,
 )
 from core.pci.crypto import generate_keypair
 
@@ -354,7 +356,9 @@ class TestFullPBFTFlow:
         leader, leader_pk, leader_pub = nodes[0]
 
         # Phase 1: PRE-PREPARE
-        proposal = leader.initiate_pre_prepare({"pattern": "test_pattern", "ihsan": 0.97})
+        proposal = leader.initiate_pre_prepare(
+            {"pattern": "test_pattern", "ihsan": 0.97}
+        )
         assert proposal is not None
 
         # Distribute proposal to all replicas

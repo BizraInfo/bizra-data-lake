@@ -12,48 +12,49 @@ Testing the pinnacle synthesis of:
 """
 
 import asyncio
-import pytest
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+import pytest
 
 from core.autonomous import (
-    SARE_VERSION,
-    GIANTS_PROTOCOL,
-    SNR_THRESHOLDS,
     CONSTITUTIONAL_CONSTRAINTS,
+    GIANTS_PROTOCOL,
     IHSAN_DIMENSIONS,
-)
-from core.autonomous.giants import (
-    Giant,
-    MethodologyType,
-    MethodologyInheritance,
-    ProvenanceRecord,
-    GiantsProtocol,
-)
-from core.autonomous.nodes import (
-    NodeType,
-    NodeState,
-    ReasoningNode,
-    ReasoningPath,
-    ReasoningGraph,
-)
-from core.autonomous.loop import (
-    LoopPhase,
-    LoopState,
-    PhaseResult,
-    LoopExecution,
-    SovereignLoop,
+    SARE_VERSION,
+    SNR_THRESHOLDS,
 )
 from core.autonomous.engine import (
     ReasoningResult,
     SovereignReasoningEngine,
     create_sovereign_engine,
 )
-
+from core.autonomous.giants import (
+    Giant,
+    GiantsProtocol,
+    MethodologyInheritance,
+    MethodologyType,
+    ProvenanceRecord,
+)
+from core.autonomous.loop import (
+    LoopExecution,
+    LoopPhase,
+    LoopState,
+    PhaseResult,
+    SovereignLoop,
+)
+from core.autonomous.nodes import (
+    NodeState,
+    NodeType,
+    ReasoningGraph,
+    ReasoningNode,
+    ReasoningPath,
+)
 
 # =============================================================================
 # MODULE CONSTANTS TESTS
 # =============================================================================
+
 
 class TestModuleConstants:
     """Test module-level constants and configuration."""
@@ -103,6 +104,7 @@ class TestModuleConstants:
 # =============================================================================
 # GIANTS PROTOCOL TESTS
 # =============================================================================
+
 
 class TestGiant:
     """Test Giant enum."""
@@ -238,7 +240,9 @@ class TestGiantsProtocol:
     def test_shannon_snr_technique(self, protocol):
         """Shannon SNR technique calculates signal quality."""
         result, inheritance = protocol.invoke(
-            Giant.SHANNON, "snr", "This is a clear, high-quality signal with meaningful content."
+            Giant.SHANNON,
+            "snr",
+            "This is a clear, high-quality signal with meaningful content.",
         )
         assert 0 <= result <= 1.0
         assert inheritance.giant == Giant.SHANNON
@@ -289,7 +293,9 @@ class TestGiantsProtocol:
         query = "machine learning algorithms"
         keys = ["neural networks", "cooking recipes", "deep learning", "gardening tips"]
         values = ["ML", "cook", "DL", "garden"]
-        result, inheritance = protocol.invoke(Giant.VASWANI, "attention", query, keys, values)
+        result, inheritance = protocol.invoke(
+            Giant.VASWANI, "attention", query, keys, values
+        )
         assert len(result) == 4
         # ML-related should rank higher
         top_values = [r[0] for r in result[:2]]
@@ -307,7 +313,12 @@ class TestGiantsProtocol:
         """Besta GoT constructs reasoning graph."""
         thoughts = [
             {"id": "t1", "content": "observation", "type": "observation"},
-            {"id": "t2", "content": "hypothesis", "type": "hypothesis", "parent_id": "t1"},
+            {
+                "id": "t2",
+                "content": "hypothesis",
+                "type": "hypothesis",
+                "parent_id": "t1",
+            },
         ]
         result, inheritance = protocol.invoke(Giant.BESTA, "got", thoughts)
         assert "nodes" in result
@@ -332,7 +343,9 @@ class TestGiantsProtocol:
     def test_anthropic_constitutional_technique_pass(self, protocol):
         """Anthropic constitutional validation passes clean output."""
         clean_output = "Here is a helpful and harmless response to your question."
-        result, inheritance = protocol.invoke(Giant.ANTHROPIC, "constitutional", clean_output)
+        result, inheritance = protocol.invoke(
+            Giant.ANTHROPIC, "constitutional", clean_output
+        )
         assert result["passed"] is True
         assert result["score"] >= 0.9
         assert len(result["violations"]) == 0
@@ -399,6 +412,7 @@ class TestGiantsProtocol:
 # =============================================================================
 # REASONING NODES TESTS
 # =============================================================================
+
 
 class TestNodeType:
     """Test NodeType enum."""
@@ -553,25 +567,31 @@ class TestReasoningGraph:
 
     def test_add_root_node(self, graph):
         """Can add root node to graph."""
-        node = graph.add_node("This is a test observation with enough content", NodeType.OBSERVATION)
+        node = graph.add_node(
+            "This is a test observation with enough content", NodeType.OBSERVATION
+        )
         assert node.id in graph._nodes
         assert len(node.parents) == 0
         assert node.id in graph._root_ids
 
     def test_add_child_node(self, graph):
         """Can add child node connected to parent."""
-        parent = graph.add_node("This is the parent observation content", NodeType.OBSERVATION)
+        parent = graph.add_node(
+            "This is the parent observation content", NodeType.OBSERVATION
+        )
         child = graph.add_node(
             "This is the child analysis content with details",
             NodeType.ANALYSIS,
-            parent_ids={parent.id}
+            parent_ids={parent.id},
         )
         assert parent.id in child.parents
         assert child.id in graph._nodes[parent.id].children
 
     def test_get_node(self, graph):
         """Can retrieve node by ID."""
-        node = graph.add_node("This is test content for retrieval", NodeType.OBSERVATION)
+        node = graph.add_node(
+            "This is test content for retrieval", NodeType.OBSERVATION
+        )
         retrieved = graph.get_node(node.id)
         assert retrieved.content == "This is test content for retrieval"
 
@@ -582,16 +602,18 @@ class TestReasoningGraph:
 
     def test_add_multiple_children(self, graph):
         """Can add multiple children to a parent."""
-        parent = graph.add_node("Parent observation with detailed content", NodeType.OBSERVATION)
+        parent = graph.add_node(
+            "Parent observation with detailed content", NodeType.OBSERVATION
+        )
         child1 = graph.add_node(
             "First child analysis with specific findings",
             NodeType.ANALYSIS,
-            parent_ids={parent.id}
+            parent_ids={parent.id},
         )
         child2 = graph.add_node(
             "Second child analysis with different findings",
             NodeType.ANALYSIS,
-            parent_ids={parent.id}
+            parent_ids={parent.id},
         )
         parent_node = graph.get_node(parent.id)
         assert len(parent_node.children) == 2
@@ -602,14 +624,18 @@ class TestReasoningGraph:
         """Nodes have correct depth."""
         n1 = graph.add_node("Root observation", NodeType.OBSERVATION)
         n2 = graph.add_node("Child analysis", NodeType.ANALYSIS, parent_ids={n1.id})
-        n3 = graph.add_node("Grandchild hypothesis", NodeType.HYPOTHESIS, parent_ids={n2.id})
+        n3 = graph.add_node(
+            "Grandchild hypothesis", NodeType.HYPOTHESIS, parent_ids={n2.id}
+        )
         assert n1.depth == 0
         assert n2.depth == 1
         assert n3.depth == 2
 
     def test_backtrack_creates_node(self, graph):
         """Backtracking creates a backtrack node."""
-        n1 = graph.add_node("Original observation that needs reconsideration", NodeType.OBSERVATION)
+        n1 = graph.add_node(
+            "Original observation that needs reconsideration", NodeType.OBSERVATION
+        )
         backtrack = graph.backtrack(n1.id, "Low quality reasoning detected")
         assert backtrack is not None
         assert backtrack.node_type == NodeType.BACKTRACK
@@ -628,17 +654,17 @@ class TestReasoningGraph:
         """Can find best path through graph."""
         n1 = graph.add_node(
             "Detailed observation with comprehensive content for high SNR score",
-            NodeType.OBSERVATION
+            NodeType.OBSERVATION,
         )
         n2a = graph.add_node(
             "Brief analysis",  # Short content = lower SNR
             NodeType.ANALYSIS,
-            parent_ids={n1.id}
+            parent_ids={n1.id},
         )
         n2b = graph.add_node(
             "Comprehensive analysis with detailed findings and thorough examination of the evidence",
             NodeType.ANALYSIS,
-            parent_ids={n1.id}
+            parent_ids={n1.id},
         )
 
         best_path = graph.find_best_path()
@@ -650,12 +676,11 @@ class TestReasoningGraph:
         """Can prune nodes below quality threshold."""
         graph.add_node(
             "High quality content with comprehensive analysis and detailed findings",
-            NodeType.OBSERVATION
+            NodeType.OBSERVATION,
         )
         graph.add_node("low", NodeType.OBSERVATION)  # Very short = low quality
         graph.add_node(
-            "Medium quality content with some analysis",
-            NodeType.OBSERVATION
+            "Medium quality content with some analysis", NodeType.OBSERVATION
         )
 
         pruned = graph.prune_low_quality(threshold=0.5)
@@ -665,12 +690,16 @@ class TestReasoningGraph:
 
     def test_synthesize_nodes(self, graph):
         """Can synthesize multiple nodes."""
-        n1 = graph.add_node("First observation with detailed content", NodeType.OBSERVATION)
-        n2 = graph.add_node("Second observation with different findings", NodeType.OBSERVATION)
+        n1 = graph.add_node(
+            "First observation with detailed content", NodeType.OBSERVATION
+        )
+        n2 = graph.add_node(
+            "Second observation with different findings", NodeType.OBSERVATION
+        )
 
         synthesis = graph.synthesize(
             {n1.id, n2.id},
-            "Synthesis combining both observations into unified understanding"
+            "Synthesis combining both observations into unified understanding",
         )
         assert synthesis is not None
         assert synthesis.node_type == NodeType.SYNTHESIS
@@ -713,6 +742,7 @@ class TestReasoningGraph:
 # =============================================================================
 # SOVEREIGN LOOP TESTS
 # =============================================================================
+
 
 class TestLoopPhase:
     """Test LoopPhase enum."""
@@ -892,6 +922,7 @@ class TestSovereignLoop:
 # =============================================================================
 # REASONING ENGINE TESTS
 # =============================================================================
+
 
 class TestReasoningResult:
     """Test ReasoningResult dataclass."""
@@ -1131,6 +1162,7 @@ class TestFactoryFunction:
 
     def test_create_engine_with_llm_fn(self):
         """Factory accepts custom LLM function."""
+
         def custom_llm(prompt: str) -> str:
             return f"Response to: {prompt[:50]}"
 
@@ -1141,6 +1173,7 @@ class TestFactoryFunction:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestSAREIntegration:
     """Integration tests for complete SARE system."""
@@ -1179,7 +1212,12 @@ class TestSAREIntegration:
         evaluate_result = await engine.evaluate("Content to evaluate")
         create_result = await engine.create("Generate a short poem")
 
-        for result in [analyze_result, synthesize_result, evaluate_result, create_result]:
+        for result in [
+            analyze_result,
+            synthesize_result,
+            evaluate_result,
+            create_result,
+        ]:
             assert result.snr_score > 0
             assert result.ihsan_score > 0
 
@@ -1241,6 +1279,7 @@ class TestSAREIntegration:
 # EDGE CASES AND ERROR HANDLING
 # =============================================================================
 
+
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
@@ -1300,6 +1339,7 @@ class TestEdgeCases:
 # =============================================================================
 # PERFORMANCE TESTS
 # =============================================================================
+
 
 class TestPerformance:
     """Performance-related tests."""

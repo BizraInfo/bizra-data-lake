@@ -61,14 +61,16 @@ class TestExpertRegistry:
             caps = {}
             for j, d in enumerate(domains):
                 caps[d] = ((i * 7 + j * 3) % 10) / 10.0  # Deterministic variety
-            experts.append(ExpertListing(
-                expert_id=f"expert-{i}",
-                name=f"Expert {i}",
-                capabilities=CapabilityVector(dimensions=caps),
-                self_assessed_value=100.0 + i * 50.0,
-                node_id=f"BIZRA-{i:08X}",
-                tier=["EDGE", "LOCAL", "POOL"][i % 3],
-            ))
+            experts.append(
+                ExpertListing(
+                    expert_id=f"expert-{i}",
+                    name=f"Expert {i}",
+                    capabilities=CapabilityVector(dimensions=caps),
+                    self_assessed_value=100.0 + i * 50.0,
+                    node_id=f"BIZRA-{i:08X}",
+                    tier=["EDGE", "LOCAL", "POOL"][i % 3],
+                )
+            )
         return experts
 
     def test_register_expert(self):
@@ -180,15 +182,19 @@ class TestMarketplaceRouter:
 
         # Register experts
         for i in range(5):
-            router.registry.register(ExpertListing(
-                expert_id=f"exp-{i}",
-                name=f"Expert {i}",
-                capabilities=CapabilityVector(dimensions={
-                    "reasoning": 0.5 + i * 0.1,
-                    "code": 0.3 + i * 0.05,
-                }),
-                self_assessed_value=100.0 + i * 20.0,
-            ))
+            router.registry.register(
+                ExpertListing(
+                    expert_id=f"exp-{i}",
+                    name=f"Expert {i}",
+                    capabilities=CapabilityVector(
+                        dimensions={
+                            "reasoning": 0.5 + i * 0.1,
+                            "code": 0.3 + i * 0.05,
+                        }
+                    ),
+                    self_assessed_value=100.0 + i * 20.0,
+                )
+            )
 
         result = router.route_query({"reasoning": 0.9, "code": 0.5})
         assert result.success
@@ -204,12 +210,14 @@ class TestMarketplaceRouter:
 
     def test_route_with_max_price(self):
         router = MarketplaceRouter()
-        router.registry.register(ExpertListing(
-            expert_id="exp-expensive",
-            name="Expensive Expert",
-            capabilities=CapabilityVector(dimensions={"reasoning": 0.9}),
-            self_assessed_value=1_000_000.0,
-        ))
+        router.registry.register(
+            ExpertListing(
+                expert_id="exp-expensive",
+                name="Expensive Expert",
+                capabilities=CapabilityVector(dimensions={"reasoning": 0.9}),
+                self_assessed_value=1_000_000.0,
+            )
+        )
 
         result = router.route_query(
             {"reasoning": 0.9},
@@ -219,12 +227,14 @@ class TestMarketplaceRouter:
 
     def test_total_queries_increments(self):
         router = MarketplaceRouter()
-        router.registry.register(ExpertListing(
-            expert_id="exp-1",
-            name="Expert 1",
-            capabilities=CapabilityVector(dimensions={"reasoning": 0.9}),
-            self_assessed_value=100.0,
-        ))
+        router.registry.register(
+            ExpertListing(
+                expert_id="exp-1",
+                name="Expert 1",
+                capabilities=CapabilityVector(dimensions={"reasoning": 0.9}),
+                self_assessed_value=100.0,
+            )
+        )
 
         assert router.total_queries_routed == 0
         router.route_query({"reasoning": 0.9})

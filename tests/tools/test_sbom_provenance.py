@@ -14,9 +14,10 @@ Standing on Giants:
 
 import hashlib
 import json
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -27,10 +28,10 @@ from tools.generate_sbom import (
     generate_slsa_provenance,
 )
 
-
 # =============================================================================
 # CYCLONEDX SBOM
 # =============================================================================
+
 
 class TestCycloneDXGeneration:
     """Tests for CycloneDX SBOM generation."""
@@ -83,7 +84,9 @@ class TestCycloneDXGeneration:
 
     def test_sbom_custom_project_name(self):
         """SBOM uses custom project name."""
-        sbom = generate_cyclonedx([], [], project_name="bizra-omega", project_version="2.0.0")
+        sbom = generate_cyclonedx(
+            [], [], project_name="bizra-omega", project_version="2.0.0"
+        )
         assert sbom["metadata"]["component"]["name"] == "bizra-omega"
         assert sbom["metadata"]["component"]["version"] == "2.0.0"
 
@@ -109,14 +112,13 @@ class TestCycloneDXGeneration:
 # SLSA PROVENANCE
 # =============================================================================
 
+
 class TestSLSAProvenance:
     """Tests for SLSA provenance attestation generation."""
 
     def _make_sbom_and_hash(self):
         """Helper to create SBOM and its hash."""
-        sbom = generate_cyclonedx(
-            [{"name": "test", "version": "1.0"}], []
-        )
+        sbom = generate_cyclonedx([{"name": "test", "version": "1.0"}], [])
         sbom_json = json.dumps(sbom, indent=2).encode("utf-8")
         sbom_hash = hashlib.sha256(sbom_json).hexdigest()
         return sbom, sbom_hash
@@ -146,14 +148,20 @@ class TestSLSAProvenance:
         """Build definition includes source, parameters, dependencies."""
         sbom, sbom_hash = self._make_sbom_and_hash()
         prov = generate_slsa_provenance(
-            sbom, sbom_hash,
+            sbom,
+            sbom_hash,
             git_commit="abc123",
             git_repo="https://github.com/bizra/node0",
         )
         build_def = prov["predicate"]["buildDefinition"]
         assert build_def["buildType"] == "https://bizra.ai/build/v1"
-        assert build_def["externalParameters"]["source"]["digest"]["gitCommit"] == "abc123"
-        assert build_def["externalParameters"]["source"]["uri"] == "https://github.com/bizra/node0"
+        assert (
+            build_def["externalParameters"]["source"]["digest"]["gitCommit"] == "abc123"
+        )
+        assert (
+            build_def["externalParameters"]["source"]["uri"]
+            == "https://github.com/bizra/node0"
+        )
 
     def test_provenance_internal_parameters(self):
         """Internal parameters include Python version and builder ID."""
@@ -201,13 +209,14 @@ class TestSLSAProvenance:
 # ED25519 SIGNING (DSSE)
 # =============================================================================
 
+
 class TestProvenanceSigning:
     """Tests for DSSE envelope signing of provenance."""
 
     def test_sign_provenance_creates_dsse_envelope(self):
         """sign_provenance returns a valid DSSE envelope."""
-        from tools.generate_sbom import sign_provenance
         from core.pci.crypto import generate_keypair
+        from tools.generate_sbom import sign_provenance
 
         sbom = generate_cyclonedx([], [])
         sbom_hash = hashlib.sha256(json.dumps(sbom).encode()).hexdigest()
@@ -226,8 +235,8 @@ class TestProvenanceSigning:
         """DSSE payload is valid base64-encoded JSON."""
         import base64
 
-        from tools.generate_sbom import sign_provenance
         from core.pci.crypto import generate_keypair
+        from tools.generate_sbom import sign_provenance
 
         sbom = generate_cyclonedx([], [])
         sbom_hash = hashlib.sha256(json.dumps(sbom).encode()).hexdigest()
@@ -242,8 +251,8 @@ class TestProvenanceSigning:
 
     def test_dsse_signature_verifiable(self):
         """DSSE signature can be verified with the public key."""
-        from tools.generate_sbom import sign_provenance
         from core.pci.crypto import generate_keypair, verify_signature
+        from tools.generate_sbom import sign_provenance
 
         sbom = generate_cyclonedx([], [])
         sbom_hash = hashlib.sha256(json.dumps(sbom).encode()).hexdigest()
@@ -261,8 +270,8 @@ class TestProvenanceSigning:
 
     def test_dsse_keyid_derived_from_pubkey(self):
         """Key ID is derived from public key hash."""
-        from tools.generate_sbom import sign_provenance
         from core.pci.crypto import generate_keypair
+        from tools.generate_sbom import sign_provenance
 
         sbom = generate_cyclonedx([], [])
         sbom_hash = hashlib.sha256(json.dumps(sbom).encode()).hexdigest()
@@ -276,8 +285,8 @@ class TestProvenanceSigning:
 
     def test_dsse_envelope_is_json_serializable(self):
         """DSSE envelope is fully JSON serializable."""
-        from tools.generate_sbom import sign_provenance
         from core.pci.crypto import generate_keypair
+        from tools.generate_sbom import sign_provenance
 
         sbom = generate_cyclonedx([], [])
         sbom_hash = hashlib.sha256(json.dumps(sbom).encode()).hexdigest()

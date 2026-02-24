@@ -38,7 +38,9 @@ import pytest
 # Path setup: mirrors the orchestrator's own sys.path bootstrapping so that
 # engine imports resolve identically in the test runner.
 # ---------------------------------------------------------------------------
-_ROOT = Path(__file__).resolve().parent.parent.parent  # tests/integration/.. -> repo root
+_ROOT = (
+    Path(__file__).resolve().parent.parent.parent
+)  # tests/integration/.. -> repo root
 for _subdir in ("tools/engines", "tools/bridges", "tools"):
     _p = str(_ROOT / _subdir)
     if _p not in sys.path:
@@ -46,13 +48,13 @@ for _subdir in ("tools/engines", "tools/bridges", "tools"):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+from bizra_config import CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, GOLD_PATH, INDEXED_PATH
 from bizra_orchestrator import (
     BIZRAOrchestrator,
     BIZRAQuery,
     BIZRAResponse,
     QueryComplexity,
 )
-from bizra_config import CHUNKS_TABLE_PATH, CORPUS_TABLE_PATH, INDEXED_PATH, GOLD_PATH
 
 # ---------------------------------------------------------------------------
 # Custom markers
@@ -74,7 +76,11 @@ def _check_real_data() -> bool:
     if _REAL_DATA_AVAILABLE is None:
         chunks_ok = CHUNKS_TABLE_PATH.exists() and CHUNKS_TABLE_PATH.stat().st_size > 0
         index_dir = INDEXED_PATH / "graph"
-        index_ok = index_dir.exists() and any(index_dir.iterdir()) if index_dir.exists() else False
+        index_ok = (
+            index_dir.exists() and any(index_dir.iterdir())
+            if index_dir.exists()
+            else False
+        )
         # Also verify the RAG engine module is importable — without it the
         # orchestrator falls back to an empty response with execution_time=0.
         try:
@@ -158,20 +164,24 @@ class TestOneHumanBootstrap:
         assert "engines" in status
         engines = status["engines"]
         expected_keys = {
-            "hypergraph_rag", "arte", "pat", "kep",
-            "multimodal", "dual_agentic",
+            "hypergraph_rag",
+            "arte",
+            "pat",
+            "kep",
+            "multimodal",
+            "dual_agentic",
         }
-        assert expected_keys.issubset(set(engines.keys())), (
-            f"Missing engine keys: {expected_keys - set(engines.keys())}"
-        )
+        assert expected_keys.issubset(
+            set(engines.keys())
+        ), f"Missing engine keys: {expected_keys - set(engines.keys())}"
 
     @requires_real_data
     def test_has_real_data(self):
         """The parquet and index files exist and are non-trivial."""
         assert CHUNKS_TABLE_PATH.exists(), "chunks.parquet missing"
-        assert CHUNKS_TABLE_PATH.stat().st_size > 1_000_000, (
-            "chunks.parquet too small -- expected 84k+ chunks"
-        )
+        assert (
+            CHUNKS_TABLE_PATH.stat().st_size > 1_000_000
+        ), "chunks.parquet too small -- expected 84k+ chunks"
         graph_dir = INDEXED_PATH / "graph"
         assert graph_dir.exists(), "03_INDEXED/graph directory missing"
         graph_files = list(graph_dir.iterdir())
@@ -223,18 +233,18 @@ class TestOneHumanSimpleQuery:
         # A genuine answer should reference sources or data -- not be a
         # bare error string like "Retrieval engine not available".
         answer_lower = resp.answer.lower()
-        assert "not available" not in answer_lower or len(resp.sources) > 0, (
-            "Answer appears to be an error message with no sources"
-        )
+        assert (
+            "not available" not in answer_lower or len(resp.sources) > 0
+        ), "Answer appears to be an error message with no sources"
 
     @requires_real_data
     async def test_execution_time_reasonable(self, initialized_orchestrator):
         """SIMPLE queries complete in under 30 seconds."""
         q = BIZRAQuery(text=self.QUERY_TEXT, complexity=QueryComplexity.SIMPLE)
         resp = await initialized_orchestrator.query(q)
-        assert resp.execution_time < 30.0, (
-            f"SIMPLE query took {resp.execution_time:.1f}s (limit: 30s)"
-        )
+        assert (
+            resp.execution_time < 30.0
+        ), f"SIMPLE query took {resp.execution_time:.1f}s (limit: 30s)"
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +255,9 @@ class TestOneHumanSimpleQuery:
 class TestOneHumanModerateQuery:
     """MODERATE queries use hybrid retrieval and should produce richer output."""
 
-    QUERY_TEXT = "How does the vector embedding pipeline generate and store chunk embeddings?"
+    QUERY_TEXT = (
+        "How does the vector embedding pipeline generate and store chunk embeddings?"
+    )
 
     @requires_real_data
     async def test_moderate_query_succeeds(self, initialized_orchestrator):
@@ -271,9 +283,9 @@ class TestOneHumanModerateQuery:
         resp = await initialized_orchestrator.query(q)
         trace_text = " ".join(resp.reasoning_trace).lower()
         # The orchestrator logs "Retrieval mode: hybrid" for MODERATE
-        assert "retrieval" in trace_text or "mode" in trace_text, (
-            f"Reasoning trace should mention retrieval mode, got: {resp.reasoning_trace[:5]}"
-        )
+        assert (
+            "retrieval" in trace_text or "mode" in trace_text
+        ), f"Reasoning trace should mention retrieval mode, got: {resp.reasoning_trace[:5]}"
 
     @requires_real_data
     async def test_tension_analysis_present(self, initialized_orchestrator):
@@ -289,9 +301,9 @@ class TestOneHumanModerateQuery:
         q = BIZRAQuery(text=self.QUERY_TEXT, complexity=QueryComplexity.MODERATE)
         resp = await initialized_orchestrator.query(q)
         assert isinstance(resp.query_trace, dict)
-        assert "snr" in resp.query_trace, (
-            f"query_trace missing 'snr' key. Keys present: {list(resp.query_trace.keys())}"
-        )
+        assert (
+            "snr" in resp.query_trace
+        ), f"query_trace missing 'snr' key. Keys present: {list(resp.query_trace.keys())}"
 
 
 # ---------------------------------------------------------------------------
@@ -322,9 +334,9 @@ class TestOneHumanComplexQuery:
         resp = await initialized_orchestrator.query(q)
         # A COMPLEX query should have at minimum: query, complexity, retrieval mode,
         # retrieval results, ARTE analysis, and response generation.
-        assert len(resp.reasoning_trace) >= 3, (
-            f"Expected >= 3 reasoning steps for COMPLEX, got {len(resp.reasoning_trace)}"
-        )
+        assert (
+            len(resp.reasoning_trace) >= 3
+        ), f"Expected >= 3 reasoning steps for COMPLEX, got {len(resp.reasoning_trace)}"
 
     @requires_real_data
     async def test_complex_retrieves_multiple_sources(self, initialized_orchestrator):
@@ -332,9 +344,9 @@ class TestOneHumanComplexQuery:
         q = BIZRAQuery(text=self.QUERY_TEXT, complexity=QueryComplexity.COMPLEX)
         resp = await initialized_orchestrator.query(q)
         # The orchestrator caps displayed sources at 5, but should have at least 2
-        assert len(resp.sources) >= 2, (
-            f"Expected >= 2 sources for COMPLEX, got {len(resp.sources)}"
-        )
+        assert (
+            len(resp.sources) >= 2
+        ), f"Expected >= 2 sources for COMPLEX, got {len(resp.sources)}"
 
     @requires_real_data
     async def test_complex_uses_multi_hop(self, initialized_orchestrator):
@@ -342,9 +354,9 @@ class TestOneHumanComplexQuery:
         q = BIZRAQuery(text=self.QUERY_TEXT, complexity=QueryComplexity.COMPLEX)
         resp = await initialized_orchestrator.query(q)
         retrieval_mode = resp.metadata.get("retrieval_mode", "")
-        assert retrieval_mode != "semantic", (
-            f"COMPLEX query should not use 'semantic' mode, got '{retrieval_mode}'"
-        )
+        assert (
+            retrieval_mode != "semantic"
+        ), f"COMPLEX query should not use 'semantic' mode, got '{retrieval_mode}'"
 
 
 # ---------------------------------------------------------------------------
@@ -364,9 +376,9 @@ class TestOneHumanQualityGates:
         )
         resp = await initialized_orchestrator.query(q)
         assert isinstance(resp.snr_score, float)
-        assert 0.0 <= resp.snr_score <= 1.0, (
-            f"SNR must be in [0, 1], got {resp.snr_score}"
-        )
+        assert (
+            0.0 <= resp.snr_score <= 1.0
+        ), f"SNR must be in [0, 1], got {resp.snr_score}"
 
     @requires_real_data
     async def test_ihsan_flag_is_boolean(self, initialized_orchestrator):
@@ -391,9 +403,12 @@ class TestOneHumanQualityGates:
         # If SNR is below the requested threshold, trace should mention it
         if resp.snr_score < 0.999:
             trace_text = " ".join(resp.reasoning_trace).lower()
-            assert "snr" in trace_text or "threshold" in trace_text or "warning" in trace_text or "low" in trace_text, (
-                "Expected a warning in reasoning trace when SNR is below threshold"
-            )
+            assert (
+                "snr" in trace_text
+                or "threshold" in trace_text
+                or "warning" in trace_text
+                or "low" in trace_text
+            ), "Expected a warning in reasoning trace when SNR is below threshold"
 
     async def test_empty_query_handled_gracefully(self, initialized_orchestrator):
         """An empty string query does not crash."""
@@ -411,9 +426,9 @@ class TestOneHumanQualityGates:
         resp = await initialized_orchestrator.query(q)
         assert isinstance(resp, BIZRAResponse)
         # Gibberish should not achieve Ihsan-level SNR
-        assert resp.snr_score < 0.99 or resp.ihsan_achieved is False, (
-            "Gibberish query should not reach near-perfect SNR"
-        )
+        assert (
+            resp.snr_score < 0.99 or resp.ihsan_achieved is False
+        ), "Gibberish query should not reach near-perfect SNR"
 
 
 # ---------------------------------------------------------------------------
@@ -435,11 +450,21 @@ class TestOneHumanSystemStatus:
         """Engines dict includes all expected keys."""
         status = orchestrator.get_system_status()
         engines = status["engines"]
-        for key in ("hypergraph_rag", "arte", "pat", "kep", "multimodal", "dual_agentic"):
+        for key in (
+            "hypergraph_rag",
+            "arte",
+            "pat",
+            "kep",
+            "multimodal",
+            "dual_agentic",
+        ):
             assert key in engines, f"Missing engine key: {key}"
-            assert engines[key] in ("ready", "disabled", "unavailable", "not_initialized"), (
-                f"Unexpected status for {key}: {engines[key]}"
-            )
+            assert engines[key] in (
+                "ready",
+                "disabled",
+                "unavailable",
+                "not_initialized",
+            ), f"Unexpected status for {key}: {engines[key]}"
 
     async def test_status_after_init_shows_ready(self, initialized_orchestrator):
         """After initialize(), core engines report ready or disabled (not not_initialized)."""
@@ -455,9 +480,9 @@ class TestOneHumanSystemStatus:
         """If ARTE is ready, arte_health key exists in status."""
         status = initialized_orchestrator.get_system_status()
         if status["engines"]["arte"] == "ready":
-            assert "arte_health" in status, (
-                "ARTE reports ready but arte_health missing from status"
-            )
+            assert (
+                "arte_health" in status
+            ), "ARTE reports ready but arte_health missing from status"
             arte_health = status["arte_health"]
             assert "integration_snr" in arte_health
             assert "tension_level" in arte_health
@@ -534,7 +559,9 @@ class TestOneHumanLifecycle:
         ]
         for i, q in enumerate(queries):
             resp = await initialized_orchestrator.query(q)
-            assert isinstance(resp, BIZRAResponse), f"Query {i} failed to return BIZRAResponse"
+            assert isinstance(
+                resp, BIZRAResponse
+            ), f"Query {i} failed to return BIZRAResponse"
             assert len(resp.answer.strip()) > 0, f"Query {i} returned empty answer"
 
     @requires_real_data

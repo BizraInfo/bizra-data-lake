@@ -139,11 +139,13 @@ class TestInteractiveDenoiser:
         """SAPE spec verification: 3 priorities, correction 'meeting moved',
         verify belief for meeting drops below 0.1."""
         denoiser = InteractiveDenoiser()
-        denoiser.initialize_beliefs({
-            "coding_sprint": 0.4,
-            "team_meeting": 0.35,
-            "lunch_prep": 0.25,
-        })
+        denoiser.initialize_beliefs(
+            {
+                "coding_sprint": 0.4,
+                "team_meeting": 0.35,
+                "lunch_prep": 0.25,
+            }
+        )
 
         # User says "meeting moved"
         result = denoiser.apply_correction(

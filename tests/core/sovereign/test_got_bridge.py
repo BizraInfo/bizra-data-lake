@@ -10,6 +10,9 @@ Standing on Giants: Besta (2024), Wei (2022 CoT), Yao (2023 ToT)
 import pytest
 
 from core.sovereign.runtime_engines.got_bridge import (
+    MAX_BRANCHES,
+    MAX_DEPTH,
+    PRUNE_THRESHOLD,
     GoTBridge,
     GoTResult,
     ThoughtEdge,
@@ -19,11 +22,7 @@ from core.sovereign.runtime_engines.got_bridge import (
     ThoughtType,
     get_got_bridge,
     think,
-    MAX_DEPTH,
-    MAX_BRANCHES,
-    PRUNE_THRESHOLD,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ThoughtNode Tests
@@ -82,7 +81,9 @@ class TestThoughtEdge:
         assert edge.weight == 1.0
 
     def test_custom_edge(self):
-        edge = ThoughtEdge(source_id="a", target_id="b", edge_type="aggregates", weight=0.5)
+        edge = ThoughtEdge(
+            source_id="a", target_id="b", edge_type="aggregates", weight=0.5
+        )
         assert edge.edge_type == "aggregates"
         assert edge.weight == 0.5
 
@@ -358,9 +359,7 @@ class TestGoTBridge:
     @pytest.mark.asyncio
     async def test_bridge_with_scorer(self):
         bridge = GoTBridge(use_rust=False)
-        result = await bridge.reason(
-            "Test", max_iterations=10, scorer=lambda n: 0.5
-        )
+        result = await bridge.reason("Test", max_iterations=10, scorer=lambda n: 0.5)
         assert isinstance(result, GoTResult)
 
     def test_bridge_visualize_empty(self):

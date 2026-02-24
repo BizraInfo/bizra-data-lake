@@ -66,7 +66,9 @@ def resolve_model_for_agent(agent_id: str, config: Dict[str, Any]) -> str:
     routing = config.get("model_routing", DEFAULT_MODEL_ROUTING)
     purpose = _PAT_AGENT_PURPOSE.get(agent_id, "reasoning")
     role = PURPOSE_TO_ROLE.get(purpose, "reasoner")
-    return routing.get(role, routing.get("reasoner", "deepseek/deepseek-r1-0528-qwen3-8b"))
+    return routing.get(
+        role, routing.get("reasoner", "deepseek/deepseek-r1-0528-qwen3-8b")
+    )
 
 
 __all__ = [

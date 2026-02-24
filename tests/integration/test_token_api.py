@@ -23,6 +23,7 @@ class TestTokenAPIRoutes:
 
         try:
             from core.sovereign.api import create_fastapi_app
+
             return create_fastapi_app(runtime)
         except ImportError:
             pytest.skip("FastAPI not available")

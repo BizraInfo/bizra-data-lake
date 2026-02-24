@@ -87,34 +87,36 @@ class TestFixedVectors:
         assert len(GUARDRAIL_CASES) == 20
 
     def test_total_100_cases(self):
-        total = len(SNR_CASES) + len(CLEAR_CASES) + len(IHSAN_CASES) + len(GUARDRAIL_CASES)
+        total = (
+            len(SNR_CASES) + len(CLEAR_CASES) + len(IHSAN_CASES) + len(GUARDRAIL_CASES)
+        )
         assert total == 100
 
     def test_all_snr_cases(self):
         for i, case in enumerate(SNR_CASES):
             actual = compute_snr(case["signal"], case["noise"])
             error = abs(actual - case["expected"])
-            assert error <= self.TOLERANCE, (
-                f"SNR case {i}: expected {case['expected']}, got {actual}, error {error}"
-            )
+            assert (
+                error <= self.TOLERANCE
+            ), f"SNR case {i}: expected {case['expected']}, got {actual}, error {error}"
 
     def test_all_clear_cases(self):
         for i, case in enumerate(CLEAR_CASES):
             scores = {k: case[k] for k in CLEAR_WEIGHTS}
             actual = compute_clear(scores)
             error = abs(actual - case["expected"])
-            assert error <= self.TOLERANCE, (
-                f"CLEAR case {i}: expected {case['expected']}, got {actual}, error {error}"
-            )
+            assert (
+                error <= self.TOLERANCE
+            ), f"CLEAR case {i}: expected {case['expected']}, got {actual}, error {error}"
 
     def test_all_ihsan_cases(self):
         for i, case in enumerate(IHSAN_CASES):
             scores = {k: case[k] for k in IHSAN_WEIGHTS}
             actual = compute_ihsan(scores)
             error = abs(actual - case["expected"])
-            assert error <= self.TOLERANCE, (
-                f"Ihsan case {i}: expected {case['expected']}, got {actual}, error {error}"
-            )
+            assert (
+                error <= self.TOLERANCE
+            ), f"Ihsan case {i}: expected {case['expected']}, got {actual}, error {error}"
 
     def test_all_guardrail_cases(self):
         for i, case in enumerate(GUARDRAIL_CASES):

@@ -38,7 +38,6 @@ from core.sovereign.origin_guard import (
 )
 from core.sovereign.permit import (
     Permit,
-    PermitVerification,
     create_hda_permit,
 )
 
@@ -62,7 +61,9 @@ except ImportError:
 BRIDGE_HOST = "127.0.0.1"
 BRIDGE_PORT = 9742
 AHK_BRIDGE_HOST = "127.0.0.1"
-AHK_BRIDGE_PORT = int(os.getenv("BIZRA_AHK_BRIDGE_PORT", os.getenv("BIZRA_BRIDGE_PORT", "9742")))
+AHK_BRIDGE_PORT = int(
+    os.getenv("BIZRA_AHK_BRIDGE_PORT", os.getenv("BIZRA_BRIDGE_PORT", "9742"))
+)
 MAX_MESSAGE_BYTES = 1_048_576  # 1 MB safety limit
 ACTUATOR_ENTROPY_THRESHOLD = 3.5  # Shannon bits/char — blocks low-signal instructions
 RATE_LIMIT_TOKENS_PER_SEC = 20.0
@@ -176,10 +177,13 @@ class DesktopBridge:
         self._node_role: str = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
         self._origin_snapshot: dict[str, Any] = self._default_origin_snapshot()
         self._hda_permit: Optional[Permit] = None
-        self._permit_signing_key: Optional[str] = os.getenv(
-            "BIZRA_PERMIT_SIGNING_KEY",
-            os.getenv("BIZRA_BRIDGE_TOKEN", ""),
-        ) or None
+        self._permit_signing_key: Optional[str] = (
+            os.getenv(
+                "BIZRA_PERMIT_SIGNING_KEY",
+                os.getenv("BIZRA_BRIDGE_TOKEN", ""),
+            )
+            or None
+        )
         self._guardian_wire_mode = (
             os.getenv(GUARDIAN_WIRE_MODE_ENV, "best_effort").strip().lower()
         )
@@ -1055,12 +1059,9 @@ class DesktopBridge:
 
         Standing on Giants: General Magic (auto-renewing Telescript permits)
         """
-        import time as _time
 
         if self._hda_permit is not None:
-            verification = self._hda_permit.verify(
-                signing_key=self._permit_signing_key
-            )
+            verification = self._hda_permit.verify(signing_key=self._permit_signing_key)
             if verification.valid:
                 return self._hda_permit
 
@@ -1094,9 +1095,7 @@ class DesktopBridge:
 
         # --- Gate 0: Telescript Permit verification ---
         permit = self._ensure_hda_permit()
-        permit_check = permit.check_action(
-            method, signing_key=self._permit_signing_key
-        )
+        permit_check = permit.check_action(method, signing_key=self._permit_signing_key)
         if not permit_check.valid:
             return {
                 "error": f"Permit denied for {method}",
@@ -1137,9 +1136,7 @@ class DesktopBridge:
             "permit_id": permit.permit_id,
             "capability_checked": method,
             "actions_remaining": permit.budget.actions_remaining,
-            "ttl_remaining": round(
-                max(0.0, permit.expires_at - time.time()), 1
-            ),
+            "ttl_remaining": round(max(0.0, permit.expires_at - time.time()), 1),
         }
 
         return ahk_result
@@ -1365,9 +1362,11 @@ class DesktopBridge:
             title = xdo.stdout.strip()
             if title:
                 result["foreground"] = {
-                    "title": title if plaintext else hashlib.sha256(
-                        title.encode()
-                    ).hexdigest(),
+                    "title": (
+                        title
+                        if plaintext
+                        else hashlib.sha256(title.encode()).hexdigest()
+                    ),
                     "title_hashed": not plaintext,
                 }
             else:

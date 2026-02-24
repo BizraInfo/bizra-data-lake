@@ -15,7 +15,6 @@ from core.memory.adapters.living_memory import LivingMemoryAdapter
 from core.memory.adapters.pattern_memory import PatternMemoryAdapter
 from core.memory.types import MemoryKind, RecordState
 
-
 # ── Mock LivingMemory ────────────────────────────────────────────────────
 
 
@@ -109,14 +108,20 @@ class TestLivingMemoryAdapter:
 
     def test_maps_memory_type(self):
         lm = MockLivingMemoryCore()
-        lm.add(MockMemoryEntry(id="m1", content="Episode", memory_type=MockMemoryType.EPISODIC))
+        lm.add(
+            MockMemoryEntry(
+                id="m1", content="Episode", memory_type=MockMemoryType.EPISODIC
+            )
+        )
         adapter = LivingMemoryAdapter(lm)
         records = adapter.export_all()
         assert records[0].kind == MemoryKind.EPISODIC
 
     def test_maps_scores(self):
         lm = MockLivingMemoryCore()
-        lm.add(MockMemoryEntry(id="m1", content="Scored", ihsan_score=0.88, snr_score=0.75))
+        lm.add(
+            MockMemoryEntry(id="m1", content="Scored", ihsan_score=0.88, snr_score=0.75)
+        )
         adapter = LivingMemoryAdapter(lm)
         records = adapter.export_all()
         assert records[0].ihsan_score == 0.88
@@ -124,10 +129,13 @@ class TestLivingMemoryAdapter:
 
     def test_converts_embedding(self):
         lm = MockLivingMemoryCore()
-        lm.add(MockMemoryEntry(
-            id="m1", content="With embedding",
-            embedding=np.array([1.0, 2.0, 3.0], dtype=np.float32),
-        ))
+        lm.add(
+            MockMemoryEntry(
+                id="m1",
+                content="With embedding",
+                embedding=np.array([1.0, 2.0, 3.0], dtype=np.float32),
+            )
+        )
         adapter = LivingMemoryAdapter(lm)
         records = adapter.export_all()
         assert records[0].embedding is not None
@@ -136,7 +144,9 @@ class TestLivingMemoryAdapter:
     def test_skips_deleted(self):
         lm = MockLivingMemoryCore()
         lm.add(MockMemoryEntry(id="m1", content="Active"))
-        lm.add(MockMemoryEntry(id="m2", content="Deleted", state=MockMemoryState.DELETED))
+        lm.add(
+            MockMemoryEntry(id="m2", content="Deleted", state=MockMemoryState.DELETED)
+        )
         adapter = LivingMemoryAdapter(lm)
         records = adapter.export_all()
         assert len(records) == 1
@@ -152,9 +162,13 @@ class TestLivingMemoryAdapter:
 class TestExperienceLedgerAdapter:
     def test_export_all(self):
         sel = MockSEL()
-        sel.add(MockEpisode(
-            content_hash="abc123", query_text="What is AI?", response_text="AI is..."
-        ))
+        sel.add(
+            MockEpisode(
+                content_hash="abc123",
+                query_text="What is AI?",
+                response_text="AI is...",
+            )
+        )
         adapter = ExperienceLedgerAdapter(sel)
         records = adapter.export_all()
         assert len(records) == 1
@@ -162,9 +176,7 @@ class TestExperienceLedgerAdapter:
 
     def test_preserves_query_response(self):
         sel = MockSEL()
-        sel.add(MockEpisode(
-            content_hash="h1", query_text="Q?", response_text="A!"
-        ))
+        sel.add(MockEpisode(content_hash="h1", query_text="Q?", response_text="A!"))
         adapter = ExperienceLedgerAdapter(sel)
         records = adapter.export_all()
         assert "Q?" in records[0].content
@@ -180,19 +192,26 @@ class TestExperienceLedgerAdapter:
     def test_export_recent(self):
         sel = MockSEL()
         for i in range(10):
-            sel.add(MockEpisode(
-                content_hash=f"h{i}", query_text=f"Q{i}", response_text=f"A{i}"
-            ))
+            sel.add(
+                MockEpisode(
+                    content_hash=f"h{i}", query_text=f"Q{i}", response_text=f"A{i}"
+                )
+            )
         adapter = ExperienceLedgerAdapter(sel)
         records = adapter.export_recent(limit=3)
         assert len(records) == 3
 
     def test_metadata_includes_chain(self):
         sel = MockSEL()
-        sel.add(MockEpisode(
-            content_hash="h1", query_text="Q", response_text="A",
-            prev_hash="genesis", sequence_number=0,
-        ))
+        sel.add(
+            MockEpisode(
+                content_hash="h1",
+                query_text="Q",
+                response_text="A",
+                prev_hash="genesis",
+                sequence_number=0,
+            )
+        )
         adapter = ExperienceLedgerAdapter(sel)
         records = adapter.export_all()
         assert records[0].metadata.get("chain_prev") == "genesis"

@@ -21,7 +21,6 @@ from core.rollout.hmm_gate import HMMCallerGate
 from core.rollout.metrics import Phase46Metrics
 from core.rollout.rollback import RollbackEngine
 
-
 # ------------------------------------------------------------------
 # Env cleanup
 # ------------------------------------------------------------------
@@ -75,9 +74,7 @@ class FakeHMMEngine:
 class TestDrillSearchErrorBreach:
     """Drill: search error breach triggers rollback receipt."""
 
-    def test_search_error_breach_triggers_rollback(
-        self, tmp_path: Path
-    ) -> None:
+    def test_search_error_breach_triggers_rollback(self, tmp_path: Path) -> None:
         receipt_dir = tmp_path / "receipts"
         engine = RollbackEngine(receipt_dir=str(receipt_dir))
 
@@ -103,9 +100,7 @@ class TestDrillSearchErrorBreach:
 class TestDrillGoTFallbackBreach:
     """Drill: GoT fallback breach triggers rollback receipt."""
 
-    def test_got_fallback_breach_triggers_rollback(
-        self, tmp_path: Path
-    ) -> None:
+    def test_got_fallback_breach_triggers_rollback(self, tmp_path: Path) -> None:
         receipt_dir = tmp_path / "receipts"
         engine = RollbackEngine(receipt_dir=str(receipt_dir))
 
@@ -126,9 +121,7 @@ class TestDrillGoTFallbackBreach:
 class TestDrillHMMConfidenceBreach:
     """Drill: HMM confidence breach triggers rollback receipt."""
 
-    def test_hmm_confidence_breach_triggers_rollback(
-        self, tmp_path: Path
-    ) -> None:
+    def test_hmm_confidence_breach_triggers_rollback(self, tmp_path: Path) -> None:
         receipt_dir = tmp_path / "receipts"
         engine = RollbackEngine(receipt_dir=str(receipt_dir))
 
@@ -326,9 +319,7 @@ class TestDrillCombinedPass:
         assert metrics.compute_hit_rate() == 1.0
 
         # 4. No rollback (single clean evaluation)
-        rb = RollbackEngine(
-            receipt_dir=str(tmp_path / "receipts"), metrics=metrics
-        )
+        rb = RollbackEngine(receipt_dir=str(tmp_path / "receipts"), metrics=metrics)
         receipt = rb.evaluate("search_error_rate", breached=False)
         assert receipt is None
 

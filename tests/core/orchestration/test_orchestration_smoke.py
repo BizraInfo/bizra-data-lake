@@ -9,7 +9,6 @@ Created: 2026-02-07 | BIZRA Mastermind Sprint
 
 import pytest
 
-
 # ============================================================================
 # EventBus — Core event infrastructure
 # ============================================================================
@@ -127,4 +126,6 @@ def test_all_exports_resolvable():
 
     for name in mod.__all__:
         attr = getattr(mod, name, None)
-        assert attr is not None, f"core.orchestration.__all__ exports '{name}' but it's None"
+        assert (
+            attr is not None
+        ), f"core.orchestration.__all__ exports '{name}' but it's None"

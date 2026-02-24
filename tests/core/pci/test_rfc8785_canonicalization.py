@@ -15,33 +15,34 @@ P0-1 Audit Fix: Unify PCI canonicalization (RFC8785 ASCII across repos)
 """
 
 import json
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
 from core.pci.crypto import (
-    canonicalize_json,
-    canonical_json,
-    canonicalize_and_validate,
-    validate_canonical_format,
-    is_canonical_json,
-    domain_separated_digest,
-    sign_message,
-    verify_signature,
-    generate_keypair,
     CanonicalizationError,
     NonAsciiError,
     NonCanonicalInputError,
+    canonical_json,
+    canonicalize_and_validate,
+    canonicalize_json,
+    domain_separated_digest,
+    generate_keypair,
+    is_canonical_json,
+    sign_message,
+    validate_canonical_format,
+    verify_signature,
 )
-
 
 # =============================================================================
 # RFC8785 COMPLIANCE TESTS
 # =============================================================================
+
 
 class TestRFC8785Compliance:
     """Tests for RFC8785 JSON Canonicalization Scheme compliance."""
@@ -50,7 +51,7 @@ class TestRFC8785Compliance:
         """RFC8785 3.2.3: Object keys MUST be sorted lexicographically."""
         data = {"zebra": 1, "apple": 2, "mango": 3, "123": 4, "ABC": 5}
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         # Keys should appear in this order: "123" < "ABC" < "apple" < "mango" < "zebra"
         assert result_str.index('"123"') < result_str.index('"ABC"')
@@ -64,16 +65,16 @@ class TestRFC8785Compliance:
         result = canonicalize_json(data)
 
         # No whitespace characters should appear outside of strings
-        assert b' ' not in result.replace(b'"value"', b'').replace(b'"inner"', b'')
-        assert b'\n' not in result
-        assert b'\t' not in result
-        assert b'\r' not in result
+        assert b" " not in result.replace(b'"value"', b"").replace(b'"inner"', b"")
+        assert b"\n" not in result
+        assert b"\t" not in result
+        assert b"\r" not in result
 
     def test_ensure_ascii_escapes_unicode(self):
         """RFC8785 with ensure_ascii: Non-ASCII MUST be escaped."""
         data = {
-            "cafe": "caf\u00e9",       # e with acute accent
-            "emoji": "\U0001F600",     # grinning face
+            "cafe": "caf\u00e9",  # e with acute accent
+            "emoji": "\U0001f600",  # grinning face
             "arabic": "\u0628\u0630\u0631\u0629",  # BIZRA in Arabic
         }
         result = canonicalize_json(data, ensure_ascii=True)
@@ -83,7 +84,7 @@ class TestRFC8785Compliance:
             assert byte < 128, f"Non-ASCII byte found: {byte}"
 
         # Unicode should be escaped as \uXXXX
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
         assert "\\u00e9" in result_str  # e-acute
         assert "\\ud83d\\ude00" in result_str.lower()  # emoji (surrogate pair)
 
@@ -92,7 +93,7 @@ class TestRFC8785Compliance:
         # Python's json.dumps already handles this correctly
         data = {"num": 42, "float": 3.14}
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         # Should be "42" not "042"
         assert '"num":42' in result_str
@@ -102,10 +103,10 @@ class TestRFC8785Compliance:
         """RFC8785 3.2.2.3: Numbers MUST NOT have leading plus sign."""
         data = {"positive": 100, "negative": -50}
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         # No plus sign before positive numbers
-        assert '+' not in result_str
+        assert "+" not in result_str
         assert '"positive":100' in result_str
         assert '"negative":-50' in result_str
 
@@ -119,7 +120,7 @@ class TestRFC8785Compliance:
             "quote": 'say "hello"',
         }
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         assert "\\n" in result_str
         assert "\\t" in result_str
@@ -134,7 +135,7 @@ class TestRFC8785Compliance:
             "outer_a": {"z_nested": {"z_deep": 1, "a_deep": 2}},
         }
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         # Outer keys sorted
         assert result_str.index('"outer_a"') < result_str.index('"outer_z"')
@@ -147,7 +148,7 @@ class TestRFC8785Compliance:
         """Arrays MUST preserve element order (arrays are ordered)."""
         data = {"array": [3, 1, 4, 1, 5, 9]}
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         assert '"array":[3,1,4,1,5,9]' in result_str
 
@@ -155,7 +156,7 @@ class TestRFC8785Compliance:
         """null, true, false MUST be lowercase."""
         data = {"null": None, "true": True, "false": False}
         result = canonicalize_json(data)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         assert ":null" in result_str
         assert ":true" in result_str
@@ -170,6 +171,7 @@ class TestRFC8785Compliance:
 # CROSS-REPO COMPATIBILITY TESTS
 # =============================================================================
 
+
 class TestCrossRepoCompatibility:
     """Tests ensuring canonical JSON is identical across different implementations."""
 
@@ -183,7 +185,9 @@ class TestCrossRepoCompatibility:
         }
 
         results = [canonicalize_json(data) for _ in range(100)]
-        assert all(r == results[0] for r in results), "Non-deterministic output detected"
+        assert all(
+            r == results[0] for r in results
+        ), "Non-deterministic output detected"
 
     def test_output_is_pure_ascii(self):
         """Output MUST be pure ASCII for cross-repo compatibility."""
@@ -191,16 +195,20 @@ class TestCrossRepoCompatibility:
         data = {
             "arabic": "\u0628\u0630\u0631\u0629",
             "chinese": "\u4e2d\u6587",
-            "emoji": "\U0001F4BB",
+            "emoji": "\U0001f4bb",
             "math": "\u221e \u03c0 \u2211",
         }
         result = canonicalize_json(data, ensure_ascii=True)
 
         # Verify all bytes are ASCII
-        assert result.isascii() if hasattr(result, 'isascii') else all(b < 128 for b in result)
+        assert (
+            result.isascii()
+            if hasattr(result, "isascii")
+            else all(b < 128 for b in result)
+        )
 
         # Verify we can decode as ASCII
-        decoded = result.decode('ascii')
+        decoded = result.decode("ascii")
         assert isinstance(decoded, str)
 
     def test_digest_stability(self):
@@ -253,7 +261,7 @@ class TestCrossRepoCompatibility:
         # RFC8785 Appendix B test vectors (simplified)
         test_cases = [
             # Empty object
-            ({}, b'{}'),
+            ({}, b"{}"),
             # Empty array
             ({"a": []}, b'{"a":[]}'),
             # Numbers
@@ -268,12 +276,15 @@ class TestCrossRepoCompatibility:
 
         for data, expected in test_cases:
             result = canonicalize_json(data)
-            assert result == expected, f"Mismatch for {data}: got {result}, expected {expected}"
+            assert (
+                result == expected
+            ), f"Mismatch for {data}: got {result}, expected {expected}"
 
 
 # =============================================================================
 # VALIDATION FUNCTION TESTS
 # =============================================================================
+
 
 class TestValidateCanonicalFormat:
     """Tests for validate_canonical_format() function."""
@@ -308,7 +319,7 @@ class TestValidateCanonicalFormat:
     def test_rejects_non_ascii(self):
         """JSON with raw non-ASCII bytes should fail."""
         # UTF-8 encoded unicode (not escaped)
-        non_canonical = "cafe: caf\u00e9".encode('utf-8')
+        non_canonical = "cafe: caf\u00e9".encode("utf-8")
 
         is_valid, error = validate_canonical_format(non_canonical)
         assert not is_valid
@@ -335,6 +346,7 @@ class TestValidateCanonicalFormat:
 # ERROR HANDLING TESTS
 # =============================================================================
 
+
 class TestErrorHandling:
     """Tests for error conditions and edge cases."""
 
@@ -344,19 +356,20 @@ class TestErrorHandling:
         # but we test the validation path
         data = {"key": "value"}
         result = canonicalize_json(data, ensure_ascii=True)
-        assert result.decode('ascii')  # Should not raise
+        assert result.decode("ascii")  # Should not raise
 
     def test_nan_not_allowed(self):
         """NaN is not valid JSON per RFC8785."""
         import math
-        data = {"value": float('nan')}
+
+        data = {"value": float("nan")}
 
         with pytest.raises(ValueError):
             canonicalize_json(data)
 
     def test_infinity_not_allowed(self):
         """Infinity is not valid JSON per RFC8785."""
-        data = {"value": float('inf')}
+        data = {"value": float("inf")}
 
         with pytest.raises(ValueError):
             canonicalize_json(data)
@@ -380,6 +393,7 @@ class TestErrorHandling:
 # =============================================================================
 # BACKWARD COMPATIBILITY TESTS
 # =============================================================================
+
 
 class TestBackwardCompatibility:
     """Tests ensuring backward compatibility with existing code."""
@@ -411,6 +425,7 @@ class TestBackwardCompatibility:
 # PCI ENVELOPE INTEGRATION TESTS
 # =============================================================================
 
+
 class TestPCIEnvelopeIntegration:
     """Tests for PCI envelope canonicalization."""
 
@@ -423,8 +438,7 @@ class TestPCIEnvelopeIntegration:
         envelopes = []
         for _ in range(5):
             env = (
-                builder
-                .with_sender("PAT", "test-agent", "0" * 64)
+                builder.with_sender("PAT", "test-agent", "0" * 64)
                 .with_payload("QUERY", {"key": "value"}, "policy123", "state456")
                 .with_metadata(0.95, 0.90)
                 .build()
@@ -440,7 +454,7 @@ class TestPCIEnvelopeIntegration:
 
     def test_signed_envelope_verifies_after_serialization(self):
         """Signed envelope should verify after round-trip serialization."""
-        from core.pci.envelope import PCIEnvelope, EnvelopeBuilder
+        from core.pci.envelope import EnvelopeBuilder, PCIEnvelope
 
         priv_key, pub_key = generate_keypair()
 
@@ -459,16 +473,13 @@ class TestPCIEnvelopeIntegration:
 
         # Compute digest and verify signature
         digest = env_restored.compute_digest()
-        assert verify_signature(
-            digest,
-            env_restored.signature.value,
-            pub_key
-        )
+        assert verify_signature(digest, env_restored.signature.value, pub_key)
 
 
 # =============================================================================
 # CROSS-REPO COMPATIBILITY SIMULATION TESTS
 # =============================================================================
+
 
 class TestCrossRepoSimulation:
     """Simulate cross-repo canonicalization scenarios."""
@@ -517,7 +528,11 @@ class TestCrossRepoSimulation:
                 b'{"action":"QUERY","model":"llama-7b","version":"1.0.0"}',
             ),
             (
-                {"a": 1, "b": [1, 2, 3], "c": {"x": True, "y": False}},  # Python booleans
+                {
+                    "a": 1,
+                    "b": [1, 2, 3],
+                    "c": {"x": True, "y": False},
+                },  # Python booleans
                 b'{"a":1,"b":[1,2,3],"c":{"x":true,"y":false}}',  # JSON booleans
             ),
         ]
@@ -525,7 +540,9 @@ class TestCrossRepoSimulation:
         for data, expected_rust_output in test_cases:
             result = canonicalize_json(data)
             # Note: Python json produces lowercase true/false already
-            assert result == expected_rust_output, f"Mismatch: {result} != {expected_rust_output}"
+            assert (
+                result == expected_rust_output
+            ), f"Mismatch: {result} != {expected_rust_output}"
 
     def test_unicode_cross_platform(self):
         """
@@ -534,11 +551,11 @@ class TestCrossRepoSimulation:
         """
         data = {
             "arabic_bizra": "\u0628\u0630\u0631\u0629",  # BIZRA in Arabic
-            "ihsan": "\u0625\u062d\u0633\u0627\u0646",   # Excellence in Arabic
+            "ihsan": "\u0625\u062d\u0633\u0627\u0646",  # Excellence in Arabic
         }
 
         result = canonicalize_json(data, ensure_ascii=True)
-        result_str = result.decode('ascii')
+        result_str = result.decode("ascii")
 
         # All Unicode should be escaped
         assert "\\u0628" in result_str
@@ -553,6 +570,7 @@ class TestCrossRepoSimulation:
 # PERFORMANCE TESTS (marked slow)
 # =============================================================================
 
+
 @pytest.mark.slow
 class TestPerformance:
     """Performance tests for canonicalization."""
@@ -563,10 +581,7 @@ class TestPerformance:
 
         # Create large nested document
         data = {
-            f"key_{i}": {
-                f"nested_{j}": f"value_{i}_{j}"
-                for j in range(100)
-            }
+            f"key_{i}": {f"nested_{j}": f"value_{i}_{j}" for j in range(100)}
             for i in range(100)
         }
 

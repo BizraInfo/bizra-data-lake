@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 
 from core.bridges.sci_reasoning_patterns import (
+    PATTERN_TO_THOUGHT_TYPE,
+    ROLE_TO_EDGE_TYPE,
     ClassifiedPaper,
     PaperLineage,
     PatternID,
@@ -25,13 +27,13 @@ from core.bridges.sci_reasoning_patterns import (
     PriorWork,
     ThinkingPattern,
     role_to_edge_type,
-    PATTERN_TO_THOUGHT_TYPE,
-    ROLE_TO_EDGE_TYPE,
 )
 from core.sovereign.graph_types import EdgeType, ThoughtType
 
 # Data directory
-DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data" / "sci_reasoning"
+DATA_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent / "data" / "sci_reasoning"
+)
 HAS_DATA = (DATA_DIR / "pattern_taxonomy.json").exists()
 
 
@@ -84,7 +86,9 @@ class TestRoleToEdgeType:
         assert ROLE_TO_EDGE_TYPE[PredecessorRole.FOUNDATION] == EdgeType.SUPPORTS
 
     def test_gap_maps_to_questions(self):
-        assert ROLE_TO_EDGE_TYPE[PredecessorRole.GAP_IDENTIFICATION] == EdgeType.QUESTIONS
+        assert (
+            ROLE_TO_EDGE_TYPE[PredecessorRole.GAP_IDENTIFICATION] == EdgeType.QUESTIONS
+        )
 
     def test_inspiration_maps_to_derives(self):
         assert ROLE_TO_EDGE_TYPE[PredecessorRole.INSPIRATION] == EdgeType.DERIVES
@@ -149,16 +153,22 @@ class TestThinkingPattern:
 
     def test_matches_text_empty(self):
         p = ThinkingPattern(
-            id=PatternID.P01, name="t", category="t",
-            description="t", cognitive_move="t",
+            id=PatternID.P01,
+            name="t",
+            category="t",
+            description="t",
+            cognitive_move="t",
             key_indicators=("x", "y"),
         )
         assert p.matches_text("") == 0.0
 
     def test_matches_text_no_match(self):
         p = ThinkingPattern(
-            id=PatternID.P01, name="t", category="t",
-            description="t", cognitive_move="t",
+            id=PatternID.P01,
+            name="t",
+            category="t",
+            description="t",
+            cognitive_move="t",
             key_indicators=("quantum", "photon"),
         )
         assert p.matches_text("unrelated text about cooking") == 0.0
@@ -194,8 +204,11 @@ class TestClassifiedPaper:
 
     def test_to_dict(self):
         p = ClassifiedPaper(
-            title="Test", conference="NeurIPS", year=2024,
-            presentation_type="spotlight", primary_pattern=PatternID.P02,
+            title="Test",
+            conference="NeurIPS",
+            year=2024,
+            presentation_type="spotlight",
+            primary_pattern=PatternID.P02,
         )
         d = p.to_dict()
         assert d["primary_pattern"] == "P02"
@@ -206,15 +219,19 @@ class TestPriorWork:
 
     def test_edge_type_property(self):
         pw = PriorWork(
-            title="Prior Paper", authors="A. Author",
-            year=2020, role=PredecessorRole.FOUNDATION,
+            title="Prior Paper",
+            authors="A. Author",
+            year=2020,
+            role=PredecessorRole.FOUNDATION,
             relationship_sentence="Core framework",
         )
         assert pw.edge_type == EdgeType.SUPPORTS
 
     def test_to_dict(self):
         pw = PriorWork(
-            title="Prior", authors="Auth", year=2019,
+            title="Prior",
+            authors="Auth",
+            year=2019,
             role=PredecessorRole.GAP_IDENTIFICATION,
             relationship_sentence="Addresses limitation",
             arxiv_id="1912.12345",
@@ -229,10 +246,14 @@ class TestPaperLineage:
 
     def test_to_dict(self):
         lineage = PaperLineage(
-            title="Target Paper", conference="ICML", year=2024,
+            title="Target Paper",
+            conference="ICML",
+            year=2024,
             prior_works=[
                 PriorWork(
-                    title="Prior 1", authors="A", year=2020,
+                    title="Prior 1",
+                    authors="A",
+                    year=2020,
                     role=PredecessorRole.BASELINE,
                     relationship_sentence="Main baseline",
                 ),
@@ -310,6 +331,7 @@ class TestSciReasoningBridge:
 
     def test_load(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         stats = bridge.get_statistics()
@@ -318,6 +340,7 @@ class TestSciReasoningBridge:
 
     def test_papers_by_pattern(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         papers = bridge.papers_by_pattern(PatternID.P01)
@@ -326,6 +349,7 @@ class TestSciReasoningBridge:
 
     def test_papers_by_conference(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         papers = bridge.papers_by_conference("ICLR")
@@ -334,6 +358,7 @@ class TestSciReasoningBridge:
 
     def test_pattern_distribution(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         dist = bridge.pattern_distribution()
@@ -342,6 +367,7 @@ class TestSciReasoningBridge:
 
     def test_seed_hypotheses(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         seeds = bridge.seed_hypotheses(PatternID.P01, top_k=3)
@@ -357,6 +383,7 @@ class TestLineageGraphConversion:
 
     def test_lineage_to_graph(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
 
@@ -387,6 +414,7 @@ class TestLineageGraphConversion:
     def test_graph_nodes_are_content_addressed(self):
         """Verify BLAKE3 content hashing on graph nodes (SEC-001)."""
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
 
@@ -404,6 +432,7 @@ class TestLineageGraphConversion:
 
     def test_nonexistent_lineage_returns_none(self):
         from core.bridges.sci_reasoning_bridge import SciReasoningBridge
+
         bridge = SciReasoningBridge(DATA_DIR)
         bridge.load()
         assert bridge.get_lineage_graph("nonexistent_paper_id") is None
@@ -460,6 +489,7 @@ class TestLoadClassifiedPapersSynthetic:
 
     def test_missing_file_returns_empty(self, tmp_path):
         from core.bridges.sci_reasoning_bridge import load_classified_papers
+
         papers = load_classified_papers(tmp_path / "nonexistent.json")
         assert papers == []
 

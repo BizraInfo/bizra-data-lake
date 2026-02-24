@@ -7,7 +7,6 @@ from scripts.evidence.build_evidence_package import run as build_run
 from scripts.evidence.import_external_assets import run as import_run
 from scripts.evidence.release_pack import run as release_pack_run
 from scripts.evidence.sign_evidence_package import run as sign_run
-
 from tests.scripts.test_evidence_package import _bootstrap_repo
 
 
@@ -27,7 +26,14 @@ def _prep_verified_final(ctx: dict[str, Path]) -> None:
         )
         == 0
     )
-    assert sign_run(package_root=ctx["package_root"], tier="private_full", config_path=ctx["config"]) == 0
+    assert (
+        sign_run(
+            package_root=ctx["package_root"],
+            tier="private_full",
+            config_path=ctx["config"],
+        )
+        == 0
+    )
 
     assert (
         build_run(
@@ -42,7 +48,14 @@ def _prep_verified_final(ctx: dict[str, Path]) -> None:
         )
         == 0
     )
-    assert sign_run(package_root=ctx["package_root"], tier="public_redacted", config_path=ctx["config"]) == 0
+    assert (
+        sign_run(
+            package_root=ctx["package_root"],
+            tier="public_redacted",
+            config_path=ctx["config"],
+        )
+        == 0
+    )
 
 
 def test_release_pack_emits_archives_and_sidecars(tmp_path: Path) -> None:
@@ -94,8 +107,12 @@ def test_release_pack_is_deterministic_for_hash_outputs(tmp_path: Path) -> None:
     for tier in ("private_full", "public_redacted"):
         base = outdir / f"{ctx['package_root'].name}.{tier}.tar.gz"
         first[tier] = {
-            "blake3": base.with_suffix(base.suffix + ".blake3").read_text(encoding="utf-8"),
-            "sha256": base.with_suffix(base.suffix + ".sha256").read_text(encoding="utf-8"),
+            "blake3": base.with_suffix(base.suffix + ".blake3").read_text(
+                encoding="utf-8"
+            ),
+            "sha256": base.with_suffix(base.suffix + ".sha256").read_text(
+                encoding="utf-8"
+            ),
             "sig": base.with_suffix(base.suffix + ".sig").read_text(encoding="utf-8"),
         }
 
@@ -113,9 +130,18 @@ def test_release_pack_is_deterministic_for_hash_outputs(tmp_path: Path) -> None:
 
     for tier in ("private_full", "public_redacted"):
         base = outdir / f"{ctx['package_root'].name}.{tier}.tar.gz"
-        assert base.with_suffix(base.suffix + ".blake3").read_text(encoding="utf-8") == first[tier]["blake3"]
-        assert base.with_suffix(base.suffix + ".sha256").read_text(encoding="utf-8") == first[tier]["sha256"]
-        assert base.with_suffix(base.suffix + ".sig").read_text(encoding="utf-8") == first[tier]["sig"]
+        assert (
+            base.with_suffix(base.suffix + ".blake3").read_text(encoding="utf-8")
+            == first[tier]["blake3"]
+        )
+        assert (
+            base.with_suffix(base.suffix + ".sha256").read_text(encoding="utf-8")
+            == first[tier]["sha256"]
+        )
+        assert (
+            base.with_suffix(base.suffix + ".sig").read_text(encoding="utf-8")
+            == first[tier]["sig"]
+        )
 
 
 def test_release_pack_fails_when_tier_verification_fails(tmp_path: Path) -> None:

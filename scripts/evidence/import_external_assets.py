@@ -107,7 +107,9 @@ def run(config_path: Path, repo_root: Path) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Import and source-lock external founding assets")
+    parser = argparse.ArgumentParser(
+        description="Import and source-lock external founding assets"
+    )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     args = parser.parse_args()

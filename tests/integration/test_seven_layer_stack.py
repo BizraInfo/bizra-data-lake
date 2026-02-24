@@ -115,7 +115,9 @@ class TestLayer2SIC:
         signer = Ed25519Signer.generate()
         builder = ReceiptBuilder(signer)
 
-        query = CanonQuery(user_id="test-user", user_state="active", intent="test query")
+        query = CanonQuery(
+            user_id="test-user", user_state="active", intent="test query"
+        )
         policy = _test_policy()
 
         receipt = builder.accepted(
@@ -140,8 +142,11 @@ class TestLayer2SIC:
         policy = _test_policy()
 
         receipt = builder.accepted(
-            query=query, policy=policy, payload=b"data",
-            snr=0.90, ihsan_score=0.95,
+            query=query,
+            policy=policy,
+            payload=b"data",
+            snr=0.90,
+            ihsan_score=0.95,
         )
         # Verify with different signer should fail
         assert receipt.verify_signature(signer2) is False
@@ -219,7 +224,14 @@ class TestLayer3PCE:
             SNRGate,
         )
 
-        gates = [SchemaGate, ProvenanceGate, SNRGate, ConstraintGate, SafetyGate, CommitGate]
+        gates = [
+            SchemaGate,
+            ProvenanceGate,
+            SNRGate,
+            ConstraintGate,
+            SafetyGate,
+            CommitGate,
+        ]
         assert len(gates) == 6
         for gate_cls in gates:
             assert hasattr(gate_cls, "evaluate")
@@ -229,7 +241,9 @@ class TestLayer3PCE:
         from core.sovereign.snr_maximizer import SNRMaximizer
 
         snr = SNRMaximizer()
-        analysis = snr.analyze("This is a well-grounded factual statement with evidence.")
+        analysis = snr.analyze(
+            "This is a well-grounded factual statement with evidence."
+        )
         assert analysis.snr_linear >= 0.0
         assert isinstance(analysis.ihsan_achieved, bool)
 
@@ -248,7 +262,9 @@ class TestLayer4CPM:
         from core.pci.crypto import generate_keypair
 
         priv, pub = generate_keypair()
-        engine = ConsensusEngine(node_id="test-node-L4", private_key=priv, public_key=pub)
+        engine = ConsensusEngine(
+            node_id="test-node-L4", private_key=priv, public_key=pub
+        )
         assert engine is not None
         assert engine.node_id == "test-node-L4"
 
@@ -346,7 +362,10 @@ class TestLayer7MCG:
 
         gate = IhsanGate(threshold=0.90)
         components = IhsanComponents(
-            correctness=0.95, safety=0.98, efficiency=0.92, user_benefit=0.94,
+            correctness=0.95,
+            safety=0.98,
+            efficiency=0.92,
+            user_benefit=0.94,
         )
         result = gate.evaluate(components)
         assert result.decision == "APPROVED"
@@ -358,7 +377,10 @@ class TestLayer7MCG:
 
         gate = IhsanGate(threshold=0.95)
         components = IhsanComponents(
-            correctness=0.40, safety=0.50, efficiency=0.30, user_benefit=0.40,
+            correctness=0.40,
+            safety=0.50,
+            efficiency=0.30,
+            user_benefit=0.40,
         )
         result = gate.evaluate(components)
         assert result.decision == "REJECTED"
@@ -436,7 +458,10 @@ class TestLayer7MCG:
 
         gate = IhsanGate(threshold=0.95)
         components = IhsanComponents(
-            correctness=0.96, safety=0.98, efficiency=0.94, user_benefit=0.95,
+            correctness=0.96,
+            safety=0.98,
+            efficiency=0.94,
+            user_benefit=0.95,
         )
         result = gate.ihsan_score(components)
 
@@ -460,18 +485,27 @@ class TestCrossLayerL2L3:
     def test_ed25519_receipt_sign_verify_chain(self):
         """Full chain: generate key → build receipt → sign → verify."""
         from core.proof_engine.canonical import CanonQuery
-        from core.proof_engine.receipt import Ed25519Signer, ReceiptBuilder, ReceiptVerifier
+        from core.proof_engine.receipt import (
+            Ed25519Signer,
+            ReceiptBuilder,
+            ReceiptVerifier,
+        )
 
         signer = Ed25519Signer.generate()
         builder = ReceiptBuilder(signer)
         verifier = ReceiptVerifier(signer)
 
-        query = CanonQuery(user_id="test-user", user_state="active", intent="cross-layer test")
+        query = CanonQuery(
+            user_id="test-user", user_state="active", intent="cross-layer test"
+        )
         policy = _test_policy()
 
         receipt = builder.accepted(
-            query=query, policy=policy, payload=b"verified output",
-            snr=0.93, ihsan_score=0.97,
+            query=query,
+            policy=policy,
+            payload=b"verified output",
+            snr=0.93,
+            ihsan_score=0.97,
         )
         valid, error = verifier.verify(receipt)
         assert valid is True
@@ -480,19 +514,28 @@ class TestCrossLayerL2L3:
     def test_rejected_receipt_with_ed25519(self):
         """Rejection receipts are also properly signed."""
         from core.proof_engine.canonical import CanonQuery
-        from core.proof_engine.receipt import Ed25519Signer, ReceiptBuilder, ReceiptVerifier
+        from core.proof_engine.receipt import (
+            Ed25519Signer,
+            ReceiptBuilder,
+            ReceiptVerifier,
+        )
 
         signer = Ed25519Signer.generate()
         builder = ReceiptBuilder(signer)
         verifier = ReceiptVerifier(signer)
 
-        query = CanonQuery(user_id="test-user", user_state="active", intent="rejected query")
+        query = CanonQuery(
+            user_id="test-user", user_state="active", intent="rejected query"
+        )
         policy = _test_policy()
 
         receipt = builder.rejected(
-            query=query, policy=policy,
-            snr=0.40, ihsan_score=0.50,
-            gate_failed="snr", reason="SNR_BELOW_THRESHOLD",
+            query=query,
+            policy=policy,
+            snr=0.40,
+            ihsan_score=0.50,
+            gate_failed="snr",
+            reason="SNR_BELOW_THRESHOLD",
         )
         valid, error = verifier.verify(receipt)
         assert valid is True
@@ -520,8 +563,12 @@ class TestCrossLayerL3L7:
         # L3: Build GoT
         got = GraphOfThoughts()
         q = got.add_thought("What is truth?", ThoughtType.QUESTION)
-        h = got.add_thought("Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id)
-        e = got.add_thought("Cryptographic proof.", ThoughtType.EVIDENCE, parent_id=h.id)
+        h = got.add_thought(
+            "Truth is verifiable.", ThoughtType.HYPOTHESIS, parent_id=q.id
+        )
+        e = got.add_thought(
+            "Cryptographic proof.", ThoughtType.EVIDENCE, parent_id=h.id
+        )
         got.add_edge(e.id, h.id, EdgeType.SUPPORTS)
         graph_hash = got.compute_graph_hash()
         assert len(graph_hash) == 64
@@ -529,7 +576,10 @@ class TestCrossLayerL3L7:
         # L7: Evaluate with IhsanGate
         gate = IhsanGate(threshold=0.90)
         components = IhsanComponents(
-            correctness=0.95, safety=0.97, efficiency=0.91, user_benefit=0.93,
+            correctness=0.95,
+            safety=0.97,
+            efficiency=0.91,
+            user_benefit=0.93,
         )
         result = gate.evaluate(components)
         assert result.decision == "APPROVED"
@@ -553,7 +603,10 @@ class TestCrossLayerL3L7:
 
         # Simulate 3 consecutive low-quality outputs
         low_components = IhsanComponents(
-            correctness=0.30, safety=0.40, efficiency=0.20, user_benefit=0.30,
+            correctness=0.30,
+            safety=0.40,
+            efficiency=0.20,
+            user_benefit=0.30,
         )
         for _ in range(3):
             result = gate.evaluate(low_components)
@@ -593,11 +646,13 @@ class TestFullStackSmoke:
         got = GraphOfThoughts()
         q = got.add_thought("What is sovereignty?", ThoughtType.QUESTION)
         h = got.add_thought(
-            "Self-determination in the digital age.", ThoughtType.HYPOTHESIS,
+            "Self-determination in the digital age.",
+            ThoughtType.HYPOTHESIS,
             parent_id=q.id,
         )
         e = got.add_thought(
-            "Ed25519 cryptographic identity.", ThoughtType.EVIDENCE,
+            "Ed25519 cryptographic identity.",
+            ThoughtType.EVIDENCE,
             parent_id=h.id,
         )
         got.add_edge(e.id, h.id, EdgeType.SUPPORTS)
@@ -606,7 +661,10 @@ class TestFullStackSmoke:
         # L7: Evaluate Ihsan
         gate = IhsanGate(threshold=0.90)
         components = IhsanComponents(
-            correctness=0.96, safety=0.98, efficiency=0.93, user_benefit=0.95,
+            correctness=0.96,
+            safety=0.98,
+            efficiency=0.93,
+            user_benefit=0.95,
         )
         ihsan_result = gate.evaluate(components)
         assert ihsan_result.decision == "APPROVED"
@@ -618,11 +676,16 @@ class TestFullStackSmoke:
 
         # L3: Build signed receipt
         builder = ReceiptBuilder(signer)
-        query = CanonQuery(user_id="node0", user_state="active", intent="What is sovereignty?")
+        query = CanonQuery(
+            user_id="node0", user_state="active", intent="What is sovereignty?"
+        )
         policy = _test_policy()
         receipt = builder.accepted(
-            query=query, policy=policy, payload=b"Self-determination answer",
-            snr=0.93, ihsan_score=ihsan_result.score,
+            query=query,
+            policy=policy,
+            payload=b"Self-determination answer",
+            snr=0.93,
+            ihsan_score=ihsan_result.score,
         )
         assert receipt.verify_signature(signer) is True
 
@@ -665,7 +728,10 @@ class TestFullStackSmoke:
         # L7: Evaluate — should fail
         gate = IhsanGate(threshold=0.95)
         components = IhsanComponents(
-            correctness=0.40, safety=0.50, efficiency=0.30, user_benefit=0.40,
+            correctness=0.40,
+            safety=0.50,
+            efficiency=0.30,
+            user_benefit=0.40,
         )
         ihsan_result = gate.evaluate(components)
         assert ihsan_result.decision == "REJECTED"
@@ -677,12 +743,17 @@ class TestFullStackSmoke:
 
         # L3: Build rejection receipt
         builder = ReceiptBuilder(signer)
-        query = CanonQuery(user_id="node0", user_state="active", intent="Low quality query")
+        query = CanonQuery(
+            user_id="node0", user_state="active", intent="Low quality query"
+        )
         policy = _test_policy()
         receipt = builder.rejected(
-            query=query, policy=policy,
-            snr=0.30, ihsan_score=ihsan_result.score,
-            gate_failed="ihsan", reason="IHSAN_BELOW_THRESHOLD",
+            query=query,
+            policy=policy,
+            snr=0.30,
+            ihsan_score=ihsan_result.score,
+            gate_failed="ihsan",
+            reason="IHSAN_BELOW_THRESHOLD",
         )
         assert receipt.verify_signature(signer) is True
         assert receipt.status.value == "rejected"
@@ -725,19 +796,26 @@ class TestFullStackSmoke:
 
         entries = []
         for i in range(5):
-            query = CanonQuery(user_id="node0", user_state="active", intent=f"Query {i}")
+            query = CanonQuery(
+                user_id="node0", user_state="active", intent=f"Query {i}"
+            )
             policy = _test_policy()
 
             components = IhsanComponents(
-                correctness=0.95, safety=0.97,
-                efficiency=0.92, user_benefit=0.94,
+                correctness=0.95,
+                safety=0.97,
+                efficiency=0.92,
+                user_benefit=0.94,
             )
             ihsan_result = gate.evaluate(components)
             watchdog.record(ihsan_result.score)
 
             receipt = builder.accepted(
-                query=query, policy=policy, payload=f"Answer {i}".encode(),
-                snr=0.92, ihsan_score=ihsan_result.score,
+                query=query,
+                policy=policy,
+                payload=f"Answer {i}".encode(),
+                snr=0.92,
+                ihsan_score=ihsan_result.score,
             )
             entry = emit_receipt(
                 ledger,
@@ -778,7 +856,10 @@ class TestFullStackSmoke:
 
         # 3 consecutive bad queries
         low = IhsanComponents(
-            correctness=0.30, safety=0.40, efficiency=0.20, user_benefit=0.25,
+            correctness=0.30,
+            safety=0.40,
+            efficiency=0.20,
+            user_benefit=0.25,
         )
         for _ in range(3):
             result = gate.evaluate(low)
@@ -788,7 +869,10 @@ class TestFullStackSmoke:
 
         # Good score doesn't auto-recover (needs explicit reset)
         high = IhsanComponents(
-            correctness=0.98, safety=0.99, efficiency=0.96, user_benefit=0.97,
+            correctness=0.98,
+            safety=0.99,
+            efficiency=0.96,
+            user_benefit=0.97,
         )
         result = gate.evaluate(high)
         watchdog.record(result.score)

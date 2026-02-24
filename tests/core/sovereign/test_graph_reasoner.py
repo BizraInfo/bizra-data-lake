@@ -23,28 +23,28 @@ Quality Standards:
 - Comprehensive docstrings
 """
 
-import pytest
-import sys
 import math
+import sys
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root to path (works across platforms)
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
 from core.sovereign.graph_reasoner import (
-    ThoughtNode,
-    ThoughtEdge,
-    ThoughtType,
     EdgeType,
+    GraphOfThoughts,
     ReasoningPath,
     ReasoningStrategy,
-    GraphOfThoughts,
+    ThoughtEdge,
+    ThoughtNode,
+    ThoughtType,
 )
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD, UNIFIED_SNR_THRESHOLD
-
 
 # =============================================================================
 # FIXTURES
@@ -539,7 +539,11 @@ class TestGraphAddThought:
         )
 
         # Find the connecting edge
-        edges = [e for e in graph.edges if e.source_id == parent.id and e.target_id == child.id]
+        edges = [
+            e
+            for e in graph.edges
+            if e.source_id == parent.id and e.target_id == child.id
+        ]
 
         assert len(edges) == 1
         assert edges[0].edge_type == EdgeType.DERIVES
@@ -715,7 +719,8 @@ class TestGraphRefine:
 
         # Find refine edge
         refine_edges = [
-            e for e in graph.edges
+            e
+            for e in graph.edges
             if e.source_id == original.id and e.target_id == refined.id
         ]
 
@@ -770,7 +775,8 @@ class TestGraphValidate:
 
         # Find validation edge
         val_edges = [
-            e for e in graph.edges
+            e
+            for e in graph.edges
             if e.source_id == high_quality_thought.id and e.target_id == validation.id
         ]
 
@@ -972,8 +978,7 @@ class TestGraphFindBestPath:
         """Best path should respect start node."""
         # Get a non-root node
         non_root = [
-            nid for nid in populated_graph.nodes
-            if nid not in populated_graph.roots
+            nid for nid in populated_graph.nodes if nid not in populated_graph.roots
         ][0]
 
         path = populated_graph.find_best_path(start_id=non_root)
@@ -1120,10 +1125,14 @@ class TestIhsanGating:
 
     def test_synthesis_succeeds_with_quality_sources(self, graph):
         """Synthesizing high-quality thoughts should produce high-quality synthesis."""
-        t1 = graph.add_thought("Strong evidence 1", ThoughtType.EVIDENCE, confidence=0.95)
+        t1 = graph.add_thought(
+            "Strong evidence 1", ThoughtType.EVIDENCE, confidence=0.95
+        )
         t1.snr_score = 0.95
 
-        t2 = graph.add_thought("Strong evidence 2", ThoughtType.EVIDENCE, confidence=0.95)
+        t2 = graph.add_thought(
+            "Strong evidence 2", ThoughtType.EVIDENCE, confidence=0.95
+        )
         t2.snr_score = 0.95
 
         synth = graph.aggregate([t1, t2], "Strong synthesis")
@@ -1142,7 +1151,12 @@ class TestIhsanGating:
         refined2 = graph.refine(refined1, "Second improvement", improvement_score=0.1)
         refined3 = graph.refine(refined2, "Third improvement", improvement_score=0.1)
 
-        assert refined3.confidence > refined2.confidence > refined1.confidence > original.confidence
+        assert (
+            refined3.confidence
+            > refined2.confidence
+            > refined1.confidence
+            > original.confidence
+        )
 
 
 # =============================================================================
@@ -1190,7 +1204,7 @@ class TestEdgeCases:
 
     def test_unicode_content(self, graph):
         """Unicode content should be handled correctly."""
-        content = "Testing: \u0628\u0630\u0631\u0629 (BIZRA) \U0001F331 \u2192 \u221E"
+        content = "Testing: \u0628\u0630\u0631\u0629 (BIZRA) \U0001f331 \u2192 \u221e"
         node = graph.add_thought(content, ThoughtType.REASONING)
 
         assert node.content == content
@@ -1252,12 +1266,17 @@ class TestPerformance:
         root = graph.add_thought("Root", ThoughtType.QUESTION)
 
         for i in range(100):
-            branch = graph.add_thought(f"Branch {i}", ThoughtType.HYPOTHESIS, parent_id=root.id)
+            branch = graph.add_thought(
+                f"Branch {i}", ThoughtType.HYPOTHESIS, parent_id=root.id
+            )
             for j in range(10):
-                leaf = graph.add_thought(f"Leaf {i}-{j}", ThoughtType.CONCLUSION, parent_id=branch.id)
+                leaf = graph.add_thought(
+                    f"Leaf {i}-{j}", ThoughtType.CONCLUSION, parent_id=branch.id
+                )
                 leaf.snr_score = 0.9
 
         import time
+
         start = time.time()
         path = graph.find_best_path()
         duration = time.time() - start

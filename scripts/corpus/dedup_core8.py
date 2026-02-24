@@ -11,8 +11,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from provider_normalizers import CORE8, CorpusRecord, iter_candidate_json_files, iter_records_from_file
-
+from provider_normalizers import (
+    CORE8,
+    CorpusRecord,
+    iter_candidate_json_files,
+    iter_records_from_file,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = [
@@ -57,10 +61,14 @@ def run(roots: list[Path], outdir: Path, run_id: str, dry_run: bool) -> int:
         all_records.extend(iter_records_from_file(json_file, run_id))
 
     raw_records = len(all_records)
-    raw_conversations = len({(r.provider, r.account_scope, r.conversation_id) for r in all_records})
+    raw_conversations = len(
+        {(r.provider, r.account_scope, r.conversation_id) for r in all_records}
+    )
 
     # Step 1: primary-key dedup.
-    primary_groups: dict[tuple[str, str, str, str], list[CorpusRecord]] = defaultdict(list)
+    primary_groups: dict[tuple[str, str, str, str], list[CorpusRecord]] = defaultdict(
+        list
+    )
     for rec in all_records:
         primary_groups[_record_key_primary(rec)].append(rec)
 
@@ -70,7 +78,13 @@ def run(roots: list[Path], outdir: Path, run_id: str, dry_run: bool) -> int:
         keep = _stable_pick(recs)
         post_primary.append(keep)
         if len(recs) > 1:
-            dropped = [r for r in sorted(recs, key=lambda x: (x.timestamp, x.source_path, x.message_id)) if r != keep]
+            dropped = [
+                r
+                for r in sorted(
+                    recs, key=lambda x: (x.timestamp, x.source_path, x.message_id)
+                )
+                if r != keep
+            ]
             duplicate_clusters.append(
                 {
                     "kind": "primary",
@@ -91,7 +105,13 @@ def run(roots: list[Path], outdir: Path, run_id: str, dry_run: bool) -> int:
         keep = _stable_pick(recs)
         unique_records.append(keep)
         if len(recs) > 1:
-            dropped = [r for r in sorted(recs, key=lambda x: (x.timestamp, x.source_path, x.message_id)) if r != keep]
+            dropped = [
+                r
+                for r in sorted(
+                    recs, key=lambda x: (x.timestamp, x.source_path, x.message_id)
+                )
+                if r != keep
+            ]
             duplicate_clusters.append(
                 {
                     "kind": "fallback",
@@ -103,8 +123,12 @@ def run(roots: list[Path], outdir: Path, run_id: str, dry_run: bool) -> int:
             )
 
     unique_count = len(unique_records)
-    unique_conversations = len({(r.provider, r.account_scope, r.conversation_id) for r in unique_records})
-    providers_detected = sorted({r.provider for r in all_records if r.provider in CORE8})
+    unique_conversations = len(
+        {(r.provider, r.account_scope, r.conversation_id) for r in unique_records}
+    )
+    providers_detected = sorted(
+        {r.provider for r in all_records if r.provider in CORE8}
+    )
     duplication_factor = (raw_records / unique_count) if unique_count else 0.0
 
     report = {
@@ -125,11 +149,22 @@ def run(roots: list[Path], outdir: Path, run_id: str, dry_run: bool) -> int:
 
     records_path = outdir / "core8_records.jsonl"
     with records_path.open("w", encoding="utf-8") as fh:
-        for rec in sorted(unique_records, key=lambda r: (r.provider, r.account_scope, r.conversation_id, r.timestamp, r.message_id)):
+        for rec in sorted(
+            unique_records,
+            key=lambda r: (
+                r.provider,
+                r.account_scope,
+                r.conversation_id,
+                r.timestamp,
+                r.message_id,
+            ),
+        ):
             fh.write(json.dumps(_to_dict(rec), ensure_ascii=False) + "\n")
 
     report_path = outdir / "dedup_report.v1.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     print(f"Wrote {records_path}")
     print(f"Wrote {report_path}")
@@ -145,7 +180,9 @@ def main() -> None:
     args = parser.parse_args()
 
     roots = [Path(p) for p in args.root] if args.root else DEFAULT_ROOTS
-    raise SystemExit(run(roots=roots, outdir=args.outdir, run_id=args.run_id, dry_run=args.dry_run))
+    raise SystemExit(
+        run(roots=roots, outdir=args.outdir, run_id=args.run_id, dry_run=args.dry_run)
+    )
 
 
 if __name__ == "__main__":

@@ -9,8 +9,8 @@ Tests cover:
 5. Markov chain properties
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from core.ntu import (
     NTU,
@@ -70,9 +70,9 @@ class TestNTUConfig:
         config = NTUConfig(alpha=1.0, beta=1.0, gamma=1.0)
 
         # Should be normalized to 1/3 each
-        assert abs(config.alpha - 1/3) < 1e-6
-        assert abs(config.beta - 1/3) < 1e-6
-        assert abs(config.gamma - 1/3) < 1e-6
+        assert abs(config.alpha - 1 / 3) < 1e-6
+        assert abs(config.beta - 1 / 3) < 1e-6
+        assert abs(config.gamma - 1 / 3) < 1e-6
 
     def test_custom_config(self):
         """Custom config should preserve valid weights."""
@@ -377,7 +377,9 @@ class TestPatternDetector:
         detector.register_pattern("test_pattern", threshold=0.7, window_size=3)
 
         observations = [0.8, 0.85, 0.9, 0.88, 0.9]
-        detected, confidence, diagnostics = detector.detect("test_pattern", observations)
+        detected, confidence, diagnostics = detector.detect(
+            "test_pattern", observations
+        )
 
         assert detected in (True, False)  # Accept numpy bool
         assert 0.0 <= confidence <= 1.0

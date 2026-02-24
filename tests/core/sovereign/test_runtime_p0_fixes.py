@@ -29,7 +29,6 @@ from core.sovereign.runtime_types import (
     SovereignQuery,
 )
 
-
 # =============================================================================
 # RFC-04: SNR Optimization Actually Used
 # =============================================================================
@@ -171,7 +170,9 @@ class TestMuraqabahBridge:
         from core.sovereign.event_bus import Event
 
         event = Event()
-        assert not hasattr(event, "event_type"), "Event should use .topic, not .event_type"
+        assert not hasattr(
+            event, "event_type"
+        ), "Event should use .topic, not .event_type"
 
     def test_event_has_no_data_attribute(self):
         """Event class must NOT have .data — bridge was using wrong name."""
@@ -197,7 +198,8 @@ class TestMuraqabahBridge:
 
         # Verify subscribe was called
         mock_engine.event_bus.subscribe.assert_called_once_with(
-            "muraqabah.opportunity", pytest.approx(mock_engine.event_bus.subscribe.call_args[0][1])
+            "muraqabah.opportunity",
+            pytest.approx(mock_engine.event_bus.subscribe.call_args[0][1]),
         )
 
 
@@ -334,9 +336,9 @@ class TestReasoningTimeAssigned:
         # to _process_query_direct (direct pipeline) or _orchestrate_complex_query.
         # The direct pipeline contains the update_reasoning_stats call.
         source = inspect.getsource(SovereignRuntime._process_query_direct)
-        assert "update_reasoning_stats" in source, (
-            "reasoning stats should be tracked via metrics.update_reasoning_stats()"
-        )
+        assert (
+            "update_reasoning_stats" in source
+        ), "reasoning stats should be tracked via metrics.update_reasoning_stats()"
 
 
 # =============================================================================

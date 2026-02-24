@@ -12,7 +12,6 @@ import pytest
 
 from core.rollout.canary import CanaryRouter
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
@@ -124,9 +123,7 @@ class TestKillSwitch:
             # With percent=50, the kill switch forces True.
             assert router.should_route("search", "any-key", percent=50) is True
 
-    def test_kill_switch_not_set_defers_to_percent(
-        self, router: CanaryRouter
-    ) -> None:
+    def test_kill_switch_not_set_defers_to_percent(self, router: CanaryRouter) -> None:
         """When no kill switch is set, routing depends purely on hash."""
         # Env is clean (autouse fixture). Verify no crash and deterministic result.
         r1 = router.should_route("search", "key-abc", percent=50)
@@ -160,9 +157,9 @@ class TestStatisticalRouting:
             router.should_route("search", f"key-{i}", percent=50) for i in range(n)
         )
         pct_routed = routed / n * 100
-        assert 35 <= pct_routed <= 65, (
-            f"Expected 35-65% routed at 50%, got {pct_routed:.1f}%"
-        )
+        assert (
+            35 <= pct_routed <= 65
+        ), f"Expected 35-65% routed at 50%, got {pct_routed:.1f}%"
 
 
 # ------------------------------------------------------------------

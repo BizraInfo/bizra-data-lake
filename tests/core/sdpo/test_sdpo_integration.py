@@ -6,47 +6,48 @@ Tests the full SDPO integration with BIZRA's cognitive architecture.
 Genesis Strict Synthesis v2.2.2
 """
 
-import pytest
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
+
+import pytest
 
 from core.sdpo import (
-    SDPO_LEARNING_RATE,
-    SDPO_ADVANTAGE_THRESHOLD,
     SAPE_WISDOM_SNR,
+    SDPO_ADVANTAGE_THRESHOLD,
+    SDPO_LEARNING_RATE,
+)
+from core.sdpo.agents import (
+    ContextCompressionEngine,
+    PAT_SDPO_Config,
+    PAT_SDPO_Learner,
+)
+from core.sdpo.cosmos import (
+    DefaultSAPEProcessor,
+    ImplicitPRM,
+    SAPE_SDPO_Fusion,
+    SAPELayerOutput,
+    SDPO_SAPE_Result,
+)
+from core.sdpo.discovery import (
+    DiscoveryConfig,
+    NoveltyScorer,
+    SDPOTestTimeDiscovery,
 )
 from core.sdpo.optimization import (
+    BIZRAFeedbackGenerator,
     SDPOAdvantage,
     SDPOAdvantageCalculator,
     SDPOFeedback,
-    BIZRAFeedbackGenerator,
-)
-from core.sdpo.cosmos import (
-    SAPE_SDPO_Fusion,
-    SDPO_SAPE_Result,
-    SAPELayerOutput,
-    DefaultSAPEProcessor,
-    ImplicitPRM,
-)
-from core.sdpo.agents import (
-    PAT_SDPO_Learner,
-    PAT_SDPO_Config,
-    ContextCompressionEngine,
-)
-from core.sdpo.discovery import (
-    SDPOTestTimeDiscovery,
-    DiscoveryConfig,
-    NoveltyScorer,
 )
 from core.sdpo.training import (
     BIZRASDPOTrainer,
-    TrainingConfig,
     TrainingBatch,
+    TrainingConfig,
 )
 from core.sdpo.validation import (
-    SDPOABTestFramework,
     ABTestConfig,
     QualityValidator,
+    SDPOABTestFramework,
 )
 
 
@@ -403,12 +404,16 @@ if __name__ == "__main__":
         # Test SAPE-SDPO Fusion
         fusion = SAPE_SDPO_Fusion()
         result = await fusion.process("What is sovereignty?")
-        print(f"SAPE-SDPO Result: SNR={result.total_snr:.3f}, Ihsān={result.ihsan_score:.3f}")
+        print(
+            f"SAPE-SDPO Result: SNR={result.total_snr:.3f}, Ihsān={result.ihsan_score:.3f}"
+        )
 
         # Test A/B Framework
         framework = SDPOABTestFramework()
         ab_result = framework.simulate_experiment(0.90, 0.95, 0.05, 100)
-        print(f"A/B Test: Winner={ab_result.winner}, Significant={ab_result.analysis.is_significant}")
+        print(
+            f"A/B Test: Winner={ab_result.winner}, Significant={ab_result.analysis.is_significant}"
+        )
 
         print("All quick tests passed!")
 

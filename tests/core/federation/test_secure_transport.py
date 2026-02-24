@@ -13,52 +13,48 @@ Test Categories:
 6. Integration with gossip protocol
 """
 
-import pytest
 import asyncio
+import os
+import struct
 import sys
 import time
-import struct
-import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add project root to path
 _project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(_project_root))
 
-from core.federation.secure_transport import (
-    # Error types
-    SecureTransportError,
-    HandshakeError,
-    DecryptionError,
-    ReplayError,
-    SessionError,
-    NonceExhaustionError,
-    # Data structures
+from core.federation.secure_transport import (  # Error types; Data structures; Transports; Factory; Constants
+    MAX_NONCE_VALUE,
+    REPLAY_WINDOW_SIZE,
+    SESSION_TIMEOUT_SECONDS,
     CipherState,
-    SymmetricState,
-    ReplayWindow,
-    SecureSession,
+    DecryptionError,
+    DTLSTransport,
+    HandshakeError,
     HandshakeOutcome,
     HandshakeState,
     MessageType,
-    # Transports
     NoiseTransport,
-    DTLSTransport,
+    NonceExhaustionError,
+    ReplayError,
+    ReplayWindow,
+    SecureSession,
+    SecureTransportError,
     SecureTransportManager,
-    # Factory
+    SessionError,
+    SymmetricState,
     create_secure_gossip_transport,
-    # Constants
-    SESSION_TIMEOUT_SECONDS,
-    REPLAY_WINDOW_SIZE,
-    MAX_NONCE_VALUE,
 )
 from core.pci.crypto import generate_keypair
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def keypair():
@@ -85,7 +81,7 @@ def noise_transport(keypair):
     return NoiseTransport(
         static_private_key=bytes.fromhex(priv),
         static_public_key=bytes.fromhex(pub),
-        node_id="test_node"
+        node_id="test_node",
     )
 
 
@@ -96,7 +92,7 @@ def noise_transport_peer(peer_keypair):
     return NoiseTransport(
         static_private_key=bytes.fromhex(priv),
         static_public_key=bytes.fromhex(pub),
-        node_id="peer_node"
+        node_id="peer_node",
     )
 
 
@@ -107,7 +103,7 @@ def dtls_transport(keypair):
     return DTLSTransport(
         static_private_key=bytes.fromhex(priv),
         static_public_key=bytes.fromhex(pub),
-        node_id="test_node"
+        node_id="test_node",
     )
 
 
@@ -118,7 +114,7 @@ def dtls_transport_peer(peer_keypair):
     return DTLSTransport(
         static_private_key=bytes.fromhex(priv),
         static_public_key=bytes.fromhex(pub),
-        node_id="peer_node"
+        node_id="peer_node",
     )
 
 
@@ -130,7 +126,7 @@ def transport_manager(keypair):
         static_private_key=priv,
         static_public_key=pub,
         node_id="test_node",
-        transport_type="noise"
+        transport_type="noise",
     )
 
 
@@ -142,13 +138,14 @@ def transport_manager_peer(peer_keypair):
         static_private_key=priv,
         static_public_key=pub,
         node_id="peer_node",
-        transport_type="noise"
+        transport_type="noise",
     )
 
 
 # =============================================================================
 # CIPHER STATE TESTS
 # =============================================================================
+
 
 class TestCipherState:
     """Tests for CipherState symmetric encryption."""
@@ -240,6 +237,7 @@ class TestCipherState:
 # SYMMETRIC STATE TESTS
 # =============================================================================
 
+
 class TestSymmetricState:
     """Tests for SymmetricState handshake operations."""
 
@@ -301,6 +299,7 @@ class TestSymmetricState:
 # =============================================================================
 # REPLAY WINDOW TESTS
 # =============================================================================
+
 
 class TestReplayWindow:
     """Tests for replay attack protection."""
@@ -365,6 +364,7 @@ class TestReplayWindow:
 # =============================================================================
 # SECURE SESSION TESTS
 # =============================================================================
+
 
 class TestSecureSession:
     """Tests for SecureSession management."""
@@ -431,6 +431,7 @@ class TestSecureSession:
 # NOISE TRANSPORT HANDSHAKE TESTS
 # =============================================================================
 
+
 class TestNoiseTransportHandshake:
     """Tests for Noise_XX handshake protocol."""
 
@@ -440,9 +441,9 @@ class TestNoiseTransportHandshake:
 
         assert msg[0] == MessageType.HANDSHAKE_INIT
         assert len(msg) > 32  # Should contain ephemeral public key
-        assert 'e_private' in state
-        assert 'e_public' in state
-        assert state['phase'] == 'init_sent'
+        assert "e_private" in state
+        assert "e_public" in state
+        assert state["phase"] == "init_sent"
 
     @pytest.mark.asyncio
     async def test_handshake_initiator_returns_outcome(self, noise_transport):
@@ -477,6 +478,7 @@ class TestNoiseTransportHandshake:
 
         # Step 2: Responder processes init, creates response
         import asyncio
+
         loop = asyncio.new_event_loop()
         _, response = loop.run_until_complete(
             noise_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -501,9 +503,10 @@ class TestNoiseTransportHandshake:
 
     def test_handshake_init_too_short_rejected(self, noise_transport):
         """Handshake init that's too short should be rejected."""
-        short_msg = struct.pack('!B', MessageType.HANDSHAKE_INIT) + b'short'
+        short_msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + b"short"
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         with pytest.raises(HandshakeError, match="too short"):
             loop.run_until_complete(
@@ -513,9 +516,10 @@ class TestNoiseTransportHandshake:
 
     def test_wrong_message_type_rejected(self, noise_transport):
         """Wrong message type should be rejected."""
-        wrong_msg = struct.pack('!B', MessageType.APPLICATION_DATA) + os.urandom(32)
+        wrong_msg = struct.pack("!B", MessageType.APPLICATION_DATA) + os.urandom(32)
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         with pytest.raises(HandshakeError, match="Expected HANDSHAKE_INIT"):
             loop.run_until_complete(
@@ -527,6 +531,7 @@ class TestNoiseTransportHandshake:
 # =============================================================================
 # NOISE TRANSPORT ENCRYPTION TESTS
 # =============================================================================
+
 
 class TestNoiseTransportEncryption:
     """Tests for Noise transport message encryption."""
@@ -540,6 +545,7 @@ class TestNoiseTransportEncryption:
         init_msg, init_state = noise_transport.create_handshake_init()
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         _, response = loop.run_until_complete(
             noise_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -571,6 +577,7 @@ class TestNoiseTransportEncryption:
         init_msg, init_state = noise_transport.create_handshake_init()
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         _, response = loop.run_until_complete(
             noise_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -601,6 +608,7 @@ class TestNoiseTransportEncryption:
         init_msg, init_state = noise_transport.create_handshake_init()
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         _, response = loop.run_until_complete(
             noise_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -630,6 +638,7 @@ class TestNoiseTransportEncryption:
         init_msg, init_state = noise_transport.create_handshake_init()
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         _, response = loop.run_until_complete(
             noise_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -644,13 +653,14 @@ class TestNoiseTransportEncryption:
 
         # Check format: [type:1][nonce:8][ciphertext:N]
         assert encrypted[0] == MessageType.APPLICATION_DATA
-        nonce = struct.unpack('>Q', encrypted[1:9])[0]
+        nonce = struct.unpack(">Q", encrypted[1:9])[0]
         assert nonce == 0  # First message
 
 
 # =============================================================================
 # DTLS TRANSPORT TESTS
 # =============================================================================
+
 
 class TestDTLSTransportHandshake:
     """Tests for DTLS handshake protocol."""
@@ -660,8 +670,8 @@ class TestDTLSTransportHandshake:
         msg, state = dtls_transport.create_handshake_init()
 
         assert msg[0] == MessageType.HANDSHAKE_INIT
-        assert 'client_random' in state
-        assert 'e_private' in state
+        assert "client_random" in state
+        assert "e_private" in state
 
     @pytest.mark.asyncio
     async def test_handshake_initiator_returns_outcome(self, dtls_transport):
@@ -694,6 +704,7 @@ class TestDTLSTransportHandshake:
 
         # Step 2: Server processes and responds
         import asyncio
+
         loop = asyncio.new_event_loop()
         session_resp, response = loop.run_until_complete(
             dtls_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -711,12 +722,13 @@ class TestDTLSTransportHandshake:
     def test_dtls_version_mismatch_rejected(self, dtls_transport):
         """Wrong DTLS version should be rejected."""
         # Create message with wrong version
-        bad_version = struct.pack('!H', 0x0000)  # Invalid version
-        wrong_msg = struct.pack('!B', MessageType.HANDSHAKE_INIT)
+        bad_version = struct.pack("!H", 0x0000)  # Invalid version
+        wrong_msg = struct.pack("!B", MessageType.HANDSHAKE_INIT)
         wrong_msg += bad_version
         wrong_msg += os.urandom(32 + 1 + 1 + 32)  # Padding
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         with pytest.raises(HandshakeError):
             loop.run_until_complete(
@@ -769,6 +781,7 @@ class TestDTLSTransportEncryption:
         init_msg, init_state = dtls_transport.create_handshake_init()
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         session_resp, response = loop.run_until_complete(
             dtls_transport_peer.handshake_responder(init_msg, initiator_addr)
@@ -793,6 +806,7 @@ class TestDTLSTransportEncryption:
 # TRANSPORT MANAGER TESTS
 # =============================================================================
 
+
 class TestSecureTransportManager:
     """Tests for SecureTransportManager high-level API."""
 
@@ -803,7 +817,7 @@ class TestSecureTransportManager:
             static_private_key=priv,
             static_public_key=pub,
             node_id="test",
-            transport_type="noise"
+            transport_type="noise",
         )
 
         assert manager.transport_type == "noise"
@@ -815,7 +829,7 @@ class TestSecureTransportManager:
             static_private_key=priv,
             static_public_key=pub,
             node_id="test",
-            transport_type="dtls"
+            transport_type="dtls",
         )
 
         assert manager.transport_type == "dtls"
@@ -829,7 +843,7 @@ class TestSecureTransportManager:
                 static_private_key=priv,
                 static_public_key=pub,
                 node_id="test",
-                transport_type="invalid"
+                transport_type="invalid",
             )
 
     def test_create_handshake(self, transport_manager):
@@ -852,9 +866,9 @@ class TestSecureTransportManager:
         """Should return stats dictionary."""
         stats = transport_manager.get_stats()
 
-        assert 'transport_type' in stats
-        assert 'active_sessions' in stats
-        assert 'pending_handshakes' in stats
+        assert "transport_type" in stats
+        assert "active_sessions" in stats
+        assert "pending_handshakes" in stats
 
     def test_cleanup_expired_sessions(self, transport_manager, cipher_key):
         """cleanup_expired should remove expired sessions."""
@@ -880,6 +894,7 @@ class TestSecureTransportManager:
 # FACTORY FUNCTION TESTS
 # =============================================================================
 
+
 class TestCreateSecureGossipTransport:
     """Tests for factory function."""
 
@@ -903,6 +918,7 @@ class TestCreateSecureGossipTransport:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestFullIntegration:
     """End-to-end integration tests."""
@@ -988,36 +1004,39 @@ class TestFullIntegration:
         peers = []
         for i in range(5):
             peer_priv, peer_pub = generate_keypair()
-            peers.append({
-                'manager': create_secure_gossip_transport(
-                    peer_priv, peer_pub, f"peer_{i}"
-                ),
-                'addr': f"127.0.0.1:{9000+i}"
-            })
+            peers.append(
+                {
+                    "manager": create_secure_gossip_transport(
+                        peer_priv, peer_pub, f"peer_{i}"
+                    ),
+                    "addr": f"127.0.0.1:{9000+i}",
+                }
+            )
 
         central_addr = "127.0.0.1:8000"
 
         # Establish sessions with all peers
         for peer in peers:
-            init_msg = manager.create_handshake(peer['addr'])
-            _, response = peer['manager'].process_handshake(init_msg, central_addr)
+            init_msg = manager.create_handshake(peer["addr"])
+            _, response = peer["manager"].process_handshake(init_msg, central_addr)
 
             if response:
-                session, final = manager.process_handshake(response, peer['addr'])
+                session, final = manager.process_handshake(response, peer["addr"])
                 if final:
-                    peer['manager'].process_handshake(final, central_addr)
+                    peer["manager"].process_handshake(final, central_addr)
 
         # Verify all sessions established
         for peer in peers:
-            assert manager.has_session(peer['addr'])
+            assert manager.has_session(peer["addr"])
 
         stats = manager.get_stats()
-        assert stats['active_sessions'] == 5
+        assert stats["active_sessions"] == 5
 
 
 # =============================================================================
 # PERFORMANCE TESTS
 # =============================================================================
+
 
 class TestPerformance:
     """Performance benchmarks (marked as slow)."""

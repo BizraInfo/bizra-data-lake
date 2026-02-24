@@ -23,7 +23,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 # Ensure core module is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -33,9 +33,6 @@ from core.integration.constants import (
     IHSAN_THRESHOLD_DEV,
     IHSAN_THRESHOLD_PRODUCTION,
     IHSAN_THRESHOLD_STAGING,
-    UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
     SNR_THRESHOLD_T1_HIGH,
     SNR_THRESHOLD_T2_STANDARD,
 )

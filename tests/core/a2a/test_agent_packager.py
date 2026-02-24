@@ -123,9 +123,7 @@ class TestLoadManifest:
 
 
 class TestValidateManifest:
-    def test_validate_manifest_valid(
-        self, founder_manifest: AgentManifest
-    ) -> None:
+    def test_validate_manifest_valid(self, founder_manifest: AgentManifest) -> None:
         """A well-formed manifest passes validation."""
         valid, errors = validate_manifest(founder_manifest)
         assert valid is True, f"Unexpected errors: {errors}"
@@ -180,9 +178,7 @@ class TestValidateManifest:
 
 
 class TestPackageAgent:
-    def test_package_agent(
-        self, minimal_manifest: Path, tmp_path: Path
-    ) -> None:
+    def test_package_agent(self, minimal_manifest: Path, tmp_path: Path) -> None:
         """Create .bizra-agent archive and verify it is a valid ZIP."""
         output_dir = tmp_path / "output"
         archive = package_agent(minimal_manifest, output_dir=output_dir)
@@ -221,9 +217,7 @@ class TestPackageAgent:
             names = zf.namelist()
             assert PERMIT_TEMPLATE_FILENAME in names
 
-            template = json.loads(
-                zf.read(PERMIT_TEMPLATE_FILENAME).decode("utf-8")
-            )
+            template = json.loads(zf.read(PERMIT_TEMPLATE_FILENAME).decode("utf-8"))
             assert template["agent_name"] == "test-agent"
 
     def test_package_agent_no_manifest(self, tmp_path: Path) -> None:
@@ -240,9 +234,7 @@ class TestPackageAgent:
 
 
 class TestLoadAgent:
-    def test_load_agent(
-        self, minimal_manifest: Path, tmp_path: Path
-    ) -> None:
+    def test_load_agent(self, minimal_manifest: Path, tmp_path: Path) -> None:
         """Package then load — verify the manifest roundtrips correctly."""
         output_dir = tmp_path / "output"
         archive = package_agent(minimal_manifest, output_dir=output_dir)
@@ -269,13 +261,9 @@ class TestLoadAgent:
 
 
 class TestCreatePermitTemplate:
-    def test_create_permit_template(
-        self, founder_manifest: AgentManifest
-    ) -> None:
+    def test_create_permit_template(self, founder_manifest: AgentManifest) -> None:
         """Template includes correct capabilities from the manifest."""
-        template = create_permit_template(
-            founder_manifest, signing_key="test-key-123"
-        )
+        template = create_permit_template(founder_manifest, signing_key="test-key-123")
 
         assert template["agent_name"] == "founder-ops-agent"
         assert template["agent_version"] == "1.0.0"
@@ -293,9 +281,7 @@ class TestCreatePermitTemplate:
         self, founder_manifest: AgentManifest
     ) -> None:
         """Capability enums are integer values from Telescript."""
-        template = create_permit_template(
-            founder_manifest, signing_key="test-key"
-        )
+        template = create_permit_template(founder_manifest, signing_key="test-key")
         enums = template["capability_enums"]
         assert isinstance(enums, list)
         assert all(isinstance(e, int) for e in enums)

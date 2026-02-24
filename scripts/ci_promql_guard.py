@@ -14,9 +14,7 @@ This pattern is a recurring source of silent alert/rule misbehavior.
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
-
 
 RULE_FILES = (
     Path("deploy/monitoring/alerting-rules.yaml"),

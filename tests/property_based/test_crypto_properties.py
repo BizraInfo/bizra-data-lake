@@ -18,18 +18,17 @@ Invariants verified:
 """
 
 import pytest
-from hypothesis import given, settings, assume, HealthCheck
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from core.pci.crypto import (
     domain_separated_digest,
     generate_keypair,
     sign_message,
-    verify_signature,
     timing_safe_compare,
     timing_safe_compare_hex,
+    verify_signature,
 )
-
 
 # ── Strategies ──────────────────────────────────────────────────────────
 
@@ -49,6 +48,7 @@ hex_strings = st.binary(min_size=1, max_size=64).map(lambda b: b.hex())
 
 # ── Ed25519 Roundtrip Invariants ────────────────────────────────────────
 
+
 class TestEd25519Roundtrip:
     """Property: sign then verify always succeeds with the same keypair."""
 
@@ -59,9 +59,9 @@ class TestEd25519Roundtrip:
         priv, pub = generate_keypair()
         digest = domain_separated_digest(data)
         sig = sign_message(digest, priv)
-        assert verify_signature(digest, sig, pub), (
-            f"Roundtrip failed: key={pub[:8]}... digest={digest[:16]}..."
-        )
+        assert verify_signature(
+            digest, sig, pub
+        ), f"Roundtrip failed: key={pub[:8]}... digest={digest[:16]}..."
 
     @given(data=message_bytes)
     @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
@@ -73,9 +73,9 @@ class TestEd25519Roundtrip:
 
         digest = domain_separated_digest(data)
         sig = sign_message(digest, priv1)
-        assert not verify_signature(digest, sig, pub2), (
-            "Cross-key verification should NEVER succeed"
-        )
+        assert not verify_signature(
+            digest, sig, pub2
+        ), "Cross-key verification should NEVER succeed"
 
     @given(data=message_bytes)
     @settings(max_examples=50, suppress_health_check=[HealthCheck.too_slow])
@@ -104,12 +104,13 @@ class TestEd25519Roundtrip:
             # Tampered signature must fail (unless the flip is a no-op, which is
             # impossible since we XOR a single bit)
             if tampered_sig != sig:
-                assert not verify_signature(digest, tampered_sig, pub), (
-                    "Tampered signature must be rejected"
-                )
+                assert not verify_signature(
+                    digest, tampered_sig, pub
+                ), "Tampered signature must be rejected"
 
 
 # ── Domain-Separated Digest Invariants ──────────────────────────────────
+
 
 class TestDomainDigest:
     """Properties of the BLAKE3 domain-separated digest."""
@@ -134,12 +135,13 @@ class TestDomainDigest:
     def test_digest_collision_resistance(self, a: bytes, b: bytes):
         """∀ a ≠ b: digest(a) ≠ digest(b) (probabilistically — BLAKE3 256-bit)."""
         assume(a != b)
-        assert domain_separated_digest(a) != domain_separated_digest(b), (
-            "BLAKE3 collision detected — this should be astronomically improbable"
-        )
+        assert domain_separated_digest(a) != domain_separated_digest(
+            b
+        ), "BLAKE3 collision detected — this should be astronomically improbable"
 
 
 # ── Timing-Safe Compare Invariants ──────────────────────────────────────
+
 
 class TestTimingSafeCompare:
     """Properties of constant-time comparison."""
@@ -166,6 +168,7 @@ class TestTimingSafeCompare:
 
 # ── Keypair Generation Invariants ───────────────────────────────────────
 
+
 class TestKeypairGeneration:
     """Properties of Ed25519 key generation."""
 
@@ -186,4 +189,4 @@ class TestKeypairGeneration:
         assert len(priv) == 64, f"Private key hex length: {len(priv)}, expected 64"
         assert len(pub) == 64, f"Public key hex length: {len(pub)}, expected 64"
         bytes.fromhex(priv)  # Valid hex
-        bytes.fromhex(pub)   # Valid hex
+        bytes.fromhex(pub)  # Valid hex

@@ -14,35 +14,36 @@ Validates:
 - DataSynthesisPipeline: Multi-strategy synthesis
 """
 
-import pytest
+from typing import Dict, List
+
 import numpy as np
-from typing import List, Dict
+import pytest
 
 # Import selection components
 from core.iaas.selection import (
-    SimilaritySelector,
-    OptimizationSelector,
-    ModelBasedSelector,
     DataSelectionPipeline,
+    ModelBasedSelector,
+    OptimizationSelector,
     SelectionResult,
+    SimilaritySelector,
 )
 
 # Import synthesis components
 from core.iaas.synthesis import (
-    RephrasingSynthesizer,
+    AgenticSynthesizer,
+    DataSynthesisPipeline,
+    DomainSynthesizer,
     InstructionSynthesizer,
     ReasoningSynthesizer,
-    AgenticSynthesizer,
-    DomainSynthesizer,
-    DataSynthesisPipeline,
-    SynthesisStrategy,
+    RephrasingSynthesizer,
     SynthesisResult,
+    SynthesisStrategy,
 )
-
 
 # ============================================================================
 # SELECTION TESTS
 # ============================================================================
+
 
 class TestSimilaritySelector:
     """Tests for similarity-based data selection."""
@@ -293,6 +294,7 @@ class TestDataSelectionPipeline:
 # SYNTHESIS TESTS
 # ============================================================================
 
+
 class TestRephrasingSynthesizer:
     """Tests for multi-style rephrasing synthesis."""
 
@@ -540,6 +542,7 @@ class TestDataSynthesisPipeline:
 # ============================================================================
 # INTEGRATION TESTS
 # ============================================================================
+
 
 class TestSelectionSynthesisIntegration:
     """Integration tests for selection + synthesis pipeline."""

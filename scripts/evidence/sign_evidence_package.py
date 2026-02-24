@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
 
 from nacl.signing import SigningKey
 
@@ -67,7 +66,13 @@ def _load_or_create_key(key_path: Path) -> tuple[SigningKey, str]:
 
 
 def _chain_payload(
-    *, manifest_blake3: str, previous_chain_blake3: str, timestamp_utc: str, tier: str, stage: str, policy_version: str
+    *,
+    manifest_blake3: str,
+    previous_chain_blake3: str,
+    timestamp_utc: str,
+    tier: str,
+    stage: str,
+    policy_version: str,
 ) -> dict[str, str]:
     return {
         "manifest_blake3": manifest_blake3,
@@ -140,9 +145,15 @@ def run(package_root: Path, tier: str, config_path: Path) -> int:
 
     checksums_dir = tier_root / "checksums"
     checksums_dir.mkdir(parents=True, exist_ok=True)
-    (checksums_dir / "evidence_manifest.blake3").write_text(manifest_blake3 + "\n", encoding="utf-8")
-    (checksums_dir / "evidence_manifest.sha256").write_text(manifest_sha256 + "\n", encoding="utf-8")
-    (checksums_dir / "evidence_manifest.sig").write_text(signature + "\n", encoding="utf-8")
+    (checksums_dir / "evidence_manifest.blake3").write_text(
+        manifest_blake3 + "\n", encoding="utf-8"
+    )
+    (checksums_dir / "evidence_manifest.sha256").write_text(
+        manifest_sha256 + "\n", encoding="utf-8"
+    )
+    (checksums_dir / "evidence_manifest.sig").write_text(
+        signature + "\n", encoding="utf-8"
+    )
 
     constitution_source = cfg.get("constitution_policy_source")
     policy_hash = None
@@ -172,10 +183,14 @@ def run(package_root: Path, tier: str, config_path: Path) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sign evidence package tier")
     parser.add_argument("--package-root", type=Path, default=DEFAULT_PACKAGE_ROOT)
-    parser.add_argument("--tier", choices=["private_full", "public_redacted"], default="private_full")
+    parser.add_argument(
+        "--tier", choices=["private_full", "public_redacted"], default="private_full"
+    )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     args = parser.parse_args()
-    raise SystemExit(run(package_root=args.package_root, tier=args.tier, config_path=args.config))
+    raise SystemExit(
+        run(package_root=args.package_root, tier=args.tier, config_path=args.config)
+    )
 
 
 if __name__ == "__main__":

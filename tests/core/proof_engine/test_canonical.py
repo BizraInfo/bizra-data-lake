@@ -12,23 +12,24 @@ Standing on Giants:
 
 import json
 import unicodedata
+
 import pytest
 
 from core.proof_engine.canonical import (
-    canonical_json,
-    canonical_bytes,
-    blake3_digest,
-    hex_digest,
-    CanonQuery,
-    CanonPolicy,
     CanonEnvironment,
+    CanonPolicy,
+    CanonQuery,
+    blake3_digest,
+    canonical_bytes,
+    canonical_json,
+    hex_digest,
     verify_determinism,
 )
-
 
 # =============================================================================
 # CANONICAL_JSON
 # =============================================================================
+
 
 class TestCanonicalJson:
     """Tests for canonical_json() recursive normalization."""
@@ -99,6 +100,7 @@ class TestCanonicalJson:
 # CANONICAL_BYTES
 # =============================================================================
 
+
 class TestCanonicalBytes:
     """Tests for canonical_bytes() serialization."""
 
@@ -143,6 +145,7 @@ class TestCanonicalBytes:
 # =============================================================================
 # BLAKE3_DIGEST / HEX_DIGEST
 # =============================================================================
+
 
 class TestBlake3Digest:
     """Tests for blake3_digest() and hex_digest()."""
@@ -189,6 +192,7 @@ class TestBlake3Digest:
 # =============================================================================
 # CANON QUERY
 # =============================================================================
+
 
 class TestCanonQuery:
     """Tests for CanonQuery dataclass."""
@@ -285,7 +289,9 @@ class TestCanonQuery:
     def test_payload_canonicalized(self):
         """Payload is canonicalized (keys sorted)."""
         q = CanonQuery(
-            user_id="alice", user_state="a", intent="q",
+            user_id="alice",
+            user_state="a",
+            intent="q",
             payload={"z": 1, "a": 2},
         )
         assert list(q.payload.keys()) == ["a", "z"]
@@ -299,6 +305,7 @@ class TestCanonQuery:
 # =============================================================================
 # CANON POLICY
 # =============================================================================
+
 
 class TestCanonPolicy:
     """Tests for CanonPolicy dataclass."""
@@ -329,18 +336,26 @@ class TestCanonPolicy:
     def test_digest_changes_with_rules(self):
         """Different rules produce different digests."""
         p1 = CanonPolicy(
-            policy_id="pol", version="1", rules={"a": 1}, thresholds={"t": 0.5},
+            policy_id="pol",
+            version="1",
+            rules={"a": 1},
+            thresholds={"t": 0.5},
         )
         p2 = CanonPolicy(
-            policy_id="pol", version="1", rules={"a": 2}, thresholds={"t": 0.5},
+            policy_id="pol",
+            version="1",
+            rules={"a": 2},
+            thresholds={"t": 0.5},
         )
         assert p1.hex_digest() != p2.hex_digest()
 
     def test_constraints_sorted(self):
         """Constraints are sorted in canonical representation."""
         p = CanonPolicy(
-            policy_id="pol", version="1",
-            rules={}, thresholds={},
+            policy_id="pol",
+            version="1",
+            rules={},
+            thresholds={},
             constraints=["z_constraint", "a_constraint"],
         )
         decoded = p.canonical_bytes().decode("utf-8")
@@ -350,6 +365,7 @@ class TestCanonPolicy:
 # =============================================================================
 # CANON ENVIRONMENT
 # =============================================================================
+
 
 class TestCanonEnvironment:
     """Tests for CanonEnvironment dataclass."""
@@ -368,8 +384,11 @@ class TestCanonEnvironment:
     def test_canonical_bytes_deterministic(self):
         """canonical_bytes is deterministic."""
         env = CanonEnvironment(
-            platform="Linux", python_version="3.11.0",
-            hostname="node0", cpu_count=8, memory_gb=16.0,
+            platform="Linux",
+            python_version="3.11.0",
+            hostname="node0",
+            cpu_count=8,
+            memory_gb=16.0,
         )
         b1 = env.canonical_bytes()
         b2 = env.canonical_bytes()
@@ -378,8 +397,11 @@ class TestCanonEnvironment:
     def test_memory_gb_rounded(self):
         """memory_gb is rounded to 2 decimal places."""
         env = CanonEnvironment(
-            platform="Linux", python_version="3.11.0",
-            hostname="node0", cpu_count=8, memory_gb=15.99999,
+            platform="Linux",
+            python_version="3.11.0",
+            hostname="node0",
+            cpu_count=8,
+            memory_gb=15.99999,
         )
         decoded = env.canonical_bytes().decode("utf-8")
         data = json.loads(decoded)
@@ -395,12 +417,19 @@ class TestCanonEnvironment:
     def test_extra_included(self):
         """Extra metadata is included in canonical bytes."""
         env1 = CanonEnvironment(
-            platform="L", python_version="3", hostname="n",
-            cpu_count=1, memory_gb=1.0, extra={"key": "value"},
+            platform="L",
+            python_version="3",
+            hostname="n",
+            cpu_count=1,
+            memory_gb=1.0,
+            extra={"key": "value"},
         )
         env2 = CanonEnvironment(
-            platform="L", python_version="3", hostname="n",
-            cpu_count=1, memory_gb=1.0,
+            platform="L",
+            python_version="3",
+            hostname="n",
+            cpu_count=1,
+            memory_gb=1.0,
         )
         assert env1.canonical_bytes() != env2.canonical_bytes()
 
@@ -409,13 +438,16 @@ class TestCanonEnvironment:
 # VERIFY_DETERMINISM
 # =============================================================================
 
+
 class TestVerifyDeterminism:
     """Tests for verify_determinism() function."""
 
     def test_deterministic_with_default_iterations(self):
         """Standard query is deterministic over 100 iterations."""
         q = CanonQuery(
-            user_id="alice", user_state="active", intent="test",
+            user_id="alice",
+            user_state="active",
+            intent="test",
             nonce="fixed_nonce",
         )
         result = verify_determinism(q)
@@ -426,7 +458,9 @@ class TestVerifyDeterminism:
     def test_deterministic_with_custom_iterations(self):
         """Determinism holds for custom iteration count."""
         q = CanonQuery(
-            user_id="bob", user_state="idle", intent="verify",
+            user_id="bob",
+            user_state="idle",
+            intent="verify",
             nonce="nonce_42",
         )
         result = verify_determinism(q, iterations=50)
@@ -436,7 +470,9 @@ class TestVerifyDeterminism:
     def test_with_complex_payload(self):
         """Complex payload is deterministic."""
         q = CanonQuery(
-            user_id="alice", user_state="active", intent="complex",
+            user_id="alice",
+            user_state="active",
+            intent="complex",
             payload={"nested": {"z": [3, 2, 1], "a": {"deep": True}}},
             nonce="complex_nonce",
         )
@@ -446,7 +482,9 @@ class TestVerifyDeterminism:
     def test_returns_canonical_digest(self):
         """Result includes the canonical digest."""
         q = CanonQuery(
-            user_id="test", user_state="s", intent="i",
+            user_id="test",
+            user_state="s",
+            intent="i",
             nonce="n",
         )
         result = verify_determinism(q, iterations=5)

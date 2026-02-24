@@ -1,10 +1,11 @@
 # BIZRA Resilience Patterns Tests
 # Unit tests for circuit breaker and retry logic
 
-import pytest
 import asyncio
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -19,15 +20,14 @@ class TestCircuitBreaker:
         from bizra_resilience import CircuitBreaker, CircuitBreakerConfig
 
         config = CircuitBreakerConfig(
-            failure_threshold=3,
-            success_threshold=2,
-            timeout_seconds=1.0
+            failure_threshold=3, success_threshold=2, timeout_seconds=1.0
         )
         return CircuitBreaker(f"test_breaker_{id(self)}", config)
 
     def test_circuit_starts_closed(self, circuit_breaker):
         """Test circuit breaker starts in CLOSED state"""
         from bizra_resilience import CircuitState
+
         assert circuit_breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
@@ -104,11 +104,15 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_breaker_decorator(self):
         """Test circuit breaker as decorator"""
-        from bizra_resilience import CircuitBreaker, CircuitBreakerConfig, CircuitOpenError
+        from bizra_resilience import (
+            CircuitBreaker,
+            CircuitBreakerConfig,
+            CircuitOpenError,
+        )
 
         breaker = CircuitBreaker(
             "decorator_test",
-            CircuitBreakerConfig(failure_threshold=2, timeout_seconds=1.0)
+            CircuitBreakerConfig(failure_threshold=2, timeout_seconds=1.0),
         )
 
         call_count = 0
@@ -314,11 +318,16 @@ class TestResilienceIntegration:
     @pytest.mark.asyncio
     async def test_retry_with_circuit_breaker(self):
         """Test retry and circuit breaker work together"""
-        from bizra_resilience import CircuitBreaker, CircuitBreakerConfig, retry, CircuitOpenError
+        from bizra_resilience import (
+            CircuitBreaker,
+            CircuitBreakerConfig,
+            CircuitOpenError,
+            retry,
+        )
 
         breaker = CircuitBreaker(
             "integration_test",
-            CircuitBreakerConfig(failure_threshold=5, timeout_seconds=10.0)
+            CircuitBreakerConfig(failure_threshold=5, timeout_seconds=10.0),
         )
 
         call_count = 0

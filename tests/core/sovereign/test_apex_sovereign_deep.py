@@ -608,7 +608,9 @@ class TestActPhaseDeep:
         assert entity.metrics["autonomous_actions"] == 1
 
     @pytest.mark.asyncio
-    async def test_autonomous_actions_incremented_for_automedium(self, entity, mock_agent):
+    async def test_autonomous_actions_incremented_for_automedium(
+        self, entity, mock_agent
+    ):
         d = self._make_decision(autonomy_level=AutonomyLevel.AUTOMEDIUM)
         with patch.object(
             entity.social_bridge,
@@ -619,7 +621,9 @@ class TestActPhaseDeep:
         assert entity.metrics["autonomous_actions"] == 1
 
     @pytest.mark.asyncio
-    async def test_autonomous_actions_not_incremented_for_suggester(self, entity, mock_agent):
+    async def test_autonomous_actions_not_incremented_for_suggester(
+        self, entity, mock_agent
+    ):
         d = self._make_decision(autonomy_level=AutonomyLevel.SUGGESTER)
         with patch.object(
             entity.social_bridge,
@@ -849,7 +853,9 @@ class TestLearnPhase:
             await entity._learn([outcome])
             assert mock_report.call_count == 2
             # Verify both agent_ids were called
-            called_agents = {call.kwargs["agent_id"] for call in mock_report.call_args_list}
+            called_agents = {
+                call.kwargs["agent_id"] for call in mock_report.call_args_list
+            }
             assert "pat:master_reasoner" in called_agents
             assert "pat:data_analyzer" in called_agents
 
@@ -939,7 +945,9 @@ class TestHandleCycleError:
 
     @pytest.mark.asyncio
     async def test_sleeps_one_second(self, entity):
-        with patch("core.sovereign.apex_sovereign.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch(
+            "core.sovereign.apex_sovereign.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep:
             await entity._handle_cycle_error(RuntimeError("oops"))
             mock_sleep.assert_called_once_with(1)
 
@@ -1076,9 +1084,7 @@ class TestPredictPhaseDeep:
     @pytest.mark.asyncio
     async def test_workload_forecast_optimal(self, entity):
         """When healthy ratio > 0.95, workload_forecast is 'optimal'."""
-        health = {
-            f"svc{i}": "HealthStatus.HEALTHY" for i in range(20)
-        }
+        health = {f"svc{i}": "HealthStatus.HEALTHY" for i in range(20)}
         obs = Observation(swarm_health=health)
         pred = await entity._predict(obs)
         assert pred.workload_forecast == {"status": "optimal"}

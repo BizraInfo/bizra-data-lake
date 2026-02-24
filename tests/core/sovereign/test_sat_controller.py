@@ -8,8 +8,9 @@ Standing on Giants:
 - Axelrod (1984): Cooperation dynamics
 """
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from core.proof_engine.poi_engine import (
     ContributionMetadata,
@@ -24,10 +25,10 @@ from core.sovereign.sat_controller import (
     URPSnapshot,
 )
 
-
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def config():
@@ -69,6 +70,7 @@ def _make_contribution(
 # URP SNAPSHOT
 # =============================================================================
 
+
 class TestURPSnapshot:
     """Tests for URPSnapshot."""
 
@@ -97,6 +99,7 @@ class TestURPSnapshot:
 # REBALANCING EVENT
 # =============================================================================
 
+
 class TestRebalancingEvent:
     """Tests for RebalancingEvent."""
 
@@ -122,6 +125,7 @@ class TestRebalancingEvent:
 # =============================================================================
 # SAT CONTROLLER — CREDIT MANAGEMENT
 # =============================================================================
+
 
 class TestSATCreditManagement:
     """Tests for URP credit allocation."""
@@ -171,6 +175,7 @@ class TestSATCreditManagement:
 # =============================================================================
 # SAT CONTROLLER — REBALANCING
 # =============================================================================
+
 
 class TestSATRebalancing:
     """Tests for SAT rebalancing logic."""
@@ -251,6 +256,7 @@ class TestSATRebalancing:
 # SAT CONTROLLER — EPOCH FINALIZATION
 # =============================================================================
 
+
 class TestSATEpochFinalization:
     """Tests for SAT epoch finalization."""
 
@@ -319,6 +325,7 @@ class TestSATEpochFinalization:
 # SAT CONTROLLER — STATS AND AUDIT
 # =============================================================================
 
+
 class TestSATStats:
     """Tests for SAT statistics and audit."""
 
@@ -359,6 +366,7 @@ class TestSATStats:
 # =============================================================================
 # INTEGRATION: PoI + SAT PIPELINE
 # =============================================================================
+
 
 class TestPoISATPipeline:
     """Integration tests for the full PoI + SAT pipeline."""
@@ -417,9 +425,7 @@ class TestPoISATPipeline:
         sat = SATController(poi_orchestrator=orch, config=config)
 
         for epoch in range(3):
-            meta = _make_contribution(
-                "alice", content_hash=f"growth_{epoch}"
-            )
+            meta = _make_contribution("alice", content_hash=f"growth_{epoch}")
             orch.register_contribution(meta)
             sat.finalize_epoch()
 

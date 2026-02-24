@@ -13,50 +13,45 @@ These tests verify:
 """
 
 import math
-import pytest
 from typing import Dict, List
 
-from core.sovereign.adl_kernel import (
-    # Constants
-    ADL_GINI_THRESHOLD,
+import pytest
+
+from core.sovereign.adl_kernel import (  # Constants; Codes; Data structures; Functions; Incremental Gini (P0-3 Optimization); Enforcer
     ADL_GINI_ALERT_THRESHOLD,
-    OMEGA_DEFAULT,
-    OMEGA_MAX,
+    ADL_GINI_THRESHOLD,
     BIAS_EPSILON,
     HARBERGER_TAX_RATE,
     MINIMUM_HOLDING,
+    OMEGA_DEFAULT,
+    OMEGA_MAX,
     UBC_POOL_ID,
-    # Codes
-    AdlRejectCode,
-    # Data structures
+    AdlEnforcer,
     AdlInvariant,
-    GiniResult,
-    CausalDragResult,
-    HarbergerTaxResult,
-    BiasParityResult,
+    AdlRejectCode,
     AdlValidationResult,
-    # Functions
-    calculate_gini,
-    calculate_gini_from_holdings,
-    calculate_gini_detailed,
-    compute_causal_drag,
-    harberger_tax,
-    apply_harberger_redistribution,
-    check_bias_parity,
-    create_uniform_distribution,
-    quick_adl_check,
-    compute_ihsan_adl_score,
-    # Incremental Gini (P0-3 Optimization)
+    BiasParityResult,
+    CausalDragResult,
+    GiniResult,
+    HarbergerTaxResult,
     IncrementalGini,
     NetworkGiniTracker,
-    # Enforcer
-    AdlEnforcer,
+    apply_harberger_redistribution,
+    calculate_gini,
+    calculate_gini_detailed,
+    calculate_gini_from_holdings,
+    check_bias_parity,
+    compute_causal_drag,
+    compute_ihsan_adl_score,
+    create_uniform_distribution,
+    harberger_tax,
+    quick_adl_check,
 )
-
 
 # =============================================================================
 # ADL INVARIANT CONFIGURATION TESTS
 # =============================================================================
+
 
 class TestAdlInvariantConfig:
     """Tests for AdlInvariant configuration dataclass."""
@@ -111,6 +106,7 @@ class TestAdlInvariantConfig:
 # =============================================================================
 # GINI COEFFICIENT TESTS
 # =============================================================================
+
 
 class TestCalculateGini:
     """Tests for the Gini coefficient calculation."""
@@ -179,7 +175,7 @@ class TestCalculateGini:
         gini_1_2 = calculate_gini([1.0, 2.0])
         # For [1, 2]: sorted values, weights 1*1 + 2*2 = 5
         # G = 2*5 / (2*3) - (2+1)/2 = 10/6 - 1.5 = 1.667 - 1.5 = 0.167
-        assert gini_1_2 == pytest.approx(1/6, abs=0.01)
+        assert gini_1_2 == pytest.approx(1 / 6, abs=0.01)
 
 
 class TestCalculateGiniFromHoldings:
@@ -264,6 +260,7 @@ class TestCalculateGiniDetailed:
 # CAUSAL DRAG (OMEGA) TESTS
 # =============================================================================
 
+
 class TestComputeCausalDrag:
     """Tests for causal drag computation."""
 
@@ -327,7 +324,7 @@ class TestComputeCausalDrag:
 
         # Each subsequent omega should be >= previous
         for i in range(1, len(results)):
-            assert results[i] >= results[i-1] - 1e-9
+            assert results[i] >= results[i - 1] - 1e-9
 
     def test_omega_increases_with_node_power(self):
         """Omega should increase as node power increases at high Gini."""
@@ -343,7 +340,9 @@ class TestComputeCausalDrag:
 
         # Each subsequent omega should be >= previous (or very close)
         for i in range(1, len(results)):
-            assert results[i] >= results[i-1] * 0.99, f"Omega should increase: {results}"
+            assert (
+                results[i] >= results[i - 1] * 0.99
+            ), f"Omega should increase: {results}"
 
     def test_rationale_reflects_state(self):
         """Rationale message should describe current state."""
@@ -354,12 +353,16 @@ class TestComputeCausalDrag:
         # Near threshold (high Gini - 94%+ of threshold)
         elevated = compute_causal_drag(0.5, 0.33, 100.0)
         # Should mention approaching, elevated, high, near, or maximum depending on exact Gini
-        assert any(word in elevated.rationale.lower() for word in ["approaching", "elevated", "high", "near", "maximum"])
+        assert any(
+            word in elevated.rationale.lower()
+            for word in ["approaching", "elevated", "high", "near", "maximum"]
+        )
 
 
 # =============================================================================
 # HARBERGER TAX TESTS
 # =============================================================================
+
 
 class TestHarbergerTax:
     """Tests for Harberger tax calculation."""
@@ -454,6 +457,7 @@ class TestApplyHarbergerRedistribution:
 # =============================================================================
 # BIAS PARITY (KL DIVERGENCE) TESTS
 # =============================================================================
+
 
 class TestCheckBiasParity:
     """Tests for bias parity checking using KL divergence."""
@@ -556,6 +560,7 @@ class TestCreateUniformDistribution:
 # =============================================================================
 # ADL ENFORCER TESTS
 # =============================================================================
+
 
 class TestAdlEnforcer:
     """Tests for the unified ADL Enforcer."""
@@ -708,6 +713,7 @@ class TestAdlEnforcer:
 # CONVENIENCE FUNCTION TESTS
 # =============================================================================
 
+
 class TestQuickAdlCheck:
     """Tests for quick_adl_check convenience function."""
 
@@ -766,6 +772,7 @@ class TestComputeIhsanAdlScore:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestAdlKernelIntegration:
     """Integration tests for full ADL kernel workflow."""
@@ -844,14 +851,15 @@ class TestAdlKernelIntegration:
 
         # Whale should face higher or equal drag (power factor increases friction)
         # Due to the power_factor in the formula: (1 + node_power)
-        assert whale_result.omega >= small_result.omega * 0.9, (
-            f"Whale drag {whale_result.omega} should be >= small node drag {small_result.omega}"
-        )
+        assert (
+            whale_result.omega >= small_result.omega * 0.9
+        ), f"Whale drag {whale_result.omega} should be >= small node drag {small_result.omega}"
 
 
 # =============================================================================
 # EDGE CASE TESTS
 # =============================================================================
+
 
 class TestEdgeCases:
     """Edge case tests for robustness."""
@@ -912,6 +920,7 @@ class TestEdgeCases:
 # =============================================================================
 # INCREMENTAL GINI TESTS (P0-3 OPTIMIZATION)
 # =============================================================================
+
 
 class TestIncrementalGini:
     """Tests for the IncrementalGini class - O(log n) incremental tracking."""
@@ -1325,11 +1334,13 @@ class TestAdlEnforcerIncrementalMode:
         enforcer = AdlEnforcer(config=config, use_incremental_gini=True)
 
         # Holdings that would exceed threshold with large transfer
-        enforcer.load_holdings_for_tracking({
-            "whale": 1000.0,
-            "small_1": 100.0,
-            "small_2": 100.0,
-        })
+        enforcer.load_holdings_for_tracking(
+            {
+                "whale": 1000.0,
+                "small_1": 100.0,
+                "small_2": 100.0,
+            }
+        )
 
         # This transfer would concentrate too much
         # Moving more to whale would increase inequality

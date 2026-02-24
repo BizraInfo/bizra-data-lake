@@ -11,8 +11,13 @@ from typing import Generator
 
 import pytest
 
-from core.vault.vault import SovereignVault, VaultEntry, derive_key, generate_salt, get_vault
-
+from core.vault.vault import (
+    SovereignVault,
+    VaultEntry,
+    derive_key,
+    generate_salt,
+    get_vault,
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIXTURES
@@ -30,7 +35,9 @@ def tmp_vault_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def vault(tmp_vault_dir: Path) -> SovereignVault:
     """Create a SovereignVault with a test master secret."""
-    return SovereignVault(vault_path=str(tmp_vault_dir), master_secret="test-secret-key-1234")
+    return SovereignVault(
+        vault_path=str(tmp_vault_dir), master_secret="test-secret-key-1234"
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -183,14 +190,18 @@ class TestVaultSecurity:
         """Secret rotation must preserve all values."""
         vault.put("k1", "v1")
         vault.put("k2", "v2")
-        rotated = vault.rotate_master_secret("test-secret-key-1234", "new-secret-key-5678")
+        rotated = vault.rotate_master_secret(
+            "test-secret-key-1234", "new-secret-key-5678"
+        )
         assert rotated >= 2
         # Values accessible with new secret
         vault.set_master_secret("new-secret-key-5678")
         assert vault.get("k1") == "v1"
         assert vault.get("k2") == "v2"
 
-    def test_encrypted_on_disk(self, vault: SovereignVault, tmp_vault_dir: Path) -> None:
+    def test_encrypted_on_disk(
+        self, vault: SovereignVault, tmp_vault_dir: Path
+    ) -> None:
         """Plaintext values must NOT appear in vault files."""
         vault.put("api-key", "sk-super-secret-12345")
         # Read all files in vault dir — plaintext must not appear

@@ -28,10 +28,10 @@ from core.sovereign.state_checkpointer import (
     StorageBackend,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_state(n: int = 1) -> Dict[str, Any]:
     """Generate a deterministic test state dict."""
@@ -58,6 +58,7 @@ def _make_checkpoint(
 # 1. TestStorageBackend
 # ===========================================================================
 
+
 class TestStorageBackend:
     """Verify the StorageBackend enum surface."""
 
@@ -83,6 +84,7 @@ class TestStorageBackend:
 # ===========================================================================
 # 2. TestCheckpoint
 # ===========================================================================
+
 
 class TestCheckpoint:
     """Test the Checkpoint dataclass and its checksum logic."""
@@ -166,6 +168,7 @@ class TestCheckpoint:
 # ===========================================================================
 # 3. TestSQLiteCheckpointStore
 # ===========================================================================
+
 
 class TestSQLiteCheckpointStore:
     """Test the raw SQLite storage layer."""
@@ -339,7 +342,9 @@ class TestSQLiteCheckpointStore:
         assert store._conn is None
 
     def test_row_to_checkpoint_preserves_types(self, store: SQLiteCheckpointStore):
-        cp = _make_checkpoint(version=42, state={"int": 1, "str": "hello", "list": [1, 2]})
+        cp = _make_checkpoint(
+            version=42, state={"int": 1, "str": "hello", "list": [1, 2]}
+        )
         store.save(cp)
         loaded = store.load(cp.id)
         assert isinstance(loaded.state["int"], int)
@@ -366,6 +371,7 @@ class TestSQLiteCheckpointStore:
 # ===========================================================================
 # 4. TestStateCheckpointerFile
 # ===========================================================================
+
 
 class TestStateCheckpointerFile:
     """Tests for StateCheckpointer with FILE backend."""
@@ -399,7 +405,9 @@ class TestStateCheckpointerFile:
     def test_init_latest_is_none(self, checkpointer: StateCheckpointer):
         assert checkpointer.latest is None
 
-    async def test_checkpoint_creates_file(self, checkpointer: StateCheckpointer, cp_dir: Path):
+    async def test_checkpoint_creates_file(
+        self, checkpointer: StateCheckpointer, cp_dir: Path
+    ):
         cp = await checkpointer.checkpoint(_make_state(1), source="test")
         expected_file = cp_dir / f"{cp.id}.json"
         assert expected_file.exists()
@@ -453,11 +461,15 @@ class TestStateCheckpointerFile:
         cp = await checkpointer.checkpoint(_make_state(1), metadata=meta)
         assert cp.metadata == meta
 
-    async def test_checkpoint_default_source_is_manual(self, checkpointer: StateCheckpointer):
+    async def test_checkpoint_default_source_is_manual(
+        self, checkpointer: StateCheckpointer
+    ):
         cp = await checkpointer.checkpoint(_make_state(1))
         assert cp.source == "manual"
 
-    async def test_checkpoint_default_metadata_is_empty(self, checkpointer: StateCheckpointer):
+    async def test_checkpoint_default_metadata_is_empty(
+        self, checkpointer: StateCheckpointer
+    ):
         cp = await checkpointer.checkpoint(_make_state(1))
         assert cp.metadata == {}
 
@@ -478,11 +490,15 @@ class TestStateCheckpointerFile:
         assert restored.state == _make_state(1)
         assert restored.id == cp1.id
 
-    async def test_restore_nonexistent_returns_none(self, checkpointer: StateCheckpointer):
+    async def test_restore_nonexistent_returns_none(
+        self, checkpointer: StateCheckpointer
+    ):
         result = await checkpointer.restore(checkpoint_id="cp-999999")
         assert result is None
 
-    async def test_restore_empty_dir_returns_none(self, checkpointer: StateCheckpointer):
+    async def test_restore_empty_dir_returns_none(
+        self, checkpointer: StateCheckpointer
+    ):
         result = await checkpointer.restore()
         assert result is None
 
@@ -502,7 +518,9 @@ class TestStateCheckpointerFile:
         result = await checkpointer.restore(checkpoint_id=cp.id)
         assert result is None
 
-    async def test_rotation_deletes_oldest(self, checkpointer: StateCheckpointer, cp_dir: Path):
+    async def test_rotation_deletes_oldest(
+        self, checkpointer: StateCheckpointer, cp_dir: Path
+    ):
         """With max_checkpoints=5, creating 8 should leave exactly 5."""
         for i in range(1, 9):
             await checkpointer.checkpoint(_make_state(i))
@@ -527,7 +545,9 @@ class TestStateCheckpointerFile:
         tmp_files = list(cp_dir.glob("*.tmp"))
         assert len(tmp_files) == 0
 
-    async def test_restore_updates_internal_version(self, checkpointer: StateCheckpointer):
+    async def test_restore_updates_internal_version(
+        self, checkpointer: StateCheckpointer
+    ):
         await checkpointer.checkpoint(_make_state(1))
         cp2 = await checkpointer.checkpoint(_make_state(2))
         # Create a fresh checkpointer pointing at the same directory
@@ -582,7 +602,9 @@ class TestStateCheckpointerFile:
     def test_latest_property_none_initially(self, checkpointer: StateCheckpointer):
         assert checkpointer.latest is None
 
-    async def test_latest_property_after_checkpoint(self, checkpointer: StateCheckpointer):
+    async def test_latest_property_after_checkpoint(
+        self, checkpointer: StateCheckpointer
+    ):
         cp = await checkpointer.checkpoint(_make_state(1))
         assert checkpointer.latest is cp
 
@@ -597,7 +619,9 @@ class TestStateCheckpointerFile:
         assert checkpointer._running is False
         assert checkpointer._sqlite_store is None
 
-    async def test_round_trip_preserves_state_types(self, checkpointer: StateCheckpointer):
+    async def test_round_trip_preserves_state_types(
+        self, checkpointer: StateCheckpointer
+    ):
         """Verify complex nested types survive JSON round-trip."""
         state = {
             "string": "hello",
@@ -617,6 +641,7 @@ class TestStateCheckpointerFile:
 # ===========================================================================
 # 5. TestStateCheckpointerSQLite
 # ===========================================================================
+
 
 class TestStateCheckpointerSQLite:
     """Tests for StateCheckpointer with SQLITE backend."""
@@ -649,7 +674,9 @@ class TestStateCheckpointerSQLite:
         assert (cp_dir / "checkpoints.db").exists()
         sc.close()
 
-    def test_init_version_starts_at_zero_when_empty(self, checkpointer: StateCheckpointer):
+    def test_init_version_starts_at_zero_when_empty(
+        self, checkpointer: StateCheckpointer
+    ):
         assert checkpointer._current_version == 0
 
     async def test_init_loads_version_from_existing_db(self, cp_dir: Path):
@@ -704,7 +731,9 @@ class TestStateCheckpointerSQLite:
         assert restored is not None
         assert restored.state == _make_state(1)
 
-    async def test_restore_nonexistent_returns_none(self, checkpointer: StateCheckpointer):
+    async def test_restore_nonexistent_returns_none(
+        self, checkpointer: StateCheckpointer
+    ):
         result = await checkpointer.restore(checkpoint_id="cp-999999")
         assert result is None
 
@@ -727,7 +756,9 @@ class TestStateCheckpointerSQLite:
         result = await checkpointer.restore(checkpoint_id=cp.id)
         assert result is None
 
-    async def test_rotation_enforces_max_checkpoints(self, checkpointer: StateCheckpointer):
+    async def test_rotation_enforces_max_checkpoints(
+        self, checkpointer: StateCheckpointer
+    ):
         """With max_checkpoints=5, creating 8 should leave exactly 5 in DB."""
         for i in range(1, 9):
             await checkpointer.checkpoint(_make_state(i))
@@ -780,7 +811,9 @@ class TestStateCheckpointerSQLite:
         assert restored is not None
         assert restored.state == state
 
-    async def test_restore_updates_internal_state(self, checkpointer: StateCheckpointer):
+    async def test_restore_updates_internal_state(
+        self, checkpointer: StateCheckpointer
+    ):
         cp = await checkpointer.checkpoint(_make_state(42))
         # Simulate a fresh checkpointer resuming from DB
         restored = await checkpointer.restore(checkpoint_id=cp.id)
@@ -791,6 +824,7 @@ class TestStateCheckpointerSQLite:
 # ===========================================================================
 # 6. TestAutoCheckpointLoop
 # ===========================================================================
+
 
 class TestAutoCheckpointLoop:
     """Test the background auto-checkpoint loop."""
@@ -910,6 +944,7 @@ class TestAutoCheckpointLoop:
 # 7. TestVacuum
 # ===========================================================================
 
+
 class TestVacuum:
     """Test vacuum behavior for both backends."""
 
@@ -950,6 +985,7 @@ class TestVacuum:
 # ===========================================================================
 # 8. TestChecksumIntegrity
 # ===========================================================================
+
 
 class TestChecksumIntegrity:
     """Dedicated checksum / tamper-detection tests across both backends."""
@@ -1037,6 +1073,7 @@ class TestChecksumIntegrity:
 # ===========================================================================
 # 9. TestEdgeCases
 # ===========================================================================
+
 
 class TestEdgeCases:
     """Additional edge-case and boundary tests."""

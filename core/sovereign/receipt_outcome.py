@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # SNR floor below which results are quarantined (not rejected).
 _SNR_QUARANTINE_THRESHOLD: float = 0.85
 

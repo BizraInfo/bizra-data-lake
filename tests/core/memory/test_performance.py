@@ -26,14 +26,15 @@ import pytest
 from core.memory.config import HNSWConfig
 from core.memory.hnsw_index import HNSWIndex
 
-
 # ---------------------------------------------------------------------------
 # Data classes for benchmark results
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class InsertResult:
     """Timing and memory for bulk insert."""
+
     total_seconds: float
     peak_memory_mb: float
     vectors_per_second: float
@@ -42,6 +43,7 @@ class InsertResult:
 @dataclass
 class SearchResult:
     """Timing for search queries."""
+
     avg_ms_per_query: float
     total_seconds: float
     n_queries: int
@@ -50,6 +52,7 @@ class SearchResult:
 @dataclass
 class BenchmarkResult:
     """Full benchmark result for one backend at one scale."""
+
     backend: str
     n_vectors: int
     dim: int
@@ -61,6 +64,7 @@ class BenchmarkResult:
 @dataclass
 class ComparisonRow:
     """Single row in the comparison table."""
+
     n_vectors: int
     np_insert_s: float
     hnsw_insert_s: float
@@ -75,6 +79,7 @@ class ComparisonRow:
 # ---------------------------------------------------------------------------
 # Brute-force numpy backend (baseline)
 # ---------------------------------------------------------------------------
+
 
 class NumpyBruteForce:
     """Minimal brute-force cosine search for benchmarking."""
@@ -101,6 +106,7 @@ class NumpyBruteForce:
 # ---------------------------------------------------------------------------
 # Benchmark runners
 # ---------------------------------------------------------------------------
+
 
 def _measure_memory(func):
     """Execute func() while tracking peak memory allocation."""
@@ -247,7 +253,8 @@ def _run_comparison(
         n_vectors=n_vectors,
         np_insert_s=np_result.insert.total_seconds,
         hnsw_insert_s=hnsw_result.insert.total_seconds,
-        insert_speedup=np_result.insert.total_seconds / max(hnsw_result.insert.total_seconds, 1e-9),
+        insert_speedup=np_result.insert.total_seconds
+        / max(hnsw_result.insert.total_seconds, 1e-9),
         np_search_ms=np_search,
         hnsw_search_ms=hnsw_search,
         search_speedup=np_search / max(hnsw_search, 0.001),
@@ -289,7 +296,9 @@ def _print_result_table(rows: List[ComparisonRow]) -> None:
     print(sep)
 
 
-def _print_single_result(label: str, np_res: BenchmarkResult, hnsw_res: BenchmarkResult) -> None:
+def _print_single_result(
+    label: str, np_res: BenchmarkResult, hnsw_res: BenchmarkResult
+) -> None:
     """Print detailed results for a single scale."""
     np_s = np_res.search.avg_ms_per_query
     hnsw_s = hnsw_res.search.avg_ms_per_query
@@ -322,13 +331,16 @@ def _print_single_result(label: str, np_res: BenchmarkResult, hnsw_res: Benchmar
         f"  Memory (peak)   | {np_res.total_memory_mb:>12.1f}MB | "
         f"{hnsw_res.total_memory_mb:>12.1f}MB | "
     )
-    print(f"  Queries run     | {np_res.search.n_queries:>14d} | {hnsw_res.search.n_queries:>14d} |")
+    print(
+        f"  Queries run     | {np_res.search.n_queries:>14d} | {hnsw_res.search.n_queries:>14d} |"
+    )
     print(f"{'='*72}")
 
 
 # ---------------------------------------------------------------------------
 # Test classes
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.slow
 class TestPerformanceBenchmarks:
@@ -349,9 +361,13 @@ class TestPerformanceBenchmarks:
 
         np_res = _benchmark_numpy(vectors, queries, top_k=10)
         hnsw_res = _benchmark_hnsw(vectors, queries, top_k=10)
-        _print_single_result(f"1K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res)
+        _print_single_result(
+            f"1K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res
+        )
 
-        speedup = np_res.search.avg_ms_per_query / max(hnsw_res.search.avg_ms_per_query, 0.001)
+        speedup = np_res.search.avg_ms_per_query / max(
+            hnsw_res.search.avg_ms_per_query, 0.001
+        )
         assert speedup > 1.0, (
             f"HNSW should be faster than brute-force at 1K: "
             f"numpy={np_res.search.avg_ms_per_query:.3f}ms, "
@@ -368,9 +384,13 @@ class TestPerformanceBenchmarks:
 
         np_res = _benchmark_numpy(vectors, queries, top_k=10)
         hnsw_res = _benchmark_hnsw(vectors, queries, top_k=10)
-        _print_single_result(f"10K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res)
+        _print_single_result(
+            f"10K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res
+        )
 
-        speedup = np_res.search.avg_ms_per_query / max(hnsw_res.search.avg_ms_per_query, 0.001)
+        speedup = np_res.search.avg_ms_per_query / max(
+            hnsw_res.search.avg_ms_per_query, 0.001
+        )
         assert speedup > 10.0, (
             f"HNSW should be >10x faster at 10K: "
             f"numpy={np_res.search.avg_ms_per_query:.3f}ms, "
@@ -391,9 +411,13 @@ class TestPerformanceBenchmarks:
 
         np_res = _benchmark_numpy(vectors, queries, top_k=10)
         hnsw_res = _benchmark_hnsw(vectors, queries, top_k=10)
-        _print_single_result(f"100K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res)
+        _print_single_result(
+            f"100K vectors (dim=768, {n_queries} queries, top_k=10)", np_res, hnsw_res
+        )
 
-        speedup = np_res.search.avg_ms_per_query / max(hnsw_res.search.avg_ms_per_query, 0.001)
+        speedup = np_res.search.avg_ms_per_query / max(
+            hnsw_res.search.avg_ms_per_query, 0.001
+        )
         assert speedup > 50.0, (
             f"HNSW should be >50x faster at 100K: "
             f"numpy={np_res.search.avg_ms_per_query:.3f}ms, "

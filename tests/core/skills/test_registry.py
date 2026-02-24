@@ -9,18 +9,18 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-import pytest
 from pathlib import Path
 
+import pytest
+
 from core.skills.registry import (
-    SkillRegistry,
-    SkillManifest,
-    SkillContext,
-    SkillStatus,
     RegisteredSkill,
+    SkillContext,
+    SkillManifest,
+    SkillRegistry,
+    SkillStatus,
     get_skill_registry,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FIXTURES
@@ -79,7 +79,12 @@ class TestSkillManifest:
         assert "tags" in d
 
     def test_from_frontmatter(self):
-        fm = {"name": "fm", "description": "FM skill", "agent": "coder", "context": "inline"}
+        fm = {
+            "name": "fm",
+            "description": "FM skill",
+            "agent": "coder",
+            "context": "inline",
+        }
         m = SkillManifest.from_frontmatter(fm, raw="# MD")
         assert m.name == "fm"
         assert m.context == SkillContext.INLINE
@@ -210,7 +215,9 @@ class TestFrontmatter:
     def test_invalid_yaml(self, tmp_path):
         d = tmp_path / "bad"
         d.mkdir()
-        (d / "SKILL.md").write_text("---\nname: [invalid\n---\nContent\n", encoding="utf-8")
+        (d / "SKILL.md").write_text(
+            "---\nname: [invalid\n---\nContent\n", encoding="utf-8"
+        )
         r = SkillRegistry(skills_dir=str(tmp_path))
         assert r._load_skill(d / "SKILL.md") is None
 

@@ -21,16 +21,15 @@ from unittest.mock import patch
 import pytest
 
 from core.sovereign.permit import (
-    Authority,
-    Capability,
     HDA_CAPABILITY_MAP,
     MAX_DELEGATION_DEPTH,
+    Authority,
+    Capability,
     Permit,
     PermitVerification,
     ResourceBudget,
     create_hda_permit,
 )
-
 
 # ---------------------------------------------------------------------------
 # Authority
@@ -217,8 +216,14 @@ class TestPermit:
 class TestHDAActionCheck:
     def test_all_hda_methods_mapped(self) -> None:
         expected = {
-            "open_app", "switch_window", "type_text", "click_element",
-            "screenshot", "read_clipboard", "file_open", "browser_navigate",
+            "open_app",
+            "switch_window",
+            "type_text",
+            "click_element",
+            "screenshot",
+            "read_clipboard",
+            "file_open",
+            "browser_navigate",
         }
         assert set(HDA_CAPABILITY_MAP.keys()) == expected
 

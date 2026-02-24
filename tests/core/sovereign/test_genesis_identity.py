@@ -7,9 +7,10 @@ Standing on Giants: Al-Ghazali (1095), Lamport (1982), Nakamoto (2008)
 """
 
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from core.sovereign.genesis_identity import (
     AgentIdentity,
@@ -19,7 +20,6 @@ from core.sovereign.genesis_identity import (
     load_genesis,
     validate_genesis_hash,
 )
-
 
 # =============================================================================
 # FIXTURES
@@ -241,7 +241,9 @@ class TestLoadGenesis:
 
     def test_hashes_parsed(self, genesis_dir):
         state = load_genesis(genesis_dir)
-        assert state.genesis_hash == bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF])
+        assert state.genesis_hash == bytes(
+            [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF]
+        )
         assert state.pat_team_hash == bytes([0xAA, 0xBB])
         assert state.sat_team_hash == bytes([0xCC, 0xDD])
         assert state.partnership_hash == bytes([0xEE, 0xFF])
@@ -314,7 +316,15 @@ class TestRealGenesis:
         state = load_genesis(real_state_dir)
         assert len(state.pat_team) == 7
         roles = {a.role for a in state.pat_team}
-        assert roles == {"Strategist", "Researcher", "Developer", "Analyst", "Reviewer", "Executor", "Guardian"}
+        assert roles == {
+            "Strategist",
+            "Researcher",
+            "Developer",
+            "Analyst",
+            "Reviewer",
+            "Executor",
+            "Guardian",
+        }
 
     def test_real_genesis_sat_team(self, real_state_dir):
         state = load_genesis(real_state_dir)

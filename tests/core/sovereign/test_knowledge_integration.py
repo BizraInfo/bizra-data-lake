@@ -5,8 +5,9 @@ Validates the knowledge integrator and swarm knowledge bridge.
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from core.sovereign.knowledge_integrator import (
     KnowledgeIntegrator,
@@ -16,18 +17,18 @@ from core.sovereign.knowledge_integrator import (
     create_knowledge_integrator,
 )
 from core.sovereign.swarm_knowledge_bridge import (
+    ROLE_KNOWLEDGE_ACCESS,
     AgentKnowledgeContext,
     KnowledgeInjection,
-    ROLE_KNOWLEDGE_ACCESS,
     SwarmKnowledgeBridge,
     create_swarm_knowledge_bridge,
 )
 from core.sovereign.team_planner import AgentRole
 
-
 # =============================================================================
 # KNOWLEDGE INTEGRATOR TESTS
 # =============================================================================
+
 
 class TestKnowledgeIntegrator:
     """Tests for KnowledgeIntegrator."""
@@ -134,6 +135,7 @@ class TestKnowledgeIntegrator:
 # =============================================================================
 # SWARM KNOWLEDGE BRIDGE TESTS
 # =============================================================================
+
 
 class TestSwarmKnowledgeBridge:
     """Tests for SwarmKnowledgeBridge."""
@@ -331,6 +333,7 @@ class TestSwarmKnowledgeBridge:
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================
+
 
 class TestKnowledgeIntegrationE2E:
     """End-to-end integration tests."""

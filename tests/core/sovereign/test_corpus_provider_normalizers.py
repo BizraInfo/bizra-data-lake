@@ -31,7 +31,9 @@ def test_detect_provider_from_payload_signal() -> None:
 
 def test_no_provider_inference_from_free_text_only() -> None:
     m = _load_module()
-    payload = {"messages": [{"role": "user", "content": "compare qwen and kimi models"}]}
+    payload = {
+        "messages": [{"role": "user", "content": "compare qwen and kimi models"}]
+    }
     provider = m.detect_provider_with_payload(Path("tmp/random-export.json"), payload)
     assert provider == "generic"
 
@@ -61,7 +63,10 @@ def test_detect_qwen_from_model_signal() -> None:
 
 def test_detect_kimi_from_model_signal() -> None:
     m = _load_module()
-    payload = {"model": "moonshot-v1-8k", "messages": [{"role": "user", "content": "hi"}]}
+    payload = {
+        "model": "moonshot-v1-8k",
+        "messages": [{"role": "user", "content": "hi"}],
+    }
     assert m.detect_provider_with_payload(Path("tmp/export.json"), payload) == "kimi"
 
 
@@ -87,7 +92,9 @@ def test_detect_all_core8_from_signals() -> None:
     for expected_provider, model_name in signal_map.items():
         payload = {"model": model_name, "messages": []}
         detected = m.detect_provider_with_payload(Path("tmp/export.json"), payload)
-        assert detected == expected_provider, f"Expected {expected_provider} for model={model_name}, got {detected}"
+        assert (
+            detected == expected_provider
+        ), f"Expected {expected_provider} for model={model_name}, got {detected}"
 
 
 # ---------------------------------------------------------------------------
@@ -141,8 +148,16 @@ def test_qwen_messages_format(tmp_path: Path) -> None:
             "title": "Math question",
             "model": "qwen-max",
             "messages": [
-                {"role": "user", "content": "What is 2+2?", "created_at": "2026-01-15T08:00:00Z"},
-                {"role": "assistant", "content": "2+2 equals 4.", "created_at": "2026-01-15T08:00:01Z"},
+                {
+                    "role": "user",
+                    "content": "What is 2+2?",
+                    "created_at": "2026-01-15T08:00:00Z",
+                },
+                {
+                    "role": "assistant",
+                    "content": "2+2 equals 4.",
+                    "created_at": "2026-01-15T08:00:01Z",
+                },
             ],
         }
     ]
@@ -166,7 +181,10 @@ def test_qwen_history_pairs_format(tmp_path: Path) -> None:
         "model": "qwen-plus",
         "history": [
             ["Explain recursion", "Recursion is when a function calls itself."],
-            ["Give an example", "def factorial(n): return 1 if n<=1 else n*factorial(n-1)"],
+            [
+                "Give an example",
+                "def factorial(n): return 1 if n<=1 else n*factorial(n-1)",
+            ],
         ],
     }
     path = tmp_path / "qwen-export" / "history.json"
@@ -216,8 +234,16 @@ def test_kimi_messages_format(tmp_path: Path) -> None:
             "title": "Code review",
             "model": "moonshot-v1-8k",
             "messages": [
-                {"role": "user", "content": "Review this code", "created_at": 1708000000},
-                {"role": "assistant", "content": "The code looks clean. Two suggestions...", "created_at": 1708000001},
+                {
+                    "role": "user",
+                    "content": "Review this code",
+                    "created_at": 1708000000,
+                },
+                {
+                    "role": "assistant",
+                    "content": "The code looks clean. Two suggestions...",
+                    "created_at": 1708000001,
+                },
             ],
         }
     ]
@@ -240,10 +266,30 @@ def test_kimi_segments_format(tmp_path: Path) -> None:
         "kimiplus_id": "kp-abc123",
         "model": "moonshot-v1-32k",
         "segments": [
-            {"id": "seg-1", "role": "user", "content": "Summarize this paper", "created_at": "2026-01-10T10:00:00Z"},
-            {"id": "seg-2", "role": "assistant", "content": "The paper presents a novel approach to...", "created_at": "2026-01-10T10:00:02Z"},
-            {"id": "seg-3", "role": "user", "content": "What about the methodology?", "created_at": "2026-01-10T10:01:00Z"},
-            {"id": "seg-4", "role": "assistant", "content": "The methodology section describes...", "created_at": "2026-01-10T10:01:05Z"},
+            {
+                "id": "seg-1",
+                "role": "user",
+                "content": "Summarize this paper",
+                "created_at": "2026-01-10T10:00:00Z",
+            },
+            {
+                "id": "seg-2",
+                "role": "assistant",
+                "content": "The paper presents a novel approach to...",
+                "created_at": "2026-01-10T10:00:02Z",
+            },
+            {
+                "id": "seg-3",
+                "role": "user",
+                "content": "What about the methodology?",
+                "created_at": "2026-01-10T10:01:00Z",
+            },
+            {
+                "id": "seg-4",
+                "role": "assistant",
+                "content": "The methodology section describes...",
+                "created_at": "2026-01-10T10:01:05Z",
+            },
         ],
     }
     path = tmp_path / "kimi-export" / "segments.json"
@@ -267,7 +313,10 @@ def test_kimi_items_wrapper(tmp_path: Path) -> None:
             {
                 "messages": [
                     {"role": "user", "content": "What is RLHF?"},
-                    {"role": "assistant", "content": "RLHF stands for Reinforcement Learning from Human Feedback."},
+                    {
+                        "role": "assistant",
+                        "content": "RLHF stands for Reinforcement Learning from Human Feedback.",
+                    },
                 ]
             }
         ],
@@ -318,7 +367,10 @@ def test_zhipu_choices_format(tmp_path: Path) -> None:
         "request_id": "req-abc",
         "model": "glm-4",
         "choices": [
-            {"index": 0, "message": {"role": "assistant", "content": "The answer is 42."}},
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": "The answer is 42."},
+            },
         ],
     }
     path = tmp_path / "zhipu-export" / "api_response.json"
@@ -362,7 +414,13 @@ def test_zhipu_data_choices_envelope(tmp_path: Path) -> None:
         "model": "glm-3-turbo",
         "data": {
             "choices": [
-                {"index": 0, "message": {"role": "assistant", "content": "Here is the analysis."}},
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": "Here is the analysis.",
+                    },
+                },
             ]
         },
     }
@@ -393,7 +451,10 @@ def test_chatgpt_standard_export(tmp_path: Path) -> None:
                     "message": {
                         "id": "msg-1",
                         "author": {"role": "user"},
-                        "content": {"content_type": "text", "parts": ["Hello, ChatGPT!"]},
+                        "content": {
+                            "content_type": "text",
+                            "parts": ["Hello, ChatGPT!"],
+                        },
                         "create_time": 1700000000,
                     },
                 },
@@ -402,7 +463,10 @@ def test_chatgpt_standard_export(tmp_path: Path) -> None:
                     "message": {
                         "id": "msg-2",
                         "author": {"role": "assistant"},
-                        "content": {"content_type": "text", "parts": ["Hello! How can I help you today?"]},
+                        "content": {
+                            "content_type": "text",
+                            "parts": ["Hello! How can I help you today?"],
+                        },
                         "create_time": 1700000001,
                     },
                 },
@@ -427,8 +491,18 @@ def test_claude_chat_messages_export(tmp_path: Path) -> None:
             "uuid": "claude-conv-1",
             "name": "Code help",
             "chat_messages": [
-                {"uuid": "cm-1", "sender": "human", "text": "Help me write a function", "created_at": "2026-01-05T09:00:00Z"},
-                {"uuid": "cm-2", "sender": "assistant", "text": "Here is a function that...", "created_at": "2026-01-05T09:00:03Z"},
+                {
+                    "uuid": "cm-1",
+                    "sender": "human",
+                    "text": "Help me write a function",
+                    "created_at": "2026-01-05T09:00:00Z",
+                },
+                {
+                    "uuid": "cm-2",
+                    "sender": "assistant",
+                    "text": "Here is a function that...",
+                    "created_at": "2026-01-05T09:00:03Z",
+                },
             ],
         }
     ]
@@ -474,7 +548,10 @@ def test_gemini_messages_export(tmp_path: Path) -> None:
             "model": "gemini-pro",
             "messages": [
                 {"role": "user", "content": "Explain transformers"},
-                {"role": "model", "content": "Transformers are a type of neural network architecture..."},
+                {
+                    "role": "model",
+                    "content": "Transformers are a type of neural network architecture...",
+                },
             ],
         }
     ]
@@ -524,7 +601,9 @@ def test_content_hash_deterministic(tmp_path: Path) -> None:
 def test_content_hash_whitespace_normalization(tmp_path: Path) -> None:
     """Content hashing normalizes whitespace."""
     m = _load_module()
-    fixture1 = [{"id": "c1", "messages": [{"role": "user", "content": "Hello   world"}]}]
+    fixture1 = [
+        {"id": "c1", "messages": [{"role": "user", "content": "Hello   world"}]}
+    ]
     fixture2 = [{"id": "c2", "messages": [{"role": "user", "content": "Hello world"}]}]
     p1 = tmp_path / "f1.json"
     p2 = tmp_path / "f2.json"
@@ -571,7 +650,16 @@ def test_core8_set_complete() -> None:
     """CORE8 constant contains exactly 8 providers (conversation + search)."""
     m = _load_module()
     assert len(m.CORE8) == 8
-    expected = {"chatgpt_openai", "claude", "gemini_google", "deepseek", "qwen", "kimi", "perplexity", "zhipu"}
+    expected = {
+        "chatgpt_openai",
+        "claude",
+        "gemini_google",
+        "deepseek",
+        "qwen",
+        "kimi",
+        "perplexity",
+        "zhipu",
+    }
     assert m.CORE8 == expected
 
 

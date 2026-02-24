@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_OUTDIR = REPO / "artifacts" / "corpus" / "v1"
 DEFAULT_DEDUP_REPORT = DEFAULT_OUTDIR / "dedup_report.v1.json"
@@ -32,7 +31,9 @@ CORE8_ORDER = [
 
 
 def _sha256_obj(obj: dict[str, Any]) -> str:
-    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(
+        obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -70,16 +71,22 @@ def _refresh_baseline(baseline_path: Path, manifest: dict[str, Any]) -> None:
             f"{manifest['unique_conversations']:,}+ unique AI conversations with attested corpus manifest"
         )
 
-    baseline["captured_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    baseline["captured_at"] = dt.datetime.now(dt.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
     temp = dict(baseline)
     temp.pop("hash", None)
     baseline["hash"] = _sha256_obj(temp)
 
-    baseline_path.write_text(json.dumps(baseline, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    baseline_path.write_text(
+        json.dumps(baseline, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
-def _write_attestation(attestation_path: Path, manifest: dict[str, Any], dedup: dict[str, Any]) -> None:
+def _write_attestation(
+    attestation_path: Path, manifest: dict[str, Any], dedup: dict[str, Any]
+) -> None:
     providers_count = len(manifest.get("providers_covered", []))
     raw_conversations = int(manifest.get("raw_conversations", 0))
     unique_conversations = int(manifest.get("unique_conversations", 0))
@@ -87,7 +94,9 @@ def _write_attestation(attestation_path: Path, manifest: dict[str, Any], dedup: 
     unique_messages = int(manifest.get("unique_messages", 0))
 
     coverage_ratio = providers_count / len(CORE8_ORDER) if CORE8_ORDER else 0.0
-    unique_conversation_ratio = (unique_conversations / raw_conversations) if raw_conversations else 0.0
+    unique_conversation_ratio = (
+        (unique_conversations / raw_conversations) if raw_conversations else 0.0
+    )
     unique_message_ratio = (unique_messages / raw_messages) if raw_messages else 0.0
     duplicate_message_rate = 1.0 - unique_message_ratio
 
@@ -187,7 +196,9 @@ def run(
     manifest["manifest_hash"] = _sha256_obj(manifest_for_hash)
 
     manifest_out.parent.mkdir(parents=True, exist_ok=True)
-    manifest_out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    manifest_out.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"Wrote {manifest_out}")
 
     if write_baseline:

@@ -74,7 +74,9 @@ class ReasoningSummary:
     convergence_reason: str = ""  # Why GoT converged on this conclusion
     total_reasoning_ms: float = 0.0
     confidence: float = 0.0
-    guardian_verdicts: dict[str, str] = field(default_factory=dict)  # agent -> APPROVED/DENIED
+    guardian_verdicts: dict[str, str] = field(
+        default_factory=dict
+    )  # agent -> APPROVED/DENIED
     model_used: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -716,9 +718,7 @@ class SovereignResult:
                 "thoughts": self.thoughts,
             },
             "reasoning_summary": (
-                self.reasoning_summary.to_dict()
-                if self.reasoning_summary
-                else None
+                self.reasoning_summary.to_dict() if self.reasoning_summary else None
             ),
             "quality": {
                 "ihsan_score": round(self.ihsan_score, 3),

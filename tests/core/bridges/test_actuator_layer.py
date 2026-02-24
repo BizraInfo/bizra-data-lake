@@ -30,7 +30,6 @@ from core.spearpoint.actuator_skills import (
     create_default_ledger,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -126,7 +125,9 @@ class TestEntropyGate:
 
     def test_entropy_gate_passes_high_signal(self) -> None:
         b = DesktopBridge(host="127.0.0.1", port=9999)
-        code = "import json; data = fetch('api/v1/endpoint'); process(data, mode='strict')"
+        code = (
+            "import json; data = fetch('api/v1/endpoint'); process(data, mode='strict')"
+        )
         result = b._validate_entropy(code)
         assert result["passed"] is True
         assert result["entropy"] >= ACTUATOR_ENTROPY_THRESHOLD
@@ -186,8 +187,7 @@ class TestActuatorExecute:
         # Either FATE blocks it or Shannon blocks it — both are valid
         if isinstance(result, dict):
             has_block = (
-                "error" in result
-                or result.get("entropy", {}).get("passed") is False
+                "error" in result or result.get("entropy", {}).get("passed") is False
             )
             assert has_block or "FATE" in str(result)
 
@@ -226,9 +226,7 @@ class TestGetContext:
     async def test_get_context_returns_schema(
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context")
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context"))
         result = resp["result"]
         assert result["schema_version"] == "2.0"
         assert "privacy_mode" in result
@@ -237,9 +235,7 @@ class TestGetContext:
     async def test_get_context_schema_fields_complete(
         self, bridge: DesktopBridge, free_port: int
     ) -> None:
-        resp = await _send_recv(
-            "127.0.0.1", free_port, _jsonrpc("get_context")
-        )
+        resp = await _send_recv("127.0.0.1", free_port, _jsonrpc("get_context"))
         result = resp["result"]
         for expected in ["schema_version", "privacy_mode", "foreground"]:
             assert expected in result
@@ -331,12 +327,18 @@ class TestActuatorSkillLedger:
     def test_list_all(self) -> None:
         ledger = ActuatorSkillLedger()
         m1 = ActuatorSkillManifest(
-            name="a", description="A", target_app="a.exe",
-            ahk_code="Send('a')", entropy_score=4.0,
+            name="a",
+            description="A",
+            target_app="a.exe",
+            ahk_code="Send('a')",
+            entropy_score=4.0,
         )
         m2 = ActuatorSkillManifest(
-            name="b", description="B", target_app="b.exe",
-            ahk_code="Send('b')", entropy_score=4.5,
+            name="b",
+            description="B",
+            target_app="b.exe",
+            ahk_code="Send('b')",
+            entropy_score=4.5,
         )
         ledger.register(m1)
         ledger.register(m2)
@@ -345,12 +347,18 @@ class TestActuatorSkillLedger:
     def test_resolve_for_app(self) -> None:
         ledger = ActuatorSkillLedger()
         m1 = ActuatorSkillManifest(
-            name="vscode", description="VS Code", target_app="Code.exe",
-            ahk_code="Send('^s')", entropy_score=4.0,
+            name="vscode",
+            description="VS Code",
+            target_app="Code.exe",
+            ahk_code="Send('^s')",
+            entropy_score=4.0,
         )
         m2 = ActuatorSkillManifest(
-            name="chrome", description="Chrome", target_app="chrome.exe",
-            ahk_code="Send('^l')", entropy_score=4.0,
+            name="chrome",
+            description="Chrome",
+            target_app="chrome.exe",
+            ahk_code="Send('^l')",
+            entropy_score=4.0,
         )
         ledger.register(m1)
         ledger.register(m2)
@@ -362,8 +370,11 @@ class TestActuatorSkillLedger:
         ledger = ActuatorSkillLedger()
         assert ledger.count == 0
         m = ActuatorSkillManifest(
-            name="x", description="X", target_app="x.exe",
-            ahk_code="Send('x')", entropy_score=4.0,
+            name="x",
+            description="X",
+            target_app="x.exe",
+            ahk_code="Send('x')",
+            entropy_score=4.0,
         )
         ledger.register(m)
         assert ledger.count == 1
@@ -376,7 +387,9 @@ class TestDefaultLedger:
 
     def test_baseline_skills_all_valid(self) -> None:
         for skill in BASELINE_SKILLS:
-            assert skill.validate() is True, f"Baseline skill '{skill.name}' failed validation"
+            assert (
+                skill.validate() is True
+            ), f"Baseline skill '{skill.name}' failed validation"
 
     def test_default_ledger_contains_vscode_save(self) -> None:
         ledger = create_default_ledger()

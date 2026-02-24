@@ -23,6 +23,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from core.auth.jwt_auth import JWTAuth, TokenClaims, TokenPair
+
 # ---------------------------------------------------------------------------
 # Import auth components
 # ---------------------------------------------------------------------------
@@ -33,8 +35,6 @@ from core.auth.user_store import (
     hash_password,
     verify_password,
 )
-from core.auth.jwt_auth import JWTAuth, TokenClaims, TokenPair
-
 
 # ===========================================================================
 # FIXTURES
@@ -151,7 +151,9 @@ class TestUserStore:
         assert user is not None
         assert user.user_id == registered_user.user_id
 
-    def test_verify_login_wrong_password(self, store: UserStore, registered_user: UserRecord):
+    def test_verify_login_wrong_password(
+        self, store: UserStore, registered_user: UserRecord
+    ):
         user = store.verify_login("mumu", "wrongpassword")
         assert user is None
 
@@ -286,7 +288,9 @@ class TestJWTAuth:
 
     def test_expired_token_rejected(self, jwt: JWTAuth):
         # Issue with 1-second expiry
-        jwt_short = JWTAuth(secret="test-secret-256-bit-minimum-length!!", access_expiry=1)
+        jwt_short = JWTAuth(
+            secret="test-secret-256-bit-minimum-length!!", access_expiry=1
+        )
         pair = jwt_short.issue_tokens("uid123", "mumu")
         time.sleep(1.5)
         claims = jwt_short.verify_token(pair.access_token)
@@ -332,32 +336,38 @@ class TestUserIdPropagation:
 
     def test_sovereign_query_default_user_id(self):
         from core.sovereign.runtime_types import SovereignQuery
+
         q = SovereignQuery(text="test")
         assert q.user_id == ""
 
     def test_sovereign_query_with_user_id(self):
         from core.sovereign.runtime_types import SovereignQuery
+
         q = SovereignQuery(text="test", user_id="uid-abc")
         assert q.user_id == "uid-abc"
 
     def test_sovereign_result_default_user_id(self):
         from core.sovereign.runtime_types import SovereignResult
+
         r = SovereignResult(query_id="q1")
         assert r.user_id == ""
 
     def test_sovereign_result_with_user_id(self):
         from core.sovereign.runtime_types import SovereignResult
+
         r = SovereignResult(query_id="q1", user_id="uid-abc")
         assert r.user_id == "uid-abc"
 
     def test_result_to_dict_includes_user_id(self):
         from core.sovereign.runtime_types import SovereignResult
+
         r = SovereignResult(query_id="q1", user_id="uid-abc", success=True)
         d = r.to_dict()
         assert d["user_id"] == "uid-abc"
 
     def test_result_to_dict_empty_user_id_still_present(self):
         from core.sovereign.runtime_types import SovereignResult
+
         r = SovereignResult(query_id="q1")
         d = r.to_dict()
         assert "user_id" in d
@@ -374,16 +384,17 @@ class TestAuthMiddleware:
 
     def test_middleware_init(self, store: UserStore, jwt: JWTAuth):
         from core.auth.middleware import AuthMiddleware
+
         mw = AuthMiddleware(user_store=store, jwt_auth=jwt)
         assert mw is not None
 
     @pytest.mark.asyncio
-    async def test_authenticate_with_jwt_bearer(
-        self, store: UserStore, jwt: JWTAuth
-    ):
+    async def test_authenticate_with_jwt_bearer(self, store: UserStore, jwt: JWTAuth):
         from core.auth.middleware import AuthMiddleware
 
-        user = store.register(username="jwt_user", email="jwt@test.com", password="password123")
+        user = store.register(
+            username="jwt_user", email="jwt@test.com", password="password123"
+        )
         tokens = jwt.issue_tokens(user.user_id, user.username)
 
         mw = AuthMiddleware(user_store=store, jwt_auth=jwt)
@@ -396,12 +407,12 @@ class TestAuthMiddleware:
         assert authenticated_user.user_id == user.user_id
 
     @pytest.mark.asyncio
-    async def test_authenticate_with_api_key(
-        self, store: UserStore, jwt: JWTAuth
-    ):
+    async def test_authenticate_with_api_key(self, store: UserStore, jwt: JWTAuth):
         from core.auth.middleware import AuthMiddleware
 
-        user = store.register(username="key_user", email="key@test.com", password="password123")
+        user = store.register(
+            username="key_user", email="key@test.com", password="password123"
+        )
 
         mw = AuthMiddleware(user_store=store, jwt_auth=jwt)
 
@@ -450,7 +461,9 @@ class TestAuthE2EFlow:
     def test_register_login_verify_flow(self, store: UserStore, jwt: JWTAuth):
         """Register → login → issue JWT → verify JWT → find user."""
         # 1. Register
-        user = store.register(username="e2e_user", email="e2e@test.com", password="password123")
+        user = store.register(
+            username="e2e_user", email="e2e@test.com", password="password123"
+        )
         assert user.status == "active"
 
         # 2. Login
@@ -475,7 +488,9 @@ class TestAuthE2EFlow:
 
     def test_api_key_flow(self, store: UserStore):
         """Register → get API key → verify → rotate → verify new."""
-        user = store.register(username="apiuser", email="api@test.com", password="password123")
+        user = store.register(
+            username="apiuser", email="api@test.com", password="password123"
+        )
         key = user.api_key
 
         # Verify works
@@ -509,7 +524,9 @@ class TestAuthE2EFlow:
 
     def test_suspended_user_cannot_login(self, store: UserStore):
         """Register → suspend → login fails."""
-        user = store.register(username="sus_user", email="sus@test.com", password="password123")
+        user = store.register(
+            username="sus_user", email="sus@test.com", password="password123"
+        )
         store.update_status(user.user_id, "suspended")
 
         # Verify login returns None for suspended user

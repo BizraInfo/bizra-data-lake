@@ -31,28 +31,28 @@ from typing import List
 import pytest
 
 from core.sovereign.tamper_evident_log import (
-    AuditKeyManager,
     GENESIS_HASH,
     HMAC_DOMAIN_PREFIX,
+    AuditKeyManager,
     KeyRotationEvent,
     TamperEvidentEntry,
     TamperEvidentLog,
     TamperingReport,
     TamperType,
     VerificationStatus,
+    _compute_content_hash,
+    _compute_entry_hash,
+    _compute_entry_hmac,
     create_audit_log,
     detect_tampering,
     verify_chain,
     verify_entry,
-    _compute_content_hash,
-    _compute_entry_hash,
-    _compute_entry_hmac,
 )
-
 
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def key_manager() -> AuditKeyManager:
@@ -71,11 +71,13 @@ def audit_log(key_manager: AuditKeyManager) -> TamperEvidentLog:
 def populated_log(audit_log: TamperEvidentLog) -> TamperEvidentLog:
     """Create a log with several entries."""
     for i in range(5):
-        audit_log.append({
-            "event": f"test_event_{i}",
-            "sequence_data": i,
-            "timestamp": time.time_ns(),
-        })
+        audit_log.append(
+            {
+                "event": f"test_event_{i}",
+                "sequence_data": i,
+                "timestamp": time.time_ns(),
+            }
+        )
     return audit_log
 
 
@@ -88,6 +90,7 @@ def temp_log_path(tmp_path: Path) -> Path:
 # =============================================================================
 # ENTRY CREATION TESTS
 # =============================================================================
+
 
 class TestEntryCreation:
     """Tests for TamperEvidentEntry creation and serialization."""
@@ -136,11 +139,13 @@ class TestEntryCreation:
 
     def test_entry_serialization_roundtrip(self, audit_log: TamperEvidentLog):
         """Entry should survive serialization roundtrip."""
-        original = audit_log.append({
-            "event": "serialize_test",
-            "nested": {"key": "value"},
-            "array": [1, 2, 3],
-        })
+        original = audit_log.append(
+            {
+                "event": "serialize_test",
+                "nested": {"key": "value"},
+                "array": [1, 2, 3],
+            }
+        )
 
         # Serialize and deserialize
         data = original.to_dict()
@@ -165,6 +170,7 @@ class TestEntryCreation:
 # =============================================================================
 # VERIFICATION TESTS
 # =============================================================================
+
 
 class TestVerification:
     """Tests for entry and chain verification."""
@@ -263,6 +269,7 @@ class TestVerification:
 # TAMPERING DETECTION TESTS
 # =============================================================================
 
+
 class TestTamperingDetection:
     """Tests for detecting various types of tampering."""
 
@@ -356,6 +363,7 @@ class TestTamperingDetection:
 # KEY MANAGEMENT TESTS
 # =============================================================================
 
+
 class TestKeyManagement:
     """Tests for AuditKeyManager functionality."""
 
@@ -433,6 +441,7 @@ class TestKeyManagement:
 # =============================================================================
 # PERSISTENCE TESTS
 # =============================================================================
+
 
 class TestPersistence:
     """Tests for log persistence and recovery."""
@@ -548,6 +557,7 @@ class TestPersistence:
 # CONVENIENCE FUNCTION TESTS
 # =============================================================================
 
+
 class TestConvenienceFunctions:
     """Tests for module-level convenience functions."""
 
@@ -606,6 +616,7 @@ class TestConvenienceFunctions:
 # EDGE CASES AND SECURITY TESTS
 # =============================================================================
 
+
 class TestEdgeCasesAndSecurity:
     """Tests for edge cases and security considerations."""
 
@@ -635,7 +646,7 @@ class TestEdgeCasesAndSecurity:
     def test_special_characters_in_content(self, audit_log: TamperEvidentLog):
         """Should handle special characters."""
         special_content = {
-            "unicode": "Hello, \u4e16\u754c! \U0001F600",
+            "unicode": "Hello, \u4e16\u754c! \U0001f600",
             "newlines": "line1\nline2\r\nline3",
             "quotes": 'single\' and "double" quotes',
             "backslash": "path\\to\\file",
@@ -649,15 +660,7 @@ class TestEdgeCasesAndSecurity:
     def test_nested_content(self, audit_log: TamperEvidentLog):
         """Should handle deeply nested content."""
         nested_content = {
-            "level1": {
-                "level2": {
-                    "level3": {
-                        "level4": {
-                            "value": "deep"
-                        }
-                    }
-                }
-            }
+            "level1": {"level2": {"level3": {"level4": {"value": "deep"}}}}
         }
         entry = audit_log.append(nested_content)
         assert entry.content == nested_content
@@ -757,6 +760,7 @@ class TestEdgeCasesAndSecurity:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for complete workflows."""
 
@@ -767,7 +771,9 @@ class TestIntegration:
 
         # Append various events
         log.append({"event": "user_login", "user_id": "alice", "ip": "192.168.1.1"})
-        log.append({"event": "permission_granted", "user_id": "alice", "resource": "admin"})
+        log.append(
+            {"event": "permission_granted", "user_id": "alice", "resource": "admin"}
+        )
         log.append({"event": "data_access", "user_id": "alice", "table": "users"})
         log.append({"event": "user_logout", "user_id": "alice"})
 
@@ -815,11 +821,13 @@ class TestIntegration:
         )
 
         # Log entry about rotation
-        log.append({
-            "event": "key_rotation",
-            "old_key_id": rotation_event.old_key_id,
-            "new_key_id": rotation_event.new_key_id,
-        })
+        log.append(
+            {
+                "event": "key_rotation",
+                "old_key_id": rotation_event.old_key_id,
+                "new_key_id": rotation_event.new_key_id,
+            }
+        )
 
         # Log more events with new key
         for i in range(3):
@@ -833,6 +841,7 @@ class TestIntegration:
 # =============================================================================
 # REPORT FORMAT TESTS
 # =============================================================================
+
 
 class TestReportFormats:
     """Tests for report serialization and formatting."""

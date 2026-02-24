@@ -36,7 +36,9 @@ def test_ihsan_gate_blocks_harmful_text() -> None:
 def test_ihsan_gate_passes_safe_text() -> None:
     bridge = PersonaPlexBridge()
     persona = PersonaPlexBridge.PERSONAS["researcher"]
-    passed, score = bridge.ihsan_gate("Provide safe evidence-backed outreach guidance", persona)
+    passed, score = bridge.ihsan_gate(
+        "Provide safe evidence-backed outreach guidance", persona
+    )
     assert passed is True
     assert score >= persona.ihsan_floor
 

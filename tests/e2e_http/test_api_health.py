@@ -11,7 +11,6 @@ Requires: Rust API server running on localhost:3001
 
 import pytest
 
-
 pytestmark = pytest.mark.e2e_http
 
 

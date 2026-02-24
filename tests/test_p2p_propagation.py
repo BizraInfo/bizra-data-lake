@@ -1,7 +1,7 @@
 import asyncio
+import json
 import sys
 import time
-import json
 from pathlib import Path
 
 # Add project root to path (portable)

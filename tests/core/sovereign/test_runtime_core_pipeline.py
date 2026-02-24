@@ -51,7 +51,6 @@ from core.sovereign.runtime_types import (
     SovereignResult,
 )
 
-
 # =============================================================================
 # HELPERS
 # =============================================================================
@@ -96,7 +95,9 @@ class TestQueryMethod:
     """Tests for the public query() entry-point (lines 1476-1548)."""
 
     @pytest.mark.asyncio
-    async def test_raises_runtime_error_when_not_initialized(self, tmp_path: Path) -> None:
+    async def test_raises_runtime_error_when_not_initialized(
+        self, tmp_path: Path
+    ) -> None:
         """query() must raise RuntimeError if runtime is not initialized."""
         rt = _make_runtime(tmp_path)
         with pytest.raises(RuntimeError, match="not initialized"):
@@ -108,7 +109,9 @@ class TestQueryMethod:
         rt = _make_runtime(tmp_path, enable_cache=True)
         _set_ready(rt)
 
-        cached_result = SovereignResult(query_id="cached-01", success=True, response="from cache")
+        cached_result = SovereignResult(
+            query_id="cached-01", success=True, response="from cache"
+        )
         # Pre-populate cache with a known key
         q = SovereignQuery(text="cached query", require_reasoning=True)
         cache_key = rt._cache_key(q)
@@ -123,15 +126,17 @@ class TestQueryMethod:
         """When enable_cache=True but key absent, increment cache_misses."""
         rt = _make_runtime(tmp_path, enable_cache=True)
         _set_ready(rt)
-        rt._process_query = AsyncMock(return_value=SovereignResult(
-            query_id="q1", success=True, response="ok"
-        ))
+        rt._process_query = AsyncMock(
+            return_value=SovereignResult(query_id="q1", success=True, response="ok")
+        )
 
         await rt.query("unique query text that is not cached")
         assert rt.metrics.cache_misses >= 1
 
     @pytest.mark.asyncio
-    async def test_cache_miss_stores_result_when_cache_enabled(self, tmp_path: Path) -> None:
+    async def test_cache_miss_stores_result_when_cache_enabled(
+        self, tmp_path: Path
+    ) -> None:
         """Successful result gets stored in cache when enable_cache=True."""
         rt = _make_runtime(tmp_path, enable_cache=True)
         _set_ready(rt)
@@ -153,7 +158,13 @@ class TestQueryMethod:
         mock_ctx.conversation = mock_conv
         rt._user_context = mock_ctx
 
-        resp = SovereignResult(query_id="q3", success=True, response="answer", snr_score=0.9, ihsan_score=0.96)
+        resp = SovereignResult(
+            query_id="q3",
+            success=True,
+            response="answer",
+            snr_score=0.9,
+            ihsan_score=0.96,
+        )
         rt._process_query = AsyncMock(return_value=resp)
 
         await rt.query("human says hi")
@@ -203,9 +214,11 @@ class TestQueryMethod:
         """Successful result populates cache when enable_cache is True."""
         rt = _make_runtime(tmp_path, enable_cache=True)
         _set_ready(rt)
-        rt._process_query = AsyncMock(return_value=SovereignResult(
-            query_id="qc", success=True, response="cacheable"
-        ))
+        rt._process_query = AsyncMock(
+            return_value=SovereignResult(
+                query_id="qc", success=True, response="cacheable"
+            )
+        )
 
         await rt.query("cache this")
         assert len(rt._cache) == 1
@@ -215,9 +228,11 @@ class TestQueryMethod:
         """When enable_cache=False, no cache reads or writes occur."""
         rt = _make_runtime(tmp_path, enable_cache=False)
         _set_ready(rt)
-        rt._process_query = AsyncMock(return_value=SovereignResult(
-            query_id="nc", success=True, response="no cache"
-        ))
+        rt._process_query = AsyncMock(
+            return_value=SovereignResult(
+                query_id="nc", success=True, response="no cache"
+            )
+        )
 
         await rt.query("no cache query")
         assert len(rt._cache) == 0
@@ -265,14 +280,18 @@ class TestProcessQueryRouting:
         rt._orchestrate_complex_query.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_high_complexity_with_orchestrator_routes_to_orchestrator(self, tmp_path: Path) -> None:
+    async def test_high_complexity_with_orchestrator_routes_to_orchestrator(
+        self, tmp_path: Path
+    ) -> None:
         """complexity >= 0.6 AND orchestrator available routes to _orchestrate_complex_query."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
         rt._orchestrator = MagicMock()
 
         rt._estimate_complexity = MagicMock(return_value=0.8)
-        rt._orchestrate_complex_query = AsyncMock(return_value=SovereignResult(success=True))
+        rt._orchestrate_complex_query = AsyncMock(
+            return_value=SovereignResult(success=True)
+        )
         rt._process_query_direct = AsyncMock()
 
         query = SovereignQuery(text="multi-step complex analysis")
@@ -282,7 +301,9 @@ class TestProcessQueryRouting:
         rt._process_query_direct.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_high_complexity_without_orchestrator_falls_back_to_direct(self, tmp_path: Path) -> None:
+    async def test_high_complexity_without_orchestrator_falls_back_to_direct(
+        self, tmp_path: Path
+    ) -> None:
         """complexity >= 0.6 but no orchestrator falls back to direct pipeline."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
@@ -375,7 +396,14 @@ class TestProcessQueryDirect:
         query = SovereignQuery(text="test pipeline")
         result = await rt._process_query_direct(query, time.perf_counter())
 
-        assert call_order == ["gate", "tier", "reasoning", "inference", "snr", "validation"]
+        assert call_order == [
+            "gate",
+            "tier",
+            "reasoning",
+            "inference",
+            "snr",
+            "validation",
+        ]
         assert result.success is True
 
     @pytest.mark.asyncio
@@ -429,9 +457,7 @@ class TestProcessQueryDirect:
 
         rt._run_gate_chain_preflight = AsyncMock(return_value=None)
         rt._select_compute_tier = AsyncMock(return_value=None)
-        rt._execute_reasoning_stage = AsyncMock(
-            return_value=([], 0.5, "prompt", None)
-        )
+        rt._execute_reasoning_stage = AsyncMock(return_value=([], 0.5, "prompt", None))
         rt._perform_llm_inference = AsyncMock(
             return_value=("template output", "NO_LLM")
         )
@@ -551,12 +577,18 @@ class TestOrchestrateComplexQuery:
         rt._commit_experience_episode = MagicMock()
         rt._observe_judgment = MagicMock()
 
-        with patch("core.sovereign.runtime_core.SovereignRuntime._orchestrate_complex_query.__module__", create=True):
+        with patch(
+            "core.sovereign.runtime_core.SovereignRuntime._orchestrate_complex_query.__module__",
+            create=True,
+        ):
             pass
 
         query = SovereignQuery(text="complex multi-part query")
         # We must patch the import inside the method
-        with patch.dict("sys.modules", {"core.sovereign.orchestrator": MagicMock(TaskNode=SimpleNamespace)}):
+        with patch.dict(
+            "sys.modules",
+            {"core.sovereign.orchestrator": MagicMock(TaskNode=SimpleNamespace)},
+        ):
             result = await rt._orchestrate_complex_query(query, time.perf_counter())
 
         assert result.success is True
@@ -572,15 +604,22 @@ class TestOrchestrateComplexQuery:
 
         mock_orch = MagicMock()
         mock_orch.decomposer = MagicMock()
-        mock_orch.decomposer.decompose = AsyncMock(side_effect=RuntimeError("decompose failed"))
+        mock_orch.decomposer.decompose = AsyncMock(
+            side_effect=RuntimeError("decompose failed")
+        )
         rt._orchestrator = mock_orch
 
-        expected_result = SovereignResult(query_id="fb", success=True, response="direct fallback")
+        expected_result = SovereignResult(
+            query_id="fb", success=True, response="direct fallback"
+        )
         rt._process_query_direct = AsyncMock(return_value=expected_result)
 
         query = SovereignQuery(text="fallback test")
 
-        with patch.dict("sys.modules", {"core.sovereign.orchestrator": MagicMock(TaskNode=SimpleNamespace)}):
+        with patch.dict(
+            "sys.modules",
+            {"core.sovereign.orchestrator": MagicMock(TaskNode=SimpleNamespace)},
+        ):
             result = await rt._orchestrate_complex_query(query, time.perf_counter())
 
         assert result is expected_result
@@ -637,7 +676,9 @@ class TestExecuteReasoningStage:
     """Tests for _execute_reasoning_stage (lines 1795-1821)."""
 
     @pytest.mark.asyncio
-    async def test_reasoning_not_required_returns_defaults(self, tmp_path: Path) -> None:
+    async def test_reasoning_not_required_returns_defaults(
+        self, tmp_path: Path
+    ) -> None:
         """When require_reasoning=False, skip GoT and return defaults."""
         rt = _make_runtime(tmp_path)
         query = SovereignQuery(text="no reasoning", require_reasoning=False)
@@ -660,21 +701,27 @@ class TestExecuteReasoningStage:
         assert prompt == "no reasoner"
 
     @pytest.mark.asyncio
-    async def test_graph_reasoner_called_and_extracts_results(self, tmp_path: Path) -> None:
+    async def test_graph_reasoner_called_and_extracts_results(
+        self, tmp_path: Path
+    ) -> None:
         """Graph reasoner is called; thoughts, confidence, graph_hash extracted."""
         rt = _make_runtime(tmp_path)
         rt.config.max_reasoning_depth = 7
 
         mock_reasoner = AsyncMock()
-        mock_reasoner.reason = AsyncMock(return_value={
-            "thoughts": ["idea-a", "idea-b"],
-            "confidence": 0.92,
-            "graph_hash": "abc123",
-            "conclusion": "final conclusion",
-        })
+        mock_reasoner.reason = AsyncMock(
+            return_value={
+                "thoughts": ["idea-a", "idea-b"],
+                "confidence": 0.92,
+                "graph_hash": "abc123",
+                "conclusion": "final conclusion",
+            }
+        )
         rt._graph_reasoner = mock_reasoner
 
-        query = SovereignQuery(text="deep think", require_reasoning=True, context={"key": "val"})
+        query = SovereignQuery(
+            text="deep think", require_reasoning=True, context={"key": "val"}
+        )
         path, conf, prompt, ghash = await rt._execute_reasoning_stage(query)
 
         mock_reasoner.reason.assert_awaited_once_with(
@@ -691,10 +738,12 @@ class TestExecuteReasoningStage:
         rt = _make_runtime(tmp_path)
 
         mock_reasoner = AsyncMock()
-        mock_reasoner.reason = AsyncMock(return_value={
-            "thoughts": ["t1"],
-            "confidence": 0.7,
-        })
+        mock_reasoner.reason = AsyncMock(
+            return_value={
+                "thoughts": ["t1"],
+                "confidence": 0.7,
+            }
+        )
         rt._graph_reasoner = mock_reasoner
 
         query = SovereignQuery(text="original text", require_reasoning=True)
@@ -720,7 +769,9 @@ class TestBuildContextualPrompt:
         assert result == "thought"
 
     @pytest.mark.asyncio
-    async def test_genesis_pat_team_includes_agent_routing(self, tmp_path: Path) -> None:
+    async def test_genesis_pat_team_includes_agent_routing(
+        self, tmp_path: Path
+    ) -> None:
         """With genesis PAT team, agent routing is included in the prompt."""
         rt = _make_runtime(tmp_path)
 
@@ -733,7 +784,9 @@ class TestBuildContextualPrompt:
         rt._user_context = mock_ctx
         rt._living_memory = None
 
-        with patch("core.sovereign.runtime_core.select_pat_agent", return_value="researcher"):
+        with patch(
+            "core.sovereign.runtime_core.select_pat_agent", return_value="researcher"
+        ):
             query = SovereignQuery(text="code review", context={})
             result = await rt._build_contextual_prompt("thought prompt", query)
 
@@ -765,12 +818,16 @@ class TestBuildContextualPrompt:
 
         mock_ctx.build_system_prompt.assert_called_once()
         call_kwargs = mock_ctx.build_system_prompt.call_args
-        memory_arg = call_kwargs.kwargs.get("memory_context") or call_kwargs[1].get("memory_context", "")
+        memory_arg = call_kwargs.kwargs.get("memory_context") or call_kwargs[1].get(
+            "memory_context", ""
+        )
         assert "EPISODIC" in memory_arg or "Past conversation" in memory_arg
         assert query.context.get("_source_memory_ids") == ["mem-001"]
 
     @pytest.mark.asyncio
-    async def test_memory_retrieval_failure_falls_back_to_working_context(self, tmp_path: Path) -> None:
+    async def test_memory_retrieval_failure_falls_back_to_working_context(
+        self, tmp_path: Path
+    ) -> None:
         """When retrieve() fails, fall back to get_working_context."""
         rt = _make_runtime(tmp_path)
         rt._genesis = None
@@ -800,7 +857,9 @@ class TestBuildContextualPrompt:
         mock_ctx.build_system_prompt = MagicMock(return_value="[SYS]")
         rt._user_context = mock_ctx
 
-        with patch("core.sovereign.runtime_core.select_pat_agent", return_value="analyst"):
+        with patch(
+            "core.sovereign.runtime_core.select_pat_agent", return_value="analyst"
+        ):
             query = SovereignQuery(text="analyze", context={})
             await rt._build_contextual_prompt("tp", query)
             assert query.context["_responding_agent"] == "analyst"
@@ -825,7 +884,9 @@ class TestPerformLLMInference:
         mock_gw.infer = AsyncMock(return_value=inference_result)
         rt._gateway = mock_gw
 
-        answer, model = await rt._perform_llm_inference("prompt", None, SovereignQuery(text="q"))
+        answer, model = await rt._perform_llm_inference(
+            "prompt", None, SovereignQuery(text="q")
+        )
         assert answer == "LLM said this"
         assert model == "qwen2.5:7b"
 
@@ -839,7 +900,9 @@ class TestPerformLLMInference:
         mock_gw.infer = AsyncMock(side_effect=ConnectionError("LLM down"))
         rt._gateway = mock_gw
 
-        answer, model = await rt._perform_llm_inference("prompt text", None, SovereignQuery(text="q"))
+        answer, model = await rt._perform_llm_inference(
+            "prompt text", None, SovereignQuery(text="q")
+        )
         assert model == "NO_LLM"
         assert "prompt text" in answer
 
@@ -850,19 +913,25 @@ class TestPerformLLMInference:
         rt._user_context = None
         rt._gateway = None
 
-        answer, model = await rt._perform_llm_inference("my prompt", None, SovereignQuery(text="q"))
+        answer, model = await rt._perform_llm_inference(
+            "my prompt", None, SovereignQuery(text="q")
+        )
         assert model == "NO_LLM"
         # The answer should contain the contextual prompt which is based on thought_prompt
         assert "my prompt" in answer or answer is not None
 
     @pytest.mark.asyncio
-    async def test_gateway_without_infer_method_returns_no_llm(self, tmp_path: Path) -> None:
+    async def test_gateway_without_infer_method_returns_no_llm(
+        self, tmp_path: Path
+    ) -> None:
         """If gateway object lacks infer method, treat as NO_LLM."""
         rt = _make_runtime(tmp_path)
         rt._user_context = None
         rt._gateway = MagicMock(spec=[])  # No infer attribute
 
-        answer, model = await rt._perform_llm_inference("p", None, SovereignQuery(text="q"))
+        answer, model = await rt._perform_llm_inference(
+            "p", None, SovereignQuery(text="q")
+        )
         assert model == "NO_LLM"
 
 
@@ -880,14 +949,18 @@ class TestOptimizeSNR:
         rt = _make_runtime(tmp_path)
 
         mock_optimizer = AsyncMock()
-        mock_optimizer.optimize = AsyncMock(return_value={
-            "snr_score": 0.91,
-            "optimized": "clean text",
-            "claim_tags": {"quality": "measured"},
-        })
+        mock_optimizer.optimize = AsyncMock(
+            return_value={
+                "snr_score": 0.91,
+                "optimized": "clean text",
+                "claim_tags": {"quality": "measured"},
+            }
+        )
         rt._snr_optimizer = mock_optimizer
 
-        with patch("core.sovereign.runtime_core.inspect.isawaitable", return_value=True):
+        with patch(
+            "core.sovereign.runtime_core.inspect.isawaitable", return_value=True
+        ):
             content, score, tags = await rt._optimize_snr("noisy text")
 
         mock_optimizer.optimize.assert_called_once_with("noisy text")
@@ -895,29 +968,38 @@ class TestOptimizeSNR:
         assert "clean text" in content or content is not None
 
     @pytest.mark.asyncio
-    async def test_phase2_snr_engine_v1_authoritative_score(self, tmp_path: Path) -> None:
+    async def test_phase2_snr_engine_v1_authoritative_score(
+        self, tmp_path: Path
+    ) -> None:
         """Phase 2: SNREngine v1 produces the authoritative score."""
         rt = _make_runtime(tmp_path)
         rt._snr_optimizer = None
 
         mock_engine = MagicMock()
-        mock_engine.snr_score = MagicMock(return_value={
-            "score": 0.94,
-            "claim_tags": {"audit": "measured"},
-        })
+        mock_engine.snr_score = MagicMock(
+            return_value={
+                "score": 0.94,
+                "claim_tags": {"audit": "measured"},
+            }
+        )
         mock_snr_input = MagicMock()
 
-        with patch("core.sovereign.runtime_core.SovereignRuntime._optimize_snr") as orig:
+        with patch(
+            "core.sovereign.runtime_core.SovereignRuntime._optimize_snr"
+        ) as orig:
             # Call the actual method
             pass
 
         # Call directly with mocked imports
-        with patch.dict("sys.modules", {
-            "core.proof_engine.snr": MagicMock(
-                SNREngine=MagicMock(return_value=mock_engine),
-                SNRInput=MagicMock(return_value=mock_snr_input),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.snr": MagicMock(
+                    SNREngine=MagicMock(return_value=mock_engine),
+                    SNRInput=MagicMock(return_value=mock_snr_input),
+                ),
+            },
+        ):
             content, score, tags = await rt._optimize_snr("test content")
 
         assert score == 0.94
@@ -930,21 +1012,30 @@ class TestOptimizeSNR:
 
         mock_opt = MagicMock()
         # Return synchronous result (not awaitable)
-        mock_opt.optimize = MagicMock(return_value={
-            "snr_score": 0.90,
-            "optimized": "short",
-            "claim_tags": {},
-        })
+        mock_opt.optimize = MagicMock(
+            return_value={
+                "snr_score": 0.90,
+                "optimized": "short",
+                "claim_tags": {},
+            }
+        )
         rt._snr_optimizer = mock_opt
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.snr": MagicMock(
-                SNREngine=MagicMock(return_value=MagicMock(
-                    snr_score=MagicMock(return_value={"score": 0.92, "claim_tags": {}})
-                )),
-                SNRInput=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.snr": MagicMock(
+                    SNREngine=MagicMock(
+                        return_value=MagicMock(
+                            snr_score=MagicMock(
+                                return_value={"score": 0.92, "claim_tags": {}}
+                            )
+                        )
+                    ),
+                    SNRInput=MagicMock(),
+                ),
+            },
+        ):
             await rt._optimize_snr("this is a longer original text that gets optimized")
 
         assert rt.metrics.snr_optimizations == 1
@@ -956,14 +1047,21 @@ class TestOptimizeSNR:
         rt._snr_optimizer = None
 
         # Mock the SNREngine too to prevent import errors
-        with patch.dict("sys.modules", {
-            "core.proof_engine.snr": MagicMock(
-                SNREngine=MagicMock(return_value=MagicMock(
-                    snr_score=MagicMock(return_value={"score": 0.88, "claim_tags": {}})
-                )),
-                SNRInput=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.snr": MagicMock(
+                    SNREngine=MagicMock(
+                        return_value=MagicMock(
+                            snr_score=MagicMock(
+                                return_value={"score": 0.88, "claim_tags": {}}
+                            )
+                        )
+                    ),
+                    SNRInput=MagicMock(),
+                ),
+            },
+        ):
             content, score, tags = await rt._optimize_snr("raw content")
 
         assert content == "raw content"  # Unchanged without optimizer
@@ -974,9 +1072,12 @@ class TestOptimizeSNR:
         rt = _make_runtime(tmp_path)
         rt._snr_optimizer = None
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.snr": None,  # Simulate import failure
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.snr": None,  # Simulate import failure
+            },
+        ):
             # Should not raise
             content, score, tags = await rt._optimize_snr("test")
 
@@ -989,14 +1090,21 @@ class TestOptimizeSNR:
         rt = _make_runtime(tmp_path)
         rt._snr_optimizer = None
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.snr": MagicMock(
-                SNREngine=MagicMock(return_value=MagicMock(
-                    snr_score=MagicMock(return_value={"score": 0.935, "claim_tags": {}})
-                )),
-                SNRInput=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.snr": MagicMock(
+                    SNREngine=MagicMock(
+                        return_value=MagicMock(
+                            snr_score=MagicMock(
+                                return_value={"score": 0.935, "claim_tags": {}}
+                            )
+                        )
+                    ),
+                    SNRInput=MagicMock(),
+                ),
+            },
+        ):
             await rt._optimize_snr("text")
 
         assert rt.metrics.current_snr_score == 0.935
@@ -1043,7 +1151,9 @@ class TestValidateConstitutionally:
                 ),
             },
         ):
-            query = SovereignQuery(text="validate with grounded ihsan", require_validation=False)
+            query = SovereignQuery(
+                text="validate with grounded ihsan", require_validation=False
+            )
             score, verdict = await rt._validate_constitutionally(
                 "content body", {"risk_score": 0.2}, query, 0.88
             )
@@ -1067,19 +1177,26 @@ class TestValidateConstitutionally:
         rt._guardian_council = None
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={
-            "score": 0.965,
-            "decision": "APPROVED",
-        })
+        mock_gate.ihsan_score = MagicMock(
+            return_value={
+                "score": 0.965,
+                "decision": "APPROVED",
+            }
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="validate me", require_validation=False)
-            score, verdict = await rt._validate_constitutionally("content", {}, query, 0.9)
+            score, verdict = await rt._validate_constitutionally(
+                "content", {}, query, 0.9
+            )
 
         assert score == 0.965
         assert verdict == "APPROVED"
@@ -1096,17 +1213,26 @@ class TestValidateConstitutionally:
         rt._omega = mock_omega
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={"score": 0.90, "decision": "OK"})
+        mock_gate.ihsan_score = MagicMock(
+            return_value={"score": 0.90, "decision": "OK"}
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
-            with patch.object(rt, "_extract_ihsan_from_response", return_value="ihsan_vector"):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
+            with patch.object(
+                rt, "_extract_ihsan_from_response", return_value="ihsan_vector"
+            ):
                 query = SovereignQuery(text="omega test", require_validation=False)
-                score, verdict = await rt._validate_constitutionally("c", {}, query, 0.9)
+                score, verdict = await rt._validate_constitutionally(
+                    "c", {}, query, 0.9
+                )
 
         # 0.7 * 0.90 + 0.3 * 0.98 = 0.63 + 0.294 = 0.924
         assert abs(score - 0.924) < 0.01
@@ -1119,22 +1245,29 @@ class TestValidateConstitutionally:
         rt._omega = None
 
         mock_guardian = AsyncMock()
-        mock_guardian.validate = AsyncMock(return_value={
-            "confidence": 0.88,
-            "is_valid": True,
-            "issues": [],
-        })
+        mock_guardian.validate = AsyncMock(
+            return_value={
+                "confidence": 0.88,
+                "is_valid": True,
+                "issues": [],
+            }
+        )
         rt._guardian_council = mock_guardian
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={"score": 0.95, "decision": "OK"})
+        mock_gate.ihsan_score = MagicMock(
+            return_value={"score": 0.95, "decision": "OK"}
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="guardian test", require_validation=True)
             score, verdict = await rt._validate_constitutionally("c", {}, query, 0.9)
 
@@ -1169,17 +1302,24 @@ class TestValidateConstitutionally:
         rt._omega = mock_omega
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={"score": 0.93, "decision": "OK"})
+        mock_gate.ihsan_score = MagicMock(
+            return_value={"score": 0.93, "decision": "OK"}
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
             with patch.object(rt, "_extract_ihsan_from_response", return_value="vec"):
                 query = SovereignQuery(text="omega fail", require_validation=False)
-                score, verdict = await rt._validate_constitutionally("c", {}, query, 0.9)
+                score, verdict = await rt._validate_constitutionally(
+                    "c", {}, query, 0.9
+                )
 
         # Omega failed, so score remains from IhsanGate
         assert score == 0.93
@@ -1191,21 +1331,28 @@ class TestValidateConstitutionally:
         rt._omega = None
 
         mock_guardian = AsyncMock()
-        mock_guardian.validate = AsyncMock(return_value={
-            "confidence": 0.90,
-            "is_valid": True,
-        })
+        mock_guardian.validate = AsyncMock(
+            return_value={
+                "confidence": 0.90,
+                "is_valid": True,
+            }
+        )
         rt._guardian_council = mock_guardian
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={"score": 0.95, "decision": "OK"})
+        mock_gate.ihsan_score = MagicMock(
+            return_value={"score": 0.95, "decision": "OK"}
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="val count", require_validation=True)
             await rt._validate_constitutionally("c", {}, query, 0.9)
 
@@ -1219,14 +1366,19 @@ class TestValidateConstitutionally:
         rt._guardian_council = None
 
         mock_gate = MagicMock()
-        mock_gate.ihsan_score = MagicMock(return_value={"score": 0.972, "decision": "OK"})
+        mock_gate.ihsan_score = MagicMock(
+            return_value={"score": 0.972, "decision": "OK"}
+        )
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.ihsan_gate": MagicMock(
-                IhsanGate=MagicMock(return_value=mock_gate),
-                IhsanComponents=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.ihsan_gate": MagicMock(
+                    IhsanGate=MagicMock(return_value=mock_gate),
+                    IhsanComponents=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="metrics", require_validation=False)
             await rt._validate_constitutionally("c", {}, query, 0.9)
 
@@ -1320,7 +1472,9 @@ class TestInitialize:
         rt._start_autonomous_loop.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_does_not_start_autonomous_loop_when_disabled(self, tmp_path: Path) -> None:
+    async def test_does_not_start_autonomous_loop_when_disabled(
+        self, tmp_path: Path
+    ) -> None:
         """When autonomous_enabled=False, autonomous loop is not started."""
         rt = _make_runtime(tmp_path, autonomous_enabled=False)
 
@@ -1464,7 +1618,9 @@ class TestShutdown:
         assert rt._running is False
 
     @pytest.mark.asyncio
-    async def test_user_context_save_failure_does_not_crash(self, tmp_path: Path) -> None:
+    async def test_user_context_save_failure_does_not_crash(
+        self, tmp_path: Path
+    ) -> None:
         """If user context save raises, shutdown continues."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
@@ -1488,7 +1644,9 @@ class TestInitComponents:
     """Tests for _init_components() feature flag dispatch (lines 881-986)."""
 
     @pytest.mark.asyncio
-    async def test_enable_graph_reasoning_true_imports_got(self, tmp_path: Path) -> None:
+    async def test_enable_graph_reasoning_true_imports_got(
+        self, tmp_path: Path
+    ) -> None:
         """enable_graph_reasoning=True attempts to import GraphOfThoughts."""
         rt = _make_runtime(tmp_path, enable_graph_reasoning=True)
         rt._init_omega_components = AsyncMock()
@@ -1498,7 +1656,11 @@ class TestInitComponents:
         with patch("core.sovereign.runtime_core.GraphOfThoughts", create=True):
             with patch.dict("sys.modules", {}):
                 # The import happens inside _init_components; mock the import path
-                with patch("core.sovereign.graph_reasoner.GraphOfThoughts", mock_got, create=True):
+                with patch(
+                    "core.sovereign.graph_reasoner.GraphOfThoughts",
+                    mock_got,
+                    create=True,
+                ):
                     try:
                         await rt._init_components()
                     except (ImportError, ModuleNotFoundError):
@@ -1519,7 +1681,9 @@ class TestInitComponents:
         assert getattr(rt._graph_reasoner, "is_stub", False) is True
 
     @pytest.mark.asyncio
-    async def test_enable_snr_optimization_false_uses_stub(self, tmp_path: Path) -> None:
+    async def test_enable_snr_optimization_false_uses_stub(
+        self, tmp_path: Path
+    ) -> None:
         """enable_snr_optimization=False uses stub."""
         rt = _make_runtime(tmp_path, enable_snr_optimization=False)
         rt._init_omega_components = AsyncMock()
@@ -1530,7 +1694,9 @@ class TestInitComponents:
         assert getattr(rt._snr_optimizer, "is_stub", False) is True
 
     @pytest.mark.asyncio
-    async def test_enable_guardian_validation_false_uses_stub(self, tmp_path: Path) -> None:
+    async def test_enable_guardian_validation_false_uses_stub(
+        self, tmp_path: Path
+    ) -> None:
         """enable_guardian_validation=False uses stub."""
         rt = _make_runtime(tmp_path, enable_guardian_validation=False)
         rt._init_omega_components = AsyncMock()
@@ -1552,7 +1718,9 @@ class TestInitComponents:
         assert getattr(rt._autonomous_loop, "is_stub", False) is True
 
     @pytest.mark.asyncio
-    async def test_import_error_uses_stub_for_graph_reasoner(self, tmp_path: Path) -> None:
+    async def test_import_error_uses_stub_for_graph_reasoner(
+        self, tmp_path: Path
+    ) -> None:
         """ImportError when loading GraphOfThoughts falls back to stub."""
         rt = _make_runtime(tmp_path, enable_graph_reasoning=True)
         rt._init_omega_components = AsyncMock()
@@ -1688,7 +1856,10 @@ class TestLoadGenesisIdentity:
             node_id="loaded-id",
             node_name="Loaded Node",
         )
-        with patch("core.sovereign.runtime_core.load_and_validate_genesis", return_value=mock_genesis):
+        with patch(
+            "core.sovereign.runtime_core.load_and_validate_genesis",
+            return_value=mock_genesis,
+        ):
             rt._load_genesis_identity()
 
         assert rt._genesis is mock_genesis
@@ -1699,7 +1870,9 @@ class TestLoadGenesisIdentity:
         rt = _make_runtime(tmp_path)
         original_node_id = rt.config.node_id
 
-        with patch("core.sovereign.runtime_core.load_and_validate_genesis", return_value=None):
+        with patch(
+            "core.sovereign.runtime_core.load_and_validate_genesis", return_value=None
+        ):
             rt._load_genesis_identity()
 
         assert rt._genesis is None
@@ -1739,7 +1912,9 @@ class TestInitMemoryCoordinator:
         mock_coord.register_living_memory = MagicMock()
         mock_coord.start_auto_save = AsyncMock()
 
-        with patch("core.sovereign.runtime_core.MemoryCoordinator", return_value=mock_coord):
+        with patch(
+            "core.sovereign.runtime_core.MemoryCoordinator", return_value=mock_coord
+        ):
             with patch("core.sovereign.runtime_core.MemoryCoordinatorConfig"):
                 rt._register_proactive_providers = MagicMock()
                 await rt._init_memory_coordinator()
@@ -1748,7 +1923,9 @@ class TestInitMemoryCoordinator:
         mock_coord.register_state_provider.assert_called()
 
     @pytest.mark.asyncio
-    async def test_starts_auto_save_when_persistence_enabled(self, tmp_path: Path) -> None:
+    async def test_starts_auto_save_when_persistence_enabled(
+        self, tmp_path: Path
+    ) -> None:
         """When enable_persistence=True, auto-save is started."""
         rt = _make_runtime(tmp_path, enable_persistence=True)
 
@@ -1757,7 +1934,9 @@ class TestInitMemoryCoordinator:
         mock_coord.register_state_provider = MagicMock()
         mock_coord.start_auto_save = AsyncMock()
 
-        with patch("core.sovereign.runtime_core.MemoryCoordinator", return_value=mock_coord):
+        with patch(
+            "core.sovereign.runtime_core.MemoryCoordinator", return_value=mock_coord
+        ):
             with patch("core.sovereign.runtime_core.MemoryCoordinatorConfig"):
                 rt._register_proactive_providers = MagicMock()
                 # Prevent LivingMemory import
@@ -1817,12 +1996,15 @@ class TestRecordQueryImpact:
             validation_passed=True,
         )
 
-        with patch.dict("sys.modules", {
-            "core.pat.impact_tracker": MagicMock(
-                UERSScore=MagicMock(),
-                compute_query_bloom=MagicMock(return_value=0.5),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.pat.impact_tracker": MagicMock(
+                    UERSScore=MagicMock(),
+                    compute_query_bloom=MagicMock(return_value=0.5),
+                ),
+            },
+        ):
             rt._record_query_impact(result)
 
         mock_tracker.record_event.assert_called_once()
@@ -1838,15 +2020,24 @@ class TestRecordQueryImpact:
         mock_tracker.record_event = MagicMock(side_effect=RuntimeError("tracker broke"))
         rt._impact_tracker = mock_tracker
 
-        result = SovereignResult(query_id="q1", success=True, response="x",
-                                 processing_time_ms=10, snr_score=0.9, ihsan_score=0.95)
+        result = SovereignResult(
+            query_id="q1",
+            success=True,
+            response="x",
+            processing_time_ms=10,
+            snr_score=0.9,
+            ihsan_score=0.95,
+        )
 
-        with patch.dict("sys.modules", {
-            "core.pat.impact_tracker": MagicMock(
-                UERSScore=MagicMock(),
-                compute_query_bloom=MagicMock(return_value=0.5),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.pat.impact_tracker": MagicMock(
+                    UERSScore=MagicMock(),
+                    compute_query_bloom=MagicMock(return_value=0.5),
+                ),
+            },
+        ):
             # Should not raise
             rt._record_query_impact(result)
 
@@ -1932,9 +2123,9 @@ class TestConvenienceMethods:
         """think() calls query() and returns response on success."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
-        rt.query = AsyncMock(return_value=SovereignResult(
-            success=True, response="deep thought"
-        ))
+        rt.query = AsyncMock(
+            return_value=SovereignResult(success=True, response="deep thought")
+        )
 
         result = await rt.think("what is life?")
         assert result == "deep thought"
@@ -1945,22 +2136,24 @@ class TestConvenienceMethods:
         """think() returns error string when query fails."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
-        rt.query = AsyncMock(return_value=SovereignResult(
-            success=False, error="query failed"
-        ))
+        rt.query = AsyncMock(
+            return_value=SovereignResult(success=False, error="query failed")
+        )
 
         result = await rt.think("broken question")
         assert "Error" in result
         assert "query failed" in result
 
     @pytest.mark.asyncio
-    async def test_validate_delegates_with_require_validation(self, tmp_path: Path) -> None:
+    async def test_validate_delegates_with_require_validation(
+        self, tmp_path: Path
+    ) -> None:
         """validate() calls query with require_validation=True."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
-        rt.query = AsyncMock(return_value=SovereignResult(
-            success=True, ihsan_score=0.97
-        ))
+        rt.query = AsyncMock(
+            return_value=SovereignResult(success=True, ihsan_score=0.97)
+        )
 
         result = await rt.validate("check this content")
         assert result is True
@@ -1974,9 +2167,9 @@ class TestConvenienceMethods:
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
         rt.config.ihsan_threshold = 0.95
-        rt.query = AsyncMock(return_value=SovereignResult(
-            success=True, ihsan_score=0.80
-        ))
+        rt.query = AsyncMock(
+            return_value=SovereignResult(success=True, ihsan_score=0.80)
+        )
 
         result = await rt.validate("low quality")
         assert result is False
@@ -1986,9 +2179,11 @@ class TestConvenienceMethods:
         """reason() returns the thoughts list from query result."""
         rt = _make_runtime(tmp_path)
         _set_ready(rt)
-        rt.query = AsyncMock(return_value=SovereignResult(
-            success=True, thoughts=["step1", "step2", "step3"]
-        ))
+        rt.query = AsyncMock(
+            return_value=SovereignResult(
+                success=True, thoughts=["step1", "step2", "step3"]
+            )
+        )
 
         result = await rt.reason("complex question", depth=3)
         assert result == ["step1", "step2", "step3"]
@@ -2061,7 +2256,10 @@ class TestSetupSignalHandlers:
         """NotImplementedError (Windows) is caught silently."""
         rt = _make_runtime(tmp_path)
 
-        with patch("asyncio.get_running_loop", side_effect=NotImplementedError("no signals on Windows")):
+        with patch(
+            "asyncio.get_running_loop",
+            side_effect=NotImplementedError("no signals on Windows"),
+        ):
             # Should not raise
             rt._setup_signal_handlers()
 
@@ -2069,7 +2267,9 @@ class TestSetupSignalHandlers:
         """RuntimeError (no running loop) is caught silently."""
         rt = _make_runtime(tmp_path)
 
-        with patch("asyncio.get_running_loop", side_effect=RuntimeError("no running loop")):
+        with patch(
+            "asyncio.get_running_loop", side_effect=RuntimeError("no running loop")
+        ):
             # Should not raise
             rt._setup_signal_handlers()
 
@@ -2167,16 +2367,19 @@ class TestObserveJudgment:
         result = SovereignResult(success=True, snr_ok=True, ihsan_score=0.97)
 
         mock_verdict = MagicMock()
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": MagicMock(
-                JudgmentVerdict=SimpleNamespace(
-                    PROMOTE=mock_verdict,
-                    NEUTRAL="NEUTRAL",
-                    DEMOTE="DEMOTE",
-                    FORBID="FORBID",
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": MagicMock(
+                    JudgmentVerdict=SimpleNamespace(
+                        PROMOTE=mock_verdict,
+                        NEUTRAL="NEUTRAL",
+                        DEMOTE="DEMOTE",
+                        FORBID="FORBID",
+                    ),
                 ),
-            ),
-        }):
+            },
+        ):
             rt._observe_judgment(result)
 
         mock_telemetry.observe.assert_called_once_with(mock_verdict)
@@ -2190,16 +2393,19 @@ class TestObserveJudgment:
         result = SovereignResult(success=True, snr_ok=False, ihsan_score=0.80)
 
         mock_demote = MagicMock()
-        with patch.dict("sys.modules", {
-            "core.sovereign.judgment_telemetry": MagicMock(
-                JudgmentVerdict=SimpleNamespace(
-                    PROMOTE="PROMOTE",
-                    NEUTRAL="NEUTRAL",
-                    DEMOTE=mock_demote,
-                    FORBID="FORBID",
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.sovereign.judgment_telemetry": MagicMock(
+                    JudgmentVerdict=SimpleNamespace(
+                        PROMOTE="PROMOTE",
+                        NEUTRAL="NEUTRAL",
+                        DEMOTE=mock_demote,
+                        FORBID="FORBID",
+                    ),
                 ),
-            ),
-        }):
+            },
+        ):
             rt._observe_judgment(result)
 
         mock_telemetry.observe.assert_called_once_with(mock_demote)
@@ -2286,12 +2492,15 @@ class TestGateChainPreflight:
         rt._gate_chain = MagicMock()
         rt._gate_chain.evaluate = MagicMock(return_value=(chain_result, None))
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": MagicMock(
-                CanonQuery=MagicMock(),
-                CanonPolicy=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": MagicMock(
+                    CanonQuery=MagicMock(),
+                    CanonPolicy=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="test")
             result = SovereignResult()
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -2314,12 +2523,15 @@ class TestGateChainPreflight:
         rt._gate_chain = MagicMock()
         rt._gate_chain.evaluate = MagicMock(return_value=(chain_result, None))
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": MagicMock(
-                CanonQuery=MagicMock(),
-                CanonPolicy=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": MagicMock(
+                    CanonQuery=MagicMock(),
+                    CanonPolicy=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="untrusted")
             result = SovereignResult(query_id="rej1")
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -2335,12 +2547,15 @@ class TestGateChainPreflight:
         rt._gate_chain = MagicMock()
         rt._gate_chain.evaluate = MagicMock(side_effect=RuntimeError("gate boom"))
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.canonical": MagicMock(
-                CanonQuery=MagicMock(),
-                CanonPolicy=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.canonical": MagicMock(
+                    CanonQuery=MagicMock(),
+                    CanonPolicy=MagicMock(),
+                ),
+            },
+        ):
             query = SovereignQuery(text="boom")
             result = SovereignResult()
             ret = await rt._run_gate_chain_preflight(query, result)
@@ -2374,12 +2589,15 @@ class TestRegisterPoiContribution:
         rt = _make_runtime(tmp_path)
         rt._poi_orchestrator = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.poi_engine": MagicMock(
-                ContributionMetadata=MagicMock(side_effect=RuntimeError("fail")),
-                ContributionType=MagicMock(),
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.poi_engine": MagicMock(
+                    ContributionMetadata=MagicMock(side_effect=RuntimeError("fail")),
+                    ContributionType=MagicMock(),
+                ),
+            },
+        ):
             result = SovereignResult(success=True, query_id="q1")
             query = SovereignQuery(text="test")
             # Should not raise
@@ -2402,13 +2620,22 @@ class TestEmitQueryReceipt:
         rt = _make_runtime(tmp_path)
         rt._evidence_ledger = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "core.proof_engine.evidence_ledger": MagicMock(
-                emit_receipt=MagicMock(side_effect=RuntimeError("ledger fail"))
-            ),
-        }):
-            result = SovereignResult(success=True, response="x", query_id="q1",
-                                     snr_score=0.9, ihsan_score=0.95, validation_passed=True)
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.proof_engine.evidence_ledger": MagicMock(
+                    emit_receipt=MagicMock(side_effect=RuntimeError("ledger fail"))
+                ),
+            },
+        ):
+            result = SovereignResult(
+                success=True,
+                response="x",
+                query_id="q1",
+                snr_score=0.9,
+                ihsan_score=0.95,
+                validation_passed=True,
+            )
             query = SovereignQuery(text="test")
             # Should not raise
             rt._emit_query_receipt(result, query)
@@ -2420,9 +2647,12 @@ class TestModeToTier:
     def test_returns_none_when_imports_fail(self, tmp_path: Path) -> None:
         """When imports fail, returns None."""
         rt = _make_runtime(tmp_path)
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": None,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": None,
+            },
+        ):
             result = rt._mode_to_tier("ANYTHING")
         assert result is None
 
@@ -2447,10 +2677,13 @@ class TestModeToTier:
         fake_omega_mod = MagicMock(TreasuryMode=FakeTreasuryMode)
         fake_gw_mod = MagicMock(ComputeTier=FakeComputeTier)
 
-        with patch.dict("sys.modules", {
-            "core.inference.gateway": fake_gw_mod,
-            "core.sovereign.omega_engine": fake_omega_mod,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "core.inference.gateway": fake_gw_mod,
+                "core.sovereign.omega_engine": fake_omega_mod,
+            },
+        ):
             # A plain string is not an instance of FakeTreasuryMode
             result = rt._mode_to_tier("not_a_mode")
         assert result is None
@@ -2509,8 +2742,14 @@ class TestCreateContextManager:
         """create() context manager initializes and shuts down."""
         cfg = _minimal_config(tmp_path)
 
-        with patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock) as mock_init, \
-             patch.object(SovereignRuntime, "shutdown", new_callable=AsyncMock) as mock_shutdown:
+        with (
+            patch.object(
+                SovereignRuntime, "initialize", new_callable=AsyncMock
+            ) as mock_init,
+            patch.object(
+                SovereignRuntime, "shutdown", new_callable=AsyncMock
+            ) as mock_shutdown,
+        ):
             async with SovereignRuntime.create(cfg) as rt:
                 assert isinstance(rt, SovereignRuntime)
                 mock_init.assert_awaited_once()
@@ -2522,8 +2761,12 @@ class TestCreateContextManager:
         """Even if code inside context raises, shutdown is called."""
         cfg = _minimal_config(tmp_path)
 
-        with patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock), \
-             patch.object(SovereignRuntime, "shutdown", new_callable=AsyncMock) as mock_shutdown:
+        with (
+            patch.object(SovereignRuntime, "initialize", new_callable=AsyncMock),
+            patch.object(
+                SovereignRuntime, "shutdown", new_callable=AsyncMock
+            ) as mock_shutdown,
+        ):
             with pytest.raises(ValueError, match="intentional"):
                 async with SovereignRuntime.create(cfg) as rt:
                     raise ValueError("intentional")

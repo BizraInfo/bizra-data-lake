@@ -19,14 +19,13 @@ from core.spearpoint.sovereign_spearpoint import (
     MemoryEntry,
     MemorySystem,
     MemoryType,
+    SovereignSpearpoint,
     SpearheadConfig,
     SpearheadResult,
     SpearheadStatus,
-    SovereignSpearpoint,
     Z3Proof,
     Z3Verifier,
 )
-
 
 # ---------------------------------------------------------------------------
 # ENUM TESTS

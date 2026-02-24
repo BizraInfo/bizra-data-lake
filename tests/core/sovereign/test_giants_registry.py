@@ -16,7 +16,6 @@ from core.sovereign.runtime_engines.giants_registry import (
     get_giants_registry,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Giant Data Model Tests
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -49,7 +48,10 @@ class TestGiant:
             citation="Shannon (1948)",
             key_insight="Information can be quantified.",
         )
-        assert g.format_attribution() == "Claude Shannon (1948): A Mathematical Theory of Communication"
+        assert (
+            g.format_attribution()
+            == "Claude Shannon (1948): A Mathematical Theory of Communication"
+        )
 
     def test_format_full_citation(self):
         g = Giant(
@@ -66,44 +68,68 @@ class TestGiant:
     def test_hash_equality(self):
         """Giants with same name and year are equal."""
         g1 = Giant(
-            name="Shannon", year=1948, work="A",
-            contribution="C", category=GiantCategory.INFORMATION_THEORY,
-            citation="X", key_insight="Y",
+            name="Shannon",
+            year=1948,
+            work="A",
+            contribution="C",
+            category=GiantCategory.INFORMATION_THEORY,
+            citation="X",
+            key_insight="Y",
         )
         g2 = Giant(
-            name="Shannon", year=1948, work="B",
-            contribution="D", category=GiantCategory.INFORMATION_THEORY,
-            citation="Z", key_insight="W",
+            name="Shannon",
+            year=1948,
+            work="B",
+            contribution="D",
+            category=GiantCategory.INFORMATION_THEORY,
+            citation="Z",
+            key_insight="W",
         )
         assert g1 == g2
         assert hash(g1) == hash(g2)
 
     def test_inequality(self):
         g1 = Giant(
-            name="Shannon", year=1948, work="A",
-            contribution="C", category=GiantCategory.INFORMATION_THEORY,
-            citation="X", key_insight="Y",
+            name="Shannon",
+            year=1948,
+            work="A",
+            contribution="C",
+            category=GiantCategory.INFORMATION_THEORY,
+            citation="X",
+            key_insight="Y",
         )
         g2 = Giant(
-            name="Lamport", year=1982, work="B",
-            contribution="D", category=GiantCategory.DISTRIBUTED_SYSTEMS,
-            citation="Z", key_insight="W",
+            name="Lamport",
+            year=1982,
+            work="B",
+            contribution="D",
+            category=GiantCategory.DISTRIBUTED_SYSTEMS,
+            citation="Z",
+            key_insight="W",
         )
         assert g1 != g2
 
     def test_not_equal_to_non_giant(self):
         g = Giant(
-            name="Test", year=2000, work="W",
-            contribution="C", category=GiantCategory.MATHEMATICS,
-            citation="X", key_insight="Y",
+            name="Test",
+            year=2000,
+            work="W",
+            contribution="C",
+            category=GiantCategory.MATHEMATICS,
+            citation="X",
+            key_insight="Y",
         )
         assert g != "not a giant"
 
     def test_default_lists(self):
         g = Giant(
-            name="Test", year=2000, work="W",
-            contribution="C", category=GiantCategory.MATHEMATICS,
-            citation="X", key_insight="Y",
+            name="Test",
+            year=2000,
+            work="W",
+            contribution="C",
+            category=GiantCategory.MATHEMATICS,
+            citation="X",
+            key_insight="Y",
         )
         assert g.applications_in_bizra == []
         assert g.related_giants == []
@@ -325,4 +351,6 @@ class TestSpecificGiants:
     def test_lamport_has_byzantine(self, registry):
         g = registry.get("Leslie Lamport")
         assert g is not None
-        assert any("Byzantine" in app or "PBFT" in app for app in g.applications_in_bizra)
+        assert any(
+            "Byzantine" in app or "PBFT" in app for app in g.applications_in_bizra
+        )

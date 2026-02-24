@@ -40,7 +40,6 @@ from core.sovereign.ihsan_vector import (
     quick_ihsan,
 )
 
-
 # =============================================================================
 # CANONICAL CONSTANTS
 # =============================================================================
@@ -143,9 +142,9 @@ class TestDimensionId:
         """verify_method property must return the canonical method for each dimension."""
         for dim_id in DimensionId:
             expected = VERIFY_METHODS[dim_id.name.lower()]
-            assert dim_id.verify_method == expected, (
-                f"Verify method mismatch for {dim_id.name}"
-            )
+            assert (
+                dim_id.verify_method == expected
+            ), f"Verify method mismatch for {dim_id.name}"
 
 
 # =============================================================================
@@ -613,7 +612,10 @@ class TestIhsanVector:
         vec = vec.verify_all()
         assert vec.passes_context(ExecutionContext.PRODUCTION) is True
         assert vec.passes_context(ExecutionContext.CRITICAL) is False
-        assert vec.passes_context(ExecutionContext.CRITICAL, manual_review_approved=True) is True
+        assert (
+            vec.passes_context(ExecutionContext.CRITICAL, manual_review_approved=True)
+            is True
+        )
 
     def test_get_dimension_returns_correct_dimension(self) -> None:
         """get_dimension must return the dimension matching the given id."""
@@ -657,8 +659,14 @@ class TestIhsanVector:
             DimensionId.SAFETY: "aegis_proof",
         }
         verified = vec.verify_all(proofs=proofs)
-        assert verified.get_dimension(DimensionId.CORRECTNESS).verification_proof == "z3_proof"
-        assert verified.get_dimension(DimensionId.SAFETY).verification_proof == "aegis_proof"
+        assert (
+            verified.get_dimension(DimensionId.CORRECTNESS).verification_proof
+            == "z3_proof"
+        )
+        assert (
+            verified.get_dimension(DimensionId.SAFETY).verification_proof
+            == "aegis_proof"
+        )
         # Dimensions without proofs should still be verified but with no proof
         assert verified.get_dimension(DimensionId.FAIRNESS).verified is True
         assert verified.get_dimension(DimensionId.FAIRNESS).verification_proof is None
@@ -964,7 +972,9 @@ class TestCreateVerifier:
         result = verifier(vec, DimensionId.CORRECTNESS)
         # Fairness should remain verified
         assert result.get_dimension(DimensionId.FAIRNESS).verified is True
-        assert result.get_dimension(DimensionId.FAIRNESS).verification_proof == "existing"
+        assert (
+            result.get_dimension(DimensionId.FAIRNESS).verification_proof == "existing"
+        )
 
     def test_verifier_returns_original_vector_on_failure(self) -> None:
         """When verify_func returns False, verifier must return the original vector."""
@@ -1044,7 +1054,10 @@ class TestPassesProduction:
     def test_just_below_095_fails(self) -> None:
         """Score just below 0.95 must fail."""
         # All 0.949 -> weighted sum = 0.949
-        assert passes_production(0.949, 0.949, 0.949, 0.949, 0.949, 0.949, 0.949, 0.949) is False
+        assert (
+            passes_production(0.949, 0.949, 0.949, 0.949, 0.949, 0.949, 0.949, 0.949)
+            is False
+        )
 
     def test_high_priority_dims_compensate(self) -> None:
         """High-weight dimensions at 1.0 can compensate for low-weight dims."""
@@ -1125,9 +1138,10 @@ class TestSerialization:
         d2 = vec.to_dict()
         json1 = json.dumps(d1, sort_keys=True, separators=(",", ":"))
         json2 = json.dumps(d2, sort_keys=True, separators=(",", ":"))
-        assert hashlib.sha256(json1.encode()).hexdigest() == hashlib.sha256(
-            json2.encode()
-        ).hexdigest()
+        assert (
+            hashlib.sha256(json1.encode()).hexdigest()
+            == hashlib.sha256(json2.encode()).hexdigest()
+        )
 
     def test_from_dict_with_context(self) -> None:
         """from_dict must restore context when present."""
@@ -1159,7 +1173,9 @@ class TestSerialization:
         assert dim.verified is False
         assert dim.verify_method == "kl_divergence_bias_check"
 
-    def test_weight_sum_warning_logged_when_wrong(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_weight_sum_warning_logged_when_wrong(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """IhsanVector __post_init__ must log warning when weights do not sum to 1.0."""
         bad_dims = {
             DimensionId.CORRECTNESS: IhsanDimension(
@@ -1238,9 +1254,7 @@ class TestImmutability:
 
     def test_mark_verified_does_not_modify_original_dimension(self) -> None:
         """IhsanDimension.mark_verified must not mutate the original dimension."""
-        original = IhsanDimension(
-            id=DimensionId.CORRECTNESS, weight=0.22, score=0.95
-        )
+        original = IhsanDimension(id=DimensionId.CORRECTNESS, weight=0.22, score=0.95)
         assert original.verified is False
         _ = original.mark_verified(proof="test_proof")
         assert original.verified is False

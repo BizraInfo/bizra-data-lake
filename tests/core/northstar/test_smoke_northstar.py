@@ -19,52 +19,47 @@ Created: 2026-02-15 | BIZRA Node0 NorthStar | Peak Masterpiece Protocol
 """
 
 import math
+
 import pytest
 
 from core.integration.constants import (
+    SNR_THRESHOLD_T0_ELITE,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
-    SNR_THRESHOLD_T0_ELITE,
+)
+from core.northstar import (  # Version; Golden Gems; Thought Flows; Bridge Nodes; NorthStar Engine
+    AUTOPOIESIS_RDVE_ROLES,
+    BRIDGE_ORIGIN_SNR,
+    GEM_NORMALIZED_SNR,
+    GEM_ORIGIN_SNR,
+    GOT_TOPOLOGY_CONSTANTS,
+    HRM_PILLAR_MAP,
+    PHASE_PATTERN_SNR,
+    PHI,
+    SHANNON_NOISE_MAP,
+    BridgeActivation,
+    BridgeNodeDetector,
+    BridgeReport,
+    BridgeType,
+    FlowActivation,
+    FlowReport,
+    GemActivation,
+    GemReport,
+    GoldenGemDetector,
+    GoldenGemType,
+    NorthStarEngine,
+    NorthStarReport,
+    NorthStarStatus,
+    PhaseActivation,
+    PhasePatternType,
+    ThoughtFlowDetector,
+    ThoughtFlowType,
+    __version__,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IMPORTS — Verify all public API items are importable
 # ═══════════════════════════════════════════════════════════════════════════════
-
-from core.northstar import (
-    # Version
-    __version__,
-    # Golden Gems
-    GoldenGemType,
-    GoldenGemDetector,
-    GemActivation,
-    GemReport,
-    GEM_ORIGIN_SNR,
-    GEM_NORMALIZED_SNR,
-    # Thought Flows
-    ThoughtFlowType,
-    ThoughtFlowDetector,
-    FlowActivation,
-    FlowReport,
-    PhasePatternType,
-    PhaseActivation,
-    PHASE_PATTERN_SNR,
-    PHI,
-    # Bridge Nodes
-    BridgeType,
-    BridgeNodeDetector,
-    BridgeActivation,
-    BridgeReport,
-    BRIDGE_ORIGIN_SNR,
-    AUTOPOIESIS_RDVE_ROLES,
-    HRM_PILLAR_MAP,
-    SHANNON_NOISE_MAP,
-    GOT_TOPOLOGY_CONSTANTS,
-    # NorthStar Engine
-    NorthStarEngine,
-    NorthStarReport,
-    NorthStarStatus,
-)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -83,20 +78,40 @@ class TestGoldenGems:
         """Shadow Knowledge: unobserved domains produce activation."""
         result = self.detector.detect_shadow_knowledge(
             observed_domains=["reasoning", "snr"],
-            all_known_domains=["reasoning", "snr", "governance", "federation", "treasury"],
+            all_known_domains=[
+                "reasoning",
+                "snr",
+                "governance",
+                "federation",
+                "treasury",
+            ],
         )
         assert result is not None
         assert result.gem_type == GoldenGemType.SHADOW_KNOWLEDGE
         assert result.intensity > 0
-        assert "blind spots" in result.evidence.lower() or "Blind spots" in result.evidence
+        assert (
+            "blind spots" in result.evidence.lower() or "Blind spots" in result.evidence
+        )
         assert result.snr_score() > 0
 
     # [02] Contradiction Harvest — conflicts reveal structure
     def test_02_contradiction_harvest(self):
         """Contradiction Harvest: conflicting claims trigger activation."""
         assertions = [
-            {"claim": "SNR is rising", "value": "high", "domain": "quality", "confidence": 0.9, "topic": "snr"},
-            {"claim": "SNR is falling", "value": "low", "domain": "quality", "confidence": 0.4, "topic": "snr"},
+            {
+                "claim": "SNR is rising",
+                "value": "high",
+                "domain": "quality",
+                "confidence": 0.9,
+                "topic": "snr",
+            },
+            {
+                "claim": "SNR is falling",
+                "value": "low",
+                "domain": "quality",
+                "confidence": 0.4,
+                "topic": "snr",
+            },
         ]
         result = self.detector.detect_contradiction_harvest(assertions)
         assert result is not None
@@ -387,14 +402,37 @@ class TestNorthStarEngine:
             "observed_domains": ["reasoning", "snr"],
             "all_known_domains": ["reasoning", "snr", "governance", "federation"],
             "assertions": [
-                {"claim": "A", "value": "high", "domain": "d1", "confidence": 0.9, "topic": "t1"},
-                {"claim": "B", "value": "low", "domain": "d1", "confidence": 0.4, "topic": "t1"},
+                {
+                    "claim": "A",
+                    "value": "high",
+                    "domain": "d1",
+                    "confidence": 0.9,
+                    "topic": "t1",
+                },
+                {
+                    "claim": "B",
+                    "value": "low",
+                    "domain": "d1",
+                    "confidence": 0.4,
+                    "topic": "t1",
+                },
             ],
             "node_count": 50,
             "edge_count": 120,
             "clustering_coefficient": 0.38,
             "avg_path_length": 3.1,
-            "noise_history": [0.5, 0.52, 0.48, 0.51, 0.49, 0.50, 0.53, 0.47, 0.51, 0.49],
+            "noise_history": [
+                0.5,
+                0.52,
+                0.48,
+                0.51,
+                0.49,
+                0.50,
+                0.53,
+                0.47,
+                0.51,
+                0.49,
+            ],
             "total_validations": 100,
             "rejections": 30,
             "expected_outcomes": ["snr_improvement"],
@@ -462,8 +500,7 @@ class TestNorthStarEngine:
         report = self.engine.run_cycle(obs)
         # The HRM_FOUR_PILLARS bridge with ihsan should trigger meta-discovery
         has_ihsan_meta = any(
-            "Ihsān" in md or "ihsan" in md.lower()
-            for md in report.meta_discoveries
+            "Ihsān" in md or "ihsan" in md.lower() for md in report.meta_discoveries
         )
         assert has_ihsan_meta, f"Meta-discoveries: {report.meta_discoveries}"
 

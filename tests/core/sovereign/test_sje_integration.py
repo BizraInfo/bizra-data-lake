@@ -16,7 +16,6 @@ from core.sovereign.judgment_telemetry import (
     simulate_epoch_distribution,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -70,7 +69,9 @@ class TestVerdictClassification:
     the implementation in runtime_core.py::_observe_judgment.
     """
 
-    def _classify(self, success, snr_ok, ihsan_score, validated=False, validation_passed=True):
+    def _classify(
+        self, success, snr_ok, ihsan_score, validated=False, validation_passed=True
+    ):
         """Classify a verdict using the same logic as _observe_judgment."""
         if not success or (validated and not validation_passed):
             return JudgmentVerdict.FORBID
@@ -100,7 +101,10 @@ class TestVerdictClassification:
         assert self._classify(False, True, 0.95) == JudgmentVerdict.FORBID
 
     def test_forbid_on_validation_failure(self):
-        assert self._classify(True, True, 0.95, validated=True, validation_passed=False) == JudgmentVerdict.FORBID
+        assert (
+            self._classify(True, True, 0.95, validated=True, validation_passed=False)
+            == JudgmentVerdict.FORBID
+        )
 
     def test_forbid_overrides_snr(self):
         """Failure takes precedence over SNR status."""
@@ -158,19 +162,25 @@ class TestSJEAPIHandlers:
     def api_server(self, mock_runtime):
         """Create a SovereignAPIServer with mocked runtime."""
         from core.sovereign.api import SovereignAPIServer
+
         return SovereignAPIServer(mock_runtime)
 
     @pytest.fixture
     def api_server_no_jt(self, mock_runtime_no_jt):
         """Create a SovereignAPIServer without judgment telemetry."""
         from core.sovereign.api import SovereignAPIServer
+
         return SovereignAPIServer(mock_runtime_no_jt)
 
     @pytest.mark.asyncio
     async def test_judgment_stats_endpoint(self, api_server):
         """GET /v1/judgment/stats returns telemetry data."""
         resp = await api_server._handle_judgment_stats()
-        data = json.loads(resp.split("\r\n\r\n", 1)[1]) if "\r\n\r\n" in resp else json.loads(resp)
+        data = (
+            json.loads(resp.split("\r\n\r\n", 1)[1])
+            if "\r\n\r\n" in resp
+            else json.loads(resp)
+        )
         assert data["total_observations"] == 18
         assert data["dominant_verdict"] == "promote"
         assert "entropy" in data
@@ -185,7 +195,11 @@ class TestSJEAPIHandlers:
     async def test_judgment_stability_endpoint(self, api_server):
         """GET /v1/judgment/stability returns stability data."""
         resp = await api_server._handle_judgment_stability()
-        data = json.loads(resp.split("\r\n\r\n", 1)[1]) if "\r\n\r\n" in resp else json.loads(resp)
+        data = (
+            json.loads(resp.split("\r\n\r\n", 1)[1])
+            if "\r\n\r\n" in resp
+            else json.loads(resp)
+        )
         assert "is_stable" in data
         assert "entropy" in data
         assert data["total_observations"] == 18
@@ -195,7 +209,11 @@ class TestSJEAPIHandlers:
         """POST /v1/judgment/simulate returns allocations."""
         body = json.dumps({"impacts": [100, 200, 300], "epoch_cap": 600}).encode()
         resp = await api_server._handle_judgment_simulate(body)
-        data = json.loads(resp.split("\r\n\r\n", 1)[1]) if "\r\n\r\n" in resp else json.loads(resp)
+        data = (
+            json.loads(resp.split("\r\n\r\n", 1)[1])
+            if "\r\n\r\n" in resp
+            else json.loads(resp)
+        )
         assert data["allocations"] == [100, 200, 300]
         assert data["dust"] == 0
 
@@ -204,7 +222,11 @@ class TestSJEAPIHandlers:
         """Simulate with rounding dust."""
         body = json.dumps({"impacts": [1, 1, 1], "epoch_cap": 100}).encode()
         resp = await api_server._handle_judgment_simulate(body)
-        data = json.loads(resp.split("\r\n\r\n", 1)[1]) if "\r\n\r\n" in resp else json.loads(resp)
+        data = (
+            json.loads(resp.split("\r\n\r\n", 1)[1])
+            if "\r\n\r\n" in resp
+            else json.loads(resp)
+        )
         assert data["allocations"] == [33, 33, 33]
         assert data["dust"] == 1
 
@@ -213,7 +235,11 @@ class TestSJEAPIHandlers:
         """Simulate with empty impacts."""
         body = json.dumps({"impacts": [], "epoch_cap": 1000}).encode()
         resp = await api_server._handle_judgment_simulate(body)
-        data = json.loads(resp.split("\r\n\r\n", 1)[1]) if "\r\n\r\n" in resp else json.loads(resp)
+        data = (
+            json.loads(resp.split("\r\n\r\n", 1)[1])
+            if "\r\n\r\n" in resp
+            else json.loads(resp)
+        )
         assert data["allocations"] == []
 
     @pytest.mark.asyncio

@@ -31,7 +31,9 @@ def _write_yaml(path: Path, data: dict) -> None:
 def _bootstrap_repo(tmp_path: Path, *, include_ihsan: bool = True) -> dict[str, Path]:
     repo = tmp_path / "repo"
     external = tmp_path / "external"
-    package_root = repo / "artifacts" / "evidence" / "BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS"
+    package_root = (
+        repo / "artifacts" / "evidence" / "BIZRA-EVIDENCE-PACKAGE-v1.0-GENESIS"
+    )
 
     (external).mkdir(parents=True, exist_ok=True)
     risalah_src = external / "the_massage.pdf"
@@ -43,7 +45,9 @@ def _bootstrap_repo(tmp_path: Path, *, include_ihsan: bool = True) -> dict[str, 
     (repo / "research_archive" / "r1.md").write_text("research-1", encoding="utf-8")
 
     if include_ihsan:
-        ihsan = repo / "00_GENESIS" / "03_SPIRITUAL_TECHNICAL" / "ihsan_as_architecture.md"
+        ihsan = (
+            repo / "00_GENESIS" / "03_SPIRITUAL_TECHNICAL" / "ihsan_as_architecture.md"
+        )
         ihsan.parent.mkdir(parents=True, exist_ok=True)
         ihsan.write_text("ihsan-bridge", encoding="utf-8")
 
@@ -112,7 +116,10 @@ def _bootstrap_repo(tmp_path: Path, *, include_ihsan: bool = True) -> dict[str, 
         "fail_closed": True,
         "stages": {
             "scaffold": {
-                "required_gates": ["FOUNDING_DOCS_PRESENT", "REQUIRED_ARTIFACTS_PRESENT"],
+                "required_gates": [
+                    "FOUNDING_DOCS_PRESENT",
+                    "REQUIRED_ARTIFACTS_PRESENT",
+                ],
             },
             "final": {
                 "required_gates": [
@@ -139,15 +146,17 @@ def _bootstrap_repo(tmp_path: Path, *, include_ihsan: bool = True) -> dict[str, 
 
 def _read_gate(package_root: Path, tier: str, stage: str) -> dict:
     return json.loads(
-        (package_root / tier / "gate_reports" / f"{stage}_{tier}_gate_report.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            package_root / tier / "gate_reports" / f"{stage}_{tier}_gate_report.json"
+        ).read_text(encoding="utf-8")
     )
 
 
 def _read_manifest(package_root: Path, tier: str) -> dict:
     return json.loads(
-        (package_root / tier / "manifest" / "evidence_manifest.json").read_text(encoding="utf-8")
+        (package_root / tier / "manifest" / "evidence_manifest.json").read_text(
+            encoding="utf-8"
+        )
     )
 
 
@@ -171,7 +180,9 @@ def test_scaffold_fails_without_risalah_or_bazrah(tmp_path: Path) -> None:
     assert "GATE_FAILED:FOUNDING_DOCS_PRESENT" in gate["reasons"]
 
 
-def test_scaffold_passes_with_founding_docs_and_hash_metadata_export(tmp_path: Path) -> None:
+def test_scaffold_passes_with_founding_docs_and_hash_metadata_export(
+    tmp_path: Path,
+) -> None:
     ctx = _bootstrap_repo(tmp_path)
     assert import_run(config_path=ctx["config"], repo_root=ctx["repo"]) == 0
 
@@ -204,7 +215,9 @@ def test_scaffold_passes_with_founding_docs_and_hash_metadata_export(tmp_path: P
 
     manifest = _read_manifest(ctx["package_root"], "public_redacted")
     risalah = next(
-        e for e in manifest["entries"] if e["logical_path"].endswith("al_risalah_original.pdf")
+        e
+        for e in manifest["entries"]
+        if e["logical_path"].endswith("al_risalah_original.pdf")
     )
     assert risalah["public_mode"] == "hash_metadata"
     assert risalah["copied_path"] is None
@@ -314,7 +327,9 @@ def test_public_redacted_excludes_private_founding_pdf_bytes_but_keeps_metadata_
     manifest = _read_manifest(ctx["package_root"], "public_redacted")
 
     bazrah = next(
-        e for e in manifest["entries"] if e["logical_path"].endswith("al_bazrah_original.pdf")
+        e
+        for e in manifest["entries"]
+        if e["logical_path"].endswith("al_bazrah_original.pdf")
     )
     assert bazrah["sha256"] is not None
     assert bazrah["copied_path"] is None
@@ -341,8 +356,20 @@ def test_chain_verification_detects_tamper(tmp_path: Path) -> None:
         )
         == 0
     )
-    assert sign_run(package_root=ctx["package_root"], tier="private_full", config_path=ctx["config"]) == 0
-    assert verify_run(package_root=ctx["package_root"], tier="private_full", stage="scaffold") == 0
+    assert (
+        sign_run(
+            package_root=ctx["package_root"],
+            tier="private_full",
+            config_path=ctx["config"],
+        )
+        == 0
+    )
+    assert (
+        verify_run(
+            package_root=ctx["package_root"], tier="private_full", stage="scaffold"
+        )
+        == 0
+    )
 
     tamper_path = (
         ctx["package_root"]
@@ -351,7 +378,12 @@ def test_chain_verification_detects_tamper(tmp_path: Path) -> None:
     )
     tamper_path.write_text("tampered", encoding="utf-8")
 
-    assert verify_run(package_root=ctx["package_root"], tier="private_full", stage="scaffold") == 1
+    assert (
+        verify_run(
+            package_root=ctx["package_root"], tier="private_full", stage="scaffold"
+        )
+        == 1
+    )
 
 
 def test_signing_key_file_permissions_are_restricted(tmp_path: Path) -> None:
@@ -370,7 +402,14 @@ def test_signing_key_file_permissions_are_restricted(tmp_path: Path) -> None:
         )
         == 0
     )
-    assert sign_run(package_root=ctx["package_root"], tier="private_full", config_path=ctx["config"]) == 0
+    assert (
+        sign_run(
+            package_root=ctx["package_root"],
+            tier="private_full",
+            config_path=ctx["config"],
+        )
+        == 0
+    )
 
     key_path = ctx["package_root"] / "integrity" / "operator_signing_key.json"
     assert key_path.exists()
@@ -379,7 +418,9 @@ def test_signing_key_file_permissions_are_restricted(tmp_path: Path) -> None:
     # filesystem metadata supports chmod semantics (e.g., not WSL /mnt/c).
     if os.name != "nt":
         if key_path.as_posix().startswith("/mnt/"):
-            pytest.skip("POSIX mode bits are not reliably enforced on mounted filesystems")
+            pytest.skip(
+                "POSIX mode bits are not reliably enforced on mounted filesystems"
+            )
         mode = stat.S_IMODE(key_path.stat().st_mode)
         assert (mode & 0o077) == 0
 

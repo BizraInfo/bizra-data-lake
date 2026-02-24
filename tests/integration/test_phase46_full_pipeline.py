@@ -10,8 +10,8 @@ Nygard (Release It!, 2007) · Rabiner (HMM, 1989)
 Artifact: tests/integration/test_phase46_full_pipeline.py
 """
 
-import os
 import json
+import os
 import shutil
 import tempfile
 from unittest.mock import MagicMock
@@ -19,14 +19,14 @@ from unittest.mock import MagicMock
 import pytest
 
 from core.rollout.canary import CanaryRouter
-from core.rollout.metrics import Phase46Metrics
 from core.rollout.hmm_gate import HMMCallerGate
+from core.rollout.metrics import Phase46Metrics
 from core.rollout.rollback import RollbackEngine, RollbackReceipt
-
 
 # ======================================================================
 # Fixtures
 # ======================================================================
+
 
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch):
@@ -84,9 +84,7 @@ def mock_hmm():
 class TestCanaryToMetrics:
     """Route requests through canary, record metrics for routed ones."""
 
-    def test_100pct_routes_all_and_records_metrics(
-        self, monkeypatch, canary, metrics
-    ):
+    def test_100pct_routes_all_and_records_metrics(self, monkeypatch, canary, metrics):
         """At 100% canary, every request is routed and counted."""
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_ENABLED", "1")
 
@@ -112,9 +110,7 @@ class TestCanaryToMetrics:
 
         assert metrics.get_counter("search_requests") == 0
 
-    def test_kill_switch_overrides_percent(
-        self, monkeypatch, canary, metrics
-    ):
+    def test_kill_switch_overrides_percent(self, monkeypatch, canary, metrics):
         """Kill switch OFF disables routing even at 100%."""
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_ENABLED", "0")
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "100")
@@ -128,12 +124,10 @@ class TestCanaryToMetrics:
     def test_partial_canary_deterministic(self, canary, metrics):
         """50% canary is deterministic — same key always routes the same."""
         results_a = [
-            canary.should_route("search", f"q-{i}", percent=50)
-            for i in range(100)
+            canary.should_route("search", f"q-{i}", percent=50) for i in range(100)
         ]
         results_b = [
-            canary.should_route("search", f"q-{i}", percent=50)
-            for i in range(100)
+            canary.should_route("search", f"q-{i}", percent=50) for i in range(100)
         ]
         assert results_a == results_b
 
@@ -159,9 +153,7 @@ class TestCanaryToMetrics:
 class TestHMMGateToMetrics:
     """HMM caller gate feeds observations through to metrics."""
 
-    def test_single_mode_accepts_allowed_caller(
-        self, monkeypatch, mock_hmm, metrics
-    ):
+    def test_single_mode_accepts_allowed_caller(self, monkeypatch, mock_hmm, metrics):
         monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "single")
         monkeypatch.setenv("BIZRA_PHASE46_HMM_ALLOWED_CALLER", "mcp")
         gate = HMMCallerGate(mock_hmm)
@@ -177,9 +169,7 @@ class TestHMMGateToMetrics:
         assert snap["hmm"]["confidence_p50"] == pytest.approx(0.87, abs=0.01)
         assert snap["hmm"]["observation_entropy"] == 0.0  # single symbol
 
-    def test_single_mode_drops_wrong_caller(
-        self, monkeypatch, mock_hmm, metrics
-    ):
+    def test_single_mode_drops_wrong_caller(self, monkeypatch, mock_hmm, metrics):
         monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "single")
         monkeypatch.setenv("BIZRA_PHASE46_HMM_ALLOWED_CALLER", "mcp")
         gate = HMMCallerGate(mock_hmm)
@@ -189,9 +179,7 @@ class TestHMMGateToMetrics:
         assert gate.stats["dropped_count"] == 1
         assert gate.stats["dropped_callers"]["proactive"] == 1
 
-    def test_disabled_mode_drops_all(
-        self, monkeypatch, mock_hmm
-    ):
+    def test_disabled_mode_drops_all(self, monkeypatch, mock_hmm):
         monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "disabled")
         gate = HMMCallerGate(mock_hmm)
 
@@ -199,9 +187,7 @@ class TestHMMGateToMetrics:
         assert result is None
         assert gate.stats["dropped_count"] == 1
 
-    def test_predict_always_allowed(
-        self, monkeypatch, mock_hmm
-    ):
+    def test_predict_always_allowed(self, monkeypatch, mock_hmm):
         """Predict is read-only — allowed even in single mode for wrong caller."""
         monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "single")
         monkeypatch.setenv("BIZRA_PHASE46_HMM_ALLOWED_CALLER", "mcp")
@@ -211,9 +197,7 @@ class TestHMMGateToMetrics:
         assert result is not None
         assert result.predicted_next == "search"
 
-    def test_multi_mode_accepts_all(
-        self, monkeypatch, mock_hmm, metrics
-    ):
+    def test_multi_mode_accepts_all(self, monkeypatch, mock_hmm, metrics):
         monkeypatch.setenv("BIZRA_PHASE46_HMM_CALLER_MODE", "multi")
         gate = HMMCallerGate(mock_hmm)
 
@@ -280,9 +264,7 @@ class TestMetricsToRollback:
         # Env var was zeroed
         assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "0"
 
-    def test_clean_window_resets_breach_count(
-        self, monkeypatch, metrics, receipt_dir
-    ):
+    def test_clean_window_resets_breach_count(self, monkeypatch, metrics, receipt_dir):
         """A clean evaluation resets the counter — no rollback on next breach."""
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "50")
         engine = RollbackEngine(receipt_dir=receipt_dir, metrics=metrics)
@@ -292,9 +274,7 @@ class TestMetricsToRollback:
         result = engine.evaluate("search_error_rate", breached=True)  # count=1
         assert result is None  # Still only 1
 
-    def test_rollback_reverse_order_hmm_first(
-        self, monkeypatch, metrics, receipt_dir
-    ):
+    def test_rollback_reverse_order_hmm_first(self, monkeypatch, metrics, receipt_dir):
         """When all components are active, HMM rolls back first."""
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "50")
         monkeypatch.setenv("BIZRA_PHASE46_GOT_BRIDGE_PERCENT", "30")
@@ -312,9 +292,7 @@ class TestMetricsToRollback:
         assert os.environ.get("BIZRA_PHASE46_SEARCH_PERCENT") == "50"
         assert os.environ.get("BIZRA_PHASE46_GOT_BRIDGE_PERCENT") == "30"
 
-    def test_rollback_receipt_persisted(
-        self, monkeypatch, metrics, receipt_dir
-    ):
+    def test_rollback_receipt_persisted(self, monkeypatch, metrics, receipt_dir):
         """Rollback receipt is written as JSON file."""
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "50")
         engine = RollbackEngine(receipt_dir=receipt_dir, metrics=metrics)
@@ -362,9 +340,7 @@ class TestFullPipeline:
     """End-to-end: canary routing feeds HMM observations, metrics collect,
     breach threshold triggers rollback, verify post-rollback state."""
 
-    def test_full_lifecycle(
-        self, monkeypatch, canary, mock_hmm, receipt_dir
-    ):
+    def test_full_lifecycle(self, monkeypatch, canary, mock_hmm, receipt_dir):
         """Complete Phase 46 lifecycle: route → observe → metrics → rollback."""
         # Setup: all components at 100% via PERCENT (not ENABLED).
         # ENABLED is NOT set — this lets percent routing be the active gate.
@@ -436,9 +412,7 @@ class TestFullPipeline:
         assert canary_post.should_route("got_bridge", "new-query", percent=100)
         assert canary_post.should_route("hmm", "new-query", percent=100)
 
-    def test_hard_kill_when_all_zeroed(
-        self, monkeypatch, metrics, receipt_dir
-    ):
+    def test_hard_kill_when_all_zeroed(self, monkeypatch, metrics, receipt_dir):
         """When all components are at 0%, rollback escalates to hard kill."""
         # All percents at 0 — nothing to roll back individually
         monkeypatch.setenv("BIZRA_PHASE46_SEARCH_PERCENT", "0")
@@ -468,12 +442,10 @@ class TestFullPipeline:
         router_b = CanaryRouter(salt="salt-beta")
 
         results_a = [
-            router_a.should_route("search", f"q-{i}", percent=50)
-            for i in range(100)
+            router_a.should_route("search", f"q-{i}", percent=50) for i in range(100)
         ]
         results_b = [
-            router_b.should_route("search", f"q-{i}", percent=50)
-            for i in range(100)
+            router_b.should_route("search", f"q-{i}", percent=50) for i in range(100)
         ]
 
         # Different salts should produce different routing (not identical)
@@ -574,10 +546,7 @@ class TestCanaryStage1Activation:
     def test_search_routes_approximately_10_percent(self):
         """With SEARCH_PERCENT=10, roughly 10% of 1000 keys should route."""
         router = CanaryRouter(salt="stage1-verify")
-        routed = sum(
-            router.should_route("search", f"query-{i}")
-            for i in range(1000)
-        )
+        routed = sum(router.should_route("search", f"query-{i}") for i in range(1000))
         # Expect ~100 routed (10%). Allow 5-15% range for hash variance.
         assert 50 <= routed <= 150, f"Expected ~100 routed, got {routed}"
 
@@ -591,19 +560,13 @@ class TestCanaryStage1Activation:
     def test_got_bridge_fully_blocked(self):
         """GoT bridge kill switch (ENABLED=0) blocks all routing."""
         router = CanaryRouter()
-        routed = sum(
-            router.should_route("got_bridge", f"q-{i}")
-            for i in range(100)
-        )
+        routed = sum(router.should_route("got_bridge", f"q-{i}") for i in range(100))
         assert routed == 0
 
     def test_hmm_fully_blocked(self):
         """HMM kill switch (ENABLED=0) blocks all routing."""
         router = CanaryRouter()
-        routed = sum(
-            router.should_route("hmm", f"q-{i}")
-            for i in range(100)
-        )
+        routed = sum(router.should_route("hmm", f"q-{i}") for i in range(100))
         assert routed == 0
 
     def test_active_percents_reflect_stage1(self):
@@ -655,9 +618,9 @@ class TestCanaryStage1Activation:
 
             status = rollback.status
             for window_name, window in status["breach_windows"].items():
-                assert window["consecutive"] == 0, (
-                    f"{window_name} has consecutive={window['consecutive']}"
-                )
+                assert (
+                    window["consecutive"] == 0
+                ), f"{window_name} has consecutive={window['consecutive']}"
             assert status["rollback_in_progress"] is False
 
             # No receipts written

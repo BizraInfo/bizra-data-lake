@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from core.bridges.channel_dispatcher import Channel, ChannelDispatcher, MissionPlan, SubTask
+from core.bridges.channel_dispatcher import (
+    Channel,
+    ChannelDispatcher,
+    MissionPlan,
+    SubTask,
+)
 
 
 class _VoiceStub:
@@ -54,7 +59,9 @@ async def test_decompose_adds_desktop_dependency_on_browser() -> None:
 
 @pytest.mark.asyncio
 async def test_dispatch_all_graceful_degradation_without_adapters() -> None:
-    dispatcher = ChannelDispatcher(browser_client=None, voice_bridge=None, obs_trigger=None)
+    dispatcher = ChannelDispatcher(
+        browser_client=None, voice_bridge=None, obs_trigger=None
+    )
     plan = MissionPlan(
         mission_id="m-003",
         subtasks=[SubTask(id="t1", description="proof", channel=Channel.PROOF)],

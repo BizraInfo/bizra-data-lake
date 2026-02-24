@@ -27,6 +27,13 @@ from pathlib import Path
 
 import pytest
 
+from core.token.ledger import GENESIS_TX_HASH, TokenLedger
+from core.token.mint import (
+    COMMUNITY_FUND_ACCOUNT,
+    GENESIS_NODE0_ACCOUNT,
+    SYSTEM_TREASURY_ACCOUNT,
+    TokenMinter,
+)
 from core.token.types import (
     FOUNDER_GENESIS_ALLOCATION,
     GENESIS_EPOCH_ID,
@@ -41,14 +48,6 @@ from core.token.types import (
     TokenType,
     TransactionEntry,
 )
-from core.token.ledger import GENESIS_TX_HASH, TokenLedger
-from core.token.mint import (
-    COMMUNITY_FUND_ACCOUNT,
-    GENESIS_NODE0_ACCOUNT,
-    SYSTEM_TREASURY_ACCOUNT,
-    TokenMinter,
-)
-
 
 # =============================================================================
 # HELPERS
@@ -539,6 +538,7 @@ class TestTokenLedger:
         mint_seed_to(ledger, "bob", 2000.0)
 
         from datetime import datetime, timezone
+
         year = datetime.now(timezone.utc).year
 
         yearly = ledger.get_yearly_minted(TokenType.SEED, year)
@@ -626,7 +626,9 @@ class TestTokenMinter:
     def test_minter_mint_seed(self, tmp_path: Path) -> None:
         """mint_seed() creates SEED with zakat deduction."""
         minter = make_minter(tmp_path)
-        receipt = minter.mint_seed("node-42", 1000.0, epoch_id="epoch-1", poi_score=0.87)
+        receipt = minter.mint_seed(
+            "node-42", 1000.0, epoch_id="epoch-1", poi_score=0.87
+        )
 
         assert receipt.success is True
         # Net = 1000 - (1000 * 0.025) = 975
@@ -853,7 +855,9 @@ class TestGenesisMint:
         minter = make_minter(tmp_path)
         minter.genesis_mint()
 
-        expected_zakat = (FOUNDER_GENESIS_ALLOCATION + SYSTEM_TREASURY_ALLOCATION) * ZAKAT_RATE
+        expected_zakat = (
+            FOUNDER_GENESIS_ALLOCATION + SYSTEM_TREASURY_ALLOCATION
+        ) * ZAKAT_RATE
         # (100,000 + 50,000) * 0.025 = 3,750
         assert expected_zakat == 3750.0
 

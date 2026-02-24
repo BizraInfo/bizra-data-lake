@@ -21,7 +21,6 @@ from core.agentic.agent import (
     TaskStatus,
 )
 
-
 # ---------------------------------------------------------------------------
 # ENUM TESTS
 # ---------------------------------------------------------------------------
@@ -30,7 +29,15 @@ from core.agentic.agent import (
 class TestEnums:
 
     def test_agent_states(self):
-        expected = {"idle", "planning", "executing", "waiting", "reflecting", "error", "halted"}
+        expected = {
+            "idle",
+            "planning",
+            "executing",
+            "waiting",
+            "reflecting",
+            "error",
+            "halted",
+        }
         actual = {s.value for s in AgentState}
         assert actual == expected
 
@@ -176,14 +183,17 @@ class TestAgentIhsanValidation:
         assert result is True
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("dangerous_action", [
-        "delete all files",
-        "drop table users",
-        "rm -rf /",
-        "format the disk",
-        "shutdown the server",
-        "reboot now",
-    ])
+    @pytest.mark.parametrize(
+        "dangerous_action",
+        [
+            "delete all files",
+            "drop table users",
+            "rm -rf /",
+            "format the disk",
+            "shutdown the server",
+            "reboot now",
+        ],
+    )
     async def test_validate_blocks_dangerous_actions(self, dangerous_action):
         agent = SimpleAgent(name="SafeAgent")
         result = await agent._validate_ihsan(dangerous_action)
@@ -218,7 +228,9 @@ class TestAgentExecution:
     @pytest.mark.asyncio
     async def test_execute_step_no_llm(self):
         agent = SimpleAgent(name="Executor")
-        success, result = await agent.execute_step({"action": "execute", "task": "test"})
+        success, result = await agent.execute_step(
+            {"action": "execute", "task": "test"}
+        )
         assert success is True
 
     @pytest.mark.asyncio

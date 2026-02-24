@@ -5,6 +5,7 @@ Tests the routing logic, task detection, and model selection.
 """
 
 import pytest
+
 from core.inference.multimodal import (
     ModelCapability,
     ModelInfo,
@@ -115,11 +116,17 @@ class TestMultiModalRouter:
         # Check that we have models for key capabilities
         model_names = {m.name for m in models}
         # At least one reasoning model should exist
-        reasoning_models = [m for m in models if ModelCapability.REASONING in m.capabilities]
-        assert len(reasoning_models) > 0, f"No reasoning models found. Available: {model_names}"
+        reasoning_models = [
+            m for m in models if ModelCapability.REASONING in m.capabilities
+        ]
+        assert (
+            len(reasoning_models) > 0
+        ), f"No reasoning models found. Available: {model_names}"
         # At least one vision model should exist
         vision_models = [m for m in models if ModelCapability.VISION in m.capabilities]
-        assert len(vision_models) > 0, f"No vision models found. Available: {model_names}"
+        assert (
+            len(vision_models) > 0
+        ), f"No vision models found. Available: {model_names}"
         # At least one voice model should exist
         voice_models = [m for m in models if ModelCapability.VOICE in m.capabilities]
         assert len(voice_models) > 0, f"No voice models found. Available: {model_names}"
@@ -223,9 +230,7 @@ class TestMultiModalRouter:
 
         vision_models = router.list_by_capability(ModelCapability.VISION)
         assert len(vision_models) > 0
-        assert all(
-            ModelCapability.VISION in m.capabilities for m in vision_models
-        )
+        assert all(ModelCapability.VISION in m.capabilities for m in vision_models)
 
     def test_routing_confidence_scores(self, router):
         """Test that confidence scores reflect match quality."""

@@ -8,12 +8,12 @@
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 """
 
+import heapq
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Tuple
-import heapq
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -27,7 +27,7 @@ MAX_INMEMORY_EMBEDDINGS = 20000
 
 class SingularityQueryEngine:
     """Full-spectrum query engine for the unified knowledge base."""
-    
+
     def __init__(self, max_inmemory: int = MAX_INMEMORY_EMBEDDINGS):
         print("🔥 Initializing SINGULARITY Query Engine...")
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
@@ -40,23 +40,25 @@ class SingularityQueryEngine:
             print("⚠️  No embeddings found.")
         if not self.use_streaming:
             self._load_corpus()
-    
+
     def _load_corpus(self):
         """Load all embeddings into memory."""
         print("📂 Loading knowledge corpus...")
 
         for emb_file in self.embedding_files:
             try:
-                with open(emb_file, 'r', encoding='utf-8') as f:
+                with open(emb_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                
+
                 if "embedding" in data:
                     self.embeddings.append(data["embedding"])
-                    self.sources.append(data.get("metadata", {}).get("source", str(emb_file)))
+                    self.sources.append(
+                        data.get("metadata", {}).get("source", str(emb_file))
+                    )
                     self.metadata.append(data.get("metadata", {}))
             except Exception as e:
                 continue
-        
+
         if self.embeddings:
             self.embeddings = np.array(self.embeddings)
         else:
@@ -67,7 +69,7 @@ class SingularityQueryEngine:
         """Yield (source, embedding) tuples from embedding JSON files."""
         for emb_file in self.embedding_files:
             try:
-                with open(emb_file, 'r', encoding='utf-8') as f:
+                with open(emb_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 embedding = data.get("embedding")
                 if embedding is None:
@@ -77,7 +79,9 @@ class SingularityQueryEngine:
             except Exception:
                 continue
 
-    def _search_streaming(self, query_embedding: np.ndarray, top_k: int) -> List[Tuple[str, float]]:
+    def _search_streaming(
+        self, query_embedding: np.ndarray, top_k: int
+    ) -> List[Tuple[str, float]]:
         """Stream embeddings and compute top-k results with bounded memory."""
         results_heap: List[Tuple[float, str]] = []
         query_norm = float(np.linalg.norm(query_embedding))
@@ -104,7 +108,7 @@ class SingularityQueryEngine:
             (Path(src).name if src else "unknown", float(score))
             for score, src in sorted(results_heap, reverse=True)
         ]
-    
+
     def search(self, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
         """Semantic search across the full knowledge base."""
         if not self.embedding_files:
@@ -116,61 +120,75 @@ class SingularityQueryEngine:
             return self._search_streaming(query_embedding, top_k)
         if self.embeddings.size == 0:
             return []
-        
+
         # Cosine similarity
-        norms = np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding)
+        norms = np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(
+            query_embedding
+        )
         similarities = np.divide(
             np.dot(self.embeddings, query_embedding),
             norms,
             out=np.zeros_like(norms, dtype=np.float64),
             where=norms != 0,
         )
-        
+
         top_indices = np.argsort(similarities)[-top_k:][::-1]
-        
+
         results = []
         for idx in top_indices:
             source = Path(self.sources[idx]).name if self.sources[idx] else "unknown"
             results.append((source, float(similarities[idx])))
-        
+
         return results
-    
+
     def get_content_preview(self, source_name: str, max_chars: int = 500) -> str:
         """Get content preview from original file."""
         # Try conversations folder first
         conv_path = PROCESSED_PATH / "text" / "conversations"
         for md_file in conv_path.glob("*.md"):
             if md_file.stem in source_name or source_name in md_file.stem:
-                with open(md_file, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(md_file, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
-                return content[:max_chars] + "..." if len(content) > max_chars else content
-        
+                return (
+                    content[:max_chars] + "..." if len(content) > max_chars else content
+                )
+
         # Try other processed files
         for processed_file in PROCESSED_PATH.rglob("*"):
             if processed_file.is_file() and source_name in processed_file.name:
                 try:
-                    with open(processed_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    with open(
+                        processed_file, "r", encoding="utf-8", errors="ignore"
+                    ) as f:
                         content = f.read()
-                    return content[:max_chars] + "..." if len(content) > max_chars else content
+                    return (
+                        content[:max_chars] + "..."
+                        if len(content) > max_chars
+                        else content
+                    )
                 except Exception:
                     pass
-        
+
         return "[Content stored in embedding index]"
 
 
 def run_full_spectrum_test():
     """Execute comprehensive queries across all domains."""
-    
+
     engine = SingularityQueryEngine()
-    
+
     print("\n" + "═" * 80)
     print("       SINGULARITY FULL-SPECTRUM QUERY TEST")
     print("═" * 80)
     print(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (Dubai)")
-    corpus_size = len(engine.embeddings) if not engine.use_streaming else len(engine.embedding_files)
+    corpus_size = (
+        len(engine.embeddings)
+        if not engine.use_streaming
+        else len(engine.embedding_files)
+    )
     print(f"  Corpus Size: {corpus_size:,} documents")
     print("─" * 80)
-    
+
     # Define test queries across different domains
     test_queries = {
         "Architecture & Design": [
@@ -199,49 +217,49 @@ def run_full_spectrum_test():
             "debugging and troubleshooting",
         ],
     }
-    
+
     results_summary = {}
     all_passed = True
-    
+
     for domain, queries in test_queries.items():
         print(f"\n🎯 DOMAIN: {domain}")
         print("-" * 40)
-        
+
         domain_scores = []
-        
+
         for query in queries:
             results = engine.search(query, top_k=3)
             top_score = results[0][1] if results else 0
             domain_scores.append(top_score)
-            
+
             status = "✅" if top_score >= 0.3 else "⚠️"
-            print(f"   {status} \"{query[:50]}...\"")
+            print(f'   {status} "{query[:50]}..."')
             top_source = results[0][0] if results else "no_results"
             print(f"      → Score: {top_score:.4f} | Top: {top_source[:40]}...")
-            
+
             if top_score < 0.25:
                 all_passed = False
-        
+
         avg_score = sum(domain_scores) / len(domain_scores)
         results_summary[domain] = avg_score
         print(f"\n   📊 Domain Average: {avg_score:.4f}")
-    
+
     # Final Summary
     print("\n" + "═" * 80)
     print("       FULL-SPECTRUM TEST RESULTS")
     print("═" * 80)
-    
+
     print("\n📊 Domain Scores:")
     for domain, score in results_summary.items():
         bar_len = int(score * 50)
         bar = "█" * bar_len + "░" * (50 - bar_len)
         status = "✅" if score >= 0.35 else "⚠️" if score >= 0.25 else "❌"
         print(f"   {status} {domain:30} {score:.4f} |{bar}|")
-    
+
     overall_score = sum(results_summary.values()) / len(results_summary)
-    
+
     print(f"\n🎯 OVERALL SCORE: {overall_score:.4f}")
-    
+
     if overall_score >= 0.35 and all_passed:
         print("""
 ╔════════════════════════════════════════════════════════════════════════════════╗

@@ -50,9 +50,11 @@ logger = logging.getLogger("PAT.Evaluator")
 # PAT Team Structure
 # ============================================================================
 
+
 @dataclass
 class PATAgentConfig:
     """Configuration for a PAT agent."""
+
     name: str
     role: str
     specialty: str
@@ -60,9 +62,13 @@ class PATAgentConfig:
 
 
 PAT_TEAM_CONFIG = [
-    PATAgentConfig("Strategist", "strategist", "Goal decomposition & planning", "LOCAL"),
+    PATAgentConfig(
+        "Strategist", "strategist", "Goal decomposition & planning", "LOCAL"
+    ),
     PATAgentConfig("Researcher", "researcher", "Information synthesis", "LOCAL"),
-    PATAgentConfig("Analyst", "analyst", "Data analysis & pattern recognition", "LOCAL"),
+    PATAgentConfig(
+        "Analyst", "analyst", "Data analysis & pattern recognition", "LOCAL"
+    ),
     PATAgentConfig("Creator", "creator", "Content generation & ideation", "LOCAL"),
     PATAgentConfig("Executor", "executor", "Task execution & automation", "EDGE"),
     PATAgentConfig("Guardian", "guardian", "Security & ethics validation", "LOCAL"),
@@ -73,6 +79,7 @@ PAT_TEAM_CONFIG = [
 @dataclass
 class PATEvalResult:
     """Result of PAT team evaluation."""
+
     timestamp: str
     duration_ms: float
     agents_active: int
@@ -90,14 +97,16 @@ class PATEvalResult:
 # CLEAR Metrics Integration
 # ============================================================================
 
+
 @dataclass
 class CLEARMetrics:
     """5-dimension CLEAR metrics for PAT evaluation."""
-    cost: float = 0.0          # Cost efficiency (0-1, higher = better)
-    latency: float = 0.0       # Response speed (0-1, higher = faster)
-    efficacy: float = 0.0      # Task success rate (0-1)
-    assurance: float = 0.0     # Security/ethics score (0-1)
-    reliability: float = 0.0   # Consistency/determinism (0-1)
+
+    cost: float = 0.0  # Cost efficiency (0-1, higher = better)
+    latency: float = 0.0  # Response speed (0-1, higher = faster)
+    efficacy: float = 0.0  # Task success rate (0-1)
+    assurance: float = 0.0  # Security/ethics score (0-1)
+    reliability: float = 0.0  # Consistency/determinism (0-1)
 
     def overall(self, weights: Optional[Dict[str, float]] = None) -> float:
         """Calculate weighted overall score."""
@@ -135,6 +144,7 @@ class CLEARMetrics:
 # PAT Evaluator Core
 # ============================================================================
 
+
 class PATEvaluator:
     """
     Evaluates PAT team performance using CLEAR metrics.
@@ -165,6 +175,7 @@ class PATEvaluator:
         # Try to load CLEAR framework from True Spearpoint
         try:
             from core.benchmark.clear_framework import CLEARFramework
+
             self._clear_framework = CLEARFramework()
             logger.info("✓ CLEAR Framework loaded from True Spearpoint")
         except ImportError as e:
@@ -173,6 +184,7 @@ class PATEvaluator:
         # Try to load ProactiveTeam
         try:
             from core.sovereign.proactive_team import ProactiveTeam
+
             self._proactive_team = ProactiveTeam(ihsan_threshold=self.ihsan_threshold)
             logger.info("✓ ProactiveTeam loaded")
         except ImportError as e:
@@ -180,7 +192,10 @@ class PATEvaluator:
 
         # Try to load PEK kernel
         try:
-            from core.pek.kernel import ProactiveExecutionKernel, ProactiveExecutionKernelConfig
+            from core.pek.kernel import (
+                ProactiveExecutionKernel,
+                ProactiveExecutionKernelConfig,
+            )
             from core.sovereign.opportunity_pipeline import OpportunityPipeline
 
             pipeline = OpportunityPipeline()
@@ -232,12 +247,16 @@ class PATEvaluator:
         for task_name, success, score in tasks:
             completed += 1 if success else 0
             failed += 0 if success else 1
-            cycle_results.append({
-                "task": task_name,
-                "success": success,
-                "score": score,
-                "agent": PAT_TEAM_CONFIG[len(cycle_results) % len(PAT_TEAM_CONFIG)].name,
-            })
+            cycle_results.append(
+                {
+                    "task": task_name,
+                    "success": success,
+                    "score": score,
+                    "agent": PAT_TEAM_CONFIG[
+                        len(cycle_results) % len(PAT_TEAM_CONFIG)
+                    ].name,
+                }
+            )
             logger.info(f"   ✓ {task_name}: {score:.2f}")
 
         # Calculate CLEAR metrics
@@ -309,7 +328,9 @@ class PATEvaluator:
                 except Exception as e:
                     logger.error(f"Cycle {i + 1} failed: {e}")
                     failed += 1
-                    cycle_results.append({"cycle": i + 1, "error": str(e), "tasks_failed": 1})
+                    cycle_results.append(
+                        {"cycle": i + 1, "error": str(e), "tasks_failed": 1}
+                    )
         elif self._proactive_team:
             logger.info("\n🔄 Running ProactiveTeam with Injected Tasks...")
             # Inject test opportunities to trigger actual work
@@ -395,6 +416,7 @@ class PATEvaluator:
         """Check if PAT engine with LLM backend is available."""
         try:
             import httpx
+
             # Check for LM Studio at default endpoint
             async with httpx.AsyncClient(timeout=3.0) as client:
                 try:
@@ -433,6 +455,7 @@ class PATEvaluator:
 
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=60.0) as client:
                 for task_name, agent in test_tasks:
                     try:
@@ -454,7 +477,9 @@ class PATEvaluator:
                             logger.info(f"      ✓ {task_name} [{agent}]: SUCCESS")
                         else:
                             task_scores.append(0.0)
-                            logger.info(f"      ✗ {task_name} [{agent}]: FAILED ({resp.status_code})")
+                            logger.info(
+                                f"      ✗ {task_name} [{agent}]: FAILED ({resp.status_code})"
+                            )
                     except Exception as e:
                         task_scores.append(0.0)
                         logger.warning(f"      ✗ {task_name} [{agent}]: {e}")
@@ -572,7 +597,9 @@ class PATEvaluator:
 
     def _calculate_snr(self, clear: CLEARMetrics) -> float:
         """Calculate Signal-to-Noise Ratio from CLEAR metrics."""
-        signal = (clear.efficacy * 0.5) + (clear.assurance * 0.3) + (clear.reliability * 0.2)
+        signal = (
+            (clear.efficacy * 0.5) + (clear.assurance * 0.3) + (clear.reliability * 0.2)
+        )
         noise = max(0.01, 1 - clear.cost)  # Cost inefficiency = noise
         return signal / noise
 
@@ -586,14 +613,20 @@ class PATEvaluator:
         if clear.latency < 0.80:
             recs.append("🚀 Reduce latency with speculative decoding or model caching")
         if clear.efficacy < 0.85:
-            recs.append("🎯 Improve efficacy with better prompts and agent specialization")
+            recs.append(
+                "🎯 Improve efficacy with better prompts and agent specialization"
+            )
         if clear.assurance < 0.90:
             recs.append("🛡️ Strengthen assurance with additional constitutional gates")
         if clear.reliability < 0.85:
-            recs.append("🔄 Increase reliability with seed sweep and deterministic settings")
+            recs.append(
+                "🔄 Increase reliability with seed sweep and deterministic settings"
+            )
 
         if not recs:
-            recs.append("✅ All dimensions performing well. Consider pushing to FRONTIER tier.")
+            recs.append(
+                "✅ All dimensions performing well. Consider pushing to FRONTIER tier."
+            )
 
         recs.insert(0, f"🔍 Focus on improving: {weakest.upper()} (lowest score)")
         return recs
@@ -607,19 +640,33 @@ class PATEvaluator:
         print(f"\n  Timestamp:     {result.timestamp}")
         print(f"  Duration:      {result.duration_ms:.1f}ms")
         print(f"  Agents Active: {result.agents_active}")
-        print(f"  Tasks:         {result.tasks_completed} completed, {result.tasks_failed} failed")
+        print(
+            f"  Tasks:         {result.tasks_completed} completed, {result.tasks_failed} failed"
+        )
 
         print("\n  ┌────────────────────────────────────────────────────────┐")
         print("  │                  CLEAR METRICS                         │")
         print("  ├────────────────────────────────────────────────────────┤")
         print(f"  │  Cost (C):       {self._bar(clear.cost)} {clear.cost:.2f}        │")
-        print(f"  │  Latency (L):    {self._bar(clear.latency)} {clear.latency:.2f}        │")
-        print(f"  │  Efficacy (E):   {self._bar(clear.efficacy)} {clear.efficacy:.2f}        │")
-        print(f"  │  Assurance (A):  {self._bar(clear.assurance)} {clear.assurance:.2f}        │")
-        print(f"  │  Reliability (R):{self._bar(clear.reliability)} {clear.reliability:.2f}        │")
+        print(
+            f"  │  Latency (L):    {self._bar(clear.latency)} {clear.latency:.2f}        │"
+        )
+        print(
+            f"  │  Efficacy (E):   {self._bar(clear.efficacy)} {clear.efficacy:.2f}        │"
+        )
+        print(
+            f"  │  Assurance (A):  {self._bar(clear.assurance)} {clear.assurance:.2f}        │"
+        )
+        print(
+            f"  │  Reliability (R):{self._bar(clear.reliability)} {clear.reliability:.2f}        │"
+        )
         print("  ├────────────────────────────────────────────────────────┤")
-        print(f"  │  OVERALL SCORE:  {self._bar(result.overall_score)} {result.overall_score:.2f}        │")
-        print(f"  │  SNR SCORE:      {result.snr_score:.2f}                              │")
+        print(
+            f"  │  OVERALL SCORE:  {self._bar(result.overall_score)} {result.overall_score:.2f}        │"
+        )
+        print(
+            f"  │  SNR SCORE:      {result.snr_score:.2f}                              │"
+        )
         print("  └────────────────────────────────────────────────────────┘")
 
         status = "✅ PASS" if result.ihsan_compliant else "❌ FAIL"
@@ -649,6 +696,7 @@ class PATEvaluator:
 # ============================================================================
 # CLI Entry Point
 # ============================================================================
+
 
 async def main():
     parser = argparse.ArgumentParser(

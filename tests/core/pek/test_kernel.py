@@ -13,27 +13,36 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # PEK depends on core.sovereign imports -- mock them before importing the kernel
-with patch.dict("sys.modules", {
-    "core.sovereign.autonomy_matrix": MagicMock(),
-    "core.sovereign.opportunity_pipeline": MagicMock(),
-    "core.sovereign.proactive_scheduler": MagicMock(),
-}):
+with patch.dict(
+    "sys.modules",
+    {
+        "core.sovereign.autonomy_matrix": MagicMock(),
+        "core.sovereign.opportunity_pipeline": MagicMock(),
+        "core.sovereign.proactive_scheduler": MagicMock(),
+    },
+):
     # Provide the enums/classes that PEK references at import time
     import sys
 
     _autonomy_mod = sys.modules["core.sovereign.autonomy_matrix"]
-    _autonomy_mod.AutonomyLevel = type("AutonomyLevel", (), {
-        "AUTOLOW": "AUTOLOW",
-        "OBSERVER": "OBSERVER",
-        "SUGGESTER": "SUGGESTER",
-    })
+    _autonomy_mod.AutonomyLevel = type(
+        "AutonomyLevel",
+        (),
+        {
+            "AUTOLOW": "AUTOLOW",
+            "OBSERVER": "OBSERVER",
+            "SUGGESTER": "SUGGESTER",
+        },
+    )
 
     _opp_mod = sys.modules["core.sovereign.opportunity_pipeline"]
     _opp_mod.OpportunityPipeline = MagicMock
     _opp_mod.PipelineOpportunity = MagicMock
 
     _sched_mod = sys.modules["core.sovereign.proactive_scheduler"]
-    _sched_mod.JobPriority = type("JobPriority", (), {"HIGH": "HIGH", "NORMAL": "NORMAL"})
+    _sched_mod.JobPriority = type(
+        "JobPriority", (), {"HIGH": "HIGH", "NORMAL": "NORMAL"}
+    )
     _sched_mod.ProactiveScheduler = MagicMock
     _sched_mod.ScheduleType = type("ScheduleType", (), {"ONE_TIME": "ONE_TIME"})
 
@@ -193,9 +202,15 @@ class TestKernelConfidenceComputation:
     def test_compute_confidence_weights(self, kernel):
         """Verify confidence = 0.35*snr + 0.35*ihsan + 0.20*value + 0.10*tau."""
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=1.0, ihsan_score=1.0,
-            urgency=0.5, estimated_value=1.0, risk=0.1,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=1.0,
+            ihsan_score=1.0,
+            urgency=0.5,
+            estimated_value=1.0,
+            risk=0.1,
         )
         confidence = kernel._compute_confidence(proposal, tau=1.0)
         expected = 1.0 * 0.35 + 1.0 * 0.35 + 1.0 * 0.20 + 1.0 * 0.10
@@ -203,9 +218,15 @@ class TestKernelConfidenceComputation:
 
     def test_compute_confidence_zero_inputs(self, kernel):
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=0.0, ihsan_score=0.0,
-            urgency=0.0, estimated_value=0.0, risk=0.0,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=0.0,
+            ihsan_score=0.0,
+            urgency=0.0,
+            estimated_value=0.0,
+            risk=0.0,
         )
         confidence = kernel._compute_confidence(proposal, tau=0.0)
         assert confidence == 0.0
@@ -213,9 +234,15 @@ class TestKernelConfidenceComputation:
     def test_compute_confidence_clamped_to_one(self, kernel):
         """Even with scores > 1.0, confidence is clamped to [0, 1]."""
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=2.0, ihsan_score=2.0,
-            urgency=0.5, estimated_value=2.0, risk=0.1,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=2.0,
+            ihsan_score=2.0,
+            urgency=0.5,
+            estimated_value=2.0,
+            risk=0.1,
         )
         confidence = kernel._compute_confidence(proposal, tau=2.0)
         assert confidence <= 1.0
@@ -385,12 +412,14 @@ class TestKernelStateManagement:
         assert "recent_proofs" in state
 
     def test_restore_persistable_state(self, kernel):
-        kernel.restore_persistable_state({
-            "cycle_count": 42,
-            "last_tau": 0.70,
-            "attention_budget": 5.5,
-            "metrics": {"cycles": 42, "proposals_generated": 10},
-        })
+        kernel.restore_persistable_state(
+            {
+                "cycle_count": 42,
+                "last_tau": 0.70,
+                "attention_budget": 5.5,
+                "metrics": {"cycles": 42, "proposals_generated": 10},
+            }
+        )
         assert kernel._cycle_count == 42
         assert kernel._last_tau == 0.70
         assert kernel._attention_budget == 5.5
@@ -398,9 +427,11 @@ class TestKernelStateManagement:
         assert kernel._metrics["proposals_generated"] == 10
 
     def test_restore_clamps_budget(self, kernel):
-        kernel.restore_persistable_state({
-            "attention_budget": 999.0,
-        })
+        kernel.restore_persistable_state(
+            {
+                "attention_budget": 999.0,
+            }
+        )
         assert kernel._attention_budget == kernel.config.attention_budget_capacity
 
     def test_register_sensor(self, kernel):
@@ -435,9 +466,15 @@ class TestVerifyWithFate:
 
     def test_no_fate_gate_soft_pass(self, kernel):
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=0.9, ihsan_score=0.96,
-            urgency=0.5, estimated_value=0.7, risk=0.2,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=0.9,
+            ihsan_score=0.96,
+            urgency=0.5,
+            estimated_value=0.7,
+            risk=0.2,
         )
         passed, proof_id, note = kernel._verify_with_fate(proposal, tau=0.55)
         assert passed is True
@@ -453,9 +490,15 @@ class TestVerifyWithFate:
         kernel.set_fate_gate(mock_gate)
 
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=0.9, ihsan_score=0.96,
-            urgency=0.5, estimated_value=0.7, risk=0.2,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=0.9,
+            ihsan_score=0.96,
+            urgency=0.5,
+            estimated_value=0.7,
+            risk=0.2,
         )
         passed, proof_id, note = kernel._verify_with_fate(proposal, tau=0.55)
         assert passed is True
@@ -470,9 +513,15 @@ class TestVerifyWithFate:
         kernel.set_fate_gate(mock_gate)
 
         proposal = PEKProposal(
-            id="test", domain="test", action_type="test",
-            description="test", snr_score=0.9, ihsan_score=0.96,
-            urgency=0.5, estimated_value=0.7, risk=0.9,
+            id="test",
+            domain="test",
+            action_type="test",
+            description="test",
+            snr_score=0.9,
+            ihsan_score=0.96,
+            urgency=0.5,
+            estimated_value=0.7,
+            risk=0.9,
         )
         passed, proof_id, note = kernel._verify_with_fate(proposal, tau=0.55)
         assert passed is False
