@@ -158,13 +158,26 @@ def _init_verified_pipeline():
     except Exception as e:
         logger.warning(f"  SNR maximizer: unavailable ({e})")
 
+    # Gap G-2: Try Rust SNR engine (highest priority in facade)
+    rust_engine = None
+    try:
+        from core.iaas.snr_rust_adapter import create_rust_snr_adapter
+        rust_engine = create_rust_snr_adapter()
+        if rust_engine:
+            logger.info("  SNR Rust engine: initialized (PyO3 bridge)")
+    except Exception as e:
+        logger.debug(f"  SNR Rust engine: unavailable ({e})")
+
     try:
         from core.snr_protocol import SNRFacade
         _SNR_FACADE = SNRFacade(
+            rust_engine=rust_engine,
             v2_engine=v2_adapter,
             text_engine=text_engine,
         )
         engines = []
+        if rust_engine:
+            engines.append("rust")
         if v2_adapter:
             engines.append("v2")
         if text_engine:
