@@ -140,6 +140,13 @@ export default function OnboardingFlow({ node, onComplete }) {
       values: '',
       goal: '',
     },
+    agentOps: {
+      work_schedule: '',
+      primary_tools: '',
+      communication_pref: '',
+      priority_domains: '',
+      automation_comfort: '',
+    },
     firstChatComplete: false,
   });
 

@@ -1,0 +1,34 @@
+{
+  "provider": "zhipu",
+  "conversations": [
+    {
+      "id": "zh-conv-1",
+      "model": "glm-4",
+      "messages": [
+        {
+          "id": "z1",
+          "role": "user",
+          "content": "Generate a deployment checklist."
+        },
+        {
+          "id": "z2",
+          "role": "assistant",
+          "content": "{\"plan\": [\"build\", \"test\", \"deploy\"], \"owner\": \"ops\"}",
+          "tool_calls": [
+            {
+              "name": "search_docs",
+              "arguments": {
+                "query": "deployment checklist"
+              }
+            }
+          ],
+          "citations": [
+            {
+              "url": "https://example.com/deploy"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -23,16 +23,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-CORE8 = {
+CONVERSATION_PLATFORMS = {
     "chatgpt_openai",
     "claude",
     "gemini_google",
     "deepseek",
     "qwen",
     "kimi",
-    "perplexity",
     "zhipu",
 }
+SEARCH_AGGREGATORS = {"perplexity"}
+# Backward-compatible: all 8 supported platforms.
+CORE8 = CONVERSATION_PLATFORMS | SEARCH_AGGREGATORS
 
 
 @dataclass(frozen=True)

@@ -88,7 +88,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 from core.elite import ELITE_VERSION; \
 from core.memory import AgentDB; \
 from core.cognitive_fusion import CognitiveFusionEngine; \
-print(f'Elite v{ELITE_VERSION} | AgentDB + CognitiveFusion OK')"
+from core.marketplace import ExpertRegistry; \
+from core.token.emission_decay import LogisticEmissionGate; \
+from core.pat.social_recovery import ShamirSplitter; \
+print(f'Elite v{ELITE_VERSION} | AgentDB + CognitiveFusion + SAPE OK')"
 
 # Default command — sovereign runtime API server
 CMD ["python", "-m", "core.sovereign", "serve", "--host", "0.0.0.0", "--port", "8000"]

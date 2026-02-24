@@ -18,6 +18,7 @@ DEFAULT_RECORDS = DEFAULT_OUTDIR / "core8_records.jsonl"
 DEFAULT_MANIFEST = DEFAULT_OUTDIR / "corpus_manifest.v1.json"
 DEFAULT_BASELINE = REPO / "sovereign_state" / "node0_baseline.json"
 
+# All 8 supported platforms: 7 conversation + 1 search aggregator (perplexity).
 CORE8_ORDER = [
     "chatgpt_openai",
     "claude",
@@ -25,7 +26,7 @@ CORE8_ORDER = [
     "deepseek",
     "qwen",
     "kimi",
-    "perplexity",
+    "perplexity",  # search aggregator — data collected but not identity-building
     "zhipu",
 ]
 

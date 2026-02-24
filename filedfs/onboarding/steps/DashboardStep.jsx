@@ -106,6 +106,152 @@ const StatCard = ({ label, value, color = 'rgba(255,255,255,0.85)' }) => (
   </div>
 );
 
+// ── Quality Tier (inline, matches App.jsx tiers) ────────────
+
+const QUALITY_TIERS = [
+  { key: "seed", label: "Seed", icon: "\u{1F331}", color: "#8B7355", minAtoms: 0, minMsgs: 0 },
+  { key: "sprout", label: "Sprout", icon: "\u{1F33F}", color: "#4CAF50", minAtoms: 1, minMsgs: 0 },
+  { key: "growing", label: "Growing", icon: "\u{1F333}", color: "#2196F3", minAtoms: 25, minMsgs: 10 },
+  { key: "rooted", label: "Rooted", icon: "\u{1F332}", color: "#9C27B0", minAtoms: 100, minMsgs: 0 },
+  { key: "flourishing", label: "Flourishing", icon: "\u{1F31F}", color: "#FFD700", minAtoms: 200, minMsgs: 0 },
+];
+
+const TIER_UNLOCKS = {
+  seed: ["Chat with your node", "TEACH commands to build knowledge"],
+  sprout: ["Memory recall across sessions", "Bootstrap reflexes (shadow mode)"],
+  growing: ["Reflex compilation", "Action Bus (ToolCall)"],
+  rooted: ["Desktop actions via AHK bridge", "Token economy participation"],
+  flourishing: ["Full Action Bus orchestration", "Agent-as-Service publishing"],
+};
+
+function determineTier(nodeData) {
+  const atoms = nodeData?.fragments || 0;
+  const msgs = nodeData?.messages || 0;
+  if (atoms >= 200) return QUALITY_TIERS[4];
+  if (atoms >= 100) return QUALITY_TIERS[3];
+  if (atoms >= 25 && msgs >= 10) return QUALITY_TIERS[2];
+  if (atoms >= 1) return QUALITY_TIERS[1];
+  return QUALITY_TIERS[0];
+}
+
+const TIER_CONGRATS = {
+  seed: "Your sovereign node is planted. Every conversation is a seed of understanding.",
+  sprout: "You have already begun teaching your node. It remembers you now.",
+  growing: "Your node is growing strong with knowledge. Reflexes are forming.",
+  rooted: "Deeply rooted. Your node has real depth of understanding.",
+  flourishing: "Full sovereignty achieved. Your node is a living agent.",
+};
+
+const TierBadgeOnboarding = ({ health }) => {
+  const nodeData = {
+    fragments: parseInt(health?.fragments || '0', 10),
+    messages: parseInt(health?.messages || '0', 10),
+  };
+  const tier = determineTier(nodeData);
+  const unlocks = TIER_UNLOCKS[tier.key] || [];
+  const isFlourishing = tier.key === 'flourishing';
+  const congrats = TIER_CONGRATS[tier.key] || '';
+
+  return (
+    <div style={{
+      padding: '14px 16px',
+      background: `${tier.color}08`,
+      border: `1px solid ${tier.color}18`,
+      borderRadius: 10,
+      boxShadow: isFlourishing ? `0 0 20px ${tier.color}10` : 'none',
+    }}>
+      {/* Badge row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 10,
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '5px 12px',
+          background: `${tier.color}14`,
+          border: `1px solid ${tier.color}30`,
+          borderRadius: 20,
+        }}>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>{tier.icon}</span>
+          <span style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 12,
+            fontWeight: 600,
+            color: tier.color,
+            letterSpacing: 0.5,
+          }}>
+            {tier.label}
+          </span>
+        </div>
+        <span style={{
+          fontFamily: 'var(--sans)',
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.4)',
+        }}>
+          You are starting at <span style={{ color: tier.color, fontWeight: 600 }}>{tier.label}</span> level
+        </span>
+      </div>
+
+      {/* Congratulatory message */}
+      <div style={{
+        fontFamily: 'var(--sans)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
+        lineHeight: 1.5,
+        marginBottom: 12,
+        padding: '8px 10px',
+        background: `${tier.color}06`,
+        borderRadius: 6,
+        borderLeft: `3px solid ${tier.color}40`,
+      }}>
+        {congrats}
+      </div>
+
+      {/* Available capabilities */}
+      <div style={{
+        fontFamily: 'var(--mono)',
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.2)',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 6,
+      }}>
+        Available at this tier
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {unlocks.map((cap, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 0',
+          }}>
+            <div style={{
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              background: tier.color,
+              flexShrink: 0,
+              opacity: 0.7,
+            }} />
+            <span style={{
+              fontFamily: 'var(--sans)',
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.5)',
+            }}>
+              {cap}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── Section Label ─────────────────────────────────────────────
 
 const SectionLabel = ({ children }) => (
@@ -287,6 +433,9 @@ export default function DashboardStep({ node, state, setState, onNext }) {
           />
         </div>
       </div>
+
+      {/* Quality Tier Badge */}
+      <TierBadgeOnboarding health={health} />
 
       {/* Reflex Stats Panel */}
       <div style={{

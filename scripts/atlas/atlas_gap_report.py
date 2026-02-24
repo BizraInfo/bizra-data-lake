@@ -17,6 +17,98 @@ from typing import Any, Optional
 
 ALLOWED_STATUSES = {"implemented", "partial", "missing"}
 
+# ── Quality Tier Definitions ────────────────────────────────────
+
+TIER_ORDER = ["seed", "sprout", "growing", "rooted", "flourishing"]
+
+TIER_CAPABILITIES: dict[str, list[str]] = {
+    "seed": ["chat", "teach"],
+    "sprout": ["memory_recall", "bootstrap_reflexes"],
+    "growing": ["reflex_compilation", "tool_call"],
+    "rooted": ["desktop_actions", "file_op", "token_economy"],
+    "flourishing": ["browser_nav", "full_action_bus", "agent_as_service"],
+}
+
+TIER_UNLOCK_CRITERIA: dict[str, str] = {
+    "seed": "Default starting tier",
+    "sprout": "1+ atoms taught",
+    "growing": "25+ atoms and 10+ messages",
+    "rooted": "100+ atoms or synthesis complete",
+    "flourishing": "200+ atoms, multi-provider, 3+ elite reflexes",
+}
+
+# Maps Atlas capability priority levels to user tiers.
+# P0 = core infrastructure available from the start.
+# P1 = available at Growing tier (reflex compilation + tool calls).
+# P2 = available at Rooted tier (desktop actions + token economy).
+# P3+ = available at Flourishing tier (full action bus + agent-as-service).
+PRIORITY_TO_TIER: dict[str, str] = {
+    "P0": "seed",
+    "P1": "growing",
+    "P2": "rooted",
+    "P3": "flourishing",
+}
+
+
+def _compute_tier_output(tier_key: str) -> dict[str, Any]:
+    """Return capabilities unlocked/locked for a given user tier."""
+    if tier_key not in TIER_ORDER:
+        raise ValueError(f"Unknown tier: {tier_key}")
+
+    tier_idx = TIER_ORDER.index(tier_key)
+    unlocked: list[str] = []
+    locked: list[str] = []
+
+    for i, tk in enumerate(TIER_ORDER):
+        caps = TIER_CAPABILITIES.get(tk, [])
+        if i <= tier_idx:
+            unlocked.extend(caps)
+        else:
+            locked.extend(caps)
+
+    next_tier = TIER_ORDER[tier_idx + 1] if tier_idx < len(TIER_ORDER) - 1 else None
+    unlock_criteria = (
+        TIER_UNLOCK_CRITERIA.get(next_tier, "") if next_tier else "Max tier reached"
+    )
+
+    # Build priority mapping for this tier
+    available_priorities: list[str] = []
+    for priority, mapped_tier in sorted(PRIORITY_TO_TIER.items()):
+        if TIER_ORDER.index(mapped_tier) <= tier_idx:
+            available_priorities.append(priority)
+
+    return {
+        "tier": tier_key,
+        "capabilities_unlocked": unlocked,
+        "capabilities_locked": locked,
+        "next_tier": next_tier,
+        "unlock_criteria": unlock_criteria,
+        "available_priorities": available_priorities,
+    }
+
+
+def user_tier_report(tier_name: str) -> dict[str, Any]:
+    """Public API: return which capabilities are unlocked for a given tier.
+
+    Parameters
+    ----------
+    tier_name:
+        One of ``"seed"``, ``"sprout"``, ``"growing"``, ``"rooted"``,
+        ``"flourishing"``.
+
+    Returns
+    -------
+    dict
+        Keys: ``tier``, ``capabilities_unlocked``, ``capabilities_locked``,
+        ``next_tier``, ``unlock_criteria``, ``available_priorities``.
+
+    Raises
+    ------
+    ValueError
+        If *tier_name* is not a recognised tier key.
+    """
+    return _compute_tier_output(tier_name)
+
 
 def _load_matrix(path: Path) -> dict[str, Any]:
     raw = path.read_text(encoding="utf-8")
@@ -183,7 +275,19 @@ def main() -> int:
         action="store_true",
         help="Return non-zero exit if any P0 capability is not implemented",
     )
+    parser.add_argument(
+        "--user-tier",
+        choices=["seed", "sprout", "growing", "rooted", "flourishing"],
+        default=None,
+        help="Output capabilities unlocked at the specified user tier",
+    )
     args = parser.parse_args()
+
+    # ── User tier mode: standalone JSON output, no matrix needed ──
+    if args.user_tier is not None:
+        tier_report = _compute_tier_output(args.user_tier)
+        print(json.dumps(tier_report, indent=2))
+        return 0
 
     matrix = _load_matrix(args.matrix)
     runtime_status = (
