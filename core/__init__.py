@@ -34,30 +34,60 @@ Updated: 2026-02-17 — Phase 25-28: Genesis + Guild + Quest + HRM + NorthStar +
 _SUBPACKAGES = frozenset(
     {
         "a2a",
+        "agentic",
+        "apex",
+        "auth",
+        "autonomous",
+        "autopoiesis",
+        "benchmark",
+        "bounty",
         "bridges",
         "cognitive_fusion",
+        "command",
+        "constitutional",
+        "elite",
+        "embedding",
         "federation",
         "genesis",
         "governance",
+        "graph",
         "guild",
         "hashtable",
         "hrm",
         "hypergraph",
+        "iaas",
         "inference",
         "integration",
+        "living_memory",
+        "marketplace",
         "memory",
         "memory_coder",
+        "nexus",
         "northstar",
         "ntu",
         "orchestration",
+        "pat",
         "pci",
+        "pek",
+        "personaplex",
         "prediction",
+        "proof_engine",
         "protocols",
         "quest",
+        "rdve",
         "reasoning",
+        "rollout",
+        "sdpo",
         "search",
+        "skills",
+        "sovereign",
+        "spearpoint",
+        "token",
         "treasury",
+        "uers",
         "vault",
+        "voice",
+        "zpk",
     }
 )
 
@@ -73,38 +103,5 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = [
-    # Core infrastructure
-    "pci",
-    "vault",
-    "federation",
-    "inference",
-    "a2a",
-    "integration",
-    "ntu",
-    # Protocols
-    "protocols",
-    # Decomposed sovereign (new structure)
-    "governance",
-    "reasoning",
-    "orchestration",
-    "treasury",
-    "bridges",
-    # Phase 44: Hash Table Infrastructure
-    "hashtable",
-    # Phase 46: Cognitive Resonance
-    "search",
-    "prediction",
-    # Phase 31: Cognitive Fusion
-    "hypergraph",
-    "cognitive_fusion",
-    "memory_coder",
-    # Phase 25-28: Ecosystem subsystems
-    "genesis",
-    "guild",
-    "quest",
-    "hrm",
-    "northstar",
-    "memory",
-]
+__all__ = sorted(_SUBPACKAGES)
 __version__ = "2.5.0"

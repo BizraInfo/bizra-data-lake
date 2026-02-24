@@ -40,7 +40,7 @@ class RejectCode(IntEnum):
     # ADL (JUSTICE) INVARIANT CODES (100-199)
     # Standing on Giants: Gini (1912), Harberger (1962), Rawls (1971)
     # ═══════════════════════════════════════════════════════════════════════════
-    REJECT_ADL_GINI_EXCEEDED = 100  # Post-tx Gini > threshold (0.40)
+    REJECT_ADL_GINI_EXCEEDED = 100  # Post-tx Gini > threshold (0.35)
     REJECT_ADL_CONSERVATION = 101  # Total value changed (conservation law)
     REJECT_ADL_NEGATIVE_HOLDING = 102  # Would create negative balance
     REJECT_ADL_INVALID_TX = 103  # Malformed transaction

@@ -11,7 +11,7 @@ Constitutional Principle:
 "Adl (عدل) - Justice is not optional. It is a hard constraint."
 
 The Adl Invariant ensures that no transaction can push the network's
-wealth distribution beyond the constitutional Gini threshold of 0.40.
+wealth distribution beyond the constitutional Gini threshold of 0.35.
 This is not a warning - it is a HARD GATE that rejects plutocratic moves.
 
 Mathematical Foundation:
@@ -19,10 +19,10 @@ Mathematical Foundation:
 - Where x_i are sorted holdings and i is rank (1 to n)
 - G = 0: Perfect equality (everyone holds the same)
 - G = 1: Perfect inequality (one entity holds everything)
-- Threshold = 0.40: Moderate inequality, prevents plutocracy
+- Threshold = 0.35: Moderate inequality, prevents plutocracy
 
 Harberger Tax Mechanism:
-- All holdings are taxed at a continuous rate (default 5% annually)
+- All holdings are taxed at a continuous rate (default 7% annually)
 - Tax proceeds flow to Universal Basic Compute (UBC) pool
 - UBC distributes equally to all active nodes
 - This creates a natural redistribution pressure toward equality
@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)
 ADL_GINI_THRESHOLD: float = 0.35
 
 # Harberger tax rate (annual, applied continuously)
-# 5% strikes balance between redistribution pressure and stability
-HARBERGER_TAX_RATE: float = 0.05
+# 7% — aligned with core/integration/constants.py ADL_HARBERGER_TAX_RATE
+HARBERGER_TAX_RATE: float = 0.07
 
 # Minimum holding to be considered a participant
 # Prevents dust attacks and ensures meaningful participation
@@ -346,8 +346,8 @@ class AdlInvariant:
         Initialize the Adl Invariant.
 
         Args:
-            gini_threshold: Maximum allowed Gini coefficient (default 0.40)
-            tax_rate: Annual Harberger tax rate (default 0.05 = 5%)
+            gini_threshold: Maximum allowed Gini coefficient (default 0.35)
+            tax_rate: Annual Harberger tax rate (default 0.07 = 7%)
         """
         if not 0.0 <= gini_threshold <= 1.0:
             raise ValueError(f"Gini threshold must be in [0, 1], got {gini_threshold}")
