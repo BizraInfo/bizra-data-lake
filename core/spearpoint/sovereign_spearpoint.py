@@ -280,9 +280,7 @@ class CircuitBreaker:
             "state": self.state.name,
             "failure_count": self._inner._failure_count,
             "success_count": self._inner._success_count,
-            "time_in_state": round(
-                time.time() - self._inner._last_state_change, 2
-            ),
+            "time_in_state": round(time.time() - self._inner._last_state_change, 2),
         }
 
 
