@@ -31,6 +31,7 @@ pub mod decision_registry;
 pub mod ffi;
 pub mod hash_namespace;
 pub mod key_vault;
+pub mod omni_kernel;
 pub mod orchestrator;
 pub mod parallel_executor;
 pub mod permit_guard;
@@ -58,6 +59,7 @@ pub use decision_registry::{
 pub use ffi::{AgentRuntimeHandle, FfiHealth, FfiMessage, FfiResponse, FfiResult, FfiStringBuffer};
 pub use hash_namespace::{ActionHash, ArtifactHash, TriggerHash};
 pub use key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError};
+pub use omni_kernel::{CyclePath, CycleReceipt, OmniCycle, OmniKernel, OmniKernelConfig};
 pub use orchestrator::{ExecutionPlan, OrchestrationResult, OrchestratorConfig, TaskOrchestrator};
 pub use parallel_executor::{ParallelExecutor, SubAgentResult};
 pub use permit_guard::{PermitBudgetConfig, PermitGuard, PermitUsage};

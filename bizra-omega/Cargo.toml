@@ -21,6 +21,8 @@ members = [
     "bizra-memory",
     # ━━━ Action Bus (muscle system — Event→Action→Receipt) ━━━
     "bizra-action",
+    # ━━━ TTRL Layer (four-paper upgrades — Chain of Reasoning, Engram, SSO, TTRL) ━━━
+    "bizra-ttrl",
     # ━━━ Desktop Node Layer (sovereign agent + binary) ━━━
     "bizra-agent",
     "bizra-node",

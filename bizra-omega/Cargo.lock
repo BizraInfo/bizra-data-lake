@@ -372,12 +372,15 @@ version = "2.0.0"
 name = "bizra-agent"
 version = "2.0.0"
 dependencies = [
+ "bizra-action",
  "bizra-hooks",
  "bizra-memory",
  "bizra-telescript",
+ "bizra-ttrl",
  "blake3",
  "tempfile",
  "toml",
+ "tracing",
 ]
 
 [[package]]
@@ -696,6 +699,16 @@ dependencies = [
  "tokio",
  "tokio-test",
  "uuid",
+]
+
+[[package]]
+name = "bizra-ttrl"
+version = "2.0.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
