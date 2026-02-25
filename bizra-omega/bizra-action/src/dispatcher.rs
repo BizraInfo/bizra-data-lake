@@ -377,7 +377,8 @@ impl EventEmitter for RecordingEmitter {
         ihsan_score: IhsanScore,
         _receipt_hash: [u8; 32],
     ) {
-        self.completed.push((action_id, channel, success, ihsan_score));
+        self.completed
+            .push((action_id, channel, success, ihsan_score));
     }
 
     fn emit_action_denied(&mut self, action_id: ActionId, channel: Channel, reason: String) {

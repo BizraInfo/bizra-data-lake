@@ -1,0 +1,17 @@
+[package]
+name = "bizra-ttrl"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "TTRL + Engram + SSO + Chain-of-Reasoning: the four paper upgrades that make BIZRA a self-improving sovereign node."
+publish = false
+
+[dependencies]
+blake3   = { workspace = true }
+serde    = { workspace = true }
+thiserror = { workspace = true }
+tracing  = { workspace = true }
+
+[dev-dependencies]
+# no extra dev deps needed
