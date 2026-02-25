@@ -142,8 +142,7 @@ fn security_vault_file_rejects_symlinks() {
     let result = backend.get("symlinked");
     assert!(
         matches!(result, Err(VaultError::PermissionDenied { .. })),
-        "Expected PermissionDenied for symlinked secret, got: {:?}",
-        result
+        "Expected PermissionDenied for symlinked secret, got: {result:?}"
     );
 }
 
