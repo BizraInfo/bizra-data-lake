@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("yaml")
+
 from core.skills.registry import (
     RegisteredSkill,
     SkillContext,

@@ -344,6 +344,10 @@ class TestRustServiceAdapterStatusMapping:
             assert isinstance(result, HealthStatus), f"Missing mapping for {member}"
 
 
+@pytest.mark.skipif(
+    not __import__("importlib").util.find_spec("aiohttp"),
+    reason="aiohttp not installed",
+)
 class TestRustServiceAdapterHealthCheck:
     """Validate health_check behavior under various conditions."""
 
