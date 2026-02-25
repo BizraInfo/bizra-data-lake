@@ -38,6 +38,7 @@ from .ablation_engine import (
     ComponentCategory,
     ComponentContribution,
 )
+from .adaptive_prior import AdaptivePriorLearning, CategoryBelief
 from .clear_framework import (
     AgenticBenchmarkChecklist,
     CLEARDimension,
@@ -78,7 +79,6 @@ from .leaderboard import (
     SubmissionResult,
     SubmissionStatus,
 )
-from .adaptive_prior import AdaptivePriorLearning, CategoryBelief
 from .miras_memory import MIRASMemory, MIRASMemoryEntry, RetrievalResult
 from .moe_router import (
     ExpertTier,
