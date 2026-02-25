@@ -28,6 +28,7 @@ ENFORCED_PATHS = [
 SHA256_PATTERN = re.compile(r"hashlib\.sha256")
 HMAC_PATTERN = re.compile(r"hmac\.(new|HMAC|compare_digest).*hashlib\.sha256")
 COMMENT_PATTERN = re.compile(r"^\s*#")
+NOQA_SEC001 = re.compile(r"#\s*noqa:\s*SEC-001")
 
 
 def scan_file(path: Path) -> list[tuple[int, str]]:
@@ -44,6 +45,9 @@ def scan_file(path: Path) -> list[tuple[int, str]]:
             continue
         # Skip lines that are HMAC usage (RFC 2104 — intentional)
         if HMAC_PATTERN.search(line):
+            continue
+        # Skip lines with explicit SEC-001 exemption (legacy backward compat)
+        if NOQA_SEC001.search(line):
             continue
         # Flag raw hashlib.sha256
         if SHA256_PATTERN.search(line):

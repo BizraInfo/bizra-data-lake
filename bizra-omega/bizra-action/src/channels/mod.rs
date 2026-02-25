@@ -541,7 +541,10 @@ pub struct EchoChannel {
 
 impl EchoChannel {
     pub fn new(chan: Channel) -> Self {
-        Self { chan, call_count: 0 }
+        Self {
+            chan,
+            call_count: 0,
+        }
     }
 
     pub fn call_count(&self) -> u64 {
