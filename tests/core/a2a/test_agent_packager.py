@@ -17,7 +17,8 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-import yaml
+
+yaml = pytest.importorskip("yaml")
 
 from core.a2a.agent_packager import (
     ARCHIVE_EXTENSION,

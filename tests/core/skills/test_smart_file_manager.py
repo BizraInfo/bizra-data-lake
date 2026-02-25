@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytest.importorskip("yaml")
+
 from core.skills.smart_file_manager import (
     SmartFileHandler,
     _expand_pattern,

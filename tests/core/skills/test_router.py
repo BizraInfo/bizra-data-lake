@@ -14,6 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytest.importorskip("yaml")
+
 from core.skills.mcp_bridge import MCPBridge
 from core.skills.registry import (
     RegisteredSkill,
