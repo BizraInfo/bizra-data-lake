@@ -17,6 +17,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # ---------------------------------------------------------------------------
+# Guard: sovereign_mcp_server requires the 'mcp' SDK package at import time.
+# Skip the entire module when mcp is not installed (e.g. CI environments).
+# ---------------------------------------------------------------------------
+pytest.importorskip("mcp", reason="mcp SDK package not installed")
+
+# ---------------------------------------------------------------------------
 # Path setup — ensure project root and tools/mcp are importable
 # ---------------------------------------------------------------------------
 _here = os.path.dirname(os.path.abspath(__file__))

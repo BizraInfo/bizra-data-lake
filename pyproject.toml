@@ -46,6 +46,7 @@ dev = [
     "mypy>=1.5.0",
     "ruff>=0.1.0",
     "hypothesis>=6.100.0",
+    "pyyaml>=6.0",
 ]
 full = [
     "torch>=2.0.0",
