@@ -301,7 +301,7 @@ impl GenesisEngine {
         println!("                    STANDING ON GIANTS");
         println!("═══════════════════════════════════════════════════════════════════");
         for (giant, contribution) in UNIVERSAL_GIANTS.iter() {
-            println!("  {} - {}", giant, contribution);
+            println!("  {giant} - {contribution}");
         }
         println!();
 

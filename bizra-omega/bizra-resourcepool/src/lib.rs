@@ -949,7 +949,7 @@ impl ResourcePool {
 
         // Verify signature
         let pk_bytes = hex::decode(&request.node_id).map_err(|e| PoolError::CryptoError {
-            reason: format!("Invalid node ID: {}", e),
+            reason: format!("Invalid node ID: {e}"),
         })?;
 
         let verifying_key =
@@ -957,23 +957,23 @@ impl ResourcePool {
                 reason: "Invalid key length".to_string(),
             })?)
             .map_err(|e| PoolError::CryptoError {
-                reason: format!("Invalid public key: {}", e),
+                reason: format!("Invalid public key: {e}"),
             })?;
 
         // Verify requester signature against canonical registration payload
         let sig_bytes =
             hex::decode(&request.signature).map_err(|e| PoolError::InvalidSignature {
-                reason: format!("Malformed signature hex: {}", e),
+                reason: format!("Malformed signature hex: {e}"),
             })?;
         let signature =
             Signature::from_slice(&sig_bytes).map_err(|e| PoolError::InvalidSignature {
-                reason: format!("Malformed Ed25519 signature: {}", e),
+                reason: format!("Malformed Ed25519 signature: {e}"),
             })?;
         let signing_payload = Self::registration_signature_payload(&request);
         verifying_key
             .verify(&signing_payload, &signature)
             .map_err(|e| PoolError::InvalidSignature {
-                reason: format!("Signature verification failed: {}", e),
+                reason: format!("Signature verification failed: {e}"),
             })?;
 
         // Create the new node
@@ -1291,7 +1291,7 @@ impl ResourcePool {
                 category,
                 recipient_node: None,
                 amount: per_category,
-                purpose: format!("{:?} support", category),
+                purpose: format!("{category:?} support"),
             });
         }
 
@@ -1331,10 +1331,7 @@ impl ResourcePool {
         if self_assessment < min_assessment {
             return Err(PoolError::FateRejection {
                 gate: "HARBERGER".to_string(),
-                reason: format!(
-                    "Self-assessment {} below minimum {}",
-                    self_assessment, min_assessment
-                ),
+                reason: format!("Self-assessment {self_assessment} below minimum {min_assessment}"),
             });
         }
 
@@ -1651,7 +1648,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             PoolError::InvalidSignature { .. } => {}
-            other => panic!("expected InvalidSignature, got {:?}", other),
+            other => panic!("expected InvalidSignature, got {other:?}"),
         }
     }
 

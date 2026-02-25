@@ -289,7 +289,7 @@ pub fn config_from_env() -> BootstrapConfig {
 
     if let Ok(port) = std::env::var("BIZRA_PORT") {
         if let Ok(p) = port.parse::<u16>() {
-            config.bind_addr = format!("0.0.0.0:{}", p);
+            config.bind_addr = format!("0.0.0.0:{p}");
         }
     }
 

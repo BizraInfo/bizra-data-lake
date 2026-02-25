@@ -123,7 +123,7 @@ mod tests {
     fn test_batch_verify() {
         let identity = NodeIdentity::generate();
         let messages: Vec<Vec<u8>> = (0..10)
-            .map(|i| format!("message_{}", i).into_bytes())
+            .map(|i| format!("message_{i}").into_bytes())
             .collect();
 
         let signatures: Vec<String> = messages.iter().map(|m| identity.sign(m)).collect();

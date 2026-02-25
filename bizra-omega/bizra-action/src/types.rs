@@ -413,44 +413,44 @@ impl BizraAction {
             Self::AhkClick {
                 window,
                 element_path,
-            } => format!("Click [{}] in '{}'", element_path, window),
+            } => format!("Click [{element_path}] in '{window}'"),
             Self::AhkType { window, text, .. } => {
                 format!("Type {} chars in '{}'", text.len(), window)
             }
             Self::AhkRead {
                 window,
                 element_path,
-            } => format!("Read [{}] from '{}'", element_path, window),
+            } => format!("Read [{element_path}] from '{window}'"),
             Self::AhkReflex { reflex_hash, .. } => format!(
                 "Execute reflex {:02x}{:02x}...",
                 reflex_hash[0], reflex_hash[1]
             ),
-            Self::AhkLaunch { executable, .. } => format!("Launch '{}'", executable),
+            Self::AhkLaunch { executable, .. } => format!("Launch '{executable}'"),
             Self::AhkPerceive => "Capture UIA tree (perception)".into(),
-            Self::LlmQuery { model, .. } => format!("Query model '{}'", model),
-            Self::LlmStream { model, .. } => format!("Stream from '{}'", model),
-            Self::MemoryStore { fragment_id, .. } => format!("Store fragment '{}'", fragment_id),
-            Self::MemoryRecall { top_k, .. } => format!("Recall top-{} fragments", top_k),
-            Self::MemoryUpdateKnownMe { delta, .. } => format!("Update Known-Me by {:.4}", delta),
+            Self::LlmQuery { model, .. } => format!("Query model '{model}'"),
+            Self::LlmStream { model, .. } => format!("Stream from '{model}'"),
+            Self::MemoryStore { fragment_id, .. } => format!("Store fragment '{fragment_id}'"),
+            Self::MemoryRecall { top_k, .. } => format!("Recall top-{top_k} fragments"),
+            Self::MemoryUpdateKnownMe { delta, .. } => format!("Update Known-Me by {delta:.4}"),
             Self::McpToolCall {
                 tool_name, server, ..
-            } => format!("MCP: {}@{}", tool_name, server),
+            } => format!("MCP: {tool_name}@{server}"),
             Self::FileCreate { path, content } => {
                 format!("Create '{}' ({} bytes)", path, content.len())
             }
-            Self::FileRead { path } => format!("Read '{}'", path),
-            Self::FileDelete { path } => format!("Delete '{}'", path),
-            Self::BrowserNavigate { url } => format!("Navigate to '{}'", url),
-            Self::BrowserFetch { url, method, .. } => format!("{} '{}'", method, url),
+            Self::FileRead { path } => format!("Read '{path}'"),
+            Self::FileDelete { path } => format!("Delete '{path}'"),
+            Self::BrowserNavigate { url } => format!("Navigate to '{url}'"),
+            Self::BrowserFetch { url, method, .. } => format!("{method} '{url}'"),
             Self::RespondToUser { ihsan_score, .. } => {
-                format!("Respond to user (Iḥsān: {})", ihsan_score)
+                format!("Respond to user (Iḥsān: {ihsan_score})")
             }
             Self::TelescriptGo {
                 destination_node, ..
-            } => format!("Agent GO → '{}'", destination_node),
+            } => format!("Agent GO → '{destination_node}'"),
             Self::TelescriptMeet {
                 visitor_agent_id, ..
-            } => format!("MEET agent '{}'", visitor_agent_id),
+            } => format!("MEET agent '{visitor_agent_id}'"),
         }
     }
 }

@@ -85,7 +85,7 @@ fn main() {
                     }
                 }
                 Err(e) => {
-                    eprintln!("  state: error restoring: {}", e);
+                    eprintln!("  state: error restoring: {e}");
                 }
             }
         }
@@ -106,7 +106,7 @@ fn main() {
                         );
                     }
                 }
-                Err(e) => eprintln!("  reflex: error restoring cache: {}", e),
+                Err(e) => eprintln!("  reflex: error restoring cache: {e}"),
             }
         }
 
@@ -124,7 +124,7 @@ fn main() {
                         );
                     }
                 }
-                Err(e) => eprintln!("  actions: error restoring log: {}", e),
+                Err(e) => eprintln!("  actions: error restoring log: {e}"),
             }
         }
     }
@@ -156,7 +156,7 @@ fn main() {
     } else {
         // Standard stdin/stdout protocol loop
         if let Err(e) = node.run() {
-            eprintln!("bizra-node: fatal error: {}", e);
+            eprintln!("bizra-node: fatal error: {e}");
 
             // Still try to save state on error
             if auto_persist {
@@ -179,15 +179,15 @@ fn main() {
                     }
                 }
                 Err(e) => {
-                    eprintln!("  state: error saving: {}", e);
+                    eprintln!("  state: error saving: {e}");
                 }
             }
 
             if let Err(e) = save_reflex_cache_quietly(&node, &state_dir) {
-                eprintln!("  reflex: error saving cache: {}", e);
+                eprintln!("  reflex: error saving cache: {e}");
             }
             if let Err(e) = save_action_log_quietly(&node, &state_dir) {
-                eprintln!("  actions: error saving log: {}", e);
+                eprintln!("  actions: error saving log: {e}");
             }
         }
     }
@@ -322,7 +322,7 @@ fn parse_args() -> CliConfig {
                 process::exit(0);
             }
             other => {
-                eprintln!("bizra-node: unknown argument: {}", other);
+                eprintln!("bizra-node: unknown argument: {other}");
                 process::exit(2);
             }
         }

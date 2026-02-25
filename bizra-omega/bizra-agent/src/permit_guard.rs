@@ -109,7 +109,7 @@ impl PermitGuard {
         if !permit.has_capability(required) {
             return Err(ActionError::new(
                 "PERMIT_DENIED",
-                format!("Permit missing required capability: {:?}", required).as_str(),
+                format!("Permit missing required capability: {required:?}").as_str(),
             ));
         }
 

@@ -153,13 +153,13 @@ pub fn exec_status() -> Result<()> {
                         })
                         .unwrap_or_default();
 
-                    print!("  LM Studio:    ✓ Connected ({} models", total);
+                    print!("  LM Studio:    ✓ Connected ({total} models");
                     if loaded > 0 {
-                        print!(", {} loaded", loaded);
+                        print!(", {loaded} loaded");
                     }
                     println!(")");
                     if !loaded_list.is_empty() {
-                        println!("  Active Model: {}", loaded_list);
+                        println!("  Active Model: {loaded_list}");
                     }
                 } else {
                     println!("  LM Studio:    ✗ Not connected (192.168.56.1:1234)");
@@ -258,8 +258,8 @@ pub fn exec_agent_list() -> Result<()> {
     ];
 
     for (name, icon, desc, giants) in agents {
-        println!("  {} {} - {}", icon, name, desc);
-        println!("    Giants: {}", giants);
+        println!("  {icon} {name} - {desc}");
+        println!("    Giants: {giants}");
         println!();
     }
 

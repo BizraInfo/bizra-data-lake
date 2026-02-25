@@ -116,7 +116,7 @@ fn render_gate(
     let style = metric_style(value, threshold, inverse);
 
     // Label
-    let label = format!("{} {}: {:.2}", symbol, name, value);
+    let label = format!("{symbol} {name}: {value:.2}");
     let label_span = Span::styled(label, style);
 
     if area.height >= 2 && area.width > 15 {

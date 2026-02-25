@@ -229,19 +229,17 @@ mod integration_tests {
             // All should be OK responses
             assert!(
                 resp.starts_with("OK\t"),
-                "Response should start with OK: {}",
-                resp
+                "Response should start with OK: {resp}"
             );
 
             // Should be single-line (no unescaped newlines)
             assert!(
                 !resp.contains('\n'),
-                "Response should be single line: {}",
-                resp
+                "Response should be single line: {resp}"
             );
 
             // Should have at least one field
-            assert!(resp.contains('='), "Response should have fields: {}", resp);
+            assert!(resp.contains('='), "Response should have fields: {resp}");
         }
     }
 
@@ -509,7 +507,7 @@ mod integration_tests {
         ] {
             let prod = crate::action_bridge::map_channel(ch);
             let back = crate::action_bridge::map_channel_reverse(prod);
-            assert_eq!(back, ch, "Roundtrip failed for {:?}", ch);
+            assert_eq!(back, ch, "Roundtrip failed for {ch:?}");
         }
     }
 
@@ -533,7 +531,7 @@ mod integration_tests {
             .unwrap_or("");
         assert!(!action_hash.is_empty());
 
-        let explain = node.execute(format!("EXPLAIN\t{}", action_hash).as_str());
+        let explain = node.execute(format!("EXPLAIN\t{action_hash}").as_str());
         assert!(explain.starts_with("OK\t"));
         assert!(explain.contains("found=true"));
         assert!(explain.contains("chosen_route="));

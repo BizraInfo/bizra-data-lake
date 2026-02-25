@@ -192,7 +192,7 @@ impl IpcRouter {
 
         // Parse the output
         let output: InferenceResponse = serde_json::from_str(output_json)
-            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {e}")))?;
 
         // Simulate gate validation
         let response = self.simulate_gate_validation(&output).await;

@@ -211,8 +211,7 @@ mod tests {
         // Provider must be one of the known values
         assert!(
             provider == "local" || provider == "anthropic" || provider == "openai",
-            "unexpected provider: {}",
-            provider
+            "unexpected provider: {provider}"
         );
     }
 }

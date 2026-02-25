@@ -350,7 +350,7 @@ impl OmegaEngine {
     #[inline]
     fn generate_op_id(&self) -> String {
         let count = self.operation_count.fetch_add(1, Ordering::Relaxed);
-        format!("omega-{:016x}", count)
+        format!("omega-{count:016x}")
     }
 
     /// Execute an operation with full Omega orchestration

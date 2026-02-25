@@ -222,7 +222,7 @@ fn handle_knows_me(state: &mut NodeInternals<'_>) -> Response {
     let score = state.runtime.knows_me_score();
     let summary = state.runtime.memory().knowledge_summary();
     Response::ok(vec![
-        ("score", format!("{:.4}", score)),
+        ("score", format!("{score:.4}")),
         ("fragments", format!("{}", summary.total_fragments)),
         ("atoms", format!("{}", summary.total_atoms)),
         ("insights", format!("{}", summary.total_insights)),
@@ -234,7 +234,7 @@ fn handle_ihsan(state: &mut NodeInternals<'_>, score: u16) -> Response {
     *state.ihsan = ihsan;
     state.runtime.update_ihsan(ihsan);
     Response::ok(vec![
-        ("ihsan", format!("{}", score)),
+        ("ihsan", format!("{score}")),
         ("as_f64", format!("{:.4}", ihsan.as_f64())),
     ])
 }
@@ -316,7 +316,7 @@ fn handle_reflex_stats(state: &mut NodeInternals<'_>) -> Response {
 fn handle_reflex_invalidate(state: &mut NodeInternals<'_>, trigger_hash: &str) -> Response {
     let invalidated = state.runtime.invalidate_reflex(trigger_hash);
     Response::ok(vec![
-        ("invalidated", format!("{}", invalidated)),
+        ("invalidated", format!("{invalidated}")),
         ("trigger_hash", trigger_hash.to_string()),
     ])
 }
@@ -408,7 +408,7 @@ fn handle_action_history(state: &mut NodeInternals<'_>, limit: u32, cursor: &str
         .collect::<Vec<_>>()
         .join("||");
     Response::ok(vec![
-        ("count", format!("{}", count)),
+        ("count", format!("{count}")),
         ("next_cursor", next_cursor),
         ("rows", lines),
     ])
@@ -424,7 +424,7 @@ fn handle_teach(
     let atom_kind = match parse_atom_kind(kind) {
         Some(k) => k,
         None => {
-            return Response::err(ErrorCode::InvalidArg, &format!("unknown kind: {:?}", kind));
+            return Response::err(ErrorCode::InvalidArg, &format!("unknown kind: {kind:?}"));
         }
     };
 
@@ -433,7 +433,7 @@ fn handle_teach(
     let ok = state.runtime.teach(atom_kind, content, conf, timestamp);
 
     Response::ok(vec![
-        ("taught", format!("{}", ok)),
+        ("taught", format!("{ok}")),
         ("kind", kind.to_string()),
     ])
 }
@@ -442,7 +442,7 @@ fn handle_synthesize(state: &mut NodeInternals<'_>, timestamp: u64) -> Response 
     let insights = state.runtime.synthesize(timestamp);
     Response::ok(vec![
         ("synthesized", "true".to_string()),
-        ("insights_produced", format!("{}", insights)),
+        ("insights_produced", format!("{insights}")),
     ])
 }
 
@@ -465,7 +465,7 @@ fn handle_query(state: &mut NodeInternals<'_>, key: &str) -> Response {
     let count = results.len();
     Response::ok(vec![
         ("key", key.to_string()),
-        ("results", format!("{}", count)),
+        ("results", format!("{count}")),
     ])
 }
 
@@ -474,7 +474,7 @@ fn handle_start_session(state: &mut NodeInternals<'_>, timestamp: u64) -> Respon
     *state.session_counter += 1;
     Response::ok(vec![
         ("session_started", "true".to_string()),
-        ("session_id", format!("{}", session_id)),
+        ("session_id", format!("{session_id}")),
     ])
 }
 
@@ -507,7 +507,7 @@ fn handle_intent_classify(content: &str) -> Response {
         })
         .collect();
     Response::ok(vec![
-        ("intent", format!("{:?}", intent)),
+        ("intent", format!("{intent:?}")),
         ("confidence", format!("{:.2}", confidence.effective_at(0))),
         ("agents", agents.join(",")),
     ])
@@ -557,7 +557,7 @@ fn handle_action_dispatch(
         None => {
             return Response::err(
                 ErrorCode::InvalidArg,
-                &format!("unknown channel: {}", channel_str),
+                &format!("unknown channel: {channel_str}"),
             );
         }
     };
@@ -584,7 +584,7 @@ fn handle_action_dispatch(
                         state.runtime.record_action_failed();
                     }
                     Response::ok(vec![
-                        ("success", format!("{}", success)),
+                        ("success", format!("{success}")),
                         ("output", result.message),
                         (
                             "duration_ms",
@@ -641,7 +641,7 @@ fn handle_sap_meet_open(
     Response::ok(vec![
         ("session_id", session_id),
         ("profile", profile.to_string()),
-        ("ihsan_score", format!("{:.4}", ihsan_score)),
+        ("ihsan_score", format!("{ihsan_score:.4}")),
         (
             "disclosure",
             format!(
@@ -717,7 +717,7 @@ fn handle_sap_message(
             format!("{}", result.fragments_extracted),
         ),
         ("confidence", format!("{:.4}", result.knows_me_score)),
-        ("ihsan_score", format!("{:.4}", ihsan_score)),
+        ("ihsan_score", format!("{ihsan_score:.4}")),
         ("receipt_hash", receipt_hash),
         (
             "disclosure",
@@ -746,7 +746,7 @@ fn handle_sap_disclosure(state: &mut NodeInternals<'_>, session_id: &str) -> Res
                 health.reflex_rules, health.knows_me_score,
             ),
         ),
-        ("ihsan_score", format!("{:.4}", ihsan_score)),
+        ("ihsan_score", format!("{ihsan_score:.4}")),
         ("messages_in_session", format!("{}", session.message_count)),
     ])
 }

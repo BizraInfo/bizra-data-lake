@@ -195,11 +195,7 @@ impl OmniKernel {
         let mut chain = ReasoningChain::new();
         for (level, ihsan) in level_scores {
             if level.needs_pivot() {
-                chain.push(
-                    *level,
-                    format!("Reasoning at {:?}: {}", level, intent),
-                    *ihsan,
-                );
+                chain.push(*level, format!("Reasoning at {level:?}: {intent}"), *ihsan);
             }
         }
         chain
@@ -473,7 +469,7 @@ mod tests {
         let mut k = make_kernel();
         // Run 10 full-inference cycles with good İhsān.
         for i in 0..10 {
-            let c = cycle(&format!("unique query {}", i));
+            let c = cycle(&format!("unique query {i}"));
             let responses = vec!["R".into(); 3];
             k.run_cycle(&c, &responses, 0.97, &[], None, None);
         }

@@ -83,7 +83,7 @@ pub fn require_str(params: &Value, key: &str) -> Result<String, String> {
         .get(key)
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| format!("Missing required param: {}", key))
+        .ok_or_else(|| format!("Missing required param: {key}"))
 }
 
 /// Extract an optional string parameter with a default.
@@ -114,8 +114,8 @@ pub fn require_u16(params: &Value, key: &str) -> Result<u16, String> {
     let v = params
         .get(key)
         .and_then(|v| v.as_u64())
-        .ok_or_else(|| format!("Missing required param: {}", key))?;
-    u16::try_from(v).map_err(|_| format!("Param '{}' value {} exceeds u16 range", key, v))
+        .ok_or_else(|| format!("Missing required param: {key}"))?;
+    u16::try_from(v).map_err(|_| format!("Param '{key}' value {v} exceeds u16 range"))
 }
 
 /// Extract a required JSON value parameter (for nested objects).
@@ -123,7 +123,7 @@ fn require_value(params: &Value, key: &str) -> Result<Value, String> {
     params
         .get(key)
         .cloned()
-        .ok_or_else(|| format!("Missing required param: {}", key))
+        .ok_or_else(|| format!("Missing required param: {key}"))
 }
 
 /// Current time in seconds since UNIX epoch.
@@ -320,7 +320,7 @@ fn method_to_command(method: &str, params: &Value) -> Result<Command, (i32, Stri
             })
         }
 
-        _ => Err((-32601, format!("Method not found: {}", method))),
+        _ => Err((-32601, format!("Method not found: {method}"))),
     }
 }
 
@@ -406,24 +406,24 @@ where
     let listener = match TcpListener::bind(&addr) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("MCP transport: failed to bind {}: {}", addr, e);
+            eprintln!("MCP transport: failed to bind {addr}: {e}");
             return;
         }
     };
-    eprintln!("MCP transport listening on {}", addr);
+    eprintln!("MCP transport listening on {addr}");
     let active_connections = Arc::new(AtomicU16::new(0));
 
     for stream_result in listener.incoming() {
         let stream = match stream_result {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("MCP transport: accept error: {}", e);
+                eprintln!("MCP transport: accept error: {e}");
                 continue;
             }
         };
         let current = active_connections.load(Ordering::Acquire);
         if current >= config.max_connections {
-            eprintln!("MCP transport: connection limit reached ({})", current);
+            eprintln!("MCP transport: connection limit reached ({current})");
             drop(stream);
             continue;
         }
@@ -503,7 +503,7 @@ where
                 if e.kind() == std::io::ErrorKind::InvalidData {
                     // Line too long — send error and disconnect
                     let err = make_error_response(-32600, "Request too large", None, Value::Null);
-                    let _ = writeln!(writer, "{}", err);
+                    let _ = writeln!(writer, "{err}");
                     let _ = writer.flush();
                 }
                 break;
@@ -517,7 +517,7 @@ where
         // Batch request (JSON array)
         if trimmed.starts_with('[') {
             let batch_response = handle_batch(trimmed, handler);
-            if writeln!(writer, "{}", batch_response).is_err() {
+            if writeln!(writer, "{batch_response}").is_err() {
                 break;
             }
             let _ = writer.flush();
@@ -529,7 +529,7 @@ where
                 let is_shutdown = matches!(cmd, Command::Shutdown);
                 let response = handler(cmd);
                 let wire = response_to_jsonrpc(&response, &id);
-                if writeln!(writer, "{}", wire).is_err() {
+                if writeln!(writer, "{wire}").is_err() {
                     break;
                 }
                 let _ = writer.flush();
@@ -538,7 +538,7 @@ where
                 }
             }
             Err(error_json) => {
-                if writeln!(writer, "{}", error_json).is_err() {
+                if writeln!(writer, "{error_json}").is_err() {
                     break;
                 }
                 let _ = writer.flush();

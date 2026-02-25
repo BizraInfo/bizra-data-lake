@@ -450,7 +450,7 @@ impl App {
                         "reviewer" => self.selected_agent = Some(PATRole::Reviewer),
                         "executor" => self.selected_agent = Some(PATRole::Executor),
                         "guardian" => self.selected_agent = Some(PATRole::Guardian),
-                        _ => self.set_status(format!("Unknown agent: {}", name)),
+                        _ => self.set_status(format!("Unknown agent: {name}")),
                     }
                 }
             }
@@ -485,7 +485,7 @@ Keyboard shortcuts:
 "#, None);
             }
             _ => {
-                self.set_status(format!("Unknown command: {}", cmd));
+                self.set_status(format!("Unknown command: {cmd}"));
             }
         }
     }
@@ -514,7 +514,7 @@ Keyboard shortcuts:
                             return content.to_string();
                         }
                         if let Some(error) = json.get("error").and_then(|e| e.as_str()) {
-                            return format!("Error: {}", error);
+                            return format!("Error: {error}");
                         }
                     }
                     String::from_utf8_lossy(&output.stdout).to_string()
@@ -522,13 +522,13 @@ Keyboard shortcuts:
                     // Try to parse error from stdout (bridge returns JSON errors)
                     if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                         if let Some(error) = json.get("error").and_then(|e| e.as_str()) {
-                            return format!("LM Studio: {}", error);
+                            return format!("LM Studio: {error}");
                         }
                     }
                     format!("Error: {}", String::from_utf8_lossy(&output.stderr))
                 }
             }
-            Err(e) => format!("Failed to call LLM: {}", e),
+            Err(e) => format!("Failed to call LLM: {e}"),
         }
     }
 }

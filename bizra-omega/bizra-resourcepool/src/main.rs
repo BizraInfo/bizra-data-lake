@@ -188,8 +188,8 @@ async fn run_genesis(args: &[String]) -> anyhow::Result<()> {
     println!("  Total Staked:   {} tokens", stats.total_staked);
     println!("  Avg Ihsan:      {}", stats.avg_ihsan);
     println!("\nGenesis Node Details:");
-    println!("  Name:           {}", genesis_name);
-    println!("  Node ID:        {}", node_id);
+    println!("  Name:           {genesis_name}");
+    println!("  Node ID:        {node_id}");
     println!("  Class:          {:?}", NodeClass::Genesis);
 
     if let Some(signing_key) = signing_key {

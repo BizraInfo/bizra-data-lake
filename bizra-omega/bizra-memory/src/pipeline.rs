@@ -705,11 +705,10 @@ mod tests {
         let (fast, slow, glacial) = result.by_layer;
         assert!(
             glacial >= 20,
-            "Glacial layer should have 20+ atoms, got {}",
-            glacial
+            "Glacial layer should have 20+ atoms, got {glacial}"
         );
-        assert!(slow >= 15, "Slow layer should have 15+ atoms, got {}", slow);
-        assert!(fast >= 15, "Fast layer should have 15+ atoms, got {}", fast);
+        assert!(slow >= 15, "Slow layer should have 15+ atoms, got {slow}");
+        assert!(fast >= 15, "Fast layer should have 15+ atoms, got {fast}");
 
         // Profile should have multiple sections populated
         let profile = pipeline.profile();

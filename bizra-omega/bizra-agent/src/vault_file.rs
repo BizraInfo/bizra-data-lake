@@ -93,7 +93,7 @@ impl VaultBackend for FileBackend {
             if mode != 0o600 {
                 return Err(VaultError::PermissionDenied {
                     key: key.to_string(),
-                    path: format!("mode {:o}, expected 600", mode),
+                    path: format!("mode {mode:o}, expected 600"),
                 });
             }
         }

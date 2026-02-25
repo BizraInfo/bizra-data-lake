@@ -227,7 +227,7 @@ impl Backend for LlamaCppBackend {
                 return Err(BackendError::Generation("Model still loading".into()))
             }
             BackendState::Error(e) => {
-                return Err(BackendError::Generation(format!("Model error: {}", e)))
+                return Err(BackendError::Generation(format!("Model error: {e}")))
             }
         };
 
@@ -300,11 +300,11 @@ pub fn detect_cuda_devices() -> Vec<CudaDevice> {
     #[cfg(target_os = "linux")]
     {
         for i in 0..8 {
-            let path = format!("/dev/nvidia{}", i);
+            let path = format!("/dev/nvidia{i}");
             if std::path::Path::new(&path).exists() {
                 devices.push(CudaDevice {
                     id: i,
-                    name: format!("NVIDIA GPU {}", i),
+                    name: format!("NVIDIA GPU {i}"),
                     memory_mb: 0, // Would query from driver
                     compute_capability: (0, 0),
                 });

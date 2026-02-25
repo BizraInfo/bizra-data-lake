@@ -109,7 +109,7 @@ impl ChannelTopology {
             .map(|ch| {
                 let memory = ch.max_message_size() * ch.buffer_slots();
                 ChannelInfo {
-                    name: format!("{:?}", ch),
+                    name: format!("{ch:?}"),
                     service_name: ch.service_name().to_string(),
                     max_message_size: ch.max_message_size() as i64,
                     buffer_slots: ch.buffer_slots() as i32,

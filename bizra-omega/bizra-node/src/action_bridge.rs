@@ -192,11 +192,11 @@ pub fn dispatch_error_to_legacy(err: &DispatchError) -> ActionError {
         DispatchError::HitlRequired { summary, .. } => ActionError::new("HITL_REQUIRED", summary),
         DispatchError::ChannelNotRegistered { channel } => ActionError::new(
             "CHANNEL_NOT_REGISTERED",
-            &format!("No handler for channel: {:?}", channel),
+            &format!("No handler for channel: {channel:?}"),
         ),
         DispatchError::ChannelUnavailable { channel, status } => ActionError::new(
             "CHANNEL_UNAVAILABLE",
-            &format!("{:?} unavailable: {}", channel, status),
+            &format!("{channel:?} unavailable: {status}"),
         ),
     }
 }
@@ -234,7 +234,7 @@ pub fn create_strict_dispatcher() -> Dispatcher {
 // ── Payload Parsers (minimal JSON extraction) ───────────────
 
 fn extract_string_field(json: &str, key: &str) -> Option<String> {
-    let needle = format!("\"{}\":\"", key);
+    let needle = format!("\"{key}\":\"");
     let start = json.find(&needle)? + needle.len();
     let rest = &json[start..];
     let mut out = String::new();
@@ -381,7 +381,7 @@ mod tests {
             let prod = map_channel(ch);
             let back = map_channel_reverse(prod);
             // DesktopRpc→Ahk→DesktopRpc, LlmCall→Llm→LlmCall, etc.
-            assert_eq!(back, ch, "Channel roundtrip failed for {:?}", ch);
+            assert_eq!(back, ch, "Channel roundtrip failed for {ch:?}");
         }
     }
 

@@ -484,7 +484,7 @@ impl StandingOnGiantsAttestation {
         for f in &self.foundations {
             s.push_str(&format!("  - {} ({})\n", f.giant_name, f.contribution));
             if let Some(ref citation) = f.citation {
-                s.push_str(&format!("    Reference: {}\n", citation));
+                s.push_str(&format!("    Reference: {citation}\n"));
             }
         }
         s
@@ -827,7 +827,7 @@ pub(crate) mod hex_array_32 {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 
@@ -857,7 +857,7 @@ pub(crate) mod hex_array_64 {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 

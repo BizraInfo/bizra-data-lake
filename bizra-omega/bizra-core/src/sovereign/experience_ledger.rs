@@ -274,7 +274,7 @@ impl Episode {
 
     /// Compute the chain hash: BLAKE3(prev_chain_hash || episode_hash)
     fn compute_chain_hash(prev_chain_hash: &str, episode_hash: &str) -> String {
-        let combined = format!("{}:{}", prev_chain_hash, episode_hash);
+        let combined = format!("{prev_chain_hash}:{episode_hash}");
         let hash = blake3_domain_hash(CHAIN_DOMAIN, combined.as_bytes());
         hex_encode(&hash)
     }
@@ -809,7 +809,7 @@ fn keyword_similarity(a: &str, b: &str) -> f64 {
 
 /// Hex-encode a byte slice.
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -900,8 +900,8 @@ mod tests {
         for i in 0..10 {
             ledger.commit_at(
                 1000 + i,
-                format!("query {}", i),
-                format!("graph_{}", i),
+                format!("query {i}"),
+                format!("graph_{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(0.90, 0.92),
@@ -919,8 +919,8 @@ mod tests {
         for i in 0..5 {
             ledger.commit_at(
                 1000 + i,
-                format!("query {}", i),
-                format!("graph_{}", i),
+                format!("query {i}"),
+                format!("graph_{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(0.90, 0.92),
@@ -950,8 +950,8 @@ mod tests {
         for i in 0..5u64 {
             ledger.commit_at(
                 now - (4 - i) * 1000, // Oldest first, most recent last
-                format!("query about topic {}", i),
-                format!("graph_{}", i),
+                format!("query about topic {i}"),
+                format!("graph_{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(0.90, 0.92), // Same importance
@@ -1203,8 +1203,8 @@ mod tests {
             let snr = if i < 5 { 0.50 } else { 0.95 };
             ledger.commit_at(
                 base_ts + i,
-                format!("episode {}", i),
-                format!("g{}", i),
+                format!("episode {i}"),
+                format!("g{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(snr, 0.90),
@@ -1354,8 +1354,8 @@ mod tests {
             .map(|i| {
                 ledger.commit_at(
                     1000 + i,
-                    format!("query {}", i),
-                    format!("g{}", i),
+                    format!("query {i}"),
+                    format!("g{i}"),
                     3,
                     vec![make_action("inference", "call")],
                     make_impact(0.90, 0.92),
@@ -1366,7 +1366,7 @@ mod tests {
         // All 100 hashes should be retrievable
         for (i, h) in hashes.iter().enumerate() {
             let ep = ledger.get_by_hash(h);
-            assert!(ep.is_some(), "hash lookup failed for episode {}", i);
+            assert!(ep.is_some(), "hash lookup failed for episode {i}");
             assert_eq!(ep.unwrap().sequence, i as u64);
         }
     }
@@ -1377,8 +1377,8 @@ mod tests {
         for i in 0..50u64 {
             ledger.commit_at(
                 1000 + i,
-                format!("query {}", i),
-                format!("g{}", i),
+                format!("query {i}"),
+                format!("g{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(0.90, 0.92),
@@ -1387,8 +1387,8 @@ mod tests {
 
         for seq in 0..50u64 {
             let ep = ledger.get_by_sequence(seq);
-            assert!(ep.is_some(), "seq lookup failed for {}", seq);
-            assert_eq!(ep.unwrap().context, format!("query {}", seq));
+            assert!(ep.is_some(), "seq lookup failed for {seq}");
+            assert_eq!(ep.unwrap().context, format!("query {seq}"));
         }
         assert!(ledger.get_by_sequence(999).is_none());
     }
@@ -1407,8 +1407,8 @@ mod tests {
             let snr = if i < 5 { 0.50 } else { 0.95 };
             let h = ledger.commit_at(
                 base_ts + i,
-                format!("ep {}", i),
-                format!("g{}", i),
+                format!("ep {i}"),
+                format!("g{i}"),
                 3,
                 vec![make_action("inference", "call")],
                 make_impact(snr, 0.90),

@@ -132,7 +132,7 @@ impl Guardian {
             if !self.path_in_scope(&path, &permit.fs_scope) {
                 self.record_denial();
                 return GuardianVerdict::Denied {
-                    reason: format!("Path '{}' outside permitted scope", path),
+                    reason: format!("Path '{path}' outside permitted scope"),
                     violation: GuardianViolation::PathOutOfScope {
                         path,
                         scope: permit.fs_scope.clone(),
