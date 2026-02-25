@@ -166,8 +166,7 @@ fn file_backend_wrong_permissions_returns_denied() {
     let result = backend.get("bad_perms");
     assert!(
         matches!(result, Err(VaultError::PermissionDenied { .. })),
-        "Expected PermissionDenied, got: {:?}",
-        result
+        "Expected PermissionDenied, got: {result:?}"
     );
 }
 
