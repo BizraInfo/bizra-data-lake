@@ -727,6 +727,9 @@ class Node0ProactiveKernel:
     """
 
     # Backend endpoints (local-first, Ollama as fallback)
+    # History cap — prevents unbounded memory growth during long-running sessions
+    _MAX_HISTORY = 500
+
     # Resolve from env → constants.py → default (WSL gateway)
     _LM_STUDIO_URL = os.getenv(
         "LM_STUDIO_URL",
@@ -756,27 +759,39 @@ class Node0ProactiveKernel:
         # Knowledge retriever — connects PAT agents to FAISS index
         self._knowledge = KnowledgeRetriever(self._yaml_config)
 
-        # Knowledge retriever — connects PAT agents to FAISS index
-        self._knowledge = KnowledgeRetriever(self._yaml_config)
+        # Shared HTTP client — eliminates per-call httpx.AsyncClient overhead
+        # Standing on Giants: HikariCP (connection reuse) · Amdahl (parallel scaling)
+        import httpx
+
+        _headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        self._http = httpx.AsyncClient(headers=_headers, timeout=30.0)
 
         # State
         self._running = False
         self._cycle_count = 0
         self._missions: List[Dict] = []
-        self._completed: List[Dict] = []
-        self._receipts: List[Dict] = []
+        self._completed: List[Dict] = []  # Capped: oldest evicted at _MAX_HISTORY
+        self._receipts: List[Dict] = []  # Capped: oldest evicted at _MAX_HISTORY
         self._metrics = {
             "cycles": 0,
             "missions_completed": 0,
             "tokens_used": 0,
-            "ihsan_score": 0.0,
+            "ihsan_score": 0.95,  # Default to healthy; updated by actual mission results
         }
 
         # Load baseline for impact tracking
         self._baseline = self._load_baseline()
 
-        # AutoModelRouter — pre-loads models into VRAM before agent calls
+        # AutoModelRouter + EqualizerAgent — shared across boot, idle, and missions
+        # Standing on Giants: Boyd (OODA pre-staging) · Shannon (capacity planning)
         self._model_router: Optional[Any] = None
+        self._equalizer: Optional[Any] = None
+        try:
+            from core.sovereign.equalizer_agent import EqualizerAgent
+
+            self._equalizer = EqualizerAgent(ihsan_target=0.95)
+        except Exception as e:
+            logger.debug("  EqualizerAgent unavailable: %s", e)
 
         # Initialize Verified Intelligence Pipeline
         _init_verified_pipeline()
@@ -842,42 +857,36 @@ class Node0ProactiveKernel:
         Priority: LM Studio (primary, auto-loads models on request) → Ollama (fallback).
         Standing on Giants: Boyd (OODA sense phase) · Shannon (signal availability)
         """
-        import httpx
-
-        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-
         # 1. Try LM Studio — primary backend (auto-loads models on request)
         try:
-            async with httpx.AsyncClient(headers=headers, timeout=5.0) as client:
-                resp = await client.get(f"{self._LM_STUDIO_URL}/v1/models")
-                if resp.status_code == 200:
-                    models = resp.json().get("data", [])
-                    loaded = [m for m in models if m.get("loaded")]
-                    self.base_url = self._LM_STUDIO_URL
-                    self._backend_name = "lm_studio"
-                    logger.info(
-                        f"  Backend: LM Studio ({len(models)} models, "
-                        f"{len(loaded)} pre-loaded, auto-load enabled)"
-                    )
-                    return
+            resp = await self._http.get(f"{self._LM_STUDIO_URL}/v1/models", timeout=5.0)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                loaded = [m for m in models if m.get("loaded")]
+                self.base_url = self._LM_STUDIO_URL
+                self._backend_name = "lm_studio"
+                logger.info(
+                    f"  Backend: LM Studio ({len(models)} models, "
+                    f"{len(loaded)} pre-loaded, auto-load enabled)"
+                )
+                return
         except Exception:
             logger.info("  LM Studio: unreachable")
 
         # 2. Try Ollama as fallback
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{self._OLLAMA_URL}/v1/models")
-                if resp.status_code == 200:
-                    models = resp.json().get("data", [])
-                    if models:
-                        self.base_url = self._OLLAMA_URL
-                        self._backend_name = "ollama"
-                        self.token = ""  # Ollama doesn't need auth
-                        model_names = [m["id"] for m in models[:5]]
-                        logger.info(
-                            f"  Backend: Ollama fallback ({len(models)} models: {', '.join(model_names)})"
-                        )
-                        return
+            resp = await self._http.get(f"{self._OLLAMA_URL}/v1/models", timeout=5.0)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                if models:
+                    self.base_url = self._OLLAMA_URL
+                    self._backend_name = "ollama"
+                    self.token = ""  # Ollama doesn't need auth
+                    model_names = [m["id"] for m in models[:5]]
+                    logger.info(
+                        f"  Backend: Ollama fallback ({len(models)} models: {', '.join(model_names)})"
+                    )
+                    return
         except Exception:
             logger.info("  Ollama: unreachable")
 
@@ -885,6 +894,69 @@ class Node0ProactiveKernel:
         self.base_url = self._LM_STUDIO_URL
         self._backend_name = "lm_studio_offline"
         logger.warning("  Backend: No backend reachable — will retry on first request")
+
+    async def _preload_fleet_at_boot(self) -> None:
+        """Pre-load the default PAT agent fleet into VRAM at kernel boot.
+
+        Creates the shared AutoModelRouter (with EqualizerAgent) and loads
+        one model per agent role. This eliminates cold-start latency so the
+        first mission executes immediately.
+
+        Standing on Giants: Boyd (OODA pre-staging) · Shannon (capacity planning)
+        """
+        if self._backend_name == "lm_studio_offline":
+            logger.info("  Fleet pre-load skipped: no backend available")
+            return
+
+        try:
+            from core.inference.auto_model_router import AutoModelRouter
+
+            self._model_router = AutoModelRouter(
+                base_url=self.base_url,
+                token=self.token,
+                equalizer=self._equalizer,
+            )
+
+            fleet_status = await self._model_router.preload_mission_fleet(
+                agent_ids=list(PAT_AGENTS.keys()),
+                config=self._yaml_config,
+            )
+            loaded = sum(1 for v in fleet_status.values() if v)
+            total = len(fleet_status)
+            logger.info(
+                "  Fleet pre-loaded: %d/%d models ready in VRAM", loaded, total
+            )
+        except Exception as e:
+            logger.warning("  Fleet pre-load failed (non-fatal): %s", e)
+
+    async def _run_equalizer_cycle(self) -> None:
+        """Run one EqualizerAgent observation + action cycle.
+
+        Called from the idle branch of _run_loop() so the system stays
+        adaptive even when no missions are pending. The equalizer observes
+        current ihsan/backlog/presence and may issue commands to the
+        AutoModelRouter (ESCALATE, HALT, RESUME, ACCELERATE).
+
+        Standing on Giants: Deming (PDCA continuous improvement)
+        """
+        if self._model_router is None or self._equalizer is None:
+            return
+
+        try:
+            ihsan = self._metrics.get("ihsan_score", 0.95)
+            backlog = len(self._missions)
+            # presence heuristic: 255 if recent mission, 0 if idle
+            presence = 255 if self._completed else 0
+
+            action = await self._model_router.check_equalizer(
+                ihsan_score=ihsan,
+                backlog=backlog,
+                presence=presence,
+            )
+            if action:
+                logger.info("  Equalizer: %s", action)
+        except Exception as e:
+            logger.debug("  Equalizer cycle error: %s", e)
 
     def _resolve_model(self, lm_studio_model: str) -> str:
         """Resolve model name for the active backend.
@@ -933,6 +1005,10 @@ class Node0ProactiveKernel:
         # Auto-discover the best available backend
         await self._discover_backend()
 
+        # Pre-load default model fleet into VRAM at boot — zero cold-start for missions
+        # Standing on Giants: Boyd (OODA pre-staging) — absorb latency before first request
+        await self._preload_fleet_at_boot()
+
         mode = self.config.get("mode", "proactive_partner")
         logger.info("═" * 60)
         logger.info("NODE0 PROACTIVE KERNEL ACTIVATED")
@@ -956,6 +1032,7 @@ class Node0ProactiveKernel:
     async def stop(self):
         """Stop the kernel."""
         self._running = False
+        await self._http.aclose()
         logger.info("Node0 kernel stopping...")
 
     async def add_mission(self, description: str, priority: str = "normal"):
@@ -1006,6 +1083,8 @@ class Node0ProactiveKernel:
                     mission["completed"] = datetime.now(timezone.utc).isoformat()
 
                     self._completed.append(mission)
+                    if len(self._completed) > self._MAX_HISTORY:
+                        self._completed = self._completed[-self._MAX_HISTORY:]
                     self._missions.remove(mission)
                     self._metrics["missions_completed"] += 1
 
@@ -1013,7 +1092,8 @@ class Node0ProactiveKernel:
                         f"✓ Mission {mission['id']}: {'PASS' if ihsan_ok else 'REVIEW'}"
                     )
                 else:
-                    # Idle - proactive monitoring
+                    # Idle — run Equalizer cycle to keep model fleet adaptive
+                    await self._run_equalizer_cycle()
                     logger.info("  ○ Idle - monitoring for opportunities")
 
                 # 6. LEARN - Update metrics
@@ -1300,16 +1380,16 @@ class Node0ProactiveKernel:
                 }
 
         # ═══ Pre-load models into VRAM before agent calls ═══
+        # Uses the shared AutoModelRouter + EqualizerAgent created at boot.
         # Standing on Giants: Boyd (OODA pre-staging) — absorb cold-start latency up front
         try:
             if self._model_router is None:
                 from core.inference.auto_model_router import AutoModelRouter
-                from core.sovereign.equalizer_agent import EqualizerAgent
 
                 self._model_router = AutoModelRouter(
                     base_url=self.base_url,
                     token=self.token,
-                    equalizer=EqualizerAgent(),
+                    equalizer=self._equalizer,
                 )
 
             fleet_status = await self._model_router.preload_mission_fleet(
@@ -1392,6 +1472,8 @@ class Node0ProactiveKernel:
         # Standing on Giants: Lamport (hash chains) · Merkle (tamper detection)
         receipt = _emit_verified_receipt(mission, result, snr_data)
         self._receipts.append(receipt)
+        if len(self._receipts) > self._MAX_HISTORY:
+            self._receipts = self._receipts[-self._MAX_HISTORY:]
         result["receipt"] = receipt
 
         # ═══ Post-mission: feed results to Equalizer for model adjustment ═══

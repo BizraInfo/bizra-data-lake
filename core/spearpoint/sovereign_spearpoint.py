@@ -76,12 +76,8 @@ class MemoryType(Enum):
     PROSPECTIVE = auto()  # Future goals and plans
 
 
-class CircuitState(Enum):
-    """Circuit breaker states (Nygard 2007)."""
-
-    CLOSED = auto()  # Normal operation
-    OPEN = auto()  # Failing fast, rejecting calls
-    HALF_OPEN = auto()  # Testing recovery
+# Re-export canonical CircuitState from inference layer (single source of truth)
+from core.inference._types import CircuitState  # noqa: E402
 
 
 @dataclass
@@ -192,19 +188,20 @@ class SpearheadResult:
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# CIRCUIT BREAKER — Resilience Pattern (Nygard 2007)
+# CIRCUIT BREAKER — Sync adapter over canonical async implementation
+# Standing on Giants: Nygard (2007) · Netflix Hystrix (2012)
+# Canonical source: core.inference._resilience.CircuitBreaker
 # ════════════════════════════════════════════════════════════════════════════════
+
+from core.inference._resilience import CircuitBreaker as _AsyncCircuitBreaker
+from core.inference._types import CircuitBreakerConfig
 
 
 class CircuitBreaker:
-    """
-    Circuit breaker for inference gateway resilience.
+    """Synchronous circuit breaker adapter for spearpoint (non-async context).
 
-    Standing on Giants:
-    - Nygard (2007): Release It! - Circuit breaker pattern
-    - Netflix Hystrix: Latency and fault tolerance
-
-    States: CLOSED → OPEN (on failure) → HALF_OPEN (on timeout) → CLOSED (on success)
+    Delegates to the canonical async implementation in core.inference._resilience
+    but provides a sync-compatible API (allow_request/record_success/record_failure).
     """
 
     def __init__(
@@ -213,79 +210,79 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         recovery_timeout: float = 30.0,
     ):
-        self.name = name
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-
-        self._state = CircuitState.CLOSED
-        self._failure_count = 0
-        self._success_count = 0
-        self._last_failure_time: Optional[float] = None
-        self._last_state_change: float = time.time()
+        config = CircuitBreakerConfig(
+            failure_threshold=failure_threshold,
+            recovery_timeout=recovery_timeout,
+        )
+        self._inner = _AsyncCircuitBreaker(name=name, config=config)
 
     @property
     def state(self) -> CircuitState:
-        """Get current state, checking for recovery timeout."""
-        if self._state == CircuitState.OPEN:
+        # Check recovery timeout (OPEN → HALF_OPEN transition)
+        if self._inner._state == CircuitState.OPEN:
             if (
-                self._last_failure_time is not None
-                and time.time() - self._last_failure_time >= self.recovery_timeout
+                self._inner._last_failure_time is not None
+                and time.time() - self._inner._last_failure_time
+                >= self._inner.config.recovery_timeout
             ):
-                self._transition_to(CircuitState.HALF_OPEN)
-        return self._state
+                self._inner._state = CircuitState.HALF_OPEN
+                self._inner._last_state_change = time.time()
+        return self._inner._state
 
-    def _transition_to(self, new_state: CircuitState) -> None:
-        """Transition to a new state."""
-        old_state = self._state
-        self._state = new_state
-        self._last_state_change = time.time()
-        logger.debug(
-            f"CircuitBreaker[{self.name}]: {old_state.name} → {new_state.name}"
-        )
+    @property
+    def _failure_count(self) -> int:
+        return self._inner._failure_count
+
+    @property
+    def _success_count(self) -> int:
+        return self._inner._success_count
+
+    @property
+    def _state(self) -> CircuitState:
+        return self._inner._state
+
+    @_state.setter
+    def _state(self, value: CircuitState) -> None:
+        self._inner._state = value
+
+    @property
+    def _last_failure_time(self) -> Optional[float]:
+        return self._inner._last_failure_time
+
+    @_last_failure_time.setter
+    def _last_failure_time(self, value: Optional[float]) -> None:
+        self._inner._last_failure_time = value
 
     def record_success(self) -> None:
-        """Record a successful call."""
-        self._success_count += 1
-
-        if self._state == CircuitState.HALF_OPEN:
-            # Recovery successful
-            self._failure_count = 0
-            self._transition_to(CircuitState.CLOSED)
-        elif self._state == CircuitState.CLOSED:
-            # Normal operation, reset failure count
-            self._failure_count = max(0, self._failure_count - 1)
+        self._inner._success_count += 1
+        if self._inner._state == CircuitState.HALF_OPEN:
+            self._inner._failure_count = 0
+            self._inner._state = CircuitState.CLOSED
+        elif self._inner._state == CircuitState.CLOSED:
+            self._inner._failure_count = max(0, self._inner._failure_count - 1)
 
     def record_failure(self) -> None:
-        """Record a failed call."""
-        self._failure_count += 1
-        self._last_failure_time = time.time()
-
-        if self._state == CircuitState.HALF_OPEN:
-            # Recovery failed, reopen
-            self._transition_to(CircuitState.OPEN)
-        elif self._state == CircuitState.CLOSED:
-            if self._failure_count >= self.failure_threshold:
-                self._transition_to(CircuitState.OPEN)
+        self._inner._failure_count += 1
+        self._inner._last_failure_time = time.time()
+        if self._inner._state == CircuitState.HALF_OPEN:
+            self._inner._state = CircuitState.OPEN
+        elif self._inner._state == CircuitState.CLOSED:
+            if self._inner._failure_count >= self._inner.config.failure_threshold:
+                self._inner._state = CircuitState.OPEN
 
     def allow_request(self) -> bool:
-        """Check if a request should be allowed."""
-        state = self.state  # This checks for recovery timeout
-
-        if state == CircuitState.CLOSED:
-            return True
-        elif state == CircuitState.HALF_OPEN:
-            return True  # Allow test request
-        else:  # OPEN
-            return False
+        state = self.state
+        return state in (CircuitState.CLOSED, CircuitState.HALF_OPEN)
 
     def get_metrics(self) -> dict[str, Any]:
-        """Get circuit breaker metrics."""
         return {
-            "name": self.name,
+            "name": self._inner.name,
             "state": self.state.name,
-            "failure_count": self._failure_count,
-            "success_count": self._success_count,
-            "time_in_state": round(time.time() - self._last_state_change, 2),
+            "failure_count": self._inner._failure_count,
+            "success_count": self._inner._success_count,
+            "time_in_state": round(
+                time.time() - self._inner._last_state_change, 2
+            ),
         }
 
 

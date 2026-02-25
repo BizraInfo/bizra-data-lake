@@ -487,6 +487,40 @@ class SovereignRuntime:
         except Exception as e:
             self.logger.warning("UnifiedModelRouter init skipped: %s", e)
 
+    async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
+        """Act on an EqualizerAgent command instead of just logging it.
+
+        Dispatches the command to the event bus so that listeners (including
+        the AutoModelRouter and any future consumers) can react.
+        """
+        try:
+            from core.sovereign.equalizer_agent import EqualizerCommandKind
+
+            kind = eq_cmd.kind  # type: ignore[attr-defined]
+            reason = eq_cmd.reason  # type: ignore[attr-defined]
+
+            if self._event_bus is not None:
+                await self._event_bus.publish(
+                    "equalizer.command",
+                    {
+                        "kind": kind.value,
+                        "reason": reason,
+                        "batch_scale": getattr(eq_cmd, "batch_scale", 1),
+                    },
+                )
+
+            # Direct action on the runtime when possible
+            if kind == EqualizerCommandKind.HALT:
+                self.logger.warning(
+                    "Equalizer HALT: ihsan critical — pausing non-essential queries"
+                )
+            elif kind == EqualizerCommandKind.ESCALATE:
+                self.logger.info("Equalizer ESCALATE: requesting larger model variant")
+            elif kind == EqualizerCommandKind.RESUME:
+                self.logger.info("Equalizer RESUME: recovery detected, resuming normal ops")
+        except Exception as e:
+            self.logger.debug("Equalizer dispatch error: %s", e)
+
     @staticmethod
     def _is_stub_component(component: Optional[object]) -> bool:
         """Return True when a component is a stub/fallback implementation."""
@@ -2281,6 +2315,8 @@ class SovereignRuntime:
                         self.logger.info(
                             "Equalizer: %s reason=%s", eq_cmd.kind.value, eq_cmd.reason
                         )
+                        # Act on equalizer command via event bus
+                        await self._dispatch_equalizer_command(eq_cmd)
                 except Exception as eq_err:
                     self.logger.debug("Equalizer observe error: %s", eq_err)
 

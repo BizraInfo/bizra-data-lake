@@ -73,7 +73,7 @@ class HardwareCovenant:
                 if l.strip() and l.strip() != "Name"
             ]
             return lines[0] if lines else "UNKNOWN"
-        except:
+        except (subprocess.SubprocessError, OSError, IndexError):
             return "UNKNOWN"
 
     @classmethod
@@ -115,7 +115,7 @@ class HardwareCovenant:
                 timeout=10,
             )
             mac = result.stdout.split(",")[0].strip('"') if result.stdout else "UNKNOWN"
-        except:
+        except (subprocess.SubprocessError, OSError, IndexError):
             mac = "UNKNOWN"
 
         return {
