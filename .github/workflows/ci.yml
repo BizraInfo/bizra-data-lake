@@ -397,7 +397,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: filedfs
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build production bundle
         working-directory: filedfs
