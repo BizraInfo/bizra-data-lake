@@ -20,7 +20,6 @@ Created: 2026-02-25 | BIZRA Ghost Overlay Daemon v0.1
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from dataclasses import asdict
@@ -34,7 +33,6 @@ from core.bridges.ghost_ws import (
     emit_overlay_event,
 )
 from core.integration.constants import (
-    UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
 from core.sovereign.event_bus import Event, EventPriority, get_event_bus
