@@ -61,7 +61,7 @@ mod hex_array_32 {
     where
         S: Serializer,
     {
-        let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
         serializer.serialize_str(&hex)
     }
 

@@ -131,7 +131,7 @@ pub fn domain_separated_digest(message: &[u8]) -> String {
 
 /// Encodes a byte slice as a lowercase hexadecimal string.
 pub fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// Decodes a hexadecimal string into bytes.

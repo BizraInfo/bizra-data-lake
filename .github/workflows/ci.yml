@@ -26,7 +26,9 @@ on:
 
 env:
   PYTHON_VERSION: '3.12'
-  RUST_VERSION: '1.88'
+  # Toolchain is pinned via rust-toolchain.toml at the repository root (channel = stable).
+  # dtolnay/rust-toolchain reads that file automatically when no toolchain: input
+  # is supplied, so CI is always deterministic without hardcoding a version here.
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   IHSAN_THRESHOLD: '0.95'
@@ -94,9 +96,9 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust toolchain
+        # Reads channel + components from rust-toolchain.toml at repo root
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
         with:
-          toolchain: ${{ env.RUST_VERSION }}
           components: clippy, rustfmt
 
       - name: Install Z3 (required by fate-binding)
@@ -283,9 +285,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust toolchain
+        # Reads channel from rust-toolchain.toml at repo root
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install Z3 (required by fate-binding)
         run: |
@@ -340,9 +341,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Rust toolchain
+        # Reads channel from rust-toolchain.toml at repo root
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7  # stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Create virtualenv and install tools
         run: |

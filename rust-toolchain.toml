@@ -1,0 +1,10 @@
+# BIZRA Data Lake — Repository-level Rust Toolchain Pin
+#
+# All Rust development lives in bizra-omega/ (unified workspace).
+# This file at the repo root lets dtolnay/rust-toolchain@stable auto-detect
+# the toolchain without requiring a hardcoded `toolchain:` input in CI.
+#
+# The canonical file is bizra-omega/rust-toolchain.toml; both must stay in sync.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

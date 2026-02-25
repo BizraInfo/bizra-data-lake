@@ -4,6 +4,11 @@
 //! and other sovereignty-critical operations. ML-DSA-87 is NIST's
 //! standardized post-quantum signature algorithm (successor to Dilithium-5).
 
+// The `to_json` method is intentionally deprecated; the napi macro generates
+// a helper that references it, which triggers the `deprecated` lint inside the
+// macro expansion.  Allow it file-wide so the generated glue compiles cleanly.
+#![allow(deprecated)]
+
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use pqcrypto_mldsa::mldsa87;

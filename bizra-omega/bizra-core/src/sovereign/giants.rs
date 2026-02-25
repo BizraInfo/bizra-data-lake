@@ -261,7 +261,7 @@ impl GiantRegistry {
                 s.push_str(&format!("  - {}: {}\n", contrib.name, contrib.description));
             }
             if let Some(ref citation) = giant.citation {
-                s.push_str(&format!("  Reference: {}\n", citation));
+                s.push_str(&format!("  Reference: {citation}\n"));
             }
             s.push('\n');
         }

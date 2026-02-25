@@ -1,0 +1,11 @@
+# BIZRA Omega — Rust Toolchain Pin
+#
+# Pinning to stable ensures deterministic CI behaviour and removes the need
+# for an explicit `toolchain:` input in the workflow action.  dtolnay/rust-toolchain
+# automatically reads this file when no `toolchain:` override is supplied.
+#
+# To upgrade, bump `channel` (or change to a dated channel, e.g. "1.88.0") and
+# verify the workspace compiles with `cargo build --workspace`.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

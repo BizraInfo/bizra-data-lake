@@ -279,7 +279,7 @@ impl ThoughtGraph {
         if let Some(root) = self.thoughts.get(root_id) {
             // Create a path for each child
             for child_id in &root.children {
-                let mut path = ReasoningPath::new(&format!("path_{}", child_id));
+                let mut path = ReasoningPath::new(&format!("path_{child_id}"));
                 path.add_thought(root.clone());
 
                 if let Some(child) = self.thoughts.get(child_id) {
@@ -291,7 +291,7 @@ impl ThoughtGraph {
 
             // If no children, create single path
             if paths.is_empty() {
-                let mut path = ReasoningPath::new(&format!("path_{}", root_id));
+                let mut path = ReasoningPath::new(&format!("path_{root_id}"));
                 path.add_thought(root.clone());
                 paths.push(path);
             }
