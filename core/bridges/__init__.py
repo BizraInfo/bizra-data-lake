@@ -53,6 +53,10 @@ _LAZY_MODULES = {
     "BrowserMCPClient": (".browser_mcp_client", "BrowserMCPClient"),
     "SearchResult": (".browser_mcp_client", "SearchResult"),
     "OBSTrigger": (".obs_trigger", "OBSTrigger"),
+    "GhostConnectionManager": (".ghost_ws", "GhostConnectionManager"),
+    "PredictionDebouncer": (".ghost_ws", "PredictionDebouncer"),
+    "OverlayEvent": (".ghost_ws", "OverlayEvent"),
+    "OverlaySuggestion": (".ghost_ws", "OverlaySuggestion"),
 }
 
 
@@ -88,6 +92,11 @@ __all__ = [
     "RustProcessManager",
     # Knowledge
     "KnowledgeIntegrator",
+    # Ghost Overlay
+    "GhostConnectionManager",
+    "PredictionDebouncer",
+    "OverlayEvent",
+    "OverlaySuggestion",
     # Protocol (for type checking)
     "BridgeProtocol",
     "BridgeHealth",

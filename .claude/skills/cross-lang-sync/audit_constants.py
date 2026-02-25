@@ -22,16 +22,23 @@ PYTHON_CONSTANTS = REPO_ROOT / "core" / "integration" / "constants.py"
 RUST_LIB = REPO_ROOT / "bizra-omega" / "bizra-core" / "src" / "lib.rs"
 RUST_OMEGA = REPO_ROOT / "bizra-omega" / "bizra-core" / "src" / "omega.rs"
 RUST_CONSTITUTION = REPO_ROOT / "bizra-omega" / "bizra-core" / "src" / "constitution.rs"
+RUST_RESOURCEPOOL = REPO_ROOT / "bizra-omega" / "bizra-resourcepool" / "src" / "lib.rs"
 
 # ─── Constants to audit (name → expected Python value) ───────────────────────
+# rust_names: list of alternative names to search for in Rust (name mapping)
 TIER1_CONSTANTS = {
     "IHSAN_THRESHOLD": {"python_pattern": r"IHSAN_THRESHOLD:\s*Final\[float\]\s*=\s*([\d.]+)", "type": float},
     "SNR_THRESHOLD": {"python_pattern": r"SNR_THRESHOLD:\s*Final\[float\]\s*=\s*([\d.]+)", "type": float},
     "ADL_GINI_THRESHOLD": {"python_pattern": r"ADL_GINI_THRESHOLD:\s*Final\[float\]\s*=\s*([\d.]+)", "type": float},
-    "ADL_HARBERGER_TAX_RATE": {"python_pattern": r"ADL_HARBERGER_TAX_RATE:\s*Final\[float\]\s*=\s*([\d.]+)", "type": float},
+    "ADL_HARBERGER_TAX_RATE": {
+        "python_pattern": r"ADL_HARBERGER_TAX_RATE:\s*Final\[float\]\s*=\s*([\d.]+)",
+        "type": float,
+        "rust_names": ["ADL_HARBERGER_TAX_RATE", "HARBERGER_TAX_RATE"],
+    },
 }
 
-RUST_CONST_PATTERN = r"pub\s+const\s+{name}:\s*f64\s*=\s*([\d.]+)"
+# Matches both f64 literals and Decimal::from_parts(n, 0, 0, false, scale) patterns
+RUST_CONST_PATTERN = r"pub\s+const\s+{name}:\s*(?:f64|Decimal)\s*=\s*"
 
 
 def extract_python_value(name: str, spec: dict, content: str) -> float | None:
@@ -45,10 +52,30 @@ def extract_python_value(name: str, spec: dict, content: str) -> float | None:
 def extract_rust_values(name: str, rust_files: dict[str, str]) -> list[tuple[str, float, int]]:
     """Extract all definitions of a constant from Rust files. Returns [(file, value, line)]."""
     results = []
-    pattern = re.compile(RUST_CONST_PATTERN.format(name=name))
+    # Pattern 1: pub const NAME: f64 = 0.95;
+    pat_f64 = re.compile(rf"pub\s+const\s+{name}:\s*f64\s*=\s*([\d.]+)")
+    # Pattern 2: pub const NAME: Decimal = Decimal::from_parts(n, 0, 0, false, scale); // 0.07
+    pat_decimal = re.compile(
+        rf"pub\s+const\s+{name}:\s*Decimal\s*=\s*Decimal::from_parts\(\s*(\d+).*?(\d+)\s*\)"
+    )
+    # Pattern 3: value in trailing comment "// 0.07"
+    pat_comment_val = re.compile(rf"pub\s+const\s+{name}:.*//\s*([\d.]+)")
     for filepath, content in rust_files.items():
         for i, line in enumerate(content.splitlines(), 1):
-            match = pattern.search(line)
+            match = pat_f64.search(line)
+            if match:
+                results.append((filepath, float(match.group(1)), i))
+                continue
+            match = pat_decimal.search(line)
+            if match:
+                # Decimal::from_parts(numerator, 0, 0, false, scale) → numerator / 10^scale
+                numerator = int(match.group(1))
+                scale = int(match.group(2))
+                value = numerator / (10 ** scale)
+                results.append((filepath, value, i))
+                continue
+            # Fallback: check comment-documented value
+            match = pat_comment_val.search(line)
             if match:
                 results.append((filepath, float(match.group(1)), i))
     return results
@@ -87,7 +114,7 @@ def main():
     python_content = PYTHON_CONSTANTS.read_text(encoding="utf-8")
 
     rust_files = {}
-    for rust_path in [RUST_LIB, RUST_OMEGA, RUST_CONSTITUTION]:
+    for rust_path in [RUST_LIB, RUST_OMEGA, RUST_CONSTITUTION, RUST_RESOURCEPOOL]:
         if rust_path.exists():
             rust_files[str(rust_path.relative_to(REPO_ROOT))] = rust_path.read_text(encoding="utf-8")
 
@@ -100,7 +127,11 @@ def main():
 
     for name, spec in TIER1_CONSTANTS.items():
         py_val = extract_python_value(name, spec, python_content)
-        rust_defs = extract_rust_values(name, rust_files)
+        # Try all rust_names (supports cross-language name mapping)
+        rust_names = spec.get("rust_names", [name])
+        rust_defs = []
+        for rn in rust_names:
+            rust_defs.extend(extract_rust_values(rn, rust_files))
 
         status = "ALIGNED"
         details = []

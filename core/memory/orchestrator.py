@@ -26,10 +26,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from .agent_db import AgentDB
 from .adapters.experience_ledger import ExperienceLedgerAdapter
 from .adapters.living_memory import LivingMemoryAdapter
 from .adapters.pattern_memory import PatternMemoryAdapter
+from .agent_db import AgentDB
 from .migrator import MemoryMigrator
 from .types import MemoryRecord
 
@@ -172,9 +172,7 @@ class MigrationOrchestrator:
                     self._db.store_record(record)
                     phase.records_imported += 1
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to import {source} record {record.id}: {e}"
-                    )
+                    logger.warning(f"Failed to import {source} record {record.id}: {e}")
                     phase.errors += 1
 
                 if self._on_progress and (i + 1) % 100 == 0:
@@ -193,9 +191,7 @@ class MigrationOrchestrator:
 
         if dry_run:
             try:
-                conn = sqlite3.connect(
-                    f"file:{self._v1_db_path}?mode=ro", uri=True
-                )
+                conn = sqlite3.connect(f"file:{self._v1_db_path}?mode=ro", uri=True)
                 count = conn.execute(
                     "SELECT COUNT(*) FROM memories WHERE state != 'deleted'"
                 ).fetchone()[0]

@@ -1667,9 +1667,7 @@ class SovereignRuntime:
                             f"imported ({result.total_errors} errors)"
                         )
                 except Exception as mig_err:
-                    self.logger.debug(
-                        f"AgentDB migration skipped: {mig_err}"
-                    )
+                    self.logger.debug(f"AgentDB migration skipped: {mig_err}")
 
             except ImportError:
                 self.logger.warning("⚠ AgentDB unavailable (core.memory not installed)")

@@ -137,9 +137,7 @@ class EmbeddingPipeline:
         if self._backend == "sentence_transformers":
             return self._embed_st_batch(texts)
         elif self._backend == "ollama":
-            return [
-                self._embed_ollama(t) if t and t.strip() else None for t in texts
-            ]
+            return [self._embed_ollama(t) if t and t.strip() else None for t in texts]
         return [None] * len(texts)
 
     def _embed_st(self, text: str) -> Optional[List[float]]:
@@ -183,9 +181,7 @@ class EmbeddingPipeline:
             import httpx
 
             url = getattr(self._config, "ollama_embed_url", "http://localhost:11434")
-            model = getattr(
-                self._config, "ollama_embed_model", "nomic-embed-text"
-            )
+            model = getattr(self._config, "ollama_embed_model", "nomic-embed-text")
             resp = httpx.post(
                 f"{url}/api/embed",
                 json={"model": model, "input": text},

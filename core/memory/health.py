@@ -183,9 +183,7 @@ class AgentDBHealthChecker:
             if est_mb > 1000:
                 status = HealthStatus.DEGRADED
 
-            return ComponentHealth(
-                "memory", status, {"estimated_mb": round(est_mb, 2)}
-            )
+            return ComponentHealth("memory", status, {"estimated_mb": round(est_mb, 2)})
         except Exception as e:
             return ComponentHealth(
                 "memory", HealthStatus.HEALTHY, {"estimated_mb": -1, "error": str(e)}

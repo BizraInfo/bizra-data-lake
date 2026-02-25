@@ -102,7 +102,9 @@ IHSAN_DIMENSIONS: Final[tuple[str, ...]] = (
 )
 
 # Adl (Justice) constraint
-ADL_GINI_THRESHOLD: Final[float] = 0.35  # Constitutional maximum — aligned with constants.py
+ADL_GINI_THRESHOLD: Final[float] = (
+    0.35  # Constitutional maximum — aligned with constants.py
+)
 ADL_GINI_EMERGENCY: Final[float] = 0.60  # Emergency redistribution trigger
 
 # Byzantine consensus

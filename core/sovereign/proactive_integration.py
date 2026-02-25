@@ -32,6 +32,7 @@ from .collective_intelligence import (
 from .dual_agentic_bridge import DualAgenticBridge
 from .enhanced_team_planner import EnhancedTeamPlanner, ProactiveGoal
 from .event_bus import Event, EventPriority, get_event_bus
+from .ghost_overlay_daemon import GhostOverlayDaemon
 from .muraqabah_engine import MonitorDomain, MuraqabahEngine, Opportunity
 from .predictive_monitor import PredictiveMonitor
 from .proactive_scheduler import ProactiveScheduler
@@ -65,6 +66,7 @@ class EntityConfig:
     enable_predictions: bool = True
     enable_collective: bool = True
     enable_knowledge_integration: bool = True
+    enable_ghost_overlay: bool = True
     max_concurrent_goals: int = 5
 
 
@@ -188,6 +190,11 @@ class ProactiveSovereignEntity:
         # Knowledge integration (BIZRA Data Lake + MoMo R&D)
         self.knowledge_bridge: Optional[SwarmKnowledgeBridge] = None
         self._knowledge_initialized = False
+
+        # Ghost Overlay daemon (bridges EventBus predictions → WS overlay UI)
+        self.ghost_overlay: Optional[GhostOverlayDaemon] = (
+            GhostOverlayDaemon() if self.config.enable_ghost_overlay else None
+        )
 
         # State
         self._running = False
@@ -415,6 +422,7 @@ class ProactiveSovereignEntity:
 ║  Monitoring: {'24/7 Muraqabah active' if self.muraqabah else 'Disabled':<30}║
 ║  Team: Dual-Agentic coordination active                                      ║
 ║  Knowledge: {knowledge_status:<30}                                          ║
+║  Ghost Overlay: {'Active (WS :9743)' if self.ghost_overlay else 'Disabled':<25}     ║
 ║  Ihsan Threshold: {self.config.ihsan_threshold:<10}                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """)
@@ -431,6 +439,13 @@ class ProactiveSovereignEntity:
         # Muraqabah monitoring
         if self.muraqabah:
             tasks.append(asyncio.create_task(self.muraqabah.start_monitoring()))
+
+        # Ghost Overlay daemon (subscribes to EventBus for predictions → WS push)
+        if self.ghost_overlay:
+            await self.ghost_overlay.start()
+            logger.info(
+                "Ghost Overlay Daemon active — predictions will push to WS :9743"
+            )
 
         # Auto-checkpoint
         tasks.append(
@@ -467,6 +482,8 @@ class ProactiveSovereignEntity:
         self.scheduler.stop()
         if self.muraqabah:
             self.muraqabah.stop_monitoring()
+        if self.ghost_overlay:
+            asyncio.ensure_future(self.ghost_overlay.stop())
         self.checkpointer.stop()
         self.ooda_loop.stop()
         logger.info("Proactive Sovereign Entity stopped")
@@ -571,6 +588,7 @@ class ProactiveSovereignEntity:
             "knowledge": (
                 self.knowledge_bridge.stats() if self.knowledge_bridge else None
             ),
+            "ghost_overlay": (self.ghost_overlay.stats if self.ghost_overlay else None),
         }
 
 
