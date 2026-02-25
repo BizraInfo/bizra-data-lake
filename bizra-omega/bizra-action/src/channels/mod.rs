@@ -97,8 +97,7 @@ impl ChannelHandler for AhkChannel {
             } => {
                 // STUB: In production, sends JSON-RPC to AHK v2 runtime
                 Ok(ActionPayload::Text(format!(
-                    "STUB: Clicked [{}] in '{}'",
-                    element_path, window
+                    "STUB: Clicked [{element_path}] in '{window}'"
                 )))
             }
             BizraAction::AhkType { window, text, .. } => Ok(ActionPayload::Text(format!(
@@ -110,8 +109,7 @@ impl ChannelHandler for AhkChannel {
                 window,
                 element_path,
             } => Ok(ActionPayload::Text(format!(
-                "STUB: Read from [{}] in '{}' → (mock content)",
-                element_path, window
+                "STUB: Read from [{element_path}] in '{window}' → (mock content)"
             ))),
             BizraAction::AhkReflex {
                 reflex_hash,
@@ -193,10 +191,9 @@ impl ChannelHandler for LlmChannel {
                     &user_prompt[..user_prompt.len().min(50)]
                 )))
             }
-            BizraAction::LlmStream { model, .. } => Ok(ActionPayload::Text(format!(
-                "STUB: Stream from '{}'",
-                model
-            ))),
+            BizraAction::LlmStream { model, .. } => {
+                Ok(ActionPayload::Text(format!("STUB: Stream from '{model}'")))
+            }
             _ => Err(ChannelError::new(Channel::Llm, "Not an LLM action", false)),
         }
     }
@@ -241,30 +238,19 @@ impl ChannelHandler for MemoryChannel {
         match action {
             BizraAction::MemoryStore { fragment_id, .. } => {
                 self.stores += 1;
-                Ok(ActionPayload::Text(format!(
-                    "STUB: Stored '{}'",
-                    fragment_id
-                )))
+                Ok(ActionPayload::Text(format!("STUB: Stored '{fragment_id}'")))
             }
             BizraAction::MemoryRecall { top_k, .. } => {
                 self.recalls += 1;
                 Ok(ActionPayload::Structured {
                     entries: (0..*top_k)
-                        .map(|i| {
-                            (
-                                format!("fragment_{}", i),
-                                format!("Mock recall result {}", i),
-                            )
-                        })
+                        .map(|i| (format!("fragment_{i}"), format!("Mock recall result {i}")))
                         .collect(),
                 })
             }
-            BizraAction::MemoryUpdateKnownMe { session_id, delta } => {
-                Ok(ActionPayload::Text(format!(
-                    "STUB: Known-Me updated by {:.4} for session '{}'",
-                    delta, session_id
-                )))
-            }
+            BizraAction::MemoryUpdateKnownMe { session_id, delta } => Ok(ActionPayload::Text(
+                format!("STUB: Known-Me updated by {delta:.4} for session '{session_id}'"),
+            )),
             _ => Err(ChannelError::new(
                 Channel::Memory,
                 "Not a memory action",
@@ -316,11 +302,10 @@ impl ChannelHandler for FileSystemChannel {
                 content.len()
             ))),
             BizraAction::FileRead { path } => Ok(ActionPayload::Text(format!(
-                "STUB: Read from '{}' → (mock content)",
-                path
+                "STUB: Read from '{path}' → (mock content)"
             ))),
             BizraAction::FileDelete { path } => {
-                Ok(ActionPayload::Text(format!("STUB: Deleted '{}'", path)))
+                Ok(ActionPayload::Text(format!("STUB: Deleted '{path}'")))
             }
             _ => Err(ChannelError::new(
                 Channel::FileSystem,
@@ -416,11 +401,10 @@ impl ChannelHandler for BrowserChannel {
     fn execute(&mut self, action: &BizraAction) -> ChannelResult {
         match action {
             BizraAction::BrowserNavigate { url } => {
-                Ok(ActionPayload::Text(format!("STUB: Navigated to '{}'", url)))
+                Ok(ActionPayload::Text(format!("STUB: Navigated to '{url}'")))
             }
             BizraAction::BrowserFetch { url, method, .. } => Ok(ActionPayload::Text(format!(
-                "STUB: {} '{}' → 200 OK",
-                method, url
+                "STUB: {method} '{url}' → 200 OK"
             ))),
             _ => Err(ChannelError::new(
                 Channel::Browser,
@@ -465,8 +449,7 @@ impl ChannelHandler for McpChannel {
             BizraAction::McpToolCall {
                 tool_name, server, ..
             } => Ok(ActionPayload::Text(format!(
-                "STUB: MCP {}@{} → success",
-                tool_name, server
+                "STUB: MCP {tool_name}@{server} → success"
             ))),
             _ => Err(ChannelError::new(Channel::Mcp, "Not an MCP action", false)),
         }
@@ -507,14 +490,12 @@ impl ChannelHandler for TelescriptChannel {
             BizraAction::TelescriptGo {
                 destination_node, ..
             } => Ok(ActionPayload::Text(format!(
-                "STUB: Agent dispatched to '{}'",
-                destination_node
+                "STUB: Agent dispatched to '{destination_node}'"
             ))),
             BizraAction::TelescriptMeet {
                 visitor_agent_id, ..
             } => Ok(ActionPayload::Text(format!(
-                "STUB: Meeting with '{}'",
-                visitor_agent_id
+                "STUB: Meeting with '{visitor_agent_id}'"
             ))),
             _ => Err(ChannelError::new(
                 Channel::Telescript,

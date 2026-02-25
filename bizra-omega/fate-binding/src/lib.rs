@@ -6,6 +6,10 @@
 //! - Ed25519 signatures for PCI envelopes
 //! - Node-API bindings for TypeScript integration
 
+// Allow deprecated in napi macro expansions — the to_json() shim is
+// intentionally kept for JS backward compat while to_keypair_json() is preferred.
+#![allow(deprecated)]
+
 mod capability_card;
 mod dilithium;
 mod gate_chain;
@@ -137,8 +141,7 @@ impl FateValidator {
 
         let rejection_reason = if !accepted {
             Some(format!(
-                "Challenge failed: ihsan={:.3} (>={:.2}), snr={:.3} (>={:.2}), sovereignty={}",
-                ihsan_score, IHSAN_THRESHOLD, snr_score, SNR_THRESHOLD, sovereignty_passed
+                "Challenge failed: ihsan={ihsan_score:.3} (>={IHSAN_THRESHOLD:.2}), snr={snr_score:.3} (>={SNR_THRESHOLD:.2}), sovereignty={sovereignty_passed}"
             ))
         } else {
             None

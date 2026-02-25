@@ -74,7 +74,7 @@ pub fn append_audit_line(path: &str, line: &str) -> std::io::Result<()> {
         fs::create_dir_all(parent)?;
     }
     let mut file = OpenOptions::new().create(true).append(true).open(&path)?;
-    writeln!(file, "{}", line)?;
+    writeln!(file, "{line}")?;
 
     // Check rotation threshold.
     if let Ok(meta) = fs::metadata(&path) {

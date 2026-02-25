@@ -268,7 +268,7 @@ impl Node {
             }
 
             let response = self.execute(&line);
-            writeln!(out, "{}", response)?;
+            writeln!(out, "{response}")?;
             out.flush()?;
 
             if self.state == NodeState::Stopped {

@@ -195,7 +195,7 @@ impl core::fmt::Debug for MessageContent {
         } else {
             self.as_str()
         };
-        write!(f, "MessageContent({:?}...)", preview)
+        write!(f, "MessageContent({preview:?}...)")
     }
 }
 

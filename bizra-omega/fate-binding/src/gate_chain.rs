@@ -230,7 +230,7 @@ impl GateChain {
     /// Validate an output through all gates
     pub fn validate(&self, output_json: &str) -> Result<GateResult> {
         let output: InferenceOutput = serde_json::from_str(output_json)
-            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {e}")))?;
 
         for gate in &self.gates {
             let result = gate.check(&output);
@@ -251,7 +251,7 @@ impl GateChain {
     /// Get detailed results from all gates
     pub fn validate_detailed(&self, output_json: &str) -> Result<Vec<GateResult>> {
         let output: InferenceOutput = serde_json::from_str(output_json)
-            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid output JSON: {e}")))?;
 
         Ok(self.gates.iter().map(|gate| gate.check(&output)).collect())
     }

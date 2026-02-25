@@ -215,10 +215,7 @@ fn e2e_constitution_thresholds() {
     // 1. Verify default thresholds
     assert!((IHSAN_THRESHOLD - 0.95).abs() < 0.001);
     assert!((SNR_THRESHOLD - 0.85).abs() < 0.001);
-    println!(
-        "✓ Default thresholds: Ihsan={}, SNR={}",
-        IHSAN_THRESHOLD, SNR_THRESHOLD
-    );
+    println!("✓ Default thresholds: Ihsan={IHSAN_THRESHOLD}, SNR={SNR_THRESHOLD}");
 
     // 2. Ihsan checks
     assert!(constitution.check_ihsan(0.95));
@@ -446,7 +443,7 @@ fn benchmark_identity_ops() {
     // Hash 1000 times
     let start = Instant::now();
     for i in 0..1000 {
-        domain_separated_digest(format!("message {}", i).as_bytes());
+        domain_separated_digest(format!("message {i}").as_bytes());
     }
     let hash_elapsed = start.elapsed();
 

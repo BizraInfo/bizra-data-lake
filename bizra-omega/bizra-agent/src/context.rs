@@ -110,7 +110,7 @@ impl ContextAssembler {
             let facts = pipeline.query_facts(*kind, now);
             for (text, conf) in facts.iter().take(self.config.max_traits - trait_count) {
                 if *conf >= self.config.min_trait_confidence.base {
-                    ctx.add_trait(&format!("{:?}", kind), text, Confidence::new(*conf, now));
+                    ctx.add_trait(&format!("{kind:?}"), text, Confidence::new(*conf, now));
                     trait_count += 1;
                 }
             }
@@ -476,7 +476,7 @@ mod tests {
             pipeline
                 .ingest(
                     FragmentKind::UserMessage,
-                    &format!("I prefer style preference {}", i),
+                    &format!("I prefer style preference {i}"),
                     1,
                     i,
                     1000 + i as u64,

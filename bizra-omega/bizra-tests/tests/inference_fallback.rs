@@ -176,7 +176,7 @@ async fn test_gateway_no_backend_error() {
         Err(GatewayError::NoBackend(tier)) => {
             assert_eq!(tier, ModelTier::Edge);
         }
-        other => panic!("Expected NoBackend error, got {:?}", other),
+        other => panic!("Expected NoBackend error, got {other:?}"),
     }
 }
 
@@ -235,7 +235,7 @@ async fn test_gateway_backend_error_propagation() {
         Err(GatewayError::Backend(BackendError::Generation(msg))) => {
             assert!(msg.contains("Connection refused"));
         }
-        other => panic!("Expected Backend error, got {:?}", other),
+        other => panic!("Expected Backend error, got {other:?}"),
     }
 }
 
@@ -448,8 +448,8 @@ async fn test_gateway_concurrent_requests() {
         let gw = gateway.clone();
         let handle = tokio::spawn(async move {
             let request = InferenceRequest {
-                id: format!("concurrent_{}", i),
-                prompt: format!("Request {}", i),
+                id: format!("concurrent_{i}"),
+                prompt: format!("Request {i}"),
                 preferred_tier: Some(ModelTier::Edge),
                 ..Default::default()
             };
@@ -500,7 +500,7 @@ async fn test_gateway_concurrent_mixed_results() {
 
         let handle = tokio::spawn(async move {
             let request = InferenceRequest {
-                id: format!("mixed_{}", i),
+                id: format!("mixed_{i}"),
                 prompt: "Test".into(),
                 preferred_tier: Some(tier),
                 ..Default::default()

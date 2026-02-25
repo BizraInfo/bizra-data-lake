@@ -686,7 +686,7 @@ impl ProofSpaceValidator {
         for (i, vs) in block.signatures.verifier_signatures.iter().enumerate() {
             if let Err(e) = self.verify_verifier_signature(vs, &computed_block_id) {
                 errors.push(e);
-                warnings.push(format!("Verifier signature {} invalid", i));
+                warnings.push(format!("Verifier signature {i} invalid"));
             }
         }
 
@@ -896,7 +896,7 @@ impl ProofSpaceValidator {
             // Check format
             if !HEX64_PATTERN.is_match(block_ref) {
                 errors.push(ValidationError::InvalidHashFormat {
-                    field: format!("block_refs[{}]", block_ref),
+                    field: format!("block_refs[{block_ref}]"),
                 });
                 continue;
             }
@@ -1064,7 +1064,7 @@ impl ProofSpaceValidator {
             }
         })?)
         .map_err(|e| ValidationError::CryptoError {
-            reason: format!("Invalid public key: {}", e),
+            reason: format!("Invalid public key: {e}"),
         })?;
 
         let signature = Signature::from_bytes(&sig_bytes.try_into().map_err(|_| {
@@ -1102,7 +1102,7 @@ impl ProofSpaceValidator {
             }
         })?)
         .map_err(|e| ValidationError::CryptoError {
-            reason: format!("Invalid verifier public key: {}", e),
+            reason: format!("Invalid verifier public key: {e}"),
         })?;
 
         let signature = Signature::from_bytes(&sig_bytes.try_into().map_err(|_| {

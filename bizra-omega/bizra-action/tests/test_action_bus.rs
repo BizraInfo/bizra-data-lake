@@ -429,7 +429,7 @@ mod tests {
         let mut chain = ReceiptChain::new();
         for i in 0..10 {
             let action = BizraAction::RespondToUser {
-                content: format!("msg {}", i),
+                content: format!("msg {i}"),
                 ihsan_score: IhsanScore::new(0.98),
             };
             chain.record(
@@ -438,7 +438,7 @@ mod tests {
                 &action,
                 GuardianVerdict::Approved { reason: "ok" },
                 IhsanScore::new(0.98),
-                content_hash(format!("payload_{}", i).as_bytes()),
+                content_hash(format!("payload_{i}").as_bytes()),
             );
         }
         assert_eq!(chain.len(), 10);
@@ -756,7 +756,7 @@ mod tests {
         for i in 0..5 {
             d.dispatch(
                 BizraAction::RespondToUser {
-                    content: format!("Message {}", i),
+                    content: format!("Message {i}"),
                     ihsan_score: IhsanScore::new(0.98),
                 },
                 Permit::user_default(),

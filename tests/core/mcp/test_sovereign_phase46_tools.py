@@ -16,6 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytest.importorskip("mcp")
+
 # ---------------------------------------------------------------------------
 # Path setup — ensure project root and tools/mcp are importable
 # ---------------------------------------------------------------------------
@@ -743,6 +745,7 @@ class TestHTTPHealthServer:
     @pytest.fixture
     def _patch_globals(self, monkeypatch):
         """Patch global state read by _http_handler."""
+        pytest.importorskip("mcp")
         from tools.mcp import sovereign_mcp_server as mod
 
         monkeypatch.setattr(mod, "_query_count", 42)

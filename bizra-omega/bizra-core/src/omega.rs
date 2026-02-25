@@ -416,10 +416,7 @@ impl AdlInvariant {
                         gini_actual: proposed_gini,
                         gini_threshold: self.gini_threshold,
                         violator_id: None,
-                        details: format!(
-                            "Proposed change would result in Gini {:.4}",
-                            proposed_gini
-                        ),
+                        details: format!("Proposed change would result in Gini {proposed_gini:.4}"),
                         timestamp_ms: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -858,6 +855,6 @@ mod tests {
         distribution.insert("node3".into(), 120.0);
 
         let result = engine.evaluate(&ihsan, &distribution, 50.0);
-        assert!(result.is_ok(), "Expected Ok but got: {:?}", result);
+        assert!(result.is_ok(), "Expected Ok but got: {result:?}");
     }
 }

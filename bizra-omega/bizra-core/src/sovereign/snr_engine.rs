@@ -555,7 +555,7 @@ mod tests {
         };
 
         let snr = metrics.compute_snr();
-        assert!(snr > 0.8, "SNR should be > 0.8, got {}", snr);
+        assert!(snr > 0.8, "SNR should be > 0.8, got {snr}");
     }
 
     #[test]

@@ -322,7 +322,7 @@ mod tests {
             actual: 0.8234,
             threshold: 0.85,
         };
-        let msg = format!("{}", err);
+        let msg = format!("{err}");
         assert!(msg.contains("0.8234"));
         assert!(msg.contains("0.85"));
     }

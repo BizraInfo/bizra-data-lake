@@ -43,7 +43,7 @@ pub async fn create_envelope(
     let identity = identity.as_ref().ok_or(ApiError::IdentityNotInitialized)?;
 
     let envelope = PCIEnvelope::create(identity, req.payload, req.ttl, req.provenance)
-        .map_err(|e| ApiError::PCIVerificationFailed(format!("{:?}", e)))?;
+        .map_err(|e| ApiError::PCIVerificationFailed(format!("{e:?}")))?;
 
     Ok(Json(EnvelopeResponse {
         id: envelope.id,
@@ -78,7 +78,7 @@ pub async fn verify_envelope(
         })),
         Err(e) => Ok(Json(VerifyEnvelopeResponse {
             valid: false,
-            error: Some(format!("{:?}", e)),
+            error: Some(format!("{e:?}")),
         })),
     }
 }

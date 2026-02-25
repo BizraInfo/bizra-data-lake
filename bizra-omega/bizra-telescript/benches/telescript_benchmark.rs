@@ -20,7 +20,7 @@ fn bench_authority_chain(c: &mut Criterion) {
             |b, &depth| {
                 let mut auth = Authority::genesis();
                 for i in 0..depth {
-                    auth = auth.delegate(&format!("node{}", i)).unwrap();
+                    auth = auth.delegate(&format!("node{i}")).unwrap();
                 }
                 b.iter(|| black_box(auth.verify_chain()));
             },

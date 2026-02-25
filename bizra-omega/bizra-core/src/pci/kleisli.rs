@@ -388,7 +388,7 @@ fn chrono_now_utc() -> String {
         .unwrap_or_default();
     let secs = duration.as_secs();
     // Simple ISO-8601 approximation
-    format!("{}Z", secs)
+    format!("{secs}Z")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

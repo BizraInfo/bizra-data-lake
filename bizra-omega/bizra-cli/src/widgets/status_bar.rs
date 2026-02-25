@@ -57,7 +57,7 @@ impl Widget for StatusBar<'_> {
         };
 
         let mut spans = vec![
-            Span::styled(format!(" {} ", mode_text), mode_style),
+            Span::styled(format!(" {mode_text} "), mode_style),
             Span::raw(" │ "),
         ];
 

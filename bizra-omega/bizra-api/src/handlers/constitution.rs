@@ -130,8 +130,8 @@ pub async fn check_compliance(
         checks.push(ComplianceCheck {
             rule: "Ihsan Constraint".into(),
             passed,
-            value: Some(format!("{:.4}", score)),
-            threshold: Some(format!("{:.4}", IHSAN_THRESHOLD)),
+            value: Some(format!("{score:.4}")),
+            threshold: Some(format!("{IHSAN_THRESHOLD:.4}")),
         });
     }
 
@@ -144,8 +144,8 @@ pub async fn check_compliance(
         checks.push(ComplianceCheck {
             rule: "SNR Minimum".into(),
             passed,
-            value: Some(format!("{:.4}", score)),
-            threshold: Some(format!("{:.4}", SNR_THRESHOLD)),
+            value: Some(format!("{score:.4}")),
+            threshold: Some(format!("{SNR_THRESHOLD:.4}")),
         });
     }
 

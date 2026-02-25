@@ -347,7 +347,7 @@ mod tests {
     #[test]
     fn secret_string_debug_redacted() {
         let s = SecretString::new("hunter2");
-        let debug = format!("{:?}", s);
+        let debug = format!("{s:?}");
         assert_eq!(debug, "SecretString(***)");
         assert!(!debug.contains("hunter2"));
     }

@@ -83,7 +83,7 @@ async fn node_double_start_errors() {
     assert!(result.is_err());
     match result.unwrap_err() {
         NodeError::AlreadyRunning => {}
-        e => panic!("expected AlreadyRunning, got {:?}", e),
+        e => panic!("expected AlreadyRunning, got {e:?}"),
     }
     node.stop().await.unwrap(); // cleanup
 }
@@ -95,7 +95,7 @@ async fn node_double_stop_errors() {
     assert!(result.is_err());
     match result.unwrap_err() {
         NodeError::NotRunning => {}
-        e => panic!("expected NotRunning, got {:?}", e),
+        e => panic!("expected NotRunning, got {e:?}"),
     }
 }
 

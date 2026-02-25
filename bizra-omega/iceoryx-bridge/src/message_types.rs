@@ -241,6 +241,6 @@ impl MessageEnvelope {
     /// Decode payload as specific type
     pub fn decode<T: for<'de> Deserialize<'de>>(&self) -> Result<T> {
         rmp_serde::from_slice(&self.payload)
-            .map_err(|e| Error::from_reason(format!("Decode error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Decode error: {e}")))
     }
 }

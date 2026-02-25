@@ -98,7 +98,7 @@ pub async fn generate(
             &req.prompt[..req.prompt.len().min(50)]
         ),
         model: "none".into(),
-        tier: format!("{:?}", tier),
+        tier: format!("{tier:?}"),
         completion_tokens: 0,
         duration_ms: 0,
         tokens_per_second: 0.0,
@@ -201,8 +201,8 @@ pub async fn select_tier(Json(req): Json<SelectTierRequest>) -> Json<SelectTierR
     };
 
     Json(SelectTierResponse {
-        recommended_tier: format!("{:?}", tier),
-        complexity: format!("{:?}", complexity),
+        recommended_tier: format!("{tier:?}"),
+        complexity: format!("{complexity:?}"),
         reasoning: reasoning.into(),
     })
 }

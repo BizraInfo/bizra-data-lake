@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
+pytest.importorskip("yaml")
+
 from scripts.ops.snr_worktree_guard import GitEntry, _parse_status_line, classify
 
 

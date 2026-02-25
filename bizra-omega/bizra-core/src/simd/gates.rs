@@ -143,8 +143,8 @@ mod tests {
         let constitution = Constitution::default();
         let contexts: Vec<GateContext> = (0..1000)
             .map(|i| GateContext {
-                sender_id: format!("node_{}", i),
-                envelope_id: format!("pci_{}", i),
+                sender_id: format!("node_{i}"),
+                envelope_id: format!("pci_{i}"),
                 content: br#"{"test": true}"#.to_vec(),
                 constitution: constitution.clone(),
                 snr_score: Some(0.90),

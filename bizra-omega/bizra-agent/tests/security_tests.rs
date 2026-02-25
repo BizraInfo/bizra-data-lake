@@ -88,7 +88,7 @@ fn security_secret_string_ct_eq() {
 #[test]
 fn security_secret_string_debug_no_leak() {
     let secret = SecretString::new("ultra-secret-password-XYZ");
-    let debug_output = format!("{:?}", secret);
+    let debug_output = format!("{secret:?}");
     assert_eq!(debug_output, "SecretString(***)");
     assert!(!debug_output.contains("ultra"));
     assert!(!debug_output.contains("secret"));
@@ -140,8 +140,7 @@ fn security_vault_file_rejects_symlinks() {
     let result = backend.get("symlinked");
     assert!(
         matches!(result, Err(VaultError::PermissionDenied { .. })),
-        "Expected PermissionDenied for symlinked secret, got: {:?}",
-        result
+        "Expected PermissionDenied for symlinked secret, got: {result:?}"
     );
 }
 
@@ -169,9 +168,7 @@ fn security_vault_env_rejects_special_chars() {
         let result = backend.get(bad_key);
         assert!(
             matches!(result, Err(VaultError::IoError { .. })),
-            "Expected IoError for key '{}', got: {:?}",
-            bad_key,
-            result
+            "Expected IoError for key '{bad_key}', got: {result:?}"
         );
     }
 }
@@ -197,9 +194,7 @@ fn security_vault_file_rejects_path_traversal() {
         let result = backend.get(bad_key);
         assert!(
             matches!(result, Err(VaultError::IoError { .. })),
-            "Expected IoError for traversal key '{}', got: {:?}",
-            bad_key,
-            result
+            "Expected IoError for traversal key '{bad_key}', got: {result:?}"
         );
     }
 }
@@ -213,8 +208,7 @@ fn security_empty_key_rejected_by_all_backends() {
     let env_result = env_backend.get("");
     assert!(
         env_result.is_err(),
-        "EnvBackend should reject empty key, got: {:?}",
-        env_result
+        "EnvBackend should reject empty key, got: {env_result:?}"
     );
 
     // FileBackend
@@ -223,8 +217,7 @@ fn security_empty_key_rejected_by_all_backends() {
     let file_result = file_backend.get("");
     assert!(
         file_result.is_err(),
-        "FileBackend should reject empty key, got: {:?}",
-        file_result
+        "FileBackend should reject empty key, got: {file_result:?}"
     );
 }
 
@@ -237,8 +230,7 @@ fn security_vault_env_rejects_overlong_key() {
     let result = backend.get(&long_key);
     assert!(
         matches!(result, Err(VaultError::IoError { .. })),
-        "Expected IoError for overlong key (129 chars), got: {:?}",
-        result
+        "Expected IoError for overlong key (129 chars), got: {result:?}"
     );
 
     // Exactly 128 should be fine (if env var exists)
@@ -247,8 +239,7 @@ fn security_vault_env_rejects_overlong_key() {
     // Should be NotFound (no env var set), not IoError
     assert!(
         matches!(result_ok, Err(VaultError::NotFound { .. })),
-        "128-char key should be accepted but not found, got: {:?}",
-        result_ok
+        "128-char key should be accepted but not found, got: {result_ok:?}"
     );
 }
 

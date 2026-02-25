@@ -74,7 +74,7 @@ impl DilithiumKeypair {
             public_key: hex::encode(&self.public_key),
         };
         serde_json::to_string(&data)
-            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Serialization error: {e}")))
     }
 
     /// Export full keypair to JSON (contains secret key — handle with care).
@@ -87,7 +87,7 @@ impl DilithiumKeypair {
         };
 
         serde_json::to_string(&keypair_data)
-            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Serialization error: {e}")))
     }
 
     /// Backward-compatible alias — delegates to [`to_keypair_json`].
@@ -97,6 +97,8 @@ impl DilithiumKeypair {
     #[allow(deprecated)]
     #[napi]
     pub fn to_json(&self) -> Result<String> {
+        // NOTE: #[allow(deprecated)] above suppresses the local warning.
+        // For napi macro expansion, we also need crate-level allow — see lib.rs.
         self.to_keypair_json()
     }
 
@@ -104,7 +106,7 @@ impl DilithiumKeypair {
     #[napi(factory)]
     pub fn from_json(json: String) -> Result<Self> {
         let data: KeypairData = serde_json::from_str(&json)
-            .map_err(|e| Error::from_reason(format!("Parse error: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Parse error: {e}")))?;
 
         if data.algorithm != "ML-DSA-87" && data.algorithm != "Dilithium-5" {
             return Err(Error::from_reason(

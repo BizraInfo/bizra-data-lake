@@ -291,7 +291,7 @@ impl ActionReceipt {
 }
 
 fn to_hex(bytes: [u8; 32]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn sanitize(s: &str) -> String {
@@ -299,7 +299,7 @@ fn sanitize(s: &str) -> String {
 }
 
 fn extract_json_string(json: &str, key: &str) -> Option<String> {
-    let needle = format!("\"{}\":\"", key);
+    let needle = format!("\"{key}\":\"");
     let start = json.find(&needle)? + needle.len();
     let rest = &json[start..];
     let mut out = String::new();
@@ -323,7 +323,7 @@ fn extract_json_string(json: &str, key: &str) -> Option<String> {
 }
 
 fn extract_json_u64(json: &str, key: &str) -> Option<u64> {
-    let needle = format!("\"{}\":", key);
+    let needle = format!("\"{key}\":");
     let start = json.find(&needle)? + needle.len();
     let rest = &json[start..];
     let end = rest.find([',', '}'])?;
@@ -331,7 +331,7 @@ fn extract_json_u64(json: &str, key: &str) -> Option<u64> {
 }
 
 fn extract_json_bool(json: &str, key: &str) -> Option<bool> {
-    let needle = format!("\"{}\":", key);
+    let needle = format!("\"{key}\":");
     let start = json.find(&needle)? + needle.len();
     let rest = &json[start..];
     let end = rest.find([',', '}'])?;

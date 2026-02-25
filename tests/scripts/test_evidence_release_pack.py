@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("yaml")
+
 from scripts.evidence.build_evidence_package import run as build_run
 from scripts.evidence.import_external_assets import run as import_run
 from scripts.evidence.release_pack import run as release_pack_run

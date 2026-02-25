@@ -190,7 +190,7 @@ impl Response {
                 for (k, v) in fields {
                     // Escape any tabs or newlines in values
                     let safe_v = v.replace(['\t', '\n'], " ");
-                    parts.push(format!("{}={}", k, safe_v));
+                    parts.push(format!("{k}={safe_v}"));
                 }
                 parts.join("\t")
             }
@@ -617,7 +617,7 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
             })
         }
 
-        _ => Err((ErrorCode::BadCommand, format!("unknown command: {}", verb))),
+        _ => Err((ErrorCode::BadCommand, format!("unknown command: {verb}"))),
     }
 }
 
@@ -627,12 +627,12 @@ pub fn parse_command(line: &str) -> Result<Command, (ErrorCode, String)> {
 
 fn parse_u64(s: &str, field: &str) -> Result<u64, (ErrorCode, String)> {
     s.parse::<u64>()
-        .map_err(|_| (ErrorCode::ParseError, format!("invalid {}: {:?}", field, s)))
+        .map_err(|_| (ErrorCode::ParseError, format!("invalid {field}: {s:?}")))
 }
 
 fn parse_u16(s: &str, field: &str) -> Result<u16, (ErrorCode, String)> {
     s.parse::<u16>()
-        .map_err(|_| (ErrorCode::ParseError, format!("invalid {}: {:?}", field, s)))
+        .map_err(|_| (ErrorCode::ParseError, format!("invalid {field}: {s:?}")))
 }
 
 /// Validate a TEACH kind string.
@@ -643,7 +643,7 @@ fn validate_teach_kind(kind: &str) -> Result<(), (ErrorCode, String)> {
         | "principle" | "temporal" | "negation" => Ok(()),
         _ => Err((
             ErrorCode::InvalidArg,
-            format!("unknown TEACH kind: {:?}", kind),
+            format!("unknown TEACH kind: {kind:?}"),
         )),
     }
 }

@@ -21,6 +21,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytest.importorskip("yaml")
+
 from core.spearpoint.config import MissionType, SpearpointConfig
 from core.spearpoint.rdve_skill import (
     RDVESkillHandler,

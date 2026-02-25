@@ -114,7 +114,7 @@ impl HyperEdge {
             hasher.update(m.as_bytes());
             hasher.update(b"|");
         }
-        hasher.update(format!("{:?}", edge_type).as_bytes());
+        hasher.update(format!("{edge_type:?}").as_bytes());
         hasher.finalize().to_hex()[..16].to_string()
     }
 }

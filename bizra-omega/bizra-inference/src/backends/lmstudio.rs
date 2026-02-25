@@ -401,10 +401,7 @@ impl LMStudioBackend {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             error!("LM Studio error {}: {}", status, body);
-            return Err(BackendError::Generation(format!(
-                "HTTP {}: {}",
-                status, body
-            )));
+            return Err(BackendError::Generation(format!("HTTP {status}: {body}")));
         }
 
         response
@@ -436,7 +433,7 @@ impl LMStudioBackend {
                         content_type: "image_url".to_string(),
                         text: None,
                         image_url: Some(ImageUrl {
-                            url: format!("data:image/jpeg;base64,{}", image_base64),
+                            url: format!("data:image/jpeg;base64,{image_base64}"),
                             detail: Some("high".to_string()),
                         }),
                     },

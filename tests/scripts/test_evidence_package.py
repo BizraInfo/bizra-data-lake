@@ -6,7 +6,8 @@ import stat
 from pathlib import Path
 
 import pytest
-import yaml
+
+yaml = pytest.importorskip("yaml")
 
 from scripts.evidence.build_evidence_package import run as build_run
 from scripts.evidence.export_public_redacted import run as export_run

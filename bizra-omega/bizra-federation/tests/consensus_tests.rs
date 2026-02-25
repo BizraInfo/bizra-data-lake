@@ -265,7 +265,7 @@ fn engine_receive_vote_rejects_below_ihsan() {
     assert!(result.is_err());
     match result.unwrap_err() {
         ConsensusError::IhsanThreshold(_) => {}
-        e => panic!("expected IhsanThreshold, got {:?}", e),
+        e => panic!("expected IhsanThreshold, got {e:?}"),
     }
 }
 
@@ -290,7 +290,7 @@ fn engine_receive_vote_rejects_unknown_voter() {
     assert!(result.is_err());
     match result.unwrap_err() {
         ConsensusError::UnknownVoter(_) => {}
-        e => panic!("expected UnknownVoter, got {:?}", e),
+        e => panic!("expected UnknownVoter, got {e:?}"),
     }
 }
 
@@ -321,7 +321,7 @@ fn engine_receive_vote_rejects_pubkey_mismatch() {
     assert!(result.is_err());
     match result.unwrap_err() {
         ConsensusError::PubkeyMismatch { .. } => {}
-        e => panic!("expected PubkeyMismatch, got {:?}", e),
+        e => panic!("expected PubkeyMismatch, got {e:?}"),
     }
 }
 

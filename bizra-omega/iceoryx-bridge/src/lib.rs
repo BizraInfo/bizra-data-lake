@@ -115,12 +115,12 @@ impl IceoryxBridge {
 
         let router = self.router.read().await;
         let request: InferenceRequest = serde_json::from_str(&request_json)
-            .map_err(|e| Error::from_reason(format!("Invalid request JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid request JSON: {e}")))?;
 
         let response = router.send_inference(request).await?;
 
         serde_json::to_string(&response)
-            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Serialization error: {e}")))
     }
 
     /// Send a gate validation request
@@ -134,7 +134,7 @@ impl IceoryxBridge {
         let response = router.send_gate_validation(&output_json).await?;
 
         serde_json::to_string(&response)
-            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Serialization error: {e}")))
     }
 
     /// Get bridge statistics

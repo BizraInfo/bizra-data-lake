@@ -322,7 +322,7 @@ pub fn export_atoms_as_turns(
     atoms: &[(AtomKind, &str, f32, u64)],
     session_id: u64,
 ) -> Vec<ConversationTurnWire> {
-    let conversation_id = format!("session-{}", session_id);
+    let conversation_id = format!("session-{session_id}");
 
     atoms
         .iter()
@@ -337,7 +337,7 @@ pub fn export_atoms_as_turns(
                 hash ^= byte as u64;
                 hash = hash.wrapping_mul(prime);
             }
-            let turn_id = format!("bizra_self-{:012x}", hash);
+            let turn_id = format!("bizra_self-{hash:012x}");
 
             ConversationTurnWire {
                 provider: "bizra_self",
@@ -608,7 +608,7 @@ mod tests {
         for i in 0..MAX_EXTRACTION_RESULTS {
             assert!(batch.push(ExtractionResult {
                 kind: AtomKind::Fact,
-                content: ExtractionContent::new(&format!("fact {}", i)),
+                content: ExtractionContent::new(&format!("fact {i}")),
                 confidence: 0.90,
             }));
         }
