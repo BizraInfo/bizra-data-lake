@@ -517,7 +517,9 @@ class SovereignRuntime:
             elif kind == EqualizerCommandKind.ESCALATE:
                 self.logger.info("Equalizer ESCALATE: requesting larger model variant")
             elif kind == EqualizerCommandKind.RESUME:
-                self.logger.info("Equalizer RESUME: recovery detected, resuming normal ops")
+                self.logger.info(
+                    "Equalizer RESUME: recovery detected, resuming normal ops"
+                )
         except Exception as e:
             self.logger.debug("Equalizer dispatch error: %s", e)
 
