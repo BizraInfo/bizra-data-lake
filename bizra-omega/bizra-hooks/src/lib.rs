@@ -554,7 +554,7 @@ mod tests {
         // Register 50 components
         let mut ids = Vec::new();
         for i in 0..50 {
-            let name = format!("component-{}", i);
+            let name = format!("component-{i}");
             let id = sys.register_component(&name, "1.0.0", i as u64).unwrap();
             sys.activate_component(&id).unwrap();
             ids.push(id);

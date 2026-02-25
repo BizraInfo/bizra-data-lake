@@ -185,9 +185,7 @@ mod integration_tests {
         let score_after = runtime.pipeline.profile().completeness();
         assert!(
             score_after >= score_before,
-            "Knowledge should grow: before={}, after={}",
-            score_before,
-            score_after
+            "Knowledge should grow: before={score_before}, after={score_after}"
         );
 
         assert_eq!(runtime.orchestrator.messages_processed(), 5);
@@ -278,8 +276,7 @@ mod integration_tests {
             let (intent, _) = IntentClassifier::classify(content);
             assert_eq!(
                 intent, expected_intent,
-                "Failed for '{}': got {:?}, expected {:?}",
-                content, intent, expected_intent
+                "Failed for '{content}': got {intent:?}, expected {expected_intent:?}"
             );
         }
     }
@@ -294,7 +291,7 @@ mod integration_tests {
         // Assign to all 7 agents
         for role in AgentRole::all() {
             let id = roster.assign_task(role);
-            assert!(id.is_some(), "Should assign to {:?}", role);
+            assert!(id.is_some(), "Should assign to {role:?}");
         }
 
         assert_eq!(roster.available_count(), 0);
@@ -502,8 +499,7 @@ mod integration_tests {
 
         assert!(
             total_extracted >= 3,
-            "Should extract memory from preference/goal messages, got {}",
-            total_extracted
+            "Should extract memory from preference/goal messages, got {total_extracted}"
         );
     }
 
@@ -746,9 +742,7 @@ mod integration_tests {
         // Knowledge should accumulate across conversations
         assert!(
             score_2 >= score_1,
-            "Knowledge should grow: {} >= {}",
-            score_2,
-            score_1
+            "Knowledge should grow: {score_2} >= {score_1}"
         );
         assert_eq!(rt.health().total_conversations, 2);
     }

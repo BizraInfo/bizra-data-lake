@@ -39,7 +39,7 @@ impl fmt::Debug for ComponentId {
         // Display as hex: "comp:a1b2c3d4..."
         write!(f, "comp:")?;
         for b in &self.0[..4] {
-            write!(f, "{:02x}", b)?;
+            write!(f, "{b:02x}")?;
         }
         Ok(())
     }
@@ -611,15 +611,15 @@ pub enum HookError {
 impl fmt::Display for HookError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DuplicateComponent(id) => write!(f, "duplicate component: {:?}", id),
-            Self::ComponentNotFound(id) => write!(f, "component not found: {:?}", id),
+            Self::DuplicateComponent(id) => write!(f, "duplicate component: {id:?}"),
+            Self::ComponentNotFound(id) => write!(f, "component not found: {id:?}"),
             Self::RegistryFull => write!(f, "registry capacity exceeded"),
             Self::SubscribersFull => write!(f, "subscriber capacity exceeded"),
             Self::HookChainFull => write!(f, "hook chain capacity exceeded"),
-            Self::IhsanGateRejected(score) => write!(f, "إحسان gate rejected: {}", score),
-            Self::HookHalted(id) => write!(f, "hook halted event: {:?}", id),
+            Self::IhsanGateRejected(score) => write!(f, "إحسان gate rejected: {score}"),
+            Self::HookHalted(id) => write!(f, "hook halted event: {id:?}"),
             Self::InvalidTopic => write!(f, "invalid topic format"),
-            Self::ComponentInactive(id) => write!(f, "component inactive: {:?}", id),
+            Self::ComponentInactive(id) => write!(f, "component inactive: {id:?}"),
         }
     }
 }

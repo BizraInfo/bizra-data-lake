@@ -58,7 +58,7 @@ fn audit_log_writes_jsonl() {
     // Each line must be valid JSON
     for line in &lines {
         let parsed: serde_json::Value = serde_json::from_str(line)
-            .unwrap_or_else(|_| panic!("Invalid JSON in audit log: {}", line));
+            .unwrap_or_else(|_| panic!("Invalid JSON in audit log: {line}"));
         assert!(parsed.is_object());
     }
 
@@ -132,8 +132,7 @@ fn receipt_chain_with_audit() {
     let receipt_count = exec.receipts().len();
     assert!(
         receipt_count >= 3,
-        "Expected at least 3 receipts, got {}",
-        receipt_count
+        "Expected at least 3 receipts, got {receipt_count}"
     );
 
     // Verify prev_receipt_hash chain integrity

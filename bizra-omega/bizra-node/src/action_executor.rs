@@ -559,7 +559,7 @@ impl ActionExecutor {
             })?
         };
         let ts = chrono_like_now_ms();
-        let nonce = format!("n{}", ts);
+        let nonce = format!("n{ts}");
         let request = json!({
             "jsonrpc": "2.0",
             "method": method,

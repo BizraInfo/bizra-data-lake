@@ -87,7 +87,7 @@ fn main() {
     if !result.warnings.is_empty() {
         println!("▸ Warnings ({}):", result.warnings.len());
         for warning in &result.warnings {
-            println!("  - {}", warning);
+            println!("  - {warning}");
         }
         println!();
     }
@@ -212,11 +212,11 @@ fn main() {
     println!("                         SUMMARY");
     println!("═══════════════════════════════════════════════════════════════════");
     println!();
-    println!("  Schema Version:       {}", SCHEMA_VERSION);
-    println!("  Ihsān Threshold:      {}", IHSAN_THRESHOLD);
-    println!("  Max Harm Score:       {}", MAX_HARM_SCORE);
-    println!("  Min Confidence:       {}", MIN_CONFIDENCE);
-    println!("  Min Verifiers:        {}", MIN_VERIFIER_SIGNATURES);
+    println!("  Schema Version:       {SCHEMA_VERSION}");
+    println!("  Ihsān Threshold:      {IHSAN_THRESHOLD}");
+    println!("  Max Harm Score:       {MAX_HARM_SCORE}");
+    println!("  Min Confidence:       {MIN_CONFIDENCE}");
+    println!("  Min Verifiers:        {MIN_VERIFIER_SIGNATURES}");
     println!();
     println!("  Canonicalization:     RFC 8785 (JCS)");
     println!("  Hash Algorithm:       SHA-256");

@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn test_cuda_check() {
         let info = check_cuda();
-        println!("CUDA: {:?}", info);
+        println!("CUDA: {info:?}");
     }
 
     #[tokio::test]

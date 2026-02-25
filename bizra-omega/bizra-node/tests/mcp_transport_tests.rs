@@ -35,7 +35,7 @@ fn parse_receive_request() {
             assert_eq!(content, "hello");
             assert!(timestamp > 0);
         }
-        _ => panic!("expected Receive, got {:?}", cmd),
+        _ => panic!("expected Receive, got {cmd:?}"),
     }
     assert_eq!(id, json!(1));
 }
@@ -117,7 +117,7 @@ fn parse_no_params_commands() {
 
     for (input, expected) in cases {
         let (cmd, _) = parse_jsonrpc(input).unwrap();
-        assert_eq!(cmd, expected, "failed for input: {}", input);
+        assert_eq!(cmd, expected, "failed for input: {input}");
     }
 }
 
@@ -345,13 +345,11 @@ fn response_err_all_error_codes() {
         let v: Value = serde_json::from_str(&wire).unwrap();
         assert_eq!(
             v["error"]["code"], expected_rpc_code,
-            "wrong code for {:?}",
-            code
+            "wrong code for {code:?}"
         );
         assert_eq!(
             v["error"]["data"]["code"], expected_data_code,
-            "wrong data.code for {:?}",
-            code
+            "wrong data.code for {code:?}"
         );
     }
 }
@@ -498,13 +496,13 @@ fn tcp_roundtrip_ping() {
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     // Connect and send a ping
-    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
 
     let request = r#"{"jsonrpc":"2.0","method":"ping","id":1}"#;
-    writeln!(stream, "{}", request).unwrap();
+    writeln!(stream, "{request}").unwrap();
     stream.flush().unwrap();
 
     let mut reader = BufReader::new(&stream);
@@ -546,7 +544,7 @@ fn tcp_persistent_connection_multiple_requests() {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -595,7 +593,7 @@ fn tcp_error_for_unknown_method() {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -658,7 +656,7 @@ fn make_sap_tcp_test_node() -> (u16, Arc<Mutex<Node>>) {
 
 fn tcp_send_recv(stream: &TcpStream, request: &str) -> Value {
     let mut writer = std::io::BufWriter::new(stream);
-    writeln!(writer, "{}", request).unwrap();
+    writeln!(writer, "{request}").unwrap();
     writer.flush().unwrap();
 
     let mut reader = BufReader::new(stream);
@@ -670,7 +668,7 @@ fn tcp_send_recv(stream: &TcpStream, request: &str) -> Value {
 #[test]
 fn sap_tcp_meet_open_creates_session() {
     let (port, _node) = make_sap_tcp_test_node();
-    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -703,7 +701,7 @@ fn sap_tcp_meet_open_creates_session() {
 #[test]
 fn sap_tcp_full_session_lifecycle() {
     let (port, _node) = make_sap_tcp_test_node();
-    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -718,8 +716,7 @@ fn sap_tcp_full_session_lifecycle() {
 
     // Step 2: SAP_MESSAGE
     let msg_req = format!(
-        r#"{{"jsonrpc":"2.0","method":"sap_message","params":{{"session_id":"{}","content":"Hello BIZRA","timestamp":1001}},"id":2}}"#,
-        sid
+        r#"{{"jsonrpc":"2.0","method":"sap_message","params":{{"session_id":"{sid}","content":"Hello BIZRA","timestamp":1001}},"id":2}}"#
     );
     let v2 = tcp_send_recv(&stream, &msg_req);
     assert!(v2["result"].is_object(), "message should succeed");
@@ -730,16 +727,14 @@ fn sap_tcp_full_session_lifecycle() {
 
     // Step 3: SAP_DISCLOSURE
     let disc_req = format!(
-        r#"{{"jsonrpc":"2.0","method":"sap_disclosure","params":{{"session_id":"{}"}},"id":3}}"#,
-        sid
+        r#"{{"jsonrpc":"2.0","method":"sap_disclosure","params":{{"session_id":"{sid}"}},"id":3}}"#
     );
     let v3 = tcp_send_recv(&stream, &disc_req);
     assert!(v3["result"].is_object(), "disclosure should succeed");
 
     // Step 4: SAP_SESSION_CLOSE
     let close_req = format!(
-        r#"{{"jsonrpc":"2.0","method":"sap_session_close","params":{{"session_id":"{}","timestamp":1002}},"id":4}}"#,
-        sid
+        r#"{{"jsonrpc":"2.0","method":"sap_session_close","params":{{"session_id":"{sid}","timestamp":1002}},"id":4}}"#
     );
     let v4 = tcp_send_recv(&stream, &close_req);
     assert!(v4["result"].is_object(), "close should succeed");
@@ -753,7 +748,7 @@ fn sap_tcp_full_session_lifecycle() {
 #[test]
 fn sap_tcp_message_invalid_session_rejected() {
     let (port, _node) = make_sap_tcp_test_node();
-    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -773,7 +768,7 @@ fn sap_tcp_message_invalid_session_rejected() {
 #[test]
 fn sap_tcp_consent_flow() {
     let (port, _node) = make_sap_tcp_test_node();
-    let stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+    let stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .unwrap();
@@ -787,8 +782,7 @@ fn sap_tcp_consent_flow() {
 
     // Request consent
     let consent_req = format!(
-        r#"{{"jsonrpc":"2.0","method":"sap_consent_request","params":{{"session_id":"{}","scopes":["name","email"]}},"id":2}}"#,
-        sid
+        r#"{{"jsonrpc":"2.0","method":"sap_consent_request","params":{{"session_id":"{sid}","scopes":["name","email"]}},"id":2}}"#
     );
     let v2 = tcp_send_recv(&stream, &consent_req);
     assert!(v2["result"].is_object(), "consent request should succeed");

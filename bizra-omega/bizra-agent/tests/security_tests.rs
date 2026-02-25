@@ -9,7 +9,6 @@
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
 
 use bizra_agent::key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError};
 use bizra_agent::vault_env::EnvBackend;
@@ -23,6 +22,7 @@ fn setup_file_backend(dir: &tempfile::TempDir) -> FileBackend {
     FileBackend::with_dir(dir.path().to_path_buf())
 }
 
+#[cfg(unix)]
 fn write_secret(dir: &tempfile::TempDir, key: &str, value: &str) -> PathBuf {
     let secrets_dir = dir.path().join("secrets");
     let path = secrets_dir.join(format!("{key}.secret"));
@@ -88,7 +88,7 @@ fn security_secret_string_ct_eq() {
 #[test]
 fn security_secret_string_debug_no_leak() {
     let secret = SecretString::new("ultra-secret-password-XYZ");
-    let debug_output = format!("{:?}", secret);
+    let debug_output = format!("{secret:?}");
     assert_eq!(debug_output, "SecretString(***)");
     assert!(!debug_output.contains("ultra"));
     assert!(!debug_output.contains("secret"));
@@ -169,9 +169,7 @@ fn security_vault_env_rejects_special_chars() {
         let result = backend.get(bad_key);
         assert!(
             matches!(result, Err(VaultError::IoError { .. })),
-            "Expected IoError for key '{}', got: {:?}",
-            bad_key,
-            result
+            "Expected IoError for key '{bad_key}', got: {result:?}"
         );
     }
 }
@@ -197,9 +195,7 @@ fn security_vault_file_rejects_path_traversal() {
         let result = backend.get(bad_key);
         assert!(
             matches!(result, Err(VaultError::IoError { .. })),
-            "Expected IoError for traversal key '{}', got: {:?}",
-            bad_key,
-            result
+            "Expected IoError for traversal key '{bad_key}', got: {result:?}"
         );
     }
 }
@@ -213,8 +209,7 @@ fn security_empty_key_rejected_by_all_backends() {
     let env_result = env_backend.get("");
     assert!(
         env_result.is_err(),
-        "EnvBackend should reject empty key, got: {:?}",
-        env_result
+        "EnvBackend should reject empty key, got: {env_result:?}"
     );
 
     // FileBackend
@@ -223,8 +218,7 @@ fn security_empty_key_rejected_by_all_backends() {
     let file_result = file_backend.get("");
     assert!(
         file_result.is_err(),
-        "FileBackend should reject empty key, got: {:?}",
-        file_result
+        "FileBackend should reject empty key, got: {file_result:?}"
     );
 }
 
@@ -237,8 +231,7 @@ fn security_vault_env_rejects_overlong_key() {
     let result = backend.get(&long_key);
     assert!(
         matches!(result, Err(VaultError::IoError { .. })),
-        "Expected IoError for overlong key (129 chars), got: {:?}",
-        result
+        "Expected IoError for overlong key (129 chars), got: {result:?}"
     );
 
     // Exactly 128 should be fine (if env var exists)
@@ -247,8 +240,7 @@ fn security_vault_env_rejects_overlong_key() {
     // Should be NotFound (no env var set), not IoError
     assert!(
         matches!(result_ok, Err(VaultError::NotFound { .. })),
-        "128-char key should be accepted but not found, got: {:?}",
-        result_ok
+        "128-char key should be accepted but not found, got: {result_ok:?}"
     );
 }
 

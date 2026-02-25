@@ -18,7 +18,7 @@ use bizra_agent::vault_toml::TomlBackend;
 #[test]
 fn secret_string_debug_shows_redacted() {
     let s = SecretString::new("hunter2");
-    let debug = format!("{:?}", s);
+    let debug = format!("{s:?}");
     assert_eq!(debug, "SecretString(***)");
     assert!(
         !debug.contains("hunter2"),
@@ -207,8 +207,7 @@ fn file_backend_integrity_check_fail() {
     let result = backend.get("hash_bad");
     assert!(
         matches!(result, Err(VaultError::IntegrityFailed { .. })),
-        "Expected IntegrityFailed, got: {:?}",
-        result
+        "Expected IntegrityFailed, got: {result:?}"
     );
 }
 
@@ -230,9 +229,7 @@ fn file_backend_path_traversal_blocked() {
         let result = backend.get(bad_key);
         assert!(
             matches!(result, Err(VaultError::IoError { .. })),
-            "Expected IoError for key '{}', got: {:?}",
-            bad_key,
-            result
+            "Expected IoError for key '{bad_key}', got: {result:?}"
         );
     }
 }
@@ -247,8 +244,7 @@ fn file_backend_empty_file_returns_not_found() {
     let result = backend.get("empty_key");
     assert!(
         matches!(result, Err(VaultError::NotFound { .. })),
-        "Empty file (whitespace only) should be NotFound, got: {:?}",
-        result
+        "Empty file (whitespace only) should be NotFound, got: {result:?}"
     );
 }
 
@@ -334,8 +330,7 @@ fn toml_backend_invalid_toml_returns_parse_error() {
     let result = backend.get("any_key");
     assert!(
         matches!(result, Err(VaultError::ParseError { .. })),
-        "Expected ParseError, got: {:?}",
-        result
+        "Expected ParseError, got: {result:?}"
     );
 }
 
@@ -532,8 +527,7 @@ fn access_log_records_lookups() {
     let success_entry = log.iter().find(|e| e.key == unique_key_ok && e.success);
     assert!(
         success_entry.is_some(),
-        "Should have a successful access log entry for '{}'",
-        unique_key_ok
+        "Should have a successful access log entry for '{unique_key_ok}'"
     );
     assert_eq!(success_entry.unwrap().source, "env");
 
@@ -541,8 +535,7 @@ fn access_log_records_lookups() {
     let fail_entry = log.iter().find(|e| e.key == unique_key_miss && !e.success);
     assert!(
         fail_entry.is_some(),
-        "Should have a failed access log entry for '{}'",
-        unique_key_miss
+        "Should have a failed access log entry for '{unique_key_miss}'"
     );
 
     std::env::remove_var(&env_var_ok);

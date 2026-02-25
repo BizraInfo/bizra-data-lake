@@ -31,7 +31,7 @@ use crate::node::Node;
 /// Returns `~/.bizra/node-{hash}` (platform-appropriate home dir).
 pub fn state_dir(user_hash: u32) -> PathBuf {
     let home = home_dir();
-    home.join(".bizra").join(format!("node-{}", user_hash))
+    home.join(".bizra").join(format!("node-{user_hash}"))
 }
 
 /// Get the user home directory.
@@ -137,11 +137,7 @@ pub fn save_state(node: &Node, path: &Path) -> io::Result<usize> {
                     .replace('\\', "\\\\")
                     .replace('\t', "\\t")
                     .replace('\n', "\\n");
-                writeln!(
-                    writer,
-                    "TEACH\t{}\t{}\t{}\t{}",
-                    kind_name, escaped, ihsan, ts
-                )?;
+                writeln!(writer, "TEACH\t{kind_name}\t{escaped}\t{ihsan}\t{ts}")?;
                 saved += 1;
             }
         }
@@ -198,7 +194,7 @@ pub fn save_reflex_cache(node: &Node, path: &Path) -> io::Result<usize> {
     let mut saved = 0usize;
     for rule in rules {
         let line = serialize_reflex_rule_line(&rule);
-        writeln!(writer, "{}", line)?;
+        writeln!(writer, "{line}")?;
         saved += 1;
     }
     Ok(saved)
@@ -266,7 +262,7 @@ fn serialize_reflex_rule_line(rule: &ReflexRule) -> String {
     let policy_hex: String = rule
         .policy_hash
         .iter()
-        .map(|b| format!("{:02x}", b))
+        .map(|b| format!("{b:02x}"))
         .collect();
 
     format!(
@@ -448,9 +444,7 @@ mod tests {
             let resp = node.execute(line);
             assert!(
                 resp.starts_with("OK"),
-                "TEACH should succeed: {} -> {}",
-                line,
-                resp
+                "TEACH should succeed: {line} -> {resp}"
             );
         }
 

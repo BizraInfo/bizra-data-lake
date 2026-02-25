@@ -126,14 +126,14 @@ pub fn run_install(args: &InstallArgs) -> Result<()> {
     let policy_hash = if let Some(ref pf) = args.policy_file {
         let hash = policy::compute_policy_hash_from_file(pf)
             .with_context(|| format!("Policy file: {}", pf.display()))?;
-        println!("  Policy hash: {}", hash);
+        println!("  Policy hash: {hash}");
         hash
     } else {
         // Try default location
         let default_path = base_dir.join("policy.txt");
         if default_path.exists() {
             let hash = policy::compute_policy_hash_from_file(&default_path)?;
-            println!("  Policy hash: {} (default)", hash);
+            println!("  Policy hash: {hash} (default)");
             hash
         } else {
             println!("  Policy hash: (none — no policy file found)");
@@ -335,7 +335,7 @@ pub fn run_status() -> Result<()> {
 
 fn print_check(label: &str, pass: bool) {
     let symbol = if pass { "[PASS]" } else { "[FAIL]" };
-    println!("  {}  {}", symbol, label);
+    println!("  {symbol}  {label}");
 }
 
 /// Enforce the fail-closed rule: if reflex_mode is "active" but the

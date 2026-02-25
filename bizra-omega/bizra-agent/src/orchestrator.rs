@@ -313,10 +313,7 @@ impl TaskOrchestrator {
                 let trait_count = context.traits.len();
                 let insight_count = context.insight_summaries.len();
                 (
-                    format!(
-                        "Retrieved {} traits and {} insights",
-                        trait_count, insight_count
-                    ),
+                    format!("Retrieved {trait_count} traits and {insight_count} insights"),
                     Confidence::stated(0),
                 )
             }
@@ -593,7 +590,7 @@ impl TaskOrchestrator {
             .filter(|role| !selected_roles.contains(role))
             .take(3)
             .map(|role| RejectedAlternative {
-                route: format!("agent::{:?}", role),
+                route: format!("agent::{role:?}"),
                 reason: "not_required_for_intent".to_string(),
             })
             .collect()
@@ -755,7 +752,7 @@ mod tests {
         for i in 1..=5 {
             let msg = Message::inbound(
                 MessageId::new(1, i),
-                &format!("Question number {}", i),
+                &format!("Question number {i}"),
                 1000 + i as u64,
                 IhsanScore::from_raw(9900),
             );

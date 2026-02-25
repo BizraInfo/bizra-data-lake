@@ -139,7 +139,7 @@ fn normalize_ws(s: &str) -> String {
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn hex_nibble(c: u8) -> Option<u8> {

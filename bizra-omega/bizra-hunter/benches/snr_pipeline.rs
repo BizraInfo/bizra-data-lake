@@ -17,12 +17,12 @@ fn bench_entropy_calculation(c: &mut Criterion) {
         let bytecode: Vec<u8> = (0..*size).map(|i| (i * 7 % 256) as u8).collect();
 
         group.throughput(Throughput::Bytes(*size as u64));
-        group.bench_function(format!("bytecode_{}", size), |b| {
+        group.bench_function(format!("bytecode_{size}"), |b| {
             let mut calc = EntropyCalculator::new();
             b.iter(|| black_box(calc.bytecode_entropy(black_box(&bytecode))));
         });
 
-        group.bench_function(format!("multi_axis_{}", size), |b| {
+        group.bench_function(format!("multi_axis_{size}"), |b| {
             let mut calc = EntropyCalculator::new();
             b.iter(|| black_box(calc.calculate_all(black_box(&bytecode))));
         });
@@ -108,7 +108,7 @@ fn bench_lane1_processing(c: &mut Criterion) {
         let bytecode: Vec<u8> = (0..*size).map(|i| (i * 7 % 256) as u8).collect();
 
         group.throughput(Throughput::Bytes(*size as u64));
-        group.bench_function(format!("process_{}", size), |b| {
+        group.bench_function(format!("process_{size}"), |b| {
             let pipeline: SNRPipeline<65536> = SNRPipeline::new();
             let mut calc = EntropyCalculator::new();
             let mut counter = 0u64;

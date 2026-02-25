@@ -400,7 +400,7 @@ impl AgentRuntime {
         let trigger_traits = self.select_trigger_traits(timestamp);
         let policy_for_trigger = self.policy_hash.unwrap_or([0u8; 32]);
         let trigger_hash = compute_trigger_hash(
-            format!("{:?}", intent).as_str(),
+            format!("{intent:?}").as_str(),
             trigger_traits.as_slice(),
             &policy_for_trigger,
         );
@@ -910,7 +910,7 @@ impl AgentRuntime {
 
     pub fn policy_hash_hex(&self) -> Option<String> {
         self.policy_hash
-            .map(|h| h.iter().map(|b| format!("{:02x}", b)).collect())
+            .map(|h| h.iter().map(|b| format!("{b:02x}")).collect())
     }
 
     pub fn set_policy_hash(&mut self, hex: &str) {
@@ -960,7 +960,7 @@ impl AgentRuntime {
         let reason = blocked
             .iter()
             .find(|needle| lowered.contains(**needle))
-            .map(|needle| format!("content_contains:{}", needle))
+            .map(|needle| format!("content_contains:{needle}"))
             .unwrap_or_else(|| "guardian_veto".to_string());
         GuardianCheckResult {
             allowed: false,
@@ -995,7 +995,7 @@ impl AgentRuntime {
         for kind in kinds {
             let rows = self.pipeline.query_facts(kind, now);
             if let Some((text, _conf)) = rows.first() {
-                out.push((format!("{:?}", kind), text.to_string()));
+                out.push((format!("{kind:?}"), text.to_string()));
             }
             if out.len() >= 6 {
                 break;
@@ -1197,7 +1197,7 @@ mod tests {
             let ts = 1000 + i as u64;
             runtime.teach(
                 AtomKind::Preference,
-                &format!("I prefer preference number {}", i),
+                &format!("I prefer preference number {i}"),
                 Confidence::new(0.80, ts),
                 ts,
             );
@@ -1330,7 +1330,7 @@ mod tests {
             let ts = 1000 + i;
             runtime.teach(
                 AtomKind::Preference,
-                format!("I prefer rust pattern {}", i).as_str(),
+                format!("I prefer rust pattern {i}").as_str(),
                 Confidence::stated(ts),
                 ts,
             );
@@ -1360,7 +1360,7 @@ mod tests {
         let (intent, _) = IntentClassifier::classify(harmful);
         let traits = runtime.select_trigger_traits(ts);
         let policy = runtime.policy_hash.expect("policy hash must parse");
-        let trigger = compute_trigger_hash(format!("{:?}", intent).as_str(), &traits, &policy);
+        let trigger = compute_trigger_hash(format!("{intent:?}").as_str(), &traits, &policy);
 
         let rule = ReflexRule {
             trigger_hash: trigger,

@@ -227,7 +227,7 @@ impl Backend for LlamaCppBackend {
                 return Err(BackendError::Generation("Model still loading".into()))
             }
             BackendState::Error(e) => {
-                return Err(BackendError::Generation(format!("Model error: {}", e)))
+                return Err(BackendError::Generation(format!("Model error: {e}")))
             }
         };
 

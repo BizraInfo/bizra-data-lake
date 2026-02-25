@@ -43,7 +43,7 @@ impl fmt::Debug for FragmentId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "frag:")?;
         for b in &self.0[..4] {
-            write!(f, "{:02x}", b)?;
+            write!(f, "{b:02x}")?;
         }
         Ok(())
     }
@@ -763,13 +763,11 @@ mod tests {
 
         assert!(
             fact_10d > 0.90,
-            "Fact after 10d should be >0.90, got {}",
-            fact_10d
+            "Fact after 10d should be >0.90, got {fact_10d}"
         );
         assert!(
             ctx_10d < 0.10,
-            "Context after 10d should be <0.10, got {}",
-            ctx_10d
+            "Context after 10d should be <0.10, got {ctx_10d}"
         );
     }
 

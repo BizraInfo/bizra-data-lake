@@ -46,7 +46,7 @@ fn response_field(resp: &Response, key: &str) -> Option<String> {
 }
 
 fn assert_ok(resp: &Response, context: &str) {
-    assert!(!resp.is_err(), "{} should be OK, got: {:?}", context, resp);
+    assert!(!resp.is_err(), "{context} should be OK, got: {resp:?}");
 }
 
 // ── Test 1: Full onboarding lifecycle ─────────────────────
@@ -90,7 +90,7 @@ fn alpha100_full_onboarding_lifecycle() {
             confidence: *confidence,
             timestamp: 1001,
         });
-        assert_ok(&resp, &format!("TEACH {} '{}'", kind, content));
+        assert_ok(&resp, &format!("TEACH {kind} '{content}'"));
     }
 
     // Step 3: RECEIVE a message (triggers memory extraction pipeline)
@@ -265,9 +265,7 @@ fn alpha100_conversation_builds_familiarity() {
 
     assert!(
         fragments_after > fragments_before,
-        "fragments should increase after conversation: before={}, after={}",
-        fragments_before,
-        fragments_after
+        "fragments should increase after conversation: before={fragments_before}, after={fragments_after}"
     );
 
     node.handle_command(Command::EndSession { timestamp: 1020 });
@@ -329,11 +327,11 @@ fn alpha100_all_teach_kinds_accepted() {
     for kind in &kinds {
         let resp = node.handle_command(Command::Teach {
             kind: kind.to_string(),
-            content: format!("Test content for kind: {}", kind),
+            content: format!("Test content for kind: {kind}"),
             confidence: 9000,
             timestamp: 1000,
         });
-        assert_ok(&resp, &format!("TEACH kind={}", kind));
+        assert_ok(&resp, &format!("TEACH kind={kind}"));
     }
 }
 

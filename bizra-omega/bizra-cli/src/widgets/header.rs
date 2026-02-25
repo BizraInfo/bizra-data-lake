@@ -57,7 +57,7 @@ impl Widget for Header<'_> {
 
         // Left side: Stylized logo
         let logo = Span::styled(
-            format!(" {} ", LOGO_COMPACT),
+            format!(" {LOGO_COMPACT} "),
             Style::default()
                 .fg(colors::GOLD)
                 .add_modifier(Modifier::BOLD),
