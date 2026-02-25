@@ -9,6 +9,8 @@
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
+use std::path::PathBuf;
 
 use bizra_agent::key_vault::{constant_time_eq, KeyVault, SecretString, VaultBackend, VaultError};
 use bizra_agent::vault_env::EnvBackend;
