@@ -1,0 +1,6 @@
+[submodule "personaplex"]
+	path = personaplex
+	url = https://github.com/BizraInfo/personaplex.git
+[submodule "xtr-warp"]
+	path = xtr-warp
+	url = https://github.com/BizraInfo/xtr-warp.git
