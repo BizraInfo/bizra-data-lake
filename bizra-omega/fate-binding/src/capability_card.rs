@@ -95,7 +95,7 @@ impl CapabilityCard {
             ModelTier::Pool => "POOL",
         };
 
-        let tasks_str: Vec<String> = tasks.iter().map(|t| format!("{:?}", t)).collect();
+        let tasks_str: Vec<String> = tasks.iter().map(|t| format!("{t:?}")).collect();
 
         Ok(Self {
             model_id: model_id.clone(),
@@ -174,7 +174,7 @@ impl CardIssuer {
     #[napi]
     pub fn issue(&self, card_json: String) -> Result<String> {
         let mut card: CapabilityCard = serde_json::from_str(&card_json)
-            .map_err(|e| Error::from_reason(format!("Invalid card JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid card JSON: {e}")))?;
 
         // Sign the canonical bytes
         let signature = self.signing_key.sign(&card.canonical_bytes());
@@ -183,14 +183,14 @@ impl CardIssuer {
         card.issuer_public_key = self.public_key_hex();
 
         serde_json::to_string(&card)
-            .map_err(|e| Error::from_reason(format!("Serialization error: {}", e)))
+            .map_err(|e| Error::from_reason(format!("Serialization error: {e}")))
     }
 
     /// Verify a CapabilityCard signature
     #[napi]
     pub fn verify_card(&self, card_json: String) -> Result<bool> {
         let card: CapabilityCard = serde_json::from_str(&card_json)
-            .map_err(|e| Error::from_reason(format!("Invalid card JSON: {}", e)))?;
+            .map_err(|e| Error::from_reason(format!("Invalid card JSON: {e}")))?;
 
         // Decode signature
         let sig_bytes = hex::decode(&card.signature)
@@ -221,7 +221,7 @@ impl CardIssuer {
 #[napi]
 pub fn verify_capability_card(card_json: String) -> Result<CapabilityCardValidation> {
     let card: CapabilityCard = serde_json::from_str(&card_json)
-        .map_err(|e| Error::from_reason(format!("Invalid card JSON: {}", e)))?;
+        .map_err(|e| Error::from_reason(format!("Invalid card JSON: {e}")))?;
 
     // Check expiration
     let is_expired = !card.is_valid().unwrap_or(false);
