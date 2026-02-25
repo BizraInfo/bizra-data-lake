@@ -492,8 +492,7 @@ impl TaskOrchestrator {
         // Always extract interaction pattern
         let intent_name = format!("{:?}", plan.intent);
         let pattern_content = format!(
-            "User sent {} intent: {}",
-            intent_name,
+            "User sent {intent_name} intent: {}",
             if content.len() > 100 {
                 &content[..100]
             } else {

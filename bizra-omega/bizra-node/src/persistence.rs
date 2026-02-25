@@ -266,7 +266,7 @@ fn serialize_reflex_rule_line(rule: &ReflexRule) -> String {
         .collect();
 
     format!(
-        "RULE\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        "RULE\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\t{}\t{}\t{}\t{q_reason}\t{policy_hex}",
         rule.trigger_hash.to_hex(),
         sanitize(&rule.action_template.route_signature),
         sanitize(&rule.action_template.primary_agent),
@@ -277,8 +277,6 @@ fn serialize_reflex_rule_line(rule: &ReflexRule) -> String {
         rule.last_used_at,
         rule.last_validated_at,
         rule.quarantined,
-        q_reason,
-        policy_hex
     )
 }
 

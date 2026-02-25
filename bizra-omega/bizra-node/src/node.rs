@@ -400,9 +400,7 @@ impl Node {
     fn print_banner(&self) {
         eprintln!();
         eprintln!(
-            "  {} v{} | protocol v{}",
-            NODE_NAME,
-            NODE_VERSION,
+            "  {NODE_NAME} v{NODE_VERSION} | protocol v{}",
             protocol::PROTOCOL_VERSION,
         );
         eprintln!(

@@ -563,9 +563,8 @@ fn handle_action_dispatch(
     };
     // Construct a single-step plan and delegate to action_executor
     let step_json = format!(
-        "{{\"steps\":[{{\"channel\":\"{}\",\"kind\":\"Query\",\"payload\":{}}}]}}",
+        "{{\"steps\":[{{\"channel\":\"{}\",\"kind\":\"Query\",\"payload\":{payload_json}}}]}}",
         channel.as_str(),
-        payload_json
     );
     let now = current_ts();
     state.action_executor.set_event_ihsan_score(*state.ihsan);
@@ -628,7 +627,7 @@ fn handle_sap_meet_open(
 
     // Generate session ID: sap_<counter>_<ts_hex>
     *state.session_counter += 1;
-    let session_id = format!("sap_{:08x}_{:08x}", *state.session_counter, ts);
+    let session_id = format!("sap_{:08x}_{ts:08x}", *state.session_counter);
 
     // Create session
     let session = SapSessionState::new(profile, initiator_role, ts);
@@ -702,7 +701,7 @@ fn handle_sap_message(
     let result = state.runtime.receive(msg, ts);
 
     // Generate receipt hash
-    let receipt_input = format!("{}:{}:{}", session_id, session.message_count, content);
+    let receipt_input = format!("{session_id}:{}:{content}", session.message_count);
     let receipt_hash = format!("{:016x}", hash_receipt(&receipt_input));
     session.receipt_hashes.push(receipt_hash.clone());
 

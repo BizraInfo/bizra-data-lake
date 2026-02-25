@@ -370,9 +370,8 @@ where
         return make_error_response(
             -32600,
             &format!(
-                "Batch too large: {} items (max {})",
+                "Batch too large: {} items (max {MAX_BATCH_SIZE})",
                 items.len(),
-                MAX_BATCH_SIZE
             ),
             None,
             Value::Null,

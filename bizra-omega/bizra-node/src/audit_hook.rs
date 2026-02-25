@@ -83,7 +83,7 @@ pub fn append_audit_line(path: &str, line: &str) -> std::io::Result<()> {
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
-            let archive = format!("{}.{}", path.display(), ts);
+            let archive = format!("{}.{ts}", path.display());
             let _ = fs::rename(&path, archive);
         }
     }

@@ -93,8 +93,7 @@ pub async fn generate(
     Ok(Json(GenerateResponse {
         request_id: uuid::Uuid::new_v4().to_string(),
         text: format!(
-            "[Inference gateway not configured. Would use {:?} tier for: {}...]",
-            tier,
+            "[Inference gateway not configured. Would use {tier:?} tier for: {}...]",
             &req.prompt[..req.prompt.len().min(50)]
         ),
         model: "none".into(),
