@@ -78,6 +78,8 @@ from .leaderboard import (
     SubmissionResult,
     SubmissionStatus,
 )
+from .adaptive_prior import AdaptivePriorLearning, CategoryBelief
+from .miras_memory import MIRASMemory, MIRASMemoryEntry, RetrievalResult
 from .moe_router import (
     ExpertTier,
     FederatedDispatch,
@@ -86,6 +88,7 @@ from .moe_router import (
     RoutingDecision,
     SequentialAttention,
 )
+from .z_scorer import ZScorer, ZScorerResult
 
 __all__ = [
     # CLEAR Framework
@@ -139,6 +142,16 @@ __all__ = [
     "ProvenanceLogger",
     "CostCapEnforcer",
     "RollbackManager",
+    # MIRAS Memory (GEM #2)
+    "MIRASMemory",
+    "MIRASMemoryEntry",
+    "RetrievalResult",
+    # Adaptive Prior Learning (GEM #1)
+    "AdaptivePriorLearning",
+    "CategoryBelief",
+    # ZScorer (GEM #4 + v9 spec §Phase 02)
+    "ZScorer",
+    "ZScorerResult",
 ]
 
 __version__ = "1.0.0"

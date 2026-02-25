@@ -56,6 +56,14 @@ from .sovereign_spearpoint import (
     SpearheadStatus,
 )
 
+# v9 composer — Hidden Architecture Pattern (GEM #1–4)
+from .true_spearpoint_loop import (
+    IterationResult,
+    LoopConfig,
+    SpearpointReport,
+    TrueSpearpointLoop,
+)
+
 __all__ = [
     "__version__",
     "__author__",
@@ -86,4 +94,9 @@ __all__ = [
     "AblationEngine",
     "AblationReport",
     "AblationType",
+    # v9 Hidden Architecture — True Spearpoint Loop
+    "TrueSpearpointLoop",
+    "LoopConfig",
+    "SpearpointReport",
+    "IterationResult",
 ]

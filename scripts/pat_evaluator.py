@@ -424,7 +424,7 @@ class PATEvaluator:
                     if resp.status_code == 200:
                         logger.info("✓ LM Studio backend available")
                         return True
-                except:
+                except (httpx.HTTPError, OSError):
                     pass
                 # Check for Ollama
                 try:
@@ -432,7 +432,7 @@ class PATEvaluator:
                     if resp.status_code == 200:
                         logger.info("✓ Ollama backend available")
                         return True
-                except:
+                except (httpx.HTTPError, OSError):
                     pass
             return False
         except ImportError:

@@ -98,7 +98,7 @@ class ImaginationAgent:
         try:
             path = nx.shortest_path(self.wm.graph, source=start, target=goal)
             return path
-        except:
+        except (nx.NetworkXError, nx.NodeNotFound, KeyError):
             return [start, "unknown", goal]
 
 

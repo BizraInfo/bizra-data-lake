@@ -61,7 +61,8 @@ jobs:
       - name: Security audit dependencies (pip-audit)
         run: |
           # PYSEC-2024-48: urllib3 DoS via header regex — mitigated by httpx usage, no direct urllib3 calls
-          pip-audit --strict --ignore-vuln PYSEC-2024-48 || echo "::warning::pip-audit found vulnerabilities"
+          # Constitutional: security scans MUST block — no || true, no silent swallow
+          pip-audit --strict --ignore-vuln PYSEC-2024-48
 
       - name: Check formatting with Black
         run: black --check --diff core/
@@ -72,10 +73,18 @@ jobs:
       - name: Lint with Ruff
         run: ruff check core/
 
-      - name: Type check with MyPy
-        continue-on-error: true  # 1,555 pre-existing errors — incremental typing in progress
+      - name: Type check with MyPy (ratcheted)
         run: |
-          mypy core/ --ignore-missing-imports --no-error-summary
+          # Ratchet: fail if error count exceeds baseline (prevents regression)
+          # Baseline measured 2026-02-26: 1,555 errors. Reduce over time.
+          MYPY_BASELINE=1600
+          ERROR_COUNT=$(mypy core/ --ignore-missing-imports --no-error-summary 2>&1 | grep -c '^core/' || true)
+          echo "MyPy errors: $ERROR_COUNT (baseline: $MYPY_BASELINE)"
+          if [ "$ERROR_COUNT" -gt "$MYPY_BASELINE" ]; then
+            echo "::error::MyPy regression: $ERROR_COUNT errors exceeds baseline $MYPY_BASELINE"
+            exit 1
+          fi
+          echo "::notice::MyPy ratchet OK: $ERROR_COUNT/$MYPY_BASELINE ($(( MYPY_BASELINE - ERROR_COUNT )) headroom)"
 
       - name: "SEC-001: BLAKE3 enforcement gate (PCI/proof paths)"
         run: python scripts/ci_blake3_gate.py

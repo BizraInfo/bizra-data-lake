@@ -231,9 +231,10 @@ class AblationEngine:
     ESSENTIAL_THRESHOLD = 0.10  # >10% contribution
     HARMFUL_THRESHOLD = -0.05  # <-5% contribution
 
-    def __init__(self):
+    def __init__(self, prior=None):
         self._studies: dict[str, AblationStudy] = {}
         self._component_registry: dict[str, Component] = {}
+        self._prior = prior  # Optional AdaptivePriorLearning — injected externally
         logger.info("Ablation Engine initialized")
 
     def register_component(
@@ -335,6 +336,10 @@ class AblationEngine:
         )
 
         study.record_result(result)
+
+        # Optionally update Bayesian prior (GEM #1 integration).
+        if self._prior is not None:
+            self._prior.update_beliefs(component_id, contribution)
 
         logger.info(
             f"Ablation recorded: {component_id} → "
