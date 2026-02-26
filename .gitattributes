@@ -32,7 +32,30 @@ bin/bizra text eol=lf
 # Seed files
 *.seed text eol=lf
 
-# Binary
+# Binary — explicit allowlist (α10: XZ lesson — review all binary blobs)
+# Only these binary formats are permitted in the repository.
+# Any unlisted binary format triggers a diff review via `git diff --stat`.
 *.wasm binary
 *.parquet binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.webp binary
+
+# JSONL is text
 *.jsonl text eol=lf
+
+# Archives and compiled artifacts — NEVER commit these
+*.tar.gz binary
+*.zip binary
+*.gz binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.o binary
+*.a binary
+*.pyc binary
+*.pyo binary

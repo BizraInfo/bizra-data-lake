@@ -74,17 +74,21 @@ except Exception:
         return _hashlib.blake2b(data, digest_size=16).hexdigest()
 
 
-def _manual_constraint_check(ctx: dict[str, Any]) -> bool:
-    """Fallback constraint verification when Z3 solver is unavailable.
+def _conservative_fallback_check(ctx: dict[str, Any]) -> bool:
+    """Conservative fallback verification when Z3 solver is unavailable.
 
-    Checks the same constitutional constraints as Z3FATEGate using plain
-    Python arithmetic.  This is still *computed* (not assumed), satisfying
-    ZANN_ZERO.  The constraints mirror those in z3_fate_gate.py:
-      - ihsan >= UNIFIED_IHSAN_THRESHOLD
-      - snr   >= UNIFIED_SNR_THRESHOLD
-      - high risk => reversible OR human_approved
-      - cost  <= autonomy_limit
+    DESIGN PRINCIPLE (α4): When the formal verifier (Z3) is unavailable,
+    the fallback must be STRICTER, not weaker.  Default-deny: only actions
+    matching a known-safe pattern are approved.  Unknown = Reject.
 
+    Known-safe pattern (all must hold):
+      - ihsan >= UNIFIED_IHSAN_THRESHOLD (constitutional floor)
+      - snr   >= UNIFIED_SNR_THRESHOLD   (quality floor)
+      - risk_level <= 0.5                (conservative: lower than Z3's 0.7)
+      - cost  <= autonomy_limit          (budget constraint)
+      - reversible is True OR human_approved is True (for any risk > 0.3)
+
+    Any missing field defaults to the UNSAFE value (fail-closed).
     Standing on: Lamport (verify, don't trust).
     """
     try:
@@ -98,20 +102,30 @@ def _manual_constraint_check(ctx: dict[str, Any]) -> bool:
 
     ihsan = ctx.get("ihsan", 0.0)
     snr = ctx.get("snr", 0.0)
-    cost = ctx.get("cost", 0.0)
+    cost = ctx.get("cost", float("inf"))  # Missing cost → infinite (reject)
     autonomy_limit = ctx.get("autonomy_limit", 0.0)
-    risk_level = ctx.get("risk_level", 0.0)
+    risk_level = ctx.get("risk_level", 1.0)  # Missing risk → max (reject)
     reversible = ctx.get("reversible", False)
     human_approved = ctx.get("human_approved", False)
 
+    # Constitutional floors
     if ihsan < UNIFIED_IHSAN_THRESHOLD:
         return False
     if snr < UNIFIED_SNR_THRESHOLD:
         return False
-    if risk_level > 0.7 and not reversible and not human_approved:
+
+    # Conservative risk gate: stricter threshold than Z3 (0.5 vs 0.7)
+    if risk_level > 0.5 and not reversible and not human_approved:
         return False
+
+    # Moderate risk still requires reversibility or approval
+    if risk_level > 0.3 and not reversible and not human_approved:
+        return False
+
+    # Budget constraint
     if cost > autonomy_limit:
         return False
+
     return True
 
 
@@ -906,9 +920,10 @@ class SovereignRuntime:
                 # Z3 unavailable — degrade to manual constraint check.
                 # Still COMPUTED (not assumed). Standing on: Lamport (verify).
                 self.logger.debug(
-                    f"Z3 solver unavailable, using manual constraint check: {z3_err}"
+                    "Z3 solver unavailable, using conservative fallback "
+                    f"(default-deny, stricter thresholds): {z3_err}"
                 )
-                z3_sat = _manual_constraint_check(z3_action_ctx)
+                z3_sat = _conservative_fallback_check(z3_action_ctx)
 
             # Risk assessment: read-only queries are low risk.
             # State-mutating ops or cloud API would score higher.
