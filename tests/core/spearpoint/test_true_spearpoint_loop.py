@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 from core.spearpoint.true_spearpoint_loop import (
     IterationResult,
     LoopConfig,
@@ -20,8 +18,12 @@ from core.spearpoint.true_spearpoint_loop import (
 
 
 def run(coro):
-    """Helper: run a coroutine synchronously."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """Helper: run a coroutine synchronously.
+
+    Uses asyncio.run() which creates a new event loop per call —
+    required for xdist workers where no default loop exists.
+    """
+    return asyncio.run(coro)
 
 
 class TestTrueSpearpointLoop:
@@ -62,7 +64,10 @@ class TestTrueSpearpointLoop:
         report = run(loop.run())
         # Must stop well before max_iterations.
         assert report.iterations_completed <= 5
-        assert report.convergence_reason in ("budget_exhausted", "max_iterations_reached")
+        assert report.convergence_reason in (
+            "budget_exhausted",
+            "max_iterations_reached",
+        )
 
     # ─── Patience / no-improvement termination ─────────────────────────────────
 
@@ -97,7 +102,12 @@ class TestTrueSpearpointLoop:
         """SpearpointReport.memory_summary must have expected keys."""
         loop = TrueSpearpointLoop(config=LoopConfig(max_iterations=2))
         report = run(loop.run())
-        for key in ["short_term_count", "long_term_count", "episodic_count", "total_count"]:
+        for key in [
+            "short_term_count",
+            "long_term_count",
+            "episodic_count",
+            "total_count",
+        ]:
             assert key in report.memory_summary
 
     # ─── Prior updated after ablation ──────────────────────────────────────────
@@ -106,8 +116,7 @@ class TestTrueSpearpointLoop:
         """AdaptivePrior beliefs must shift after running iterations."""
         loop = TrueSpearpointLoop(config=LoopConfig(max_iterations=3))
         initial_report = {
-            cat: info["attempts"]
-            for cat, info in loop._prior.get_report().items()
+            cat: info["attempts"] for cat, info in loop._prior.get_report().items()
         }
         run(loop.run())
         final_report = loop._prior.get_report()
@@ -154,5 +163,6 @@ class TestTrueSpearpointLoop:
         loop = TrueSpearpointLoop(config=LoopConfig(max_iterations=2))
         report = run(loop.run())
         from core.benchmark.adaptive_prior import AdaptivePriorLearning
+
         for cat in AdaptivePriorLearning.CHANGE_CATEGORIES:
             assert cat in report.prior_report
