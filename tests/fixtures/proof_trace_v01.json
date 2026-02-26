@@ -1,0 +1,548 @@
+{
+  "_meta": {
+    "version": "0.1.0",
+    "name": "BIZRA End-to-End Proof Trace Fixtures",
+    "description": "Complete proof trace from resource request through settlement, covering 10 phases of the OODA+PDCA execution loop with CAHT chain integrity.",
+    "standing_on_giants": [
+      "Lamport (1978): Logical clocks and hash-chained event ordering",
+      "Merkle (1979): Tamper-evident hash chains",
+      "Shannon (1948): SNR as quality metric at every gate",
+      "Al-Ghazali (1095): Ihsan as constitutional quality floor",
+      "Nakamoto (2008): Proof-of-Work as verifiable contribution",
+      "Page & Brin (1998): PageRank for authority scoring"
+    ],
+    "created": "2026-02-24",
+    "invariants": [
+      "Every event has a prev_hash linking to the prior event (CAHT chain)",
+      "Every gate decision produces a signed receipt",
+      "State is derived from events, never stored independently",
+      "All thresholds sourced from core/integration/constants.py",
+      "Same input -> same bytes -> same hash (100-iteration determinism)"
+    ]
+  },
+
+  "identities": {
+    "sarah": {
+      "node_id": "node_sarah_7f3a",
+      "role": "requester",
+      "pubkey_hex": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      "sovereignty_tier": "TREE",
+      "sovereignty_score": 0.72,
+      "ihsan_score": 0.96
+    },
+    "marcus": {
+      "node_id": "node_marcus_2e9b",
+      "role": "provider",
+      "pubkey_hex": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+      "sovereignty_tier": "FOREST",
+      "sovereignty_score": 0.88,
+      "ihsan_score": 0.97
+    },
+    "resource_pool": {
+      "node_id": "pool_genesis_0001",
+      "role": "router",
+      "pubkey_hex": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+      "sovereignty_tier": "FOREST",
+      "sovereignty_score": 1.0,
+      "ihsan_score": 0.99
+    },
+    "verifier": {
+      "node_id": "verifier_alpha_01",
+      "role": "verifier",
+      "pubkey_hex": "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5",
+      "sovereignty_tier": "FOREST",
+      "sovereignty_score": 0.95,
+      "ihsan_score": 0.98
+    }
+  },
+
+  "thresholds": {
+    "_source": "core/integration/constants.py",
+    "ihsan_production": 0.95,
+    "ihsan_strict": 0.99,
+    "snr_minimum": 0.85,
+    "snr_t1_high": 0.95,
+    "snr_t0_elite": 0.98,
+    "adl_gini_max": 0.35,
+    "harberger_tax_rate": 0.07,
+    "adl_gini_min_accounts": 5
+  },
+
+  "events": [
+    {
+      "seq": 0,
+      "phase": "OBSERVE",
+      "event_type": "resource_request",
+      "actor": "sarah",
+      "target": "resource_pool",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "payload": {
+        "request_type": "compute",
+        "capacity_needed": 4.0,
+        "duration_hours": 2,
+        "purpose": "graph_analysis",
+        "max_bid": 12.0,
+        "urgency": "normal"
+      },
+      "gates_applied": ["schema"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 45}
+      },
+      "ihsan_score": 0.96,
+      "snr_score": 0.91,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 1,
+      "phase": "ORIENT",
+      "event_type": "dra_candidate_generation",
+      "actor": "resource_pool",
+      "target": null,
+      "payload": {
+        "candidates_evaluated": 7,
+        "candidates_passed_ihsan": 4,
+        "candidates_passed_snr": 3,
+        "selection_criteria": ["ihsan_score", "availability", "past_performance", "price"],
+        "dra_algorithm": "weighted_scoring",
+        "top_candidate": "marcus"
+      },
+      "gates_applied": ["schema", "provenance", "snr"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 38},
+        "provenance": {"status": "passed", "duration_us": 120, "evidence": {"pool_identity_verified": true}},
+        "snr": {"status": "passed", "duration_us": 85, "snr_computed": 0.94}
+      },
+      "ihsan_score": 0.99,
+      "snr_score": 0.94,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 2,
+      "phase": "DIVERGE",
+      "event_type": "got_hypothesis_expansion",
+      "actor": "resource_pool",
+      "target": null,
+      "payload": {
+        "hypotheses": [
+          {"id": "H1", "description": "Marcus optimal: best ihsan + availability", "confidence": 0.87},
+          {"id": "H2", "description": "Split across 2 providers: redundancy", "confidence": 0.62},
+          {"id": "H3", "description": "Queue for cheaper slot: cost optimization", "confidence": 0.45}
+        ],
+        "reasoning_depth": 3,
+        "got_nodes": 9,
+        "convergence": "H1"
+      },
+      "gates_applied": ["schema", "snr"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 32},
+        "snr": {"status": "passed", "duration_us": 72, "snr_computed": 0.92}
+      },
+      "ihsan_score": 0.97,
+      "snr_score": 0.92,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 3,
+      "phase": "CONSTRAIN",
+      "event_type": "constitutional_gate_check",
+      "actor": "resource_pool",
+      "target": "marcus",
+      "payload": {
+        "checks": {
+          "ihsan_gate": {"actor_score": 0.97, "threshold": 0.95, "passed": true},
+          "adl_gini": {"current_gini": 0.28, "threshold": 0.35, "passed": true},
+          "harberger_tax": {"rate": 0.07, "tax_amount": 0.84, "paid": true},
+          "capacity_available": {"requested": 4.0, "available": 6.2, "passed": true}
+        },
+        "all_constraints_passed": true,
+        "z3_verified": true
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 35},
+        "provenance": {"status": "passed", "duration_us": 95},
+        "snr": {"status": "passed", "duration_us": 80, "snr_computed": 0.96},
+        "constraint": {"status": "passed", "duration_us": 340, "evidence": {"z3_sat": true, "gini_ok": true}}
+      },
+      "ihsan_score": 0.98,
+      "snr_score": 0.96,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 4,
+      "phase": "ACT",
+      "event_type": "resource_allocation",
+      "actor": "resource_pool",
+      "target": "marcus",
+      "payload": {
+        "allocation_id": "alloc_20260224_001",
+        "compute_units": 4.0,
+        "duration_hours": 2,
+        "price": 10.5,
+        "escrow_amount": 10.5,
+        "escrow_holder": "resource_pool",
+        "start_time": "2026-02-24T14:00:00Z",
+        "end_time": "2026-02-24T16:00:00Z"
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint", "safety"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 40},
+        "provenance": {"status": "passed", "duration_us": 110},
+        "snr": {"status": "passed", "duration_us": 78, "snr_computed": 0.95},
+        "constraint": {"status": "passed", "duration_us": 290},
+        "safety": {"status": "passed", "duration_us": 150, "evidence": {"reversible": true, "escrow_protected": true}}
+      },
+      "ihsan_score": 0.97,
+      "snr_score": 0.95,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 5,
+      "phase": "COMMIT",
+      "event_type": "work_commitment",
+      "actor": "marcus",
+      "target": "sarah",
+      "payload": {
+        "commitment_type": "compute_provision",
+        "allocation_id": "alloc_20260224_001",
+        "delivery_promise": "graph_analysis_results",
+        "sla": {
+          "availability": 0.99,
+          "latency_p95_ms": 200,
+          "throughput_min_ops": 100
+        },
+        "stake_amount": 2.0,
+        "stake_conditions": ["completion", "quality_threshold"]
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint", "safety", "commit"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 42},
+        "provenance": {"status": "passed", "duration_us": 105},
+        "snr": {"status": "passed", "duration_us": 82, "snr_computed": 0.96},
+        "constraint": {"status": "passed", "duration_us": 310},
+        "safety": {"status": "passed", "duration_us": 145},
+        "commit": {"status": "passed", "duration_us": 220, "evidence": {"stake_locked": true, "sla_registered": true}}
+      },
+      "ihsan_score": 0.97,
+      "snr_score": 0.96,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 6,
+      "phase": "PROVE",
+      "event_type": "work_delivery",
+      "actor": "marcus",
+      "target": "verifier",
+      "payload": {
+        "allocation_id": "alloc_20260224_001",
+        "result_hash": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+        "duration_actual_hours": 1.8,
+        "metrics": {
+          "availability_actual": 0.998,
+          "latency_p95_ms_actual": 142,
+          "throughput_actual_ops": 187
+        },
+        "sla_met": true,
+        "proof_artifacts": ["execution_log_hash", "resource_utilization_hash", "output_checksum"]
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint", "safety", "commit"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 38},
+        "provenance": {"status": "passed", "duration_us": 130},
+        "snr": {"status": "passed", "duration_us": 90, "snr_computed": 0.97},
+        "constraint": {"status": "passed", "duration_us": 280},
+        "safety": {"status": "passed", "duration_us": 135},
+        "commit": {"status": "passed", "duration_us": 200}
+      },
+      "ihsan_score": 0.98,
+      "snr_score": 0.97,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 7,
+      "phase": "CHECK",
+      "event_type": "proof_verification",
+      "actor": "verifier",
+      "target": "resource_pool",
+      "payload": {
+        "allocation_id": "alloc_20260224_001",
+        "verification_method": "deterministic_replay",
+        "result_hash_verified": true,
+        "sla_compliance": {
+          "availability": {"target": 0.99, "actual": 0.998, "passed": true},
+          "latency_p95": {"target_ms": 200, "actual_ms": 142, "passed": true},
+          "throughput": {"target_ops": 100, "actual_ops": 187, "passed": true}
+        },
+        "all_checks_passed": true,
+        "verifier_confidence": 0.99
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint", "safety", "commit"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 35},
+        "provenance": {"status": "passed", "duration_us": 140},
+        "snr": {"status": "passed", "duration_us": 88, "snr_computed": 0.98},
+        "constraint": {"status": "passed", "duration_us": 295},
+        "safety": {"status": "passed", "duration_us": 140},
+        "commit": {"status": "passed", "duration_us": 210}
+      },
+      "ihsan_score": 0.98,
+      "snr_score": 0.98,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 8,
+      "phase": "SETTLE",
+      "event_type": "payment_settlement",
+      "actor": "resource_pool",
+      "target": null,
+      "payload": {
+        "allocation_id": "alloc_20260224_001",
+        "settlement_type": "mudarabah",
+        "total_payment": 10.5,
+        "distribution": {
+          "marcus_provider": 8.82,
+          "sarah_requester_refund": 0.0,
+          "resource_pool_fee": 0.735,
+          "harberger_tax_ubc": 0.735,
+          "zakat_pool": 0.21
+        },
+        "distribution_formula": "provider=84%, pool_fee=7%, harberger=7%, zakat=2%",
+        "post_settlement_gini": 0.29,
+        "adl_constraint_met": true
+      },
+      "gates_applied": ["schema", "provenance", "snr", "constraint", "safety", "commit"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 42},
+        "provenance": {"status": "passed", "duration_us": 115},
+        "snr": {"status": "passed", "duration_us": 82, "snr_computed": 0.97},
+        "constraint": {"status": "passed", "duration_us": 350, "evidence": {"gini_post": 0.29, "gini_ok": true}},
+        "safety": {"status": "passed", "duration_us": 155},
+        "commit": {"status": "passed", "duration_us": 230}
+      },
+      "ihsan_score": 0.99,
+      "snr_score": 0.97,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 9,
+      "phase": "LEARN",
+      "event_type": "poi_scoring",
+      "actor": "verifier",
+      "target": "marcus",
+      "payload": {
+        "epoch_id": "epoch_2026_w09",
+        "contributor_id": "node_marcus_2e9b",
+        "poi_stages": {
+          "stage1_contribution": {"score": 0.94, "snr_passed": true, "signature_valid": true},
+          "stage2_reach": {"score": 0.78, "pagerank_centrality": 0.0032, "sorted_rank": 15},
+          "stage3_longevity": {"score": 0.85, "decay_factor": 0.92, "sustained": true},
+          "stage4_composite": {"score": 0.873, "weights": {"alpha": 0.4, "beta": 0.3, "gamma": 0.3}}
+        },
+        "poi_receipt": {
+          "receipt_id": "poi_20260224_001",
+          "reason": "POI_OK",
+          "poi_score": 0.873
+        }
+      },
+      "gates_applied": ["schema", "provenance", "snr"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 38},
+        "provenance": {"status": "passed", "duration_us": 100},
+        "snr": {"status": "passed", "duration_us": 75, "snr_computed": 0.95}
+      },
+      "ihsan_score": 0.98,
+      "snr_score": 0.95,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 10,
+      "phase": "LEARN",
+      "event_type": "reputation_update",
+      "actor": "resource_pool",
+      "target": null,
+      "payload": {
+        "updates": [
+          {"node_id": "node_marcus_2e9b", "delta": 0.015, "new_score": 0.895, "reason": "successful_delivery"},
+          {"node_id": "node_sarah_7f3a", "delta": 0.005, "new_score": 0.725, "reason": "successful_request"},
+          {"node_id": "verifier_alpha_01", "delta": 0.003, "new_score": 0.953, "reason": "accurate_verification"}
+        ],
+        "learning_committed": true
+      },
+      "gates_applied": ["schema", "snr"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 30},
+        "snr": {"status": "passed", "duration_us": 65, "snr_computed": 0.93}
+      },
+      "ihsan_score": 0.97,
+      "snr_score": 0.93,
+      "receipt_status": "accepted"
+    },
+    {
+      "seq": 11,
+      "phase": "FEEDBACK",
+      "event_type": "trace_seal",
+      "actor": "resource_pool",
+      "target": null,
+      "payload": {
+        "trace_id": "trace_20260224_sarah_marcus_001",
+        "total_events": 12,
+        "total_duration_ms": 7234,
+        "all_gates_passed": true,
+        "caht_chain_verified": true,
+        "final_ihsan": 0.975,
+        "final_snr": 0.952,
+        "outcome": "successful_completion"
+      },
+      "gates_applied": ["schema", "commit"],
+      "gate_results": {
+        "schema": {"status": "passed", "duration_us": 28},
+        "commit": {"status": "passed", "duration_us": 180}
+      },
+      "ihsan_score": 0.98,
+      "snr_score": 0.95,
+      "receipt_status": "accepted"
+    }
+  ],
+
+  "caht_chain": {
+    "_description": "Content-Addressable Hash Trail — each event's hash becomes the next event's prev_hash",
+    "algorithm": "BLAKE3",
+    "canonicalization": "RFC 8785 JCS (sorted keys, compact separators, NFC unicode)",
+    "genesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "chain_length": 12,
+    "verification_method": "sequential_replay"
+  },
+
+  "failure_fixtures": [
+    {
+      "id": "fail_ihsan_gate",
+      "phase": "CONSTRAIN",
+      "description": "Actor Ihsan below production threshold — request rejected at constitutional gate",
+      "event": {
+        "seq": 0,
+        "phase": "OBSERVE",
+        "event_type": "resource_request",
+        "actor": "low_ihsan_node",
+        "payload": {
+          "request_type": "compute",
+          "capacity_needed": 8.0,
+          "ihsan_score_at_request": 0.89
+        },
+        "gates_applied": ["schema", "provenance", "snr", "constraint"],
+        "gate_results": {
+          "schema": {"status": "passed"},
+          "provenance": {"status": "passed"},
+          "snr": {"status": "passed", "snr_computed": 0.88},
+          "constraint": {"status": "failed", "reason": "IHSAN_BELOW_THRESHOLD", "evidence": {"actor_ihsan": 0.89, "threshold": 0.95}}
+        },
+        "receipt_status": "rejected",
+        "rejection_reason": "POI_REJECT_IHSAN_BELOW_THRESHOLD"
+      }
+    },
+    {
+      "id": "fail_transition_firewall",
+      "phase": "ACT",
+      "description": "Invalid state transition — OBSERVE cannot jump directly to SETTLE",
+      "event": {
+        "seq": 1,
+        "phase": "SETTLE",
+        "event_type": "payment_settlement",
+        "actor": "resource_pool",
+        "payload": {
+          "allocation_id": "alloc_invalid_001",
+          "attempted_from_phase": "OBSERVE",
+          "attempted_to_phase": "SETTLE"
+        },
+        "gates_applied": ["schema"],
+        "gate_results": {
+          "schema": {"status": "failed", "reason": "INVALID_STATE_TRANSITION", "evidence": {"from": "OBSERVE", "to": "SETTLE", "allowed_transitions": ["ORIENT"]}}
+        },
+        "receipt_status": "rejected",
+        "rejection_reason": "INVALID_STATE_TRANSITION"
+      }
+    },
+    {
+      "id": "fail_verifier_fabrication",
+      "phase": "CHECK",
+      "description": "Verifier submits result hash that does not match provider's delivery",
+      "event": {
+        "seq": 7,
+        "phase": "CHECK",
+        "event_type": "proof_verification",
+        "actor": "malicious_verifier",
+        "payload": {
+          "allocation_id": "alloc_20260224_001",
+          "result_hash_verified": false,
+          "claimed_hash": "aaaa000000000000000000000000000000000000000000000000000000000000",
+          "actual_hash": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8"
+        },
+        "gates_applied": ["schema", "provenance"],
+        "gate_results": {
+          "schema": {"status": "passed"},
+          "provenance": {"status": "failed", "reason": "HASH_MISMATCH", "evidence": {"claimed": "aaaa0000...", "actual": "e7f8a9b0..."}}
+        },
+        "receipt_status": "rejected",
+        "rejection_reason": "PROVENANCE_HASH_MISMATCH"
+      }
+    },
+    {
+      "id": "fail_replay_attack",
+      "phase": "ACT",
+      "description": "Duplicate allocation attempt using a previously seen event hash",
+      "event": {
+        "seq": 4,
+        "phase": "ACT",
+        "event_type": "resource_allocation",
+        "actor": "replay_attacker",
+        "payload": {
+          "allocation_id": "alloc_20260224_001",
+          "replayed_from_seq": 4,
+          "nonce": "reused_nonce_12345"
+        },
+        "gates_applied": ["schema", "provenance"],
+        "gate_results": {
+          "schema": {"status": "passed"},
+          "provenance": {"status": "failed", "reason": "REPLAY_DETECTED", "evidence": {"nonce_seen_at": "2026-02-24T14:00:05Z", "nonce": "reused_nonce_12345"}}
+        },
+        "receipt_status": "rejected",
+        "rejection_reason": "REPLAY_DETECTED"
+      }
+    },
+    {
+      "id": "fail_sybil_node",
+      "phase": "ORIENT",
+      "description": "DRA candidate flagged as Sybil node — ring detection triggered",
+      "event": {
+        "seq": 1,
+        "phase": "ORIENT",
+        "event_type": "dra_candidate_generation",
+        "actor": "resource_pool",
+        "payload": {
+          "candidates_evaluated": 7,
+          "sybil_detected": true,
+          "sybil_node_id": "node_sybil_fake",
+          "detection_method": "poi_ring_detection",
+          "ring_members": ["node_sybil_fake", "node_sybil_collab_1", "node_sybil_collab_2"],
+          "reciprocal_score": 0.94
+        },
+        "gates_applied": ["schema", "provenance", "snr"],
+        "gate_results": {
+          "schema": {"status": "passed"},
+          "provenance": {"status": "passed"},
+          "snr": {"status": "passed", "snr_computed": 0.87}
+        },
+        "receipt_status": "accepted",
+        "poi_penalty": "POI_PENALTY_RING_DETECTED",
+        "penalty_note": "Sybil candidates excluded from DRA pool; ring reported to reputation system"
+      }
+    }
+  ],
+
+  "design_axioms": {
+    "event_derived_state": "System state is computed from the event log. There is no separate state store. To know the current state, replay events.",
+    "verifiable_transitions": "Every phase transition must be validated by at least one gate. Invalid transitions are rejected with a signed receipt.",
+    "evidence_backed_rewards": "No reward is distributed without a verified proof chain. PoI receipts are the sole basis for settlement.",
+    "hash_committed_learning": "Learning updates (reputation, sovereignty scores) are hash-committed to the CAHT chain. They can be audited and replayed.",
+    "fail_closed_default": "Every gate defaults to rejection. A missing gate result is treated as failure, not success."
+  }
+}
