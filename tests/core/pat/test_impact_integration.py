@@ -208,9 +208,10 @@ class TestMemoryCoordinatorIntegration:
 # ─── Impact Tracker Persistence Across Runtime Restarts ───────────────
 
 
+@pytest.mark.slow
 @pytest.mark.xdist_group(name="serial_integration")
 class TestImpactPersistence:
-    """Verify impact state survives runtime restarts."""
+    """Verify impact state survives runtime restarts (creates 2 full runtimes)."""
 
     @pytest.mark.asyncio
     async def test_impact_survives_restart(self, tmp_path):
