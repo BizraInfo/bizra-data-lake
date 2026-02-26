@@ -94,6 +94,7 @@ class MockOmegaEngine:
 # =============================================================================
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestTreasuryModeToTier:
     """Test the Treasury Mode → Compute Tier mapping."""
 
@@ -129,6 +130,7 @@ class TestTreasuryModeToTier:
         # Should map to EDGE
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestIhsanExtraction:
     """Test Ihsan vector extraction from responses."""
 
@@ -153,6 +155,7 @@ class TestIhsanExtraction:
         # Safety dimension should be lowered
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestRuntimeComponentInit:
     """Test runtime component initialization."""
 
@@ -178,6 +181,7 @@ class TestRuntimeComponentInit:
         assert runtime.config.ihsan_threshold == 0.92
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestOmegaPointStatus:
     """Test Omega Point status reporting."""
 
@@ -214,6 +218,7 @@ class TestOmegaPointStatus:
 # =============================================================================
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestFullPipeline:
     """Test the complete inference pipeline with mocks."""
 
@@ -277,6 +282,7 @@ class TestFullPipeline:
 # =============================================================================
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestStandingOnGiants:
     """Verify the theoretical foundations are properly applied."""
 

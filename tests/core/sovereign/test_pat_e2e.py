@@ -26,6 +26,7 @@ from core.sovereign.user_context import (
 )
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestPATEndToEnd:
     """Full pipeline integration test."""
 
@@ -200,6 +201,7 @@ class TestPATEndToEnd:
             assert data["name"] == "Saved User"
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestAgentRoutingComprehensive:
     """Ensure all 7 PAT agents can be reached."""
 
@@ -223,6 +225,7 @@ class TestAgentRoutingComprehensive:
         assert select_pat_agent("Hello there", []) is None
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestProfilePersistence:
     """Profile survives process restart."""
 

@@ -30,6 +30,7 @@ def db(tmp_config: MemoryConfig) -> AgentDB:
     return d
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestHealthReport:
     def test_healthy_db(self, db):
         db.store("test record")
@@ -88,6 +89,7 @@ class TestHealthReport:
         assert mem.details["estimated_mb"] >= 0
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestAgentDBMetrics:
     def test_metrics_enabled(self, db):
         metrics = AgentDBMetrics(db)
