@@ -92,8 +92,8 @@ class TestHealthReport:
 @pytest.mark.xdist_group(name="serial_integration")
 class TestAgentDBMetrics:
     def test_metrics_enabled(self, db):
+        pytest.importorskip("prometheus_client")
         metrics = AgentDBMetrics(db)
-        # prometheus_client is installed in this env
         assert metrics.enabled
 
     def test_update_does_not_crash(self, db):
