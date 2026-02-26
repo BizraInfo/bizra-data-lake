@@ -74,6 +74,47 @@ except Exception:
         return _hashlib.blake2b(data, digest_size=16).hexdigest()
 
 
+def _manual_constraint_check(ctx: dict[str, Any]) -> bool:
+    """Fallback constraint verification when Z3 solver is unavailable.
+
+    Checks the same constitutional constraints as Z3FATEGate using plain
+    Python arithmetic.  This is still *computed* (not assumed), satisfying
+    ZANN_ZERO.  The constraints mirror those in z3_fate_gate.py:
+      - ihsan >= UNIFIED_IHSAN_THRESHOLD
+      - snr   >= UNIFIED_SNR_THRESHOLD
+      - high risk => reversible OR human_approved
+      - cost  <= autonomy_limit
+
+    Standing on: Lamport (verify, don't trust).
+    """
+    try:
+        from core.integration.constants import (
+            UNIFIED_IHSAN_THRESHOLD,
+            UNIFIED_SNR_THRESHOLD,
+        )
+    except ImportError:
+        # If constants are also unavailable, fail closed.
+        return False
+
+    ihsan = ctx.get("ihsan", 0.0)
+    snr = ctx.get("snr", 0.0)
+    cost = ctx.get("cost", 0.0)
+    autonomy_limit = ctx.get("autonomy_limit", 0.0)
+    risk_level = ctx.get("risk_level", 0.0)
+    reversible = ctx.get("reversible", False)
+    human_approved = ctx.get("human_approved", False)
+
+    if ihsan < UNIFIED_IHSAN_THRESHOLD:
+        return False
+    if snr < UNIFIED_SNR_THRESHOLD:
+        return False
+    if risk_level > 0.7 and not reversible and not human_approved:
+        return False
+    if cost > autonomy_limit:
+        return False
+    return True
+
+
 class SovereignRuntime:
     """
     The Unified Sovereign Runtime.
@@ -846,24 +887,28 @@ class SovereignRuntime:
             # CRITICAL-3 FIX: Compute Z3 satisfiability instead of assuming True.
             # Standing on: ZANN_ZERO ("no assumptions"), Lamport (verify, don't trust).
             z3_sat = False  # Fail-closed default
+            z3_action_ctx = {
+                "ihsan": ihsan_for_gate,
+                "snr": 0.85,  # Pre-inference minimum SNR gate
+                "cost": 0.0,
+                "autonomy_limit": 10.0,  # Default limit
+                "risk_level": 0.3,  # Read-only query = low risk
+                "reversible": True,
+                "human_approved": False,
+            }
             try:
                 from core.sovereign.z3_fate_gate import Z3FATEGate
 
                 z3_gate = Z3FATEGate()
-                z3_proof = z3_gate.generate_proof(
-                    {
-                        "ihsan": ihsan_for_gate,
-                        "snr": 0.85,  # Pre-inference minimum SNR gate
-                        "cost": 0.0,
-                        "autonomy_limit": 10.0,  # Default limit
-                        "risk_level": 0.3,  # Read-only query = low risk
-                        "reversible": True,
-                        "human_approved": False,
-                    }
-                )
+                z3_proof = z3_gate.generate_proof(z3_action_ctx)
                 z3_sat = z3_proof.satisfiable
             except Exception as z3_err:
-                self.logger.debug(f"Z3 proof unavailable (fail-closed): {z3_err}")
+                # Z3 unavailable — degrade to manual constraint check.
+                # Still COMPUTED (not assumed). Standing on: Lamport (verify).
+                self.logger.debug(
+                    f"Z3 solver unavailable, using manual constraint check: {z3_err}"
+                )
+                z3_sat = _manual_constraint_check(z3_action_ctx)
 
             # Risk assessment: read-only queries are low risk.
             # State-mutating ops or cloud API would score higher.

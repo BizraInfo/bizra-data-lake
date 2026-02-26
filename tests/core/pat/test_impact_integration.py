@@ -22,6 +22,7 @@ from core.pat.identity_card import SovereigntyTier
 # ─── Onboarding → Impact Tracker Init ────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestOnboardingImpactInit:
     """Verify onboarding creates impact_tracker.json baseline."""
 
@@ -56,6 +57,7 @@ class TestOnboardingImpactInit:
 # ─── Runtime → Impact Recording ──────────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestRuntimeImpactRecording:
     """Verify runtime records impact on successful queries."""
 
@@ -137,6 +139,7 @@ class TestRuntimeImpactRecording:
 # ─── Status → Sovereignty Info ────────────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestStatusSovereigntyInfo:
     """Verify status() includes sovereignty information."""
 
@@ -179,6 +182,7 @@ class TestStatusSovereigntyInfo:
 # ─── MemoryCoordinator Integration ────────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestMemoryCoordinatorIntegration:
     """Verify impact tracker is registered as a state provider."""
 
@@ -204,6 +208,7 @@ class TestMemoryCoordinatorIntegration:
 # ─── Impact Tracker Persistence Across Runtime Restarts ───────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestImpactPersistence:
     """Verify impact state survives runtime restarts."""
 
@@ -242,6 +247,7 @@ class TestImpactPersistence:
 # ─── Bloom Calculation Sanity ─────────────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestBloomCalculation:
     """Verify bloom amounts are reasonable."""
 
@@ -303,6 +309,7 @@ class TestBloomCalculation:
 # ─── Gateway Context Enhancement ──────────────────────────────────────
 
 
+@pytest.mark.xdist_group(name="serial_integration")
 class TestGatewayContext:
     """Verify gateway adds source context to queries."""
 
