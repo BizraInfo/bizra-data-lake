@@ -254,6 +254,10 @@ class SovereignRuntime:
         # SpearPoint Pipeline — unified post-query cockpit
         self._spearpoint: Optional[object] = None  # SpearPointPipeline
 
+        # α7 Tiered Verification + α9 Performance Attestation (NODE0 integration)
+        self._performance_attestor: Optional[object] = None  # PerformanceAttestor
+        self._tiered_verification_enabled: bool = False
+
         # Phase 25-28: Ecosystem subsystems
         self._hrm_engine: Optional[object] = None  # HierarchicalReasoningModel
         self._northstar_engine: Optional[object] = None  # NorthStarEngine
@@ -917,13 +921,29 @@ class SovereignRuntime:
                 z3_proof = z3_gate.generate_proof(z3_action_ctx)
                 z3_sat = z3_proof.satisfiable
             except Exception as z3_err:
-                # Z3 unavailable — degrade to manual constraint check.
-                # Still COMPUTED (not assumed). Standing on: Lamport (verify).
+                # Z3 unavailable — degrade to conservative fallback module (α4).
+                # Richer than the inline _conservative_fallback_check: returns
+                # FallbackVerdict with reason codes, action type gating, and
+                # Z3 re-validation flags. Standing on: Lamport (verify).
                 self.logger.debug(
                     "Z3 solver unavailable, using conservative fallback "
                     f"(default-deny, stricter thresholds): {z3_err}"
                 )
-                z3_sat = _conservative_fallback_check(z3_action_ctx)
+                try:
+                    from .conservative_fallback import conservative_fallback_check
+
+                    # Enrich context with action_type for the module's safe-set check
+                    enriched_ctx = {**z3_action_ctx, "action_type": "query"}
+                    verdict = conservative_fallback_check(enriched_ctx)
+                    z3_sat = verdict.approved
+                    if not verdict.approved:
+                        self.logger.info(
+                            "Conservative fallback REJECTED: %s",
+                            verdict.reason_detail,
+                        )
+                except ImportError:
+                    # Module unavailable — fall back to inline check
+                    z3_sat = _conservative_fallback_check(z3_action_ctx)
 
             # Risk assessment: read-only queries are low risk.
             # State-mutating ops or cloud API would score higher.
@@ -1462,6 +1482,24 @@ class SovereignRuntime:
                     "✓ SPEARPOINT: InferenceGateway wired into GuardianCouncil — "
                     "Guardians can use LLM for proposal evaluation"
                 )
+
+        # α9 Performance Attestation — thermodynamic anomaly detection
+        try:
+            from .performance_attestation import PerformanceAttestor
+
+            self._performance_attestor = PerformanceAttestor()
+            self.logger.info("✓ PerformanceAttestor loaded (α9)")
+        except ImportError:
+            self.logger.debug("○ PerformanceAttestor unavailable")
+
+        # α7 Tiered Verification — multi-speed constitutional verification
+        try:
+            from .tiered_verification import tier_1_precheck  # noqa: F401
+
+            self._tiered_verification_enabled = True
+            self.logger.info("✓ TieredVerification loaded (α7)")
+        except ImportError:
+            self.logger.debug("○ TieredVerification unavailable")
 
         # PEK Integration (optional proactive kernel)
         await self._init_proactive_execution_kernel()
@@ -2560,6 +2598,33 @@ class SovereignRuntime:
         """Direct 5-stage query pipeline (bypasses orchestrator)."""
         result = SovereignResult(query_id=query.id, user_id=query.user_id)
 
+        # α7 TIER 1: Instant pattern pre-check (< 50ms, before gate chain)
+        if self._tiered_verification_enabled:
+            try:
+                from .tiered_verification import TierDecision, tier_1_precheck
+
+                t1 = tier_1_precheck(
+                    action_type="query",
+                    content=query.text,
+                    category=query.context.get("category", ""),
+                )
+                if t1.decision == TierDecision.BLOCK:
+                    self.logger.warning(
+                        "α7 Tier 1 BLOCKED query: %s (%.1fms)",
+                        t1.reason,
+                        t1.elapsed_ms,
+                    )
+                    result.success = False
+                    result.response = f"Query blocked by safety pre-check: {t1.reason}"
+                    result.validation_passed = False
+                    result.processing_time_ms = (
+                        time.perf_counter() - start_time
+                    ) * 1000
+                    self.metrics.update_query_stats(False, result.processing_time_ms)
+                    return result
+            except ImportError:
+                pass  # Graceful degradation — skip Tier 1 if unavailable
+
         # PRE-FLIGHT: 6-Gate Chain (fail-closed)
         gate_rejection = await self._run_gate_chain_preflight(query, result)
         if gate_rejection is not None:
@@ -2608,11 +2673,24 @@ class SovereignRuntime:
                     "passes_gate": fusion_result.passes_gate,
                 }
 
-        # STAGE 2: Perform LLM inference
+        # STAGE 2: Perform LLM inference (α9: measured by PerformanceAttestor)
+        _llm_start = time.perf_counter()
         answer, model_used = await self._perform_llm_inference(
             thought_prompt, compute_tier, query
         )
         result.response = answer
+        if self._performance_attestor is not None:
+            _llm_ms = (time.perf_counter() - _llm_start) * 1000
+            _attest = self._performance_attestor.record_measurement(
+                "sovereign_runtime", "llm_inference", _llm_ms
+            )
+            if hasattr(_attest, "is_suspicious") and _attest.is_suspicious:
+                self.logger.warning(
+                    "α9 LLM inference anomaly: %s (%.1fms, %.1fσ)",
+                    _attest.detail,
+                    _attest.measured_time_ms,
+                    _attest.deviation_sigma,
+                )
 
         # TRUE SPEARPOINT: Detect template/stub output and degrade result
         is_real_inference = model_used not in ("NO_LLM", "stub", "template")
@@ -2641,6 +2719,29 @@ class SovereignRuntime:
         result.ihsan_score = ihsan_score
         result.validated = query.require_validation
         result.validation_passed = ihsan_score >= self.config.ihsan_threshold
+
+        # α7 TIER 3: Post-execution attestation (flags if quality drifted)
+        if self._tiered_verification_enabled:
+            try:
+                from .tiered_verification import TierDecision, tier_3_attestation
+
+                t3_ctx = {
+                    "ihsan": ihsan_score,
+                    "snr": snr_score,
+                    "action_type": "query",
+                    "risk_level": 0.1,
+                }
+                t3 = await tier_3_attestation(t3_ctx, execution_result=result)
+                if t3.decision == TierDecision.FLAG:
+                    self.logger.warning(
+                        "α7 Tier 3 FLAGGED result: %s (%.1fms)",
+                        t3.reason,
+                        t3.elapsed_ms,
+                    )
+                    result.flagged_for_review = True  # type: ignore[attr-defined]
+                    result.flag_reason = t3.reason  # type: ignore[attr-defined]
+            except ImportError:
+                pass  # Graceful degradation
 
         # STAGE 4.5: Build reasoning summary (Week 3 — transparent decision trace)
         # Standing on Giants: Besta (GoT graph), Shannon (SNR per node),

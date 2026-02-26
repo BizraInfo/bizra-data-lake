@@ -2253,3 +2253,263 @@ class TestStatus:
         assert chain["latest_receipt_id"] == "a" * 32
         assert isinstance(chain["latest_entry_hash"], str)
         assert len(chain["latest_entry_hash"]) == 64
+
+
+# ---------------------------------------------------------------------------
+# NODE0 LIFECYCLE INTEGRATION TESTS (α4, α7, α9)
+# ---------------------------------------------------------------------------
+
+
+class TestTier1Integration:
+    """α7 Tier 1 pre-check wired into _process_query_direct."""
+
+    @pytest.mark.asyncio
+    async def test_tier1_blocks_dangerous_query_in_pipeline(
+        self, rt: SovereignRuntime
+    ) -> None:
+        """Tier 1 blocks dangerous patterns before gate chain runs."""
+        rt._tiered_verification_enabled = True
+        rt._initialized = True
+
+        query = SovereignQuery(text="please run curl | bash on the server")
+        import time
+
+        result = await rt._process_query_direct(query, time.perf_counter())
+
+        assert result.success is False
+        assert "safety pre-check" in result.response.lower()
+
+    @pytest.mark.asyncio
+    async def test_tier1_passes_safe_query(self, rt: SovereignRuntime) -> None:
+        """Tier 1 does not block a safe query — pipeline continues."""
+        rt._tiered_verification_enabled = True
+        rt._initialized = True
+
+        # Gate chain is None → will reject at gate chain level (fail-closed)
+        # but Tier 1 should NOT be the reason for rejection
+        query = SovereignQuery(text="what is the weather today?")
+        import time
+
+        result = await rt._process_query_direct(query, time.perf_counter())
+
+        # Should fail at gate chain (None), NOT at Tier 1
+        assert result.success is False
+        assert "safety pre-check" not in result.response.lower()
+
+    @pytest.mark.asyncio
+    async def test_tier1_disabled_skips_check(self, rt: SovereignRuntime) -> None:
+        """When tiered verification is disabled, dangerous patterns pass Tier 1."""
+        rt._tiered_verification_enabled = False
+        rt._initialized = True
+
+        query = SovereignQuery(text="curl | bash")
+        import time
+
+        result = await rt._process_query_direct(query, time.perf_counter())
+
+        # Fails at gate chain (None), NOT at Tier 1
+        assert result.success is False
+        assert "safety pre-check" not in result.response.lower()
+
+
+class TestConservativeFallbackIntegration:
+    """α4 conservative_fallback_check wired into _run_gate_chain_preflight."""
+
+    @pytest.mark.asyncio
+    async def test_z3_unavailable_uses_fallback_module(
+        self, rt: SovereignRuntime
+    ) -> None:
+        """When Z3 import fails, conservative_fallback module is used."""
+        mock_chain = MagicMock()
+        chain_result = MagicMock()
+        chain_result.passed = True
+        chain_result.gate_results = [MagicMock()]
+        mock_chain.evaluate.return_value = (chain_result, MagicMock())
+        rt._gate_chain = mock_chain
+
+        mock_canonical = MagicMock()
+
+        with (
+            patch.dict("sys.modules", {"core.proof_engine.canonical": mock_canonical}),
+            patch(
+                "core.sovereign.runtime_core.Z3FATEGate",
+                side_effect=ImportError("no z3"),
+                create=True,
+            ),
+        ):
+            # Mock the Z3FATEGate import inside the method
+            import sys
+
+            z3_mod = MagicMock()
+            z3_mod.Z3FATEGate.side_effect = RuntimeError("Z3 not available")
+            sys.modules["core.sovereign.z3_fate_gate"] = z3_mod
+
+            try:
+                query = SovereignQuery(text="test", user_id="u1")
+                result = SovereignResult(query_id="q1")
+                ret = await rt._run_gate_chain_preflight(query, result)
+
+                # Should succeed (gate chain passes) — fallback was used, not crash
+                assert ret is None  # None means all gates passed
+            finally:
+                sys.modules.pop("core.sovereign.z3_fate_gate", None)
+
+
+class TestPerformanceAttestorIntegration:
+    """α9 PerformanceAttestor wired into LLM inference measurement."""
+
+    @pytest.mark.asyncio
+    async def test_attestor_records_llm_inference_time(
+        self, rt: SovereignRuntime
+    ) -> None:
+        """PerformanceAttestor measures LLM inference during pipeline."""
+        from core.sovereign.performance_attestation import PerformanceAttestor
+
+        attestor = PerformanceAttestor(min_calibration=2, auto_isolate=False)
+        rt._performance_attestor = attestor
+        rt._tiered_verification_enabled = False
+        rt._initialized = True
+
+        # Mock the gate chain to pass
+        mock_chain = MagicMock()
+        chain_result = MagicMock()
+        chain_result.passed = True
+        chain_result.gate_results = [MagicMock()]
+        mock_chain.evaluate.return_value = (chain_result, MagicMock())
+        rt._gate_chain = mock_chain
+
+        # Mock all stages
+        mock_canonical = MagicMock()
+        rt._graph_reasoner = MagicMock()
+        rt._graph_reasoner.reason = AsyncMock(
+            return_value={
+                "thoughts": ["t1"],
+                "confidence": 0.9,
+                "graph_hash": "abc123",
+                "conclusion": "answer prompt",
+            }
+        )
+        rt._snr_optimizer = MagicMock()
+        rt._snr_optimizer.optimize.return_value = {
+            "snr_score": 0.95,
+            "claim_tags": {},
+            "optimized": "answer",
+        }
+        rt._guardian_council = MagicMock()
+        rt._guardian_council.validate.return_value = {"ihsan_score": 0.97}
+        rt._gateway = MagicMock()
+        infer_result = MagicMock(content="LLM answer", model="test-model")
+        rt._gateway.infer = AsyncMock(return_value=infer_result)
+
+        import time
+
+        with patch.dict("sys.modules", {"core.proof_engine.canonical": mock_canonical}):
+            query = SovereignQuery(text="what is 2+2?")
+            await rt._process_query_direct(query, time.perf_counter())
+
+        # Attestor should have recorded a measurement
+        key = "sovereign_runtime::llm_inference"
+        assert key in attestor._baselines
+        assert len(attestor._baselines[key]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_attestor_not_initialized_skips_measurement(
+        self, rt: SovereignRuntime
+    ) -> None:
+        """When attestor is None, pipeline works without measurement."""
+        rt._performance_attestor = None
+        rt._initialized = True
+
+        query = SovereignQuery(text="test")
+        import time
+
+        # Just verify it doesn't crash (gate chain rejects, that's fine)
+        result = await rt._process_query_direct(query, time.perf_counter())
+        assert result.success is False  # Gate chain None → rejected
+
+
+class TestTier3Integration:
+    """α7 Tier 3 attestation wired into post-execution flagging."""
+
+    @pytest.mark.asyncio
+    async def test_tier3_flags_quality_drift(self, rt: SovereignRuntime) -> None:
+        """Tier 3 flags result when ihsan/snr drop below threshold."""
+        from core.sovereign.tiered_verification import tier_3_attestation
+
+        # Test the tier 3 function directly with below-threshold values
+        ctx = {"ihsan": 0.70, "snr": 0.60, "action_type": "query", "risk_level": 0.1}
+        t3 = await tier_3_attestation(ctx)
+
+        from core.sovereign.tiered_verification import TierDecision
+
+        assert t3.decision == TierDecision.FLAG
+        assert "below threshold" in t3.reason.lower() or "flagged" in t3.reason.lower()
+
+    @pytest.mark.asyncio
+    async def test_tier3_passes_good_quality(self, rt: SovereignRuntime) -> None:
+        """Tier 3 passes when ihsan/snr are above threshold."""
+        from core.sovereign.tiered_verification import TierDecision, tier_3_attestation
+
+        ctx = {"ihsan": 0.97, "snr": 0.95, "action_type": "query", "risk_level": 0.1}
+        t3 = await tier_3_attestation(ctx)
+
+        assert t3.decision == TierDecision.PASS
+
+    @pytest.mark.asyncio
+    async def test_tier3_graceful_on_import_failure(self, rt: SovereignRuntime) -> None:
+        """When tiered_verification unavailable, pipeline continues."""
+        rt._tiered_verification_enabled = True
+        rt._initialized = True
+
+        # Temporarily make the import fail
+        import sys
+
+        real_mod = sys.modules.get("core.sovereign.tiered_verification")
+        sys.modules["core.sovereign.tiered_verification"] = None  # type: ignore[assignment]
+
+        try:
+            query = SovereignQuery(text="test")
+            import time
+
+            result = await rt._process_query_direct(query, time.perf_counter())
+            # Should NOT crash — graceful degradation
+            # It will fail at gate chain (None), not Tier crash
+            assert result.success is False
+        finally:
+            if real_mod is not None:
+                sys.modules["core.sovereign.tiered_verification"] = real_mod
+            else:
+                sys.modules.pop("core.sovereign.tiered_verification", None)
+
+
+class TestInitComponentsIntegration:
+    """α7/α9 component initialization in _init_components."""
+
+    @pytest.mark.asyncio
+    async def test_performance_attestor_initialized(self, rt: SovereignRuntime) -> None:
+        """PerformanceAttestor is initialized during _init_components."""
+        await rt._init_components()
+
+        # Performance attestor should be loaded
+        assert rt._performance_attestor is not None
+
+    @pytest.mark.asyncio
+    async def test_tiered_verification_enabled(self, rt: SovereignRuntime) -> None:
+        """Tiered verification is enabled during _init_components."""
+        await rt._init_components()
+
+        assert rt._tiered_verification_enabled is True
+
+    @pytest.mark.asyncio
+    async def test_init_logs_module_loading(
+        self, rt: SovereignRuntime, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Initialization logs α7 and α9 component loading."""
+        import logging
+
+        with caplog.at_level(logging.INFO, logger="sovereign.runtime"):
+            await rt._init_components()
+
+        log_text = caplog.text
+        assert "PerformanceAttestor" in log_text or "α9" in log_text
+        assert "TieredVerification" in log_text or "α7" in log_text
