@@ -2482,6 +2482,7 @@ class TestTier3Integration:
                 sys.modules.pop("core.sovereign.tiered_verification", None)
 
 
+@pytest.mark.xdist_group(name="runtime_heavy")
 class TestInitComponentsIntegration:
     """α7/α9 component initialization in _init_components."""
 

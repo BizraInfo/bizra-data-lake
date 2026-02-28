@@ -68,6 +68,7 @@ pub mod event_bus;
 pub mod ihsan_gate;
 pub mod pipeline;
 pub mod registry;
+pub mod saga;
 pub mod subscribers;
 pub mod types;
 
@@ -76,6 +77,7 @@ pub use event_bus::{EventBus, EventHandler, Subscription};
 pub use ihsan_gate::{GateAction, GateConfig, GatePolicy, GateVerdict, IhsanGate};
 pub use pipeline::{HookFn, HookPipeline};
 pub use registry::{Dependency, DependencyKind, Registry, RegistrySnapshot};
+pub use saga::{Saga, SagaAction, SagaId, SagaPhase, SagaRegistry};
 pub use subscribers::{wire_all, SubscriberDef, SUBSCRIBER_DEFS};
 pub use types::*;
 
