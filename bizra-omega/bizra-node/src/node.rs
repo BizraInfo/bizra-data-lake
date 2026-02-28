@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 
 use bizra_agent::runtime::{AgentRuntime, RuntimeConfig};
+use bizra_hooks::saga::SagaRegistry;
 use bizra_hooks::IhsanScore;
 
 use bizra_memory::bridge::export_atoms_as_turns;
@@ -112,6 +113,8 @@ pub struct Node {
     action_executor: ActionExecutor,
     /// SAP v0 active sessions.
     sap_sessions: HashMap<String, SapSessionState>,
+    /// Saga registry — tracks active request sagas through the pipeline.
+    saga_registry: SagaRegistry,
 }
 
 impl Node {
@@ -132,6 +135,7 @@ impl Node {
             session_auto_started: false,
             action_executor: ActionExecutor::default(),
             sap_sessions: HashMap::new(),
+            saga_registry: SagaRegistry::new(),
         };
 
         // Register PostDeliver audit hook for action.receipt events.
@@ -189,6 +193,7 @@ impl Node {
                 stopped: &mut stopped,
                 action_executor: &mut self.action_executor,
                 sap_sessions: &mut self.sap_sessions,
+                saga_registry: &mut self.saga_registry,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -233,6 +238,7 @@ impl Node {
                 stopped: &mut stopped,
                 action_executor: &mut self.action_executor,
                 sap_sessions: &mut self.sap_sessions,
+                saga_registry: &mut self.saga_registry,
             };
             handler::handle(cmd, &mut internals)
         };
@@ -324,6 +330,10 @@ impl Node {
 
     pub fn action_executor(&self) -> &ActionExecutor {
         &self.action_executor
+    }
+
+    pub fn saga_registry(&self) -> &SagaRegistry {
+        &self.saga_registry
     }
 
     // ================================================================

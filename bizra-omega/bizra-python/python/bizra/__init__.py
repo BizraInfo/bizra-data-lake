@@ -35,6 +35,9 @@ try:
         PreferenceTracker,
         # Nervous System: Event Bridge (UCF Phase 3)
         PyEventBridge,
+        # Saga: Request lifecycle tracking
+        SagaPhase,
+        SagaRegistry,
         # Functions
         domain_separated_digest,
         get_ihsan_threshold,
@@ -130,6 +133,9 @@ __all__ = [
     "PreferenceTracker",
     # Nervous System (UCF Phase 3)
     "PyEventBridge",
+    # Saga lifecycle
+    "SagaPhase",
+    "SagaRegistry",
     # Functions
     "domain_separated_digest",
     "get_ihsan_threshold",
