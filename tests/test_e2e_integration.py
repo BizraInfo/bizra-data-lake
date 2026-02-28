@@ -54,6 +54,7 @@ def _make_config(**overrides: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.xdist_group(name="runtime_heavy")
 class TestOrchestratorWiring:
     """Verify orchestrator is created and injected during init."""
 

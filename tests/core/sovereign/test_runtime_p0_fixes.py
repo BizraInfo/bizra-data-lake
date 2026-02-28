@@ -208,6 +208,7 @@ class TestMuraqabahBridge:
 # =============================================================================
 
 
+@pytest.mark.xdist_group(name="runtime_heavy")
 class TestFeatureFlagsRespected:
     """Verify _init_components() respects RuntimeConfig feature flags."""
 

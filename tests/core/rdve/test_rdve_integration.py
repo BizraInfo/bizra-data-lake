@@ -152,6 +152,7 @@ class TestRDVEOrchestratorUnit:
 # ===========================================================================
 
 
+@pytest.mark.xdist_group(name="runtime_heavy")
 class TestRDVERuntimeWiring:
     """Verify RDVE is wired into SovereignRuntime after initialize()."""
 
