@@ -449,7 +449,7 @@ mod tests {
     fn wired_system_with_source(source_name: &str) -> (BizraSystem, ComponentId) {
         let mut system = BizraSystem::new();
         let (wired, errors) = wire_all(&mut system, 1000);
-        assert_eq!(wired, 12, "All 12 subscribers must wire: {:?}", errors);
+        assert_eq!(wired, 12, "All 12 subscribers must wire: {errors:?}");
 
         // Register + activate a source component so emit() succeeds
         let src = system
@@ -465,7 +465,7 @@ mod tests {
         let (wired, errors) = wire_all(&mut system, 1000);
 
         assert_eq!(wired, 12, "All 12 subscribers must wire successfully");
-        assert!(errors.is_empty(), "No wiring errors: {:?}", errors);
+        assert!(errors.is_empty(), "No wiring errors: {errors:?}");
         assert_eq!(system.bus.subscription_count(), 12);
     }
 

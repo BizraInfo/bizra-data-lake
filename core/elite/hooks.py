@@ -859,6 +859,7 @@ def fate_guarded(
                 return asyncio.run(async_wrapper(*args, **kwargs))
             # Already inside a running loop — schedule and block
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 return pool.submit(asyncio.run, async_wrapper(*args, **kwargs)).result()
 
