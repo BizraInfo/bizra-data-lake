@@ -1501,6 +1501,251 @@ impl PyEventBridge {
     }
 }
 
+// ─── PyO3 Saga Types ─────────────────────────────────────────────────────
+
+/// Python-callable saga phase enum.
+///
+/// Usage from Python:
+///   from bizra import PySagaPhase
+///   phase = PySagaPhase.received()
+///   print(phase.name)   # "Received"
+///   print(phase.value)  # 0
+#[pyclass(name = "SagaPhase")]
+#[derive(Clone)]
+pub struct PySagaPhase {
+    inner: bizra_hooks::saga::SagaPhase,
+}
+
+#[pymethods]
+impl PySagaPhase {
+    #[staticmethod]
+    fn received() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Received,
+        }
+    }
+    #[staticmethod]
+    fn planned() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Planned,
+        }
+    }
+    #[staticmethod]
+    fn executed() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Executed,
+        }
+    }
+    #[staticmethod]
+    fn evaluated() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Evaluated,
+        }
+    }
+    #[staticmethod]
+    fn drafted() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Drafted,
+        }
+    }
+    #[staticmethod]
+    fn gated() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Gated,
+        }
+    }
+    #[staticmethod]
+    fn attested() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Attested,
+        }
+    }
+    #[staticmethod]
+    fn completed() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Completed,
+        }
+    }
+    #[staticmethod]
+    fn failed() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Failed,
+        }
+    }
+    #[staticmethod]
+    fn compensating() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaPhase::Compensating,
+        }
+    }
+
+    #[getter]
+    fn name(&self) -> &'static str {
+        match self.inner {
+            bizra_hooks::saga::SagaPhase::Received => "Received",
+            bizra_hooks::saga::SagaPhase::Planned => "Planned",
+            bizra_hooks::saga::SagaPhase::Executed => "Executed",
+            bizra_hooks::saga::SagaPhase::Evaluated => "Evaluated",
+            bizra_hooks::saga::SagaPhase::Drafted => "Drafted",
+            bizra_hooks::saga::SagaPhase::Gated => "Gated",
+            bizra_hooks::saga::SagaPhase::Attested => "Attested",
+            bizra_hooks::saga::SagaPhase::Completed => "Completed",
+            bizra_hooks::saga::SagaPhase::Failed => "Failed",
+            bizra_hooks::saga::SagaPhase::Compensating => "Compensating",
+        }
+    }
+
+    #[getter]
+    fn value(&self) -> u8 {
+        self.inner as u8
+    }
+
+    #[getter]
+    fn topic(&self) -> &'static str {
+        self.inner.topic()
+    }
+
+    #[getter]
+    fn is_terminal(&self) -> bool {
+        matches!(
+            self.inner,
+            bizra_hooks::saga::SagaPhase::Completed | bizra_hooks::saga::SagaPhase::Failed
+        )
+    }
+
+    fn __repr__(&self) -> String {
+        format!("SagaPhase.{}", self.name())
+    }
+}
+
+/// Python-callable saga registry for tracking request lifecycles.
+///
+/// Usage from Python:
+///   from bizra import PySagaRegistry
+///   registry = PySagaRegistry()
+///   saga_id = registry.create("orchestrator", "1.0.0")
+///   registry.advance(saga_id, 0.98)
+///   print(registry.active_count)
+#[pyclass(name = "SagaRegistry")]
+pub struct PySagaRegistry {
+    inner: bizra_hooks::saga::SagaRegistry,
+}
+
+#[pymethods]
+impl PySagaRegistry {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: bizra_hooks::saga::SagaRegistry::new(),
+        }
+    }
+
+    /// Create a new saga. Returns saga_id (u64) or None if registry is full.
+    fn create(&mut self, component_name: &str, component_version: &str) -> Option<u64> {
+        let owner = bizra_hooks::types::ComponentId::from_name(component_name, component_version);
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        self.inner.create(owner, now_ns).map(|id| id.0)
+    }
+
+    /// Advance a saga to the next phase. Returns the action kind as a string.
+    fn advance(&mut self, saga_id: u64, ihsan_score: f64) -> PyResult<String> {
+        let id = bizra_hooks::saga::SagaId(saga_id);
+        let saga = self
+            .inner
+            .get_mut(id)
+            .ok_or_else(|| PyValueError::new_err(format!("Saga {saga_id} not found")))?;
+        let ihsan = bizra_hooks::types::IhsanScore::from_f64(ihsan_score);
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let action = saga.advance(ihsan, now_ns);
+        Ok(match action {
+            bizra_hooks::saga::SagaAction::Emit { topic, .. } => {
+                format!("emit:{topic}")
+            }
+            bizra_hooks::saga::SagaAction::Complete => "complete".to_string(),
+            bizra_hooks::saga::SagaAction::Fail { error_code } => {
+                format!("fail:{error_code}")
+            }
+            bizra_hooks::saga::SagaAction::Aborted => "aborted".to_string(),
+            bizra_hooks::saga::SagaAction::None => "none".to_string(),
+        })
+    }
+
+    /// Fail a saga and begin compensation.
+    fn fail(&mut self, saga_id: u64, error_code: u16) -> PyResult<String> {
+        let id = bizra_hooks::saga::SagaId(saga_id);
+        let saga = self
+            .inner
+            .get_mut(id)
+            .ok_or_else(|| PyValueError::new_err(format!("Saga {saga_id} not found")))?;
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let action = saga.fail(error_code, now_ns);
+        Ok(match action {
+            bizra_hooks::saga::SagaAction::Emit { topic, .. } => {
+                format!("emit:{topic}")
+            }
+            bizra_hooks::saga::SagaAction::Fail { error_code } => {
+                format!("fail:{error_code}")
+            }
+            _ => "none".to_string(),
+        })
+    }
+
+    /// Get the current phase of a saga.
+    fn phase(&self, saga_id: u64) -> PyResult<PySagaPhase> {
+        let id = bizra_hooks::saga::SagaId(saga_id);
+        let saga = self
+            .inner
+            .get(id)
+            .ok_or_else(|| PyValueError::new_err(format!("Saga {saga_id} not found")))?;
+        Ok(PySagaPhase { inner: saga.phase })
+    }
+
+    /// Remove a terminal saga from the registry.
+    fn remove(&mut self, saga_id: u64) -> PyResult<bool> {
+        let id = bizra_hooks::saga::SagaId(saga_id);
+        Ok(self.inner.remove(id).is_some())
+    }
+
+    #[getter]
+    fn active_count(&self) -> usize {
+        self.inner.active_count()
+    }
+
+    #[getter]
+    fn total_created(&self) -> u64 {
+        self.inner.total_created()
+    }
+
+    #[getter]
+    fn total_completed(&self) -> u64 {
+        self.inner.total_completed()
+    }
+
+    #[getter]
+    fn total_failed(&self) -> u64 {
+        self.inner.total_failed()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "SagaRegistry(active={}, created={}, completed={}, failed={})",
+            self.inner.active_count(),
+            self.inner.total_created(),
+            self.inner.total_completed(),
+            self.inner.total_failed(),
+        )
+    }
+}
+
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core types
@@ -1539,6 +1784,10 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Nervous System: Event Bridge (bizra-hooks)
     m.add_class::<PyEventBridge>()?;
+
+    // Saga: Request lifecycle tracking (bizra-hooks::saga)
+    m.add_class::<PySagaPhase>()?;
+    m.add_class::<PySagaRegistry>()?;
 
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;

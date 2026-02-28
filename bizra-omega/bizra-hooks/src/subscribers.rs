@@ -1,11 +1,11 @@
 //! # BIZRA Subscriber Wiring — The Connective Tissue
 //!
-//! This module wires the 12 EventBus subscribers that transform isolated
+//! This module wires the 13 EventBus subscribers that transform isolated
 //! components into a living system. Each subscriber connects an event
 //! emission to a downstream handler, creating the feedback loops that
 //! enable self-improvement, memory evolution, and constitutional enforcement.
 //!
-//! ## The 12 Subscribers (R5 Critical Path)
+//! ## The 13 Subscribers (R5 Critical Path)
 //!
 //! ```text
 //!  #  Event                    → Handler                      Loop
@@ -37,6 +37,7 @@
 //! - `wire_all()` registers all 12 in correct dependency order
 
 use crate::event_bus::EventHandler;
+use crate::saga;
 use crate::types::*;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -275,10 +276,10 @@ pub struct SubscriberDef {
     pub loop_name: &'static str,
 }
 
-/// The canonical list of all 12 subscribers.
+/// The canonical list of all 13 subscribers.
 /// Order matters: subscribers are registered in dependency order.
 /// Earlier subscribers may emit events that later subscribers consume.
-pub const SUBSCRIBER_DEFS: [SubscriberDef; 12] = [
+pub const SUBSCRIBER_DEFS: [SubscriberDef; 13] = [
     // === Layer 0: Execution entry ===
     SubscriberDef {
         name: "#12: ActionIntent → TeleScript Begin",
@@ -382,6 +383,15 @@ pub const SUBSCRIBER_DEFS: [SubscriberDef; 12] = [
         handler: handle_session_compile,
         loop_name: "session_crystallization",
     },
+    // === Layer 7: Saga lifecycle ===
+    SubscriberDef {
+        name: "#13: Saga → Lifecycle Gate",
+        component_name: "sub-saga-lifecycle",
+        topic_filter: saga::TOPIC_SAGA_RECEIVED,
+        min_priority: Priority::Normal,
+        handler: saga::handle_saga_event,
+        loop_name: "saga_orchestration",
+    },
 ];
 
 /// Wire all 12 subscribers into a BizraSystem.
@@ -449,7 +459,7 @@ mod tests {
     fn wired_system_with_source(source_name: &str) -> (BizraSystem, ComponentId) {
         let mut system = BizraSystem::new();
         let (wired, errors) = wire_all(&mut system, 1000);
-        assert_eq!(wired, 12, "All 12 subscribers must wire: {errors:?}");
+        assert_eq!(wired, 13, "All 13 subscribers must wire: {errors:?}");
 
         // Register + activate a source component so emit() succeeds
         let src = system
@@ -464,9 +474,9 @@ mod tests {
         let mut system = BizraSystem::new();
         let (wired, errors) = wire_all(&mut system, 1000);
 
-        assert_eq!(wired, 12, "All 12 subscribers must wire successfully");
+        assert_eq!(wired, 13, "All 13 subscribers must wire successfully");
         assert!(errors.is_empty(), "No wiring errors: {errors:?}");
-        assert_eq!(system.bus.subscription_count(), 12);
+        assert_eq!(system.bus.subscription_count(), 13);
     }
 
     #[test]
@@ -474,11 +484,11 @@ mod tests {
         let mut system = BizraSystem::production();
         let (wired, errors) = wire_all(&mut system, 1000);
 
-        assert_eq!(wired, 12);
+        assert_eq!(wired, 13);
         assert!(errors.is_empty());
 
         let health = system.health();
-        assert!(health.active_subscriptions >= 12);
+        assert!(health.active_subscriptions >= 13);
     }
 
     #[test]
@@ -508,6 +518,7 @@ mod tests {
         assert!(loops.contains(&"context_overflow_prevention"));
         assert!(loops.contains(&"rsi_pillar_i"));
         assert!(loops.contains(&"workflow_orchestration"));
+        assert!(loops.contains(&"saga_orchestration"));
     }
 
     #[test]
