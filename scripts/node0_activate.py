@@ -1195,11 +1195,11 @@ class Node0ProactiveKernel:
                     # 5b. SIGNAL — Notify Rust nervous system of mission completion
                     if self._rust_bridge is not None:
                         try:
-                            topic = "action.receipt" if ihsan_ok else "ihsan.violation"
+                            topic = "action.receipt" if ihsan_ok else "ihsan.breach"
                             priority = (
                                 self._rust_bridge.PRIORITY_NORMAL
                                 if ihsan_ok
-                                else self._rust_bridge.PRIORITY_HIGH
+                                else self._rust_bridge.PRIORITY_EMERGENCY
                             )
                             self._rust_bridge.emit_rust(
                                 topic,

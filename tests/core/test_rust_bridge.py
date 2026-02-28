@@ -74,9 +74,9 @@ class TestRustEventBridge:
         d2 = bridge.emit_rust("action.receipt", "mission:001:ihsan=0.97", 1)
         assert d2 >= 1, "action.receipt should reach ≥1 subscriber"
 
-        # Ihsan violation (ihsan.violation → ihsan namespace shard)
-        d3 = bridge.emit_rust("ihsan.violation", "mission:002:ihsan=0.80", 2)
-        assert d3 >= 1, "ihsan.violation should reach ≥1 subscriber"
+        # Ihsan breach (ihsan.breach → subscriber #9, requires EMERGENCY priority)
+        d3 = bridge.emit_rust("ihsan.breach", "mission:002:ihsan=0.80", bridge.PRIORITY_EMERGENCY)
+        assert d3 >= 1, "ihsan.breach should reach ≥1 subscriber"
 
         # Verify health reflects all 3 emissions
         h = bridge.health()
@@ -106,8 +106,8 @@ class TestRustEventBridge:
         bridge = RustEventBridge(production=False)
         bridge.wire()
 
-        # Emergency event
+        # Emergency event on system.lifecycle (subscriber #11)
         d = bridge.emit_rust(
-            "system.alert", "critical_failure", bridge.PRIORITY_EMERGENCY
+            "system.lifecycle", "critical_failure", bridge.PRIORITY_EMERGENCY
         )
         assert d >= 1, "Emergency events must reach at least 1 subscriber"

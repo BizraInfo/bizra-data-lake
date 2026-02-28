@@ -123,9 +123,7 @@ class TestFullMemoryLifecycle:
         bridge.register()
 
         # Trigger save
-        asyncio.get_event_loop().run_until_complete(
-            mock_coordinator.save_all(source="integration_test")
-        )
+        asyncio.run(mock_coordinator.save_all(source="integration_test"))
 
         # Verify state provider returns valid data
         provider_fn = mock_coordinator._state_providers["agent_db"][0]
@@ -189,7 +187,7 @@ class TestFullMemoryLifecycle:
 
         # Subscriber receives and imports
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.imported_count == 1
 
@@ -230,9 +228,7 @@ class TestCrossModuleIntegration:
         bridge = AgentDBBridge(db, mock_coordinator)
         bridge.register()
 
-        asyncio.get_event_loop().run_until_complete(
-            mock_coordinator.save_all(source="post_migration")
-        )
+        asyncio.run(mock_coordinator.save_all(source="post_migration"))
 
         state = mock_coordinator._state_providers["agent_db"][0]()
         assert state["record_count"] >= 1
@@ -264,7 +260,7 @@ class TestCrossModuleIntegration:
         })
 
         sub = MemorySyncSubscriber(db, agent_id="node0")
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         # Both local and remote records exist
         assert db.count >= 2
@@ -331,7 +327,7 @@ class TestIdempotencyAndDedup:
         })
 
         sub = MemorySyncSubscriber(db, agent_id="self")
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(msg))
+        asyncio.run(sub._handle_message(msg))
 
         assert sub.skipped_count == 1
         assert sub.imported_count == 0
