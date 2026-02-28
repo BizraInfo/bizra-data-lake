@@ -54,7 +54,7 @@ class TestPublisher:
         assert not pub.connected
 
         record = _make_record()
-        asyncio.get_event_loop().run_until_complete(pub.publish(record))
+        asyncio.run(pub.publish(record))
 
         assert pub.buffer_size == 1
 
@@ -64,7 +64,7 @@ class TestPublisher:
 
         for i in range(5):
             record = _make_record(record_id=f"r{i}", content=f"item {i}")
-            asyncio.get_event_loop().run_until_complete(pub.publish(record))
+            asyncio.run(pub.publish(record))
 
         assert pub.buffer_size == 3
 
@@ -85,7 +85,7 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.imported_count == 1
         assert db.retrieve("test123") is not None
@@ -98,7 +98,7 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.imported_count == 0
 
@@ -110,8 +110,8 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.imported_count == 1
         assert sub.skipped_count == 1
@@ -126,7 +126,7 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.skipped_count == 1
         assert sub.imported_count == 0
@@ -141,15 +141,13 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         assert sub.imported_count == 1
 
     def test_invalid_json_handled(self, db):
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
-        asyncio.get_event_loop().run_until_complete(
-            sub._handle_message("not valid json")
-        )
+        asyncio.run(sub._handle_message("not valid json"))
         # Should not crash, just skip
         assert sub.imported_count == 0
 
@@ -161,7 +159,7 @@ class TestSubscriberMessageHandling:
             "record": record.to_dict(),
         })
 
-        asyncio.get_event_loop().run_until_complete(sub._handle_message(message))
+        asyncio.run(sub._handle_message(message))
 
         stored = db.retrieve("test123")
         assert stored is not None

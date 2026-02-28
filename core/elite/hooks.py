@@ -851,9 +851,16 @@ def fate_guarded(
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            return asyncio.get_event_loop().run_until_complete(
-                async_wrapper(*args, **kwargs)
-            )
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                return asyncio.run(async_wrapper(*args, **kwargs))
+            # Already inside a running loop — schedule and block
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, async_wrapper(*args, **kwargs)).result()
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper

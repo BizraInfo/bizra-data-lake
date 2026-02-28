@@ -57,7 +57,7 @@ class TestSuite:
         start = time.perf_counter()
         try:
             if asyncio.iscoroutinefunction(test_fn):
-                asyncio.get_event_loop().run_until_complete(test_fn())
+                asyncio.run(test_fn())
             else:
                 test_fn()
             duration = (time.perf_counter() - start) * 1000

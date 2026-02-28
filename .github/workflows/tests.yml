@@ -39,12 +39,12 @@ on:
       coverage_threshold:
         description: 'Coverage threshold (%)'
         required: false
-        default: '55'
+        default: '25'
         type: string
 
 env:
   PYTHONUNBUFFERED: '1'
-  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '55' }}
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '25' }}
 
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}

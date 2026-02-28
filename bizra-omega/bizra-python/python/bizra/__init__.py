@@ -33,6 +33,8 @@ try:
         # Autopoiesis
         PatternMemory,
         PreferenceTracker,
+        # Nervous System: Event Bridge (UCF Phase 3)
+        PyEventBridge,
         # Functions
         domain_separated_digest,
         get_ihsan_threshold,
@@ -126,6 +128,8 @@ __all__ = [
     # Autopoiesis
     "PatternMemory",
     "PreferenceTracker",
+    # Nervous System (UCF Phase 3)
+    "PyEventBridge",
     # Functions
     "domain_separated_digest",
     "get_ihsan_threshold",

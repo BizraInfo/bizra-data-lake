@@ -691,8 +691,8 @@ mod tests {
     fn test_default_config() {
         let config = LMStudioConfig::default();
         // Host may be overridden by LMSTUDIO_HOST env var (WSL gateway IP changes)
-        let expected_host = std::env::var("LMSTUDIO_HOST")
-            .unwrap_or_else(|_| DEFAULT_LMSTUDIO_HOST.to_string());
+        let expected_host =
+            std::env::var("LMSTUDIO_HOST").unwrap_or_else(|_| DEFAULT_LMSTUDIO_HOST.to_string());
         assert_eq!(config.host, expected_host);
         assert_eq!(config.port, 1234);
     }
