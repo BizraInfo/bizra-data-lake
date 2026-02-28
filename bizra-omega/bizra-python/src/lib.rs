@@ -1398,7 +1398,109 @@ fn thought_to_pyobject(node: &bizra_core::ThoughtNode) -> pyo3::PyObject {
     })
 }
 
-/// BIZRA Python Module
+// ─── PyO3 Event Bridge ────────────────────────────────────────────────────
+
+/// Python-callable event bridge into the Rust nervous system.
+///
+/// Usage from Python:
+///   from bizra import PyEventBridge
+///   bridge = PyEventBridge(production=False)
+///   bridge.wire_subscribers()
+///   delivered = bridge.emit("action.intent", "organize_invoices", 1)
+///   health = bridge.health()
+#[pyclass]
+pub struct PyEventBridge {
+    system: bizra_hooks::BizraSystem,
+    source: Option<bizra_hooks::types::ComponentId>,
+}
+
+#[pymethods]
+impl PyEventBridge {
+    #[new]
+    #[pyo3(signature = (production = false))]
+    fn new(production: bool) -> Self {
+        let system = if production {
+            bizra_hooks::BizraSystem::production()
+        } else {
+            bizra_hooks::BizraSystem::new()
+        };
+        PyEventBridge {
+            system,
+            source: None,
+        }
+    }
+
+    /// Wire all 12 constitutional subscribers. Returns count wired.
+    fn wire_subscribers(&mut self) -> PyResult<usize> {
+        let (wired, errors) = bizra_hooks::subscribers::wire_all(&mut self.system, 0);
+        if !errors.is_empty() {
+            return Err(PyRuntimeError::new_err(format!(
+                "Failed to wire {} subscribers: {:?}",
+                errors.len(),
+                errors
+            )));
+        }
+
+        // Register Python bridge as a source component
+        let src = self
+            .system
+            .register_component("python-bridge", "1.0.0", 1)
+            .map_err(|e| PyRuntimeError::new_err(format!("Registration failed: {e}")))?;
+        self.system
+            .activate_component(&src)
+            .map_err(|e| PyRuntimeError::new_err(format!("Activation failed: {e}")))?;
+        self.source = Some(src);
+
+        Ok(wired)
+    }
+
+    /// Emit an event from Python into the Rust nervous system.
+    /// priority: 0=Low, 1=Normal, 2=High, 3=Critical, 4=Emergency
+    fn emit(&mut self, topic: &str, payload: &str, priority: u8) -> PyResult<usize> {
+        let src = self
+            .source
+            .ok_or_else(|| PyRuntimeError::new_err("Call wire_subscribers() first"))?;
+        let prio = match priority {
+            0 => bizra_hooks::types::Priority::Low,
+            1 => bizra_hooks::types::Priority::Normal,
+            2 => bizra_hooks::types::Priority::High,
+            3 => bizra_hooks::types::Priority::Critical,
+            4 => bizra_hooks::types::Priority::Emergency,
+            _ => return Err(PyValueError::new_err("priority must be 0-4")),
+        };
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+
+        self.system
+            .emit(
+                src,
+                topic,
+                bizra_hooks::types::Payload::from_text(payload),
+                prio,
+                now_ns,
+            )
+            .map_err(|e| PyRuntimeError::new_err(format!("Emit failed: {e}")))
+    }
+
+    /// Get system health as a Python dict.
+    fn health(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let h = self.system.health();
+        let dict = pyo3::types::PyDict::new(py);
+        dict.set_item("events_emitted", h.events_emitted)?;
+        dict.set_item("events_delivered", h.events_delivered)?;
+        dict.set_item("events_dropped", h.events_dropped)?;
+        dict.set_item("delivery_ratio", h.delivery_ratio)?;
+        dict.set_item("active_subscriptions", h.active_subscriptions)?;
+        dict.set_item("system_ihsan", h.system_ihsan.as_f64())?;
+        dict.set_item("gate_evaluations", h.gate_evaluations)?;
+        dict.set_item("gate_violations", h.gate_violations)?;
+        dict.set_item("gate_stability", h.gate_stability)?;
+        Ok(dict.into())
+    }
+}
+
 #[pymodule]
 fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core types
@@ -1434,6 +1536,9 @@ fn bizra(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Cognitive Layer: Graph-of-Thoughts (bizra-core::sovereign)
     m.add_class::<PyThoughtGraph>()?;
+
+    // Nervous System: Event Bridge (bizra-hooks)
+    m.add_class::<PyEventBridge>()?;
 
     // Functions
     m.add_function(wrap_pyfunction!(domain_separated_digest, m)?)?;

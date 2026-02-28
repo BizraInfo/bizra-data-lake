@@ -269,6 +269,32 @@ impl ReflexCache {
         Some(result)
     }
 
+    /// Read-only cache lookup. Does NOT update hit/miss counters.
+    /// Does NOT quarantine on policy mismatch, update use_count, or touch LRU.
+    /// Use this for concurrent read access paths (e.g., OmniKernel::try_cache_hit).
+    pub fn lookup_readonly(
+        &self,
+        mode: ReflexMode,
+        trigger: &TriggerHash,
+        current_policy_hash: Option<[u8; 32]>,
+    ) -> Option<ReflexRule> {
+        if mode != ReflexMode::Active {
+            return None;
+        }
+        let policy_hash = current_policy_hash?;
+        let rule = self.by_trigger.get(trigger)?;
+        if rule.quarantined || rule.policy_hash != policy_hash {
+            return None;
+        }
+        Some(rule.clone())
+    }
+
+    /// Record a cache hit in telemetry. Call this from the write path
+    /// after a successful `lookup_readonly` to keep counters accurate.
+    pub fn record_hit(&mut self) {
+        self.stats.hits += 1;
+    }
+
     pub fn insert_compiled(&mut self, mode: ReflexMode, rule: ReflexRule) {
         if mode == ReflexMode::Disabled {
             return;
@@ -545,6 +571,42 @@ mod tests {
         nearly_zero[31] = 1;
         let edge = rule(TriggerHash([3u8; 32]), nearly_zero);
         assert!(!is_bootstrap_rule(&edge));
+    }
+
+    #[test]
+    fn lookup_readonly_finds_active_rule() {
+        let mut cache = ReflexCache::new(64);
+        let t = TriggerHash([1u8; 32]);
+        cache.insert_compiled(ReflexMode::Active, rule(t, [7u8; 32]));
+
+        // Read-only lookup should find it
+        let stats_before = cache.stats();
+        let result = cache.lookup_readonly(ReflexMode::Active, &t, Some([7u8; 32]));
+        assert!(result.is_some());
+        // Stats should NOT change (read-only)
+        assert_eq!(cache.stats().hits, stats_before.hits);
+        assert_eq!(cache.stats().misses, stats_before.misses);
+    }
+
+    #[test]
+    fn lookup_readonly_misses_on_policy_mismatch() {
+        let mut cache = ReflexCache::new(64);
+        let t = TriggerHash([1u8; 32]);
+        cache.insert_compiled(ReflexMode::Active, rule(t, [7u8; 32]));
+
+        // Wrong policy hash → miss, but rule NOT quarantined (read-only)
+        let result = cache.lookup_readonly(ReflexMode::Active, &t, Some([8u8; 32]));
+        assert!(result.is_none());
+        let rules = cache.all_rules();
+        assert!(!rules[0].quarantined, "read-only must NOT quarantine");
+    }
+
+    #[test]
+    fn record_hit_increments_stats() {
+        let mut cache = ReflexCache::new(64);
+        let before = cache.stats().hits;
+        cache.record_hit();
+        assert_eq!(cache.stats().hits, before + 1);
     }
 
     #[test]

@@ -147,6 +147,16 @@ pub struct CycleReceipt {
     pub response: String,
 }
 
+/// Result from a read-only cache hit via `try_cache_hit(&self)`.
+/// Must be finalized via `complete_cache_hit(&mut self)` to mint PoI.
+#[derive(Debug, Clone)]
+pub struct CacheHitResult {
+    pub path: CyclePath,
+    pub ihsan_score: f64,
+    pub pivot_chain_hash: [u8; 32],
+    pub response: String,
+}
+
 // ─── The Omni-Kernel ─────────────────────────────────────────────────────────
 
 /// The BIZRA Ghost Reign Omni-Kernel.
@@ -384,6 +394,91 @@ impl OmniKernel {
         }
     }
 
+    // ─── Two-Phase Read/Write Split ──────────────────────────────────────────
+
+    /// Attempt a read-only cache hit (Tier-1 Reflex or Tier-2 Engram).
+    ///
+    /// This method takes `&self`, enabling concurrent access when the kernel
+    /// is wrapped in an `RwLock`. Returns `Some(CacheHitResult)` on hit,
+    /// `None` on miss (caller should fall through to `run_cycle` for full inference).
+    ///
+    /// **Important:** This does NOT mint PoI or update telemetry counters.
+    /// Call `complete_cache_hit()` to finalize the receipt with PoI minting.
+    pub fn try_cache_hit(
+        &self,
+        cycle: &OmniCycle,
+        level_scores: &[(HhmmLevel, f64)],
+    ) -> Option<CacheHitResult> {
+        // Line 1: Chain of Reasoning — check pivots (read-only)
+        let reasoning_chain = self.build_reasoning_chain(&cycle.intent, level_scores);
+        for pivot in reasoning_chain.decision_pivots() {
+            if !pivot.passes(self.config.ihsan_threshold) {
+                return None; // Pivot failed — caller should use run_cycle for full receipt
+            }
+        }
+
+        // Line 2: Tier-1 Reflex Cache (read-only)
+        let state_hash = TriggerHash(*blake3::hash(&cycle.intent_bytes).as_bytes());
+        if let Some(rule) =
+            self.reflex_cache
+                .lookup_readonly(self.reflex_mode, &state_hash, Some(self.policy_hash))
+        {
+            return Some(CacheHitResult {
+                path: CyclePath::ReflexHit,
+                ihsan_score: rule.compile_ihsan as f64,
+                pivot_chain_hash: reasoning_chain.tail_hash(),
+                response: rule.action_template.route_signature.clone(),
+            });
+        }
+
+        // Line 2b: Tier-2 Engram Cache (read-only)
+        match self
+            .engram_cache
+            .lookup_readonly(&cycle.intent_bytes, self.config.engram_min_confidence)
+        {
+            EngramResult::Hit { value, .. } => Some(CacheHitResult {
+                path: CyclePath::EngramHit,
+                ihsan_score: self.config.ihsan_threshold, // conservative estimate
+                pivot_chain_hash: reasoning_chain.tail_hash(),
+                response: value,
+            }),
+            EngramResult::Miss => None,
+        }
+    }
+
+    /// Finalize a cache hit by minting PoI and producing a full CycleReceipt.
+    /// This requires `&mut self` because it updates the MetabolicLedger and
+    /// cache telemetry counters.
+    pub fn complete_cache_hit(&mut self, hit: CacheHitResult, cycle: &OmniCycle) -> CycleReceipt {
+        let is_reflex = matches!(hit.path, CyclePath::ReflexHit);
+        let poi =
+            self.metabolic_ledger
+                .mint_poi_yield(is_reflex, self.config.network_size, cycle.now_ms);
+
+        // Update mutable cache stats to keep telemetry accurate
+        if is_reflex {
+            self.reflex_cache.record_hit();
+        } else {
+            self.engram_cache.record_hit();
+        }
+
+        tracing::debug!(
+            path = ?hit.path,
+            ihsan = hit.ihsan_score,
+            "Omni-Kernel: cache hit completed with PoI mint"
+        );
+
+        CycleReceipt {
+            path: hit.path,
+            ihsan_score: hit.ihsan_score,
+            pivot_chain_hash: hit.pivot_chain_hash,
+            gate_passed: hit.ihsan_score >= self.config.ihsan_threshold,
+            poi_yield: Some(poi),
+            ttrl_queued: false,
+            response: hit.response,
+        }
+    }
+
     // ─── Public accessors ─────────────────────────────────────────────────────
 
     pub fn engram_cache_mut(&mut self) -> &mut EngramCache {
@@ -462,6 +557,59 @@ mod tests {
         let receipt = k.run_cycle(&c, &[], 0.97, &[], None, None);
         assert_eq!(receipt.path, CyclePath::EngramHit);
         assert_eq!(receipt.response, "Paris");
+    }
+
+    #[test]
+    fn test_try_cache_hit_returns_engram_hit() {
+        let mut k = make_kernel();
+        let c = cycle("what is the capital of France");
+
+        // Pre-populate Engram cache
+        k.engram_cache_mut()
+            .insert(c.intent_bytes.as_slice(), "Paris", 0.99, c.now_ms);
+
+        // try_cache_hit should find it (read-only, &self)
+        let result = k.try_cache_hit(&c, &[]);
+        assert!(result.is_some());
+        let hit = result.unwrap();
+        assert_eq!(hit.path, CyclePath::EngramHit);
+        assert_eq!(hit.response, "Paris");
+    }
+
+    #[test]
+    fn test_try_cache_hit_returns_none_on_miss() {
+        let k = make_kernel();
+        let c = cycle("novel question");
+        let result = k.try_cache_hit(&c, &[]);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_complete_cache_hit_mints_poi() {
+        let mut k = make_kernel();
+        let c = cycle("what is the capital of France");
+        k.engram_cache_mut()
+            .insert(c.intent_bytes.as_slice(), "Paris", 0.99, c.now_ms);
+
+        let hit = k.try_cache_hit(&c, &[]).unwrap();
+        let receipt = k.complete_cache_hit(hit, &c);
+
+        assert_eq!(receipt.path, CyclePath::EngramHit);
+        assert!(receipt.poi_yield.is_some());
+        assert!(receipt.gate_passed);
+        assert_eq!(receipt.response, "Paris");
+    }
+
+    #[test]
+    fn test_try_cache_hit_fails_on_bad_pivot() {
+        let k = make_kernel();
+        let c = cycle("test with pivots");
+        let level_scores = vec![
+            (HhmmLevel::L2Cognitive, 0.97),
+            (HhmmLevel::L3Memory, 0.80), // below 0.95 → fail
+        ];
+        let result = k.try_cache_hit(&c, &level_scores);
+        assert!(result.is_none());
     }
 
     #[test]

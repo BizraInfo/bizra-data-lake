@@ -12,11 +12,32 @@
 
 use crate::types::*;
 
-/// Maximum number of active subscriptions.
-const MAX_SUBSCRIPTIONS: usize = 512;
+/// Number of topic-namespace shards (power of 2 for fast modulo).
+const NUM_SHARDS: usize = 8;
+
+/// Capacity per shard. NUM_SHARDS * SHARD_CAPACITY = 512 total slots.
+const SHARD_CAPACITY: usize = 64;
 
 /// Maximum pending events in the dispatch queue.
 const MAX_PENDING: usize = 256;
+
+/// Map a topic to its shard index via FNV-1a hash of the namespace prefix.
+/// The namespace is everything before the first `.` in the topic string.
+fn shard_index(topic: &Topic) -> usize {
+    let s = topic.as_str();
+    let prefix_end = s
+        .as_bytes()
+        .iter()
+        .position(|&b| b == b'.')
+        .unwrap_or(s.len());
+    // FNV-1a 32-bit hash of the prefix bytes
+    let mut hash: u32 = 0x811c_9dc5;
+    for &byte in &s.as_bytes()[..prefix_end] {
+        hash ^= byte as u32;
+        hash = hash.wrapping_mul(0x0100_0193);
+    }
+    (hash as usize) & (NUM_SHARDS - 1) // Bitwise AND since NUM_SHARDS is power of 2
+}
 
 /// A subscription: component + topic filter + priority filter.
 #[derive(Clone, Copy)]
@@ -50,16 +71,131 @@ struct HandlerEntry {
     handler: EventHandler,
 }
 
-/// The Event Bus — routes events between components.
-pub struct EventBus {
-    /// Subscription entries (fixed array)
-    handlers: [Option<HandlerEntry>; MAX_SUBSCRIPTIONS],
-    /// Number of active subscriptions
+/// A single shard of the EventBus. Owns handlers for one topic namespace.
+#[derive(Clone)]
+struct EventShard {
+    handlers: [Option<HandlerEntry>; SHARD_CAPACITY],
     sub_count: usize,
-    /// Next subscription ID
+}
+
+impl EventShard {
+    const fn new() -> Self {
+        EventShard {
+            handlers: [None; SHARD_CAPACITY],
+            sub_count: 0,
+        }
+    }
+
+    fn subscribe(
+        &mut self,
+        component: ComponentId,
+        topic_filter: &str,
+        min_priority: Priority,
+        handler: EventHandler,
+        sub_id: SubscriptionId,
+    ) -> Result<SubscriptionId, HookError> {
+        let slot = self
+            .handlers
+            .iter()
+            .position(|h| h.is_none())
+            .ok_or(HookError::SubscribersFull)?;
+
+        self.handlers[slot] = Some(HandlerEntry {
+            sub: Subscription {
+                id: sub_id,
+                component,
+                topic_filter: Topic::new(topic_filter),
+                min_priority,
+                active: true,
+            },
+            handler,
+        });
+        self.sub_count += 1;
+        Ok(sub_id)
+    }
+
+    fn unsubscribe(&mut self, sub_id: SubscriptionId) -> bool {
+        for entry in self.handlers.iter_mut() {
+            if let Some(h) = entry {
+                if h.sub.id == sub_id {
+                    *entry = None;
+                    self.sub_count -= 1;
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn unsubscribe_all(&mut self, component: &ComponentId) -> usize {
+        let mut removed = 0;
+        for entry in self.handlers.iter_mut() {
+            if let Some(h) = entry {
+                if h.sub.component == *component {
+                    *entry = None;
+                    removed += 1;
+                }
+            }
+        }
+        self.sub_count -= removed;
+        removed
+    }
+
+    fn set_active(&mut self, sub_id: SubscriptionId, active: bool) -> bool {
+        for h in self.handlers.iter_mut().flatten() {
+            if h.sub.id == sub_id {
+                h.sub.active = active;
+                return true;
+            }
+        }
+        false
+    }
+
+    fn set_active_for_component(&mut self, id: &ComponentId, active: bool) {
+        for h in self.handlers.iter_mut().flatten() {
+            if h.sub.component == *id {
+                h.sub.active = active;
+            }
+        }
+    }
+
+    /// Dispatch an event to all matching handlers in this shard.
+    /// Returns (delivered_count, should_halt).
+    fn dispatch(&self, event: &Event) -> (usize, bool) {
+        let mut delivered = 0;
+        for h in self.handlers.iter().flatten() {
+            if h.sub.matches(event) {
+                let result = (h.handler)(event);
+                delivered += 1;
+                match result {
+                    HookResult::Continue | HookResult::Transform => continue,
+                    HookResult::Skip => break,
+                    HookResult::Halt => return (delivered, true),
+                }
+            }
+        }
+        (delivered, false)
+    }
+
+    fn sub_count(&self) -> usize {
+        self.sub_count
+    }
+}
+
+/// The Event Bus — routes events between components via namespace sharding.
+///
+/// Topics are sharded by their namespace prefix (text before the first `.`).
+/// Each shard dispatches independently, eliminating cross-namespace contention.
+/// Topics without a `.` route to the global shard for cross-namespace wildcards.
+pub struct EventBus {
+    /// Per-namespace shards
+    shards: [EventShard; NUM_SHARDS],
+    /// Global shard for subscriptions without a namespace prefix
+    global: EventShard,
+    /// Next subscription ID (monotonic counter across all shards)
     next_sub_id: u32,
 
-    /// Pending event queue (priority-ordered dispatch)
+    /// Pending event queue (priority-ordered deferred dispatch)
     pending: [Option<Event>; MAX_PENDING],
     /// Number of pending events
     pending_count: usize,
@@ -80,9 +216,10 @@ pub struct EventBus {
 impl EventBus {
     /// Create a new empty EventBus.
     pub fn new() -> Self {
+        const EMPTY_SHARD: EventShard = EventShard::new();
         EventBus {
-            handlers: [None; MAX_SUBSCRIPTIONS],
-            sub_count: 0,
+            shards: [EMPTY_SHARD; NUM_SHARDS],
+            global: EventShard::new(),
             next_sub_id: 1,
             pending: [None; MAX_PENDING],
             pending_count: 0,
@@ -106,68 +243,43 @@ impl EventBus {
         min_priority: Priority,
         handler: EventHandler,
     ) -> Result<SubscriptionId, HookError> {
-        let slot = self
-            .handlers
-            .iter()
-            .position(|h| h.is_none())
-            .ok_or(HookError::SubscribersFull)?;
-
         let sub_id = SubscriptionId(self.next_sub_id);
         self.next_sub_id += 1;
 
-        self.handlers[slot] = Some(HandlerEntry {
-            sub: Subscription {
-                id: sub_id,
-                component,
-                topic_filter: Topic::new(topic_filter),
-                min_priority,
-                active: true,
-            },
-            handler,
-        });
-
-        self.sub_count += 1;
-        Ok(sub_id)
+        let topic = Topic::new(topic_filter);
+        let shard = self.shard_for_topic_mut(&topic);
+        shard.subscribe(component, topic_filter, min_priority, handler, sub_id)
     }
 
     /// Unsubscribe by subscription ID.
     pub fn unsubscribe(&mut self, sub_id: SubscriptionId) -> bool {
-        for entry in self.handlers.iter_mut() {
-            if let Some(h) = entry {
-                if h.sub.id == sub_id {
-                    *entry = None;
-                    self.sub_count -= 1;
-                    return true;
-                }
+        // Search all shards (subscription could be in any)
+        for shard in self.shards.iter_mut() {
+            if shard.unsubscribe(sub_id) {
+                return true;
             }
         }
-        false
+        self.global.unsubscribe(sub_id)
     }
 
     /// Unsubscribe all handlers for a component.
     pub fn unsubscribe_all(&mut self, component: &ComponentId) -> usize {
         let mut removed = 0;
-        for entry in self.handlers.iter_mut() {
-            if let Some(h) = entry {
-                if h.sub.component == *component {
-                    *entry = None;
-                    removed += 1;
-                }
-            }
+        for shard in self.shards.iter_mut() {
+            removed += shard.unsubscribe_all(component);
         }
-        self.sub_count -= removed;
+        removed += self.global.unsubscribe_all(component);
         removed
     }
 
     /// Pause/resume a subscription.
     pub fn set_active(&mut self, sub_id: SubscriptionId, active: bool) -> bool {
-        for h in self.handlers.iter_mut().flatten() {
-            if h.sub.id == sub_id {
-                h.sub.active = active;
+        for shard in self.shards.iter_mut() {
+            if shard.set_active(sub_id, active) {
                 return true;
             }
         }
-        false
+        self.global.set_active(sub_id, active)
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -185,45 +297,30 @@ impl EventBus {
         EventId::new(timestamp_nanos, self.sequence)
     }
 
-    /// Emit an event. Immediately dispatches to all matching subscribers.
+    /// Emit an event. Dispatches to the target shard + global shard.
     ///
     /// Returns the number of subscribers that received the event.
     pub fn emit(&mut self, event: Event) -> usize {
         self.total_emitted += 1;
 
-        let mut delivered = 0;
+        // Dispatch to the target namespace shard
+        let shard_idx = shard_index(&event.topic);
+        let (shard_delivered, shard_halted) = self.shards[shard_idx].dispatch(&event);
 
-        // Collect matching handlers and dispatch
-        // We iterate in subscription order (FIFO registration)
-        // Priority filtering happens in Subscription::matches()
-        for h in self.handlers.iter().flatten() {
-            if h.sub.matches(&event) {
-                let result = (h.handler)(&event);
-                delivered += 1;
+        // Also dispatch to global shard (cross-namespace wildcards)
+        let global_delivered = if !shard_halted {
+            let (gd, _) = self.global.dispatch(&event);
+            gd
+        } else {
+            0
+        };
 
-                match result {
-                    HookResult::Continue => continue,
-                    HookResult::Skip => break,
-                    HookResult::Halt => {
-                        // Event was halted by a subscriber
-                        self.total_delivered += delivered as u64;
-                        return delivered;
-                    }
-                    HookResult::Transform => {
-                        // In a full implementation, the handler would
-                        // modify the event. For now, continue.
-                        continue;
-                    }
-                }
-            }
-        }
-
+        let delivered = shard_delivered + global_delivered;
         if delivered == 0 {
             self.total_dropped += 1;
         } else {
             self.total_delivered += delivered as u64;
         }
-
         delivered
     }
 
@@ -303,7 +400,11 @@ impl EventBus {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     pub fn subscription_count(&self) -> usize {
-        self.sub_count
+        let mut total = self.global.sub_count();
+        for shard in &self.shards {
+            total += shard.sub_count();
+        }
+        total
     }
 
     pub fn total_emitted(&self) -> u64 {
@@ -324,11 +425,10 @@ impl EventBus {
 
     /// Pause/resume all subscriptions for a component.
     pub fn set_active_for_component(&mut self, id: &ComponentId, active: bool) {
-        for h in self.handlers.iter_mut().flatten() {
-            if h.sub.component == *id {
-                h.sub.active = active;
-            }
+        for shard in self.shards.iter_mut() {
+            shard.set_active_for_component(id, active);
         }
+        self.global.set_active_for_component(id, active);
     }
 
     /// Delivery ratio: delivered / emitted (0.0 - 1.0).
@@ -337,6 +437,21 @@ impl EventBus {
             1.0
         } else {
             self.total_delivered as f64 / self.total_emitted as f64
+        }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Internal routing
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /// Route a topic to its shard. Topics with a `.` go to a namespace shard;
+    /// topics without go to the global shard.
+    fn shard_for_topic_mut(&mut self, topic: &Topic) -> &mut EventShard {
+        let s = topic.as_str();
+        if s.contains('.') {
+            &mut self.shards[shard_index(topic)]
+        } else {
+            &mut self.global
         }
     }
 }
@@ -545,5 +660,95 @@ mod tests {
         );
         assert_eq!(bus.total_dropped(), 1);
         assert!(bus.delivery_ratio() < 1.0);
+    }
+
+    #[test]
+    fn sharded_bus_isolates_namespaces() {
+        let mut bus = EventBus::new();
+        let action_comp = ComponentId::from_name("action-handler", "1.0.0");
+        let memory_comp = ComponentId::from_name("memory-handler", "1.0.0");
+
+        // Subscribe to different namespaces
+        bus.subscribe(action_comp, "action.receipt", Priority::Low, noop_handler)
+            .unwrap();
+        bus.subscribe(memory_comp, "memory.promoted", Priority::Low, noop_handler)
+            .unwrap();
+
+        // Emit to action namespace — should reach only action handler
+        let delivered = bus.emit_simple(
+            make_source(),
+            "action.receipt",
+            Payload::empty(),
+            Priority::Normal,
+            1000,
+        );
+        assert_eq!(delivered, 1);
+
+        // Emit to memory namespace — should reach only memory handler
+        let delivered = bus.emit_simple(
+            make_source(),
+            "memory.promoted",
+            Payload::empty(),
+            Priority::Normal,
+            1001,
+        );
+        assert_eq!(delivered, 1);
+    }
+
+    #[test]
+    fn event_shard_subscribe_and_dispatch() {
+        let mut shard = EventShard::new();
+        let comp = ComponentId::from_name("test", "1.0.0");
+        shard
+            .subscribe(
+                comp,
+                "action.receipt",
+                Priority::Low,
+                noop_handler,
+                SubscriptionId(1),
+            )
+            .unwrap();
+        assert_eq!(shard.sub_count(), 1);
+
+        let event = Event {
+            id: EventId::new(1000, 0),
+            source: make_source(),
+            topic: Topic::new("action.receipt"),
+            priority: Priority::Normal,
+            payload: Payload::empty(),
+            ihsan_score: IhsanScore::MAX,
+        };
+        let (delivered, halted) = shard.dispatch(&event);
+        assert_eq!(delivered, 1);
+        assert!(!halted);
+    }
+
+    #[test]
+    fn shard_index_groups_same_namespace() {
+        let t1 = Topic::new("action.receipt");
+        let t2 = Topic::new("action.intent");
+        let t3 = Topic::new("memory.promoted");
+        assert_eq!(shard_index(&t1), shard_index(&t2));
+        assert_ne!(shard_index(&t1), shard_index(&t3));
+    }
+
+    #[test]
+    fn shard_index_within_bounds() {
+        for topic in &[
+            "action.x",
+            "memory.x",
+            "telescript.x",
+            "session.x",
+            "system.x",
+            "ihsan.x",
+            "poi.x",
+            "unknown.x",
+        ] {
+            let idx = shard_index(&Topic::new(topic));
+            assert!(
+                idx < NUM_SHARDS,
+                "shard_index({topic}) = {idx} >= {NUM_SHARDS}"
+            );
+        }
     }
 }

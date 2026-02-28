@@ -95,9 +95,7 @@ class TestSaveIntegration:
         bridge = AgentDBBridge(agent_db, mock_coordinator)
         bridge.register()
 
-        asyncio.get_event_loop().run_until_complete(
-            mock_coordinator.save_all(source="test")
-        )
+        asyncio.run(mock_coordinator.save_all(source="test"))
 
         # Check that either the hnswlib index or numpy npz was saved
         assert (
@@ -112,9 +110,7 @@ class TestSaveIntegration:
         bridge.register()
 
         # Should not crash
-        asyncio.get_event_loop().run_until_complete(
-            mock_coordinator.save_all(source="test")
-        )
+        asyncio.run(mock_coordinator.save_all(source="test"))
 
 
 class TestEnsureInitialized:
