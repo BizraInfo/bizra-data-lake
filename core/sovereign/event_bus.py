@@ -186,10 +186,110 @@ def get_event_bus() -> EventBus:
     return _global_bus
 
 
+# =============================================================================
+# Rust Bridge — PyO3 fast path into the sharded Rust EventBus
+# =============================================================================
+
+_RUST_BRIDGE_AVAILABLE = False
+_PyEventBridge = None
+
+try:
+    from bizra import PyEventBridge as _PyEventBridge  # type: ignore[import-untyped]
+
+    _RUST_BRIDGE_AVAILABLE = True
+except ImportError:
+    pass
+
+
+def is_rust_event_bus_available() -> bool:
+    """Check if the Rust event bus binding is available."""
+    return _RUST_BRIDGE_AVAILABLE
+
+
+class RustEventBridge:
+    """
+    Python facade over the Rust BizraSystem nervous system.
+
+    Wraps PyEventBridge and provides a Pythonic API for emitting events
+    into the constitutional event bus with all 12 subscribers wired.
+
+    Usage:
+        bridge = RustEventBridge(production=False)
+        bridge.emit("action.intent", "organize_invoices")
+        health = bridge.health()
+    """
+
+    # Priority constants (mirror Rust Priority enum ordinals)
+    PRIORITY_LOW = 0
+    PRIORITY_NORMAL = 1
+    PRIORITY_HIGH = 2
+    PRIORITY_CRITICAL = 3
+    PRIORITY_EMERGENCY = 4
+
+    def __init__(self, production: bool = False):
+        if not _RUST_BRIDGE_AVAILABLE or _PyEventBridge is None:
+            raise ImportError(
+                "Rust event bridge not available. "
+                "Build with: cd bizra-omega/bizra-python && maturin develop --release"
+            )
+        self._bridge = _PyEventBridge(production=production)
+        self._wired = False
+
+    def wire(self) -> int:
+        """Wire all constitutional subscribers. Returns count wired."""
+        count = self._bridge.wire_subscribers()
+        self._wired = True
+        logger.info("RustEventBridge: wired %d constitutional subscribers", count)
+        return count
+
+    def emit_rust(
+        self,
+        topic: str,
+        payload: str,
+        priority: int = 1,
+    ) -> int:
+        """
+        Emit an event into the Rust nervous system.
+
+        Returns the number of handlers that received the event.
+        """
+        if not self._wired:
+            self.wire()
+        return self._bridge.emit(topic, payload, priority)
+
+    def health(self) -> Dict[str, Any]:
+        """Return Rust system health as a dict."""
+        return dict(self._bridge.health())
+
+    @property
+    def is_wired(self) -> bool:
+        return self._wired
+
+
+def create_rust_event_bridge(
+    production: bool = False,
+) -> Optional[RustEventBridge]:
+    """
+    Factory: create RustEventBridge if available, else None.
+
+    Safe for initialization paths — never raises.
+    """
+    if not _RUST_BRIDGE_AVAILABLE:
+        return None
+    try:
+        return RustEventBridge(production=production)
+    except Exception as e:
+        logger.debug("Failed to create Rust event bridge: %s", e)
+        return None
+
+
 __all__ = [
     "Event",
     "EventBus",
     "EventHandler",
     "EventPriority",
     "get_event_bus",
+    "RustEventBridge",
+    "create_rust_event_bridge",
+    "is_rust_event_bus_available",
 ]

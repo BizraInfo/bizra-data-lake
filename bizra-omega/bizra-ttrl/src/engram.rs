@@ -123,6 +123,25 @@ impl EngramCache {
         }
     }
 
+    /// Read-only lookup. Does NOT update hit/miss counters or entry.hit_count.
+    /// Use for concurrent read access in the OmniKernel fast path.
+    pub fn lookup_readonly(&self, intent_canonical: &[u8], min_confidence: f64) -> EngramResult {
+        let key = Self::key(intent_canonical);
+        match self.store.get(&key) {
+            Some(entry) if entry.confidence >= min_confidence => EngramResult::Hit {
+                value: entry.value.clone(),
+                confidence: entry.confidence,
+            },
+            _ => EngramResult::Miss,
+        }
+    }
+
+    /// Record a cache hit in telemetry. Call from the write path after
+    /// a successful `lookup_readonly` to keep counters accurate.
+    pub fn record_hit(&mut self) {
+        self.hits += 1;
+    }
+
     /// Evict entries whose confidence has dropped below `floor`.
     pub fn evict_stale(&mut self, floor: f64) {
         self.store.retain(|_, e| e.confidence >= floor);
@@ -186,6 +205,37 @@ mod tests {
         cache.lookup(b"a", 0.95); // hit
         cache.lookup(b"b", 0.95); // miss
         assert!((cache.hit_rate() - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_lookup_readonly_returns_hit_without_mutating() {
+        let mut cache = EngramCache::new();
+        cache.insert(b"intent_bytes", "Paris", 0.99, 1000);
+
+        let hits_before = cache.hits;
+        let result = cache.lookup_readonly(b"intent_bytes", 0.95);
+        assert!(result.is_hit());
+        assert_eq!(result.value(), Some("Paris".to_string()));
+        // hits counter should NOT change (read-only)
+        assert_eq!(cache.hits, hits_before);
+    }
+
+    #[test]
+    fn test_lookup_readonly_misses_below_confidence() {
+        let mut cache = EngramCache::new();
+        cache.insert(b"stale", "old", 0.60, 1000);
+        let result = cache.lookup_readonly(b"stale", 0.95);
+        assert!(!result.is_hit());
+        // misses counter should NOT change either
+        assert_eq!(cache.misses, 0);
+    }
+
+    #[test]
+    fn test_record_hit_increments() {
+        let mut cache = EngramCache::new();
+        let before = cache.hits;
+        cache.record_hit();
+        assert_eq!(cache.hits, before + 1);
     }
 
     #[test]
