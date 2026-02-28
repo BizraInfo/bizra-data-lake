@@ -32,6 +32,13 @@ import os
 import signal
 import sys
 import time
+
+# Force UTF-8 stdout on Windows — node0 uses Unicode box-drawing characters
+# (═ ✓ ✗) which cp1252 cannot encode.  This is idempotent on Linux/macOS.
+os.environ.setdefault("PYTHONUTF8", "1")
+if sys.stdout.encoding and sys.stdout.encoding.lower().startswith("cp"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -296,8 +303,8 @@ _PURPOSE_TO_ROLE = {
 
 _DEFAULT_MODEL_ROUTING = {
     "planner": "agentflow-planner-7b-i1",
-    "reasoner": "deepseek/deepseek-r1-0528-qwen3-8b",
-    "reasoner_large": "mistralai/ministral-3-14b-reasoning",
+    "reasoner": "qwen/qwen3-4b-thinking-2507",  # 4B fits RTX 4090 alongside other models
+    "reasoner_large": "deepseek/deepseek-r1-0528-qwen3-8b",  # Promoted from default reasoner
     "thinker": "qwen/qwen3-4b-thinking-2507",
     "general": "liquid/lfm2.5-1.2b",
     "creative": "chuanli11_-_llama-3.2-3b-instruct-uncensored",
@@ -422,6 +429,60 @@ class KnowledgeRetriever:
         except Exception as e:
             logger.debug(f"  RAG retrieval failed: {e}")
             return ""
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# REASONING MODEL RESPONSE NORMALIZER
+# Standing on Giants: Shannon (separate signal from noise in reasoning traces)
+# ════════════════════════════════════════════════════════════════════════════════
+
+
+def _normalize_reasoning_response(msg: dict) -> str:
+    """Extract useful content from LLM responses, handling reasoning models.
+
+    Modern reasoning models (Qwen3 Thinking, DeepSeek R1) use an extended
+    OpenAI-compatible schema where divergent reasoning goes to
+    ``reasoning_content`` and the converged answer goes to ``content``.
+
+    Priority:
+    1. If ``content`` is non-empty → use it (standard or converged answer)
+    2. If ``content`` is empty but ``reasoning_content`` exists → extract
+       the final answer from reasoning (after last structural break)
+    3. Fallback → empty string
+
+    Standing on Giants: Shannon (signal extraction from noisy channel)
+    """
+    content = msg.get("content") or ""
+    reasoning = msg.get("reasoning_content") or ""
+
+    # Case 1: Model produced a converged answer (standard or non-thinking model)
+    if content.strip():
+        return content.strip()
+
+    # Case 2: All output is in reasoning_content (Qwen3 Thinking with content="")
+    if reasoning.strip():
+        # Try to extract the final conclusion after common reasoning markers
+        # Reasoning models often end with a clear answer after their chain
+        for marker in [
+            "\n\nFinal answer:",
+            "\n\nIn summary,",
+            "\n\nTherefore,",
+            "\n\nSo,",
+            "\n\nThe answer",
+            "\n\nTo summarize",
+            "\n\n**",
+        ]:
+            idx = reasoning.lower().rfind(marker.lower())
+            if idx >= 0:
+                extracted = reasoning[idx:].strip()
+                if len(extracted) > 20:
+                    return extracted
+
+        # No clear marker — return the full reasoning as the output
+        # (better than empty, and the SNR scorer will evaluate quality)
+        return reasoning.strip()
+
+    return ""
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -731,10 +792,14 @@ class Node0ProactiveKernel:
     _MAX_HISTORY = 500
 
     # Resolve from env → constants.py → default (WSL gateway)
-    _LM_STUDIO_URL = os.getenv(
-        "LM_STUDIO_URL",
-        f"http://{os.getenv('LMSTUDIO_HOST', '172.22.48.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
-    ).rstrip("/").replace("/v1", "")  # Normalize to base URL without /v1 suffix
+    _LM_STUDIO_URL = (
+        os.getenv(
+            "LM_STUDIO_URL",
+            f"http://{os.getenv('LMSTUDIO_HOST', '172.22.48.1')}:{os.getenv('LMSTUDIO_PORT', '1234')}",
+        )
+        .rstrip("/")
+        .replace("/v1", "")
+    )  # Normalize to base URL without /v1 suffix
     _OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
     # Mapping from LM Studio model names → Ollama equivalents
@@ -746,6 +811,11 @@ class Node0ProactiveKernel:
         "qwen/qwen3-vl-4b": "llama3.1:8b",
         "deephat-v1-7b": "mistral:latest",
         "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text:latest",
+        # Previously missing — caused 4/7 PAT agent roles to silently fall back to llama3.1:8b
+        "qwen/qwen3-4b-thinking-2507": "deepseek-r1:14b",          # reasoner + thinker roles
+        "liquid/lfm2.5-1.2b": "phi3:mini",                          # general role
+        "chuanli11_-_llama-3.2-3b-instruct-uncensored": "mistral:latest",  # creative role
+        "mistralai/ministral-3-14b-reasoning": "deepseek-r1:14b",   # escalation chain
     }
 
     def __init__(self, config: Dict[str, Any] = None):
@@ -825,6 +895,22 @@ class Node0ProactiveKernel:
             self._emission_gate = LogisticEmissionGate()
         except Exception as e:
             logger.debug("  Token reward subsystem unavailable: %s", e)
+
+        # Rust Nervous System — sharded EventBus via PyO3
+        # Standing on Giants: Shannon (namespace sharding) · Lamport (monotonic EventId)
+        self._rust_bridge = None
+        try:
+            from core.sovereign.event_bus import create_rust_event_bridge
+
+            bridge = create_rust_event_bridge(production=False)
+            if bridge is not None:
+                bridge.wire()
+                self._rust_bridge = bridge
+                logger.info("  Rust nervous system: ACTIVE (12 constitutional subscribers)")
+            else:
+                logger.debug("  Rust nervous system: unavailable (PyO3 not built)")
+        except Exception as e:
+            logger.debug("  Rust nervous system: init failed: %s", e)
 
         # Cycle timing
         cycles_cfg = self.config.get("cycles", {})
@@ -907,6 +993,9 @@ class Node0ProactiveKernel:
         if self._backend_name == "lm_studio_offline":
             logger.info("  Fleet pre-load skipped: no backend available")
             return
+        if self._backend_name == "ollama":
+            logger.info("  Fleet pre-load skipped: Ollama auto-loads on first inference (no /api/v1/models/load endpoint)")
+            return
 
         try:
             from core.inference.auto_model_router import AutoModelRouter
@@ -923,9 +1012,7 @@ class Node0ProactiveKernel:
             )
             loaded = sum(1 for v in fleet_status.values() if v)
             total = len(fleet_status)
-            logger.info(
-                "  Fleet pre-loaded: %d/%d models ready in VRAM", loaded, total
-            )
+            logger.info("  Fleet pre-loaded: %d/%d models ready in VRAM", loaded, total)
         except Exception as e:
             logger.warning("  Fleet pre-load failed (non-fatal): %s", e)
 
@@ -994,7 +1081,7 @@ class Node0ProactiveKernel:
                     return ""
                 payload = response.json()
                 msg = payload.get("choices", [{}])[0].get("message", {})
-                return msg.get("content", "") or msg.get("reasoning_content", "")
+                return _normalize_reasoning_response(msg)
         except Exception:
             return ""
 
@@ -1024,6 +1111,12 @@ class Node0ProactiveKernel:
         if self._baseline:
             logger.info(
                 f"  Baseline: {self._baseline.get('node_id', '?')} | goals={len(self._baseline.get('weekly_goals', []))}"
+            )
+        if self._rust_bridge is not None:
+            rh = self._rust_bridge.health()
+            logger.info(
+                f"  Rust Bus: {rh.get('active_subscriptions', 0)} subscribers, "
+                f"ihsān={rh.get('system_ihsan', 0):.4f}"
             )
         logger.info("═" * 60)
 
@@ -1071,6 +1164,17 @@ class Node0ProactiveKernel:
                     mission["assigned_agents"] = agents
                     mission["status"] = "in_progress"
 
+                    # 2b. SIGNAL — Notify Rust nervous system of mission start
+                    if self._rust_bridge is not None:
+                        try:
+                            self._rust_bridge.emit_rust(
+                                "action.intent",
+                                f"mission:{mission['id']}:{mission['description'][:80]}",
+                                self._rust_bridge.PRIORITY_NORMAL,
+                            )
+                        except Exception:
+                            pass  # Non-blocking — bridge failure must not block mission
+
                     # 3. EXECUTE - Run PAT team
                     result = await self._execute_mission(mission, agents)
 
@@ -1084,9 +1188,26 @@ class Node0ProactiveKernel:
 
                     self._completed.append(mission)
                     if len(self._completed) > self._MAX_HISTORY:
-                        self._completed = self._completed[-self._MAX_HISTORY:]
+                        self._completed = self._completed[-self._MAX_HISTORY :]
                     self._missions.remove(mission)
                     self._metrics["missions_completed"] += 1
+
+                    # 5b. SIGNAL — Notify Rust nervous system of mission completion
+                    if self._rust_bridge is not None:
+                        try:
+                            topic = "action.receipt" if ihsan_ok else "ihsan.violation"
+                            priority = (
+                                self._rust_bridge.PRIORITY_NORMAL
+                                if ihsan_ok
+                                else self._rust_bridge.PRIORITY_HIGH
+                            )
+                            self._rust_bridge.emit_rust(
+                                topic,
+                                f"mission:{mission['id']}:ihsan={result.get('ihsan_score', 0):.2f}",
+                                priority,
+                            )
+                        except Exception:
+                            pass  # Non-blocking
 
                     logger.info(
                         f"✓ Mission {mission['id']}: {'PASS' if ihsan_ok else 'REVIEW'}"
@@ -1271,9 +1392,11 @@ class Node0ProactiveKernel:
 
                 # Thinking models (DeepSeek-R1, Qwen3-thinking) need longer
                 # timeouts — they reason for 10-30s before producing content.
+                # With 128GB RAM + RTX 4090, models can offload to CPU; allow
+                # generous timeout for cold starts and reasoning chains.
                 is_thinking = any(t in model for t in ("r1", "thinking", "reasoning"))
-                req_timeout = 120.0 if is_thinking else 30.0
-                req_max_tokens = 1200 if is_thinking else 600
+                req_timeout = 300.0 if is_thinking else 60.0
+                req_max_tokens = 800 if is_thinking else 500
                 if strategy is not None:
                     req_max_tokens = min(
                         req_max_tokens,
@@ -1336,25 +1459,32 @@ class Node0ProactiveKernel:
                 async with httpx.AsyncClient(
                     headers=headers, timeout=req_timeout
                 ) as client:
+                    # Build request payload — disable thinking mode for
+                    # reasoning models (Qwen3 Thinking, DeepSeek R1) so they
+                    # produce direct answers in `content` instead of streaming
+                    # everything to `reasoning_content`.
+                    # Standing on Giants: Shannon (maximize signal in output)
+                    req_payload = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_content},
+                        ],
+                        "max_tokens": req_max_tokens,
+                        "temperature": strategy_temp,
+                    }
+                    if "qwen3" in model.lower() and "thinking" in model.lower():
+                        req_payload["chat_template_kwargs"] = {"enable_thinking": False}
+
                     resp = await client.post(
                         f"{self.base_url}/v1/chat/completions",
-                        json={
-                            "model": model,
-                            "messages": [
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": user_content},
-                            ],
-                            "max_tokens": req_max_tokens,
-                            "temperature": strategy_temp,
-                        },
+                        json=req_payload,
                     )
 
                     if resp.status_code == 200:
                         data = resp.json()
                         msg = data["choices"][0]["message"]
-                        content = msg.get("content", "") or msg.get(
-                            "reasoning_content", ""
-                        )
+                        content = _normalize_reasoning_response(msg)
                         tokens = data.get("usage", {}).get("total_tokens", 0)
                         return {
                             "agent": agent_id,
@@ -1473,7 +1603,7 @@ class Node0ProactiveKernel:
         receipt = _emit_verified_receipt(mission, result, snr_data)
         self._receipts.append(receipt)
         if len(self._receipts) > self._MAX_HISTORY:
-            self._receipts = self._receipts[-self._MAX_HISTORY:]
+            self._receipts = self._receipts[-self._MAX_HISTORY :]
         result["receipt"] = receipt
 
         # ═══ Post-mission: feed results to Equalizer for model adjustment ═══
@@ -1634,6 +1764,12 @@ class Node0Orchestrator:
             logger.error("Cannot connect to LM Studio. Exiting.")
             return
 
+        # Write PID file for process management
+        pid_file = Path(__file__).resolve().parent.parent / "sovereign_state" / "proactive.pid"
+        pid_file.parent.mkdir(parents=True, exist_ok=True)
+        pid_file.write_text(str(os.getpid()))
+        logger.info("PID file written: %s (PID %d)", pid_file, os.getpid())
+
         # Setup signal handlers
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -1652,6 +1788,8 @@ class Node0Orchestrator:
         await self.kernel.stop()
         kernel_task.cancel()
 
+        # Remove PID file on clean shutdown
+        pid_file.unlink(missing_ok=True)
         logger.info("Node0 shutdown complete.")
 
     async def _check_connection(self) -> bool:
@@ -1766,6 +1904,26 @@ async def cmd_status(args):
     print(f"  Token:        {'✓ Set' if token else '✗ Not set'}")
     print("  PAT Agents:   7 configured")
     print("  Mode:         proactive_partner")
+
+    # Rust Nervous System health
+    try:
+        from core.sovereign.event_bus import create_rust_event_bridge
+
+        bridge = create_rust_event_bridge(production=False)
+        if bridge is not None:
+            bridge.wire()
+            health = bridge.health()
+            dr = health.get("delivery_ratio", 0)
+            subs = health.get("active_subscriptions", 0)
+            ihsan = health.get("system_ihsan", 0)
+            print()
+            print(f"  Rust Bus:     ✓ Active ({subs} subscribers)")
+            print(f"  Delivery:     {dr:.0%} | Ihsān: {ihsan:.4f}")
+        else:
+            print("\n  Rust Bus:     ○ Not built (PyO3 unavailable)")
+    except Exception:
+        print("\n  Rust Bus:     ○ Not available")
+
     print("═" * 60 + "\n")
 
 
