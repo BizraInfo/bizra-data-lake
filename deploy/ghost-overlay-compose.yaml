@@ -1,0 +1,121 @@
+# BIZRA Ghost Overlay — Docker Compose Deployment
+# DevOps Configuration v0.1.0
+#
+# Standing on Giants: Boyd (OODA loop) · Norman (invisible design) ·
+#   Shannon (SNR gating) · Lamport (single source of truth)
+#
+# Architecture:
+#   Ghost Overlay (AHK, Windows-side) ← JSON-RPC → Desktop Bridge (Python)
+#   Desktop Bridge ← IPC → Action Bus (Rust, bizra-action)
+#   Action Bus → Evidence Ledger (hash-chained receipts)
+#
+# Prerequisites:
+#   - BIZRA core stack running (elite-compose.yaml or equivalent)
+#   - AutoHotkey v2 installed on Windows host
+#   - Port 9742 available for Desktop Bridge
+
+services:
+  # ============================================================================
+  # DESKTOP BRIDGE — JSON-RPC gateway for Ghost Overlay ↔ Node0
+  # ============================================================================
+  desktop-bridge:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.elite
+    container_name: bizra-desktop-bridge
+    command: >
+      python -c "
+      import asyncio
+      from core.bridges.desktop_bridge import DesktopBridge
+      bridge = DesktopBridge()
+      asyncio.run(bridge.start())
+      "
+    environment:
+      - BIZRA_ENV=${BIZRA_ENV:-development}
+      - BIZRA_BRIDGE_PORT=9742
+      - BIZRA_BRIDGE_TOKEN=${BIZRA_BRIDGE_TOKEN:?BIZRA_BRIDGE_TOKEN required}
+      - GHOST_IDLE_TIMEOUT_MS=${GHOST_IDLE_TIMEOUT_MS:-5000}
+      - GHOST_DEBOUNCE_MS=${GHOST_DEBOUNCE_MS:-500}
+      # Note: IHSAN/SNR thresholds are Final in constants.py — not overridable via env
+      # Guardian integration (Rust-side FATE gate)
+      - BIZRA_GUARDIAN_WIRE_MODE=${BIZRA_GUARDIAN_WIRE_MODE:-best_effort}
+      - BIZRA_GUARDIAN_HOST=${BIZRA_GUARDIAN_HOST:-127.0.0.1}
+      - BIZRA_GUARDIAN_PORT=${BIZRA_GUARDIAN_PORT:-9741}
+      - BIZRA_GUARDIAN_TIMEOUT_MS=${BIZRA_GUARDIAN_TIMEOUT_MS:-1200}
+      - BIZRA_NODE_ROLE=${BIZRA_NODE_ROLE:-node}
+    ports:
+      - "127.0.0.1:9742:9742"
+    volumes:
+      - ../core:/app/core:ro
+      - ../config:/app/config:ro
+      - ghost-logs:/app/logs/ghost
+      - ghost-evidence:/app/evidence
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost',9742),2); s.close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    depends_on:
+      - ghost-ws-bridge
+
+  # ============================================================================
+  # WEBSOCKET BRIDGE — Real-time push from Node0 to Ghost Overlay UI
+  # ============================================================================
+  ghost-ws-bridge:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.elite
+    container_name: bizra-ghost-ws
+    command: >
+      python -m uvicorn core.bridges.ghost_ws:app
+      --host 0.0.0.0 --port 9743
+      --ws-max-size 65536
+      --timeout-keep-alive 300
+    environment:
+      - BIZRA_ENV=${BIZRA_ENV:-development}
+      - WS_HOST=0.0.0.0
+      - WS_PORT=9743
+      - WS_MAX_SIZE=${WS_MAX_SIZE:-65536}
+      - GHOST_MAX_CLIENTS=${GHOST_MAX_CLIENTS:-4}
+      - GHOST_IDLE_TIMEOUT_MS=${GHOST_IDLE_TIMEOUT_MS:-5000}
+      - GHOST_DEBOUNCE_MS=${GHOST_DEBOUNCE_MS:-500}
+      - GHOST_WS_AUTH_TOKEN=${GHOST_WS_AUTH_TOKEN:-}
+      # Note: IHSAN/SNR thresholds are Final in constants.py — not overridable via env
+    ports:
+      - "127.0.0.1:9743:9743"
+    volumes:
+      - ../core:/app/core:ro
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:9743/health',timeout=2); assert r.status_code==200"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 8s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+volumes:
+  ghost-logs:
+    name: bizra-ghost-logs
+  ghost-evidence:
+    name: bizra-ghost-evidence
+
+networks:
+  bizra-network:
+    external: true
+    name: bizra-dual-agentic-system--main_default

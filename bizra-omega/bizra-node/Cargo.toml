@@ -21,7 +21,10 @@ bizra-memory = { path = "../bizra-memory" }
 bizra-agent = { path = "../bizra-agent" }
 bizra-action = { path = "../bizra-action" }
 bizra-telescript = { path = "../bizra-telescript" }
+bizra-core = { path = "../bizra-core" }
+bizra-inference = { path = "../bizra-inference" }
 serde_json = { workspace = true }
+tokio = { workspace = true }
 
 [features]
 default = []

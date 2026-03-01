@@ -16,10 +16,14 @@ use crate::protocol::{Command, ErrorCode, Response, NODE_NAME, NODE_VERSION, PRO
 use bizra_agent::context::IntentClassifier;
 use bizra_agent::runtime::{AgentRuntime, RuntimeState};
 use bizra_agent::types::{AgentRole, Message, MessageId};
+use bizra_core::{Constitution, NodeIdentity, IHSAN_THRESHOLD};
 use bizra_hooks::saga::SagaRegistry;
 use bizra_hooks::IhsanScore;
+use bizra_inference::{BackendConfig, InferenceGateway, InferenceRequest, OllamaBackend};
+use bizra_inference::{GatewayError, ModelTier, TaskComplexity};
 use bizra_memory::types::{AtomKind, Confidence};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 // ============================================================
 // NODE INTERNALS — the mutable state the handler operates on
@@ -268,30 +272,51 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
     let msg = Message::inbound(MessageId::new(msg_seq, 1), content, timestamp, *state.ihsan);
     let result = state.runtime.receive(msg, timestamp);
 
-    // Advance saga through phases based on result.
-    // The runtime.receive() call encompasses plan→execute→evaluate→draft internally.
+    let inference_execution = maybe_execute_inference(content, timestamp);
+
+    // Advance saga through phases based on runtime + inference execution.
+    // The runtime.receive() call encompasses plan→execute→evaluate→draft internally,
+    // and the explicit inference gateway enforces non-noop Execute semantics when enabled.
     if let Some(sid) = saga_id {
         if let Some(saga) = state.saga_registry.get_mut(sid) {
             let ihsan = *state.ihsan;
-            // Advance: Received → Planned → Executed → Evaluated → Drafted
-            for _ in 0..4 {
-                let action = saga.advance(ihsan, timestamp);
-                if matches!(
-                    action,
-                    bizra_hooks::saga::SagaAction::Fail { .. }
-                        | bizra_hooks::saga::SagaAction::None
-                ) {
-                    break;
+            let mut execution_failed = false;
+
+            // Received -> Planned
+            let action = saga.advance(ihsan, timestamp);
+            if !matches!(
+                action,
+                bizra_hooks::saga::SagaAction::Fail { .. } | bizra_hooks::saga::SagaAction::None
+            ) {
+                // Planned -> Executed
+                match &inference_execution {
+                    InferenceExecution::Disabled => {
+                        let _ = saga.advance(ihsan, timestamp);
+                    }
+                    InferenceExecution::Succeeded { ihsan_score, .. } => {
+                        let exec_ihsan = IhsanScore::from_f64(*ihsan_score);
+                        let _ = saga.advance(exec_ihsan, timestamp);
+                    }
+                    InferenceExecution::Failed { .. } => {
+                        saga.fail(3, timestamp); // Error 3: Execute inference failed
+                        execution_failed = true;
+                    }
+                }
+
+                if !execution_failed {
+                    // Executed -> Evaluated -> Drafted
+                    let _ = saga.advance(ihsan, timestamp);
+                    let _ = saga.advance(ihsan, timestamp);
                 }
             }
 
             // Gate phase: advance through constitutional check
-            if result.guardian_approved {
+            if !execution_failed && result.guardian_approved {
                 saga.mark_gated();
                 saga.advance(ihsan, timestamp); // Drafted → Gated
                 saga.advance(ihsan, timestamp); // Gated → Attested
                 saga.advance(ihsan, timestamp); // Attested → Completed
-            } else {
+            } else if !execution_failed {
                 saga.fail(2, timestamp); // Error 2: Guardian rejected
             }
 
@@ -318,7 +343,126 @@ fn handle_receive(state: &mut NodeInternals<'_>, content: &str, timestamp: u64) 
         ("reflex_hit", format!("{}", result.reflex_hit)),
         ("action_id", result.action_id.unwrap_or_default()),
         ("saga_id", saga_id_str),
+        (
+            "inference_executed",
+            format!("{}", inference_execution.is_executed()),
+        ),
+        (
+            "inference_model",
+            inference_execution.model().unwrap_or_default(),
+        ),
+        (
+            "inference_ihsan",
+            inference_execution
+                .ihsan_score()
+                .map(|v| format!("{v:.4}"))
+                .unwrap_or_default(),
+        ),
+        (
+            "inference_error",
+            inference_execution.error().unwrap_or_default(),
+        ),
     ])
+}
+
+#[derive(Debug)]
+enum InferenceExecution {
+    Disabled,
+    Succeeded { model: String, ihsan_score: f64 },
+    Failed { error: String },
+}
+
+impl InferenceExecution {
+    fn is_executed(&self) -> bool {
+        matches!(self, Self::Succeeded { .. })
+    }
+
+    fn model(&self) -> Option<String> {
+        match self {
+            Self::Succeeded { model, .. } => Some(model.clone()),
+            _ => None,
+        }
+    }
+
+    fn ihsan_score(&self) -> Option<f64> {
+        match self {
+            Self::Succeeded { ihsan_score, .. } => Some(*ihsan_score),
+            _ => None,
+        }
+    }
+
+    fn error(&self) -> Option<String> {
+        match self {
+            Self::Failed { error } => Some(error.clone()),
+            _ => None,
+        }
+    }
+}
+
+fn maybe_execute_inference(content: &str, timestamp: u64) -> InferenceExecution {
+    if !env_flag("BIZRA_ENABLE_OLLAMA_EXECUTE") {
+        return InferenceExecution::Disabled;
+    }
+
+    match execute_with_ollama_gateway(content, timestamp) {
+        Ok((model, ihsan_score)) => InferenceExecution::Succeeded { model, ihsan_score },
+        Err(error) => InferenceExecution::Failed { error },
+    }
+}
+
+fn execute_with_ollama_gateway(content: &str, timestamp: u64) -> Result<(String, f64), String> {
+    let endpoint = std::env::var("BIZRA_OLLAMA_ENDPOINT")
+        .unwrap_or_else(|_| "http://localhost:11434".to_string());
+    let model = std::env::var("BIZRA_OLLAMA_MODEL").unwrap_or_else(|_| "llama3.2".to_string());
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime init failed: {e}"))?;
+
+    runtime.block_on(async {
+        let identity = NodeIdentity::generate();
+        let constitution = Constitution::default();
+        let gateway = InferenceGateway::new(identity, constitution);
+
+        let backend_cfg = BackendConfig {
+            name: "ollama".to_string(),
+            model: model.clone(),
+            ..Default::default()
+        };
+        let backend = Arc::new(OllamaBackend::new(backend_cfg, Some(endpoint.as_str())));
+        gateway.register_backend(ModelTier::Local, backend).await;
+
+        let request = InferenceRequest {
+            id: format!("node0_exec_{timestamp}"),
+            prompt: content.to_string(),
+            complexity: TaskComplexity::Medium,
+            preferred_tier: Some(ModelTier::Local),
+            ..Default::default()
+        };
+
+        let response = gateway
+            .infer_with_ihsan_gate(request, IHSAN_THRESHOLD)
+            .await
+            .map_err(|e| match e {
+                GatewayError::IhsanGateFailed { score, threshold } => {
+                    format!("ihsan_gate_failed:{score:.4}<{threshold:.4}")
+                }
+                other => format!("inference_error:{other}"),
+            })?;
+
+        let score = InferenceGateway::estimate_ihsan_score(&response);
+        Ok((response.model, score))
+    })
+}
+
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .map(|v| {
+            let normalized = v.trim().to_ascii_lowercase();
+            matches!(normalized.as_str(), "1" | "true" | "yes" | "on")
+        })
+        .unwrap_or(false)
 }
 
 fn handle_explain(state: &mut NodeInternals<'_>, action_hash: &str) -> Response {

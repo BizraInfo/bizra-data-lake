@@ -11,6 +11,7 @@ pub mod lmstudio;
 pub mod ollama;
 
 pub use lmstudio::{LMStudioBackend, LMStudioConfig, ModelCapability};
+pub use ollama::OllamaBackend;
 
 use crate::gateway::{InferenceRequest, InferenceResponse};
 use async_trait::async_trait;

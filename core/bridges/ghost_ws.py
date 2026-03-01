@@ -27,10 +27,12 @@ import json
 import logging
 import os
 import time
+import uuid
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.integration.constants import (
@@ -248,6 +250,105 @@ app = FastAPI(
 
 manager = GhostConnectionManager()
 debouncer = PredictionDebouncer()
+
+# Allow file:// and localhost origins so standalone HTML tools can call /rpc
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+
+# ---------------------------------------------------------------------------
+# HTTP-to-TCP JSON-RPC proxy  (used by standalone HTML tools)
+# ---------------------------------------------------------------------------
+
+
+@app.post("/rpc")
+async def http_rpc_proxy(request: Request) -> JSONResponse:
+    """Proxy a JSON-RPC 2.0 POST to the Desktop Bridge TCP server (port 9742).
+
+    Allows browser fetch() to call invoke_skill / actuator_execute without
+    a raw TCP socket.  Auth token is forwarded via X-BIZRA-TOKEN if present.
+    """
+    BRIDGE_HOST = "127.0.0.1"
+    BRIDGE_PORT = int(os.environ.get("DESKTOP_BRIDGE_PORT", "9742"))
+    CONNECT_TIMEOUT = 3.0
+    READ_TIMEOUT = 30.0
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            {
+                "jsonrpc": "2.0",
+                "error": {"code": -32700, "message": "Parse error"},
+                "id": None,
+            },
+            status_code=400,
+        )
+
+    # Forward auth token from HTTP header into message["headers"] — the structure
+    # that desktop_bridge._validate_auth() reads (X-BIZRA-TOKEN, X-BIZRA-TS, X-BIZRA-NONCE).
+    token = request.headers.get("X-BIZRA-TOKEN", "")
+    if token:
+        hdrs = body.setdefault("headers", {})
+        hdrs.setdefault("X-BIZRA-TOKEN", token)
+        hdrs.setdefault("X-BIZRA-TS", str(int(time.time() * 1000)))
+        hdrs.setdefault("X-BIZRA-NONCE", str(uuid.uuid4()))
+
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(BRIDGE_HOST, BRIDGE_PORT),
+            timeout=CONNECT_TIMEOUT,
+        )
+    except (ConnectionRefusedError, OSError, asyncio.TimeoutError):
+        return JSONResponse(
+            {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32001,
+                    "message": "Desktop Bridge offline (port 9742)",
+                },
+                "id": body.get("id"),
+            },
+            status_code=503,
+        )
+
+    try:
+        writer.write(json.dumps(body).encode() + b"\n")
+        await writer.drain()
+        raw = await asyncio.wait_for(reader.readline(), timeout=READ_TIMEOUT)
+        if not raw:
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32002,
+                        "message": "Desktop Bridge closed connection without response",
+                    },
+                    "id": body.get("id"),
+                },
+                status_code=502,
+            )
+        return JSONResponse(json.loads(raw.decode()))
+    except Exception as exc:
+        logger.warning("http_rpc_proxy error: %s", exc)
+        return JSONResponse(
+            {
+                "jsonrpc": "2.0",
+                "error": {"code": -32002, "message": str(exc)},
+                "id": body.get("id"),
+            },
+            status_code=502,
+        )
+    finally:
+        try:
+            writer.close()
+            await asyncio.wait_for(writer.wait_closed(), timeout=2.0)
+        except Exception:
+            pass
 
 
 @app.get("/health")

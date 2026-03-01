@@ -396,6 +396,7 @@ class DesktopBridge:
             "invoke_skill": self._handle_invoke_skill,
             "list_skills": self._handle_list_skills,
             "get_receipt": self._handle_get_receipt,
+            "list_receipts": self._handle_list_receipts,
             "actuator_execute": self._handle_actuator_execute,
             "get_context": self._handle_get_context,
             "verify_action_outcome": self._handle_verify_action_outcome,
@@ -966,6 +967,43 @@ class DesktopBridge:
             raise ValueError(f"Receipt not found: {params['receipt_id']}")
 
         return receipt
+
+    async def _handle_list_receipts(self, params: Any) -> dict[str, Any]:
+        """Return the most recent N signed bridge receipts, newest first.
+
+        Params:
+            n (int, optional): Number of receipts to return (1–100, default 20).
+
+        Returns dict with:
+            receipts: list of receipt dicts (newest first)
+            count: number returned
+            total_on_disk: total files in receipt_dir
+        """
+        n = 20
+        if isinstance(params, dict):
+            try:
+                n = max(1, min(int(params.get("n", 20)), 100))
+            except (TypeError, ValueError):
+                pass
+
+        engine = self._get_receipt_engine()
+        if engine is None:
+            return {"error": "Receipt engine not available", "receipts": []}
+
+        receipts = engine.list_recent(n)
+
+        # Count total persisted receipts for UI pagination hint
+        total = 0
+        try:
+            total = sum(1 for _ in engine.receipt_dir.glob("br-*.json"))
+        except OSError:
+            pass
+
+        return {
+            "receipts": receipts,
+            "count": len(receipts),
+            "total_on_disk": total,
+        }
 
     # -- actuator layer (Phase 20) -------------------------------------------
 

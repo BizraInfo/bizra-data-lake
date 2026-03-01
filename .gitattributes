@@ -59,3 +59,38 @@ bin/bizra text eol=lf
 *.a binary
 *.pyc binary
 *.pyo binary
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# XZ BACKDOOR DEFENSE — Golden Gem α10
+# Standing on Giants: Jia Tan attack (2024) — binary blobs bypass code review
+#
+# RULE: Any binary file change MUST trigger explicit PR review.
+# The XZ payload was hidden in test fixture binary files that were included
+# in every build but never inspected. This section ensures:
+# 1. All binary changes show up in `git diff --stat`
+# 2. Test fixture binaries are explicitly tracked
+# 3. Unknown binary formats trigger linguist-detectable warnings
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Test fixtures — binary blobs in test directories require explicit review
+# This is exactly where Jia Tan hid the XZ payload
+tests/**/*.bin binary diff
+tests/**/*.dat binary diff
+tests/**/*.fixture binary diff
+tests/**/*.snap binary diff
+fixtures/**/* binary diff
+
+# Docker / container images — pin by digest, not tag (separate CI concern)
+Dockerfile linguist-detectable
+
+# Compiled Rust artifacts — should never appear in source
+target/** -diff linguist-vendored
+
+# Node modules — should never appear in source
+node_modules/** -diff linguist-vendored
+
+# Model weights — large binary, must be tracked via LFS or blocked
+*.onnx binary diff filter=lfs
+*.safetensors binary diff filter=lfs
+*.gguf binary diff filter=lfs
+models/**/* binary diff

@@ -1,0 +1,36 @@
+# Ripgrep exclusions for Claude Code search performance
+# These dirs cause 60s+ timeouts when searching /mnt/c/ via WSL2 9P bridge
+# .ignore is respected by ripgrep even with --no-ignore-vcs
+
+# Rust build artifacts (289 GB)
+bizra-omega/target/
+target/
+
+# Python venvs (32 GB)
+.venv/
+.venv-*/
+
+# Node modules (17 GB)
+node_modules/
+
+# Worktrees (duplicate repos)
+.claude/worktrees/
+
+# Git internals
+.git/
+
+# Data pipeline intermediate files
+01_RAW/
+02_PROCESSED/
+03_INDEXED/
+04_GOLD/
+99_QUARANTINE/
+
+# Large binary/data files
+*.parquet
+*.faiss
+*.idx
+*.pack
+*.whl
+*.tar.gz
+*.zip
