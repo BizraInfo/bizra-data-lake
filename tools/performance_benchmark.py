@@ -81,10 +81,16 @@ class PerformanceBenchmark:
         - SNR optimization
         - Guardian validation
         """
-        self.log(f"Benchmarking query pipeline ({iterations} iterations, {warmup} warmup)...")
+        self.log(
+            f"Benchmarking query pipeline ({iterations} iterations, {warmup} warmup)..."
+        )
 
         try:
-            from core.sovereign.runtime import SovereignRuntime, RuntimeConfig, RuntimeMode
+            from core.sovereign.runtime import (
+                SovereignRuntime,
+                RuntimeConfig,
+                RuntimeMode,
+            )
 
             config = RuntimeConfig(
                 mode=RuntimeMode.PRODUCTION,
@@ -144,7 +150,9 @@ class PerformanceBenchmark:
         - Token generation speed
         - Backend switching
         """
-        self.log(f"Benchmarking inference only ({iterations} iterations, {warmup} warmup)...")
+        self.log(
+            f"Benchmarking inference only ({iterations} iterations, {warmup} warmup)..."
+        )
 
         try:
             from core.inference.gateway import InferenceGateway, InferenceConfig
@@ -205,7 +213,9 @@ class PerformanceBenchmark:
         - Vote aggregation
         - Quorum detection
         """
-        self.log(f"Benchmarking consensus ({iterations} iterations, {warmup} warmup)...")
+        self.log(
+            f"Benchmarking consensus ({iterations} iterations, {warmup} warmup)..."
+        )
 
         try:
             from core.federation.consensus import ConsensusEngine
@@ -249,7 +259,9 @@ class PerformanceBenchmark:
                 start = time.perf_counter()
 
                 # Propose pattern
-                proposal = validators[0].propose_pattern({"test": i, "data": "benchmark"})
+                proposal = validators[0].propose_pattern(
+                    {"test": i, "data": "benchmark"}
+                )
 
                 # Each validator votes
                 for v in validators:
@@ -272,7 +284,11 @@ class PerformanceBenchmark:
                     self.log(f"  Completed {i + 1}/{iterations} iterations")
 
             return self._create_result(
-                "consensus_round", len(latencies), latencies, cpu_samples, memory_samples
+                "consensus_round",
+                len(latencies),
+                latencies,
+                cpu_samples,
+                memory_samples,
             )
 
         except ImportError as e:
@@ -290,13 +306,17 @@ class PerformanceBenchmark:
         - Dict lookup speed
         - Eviction overhead
         """
-        self.log(f"Benchmarking cache operations ({iterations} iterations, {warmup} warmup)...")
+        self.log(
+            f"Benchmarking cache operations ({iterations} iterations, {warmup} warmup)..."
+        )
 
         try:
             from core.sovereign.runtime import SovereignRuntime, SovereignQuery
 
             runtime = SovereignRuntime()
-            query = SovereignQuery(content="Test query for cache benchmark", max_depth=3)
+            query = SovereignQuery(
+                content="Test query for cache benchmark", max_depth=3
+            )
 
             latencies = []
             cpu_samples = []
@@ -325,7 +345,11 @@ class PerformanceBenchmark:
                 memory_samples.append(mem_after)
 
             return self._create_result(
-                "cache_operations", len(latencies), latencies, cpu_samples, memory_samples
+                "cache_operations",
+                len(latencies),
+                latencies,
+                cpu_samples,
+                memory_samples,
             )
 
         except ImportError as e:
@@ -344,10 +368,17 @@ class PerformanceBenchmark:
         - Nonce checking
         - Ihsan/SNR thresholds
         """
-        self.log(f"Benchmarking PCI gate chain ({iterations} iterations, {warmup} warmup)...")
+        self.log(
+            f"Benchmarking PCI gate chain ({iterations} iterations, {warmup} warmup)..."
+        )
 
         try:
-            from core.pci.envelope import PCIEnvelope, PCISender, PCISignature, PCIMetadata
+            from core.pci.envelope import (
+                PCIEnvelope,
+                PCISender,
+                PCISignature,
+                PCIMetadata,
+            )
             from core.pci.gates import PCIGateKeeper
             from core.pci.crypto import generate_keypair, sign_message
             from datetime import datetime, timezone
@@ -436,16 +467,24 @@ class PerformanceBenchmark:
             iterations=iterations,
             mean_ms=statistics.mean(latencies),
             median_ms=statistics.median(latencies),
-            p95_ms=sorted_latencies[int(len(sorted_latencies) * 0.95)]
-            if len(sorted_latencies) > 20
-            else sorted_latencies[-1],
-            p99_ms=sorted_latencies[int(len(sorted_latencies) * 0.99)]
-            if len(sorted_latencies) > 100
-            else sorted_latencies[-1],
+            p95_ms=(
+                sorted_latencies[int(len(sorted_latencies) * 0.95)]
+                if len(sorted_latencies) > 20
+                else sorted_latencies[-1]
+            ),
+            p99_ms=(
+                sorted_latencies[int(len(sorted_latencies) * 0.99)]
+                if len(sorted_latencies) > 100
+                else sorted_latencies[-1]
+            ),
             min_ms=min(latencies),
             max_ms=max(latencies),
             stddev_ms=statistics.stdev(latencies) if len(latencies) > 1 else 0.0,
-            qps=1000.0 / statistics.mean(latencies) if statistics.mean(latencies) > 0 else 0.0,
+            qps=(
+                1000.0 / statistics.mean(latencies)
+                if statistics.mean(latencies) > 0
+                else 0.0
+            ),
             cpu_percent=statistics.mean(cpu_samples) if cpu_samples else 0.0,
             memory_mb=statistics.mean(memory_samples) if memory_samples else 0.0,
         )
@@ -481,7 +520,9 @@ class PerformanceBenchmark:
             print(f"\n{result.name.upper()}")
             print("-" * 80)
             print(f"  Iterations:     {result.iterations}")
-            print(f"  Mean Latency:   {result.mean_ms:.2f}ms (±{result.stddev_ms:.2f}ms)")
+            print(
+                f"  Mean Latency:   {result.mean_ms:.2f}ms (±{result.stddev_ms:.2f}ms)"
+            )
             print(f"  Median Latency: {result.median_ms:.2f}ms")
             print(f"  P95 Latency:    {result.p95_ms:.2f}ms")
             print(f"  P99 Latency:    {result.p99_ms:.2f}ms")
@@ -520,15 +561,21 @@ async def main():
 
     parser.add_argument("--all", action="store_true", help="Run all benchmarks")
     parser.add_argument("--query", action="store_true", help="Benchmark query pipeline")
-    parser.add_argument("--inference", action="store_true", help="Benchmark inference only")
+    parser.add_argument(
+        "--inference", action="store_true", help="Benchmark inference only"
+    )
     parser.add_argument("--consensus", action="store_true", help="Benchmark consensus")
-    parser.add_argument("--cache", action="store_true", help="Benchmark cache operations")
+    parser.add_argument(
+        "--cache", action="store_true", help="Benchmark cache operations"
+    )
     parser.add_argument("--pci", action="store_true", help="Benchmark PCI gate chain")
     parser.add_argument(
         "--baseline", type=str, help="Path to baseline JSON for comparison"
     )
     parser.add_argument("--output", type=str, help="Export results to JSON file")
-    parser.add_argument("--quiet", action="store_true", help="Suppress progress messages")
+    parser.add_argument(
+        "--quiet", action="store_true", help="Suppress progress messages"
+    )
 
     args = parser.parse_args()
 
@@ -544,7 +591,9 @@ async def main():
         baseline_path = Path(args.baseline)
         if baseline_path.exists():
             baseline_data = json.loads(baseline_path.read_text())
-            baseline = {r["name"]: BenchmarkResult(**r) for r in baseline_data["results"]}
+            baseline = {
+                r["name"]: BenchmarkResult(**r) for r in baseline_data["results"]
+            }
             benchmark.log(f"Loaded baseline from {baseline_path}")
 
     # Run selected benchmarks

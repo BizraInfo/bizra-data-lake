@@ -29,19 +29,27 @@ except ImportError:
     BATCH_SIZE = 128
 
 try:
-    from metrics_dashboard import MetricsDashboard, record_snr, record_latency, record_error
+    from metrics_dashboard import (
+        MetricsDashboard,
+        record_snr,
+        record_latency,
+        record_error,
+    )
+
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
 
 try:
     from bizra_resilience import get_resilience_status, CircuitBreaker
+
     RESILIENCE_AVAILABLE = True
 except ImportError:
     RESILIENCE_AVAILABLE = False
 
 try:
     from validate_system import SystemValidator
+
     VALIDATION_AVAILABLE = True
 except ImportError:
     VALIDATION_AVAILABLE = False
@@ -49,6 +57,7 @@ except ImportError:
 
 class CommandType(Enum):
     """Command categories"""
+
     SYSTEM = "system"
     QUERY = "query"
     MONITOR = "monitor"
@@ -60,6 +69,7 @@ class CommandType(Enum):
 @dataclass
 class SystemStatus:
     """Comprehensive system status"""
+
     status: str
     uptime_seconds: float
     snr_average: float
@@ -80,6 +90,7 @@ class SystemStatus:
 @dataclass
 class BenchmarkResult:
     """Benchmark execution result"""
+
     name: str
     iterations: int
     total_time_ms: float
@@ -148,6 +159,7 @@ class BIZRACommandCenter:
         """Check configuration"""
         try:
             import bizra_config
+
             return True, f"IHSAN={IHSAN_CONSTRAINT}, SNR={SNR_THRESHOLD}"
         except Exception:
             return False, "Using defaults"
@@ -193,6 +205,7 @@ class BIZRACommandCenter:
         if chunks_path.exists():
             try:
                 import pandas as pd
+
                 df = pd.read_parquet(chunks_path)
                 return True, f"{len(df):,} embedded chunks"
             except Exception:
@@ -215,9 +228,13 @@ class BIZRACommandCenter:
         uptime = time.time() - self.start_time
 
         # SNR statistics
-        snr_avg = sum(self._snr_history) / len(self._snr_history) if self._snr_history else 0
+        snr_avg = (
+            sum(self._snr_history) / len(self._snr_history) if self._snr_history else 0
+        )
         ihsan_count = sum(1 for s in self._snr_history if s >= IHSAN_CONSTRAINT)
-        ihsan_compliance = ihsan_count / len(self._snr_history) if self._snr_history else 0
+        ihsan_compliance = (
+            ihsan_count / len(self._snr_history) if self._snr_history else 0
+        )
 
         # Error rate
         error_rate = self.error_count / self.query_count if self.query_count > 0 else 0
@@ -227,9 +244,16 @@ class BIZRACommandCenter:
         gpu_memory = 0.0
         try:
             import torch
+
             if torch.cuda.is_available():
                 gpu_available = True
-                gpu_memory = torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated() * 100 if torch.cuda.max_memory_allocated() > 0 else 0
+                gpu_memory = (
+                    torch.cuda.memory_allocated()
+                    / torch.cuda.max_memory_allocated()
+                    * 100
+                    if torch.cuda.max_memory_allocated() > 0
+                    else 0
+                )
         except ImportError:
             logger.debug("PyTorch not available for GPU check")
         except Exception as e:
@@ -240,6 +264,7 @@ class BIZRACommandCenter:
         memory_percent = 0.0
         try:
             import psutil
+
             cpu_percent = psutil.cpu_percent()
             memory_percent = psutil.virtual_memory().percent
         except ImportError:
@@ -252,7 +277,8 @@ class BIZRACommandCenter:
         if RESILIENCE_AVAILABLE:
             status = get_resilience_status()
             active_breakers = sum(
-                1 for cb in status.get("circuit_breakers", {}).values()
+                1
+                for cb in status.get("circuit_breakers", {}).values()
                 if cb.get("state") != "closed"
             )
 
@@ -274,6 +300,7 @@ class BIZRACommandCenter:
         if chunks_path.exists():
             try:
                 import pandas as pd
+
                 df = pd.read_parquet(chunks_path)
                 chunks = len(df)
             except ImportError:
@@ -306,7 +333,7 @@ class BIZRACommandCenter:
             graph_nodes=nodes,
             graph_edges=edges,
             embedded_chunks=chunks,
-            last_update=datetime.now().isoformat()
+            last_update=datetime.now().isoformat(),
         )
 
     def print_status_dashboard(self):
@@ -318,7 +345,7 @@ class BIZRACommandCenter:
             "OPTIMAL": "🌟",
             "HEALTHY": "✅",
             "DEGRADED": "⚠️",
-            "INITIALIZING": "🔄"
+            "INITIALIZING": "🔄",
         }
         symbol = status_symbols.get(status.status, "❓")
 
@@ -339,8 +366,16 @@ class BIZRACommandCenter:
         ihsan_symbol = "✅" if status.ihsan_compliance >= 0.95 else "⚠️"
         print("║  📊 SNR METRICS" + " " * 42 + "║")
         print(f"║    Average SNR:        {status.snr_average:.4f}" + " " * 28 + "║")
-        print(f"║    Ihsān Compliance:   {ihsan_symbol} {status.ihsan_compliance*100:.1f}%" + " " * 26 + "║")
-        print(f"║    Total Queries:      {status.total_queries:,}" + " " * (31 - len(f"{status.total_queries:,}")) + "║")
+        print(
+            f"║    Ihsān Compliance:   {ihsan_symbol} {status.ihsan_compliance*100:.1f}%"
+            + " " * 26
+            + "║"
+        )
+        print(
+            f"║    Total Queries:      {status.total_queries:,}"
+            + " " * (31 - len(f"{status.total_queries:,}"))
+            + "║"
+        )
         print("╠" + "═" * 58 + "╣")
 
         # Infrastructure
@@ -348,24 +383,48 @@ class BIZRACommandCenter:
         print("║  🖥️  INFRASTRUCTURE" + " " * 38 + "║")
         print(f"║    GPU Available:      {gpu_symbol}" + " " * 32 + "║")
         if status.gpu_available:
-            print(f"║    GPU Memory:         {status.gpu_memory_used:.1f}%" + " " * 29 + "║")
+            print(
+                f"║    GPU Memory:         {status.gpu_memory_used:.1f}%"
+                + " " * 29
+                + "║"
+            )
         print(f"║    CPU Usage:          {status.cpu_percent:.1f}%" + " " * 29 + "║")
         print(f"║    Memory Usage:       {status.memory_percent:.1f}%" + " " * 29 + "║")
         print("╠" + "═" * 58 + "╣")
 
         # Knowledge Base
         print("║  🧠 KNOWLEDGE BASE" + " " * 39 + "║")
-        print(f"║    Graph Nodes:        {status.graph_nodes:,}" + " " * (31 - len(f"{status.graph_nodes:,}")) + "║")
-        print(f"║    Graph Edges:        {status.graph_edges:,}" + " " * (31 - len(f"{status.graph_edges:,}")) + "║")
-        print(f"║    Embedded Chunks:    {status.embedded_chunks:,}" + " " * (31 - len(f"{status.embedded_chunks:,}")) + "║")
+        print(
+            f"║    Graph Nodes:        {status.graph_nodes:,}"
+            + " " * (31 - len(f"{status.graph_nodes:,}"))
+            + "║"
+        )
+        print(
+            f"║    Graph Edges:        {status.graph_edges:,}"
+            + " " * (31 - len(f"{status.graph_edges:,}"))
+            + "║"
+        )
+        print(
+            f"║    Embedded Chunks:    {status.embedded_chunks:,}"
+            + " " * (31 - len(f"{status.embedded_chunks:,}"))
+            + "║"
+        )
         print("╠" + "═" * 58 + "╣")
 
         # Resilience
         breaker_symbol = "✅" if status.active_circuit_breakers == 0 else "⚠️"
         error_symbol = "✅" if status.error_rate < 0.01 else "⚠️"
         print("║  🛡️  RESILIENCE" + " " * 42 + "║")
-        print(f"║    Circuit Breakers:   {breaker_symbol} {status.active_circuit_breakers} active" + " " * 24 + "║")
-        print(f"║    Error Rate:         {error_symbol} {status.error_rate*100:.2f}%" + " " * 24 + "║")
+        print(
+            f"║    Circuit Breakers:   {breaker_symbol} {status.active_circuit_breakers} active"
+            + " " * 24
+            + "║"
+        )
+        print(
+            f"║    Error Rate:         {error_symbol} {status.error_rate*100:.2f}%"
+            + " " * 24
+            + "║"
+        )
 
         print("╚" + "═" * 58 + "╝")
         print()
@@ -384,12 +443,15 @@ class BIZRACommandCenter:
                 # Benchmark SNR calculation
                 try:
                     from arte_engine import SNREngine
+
                     engine = SNREngine()
                     query = np.random.rand(384).astype(np.float32)
                     context = [np.random.rand(384).astype(np.float32) for _ in range(5)]
                     result = engine.calculate_snr(
-                        query, context, ["fact1", "fact2"],
-                        [{"text": "result", "score": 0.9}]
+                        query,
+                        context,
+                        ["fact1", "fact2"],
+                        [{"text": "result", "score": 0.9}],
                     )
                     snr_values.append(result.get("snr", 0))
                 except Exception:
@@ -399,6 +461,7 @@ class BIZRACommandCenter:
                 # Benchmark embedding generation
                 try:
                     from sentence_transformers import SentenceTransformer
+
                     model = SentenceTransformer("all-MiniLM-L6-v2")
                     text = "This is a sample text for embedding generation benchmark."
                     embedding = model.encode([text])
@@ -410,6 +473,7 @@ class BIZRACommandCenter:
                 # Benchmark graph operations
                 try:
                     import networkx as nx
+
                     G = nx.gnm_random_graph(1000, 5000)
                     _ = nx.shortest_path(G, 0, 500)
                     snr_values.append(0.98)
@@ -427,7 +491,7 @@ class BIZRACommandCenter:
             min_time_ms=min(times),
             max_time_ms=max(times),
             throughput_ops_sec=1000 / (sum(times) / len(times)) if times else 0,
-            snr_average=sum(snr_values) / len(snr_values) if snr_values else 0
+            snr_average=sum(snr_values) / len(snr_values) if snr_values else 0,
         )
 
     async def run_full_benchmark_suite(self) -> Dict[str, BenchmarkResult]:
@@ -438,7 +502,7 @@ class BIZRACommandCenter:
         benchmarks = [
             ("snr_calculation", 50),
             ("embedding_generation", 10),
-            ("graph_traversal", 20)
+            ("graph_traversal", 20),
         ]
 
         results = {}
@@ -460,11 +524,15 @@ class BIZRACommandCenter:
 
         for name, result in results.items():
             print(f"  {name}:")
-            print(f"    Avg: {result.avg_time_ms:.2f}ms | "
-                  f"Min: {result.min_time_ms:.2f}ms | "
-                  f"Max: {result.max_time_ms:.2f}ms")
-            print(f"    Throughput: {result.throughput_ops_sec:.1f} ops/sec | "
-                  f"SNR: {result.snr_average:.4f}")
+            print(
+                f"    Avg: {result.avg_time_ms:.2f}ms | "
+                f"Min: {result.min_time_ms:.2f}ms | "
+                f"Max: {result.max_time_ms:.2f}ms"
+            )
+            print(
+                f"    Throughput: {result.throughput_ops_sec:.1f} ops/sec | "
+                f"SNR: {result.snr_average:.4f}"
+            )
             print()
 
         return results
@@ -499,7 +567,7 @@ class BIZRACommandCenter:
                 signal=snr * 0.95,
                 density=snr * 0.92,
                 grounding=snr * 0.94,
-                balance=snr * 0.91
+                balance=snr * 0.91,
             )
             record_latency(latency_ms, "query")
 
@@ -570,21 +638,34 @@ class BIZRACommandCenter:
                         for name, cb in status.get("circuit_breakers", {}).items():
                             state_symbol = "✅" if cb["state"] == "closed" else "⚠️"
                             print(f"  {state_symbol} {name}: {cb['state']}")
-                            print(f"      Failures: {cb['failures']} | "
-                                  f"Total calls: {cb['total_calls']}")
+                            print(
+                                f"      Failures: {cb['failures']} | "
+                                f"Total calls: {cb['total_calls']}"
+                            )
                     else:
                         print("  ⚠️ Resilience patterns not available")
 
                 elif cmd == "health":
                     status = self.get_system_status()
-                    symbol = "🌟" if status.status == "OPTIMAL" else "✅" if status.status == "HEALTHY" else "⚠️"
+                    symbol = (
+                        "🌟"
+                        if status.status == "OPTIMAL"
+                        else "✅" if status.status == "HEALTHY" else "⚠️"
+                    )
                     print(f"\n  {symbol} System: {status.status}")
                     print(f"  📊 SNR: {status.snr_average:.4f}")
-                    print(f"  ⏱️ Uptime: {timedelta(seconds=int(status.uptime_seconds))}")
+                    print(
+                        f"  ⏱️ Uptime: {timedelta(seconds=int(status.uptime_seconds))}"
+                    )
 
                 elif cmd == "export":
                     status = self.get_system_status()
-                    export_path = BIZRA_ROOT / "03_INDEXED" / "metrics" / f"status_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    export_path = (
+                        BIZRA_ROOT
+                        / "03_INDEXED"
+                        / "metrics"
+                        / f"status_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    )
                     export_path.parent.mkdir(parents=True, exist_ok=True)
                     with open(export_path, "w") as f:
                         json.dump(asdict(status), f, indent=2)

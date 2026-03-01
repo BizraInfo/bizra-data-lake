@@ -26,8 +26,8 @@ from core.swarm.types import (
     SwarmTopology,
 )
 
-
 # -- Fixtures ------------------------------------------------------------------
+
 
 def _make_spec(agent_id: str, role: AgentRole = AgentRole.RESEARCHER) -> AgentSpec:
     return AgentSpec(id=agent_id, role=role, model_purpose="reasoning")
@@ -47,7 +47,9 @@ class MockModelRouter:
         self._should_fail = should_fail
 
     async def preload_mission_fleet(
-        self, agent_ids: List[str], config: Dict[str, Any],
+        self,
+        agent_ids: List[str],
+        config: Dict[str, Any],
     ) -> Dict[str, bool]:
         if self._should_fail:
             raise RuntimeError("preload failed")
@@ -56,13 +58,17 @@ class MockModelRouter:
         return {aid: True for aid in agent_ids}
 
     async def check_equalizer(
-        self, ihsan_score: float, backlog: int, presence: int,
+        self,
+        ihsan_score: float,
+        backlog: int,
+        presence: int,
     ) -> Optional[str]:
         self.equalizer_called = True
         return "STEADY"
 
 
 # -- Sequential strategy -------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_sequential_execution_order():
@@ -84,6 +90,7 @@ async def test_sequential_execution_order():
 
 
 # -- Parallel strategy ----------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_parallel_execution_concurrent():
@@ -130,6 +137,7 @@ async def test_parallel_bounded_by_semaphore():
 
 # -- Hierarchical mesh strategy ------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_hierarchical_mesh_coordinator_first():
     """Hierarchical mesh runs coordinator before workers."""
@@ -154,6 +162,7 @@ async def test_hierarchical_mesh_coordinator_first():
 
 # -- Event emission ------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_event_emission():
     """Engine emits events at each phase transition."""
@@ -171,6 +180,7 @@ async def test_event_emission():
 
 
 # -- Pre-load integration ------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_preload_integration():
@@ -200,9 +210,11 @@ async def test_graceful_degradation_on_preload_failure():
 
 # -- Failure handling ----------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_agent_failure_does_not_halt_swarm():
     """One agent failure doesn't stop the entire swarm."""
+
     async def failing_call(agent: AgentSpec) -> Dict[str, Any]:
         if agent.id == "bad":
             raise RuntimeError("boom")
@@ -223,6 +235,7 @@ async def test_agent_failure_does_not_halt_swarm():
 @pytest.mark.asyncio
 async def test_result_flattening():
     """Exceptions from gather (parallel) become dicts."""
+
     async def raise_call(agent: AgentSpec) -> Dict[str, Any]:
         raise ValueError("oops")
 
@@ -235,6 +248,7 @@ async def test_result_flattening():
 
 
 # -- Equalizer integration -----------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_equalizer_integration():

@@ -26,6 +26,7 @@ logger = logging.getLogger("BIZRA.ModelRouter")
 
 class ModelCapability(Enum):
     """Model capabilities"""
+
     TEXT = "text"
     VISION = "vision"
     CODE = "code"
@@ -35,6 +36,7 @@ class ModelCapability(Enum):
 
 class BackendType(Enum):
     """Available backend types"""
+
     LM_STUDIO = "lm_studio"
     OLLAMA = "ollama"
     OPENAI = "openai"
@@ -43,6 +45,7 @@ class BackendType(Enum):
 
 class BackendStatus(Enum):
     """Backend health status"""
+
     ONLINE = "online"
     OFFLINE = "offline"
     DEGRADED = "degraded"
@@ -52,6 +55,7 @@ class BackendStatus(Enum):
 @dataclass
 class ModelInfo:
     """Information about an available model"""
+
     id: str
     name: str
     backend: BackendType
@@ -65,6 +69,7 @@ class ModelInfo:
 @dataclass
 class BackendHealth:
     """Backend health information"""
+
     backend: BackendType
     status: BackendStatus
     latency_ms: float = 0.0
@@ -76,6 +81,7 @@ class BackendHealth:
 @dataclass
 class ChatMessage:
     """Chat message with optional image support"""
+
     role: str  # system, user, assistant
     content: str
     images: List[str] = field(default_factory=list)  # Base64 encoded images
@@ -85,6 +91,7 @@ class ChatMessage:
 @dataclass
 class ModelResponse:
     """Response from model"""
+
     content: str
     model: str
     backend: BackendType
@@ -117,7 +124,7 @@ class ModelBackend(ABC):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate response from model"""
         pass
@@ -129,7 +136,7 @@ class ModelBackend(ABC):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate response with vision capability"""
         pass
@@ -153,8 +160,14 @@ class LMStudioBackend(ModelBackend):
 
     # Known vision-capable models in LM Studio
     VISION_MODELS = [
-        "llava", "bakllava", "moondream", "cogvlm", "qwen-vl",
-        "minicpm-v", "internvl", "phi-3-vision"
+        "llava",
+        "bakllava",
+        "moondream",
+        "cogvlm",
+        "qwen-vl",
+        "minicpm-v",
+        "internvl",
+        "phi-3-vision",
     ]
 
     def __init__(self, base_url: str = LM_STUDIO_URL):
@@ -187,14 +200,16 @@ class LMStudioBackend(ModelBackend):
                     if "code" in model_id.lower():
                         capabilities.append(ModelCapability.CODE)
 
-                    self._available_models.append(ModelInfo(
-                        id=model_id,
-                        name=model_id,
-                        backend=BackendType.LM_STUDIO,
-                        capabilities=capabilities,
-                        is_local=True,
-                        supports_vision=is_vision
-                    ))
+                    self._available_models.append(
+                        ModelInfo(
+                            id=model_id,
+                            name=model_id,
+                            backend=BackendType.LM_STUDIO,
+                            capabilities=capabilities,
+                            is_local=True,
+                            supports_vision=is_vision,
+                        )
+                    )
 
                 self._is_healthy = True
                 return BackendHealth(
@@ -202,14 +217,14 @@ class LMStudioBackend(ModelBackend):
                     status=BackendStatus.ONLINE,
                     latency_ms=latency,
                     available_models=model_ids,
-                    last_check=time.strftime("%Y-%m-%d %H:%M:%S")
+                    last_check=time.strftime("%Y-%m-%d %H:%M:%S"),
                 )
 
             self._is_healthy = False
             return BackendHealth(
                 backend=BackendType.LM_STUDIO,
                 status=BackendStatus.OFFLINE,
-                error_message=f"HTTP {response.status_code}"
+                error_message=f"HTTP {response.status_code}",
             )
 
         except Exception as e:
@@ -217,7 +232,7 @@ class LMStudioBackend(ModelBackend):
             return BackendHealth(
                 backend=BackendType.LM_STUDIO,
                 status=BackendStatus.OFFLINE,
-                error_message=str(e)[:100]
+                error_message=str(e)[:100],
             )
 
     async def generate(
@@ -226,14 +241,13 @@ class LMStudioBackend(ModelBackend):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate text response"""
         start = time.time()
 
         openai_messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in messages
+            {"role": msg.role, "content": msg.content} for msg in messages
         ]
 
         try:
@@ -244,8 +258,8 @@ class LMStudioBackend(ModelBackend):
                     "messages": openai_messages,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
-                    "stream": False
-                }
+                    "stream": False,
+                },
             )
 
             latency = (time.time() - start) * 1000
@@ -262,7 +276,7 @@ class LMStudioBackend(ModelBackend):
                     backend=BackendType.LM_STUDIO,
                     latency_ms=latency,
                     tokens_used=usage.get("total_tokens", 0),
-                    finish_reason=choice.get("finish_reason", "stop")
+                    finish_reason=choice.get("finish_reason", "stop"),
                 )
 
             return ModelResponse(
@@ -270,7 +284,7 @@ class LMStudioBackend(ModelBackend):
                 model=model,
                 backend=BackendType.LM_STUDIO,
                 latency_ms=latency,
-                metadata={"error": True}
+                metadata={"error": True},
             )
 
         except Exception as e:
@@ -279,7 +293,7 @@ class LMStudioBackend(ModelBackend):
                 model=model,
                 backend=BackendType.LM_STUDIO,
                 latency_ms=(time.time() - start) * 1000,
-                metadata={"error": True, "exception": str(e)}
+                metadata={"error": True, "exception": str(e)},
             )
 
     async def generate_with_vision(
@@ -288,7 +302,7 @@ class LMStudioBackend(ModelBackend):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate response with vision capability"""
         start = time.time()
@@ -303,36 +317,32 @@ class LMStudioBackend(ModelBackend):
 
                 # Add base64 images
                 for img_b64 in msg.images:
-                    content_parts.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{img_b64}"
+                    content_parts.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"},
                         }
-                    })
+                    )
 
                 # Load and encode image paths
                 for img_path in msg.image_paths:
                     try:
                         with open(img_path, "rb") as f:
                             img_data = base64.b64encode(f.read()).decode("utf-8")
-                        content_parts.append({
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{img_data}"
+                        content_parts.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{img_data}"
+                                },
                             }
-                        })
+                        )
                     except Exception as e:
                         logger.warning(f"Failed to load image {img_path}: {e}")
 
-                openai_messages.append({
-                    "role": msg.role,
-                    "content": content_parts
-                })
+                openai_messages.append({"role": msg.role, "content": content_parts})
             else:
-                openai_messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
+                openai_messages.append({"role": msg.role, "content": msg.content})
 
         try:
             response = await self.client.post(
@@ -342,8 +352,8 @@ class LMStudioBackend(ModelBackend):
                     "messages": openai_messages,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
-                    "stream": False
-                }
+                    "stream": False,
+                },
             )
 
             latency = (time.time() - start) * 1000
@@ -360,7 +370,7 @@ class LMStudioBackend(ModelBackend):
                     latency_ms=latency,
                     tokens_used=data.get("usage", {}).get("total_tokens", 0),
                     finish_reason=choice.get("finish_reason", "stop"),
-                    metadata={"vision": True}
+                    metadata={"vision": True},
                 )
 
             return ModelResponse(
@@ -368,7 +378,7 @@ class LMStudioBackend(ModelBackend):
                 model=model,
                 backend=BackendType.LM_STUDIO,
                 latency_ms=latency,
-                metadata={"error": True, "vision": True}
+                metadata={"error": True, "vision": True},
             )
 
         except Exception as e:
@@ -377,7 +387,7 @@ class LMStudioBackend(ModelBackend):
                 model=model,
                 backend=BackendType.LM_STUDIO,
                 latency_ms=(time.time() - start) * 1000,
-                metadata={"error": True, "vision": True}
+                metadata={"error": True, "vision": True},
             )
 
 
@@ -412,7 +422,9 @@ class OllamaBackend(ModelBackend):
                     model_name = model.get("name", "")
                     model_ids.append(model_name)
 
-                    is_vision = any(vm in model_name.lower() for vm in self.VISION_MODELS)
+                    is_vision = any(
+                        vm in model_name.lower() for vm in self.VISION_MODELS
+                    )
 
                     capabilities = [ModelCapability.TEXT, ModelCapability.REASONING]
                     if is_vision:
@@ -420,14 +432,16 @@ class OllamaBackend(ModelBackend):
                     if "code" in model_name.lower():
                         capabilities.append(ModelCapability.CODE)
 
-                    self._available_models.append(ModelInfo(
-                        id=model_name,
-                        name=model_name,
-                        backend=BackendType.OLLAMA,
-                        capabilities=capabilities,
-                        is_local=True,
-                        supports_vision=is_vision
-                    ))
+                    self._available_models.append(
+                        ModelInfo(
+                            id=model_name,
+                            name=model_name,
+                            backend=BackendType.OLLAMA,
+                            capabilities=capabilities,
+                            is_local=True,
+                            supports_vision=is_vision,
+                        )
+                    )
 
                 self._is_healthy = True
                 return BackendHealth(
@@ -435,14 +449,14 @@ class OllamaBackend(ModelBackend):
                     status=BackendStatus.ONLINE,
                     latency_ms=latency,
                     available_models=model_ids,
-                    last_check=time.strftime("%Y-%m-%d %H:%M:%S")
+                    last_check=time.strftime("%Y-%m-%d %H:%M:%S"),
                 )
 
             self._is_healthy = False
             return BackendHealth(
                 backend=BackendType.OLLAMA,
                 status=BackendStatus.OFFLINE,
-                error_message=f"HTTP {response.status_code}"
+                error_message=f"HTTP {response.status_code}",
             )
 
         except Exception as e:
@@ -450,7 +464,7 @@ class OllamaBackend(ModelBackend):
             return BackendHealth(
                 backend=BackendType.OLLAMA,
                 status=BackendStatus.OFFLINE,
-                error_message=str(e)[:100]
+                error_message=str(e)[:100],
             )
 
     async def generate(
@@ -459,14 +473,13 @@ class OllamaBackend(ModelBackend):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate text response"""
         start = time.time()
 
         ollama_messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in messages
+            {"role": msg.role, "content": msg.content} for msg in messages
         ]
 
         try:
@@ -475,12 +488,9 @@ class OllamaBackend(ModelBackend):
                 json={
                     "model": model,
                     "messages": ollama_messages,
-                    "options": {
-                        "temperature": temperature,
-                        "num_predict": max_tokens
-                    },
-                    "stream": False
-                }
+                    "options": {"temperature": temperature, "num_predict": max_tokens},
+                    "stream": False,
+                },
             )
 
             latency = (time.time() - start) * 1000
@@ -495,7 +505,7 @@ class OllamaBackend(ModelBackend):
                     backend=BackendType.OLLAMA,
                     latency_ms=latency,
                     tokens_used=data.get("eval_count", 0),
-                    finish_reason="stop"
+                    finish_reason="stop",
                 )
 
             return ModelResponse(
@@ -503,7 +513,7 @@ class OllamaBackend(ModelBackend):
                 model=model,
                 backend=BackendType.OLLAMA,
                 latency_ms=latency,
-                metadata={"error": True}
+                metadata={"error": True},
             )
 
         except Exception as e:
@@ -512,7 +522,7 @@ class OllamaBackend(ModelBackend):
                 model=model,
                 backend=BackendType.OLLAMA,
                 latency_ms=(time.time() - start) * 1000,
-                metadata={"error": True}
+                metadata={"error": True},
             )
 
     async def generate_with_vision(
@@ -521,7 +531,7 @@ class OllamaBackend(ModelBackend):
         model: str,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """Generate response with vision (Ollama format)"""
         start = time.time()
@@ -557,13 +567,10 @@ class OllamaBackend(ModelBackend):
                 json={
                     "model": model,
                     "messages": ollama_messages,
-                    "options": {
-                        "temperature": temperature,
-                        "num_predict": max_tokens
-                    },
-                    "stream": False
+                    "options": {"temperature": temperature, "num_predict": max_tokens},
+                    "stream": False,
                 },
-                timeout=VISION_TIMEOUT
+                timeout=VISION_TIMEOUT,
             )
 
             latency = (time.time() - start) * 1000
@@ -578,7 +585,7 @@ class OllamaBackend(ModelBackend):
                     backend=BackendType.OLLAMA,
                     latency_ms=latency,
                     tokens_used=data.get("eval_count", 0),
-                    metadata={"vision": True}
+                    metadata={"vision": True},
                 )
 
             return ModelResponse(
@@ -586,7 +593,7 @@ class OllamaBackend(ModelBackend):
                 model=model,
                 backend=BackendType.OLLAMA,
                 latency_ms=latency,
-                metadata={"error": True, "vision": True}
+                metadata={"error": True, "vision": True},
             )
 
         except Exception as e:
@@ -595,7 +602,7 @@ class OllamaBackend(ModelBackend):
                 model=model,
                 backend=BackendType.OLLAMA,
                 latency_ms=(time.time() - start) * 1000,
-                metadata={"error": True, "vision": True}
+                metadata={"error": True, "vision": True},
             )
 
 
@@ -614,11 +621,11 @@ class UnifiedModelRouter:
         self,
         lm_studio_url: str = LM_STUDIO_URL,
         ollama_url: str = OLLAMA_URL,
-        prefer_local: bool = True
+        prefer_local: bool = True,
     ):
         self.backends: Dict[BackendType, ModelBackend] = {
             BackendType.LM_STUDIO: LMStudioBackend(lm_studio_url),
-            BackendType.OLLAMA: OllamaBackend(ollama_url)
+            BackendType.OLLAMA: OllamaBackend(ollama_url),
         }
         self.prefer_local = prefer_local
         self.backend_health: Dict[BackendType, BackendHealth] = {}
@@ -643,7 +650,8 @@ class UnifiedModelRouter:
 
         # Determine primary and fallback
         online_backends = [
-            bt for bt, h in self.backend_health.items()
+            bt
+            for bt, h in self.backend_health.items()
             if h.status == BackendStatus.ONLINE
         ]
 
@@ -666,8 +674,7 @@ class UnifiedModelRouter:
         return self.backend_health
 
     def get_available_models(
-        self,
-        capability: Optional[ModelCapability] = None
+        self, capability: Optional[ModelCapability] = None
     ) -> List[ModelInfo]:
         """Get all available models, optionally filtered by capability"""
         models = []
@@ -688,9 +695,7 @@ class UnifiedModelRouter:
         return self.get_available_models(ModelCapability.REASONING)
 
     async def _select_backend(
-        self,
-        preferred: Optional[BackendType] = None,
-        require_vision: bool = False
+        self, preferred: Optional[BackendType] = None, require_vision: bool = False
     ) -> Tuple[ModelBackend, str]:
         """Select best available backend"""
 
@@ -733,7 +738,7 @@ class UnifiedModelRouter:
         backend: Optional[BackendType] = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """
         Generate response using best available backend.
@@ -754,8 +759,7 @@ class UnifiedModelRouter:
         try:
             # Select backend and model
             selected_backend, selected_model = await self._select_backend(
-                preferred=backend,
-                require_vision=has_images
+                preferred=backend, require_vision=has_images
             )
 
             if model:
@@ -807,7 +811,7 @@ class UnifiedModelRouter:
                 model="none",
                 backend=BackendType.OLLAMA,
                 latency_ms=0,
-                metadata={"error": True}
+                metadata={"error": True},
             )
 
     async def generate_with_vision(
@@ -817,7 +821,7 @@ class UnifiedModelRouter:
         image_base64: List[str] = None,
         model: Optional[str] = None,
         backend: Optional[BackendType] = None,
-        **kwargs
+        **kwargs,
     ) -> ModelResponse:
         """
         Convenience method for vision queries.
@@ -834,7 +838,7 @@ class UnifiedModelRouter:
                 role="user",
                 content=prompt,
                 images=image_base64 or [],
-                image_paths=image_paths or []
+                image_paths=image_paths or [],
             )
         ]
 
@@ -857,7 +861,9 @@ class UnifiedModelRouter:
             primary = " (PRIMARY)" if bt == self._primary_backend else ""
             fallback = " (FALLBACK)" if bt == self._fallback_backend else ""
 
-            print(f"║  {symbol} {bt.value:<12} {health.status.value:<10}{primary}{fallback}")
+            print(
+                f"║  {symbol} {bt.value:<12} {health.status.value:<10}{primary}{fallback}"
+            )
             print(f"║     Models: {len(health.available_models)}")
             if health.latency_ms > 0:
                 print(f"║     Latency: {health.latency_ms:.1f}ms")
@@ -894,7 +900,7 @@ async def generate(
     prompt: str,
     system_prompt: Optional[str] = None,
     model: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> str:
     """Quick text generation"""
     router = await get_router()
@@ -909,10 +915,7 @@ async def generate(
 
 
 async def generate_with_image(
-    prompt: str,
-    image_path: str,
-    model: Optional[str] = None,
-    **kwargs
+    prompt: str, image_path: str, model: Optional[str] = None, **kwargs
 ) -> str:
     """Quick vision generation"""
     router = await get_router()
@@ -934,10 +937,12 @@ async def main():
 
     # Test text generation
     print("\n--- Testing Text Generation ---")
-    response = await router.generate([
-        ChatMessage(role="system", content="You are a helpful assistant."),
-        ChatMessage(role="user", content="What is BIZRA Data Lake?")
-    ])
+    response = await router.generate(
+        [
+            ChatMessage(role="system", content="You are a helpful assistant."),
+            ChatMessage(role="user", content="What is BIZRA Data Lake?"),
+        ]
+    )
 
     print(f"Backend: {response.backend.value}")
     print(f"Model: {response.model}")

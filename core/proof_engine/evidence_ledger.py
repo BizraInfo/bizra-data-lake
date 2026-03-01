@@ -50,6 +50,7 @@ else:
     def _posix_file_lock(lock_path: Path) -> Generator[None, None, None]:  # type: ignore[misc]
         yield
 
+
 from core.proof_engine.schema_validator import validate_receipt
 from core.sovereign.origin_guard import (
     ROLE_NODE0,
@@ -181,7 +182,7 @@ class EvidenceLedger:
         with open(self._path, "rb") as f:
             # Walk back from EOF to find the last non-empty JSONL line
             chunk_size = 4096
-            f.seek(0, 2)          # seek to EOF
+            f.seek(0, 2)  # seek to EOF
             pos = f.tell()
             buf = b""
             while pos > 0:
@@ -256,7 +257,9 @@ class EvidenceLedger:
 
                 self._sequence += 1
                 ts = datetime.now(timezone.utc).isoformat()
-                entry_hash = _compute_entry_hash(self._sequence, receipt, self._last_hash)
+                entry_hash = _compute_entry_hash(
+                    self._sequence, receipt, self._last_hash
+                )
 
                 entry = LedgerEntry(
                     sequence=self._sequence,

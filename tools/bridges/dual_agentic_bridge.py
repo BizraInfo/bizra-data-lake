@@ -16,19 +16,33 @@ from enum import Enum
 import httpx
 
 from bizra_config import (
-    DUAL_AGENTIC_URL, DUAL_AGENTIC_ENABLED,
-    OLLAMA_BASE_URL, OLLAMA_ENABLED, OLLAMA_TIMEOUT,
-    DEFAULT_TEXT_MODEL, DEFAULT_REASONING_MODEL, DEFAULT_CODE_MODEL, DEFAULT_VISION_MODEL,
-    OLLAMA_TEXT_MODEL, OLLAMA_CODE_MODEL, OLLAMA_VISION_MODEL,
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT, CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
-    HEALTH_CHECK_TIMEOUT
+    DUAL_AGENTIC_URL,
+    DUAL_AGENTIC_ENABLED,
+    OLLAMA_BASE_URL,
+    OLLAMA_ENABLED,
+    OLLAMA_TIMEOUT,
+    DEFAULT_TEXT_MODEL,
+    DEFAULT_REASONING_MODEL,
+    DEFAULT_CODE_MODEL,
+    DEFAULT_VISION_MODEL,
+    OLLAMA_TEXT_MODEL,
+    OLLAMA_CODE_MODEL,
+    OLLAMA_VISION_MODEL,
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    CIRCUIT_BREAKER_TIMEOUT,
+    CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+    HEALTH_CHECK_TIMEOUT,
 )
 
 # Import resilience patterns
 try:
     from bizra_resilience import (
-        CircuitBreaker, CircuitBreakerConfig, retry, with_fallback
+        CircuitBreaker,
+        CircuitBreakerConfig,
+        retry,
+        with_fallback,
     )
+
     RESILIENCE_AVAILABLE = True
 except ImportError:
     RESILIENCE_AVAILABLE = False
@@ -42,8 +56,10 @@ LM_STUDIO_MODELS_ENDPOINT = f"{DUAL_AGENTIC_URL}/v1/models"
 # MODEL TYPES & CONFIGURATIONS
 # ============================================================================
 
+
 class ModelCapability(Enum):
     """Capabilities available through the Dual Agentic System."""
+
     TEXT = "text"
     VISION = "vision"
     VOICE = "voice"
@@ -54,6 +70,7 @@ class ModelCapability(Enum):
 
 class ModelProvider(Enum):
     """Model providers available through the router."""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -64,6 +81,7 @@ class ModelProvider(Enum):
 @dataclass
 class ModelRequest:
     """Request to the model router."""
+
     prompt: str
     capability: ModelCapability
     provider: Optional[ModelProvider] = None
@@ -79,6 +97,7 @@ class ModelRequest:
 @dataclass
 class ModelResponse:
     """Response from the model router."""
+
     content: str
     model_used: str
     provider: str
@@ -91,6 +110,7 @@ class ModelResponse:
 # ============================================================================
 # DUAL AGENTIC BRIDGE
 # ============================================================================
+
 
 class DualAgenticBridge:
     """
@@ -109,7 +129,9 @@ class DualAgenticBridge:
     - Seamless failover between backends
     """
 
-    def __init__(self, base_url: str = DUAL_AGENTIC_URL, timeout: float = OLLAMA_TIMEOUT):
+    def __init__(
+        self, base_url: str = DUAL_AGENTIC_URL, timeout: float = OLLAMA_TIMEOUT
+    ):
         self.base_url = base_url
         self.timeout = timeout
         self.enabled = DUAL_AGENTIC_ENABLED
@@ -128,16 +150,17 @@ class DualAgenticBridge:
                 CircuitBreakerConfig(
                     failure_threshold=CIRCUIT_BREAKER_FAILURE_THRESHOLD,
                     success_threshold=CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
-                    timeout_seconds=CIRCUIT_BREAKER_TIMEOUT
-                )
+                    timeout_seconds=CIRCUIT_BREAKER_TIMEOUT,
+                ),
             )
             self._ollama_breaker = CircuitBreaker(
                 "ollama_fallback",
                 CircuitBreakerConfig(
-                    failure_threshold=CIRCUIT_BREAKER_FAILURE_THRESHOLD + 2,  # More lenient
+                    failure_threshold=CIRCUIT_BREAKER_FAILURE_THRESHOLD
+                    + 2,  # More lenient
                     success_threshold=CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
-                    timeout_seconds=CIRCUIT_BREAKER_TIMEOUT * 2
-                )
+                    timeout_seconds=CIRCUIT_BREAKER_TIMEOUT * 2,
+                ),
             )
         else:
             self._lm_studio_breaker = None
@@ -177,20 +200,35 @@ class DualAgenticBridge:
                     response = await client.get(LM_STUDIO_MODELS_ENDPOINT)
                     if response.status_code == 200:
                         data = response.json()
-                        self._models = [m.get('id', '') for m in data.get('data', [])]
+                        self._models = [m.get("id", "") for m in data.get("data", [])]
                         self._available = True
-                        self._capabilities = ['text', 'reasoning', 'code']
+                        self._capabilities = ["text", "reasoning", "code"]
 
                         # Check for vision models
-                        vision_keywords = ['vision', 'llava', 'vl', 'bakllava', 'moondream']
-                        vision_models = [m for m in self._models
-                                        if any(kw in m.lower() for kw in vision_keywords)]
+                        vision_keywords = [
+                            "vision",
+                            "llava",
+                            "vl",
+                            "bakllava",
+                            "moondream",
+                        ]
+                        vision_models = [
+                            m
+                            for m in self._models
+                            if any(kw in m.lower() for kw in vision_keywords)
+                        ]
                         if vision_models:
-                            self._capabilities.append('vision')
-                            self._model_mapping[ModelCapability.VISION] = vision_models[0]
-                            self._model_mapping[ModelCapability.MULTIMODAL] = vision_models[0]
+                            self._capabilities.append("vision")
+                            self._model_mapping[ModelCapability.VISION] = vision_models[
+                                0
+                            ]
+                            self._model_mapping[ModelCapability.MULTIMODAL] = (
+                                vision_models[0]
+                            )
 
-                        print(f"[DUAL-AGENTIC] ✅ LM Studio: {len(self._models)} models")
+                        print(
+                            f"[DUAL-AGENTIC] ✅ LM Studio: {len(self._models)} models"
+                        )
                         results["lm_studio"] = True
             except Exception as e:
                 print(f"[DUAL-AGENTIC] ❌ LM Studio unavailable: {e}")
@@ -202,22 +240,26 @@ class DualAgenticBridge:
                 response = await client.get(f"{self.ollama_url}/api/tags")
                 if response.status_code == 200:
                     data = response.json()
-                    self._ollama_models = [m.get('name', '') for m in data.get('models', [])]
+                    self._ollama_models = [
+                        m.get("name", "") for m in data.get("models", [])
+                    ]
                     self._ollama_available = True
 
                     # Update Ollama model mappings based on available models
                     for model in self._ollama_models:
                         model_lower = model.lower()
-                        if 'llava' in model_lower:
+                        if "llava" in model_lower:
                             self._ollama_mapping[ModelCapability.VISION] = model
                             self._ollama_mapping[ModelCapability.MULTIMODAL] = model
-                        elif 'code' in model_lower:
+                        elif "code" in model_lower:
                             self._ollama_mapping[ModelCapability.CODE] = model
-                        elif 'llama' in model_lower or 'mistral' in model_lower:
+                        elif "llama" in model_lower or "mistral" in model_lower:
                             self._ollama_mapping[ModelCapability.TEXT] = model
                             self._ollama_mapping[ModelCapability.REASONING] = model
 
-                    print(f"[DUAL-AGENTIC] ✅ Ollama: {len(self._ollama_models)} models")
+                    print(
+                        f"[DUAL-AGENTIC] ✅ Ollama: {len(self._ollama_models)} models"
+                    )
                     results["ollama"] = True
         except Exception as e:
             print(f"[DUAL-AGENTIC] ❌ Ollama unavailable: {e}")
@@ -231,7 +273,9 @@ class DualAgenticBridge:
             print(f"[DUAL-AGENTIC] 📍 Ollama{fallback_str} @ localhost:11434")
 
         if not any(results.values()):
-            print("[DUAL-AGENTIC] ⚠️ No backends available! System will operate in degraded mode.")
+            print(
+                "[DUAL-AGENTIC] ⚠️ No backends available! System will operate in degraded mode."
+            )
 
         return results
 
@@ -270,7 +314,7 @@ class DualAgenticBridge:
         # Try LM Studio first
         if use_lm_studio:
             response = await self._call_lm_studio(request)
-            if response and not response.metadata.get('error'):
+            if response and not response.metadata.get("error"):
                 return response
             # LM Studio failed, try Ollama
             print("[DUAL-AGENTIC] 🔄 LM Studio failed, falling back to Ollama")
@@ -285,7 +329,7 @@ class DualAgenticBridge:
             model_used="none",
             provider="none",
             capability=request.capability.value,
-            metadata={"error": True, "all_backends_failed": True}
+            metadata={"error": True, "all_backends_failed": True},
         )
 
     async def _call_lm_studio(self, request: ModelRequest) -> Optional[ModelResponse]:
@@ -293,8 +337,7 @@ class DualAgenticBridge:
         try:
             # Select model based on capability
             model = request.model_name or self._model_mapping.get(
-                request.capability,
-                self._model_mapping[ModelCapability.TEXT]
+                request.capability, self._model_mapping[ModelCapability.TEXT]
             )
 
             # Build messages in OpenAI format
@@ -306,10 +349,12 @@ class DualAgenticBridge:
             if request.images:
                 content = [{"type": "text", "text": request.prompt}]
                 for img in request.images:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{img}"}
-                    })
+                    content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{img}"},
+                        }
+                    )
                 messages.append({"role": "user", "content": content})
             else:
                 messages.append({"role": "user", "content": request.prompt})
@@ -319,21 +364,22 @@ class DualAgenticBridge:
                 "messages": messages,
                 "max_tokens": request.max_tokens,
                 "temperature": request.temperature,
-                "stream": False
+                "stream": False,
             }
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 start = datetime.now()
-                response = await client.post(
-                    LM_STUDIO_CHAT_ENDPOINT,
-                    json=payload
-                )
+                response = await client.post(LM_STUDIO_CHAT_ENDPOINT, json=payload)
                 latency = (datetime.now() - start).total_seconds() * 1000
 
                 if response.status_code == 200:
                     data = response.json()
-                    content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-                    usage = data.get('usage', {})
+                    content = (
+                        data.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                    )
+                    usage = data.get("usage", {})
 
                     # Record success for circuit breaker
                     if RESILIENCE_AVAILABLE and self._lm_studio_breaker:
@@ -342,14 +388,14 @@ class DualAgenticBridge:
                     return ModelResponse(
                         content=content,
                         model_used=model,
-                        provider='lm_studio',
+                        provider="lm_studio",
                         capability=request.capability.value,
-                        tokens_used=usage.get('total_tokens', 0),
+                        tokens_used=usage.get("total_tokens", 0),
                         latency_ms=latency,
                         metadata={
-                            "prompt_tokens": usage.get('prompt_tokens', 0),
-                            "completion_tokens": usage.get('completion_tokens', 0)
-                        }
+                            "prompt_tokens": usage.get("prompt_tokens", 0),
+                            "completion_tokens": usage.get("completion_tokens", 0),
+                        },
                     )
                 else:
                     # Record failure for circuit breaker
@@ -360,10 +406,10 @@ class DualAgenticBridge:
                     return ModelResponse(
                         content="",
                         model_used=model,
-                        provider='lm_studio',
+                        provider="lm_studio",
                         capability=request.capability.value,
                         latency_ms=latency,
-                        metadata={"error": True, "status_code": response.status_code}
+                        metadata={"error": True, "status_code": response.status_code},
                     )
 
         except Exception as e:
@@ -374,9 +420,9 @@ class DualAgenticBridge:
             return ModelResponse(
                 content="",
                 model_used="unknown",
-                provider='lm_studio',
+                provider="lm_studio",
                 capability=request.capability.value,
-                metadata={"error": True, "exception": str(e)}
+                metadata={"error": True, "exception": str(e)},
             )
 
     async def _fallback_local(self, request: ModelRequest) -> Optional[ModelResponse]:
@@ -384,8 +430,7 @@ class DualAgenticBridge:
         try:
             # Select model based on capability using ollama mapping
             model = self._ollama_mapping.get(
-                request.capability,
-                self._ollama_mapping[ModelCapability.TEXT]
+                request.capability, self._ollama_mapping[ModelCapability.TEXT]
             )
 
             # Use chat endpoint for better compatibility
@@ -405,21 +450,22 @@ class DualAgenticBridge:
                 "stream": False,
                 "options": {
                     "temperature": request.temperature,
-                    "num_predict": request.max_tokens
-                }
+                    "num_predict": request.max_tokens,
+                },
             }
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 start = datetime.now()
                 response = await client.post(
-                    f"{self.ollama_url}/api/chat",
-                    json=payload
+                    f"{self.ollama_url}/api/chat", json=payload
                 )
                 latency = (datetime.now() - start).total_seconds() * 1000
 
                 if response.status_code == 200:
                     data = response.json()
-                    content = data.get('message', {}).get('content', data.get('response', ''))
+                    content = data.get("message", {}).get(
+                        "content", data.get("response", "")
+                    )
 
                     # Record success for circuit breaker
                     if RESILIENCE_AVAILABLE and self._ollama_breaker:
@@ -428,10 +474,10 @@ class DualAgenticBridge:
                     return ModelResponse(
                         content=content,
                         model_used=model,
-                        provider='ollama',
+                        provider="ollama",
                         capability=request.capability.value,
                         latency_ms=latency,
-                        metadata={'fallback': True}
+                        metadata={"fallback": True},
                     )
 
         except Exception as e:
@@ -443,7 +489,9 @@ class DualAgenticBridge:
     # CONVENIENCE METHODS
     # =========================================================================
 
-    async def analyze_image(self, image_path: str, prompt: Optional[str] = None) -> Optional[str]:
+    async def analyze_image(
+        self, image_path: str, prompt: Optional[str] = None
+    ) -> Optional[str]:
         """
         Analyze an image using vision models.
 
@@ -454,7 +502,7 @@ class DualAgenticBridge:
         Returns:
             Text analysis of the image
         """
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             image_data = base64.b64encode(f.read()).decode()
 
         default_prompt = "Analyze this image in detail. Describe what you see, any text content, diagrams, charts, or technical information."
@@ -462,7 +510,7 @@ class DualAgenticBridge:
         request = ModelRequest(
             prompt=prompt or default_prompt,
             capability=ModelCapability.VISION,
-            images=[image_data]
+            images=[image_data],
         )
 
         response = await self.route_request(request)
@@ -478,19 +526,21 @@ class DualAgenticBridge:
         Returns:
             Transcribed text
         """
-        with open(audio_path, 'rb') as f:
+        with open(audio_path, "rb") as f:
             audio_data = base64.b64encode(f.read()).decode()
 
         request = ModelRequest(
             prompt="Transcribe this audio accurately.",
             capability=ModelCapability.VOICE,
-            audio=audio_data
+            audio=audio_data,
         )
 
         response = await self.route_request(request)
         return response.content if response else None
 
-    async def reason(self, prompt: str, context: Optional[Dict] = None) -> Optional[str]:
+    async def reason(
+        self, prompt: str, context: Optional[Dict] = None
+    ) -> Optional[str]:
         """
         Perform advanced reasoning with chain-of-thought.
 
@@ -510,13 +560,15 @@ Maintain Ihsan (excellence) in your reasoning quality."""
             capability=ModelCapability.REASONING,
             system_prompt=system_prompt,
             context=context or {},
-            temperature=0.3  # Lower for more precise reasoning
+            temperature=0.3,  # Lower for more precise reasoning
         )
 
         response = await self.route_request(request)
         return response.content if response else None
 
-    async def generate_code(self, prompt: str, language: str = "python") -> Optional[str]:
+    async def generate_code(
+        self, prompt: str, language: str = "python"
+    ) -> Optional[str]:
         """
         Generate code with the code-specialized model.
 
@@ -530,17 +582,14 @@ Maintain Ihsan (excellence) in your reasoning quality."""
         request = ModelRequest(
             prompt=f"Generate {language} code: {prompt}",
             capability=ModelCapability.CODE,
-            context={"language": language}
+            context={"language": language},
         )
 
         response = await self.route_request(request)
         return response.content if response else None
 
     async def multimodal_query(
-        self,
-        text: str,
-        images: Optional[List[str]] = None,
-        audio: Optional[str] = None
+        self, text: str, images: Optional[List[str]] = None, audio: Optional[str] = None
     ) -> Optional[str]:
         """
         Process a query with multiple modalities.
@@ -556,19 +605,19 @@ Maintain Ihsan (excellence) in your reasoning quality."""
         image_data = []
         if images:
             for img_path in images:
-                with open(img_path, 'rb') as f:
+                with open(img_path, "rb") as f:
                     image_data.append(base64.b64encode(f.read()).decode())
 
         audio_data = None
         if audio:
-            with open(audio, 'rb') as f:
+            with open(audio, "rb") as f:
                 audio_data = base64.b64encode(f.read()).decode()
 
         request = ModelRequest(
             prompt=text,
             capability=ModelCapability.MULTIMODAL,
             images=image_data,
-            audio=audio_data
+            audio=audio_data,
         )
 
         response = await self.route_request(request)
@@ -577,17 +626,18 @@ Maintain Ihsan (excellence) in your reasoning quality."""
     def get_status(self) -> Dict[str, Any]:
         """Get bridge status."""
         return {
-            'enabled': self.enabled,
-            'available': self._available,
-            'base_url': self.base_url,
-            'capabilities': self._capabilities,
-            'timeout': self.timeout
+            "enabled": self.enabled,
+            "available": self._available,
+            "base_url": self.base_url,
+            "capabilities": self._capabilities,
+            "timeout": self.timeout,
         }
 
 
 # ============================================================================
 # KNOWLEDGE-ENHANCED MODEL ROUTER
 # ============================================================================
+
 
 class KnowledgeEnhancedRouter:
     """
@@ -602,7 +652,7 @@ class KnowledgeEnhancedRouter:
         self,
         query: str,
         retrieved_chunks: List[Dict],
-        capability: ModelCapability = ModelCapability.REASONING
+        capability: ModelCapability = ModelCapability.REASONING,
     ) -> Optional[str]:
         """
         Process a query with retrieved knowledge context.
@@ -618,7 +668,9 @@ class KnowledgeEnhancedRouter:
         # Build context from retrieved chunks
         context_parts = []
         for chunk in retrieved_chunks[:5]:  # Top 5 chunks
-            context_parts.append(f"[Source: {chunk.get('source', 'unknown')}]\n{chunk.get('text', '')}")
+            context_parts.append(
+                f"[Source: {chunk.get('source', 'unknown')}]\n{chunk.get('text', '')}"
+            )
 
         knowledge_context = "\n\n---\n\n".join(context_parts)
 
@@ -634,17 +686,14 @@ Provide a comprehensive answer based on the knowledge context. Cite sources when
         request = ModelRequest(
             prompt=enhanced_prompt,
             capability=capability,
-            system_prompt="You are a knowledge synthesis agent with access to the BIZRA Data Lake. Provide accurate, well-sourced responses."
+            system_prompt="You are a knowledge synthesis agent with access to the BIZRA Data Lake. Provide accurate, well-sourced responses.",
         )
 
         response = await self.bridge.route_request(request)
         return response.content if response else None
 
     async def analyze_with_vision(
-        self,
-        image_path: str,
-        query: str,
-        retrieved_chunks: List[Dict]
+        self, image_path: str, query: str, retrieved_chunks: List[Dict]
     ) -> Optional[str]:
         """
         Analyze an image with knowledge context.
@@ -660,7 +709,7 @@ Provide a comprehensive answer based on the knowledge context. Cite sources when
         # Build context
         context_parts = []
         for chunk in retrieved_chunks[:3]:
-            context_parts.append(chunk.get('text', ''))
+            context_parts.append(chunk.get("text", ""))
 
         context = "\n".join(context_parts)
 
@@ -673,13 +722,13 @@ QUESTION: {query}
 
 Provide detailed analysis connecting the image to the knowledge context."""
 
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             image_data = base64.b64encode(f.read()).decode()
 
         request = ModelRequest(
             prompt=enhanced_prompt,
             capability=ModelCapability.VISION,
-            images=[image_data]
+            images=[image_data],
         )
 
         response = await self.bridge.route_request(request)
@@ -689,6 +738,7 @@ Provide detailed analysis connecting the image to the knowledge context."""
 # ============================================================================
 # MAIN / DEMO
 # ============================================================================
+
 
 async def main():
     """Demonstrate Dual Agentic Bridge capabilities."""

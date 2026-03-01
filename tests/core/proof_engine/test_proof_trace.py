@@ -36,12 +36,13 @@ from core.proof_engine.poi_engine import PoIReasonCode
 # CAHT chain builder from fixtures package
 from tests.fixtures.caht_chain import CAHTChain, GENESIS_HASH
 
-
 # =============================================================================
 # FIXTURES
 # =============================================================================
 
-FIXTURES_PATH = Path(__file__).resolve().parents[2] / "fixtures" / "proof_trace_v01.json"
+FIXTURES_PATH = (
+    Path(__file__).resolve().parents[2] / "fixtures" / "proof_trace_v01.json"
+)
 
 
 @pytest.fixture(scope="module")
@@ -106,7 +107,9 @@ class TestFixtureIntegrity:
         for i, event in enumerate(events):
             assert event["seq"] == i, f"Event {i} has seq={event['seq']}"
 
-    def test_failure_fixture_count(self, failure_fixtures: List[Dict[str, Any]]) -> None:
+    def test_failure_fixture_count(
+        self, failure_fixtures: List[Dict[str, Any]]
+    ) -> None:
         assert len(failure_fixtures) == 5
 
 
@@ -238,9 +241,17 @@ class TestPhaseTransitions:
     def test_all_phases_covered(self, events: List[Dict[str, Any]]) -> None:
         phases = {e["phase"] for e in events}
         expected = {
-            "OBSERVE", "ORIENT", "DIVERGE", "CONSTRAIN",
-            "ACT", "COMMIT", "PROVE", "CHECK", "SETTLE",
-            "LEARN", "FEEDBACK",
+            "OBSERVE",
+            "ORIENT",
+            "DIVERGE",
+            "CONSTRAIN",
+            "ACT",
+            "COMMIT",
+            "PROVE",
+            "CHECK",
+            "SETTLE",
+            "LEARN",
+            "FEEDBACK",
         }
         assert phases == expected, f"Missing phases: {expected - phases}"
 
@@ -276,7 +287,9 @@ class TestGateChainCompliance:
 
     def test_all_events_have_gates(self, events: List[Dict[str, Any]]) -> None:
         for event in events:
-            assert "gates_applied" in event, f"Event seq={event['seq']} missing gates_applied"
+            assert (
+                "gates_applied" in event
+            ), f"Event seq={event['seq']} missing gates_applied"
             assert len(event["gates_applied"]) > 0
 
     def test_minimum_gates_per_phase(self, events: List[Dict[str, Any]]) -> None:
@@ -342,17 +355,19 @@ class TestQualityScoreCompliance:
 
     def test_all_receipts_accepted(self, events: List[Dict[str, Any]]) -> None:
         for event in events:
-            assert event["receipt_status"] == "accepted", (
-                f"Event seq={event['seq']}: status={event['receipt_status']}"
-            )
+            assert (
+                event["receipt_status"] == "accepted"
+            ), f"Event seq={event['seq']}: status={event['receipt_status']}"
 
-    def test_settlement_gini_below_threshold(self, events: List[Dict[str, Any]]) -> None:
+    def test_settlement_gini_below_threshold(
+        self, events: List[Dict[str, Any]]
+    ) -> None:
         settle_events = [e for e in events if e["phase"] == "SETTLE"]
         for event in settle_events:
             gini = event["payload"]["post_settlement_gini"]
-            assert gini <= ADL_GINI_THRESHOLD, (
-                f"Post-settlement Gini {gini} > {ADL_GINI_THRESHOLD}"
-            )
+            assert (
+                gini <= ADL_GINI_THRESHOLD
+            ), f"Post-settlement Gini {gini} > {ADL_GINI_THRESHOLD}"
 
     def test_harberger_tax_applied(self, events: List[Dict[str, Any]]) -> None:
         settle_events = [e for e in events if e["phase"] == "SETTLE"]
@@ -361,9 +376,9 @@ class TestQualityScoreCompliance:
             total = event["payload"]["total_payment"]
             tax = dist["harberger_tax_ubc"]
             expected_rate = tax / total if total > 0 else 0
-            assert abs(expected_rate - ADL_HARBERGER_TAX_RATE) < 0.01, (
-                f"Harberger tax rate {expected_rate:.3f} != {ADL_HARBERGER_TAX_RATE}"
-            )
+            assert (
+                abs(expected_rate - ADL_HARBERGER_TAX_RATE) < 0.01
+            ), f"Harberger tax rate {expected_rate:.3f} != {ADL_HARBERGER_TAX_RATE}"
 
 
 # =============================================================================
@@ -400,9 +415,9 @@ class TestActorConsistency:
     def test_all_identities_have_ihsan(self, identities: Dict[str, Any]) -> None:
         for name, identity in identities.items():
             assert "ihsan_score" in identity, f"Identity '{name}' missing ihsan_score"
-            assert identity["ihsan_score"] >= UNIFIED_IHSAN_THRESHOLD, (
-                f"Identity '{name}' ihsan={identity['ihsan_score']} < threshold"
-            )
+            assert (
+                identity["ihsan_score"] >= UNIFIED_IHSAN_THRESHOLD
+            ), f"Identity '{name}' ihsan={identity['ihsan_score']} < threshold"
 
 
 # =============================================================================
@@ -420,9 +435,9 @@ class TestSettlementEconomics:
             total = event["payload"]["total_payment"]
             dist = event["payload"]["distribution"]
             dist_sum = sum(dist.values())
-            assert abs(dist_sum - total) < 0.01, (
-                f"Distribution sum {dist_sum} != total {total}"
-            )
+            assert (
+                abs(dist_sum - total) < 0.01
+            ), f"Distribution sum {dist_sum} != total {total}"
 
     def test_zakat_rate(self, events: List[Dict[str, Any]]) -> None:
         """Zakat is 2.5% of total — standing on Al-Ghazali."""
@@ -483,7 +498,9 @@ class TestPoIScoring:
             s3 = stages["stage3_longevity"]["score"]
             composite = stages["stage4_composite"]
             weights = composite["weights"]
-            expected = weights["alpha"] * s1 + weights["beta"] * s2 + weights["gamma"] * s3
+            expected = (
+                weights["alpha"] * s1 + weights["beta"] * s2 + weights["gamma"] * s3
+            )
             assert abs(composite["score"] - expected) < 0.01, (
                 f"Composite {composite['score']} != "
                 f"{weights['alpha']}*{s1} + {weights['beta']}*{s2} + "
@@ -517,7 +534,9 @@ class TestFailureModes:
         actor_ihsan = constraint_result["evidence"]["actor_ihsan"]
         assert actor_ihsan < UNIFIED_IHSAN_THRESHOLD
 
-    def test_transition_firewall_block(self, failure_fixtures: List[Dict[str, Any]]) -> None:
+    def test_transition_firewall_block(
+        self, failure_fixtures: List[Dict[str, Any]]
+    ) -> None:
         fix = next(f for f in failure_fixtures if f["id"] == "fail_transition_firewall")
         event = fix["event"]
         schema_result = event["gate_results"]["schema"]
@@ -529,8 +548,12 @@ class TestFailureModes:
         assert evidence["to"] == "SETTLE"
         assert "SETTLE" not in evidence["allowed_transitions"]
 
-    def test_verifier_fabrication_detect(self, failure_fixtures: List[Dict[str, Any]]) -> None:
-        fix = next(f for f in failure_fixtures if f["id"] == "fail_verifier_fabrication")
+    def test_verifier_fabrication_detect(
+        self, failure_fixtures: List[Dict[str, Any]]
+    ) -> None:
+        fix = next(
+            f for f in failure_fixtures if f["id"] == "fail_verifier_fabrication"
+        )
         event = fix["event"]
         provenance_result = event["gate_results"]["provenance"]
         assert provenance_result["status"] == "failed"
@@ -582,9 +605,9 @@ class TestCanonicalDeterminism:
         for event in events:
             canon = canonical_json(event)
             keys = list(canon.keys())
-            assert keys == sorted(keys), (
-                f"Event seq={event['seq']}: keys not sorted: {keys}"
-            )
+            assert keys == sorted(
+                keys
+            ), f"Event seq={event['seq']}: keys not sorted: {keys}"
 
     def test_payload_canonical_determinism(self, events: List[Dict[str, Any]]) -> None:
         """Payload sub-objects must also be deterministic."""
@@ -645,9 +668,9 @@ class TestDesignAxioms:
                     verified_allocations.add(payload["allocation_id"])
             if event["phase"] == "SETTLE":
                 alloc_id = event["payload"]["allocation_id"]
-                assert alloc_id in verified_allocations, (
-                    f"Settlement for {alloc_id} without prior verification"
-                )
+                assert (
+                    alloc_id in verified_allocations
+                ), f"Settlement for {alloc_id} without prior verification"
 
     def test_fail_closed_default(self, failure_fixtures: List[Dict[str, Any]]) -> None:
         """Axiom: Every gate defaults to rejection."""
@@ -655,10 +678,9 @@ class TestDesignAxioms:
             event = fix["event"]
             # At least one gate must have failed (fail-closed)
             has_failure = any(
-                r["status"] == "failed"
-                for r in event["gate_results"].values()
+                r["status"] == "failed" for r in event["gate_results"].values()
             )
             has_penalty = event.get("poi_penalty") is not None
-            assert has_failure or has_penalty, (
-                f"Failure fixture '{fix['id']}' has no gate failures or penalties"
-            )
+            assert (
+                has_failure or has_penalty
+            ), f"Failure fixture '{fix['id']}' has no gate failures or penalties"

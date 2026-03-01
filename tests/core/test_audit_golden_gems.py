@@ -428,9 +428,7 @@ class TestTieredVerification:
             "cost": 0.5,
             "autonomy_limit": 10.0,
         }
-        result = asyncio.run(
-            tier_2_concurrent(ctx, z3_available=False)
-        )
+        result = asyncio.run(tier_2_concurrent(ctx, z3_available=False))
         assert result.decision == TierDecision.PASS
 
     def test_tier2_interrupts_invalid_context(self):
@@ -443,9 +441,7 @@ class TestTieredVerification:
             "risk_level": 0.1,
             "action_type": "query",
         }
-        result = asyncio.run(
-            tier_2_concurrent(ctx, z3_available=False)
-        )
+        result = asyncio.run(tier_2_concurrent(ctx, z3_available=False))
         assert result.decision == TierDecision.INTERRUPT
 
     def test_full_chain_blocks_on_tier1(self):

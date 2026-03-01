@@ -30,17 +30,24 @@ import logging
 
 # BIZRA imports
 from bizra_config import (
-    SNR_THRESHOLD, IHSAN_CONSTRAINT,
-    DUAL_AGENTIC_URL, OLLAMA_BASE_URL,
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT,
-    HEALTH_CHECK_INTERVAL, HEALTH_CHECK_TIMEOUT,
-    DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL,
-    OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL
+    SNR_THRESHOLD,
+    IHSAN_CONSTRAINT,
+    DUAL_AGENTIC_URL,
+    OLLAMA_BASE_URL,
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    CIRCUIT_BREAKER_TIMEOUT,
+    HEALTH_CHECK_INTERVAL,
+    HEALTH_CHECK_TIMEOUT,
+    DEFAULT_TEXT_MODEL,
+    DEFAULT_VISION_MODEL,
+    OLLAMA_TEXT_MODEL,
+    OLLAMA_VISION_MODEL,
 )
 
 # Import resilience patterns
 try:
     from bizra_resilience import CircuitBreaker, CircuitBreakerConfig
+
     RESILIENCE_AVAILABLE = True
 except ImportError:
     RESILIENCE_AVAILABLE = False
@@ -48,6 +55,7 @@ except ImportError:
 # Import orchestrator
 try:
     from bizra_orchestrator import BIZRAOrchestrator, BIZRAQuery, QueryComplexity
+
     ORCHESTRATOR_AVAILABLE = True
 except ImportError:
     ORCHESTRATOR_AVAILABLE = False
@@ -55,6 +63,7 @@ except ImportError:
 # Import dual agentic bridge
 try:
     from dual_agentic_bridge import DualAgenticBridge, ModelCapability
+
     BRIDGE_AVAILABLE = True
 except ImportError:
     BRIDGE_AVAILABLE = False
@@ -64,8 +73,7 @@ import httpx
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | RUNTIME | %(message)s'
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | RUNTIME | %(message)s"
 )
 logger = logging.getLogger("BIZRA-RUNTIME")
 
@@ -74,8 +82,10 @@ logger = logging.getLogger("BIZRA-RUNTIME")
 # ENUMS AND DATA CLASSES
 # ============================================================================
 
+
 class BackendStatus(Enum):
     """Backend health status"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -84,6 +94,7 @@ class BackendStatus(Enum):
 
 class LoadBalanceStrategy(Enum):
     """Load balancing strategies"""
+
     ROUND_ROBIN = "round_robin"
     LEAST_LATENCY = "least_latency"
     WEIGHTED = "weighted"
@@ -93,6 +104,7 @@ class LoadBalanceStrategy(Enum):
 @dataclass
 class BackendHealth:
     """Health status of a backend"""
+
     name: str
     status: BackendStatus
     url: str
@@ -111,6 +123,7 @@ class BackendHealth:
 @dataclass
 class RuntimeMetrics:
     """Runtime performance metrics"""
+
     uptime_seconds: float
     total_requests: int
     successful_requests: int
@@ -129,6 +142,7 @@ class RuntimeMetrics:
 @dataclass
 class QueryResult:
     """Result of a query execution"""
+
     success: bool
     content: str
     backend_used: str
@@ -143,6 +157,7 @@ class QueryResult:
 # ============================================================================
 # HEALTH MONITOR
 # ============================================================================
+
 
 class HealthMonitor:
     """
@@ -175,7 +190,7 @@ class HealthMonitor:
             total_requests=0,
             error_rate=0.0,
             available_models=[],
-            capabilities=capabilities or set()
+            capabilities=capabilities or set(),
         )
         self._latency_history[name] = deque(maxlen=100)
         logger.info(f"Registered backend: {name} @ {url}")
@@ -216,8 +231,7 @@ class HealthMonitor:
     async def _check_all_backends(self):
         """Check health of all registered backends"""
         tasks = [
-            self._check_backend(name, health)
-            for name, health in self._backends.items()
+            self._check_backend(name, health) for name, health in self._backends.items()
         ]
         await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -233,22 +247,29 @@ class HealthMonitor:
                     response = await client.get(f"{health.url}/v1/models")
                     if response.status_code == 200:
                         data = response.json()
-                        health.available_models = [m.get('id', '') for m in data.get('data', [])]
+                        health.available_models = [
+                            m.get("id", "") for m in data.get("data", [])
+                        ]
                         health.capabilities = {"text", "reasoning", "code"}
                         # Check for vision models
-                        vision_keywords = ['vision', 'llava', 'vl', 'bakllava']
-                        if any(any(kw in m.lower() for kw in vision_keywords) for m in health.available_models):
+                        vision_keywords = ["vision", "llava", "vl", "bakllava"]
+                        if any(
+                            any(kw in m.lower() for kw in vision_keywords)
+                            for m in health.available_models
+                        ):
                             health.capabilities.add("vision")
                 else:
                     # Ollama uses /api/tags endpoint
                     response = await client.get(f"{health.url}/api/tags")
                     if response.status_code == 200:
                         data = response.json()
-                        health.available_models = [m.get('name', '') for m in data.get('models', [])]
+                        health.available_models = [
+                            m.get("name", "") for m in data.get("models", [])
+                        ]
                         health.capabilities = {"text", "reasoning"}
-                        if any('llava' in m.lower() for m in health.available_models):
+                        if any("llava" in m.lower() for m in health.available_models):
                             health.capabilities.add("vision")
-                        if any('code' in m.lower() for m in health.available_models):
+                        if any("code" in m.lower() for m in health.available_models):
                             health.capabilities.add("code")
 
             latency = (time.perf_counter() - start_time) * 1000
@@ -295,14 +316,14 @@ class HealthMonitor:
     def get_healthy_backends(self) -> List[str]:
         """Get list of healthy backend names"""
         return [
-            name for name, health in self._backends.items()
-            if health.is_available()
+            name for name, health in self._backends.items() if health.is_available()
         ]
 
     def get_backend_for_capability(self, capability: str) -> Optional[str]:
         """Get best backend for a given capability"""
         candidates = [
-            (name, health) for name, health in self._backends.items()
+            (name, health)
+            for name, health in self._backends.items()
             if health.is_available() and capability in health.capabilities
         ]
 
@@ -318,6 +339,7 @@ class HealthMonitor:
 # LOAD BALANCER
 # ============================================================================
 
+
 class LoadBalancer:
     """
     Intelligent Load Balancer
@@ -329,7 +351,11 @@ class LoadBalancer:
     - Failover: Primary with fallback
     """
 
-    def __init__(self, health_monitor: HealthMonitor, strategy: LoadBalanceStrategy = LoadBalanceStrategy.LEAST_LATENCY):
+    def __init__(
+        self,
+        health_monitor: HealthMonitor,
+        strategy: LoadBalanceStrategy = LoadBalanceStrategy.LEAST_LATENCY,
+    ):
         self.health_monitor = health_monitor
         self.strategy = strategy
         self._round_robin_index = 0
@@ -342,7 +368,8 @@ class LoadBalancer:
     def select_backend(self, capability: str = "text") -> Optional[str]:
         """Select best backend based on strategy"""
         healthy = [
-            name for name, health in self.health_monitor.get_all_health().items()
+            name
+            for name, health in self.health_monitor.get_all_health().items()
             if health.is_available() and capability in health.capabilities
         ]
 
@@ -356,22 +383,17 @@ class LoadBalancer:
 
         elif self.strategy == LoadBalanceStrategy.LEAST_LATENCY:
             all_health = self.health_monitor.get_all_health()
-            sorted_backends = sorted(
-                healthy,
-                key=lambda x: all_health[x].latency_ms
-            )
+            sorted_backends = sorted(healthy, key=lambda x: all_health[x].latency_ms)
             return sorted_backends[0]
 
         elif self.strategy == LoadBalanceStrategy.WEIGHTED:
-            weighted = [
-                (name, self._weights.get(name, 1.0))
-                for name in healthy
-            ]
+            weighted = [(name, self._weights.get(name, 1.0)) for name in healthy]
             total = sum(w for _, w in weighted)
             if total == 0:
                 return healthy[0]
             # Simple weighted selection
             import random
+
             r = random.uniform(0, total)
             cumulative = 0
             for name, weight in weighted:
@@ -394,6 +416,7 @@ class LoadBalancer:
 # ============================================================================
 # AUTO-RECOVERY SERVICE
 # ============================================================================
+
 
 class AutoRecoveryService:
     """
@@ -453,7 +476,7 @@ class AutoRecoveryService:
             return
 
         # Exponential backoff
-        delay = self._base_delay * (2 ** attempts)
+        delay = self._base_delay * (2**attempts)
         logger.info(f"Recovery attempt {attempts + 1} for {name} (delay: {delay}s)")
 
         await asyncio.sleep(delay)
@@ -473,6 +496,7 @@ class AutoRecoveryService:
 # ============================================================================
 # TELEMETRY COLLECTOR
 # ============================================================================
+
 
 class TelemetryCollector:
     """
@@ -496,11 +520,7 @@ class TelemetryCollector:
         self._backend_usage: Dict[str, int] = {}
 
     def record_request(
-        self,
-        latency_ms: float,
-        snr_score: float,
-        success: bool,
-        backend: str
+        self, latency_ms: float, snr_score: float, success: bool, backend: str
     ):
         """Record a request for telemetry"""
         self._latencies.append(latency_ms)
@@ -541,13 +561,14 @@ class TelemetryCollector:
             backends_healthy=0,  # Will be set by runtime
             backends_total=0,
             circuit_breakers_open=0,
-            last_updated=datetime.now()
+            last_updated=datetime.now(),
         )
 
 
 # ============================================================================
 # BIZRA PRODUCTION RUNTIME
 # ============================================================================
+
 
 class BIZRARuntime:
     """
@@ -570,13 +591,15 @@ class BIZRARuntime:
     def __init__(
         self,
         load_balance_strategy: LoadBalanceStrategy = LoadBalanceStrategy.LEAST_LATENCY,
-        enable_auto_recovery: bool = True
+        enable_auto_recovery: bool = True,
     ):
         # Core components
         self.health_monitor = HealthMonitor()
         self.load_balancer = LoadBalancer(self.health_monitor, load_balance_strategy)
         self.telemetry = TelemetryCollector()
-        self.auto_recovery = AutoRecoveryService(self.health_monitor) if enable_auto_recovery else None
+        self.auto_recovery = (
+            AutoRecoveryService(self.health_monitor) if enable_auto_recovery else None
+        )
 
         # Bridge for model execution
         self._bridge: Optional[DualAgenticBridge] = None
@@ -590,14 +613,10 @@ class BIZRARuntime:
 
         # Register backends
         self.health_monitor.register_backend(
-            "lm_studio",
-            DUAL_AGENTIC_URL,
-            {"text", "reasoning", "code", "vision"}
+            "lm_studio", DUAL_AGENTIC_URL, {"text", "reasoning", "code", "vision"}
         )
         self.health_monitor.register_backend(
-            "ollama",
-            OLLAMA_BASE_URL,
-            {"text", "reasoning", "code", "vision"}
+            "ollama", OLLAMA_BASE_URL, {"text", "reasoning", "code", "vision"}
         )
 
         # Status change listener
@@ -605,9 +624,15 @@ class BIZRARuntime:
 
         logger.info(f"BIZRA Runtime v{self.VERSION} ({self.CODENAME}) initialized")
 
-    def _on_backend_status_change(self, name: str, old_status: BackendStatus, new_status: BackendStatus):
+    def _on_backend_status_change(
+        self, name: str, old_status: BackendStatus, new_status: BackendStatus
+    ):
         """Handle backend status changes"""
-        emoji = "🟢" if new_status == BackendStatus.HEALTHY else "🟡" if new_status == BackendStatus.DEGRADED else "🔴"
+        emoji = (
+            "🟢"
+            if new_status == BackendStatus.HEALTHY
+            else "🟡" if new_status == BackendStatus.DEGRADED else "🔴"
+        )
         logger.info(f"{emoji} Backend {name}: {old_status.value} -> {new_status.value}")
 
     async def start(self):
@@ -626,9 +651,7 @@ class BIZRARuntime:
         # Initialize orchestrator
         if ORCHESTRATOR_AVAILABLE:
             self._orchestrator = BIZRAOrchestrator(
-                enable_pat=True,
-                enable_kep=True,
-                enable_multimodal=True
+                enable_pat=True, enable_kep=True, enable_multimodal=True
             )
             logger.info("BIZRA Orchestrator initialized")
 
@@ -673,7 +696,11 @@ class BIZRARuntime:
 
         all_health = self.health_monitor.get_all_health()
         for name, health in all_health.items():
-            status_emoji = "🟢" if health.status == BackendStatus.HEALTHY else "🟡" if health.status == BackendStatus.DEGRADED else "🔴"
+            status_emoji = (
+                "🟢"
+                if health.status == BackendStatus.HEALTHY
+                else "🟡" if health.status == BackendStatus.DEGRADED else "🔴"
+            )
             print(f"\n  {status_emoji} {name.upper()}")
             print(f"     URL: {health.url}")
             print(f"     Status: {health.status.value}")
@@ -688,7 +715,7 @@ class BIZRARuntime:
         query: str,
         capability: str = "text",
         use_orchestrator: bool = False,
-        **kwargs
+        **kwargs,
     ) -> QueryResult:
         """
         Execute a query through the runtime
@@ -715,7 +742,7 @@ class BIZRARuntime:
                 latency_ms=0,
                 snr_score=0,
                 tokens_used=0,
-                error="No healthy backends available"
+                error="No healthy backends available",
             )
 
         try:
@@ -724,7 +751,9 @@ class BIZRARuntime:
                 result = await self._execute_orchestrated(query, capability, **kwargs)
             else:
                 # Use direct bridge execution
-                result = await self._execute_direct(query, capability, backend, **kwargs)
+                result = await self._execute_direct(
+                    query, capability, backend, **kwargs
+                )
 
             latency = (time.perf_counter() - start_time) * 1000
             result.latency_ms = latency
@@ -734,7 +763,7 @@ class BIZRARuntime:
                 latency_ms=latency,
                 snr_score=result.snr_score,
                 success=result.success,
-                backend=result.backend_used
+                backend=result.backend_used,
             )
 
             return result
@@ -748,7 +777,7 @@ class BIZRARuntime:
                 latency_ms=latency,
                 snr_score=0,
                 success=False,
-                backend=backend or "unknown"
+                backend=backend or "unknown",
             )
 
             return QueryResult(
@@ -759,15 +788,11 @@ class BIZRARuntime:
                 latency_ms=latency,
                 snr_score=0,
                 tokens_used=0,
-                error=str(e)
+                error=str(e),
             )
 
     async def _execute_direct(
-        self,
-        query: str,
-        capability: str,
-        backend: str,
-        **kwargs
+        self, query: str, capability: str, backend: str, **kwargs
     ) -> QueryResult:
         """Execute query directly through the bridge"""
         if not self._bridge:
@@ -779,7 +804,7 @@ class BIZRARuntime:
                 latency_ms=0,
                 snr_score=0,
                 tokens_used=0,
-                error="Bridge not available"
+                error="Bridge not available",
             )
 
         # Map capability to ModelCapability
@@ -787,25 +812,26 @@ class BIZRARuntime:
             "text": ModelCapability.TEXT,
             "vision": ModelCapability.VISION,
             "reasoning": ModelCapability.REASONING,
-            "code": ModelCapability.CODE
+            "code": ModelCapability.CODE,
         }
         model_cap = cap_map.get(capability, ModelCapability.TEXT)
 
         # Create request
         from dual_agentic_bridge import ModelRequest
+
         request = ModelRequest(
             prompt=query,
             capability=model_cap,
-            images=kwargs.get('images', []),
-            max_tokens=kwargs.get('max_tokens', 2048),
-            temperature=kwargs.get('temperature', 0.7),
-            system_prompt=kwargs.get('system_prompt')
+            images=kwargs.get("images", []),
+            max_tokens=kwargs.get("max_tokens", 2048),
+            temperature=kwargs.get("temperature", 0.7),
+            system_prompt=kwargs.get("system_prompt"),
         )
 
         # Execute
         response = await self._bridge.route_request(request)
 
-        if response and response.content and not response.metadata.get('error'):
+        if response and response.content and not response.metadata.get("error"):
             return QueryResult(
                 success=True,
                 content=response.content,
@@ -814,7 +840,7 @@ class BIZRARuntime:
                 latency_ms=response.latency_ms,
                 snr_score=0.85,  # Estimated
                 tokens_used=response.tokens_used,
-                metadata=response.metadata
+                metadata=response.metadata,
             )
         else:
             return QueryResult(
@@ -825,14 +851,11 @@ class BIZRARuntime:
                 latency_ms=response.latency_ms if response else 0,
                 snr_score=0,
                 tokens_used=0,
-                error=response.metadata.get('error') if response else "Empty response"
+                error=response.metadata.get("error") if response else "Empty response",
             )
 
     async def _execute_orchestrated(
-        self,
-        query: str,
-        capability: str,
-        **kwargs
+        self, query: str, capability: str, **kwargs
     ) -> QueryResult:
         """Execute query through full orchestrator pipeline"""
         if not self._orchestrator:
@@ -844,7 +867,7 @@ class BIZRARuntime:
                 latency_ms=0,
                 snr_score=0,
                 tokens_used=0,
-                error="Orchestrator not available"
+                error="Orchestrator not available",
             )
 
         # Initialize if needed
@@ -852,12 +875,12 @@ class BIZRARuntime:
             await self._orchestrator.initialize()
 
         # Create BIZRA query
-        complexity = kwargs.get('complexity', QueryComplexity.MODERATE)
+        complexity = kwargs.get("complexity", QueryComplexity.MODERATE)
         bizra_query = BIZRAQuery(
             text=query,
             complexity=complexity,
-            image_path=kwargs.get('image_path'),
-            enable_vision=capability == "vision"
+            image_path=kwargs.get("image_path"),
+            enable_vision=capability == "vision",
         )
 
         # Execute
@@ -870,12 +893,12 @@ class BIZRARuntime:
             model_used="multi-agent",
             latency_ms=response.execution_time * 1000,
             snr_score=response.snr_score,
-            tokens_used=response.metadata.get('tokens_estimated', 0),
+            tokens_used=response.metadata.get("tokens_estimated", 0),
             metadata={
                 "sources": len(response.sources),
                 "synergies": len(response.synergies),
-                "modalities": response.modality_used
-            }
+                "modalities": response.modality_used,
+            },
         )
 
     def get_metrics(self) -> RuntimeMetrics:
@@ -899,7 +922,7 @@ class BIZRARuntime:
                 "version": self.VERSION,
                 "codename": self.CODENAME,
                 "initialized": self._initialized,
-                "running": self._running
+                "running": self._running,
             },
             "metrics": asdict(metrics),
             "backends": {
@@ -908,20 +931,21 @@ class BIZRARuntime:
                     "url": health.url,
                     "latency_ms": health.latency_ms,
                     "models": len(health.available_models),
-                    "capabilities": list(health.capabilities)
+                    "capabilities": list(health.capabilities),
                 }
                 for name, health in all_health.items()
             },
             "load_balancer": {
                 "strategy": self.load_balancer.strategy.value,
-                "healthy_backends": self.health_monitor.get_healthy_backends()
-            }
+                "healthy_backends": self.health_monitor.get_healthy_backends(),
+            },
         }
 
 
 # ============================================================================
 # MAIN
 # ============================================================================
+
 
 async def main():
     """Demonstration of BIZRA Production Runtime"""
@@ -935,7 +959,7 @@ async def main():
     # Create and start runtime
     runtime = BIZRARuntime(
         load_balance_strategy=LoadBalanceStrategy.LEAST_LATENCY,
-        enable_auto_recovery=True
+        enable_auto_recovery=True,
     )
 
     await runtime.start()
@@ -954,7 +978,7 @@ async def main():
     test_queries = [
         ("What is the BIZRA architecture?", "text"),
         ("Explain hypergraph RAG", "reasoning"),
-        ("Write a Python function for SNR calculation", "code")
+        ("Write a Python function for SNR calculation", "code"),
     ]
 
     for query, capability in test_queries:
@@ -977,7 +1001,9 @@ async def main():
     metrics = runtime.get_metrics()
     print("\n--- FINAL METRICS ---")
     print(f"Total Requests: {metrics.total_requests}")
-    print(f"Success Rate: {metrics.successful_requests / max(metrics.total_requests, 1) * 100:.1f}%")
+    print(
+        f"Success Rate: {metrics.successful_requests / max(metrics.total_requests, 1) * 100:.1f}%"
+    )
     print(f"Avg Latency: {metrics.avg_latency_ms:.2f}ms")
     print(f"SNR Average: {metrics.snr_average:.4f}")
     print(f"Ihsan Compliance: {metrics.ihsan_compliance * 100:.1f}%")

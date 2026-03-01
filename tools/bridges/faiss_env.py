@@ -150,6 +150,7 @@ def _get_env() -> FAISSEnvironment:
 
 # Public API — thin wrappers that trigger lazy detection on first use.
 
+
 def get_env() -> FAISSEnvironment:
     """Return the (lazily detected) FAISS environment snapshot."""
     return _get_env()

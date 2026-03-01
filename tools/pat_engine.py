@@ -23,8 +23,12 @@ from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
 # Import DualAgenticBridge for vision capabilities
 try:
     from dual_agentic_bridge import (
-        DualAgenticBridge, ModelRequest, ModelCapability, ModelResponse
+        DualAgenticBridge,
+        ModelRequest,
+        ModelCapability,
+        ModelResponse,
     )
+
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
@@ -33,35 +37,54 @@ except ImportError:
 # Import resilience patterns
 try:
     from bizra_resilience import (
-        CircuitBreaker, CircuitBreakerConfig, CircuitOpenError,
-        retry, RetryConfig, with_fallback, llm_circuit_breaker
+        CircuitBreaker,
+        CircuitBreakerConfig,
+        CircuitOpenError,
+        retry,
+        RetryConfig,
+        with_fallback,
+        llm_circuit_breaker,
     )
+
     RESILIENCE_AVAILABLE = True
 except ImportError:
     RESILIENCE_AVAILABLE = False
+
     # Provide fallback no-op implementations
     class CircuitBreaker:
-        def __init__(self, *args, **kwargs): pass
-        def __call__(self, func): return func
-    class CircuitOpenError(Exception): pass
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __call__(self, func):
+            return func
+
+    class CircuitOpenError(Exception):
+        pass
+
     def retry(*args, **kwargs):
-        def decorator(func): return func
+        def decorator(func):
+            return func
+
         return decorator
+
     def with_fallback(*args, **kwargs):
-        def decorator(func): return func
+        def decorator(func):
+            return func
+
         return decorator
+
     llm_circuit_breaker = CircuitBreaker("llm_backend")
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | PAT | %(message)s'
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | PAT | %(message)s"
 )
 logger = logging.getLogger("PAT")
 
 
 class AgentRole(Enum):
     """Agent specialization roles."""
+
     STRATEGIST = "strategist"
     RESEARCHER = "researcher"
     ANALYST = "analyst"
@@ -74,16 +97,18 @@ class AgentRole(Enum):
 
 class ThinkingMode(Enum):
     """Cognitive modes for different task types."""
-    FAST = "fast"           # Quick responses, low latency
-    DEEP = "deep"           # Thorough analysis
-    CREATIVE = "creative"   # Divergent thinking
-    CRITICAL = "critical"   # Evaluation and critique
-    SYNTHESIS = "synthesis" # Combining multiple perspectives
+
+    FAST = "fast"  # Quick responses, low latency
+    DEEP = "deep"  # Thorough analysis
+    CREATIVE = "creative"  # Divergent thinking
+    CRITICAL = "critical"  # Evaluation and critique
+    SYNTHESIS = "synthesis"  # Combining multiple perspectives
 
 
 @dataclass
 class AgentConfig:
     """Configuration for an agent instance."""
+
     name: str
     role: AgentRole
     model: str = "liquid/lfm2.5-1.2b"  # Default LM Studio model
@@ -96,6 +121,7 @@ class AgentConfig:
 @dataclass
 class AgentMessage:
     """Message in agent conversation."""
+
     role: str  # "system", "user", "assistant"
     content: str
     timestamp: float = field(default_factory=time.time)
@@ -105,6 +131,7 @@ class AgentMessage:
 @dataclass
 class AgentResponse:
     """Response from an agent."""
+
     agent_name: str
     content: str
     thinking_mode: ThinkingMode
@@ -124,7 +151,7 @@ class LLMBackend(ABC):
         messages: List[AgentMessage],
         model: str,
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
     ) -> str:
         """Generate response from LLM."""
         pass
@@ -147,18 +174,19 @@ class OllamaBackend(LLMBackend):
         self.base_url = base_url
         self.client = httpx.AsyncClient(timeout=120.0)
 
-    @retry(max_retries=3, base_delay=1.0, retryable_exceptions=(httpx.ConnectError, httpx.TimeoutException))
+    @retry(
+        max_retries=3,
+        base_delay=1.0,
+        retryable_exceptions=(httpx.ConnectError, httpx.TimeoutException),
+    )
     async def _make_request(self, payload: dict) -> dict:
         """Make HTTP request to Ollama with retry logic."""
-        response = await self.client.post(
-            f"{self.base_url}/api/chat",
-            json=payload
-        )
+        response = await self.client.post(f"{self.base_url}/api/chat", json=payload)
         if response.status_code != 200:
             raise httpx.HTTPStatusError(
                 f"Ollama returned {response.status_code}",
                 request=response.request,
-                response=response
+                response=response,
             )
         return response.json()
 
@@ -167,7 +195,7 @@ class OllamaBackend(LLMBackend):
         messages: List[AgentMessage],
         model: str,
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
     ) -> str:
         """Generate response using Ollama API with circuit breaker protection."""
         # Check circuit breaker state
@@ -180,18 +208,14 @@ class OllamaBackend(LLMBackend):
         try:
             # Convert messages to Ollama format
             ollama_messages = [
-                {"role": msg.role, "content": msg.content}
-                for msg in messages
+                {"role": msg.role, "content": msg.content} for msg in messages
             ]
 
             payload = {
                 "model": model,
                 "messages": ollama_messages,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens
-                },
-                "stream": False
+                "options": {"temperature": temperature, "num_predict": max_tokens},
+                "stream": False,
             }
 
             data = await self._make_request(payload)
@@ -249,8 +273,7 @@ class OpenAIBackend(LLMBackend):
         self.api_key = api_key
         self.base_url = base_url
         self.client = httpx.AsyncClient(
-            timeout=60.0,
-            headers={"Authorization": f"Bearer {api_key}"}
+            timeout=60.0, headers={"Authorization": f"Bearer {api_key}"}
         )
 
     async def generate(
@@ -258,13 +281,12 @@ class OpenAIBackend(LLMBackend):
         messages: List[AgentMessage],
         model: str,
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
     ) -> str:
         """Generate response using OpenAI-compatible API."""
         try:
             openai_messages = [
-                {"role": msg.role, "content": msg.content}
-                for msg in messages
+                {"role": msg.role, "content": msg.content} for msg in messages
             ]
 
             response = await self.client.post(
@@ -273,8 +295,8 @@ class OpenAIBackend(LLMBackend):
                     "model": model,
                     "messages": openai_messages,
                     "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
+                    "max_tokens": max_tokens,
+                },
             )
 
             if response.status_code == 200:
@@ -307,29 +329,36 @@ class LMStudioBackend(LLMBackend):
 
     def __init__(self, base_url: str = "http://192.168.56.1:1234/v1"):
         self.base_url = base_url
-        self.client = httpx.AsyncClient(timeout=300.0)  # 5 minute timeout for large models
+        self.client = httpx.AsyncClient(
+            timeout=300.0
+        )  # 5 minute timeout for large models
         self._models: List[str] = []
-        self._circuit_breaker = CircuitBreaker(
-            "lm_studio_backend",
-            CircuitBreakerConfig(
-                failure_threshold=3,
-                success_threshold=2,
-                timeout_seconds=60.0
+        self._circuit_breaker = (
+            CircuitBreaker(
+                "lm_studio_backend",
+                CircuitBreakerConfig(
+                    failure_threshold=3, success_threshold=2, timeout_seconds=60.0
+                ),
             )
-        ) if RESILIENCE_AVAILABLE else None
+            if RESILIENCE_AVAILABLE
+            else None
+        )
 
-    @retry(max_retries=2, base_delay=2.0, retryable_exceptions=(httpx.ConnectError, httpx.TimeoutException))
+    @retry(
+        max_retries=2,
+        base_delay=2.0,
+        retryable_exceptions=(httpx.ConnectError, httpx.TimeoutException),
+    )
     async def _make_request(self, payload: dict) -> dict:
         """Make HTTP request to LM Studio with retry logic."""
         response = await self.client.post(
-            f"{self.base_url}/chat/completions",
-            json=payload
+            f"{self.base_url}/chat/completions", json=payload
         )
         if response.status_code != 200:
             raise httpx.HTTPStatusError(
                 f"LM Studio returned {response.status_code}",
                 request=response.request,
-                response=response
+                response=response,
             )
         return response.json()
 
@@ -338,7 +367,7 @@ class LMStudioBackend(LLMBackend):
         messages: List[AgentMessage],
         model: str,
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
     ) -> str:
         """Generate response using LM Studio's OpenAI-compatible API with resilience."""
         # Check circuit breaker state
@@ -349,8 +378,7 @@ class LMStudioBackend(LLMBackend):
 
         try:
             openai_messages = [
-                {"role": msg.role, "content": msg.content}
-                for msg in messages
+                {"role": msg.role, "content": msg.content} for msg in messages
             ]
 
             payload = {
@@ -358,7 +386,7 @@ class LMStudioBackend(LLMBackend):
                 "messages": openai_messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
-                "stream": False
+                "stream": False,
             }
 
             data = await self._make_request(payload)
@@ -391,7 +419,7 @@ class LMStudioBackend(LLMBackend):
             response = await self.client.get(f"{self.base_url}/models")
             if response.status_code == 200:
                 data = response.json()
-                self._models = [m.get('id', '') for m in data.get('data', [])]
+                self._models = [m.get("id", "") for m in data.get("data", [])]
                 return True
             return False
         except:
@@ -418,18 +446,13 @@ class BaseAgent(ABC):
         self.config = config
         self.backend = backend
         self.history: List[AgentMessage] = []
-        self.metrics = {
-            "total_calls": 0,
-            "total_tokens": 0,
-            "avg_response_time": 0.0
-        }
+        self.metrics = {"total_calls": 0, "total_tokens": 0, "avg_response_time": 0.0}
 
         # Initialize with system prompt
         if config.system_prompt:
-            self.history.append(AgentMessage(
-                role="system",
-                content=config.system_prompt
-            ))
+            self.history.append(
+                AgentMessage(role="system", content=config.system_prompt)
+            )
 
     @abstractmethod
     def get_system_prompt(self) -> str:
@@ -440,7 +463,7 @@ class BaseAgent(ABC):
         self,
         task: str,
         context: Optional[Dict] = None,
-        thinking_mode: ThinkingMode = ThinkingMode.FAST
+        thinking_mode: ThinkingMode = ThinkingMode.FAST,
     ) -> AgentResponse:
         """
         Process a task and generate response.
@@ -466,7 +489,7 @@ class BaseAgent(ABC):
             messages=self.history,
             model=self.config.model,
             temperature=self._get_temperature(thinking_mode),
-            max_tokens=self.config.max_tokens
+            max_tokens=self.config.max_tokens,
         )
 
         # Add response to history
@@ -479,9 +502,9 @@ class BaseAgent(ABC):
         tokens_est = len(response_text.split()) * 1.3
         self.metrics["total_tokens"] += int(tokens_est)
         self.metrics["avg_response_time"] = (
-            (self.metrics["avg_response_time"] * (self.metrics["total_calls"] - 1) + execution_time)
-            / self.metrics["total_calls"]
-        )
+            self.metrics["avg_response_time"] * (self.metrics["total_calls"] - 1)
+            + execution_time
+        ) / self.metrics["total_calls"]
 
         # Calculate confidence based on response quality
         confidence = self._estimate_confidence(response_text, thinking_mode)
@@ -494,17 +517,11 @@ class BaseAgent(ABC):
             sources=context.get("sources", []) if context else [],
             execution_time=execution_time,
             tokens_used=int(tokens_est),
-            metadata={
-                "model": self.config.model,
-                "role": self.config.role.value
-            }
+            metadata={"model": self.config.model, "role": self.config.role.value},
         )
 
     def _build_prompt(
-        self,
-        task: str,
-        context: Optional[Dict],
-        thinking_mode: ThinkingMode
+        self, task: str, context: Optional[Dict], thinking_mode: ThinkingMode
     ) -> str:
         """Build complete prompt with context."""
         parts = []
@@ -522,9 +539,13 @@ class BaseAgent(ABC):
         # Add context if provided
         if context:
             if "retrieved_context" in context:
-                parts.append(f"\n--- Retrieved Context ---\n{context['retrieved_context']}\n---")
+                parts.append(
+                    f"\n--- Retrieved Context ---\n{context['retrieved_context']}\n---"
+                )
             if "prior_responses" in context:
-                parts.append(f"\n--- Prior Analysis ---\n{context['prior_responses']}\n---")
+                parts.append(
+                    f"\n--- Prior Analysis ---\n{context['prior_responses']}\n---"
+                )
 
         # Add main task
         parts.append(f"\nTask: {task}")
@@ -538,7 +559,7 @@ class BaseAgent(ABC):
             ThinkingMode.DEEP: 0.5,
             ThinkingMode.CREATIVE: 0.9,
             ThinkingMode.CRITICAL: 0.4,
-            ThinkingMode.SYNTHESIS: 0.6
+            ThinkingMode.SYNTHESIS: 0.6,
         }
         return temps.get(mode, self.config.temperature)
 
@@ -555,13 +576,26 @@ class BaseAgent(ABC):
             confidence -= 0.1
 
         # Check for uncertainty markers
-        uncertainty_markers = ["maybe", "possibly", "might", "uncertain", "not sure", "i think"]
+        uncertainty_markers = [
+            "maybe",
+            "possibly",
+            "might",
+            "uncertain",
+            "not sure",
+            "i think",
+        ]
         for marker in uncertainty_markers:
             if marker in response.lower():
                 confidence -= 0.05
 
         # Check for confidence markers
-        confidence_markers = ["clearly", "definitely", "certainly", "evidence shows", "based on"]
+        confidence_markers = [
+            "clearly",
+            "definitely",
+            "certainly",
+            "evidence shows",
+            "based on",
+        ]
         for marker in confidence_markers:
             if marker in response.lower():
                 confidence += 0.05
@@ -763,9 +797,7 @@ Communication style:
 Always describe what you see objectively and note any ambiguities or uncertainties."""
 
     async def analyze_image(
-        self,
-        image_path: str,
-        prompt: Optional[str] = None
+        self, image_path: str, prompt: Optional[str] = None
     ) -> AgentResponse:
         """
         Analyze an image and return structured insights.
@@ -792,23 +824,26 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                 sources=[image_path],
                 execution_time=time.time() - start_time,
                 tokens_used=0,
-                metadata={"error": True, "vision_unavailable": True}
+                metadata={"error": True, "vision_unavailable": True},
             )
 
         try:
             # Read and encode image
-            with open(image_path, 'rb') as f:
+            with open(image_path, "rb") as f:
                 image_data = base64.b64encode(f.read()).decode()
 
             # Build the analysis prompt
-            analysis_prompt = prompt or "Analyze this image in detail. Describe:\n1. Main elements and composition\n2. Any text or labels visible\n3. Technical diagrams or charts (if present)\n4. Key insights and observations"
+            analysis_prompt = (
+                prompt
+                or "Analyze this image in detail. Describe:\n1. Main elements and composition\n2. Any text or labels visible\n3. Technical diagrams or charts (if present)\n4. Key insights and observations"
+            )
 
             # Create vision request
             request = ModelRequest(
                 prompt=analysis_prompt,
                 capability=ModelCapability.VISION,
                 images=[image_data],
-                system_prompt=self.get_system_prompt()
+                system_prompt=self.get_system_prompt(),
             )
 
             # Route through DualAgenticBridge
@@ -818,15 +853,16 @@ Always describe what you see objectively and note any ambiguities or uncertainti
 
             if response and response.content:
                 # Add to history for context
-                self.history.append(AgentMessage(
-                    role="user",
-                    content=f"[Image: {image_path}]\n{analysis_prompt}",
-                    metadata={"image_path": image_path}
-                ))
-                self.history.append(AgentMessage(
-                    role="assistant",
-                    content=response.content
-                ))
+                self.history.append(
+                    AgentMessage(
+                        role="user",
+                        content=f"[Image: {image_path}]\n{analysis_prompt}",
+                        metadata={"image_path": image_path},
+                    )
+                )
+                self.history.append(
+                    AgentMessage(role="assistant", content=response.content)
+                )
 
                 # Update metrics
                 self.metrics["total_calls"] += 1
@@ -843,8 +879,8 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                     metadata={
                         "model": response.model_used,
                         "provider": response.provider,
-                        "latency_ms": response.latency_ms
-                    }
+                        "latency_ms": response.latency_ms,
+                    },
                 )
             else:
                 return AgentResponse(
@@ -855,7 +891,7 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                     sources=[image_path],
                     execution_time=execution_time,
                     tokens_used=0,
-                    metadata={"error": True}
+                    metadata={"error": True},
                 )
 
         except FileNotFoundError:
@@ -867,7 +903,7 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                 sources=[],
                 execution_time=time.time() - start_time,
                 tokens_used=0,
-                metadata={"error": True, "file_not_found": True}
+                metadata={"error": True, "file_not_found": True},
             )
         except Exception as e:
             logger.error(f"Vision analysis failed: {e}")
@@ -879,14 +915,14 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                 sources=[image_path],
                 execution_time=time.time() - start_time,
                 tokens_used=0,
-                metadata={"error": True, "exception": str(e)}
+                metadata={"error": True, "exception": str(e)},
             )
 
     async def process(
         self,
         task: str,
         context: Optional[Dict] = None,
-        thinking_mode: ThinkingMode = ThinkingMode.FAST
+        thinking_mode: ThinkingMode = ThinkingMode.FAST,
     ) -> AgentResponse:
         """
         Process task - if image path in context, analyze it.
@@ -895,8 +931,7 @@ Always describe what you see objectively and note any ambiguities or uncertainti
         # Check if context contains an image path
         if context and context.get("image_path"):
             return await self.analyze_image(
-                image_path=context["image_path"],
-                prompt=task
+                image_path=context["image_path"], prompt=task
             )
 
         # Check if context has multiple images
@@ -915,7 +950,7 @@ Always describe what you see objectively and note any ambiguities or uncertainti
                 sources=context["image_paths"],
                 execution_time=sum(r.execution_time for r in results) if results else 0,
                 tokens_used=sum(r.tokens_used for r in results) if results else 0,
-                metadata={"multi_image": True, "count": len(context["image_paths"])}
+                metadata={"multi_image": True, "count": len(context["image_paths"])},
             )
 
         # No image - use base text processing
@@ -949,7 +984,7 @@ class PATOrchestrator:
             "creator": (CreatorAgent, AgentRole.CREATOR),
             "guardian": (GuardianAgent, AgentRole.GUARDIAN),
             "coordinator": (CoordinatorAgent, AgentRole.COORDINATOR),
-            "vision": (VisionAgent, AgentRole.VISION)  # v2.2: Vision agent
+            "vision": (VisionAgent, AgentRole.VISION),  # v2.2: Vision agent
         }
 
         for name, (agent_class, role) in agent_classes.items():
@@ -957,19 +992,20 @@ class PATOrchestrator:
                 name=name,
                 role=role,
                 model=self.model,
-                system_prompt=""  # Will be set by get_system_prompt
+                system_prompt="",  # Will be set by get_system_prompt
             )
 
             agent = agent_class(config, self.backend)
             agent.config.system_prompt = agent.get_system_prompt()
-            agent.history.insert(0, AgentMessage(
-                role="system",
-                content=agent.config.system_prompt
-            ))
+            agent.history.insert(
+                0, AgentMessage(role="system", content=agent.config.system_prompt)
+            )
 
             self.agents[name] = agent
 
-        logger.info(f"Initialized {len(self.agents)} agents (vision: {VISION_AVAILABLE})")
+        logger.info(
+            f"Initialized {len(self.agents)} agents (vision: {VISION_AVAILABLE})"
+        )
 
     async def process_task(
         self,
@@ -977,7 +1013,7 @@ class PATOrchestrator:
         context: Optional[Dict] = None,
         agents_to_use: Optional[List[str]] = None,
         require_guardian_approval: bool = True,
-        snr_threshold: float = SNR_THRESHOLD
+        snr_threshold: float = SNR_THRESHOLD,
     ) -> Dict[str, Any]:
         """
         Process a task using the agent team.
@@ -1000,7 +1036,7 @@ class PATOrchestrator:
         strategy = await self.agents["strategist"].process(
             task=f"Analyze this task and provide a strategic approach: {task}",
             context=context,
-            thinking_mode=ThinkingMode.DEEP
+            thinking_mode=ThinkingMode.DEEP,
         )
 
         # Step 2: Determine which agents to use
@@ -1014,15 +1050,16 @@ class PATOrchestrator:
 
         tasks = []
         for agent_name in agents_to_use:
-            if agent_name in self.agents and agent_name not in ["strategist", "guardian", "coordinator"]:
+            if agent_name in self.agents and agent_name not in [
+                "strategist",
+                "guardian",
+                "coordinator",
+            ]:
                 agent = self.agents[agent_name]
                 task_coro = agent.process(
                     task=task,
-                    context={
-                        **(context or {}),
-                        "prior_responses": strategy.content
-                    },
-                    thinking_mode=ThinkingMode.DEEP
+                    context={**(context or {}), "prior_responses": strategy.content},
+                    thinking_mode=ThinkingMode.DEEP,
                 )
                 tasks.append((agent_name, task_coro))
 
@@ -1031,22 +1068,26 @@ class PATOrchestrator:
             try:
                 response = await task_coro
                 agent_responses.append(response)
-                logger.info(f"Agent {agent_name} completed (confidence: {response.confidence:.2f})")
+                logger.info(
+                    f"Agent {agent_name} completed (confidence: {response.confidence:.2f})"
+                )
             except Exception as e:
                 logger.error(f"Agent {agent_name} failed: {e}")
 
         # Step 4: Coordinator synthesis
         synthesis_context = {
-            "prior_responses": "\n\n".join([
-                f"=== {r.agent_name.upper()} ===\n{r.content}"
-                for r in [strategy] + agent_responses
-            ])
+            "prior_responses": "\n\n".join(
+                [
+                    f"=== {r.agent_name.upper()} ===\n{r.content}"
+                    for r in [strategy] + agent_responses
+                ]
+            )
         }
 
         synthesis = await self.agents["coordinator"].process(
             task=f"Synthesize these agent perspectives into a unified response for: {task}",
             context=synthesis_context,
-            thinking_mode=ThinkingMode.SYNTHESIS
+            thinking_mode=ThinkingMode.SYNTHESIS,
         )
 
         # Step 5: Guardian validation
@@ -1055,13 +1096,12 @@ class PATOrchestrator:
             quality_result = await self.agents["guardian"].process(
                 task=f"Evaluate this response for quality and completeness:\n\n{synthesis.content}",
                 context={"original_task": task},
-                thinking_mode=ThinkingMode.CRITICAL
+                thinking_mode=ThinkingMode.CRITICAL,
             )
 
         # Step 6: Calculate SNR
         snr_score = self._calculate_team_snr(
-            agent_responses + [strategy, synthesis],
-            quality_result
+            agent_responses + [strategy, synthesis], quality_result
         )
 
         execution_time = time.time() - start_time
@@ -1076,12 +1116,14 @@ class PATOrchestrator:
                 {
                     "agent": r.agent_name,
                     "confidence": r.confidence,
-                    "tokens": r.tokens_used
+                    "tokens": r.tokens_used,
                 }
                 for r in [strategy] + agent_responses + [synthesis]
             ],
             "execution_time": round(execution_time, 2),
-            "total_tokens": sum(r.tokens_used for r in [strategy] + agent_responses + [synthesis])
+            "total_tokens": sum(
+                r.tokens_used for r in [strategy] + agent_responses + [synthesis]
+            ),
         }
 
         logger.info(f"Task completed in {execution_time:.2f}s (SNR: {snr_score:.3f})")
@@ -1089,10 +1131,7 @@ class PATOrchestrator:
         return result
 
     async def process_vision_task(
-        self,
-        task: str,
-        image_paths: List[str],
-        include_text_agents: bool = True
+        self, task: str, image_paths: List[str], include_text_agents: bool = True
     ) -> Dict[str, Any]:
         """
         Process a task involving images using vision agent.
@@ -1110,18 +1149,15 @@ class PATOrchestrator:
         if not VISION_AVAILABLE:
             return {
                 "error": True,
-                "message": "Vision not available - DualAgenticBridge not installed"
+                "message": "Vision not available - DualAgenticBridge not installed",
             }
 
         vision_agent = self.agents.get("vision")
         if not vision_agent:
-            return {
-                "error": True,
-                "message": "Vision agent not initialized"
-            }
+            return {"error": True, "message": "Vision agent not initialized"}
 
         # Initialize vision if needed
-        if hasattr(vision_agent, 'initialize_vision'):
+        if hasattr(vision_agent, "initialize_vision"):
             await vision_agent.initialize_vision()
 
         # Process each image
@@ -1129,20 +1165,24 @@ class PATOrchestrator:
         for img_path in image_paths:
             result = await vision_agent.analyze_image(img_path, task)
             vision_results.append(result)
-            logger.info(f"Analyzed image: {img_path} (confidence: {result.confidence:.2f})")
+            logger.info(
+                f"Analyzed image: {img_path} (confidence: {result.confidence:.2f})"
+            )
 
         # Combine vision outputs
-        combined_vision = "\n\n".join([
-            f"=== Image: {r.sources[0] if r.sources else 'unknown'} ===\n{r.content}"
-            for r in vision_results
-        ])
+        combined_vision = "\n\n".join(
+            [
+                f"=== Image: {r.sources[0] if r.sources else 'unknown'} ===\n{r.content}"
+                for r in vision_results
+            ]
+        )
 
         # Optionally synthesize with text agents
         if include_text_agents and vision_results:
             synthesis_result = await self.process_task(
                 task=f"Based on the following image analysis, {task}\n\nImage Analysis:\n{combined_vision}",
                 context={"vision_analysis": combined_vision},
-                agents_to_use=["analyst", "researcher"]
+                agents_to_use=["analyst", "researcher"],
             )
             synthesis = synthesis_result.get("synthesis", combined_vision)
         else:
@@ -1158,19 +1198,19 @@ class PATOrchestrator:
                     "image": r.sources[0] if r.sources else "unknown",
                     "content": r.content,
                     "confidence": r.confidence,
-                    "tokens": r.tokens_used
+                    "tokens": r.tokens_used,
                 }
                 for r in vision_results
             ],
             "synthesis": synthesis,
             "execution_time": round(execution_time, 2),
-            "total_tokens": sum(r.tokens_used for r in vision_results)
+            "total_tokens": sum(r.tokens_used for r in vision_results),
         }
 
     async def initialize_vision_capability(self) -> bool:
         """Initialize the vision agent's bridge connection."""
         vision_agent = self.agents.get("vision")
-        if vision_agent and hasattr(vision_agent, 'initialize_vision'):
+        if vision_agent and hasattr(vision_agent, "initialize_vision"):
             return await vision_agent.initialize_vision()
         return False
 
@@ -1188,11 +1228,25 @@ class PATOrchestrator:
         if any(w in task_lower for w in ["analyze", "data", "pattern", "metric"]):
             agents.append("analyst")
 
-        if any(w in task_lower for w in ["create", "write", "generate", "design", "idea"]):
+        if any(
+            w in task_lower for w in ["create", "write", "generate", "design", "idea"]
+        ):
             agents.append("creator")
 
         # v2.2: Vision agent for image-related tasks
-        if any(w in task_lower for w in ["image", "picture", "photo", "screenshot", "diagram", "chart", "visual", "ocr"]):
+        if any(
+            w in task_lower
+            for w in [
+                "image",
+                "picture",
+                "photo",
+                "screenshot",
+                "diagram",
+                "chart",
+                "visual",
+                "ocr",
+            ]
+        ):
             if VISION_AVAILABLE:
                 agents.append("vision")
 
@@ -1203,9 +1257,7 @@ class PATOrchestrator:
         return agents
 
     def _calculate_team_snr(
-        self,
-        responses: List[AgentResponse],
-        quality_result: Optional[AgentResponse]
+        self, responses: List[AgentResponse], quality_result: Optional[AgentResponse]
     ) -> float:
         """Calculate team SNR based on responses."""
         if not responses:
@@ -1217,7 +1269,14 @@ class PATOrchestrator:
         # Bonus for quality approval
         quality_bonus = 0.0
         if quality_result:
-            approval_markers = ["approved", "meets", "satisfies", "good", "excellent", "pass"]
+            approval_markers = [
+                "approved",
+                "meets",
+                "satisfies",
+                "good",
+                "excellent",
+                "pass",
+            ]
             if any(m in quality_result.content.lower() for m in approval_markers):
                 quality_bonus = 0.1
             rejection_markers = ["reject", "fail", "insufficient", "missing", "poor"]
@@ -1284,8 +1343,7 @@ async def main():
     print("-" * 50)
 
     result = await orchestrator.process_task(
-        task=test_task,
-        agents_to_use=["researcher", "analyst", "creator"]
+        task=test_task, agents_to_use=["researcher", "analyst", "creator"]
     )
 
     print(f"\n--- Results ---")
@@ -1295,15 +1353,21 @@ async def main():
     print(f"Total Tokens: {result['total_tokens']}")
 
     print(f"\n--- Agent Contributions ---")
-    for contrib in result['agent_contributions']:
-        print(f"  {contrib['agent']}: confidence={contrib['confidence']:.2f}, tokens={contrib['tokens']}")
+    for contrib in result["agent_contributions"]:
+        print(
+            f"  {contrib['agent']}: confidence={contrib['confidence']:.2f}, tokens={contrib['tokens']}"
+        )
 
     print(f"\n--- Synthesis ---")
-    print(result['synthesis'][:500] + "..." if len(result['synthesis']) > 500 else result['synthesis'])
+    print(
+        result["synthesis"][:500] + "..."
+        if len(result["synthesis"]) > 500
+        else result["synthesis"]
+    )
 
-    if result['quality_assessment']:
+    if result["quality_assessment"]:
         print(f"\n--- Quality Assessment ---")
-        print(result['quality_assessment'][:300] + "...")
+        print(result["quality_assessment"][:300] + "...")
 
 
 if __name__ == "__main__":

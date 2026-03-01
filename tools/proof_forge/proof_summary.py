@@ -18,13 +18,12 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIDENCE_ICONS = {
-    5: "🛡️",   # Ironclad
-    4: "💪",    # Strong
-    3: "✅",    # Solid
-    2: "📝",    # Attested
-    1: "📋",    # Logged
+    5: "🛡️",  # Ironclad
+    4: "💪",  # Strong
+    3: "✅",  # Solid
+    2: "📝",  # Attested
+    1: "📋",  # Logged
 }
 
 CONFIDENCE_BARS = {
@@ -106,7 +105,9 @@ def generate_summary(receipt: dict, project_dir: Path) -> str:
 
     # Verification stats
     checks_run = verification.get("checks_run", len(checks))
-    checks_passed = verification.get("checks_passed", sum(1 for c in checks if c.get("passed")))
+    checks_passed = verification.get(
+        "checks_passed", sum(1 for c in checks if c.get("passed"))
+    )
 
     lines = []
 
@@ -140,7 +141,9 @@ def generate_summary(receipt: dict, project_dir: Path) -> str:
         for check in checks:
             status = "✅ Pass" if check.get("passed") else "❌ Fail"
             ctype = check.get("type", "unknown").replace("_", " ").title()
-            duration = f"{check.get('duration_ms', 0)}ms" if check.get("duration_ms") else "—"
+            duration = (
+                f"{check.get('duration_ms', 0)}ms" if check.get("duration_ms") else "—"
+            )
             cmd = check.get("command", "—")
             lines.append(f"| `{cmd[:40]}` | {ctype} | {status} | {duration} |")
         lines.append("")
@@ -167,17 +170,27 @@ def generate_summary(receipt: dict, project_dir: Path) -> str:
     lines.append(f"| Field | Value |")
     lines.append(f"|-------|-------|")
     lines.append(f"| **Chain Position** | #{chain_pos} |")
-    lines.append(f"| **Evidence Hash** | `{hashes.get('evidence_hash', 'N/A')[:32]}...` |")
+    lines.append(
+        f"| **Evidence Hash** | `{hashes.get('evidence_hash', 'N/A')[:32]}...` |"
+    )
     lines.append(f"| **Chain Hash** | `{hashes.get('chain_hash', 'N/A')[:32]}...` |")
-    lines.append(f"| **Previous Hash** | `{hashes.get('previous_hash', 'N/A')[:32]}...` |")
+    lines.append(
+        f"| **Previous Hash** | `{hashes.get('previous_hash', 'N/A')[:32]}...` |"
+    )
     lines.append(f"| **Receipt ID** | `{receipt.get('receipt_id', 'N/A')}` |")
     lines.append("")
 
     if chain_pos > 1:
-        lines.append(f"*This receipt is cryptographically linked to {chain_pos - 1} prior receipt(s).*")
-        lines.append(f"*The complete chain can be independently verified by recomputing all hashes.*")
+        lines.append(
+            f"*This receipt is cryptographically linked to {chain_pos - 1} prior receipt(s).*"
+        )
+        lines.append(
+            f"*The complete chain can be independently verified by recomputing all hashes.*"
+        )
     else:
-        lines.append("*This is the genesis receipt — the first link in this evidence chain.*")
+        lines.append(
+            "*This is the genesis receipt — the first link in this evidence chain.*"
+        )
     lines.append("")
 
     # ── Full Hashes (for verification) ──

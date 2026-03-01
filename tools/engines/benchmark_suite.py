@@ -21,6 +21,7 @@ sys.path.insert(0, str(BIZRA_ROOT))
 # Try to import numpy
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
@@ -28,6 +29,7 @@ except ImportError:
 
 class BenchmarkCategory(Enum):
     """Benchmark categories"""
+
     EMBEDDING = "embedding"
     SNR = "snr"
     GRAPH = "graph"
@@ -39,6 +41,7 @@ class BenchmarkCategory(Enum):
 @dataclass
 class GPUMetrics:
     """GPU performance metrics"""
+
     available: bool = False
     device_name: str = "N/A"
     memory_total_gb: float = 0.0
@@ -52,6 +55,7 @@ class GPUMetrics:
 @dataclass
 class BenchmarkMetrics:
     """Detailed benchmark metrics"""
+
     name: str
     category: str
     iterations: int
@@ -87,6 +91,7 @@ class BenchmarkMetrics:
 @dataclass
 class BenchmarkSuiteResult:
     """Complete benchmark suite results"""
+
     suite_name: str
     timestamp: str
     duration_seconds: float
@@ -106,22 +111,30 @@ class GPUProfiler:
 
         try:
             import torch
+
             if torch.cuda.is_available():
                 metrics.available = True
                 metrics.device_name = torch.cuda.get_device_name(0)
-                metrics.memory_total_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+                metrics.memory_total_gb = (
+                    torch.cuda.get_device_properties(0).total_memory / 1e9
+                )
                 metrics.memory_used_gb = torch.cuda.memory_allocated(0) / 1e9
-                metrics.memory_free_gb = metrics.memory_total_gb - metrics.memory_used_gb
+                metrics.memory_free_gb = (
+                    metrics.memory_total_gb - metrics.memory_used_gb
+                )
                 metrics.cuda_version = torch.version.cuda or "N/A"
 
                 # Try to get utilization (requires pynvml)
                 try:
                     import pynvml
+
                     pynvml.nvmlInit()
                     handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                     util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                     metrics.utilization_percent = util.gpu
-                    temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                    temp = pynvml.nvmlDeviceGetTemperature(
+                        handle, pynvml.NVML_TEMPERATURE_GPU
+                    )
                     metrics.temperature_c = temp
                     pynvml.nvmlShutdown()
                 except Exception:
@@ -135,8 +148,13 @@ class GPUProfiler:
 class Benchmark:
     """Base benchmark class"""
 
-    def __init__(self, name: str, category: BenchmarkCategory,
-                 iterations: int = 100, warmup: int = 10):
+    def __init__(
+        self,
+        name: str,
+        category: BenchmarkCategory,
+        iterations: int = 100,
+        warmup: int = 10,
+    ):
         self.name = name
         self.category = category
         self.iterations = iterations
@@ -216,13 +234,14 @@ class Benchmark:
             snr_average=statistics.mean(snr_values) if snr_values else 0,
             ihsan_compliance=ihsan_count / len(snr_values) if snr_values else 0,
             memory_delta_mb=self._get_memory_mb() - initial_memory,
-            gpu_memory_delta_mb=self._get_gpu_memory_mb() - initial_gpu_memory
+            gpu_memory_delta_mb=self._get_gpu_memory_mb() - initial_gpu_memory,
         )
 
     def _get_memory_mb(self) -> float:
         """Get current memory usage in MB"""
         try:
             import psutil
+
             return psutil.Process().memory_info().rss / 1e6
         except Exception:
             return 0
@@ -231,6 +250,7 @@ class Benchmark:
         """Get current GPU memory usage in MB"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 return torch.cuda.memory_allocated(0) / 1e6
         except Exception:
@@ -242,20 +262,22 @@ class EmbeddingBenchmark(Benchmark):
     """Benchmark embedding generation"""
 
     def __init__(self, iterations: int = 50):
-        super().__init__("embedding_generation", BenchmarkCategory.EMBEDDING,
-                        iterations, warmup=5)
+        super().__init__(
+            "embedding_generation", BenchmarkCategory.EMBEDDING, iterations, warmup=5
+        )
         self.model = None
         self.texts = [
             "This is a sample text for benchmarking embedding generation.",
             "BIZRA Data Lake provides semantic search capabilities.",
             "The hypergraph enables multi-hop reasoning across knowledge.",
             "SNR optimization ensures high-quality retrieval results.",
-            "Ihsān represents the pursuit of excellence in every operation."
+            "Ihsān represents the pursuit of excellence in every operation.",
         ]
 
     async def setup(self):
         try:
             from sentence_transformers import SentenceTransformer
+
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
         except ImportError:
             self.model = None
@@ -273,13 +295,15 @@ class SNRCalculationBenchmark(Benchmark):
     """Benchmark SNR calculation"""
 
     def __init__(self, iterations: int = 100):
-        super().__init__("snr_calculation", BenchmarkCategory.SNR,
-                        iterations, warmup=10)
+        super().__init__(
+            "snr_calculation", BenchmarkCategory.SNR, iterations, warmup=10
+        )
         self.engine = None
 
     async def setup(self):
         try:
             from arte_engine import SNREngine
+
             self.engine = SNREngine()
         except ImportError:
             self.engine = None
@@ -305,8 +329,7 @@ class SNRCalculationBenchmark(Benchmark):
         query = np.random.rand(384).astype(np.float32)
         contexts = [np.random.rand(384).astype(np.float32) for _ in range(5)]
         result = self.engine.calculate_snr(
-            query, contexts, ["fact1", "fact2"],
-            [{"text": "result", "score": 0.9}]
+            query, contexts, ["fact1", "fact2"], [{"text": "result", "score": 0.9}]
         )
         return result.get("snr", 0.95), {"items": 1}
 
@@ -315,17 +338,19 @@ class GraphTraversalBenchmark(Benchmark):
     """Benchmark graph traversal operations"""
 
     def __init__(self, iterations: int = 50):
-        super().__init__("graph_traversal", BenchmarkCategory.GRAPH,
-                        iterations, warmup=5)
+        super().__init__(
+            "graph_traversal", BenchmarkCategory.GRAPH, iterations, warmup=5
+        )
         self.graph = None
 
     async def setup(self):
         try:
             import networkx as nx
+
             self.graph = nx.gnm_random_graph(5000, 25000, directed=True)
             # Add random edge weights
             for u, v in self.graph.edges():
-                self.graph[u][v]['weight'] = np.random.rand()
+                self.graph[u][v]["weight"] = np.random.rand()
         except ImportError:
             self.graph = None
 
@@ -346,15 +371,19 @@ class GraphTraversalBenchmark(Benchmark):
         except nx.NetworkXNoPath:
             path_length = 0
 
-        return 0.98 if path_length > 0 else 0.90, {"items": 1, "path_length": path_length}
+        return 0.98 if path_length > 0 else 0.90, {
+            "items": 1,
+            "path_length": path_length,
+        }
 
 
 class VectorSearchBenchmark(Benchmark):
     """Benchmark vector similarity search"""
 
     def __init__(self, iterations: int = 100):
-        super().__init__("vector_search", BenchmarkCategory.RETRIEVAL,
-                        iterations, warmup=10)
+        super().__init__(
+            "vector_search", BenchmarkCategory.RETRIEVAL, iterations, warmup=10
+        )
         self.index = None
         self.vectors = None
 
@@ -364,6 +393,7 @@ class VectorSearchBenchmark(Benchmark):
 
         try:
             import faiss
+
             dim = 384
             n_vectors = 10000
 
@@ -445,8 +475,14 @@ class BenchmarkSuite:
                 self.results.append(result)
 
                 if verbose:
-                    ihsan = "🌟" if result.ihsan_compliance >= 0.95 else "✅" if result.snr_average >= 0.95 else "⚠️"
-                    print(f"{ihsan} {result.avg_time_ms:.2f}ms (±{result.std_dev_ms:.2f})")
+                    ihsan = (
+                        "🌟"
+                        if result.ihsan_compliance >= 0.95
+                        else "✅" if result.snr_average >= 0.95 else "⚠️"
+                    )
+                    print(
+                        f"{ihsan} {result.avg_time_ms:.2f}ms (±{result.std_dev_ms:.2f})"
+                    )
             except Exception as e:
                 if verbose:
                     print(f"❌ Error: {str(e)[:40]}")
@@ -466,7 +502,7 @@ class BenchmarkSuite:
             system_info=system_info,
             gpu_metrics=gpu_metrics,
             benchmarks=self.results,
-            summary=summary
+            summary=summary,
         )
 
     def _get_system_info(self) -> Dict:
@@ -482,6 +518,7 @@ class BenchmarkSuite:
 
         try:
             import psutil
+
             info["cpu_count"] = psutil.cpu_count()
             info["memory_total_gb"] = psutil.virtual_memory().total / 1e9
             info["memory_available_gb"] = psutil.virtual_memory().available / 1e9
@@ -532,7 +569,7 @@ class BenchmarkSuite:
             "avg_snr": statistics.mean(snr_values),
             "avg_throughput_ops_sec": statistics.mean(throughputs),
             "ihsan_compliant_benchmarks": ihsan_compliant,
-            "ihsan_compliance_rate": ihsan_compliant / len(self.results)
+            "ihsan_compliance_rate": ihsan_compliant / len(self.results),
         }
 
     def _print_summary(self, summary: Dict):
@@ -542,7 +579,11 @@ class BenchmarkSuite:
         print("  📈 BENCHMARK SUMMARY")
         print("  " + "═" * 50)
 
-        ihsan_symbol = "🌟" if summary["ihsan_compliance_rate"] >= 0.8 else "✅" if summary["avg_snr"] >= 0.95 else "⚠️"
+        ihsan_symbol = (
+            "🌟"
+            if summary["ihsan_compliance_rate"] >= 0.8
+            else "✅" if summary["avg_snr"] >= 0.95 else "⚠️"
+        )
 
         print(f"  Benchmarks Run:      {summary['total_benchmarks']}")
         print(f"  Total Iterations:    {summary['total_iterations']}")
@@ -551,7 +592,9 @@ class BenchmarkSuite:
         print(f"  Max Latency:         {summary['max_latency_ms']:.2f}ms")
         print(f"  Avg SNR:             {ihsan_symbol} {summary['avg_snr']:.4f}")
         print(f"  Avg Throughput:      {summary['avg_throughput_ops_sec']:.1f} ops/sec")
-        print(f"  Ihsān Compliance:    {summary['ihsan_compliant_benchmarks']}/{summary['total_benchmarks']} benchmarks")
+        print(
+            f"  Ihsān Compliance:    {summary['ihsan_compliant_benchmarks']}/{summary['total_benchmarks']} benchmarks"
+        )
         print()
 
     def export_results(self, path: Path) -> Path:
@@ -563,7 +606,7 @@ class BenchmarkSuite:
             system_info=self._get_system_info(),
             gpu_metrics=GPUProfiler.get_metrics(),
             benchmarks=self.results,
-            summary=self._generate_summary()
+            summary=self._generate_summary(),
         )
 
         # Convert to dict
@@ -574,7 +617,7 @@ class BenchmarkSuite:
             "system_info": result.system_info,
             "gpu_metrics": asdict(result.gpu_metrics),
             "benchmarks": [asdict(b) for b in result.benchmarks],
-            "summary": result.summary
+            "summary": result.summary,
         }
 
         with open(path, "w") as f:
@@ -593,7 +636,12 @@ async def main():
     result = await suite.run(verbose=True)
 
     # Export results
-    export_path = BIZRA_ROOT / "03_INDEXED" / "metrics" / f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    export_path = (
+        BIZRA_ROOT
+        / "03_INDEXED"
+        / "metrics"
+        / f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    )
     export_path.parent.mkdir(parents=True, exist_ok=True)
     suite.export_results(export_path)
 

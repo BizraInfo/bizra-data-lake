@@ -20,8 +20,8 @@ import sys
 import time
 from pathlib import Path
 
-
 # ─── Ecosystem Detection ─────────────────────────────────────────────────────
+
 
 def detect_ecosystem(project_dir: Path) -> dict:
     """
@@ -46,12 +46,26 @@ def detect_ecosystem(project_dir: Path) -> dict:
     # Rust
     if "cargo.toml" in files:
         capabilities["ecosystems"].append("rust")
-        capabilities["test_commands"].append({"cmd": "cargo test", "type": "test_suite", "ecosystem": "rust"})
-        capabilities["lint_commands"].append({"cmd": "cargo clippy -- -D warnings", "type": "static_analysis", "ecosystem": "rust"})
-        capabilities["build_commands"].append({"cmd": "cargo check", "type": "build_check", "ecosystem": "rust"})
-        if any(p.name.lower().endswith("bench.rs") or "bench" in p.name.lower()
-               for p in project_dir.rglob("*.rs")):
-            capabilities["benchmark_commands"].append({"cmd": "cargo bench", "type": "benchmark", "ecosystem": "rust"})
+        capabilities["test_commands"].append(
+            {"cmd": "cargo test", "type": "test_suite", "ecosystem": "rust"}
+        )
+        capabilities["lint_commands"].append(
+            {
+                "cmd": "cargo clippy -- -D warnings",
+                "type": "static_analysis",
+                "ecosystem": "rust",
+            }
+        )
+        capabilities["build_commands"].append(
+            {"cmd": "cargo check", "type": "build_check", "ecosystem": "rust"}
+        )
+        if any(
+            p.name.lower().endswith("bench.rs") or "bench" in p.name.lower()
+            for p in project_dir.rglob("*.rs")
+        ):
+            capabilities["benchmark_commands"].append(
+                {"cmd": "cargo bench", "type": "benchmark", "ecosystem": "rust"}
+            )
 
     # Node.js / TypeScript
     if "package.json" in files:
@@ -62,38 +76,74 @@ def detect_ecosystem(project_dir: Path) -> dict:
                 pkg = json.load(f)
             scripts = pkg.get("scripts", {})
             if "test" in scripts:
-                capabilities["test_commands"].append({"cmd": "npm test", "type": "test_suite", "ecosystem": "node"})
+                capabilities["test_commands"].append(
+                    {"cmd": "npm test", "type": "test_suite", "ecosystem": "node"}
+                )
             if "lint" in scripts:
-                capabilities["lint_commands"].append({"cmd": "npm run lint", "type": "static_analysis", "ecosystem": "node"})
+                capabilities["lint_commands"].append(
+                    {
+                        "cmd": "npm run lint",
+                        "type": "static_analysis",
+                        "ecosystem": "node",
+                    }
+                )
             if "bench" in scripts or "benchmark" in scripts:
-                capabilities["benchmark_commands"].append({"cmd": "npm run bench", "type": "benchmark", "ecosystem": "node"})
+                capabilities["benchmark_commands"].append(
+                    {"cmd": "npm run bench", "type": "benchmark", "ecosystem": "node"}
+                )
             if "build" in scripts:
-                capabilities["build_commands"].append({"cmd": "npm run build", "type": "build_check", "ecosystem": "node"})
+                capabilities["build_commands"].append(
+                    {"cmd": "npm run build", "type": "build_check", "ecosystem": "node"}
+                )
         except (json.JSONDecodeError, OSError):
-            capabilities["test_commands"].append({"cmd": "npm test", "type": "test_suite", "ecosystem": "node"})
+            capabilities["test_commands"].append(
+                {"cmd": "npm test", "type": "test_suite", "ecosystem": "node"}
+            )
 
         # TypeScript
         if "tsconfig.json" in files:
             capabilities["ecosystems"].append("typescript")
-            capabilities["lint_commands"].append({"cmd": "npx tsc --noEmit", "type": "static_analysis", "ecosystem": "typescript"})
+            capabilities["lint_commands"].append(
+                {
+                    "cmd": "npx tsc --noEmit",
+                    "type": "static_analysis",
+                    "ecosystem": "typescript",
+                }
+            )
 
     # Python
     if "pyproject.toml" in files or "setup.py" in files or "setup.cfg" in files:
         capabilities["ecosystems"].append("python")
-        capabilities["test_commands"].append({"cmd": "python -m pytest", "type": "test_suite", "ecosystem": "python"})
-        capabilities["lint_commands"].append({"cmd": "python -m ruff check .", "type": "static_analysis", "ecosystem": "python"})
+        capabilities["test_commands"].append(
+            {"cmd": "python -m pytest", "type": "test_suite", "ecosystem": "python"}
+        )
+        capabilities["lint_commands"].append(
+            {
+                "cmd": "python -m ruff check .",
+                "type": "static_analysis",
+                "ecosystem": "python",
+            }
+        )
 
     # Also detect Python if there are .py files with tests
     elif any(project_dir.rglob("test_*.py")) or any(project_dir.rglob("*_test.py")):
         capabilities["ecosystems"].append("python")
-        capabilities["test_commands"].append({"cmd": "python -m pytest", "type": "test_suite", "ecosystem": "python"})
+        capabilities["test_commands"].append(
+            {"cmd": "python -m pytest", "type": "test_suite", "ecosystem": "python"}
+        )
 
     # Go
     if "go.mod" in files:
         capabilities["ecosystems"].append("go")
-        capabilities["test_commands"].append({"cmd": "go test ./...", "type": "test_suite", "ecosystem": "go"})
-        capabilities["lint_commands"].append({"cmd": "go vet ./...", "type": "static_analysis", "ecosystem": "go"})
-        capabilities["build_commands"].append({"cmd": "go build ./...", "type": "build_check", "ecosystem": "go"})
+        capabilities["test_commands"].append(
+            {"cmd": "go test ./...", "type": "test_suite", "ecosystem": "go"}
+        )
+        capabilities["lint_commands"].append(
+            {"cmd": "go vet ./...", "type": "static_analysis", "ecosystem": "go"}
+        )
+        capabilities["build_commands"].append(
+            {"cmd": "go build ./...", "type": "build_check", "ecosystem": "go"}
+        )
 
     # Makefile
     if "makefile" in files:
@@ -104,11 +154,17 @@ def detect_ecosystem(project_dir: Path) -> dict:
         try:
             content = makefile_path.read_text()
             if "test:" in content or "test :" in content:
-                capabilities["test_commands"].append({"cmd": "make test", "type": "test_suite", "ecosystem": "make"})
+                capabilities["test_commands"].append(
+                    {"cmd": "make test", "type": "test_suite", "ecosystem": "make"}
+                )
             if "lint:" in content or "lint :" in content:
-                capabilities["lint_commands"].append({"cmd": "make lint", "type": "static_analysis", "ecosystem": "make"})
+                capabilities["lint_commands"].append(
+                    {"cmd": "make lint", "type": "static_analysis", "ecosystem": "make"}
+                )
             if "bench:" in content or "benchmark:" in content:
-                capabilities["benchmark_commands"].append({"cmd": "make bench", "type": "benchmark", "ecosystem": "make"})
+                capabilities["benchmark_commands"].append(
+                    {"cmd": "make bench", "type": "benchmark", "ecosystem": "make"}
+                )
         except OSError:
             pass
 
@@ -122,6 +178,7 @@ def detect_ecosystem(project_dir: Path) -> dict:
 
 
 # ─── Command Execution ───────────────────────────────────────────────────────
+
 
 def run_check(cmd: str, project_dir: Path, check_type: str, timeout: int = 120) -> dict:
     """
@@ -152,7 +209,9 @@ def run_check(cmd: str, project_dir: Path, check_type: str, timeout: int = 120) 
         summary = _parse_test_summary(output, check_type)
 
         status = "✅" if passed else "❌"
-        print(f"    {status} {check_type}: {'PASS' if passed else 'FAIL'} ({duration_ms}ms)")
+        print(
+            f"    {status} {check_type}: {'PASS' if passed else 'FAIL'} ({duration_ms}ms)"
+        )
 
         return {
             "type": check_type,
@@ -199,7 +258,11 @@ def _parse_test_summary(output: str, check_type: str) -> str:
     for line in reversed(lines[-20:]):
         line_lower = line.lower().strip()
         # pytest
-        if "passed" in line_lower and ("failed" in line_lower or "error" in line_lower or line_lower.startswith("=")):
+        if "passed" in line_lower and (
+            "failed" in line_lower
+            or "error" in line_lower
+            or line_lower.startswith("=")
+        ):
             return line.strip()
         # cargo test
         if line_lower.startswith("test result:"):
@@ -220,6 +283,7 @@ def _parse_test_summary(output: str, check_type: str) -> str:
 
 
 # ─── Main Verification Flow ─────────────────────────────────────────────────
+
 
 def run_verification(project_dir: Path, manual_attestation: str = None) -> dict:
     """
@@ -262,9 +326,9 @@ def run_verification(project_dir: Path, manual_attestation: str = None) -> dict:
 
     report = {
         "verification_id": f"verify-{int(time.time())}",
-        "timestamp": __import__("datetime").datetime.now(
-            __import__("datetime").timezone.utc
-        ).isoformat(),
+        "timestamp": __import__("datetime")
+        .datetime.now(__import__("datetime").timezone.utc)
+        .isoformat(),
         "ecosystems": capabilities["ecosystems"],
         "checks": checks,
         "checks_run": checks_run,
@@ -288,11 +352,19 @@ def run_verification(project_dir: Path, manual_attestation: str = None) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Verify Artifacts — Auto-discovery & execution")
+    parser = argparse.ArgumentParser(
+        description="Verify Artifacts — Auto-discovery & execution"
+    )
     parser.add_argument("--project-dir", required=True, help="Project directory")
-    parser.add_argument("--output", help="Output path for verification JSON (default: stdout)")
-    parser.add_argument("--manual", help="Manual attestation text (when no automated checks exist)")
-    parser.add_argument("--timeout", type=int, default=120, help="Timeout per check in seconds")
+    parser.add_argument(
+        "--output", help="Output path for verification JSON (default: stdout)"
+    )
+    parser.add_argument(
+        "--manual", help="Manual attestation text (when no automated checks exist)"
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=120, help="Timeout per check in seconds"
+    )
 
     args = parser.parse_args()
     project_dir = Path(args.project_dir).resolve()

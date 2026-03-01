@@ -83,22 +83,26 @@ def generate_cyclonedx(
     components = []
 
     for pkg in python_packages:
-        components.append({
-            "type": "library",
-            "name": pkg["name"],
-            "version": pkg["version"],
-            "purl": f"pkg:pypi/{pkg['name']}@{pkg['version']}",
-            "scope": "required",
-        })
+        components.append(
+            {
+                "type": "library",
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "purl": f"pkg:pypi/{pkg['name']}@{pkg['version']}",
+                "scope": "required",
+            }
+        )
 
     for pkg in rust_packages:
-        components.append({
-            "type": "library",
-            "name": pkg["name"],
-            "version": pkg["version"],
-            "purl": f"pkg:cargo/{pkg['name']}@{pkg['version']}",
-            "scope": "required",
-        })
+        components.append(
+            {
+                "type": "library",
+                "name": pkg["name"],
+                "version": pkg["version"],
+                "purl": f"pkg:cargo/{pkg['name']}@{pkg['version']}",
+                "scope": "required",
+            }
+        )
 
     sbom: Dict[str, Any] = {
         "bomFormat": "CycloneDX",
@@ -260,10 +264,16 @@ def sign_provenance(
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="Generate CycloneDX SBOM + SLSA Provenance")
+    parser = argparse.ArgumentParser(
+        description="Generate CycloneDX SBOM + SLSA Provenance"
+    )
     parser.add_argument("--output", "-o", default="sbom", help="Output directory")
-    parser.add_argument("--sign", action="store_true", help="Sign SBOM + provenance with Ed25519")
-    parser.add_argument("--slsa", action="store_true", help="Generate SLSA provenance attestation")
+    parser.add_argument(
+        "--sign", action="store_true", help="Sign SBOM + provenance with Ed25519"
+    )
+    parser.add_argument(
+        "--slsa", action="store_true", help="Generate SLSA provenance attestation"
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).parent.parent

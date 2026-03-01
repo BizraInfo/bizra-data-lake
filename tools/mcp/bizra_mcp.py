@@ -22,8 +22,8 @@ from typing import Dict, Any
 
 # Set up path to ensure tools/ sibling imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
-_tools_dir = os.path.dirname(_mcp_dir)          # tools/
-_project_root = os.path.dirname(_tools_dir)      # BIZRA-DATA-LAKE/
+_tools_dir = os.path.dirname(_mcp_dir)  # tools/
+_project_root = os.path.dirname(_tools_dir)  # BIZRA-DATA-LAKE/
 sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
 sys.path.insert(0, os.path.join(_tools_dir, "engines"))
 sys.path.insert(0, _project_root)
@@ -36,14 +36,14 @@ from ecosystem_bridge import (
     initialize_ecosystem,
     UnifiedQuery,
     EcosystemBridge,
-    UnifiedResponse
+    UnifiedResponse,
 )
 
 # Setup Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(levelname)s] MCP | %(message)s',
-    handlers=[logging.StreamHandler(sys.stderr)]
+    format="[%(levelname)s] MCP | %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger("BIZRA-MCP")
 
@@ -71,6 +71,7 @@ mcp = FastMCP("BIZRA DDAGI OS")
 # Global Ecosystem Instance
 _ecosystem_instance: EcosystemBridge | None = None
 
+
 async def get_instance() -> EcosystemBridge:
     """Singleton accessor for the ecosystem."""
     global _ecosystem_instance
@@ -85,11 +86,10 @@ async def get_instance() -> EcosystemBridge:
 # TOOLS
 # ===============================================================================
 
+
 @mcp.tool(description="Execute a cognitive query against the BIZRA DDAGI ecosystem")
 async def query_bizra(
-    query: str,
-    require_deep_scan: bool = True,
-    snr_threshold: float = 0.85
+    query: str, require_deep_scan: bool = True, snr_threshold: float = 0.85
 ) -> str:
     """
     Process a natural language query through the BIZRA Unified Ecosystem.
@@ -117,13 +117,12 @@ async def query_bizra(
             snr_threshold=snr_threshold,
             use_orchestrator=require_deep_scan,
             use_apex=require_deep_scan,
-            metadata={"source": "mcp_client"}
+            metadata={"source": "mcp_client"},
         )
 
         # Execute with timeout
         result: UnifiedResponse = await asyncio.wait_for(
-            ecosystem.query(uq),
-            timeout=TOOL_TIMEOUT_SECONDS
+            ecosystem.query(uq), timeout=TOOL_TIMEOUT_SECONDS
         )
         elapsed = time.perf_counter() - start
         _total_response_time += elapsed * 1000
@@ -177,14 +176,17 @@ async def get_system_health() -> Dict[str, Any]:
             "health_score": f"{health.overall_health * 100:.1f}%",
             "invariants_secure": health.kernel_invariants_ok,
             "uptime_hours": status["uptime_hours"],
-            "components": health.to_dict()
+            "components": health.to_dict(),
         }
 
     except asyncio.TimeoutError:
         _error_count += 1
         elapsed = time.perf_counter() - start
         _total_response_time += elapsed * 1000
-        return {"error": "timeout", "message": f"Health check exceeded {TOOL_TIMEOUT_SECONDS}s timeout"}
+        return {
+            "error": "timeout",
+            "message": f"Health check exceeded {TOOL_TIMEOUT_SECONDS}s timeout",
+        }
     except Exception as e:
         _error_count += 1
         elapsed = time.perf_counter() - start
@@ -193,7 +195,9 @@ async def get_system_health() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@mcp.tool(description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time.")
+@mcp.tool(
+    description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time."
+)
 async def mcp_health() -> Dict[str, Any]:
     """Returns server-level health metrics."""
     uptime = time.monotonic() - _server_start_time
@@ -203,7 +207,9 @@ async def mcp_health() -> Dict[str, Any]:
         "uptime_seconds": round(uptime, 1),
         "query_count": _query_count,
         "error_count": _error_count,
-        "avg_response_ms": round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0,
+        "avg_response_ms": (
+            round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0
+        ),
     }
 
 

@@ -23,10 +23,10 @@ import asyncio
 import time
 from typing import List
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # MOCK BACKEND (FOR TESTING WITHOUT REAL LLM)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class MockInferenceBackend:
     """Simulates inference with configurable delay."""
@@ -46,10 +46,8 @@ class MockInferenceBackend:
 # SERIAL MODE (NO BATCHING)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def run_serial_benchmark(
-    num_requests: int,
-    backend_delay_ms: int = 50
-) -> float:
+
+async def run_serial_benchmark(num_requests: int, backend_delay_ms: int = 50) -> float:
     """
     Run benchmark with serial processing (no batching).
 
@@ -71,8 +69,7 @@ async def run_serial_benchmark(
 
     # Create all tasks
     tasks = [
-        asyncio.create_task(serial_request(f"Prompt {i}"))
-        for i in range(num_requests)
+        asyncio.create_task(serial_request(f"Prompt {i}")) for i in range(num_requests)
     ]
 
     # Wait for completion
@@ -93,11 +90,12 @@ async def run_serial_benchmark(
 # BATCHING MODE
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def run_batching_benchmark(
     num_requests: int,
     max_batch_size: int = 8,
     max_batch_wait_ms: int = 50,
-    backend_delay_ms: int = 50
+    backend_delay_ms: int = 50,
 ) -> float:
     """
     Run benchmark with batching enabled.
@@ -112,7 +110,7 @@ async def run_batching_benchmark(
     queue = BatchingInferenceQueue(
         backend_generate_fn=backend.generate,
         max_batch_size=max_batch_size,
-        max_wait_ms=max_batch_wait_ms
+        max_wait_ms=max_batch_wait_ms,
     )
 
     await queue.start()
@@ -158,11 +156,12 @@ async def run_batching_benchmark(
 # COMPARISON
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def compare_throughput(
     num_requests: int = 32,
     max_batch_size: int = 8,
     max_batch_wait_ms: int = 50,
-    backend_delay_ms: int = 50
+    backend_delay_ms: int = 50,
 ):
     """
     Compare serial vs batching throughput.
@@ -223,6 +222,7 @@ async def compare_throughput(
 # CLI
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Benchmark inference batching throughput"
@@ -231,35 +231,34 @@ def main():
         "--requests",
         type=int,
         default=32,
-        help="Number of requests to benchmark (default: 32)"
+        help="Number of requests to benchmark (default: 32)",
     )
     parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=8,
-        help="Maximum batch size (default: 8)"
+        "--batch-size", type=int, default=8, help="Maximum batch size (default: 8)"
     )
     parser.add_argument(
         "--batch-wait-ms",
         type=int,
         default=50,
-        help="Maximum batch wait time in ms (default: 50)"
+        help="Maximum batch wait time in ms (default: 50)",
     )
     parser.add_argument(
         "--backend-delay-ms",
         type=int,
         default=50,
-        help="Simulated backend delay per request in ms (default: 50)"
+        help="Simulated backend delay per request in ms (default: 50)",
     )
 
     args = parser.parse_args()
 
-    asyncio.run(compare_throughput(
-        num_requests=args.requests,
-        max_batch_size=args.batch_size,
-        max_batch_wait_ms=args.batch_wait_ms,
-        backend_delay_ms=args.backend_delay_ms
-    ))
+    asyncio.run(
+        compare_throughput(
+            num_requests=args.requests,
+            max_batch_size=args.batch_size,
+            max_batch_wait_ms=args.batch_wait_ms,
+            backend_delay_ms=args.backend_delay_ms,
+        )
+    )
 
 
 if __name__ == "__main__":

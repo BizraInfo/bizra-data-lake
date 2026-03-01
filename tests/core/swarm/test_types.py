@@ -50,7 +50,12 @@ class TestAgentSpec:
 
     def test_from_pat_agent_unknown_role(self):
         """Unknown agent IDs default to COORDINATOR role."""
-        pat = {"name": "Custom", "role": "Custom work", "giants": "N/A", "model_purpose": "general"}
+        pat = {
+            "name": "Custom",
+            "role": "Custom work",
+            "giants": "N/A",
+            "model_purpose": "general",
+        }
         spec = AgentSpec.from_pat_agent("custom_agent", pat)
         assert spec.role == AgentRole.COORDINATOR
 

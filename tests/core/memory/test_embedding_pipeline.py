@@ -81,9 +81,7 @@ class TestEmbedSingle:
         with patch("httpx.post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.status_code = 200
-            mock_resp.json.return_value = {
-                "embeddings": [[0.1] * 768]
-            }
+            mock_resp.json.return_value = {"embeddings": [[0.1] * 768]}
             mock_post.return_value = mock_resp
 
             result = pipeline.embed("test")

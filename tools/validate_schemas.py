@@ -56,7 +56,9 @@ def check_schemas_load() -> list:
             schema = load_json(schema_file)
             # Basic structural checks
             if "$schema" not in schema and "type" not in schema:
-                errors.append(f"WARNING: {schema_file.name} missing $schema or type field")
+                errors.append(
+                    f"WARNING: {schema_file.name} missing $schema or type field"
+                )
             print(f"  PASS  {schema_file.name}")
         except json.JSONDecodeError as e:
             errors.append(f"FAIL: {schema_file.name} — invalid JSON: {e}")
@@ -82,6 +84,7 @@ def check_fixtures_validate() -> list:
     # Try to use jsonschema if available
     try:
         import jsonschema
+
         has_jsonschema = True
     except ImportError:
         has_jsonschema = False
@@ -95,7 +98,9 @@ def check_fixtures_validate() -> list:
 
         schema_path = SCHEMAS_DIR / schema_name
         if not schema_path.exists():
-            errors.append(f"FAIL: Schema {schema_name} not found for fixture {fixture_file.name}")
+            errors.append(
+                f"FAIL: Schema {schema_name} not found for fixture {fixture_file.name}"
+            )
             continue
 
         try:
@@ -114,7 +119,9 @@ def check_fixtures_validate() -> list:
                         f"FAIL: {fixture_file.name} missing required fields: {missing}"
                     )
                 else:
-                    print(f"  PASS  {fixture_file.name} (structural) against {schema_name}")
+                    print(
+                        f"  PASS  {fixture_file.name} (structural) against {schema_name}"
+                    )
         except Exception as e:
             errors.append(f"FAIL: {fixture_file.name} — {e}")
 
@@ -127,7 +134,9 @@ def check_reason_codes_sync() -> list:
 
     error_codes_path = SCHEMAS_DIR / "error_codes.schema.json"
     if not error_codes_path.exists():
-        errors.append("WARNING: error_codes.schema.json not found — skipping sync check")
+        errors.append(
+            "WARNING: error_codes.schema.json not found — skipping sync check"
+        )
         return errors
 
     try:
@@ -141,6 +150,7 @@ def check_reason_codes_sync() -> list:
 
     try:
         from core.proof_engine.reason_codes import ReasonCode
+
         python_codes = set(rc.value for rc in ReasonCode)
     except ImportError:
         errors.append("WARNING: Could not import ReasonCode — skipping sync check")
@@ -186,7 +196,9 @@ def main():
     # Report
     print("\n" + "=" * 60)
     warnings = [e for e in all_errors if e.startswith("WARNING:")]
-    failures = [e for e in all_errors if e.startswith("FAIL:") or e.startswith("CRITICAL:")]
+    failures = [
+        e for e in all_errors if e.startswith("FAIL:") or e.startswith("CRITICAL:")
+    ]
 
     if failures:
         print(f"FAILED — {len(failures)} error(s), {len(warnings)} warning(s)")

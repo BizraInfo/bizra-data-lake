@@ -149,8 +149,7 @@ class TestProgressCallback:
         lm = _FakeLivingMemory()
         # Create 200+ entries to trigger progress callback
         lm._memories = {
-            f"e{i}": _FakeEntry(id=f"e{i}", content=f"entry {i}")
-            for i in range(150)
+            f"e{i}": _FakeEntry(id=f"e{i}", content=f"entry {i}") for i in range(150)
         }
 
         calls = []
@@ -182,8 +181,5 @@ class TestOrchestratorResult:
 
     def test_fluent_api(self, db):
         lm = _FakeLivingMemory()
-        orch = (
-            MigrationOrchestrator(db)
-            .set_living_memory(lm)
-        )
+        orch = MigrationOrchestrator(db).set_living_memory(lm)
         assert orch._living_memory is lm

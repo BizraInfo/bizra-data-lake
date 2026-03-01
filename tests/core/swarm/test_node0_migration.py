@@ -26,8 +26,8 @@ from core.swarm.types import (
     SwarmTopology,
 )
 
-
 # -- Fixtures ------------------------------------------------------------------
+
 
 def _make_spec(agent_id: str, role: AgentRole = AgentRole.RESEARCHER) -> AgentSpec:
     return AgentSpec(id=agent_id, role=role, model_purpose="reasoning")
@@ -72,6 +72,7 @@ def _build_engine_from_config(yaml_config: Dict[str, Any]) -> SwarmEngine:
 
 # -- Feature flag behavior -----------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_legacy_path_when_disabled():
     """When SWARM_ENGINE_ENABLED=false, legacy code path would run.
@@ -97,12 +98,15 @@ async def test_swarm_engine_path_when_enabled():
         return {"agent": agent.id, "success": True}
 
     result = await engine.execute_mission(
-        "m1", [_make_spec("a")], fake_call,
+        "m1",
+        [_make_spec("a")],
+        fake_call,
     )
     assert len(result["results"]) == 1
 
 
 # -- Result format compatibility -----------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_swarm_results_format_matches_legacy():
@@ -128,6 +132,7 @@ async def test_swarm_results_format_matches_legacy():
 
 # -- Topology selection from config --------------------------------------------
 
+
 def test_topology_selection_from_config():
     """Config key 'swarm_topology' selects the topology."""
     config = {"swarm_topology": "parallel", "swarm_max_concurrent": 2}
@@ -143,6 +148,7 @@ def test_topology_fallback_on_invalid():
 
 
 # -- EventBus wiring -----------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_event_bus_wired_when_available():
@@ -160,6 +166,7 @@ async def test_event_bus_wired_when_available():
 
 # -- call_fn adapter -----------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_call_fn_adapter():
     """call_fn correctly maps AgentSpec.id to agent_id string."""
@@ -171,8 +178,7 @@ async def test_call_fn_adapter():
 
     # Build specs from PAT_AGENTS
     specs = [
-        AgentSpec.from_pat_agent(aid, data)
-        for aid, data in PAT_AGENTS_SAMPLE.items()
+        AgentSpec.from_pat_agent(aid, data) for aid, data in PAT_AGENTS_SAMPLE.items()
     ]
 
     engine = SwarmEngine()

@@ -65,11 +65,13 @@ def verify_ledger(
     }
 
     def add_check(name: str, passed: bool, detail: str = ""):
-        result["checks"].append({
-            "name": name,
-            "passed": passed,
-            "detail": detail,
-        })
+        result["checks"].append(
+            {
+                "name": name,
+                "passed": passed,
+                "detail": detail,
+            }
+        )
         if not passed:
             result["passed"] = False
             result["exit_code"] = 1
@@ -82,7 +84,8 @@ def verify_ledger(
         add_check(
             "ledger_exists",
             not strict,
-            f"No ledger found at {log} or {db}" + (" (strict mode)" if strict else " (ok in CI — no genesis yet)"),
+            f"No ledger found at {log} or {db}"
+            + (" (strict mode)" if strict else " (ok in CI — no genesis yet)"),
         )
         if strict:
             result["exit_code"] = 1
@@ -118,7 +121,11 @@ def verify_ledger(
         all_positive = True
         negative_accounts = []
         for tt in TokenType:
-            balances = ledger.get_all_balances_by_type(tt) if hasattr(ledger, "get_all_balances_by_type") else {}
+            balances = (
+                ledger.get_all_balances_by_type(tt)
+                if hasattr(ledger, "get_all_balances_by_type")
+                else {}
+            )
             # Fall back to checking known accounts
             for acct in ["BIZRA-00000000", "SYSTEM-TREASURY", "BIZRA-COMMUNITY-FUND"]:
                 bal = ledger.get_balance(acct, tt)
@@ -189,7 +196,9 @@ def main() -> int:
     parser.add_argument("--db", type=Path, default=None, help="SQLite database path")
     parser.add_argument("--log", type=Path, default=None, help="JSONL ledger path")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
-    parser.add_argument("--strict", action="store_true", help="Fail if no ledger exists")
+    parser.add_argument(
+        "--strict", action="store_true", help="Fail if no ledger exists"
+    )
     args = parser.parse_args()
 
     return verify_ledger(

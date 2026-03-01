@@ -35,7 +35,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 # ─── Ed25519 Signing (True Spearpoint) ────────────────────────────────────────
 # Standing on: Bernstein (2011) — Ed25519 for tamper-evident evidence.
 
@@ -55,10 +54,12 @@ def _load_or_create_operator_key(project_dir: Path) -> tuple:
 
     try:
         from core.pci.crypto import generate_keypair
+
         private_key, public_key = generate_keypair()
     except ImportError:
         # Fallback if core.pci not available
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
         sk = Ed25519PrivateKey.generate()
         private_key = sk.private_bytes_raw().hex()
         public_key = sk.public_key().public_bytes_raw().hex()
@@ -77,11 +78,13 @@ def _sign_receipt(receipt_body: str, private_key_hex: str) -> str:
     """
     try:
         from core.pci.crypto import sign_message, domain_separated_digest
+
         digest = domain_separated_digest(receipt_body.encode("utf-8"))
         return sign_message(digest, private_key_hex)
     except ImportError:
         # Fallback
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
         sk = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(private_key_hex))
         sig = sk.sign(receipt_body.encode("utf-8"))
         return sig.hex()
@@ -97,8 +100,25 @@ GENESIS_HASH = "0" * 64  # SHA-256 zero hash for genesis block
 
 # File extensions to auto-discover (when no explicit list given)
 CODE_EXTENSIONS = {
-    ".rs", ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".java", ".c", ".cpp",
-    ".h", ".hpp", ".cs", ".rb", ".swift", ".kt", ".scala", ".zig", ".wasm",
+    ".rs",
+    ".py",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".go",
+    ".java",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".rb",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".zig",
+    ".wasm",
 }
 TEST_PATTERNS = {"test", "spec", "_test", "test_", "tests", "specs"}
 CONFIG_EXTENSIONS = {".toml", ".yaml", ".yml", ".json", ".xml", ".ini", ".cfg"}
@@ -110,6 +130,7 @@ MAX_HASH_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 # ─── Hashing ─────────────────────────────────────────────────────────────────
+
 
 def sha256_file(filepath: Path) -> str:
     """Compute SHA-256 hash of a file's contents."""
@@ -135,11 +156,15 @@ def compute_evidence_hash(artifacts: list, verification: dict, description: str)
     Uses canonical JSON serialization to ensure deterministic hashing.
     The evidence hash represents the content of THIS receipt specifically.
     """
-    canonical = json.dumps({
-        "artifacts": sorted(artifacts, key=lambda a: a["path"]),
-        "verification": verification,
-        "description": description,
-    }, sort_keys=True, separators=(",", ":"))
+    canonical = json.dumps(
+        {
+            "artifacts": sorted(artifacts, key=lambda a: a["path"]),
+            "verification": verification,
+            "description": description,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return sha256_string(canonical)
 
 
@@ -157,6 +182,7 @@ def compute_chain_hash(evidence_hash: str, previous_hash: str, timestamp: str) -
 
 # ─── Artifact Discovery ─────────────────────────────────────────────────────
 
+
 def classify_file(filepath: Path) -> str:
     """Classify a file by type."""
     name = filepath.name.lower()
@@ -172,8 +198,13 @@ def classify_file(filepath: Path) -> str:
 
     # Config
     if suffix in CONFIG_EXTENSIONS or name in {
-        "makefile", "dockerfile", "rakefile", "gemfile",
-        "cargo.toml", "package.json", "pyproject.toml",
+        "makefile",
+        "dockerfile",
+        "rakefile",
+        "gemfile",
+        "cargo.toml",
+        "package.json",
+        "pyproject.toml",
     }:
         return "config"
 
@@ -197,12 +228,30 @@ def discover_artifacts(project_dir: Path, explicit_paths: list = None) -> list:
     """
     artifacts = []
     skip_dirs = {
-        ".git", ".proof-forge", "node_modules", "target", "__pycache__",
-        ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
-        ".next", ".nuxt", "vendor", ".venv", "venv", "env",
-        "_unzipped_spearpoint", "_unzipped_files", "external_links",
+        ".git",
+        ".proof-forge",
+        "node_modules",
+        "target",
+        "__pycache__",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".next",
+        ".nuxt",
+        "vendor",
+        ".venv",
+        "venv",
+        "env",
+        "_unzipped_spearpoint",
+        "_unzipped_files",
+        "external_links",
         # Data lake intake/raw/processed dirs (too large for full hashing)
-        "00_INTAKE", "01_RAW", "02_PROCESSED", "03_INDEXED",
+        "00_INTAKE",
+        "01_RAW",
+        "02_PROCESSED",
+        "03_INDEXED",
     }
 
     if explicit_paths:
@@ -243,6 +292,7 @@ def _make_artifact(filepath: Path, project_dir: Path) -> dict:
 
 
 # ─── Chain Management ────────────────────────────────────────────────────────
+
 
 def ensure_proof_dir(project_dir: Path) -> Path:
     """Create .proof-forge directory structure if it doesn't exist."""
@@ -291,7 +341,11 @@ def get_confidence_level(verification: dict) -> dict:
     Returns: {"level": int, "label": str, "criteria": str}
     """
     if not verification or not verification.get("checks"):
-        return {"level": 1, "label": "Logged", "criteria": "Evidence collected, no verification run"}
+        return {
+            "level": 1,
+            "label": "Logged",
+            "criteria": "Evidence collected, no verification run",
+        }
 
     checks = verification.get("checks", [])
     types_passed = set()
@@ -306,8 +360,16 @@ def get_confidence_level(verification: dict) -> dict:
         if verification.get("checks_run", 0) == 0:
             # Manual attestation
             if verification.get("manual_attestation"):
-                return {"level": 2, "label": "Attested", "criteria": "Manual attestation provided"}
-            return {"level": 1, "label": "Logged", "criteria": "Evidence collected, no verification run"}
+                return {
+                    "level": 2,
+                    "label": "Attested",
+                    "criteria": "Manual attestation provided",
+                }
+            return {
+                "level": 1,
+                "label": "Logged",
+                "criteria": "Evidence collected, no verification run",
+            }
         return {"level": 1, "label": "Logged", "criteria": "Checks ran but none passed"}
 
     type_count = len(types_passed)
@@ -317,9 +379,17 @@ def get_confidence_level(verification: dict) -> dict:
     has_schema = "schema_validation" in types_passed
 
     if has_tests and type_count >= 4:
-        return {"level": 5, "label": "Ironclad", "criteria": f"Tests + {type_count - 1} additional verification types"}
+        return {
+            "level": 5,
+            "label": "Ironclad",
+            "criteria": f"Tests + {type_count - 1} additional verification types",
+        }
     if has_tests and type_count >= 2:
-        return {"level": 4, "label": "Strong", "criteria": f"Tests + {type_count - 1} additional check(s)"}
+        return {
+            "level": 4,
+            "label": "Strong",
+            "criteria": f"Tests + {type_count - 1} additional check(s)",
+        }
     if has_tests or (has_static and type_count >= 2):
         return {"level": 3, "label": "Solid", "criteria": "Core verification passed"}
     if any_passed:
@@ -329,6 +399,7 @@ def get_confidence_level(verification: dict) -> dict:
 
 
 # ─── Receipt Generation ──────────────────────────────────────────────────────
+
 
 def forge_receipt(
     project_dir: Path,
@@ -369,8 +440,15 @@ def forge_receipt(
     # Phase 2: Load verification
     print(f"\n  🔍 Phase 2: Processing verification report...")
     if verification is None:
-        verification = {"checks": [], "checks_run": 0, "checks_passed": 0, "overall_pass": None}
-        print(f"     No verification report provided — receipt will be attestation-only")
+        verification = {
+            "checks": [],
+            "checks_run": 0,
+            "checks_passed": 0,
+            "overall_pass": None,
+        }
+        print(
+            f"     No verification report provided — receipt will be attestation-only"
+        )
     else:
         cr = verification.get("checks_run", 0)
         cp = verification.get("checks_passed", 0)
@@ -443,15 +521,17 @@ def forge_receipt(
     index["latest_receipt"] = receipt_filename
     if chain_position == 1:
         index["genesis_timestamp"] = timestamp
-    index["receipts"].append({
-        "position": chain_position,
-        "filename": receipt_filename,
-        "timestamp": timestamp,
-        "chain_hash": chain_hash,
-        "confidence_level": confidence["level"],
-        "confidence_label": confidence["label"],
-        "description": description[:200],
-    })
+    index["receipts"].append(
+        {
+            "position": chain_position,
+            "filename": receipt_filename,
+            "timestamp": timestamp,
+            "chain_hash": chain_hash,
+            "confidence_level": confidence["level"],
+            "confidence_label": confidence["label"],
+            "description": description[:200],
+        }
+    )
     save_index(proof_dir, index)
 
     print(f"\n  🏁 EVIDENCE FORGED — Receipt #{chain_position}")
@@ -462,6 +542,7 @@ def forge_receipt(
 
 
 # ─── Chain Verification ──────────────────────────────────────────────────────
+
 
 def verify_chain(project_dir: Path) -> dict:
     """
@@ -492,8 +573,12 @@ def verify_chain(project_dir: Path) -> dict:
         receipt_path = proof_dir / RECEIPTS_DIR / entry["filename"]
 
         if not receipt_path.exists():
-            print(f"  ❌ #{entry['position']}: Receipt file missing: {entry['filename']}")
-            results.append({"position": entry["position"], "valid": False, "error": "file_missing"})
+            print(
+                f"  ❌ #{entry['position']}: Receipt file missing: {entry['filename']}"
+            )
+            results.append(
+                {"position": entry["position"], "valid": False, "error": "file_missing"}
+            )
             continue
 
         with open(receipt_path) as f:
@@ -503,22 +588,34 @@ def verify_chain(project_dir: Path) -> dict:
 
         # Verify chain link
         if hashes["previous_hash"] != expected_previous:
-            print(f"  ❌ #{entry['position']}: Chain break! Expected previous {expected_previous[:16]}..., got {hashes['previous_hash'][:16]}...")
-            results.append({"position": entry["position"], "valid": False, "error": "chain_break"})
+            print(
+                f"  ❌ #{entry['position']}: Chain break! Expected previous {expected_previous[:16]}..., got {hashes['previous_hash'][:16]}..."
+            )
+            results.append(
+                {"position": entry["position"], "valid": False, "error": "chain_break"}
+            )
         else:
             # Recompute chain hash
             recomputed = compute_chain_hash(
-                hashes["evidence_hash"],
-                hashes["previous_hash"],
-                receipt["timestamp"]
+                hashes["evidence_hash"], hashes["previous_hash"], receipt["timestamp"]
             )
             if recomputed != hashes["chain_hash"]:
-                print(f"  ❌ #{entry['position']}: Chain hash mismatch! Receipt may be tampered.")
-                results.append({"position": entry["position"], "valid": False, "error": "hash_mismatch"})
+                print(
+                    f"  ❌ #{entry['position']}: Chain hash mismatch! Receipt may be tampered."
+                )
+                results.append(
+                    {
+                        "position": entry["position"],
+                        "valid": False,
+                        "error": "hash_mismatch",
+                    }
+                )
             else:
                 conf = receipt.get("confidence", {})
                 label = conf.get("label", "?")
-                print(f"  ✅ #{entry['position']}: Valid — {label} — {receipt['description'][:60]}")
+                print(
+                    f"  ✅ #{entry['position']}: Valid — {label} — {receipt['description'][:60]}"
+                )
                 results.append({"position": entry["position"], "valid": True})
 
         expected_previous = hashes["chain_hash"]
@@ -532,7 +629,9 @@ def verify_chain(project_dir: Path) -> dict:
     if all_valid:
         print(f"  🏁 CHAIN INTACT — {valid_count}/{total} receipts verified")
     else:
-        print(f"  ⚠️  CHAIN ISSUES — {valid_count}/{total} receipts valid, {total - valid_count} problems found")
+        print(
+            f"  ⚠️  CHAIN ISSUES — {valid_count}/{total} receipts valid, {total - valid_count} problems found"
+        )
 
     return {
         "valid": all_valid,
@@ -544,13 +643,26 @@ def verify_chain(project_dir: Path) -> dict:
 
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Proof Forge — Evidence Receipt Generator")
-    parser.add_argument("--project-dir", required=True, help="Path to project directory")
+    parser = argparse.ArgumentParser(
+        description="Proof Forge — Evidence Receipt Generator"
+    )
+    parser.add_argument(
+        "--project-dir", required=True, help="Path to project directory"
+    )
     parser.add_argument("--description", help="Description of what was built/changed")
-    parser.add_argument("--verification-report", help="Path to verification report JSON")
-    parser.add_argument("--artifacts", nargs="*", help="Explicit list of artifact paths (relative to project-dir)")
-    parser.add_argument("--verify", action="store_true", help="Verify existing chain integrity")
+    parser.add_argument(
+        "--verification-report", help="Path to verification report JSON"
+    )
+    parser.add_argument(
+        "--artifacts",
+        nargs="*",
+        help="Explicit list of artifact paths (relative to project-dir)",
+    )
+    parser.add_argument(
+        "--verify", action="store_true", help="Verify existing chain integrity"
+    )
     parser.add_argument("--genesis", action="store_true", help="Create genesis receipt")
 
     args = parser.parse_args()

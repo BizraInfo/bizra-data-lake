@@ -41,6 +41,7 @@ CLAUDE_FLOW_TYPE_SNR = {
 @dataclass
 class MemoryTrace:
     """A retrieved memory with context."""
+
     path: str
     name: str
     kind: str
@@ -56,17 +57,17 @@ class SovereignMemory:
     M6: The Omniscient Layer.
     Provides cross-domain queries that span all unified knowledge.
     """
-    
+
     def __init__(self):
         self.df: Optional[pd.DataFrame] = None
         self._load()
-        
+
     def _load(self):
         if CATALOG_PATH.exists():
             self.df = pd.read_parquet(CATALOG_PATH)
             # Ensure datetime type
-            if 'modified' in self.df.columns:
-                self.df['modified'] = pd.to_datetime(self.df['modified'])
+            if "modified" in self.df.columns:
+                self.df["modified"] = pd.to_datetime(self.df["modified"])
             print(f"   📦 M6 Sovereign Memory: {len(self.df):,} nodes loaded.")
         else:
             print("   ⚠️ M6 Sovereign Memory: Catalog not found.")
@@ -85,75 +86,81 @@ class SovereignMemory:
         """
         if not self.is_ready():
             return []
-        
+
         # Multi-term search
         terms = query.lower().split()
-        
+
         # Score each row
         def score_row(row):
-            name_lower = row['name'].lower()
-            path_lower = row['path'].lower()
-            
+            name_lower = row["name"].lower()
+            path_lower = row["path"].lower()
+
             term_hits = sum(1 for t in terms if t in name_lower or t in path_lower)
             if term_hits == 0:
                 return 0
-            
+
             # Composite score: term matches + SNR + recency bonus
             recency_bonus = 0
-            if pd.notna(row['modified']):
-                days_old = (datetime.now() - row['modified']).days
+            if pd.notna(row["modified"]):
+                days_old = (datetime.now() - row["modified"]).days
                 recency_bonus = max(0, 1 - (days_old / 365)) * 0.3
-            
-            return (term_hits * 0.5) + (row['snr_score'] * 0.3) + recency_bonus
-        
-        self.df['_score'] = self.df.apply(score_row, axis=1)
-        results = self.df[self.df['_score'] > 0].nlargest(top_k, '_score')
-        
+
+            return (term_hits * 0.5) + (row["snr_score"] * 0.3) + recency_bonus
+
+        self.df["_score"] = self.df.apply(score_row, axis=1)
+        results = self.df[self.df["_score"] > 0].nlargest(top_k, "_score")
+
         traces = []
         for _, row in results.iterrows():
-            traces.append(MemoryTrace(
-                path=row['path'],
-                name=row['name'],
-                kind=row['kind'],
-                domain=row.get('domain_source', 'Unknown'),
-                modified=row['modified'],
-                snr_score=row['snr_score'],
-                relevance=row['_score']
-            ))
-        
-        self.df.drop('_score', axis=1, inplace=True)
+            traces.append(
+                MemoryTrace(
+                    path=row["path"],
+                    name=row["name"],
+                    kind=row["kind"],
+                    domain=row.get("domain_source", "Unknown"),
+                    modified=row["modified"],
+                    snr_score=row["snr_score"],
+                    relevance=row["_score"],
+                )
+            )
+
+        self.df.drop("_score", axis=1, inplace=True)
         return traces
 
     # ═══════════════════════════════════════════════════════════════════════
     # VALUE-ADD CAPABILITY 2: Temporal Context ("What was I working on?")
     # ═══════════════════════════════════════════════════════════════════════
-    def get_temporal_context(self, reference_date: datetime, window_days: int = 7) -> Dict[str, List[MemoryTrace]]:
+    def get_temporal_context(
+        self, reference_date: datetime, window_days: int = 7
+    ) -> Dict[str, List[MemoryTrace]]:
         """
         Answer: "What was being worked on around [date]?"
         Returns files modified within the time window, grouped by domain.
         """
         if not self.is_ready():
             return {}
-        
+
         start = reference_date - timedelta(days=window_days // 2)
         end = reference_date + timedelta(days=window_days // 2)
-        
-        mask = (self.df['modified'] >= start) & (self.df['modified'] <= end)
+
+        mask = (self.df["modified"] >= start) & (self.df["modified"] <= end)
         context_df = self.df[mask].copy()
-        
+
         # Group by domain
         grouped = defaultdict(list)
-        for _, row in context_df.sort_values('modified', ascending=False).head(50).iterrows():
+        for _, row in (
+            context_df.sort_values("modified", ascending=False).head(50).iterrows()
+        ):
             trace = MemoryTrace(
-                path=row['path'],
-                name=row['name'],
-                kind=row['kind'],
-                domain=row.get('domain_source', 'Unknown'),
-                modified=row['modified'],
-                snr_score=row['snr_score']
+                path=row["path"],
+                name=row["name"],
+                kind=row["kind"],
+                domain=row.get("domain_source", "Unknown"),
+                modified=row["modified"],
+                snr_score=row["snr_score"],
             )
             grouped[trace.domain].append(trace)
-        
+
         return dict(grouped)
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -166,23 +173,22 @@ class SovereignMemory:
         """
         if not self.is_ready():
             return []
-        
+
         concept_lower = concept.lower()
-        
+
         # Find all files mentioning the concept
-        mask = self.df['name'].str.lower().str.contains(concept_lower, na=False) | \
-               self.df['path'].str.lower().str.contains(concept_lower, na=False)
-        
-        lineage_df = self.df[mask].sort_values('modified')
-        
+        mask = self.df["name"].str.lower().str.contains(
+            concept_lower, na=False
+        ) | self.df["path"].str.lower().str.contains(concept_lower, na=False)
+
+        lineage_df = self.df[mask].sort_values("modified")
+
         lineage = []
         for _, row in lineage_df.iterrows():
-            lineage.append((
-                row['name'],
-                row['modified'],
-                row.get('domain_source', 'Unknown')
-            ))
-        
+            lineage.append(
+                (row["name"], row["modified"], row.get("domain_source", "Unknown"))
+            )
+
         return lineage
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -195,21 +201,21 @@ class SovereignMemory:
         """
         if not self.is_ready():
             return {}
-        
+
         analytics = {}
-        for domain in self.df['domain_source'].unique():
-            domain_df = self.df[self.df['domain_source'] == domain]
-            
+        for domain in self.df["domain_source"].unique():
+            domain_df = self.df[self.df["domain_source"] == domain]
+
             analytics[domain] = {
-                'total_nodes': len(domain_df),
-                'total_size_gb': domain_df['size_bytes'].sum() / (1024**3),
-                'avg_snr': domain_df['snr_score'].mean(),
-                'kind_breakdown': domain_df['kind'].value_counts().to_dict(),
-                'recent_activity': domain_df[
-                    domain_df['modified'] > datetime.now() - timedelta(days=30)
-                ].shape[0]
+                "total_nodes": len(domain_df),
+                "total_size_gb": domain_df["size_bytes"].sum() / (1024**3),
+                "avg_snr": domain_df["snr_score"].mean(),
+                "kind_breakdown": domain_df["kind"].value_counts().to_dict(),
+                "recent_activity": domain_df[
+                    domain_df["modified"] > datetime.now() - timedelta(days=30)
+                ].shape[0],
             }
-        
+
         return analytics
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -222,53 +228,55 @@ class SovereignMemory:
         """
         if not self.is_ready():
             return []
-        
+
         # Extract key terms from the file path
         path = Path(file_path)
-        name_parts = path.stem.lower().replace('-', ' ').replace('_', ' ').split()
+        name_parts = path.stem.lower().replace("-", " ").replace("_", " ").split()
         parent_name = path.parent.name.lower()
-        
+
         # Score each row for relatedness
         def relatedness_score(row):
-            if row['path'] == file_path:
+            if row["path"] == file_path:
                 return 0  # Skip self
-            
-            row_name = row['name'].lower()
-            row_path = row['path'].lower()
-            
+
+            row_name = row["name"].lower()
+            row_path = row["path"].lower()
+
             score = 0
-            
+
             # Name term overlap
             for part in name_parts:
                 if len(part) > 2 and part in row_name:
                     score += 0.3
-            
+
             # Parent folder match
             if parent_name in row_path:
                 score += 0.2
-            
+
             # SNR boost
-            score += row['snr_score'] * 0.1
-            
+            score += row["snr_score"] * 0.1
+
             return score
-        
-        self.df['_rel'] = self.df.apply(relatedness_score, axis=1)
-        related = self.df[self.df['_rel'] > 0].nlargest(top_k, '_rel')
-        
+
+        self.df["_rel"] = self.df.apply(relatedness_score, axis=1)
+        related = self.df[self.df["_rel"] > 0].nlargest(top_k, "_rel")
+
         traces = []
         for _, row in related.iterrows():
-            traces.append(MemoryTrace(
-                path=row['path'],
-                name=row['name'],
-                kind=row['kind'],
-                domain=row.get('domain_source', 'Unknown'),
-                modified=row['modified'],
-                snr_score=row['snr_score'],
-                relevance=row['_rel'],
-                context=f"Related via: name similarity"
-            ))
-        
-        self.df.drop('_rel', axis=1, inplace=True)
+            traces.append(
+                MemoryTrace(
+                    path=row["path"],
+                    name=row["name"],
+                    kind=row["kind"],
+                    domain=row.get("domain_source", "Unknown"),
+                    modified=row["modified"],
+                    snr_score=row["snr_score"],
+                    relevance=row["_rel"],
+                    context=f"Related via: name similarity",
+                )
+            )
+
+        self.df.drop("_rel", axis=1, inplace=True)
         return traces
 
 
@@ -314,12 +322,24 @@ class ClaudeFlowMemory:
         days_old = max(0, (datetime.now() - modified).days)
         return max(0.0, 1.0 - (days_old / 365.0)) * 0.3
 
-    def _score(self, haystack: str, terms: List[str], snr: float, modified: Optional[datetime], access_count: int) -> float:
+    def _score(
+        self,
+        haystack: str,
+        terms: List[str],
+        snr: float,
+        modified: Optional[datetime],
+        access_count: int,
+    ) -> float:
         term_hits = sum(1 for t in terms if t in haystack)
         if term_hits == 0:
             return 0.0
         access_bonus = min(max(access_count, 0) / 10.0, 1.0) * 0.1
-        return (term_hits * 0.5) + (snr * 0.3) + self._recency_bonus(modified) + access_bonus
+        return (
+            (term_hits * 0.5)
+            + (snr * 0.3)
+            + self._recency_bonus(modified)
+            + access_bonus
+        )
 
     def _iter_json_entries(self) -> Iterable[Dict[str, Any]]:
         if not self._has_json():
@@ -329,21 +349,23 @@ class ClaudeFlowMemory:
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 content = json.dumps(data, ensure_ascii=True)
-                entries.append({
-                    "id": path.stem,
-                    "key": path.stem,
-                    "namespace": "claude-flow",
-                    "type": "session",
-                    "content": content,
-                    "tags": None,
-                    "metadata": None,
-                    "owner_id": None,
-                    "updated_at": int(path.stat().st_mtime * 1000),
-                    "created_at": int(path.stat().st_ctime * 1000),
-                    "access_count": 0,
-                    "status": "active",
-                    "path": path,
-                })
+                entries.append(
+                    {
+                        "id": path.stem,
+                        "key": path.stem,
+                        "namespace": "claude-flow",
+                        "type": "session",
+                        "content": content,
+                        "tags": None,
+                        "metadata": None,
+                        "owner_id": None,
+                        "updated_at": int(path.stat().st_mtime * 1000),
+                        "created_at": int(path.stat().st_ctime * 1000),
+                        "access_count": 0,
+                        "status": "active",
+                        "path": path,
+                    }
+                )
             except Exception:
                 continue
         return entries
@@ -394,20 +416,24 @@ class ClaudeFlowMemory:
             haystack = f"{key} {content} {tags} {metadata}".lower()
             snr = self.type_snr.get(row["type"] or "semantic", 0.65)
             modified = self._ms_to_datetime(row["updated_at"] or row["created_at"])
-            score = self._score(haystack, terms, snr, modified, row["access_count"] or 0)
+            score = self._score(
+                haystack, terms, snr, modified, row["access_count"] or 0
+            )
             if score <= 0:
                 continue
 
-            traces.append(MemoryTrace(
-                path=f"claude-flow://memory_entries/{row['id']}",
-                name=key or row["id"],
-                kind=f"Memory/{row['type']}",
-                domain="claude-flow",
-                modified=modified or datetime.now(),
-                snr_score=snr,
-                relevance=score,
-                context=f"namespace={row['namespace']}",
-            ))
+            traces.append(
+                MemoryTrace(
+                    path=f"claude-flow://memory_entries/{row['id']}",
+                    name=key or row["id"],
+                    kind=f"Memory/{row['type']}",
+                    domain="claude-flow",
+                    modified=modified or datetime.now(),
+                    snr_score=snr,
+                    relevance=score,
+                    context=f"namespace={row['namespace']}",
+                )
+            )
 
         for entry in self._iter_json_entries():
             content = entry.get("content") or ""
@@ -418,21 +444,25 @@ class ClaudeFlowMemory:
             score = self._score(haystack, terms, snr, modified, 0)
             if score <= 0:
                 continue
-            traces.append(MemoryTrace(
-                path=f"claude-flow://memory_files/{key}",
-                name=key,
-                kind="Memory/session",
-                domain="claude-flow",
-                modified=modified or datetime.now(),
-                snr_score=snr,
-                relevance=score,
-                context="source=.claude-flow/memory",
-            ))
+            traces.append(
+                MemoryTrace(
+                    path=f"claude-flow://memory_files/{key}",
+                    name=key,
+                    kind="Memory/session",
+                    domain="claude-flow",
+                    modified=modified or datetime.now(),
+                    snr_score=snr,
+                    relevance=score,
+                    context="source=.claude-flow/memory",
+                )
+            )
 
         traces.sort(key=lambda t: t.relevance, reverse=True)
         return traces[:top_k]
 
-    def get_temporal_context(self, reference_date: datetime, window_days: int = 7) -> Dict[str, List[MemoryTrace]]:
+    def get_temporal_context(
+        self, reference_date: datetime, window_days: int = 7
+    ) -> Dict[str, List[MemoryTrace]]:
         if not self.is_ready():
             return {}
         start = reference_date - timedelta(days=window_days // 2)
@@ -460,31 +490,35 @@ class ClaudeFlowMemory:
             for row in rows:
                 modified = self._ms_to_datetime(row["updated_at"] or row["created_at"])
                 snr = self.type_snr.get(row["type"] or "semantic", 0.65)
-                traces.append(MemoryTrace(
-                    path=f"claude-flow://memory_entries/{row['id']}",
-                    name=row["key"] or row["id"],
-                    kind=f"Memory/{row['type']}",
-                    domain="claude-flow",
-                    modified=modified or datetime.now(),
-                    snr_score=snr,
-                    relevance=snr,
-                    context=f"namespace={row['namespace']}",
-                ))
+                traces.append(
+                    MemoryTrace(
+                        path=f"claude-flow://memory_entries/{row['id']}",
+                        name=row["key"] or row["id"],
+                        kind=f"Memory/{row['type']}",
+                        domain="claude-flow",
+                        modified=modified or datetime.now(),
+                        snr_score=snr,
+                        relevance=snr,
+                        context=f"namespace={row['namespace']}",
+                    )
+                )
 
         for entry in self._iter_json_entries():
             modified = self._ms_to_datetime(entry.get("updated_at"))
             if not modified or not (start <= modified <= end):
                 continue
-            traces.append(MemoryTrace(
-                path=f"claude-flow://memory_files/{entry.get('key')}",
-                name=entry.get("key") or "session",
-                kind="Memory/session",
-                domain="claude-flow",
-                modified=modified,
-                snr_score=0.7,
-                relevance=0.7,
-                context="source=.claude-flow/memory",
-            ))
+            traces.append(
+                MemoryTrace(
+                    path=f"claude-flow://memory_files/{entry.get('key')}",
+                    name=entry.get("key") or "session",
+                    kind="Memory/session",
+                    domain="claude-flow",
+                    modified=modified,
+                    snr_score=0.7,
+                    relevance=0.7,
+                    context="source=.claude-flow/memory",
+                )
+            )
 
         return {"claude-flow": traces}
 
@@ -510,7 +544,10 @@ class ClaudeFlowMemory:
             except sqlite3.Error:
                 rows = []
             for row in rows:
-                modified = self._ms_to_datetime(row["updated_at"] or row["created_at"]) or datetime.now()
+                modified = (
+                    self._ms_to_datetime(row["updated_at"] or row["created_at"])
+                    or datetime.now()
+                )
                 name = row["key"] or row["id"]
                 lineage.append((name, modified, "claude-flow"))
 
@@ -518,7 +555,9 @@ class ClaudeFlowMemory:
             content = entry.get("content") or ""
             key = entry.get("key") or entry.get("id") or "session"
             if concept_lower in content.lower() or concept_lower in key.lower():
-                modified = self._ms_to_datetime(entry.get("updated_at")) or datetime.now()
+                modified = (
+                    self._ms_to_datetime(entry.get("updated_at")) or datetime.now()
+                )
                 lineage.append((key, modified, "claude-flow"))
 
         lineage.sort(key=lambda item: item[1])
@@ -567,7 +606,11 @@ class ClaudeFlowMemory:
         total_nodes = sum(type_counts.values())
         avg_snr = 0.0
         if total_nodes > 0:
-            avg_snr = sum(self.type_snr.get(t, 0.65) * c for t, c in type_counts.items() if t != "session")
+            avg_snr = sum(
+                self.type_snr.get(t, 0.65) * c
+                for t, c in type_counts.items()
+                if t != "session"
+            )
             avg_snr += type_counts.get("session", 0) * 0.7
             avg_snr /= total_nodes
 
@@ -576,7 +619,7 @@ class ClaudeFlowMemory:
         return {
             "claude-flow": {
                 "total_nodes": total_nodes,
-                "total_size_gb": total_size_bytes / (1024 ** 3),
+                "total_size_gb": total_size_bytes / (1024**3),
                 "avg_snr": avg_snr,
                 "kind_breakdown": kind_breakdown,
                 "recent_activity": recent_activity,
@@ -605,10 +648,14 @@ class UnifiedMemory(SovereignMemory):
             results = sorted(results, key=lambda r: r.relevance, reverse=True)[:top_k]
         return results
 
-    def get_temporal_context(self, reference_date: datetime, window_days: int = 7) -> Dict[str, List[MemoryTrace]]:
+    def get_temporal_context(
+        self, reference_date: datetime, window_days: int = 7
+    ) -> Dict[str, List[MemoryTrace]]:
         context = super().get_temporal_context(reference_date, window_days)
         if self._claude_flow and self._claude_flow.is_ready():
-            context.update(self._claude_flow.get_temporal_context(reference_date, window_days))
+            context.update(
+                self._claude_flow.get_temporal_context(reference_date, window_days)
+            )
         return context
 
     def trace_concept_lineage(self, concept: str) -> List[Tuple[str, datetime, str]]:
@@ -624,6 +671,7 @@ class UnifiedMemory(SovereignMemory):
             analytics.update(self._claude_flow.get_domain_analytics())
         return analytics
 
+
 # ═══════════════════════════════════════════════════════════════════════════
 # DEMONSTRATION
 # ═══════════════════════════════════════════════════════════════════════════
@@ -631,19 +679,21 @@ if __name__ == "__main__":
     print("═" * 70)
     print("   🧠 M6 SOVEREIGN MEMORY - CAPABILITY DEMO")
     print("═" * 70)
-    
+
     mem = SovereignMemory()
-    
+
     if not mem.is_ready():
-        print("❌ Sovereign Memory not initialized. Run unify_sovereign_domain.py first.")
+        print(
+            "❌ Sovereign Memory not initialized. Run unify_sovereign_domain.py first."
+        )
         exit(1)
-    
+
     # Demo 1: Cross-Domain Search
     print("\n📍 DEMO 1: Cross-Domain Search for 'architecture'")
     results = mem.search_across_domains("architecture system", top_k=5)
     for r in results:
         print(f"   [{r.domain:<20}] {r.name} (SNR: {r.snr_score:.2f})")
-    
+
     # Demo 2: Temporal Context
     print("\n📍 DEMO 2: What was worked on around October 15, 2025?")
     context = mem.get_temporal_context(datetime(2025, 10, 15), window_days=7)
@@ -651,23 +701,29 @@ if __name__ == "__main__":
         print(f"   [{domain}]: {len(traces)} files active")
         for t in traces[:2]:
             print(f"      - {t.name}")
-    
+
     # Demo 3: Concept Lineage
     print("\n📍 DEMO 3: Trace 'BIZRA' concept evolution")
     lineage = mem.trace_concept_lineage("bizra")
     if lineage:
-        print(f"   First appearance: {lineage[0][1].strftime('%Y-%m-%d')} in {lineage[0][2]}")
-        print(f"   Latest mention: {lineage[-1][1].strftime('%Y-%m-%d')} in {lineage[-1][2]}")
+        print(
+            f"   First appearance: {lineage[0][1].strftime('%Y-%m-%d')} in {lineage[0][2]}"
+        )
+        print(
+            f"   Latest mention: {lineage[-1][1].strftime('%Y-%m-%d')} in {lineage[-1][2]}"
+        )
         print(f"   Total mentions: {len(lineage)} files")
-    
+
     # Demo 4: Domain Analytics
     print("\n📍 DEMO 4: Domain Knowledge Distribution")
     analytics = mem.get_domain_analytics()
     for domain, stats in analytics.items():
         print(f"   [{domain}]")
-        print(f"      Nodes: {stats['total_nodes']:,} | Size: {stats['total_size_gb']:.1f}GB | Avg SNR: {stats['avg_snr']:.2f}")
+        print(
+            f"      Nodes: {stats['total_nodes']:,} | Size: {stats['total_size_gb']:.1f}GB | Avg SNR: {stats['avg_snr']:.2f}"
+        )
         print(f"      Recent (30d): {stats['recent_activity']} files")
-    
+
     print("\n" + "═" * 70)
     print("   ✅ M6 SOVEREIGN MEMORY: OPERATIONAL")
     print("═" * 70)

@@ -156,12 +156,14 @@ async def test_bridge_does_not_break_engine():
 
 # -- Helper to drain the EventBus queue ----------------------------------------
 
+
 async def _drain_bus(bus: EventBus) -> None:
     """Process events from the bus queue until cancelled."""
     while True:
         try:
             _, _, event = await asyncio.wait_for(
-                bus._event_queue.get(), timeout=0.05,
+                bus._event_queue.get(),
+                timeout=0.05,
             )
             await bus._process_event(event)
         except asyncio.TimeoutError:

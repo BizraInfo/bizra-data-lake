@@ -8,7 +8,7 @@ The Ultimate Implementation Framework — Synthesizing All Findings
 
 This engine integrates:
 - Architecture audits → Golden Gems patterns
-- Security assessments → Ihsān Circuit constraints  
+- Security assessments → Ihsān Circuit constraints
 - Performance baselines → Context Router optimization
 - Documentation standards → Unified Stalk structure
 - Ethical integrity → FATE Gate enforcement
@@ -50,7 +50,13 @@ from golden_gems.temporal_memory import TemporalMemoryHierarchy, MemoryItem
 from golden_gems.ihsan_circuit import IhsanCircuit, IhsanVector, IhsanViolation
 from golden_gems.context_router import ContextRouter, CognitiveDepth, QueryAnalyzer
 from golden_gems.colimit_interface import ColimitDispatcher, UniversalOp
-from golden_gems.algebraic_effects import EffectRuntime, Effect, LogEffect, AuthEffect, IhsanEffect
+from golden_gems.algebraic_effects import (
+    EffectRuntime,
+    Effect,
+    LogEffect,
+    AuthEffect,
+    IhsanEffect,
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -71,19 +77,21 @@ PHASE_THRESHOLDS = {
 
 # SNR targets
 SNR_TARGETS = {
-    "perception": 0.60,   # Raw input filtering
+    "perception": 0.60,  # Raw input filtering
     "abstraction": 0.75,  # Pattern extraction
-    "intention": 0.85,    # Goal clarity
-    "action": 0.90,       # Execution precision
-    "consolidation": 0.95, # Memory efficiency
+    "intention": 0.85,  # Goal clarity
+    "action": 0.90,  # Execution precision
+    "consolidation": 0.95,  # Memory efficiency
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TYPES
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class Phase(str, Enum):
     """PMBOK-aligned project phases."""
+
     GENESIS = "genesis"
     SEEDING = "seeding"
     BLOOMING = "blooming"
@@ -93,6 +101,7 @@ class Phase(str, Enum):
 
 class Dimension(str, Enum):
     """Synthesis dimensions."""
+
     ARCHITECTURE = "architecture"
     SECURITY = "security"
     PERFORMANCE = "performance"
@@ -105,6 +114,7 @@ class Dimension(str, Enum):
 @dataclass
 class Finding:
     """A finding from any audit or analysis."""
+
     id: str
     dimension: Dimension
     severity: str  # critical, high, medium, low
@@ -115,7 +125,7 @@ class Finding:
     dependencies: List[str] = field(default_factory=list)
     status: str = "open"  # open, in_progress, resolved
     ihsan_impact: float = 0.0  # Impact on Ihsān score if resolved
-    
+
     def to_stalk(self) -> UnifiedStalk:
         """Convert to unified stalk for persistence."""
         return UnifiedStalk(
@@ -130,6 +140,7 @@ class Finding:
 @dataclass
 class Synthesis:
     """A synthesis combining multiple findings."""
+
     id: str
     title: str
     finding_ids: List[str]
@@ -138,7 +149,7 @@ class Synthesis:
     effort_hours: int
     ihsan_vector: IhsanVector
     phase: Phase
-    
+
     def to_stalk(self) -> UnifiedStalk:
         """Convert to unified stalk."""
         return UnifiedStalk(
@@ -161,22 +172,27 @@ class Synthesis:
 @dataclass
 class Roadmap:
     """The prioritized implementation roadmap."""
+
     phases: Dict[Phase, List[Synthesis]]
     total_hours: int
     critical_path: List[str]
     ihsan_trajectory: Dict[Phase, float]
     snr_trajectory: Dict[Phase, float]
-    
+
     def to_stalk(self) -> UnifiedStalk:
         """Convert to unified stalk."""
         return UnifiedStalk(
             intent="roadmap",
             domain="pinnacle",
             payload={
-                "phases": {p.value: [s.id for s in synths] for p, synths in self.phases.items()},
+                "phases": {
+                    p.value: [s.id for s in synths] for p, synths in self.phases.items()
+                },
                 "total_hours": self.total_hours,
                 "critical_path": self.critical_path,
-                "ihsan_trajectory": {p.value: v for p, v in self.ihsan_trajectory.items()},
+                "ihsan_trajectory": {
+                    p.value: v for p, v in self.ihsan_trajectory.items()
+                },
                 "snr_trajectory": {p.value: v for p, v in self.snr_trajectory.items()},
             },
             ihsan_score=self.ihsan_trajectory.get(Phase.HARVEST, 0.9),
@@ -188,63 +204,64 @@ class Roadmap:
 # THE SAPE FRAMEWORK (Symbolic-Abstraction Probe Elevation)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class SAPEFramework:
     """
     Symbolic-Abstraction Probe Elevation Framework.
-    
+
     Activates untapped capacities through:
     1. Symbolic reasoning — Pattern recognition across domains
     2. Abstraction levels — Move between concrete and abstract
     3. Probe mechanisms — Query knowledge at multiple depths
     4. Elevation protocols — Synthesize to higher-order insights
     """
-    
+
     def __init__(self):
         self.memory = TemporalMemoryHierarchy()
         self.router = ContextRouter()
         self.analyzer = QueryAnalyzer()
-    
+
     def symbolize(self, findings: List[Finding]) -> Dict[str, List[Finding]]:
         """
         Phase 1: Symbolize — Group findings by pattern.
-        
+
         Convert concrete findings into symbolic patterns.
         """
         patterns = {}
-        
+
         for finding in findings:
             # Extract pattern from finding
             pattern = self._extract_pattern(finding)
-            
+
             if pattern not in patterns:
                 patterns[pattern] = []
             patterns[pattern].append(finding)
-        
+
         return patterns
-    
+
     def abstract(self, patterns: Dict[str, List[Finding]]) -> List[Synthesis]:
         """
         Phase 2: Abstract — Elevate patterns to syntheses.
-        
+
         Combine related patterns into higher-order abstractions.
         """
         syntheses = []
-        
+
         for pattern, findings in patterns.items():
             # Compute synthesis properties
             severity_weights = {"critical": 4, "high": 3, "medium": 2, "low": 1}
             max_severity = max(severity_weights.get(f.severity, 0) for f in findings)
             priority = max_severity / 4.0
-            
+
             total_effort = sum(f.effort_hours for f in findings)
             avg_ihsan = sum(f.ihsan_impact for f in findings) / len(findings)
-            
+
             # Create Ihsān vector based on pattern type
             ihsan_vector = self._pattern_to_ihsan(pattern, avg_ihsan)
-            
+
             # Determine phase
             phase = self._priority_to_phase(priority)
-            
+
             synthesis = Synthesis(
                 id=f"SYN-{pattern[:8].upper()}-{len(syntheses)+1:03d}",
                 title=f"Synthesis: {pattern}",
@@ -256,52 +273,54 @@ class SAPEFramework:
                 phase=phase,
             )
             syntheses.append(synthesis)
-        
+
         return syntheses
-    
-    def probe(self, syntheses: List[Synthesis], depth: CognitiveDepth) -> List[Synthesis]:
+
+    def probe(
+        self, syntheses: List[Synthesis], depth: CognitiveDepth
+    ) -> List[Synthesis]:
         """
         Phase 3: Probe — Query at specified cognitive depth.
-        
+
         Filter syntheses based on required cognitive depth.
         """
         depth_order = list(CognitiveDepth)
         depth_idx = depth_order.index(depth)
-        
+
         # Map synthesis priority to depth
         result = []
         for synth in syntheses:
             synth_depth_idx = int(synth.priority * (len(depth_order) - 1))
             if synth_depth_idx >= depth_idx:
                 result.append(synth)
-        
+
         return result
-    
+
     def elevate(self, syntheses: List[Synthesis]) -> Roadmap:
         """
         Phase 4: Elevate — Create the ultimate roadmap.
-        
+
         Synthesize all findings into a coherent implementation plan.
         """
         # Group by phase
         phases: Dict[Phase, List[Synthesis]] = {p: [] for p in Phase}
         for synth in syntheses:
             phases[synth.phase].append(synth)
-        
+
         # Sort within each phase by priority
         for phase in phases:
             phases[phase].sort(key=lambda s: s.priority, reverse=True)
-        
+
         # Compute critical path
         critical_path = self._compute_critical_path(syntheses)
-        
+
         # Compute trajectories
         ihsan_trajectory = self._compute_ihsan_trajectory(phases)
         snr_trajectory = self._compute_snr_trajectory(phases)
-        
+
         # Total effort
         total_hours = sum(s.effort_hours for s in syntheses)
-        
+
         return Roadmap(
             phases=phases,
             total_hours=total_hours,
@@ -309,7 +328,7 @@ class SAPEFramework:
             ihsan_trajectory=ihsan_trajectory,
             snr_trajectory=snr_trajectory,
         )
-    
+
     def _extract_pattern(self, finding: Finding) -> str:
         """Extract golden gem pattern from finding."""
         # Map dimension and severity to patterns
@@ -325,45 +344,69 @@ class SAPEFramework:
             (Dimension.DEVOPS, "high"): "algebraic_effects",
             (Dimension.QUALITY, "high"): "ihsan_circuit",
         }
-        
+
         key = (finding.dimension, finding.severity)
         return pattern_map.get(key, "colimit_interface")
-    
+
     def _pattern_to_ihsan(self, pattern: str, base_impact: float) -> IhsanVector:
         """Create Ihsān vector based on pattern type."""
         # Each pattern emphasizes different dimensions
         patterns = {
             "unified_stalk": IhsanVector(
-                correctness=0.9, safety=0.8, beneficence=0.7,
-                transparency=0.95, sustainability=0.85
+                correctness=0.9,
+                safety=0.8,
+                beneficence=0.7,
+                transparency=0.95,
+                sustainability=0.85,
             ),
             "temporal_memory": IhsanVector(
-                correctness=0.85, safety=0.8, beneficence=0.75,
-                transparency=0.8, sustainability=0.9
+                correctness=0.85,
+                safety=0.8,
+                beneficence=0.75,
+                transparency=0.8,
+                sustainability=0.9,
             ),
             "ihsan_circuit": IhsanVector(
-                correctness=0.95, safety=0.95, beneficence=0.9,
-                transparency=0.9, sustainability=0.85
+                correctness=0.95,
+                safety=0.95,
+                beneficence=0.9,
+                transparency=0.9,
+                sustainability=0.85,
             ),
             "context_router": IhsanVector(
-                correctness=0.9, safety=0.85, beneficence=0.85,
-                transparency=0.8, sustainability=0.8
+                correctness=0.9,
+                safety=0.85,
+                beneficence=0.85,
+                transparency=0.8,
+                sustainability=0.8,
             ),
             "colimit_interface": IhsanVector(
-                correctness=0.85, safety=0.8, beneficence=0.8,
-                transparency=0.85, sustainability=0.9
+                correctness=0.85,
+                safety=0.8,
+                beneficence=0.8,
+                transparency=0.85,
+                sustainability=0.9,
             ),
             "algebraic_effects": IhsanVector(
-                correctness=0.9, safety=0.9, beneficence=0.75,
-                transparency=0.85, sustainability=0.85
+                correctness=0.9,
+                safety=0.9,
+                beneficence=0.75,
+                transparency=0.85,
+                sustainability=0.85,
             ),
         }
-        
-        return patterns.get(pattern, IhsanVector(
-            correctness=0.8, safety=0.8, beneficence=0.8,
-            transparency=0.8, sustainability=0.8
-        ))
-    
+
+        return patterns.get(
+            pattern,
+            IhsanVector(
+                correctness=0.8,
+                safety=0.8,
+                beneficence=0.8,
+                transparency=0.8,
+                sustainability=0.8,
+            ),
+        )
+
     def _priority_to_phase(self, priority: float) -> Phase:
         """Map priority to implementation phase."""
         if priority >= 0.9:
@@ -376,15 +419,14 @@ class SAPEFramework:
             return Phase.FRUITING
         else:
             return Phase.HARVEST
-    
+
     def _compute_critical_path(self, syntheses: List[Synthesis]) -> List[str]:
         """Compute critical path through syntheses."""
         # Sort by phase and priority
         sorted_synths = sorted(
-            syntheses,
-            key=lambda s: (list(Phase).index(s.phase), -s.priority)
+            syntheses, key=lambda s: (list(Phase).index(s.phase), -s.priority)
         )
-        
+
         # Take top synthesis from each phase
         critical = []
         seen_phases = set()
@@ -392,28 +434,34 @@ class SAPEFramework:
             if synth.phase not in seen_phases:
                 critical.append(synth.id)
                 seen_phases.add(synth.phase)
-        
+
         return critical
-    
-    def _compute_ihsan_trajectory(self, phases: Dict[Phase, List[Synthesis]]) -> Dict[Phase, float]:
+
+    def _compute_ihsan_trajectory(
+        self, phases: Dict[Phase, List[Synthesis]]
+    ) -> Dict[Phase, float]:
         """Compute Ihsān score trajectory across phases."""
         trajectory = {}
         cumulative = 0.42  # Starting score (current state)
-        
+
         for phase in Phase:
             phase_synths = phases.get(phase, [])
             if phase_synths:
-                avg_impact = sum(s.ihsan_vector.composite for s in phase_synths) / len(phase_synths)
+                avg_impact = sum(s.ihsan_vector.composite for s in phase_synths) / len(
+                    phase_synths
+                )
                 cumulative = min(1.0, cumulative + (avg_impact * 0.1))
             trajectory[phase] = round(cumulative, 2)
-        
+
         return trajectory
-    
-    def _compute_snr_trajectory(self, phases: Dict[Phase, List[Synthesis]]) -> Dict[Phase, float]:
+
+    def _compute_snr_trajectory(
+        self, phases: Dict[Phase, List[Synthesis]]
+    ) -> Dict[Phase, float]:
         """Compute SNR trajectory across phases."""
         trajectory = {}
         base_snr = 0.50  # Starting SNR
-        
+
         phase_improvements = {
             Phase.GENESIS: 0.10,
             Phase.SEEDING: 0.12,
@@ -421,12 +469,12 @@ class SAPEFramework:
             Phase.FRUITING: 0.08,
             Phase.HARVEST: 0.05,
         }
-        
+
         cumulative = base_snr
         for phase in Phase:
             cumulative = min(0.95, cumulative + phase_improvements[phase])
             trajectory[phase] = round(cumulative, 2)
-        
+
         return trajectory
 
 
@@ -434,10 +482,11 @@ class SAPEFramework:
 # THE PINNACLE ENGINE
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class PinnacleEngine:
     """
     The Ultimate Synthesis Engine.
-    
+
     Integrates all components:
     - SAPE Framework for pattern elevation
     - Golden Gems for implementation patterns
@@ -447,10 +496,10 @@ class PinnacleEngine:
     - Effect Runtime for composable middleware
     - Temporal Memory for learning persistence
     - Unified Stalk for data unification
-    
+
     This IS the BIZRA cognitive core made manifest.
     """
-    
+
     def __init__(self):
         # Core components
         self.sape = SAPEFramework()
@@ -459,13 +508,13 @@ class PinnacleEngine:
         self.dispatcher = ColimitDispatcher()
         self.effects = EffectRuntime()
         self.memory = TemporalMemoryHierarchy()
-        
+
         # State
         self.findings: List[Finding] = []
         self.syntheses: List[Synthesis] = []
         self.roadmap: Optional[Roadmap] = None
         self.stalk_chain: List[UnifiedStalk] = []
-        
+
         # Metrics
         self.metrics = {
             "findings_processed": 0,
@@ -474,23 +523,29 @@ class PinnacleEngine:
             "ihsan_checks_blocked": 0,
             "snr_current": 0.50,
         }
-        
+
         self._init_components()
-    
+
     def _init_components(self):
         """Initialize all components."""
         # Register effect handlers
         from golden_gems.algebraic_effects import LogHandler, AuthHandler, IhsanHandler
+
         self.effects.register(LogHandler())
         self.effects.register(AuthHandler())
         self.effects.register(IhsanHandler())
-        
+
         # Register subsystem adapters
-        from golden_gems.colimit_interface import AccumulatorAdapter, FlywheelAdapter, KnowledgeAdapter
+        from golden_gems.colimit_interface import (
+            AccumulatorAdapter,
+            FlywheelAdapter,
+            KnowledgeAdapter,
+        )
+
         self.dispatcher.register(AccumulatorAdapter())
         self.dispatcher.register(FlywheelAdapter())
         self.dispatcher.register(KnowledgeAdapter())
-    
+
     def load_findings(self, findings_data: List[Dict]) -> int:
         """Load findings from audit data."""
         for data in findings_data:
@@ -506,24 +561,24 @@ class PinnacleEngine:
                 ihsan_impact=data.get("ihsan_impact", 0.05),
             )
             self.findings.append(finding)
-            
+
             # Persist to memory
             self.memory.remember(
                 content=finding.title,
                 hash=finding.id,
             )
-            
+
             # Create stalk
             stalk = finding.to_stalk()
             self._append_stalk(stalk)
-        
+
         self.metrics["findings_processed"] = len(self.findings)
         return len(self.findings)
-    
+
     def synthesize(self) -> Roadmap:
         """
         Execute the full synthesis pipeline.
-        
+
         SAPE Framework:
         1. Symbolize — Extract patterns from findings
         2. Abstract — Elevate to syntheses
@@ -532,16 +587,16 @@ class PinnacleEngine:
         """
         # Phase 1: Symbolize
         patterns = self.sape.symbolize(self.findings)
-        
+
         # Phase 2: Abstract
         self.syntheses = self.sape.abstract(patterns)
-        
+
         # Phase 3: Probe (at DEEP level for comprehensive view)
         probed = self.sape.probe(self.syntheses, CognitiveDepth.MEDIUM)
-        
+
         # Phase 4: Elevate
         self.roadmap = self.sape.elevate(probed)
-        
+
         # Persist syntheses
         for synth in self.syntheses:
             # Ihsān gate check
@@ -549,19 +604,21 @@ class PinnacleEngine:
                 self.metrics["ihsan_checks_passed"] += 1
             else:
                 self.metrics["ihsan_checks_blocked"] += 1
-            
+
             stalk = synth.to_stalk()
             self._append_stalk(stalk)
-        
+
         # Persist roadmap
         stalk = self.roadmap.to_stalk()
         self._append_stalk(stalk)
-        
+
         self.metrics["syntheses_created"] = len(self.syntheses)
-        self.metrics["snr_current"] = self.roadmap.snr_trajectory.get(Phase.GENESIS, 0.6)
-        
+        self.metrics["snr_current"] = self.roadmap.snr_trajectory.get(
+            Phase.GENESIS, 0.6
+        )
+
         return self.roadmap
-    
+
     def _append_stalk(self, stalk: UnifiedStalk):
         """Append stalk to chain with linkage."""
         if self.stalk_chain:
@@ -570,16 +627,16 @@ class PinnacleEngine:
             stalk.prev_hash = prev_hash
             stalk.sequence = self.stalk_chain[-1].sequence + 1
             stalk.hash = stalk._compute_hash()
-        
+
         self.stalk_chain.append(stalk)
-    
+
     def get_phase_details(self, phase: Phase) -> Dict[str, Any]:
         """Get detailed view of a specific phase."""
         if not self.roadmap:
             return {"error": "No roadmap synthesized yet"}
-        
+
         phase_synths = self.roadmap.phases.get(phase, [])
-        
+
         return {
             "phase": phase.value,
             "syntheses": len(phase_synths),
@@ -598,28 +655,30 @@ class PinnacleEngine:
                 for s in phase_synths
             ],
         }
-    
+
     def get_critical_path(self) -> List[Dict[str, Any]]:
         """Get critical path with details."""
         if not self.roadmap:
             return []
-        
+
         result = []
         synth_map = {s.id: s for s in self.syntheses}
-        
+
         for synth_id in self.roadmap.critical_path:
             if synth_id in synth_map:
                 synth = synth_map[synth_id]
-                result.append({
-                    "id": synth.id,
-                    "phase": synth.phase.value,
-                    "title": synth.title,
-                    "pattern": synth.pattern,
-                    "effort_hours": synth.effort_hours,
-                })
-        
+                result.append(
+                    {
+                        "id": synth.id,
+                        "phase": synth.phase.value,
+                        "title": synth.title,
+                        "pattern": synth.pattern,
+                        "effort_hours": synth.effort_hours,
+                    }
+                )
+
         return result
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get engine status."""
         return {
@@ -634,12 +693,12 @@ class PinnacleEngine:
             "memory_status": self.memory.status(),
             "ihsan_circuit_stats": self.ihsan_circuit.stats(),
         }
-    
+
     def export_roadmap_markdown(self) -> str:
         """Export roadmap as markdown."""
         if not self.roadmap:
             return "# No Roadmap\n\nRun synthesize() first."
-        
+
         lines = [
             "# BIZRA PINNACLE ROADMAP",
             "",
@@ -651,39 +710,47 @@ class PinnacleEngine:
             "| Phase | Ihsān Target | SNR Target |",
             "|-------|--------------|------------|",
         ]
-        
+
         for phase in Phase:
             ihsan = self.roadmap.ihsan_trajectory.get(phase, 0)
             snr = self.roadmap.snr_trajectory.get(phase, 0)
             lines.append(f"| {phase.value.title()} | {ihsan:.2f} | {snr:.2f} |")
-        
-        lines.extend([
-            "",
-            "## Critical Path",
-            "",
-        ])
-        
+
+        lines.extend(
+            [
+                "",
+                "## Critical Path",
+                "",
+            ]
+        )
+
         for i, item in enumerate(self.get_critical_path(), 1):
-            lines.append(f"{i}. **{item['id']}** ({item['phase']}) — {item['title']} ({item['effort_hours']}h)")
-        
-        lines.extend([
-            "",
-            "## Phase Details",
-            "",
-        ])
-        
+            lines.append(
+                f"{i}. **{item['id']}** ({item['phase']}) — {item['title']} ({item['effort_hours']}h)"
+            )
+
+        lines.extend(
+            [
+                "",
+                "## Phase Details",
+                "",
+            ]
+        )
+
         for phase in Phase:
             details = self.get_phase_details(phase)
-            lines.extend([
-                f"### {phase.value.title()}",
-                "",
-                f"- Syntheses: {details['syntheses']}",
-                f"- Effort: {details['total_hours']} hours",
-                f"- Ihsān Target: {details['ihsan_target']}",
-                f"- SNR Target: {details['snr_target']}",
-                "",
-            ])
-            
+            lines.extend(
+                [
+                    f"### {phase.value.title()}",
+                    "",
+                    f"- Syntheses: {details['syntheses']}",
+                    f"- Effort: {details['total_hours']} hours",
+                    f"- Ihsān Target: {details['ihsan_target']}",
+                    f"- SNR Target: {details['snr_target']}",
+                    "",
+                ]
+            )
+
             if details.get("items"):
                 lines.append("| ID | Pattern | Priority | Effort |")
                 lines.append("|----|---------|----------|--------|")
@@ -692,15 +759,17 @@ class PinnacleEngine:
                         f"| {item['id']} | {item['pattern']} | {item['priority']:.2f} | {item['effort_hours']}h |"
                     )
                 lines.append("")
-        
-        lines.extend([
-            "---",
-            "",
-            "*Generated by BIZRA Pinnacle Synthesis Engine*",
-            "",
-            "**لا نفترض — We do not assume. We verify, synthesize, execute.**",
-        ])
-        
+
+        lines.extend(
+            [
+                "---",
+                "",
+                "*Generated by BIZRA Pinnacle Synthesis Engine*",
+                "",
+                "**لا نفترض — We do not assume. We verify, synthesize, execute.**",
+            ]
+        )
+
         return "\n".join(lines)
 
 
@@ -740,7 +809,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 3,
         "ihsan_impact": 0.06,
     },
-    
     # Security
     {
         "id": "SEC-001",
@@ -772,7 +840,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 4,
         "ihsan_impact": 0.07,
     },
-    
     # Performance
     {
         "id": "PERF-001",
@@ -804,7 +871,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 6,
         "ihsan_impact": 0.04,
     },
-    
     # Documentation
     {
         "id": "DOC-001",
@@ -826,7 +892,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 4,
         "ihsan_impact": 0.04,
     },
-    
     # Ethics
     {
         "id": "ETH-001",
@@ -848,7 +913,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 6,
         "ihsan_impact": 0.08,
     },
-    
     # DevOps
     {
         "id": "OPS-001",
@@ -870,7 +934,6 @@ SAMPLE_FINDINGS = [
         "effort_hours": 12,
         "ihsan_impact": 0.05,
     },
-    
     # Quality
     {
         "id": "QA-001",
@@ -899,30 +962,31 @@ SAMPLE_FINDINGS = [
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def main():
     """Execute the pinnacle synthesis."""
     print("=" * 70)
     print("   BIZRA PINNACLE SYNTHESIS ENGINE")
     print("   The Ultimate Implementation Framework")
     print("=" * 70)
-    
+
     # Initialize engine
     engine = PinnacleEngine()
     print(f"\n✅ Engine initialized: {PINNACLE_VERSION}")
-    
+
     # Load findings
     count = engine.load_findings(SAMPLE_FINDINGS)
     print(f"✅ Loaded {count} findings from all audits")
-    
+
     # Run synthesis
     print("\n🔄 Running SAPE Framework synthesis...")
     roadmap = engine.synthesize()
-    
+
     # Display results
     print("\n" + "=" * 70)
     print("   SYNTHESIS COMPLETE")
     print("=" * 70)
-    
+
     print(f"\n📊 Status:")
     status = engine.get_status()
     for key, value in status.items():
@@ -932,7 +996,7 @@ def main():
                 print(f"      {k}: {v}")
         else:
             print(f"   {key}: {value}")
-    
+
     print(f"\n📈 Trajectories:")
     print("   Phase      | Ihsān | SNR")
     print("   -----------|-------|------")
@@ -940,23 +1004,25 @@ def main():
         ihsan = roadmap.ihsan_trajectory.get(phase, 0)
         snr = roadmap.snr_trajectory.get(phase, 0)
         print(f"   {phase.value:10} | {ihsan:.2f}  | {snr:.2f}")
-    
+
     print(f"\n🎯 Critical Path:")
     for i, item in enumerate(engine.get_critical_path(), 1):
-        print(f"   {i}. {item['id']} ({item['phase']}) — {item['pattern']} — {item['effort_hours']}h")
-    
+        print(
+            f"   {i}. {item['id']} ({item['phase']}) — {item['pattern']} — {item['effort_hours']}h"
+        )
+
     print(f"\n📝 Total Effort: {roadmap.total_hours} hours")
-    
+
     # Export markdown
     markdown = engine.export_roadmap_markdown()
     output_path = Path("/mnt/c/BIZRA-DATA-LAKE/PINNACLE_ROADMAP.md")
     output_path.write_text(markdown)
     print(f"\n✅ Roadmap exported to: {output_path}")
-    
+
     print("\n" + "=" * 70)
     print("   لا نفترض — We do not assume. We verify, synthesize, execute.")
     print("=" * 70)
-    
+
     return engine
 
 

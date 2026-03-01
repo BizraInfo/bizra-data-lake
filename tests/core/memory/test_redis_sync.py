@@ -80,10 +80,12 @@ class TestSubscriberMessageHandling:
     def test_import_from_other_agent(self, db):
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
         record = _make_record()
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
 
@@ -93,10 +95,12 @@ class TestSubscriberMessageHandling:
     def test_filter_own_messages(self, db):
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
         record = _make_record()
-        message = json.dumps({
-            "sender_id": "agent_b",  # Same as subscriber
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_b",  # Same as subscriber
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
 
@@ -105,10 +109,12 @@ class TestSubscriberMessageHandling:
     def test_dedup_by_id(self, db):
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
         record = _make_record()
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
         asyncio.run(sub._handle_message(message))
@@ -121,10 +127,12 @@ class TestSubscriberMessageHandling:
             db, agent_id="agent_b", accept_kinds=[MemoryKind.SEMANTIC]
         )
         record = _make_record(kind=MemoryKind.EPISODIC)
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
 
@@ -136,10 +144,12 @@ class TestSubscriberMessageHandling:
             db, agent_id="agent_b", accept_kinds=[MemoryKind.SEMANTIC]
         )
         record = _make_record(kind=MemoryKind.SEMANTIC)
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
 
@@ -154,10 +164,12 @@ class TestSubscriberMessageHandling:
     def test_synced_tag_added(self, db):
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
         record = _make_record()
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         asyncio.run(sub._handle_message(message))
 

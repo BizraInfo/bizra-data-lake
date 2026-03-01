@@ -43,8 +43,11 @@ import numpy as np
 
 # Import Data Lake engines
 from bizra_config import (
-    GRAPH_PATH, GOLD_PATH, INDEXED_PATH,
-    SNR_THRESHOLD, IHSAN_CONSTRAINT
+    GRAPH_PATH,
+    GOLD_PATH,
+    INDEXED_PATH,
+    SNR_THRESHOLD,
+    IHSAN_CONSTRAINT,
 )
 
 # Import Discipline Synthesis Engine (47-discipline cognitive topology)
@@ -54,8 +57,9 @@ try:
         Generator,
         Layer,
         Discipline,
-        SynergyLink as DisciplineSynergyLink
+        SynergyLink as DisciplineSynergyLink,
     )
+
     DISCIPLINE_ENGINE_AVAILABLE = True
 except ImportError:
     DISCIPLINE_ENGINE_AVAILABLE = False
@@ -64,11 +68,11 @@ except ImportError:
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | KEP-BRIDGE | %(message)s',
+    format="%(asctime)s | %(levelname)s | KEP-BRIDGE | %(message)s",
     handlers=[
         logging.FileHandler(INDEXED_PATH / "kep_bridge.log"),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger("KEP-BRIDGE")
 
@@ -77,28 +81,32 @@ logger = logging.getLogger("KEP-BRIDGE")
 # DATA STRUCTURES
 # ============================================================================
 
+
 class SynergyType(Enum):
     """Types of cross-domain synergies detected."""
-    CONCEPTUAL = "conceptual"       # Shared concepts across domains
+
+    CONCEPTUAL = "conceptual"  # Shared concepts across domains
     METHODOLOGICAL = "methodological"  # Transferable methods
-    STRUCTURAL = "structural"       # Similar organizational patterns
-    CAUSAL = "causal"               # Cause-effect relationships
-    ANALOGICAL = "analogical"       # Deep structural analogies
-    EMERGENT = "emergent"           # Novel combinations
+    STRUCTURAL = "structural"  # Similar organizational patterns
+    CAUSAL = "causal"  # Cause-effect relationships
+    ANALOGICAL = "analogical"  # Deep structural analogies
+    EMERGENT = "emergent"  # Novel combinations
 
 
 class CompoundType(Enum):
     """Types of compound discoveries."""
-    FUSION = "fusion"               # Direct combination
-    SYNTHESIS = "synthesis"         # New entity from parts
-    ABSTRACTION = "abstraction"     # Higher-level principle
-    INSTANTIATION = "instantiation" # Concrete application
+
+    FUSION = "fusion"  # Direct combination
+    SYNTHESIS = "synthesis"  # New entity from parts
+    ABSTRACTION = "abstraction"  # Higher-level principle
+    INSTANTIATION = "instantiation"  # Concrete application
     TRANSFORMATION = "transformation"  # Domain transfer
 
 
 @dataclass
 class SynergyCandidate:
     """Potential synergy between knowledge domains."""
+
     source_domain: str
     target_domain: str
     synergy_type: SynergyType
@@ -111,6 +119,7 @@ class SynergyCandidate:
 @dataclass
 class CompoundProposal:
     """Proposed compound discovery from synergy analysis."""
+
     synergies: List[SynergyCandidate]
     compound_type: CompoundType
     hypothesis: str
@@ -123,6 +132,7 @@ class CompoundProposal:
 @dataclass
 class IhsanCheck:
     """Result of Ihsan constraint validation."""
+
     passed: bool
     score: float
     snr_component: float
@@ -134,6 +144,7 @@ class IhsanCheck:
 @dataclass
 class KEPResult:
     """Complete KEP processing result."""
+
     query: str
     synergies: List[SynergyCandidate]
     compounds: List[CompoundProposal]
@@ -150,6 +161,7 @@ class KEPResult:
 # SYNERGY DETECTOR (Data Lake → KEP)
 # ============================================================================
 
+
 class SynergyDetector:
     """
     Detects cross-domain synergies from Hypergraph RAG retrieval results.
@@ -158,7 +170,7 @@ class SynergyDetector:
     - Hofstadter's analogical reasoning
     - Gentner's structure mapping theory
     - Boden's exploratory creativity
-    
+
     Enhanced with 47-Discipline Cognitive Topology (v1.0):
     - 4-Generator Theory: Graph × InfoTheory × Ethics × Pedagogy
     - Layer-aware synergy detection
@@ -169,7 +181,7 @@ class SynergyDetector:
         self.domain_embeddings: Dict[str, np.ndarray] = {}
         self.synergy_cache: Dict[str, List[SynergyCandidate]] = {}
         self._load_domain_index()
-        
+
         # Initialize 47-Discipline Engine if available
         if DISCIPLINE_ENGINE_AVAILABLE:
             self.discipline_engine = DisciplineSynthesisEngine()
@@ -192,7 +204,7 @@ class SynergyDetector:
                 "philosophical": ["ethics", "epistemology", "metaphysics", "logic"],
                 "creative": ["art", "design", "music", "literature"],
                 "business": ["strategy", "economics", "management", "finance"],
-                "psychological": ["cognition", "behavior", "emotion", "development"]
+                "psychological": ["cognition", "behavior", "emotion", "development"],
             }
 
     def detect_synergies(
@@ -200,7 +212,7 @@ class SynergyDetector:
         retrieval_results: List[Dict],
         query_embedding: np.ndarray,
         min_strength: float = 0.6,
-        use_47_disciplines: bool = True
+        use_47_disciplines: bool = True,
     ) -> List[SynergyCandidate]:
         """
         Detect synergies from retrieval results.
@@ -227,14 +239,14 @@ class SynergyDetector:
         domains = list(domain_groups.keys())
 
         for i, source_domain in enumerate(domains):
-            for target_domain in domains[i+1:]:
+            for target_domain in domains[i + 1 :]:
                 # Step 3: Evaluate synergy
                 synergy = self._evaluate_synergy(
                     source_domain=source_domain,
                     target_domain=target_domain,
                     source_results=domain_groups[source_domain],
                     target_results=domain_groups[target_domain],
-                    query_embedding=query_embedding
+                    query_embedding=query_embedding,
                 )
 
                 if synergy and synergy.strength >= min_strength:
@@ -247,18 +259,18 @@ class SynergyDetector:
         # Sort by strength
         synergies.sort(key=lambda s: s.strength, reverse=True)
 
-        logger.info(f"Detected {len(synergies)} synergies across {len(domains)} domains")
+        logger.info(
+            f"Detected {len(synergies)} synergies across {len(domains)} domains"
+        )
 
         return synergies
-    
+
     def _apply_discipline_boost(
-        self,
-        synergies: List[SynergyCandidate],
-        retrieval_results: List[Dict]
+        self, synergies: List[SynergyCandidate], retrieval_results: List[Dict]
     ) -> List[SynergyCandidate]:
         """
         Apply 47-discipline cognitive topology boost to synergies.
-        
+
         4-Generator Theory amplification:
         - Graph Theory → structural synergies boost
         - Information Theory → conceptual synergies boost
@@ -267,11 +279,13 @@ class SynergyDetector:
         """
         if not self.discipline_engine:
             return synergies
-        
+
         # Get generator strengths from corpus
         corpus_stats = self.discipline_engine.load_corpus_statistics()
-        gen_strengths = self.discipline_engine.calculate_generator_strengths(corpus_stats)
-        
+        gen_strengths = self.discipline_engine.calculate_generator_strengths(
+            corpus_stats
+        )
+
         # Map synergy types to generators
         type_to_generator = {
             SynergyType.STRUCTURAL: Generator.GRAPH_THEORY,
@@ -281,7 +295,7 @@ class SynergyDetector:
             SynergyType.ANALOGICAL: Generator.INFORMATION_THEORY,
             SynergyType.EMERGENT: Generator.PEDAGOGY,
         }
-        
+
         # Boost synergies based on generator strength
         boosted_synergies = []
         for synergy in synergies:
@@ -289,20 +303,22 @@ class SynergyDetector:
             if relevant_gen and relevant_gen in gen_strengths:
                 # Apply boost: original_strength + (1 - original) * generator_strength * 0.2
                 boost_factor = gen_strengths[relevant_gen]
-                boosted_strength = synergy.strength + (1 - synergy.strength) * boost_factor * 0.2
+                boosted_strength = (
+                    synergy.strength + (1 - synergy.strength) * boost_factor * 0.2
+                )
                 synergy.strength = min(boosted_strength, 1.0)
                 synergy.metadata["discipline_boosted"] = True
                 synergy.metadata["boost_generator"] = relevant_gen.value
-            
+
             boosted_synergies.append(synergy)
-        
+
         return boosted_synergies
-    
+
     def get_discipline_coverage(self) -> Optional[Dict]:
         """Get current 47-discipline coverage report."""
         if not self.discipline_engine:
             return None
-        
+
         report = self.discipline_engine.generate_report()
         return {
             "overall_coverage": report.overall_coverage,
@@ -310,7 +326,7 @@ class SynergyDetector:
             "gap_count": report.gap_count,
             "generator_strengths": report.generator_strength,
             "layer_coverage": report.layer_coverage,
-            "recommendations": report.recommendations[:5]
+            "recommendations": report.recommendations[:5],
         }
 
     def _classify_by_domain(self, results: List[Dict]) -> Dict[str, List[Dict]]:
@@ -343,7 +359,7 @@ class SynergyDetector:
         target_domain: str,
         source_results: List[Dict],
         target_results: List[Dict],
-        query_embedding: np.ndarray
+        query_embedding: np.ndarray,
     ) -> Optional[SynergyCandidate]:
         """Evaluate synergy between two domains."""
 
@@ -366,9 +382,13 @@ class SynergyDetector:
             target_centroid = np.mean(target_embeddings, axis=0)
 
             # Cosine similarity
-            similarity = float(np.dot(source_centroid, target_centroid) / (
-                np.linalg.norm(source_centroid) * np.linalg.norm(target_centroid) + 1e-8
-            ))
+            similarity = float(
+                np.dot(source_centroid, target_centroid)
+                / (
+                    np.linalg.norm(source_centroid) * np.linalg.norm(target_centroid)
+                    + 1e-8
+                )
+            )
         else:
             # Fallback: text overlap heuristic
             source_text = " ".join(r.get("text", "")[:200] for r in source_results)
@@ -410,25 +430,34 @@ class SynergyDetector:
             metadata={
                 "source_count": len(source_results),
                 "target_count": len(target_results),
-                "raw_similarity": similarity
-            }
+                "raw_similarity": similarity,
+            },
         )
 
     def _infer_synergy_type(
-        self,
-        source_results: List[Dict],
-        target_results: List[Dict],
-        similarity: float
+        self, source_results: List[Dict], target_results: List[Dict], similarity: float
     ) -> SynergyType:
         """Infer the type of synergy based on content analysis."""
         # Keywords indicating different synergy types
         method_keywords = {"method", "algorithm", "process", "procedure", "technique"}
-        structure_keywords = {"structure", "pattern", "architecture", "framework", "hierarchy"}
-        causal_keywords = {"cause", "effect", "result", "because", "therefore", "leads to"}
+        structure_keywords = {
+            "structure",
+            "pattern",
+            "architecture",
+            "framework",
+            "hierarchy",
+        }
+        causal_keywords = {
+            "cause",
+            "effect",
+            "result",
+            "because",
+            "therefore",
+            "leads to",
+        }
 
         all_text = " ".join(
-            r.get("text", "").lower()
-            for r in source_results + target_results
+            r.get("text", "").lower() for r in source_results + target_results
         )
 
         # Count keyword occurrences
@@ -451,36 +480,111 @@ class SynergyDetector:
         self,
         source_results: List[Dict],
         target_results: List[Dict],
-        max_concepts: int = 5
+        max_concepts: int = 5,
     ) -> List[str]:
         """Extract concepts that bridge both domains."""
         # Simple word frequency intersection
         source_words: Dict[str, int] = {}
         target_words: Dict[str, int] = {}
 
-        stopwords = {"the", "a", "an", "is", "are", "was", "were", "be", "been",
-                     "being", "have", "has", "had", "do", "does", "did", "will",
-                     "would", "could", "should", "may", "might", "must", "shall",
-                     "can", "to", "of", "in", "for", "on", "with", "at", "by",
-                     "from", "as", "into", "through", "during", "before", "after",
-                     "above", "below", "between", "under", "again", "further",
-                     "then", "once", "here", "there", "when", "where", "why",
-                     "how", "all", "each", "few", "more", "most", "other", "some",
-                     "such", "no", "nor", "not", "only", "own", "same", "so",
-                     "than", "too", "very", "just", "and", "but", "if", "or",
-                     "because", "until", "while", "this", "that", "these", "those"}
+        stopwords = {
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "can",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+            "above",
+            "below",
+            "between",
+            "under",
+            "again",
+            "further",
+            "then",
+            "once",
+            "here",
+            "there",
+            "when",
+            "where",
+            "why",
+            "how",
+            "all",
+            "each",
+            "few",
+            "more",
+            "most",
+            "other",
+            "some",
+            "such",
+            "no",
+            "nor",
+            "not",
+            "only",
+            "own",
+            "same",
+            "so",
+            "than",
+            "too",
+            "very",
+            "just",
+            "and",
+            "but",
+            "if",
+            "or",
+            "because",
+            "until",
+            "while",
+            "this",
+            "that",
+            "these",
+            "those",
+        }
 
         for r in source_results:
             words = r.get("text", "").lower().split()
             for w in words:
-                w = ''.join(c for c in w if c.isalnum())
+                w = "".join(c for c in w if c.isalnum())
                 if len(w) > 3 and w not in stopwords:
                     source_words[w] = source_words.get(w, 0) + 1
 
         for r in target_results:
             words = r.get("text", "").lower().split()
             for w in words:
-                w = ''.join(c for c in w if c.isalnum())
+                w = "".join(c for c in w if c.isalnum())
                 if len(w) > 3 and w not in stopwords:
                     target_words[w] = target_words.get(w, 0) + 1
 
@@ -498,6 +602,7 @@ class SynergyDetector:
 # ============================================================================
 # IHSAN VALIDATOR (ARTE SNR → KEP Safety)
 # ============================================================================
+
 
 class IhsanValidator:
     """
@@ -522,13 +627,15 @@ class IhsanValidator:
         snr_score: float,
         retrieval_results: List[Dict],
         synergies: List[SynergyCandidate],
-        compounds: Optional[List[CompoundProposal]] = None
+        compounds: Optional[List[CompoundProposal]] = None,
     ) -> IhsanCheck:
         """
         Perform comprehensive Ihsan validation.
         """
         reasoning_trace = []
-        reasoning_trace.append(f"Ihsan validation started (threshold: {self.threshold})")
+        reasoning_trace.append(
+            f"Ihsan validation started (threshold: {self.threshold})"
+        )
 
         # Component 1: SNR (from ARTE)
         snr_component = min(snr_score, 1.0)
@@ -548,18 +655,22 @@ class IhsanValidator:
 
         # Weighted combination
         ihsan_score = (
-            self.snr_weight * snr_component +
-            self.coherence_weight * coherence_component +
-            self.ethics_weight * ethics_component
+            self.snr_weight * snr_component
+            + self.coherence_weight * coherence_component
+            + self.ethics_weight * ethics_component
         )
 
         passed = ihsan_score >= self.threshold
 
         if not passed:
-            reasoning_trace.append(f"IHSAN CHECK FAILED: {ihsan_score:.4f} < {self.threshold}")
+            reasoning_trace.append(
+                f"IHSAN CHECK FAILED: {ihsan_score:.4f} < {self.threshold}"
+            )
             reasoning_trace.append("Hard block applied - output suppressed")
         else:
-            reasoning_trace.append(f"IHSAN CHECK PASSED: {ihsan_score:.4f} >= {self.threshold}")
+            reasoning_trace.append(
+                f"IHSAN CHECK PASSED: {ihsan_score:.4f} >= {self.threshold}"
+            )
 
         return IhsanCheck(
             passed=passed,
@@ -567,14 +678,14 @@ class IhsanValidator:
             snr_component=snr_component,
             coherence_component=coherence_component,
             ethics_component=ethics_component,
-            reasoning_trace=reasoning_trace
+            reasoning_trace=reasoning_trace,
         )
 
     def _calculate_coherence(
         self,
         retrieval_results: List[Dict],
         synergies: List[SynergyCandidate],
-        compounds: Optional[List[CompoundProposal]]
+        compounds: Optional[List[CompoundProposal]],
     ) -> float:
         """
         Calculate logical coherence score.
@@ -604,7 +715,9 @@ class IhsanValidator:
             synergy_strengths = [s.strength for s in synergies]
             avg_strength = np.mean(synergy_strengths)
             # Bonus for multiple strong synergies
-            strength_bonus = min(len([s for s in synergies if s.strength > 0.7]) * 0.05, 0.15)
+            strength_bonus = min(
+                len([s for s in synergies if s.strength > 0.7]) * 0.05, 0.15
+            )
             scores.append(min(avg_strength + strength_bonus, 1.0))
 
         # Compound coherence: confidence levels
@@ -618,7 +731,7 @@ class IhsanValidator:
         self,
         retrieval_results: List[Dict],
         synergies: List[SynergyCandidate],
-        compounds: Optional[List[CompoundProposal]]
+        compounds: Optional[List[CompoundProposal]],
     ) -> float:
         """
         Calculate ethics alignment score.
@@ -630,14 +743,30 @@ class IhsanValidator:
         """
         # Negative indicators (reduce score if found)
         harmful_patterns = [
-            "harm", "dangerous", "illegal", "exploit", "attack",
-            "discriminat", "bias", "manipulat", "deceive", "malicious"
+            "harm",
+            "dangerous",
+            "illegal",
+            "exploit",
+            "attack",
+            "discriminat",
+            "bias",
+            "manipulat",
+            "deceive",
+            "malicious",
         ]
 
         # Positive indicators (increase score if found)
         positive_patterns = [
-            "safe", "ethical", "responsible", "fair", "transparent",
-            "privacy", "consent", "benef", "protect", "respect"
+            "safe",
+            "ethical",
+            "responsible",
+            "fair",
+            "transparent",
+            "privacy",
+            "consent",
+            "benef",
+            "protect",
+            "respect",
         ]
 
         all_text = ""
@@ -664,6 +793,7 @@ class IhsanValidator:
 # COMPOUND DISCOVERY ENGINE (Synergies → Novel Combinations)
 # ============================================================================
 
+
 class CompoundDiscoveryEngine:
     """
     Discovers compound knowledge from synergy analysis.
@@ -681,7 +811,7 @@ class CompoundDiscoveryEngine:
         self,
         synergies: List[SynergyCandidate],
         query_context: str,
-        max_compounds: int = 3
+        max_compounds: int = 3,
     ) -> List[CompoundProposal]:
         """
         Discover compound knowledge from synergies.
@@ -704,9 +834,7 @@ class CompoundDiscoveryEngine:
 
         # Multi-synergy compounds (complex combinations)
         if len(synergies) >= 2:
-            multi_compound = self._generate_multi_compound(
-                synergies[:3], query_context
-            )
+            multi_compound = self._generate_multi_compound(synergies[:3], query_context)
             if multi_compound and multi_compound.confidence > 0.6:
                 compounds.append(multi_compound)
 
@@ -721,9 +849,7 @@ class CompoundDiscoveryEngine:
         return compounds[:max_compounds]
 
     def _generate_single_compound(
-        self,
-        synergy: SynergyCandidate,
-        query_context: str
+        self, synergy: SynergyCandidate, query_context: str
     ) -> Optional[CompoundProposal]:
         """Generate compound from single synergy."""
 
@@ -734,7 +860,7 @@ class CompoundDiscoveryEngine:
             SynergyType.STRUCTURAL: CompoundType.FUSION,
             SynergyType.CAUSAL: CompoundType.SYNTHESIS,
             SynergyType.ANALOGICAL: CompoundType.TRANSFORMATION,
-            SynergyType.EMERGENT: CompoundType.SYNTHESIS
+            SynergyType.EMERGENT: CompoundType.SYNTHESIS,
         }
 
         compound_type = compound_type_mapping.get(
@@ -755,14 +881,18 @@ class CompoundDiscoveryEngine:
 
         # Create validation plan
         validation_plan = {
-            "approach": "empirical_test" if compound_type == CompoundType.TRANSFORMATION else "logical_validation",
+            "approach": (
+                "empirical_test"
+                if compound_type == CompoundType.TRANSFORMATION
+                else "logical_validation"
+            ),
             "steps": [
                 f"Verify {synergy.source_domain} component validity",
                 f"Verify {synergy.target_domain} component validity",
                 "Test integration hypothesis",
-                "Evaluate emergent properties"
+                "Evaluate emergent properties",
             ],
-            "success_criteria": "Ihsan >= 0.99 on integrated result"
+            "success_criteria": "Ihsan >= 0.99 on integrated result",
         }
 
         return CompoundProposal(
@@ -774,14 +904,12 @@ class CompoundDiscoveryEngine:
             validation_plan=validation_plan,
             metadata={
                 "query_context": query_context[:100],
-                "bridging_concepts": synergy.bridging_concepts
-            }
+                "bridging_concepts": synergy.bridging_concepts,
+            },
         )
 
     def _generate_multi_compound(
-        self,
-        synergies: List[SynergyCandidate],
-        query_context: str
+        self, synergies: List[SynergyCandidate], query_context: str
     ) -> Optional[CompoundProposal]:
         """Generate compound from multiple synergies."""
         if len(synergies) < 2:
@@ -812,8 +940,9 @@ class CompoundDiscoveryEngine:
 
         # Confidence based on synergy strengths and overlap
         avg_strength = np.mean([s.strength for s in synergies])
-        concept_overlap = len(set(synergies[0].bridging_concepts) &
-                            set(synergies[1].bridging_concepts))
+        concept_overlap = len(
+            set(synergies[0].bridging_concepts) & set(synergies[1].bridging_concepts)
+        )
         confidence = avg_strength * 0.6 + 0.2 + (concept_overlap * 0.05)
         confidence = min(confidence, 0.9)
 
@@ -822,7 +951,7 @@ class CompoundDiscoveryEngine:
             f"Novel framework integrating {len(all_domains)} domains",
             f"Potential for {len(unique_concepts)} cross-applicable insights",
             "May reveal hidden connections in knowledge graph",
-            "Enables multi-hop reasoning across domain boundaries"
+            "Enables multi-hop reasoning across domain boundaries",
         ]
 
         validation_plan = {
@@ -831,9 +960,9 @@ class CompoundDiscoveryEngine:
                 "Validate individual synergies",
                 "Test pairwise integrations",
                 "Evaluate emergent whole",
-                "Apply PAT agents for reasoning verification"
+                "Apply PAT agents for reasoning verification",
             ],
-            "success_criteria": "All component Ihsan >= 0.99, integration Ihsan >= 0.95"
+            "success_criteria": "All component Ihsan >= 0.99, integration Ihsan >= 0.95",
         }
 
         return CompoundProposal(
@@ -846,14 +975,12 @@ class CompoundDiscoveryEngine:
             metadata={
                 "domains": list(all_domains),
                 "bridging_concepts": unique_concepts,
-                "synergy_count": len(synergies)
-            }
+                "synergy_count": len(synergies),
+            },
         )
 
     def _generate_hypothesis(
-        self,
-        synergy: SynergyCandidate,
-        compound_type: CompoundType
+        self, synergy: SynergyCandidate, compound_type: CompoundType
     ) -> str:
         """Generate hypothesis string for compound."""
         templates = {
@@ -877,27 +1004,37 @@ class CompoundDiscoveryEngine:
             CompoundType.INSTANTIATION: (
                 f"Abstract {synergy.source_domain} pattern instantiated concretely in "
                 f"{synergy.target_domain} context."
-            )
+            ),
         }
         return templates.get(compound_type, templates[CompoundType.FUSION])
 
     def _generate_implications(
-        self,
-        synergy: SynergyCandidate,
-        compound_type: CompoundType
+        self, synergy: SynergyCandidate, compound_type: CompoundType
     ) -> List[str]:
         """Generate list of implications for compound."""
         base_implications = [
             f"Bridges {synergy.source_domain} and {synergy.target_domain} knowledge",
-            f"Leverages {len(synergy.bridging_concepts)} cross-domain concepts"
+            f"Leverages {len(synergy.bridging_concepts)} cross-domain concepts",
         ]
 
         type_implications = {
-            CompoundType.FUSION: ["Creates unified vocabulary", "Enables joint reasoning"],
-            CompoundType.SYNTHESIS: ["Novel entity with unique properties", "May generate new questions"],
-            CompoundType.ABSTRACTION: ["Generalizable across more domains", "Foundational principle"],
+            CompoundType.FUSION: [
+                "Creates unified vocabulary",
+                "Enables joint reasoning",
+            ],
+            CompoundType.SYNTHESIS: [
+                "Novel entity with unique properties",
+                "May generate new questions",
+            ],
+            CompoundType.ABSTRACTION: [
+                "Generalizable across more domains",
+                "Foundational principle",
+            ],
             CompoundType.TRANSFORMATION: ["Methodology transfer", "Innovation pathway"],
-            CompoundType.INSTANTIATION: ["Practical application", "Concrete implementation"]
+            CompoundType.INSTANTIATION: [
+                "Practical application",
+                "Concrete implementation",
+            ],
         }
 
         return base_implications + type_implications.get(compound_type, [])
@@ -906,6 +1043,7 @@ class CompoundDiscoveryEngine:
 # ============================================================================
 # LEARNING ACCELERATOR (Feedback → Adaptation)
 # ============================================================================
+
 
 class LearningAccelerator:
     """
@@ -927,7 +1065,7 @@ class LearningAccelerator:
         self,
         synergies: List[SynergyCandidate],
         compounds: List[CompoundProposal],
-        ihsan_check: IhsanCheck
+        ihsan_check: IhsanCheck,
     ) -> float:
         """
         Calculate learning boost factor.
@@ -959,12 +1097,14 @@ class LearningAccelerator:
         boost = base_boost * synergy_factor * compound_factor * ihsan_factor
 
         # Record for learning
-        self.learning_history.append({
-            "synergy_count": len(synergies),
-            "compound_count": len(compounds),
-            "ihsan_score": ihsan_check.score,
-            "boost": boost
-        })
+        self.learning_history.append(
+            {
+                "synergy_count": len(synergies),
+                "compound_count": len(compounds),
+                "ihsan_score": ihsan_check.score,
+                "boost": boost,
+            }
+        )
 
         return min(boost, 2.5)  # Cap at 2.5x
 
@@ -972,7 +1112,7 @@ class LearningAccelerator:
         self,
         synergies: List[SynergyCandidate],
         compounds: List[CompoundProposal],
-        ihsan_check: IhsanCheck
+        ihsan_check: IhsanCheck,
     ) -> bool:
         """
         Apply feedback to internal models.
@@ -1001,13 +1141,13 @@ class LearningAccelerator:
         if len(self.compound_cache) > 100:
             # Remove lowest confidence entries
             sorted_cache = sorted(
-                self.compound_cache.items(),
-                key=lambda x: x[1].confidence,
-                reverse=True
+                self.compound_cache.items(), key=lambda x: x[1].confidence, reverse=True
             )
             self.compound_cache = dict(sorted_cache[:100])
 
-        logger.info(f"Feedback applied: {len(synergies)} synergies, {len(compounds)} compounds")
+        logger.info(
+            f"Feedback applied: {len(synergies)} synergies, {len(compounds)} compounds"
+        )
 
         return True
 
@@ -1015,6 +1155,7 @@ class LearningAccelerator:
 # ============================================================================
 # KEP BRIDGE ORCHESTRATOR
 # ============================================================================
+
 
 class KEPBridge:
     """
@@ -1045,7 +1186,7 @@ class KEPBridge:
         query_embedding: np.ndarray,
         snr_score: float,
         min_synergy_strength: float = 0.6,
-        max_compounds: int = 3
+        max_compounds: int = 3,
     ) -> KEPResult:
         """
         Full KEP processing pipeline.
@@ -1063,14 +1204,12 @@ class KEPBridge:
         synergies = self.synergy_detector.detect_synergies(
             retrieval_results=retrieval_results,
             query_embedding=query_embedding,
-            min_strength=min_synergy_strength
+            min_strength=min_synergy_strength,
         )
 
         # Step 2: Compound Discovery
         compounds = self.compound_engine.discover_compounds(
-            synergies=synergies,
-            query_context=query,
-            max_compounds=max_compounds
+            synergies=synergies, query_context=query, max_compounds=max_compounds
         )
 
         # Step 3: Ihsan Validation
@@ -1078,21 +1217,17 @@ class KEPBridge:
             snr_score=snr_score,
             retrieval_results=retrieval_results,
             synergies=synergies,
-            compounds=compounds
+            compounds=compounds,
         )
 
         # Step 4: Learning Boost
         learning_boost = self.learning_accelerator.calculate_boost(
-            synergies=synergies,
-            compounds=compounds,
-            ihsan_check=ihsan_check
+            synergies=synergies, compounds=compounds, ihsan_check=ihsan_check
         )
 
         # Step 5: Feedback Application
         feedback_applied = self.learning_accelerator.apply_feedback(
-            synergies=synergies,
-            compounds=compounds,
-            ihsan_check=ihsan_check
+            synergies=synergies, compounds=compounds, ihsan_check=ihsan_check
         )
 
         execution_time = time.time() - start_time
@@ -1108,8 +1243,8 @@ class KEPBridge:
             metadata={
                 "synergy_count": len(synergies),
                 "compound_count": len(compounds),
-                "snr_input": snr_score
-            }
+                "snr_input": snr_score,
+            },
         )
 
     def get_status(self) -> Dict[str, Any]:
@@ -1120,16 +1255,17 @@ class KEPBridge:
                 "synergy_detector": "ready",
                 "ihsan_validator": f"threshold={self.ihsan_validator.threshold}",
                 "compound_engine": f"history={len(self.compound_engine.discovery_history)}",
-                "learning_accelerator": f"cache={len(self.learning_accelerator.compound_cache)}"
+                "learning_accelerator": f"cache={len(self.learning_accelerator.compound_cache)}",
             },
             "synergy_weights": len(self.learning_accelerator.synergy_weights),
-            "learning_history": len(self.learning_accelerator.learning_history)
+            "learning_history": len(self.learning_accelerator.learning_history),
         }
 
 
 # ============================================================================
 # INTEGRATION WITH BIZRA ORCHESTRATOR
 # ============================================================================
+
 
 async def integrate_with_orchestrator():
     """
@@ -1151,26 +1287,26 @@ async def integrate_with_orchestrator():
             "doc_id": "physics_quantum_001",
             "text": "Quantum entanglement enables instantaneous correlation between particles regardless of distance. This phenomenon challenges classical notions of locality.",
             "score": 0.92,
-            "embedding": np.random.randn(384).tolist()
+            "embedding": np.random.randn(384).tolist(),
         },
         {
             "doc_id": "software_distributed_002",
             "text": "Distributed systems achieve consistency through consensus algorithms. Byzantine fault tolerance ensures correctness even with malicious nodes.",
             "score": 0.88,
-            "embedding": np.random.randn(384).tolist()
+            "embedding": np.random.randn(384).tolist(),
         },
         {
             "doc_id": "philosophy_epistemology_003",
             "text": "Knowledge validation requires both empirical evidence and logical coherence. Epistemic humility acknowledges the limits of certainty.",
             "score": 0.85,
-            "embedding": np.random.randn(384).tolist()
+            "embedding": np.random.randn(384).tolist(),
         },
         {
             "doc_id": "cognitive_learning_004",
             "text": "Transfer learning leverages knowledge from one domain to accelerate learning in another. Analogical reasoning bridges conceptual gaps.",
             "score": 0.82,
-            "embedding": np.random.randn(384).tolist()
-        }
+            "embedding": np.random.randn(384).tolist(),
+        },
     ]
 
     # Simulate query
@@ -1187,7 +1323,7 @@ async def integrate_with_orchestrator():
         query=query,
         retrieval_results=mock_results,
         query_embedding=query_embedding,
-        snr_score=snr_score
+        snr_score=snr_score,
     )
 
     # Display results

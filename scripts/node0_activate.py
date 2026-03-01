@@ -812,10 +812,10 @@ class Node0ProactiveKernel:
         "deephat-v1-7b": "mistral:latest",
         "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text:latest",
         # Previously missing — caused 4/7 PAT agent roles to silently fall back to llama3.1:8b
-        "qwen/qwen3-4b-thinking-2507": "deepseek-r1:14b",          # reasoner + thinker roles
-        "liquid/lfm2.5-1.2b": "phi3:mini",                          # general role
+        "qwen/qwen3-4b-thinking-2507": "deepseek-r1:14b",  # reasoner + thinker roles
+        "liquid/lfm2.5-1.2b": "phi3:mini",  # general role
         "chuanli11_-_llama-3.2-3b-instruct-uncensored": "mistral:latest",  # creative role
-        "mistralai/ministral-3-14b-reasoning": "deepseek-r1:14b",   # escalation chain
+        "mistralai/ministral-3-14b-reasoning": "deepseek-r1:14b",  # escalation chain
     }
 
     def __init__(self, config: Dict[str, Any] = None):
@@ -906,7 +906,9 @@ class Node0ProactiveKernel:
             if bridge is not None:
                 bridge.wire()
                 self._rust_bridge = bridge
-                logger.info("  Rust nervous system: ACTIVE (12 constitutional subscribers)")
+                logger.info(
+                    "  Rust nervous system: ACTIVE (12 constitutional subscribers)"
+                )
             else:
                 logger.debug("  Rust nervous system: unavailable (PyO3 not built)")
         except Exception as e:
@@ -994,7 +996,9 @@ class Node0ProactiveKernel:
             logger.info("  Fleet pre-load skipped: no backend available")
             return
         if self._backend_name == "ollama":
-            logger.info("  Fleet pre-load skipped: Ollama auto-loads on first inference (no /api/v1/models/load endpoint)")
+            logger.info(
+                "  Fleet pre-load skipped: Ollama auto-loads on first inference (no /api/v1/models/load endpoint)"
+            )
             return
 
         try:
@@ -1765,7 +1769,9 @@ class Node0Orchestrator:
             return
 
         # Write PID file for process management
-        pid_file = Path(__file__).resolve().parent.parent / "sovereign_state" / "proactive.pid"
+        pid_file = (
+            Path(__file__).resolve().parent.parent / "sovereign_state" / "proactive.pid"
+        )
         pid_file.parent.mkdir(parents=True, exist_ok=True)
         pid_file.write_text(str(os.getpid()))
         logger.info("PID file written: %s (PID %d)", pid_file, os.getpid())

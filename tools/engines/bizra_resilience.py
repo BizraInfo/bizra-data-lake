@@ -14,40 +14,44 @@ from datetime import datetime, timedelta
 logger = logging.getLogger("BIZRA.Resilience")
 
 # Type variable for generic decorators
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CircuitState(Enum):
     """Circuit breaker states"""
-    CLOSED = "closed"       # Normal operation
-    OPEN = "open"           # Failing, reject requests
-    HALF_OPEN = "half_open" # Testing if service recovered
+
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, reject requests
+    HALF_OPEN = "half_open"  # Testing if service recovered
 
 
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker"""
-    failure_threshold: int = 5          # Failures before opening
-    success_threshold: int = 3          # Successes to close from half-open
-    timeout_seconds: float = 60.0       # Time before half-open from open
-    half_open_max_calls: int = 3        # Max calls in half-open state
-    exclude_exceptions: tuple = ()       # Exceptions that don't count as failures
+
+    failure_threshold: int = 5  # Failures before opening
+    success_threshold: int = 3  # Successes to close from half-open
+    timeout_seconds: float = 60.0  # Time before half-open from open
+    half_open_max_calls: int = 3  # Max calls in half-open state
+    exclude_exceptions: tuple = ()  # Exceptions that don't count as failures
 
 
 @dataclass
 class RetryConfig:
     """Configuration for retry logic"""
+
     max_retries: int = 3
-    base_delay: float = 1.0             # Initial delay in seconds
-    max_delay: float = 30.0             # Maximum delay
-    exponential_base: float = 2.0       # Exponential backoff multiplier
-    jitter: bool = True                 # Add randomness to delays
+    base_delay: float = 1.0  # Initial delay in seconds
+    max_delay: float = 30.0  # Maximum delay
+    exponential_base: float = 2.0  # Exponential backoff multiplier
+    jitter: bool = True  # Add randomness to delays
     retryable_exceptions: tuple = (Exception,)  # Exceptions to retry
 
 
 @dataclass
 class CircuitBreakerStats:
     """Statistics for circuit breaker"""
+
     state: CircuitState = CircuitState.CLOSED
     failures: int = 0
     successes: int = 0
@@ -78,7 +82,7 @@ class CircuitBreaker:
             ...
     """
 
-    _instances: Dict[str, 'CircuitBreaker'] = {}
+    _instances: Dict[str, "CircuitBreaker"] = {}
 
     def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
         self.name = name
@@ -91,7 +95,7 @@ class CircuitBreaker:
         CircuitBreaker._instances[name] = self
 
     @classmethod
-    def get(cls, name: str) -> Optional['CircuitBreaker']:
+    def get(cls, name: str) -> Optional["CircuitBreaker"]:
         """Get circuit breaker by name"""
         return cls._instances.get(name)
 
@@ -116,13 +120,17 @@ class CircuitBreaker:
         self.stats.state = new_state
         self._half_open_calls = 0
 
-        self.stats.state_changes.append({
-            "from": old_state.value,
-            "to": new_state.value,
-            "timestamp": datetime.now().isoformat()
-        })
+        self.stats.state_changes.append(
+            {
+                "from": old_state.value,
+                "to": new_state.value,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
-        logger.info(f"Circuit breaker '{self.name}': {old_state.value} -> {new_state.value}")
+        logger.info(
+            f"Circuit breaker '{self.name}': {old_state.value} -> {new_state.value}"
+        )
 
     async def _record_success(self):
         """Record a successful call"""
@@ -181,6 +189,7 @@ class CircuitBreaker:
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator for wrapping functions with circuit breaker"""
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 if not self._can_execute():
@@ -199,6 +208,7 @@ class CircuitBreaker:
 
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 if not self._can_execute():
@@ -235,6 +245,7 @@ class CircuitBreaker:
 
 class CircuitOpenError(Exception):
     """Raised when circuit breaker is open"""
+
     pass
 
 
@@ -246,7 +257,7 @@ def retry(
     exponential_base: float = 2.0,
     jitter: bool = True,
     retryable_exceptions: tuple = (Exception,),
-    on_retry: Optional[Callable[[int, Exception], None]] = None
+    on_retry: Optional[Callable[[int, Exception], None]] = None,
 ):
     """
     Retry decorator with exponential backoff
@@ -269,11 +280,12 @@ def retry(
             max_delay=max_delay,
             exponential_base=exponential_base,
             jitter=jitter,
-            retryable_exceptions=retryable_exceptions
+            retryable_exceptions=retryable_exceptions,
         )
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 last_exception = None
@@ -293,13 +305,14 @@ def retry(
 
                         # Calculate delay
                         delay = min(
-                            _config.base_delay * (_config.exponential_base ** attempt),
-                            _config.max_delay
+                            _config.base_delay * (_config.exponential_base**attempt),
+                            _config.max_delay,
                         )
 
                         # Add jitter
                         if _config.jitter:
                             import random
+
                             delay = delay * (0.5 + random.random())
 
                         logger.warning(
@@ -317,6 +330,7 @@ def retry(
 
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 last_exception = None
@@ -335,12 +349,13 @@ def retry(
                             raise
 
                         delay = min(
-                            _config.base_delay * (_config.exponential_base ** attempt),
-                            _config.max_delay
+                            _config.base_delay * (_config.exponential_base**attempt),
+                            _config.max_delay,
                         )
 
                         if _config.jitter:
                             import random
+
                             delay = delay * (0.5 + random.random())
 
                         logger.warning(
@@ -364,7 +379,7 @@ def retry(
 def with_fallback(
     fallback_value: Any = None,
     fallback_func: Optional[Callable] = None,
-    log_error: bool = True
+    log_error: bool = True,
 ):
     """
     Fallback decorator for graceful degradation
@@ -378,8 +393,10 @@ def with_fallback(
         async def expensive_operation():
             ...
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 try:
@@ -399,6 +416,7 @@ def with_fallback(
 
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 try:
@@ -422,6 +440,7 @@ def with_fallback(
 @dataclass
 class RateLimiterConfig:
     """Configuration for rate limiter"""
+
     requests_per_second: float = 10.0
     burst_size: int = 20
 
@@ -450,7 +469,7 @@ class RateLimiter:
             # Add tokens based on elapsed time
             self._tokens = min(
                 self.config.burst_size,
-                self._tokens + elapsed * self.config.requests_per_second
+                self._tokens + elapsed * self.config.requests_per_second,
             )
 
             if self._tokens >= 1:
@@ -466,6 +485,7 @@ class RateLimiter:
     def __call__(self, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator for rate limiting"""
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 await self.acquire()
@@ -473,6 +493,7 @@ class RateLimiter:
 
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 loop = asyncio.get_event_loop()
@@ -486,28 +507,22 @@ class RateLimiter:
 llm_circuit_breaker = CircuitBreaker(
     "llm_backend",
     CircuitBreakerConfig(
-        failure_threshold=3,
-        success_threshold=2,
-        timeout_seconds=30.0
-    )
+        failure_threshold=3, success_threshold=2, timeout_seconds=30.0
+    ),
 )
 
 embedding_circuit_breaker = CircuitBreaker(
     "embedding_service",
     CircuitBreakerConfig(
-        failure_threshold=5,
-        success_threshold=3,
-        timeout_seconds=60.0
-    )
+        failure_threshold=5, success_threshold=3, timeout_seconds=60.0
+    ),
 )
 
 graph_circuit_breaker = CircuitBreaker(
     "graph_operations",
     CircuitBreakerConfig(
-        failure_threshold=3,
-        success_threshold=2,
-        timeout_seconds=45.0
-    )
+        failure_threshold=3, success_threshold=2, timeout_seconds=45.0
+    ),
 )
 
 
@@ -521,11 +536,11 @@ def get_resilience_status() -> Dict:
                 "failures": cb.stats.failures,
                 "successes": cb.stats.successes,
                 "total_calls": cb.stats.total_calls,
-                "total_failures": cb.stats.total_failures
+                "total_failures": cb.stats.total_failures,
             }
             for name, cb in CircuitBreaker._instances.items()
         },
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
 
@@ -539,10 +554,10 @@ if __name__ == "__main__":
         print("=" * 60)
 
         # Test circuit breaker
-        breaker = CircuitBreaker("test_service", CircuitBreakerConfig(
-            failure_threshold=3,
-            timeout_seconds=5.0
-        ))
+        breaker = CircuitBreaker(
+            "test_service",
+            CircuitBreakerConfig(failure_threshold=3, timeout_seconds=5.0),
+        )
 
         @breaker
         @retry(max_retries=2, base_delay=0.5)
@@ -576,9 +591,11 @@ if __name__ == "__main__":
         print("\n--- Resilience Status ---")
         status = get_resilience_status()
         for name, stats in status["circuit_breakers"].items():
-            print(f"  {name}: {stats['state']} "
-                  f"(failures={stats['failures']}, "
-                  f"total_calls={stats['total_calls']})")
+            print(
+                f"  {name}: {stats['state']} "
+                f"(failures={stats['failures']}, "
+                f"total_calls={stats['total_calls']})"
+            )
 
     asyncio.run(test_resilience())
     print("\n✅ Resilience patterns test complete")

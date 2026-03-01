@@ -25,9 +25,7 @@ except ModuleNotFoundError:
 _HEAVY_ORCHESTRATOR_TESTS = {"test_live_pipeline.py", "test_one_human.py"}
 
 collect_ignore = [
-    f
-    for f in _HEAVY_ORCHESTRATOR_TESTS
-    if not os.environ.get("BIZRA_COLLECT_HEAVY")
+    f for f in _HEAVY_ORCHESTRATOR_TESTS if not os.environ.get("BIZRA_COLLECT_HEAVY")
 ]
 
 
@@ -39,4 +37,3 @@ def pytest_collect_file(parent, file_path):
         if file_path.suffix == ".py" and file_path.name.startswith("test_"):
             return None  # suppress collection
     return None  # let default collector handle it
-

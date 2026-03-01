@@ -20,8 +20,11 @@ try:
 except ImportError:
     # In stdio mode, we can't easily print errors without corrupting the stream
     # so we'll just exit or log to stderr
-    sys.stderr.write("❌ Failed to import query_graph. Ensure it's in the same directory.\n")
+    sys.stderr.write(
+        "❌ Failed to import query_graph. Ensure it's in the same directory.\n"
+    )
     pass
+
 
 def process_mcp_request(request):
     """Core logic to handle MCP JSON-RPC requests independently of transport."""
@@ -35,14 +38,9 @@ def process_mcp_request(request):
             "id": request_id,
             "result": {
                 "protocolVersion": "2024-11-05",
-                "capabilities": {
-                    "tools": {}
-                },
-                "serverInfo": {
-                    "name": "bizra-data-lake",
-                    "version": "1.1.0"
-                }
-            }
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "bizra-data-lake", "version": "1.1.0"},
+            },
         }
 
     elif method == "notifications/initialized":
@@ -63,14 +61,14 @@ def process_mcp_request(request):
                             "properties": {
                                 "query": {
                                     "type": "string",
-                                    "description": "The technical topic or question to search for in the graph."
+                                    "description": "The technical topic or question to search for in the graph.",
                                 }
                             },
-                            "required": ["query"]
-                        }
+                            "required": ["query"],
+                        },
                     }
                 ]
-            }
+            },
         }
 
     elif method == "tools/call":
@@ -82,6 +80,7 @@ def process_mcp_request(request):
 
             # Thread-safe stdout capture via contextlib
             import contextlib
+
             captured = StringIO()
 
             try:
@@ -98,49 +97,46 @@ def process_mcp_request(request):
                     "content": [
                         {
                             "type": "text",
-                            "text": results if results else "No results found."
+                            "text": results if results else "No results found.",
                         }
                     ]
-                }
+                },
             }
         else:
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
-                "error": {"code": -32601, "message": f"Method not found: {tool_name}"}
+                "error": {"code": -32601, "message": f"Method not found: {tool_name}"},
             }
 
     elif method == "ping":
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {}
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "result": {}}
 
     else:
         # For unknown methods that expect a response
         if request_id is not None:
-             return {
+            return {
                 "jsonrpc": "2.0",
                 "id": request_id,
-                "error": {"code": -32601, "message": f"Method not found: {method}"}
+                "error": {"code": -32601, "message": f"Method not found: {method}"},
             }
         return None
 
+
 class BIZRADataLakeMCP(BaseHTTPRequestHandler):
-    def _set_headers(self, content_type='application/json'):
+    def _set_headers(self, content_type="application/json"):
         self.send_response(200)
 
     @staticmethod
     def check_environment():
         """Prevent accidental execution on Windows Host which blocks WSL."""
         if platform.system() == "Windows":
-            print("\n" + "!"*60)
+            print("\n" + "!" * 60)
             print("🛑 WRONG ENVIRONMENT DETECTED")
             print("   This MCP Bridge is designed to run in WSL (Ubuntu).")
             print("   Running it on Windows blocks port 8443 for the main agent.")
             print("   Please run this from the 'bizra-genesis' WSL instance.")
-            print("!"*60 + "\n")
+            print("!" * 60 + "\n")
             # We allow it with a specific flag, but warn heavily
             return False
         return True
@@ -148,7 +144,7 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests - show status page in browser."""
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
 
         html = """<!DOCTYPE html>
@@ -192,7 +188,7 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
     def do_POST(self):
         # SECURITY: Validate Content-Length to prevent DoS
         MAX_CONTENT_LENGTH = 1024 * 1024  # 1MB limit
-        content_length = int(self.headers.get('Content-Length', 0))
+        content_length = int(self.headers.get("Content-Length", 0))
 
         if content_length <= 0:
             self.send_error(400, "Missing Content-Length")
@@ -215,6 +211,7 @@ class BIZRADataLakeMCP(BaseHTTPRequestHandler):
         self._set_headers()
         if response:
             self.wfile.write(json.dumps(response).encode())
+
 
 def run_stdio():
     """Run MCP server over standard input/output (Model Context Protocol)."""
@@ -240,6 +237,7 @@ def run_stdio():
         except Exception as e:
             sys.stderr.write(f"[MCP] Error: {str(e)}\n")
 
+
 def generate_self_signed_cert(cert_dir: Path):
     """Generate self-signed SSL certificate for HTTPS."""
     cert_file = cert_dir / "server.crt"
@@ -254,22 +252,38 @@ def generate_self_signed_cert(cert_dir: Path):
 
     try:
         import subprocess
+
         # Generate self-signed cert using OpenSSL (if available)
-        subprocess.run([
-            "openssl", "req", "-x509", "-newkey", "rsa:4096",
-            "-keyout", str(key_file), "-out", str(cert_file),
-            "-days", "365", "-nodes",
-            "-subj", "/CN=localhost/O=BIZRA/C=AE"
-        ], check=True, capture_output=True)
+        subprocess.run(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:4096",
+                "-keyout",
+                str(key_file),
+                "-out",
+                str(cert_file),
+                "-days",
+                "365",
+                "-nodes",
+                "-subj",
+                "/CN=localhost/O=BIZRA/C=AE",
+            ],
+            check=True,
+            capture_output=True,
+        )
         print("[BRIDGE] ✅ SSL certificate generated successfully")
         return str(cert_file), str(key_file)
     except Exception as e:
         sys.stderr.write(f"[BRIDGE] SSL cert generation failed: {e}\n")
         return None, None
 
+
 def run_server(port=8443, secure=True, localhost_only=True):
     """Run MCP bridge server with optional HTTPS."""
-    bind_address = '127.0.0.1' if localhost_only else '0.0.0.0'
+    bind_address = "127.0.0.1" if localhost_only else "0.0.0.0"
     server_address = (bind_address, port)
     httpd = HTTPServer(server_address, BIZRADataLakeMCP)
 
@@ -290,12 +304,23 @@ def run_server(port=8443, secure=True, localhost_only=True):
 
     httpd.serve_forever()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BIZRA Data Lake MCP Bridge")
-    parser.add_argument("--port", type=int, default=8443, help="Port to listen on (default: 8443)")
-    parser.add_argument("--insecure", action="store_true", help="Use HTTP instead of HTTPS")
-    parser.add_argument("--stdio", action="store_true", help="Use stdio transport (MCP Default)")
-    parser.add_argument("--force-windows", action="store_true", help="Allow running on Windows despite warnings")
+    parser.add_argument(
+        "--port", type=int, default=8443, help="Port to listen on (default: 8443)"
+    )
+    parser.add_argument(
+        "--insecure", action="store_true", help="Use HTTP instead of HTTPS"
+    )
+    parser.add_argument(
+        "--stdio", action="store_true", help="Use stdio transport (MCP Default)"
+    )
+    parser.add_argument(
+        "--force-windows",
+        action="store_true",
+        help="Allow running on Windows despite warnings",
+    )
     args = parser.parse_args()
 
     if not args.stdio and not args.force_windows:
