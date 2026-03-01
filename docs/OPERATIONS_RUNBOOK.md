@@ -255,3 +255,4 @@ Collect these before escalating:
    - `curl /v1/metrics`
 5. Smoke test status (pass/fail list)
 6. Bridge status: `ping` response or connection error
+
