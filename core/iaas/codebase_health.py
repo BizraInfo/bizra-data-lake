@@ -484,7 +484,10 @@ def lens_import_hygiene(root: Path, source_dir: str = "core") -> LensResult:
     passed = 0
 
     constants_path = root / source_dir / "integration" / "constants.py"
-    constants_rel = str(constants_path.relative_to(root)) if constants_path.exists() else ""
+    try:
+        constants_rel = str(constants_path.relative_to(root)) if constants_path.exists() else ""
+    except ValueError:
+        constants_rel = ""
 
     for path in _collect_python_files(root, source_dir):
         tree = _parse_file(path)
@@ -646,14 +649,19 @@ def lens_test_coverage(
             if entry.name not in _SKIP_DIRS:
                 sub_packages.append(entry.name)
 
+    # Pre-collect test file names for efficient lookup
+    test_files: set = set()
+    test_base = root / test_dir
+    if test_base.is_dir():
+        for tf in test_base.rglob("test_*.py"):
+            test_files.add(tf.stem)  # e.g. "test_utils"
+
     checked = len(sub_packages)
     passed = 0
     for pkg in sub_packages:
         # Check for test directory or any test_*.py matching the package
         has_test_dir = (tests / pkg).is_dir()
-        has_test_file = any(
-            (root / test_dir).rglob(f"test_{pkg}*.py")
-        ) if (root / test_dir).is_dir() else False
+        has_test_file = any(name.startswith(f"test_{pkg}") for name in test_files)
 
         if has_test_dir or has_test_file:
             passed += 1
