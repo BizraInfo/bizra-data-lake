@@ -30,16 +30,13 @@ Created: 2026-02-27 | BIZRA Self-Proactive Harness v1.0
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import logging
-import math
 import os
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("bizra.proactive.self_harness")
@@ -49,7 +46,6 @@ logger = logging.getLogger("bizra.proactive.self_harness")
 # ---------------------------------------------------------------------------
 from core.integration.constants import (
     UNIFIED_IHSAN_THRESHOLD,
-    UNIFIED_SNR_THRESHOLD,
 )
 
 GHOST_WS_URL = os.getenv("GHOST_WS_URL", "ws://127.0.0.1:9743/ws/ghost")
