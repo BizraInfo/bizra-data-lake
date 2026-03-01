@@ -1,6 +1,6 @@
 # BIZRA Operations Runbook
 
-Last updated: 2026-03-01
+Last updated: 2026-03-01 (rev 2)
 
 This runbook is the operator-focused guide for starting, validating, and troubleshooting BIZRA services.
 
