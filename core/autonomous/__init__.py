@@ -31,6 +31,15 @@
 
 from typing import TYPE_CHECKING
 
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD,
+    STRICT_IHSAN_THRESHOLD,
+    SNR_THRESHOLD_T0_ELITE,
+    SNR_THRESHOLD_T1_HIGH,
+    SNR_THRESHOLD_T2_STANDARD,
+)
+
 # Version
 SARE_VERSION = "1.0.0"
 
@@ -68,16 +77,16 @@ GIANTS_PROTOCOL = {
     },
 }
 
-# SNR Thresholds by Reasoning Layer
+# SNR Thresholds by Reasoning Layer — sourced from core.integration.constants (SSOT)
 SNR_THRESHOLDS = {
-    "minimum": 0.85,  # Absolute minimum
-    "observation": 0.90,  # Raw data intake
+    "minimum": UNIFIED_SNR_THRESHOLD,  # Absolute minimum (0.85)
+    "observation": SNR_THRESHOLD_T2_STANDARD,  # Raw data intake (0.90)
     "orientation": 0.92,  # Context establishment
-    "reasoning": 0.95,  # Core inference
-    "synthesis": 0.98,  # Integration
-    "action": 0.95,  # Output generation (matches Ihsān production floor)
-    "reflection": 0.98,  # Meta-cognition
-    "ihsan": 0.99,  # Ihsān aspiration ceiling
+    "reasoning": SNR_THRESHOLD_T1_HIGH,  # Core inference (0.95)
+    "synthesis": SNR_THRESHOLD_T0_ELITE,  # Integration (0.98)
+    "action": SNR_THRESHOLD_T1_HIGH,  # Output generation (matches Ihsān floor)
+    "reflection": SNR_THRESHOLD_T0_ELITE,  # Meta-cognition (0.98)
+    "ihsan": STRICT_IHSAN_THRESHOLD,  # Ihsān aspiration ceiling (0.99)
 }
 
 # Ihsān Dimensions — Excellence Scoring (weights sum to 1.0)
@@ -104,10 +113,10 @@ NODE_TYPES = [
     "meta",
 ]
 
-# Constitutional Constraints (Immutable)
+# Constitutional Constraints (Immutable) — sourced from core.integration.constants (SSOT)
 CONSTITUTIONAL_CONSTRAINTS = {
-    "ihsan_threshold": 0.95,  # Minimum excellence score
-    "safety_floor": 0.99,  # Safety never below this
+    "ihsan_threshold": UNIFIED_IHSAN_THRESHOLD,  # Minimum excellence score (0.95)
+    "safety_floor": STRICT_IHSAN_THRESHOLD,  # Safety never below this (0.99)
     "max_backtrack_depth": 7,  # Limit reasoning loops
     "max_backtrack": 5,  # Max backtrack attempts
     "max_loops": 3,  # Max reasoning iterations

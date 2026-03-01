@@ -9,9 +9,8 @@ Uses tmp_path fixture for isolated filesystem tests -- no real files touched.
 """
 
 import asyncio
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -21,7 +20,6 @@ from core.skills.smart_file_manager import (
     SmartFileHandler,
     _expand_pattern,
     _size_human,
-    _validate_path,
     register_smart_files,
 )
 
@@ -396,6 +394,172 @@ class TestMerge:
     def test_merge_nonexistent_file(self, handler):
         result = handler._op_merge({"paths": ["/nonexistent/file.txt"]})
         assert "error" in result
+
+    def test_merge_csv_column_aware(self, handler, tmp_path):
+        """CSV files are merged column-aware with header deduplication."""
+        (tmp_path / "a.csv").write_text("name,age\nAlice,30\nBob,25")
+        (tmp_path / "b.csv").write_text("name,age\nCarol,35")
+        result = handler._op_merge(
+            {"paths": [str(tmp_path / "a.csv"), str(tmp_path / "b.csv")]}
+        )
+        assert result["format"] == "csv"
+        assert result["files_merged"] == 2
+        assert result["total_rows"] == 3
+        assert "name" in result["columns"]
+        assert "age" in result["columns"]
+        output = Path(result["output_path"])
+        assert output.suffix == ".csv"
+        content = output.read_text()
+        assert "Alice" in content
+        assert "Carol" in content
+        # Header should appear exactly once
+        assert content.count("name,age") == 1
+
+    def test_merge_csv_extra_columns(self, handler, tmp_path):
+        """CSV merge with disjoint schemas — no data loss, extrasaction=ignore."""
+        (tmp_path / "x.csv").write_text("name,score\nAlice,90")
+        (tmp_path / "y.csv").write_text("name,score,level\nBob,80,gold")
+        result = handler._op_merge(
+            {"paths": [str(tmp_path / "x.csv"), str(tmp_path / "y.csv")]}
+        )
+        assert result["format"] == "csv"
+        assert result["total_rows"] == 2
+        # level column should be present (from second file)
+        assert "level" in result["columns"]
+
+    def test_merge_jsonl_line_concat(self, handler, tmp_path):
+        """JSONL files are merged line by line with blank lines stripped."""
+        (tmp_path / "a.jsonl").write_text('{"id": 1}\n{"id": 2}\n\n')
+        (tmp_path / "b.jsonl").write_text('{"id": 3}\n')
+        result = handler._op_merge(
+            {"paths": [str(tmp_path / "a.jsonl"), str(tmp_path / "b.jsonl")]}
+        )
+        assert result["format"] == "jsonl"
+        assert result["total_lines"] == 3
+        output = Path(result["output_path"])
+        assert output.suffix == ".jsonl"
+        lines = [l for l in output.read_text().splitlines() if l.strip()]
+        assert len(lines) == 3
+        import json
+
+        ids = [json.loads(l)["id"] for l in lines]
+        assert ids == [1, 2, 3]
+
+    def test_merge_mixed_types_uses_text(self, handler, tmp_path):
+        """Mixed extension set routes to text merge (not CSV/JSONL)."""
+        (tmp_path / "a.txt").write_text("text content")
+        (tmp_path / "b.md").write_text("# markdown")
+        result = handler._op_merge(
+            {"paths": [str(tmp_path / "a.txt"), str(tmp_path / "b.md")]}
+        )
+        assert result["format"] == "text"
+        assert result["files_merged"] == 2
+
+    def test_merge_csv_auto_output_suffix(self, handler, tmp_path):
+        """Auto-generated output path uses .csv suffix for CSV merges."""
+        (tmp_path / "p.csv").write_text("col\nval")
+        (tmp_path / "q.csv").write_text("col\nval2")
+        result = handler._op_merge(
+            {"paths": [str(tmp_path / "p.csv"), str(tmp_path / "q.csv")]}
+        )
+        assert Path(result["output_path"]).suffix == ".csv"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLASSIFY TESTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestClassify:
+    """Tests for AI-powered classify operation (extension-fallback path)."""
+
+    @pytest.mark.asyncio
+    async def test_classify_dir_extension_fallback(self, handler, populated_dir):
+        """classify falls back to extension-based when no gateway available."""
+        result = await handler._op_classify({"path": str(populated_dir)})
+        assert result["operation"] == "classify"
+        assert result["total_classified"] <= 10  # default max_files
+        assert len(result["classified"]) == result["total_classified"]
+        # All entries have required keys
+        for item in result["classified"]:
+            assert "name" in item
+            assert "category" in item
+            assert "confidence" in item
+            assert "method" in item
+            assert item["method"] in ("ai", "extension")
+        # gateway_available should be False without a running LM Studio
+        assert isinstance(result["gateway_available"], bool)
+
+    @pytest.mark.asyncio
+    async def test_classify_explicit_paths(self, handler, tmp_path):
+        """classify accepts explicit paths list."""
+        (tmp_path / "code.py").write_text("print('hello')")
+        (tmp_path / "data.csv").write_text("a,b\n1,2")
+        result = await handler._op_classify(
+            {
+                "paths": [
+                    str(tmp_path / "code.py"),
+                    str(tmp_path / "data.csv"),
+                ]
+            }
+        )
+        assert result["total_classified"] == 2
+        cats = {item["name"]: item["category"] for item in result["classified"]}
+        assert cats["code.py"] == "code"
+        assert cats["data.csv"] == "data"
+
+    @pytest.mark.asyncio
+    async def test_classify_max_files_respected(self, handler, populated_dir):
+        """max_files caps the number of classified files."""
+        result = await handler._op_classify(
+            {"path": str(populated_dir), "max_files": 3}
+        )
+        assert result["total_classified"] == 3
+
+    @pytest.mark.asyncio
+    async def test_classify_missing_input(self, handler):
+        """classify returns error when neither path nor paths supplied."""
+        result = await handler._op_classify({})
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_classify_directory_not_dir(self, handler, tmp_path):
+        """classify returns error when path is a file, not a directory."""
+        f = tmp_path / "file.txt"
+        f.write_text("content")
+        result = await handler._op_classify({"path": str(f)})
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_classify_ai_path_mocked(self, handler, tmp_path):
+        """When InferenceGateway is available and infer() succeeds, method=ai."""
+        (tmp_path / "mystery.dat").write_bytes(b"some binary data here")
+
+        mock_gw = MagicMock()
+        mock_gw.initialize = AsyncMock()
+        mock_gw.infer = AsyncMock(
+            return_value=(
+                '{"category": "binary", "tags": ["raw"], '
+                '"confidence": 0.88, "summary": "Binary data file"}'
+            )
+        )
+
+        # Patch InferenceGateway at import path used inside _op_classify
+        with patch.dict(
+            "sys.modules",
+            {"core.inference.gateway": MagicMock(InferenceGateway=lambda: mock_gw)},
+        ):
+            result = await handler._op_classify(
+                {"paths": [str(tmp_path / "mystery.dat")]}
+            )
+
+        assert result["total_classified"] == 1
+        item = result["classified"][0]
+        assert item["name"] == "mystery.dat"
+        assert item["category"] == "binary"
+        assert item["method"] == "ai"
+        assert item["confidence"] == pytest.approx(0.88)
+        assert item["summary"] == "Binary data file"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

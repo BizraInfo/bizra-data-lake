@@ -570,8 +570,8 @@ class TestOmegaPointIntegration:
         plutocratic_gini = calculate_gini(plutocratic_distribution)
         assert plutocratic_gini > 0.4, "Plutocratic distribution should have high Gini"
 
-        # 4. Adl invariant threshold (e.g., Gini < 0.4)
-        ADL_GINI_THRESHOLD = 0.4
+        # 4. Adl invariant threshold — import from SSOT
+        from core.integration.constants import ADL_GINI_THRESHOLD
 
         # Equal distribution passes
         assert equal_gini < ADL_GINI_THRESHOLD

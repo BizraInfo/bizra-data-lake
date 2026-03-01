@@ -29,8 +29,8 @@ PURPOSE_TO_ROLE: Dict[str, str] = {
 
 DEFAULT_MODEL_ROUTING: Dict[str, str] = {
     "planner": "agentflow-planner-7b-i1",
-    "reasoner": "deepseek/deepseek-r1-0528-qwen3-8b",
-    "reasoner_large": "mistralai/ministral-3-14b-reasoning",
+    "reasoner": "qwen/qwen3-4b-thinking-2507",  # 4B fits RTX 4090 alongside other models
+    "reasoner_large": "deepseek/deepseek-r1-0528-qwen3-8b",  # Promoted from default reasoner
     "thinker": "qwen/qwen3-4b-thinking-2507",
     "general": "liquid/lfm2.5-1.2b",
     "creative": "chuanli11_-_llama-3.2-3b-instruct-uncensored",

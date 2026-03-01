@@ -1061,8 +1061,13 @@ async def main():
     logger.info("Sovereign MCP Server v1.3.0 starting (SDK stdio transport + Phase 46)...")
 
     # Start HTTP health/metrics server for K8s probes and Prometheus
-    health_server = await asyncio.start_server(_http_handler, "0.0.0.0", _HEALTH_PORT)
-    logger.info("Health/metrics HTTP server listening on port %d", _HEALTH_PORT)
+    # Gracefully skip if port is already in use (e.g. bizra-refinery on 8081)
+    health_server = None
+    try:
+        health_server = await asyncio.start_server(_http_handler, "127.0.0.1", _HEALTH_PORT)
+        logger.info("Health/metrics HTTP server listening on port %d", _HEALTH_PORT)
+    except OSError as exc:
+        logger.warning("Health server skipped (port %d in use: %s) — MCP stdio still functional", _HEALTH_PORT, exc)
 
     # Graceful shutdown via SIGTERM/SIGINT (K8s pod termination)
     shutdown_event = asyncio.Event()
@@ -1106,7 +1111,7 @@ async def main():
 
     # stdio transport ended naturally (not via SIGTERM) — enter headless mode.
     # Keep health server alive for K8s probes until SIGTERM arrives.
-    if not shutdown_event.is_set():
+    if not shutdown_event.is_set() and health_server is not None:
         logger.info(
             "stdio transport ended; entering headless mode "
             "(health/metrics on port %d, awaiting SIGTERM)",
@@ -1115,8 +1120,9 @@ async def main():
         await shutdown_event.wait()
 
     logger.info("Sovereign MCP Server shutting down...")
-    health_server.close()
-    await health_server.wait_closed()
+    if health_server is not None:
+        health_server.close()
+        await health_server.wait_closed()
     logger.info("Sovereign MCP Server shutdown complete")
 
 

@@ -1,0 +1,30 @@
+[Unit]
+Description=BIZRA Infrastructure Guardian — Self-Healing Daemon
+After=network.target docker.socket
+Wants=docker.socket
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE
+Environment=BIZRA_DATA_LAKE_ROOT=/mnt/c/BIZRA-DATA-LAKE
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/python3 -c "import py_compile; py_compile.compile('/mnt/c/BIZRA-DATA-LAKE/scripts/guardian/infra_guardian.py', doraise=True)"
+ExecStart=/usr/bin/python3 /mnt/c/BIZRA-DATA-LAKE/scripts/guardian/infra_guardian.py --daemon --verbose
+Restart=on-failure
+RestartSec=30
+WatchdogSec=300
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/logs/guardian
+ReadWritePaths=/var/run
+ReadWritePaths=/var/log/journal
+NoNewPrivileges=false
+
+# Resource limits — guardian itself should be lightweight
+MemoryMax=256M
+CPUQuota=10%
+
+[Install]
+WantedBy=multi-user.target

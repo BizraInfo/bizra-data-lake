@@ -575,10 +575,13 @@ version = "2.0.0"
 dependencies = [
  "bizra-action",
  "bizra-agent",
+ "bizra-core",
  "bizra-hooks",
+ "bizra-inference",
  "bizra-memory",
  "bizra-telescript",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

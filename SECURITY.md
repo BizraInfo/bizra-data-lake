@@ -35,7 +35,7 @@ BIZRA implements defense-in-depth across every layer:
 | Ihsan (Excellence) | >= 0.95 | Hard gate on all outputs |
 | SNR (Signal Quality) | >= 0.85 | Information quality filter |
 | FATE (Ethics) | >= 0.95 | Fidelity, Accountability, Transparency, Ethics |
-| ADL (Justice) | Gini <= 0.40 | Anti-plutocracy resource distribution |
+| ADL (Justice) | Gini <= 0.35 | Anti-plutocracy resource distribution |
 
 All thresholds are defined in `core/integration/constants.py` as the single source of truth.
 

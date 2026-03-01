@@ -16,11 +16,39 @@ import hashlib
 import json
 import logging
 import os
+import sys
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
+
+# G6 FIX: Inter-process file locking (Lamport — strict chronological ordering).
+# threading.Lock() only guards within a single process. When node0_activate.py
+# runs the proactive loop AND a CLI `mission` command simultaneously, two separate
+# processes each hold their own Lock — the seq counter races between them.
+# fcntl.flock (POSIX) blocks at the OS level across all processes on the same file.
+if sys.platform != "win32":
+    import fcntl  # POSIX only — available on WSL/Linux where Node0 runs
+
+    @contextmanager
+    def _posix_file_lock(lock_path: Path) -> Generator[None, None, None]:
+        """Acquire an exclusive POSIX file lock for the duration of the block."""
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w") as lf:
+            fcntl.flock(lf, fcntl.LOCK_EX)  # blocks until no other holder
+            try:
+                yield
+            finally:
+                fcntl.flock(lf, fcntl.LOCK_UN)
+
+else:
+    # Windows fallback — threading.Lock only (no fcntl); concurrent processes
+    # on Windows should use a named mutex, but Node0 targets WSL/Linux.
+    @contextmanager
+    def _posix_file_lock(lock_path: Path) -> Generator[None, None, None]:  # type: ignore[misc]
+        yield
 
 from core.proof_engine.schema_validator import validate_receipt
 from core.sovereign.origin_guard import (
@@ -120,6 +148,9 @@ class EvidenceLedger:
         self._path = path
         self._validate = validate_on_append
         self._lock = threading.Lock()
+        # G6 FIX: .lock file sits next to the ledger — used by _posix_file_lock
+        # for cross-process mutual exclusion (fcntl.LOCK_EX on POSIX).
+        self._lock_file = path.with_suffix(".lock")
         self._sequence = 0
         self._last_hash = GENESIS_HASH
 
@@ -138,6 +169,44 @@ class EvidenceLedger:
                 self._sequence = entry.sequence
                 self._last_hash = entry.entry_hash
 
+    def _resume_tail(self) -> None:
+        """Resume seq+hash from the last line only — O(1) disk seek.
+
+        G6 FIX: Called inside the cross-process lock before each append to
+        ensure freshness without re-scanning the entire file.
+        Uses seek(-N, 2) to read backwards from EOF.
+        """
+        if not self._path.exists() or self._path.stat().st_size == 0:
+            return
+        with open(self._path, "rb") as f:
+            # Walk back from EOF to find the last non-empty JSONL line
+            chunk_size = 4096
+            f.seek(0, 2)          # seek to EOF
+            pos = f.tell()
+            buf = b""
+            while pos > 0:
+                read_size = min(chunk_size, pos)
+                pos -= read_size
+                f.seek(pos)
+                chunk = f.read(read_size)
+                buf = chunk + buf
+                # Look for a complete JSONL line from the right
+                lines = buf.split(b"\n")
+                for raw in reversed(lines):
+                    raw = raw.strip()
+                    if raw:
+                        try:
+                            entry = LedgerEntry.from_jsonl(raw.decode("utf-8"))
+                            self._sequence = entry.sequence
+                            self._last_hash = entry.entry_hash
+                            return
+                        except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
+                            continue
+                # If no complete line yet, keep reading backwards
+                if len(lines) > 2:
+                    # Keep only the partial first line to prepend next iteration
+                    buf = lines[0]
+
     @property
     def sequence(self) -> int:
         """Current sequence number (0 = empty)."""
@@ -151,6 +220,18 @@ class EvidenceLedger:
     def append(self, receipt: Dict[str, Any]) -> LedgerEntry:
         """
         Append a receipt to the ledger.
+
+        G6 FIX (chain fork prevention):
+        Uses a two-level lock:
+          1. threading.Lock  — fast guard for concurrent threads in the same process
+          2. fcntl.flock     — OS-level guard for concurrent processes (proactive loop
+                               vs. CLI mission command running simultaneously)
+        After acquiring both locks we re-read the last line of the ledger from disk
+        to ensure sequence freshness — preventing the "phantom seq=13" scenario where
+        two processes each resume at seq=13 and both increment to 14.
+
+        Standing on Giants: Lamport (1978) — strict causal ordering.
+        Artifact: core/proof_engine/evidence_ledger.py
 
         Args:
             receipt: Schema-compliant receipt dict.
@@ -166,26 +247,32 @@ class EvidenceLedger:
             if not is_valid:
                 raise ValueError(f"Receipt fails schema validation: {errors}")
 
-        with self._lock:
-            self._sequence += 1
-            ts = datetime.now(timezone.utc).isoformat()
-            entry_hash = _compute_entry_hash(self._sequence, receipt, self._last_hash)
+        with self._lock:  # in-process thread safety
+            with _posix_file_lock(self._lock_file):  # cross-process safety (G6 fix)
+                # Re-read seq+hash from disk (tail-only, O(1)) after acquiring
+                # the cross-process lock — so concurrent processes see each
+                # other's writes before incrementing the sequence counter.
+                self._resume_tail()
 
-            entry = LedgerEntry(
-                sequence=self._sequence,
-                receipt=receipt,
-                prev_hash=self._last_hash,
-                entry_hash=entry_hash,
-                timestamp=ts,
-            )
+                self._sequence += 1
+                ts = datetime.now(timezone.utc).isoformat()
+                entry_hash = _compute_entry_hash(self._sequence, receipt, self._last_hash)
 
-            # Append to file
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self._path, "a", encoding="utf-8") as f:
-                f.write(entry.to_jsonl() + "\n")
+                entry = LedgerEntry(
+                    sequence=self._sequence,
+                    receipt=receipt,
+                    prev_hash=self._last_hash,
+                    entry_hash=entry_hash,
+                    timestamp=ts,
+                )
 
-            self._last_hash = entry_hash
-            return entry
+                # Append to file
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self._path, "a", encoding="utf-8") as f:
+                    f.write(entry.to_jsonl() + "\n")
+
+                self._last_hash = entry_hash
+                return entry
 
     def verify_chain(self) -> Tuple[bool, List[str]]:
         """

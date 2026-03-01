@@ -190,6 +190,44 @@ class BridgeReceiptEngine:
                 logger.warning(f"Failed to read receipt: {path}")
         return None
 
+    def list_recent(self, n: int = 20) -> list[Dict[str, Any]]:
+        """Return the most recent *n* receipts, newest first.
+
+        Merges in-memory cache with persisted disk files so it works even after
+        a bridge restart when the cache is cold.  Receipt IDs embed a
+        millisecond timestamp (``br-{ts_ms}-{seq}-{method}``) so sorting by ID
+        is monotonically equivalent to sorting by creation time — no mtime
+        stat required.
+        """
+        n = max(1, min(n, _MAX_CACHE))
+
+        # Collect IDs: disk (all) + cache (may have IDs not yet persisted)
+        ids_from_disk: list[str] = []
+        try:
+            ids_from_disk = [
+                p.stem for p in sorted(self.receipt_dir.glob("br-*.json"), reverse=True)
+            ]
+        except OSError:
+            pass
+        ids_in_cache = list(
+            reversed(list(self._cache.keys()))
+        )  # newest last→newest first
+
+        # Deduplicated merge, preserving disk order (newest first)
+        seen: set[str] = set()
+        merged: list[str] = []
+        for rid in ids_in_cache + ids_from_disk:
+            if rid not in seen:
+                seen.add(rid)
+                merged.append(rid)
+
+        receipts = []
+        for rid in merged[:n]:
+            r = self.get_receipt(rid)
+            if r is not None:
+                receipts.append(r)
+        return receipts
+
     def verify_receipt(self, receipt: Dict[str, Any]) -> bool:
         """Verify a receipt's signature."""
         from core.proof_engine.canonical import canonical_bytes

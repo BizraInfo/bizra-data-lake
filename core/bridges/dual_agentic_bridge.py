@@ -19,6 +19,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.orchestration.team_planner import AgentRole, TeamTask
 from core.pci.crypto import (
     canonicalize_and_validate,
@@ -214,7 +215,7 @@ class DualAgenticBridge:
 
     def __init__(
         self,
-        ihsan_threshold: float = 0.95,
+        ihsan_threshold: float = UNIFIED_IHSAN_THRESHOLD,
         vote_timeout: float = 5.0,
         sat_mode: str = SATMode.MINI5.value,
         proposer_private_key_hex: Optional[str] = None,

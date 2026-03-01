@@ -23,6 +23,8 @@ Created: 2026-02-13 | BIZRA Smart File Manager v1.0
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
 import shutil
@@ -217,6 +219,7 @@ class SmartFileHandler:
                 "output_path",
                 "separator",
                 "add_headers",
+                "max_files",
             ],
             outputs=["result"],
             ihsan_floor=UNIFIED_IHSAN_THRESHOLD,
@@ -262,6 +265,7 @@ class SmartFileHandler:
             "organize": self._op_organize,
             "rename": self._op_rename,
             "merge": self._op_merge,
+            "classify": self._op_classify,
         }
 
         handler = dispatch.get(operation)
@@ -271,7 +275,10 @@ class SmartFileHandler:
                 "available_operations": list(dispatch.keys()),
             }
 
-        return handler(inputs)
+        result = handler(inputs)
+        if asyncio.iscoroutine(result):
+            return await result
+        return result
 
     # -- scan ----------------------------------------------------------------
 
@@ -538,12 +545,28 @@ class SmartFileHandler:
             except ValueError as exc:
                 return {"error": str(exc)}
 
+        # Detect file format for smart merge routing
+        exts = {rp.suffix.lower() for rp in resolved_paths}
+
         if not output_path_str:
             first_parent = resolved_paths[0].parent
-            output_path = first_parent / f"merged_{uuid.uuid4().hex[:8]}.txt"
+            ts = uuid.uuid4().hex[:8]
+            if exts == {".csv"}:
+                output_path = first_parent / f"merged_{ts}.csv"
+            elif exts == {".jsonl"}:
+                output_path = first_parent / f"merged_{ts}.jsonl"
+            else:
+                output_path = first_parent / f"merged_{ts}.txt"
         else:
             output_path = Path(output_path_str).resolve()
 
+        # Route to format-specific merge handlers
+        if exts == {".csv"}:
+            return self._merge_csv(resolved_paths, output_path)
+        if exts == {".jsonl"}:
+            return self._merge_jsonl(resolved_paths, output_path)
+
+        # Text merge (all other/mixed types)
         parts: List[str] = []
         total_size = 0
 
@@ -565,10 +588,195 @@ class SmartFileHandler:
 
         return {
             "operation": "merge",
+            "format": "text",
             "files_merged": len(resolved_paths),
             "output_path": str(output_path),
             "total_input_size": _size_human(total_size),
             "output_size": _size_human(len(merged.encode("utf-8"))),
+        }
+
+    def _merge_csv(self, paths: List[Path], output_path: Path) -> Dict[str, Any]:
+        """Column-aware CSV merge with header deduplication."""
+        import csv
+
+        all_rows: List[Dict[str, Any]] = []
+        all_fields: List[str] = []
+        seen_fields: set = set()
+
+        for p in paths:
+            try:
+                with p.open(newline="", encoding="utf-8", errors="replace") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        all_rows.append(row)
+                    if reader.fieldnames:
+                        for fn in reader.fieldnames:
+                            if fn not in seen_fields:
+                                all_fields.append(fn)
+                                seen_fields.add(fn)
+            except Exception as exc:
+                return {"error": f"Cannot read CSV {p}: {exc}"}
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=all_fields, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(all_rows)
+
+        return {
+            "operation": "merge",
+            "format": "csv",
+            "files_merged": len(paths),
+            "output_path": str(output_path),
+            "total_rows": len(all_rows),
+            "columns": all_fields,
+            "output_size": _size_human(output_path.stat().st_size),
+        }
+
+    def _merge_jsonl(self, paths: List[Path], output_path: Path) -> Dict[str, Any]:
+        """JSONL line-by-line concatenation (blank lines stripped)."""
+        all_lines: List[str] = []
+
+        for p in paths:
+            try:
+                for line in p.read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines():
+                    line = line.strip()
+                    if line:
+                        all_lines.append(line)
+            except Exception as exc:
+                return {"error": f"Cannot read JSONL {p}: {exc}"}
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(
+            "\n".join(all_lines) + ("\n" if all_lines else ""), encoding="utf-8"
+        )
+
+        return {
+            "operation": "merge",
+            "format": "jsonl",
+            "files_merged": len(paths),
+            "output_path": str(output_path),
+            "total_lines": len(all_lines),
+            "output_size": _size_human(output_path.stat().st_size),
+        }
+
+    # -- classify ------------------------------------------------------------
+
+    async def _op_classify(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """AI-powered file classification using InferenceGateway.
+
+        Reads up to ``max_files`` files, sends first 512 bytes as context to
+        the LLM, and returns structured category/tag/confidence per file.
+        Falls back to extension-based classification when gateway unavailable.
+        """
+        path_str = inputs.get("path", "")
+        paths_list = inputs.get("paths", [])
+        max_files = int(inputs.get("max_files", 10))
+
+        # Collect candidate files
+        file_paths: List[Path] = []
+
+        if paths_list and isinstance(paths_list, list):
+            for p in paths_list:
+                try:
+                    rp = _validate_path(str(p), self._allow_outside_root)
+                    if rp.is_file():
+                        file_paths.append(rp)
+                except ValueError:
+                    continue
+        elif path_str:
+            try:
+                target = _validate_path(path_str, self._allow_outside_root)
+            except ValueError as exc:
+                return {"error": str(exc)}
+            if not target.is_dir():
+                return {"error": f"Not a directory: {target}"}
+            for item in sorted(target.iterdir()):
+                if item.is_file():
+                    file_paths.append(item)
+        else:
+            return {
+                "error": "Missing required input: path (directory) or paths (file list)"
+            }
+
+        file_paths = file_paths[:max_files]
+
+        # Attempt to load and initialize InferenceGateway (optional)
+        gateway = None
+        try:
+            from core.inference.gateway import InferenceGateway  # type: ignore
+
+            gw = InferenceGateway()
+            await gw.initialize()
+            gateway = gw
+        except Exception:
+            pass
+
+        classified: List[Dict[str, Any]] = []
+
+        for fp in file_paths:
+            ext = fp.suffix.lower()
+            ext_cat = EXT_TO_CATEGORY.get(ext, "other")
+
+            try:
+                snippet = fp.read_bytes()[:512].decode("utf-8", errors="replace")
+            except Exception:
+                snippet = ""
+
+            ai_result: Optional[Dict[str, Any]] = None
+
+            if gateway and snippet.strip():
+                prompt = (
+                    "Classify this file. Respond with a JSON object only — no markdown fences.\n"
+                    f"File: {fp.name}\n"
+                    f"Snippet:\n{snippet[:256]}\n\n"
+                    'JSON: {"category": "<str>", "tags": ["tag1"], '
+                    '"confidence": 0.0, "summary": "<one sentence>"}'
+                )
+                try:
+                    response = await gateway.infer(
+                        prompt, max_tokens=120, temperature=0.2
+                    )
+                    raw = response if isinstance(response, str) else str(response)
+                    start = raw.find("{")
+                    end = raw.rfind("}") + 1
+                    if start >= 0 and end > start:
+                        ai_result = json.loads(raw[start:end])
+                except Exception:
+                    pass
+
+            if ai_result:
+                entry: Dict[str, Any] = {
+                    "name": fp.name,
+                    "path": str(fp),
+                    "category": ai_result.get("category", ext_cat),
+                    "tags": ai_result.get("tags", []),
+                    "confidence": float(ai_result.get("confidence", 0.7)),
+                    "summary": ai_result.get("summary", ""),
+                    "size": _size_human(fp.stat().st_size),
+                    "method": "ai",
+                }
+            else:
+                entry = {
+                    "name": fp.name,
+                    "path": str(fp),
+                    "category": ext_cat,
+                    "tags": [],
+                    "confidence": 0.5,
+                    "summary": "",
+                    "size": _size_human(fp.stat().st_size),
+                    "method": "extension",
+                }
+
+            classified.append(entry)
+
+        return {
+            "operation": "classify",
+            "total_classified": len(classified),
+            "gateway_available": gateway is not None,
+            "classified": classified,
         }
 
 
@@ -583,7 +791,7 @@ def get_smart_file_handler() -> SmartFileHandler:
     """Get the singleton SmartFileHandler."""
     global _default_handler
     if _default_handler is None:
-        _default_handler = SmartFileHandler()
+        _default_handler = SmartFileHandler(allow_outside_root=True)
     return _default_handler
 
 

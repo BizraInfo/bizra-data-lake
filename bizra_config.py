@@ -16,6 +16,7 @@ load_dotenv()
 # PLATFORM DETECTION & PATH RESOLUTION
 # ============================================================================
 
+
 def _detect_platform() -> str:
     """Detect the current runtime platform."""
     if sys.platform.startswith("win"):
@@ -29,7 +30,9 @@ def _detect_platform() -> str:
         return "macos"
     return "unknown"  # type: ignore[unreachable]
 
+
 PLATFORM = _detect_platform()
+
 
 def _resolve_data_lake_root() -> Path:
     """
@@ -41,7 +44,7 @@ def _resolve_data_lake_root() -> Path:
     # Explicit override always wins
     if env_root := os.getenv("BIZRA_DATA_LAKE_ROOT"):
         return Path(env_root)
-    
+
     # Platform-specific defaults
     if PLATFORM == "windows":
         default = Path("C:/BIZRA-DATA-LAKE")
@@ -57,7 +60,7 @@ def _resolve_data_lake_root() -> Path:
         default = Path.home() / "bizra-data-lake"
     else:
         default = Path.cwd() / "bizra-data-lake"
-    
+
     return default
 
 
@@ -68,6 +71,7 @@ RAW_PATH = DATA_LAKE_ROOT / "01_RAW"
 PROCESSED_PATH = DATA_LAKE_ROOT / "02_PROCESSED"
 INDEXED_PATH = DATA_LAKE_ROOT / "03_INDEXED"
 GOLD_PATH = DATA_LAKE_ROOT / "04_GOLD"
+
 
 # External Sources & Sovereign Domains (environment-configurable)
 def _resolve_downloads_path() -> Path:
@@ -80,6 +84,7 @@ def _resolve_downloads_path() -> Path:
         return Path("/mnt/c/Users/BIZRA-OS/Downloads")
     else:
         return Path.home() / "Downloads"
+
 
 DOWNLOADS_PATH = _resolve_downloads_path()
 NODE0_KNOWLEDGE = DATA_LAKE_ROOT / "01_RAW/external_links/knowledge"
@@ -106,13 +111,18 @@ GPU_ENABLED = True
 # --- REASONING PARAMETERS ---
 # Import from authoritative single source of truth
 from core.integration.constants import (
-    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,       # 0.85 minimum signal quality
-    STRICT_IHSAN_THRESHOLD as IHSAN_CONSTRAINT,    # 0.99 strict excellence target
+    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,  # 0.85 minimum signal quality
+    STRICT_IHSAN_THRESHOLD as IHSAN_CONSTRAINT,  # 0.99 strict excellence target
 )
+
 ARTE_TENSION_LIMIT = 0.75
 
 # --- INGESTION GATE ---
-INGEST_GATE_ENFORCE = os.getenv("BIZRA_INGEST_GATE_ENFORCE", "false").lower() in {"1","true","yes"}
+INGEST_GATE_ENFORCE = os.getenv("BIZRA_INGEST_GATE_ENFORCE", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 # --- EXTRACTION CONFIG (LANGEXTRACT) ---
 EXTRACTION_MODEL = "gemini-1.5-flash"
@@ -140,9 +150,9 @@ WHISPER_LOCAL = "base"  # Local whisper model size: tiny, base, small, medium, l
 # Multi-Modal Processing Parameters
 IMAGE_BATCH_SIZE = 32  # Optimized for RTX 4090
 AUDIO_CHUNK_DURATION = 30  # seconds per chunk
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'}
-AUDIO_EXTENSIONS = {'.mp3', '.wav', '.flac', '.m4a', '.ogg', '.wma', '.aac'}
-VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mkv', '.mov', '.wmv', '.webm'}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".svg"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a", ".ogg", ".wma", ".aac"}
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mkv", ".mov", ".wmv", ".webm"}
 
 # Multi-Modal Embedding Dimensions
 CLIP_EMBEDDING_DIM = 512
@@ -157,11 +167,15 @@ IMAGE_TEXT_THRESHOLD = 0.5  # Min similarity for image-text matching
 # ============================================================================
 
 # Dual Agentic System Bridge (LM Studio / Local Multi-Model Server)
-DUAL_AGENTIC_URL = os.getenv("DUAL_AGENTIC_URL", "http://192.168.56.1:1234")
+# NOTE: WSL2 changes the Windows host IP on every reboot. Use LMSTUDIO_HOST
+# env var (set in .env) or fall back to the WSL gateway IP dynamically.
+_LM_HOST = os.getenv("LMSTUDIO_HOST", "172.22.48.1")
+_LM_PORT = os.getenv("LMSTUDIO_PORT", "1234")
+DUAL_AGENTIC_URL = os.getenv("DUAL_AGENTIC_URL", f"http://{_LM_HOST}:{_LM_PORT}")
 DUAL_AGENTIC_ENABLED = True
 
 # LM Studio OpenAI-Compatible API Settings
-LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_URL", "http://192.168.56.1:1234/v1")
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_URL", f"http://{_LM_HOST}:{_LM_PORT}/v1")
 LM_STUDIO_ENABLED = True
 
 # Ollama Local Backend (Fallback)
@@ -171,12 +185,18 @@ OLLAMA_TIMEOUT = 120.0  # seconds
 
 # Default Model Mappings — Node0 MoMo Stack (all ≤ 8B, fits RTX 4090 16GB)
 DEFAULT_TEXT_MODEL = os.getenv("DEFAULT_TEXT_MODEL", "qwen2.5-0.5b-instruct")
-DEFAULT_REASONING_MODEL = os.getenv("DEFAULT_REASONING_MODEL", "agentflow-planner-7b-i1")
-DEFAULT_CODE_MODEL = os.getenv("DEFAULT_CODE_MODEL", "deepseek/deepseek-r1-0528-qwen3-8b")
+DEFAULT_REASONING_MODEL = os.getenv(
+    "DEFAULT_REASONING_MODEL", "agentflow-planner-7b-i1"
+)
+DEFAULT_CODE_MODEL = os.getenv(
+    "DEFAULT_CODE_MODEL", "deepseek/deepseek-r1-0528-qwen3-8b"
+)
 DEFAULT_VISION_MODEL = os.getenv("DEFAULT_VISION_MODEL", "qwen/qwen3-vl-8b")
 DEFAULT_VISION_LIGHT_MODEL = os.getenv("DEFAULT_VISION_LIGHT_MODEL", "qwen/qwen3-vl-4b")
 DEFAULT_VOICE_MODEL = os.getenv("DEFAULT_VOICE_MODEL", "deephat-v1-7b")
-DEFAULT_EMBEDDING_MODEL = os.getenv("DEFAULT_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
+DEFAULT_EMBEDDING_MODEL = os.getenv(
+    "DEFAULT_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5"
+)
 
 # Ollama Fallback Models
 OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "llama3.2")
@@ -205,8 +225,8 @@ HEALTH_CHECK_TIMEOUT = 5.0  # Seconds to wait for health response
 # Backend Priority (1 = highest)
 BACKEND_PRIORITY = {
     "lm_studio": 1,  # Primary
-    "ollama": 2,     # Fallback
-    "openai": 3,     # Cloud fallback
+    "ollama": 2,  # Fallback
+    "openai": 3,  # Cloud fallback
 }
 
 # Multi-Modal Storage Paths
@@ -220,9 +240,15 @@ AUDIO_TRANSCRIPTS_PATH = GOLD_PATH / "audio_transcripts"
 
 # WARP Index Paths
 WARP_INDEX_ROOT = Path(os.getenv("INDEX_ROOT", str(INDEXED_PATH / "warp_indexes")))
-WARP_EXPERIMENT_ROOT = Path(os.getenv("EXPERIMENT_ROOT", str(GOLD_PATH / "warp_experiments")))
-BEIR_COLLECTION_PATH = Path(os.getenv("BEIR_COLLECTION_PATH", str(PROCESSED_PATH / "beir")))
-LOTTE_COLLECTION_PATH = Path(os.getenv("LOTTE_COLLECTION_PATH", str(PROCESSED_PATH / "lotte")))
+WARP_EXPERIMENT_ROOT = Path(
+    os.getenv("EXPERIMENT_ROOT", str(GOLD_PATH / "warp_experiments"))
+)
+BEIR_COLLECTION_PATH = Path(
+    os.getenv("BEIR_COLLECTION_PATH", str(PROCESSED_PATH / "beir"))
+)
+LOTTE_COLLECTION_PATH = Path(
+    os.getenv("LOTTE_COLLECTION_PATH", str(PROCESSED_PATH / "lotte"))
+)
 
 # WARP Model Settings
 WARP_CHECKPOINT = os.getenv("WARP_CHECKPOINT", "answerdotai/answerai-colbert-small-v1")
@@ -245,17 +271,33 @@ SPEARPOINT_STATE_DIR = Path(
     os.getenv("SPEARPOINT_STATE_DIR", str(DATA_LAKE_ROOT / ".spearpoint"))
 )
 SPEARPOINT_EVIDENCE_LEDGER = Path(
-    os.getenv("SPEARPOINT_EVIDENCE_LEDGER", str(SPEARPOINT_STATE_DIR / "evidence.jsonl"))
+    os.getenv(
+        "SPEARPOINT_EVIDENCE_LEDGER", str(SPEARPOINT_STATE_DIR / "evidence.jsonl")
+    )
 )
+
 
 def initialize_directories() -> None:
     """Ensure all BIZRA infrastructure directories exist."""
-    dirs = [INTAKE_PATH, RAW_PATH, PROCESSED_PATH, INDEXED_PATH, GOLD_PATH,
-            GRAPH_PATH, EMBEDDINGS_PATH, VECTORS_PATH, LOG_DIR,
-            MULTIMODAL_CACHE, IMAGE_EMBEDDINGS_PATH, AUDIO_TRANSCRIPTS_PATH,
-            WARP_INDEX_ROOT, WARP_EXPERIMENT_ROOT]
+    dirs = [
+        INTAKE_PATH,
+        RAW_PATH,
+        PROCESSED_PATH,
+        INDEXED_PATH,
+        GOLD_PATH,
+        GRAPH_PATH,
+        EMBEDDINGS_PATH,
+        VECTORS_PATH,
+        LOG_DIR,
+        MULTIMODAL_CACHE,
+        IMAGE_EMBEDDINGS_PATH,
+        AUDIO_TRANSCRIPTS_PATH,
+        WARP_INDEX_ROOT,
+        WARP_EXPERIMENT_ROOT,
+    ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
+
 
 if __name__ == "__main__":
     initialize_directories()

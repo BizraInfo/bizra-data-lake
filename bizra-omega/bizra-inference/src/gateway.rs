@@ -53,6 +53,8 @@ pub enum GatewayError {
     Backend(#[from] BackendError),
     #[error("Timeout")]
     Timeout,
+    #[error("Ihsan quality gate failed: score {score:.4} < threshold {threshold:.4}")]
+    IhsanGateFailed { score: f64, threshold: f64 },
 }
 
 pub struct InferenceGateway {
@@ -106,6 +108,43 @@ impl InferenceGateway {
             Ok(Err(e)) => Err(GatewayError::Backend(e)),
             Err(_) => Err(GatewayError::Timeout),
         }
+    }
+
+    pub async fn infer_with_ihsan_gate(
+        &self,
+        request: InferenceRequest,
+        threshold: f64,
+    ) -> Result<InferenceResponse, GatewayError> {
+        let response = self.infer(request).await?;
+        let score = Self::estimate_ihsan_score(&response);
+
+        if score < threshold {
+            return Err(GatewayError::IhsanGateFailed { score, threshold });
+        }
+
+        Ok(response)
+    }
+
+    pub fn estimate_ihsan_score(response: &InferenceResponse) -> f64 {
+        let text = response.text.trim();
+        if text.is_empty() {
+            return 0.0;
+        }
+
+        let mut score: f64 = 1.0;
+        if text.len() < 32 {
+            score -= 0.15;
+        }
+        if response.completion_tokens < 8 {
+            score -= 0.10;
+        }
+
+        let lower = text.to_ascii_lowercase();
+        if lower.contains("error") || lower.contains("failed") {
+            score -= 0.20;
+        }
+
+        score.clamp(0.0, 1.0)
     }
 
     async fn get_backend(&self, tier: ModelTier) -> Result<Arc<dyn Backend>, GatewayError> {
