@@ -255,4 +255,5 @@ Collect these before escalating:
    - `curl /v1/metrics`
 5. Smoke test status (pass/fail list)
 6. Bridge status: `ping` response or connection error
+7. SEC-001 gate status: `python3 scripts/ci_blake3_gate.py`
 
