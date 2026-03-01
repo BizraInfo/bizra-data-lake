@@ -125,12 +125,16 @@ def _compute_entry_hash_legacy_sha256(
     Keep verification backward-compatible with historical ledgers while
     preserving fail-closed tamper detection semantics.
     """
-    canonical = json.dumps(
-        {"seq": sequence, "receipt": receipt, "prev_hash": prev_hash},
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return hashlib.sha256(canonical).hexdigest()  # noqa: S324  # noqa: SEC-001 legacy compat
+    canonical = (
+        json.dumps(
+            {"seq": sequence, "receipt": receipt, "prev_hash": prev_hash},
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    )
+    return (
+        hashlib.sha256(canonical).hexdigest()  # noqa: S324  # noqa: SEC-001 legacy compat
+    )
 
 
 class EvidenceLedger:
