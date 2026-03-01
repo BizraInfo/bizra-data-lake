@@ -497,7 +497,9 @@ class TakafulAdmissionGate:
                 tier=4,
                 reason_code=CSKReasonCode.TAKAFUL_REJECTED_NO_HUMANITY_PROOF,
                 timestamp_ns=now_ns,
-                action_digest=hashlib.blake2b(node_id.encode(), digest_size=16).hexdigest(),
+                action_digest=hashlib.blake2b(
+                    node_id.encode(), digest_size=16
+                ).hexdigest(),
                 passed=False,
                 evidence={"node_id": node_id, "note": "node_not_registered"},
             )
@@ -597,7 +599,9 @@ class TakafulAdmissionGate:
         return profile.status in (TakafulStatus.PROBATIONARY, TakafulStatus.ADMITTED)
 
     def get_contributors(self) -> List[str]:
-        return [nid for nid, p in self._nodes.items() if p.status == TakafulStatus.ADMITTED]
+        return [
+            nid for nid, p in self._nodes.items() if p.status == TakafulStatus.ADMITTED
+        ]
 
     def suspend_node(self, node_id: str, reason: str = "") -> None:
         profile = self._nodes.get(node_id)
@@ -650,11 +654,11 @@ class ObliviousComputeScheduler:
 
 
 class IhsanFitnessFunction(Protocol):
-    def evaluate(self, action_context: Dict[str, Any]) -> float:
-        ...
+    def evaluate(self, action_context: Dict[str, Any]) -> float: ...
 
-    def propose_mutation(self, evidence: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        ...
+    def propose_mutation(
+        self, evidence: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]: ...
 
 
 class StaticIhsanFitness:
@@ -682,7 +686,9 @@ class StaticIhsanFitness:
 
         return min(1.0, max(0.0, score))
 
-    def propose_mutation(self, evidence: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def propose_mutation(
+        self, evidence: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         del evidence
         return None
 

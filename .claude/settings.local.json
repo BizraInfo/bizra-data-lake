@@ -151,7 +151,8 @@
       "Bash(PYTHONIOENCODING=* *)",
       "Bash(PYTHONUTF8=* *)",
       "Bash(python3:*)",
-      "Bash(/usr/bin/python3:*)"
+      "Bash(/usr/bin/python3:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

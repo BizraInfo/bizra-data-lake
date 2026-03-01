@@ -42,13 +42,15 @@ logger = logging.getLogger("sovereign.performance_attestation")
 # ENVELOPE DEFINITIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class AnomalyLevel(Enum):
     """Severity of performance anomaly (ordered by severity)."""
-    NORMAL = 0             # Within expected bounds
-    WARNING = 1            # 1-2σ deviation — log, no action
-    ANOMALY = 2            # 2-3σ deviation — flag for review
-    CRITICAL = 3           # >3σ deviation — isolate and audit
-    TAMPER_SUSPECTED = 4   # Consistent multi-dimension anomaly
+
+    NORMAL = 0  # Within expected bounds
+    WARNING = 1  # 1-2σ deviation — log, no action
+    ANOMALY = 2  # 2-3σ deviation — flag for review
+    CRITICAL = 3  # >3σ deviation — isolate and audit
+    TAMPER_SUSPECTED = 4  # Consistent multi-dimension anomaly
 
     def __ge__(self, other: "AnomalyLevel") -> bool:
         if not isinstance(other, AnomalyLevel):
@@ -74,6 +76,7 @@ class AnomalyLevel(Enum):
 @dataclass
 class PerformanceEnvelope:
     """Expected performance bounds for a module or operation."""
+
     module_name: str
     operation: str
 
@@ -100,6 +103,7 @@ class PerformanceEnvelope:
 @dataclass
 class PerformanceMeasurement:
     """Actual measured performance for a single execution."""
+
     module_name: str
     operation: str
     actual_time_ns: int
@@ -111,6 +115,7 @@ class PerformanceMeasurement:
 @dataclass
 class AnomalyReport:
     """Report when performance deviates from envelope."""
+
     module_name: str
     operation: str
     level: AnomalyLevel
@@ -208,9 +213,10 @@ class PerformanceAttestationEngine:
 
         # Time deviation (primary — the Andres Freund signal)
         if envelope.time_stddev_ns > 0:
-            time_sigma = abs(
-                measurement.actual_time_ns - envelope.expected_time_ns
-            ) / envelope.time_stddev_ns
+            time_sigma = (
+                abs(measurement.actual_time_ns - envelope.expected_time_ns)
+                / envelope.time_stddev_ns
+            )
             deviations["time"] = round(time_sigma, 2)
             if time_sigma > self._sigma_threshold:
                 anomalous_dims.append("time")
