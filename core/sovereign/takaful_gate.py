@@ -42,13 +42,15 @@ logger = logging.getLogger("sovereign.takaful_gate")
 
 class TakafulTier(Enum):
     """Node membership tier in the Takaful pool."""
-    OBSERVER = auto()      # Can RECEIVE, cannot CONTRIBUTE
-    CONTRIBUTOR = auto()   # Can receive AND contribute
-    ANCHOR = auto()        # Verified high-impact, weights cluster centroid
+
+    OBSERVER = auto()  # Can RECEIVE, cannot CONTRIBUTE
+    CONTRIBUTOR = auto()  # Can receive AND contribute
+    ANCHOR = auto()  # Verified high-impact, weights cluster centroid
 
 
 class HumanityStatus(Enum):
     """Proof-of-Humanity verification status."""
+
     UNVERIFIED = auto()
     PENDING = auto()
     VERIFIED = auto()
@@ -58,6 +60,7 @@ class HumanityStatus(Enum):
 @dataclass
 class TakafulProfile:
     """A node's Takaful pool membership profile."""
+
     node_id: str
     tier: TakafulTier = TakafulTier.OBSERVER
     humanity_status: HumanityStatus = HumanityStatus.UNVERIFIED
@@ -253,9 +256,7 @@ class TakafulSecurityGate:
         # ALL tiers can receive — this is mutual cooperation
         return True
 
-    def get_cluster_centroid(
-        self, cluster_id: str
-    ) -> Optional[dict[str, Any]]:
+    def get_cluster_centroid(self, cluster_id: str) -> Optional[dict[str, Any]]:
         """
         Get the cluster centroid for bootstrap.
 
@@ -266,15 +267,11 @@ class TakafulSecurityGate:
         contributors (k-anonymity guarantee).
         """
         cluster_nodes = self._clusters.get(cluster_id, [])
-        contributors = [
-            nid for nid in cluster_nodes
-            if self.can_contribute(nid)
-        ]
+        contributors = [nid for nid in cluster_nodes if self.can_contribute(nid)]
 
         if len(contributors) < MIN_CLUSTER_SIZE_FOR_SHARING:
             logger.debug(
-                "Takaful: Cluster '%s' has %d contributors "
-                "(need %d for sharing)",
+                "Takaful: Cluster '%s' has %d contributors " "(need %d for sharing)",
                 cluster_id,
                 len(contributors),
                 MIN_CLUSTER_SIZE_FOR_SHARING,
@@ -292,8 +289,7 @@ class TakafulSecurityGate:
         # Remove from old cluster
         if profile.cluster_id and profile.cluster_id in self._clusters:
             self._clusters[profile.cluster_id] = [
-                nid for nid in self._clusters[profile.cluster_id]
-                if nid != node_id
+                nid for nid in self._clusters[profile.cluster_id] if nid != node_id
             ]
 
         # Add to new cluster
@@ -317,9 +313,7 @@ class TakafulSecurityGate:
             ),
             "anchors": sum(1 for p in profiles if p.tier == TakafulTier.ANCHOR),
             "verified_humans": sum(
-                1
-                for p in profiles
-                if p.humanity_status == HumanityStatus.VERIFIED
+                1 for p in profiles if p.humanity_status == HumanityStatus.VERIFIED
             ),
             "clusters": len(self._clusters),
             "shareable_clusters": sum(

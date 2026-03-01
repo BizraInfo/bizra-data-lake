@@ -14,6 +14,7 @@ Usage:
 
 Created: 2026-03-01 | BIZRA Infrastructure Health Bridge v1.0
 """
+
 from __future__ import annotations
 
 import importlib
@@ -35,7 +36,9 @@ def _import_guardian() -> Any:
     try:
         return importlib.import_module("infra_guardian")
     except ImportError:
-        logger.warning("infra_guardian not found at %s — infra probes disabled", _GUARDIAN_DIR)
+        logger.warning(
+            "infra_guardian not found at %s — infra probes disabled", _GUARDIAN_DIR
+        )
         return None
 
 
@@ -53,7 +56,11 @@ class InfraHealthProbe:
     def check(self) -> dict[str, Any]:
         """Run all probes without corrections. Returns JSON-serializable report."""
         if not self._guardian:
-            return {"overall": "UNKNOWN", "ihsan": 0.0, "error": "guardian not available"}
+            return {
+                "overall": "UNKNOWN",
+                "ihsan": 0.0,
+                "error": "guardian not available",
+            }
 
         state = self._guardian.GuardianState()
         results = self._guardian.run_all_probes(correct=False, state=state)
@@ -64,7 +71,11 @@ class InfraHealthProbe:
     def check_and_fix(self) -> dict[str, Any]:
         """Run all probes with auto-correction enabled. Returns report."""
         if not self._guardian:
-            return {"overall": "UNKNOWN", "ihsan": 0.0, "error": "guardian not available"}
+            return {
+                "overall": "UNKNOWN",
+                "ihsan": 0.0,
+                "error": "guardian not available",
+            }
 
         state = self._guardian.GuardianState()
         results = self._guardian.run_all_probes(correct=True, state=state)

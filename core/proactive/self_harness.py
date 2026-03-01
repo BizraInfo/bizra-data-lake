@@ -62,24 +62,28 @@ SUGGESTION_COOLDOWN_S = 300  # Don't re-suggest same goal within 5 minutes
 # Data Types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ScoredGoal:
     """A weekly goal scored against the current environment."""
+
     goal_id: str
     title: str
     description: str
     priority: str
     domain: str
     keywords: List[str]
-    relevance_score: float      # 0.0-1.0 — how relevant RIGHT NOW
-    ihsan_precheck: str         # "pass" | "pending" | "blocked"
-    ihsan_score: float          # 0.0-1.0
+    relevance_score: float  # 0.0-1.0 — how relevant RIGHT NOW
+    ihsan_precheck: str  # "pass" | "pending" | "blocked"
+    ihsan_score: float  # 0.0-1.0
     block_reason: Optional[str] = None
     last_suggested_at: float = 0.0
+
 
 @dataclass
 class ProactiveSuggestion:
     """A suggestion ready to push to Ghost Panel."""
+
     id: str
     action_label: str
     intent_summary: str
@@ -91,26 +95,29 @@ class ProactiveSuggestion:
     domain: str
     block_reason: Optional[str] = None
 
+
 @dataclass
 class SelfAssessment:
     """Self-evaluation report from the harness."""
+
     timestamp: str
     cycles_evaluated: int
     missions_completed: int
     avg_ihsan: float
     weakest_domain: Optional[str]
     improvement_suggestions: List[str]
-    pass_at_1: float            # Single-run success rate
-    consistency_gap: float      # Brittleness indicator
+    pass_at_1: float  # Single-run success rate
+    consistency_gap: float  # Brittleness indicator
 
 
 # ---------------------------------------------------------------------------
 # GoalScanner — Reads goals, scores against environment
 # ---------------------------------------------------------------------------
 
+
 class GoalScanner:
     """Reads weekly_goals from baseline and scores each against current context.
-    
+
     Scoring uses keyword overlap + optional FAISS similarity when knowledge
     base is available. Goals with higher priority get a boost.
     """
@@ -133,7 +140,7 @@ class GoalScanner:
                 continue
 
             goal_id = goal["id"]
-            
+
             # Cooldown check — don't re-suggest too frequently
             last = self._cooldowns.get(goal_id, 0.0)
             if now - last < SUGGESTION_COOLDOWN_S:
@@ -143,19 +150,21 @@ class GoalScanner:
             relevance = self._compute_relevance(goal, environment_signals or {})
             ihsan_score, ihsan_status, block_reason = self._ihsan_precheck(goal)
 
-            scored.append(ScoredGoal(
-                goal_id=goal_id,
-                title=goal["title"],
-                description=goal["description"],
-                priority=goal.get("priority", "normal"),
-                domain=goal.get("domain", "general"),
-                keywords=goal.get("keywords", []),
-                relevance_score=relevance,
-                ihsan_precheck=ihsan_status,
-                ihsan_score=ihsan_score,
-                block_reason=block_reason,
-                last_suggested_at=last,
-            ))
+            scored.append(
+                ScoredGoal(
+                    goal_id=goal_id,
+                    title=goal["title"],
+                    description=goal["description"],
+                    priority=goal.get("priority", "normal"),
+                    domain=goal.get("domain", "general"),
+                    keywords=goal.get("keywords", []),
+                    relevance_score=relevance,
+                    ihsan_precheck=ihsan_status,
+                    ihsan_score=ihsan_score,
+                    block_reason=block_reason,
+                    last_suggested_at=last,
+                )
+            )
 
         # Sort: highest relevance first
         scored.sort(key=lambda g: g.relevance_score, reverse=True)
@@ -165,11 +174,9 @@ class GoalScanner:
         """Record that a goal was just suggested — starts cooldown."""
         self._cooldowns[goal_id] = time.time()
 
-    def _compute_relevance(
-        self, goal: Dict[str, Any], env: Dict[str, Any]
-    ) -> float:
+    def _compute_relevance(self, goal: Dict[str, Any], env: Dict[str, Any]) -> float:
         """Compute goal relevance to current environment.
-        
+
         Combines:
         1. Priority boost (critical > high > normal > low)
         2. Keyword match against environment signals
@@ -213,21 +220,25 @@ class GoalScanner:
 
         return min(1.0, max(0.0, score))
 
-    def _ihsan_precheck(
-        self, goal: Dict[str, Any]
-    ) -> Tuple[float, str, Optional[str]]:
+    def _ihsan_precheck(self, goal: Dict[str, Any]) -> Tuple[float, str, Optional[str]]:
         """Pre-check Ihsān compliance before showing to user.
-        
+
         Returns: (ihsan_score, status, block_reason)
         """
         target = goal.get("target_ihsan", UNIFIED_IHSAN_THRESHOLD)
-        
+
         # Constitutional checks
         # 1. Daughter Test — is this suggestion safe for anyone?
         description = goal.get("description", "")
-        if any(dangerous in description.lower() for dangerous in [
-            "override", "bypass", "disable safety", "skip verification"
-        ]):
+        if any(
+            dangerous in description.lower()
+            for dangerous in [
+                "override",
+                "bypass",
+                "disable safety",
+                "skip verification",
+            ]
+        ):
             return (0.0, "blocked", "Fails Daughter Test — unsafe action pattern")
 
         # 2. Domain-appropriate Ihsān scoring
@@ -240,22 +251,31 @@ class GoalScanner:
             "general": 0.95,
         }
         required = domain_ihsan.get(domain, UNIFIED_IHSAN_THRESHOLD)
-        
+
         # Simulated Ihsān score — in production, this calls the actual
         # constitutional gate pipeline (α4→α7→α8→α9→α10)
         simulated_score = min(target, 0.97)  # Conservative estimate
-        
+
         if simulated_score >= required:
             return (simulated_score, "pass", None)
         elif simulated_score >= required - 0.05:
-            return (simulated_score, "pending", f"Ihsān {simulated_score:.2f} near threshold {required:.2f}")
+            return (
+                simulated_score,
+                "pending",
+                f"Ihsān {simulated_score:.2f} near threshold {required:.2f}",
+            )
         else:
-            return (simulated_score, "blocked", f"Ihsān {simulated_score:.2f} below {required:.2f}")
+            return (
+                simulated_score,
+                "blocked",
+                f"Ihsān {simulated_score:.2f} below {required:.2f}",
+            )
 
 
 # ---------------------------------------------------------------------------
 # SuggestionForge — Converts scored goals into Ghost-ready suggestions
 # ---------------------------------------------------------------------------
+
 
 class SuggestionForge:
     """Converts ScoredGoal objects into ProactiveSuggestion for Ghost Panel."""
@@ -295,9 +315,10 @@ class SuggestionForge:
 # GhostPusher — Sends suggestions to ghost_ws.py via WebSocket
 # ---------------------------------------------------------------------------
 
+
 class GhostPusher:
     """Pushes ProactiveSuggestion objects to Ghost Panel via ghost_ws.py.
-    
+
     Two modes:
     1. In-process: calls ghost_ws.emit_overlay_event() directly (same process)
     2. WebSocket client: connects to ws://localhost:9743 (separate process)
@@ -325,6 +346,7 @@ class GhostPusher:
         if self._mode in ("auto", "in_process"):
             try:
                 from core.bridges.ghost_ws import emit_overlay_event, OverlayEvent
+
                 event = OverlayEvent(
                     type="show_overlay",
                     suggestions=[asdict(s) for s in suggestions],
@@ -332,7 +354,11 @@ class GhostPusher:
                 )
                 sent = await emit_overlay_event(event)
                 if sent > 0:
-                    logger.info("GhostPusher: %d suggestions → %d clients (in-process)", len(suggestions), sent)
+                    logger.info(
+                        "GhostPusher: %d suggestions → %d clients (in-process)",
+                        len(suggestions),
+                        sent,
+                    )
                     return sent
             except ImportError:
                 pass
@@ -365,19 +391,25 @@ class GhostPusher:
 
             # Send as prediction injection (ghost_ws.py handles via msg.get("prediction"))
             for suggestion in payload.get("suggestions", []):
-                await self._ws.send(json.dumps({
-                    "prediction": {
-                        "intent": suggestion.get("action_label", ""),
-                        "confidence": suggestion.get("hhmm_confidence", 0.0),
-                        "node_id": "node0-momo-genesis",
-                        "goal_id": suggestion.get("goal_id", ""),
-                        "ihsan_precheck": suggestion.get("ihsan_precheck", "pending"),
-                        "ihsan_score": suggestion.get("ihsan_score", 0.0),
-                        "ahk_action_id": suggestion.get("ahk_action_id", ""),
-                        "intent_summary": suggestion.get("intent_summary", ""),
-                    }
-                }))
-            
+                await self._ws.send(
+                    json.dumps(
+                        {
+                            "prediction": {
+                                "intent": suggestion.get("action_label", ""),
+                                "confidence": suggestion.get("hhmm_confidence", 0.0),
+                                "node_id": "node0-momo-genesis",
+                                "goal_id": suggestion.get("goal_id", ""),
+                                "ihsan_precheck": suggestion.get(
+                                    "ihsan_precheck", "pending"
+                                ),
+                                "ihsan_score": suggestion.get("ihsan_score", 0.0),
+                                "ahk_action_id": suggestion.get("ahk_action_id", ""),
+                                "intent_summary": suggestion.get("intent_summary", ""),
+                            }
+                        }
+                    )
+                )
+
             count = len(payload.get("suggestions", []))
             logger.info("GhostPusher: %d suggestions pushed via WebSocket", count)
             return count
@@ -403,16 +435,17 @@ class GhostPusher:
 # SelfAssessor — Agent evaluates its own performance
 # ---------------------------------------------------------------------------
 
+
 class SelfAssessor:
     """Periodic self-evaluation of Node0 proactive performance.
-    
+
     Every N idle cycles, examines:
     1. Mission completion rate per domain
     2. Average Ihsān scores
     3. Consistency (pass@k via repeated evaluations)
     4. Weakest domain identification
     5. Auto-generates improvement suggestions as new goals
-    
+
     Standing on Giants: Deming (PDCA) · HAL (Pass@k consistency)
     """
 
@@ -433,7 +466,7 @@ class SelfAssessor:
     def assess(self) -> SelfAssessment:
         """Run full self-assessment. Returns report + improvement suggestions."""
         now = datetime.now(timezone.utc).isoformat()
-        
+
         # Compute per-domain averages
         domain_avgs: Dict[str, float] = {}
         for domain, scores in self._domain_scores.items():
@@ -443,7 +476,7 @@ class SelfAssessor:
         # Overall metrics
         all_scores = [s for scores in self._domain_scores.values() for s in scores]
         avg_ihsan = sum(all_scores) / len(all_scores) if all_scores else 0.0
-        
+
         # Weakest domain
         weakest = None
         if domain_avgs:
@@ -456,13 +489,13 @@ class SelfAssessor:
 
         # Generate improvement suggestions
         improvements: List[str] = []
-        
+
         if avg_ihsan < UNIFIED_IHSAN_THRESHOLD:
             improvements.append(
                 f"Overall Ihsān {avg_ihsan:.2f} below threshold {UNIFIED_IHSAN_THRESHOLD}. "
                 "Review constitutional gate calibration."
             )
-        
+
         if weakest and domain_avgs.get(weakest, 1.0) < 0.90:
             improvements.append(
                 f"Domain '{weakest}' averaging {domain_avgs[weakest]:.2f}. "
@@ -500,7 +533,10 @@ class SelfAssessor:
 
         logger.info(
             "SelfAssessment: ihsan=%.2f | weakest=%s | improvements=%d | gap=%.2f",
-            avg_ihsan, weakest, len(improvements), consistency_gap,
+            avg_ihsan,
+            weakest,
+            len(improvements),
+            consistency_gap,
         )
 
         return assessment
@@ -511,18 +547,20 @@ class SelfAssessor:
         """Convert self-assessment into new weekly goals for the baseline."""
         goals = []
         for i, suggestion in enumerate(assessment.improvement_suggestions[:2]):
-            goals.append({
-                "id": f"self-improve-{int(time.time())}-{i:02d}",
-                "title": f"Self-Improvement: {suggestion[:50]}",
-                "description": suggestion,
-                "priority": "normal",
-                "domain": assessment.weakest_domain or "general",
-                "target_ihsan": UNIFIED_IHSAN_THRESHOLD,
-                "keywords": ["self-assessment", "improvement", "harness"],
-                "status": "active",
-                "created": assessment.timestamp,
-                "source": "self_harness_v1",
-            })
+            goals.append(
+                {
+                    "id": f"self-improve-{int(time.time())}-{i:02d}",
+                    "title": f"Self-Improvement: {suggestion[:50]}",
+                    "description": suggestion,
+                    "priority": "normal",
+                    "domain": assessment.weakest_domain or "general",
+                    "target_ihsan": UNIFIED_IHSAN_THRESHOLD,
+                    "keywords": ["self-assessment", "improvement", "harness"],
+                    "status": "active",
+                    "created": assessment.timestamp,
+                    "source": "self_harness_v1",
+                }
+            )
         return goals
 
 
@@ -530,10 +568,11 @@ class SelfAssessor:
 # MissionActivator — Converts approved suggestions back to kernel missions
 # ---------------------------------------------------------------------------
 
+
 class MissionActivator:
     """When user approves a Ghost Panel suggestion (solidify gesture),
     converts it back into a kernel mission via add_mission().
-    
+
     Bridges the gap between Ghost Panel approval and Node0 execution.
     """
 
@@ -575,7 +614,9 @@ class MissionActivator:
 
         logger.info(
             "MissionActivator: suggestion %s → mission %s (ihsan=%.2f)",
-            suggestion.id, mission["id"], suggestion.ihsan_score,
+            suggestion.id,
+            mission["id"],
+            suggestion.ihsan_score,
         )
 
         return activation_record
@@ -585,16 +626,17 @@ class MissionActivator:
 # ProactiveHarness — The Main Orchestrator
 # ---------------------------------------------------------------------------
 
+
 class ProactiveHarness:
     """The complete self-proactive agent harness.
-    
+
     Wires into Node0ProactiveKernel's idle cycle to:
     1. Scan goals for relevance (GoalScanner)
     2. Forge suggestions (SuggestionForge)
     3. Push to Ghost Panel (GhostPusher)
     4. Self-assess periodically (SelfAssessor)
     5. Activate missions on user approval (MissionActivator)
-    
+
     Integration point: call `harness.on_idle_cycle(cycle_count, env_signals)`
     from Node0ProactiveKernel._run_loop() idle branch.
     """
@@ -612,7 +654,7 @@ class ProactiveHarness:
         self._pusher = GhostPusher(mode="auto")
         self._assessor = SelfAssessor(kernel_metrics, baseline)
         self._activator = MissionActivator(add_mission_fn)
-        
+
         self._cycle_count = 0
         self._total_suggestions_pushed = 0
         self._total_missions_activated = 0
@@ -630,11 +672,11 @@ class ProactiveHarness:
         env_signals: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """Called from Node0 idle branch. The heartbeat of proactive behavior.
-        
+
         Args:
             cycle_count: Current OODA cycle number
             env_signals: Optional environment context (active apps, time, etc.)
-            
+
         Returns:
             Summary dict with suggestions_pushed, assessment (if triggered), etc.
         """
@@ -673,7 +715,10 @@ class ProactiveHarness:
 
         logger.info(
             "ProactiveHarness cycle %d: %d goals scored → %d suggestions → %d pushed",
-            cycle_count, len(scored_goals), len(suggestions), pushed,
+            cycle_count,
+            len(scored_goals),
+            len(suggestions),
+            pushed,
         )
 
         # --- Phase 4: Self-assessment (periodic) ---
@@ -687,7 +732,7 @@ class ProactiveHarness:
         self, gesture: str, suggestion_id: str
     ) -> Dict[str, Any]:
         """Called when Ghost Panel sends a sovereign gesture.
-        
+
         Gestures:
           solidify  → Approve & execute suggestion
           dismiss   → Reject suggestion
@@ -703,21 +748,21 @@ class ProactiveHarness:
             # TODO: lookup suggestion from cache, call self._activator.activate()
             self._total_missions_activated += 1
             return {"action": "mission_activated", "suggestion_id": suggestion_id}
-        
+
         elif gesture == "dismiss":
             logger.info("ProactiveHarness: dismiss gesture for %s", suggestion_id)
             return {"action": "dismissed", "suggestion_id": suggestion_id}
-        
+
         return {"action": "ignored", "gesture": gesture}
 
     async def _run_self_assessment(self) -> Dict[str, Any]:
         """Run self-assessment and optionally inject improvement goals."""
         assessment = self._assessor.assess()
-        
+
         # If there are improvements, generate new goals
         if assessment.improvement_suggestions:
             new_goals = self._assessor.generate_improvement_goals(assessment)
-            
+
             # Inject into baseline (runtime only — doesn't persist to disk)
             existing_goals = self._baseline.get("weekly_goals", [])
             for goal in new_goals:
@@ -725,14 +770,12 @@ class ProactiveHarness:
                 existing_ids = {g["id"] for g in existing_goals}
                 if goal["id"] not in existing_ids:
                     existing_goals.append(goal)
-            
+
             # Re-initialize scanner with updated goals
             self._scanner = GoalScanner(self._baseline, self._scanner._knowledge)
-            
-            logger.info(
-                "SelfAssessment: injected %d improvement goals", len(new_goals)
-            )
-        
+
+            logger.info("SelfAssessment: injected %d improvement goals", len(new_goals))
+
         return asdict(assessment)
 
     def _gather_default_signals(self) -> Dict[str, Any]:
@@ -769,16 +812,17 @@ class ProactiveHarness:
 # Integration Hook — Wire into Node0ProactiveKernel
 # ---------------------------------------------------------------------------
 
+
 def create_harness(kernel) -> Optional[ProactiveHarness]:
     """Factory function to create ProactiveHarness from a running kernel.
-    
+
     Usage in node0_activate.py:
-    
+
         from core.proactive.self_harness import create_harness
-        
+
         # In Node0ProactiveKernel.__init__():
         self._harness = create_harness(self)
-        
+
         # In _run_loop() idle branch (replacing the bare logger.info):
         if self._harness:
             result = await self._harness.on_idle_cycle(
