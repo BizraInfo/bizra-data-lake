@@ -176,10 +176,7 @@ class TakafulSecurityGate:
             profile.ihsan_history = profile.ihsan_history[-100:]
 
         # Track consecutive إحسان above floor
-        try:
-            from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
-        except ImportError:
-            UNIFIED_IHSAN_THRESHOLD = 0.95
+        from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 
         if ihsan_score >= UNIFIED_IHSAN_THRESHOLD:
             profile.consecutive_ihsan_above_floor += 1
