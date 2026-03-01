@@ -93,13 +93,16 @@ class TestTokenSystemSmoke:
         ledger = TokenLedger()
         assert ledger is not None
 
-    def test_mint_creates_tokens(self):
+    def test_mint_creates_tokens(self, tmp_path):
         """Mint can create tokens in the ledger."""
         from core.token.mint import TokenMinter
         from core.token.types import TokenType
 
-        # Use factory method which generates its own keypair
-        minter = TokenMinter.create()
+        # Use isolated paths — shared ledger accumulates Gini drift across runs
+        minter = TokenMinter.create(
+            db_path=tmp_path / "test_memory.db",
+            log_path=tmp_path / "test_ledger.jsonl",
+        )
 
         # mint_seed is the correct method
         tx = minter.mint_seed(
@@ -109,11 +112,12 @@ class TestTokenSystemSmoke:
         )
         assert tx is not None
         assert tx.success is True
-        assert tx.balance_after >= 1.0
+        # Zakat (2.5%) is deducted at mint — 1.0 * 0.975 = 0.975 net
+        assert tx.balance_after >= 0.975
 
-        # Verify balance
+        # Verify balance reflects Zakat-adjusted amount
         balance = minter._ledger.get_balance("SMOKE-TEST-ACCOUNT", TokenType.SEED)
-        assert balance.balance >= 1.0
+        assert balance.balance >= 0.975
 
     def test_ledger_chain_integrity(self, tmp_path):
         """Token ledger chain verifies."""

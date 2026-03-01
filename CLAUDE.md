@@ -4,32 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. This repo contains both a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 13 crates).
+**BIZRA-DATA-LAKE** is the persistent memory and knowledge layer of the BIZRA ecosystem — a decentralized agentic system built on Proof-Carrying Inference, FATE gates, and constitutional AI governance. The repo contains a Python sovereignty infrastructure (`core/`) and a high-performance Rust workspace (`bizra-omega/`, 22 crates).
 
-**Environment:** WSL Ubuntu on Windows | RTX 4090 (16GB VRAM), 128GB RAM | Python 3.11+ | Rust stable (1.88+)
+**Environment:** WSL Ubuntu on Windows | Python 3.11+ | Rust stable (1.88+)
 
 ## Common Commands
 
 ### Python
 
 ```bash
-# Setup
-source .venv/bin/activate          # WSL/Linux
-pip install -e ".[dev]"            # Install with dev dependencies
-pip install -e ".[full]"           # Includes torch, transformers, sentence-transformers
+# Setup (WSL — use .venv-linux, NOT .venv which is the Windows venv)
+source .venv-linux/bin/activate
+pip install -e ".[dev]"            # Dev dependencies (pytest, linters)
+pip install -e ".[full]"           # Adds torch, transformers, sentence-transformers
 
 # Testing
-pytest tests/                                              # All tests
+pytest tests/                                              # All tests (excludes @slow by default)
 pytest tests/core/pci/                                     # Single module
 pytest tests/test_snr_engine.py::test_function_name        # Single test
 pytest tests/ -m "not requires_ollama and not requires_gpu and not slow"  # CI-safe subset
 pytest tests/ --cov=core --cov-report=term-missing         # With coverage
 
-# Linting (CI enforces all of these on core/)
+# Linting (CI enforces all on core/)
 ruff check core/                   # Fast linter (primary)
-black --check core/                # Formatting check
+black --check core/                # Formatting
 isort --check-only core/           # Import order
-mypy core/ --ignore-missing-imports  # Type checking (incremental — many pre-existing errors)
+mypy core/ --ignore-missing-imports  # Type checking (incremental)
 
 # Data pipeline (run in order)
 python corpus_manager.py           # Layer 1: Build 04_GOLD/documents.parquet
@@ -38,22 +38,22 @@ python langextract_engine.py       # Layer 4: LLM extraction → assertions.json
 python arte_engine.py              # ARTE: SNR validation
 ```
 
-### Rust (bizra-omega/ — unified, 18 crates)
+### Rust (bizra-omega/)
 
 ```bash
 cd bizra-omega
 
 # Prerequisite: Z3 solver
-sudo apt install libz3-dev  # Ubuntu/WSL
+sudo apt install libz3-dev
 
 cargo build --workspace --release
-cargo test --workspace --release       # 610+ tests
-cargo test --doc --workspace
+cargo test --workspace --release
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings   # Zero warnings enforced in CI
 
-# PyO3 bindings (requires maturin)
-cd bizra-python && maturin develop --release
+# PyO3 bindings (requires maturin + correct venv)
+cd bizra-python
+VIRTUAL_ENV=/mnt/c/BIZRA-DATA-LAKE/.venv-linux maturin develop --release
 
 # Maximum optimization (AVX-512)
 RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
@@ -61,10 +61,10 @@ RUSTFLAGS="-C target-cpu=native" cargo build --profile omega
 
 ## Architecture
 
-The codebase has two major layers that mirror each other:
+### Python (`core/`) and Rust (`bizra-omega/`) Mirror
 
 ```
-Python (core/)                          Rust (bizra-omega/ — unified, 18 crates)
+Python (core/)                          Rust (bizra-omega/ — 22 crates)
 ├── pci/        Proof-Carrying Inference    bizra-core/        Constitution + FATE + Identity
 ├── federation/ P2P gossip + BFT consensus  bizra-federation/  Gossip + signed messages
 ├── inference/  Tiered LLM gateway          bizra-inference/   Inference backends
@@ -77,17 +77,25 @@ Python (core/)                          Rust (bizra-omega/ — unified, 18 crate
 ├── treasury/   Resource management         bizra-python/      PyO3 bindings
 ├── a2a/        Agent-to-Agent protocol     bizra-hunter/      Bounty system
 ├── living_memory/ Proactive retrieval      bizra-memory/      Memory synthesis pipeline
-├── (event hooks)                           bizra-hooks/       Nervous system + Ihsan gate
+├── proof_engine/ Evidence + gates          bizra-hooks/       Nervous system + Ihsan gate
+├── spearpoint/ Benchmark campaigns         bizra-action/      Event→Action→Receipt bus
+├── auth/       Middleware + auth            bizra-ttrl/        On-device RL (SSO spectral norm)
+├── benchmark/  Guardrails + scoring        bizra-agent/       OmniKernel cognitive cycle
+├── zpk/        Zero-Point Kernel           bizra-node/        Desktop sovereign binary
 ├── (FATE gates)                            fate-binding/      Z3 + Dilithium post-quantum
 └── (IPC)                                   iceoryx-bridge/    Zero-copy shared memory
 ```
 
+`core/` has ~58 subpackages total. The table above shows the most-used modules. Additional modules include: `apex/`, `autopoiesis/`, `bridges/`, `elite/`, `graph/`, `hypergraph/`, `nexus/`, `pat/`, `personaplex/`, `resonance/`, `swarm/`, `vault/`, `zpk/`.
+
+`core/sovereign/` is the largest module (~60 files). When decomposed modules exist (governance/, reasoning/, orchestration/, treasury/), prefer using those over the monolithic sovereign/ equivalents.
+
 ### Key Architectural Concepts
 
 **Constitutional Thresholds** — All defined in `core/integration/constants.py` (single source of truth). Every module must import from there, not define its own:
-- Ihsan (excellence): 0.95 production, 0.90 CI, 0.99 strict/consensus
+- Ihsan (excellence): 0.95 production, 0.90 CI, 0.99 strict/consensus, 1.0 runtime
 - SNR (signal quality): 0.85 minimum, 0.95 T1, 0.98 T0/elite
-- ADL Gini (justice): <= 0.40 hard gate
+- ADL Gini (justice): <= 0.35 hard gate
 
 **Inference Tiers** — Local-first with tiered fallback, configured in `bizra_config.py`:
 1. LM Studio at `192.168.56.1:1234` (primary)
@@ -96,19 +104,20 @@ Python (core/)                          Rust (bizra-omega/ — unified, 18 crate
 
 **Data Pipeline** — Files flow through numbered directories: `00_INTAKE/` → `01_RAW/` → `02_PROCESSED/` → `03_INDEXED/` → `04_GOLD/`. Duplicates go to `99_QUARANTINE/` via SHA-256 detection. Downloads are always COPIED, never moved.
 
-**`core/sovereign/`** is the largest module (~60 files). It contains the runtime engine, Graph-of-Thoughts reasoning, guardian council, treasury, and most integration points. When decomposed modules exist (governance/, reasoning/, orchestration/, treasury/), prefer using those over the monolithic sovereign/ equivalents.
+**Unified Concurrency Fabric (UCF)** — Sharded EventBus (8 namespace shards via FNV-1a) in `bizra-hooks`, two-phase OmniKernel (try_cache_hit + complete_cache_hit) in `bizra-agent`, and PyO3 event bridge (`PyEventBridge` Rust → `RustEventBridge` Python wrapper). Bridge gracefully returns None when PyO3 isn't built.
 
 ## CI Pipeline
 
-Defined in `.github/workflows/ci.yml`. Stages run in order:
+Defined in `.github/workflows/ci.yml`. Stages:
 1. **Lint** — ruff, black, isort, mypy (Python) + cargo fmt, clippy (Rust)
-2. **Test** — pytest matrix (3.11, 3.12 with coverage) + cargo test
-3. **PyO3 Bindings** — maturin build + smoke test
-4. **Quality Gates** — SNR/Ihsan score validation (can be skipped via workflow_dispatch)
-5. **Security** — bandit, pip-audit, cargo-audit, Trivy
-6. **Docker Build** — `deploy/Dockerfile.elite` (Python), `bizra-omega/Dockerfile` (Rust)
+2. **Cross-Language Sync** — validates constants.py ↔ Rust thresholds match
+3. **Test** — pytest matrix (3.11, 3.12) + cargo test
+4. **PyO3 Bindings** — maturin build + smoke test
+5. **Quality Gates** — SNR/Ihsan score validation (skippable via workflow_dispatch)
+6. **Security** — bandit, pip-audit, cargo-audit, Trivy
+7. **Docker Build** — `deploy/Dockerfile.elite` (Python), `bizra-omega/Dockerfile` (Rust)
 
-Coverage floor: 60% enforced (ratcheting toward 95%).
+Coverage floor: **38%** enforced in pyproject.toml (ratcheting toward 95%).
 
 ## Test Organization
 
@@ -120,37 +129,67 @@ tests/
 └── root_legacy/    # Legacy tests (excluded from pytest via addopts)
 ```
 
-**Markers:** `@pytest.mark.slow`, `@pytest.mark.integration`, `@pytest.mark.requires_ollama`, `@pytest.mark.requires_gpu`, `@pytest.mark.requires_network`
+**Markers:** `@pytest.mark.slow`, `@pytest.mark.integration`, `@pytest.mark.requires_ollama`, `@pytest.mark.requires_gpu`, `@pytest.mark.requires_network`, `@pytest.mark.xdist_group`
 
-**Timeout:** 60 seconds per test (configured in pyproject.toml).
+**Timeout:** 60 seconds per test. **asyncio_mode:** `auto` (no need for `@pytest.mark.asyncio`).
 
-**Fixtures:** `bizra_root`, `sample_documents`, `sample_chunks` available session-wide from `tests/conftest.py`.
+**Fixtures:** `bizra_root`, `sample_documents`, `sample_chunks` from `tests/conftest.py`.
+
+## Critical Patterns and Gotchas
+
+### Import Paths (Verified — Not Obvious)
+- TierPolicy: `core.spearpoint.config` (NOT core.sovereign.tier_policy)
+- EvidenceLedger: `core.proof_engine.evidence_ledger` (NOT core.spearpoint.evidence_chain)
+- SNR: `core.iaas.snr_v2_adapter` or `core.apex.snr_apex_engine` (NOT core.iaas.snr_maximizer)
+- PCI Gates: `core.pci.gates.PCIGateKeeper` (NOT run_gate_chain)
+- Constants: `ADL_GINI_THRESHOLD` (NOT ADL_GINI_HARD_GATE)
+
+### Testing Gotchas
+- **asyncio**: Never use `asyncio.get_event_loop().run_until_complete()` — always use `asyncio.run()` for sync→async bridges. The old pattern crashes under pytest-xdist.
+- **Heavy tests**: Mark with `@pytest.mark.xdist_group("runtime_heavy")` to prevent OOM under parallel execution.
+- **Optional deps**: Use `pytest.importorskip("prometheus_client")` etc. from day one — numpy, httpx, prometheus_client are not in base env.
+- **New module rule**: New module + ALL files that import it must be in the SAME commit. Never commit code that imports an untracked file.
+
+### PyO3 Bindings
+- `bizra-omega/bizra-python/python/bizra/` is gitignored — use `git add -f` for `__init__.py`
+- `VIRTUAL_ENV` must point to `.venv-linux` (not `.venv` which is the Windows venv)
+- maturin build needs `/root/.cargo/bin` + `/usr/bin` (for `cc` linker) in PATH
+- `PyEventBridge` registered in `bizra-python/src/lib.rs`, re-exported via `__init__.py`
+
+### Code Patterns
+- All Python paths use forward slashes for cross-platform compatibility
+- `core/__init__.py` re-exports all subpackages — `from core import pci` works
+- `core/protocols/` defines interface contracts via structural typing (Protocol classes)
+- FATE fallback: `_conservative_fallback_check()` (NOT `_manual_constraint_check`) — default-deny, stricter than Z3
+- Bare `except:` is forbidden — always use specific exception types
 
 ## Configuration
 
 - **`bizra_config.py`** — All paths and hyperparameters. Paths auto-resolve across Windows/WSL/Linux via `BIZRA_DATA_LAKE_ROOT` env var.
-- **`core/integration/constants.py`** — Constitutional thresholds (authoritative). Cross-repo sync with Dual-Agentic-System and bizra-omega Rust crate.
+- **`core/integration/constants.py`** — Constitutional thresholds (authoritative). Cross-repo sync with Dual-Agentic-System and bizra-omega Rust crates.
 - **`.env`** / **`.env.example`** — LLM backend URLs, API keys. Copy `.env.example` to `.env` for local setup.
-- **`pyproject.toml`** — All tool configs (pytest, coverage, ruff, black, isort, mypy) are centralized here.
+- **`pyproject.toml`** — All tool configs (pytest, coverage, ruff, black, isort, mypy) centralized here.
 
 ## Rust Workspace (bizra-omega/)
 
-18 crates in a unified workspace (v2.0.0). Two layers:
+22 crates in a unified workspace (v2.0.0). Five layers:
 
-- **Platform layer** (14 crates): PCI, federation, inference, API, CLI, proofspace, resource pool, etc.
-- **Cognitive layer** (4 crates, merged from `native/`): `bizra-hooks` (nervous system), `bizra-memory` (synthesis pipeline), `fate-binding` (Z3 + Dilithium), `iceoryx-bridge` (IPC)
+- **Platform** (14): bizra-core, hypergraph, inference, autopoiesis, federation, installer, python, api, tests, hunter, telescript, proofspace, resourcepool, cli
+- **Cognitive** (2): bizra-hooks (nervous system), bizra-memory (synthesis pipeline)
+- **Action** (1): bizra-action (Event→Action→Receipt bus)
+- **TTRL** (1): bizra-ttrl (on-device RL with SSO spectral norm)
+- **Desktop** (2): bizra-agent (OmniKernel), bizra-node (sovereign binary)
+- **Bindings** (2): fate-binding (Z3 + Dilithium post-quantum), iceoryx-bridge (zero-copy IPC)
 
-Key dependencies: `ed25519-dalek` (crypto), `tokio` (async), `serde` (serialization), `blake3` (hashing with rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (zero-copy IPC).
+Key deps: `ed25519-dalek` (crypto), `tokio` (async), `blake3` (hashing+rayon), `z3` (formal verification), `pyo3` (Python bindings), `iceoryx2` (IPC), `pqcrypto-mldsa` (post-quantum).
 
-Release profile uses fat LTO + single codegen unit + `panic = "abort"`. The `omega` profile adds AVX-512 native CPU targeting. Z3 is required: `sudo apt install libz3-dev`.
+Release profile: fat LTO, single codegen unit, `panic = "abort"`, `strip = true`. Z3 is required: `sudo apt install libz3-dev`.
 
 **Note:** `native/` is deprecated. All Rust development happens in `bizra-omega/`.
 
-## Important Patterns
+## Lint Quirks
 
-- All Python paths use forward slashes for cross-platform compatibility
-- Metadata stored as `.meta.json` alongside processed files
-- `core/__init__.py` re-exports all subpackages — imports like `from core import pci` work
-- The `core/protocols/` package defines interface contracts via structural typing (Protocol classes)
 - Ruff ignores `E402` (deferred imports for performance) and `E501` (Black handles line length)
-- MyPy runs in strict mode globally but relaxes `core.*` and `tests.*` modules — strict enforcement is being adopted incrementally
+- MyPy: strict mode globally, relaxed for `core.*` and `tests.*` — strict enforcement adopted incrementally
+- Clippy `uninlined_format_args` is a Rust 1.88 lint — pre-existing across workspace
+- `# noqa: SEC-001` marks intentional legacy SHA-256 usage (BLAKE3 gate)
