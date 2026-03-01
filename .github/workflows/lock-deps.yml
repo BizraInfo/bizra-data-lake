@@ -1,0 +1,67 @@
+# BIZRA — Deterministic Dependency Lock
+# Regenerates requirements.lock with hashes for reproducible builds.
+# Run manually or on pyproject.toml changes.
+#
+# Standing on Giants: uv • PEP 665
+
+name: Lock Dependencies
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'pyproject.toml'
+      - 'requirements.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    name: Regenerate requirements.lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate hash-pinned lock file
+        run: |
+          uv pip compile pyproject.toml \
+            --python-version 3.12 \
+            --generate-hashes \
+            --output-file requirements.lock \
+            --no-strip-extras
+
+          echo "## Lock File Updated" >> $GITHUB_STEP_SUMMARY
+          echo "Packages: $(wc -l < requirements.lock)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify lock file installs cleanly
+        run: |
+          uv pip install --dry-run --require-hashes -r requirements.lock
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet requirements.lock; then
+            echo "No changes to lock file."
+          else
+            git add requirements.lock
+            git commit -m "chore(deps): regenerate requirements.lock with hashes
+
+            Triggered by pyproject.toml update.
+
+            Co-Authored-By: github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+            git push
+          fi
