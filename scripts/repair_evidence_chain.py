@@ -36,7 +36,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 EVIDENCE_PATH = REPO_ROOT / "sovereign_state" / "evidence.jsonl"
 ARCHIVE_SUFFIX = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-ARCHIVE_PATH = REPO_ROOT / "sovereign_state" / f"evidence_archive_{ARCHIVE_SUFFIX}.jsonl"
+ARCHIVE_PATH = (
+    REPO_ROOT / "sovereign_state" / f"evidence_archive_{ARCHIVE_SUFFIX}.jsonl"
+)
 
 GENESIS_HASH = "0" * 64
 
@@ -101,7 +103,7 @@ def repair_chain(entries: list[dict]) -> tuple[list[dict], list[str]]:
     Returns (repaired_entries, log_messages).
     """
     log = []
-    seen_seqs: dict[int, int] = {}   # seq -> index of first occurrence
+    seen_seqs: dict[int, int] = {}  # seq -> index of first occurrence
     deduped: list[dict] = []
 
     for i, entry in enumerate(entries):

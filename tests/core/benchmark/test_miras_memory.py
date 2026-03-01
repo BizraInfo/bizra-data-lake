@@ -141,7 +141,9 @@ class TestMIRASMemory:
         """Entries more relevant to the query must appear first."""
         memory = MIRASMemory()
         memory.store("attention head ablation MMLU", snr_score=0.95, importance=0.9)
-        memory.store("unrelated optimizer weight decay study", snr_score=0.90, importance=0.5)
+        memory.store(
+            "unrelated optimizer weight decay study", snr_score=0.90, importance=0.5
+        )
         result = memory.retrieve("attention MMLU", k=10)
         if len(result.entries) >= 2:
             # First entry should have higher or equal relevance signal.
@@ -153,7 +155,12 @@ class TestMIRASMemory:
         """get_stats() must return expected keys."""
         memory = MIRASMemory()
         stats = memory.get_stats()
-        for key in ["short_term_count", "long_term_count", "episodic_count", "total_count"]:
+        for key in [
+            "short_term_count",
+            "long_term_count",
+            "episodic_count",
+            "total_count",
+        ]:
             assert key in stats
 
     def test_get_stats_total_is_sum(self):
@@ -162,5 +169,9 @@ class TestMIRASMemory:
         memory.store("item one", snr_score=0.90)
         memory.store_episodic("action", "result")
         stats = memory.get_stats()
-        expected = stats["short_term_count"] + stats["long_term_count"] + stats["episodic_count"]
+        expected = (
+            stats["short_term_count"]
+            + stats["long_term_count"]
+            + stats["episodic_count"]
+        )
         assert stats["total_count"] == expected

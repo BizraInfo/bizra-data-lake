@@ -33,20 +33,21 @@ WATCH_PATHS = [
     DATA_LAKE_ROOT / "01_RAW" / "external_links",
 ]
 ACTUATOR_LOG = GOLD_PATH / "actuator_events.jsonl"
-HIGH_VALUE_EXTENSIONS = {'.md', '.txt', '.json', '.py', '.rs', '.ts'}
+HIGH_VALUE_EXTENSIONS = {".md", ".txt", ".json", ".py", ".rs", ".ts"}
+
 
 class SovereignEventHandler(FileSystemEventHandler):
     """Handles file system events for high-value artifacts."""
-    
+
     def __init__(self, prime: BizraPrime):
         super().__init__()
         self.prime = prime
         self.processed_hashes = set()
         self._load_processed()
-        
+
     def _load_processed(self):
         if ACTUATOR_LOG.exists():
-            with open(ACTUATOR_LOG, 'r') as f:
+            with open(ACTUATOR_LOG, "r") as f:
                 for line in f:
                     event = json.loads(line)
                     self.processed_hashes.add(event.get("file_hash", ""))
@@ -58,9 +59,9 @@ class SovereignEventHandler(FileSystemEventHandler):
             "event": event_type,
             "path": str(path),
             "file_hash": file_hash,
-            "result_summary": str(result)[:100] if result else None
+            "result_summary": str(result)[:100] if result else None,
         }
-        with open(ACTUATOR_LOG, 'a') as f:
+        with open(ACTUATOR_LOG, "a") as f:
             f.write(json.dumps(entry) + "\n")
         self.processed_hashes.add(file_hash)
         return file_hash
@@ -75,27 +76,26 @@ class SovereignEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-            
+
         path = Path(event.src_path)
         file_hash = self._file_hash(path)
-        
+
         if file_hash in self.processed_hashes:
             return
-            
+
         if not self._is_high_value(path):
             return
 
         print(f"\n🔔 [ACTUATOR] New Artifact Detected: {path.name}")
-        
+
         # Dispatch to RESEARCHER for initial analysis
         research_result = self.prime.dispatch(
-            AgentRole.RESEARCHER, 
-            f"Analyze new artifact: {path.name}"
+            AgentRole.RESEARCHER, f"Analyze new artifact: {path.name}"
         )
-        
+
         # Log the event
         self._log_event("NEW_ARTIFACT", path, research_result)
-        
+
         print(f"   ✅ Artifact indexed. Hash: {file_hash}")
 
     def on_modified(self, event):
@@ -111,22 +111,22 @@ def run_actuator(watch_once=False):
     print("═" * 70)
     print("   🛡️  BIZRA SOVEREIGN ACTUATOR - ONLINE")
     print("═" * 70)
-    
+
     # Initialize PRIME (this loads all knowledge)
     # Suppressing TensorFlow warnings for cleaner output
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
     prime = BizraPrime()
-    
+
     handler = SovereignEventHandler(prime)
     observer = Observer()
-    
+
     for watch_path in WATCH_PATHS:
         if watch_path.exists():
             observer.schedule(handler, str(watch_path), recursive=True)
             print(f"   👁️  Watching: {watch_path}")
         else:
             print(f"   ⚠️  Path not found: {watch_path}")
-    
+
     if watch_once:
         # For testing: just do a quick scan
         print("\n   🔍 Performing initial scan...")
@@ -135,17 +135,21 @@ def run_actuator(watch_once=False):
                 for root, dirs, files in os.walk(watch_path):
                     # Limit depth and count for demo
                     if len(files) > 0:
-                        for f in files[:3]: # Sample first 3
+                        for f in files[:3]:  # Sample first 3
                             p = Path(root) / f
-                            if handler._is_high_value(p) and handler._file_hash(p) not in handler.processed_hashes:
+                            if (
+                                handler._is_high_value(p)
+                                and handler._file_hash(p)
+                                not in handler.processed_hashes
+                            ):
                                 print(f"   📄 Found: {p.name}")
-                    break # Only top level
+                    break  # Only top level
         print("\n   ✅ Initial scan complete.")
         return
 
     observer.start()
     print("\n   ⏳ Actuator running. Press Ctrl+C to stop.")
-    
+
     try:
         while True:
             time.sleep(10)
@@ -157,12 +161,13 @@ def run_actuator(watch_once=False):
     except KeyboardInterrupt:
         observer.stop()
         print("\n   🛑 Actuator stopped.")
-    
+
     observer.join()
 
 
 if __name__ == "__main__":
     import sys
+
     # Run once for demo, or continuous with --daemon
     if "--daemon" in sys.argv:
         run_actuator(watch_once=False)

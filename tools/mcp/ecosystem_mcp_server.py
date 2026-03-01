@@ -36,8 +36,8 @@ from typing import Any, Dict, Optional
 
 # Set up path to ensure imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
-_tools_dir = os.path.dirname(_mcp_dir)          # tools/
-_project_root = os.path.dirname(_tools_dir)      # BIZRA-DATA-LAKE/
+_tools_dir = os.path.dirname(_mcp_dir)  # tools/
+_project_root = os.path.dirname(_tools_dir)  # BIZRA-DATA-LAKE/
 sys.path.insert(0, _mcp_dir)
 sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
 sys.path.insert(0, os.path.join(_tools_dir, "engines"))
@@ -49,9 +49,9 @@ sys.path.insert(0, _project_root)
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(levelname)s] %(asctime)s | MCP | %(message)s',
-    datefmt='%H:%M:%S',
-    handlers=[logging.StreamHandler(sys.stderr)]
+    format="[%(levelname)s] %(asctime)s | MCP | %(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stderr)],
 )
 log = logging.getLogger("EcosystemMCP")
 
@@ -67,6 +67,7 @@ TOOL_TIMEOUT_SECONDS = 30.0
 # ===============================================================================
 # RESPONSE CACHE (LRU with TTL)
 # ===============================================================================
+
 
 class ResponseCache:
     """LRU cache with TTL for read-only MCP tool responses."""
@@ -115,7 +116,12 @@ class ResponseCache:
 
 
 # Cacheable tools (read-only, deterministic)
-CACHEABLE_TOOLS = {"ecosystem_query", "ecosystem_health", "check_compliance", "perform_daughter_test"}
+CACHEABLE_TOOLS = {
+    "ecosystem_query",
+    "ecosystem_health",
+    "check_compliance",
+    "perform_daughter_test",
+}
 
 cache = ResponseCache(max_entries=256, ttl_seconds=300.0)
 
@@ -133,7 +139,7 @@ _total_response_time = 0.0
 # ===============================================================================
 
 _bridge = None
-_bridge_lock = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
+_bridge_lock = asyncio.Lock() if hasattr(asyncio, "Lock") else None
 
 # Lazy import holders
 _EcosystemBridge = None
@@ -159,6 +165,7 @@ def _lazy_import():
         UnifiedQuery,
         UnifiedResponse,
     )
+
     _EcosystemBridge = EcosystemBridge
     _UnifiedQuery = UnifiedQuery
     _UnifiedResponse = UnifiedResponse
@@ -166,6 +173,7 @@ def _lazy_import():
 
     try:
         from ultimate_engine import Constitution, DaughterTest
+
         _Constitution = Constitution
         _DaughterTest = DaughterTest
     except ImportError:
@@ -194,7 +202,7 @@ async def _do_query(query_text: str, mode: str = "standard") -> Dict[str, Any]:
     uq = _UnifiedQuery(
         text=query_text,
         require_constitution_check=require_const,
-        require_daughter_test=require_daughter
+        require_daughter_test=require_daughter,
     )
 
     start = time.perf_counter()
@@ -207,8 +215,12 @@ async def _do_query(query_text: str, mode: str = "standard") -> Dict[str, Any]:
         "ihsan_score": response.ihsan_score,
         "components_used": response.components_used,
         "constitution_check": response.constitution_check,
-        "daughter_test": getattr(response, 'daughter_test_result', getattr(response, 'daughter_test_check', None)),
-        "latency_ms": round(elapsed_ms, 2)
+        "daughter_test": getattr(
+            response,
+            "daughter_test_result",
+            getattr(response, "daughter_test_check", None),
+        ),
+        "latency_ms": round(elapsed_ms, 2),
     }
 
 
@@ -231,7 +243,7 @@ async def _do_compliance(text: str) -> Dict[str, Any]:
         "compliant": len(issues) == 0,
         "violation_count": len(issues),
         "violations": issues,
-        "latency_ms": round(elapsed_ms, 2)
+        "latency_ms": round(elapsed_ms, 2),
     }
 
 
@@ -249,7 +261,7 @@ async def _do_daughter_test(text: str) -> Dict[str, Any]:
         "passed": result.passed,
         "score": result.score,
         "explanation": result.explanation,
-        "latency_ms": round(elapsed_ms, 2)
+        "latency_ms": round(elapsed_ms, 2),
     }
 
 
@@ -263,7 +275,9 @@ def _do_mcp_health() -> Dict[str, Any]:
         "error_count": _error_count,
         "cache_hit_rate": round(cache.hit_rate, 4),
         "cache_size": cache.size,
-        "avg_response_ms": round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0,
+        "avg_response_ms": (
+            round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0
+        ),
     }
 
 
@@ -288,19 +302,19 @@ async def list_tools() -> list[types.Tool]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "The question or task"},
-                    "mode": {"type": "string", "enum": ["standard", "fast", "audit"], "description": "Execution mode (default: standard)"}
+                    "mode": {
+                        "type": "string",
+                        "enum": ["standard", "fast", "audit"],
+                        "description": "Execution mode (default: standard)",
+                    },
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         ),
         types.Tool(
             name="ecosystem_health",
             description="Get detailed health status of all 6 sub-engines.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         types.Tool(
             name="check_compliance",
@@ -310,8 +324,8 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "text": {"type": "string", "description": "Content to verify"}
                 },
-                "required": ["text"]
-            }
+                "required": ["text"],
+            },
         ),
         types.Tool(
             name="perform_daughter_test",
@@ -319,19 +333,18 @@ async def list_tools() -> list[types.Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "text": {"type": "string", "description": "Content or decision to evaluate"}
+                    "text": {
+                        "type": "string",
+                        "description": "Content or decision to evaluate",
+                    }
                 },
-                "required": ["text"]
-            }
+                "required": ["text"],
+            },
         ),
         types.Tool(
             name="mcp_health",
             description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
     ]
 
@@ -356,23 +369,23 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
 
         if name == "ecosystem_query":
             result_data = await asyncio.wait_for(
-                _do_query(arguments.get("query", ""), arguments.get("mode", "standard")),
-                timeout=TOOL_TIMEOUT_SECONDS
+                _do_query(
+                    arguments.get("query", ""), arguments.get("mode", "standard")
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
         elif name == "ecosystem_health":
             result_data = await asyncio.wait_for(
-                _do_health(),
-                timeout=TOOL_TIMEOUT_SECONDS
+                _do_health(), timeout=TOOL_TIMEOUT_SECONDS
             )
         elif name == "check_compliance":
             result_data = await asyncio.wait_for(
-                _do_compliance(arguments.get("text", "")),
-                timeout=TOOL_TIMEOUT_SECONDS
+                _do_compliance(arguments.get("text", "")), timeout=TOOL_TIMEOUT_SECONDS
             )
         elif name == "perform_daughter_test":
             result_data = await asyncio.wait_for(
                 _do_daughter_test(arguments.get("text", "")),
-                timeout=TOOL_TIMEOUT_SECONDS
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
         elif name == "mcp_health":
             result_data = _do_mcp_health()
@@ -381,7 +394,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             raise ValueError(f"Unknown tool: {name}")
 
         # Compact JSON for STDIO transport
-        text = json.dumps(result_data, default=str, separators=(',', ':'))
+        text = json.dumps(result_data, default=str, separators=(",", ":"))
 
         # Cache the result for read-only tools
         if name in CACHEABLE_TOOLS:
@@ -395,15 +408,27 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         _error_count += 1
         elapsed = (time.perf_counter() - start) * 1000
         _total_response_time += elapsed
-        error = {"error": "timeout", "message": f"Tool '{name}' exceeded {TOOL_TIMEOUT_SECONDS}s timeout", "elapsed_ms": round(elapsed, 2)}
-        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+        error = {
+            "error": "timeout",
+            "message": f"Tool '{name}' exceeded {TOOL_TIMEOUT_SECONDS}s timeout",
+            "elapsed_ms": round(elapsed, 2),
+        }
+        return [
+            types.TextContent(
+                type="text", text=json.dumps(error, separators=(",", ":"))
+            )
+        ]
     except Exception as e:
         _error_count += 1
         elapsed = (time.perf_counter() - start) * 1000
         _total_response_time += elapsed
         log.error(f"Error executing tool {name}: {e}")
         error = {"error": str(type(e).__name__), "message": str(e)}
-        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+        return [
+            types.TextContent(
+                type="text", text=json.dumps(error, separators=(",", ":"))
+            )
+        ]
 
 
 # ===============================================================================
@@ -419,38 +444,49 @@ MCP_TOOLS = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "The question or task"},
-                "mode": {"type": "string", "enum": ["standard", "fast", "audit"], "description": "Execution mode (default: standard)"}
+                "mode": {
+                    "type": "string",
+                    "enum": ["standard", "fast", "audit"],
+                    "description": "Execution mode (default: standard)",
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "ecosystem_health",
         "description": "Get detailed health status of all 6 sub-engines.",
-        "inputSchema": {"type": "object", "properties": {}, "required": []}
+        "inputSchema": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "check_compliance",
         "description": "Verify text against the BIZRA Constitution and Kernel Invariants (RIBA, ZANN).",
         "inputSchema": {
             "type": "object",
-            "properties": {"text": {"type": "string", "description": "Content to verify"}},
-            "required": ["text"]
-        }
+            "properties": {
+                "text": {"type": "string", "description": "Content to verify"}
+            },
+            "required": ["text"],
+        },
     },
     {
         "name": "perform_daughter_test",
         "description": "Run the Daughter Test: 'Would I be proud if my daughter saw this result?'",
         "inputSchema": {
             "type": "object",
-            "properties": {"text": {"type": "string", "description": "Content or decision to evaluate"}},
-            "required": ["text"]
-        }
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "Content or decision to evaluate",
+                }
+            },
+            "required": ["text"],
+        },
     },
     {
         "name": "mcp_health",
         "description": "Get MCP server performance metrics.",
-        "inputSchema": {"type": "object", "properties": {}, "required": []}
+        "inputSchema": {"type": "object", "properties": {}, "required": []},
     },
 ]
 
@@ -468,16 +504,12 @@ def _handle_http_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "result": {
                 "protocolVersion": MCP_PROTOCOL_VERSION,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION}
-            }
+                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+            },
         }
 
     elif method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {"tools": MCP_TOOLS}
-        }
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": MCP_TOOLS}}
 
     elif method == "tools/call":
         tool_name = params.get("name")
@@ -490,14 +522,16 @@ def _handle_http_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": c.type, "text": c.text} for c in result_content]
-                }
+                    "content": [
+                        {"type": c.type, "text": c.text} for c in result_content
+                    ]
+                },
             }
         except Exception as e:
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
-                "error": {"code": -32000, "message": str(e)}
+                "error": {"code": -32000, "message": str(e)},
             }
         finally:
             loop.close()
@@ -511,12 +545,12 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
 
         try:
             health_data = _do_mcp_health()
-            status_color = "#0f0" if health_data.get('error_count', 0) == 0 else "#fa0"
+            status_color = "#0f0" if health_data.get("error_count", 0) == 0 else "#fa0"
 
             html = f"""<!DOCTYPE html>
             <html>
@@ -540,13 +574,13 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            length = int(self.headers.get('Content-Length', 0))
+            length = int(self.headers.get("Content-Length", 0))
             data = self.rfile.read(length)
             req = json.loads(data)
             resp = _handle_http_request(req)
 
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
             if resp:
                 self.wfile.write(json.dumps(resp).encode())
@@ -558,17 +592,22 @@ class MCPHTTPHandler(BaseHTTPRequestHandler):
 # ENTRY POINTS
 # ===============================================================================
 
+
 async def main_stdio():
     """Run via MCP SDK stdio transport."""
-    log.info(f"Ecosystem MCP Server v{SERVER_VERSION} starting (SDK stdio transport)...")
+    log.info(
+        f"Ecosystem MCP Server v{SERVER_VERSION} starting (SDK stdio transport)..."
+    )
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+        await server.run(
+            read_stream, write_stream, server.create_initialization_options()
+        )
 
 
 def main_http(port: int = 8888):
     """Run via HTTP transport."""
     # Bind to 0.0.0.0 in container environments, 127.0.0.1 for local dev
-    bind_addr = '0.0.0.0' if os.getenv('BIZRA_ENV') == 'production' else '127.0.0.1'
+    bind_addr = "0.0.0.0" if os.getenv("BIZRA_ENV") == "production" else "127.0.0.1"
     httpd = HTTPServer((bind_addr, port), MCPHTTPHandler)
     log.info(f"Serving HTTP on http://{bind_addr}:{port}")
     try:
@@ -580,7 +619,9 @@ def main_http(port: int = 8888):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--http", action="store_true", help="Run in HTTP mode")
-    parser.add_argument("--stdio", action="store_true", help="Run in STDIO mode (default)")
+    parser.add_argument(
+        "--stdio", action="store_true", help="Run in STDIO mode (default)"
+    )
     parser.add_argument("--port", type=int, default=8888, help="Port for HTTP mode")
     args = parser.parse_args()
 

@@ -75,7 +75,9 @@ class TestRustEventBridge:
         assert d2 >= 1, "action.receipt should reach ≥1 subscriber"
 
         # Ihsan breach (ihsan.breach → subscriber #9, requires EMERGENCY priority)
-        d3 = bridge.emit_rust("ihsan.breach", "mission:002:ihsan=0.80", bridge.PRIORITY_EMERGENCY)
+        d3 = bridge.emit_rust(
+            "ihsan.breach", "mission:002:ihsan=0.80", bridge.PRIORITY_EMERGENCY
+        )
         assert d3 >= 1, "ihsan.breach should reach ≥1 subscriber"
 
         # Verify health reflects all 3 emissions

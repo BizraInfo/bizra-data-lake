@@ -19,53 +19,62 @@ from collections import defaultdict
 from sentence_transformers import SentenceTransformer
 import torch
 from bizra_config import (
-    CORPUS_TABLE_PATH, CHUNKS_TABLE_PATH, INDEXED_PATH, GRAPH_PATH,
-    EMBEDDINGS_PATH, SNR_THRESHOLD, BATCH_SIZE, MAX_SEQ_LENGTH,
-    WARP_ENABLED
+    CORPUS_TABLE_PATH,
+    CHUNKS_TABLE_PATH,
+    INDEXED_PATH,
+    GRAPH_PATH,
+    EMBEDDINGS_PATH,
+    SNR_THRESHOLD,
+    BATCH_SIZE,
+    MAX_SEQ_LENGTH,
+    WARP_ENABLED,
 )
 
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     handlers=[
         logging.FileHandler(INDEXED_PATH / "hypergraph_engine.log"),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger("HypergraphEngine")
 
 
 class RetrievalMode(Enum):
     """Retrieval strategies for different query types."""
-    SEMANTIC = "semantic"           # Pure vector similarity (FAISS)
-    STRUCTURAL = "structural"       # Pure graph traversal
-    HYBRID = "hybrid"               # Combined (default)
-    MULTI_HOP = "multi_hop"         # Graph-guided semantic chains
-    WARP = "warp"                   # ColBERT/XTR multi-vector (high accuracy)
+
+    SEMANTIC = "semantic"  # Pure vector similarity (FAISS)
+    STRUCTURAL = "structural"  # Pure graph traversal
+    HYBRID = "hybrid"  # Combined (default)
+    MULTI_HOP = "multi_hop"  # Graph-guided semantic chains
+    WARP = "warp"  # ColBERT/XTR multi-vector (high accuracy)
 
 
 @dataclass
 class RetrievalResult:
     """Single retrieval result with full provenance."""
+
     chunk_id: str
     doc_id: str
     text: str
     score: float
-    retrieval_path: List[str]       # How we found this (for explainability)
-    graph_distance: int = 0         # Hops from query anchor
-    semantic_rank: int = 0          # Position in vector search
+    retrieval_path: List[str]  # How we found this (for explainability)
+    graph_distance: int = 0  # Hops from query anchor
+    semantic_rank: int = 0  # Position in vector search
     metadata: Dict = field(default_factory=dict)
 
 
 @dataclass
 class QueryContext:
     """Assembled context for RAG generation."""
+
     query: str
     query_embedding: np.ndarray
     results: List[RetrievalResult]
     snr_score: float
-    reasoning_trace: List[str]      # Graph-of-Thoughts trace
+    reasoning_trace: List[str]  # Graph-of-Thoughts trace
     total_tokens_est: int
     retrieval_mode: RetrievalMode
 
@@ -88,7 +97,7 @@ class SNRCalculator:
         self,
         query_embedding: np.ndarray,
         result_embeddings: np.ndarray,
-        results: List[RetrievalResult]
+        results: List[RetrievalResult],
     ) -> Tuple[float, Dict]:
         """
         Calculate SNR for a retrieval set.
@@ -101,11 +110,15 @@ class SNRCalculator:
 
         # Normalize embeddings
         query_norm = query_embedding / (np.linalg.norm(query_embedding) + 1e-9)
-        results_norm = result_embeddings / (np.linalg.norm(result_embeddings, axis=1, keepdims=True) + 1e-9)
+        results_norm = result_embeddings / (
+            np.linalg.norm(result_embeddings, axis=1, keepdims=True) + 1e-9
+        )
 
         # Signal: Mean cosine similarity to query
         similarities = np.dot(results_norm, query_norm)
-        signal_strength = float(np.mean(similarities[similarities > self.relevance_threshold]))
+        signal_strength = float(
+            np.mean(similarities[similarities > self.relevance_threshold])
+        )
         if np.isnan(signal_strength):
             signal_strength = float(np.mean(similarities))
 
@@ -130,7 +143,7 @@ class SNRCalculator:
             "coverage_factor": round(coverage_factor, 4),
             "unique_documents": unique_docs,
             "total_results": len(results),
-            "above_threshold": int(np.sum(similarities > self.relevance_threshold))
+            "above_threshold": int(np.sum(similarities > self.relevance_threshold)),
         }
 
         return round(snr, 4), metrics
@@ -157,7 +170,9 @@ class HypergraphIndex:
         self.doc_to_chunks: Dict[str, List[str]] = defaultdict(list)
         self.is_built = False
 
-    def build_from_parquet(self, chunks_path: Path, graph_path: Optional[Path] = None) -> bool:
+    def build_from_parquet(
+        self, chunks_path: Path, graph_path: Optional[Path] = None
+    ) -> bool:
         """
         Build index from chunks.parquet and optional graph files.
 
@@ -176,12 +191,14 @@ class HypergraphIndex:
             logger.info(f"Loaded {len(df_chunks)} chunks")
 
             # Extract embeddings (stored as lists in Parquet)
-            embeddings_list = df_chunks['embedding'].tolist()
+            embeddings_list = df_chunks["embedding"].tolist()
             self.chunk_embeddings = np.array(embeddings_list, dtype=np.float32)
 
             # Validate embedding dimensions
             if self.chunk_embeddings.shape[1] != self.embedding_dim:
-                logger.warning(f"Embedding dim mismatch: expected {self.embedding_dim}, got {self.chunk_embeddings.shape[1]}")
+                logger.warning(
+                    f"Embedding dim mismatch: expected {self.embedding_dim}, got {self.chunk_embeddings.shape[1]}"
+                )
                 self.embedding_dim = self.chunk_embeddings.shape[1]
 
             # Build FAISS HNSW index
@@ -193,9 +210,9 @@ class HypergraphIndex:
             logger.info(f"FAISS HNSW index built with {self.index.ntotal} vectors")
 
             # Build lookup tables
-            self.chunk_ids = df_chunks['chunk_id'].tolist()
-            self.chunk_to_doc = dict(zip(df_chunks['chunk_id'], df_chunks['doc_id']))
-            self.chunk_texts = dict(zip(df_chunks['chunk_id'], df_chunks['chunk_text']))
+            self.chunk_ids = df_chunks["chunk_id"].tolist()
+            self.chunk_to_doc = dict(zip(df_chunks["chunk_id"], df_chunks["doc_id"]))
+            self.chunk_texts = dict(zip(df_chunks["chunk_id"], df_chunks["chunk_text"]))
 
             for chunk_id, doc_id in self.chunk_to_doc.items():
                 self.doc_to_chunks[doc_id].append(chunk_id)
@@ -223,21 +240,21 @@ class HypergraphIndex:
         edges_file = graph_path / "edges.jsonl"
 
         if nodes_file.exists():
-            with open(nodes_file, 'r', encoding='utf-8') as f:
+            with open(nodes_file, "r", encoding="utf-8") as f:
                 for line in f:
                     node = json.loads(line)
-                    self.graph.add_node(node['id'], **node.get('attributes', {}))
+                    self.graph.add_node(node["id"], **node.get("attributes", {}))
             logger.info(f"Loaded {self.graph.number_of_nodes()} nodes")
 
         if edges_file.exists():
-            with open(edges_file, 'r', encoding='utf-8') as f:
+            with open(edges_file, "r", encoding="utf-8") as f:
                 for line in f:
                     edge = json.loads(line)
                     self.graph.add_edge(
-                        edge['source'],
-                        edge['target'],
-                        relation=edge.get('relation', 'RELATED'),
-                        **edge.get('attributes', {})
+                        edge["source"],
+                        edge["target"],
+                        relation=edge.get("relation", "RELATED"),
+                        **edge.get("attributes", {}),
                     )
             logger.info(f"Loaded {self.graph.number_of_edges()} edges")
 
@@ -246,23 +263,25 @@ class HypergraphIndex:
         self.graph = nx.MultiDiGraph()
 
         # Add document nodes
-        doc_ids = df_chunks['doc_id'].unique()
+        doc_ids = df_chunks["doc_id"].unique()
         for doc_id in doc_ids:
             self.graph.add_node(f"doc::{doc_id}", type="document")
 
         # Add chunk nodes and edges
         for _, row in df_chunks.iterrows():
-            chunk_id = row['chunk_id']
-            doc_id = row['doc_id']
+            chunk_id = row["chunk_id"]
+            doc_id = row["doc_id"]
             self.graph.add_node(f"chunk::{chunk_id}", type="chunk")
-            self.graph.add_edge(f"chunk::{chunk_id}", f"doc::{doc_id}", relation="PART_OF")
+            self.graph.add_edge(
+                f"chunk::{chunk_id}", f"doc::{doc_id}", relation="PART_OF"
+            )
 
-        logger.info(f"Built minimal graph: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges")
+        logger.info(
+            f"Built minimal graph: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges"
+        )
 
     def search_semantic(
-        self,
-        query_embedding: np.ndarray,
-        k: int = 10
+        self, query_embedding: np.ndarray, k: int = 10
     ) -> List[Tuple[str, float]]:
         """
         Pure semantic search using HNSW index.
@@ -292,7 +311,7 @@ class HypergraphIndex:
         self,
         anchor_ids: List[str],
         max_hops: int = 2,
-        relation_filter: Optional[Set[str]] = None
+        relation_filter: Optional[Set[str]] = None,
     ) -> Dict[str, int]:
         """
         Find graph neighbors within max_hops of anchor nodes.
@@ -325,7 +344,7 @@ class HypergraphIndex:
                         if relation_filter:
                             edges = self.graph.get_edge_data(node, neighbor)
                             if edges:
-                                relations = {e.get('relation') for e in edges.values()}
+                                relations = {e.get("relation") for e in edges.values()}
                                 if not relations.intersection(relation_filter):
                                     continue
                         neighbors[neighbor] = hop
@@ -374,8 +393,7 @@ class HypergraphRAGEngine:
             return False
 
         success = self.index.build_from_parquet(
-            CHUNKS_TABLE_PATH,
-            GRAPH_PATH if GRAPH_PATH.exists() else None
+            CHUNKS_TABLE_PATH, GRAPH_PATH if GRAPH_PATH.exists() else None
         )
 
         self.is_initialized = success
@@ -388,7 +406,7 @@ class HypergraphRAGEngine:
         k: int = 10,
         max_hops: int = 2,
         snr_threshold: float = SNR_THRESHOLD,
-        max_tokens: int = 4000
+        max_tokens: int = 4000,
     ) -> QueryContext:
         """
         Execute retrieval with specified mode.
@@ -413,7 +431,9 @@ class HypergraphRAGEngine:
         # Step 1: Encode query (skip for WARP mode which has its own encoder)
         if mode != RetrievalMode.WARP:
             query_embedding = self.encoder.encode(query, convert_to_numpy=True)
-            reasoning_trace.append(f"Encoded query to {len(query_embedding)}-dim vector")
+            reasoning_trace.append(
+                f"Encoded query to {len(query_embedding)}-dim vector"
+            )
         else:
             query_embedding = None
 
@@ -423,25 +443,33 @@ class HypergraphRAGEngine:
         elif mode == RetrievalMode.STRUCTURAL:
             results = self._structural_retrieval(query, k, reasoning_trace)
         elif mode == RetrievalMode.MULTI_HOP:
-            results = self._multi_hop_retrieval(query_embedding, k, max_hops, reasoning_trace)
+            results = self._multi_hop_retrieval(
+                query_embedding, k, max_hops, reasoning_trace
+            )
         elif mode == RetrievalMode.WARP:
             results = self._warp_retrieval(query, k, reasoning_trace)
         else:  # HYBRID (default)
-            results = self._hybrid_retrieval(query_embedding, k, max_hops, reasoning_trace)
+            results = self._hybrid_retrieval(
+                query_embedding, k, max_hops, reasoning_trace
+            )
 
         # Step 3: Calculate SNR
         if results and query_embedding is not None:
-            result_embeddings = np.array([
-                self.index.get_chunk_embedding(r.chunk_id)
-                for r in results
-                if self.index.get_chunk_embedding(r.chunk_id) is not None
-            ])
+            result_embeddings = np.array(
+                [
+                    self.index.get_chunk_embedding(r.chunk_id)
+                    for r in results
+                    if self.index.get_chunk_embedding(r.chunk_id) is not None
+                ]
+            )
 
             if len(result_embeddings) > 0:
                 snr_score, snr_metrics = self.snr_calculator.calculate(
                     query_embedding, result_embeddings, results
                 )
-                reasoning_trace.append(f"SNR Score: {snr_score} (threshold: {snr_threshold})")
+                reasoning_trace.append(
+                    f"SNR Score: {snr_score} (threshold: {snr_threshold})"
+                )
                 reasoning_trace.append(f"SNR Metrics: {snr_metrics}")
             else:
                 snr_score = 0.0
@@ -459,11 +487,13 @@ class HypergraphRAGEngine:
             if expanded_results:
                 results = expanded_results
                 # Recalculate SNR
-                result_embeddings = np.array([
-                    self.index.get_chunk_embedding(r.chunk_id)
-                    for r in results
-                    if self.index.get_chunk_embedding(r.chunk_id) is not None
-                ])
+                result_embeddings = np.array(
+                    [
+                        self.index.get_chunk_embedding(r.chunk_id)
+                        for r in results
+                        if self.index.get_chunk_embedding(r.chunk_id) is not None
+                    ]
+                )
                 if len(result_embeddings) > 0:
                     snr_score, _ = self.snr_calculator.calculate(
                         query_embedding, result_embeddings, results
@@ -479,7 +509,9 @@ class HypergraphRAGEngine:
                 truncated_results.append(result)
                 total_tokens += token_est
             else:
-                reasoning_trace.append(f"Token limit reached, keeping {len(truncated_results)} results")
+                reasoning_trace.append(
+                    f"Token limit reached, keeping {len(truncated_results)} results"
+                )
                 break
 
         return QueryContext(
@@ -489,14 +521,11 @@ class HypergraphRAGEngine:
             snr_score=snr_score,
             reasoning_trace=reasoning_trace,
             total_tokens_est=int(total_tokens),
-            retrieval_mode=mode
+            retrieval_mode=mode,
         )
 
     def _semantic_retrieval(
-        self,
-        query_embedding: np.ndarray,
-        k: int,
-        trace: List[str]
+        self, query_embedding: np.ndarray, k: int, trace: List[str]
     ) -> List[RetrievalResult]:
         """Pure semantic search."""
         trace.append(f"Semantic search: k={k}")
@@ -505,23 +534,22 @@ class HypergraphRAGEngine:
 
         results = []
         for rank, (chunk_id, score) in enumerate(search_results):
-            results.append(RetrievalResult(
-                chunk_id=chunk_id,
-                doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
-                text=self.index.chunk_texts.get(chunk_id, ""),
-                score=score,
-                retrieval_path=["semantic"],
-                semantic_rank=rank + 1
-            ))
+            results.append(
+                RetrievalResult(
+                    chunk_id=chunk_id,
+                    doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
+                    text=self.index.chunk_texts.get(chunk_id, ""),
+                    score=score,
+                    retrieval_path=["semantic"],
+                    semantic_rank=rank + 1,
+                )
+            )
 
         trace.append(f"Found {len(results)} semantic matches")
         return results
 
     def _structural_retrieval(
-        self,
-        query: str,
-        k: int,
-        trace: List[str]
+        self, query: str, k: int, trace: List[str]
     ) -> List[RetrievalResult]:
         """Graph-based retrieval using entity matching."""
         trace.append(f"Structural search: k={k}")
@@ -550,26 +578,27 @@ class HypergraphRAGEngine:
             for neighbor, distance in neighbors.items():
                 if neighbor.startswith("chunk::"):
                     chunk_id = neighbor.replace("chunk::", "")
-                    if chunk_id not in seen_chunks and chunk_id in self.index.chunk_texts:
+                    if (
+                        chunk_id not in seen_chunks
+                        and chunk_id in self.index.chunk_texts
+                    ):
                         seen_chunks.add(chunk_id)
-                        results.append(RetrievalResult(
-                            chunk_id=chunk_id,
-                            doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
-                            text=self.index.chunk_texts.get(chunk_id, ""),
-                            score=1.0 / (1 + distance),
-                            retrieval_path=["structural", node],
-                            graph_distance=distance
-                        ))
+                        results.append(
+                            RetrievalResult(
+                                chunk_id=chunk_id,
+                                doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
+                                text=self.index.chunk_texts.get(chunk_id, ""),
+                                score=1.0 / (1 + distance),
+                                retrieval_path=["structural", node],
+                                graph_distance=distance,
+                            )
+                        )
 
         trace.append(f"Found {len(results)} structural matches")
         return results[:k]
 
     def _hybrid_retrieval(
-        self,
-        query_embedding: np.ndarray,
-        k: int,
-        max_hops: int,
-        trace: List[str]
+        self, query_embedding: np.ndarray, k: int, max_hops: int, trace: List[str]
     ) -> List[RetrievalResult]:
         """Combined semantic + structural retrieval."""
         trace.append(f"Hybrid search: k={k}, max_hops={max_hops}")
@@ -578,13 +607,12 @@ class HypergraphRAGEngine:
         semantic_results = self._semantic_retrieval(query_embedding, k, trace)
 
         # Use top semantic results as anchors for graph expansion
-        anchor_chunks = [r.chunk_id for r in semantic_results[:k//2]]
-        anchor_docs = [r.doc_id for r in semantic_results[:k//2]]
+        anchor_chunks = [r.chunk_id for r in semantic_results[: k // 2]]
+        anchor_docs = [r.doc_id for r in semantic_results[: k // 2]]
 
         # Find graph neighbors
         neighbors = self.index.search_graph_neighbors(
-            anchor_chunks + anchor_docs,
-            max_hops=max_hops
+            anchor_chunks + anchor_docs, max_hops=max_hops
         )
 
         # Collect neighbor chunks
@@ -598,72 +626,82 @@ class HypergraphRAGEngine:
                     # Get embedding and calculate similarity
                     chunk_emb = self.index.get_chunk_embedding(chunk_id)
                     if chunk_emb is not None:
-                        similarity = float(np.dot(
-                            query_embedding / np.linalg.norm(query_embedding),
-                            chunk_emb / np.linalg.norm(chunk_emb)
-                        ))
-                        neighbor_results.append(RetrievalResult(
-                            chunk_id=chunk_id,
-                            doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
-                            text=self.index.chunk_texts.get(chunk_id, ""),
-                            score=similarity * (1.0 / (1 + distance)),  # Weighted by distance
-                            retrieval_path=["hybrid", "graph_expansion"],
-                            graph_distance=distance,
-                            semantic_rank=0
-                        ))
+                        similarity = float(
+                            np.dot(
+                                query_embedding / np.linalg.norm(query_embedding),
+                                chunk_emb / np.linalg.norm(chunk_emb),
+                            )
+                        )
+                        neighbor_results.append(
+                            RetrievalResult(
+                                chunk_id=chunk_id,
+                                doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
+                                text=self.index.chunk_texts.get(chunk_id, ""),
+                                score=similarity
+                                * (1.0 / (1 + distance)),  # Weighted by distance
+                                retrieval_path=["hybrid", "graph_expansion"],
+                                graph_distance=distance,
+                                semantic_rank=0,
+                            )
+                        )
 
         # Merge and sort by score
         all_results = semantic_results + neighbor_results
         all_results.sort(key=lambda x: x.score, reverse=True)
 
-        trace.append(f"Hybrid total: {len(all_results)} ({len(semantic_results)} semantic + {len(neighbor_results)} graph)")
-        return all_results[:k * 2]  # Return more for SNR filtering
+        trace.append(
+            f"Hybrid total: {len(all_results)} ({len(semantic_results)} semantic + {len(neighbor_results)} graph)"
+        )
+        return all_results[: k * 2]  # Return more for SNR filtering
 
     def _warp_retrieval(
-        self,
-        query: str,
-        k: int,
-        trace: List[str]
+        self, query: str, k: int, trace: List[str]
     ) -> List[RetrievalResult]:
         """
         Multi-vector retrieval using XTR-WARP (ColBERT late interaction).
-        
+
         WARP provides higher accuracy than single-vector retrieval by using
         per-token embeddings and late interaction scoring.
         """
         trace.append(f"WARP multi-vector search: k={k}")
-        
+
         try:
             from warp_bridge import WARPBridge
-            
+
             # Use lazy-initialized WARP bridge
-            if not hasattr(self, '_warp_bridge'):
+            if not hasattr(self, "_warp_bridge"):
                 self._warp_bridge = WARPBridge(lazy_init=True)
-            
+
             response = self._warp_bridge.search(query, k=k)
-            
-            if response.metadata.get('fallback'):
-                trace.append(f"WARP fallback: {response.metadata.get('error', 'unknown')}")
+
+            if response.metadata.get("fallback"):
+                trace.append(
+                    f"WARP fallback: {response.metadata.get('error', 'unknown')}"
+                )
                 # Fall back to semantic retrieval
                 query_embedding = self.encoder.encode(query, convert_to_numpy=True)
                 return self._semantic_retrieval(query_embedding, k, trace)
-            
+
             results = []
             for r in response.results:
-                results.append(RetrievalResult(
-                    chunk_id=r.chunk_id,
-                    doc_id=r.doc_id,
-                    text=r.text,
-                    score=r.score,
-                    retrieval_path=["warp", "colbert_late_interaction"],
-                    graph_distance=0,
-                    semantic_rank=r.rank,
-                    metadata={"warp_score": r.score}
-                ))
-            
-            trace.append(f"WARP returned {len(results)} results (SNR estimate: {response.snr_estimate:.4f})")
+                results.append(
+                    RetrievalResult(
+                        chunk_id=r.chunk_id,
+                        doc_id=r.doc_id,
+                        text=r.text,
+                        score=r.score,
+                        retrieval_path=["warp", "colbert_late_interaction"],
+                        graph_distance=0,
+                        semantic_rank=r.rank,
+                        metadata={"warp_score": r.score},
+                    )
+                )
+
+            trace.append(
+                f"WARP returned {len(results)} results (SNR estimate: {response.snr_estimate:.4f})"
+            )
             return results
-            
+
         except ImportError:
             trace.append("WARP not available, falling back to semantic retrieval")
             query_embedding = self.encoder.encode(query, convert_to_numpy=True)
@@ -674,11 +712,7 @@ class HypergraphRAGEngine:
             return self._semantic_retrieval(query_embedding, k, trace)
 
     def _multi_hop_retrieval(
-        self,
-        query_embedding: np.ndarray,
-        k: int,
-        max_hops: int,
-        trace: List[str]
+        self, query_embedding: np.ndarray, k: int, max_hops: int, trace: List[str]
     ) -> List[RetrievalResult]:
         """Multi-hop reasoning: iterative semantic + graph traversal."""
         trace.append(f"Multi-hop search: k={k}, max_hops={max_hops}")
@@ -697,15 +731,17 @@ class HypergraphRAGEngine:
             for rank, (chunk_id, score) in enumerate(hop_results):
                 if chunk_id not in seen_chunks:
                     seen_chunks.add(chunk_id)
-                    new_results.append(RetrievalResult(
-                        chunk_id=chunk_id,
-                        doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
-                        text=self.index.chunk_texts.get(chunk_id, ""),
-                        score=score * (0.9 ** hop),  # Decay by hop
-                        retrieval_path=["multi_hop", f"hop_{hop + 1}"],
-                        graph_distance=hop,
-                        semantic_rank=rank + 1
-                    ))
+                    new_results.append(
+                        RetrievalResult(
+                            chunk_id=chunk_id,
+                            doc_id=self.index.chunk_to_doc.get(chunk_id, "unknown"),
+                            text=self.index.chunk_texts.get(chunk_id, ""),
+                            score=score * (0.9**hop),  # Decay by hop
+                            retrieval_path=["multi_hop", f"hop_{hop + 1}"],
+                            graph_distance=hop,
+                            semantic_rank=rank + 1,
+                        )
+                    )
 
             all_results.extend(new_results)
             trace.append(f"Hop {hop + 1}: found {len(new_results)} new chunks")
@@ -721,14 +757,14 @@ class HypergraphRAGEngine:
                     current_embedding = np.mean(embeddings, axis=0)
 
         all_results.sort(key=lambda x: x.score, reverse=True)
-        return all_results[:k * 2]
+        return all_results[: k * 2]
 
     def _expand_low_snr(
         self,
         query_embedding: np.ndarray,
         current_results: List[RetrievalResult],
         k: int,
-        trace: List[str]
+        trace: List[str],
     ) -> List[RetrievalResult]:
         """Expand search when SNR is below threshold."""
         trace.append("Expanding search for better diversity")
@@ -749,14 +785,16 @@ class HypergraphRAGEngine:
         for chunk_id, score in new_candidates:
             doc_id = self.index.chunk_to_doc.get(chunk_id, "unknown")
             if doc_count[doc_id] < 2:  # Max 2 chunks per doc
-                diverse_results.append(RetrievalResult(
-                    chunk_id=chunk_id,
-                    doc_id=doc_id,
-                    text=self.index.chunk_texts.get(chunk_id, ""),
-                    score=score,
-                    retrieval_path=["expansion", "diversity"],
-                    semantic_rank=len(diverse_results) + 1
-                ))
+                diverse_results.append(
+                    RetrievalResult(
+                        chunk_id=chunk_id,
+                        doc_id=doc_id,
+                        text=self.index.chunk_texts.get(chunk_id, ""),
+                        score=score,
+                        retrieval_path=["expansion", "diversity"],
+                        semantic_rank=len(diverse_results) + 1,
+                    )
+                )
                 doc_count[doc_id] += 1
 
             if len(diverse_results) >= k:
@@ -782,7 +820,7 @@ def main():
     test_queries = [
         "How does the BIZRA system process incoming files?",
         "What is the architecture of the data lake?",
-        "Explain the embedding generation process"
+        "Explain the embedding generation process",
     ]
 
     for query in test_queries:
@@ -791,10 +829,7 @@ def main():
         print("=" * 70)
 
         context = engine.retrieve(
-            query=query,
-            mode=RetrievalMode.HYBRID,
-            k=5,
-            max_hops=2
+            query=query, mode=RetrievalMode.HYBRID, k=5, max_hops=2
         )
 
         print(f"\nSNR Score: {context.snr_score}")

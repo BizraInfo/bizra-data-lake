@@ -37,8 +37,10 @@ router = APIRouter(prefix="/accumulator", tags=["accumulator"])
 # REQUEST/RESPONSE MODELS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class SeedRequest(BaseModel):
     """Request to plant a seed."""
+
     contributor: str = Field(..., description="Contributor identifier")
     category: str = Field(..., description="Impact category")
     amount: float = Field(..., gt=0, description="Seed amount")
@@ -47,6 +49,7 @@ class SeedRequest(BaseModel):
 
 class SeedResponse(BaseModel):
     """Seed response."""
+
     seed_id: str
     contributor: str
     category: str
@@ -57,6 +60,7 @@ class SeedResponse(BaseModel):
 
 class ImpactRequest(BaseModel):
     """Request to record impact."""
+
     contributor: str
     action: str
     category: str
@@ -67,6 +71,7 @@ class ImpactRequest(BaseModel):
 
 class ComputationImpactRequest(BaseModel):
     """Request to record computation impact."""
+
     contributor: str
     tokens_processed: int = Field(..., gt=0)
     latency_ms: float = Field(..., gt=0)
@@ -75,6 +80,7 @@ class ComputationImpactRequest(BaseModel):
 
 class KnowledgeImpactRequest(BaseModel):
     """Request to record knowledge impact."""
+
     contributor: str
     documents_processed: int = Field(..., gt=0)
     synthesis_quality: float = Field(..., ge=0, le=1)
@@ -83,6 +89,7 @@ class KnowledgeImpactRequest(BaseModel):
 
 class CodeImpactRequest(BaseModel):
     """Request to record code impact."""
+
     contributor: str
     lines_changed: int = Field(..., ge=0)
     test_coverage: float = Field(..., ge=0, le=1)
@@ -92,6 +99,7 @@ class CodeImpactRequest(BaseModel):
 
 class EthicsImpactRequest(BaseModel):
     """Request to record ethics impact."""
+
     contributor: str
     reviews_completed: int = Field(..., gt=0)
     violations_caught: int = Field(default=0, ge=0)
@@ -99,6 +107,7 @@ class EthicsImpactRequest(BaseModel):
 
 class CommunityImpactRequest(BaseModel):
     """Request to record community impact."""
+
     contributor: str
     users_helped: int = Field(..., gt=0)
     satisfaction_score: float = Field(..., ge=0, le=1)
@@ -106,6 +115,7 @@ class CommunityImpactRequest(BaseModel):
 
 class BloomResponse(BaseModel):
     """Bloom status response."""
+
     contributor: str
     total_bloom: float
     category_bloom: Dict[str, float]
@@ -116,6 +126,7 @@ class BloomResponse(BaseModel):
 
 class FruitResponse(BaseModel):
     """Fruit harvest response."""
+
     fruit_id: str
     contributor: str
     bloom_source: float
@@ -125,18 +136,21 @@ class FruitResponse(BaseModel):
 
 class ZakatDistributionRequest(BaseModel):
     """Request to distribute zakat."""
+
     recipients: List[str]
     amounts: Optional[List[float]] = None
 
 
 class ZakatDistributionResponse(BaseModel):
     """Zakat distribution response."""
+
     distributions: Dict[str, float]
     remaining_pool: float
 
 
 class StatusResponse(BaseModel):
     """Accumulator status response."""
+
     version: str
     state: str
     total_seeds: int
@@ -149,6 +163,7 @@ class StatusResponse(BaseModel):
 
 class LeaderboardEntry(BaseModel):
     """Leaderboard entry."""
+
     rank: int
     contributor: str
     total_bloom: float
@@ -162,6 +177,7 @@ class LeaderboardEntry(BaseModel):
 # DEPENDENCY
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def get_acc() -> BizraAccumulator:
     """Get accumulator instance."""
     return get_accumulator()
@@ -170,6 +186,7 @@ def get_acc() -> BizraAccumulator:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @router.get("/status", response_model=StatusResponse)
 async def get_status(acc: BizraAccumulator = Depends(get_acc)):
@@ -210,16 +227,16 @@ async def plant_seed(
             status_code=400,
             detail=f"Invalid category. Must be one of: {[c.value for c in ImpactCategory]}",
         )
-    
+
     seed = acc.plant_seed(
         contributor=request.contributor,
         category=category,
         amount=request.amount,
         metadata=request.metadata,
     )
-    
+
     bloom = acc.get_bloom(request.contributor)
-    
+
     return SeedResponse(
         seed_id=seed.seed_id,
         contributor=seed.contributor,
@@ -243,7 +260,7 @@ async def record_generic_impact(
             status_code=400,
             detail=f"Invalid category. Must be one of: {[c.value for c in ImpactCategory]}",
         )
-    
+
     bloom_added = acc.record_impact(
         contributor=request.contributor,
         action=request.action,
@@ -252,7 +269,7 @@ async def record_generic_impact(
         resources=request.resources,
         benchmarks=request.benchmarks,
     )
-    
+
     return {"bloom_added": bloom_added}
 
 
@@ -339,7 +356,7 @@ async def get_contributor_bloom(
     bloom = acc.get_bloom(contributor)
     if not bloom:
         raise HTTPException(status_code=404, detail="Contributor not found")
-    
+
     return BloomResponse(
         contributor=bloom.contributor,
         total_bloom=bloom.total_bloom,
@@ -362,7 +379,7 @@ async def harvest_fruit(
             status_code=400,
             detail="Cannot harvest: insufficient bloom or contributor not found",
         )
-    
+
     return FruitResponse(
         fruit_id=fruit.fruit_id,
         contributor=fruit.contributor,
@@ -386,12 +403,12 @@ async def distribute_zakat(
     """Distribute zakat to recipients."""
     if not request.recipients:
         raise HTTPException(status_code=400, detail="At least one recipient required")
-    
+
     distributions = acc.distribute_zakat(
         recipients=request.recipients,
         amounts=request.amounts,
     )
-    
+
     return ZakatDistributionResponse(
         distributions=distributions,
         remaining_pool=acc.zakat_pool,

@@ -21,6 +21,7 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, StreamingResponse
     from pydantic import BaseModel, Field
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -29,14 +30,16 @@ except ImportError:
 # BIZRA imports
 from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
 from bizra_runtime import (
-    BIZRARuntime, LoadBalanceStrategy, QueryResult,
-    RuntimeMetrics, BackendStatus
+    BIZRARuntime,
+    LoadBalanceStrategy,
+    QueryResult,
+    RuntimeMetrics,
+    BackendStatus,
 )
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | API | %(message)s'
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | API | %(message)s"
 )
 logger = logging.getLogger("BIZRA-API")
 
@@ -45,19 +48,28 @@ logger = logging.getLogger("BIZRA-API")
 # PYDANTIC MODELS
 # ============================================================================
 
+
 class QueryRequest(BaseModel):
     """Request model for query execution"""
+
     query: str = Field(..., description="The query text", min_length=1)
-    capability: str = Field("text", description="Required capability: text, vision, reasoning, code")
+    capability: str = Field(
+        "text", description="Required capability: text, vision, reasoning, code"
+    )
     use_orchestrator: bool = Field(False, description="Use full orchestrator pipeline")
     max_tokens: int = Field(2048, description="Maximum tokens in response")
-    temperature: float = Field(0.7, ge=0, le=2, description="Temperature for generation")
+    temperature: float = Field(
+        0.7, ge=0, le=2, description="Temperature for generation"
+    )
     system_prompt: Optional[str] = Field(None, description="Custom system prompt")
-    image_path: Optional[str] = Field(None, description="Path to image for vision queries")
+    image_path: Optional[str] = Field(
+        None, description="Path to image for vision queries"
+    )
 
 
 class QueryResponse(BaseModel):
     """Response model for query execution"""
+
     success: bool
     content: str
     backend_used: str
@@ -71,6 +83,7 @@ class QueryResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     version: str
     uptime_seconds: float
@@ -81,6 +94,7 @@ class HealthResponse(BaseModel):
 
 class BackendHealthResponse(BaseModel):
     """Backend health status"""
+
     name: str
     status: str
     url: str
@@ -91,6 +105,7 @@ class BackendHealthResponse(BaseModel):
 
 class MetricsResponse(BaseModel):
     """Runtime metrics response"""
+
     uptime_seconds: float
     total_requests: int
     successful_requests: int
@@ -105,8 +120,11 @@ class MetricsResponse(BaseModel):
 
 class VisionQueryRequest(BaseModel):
     """Request model for vision queries"""
+
     image_path: str = Field(..., description="Path to image file")
-    prompt: Optional[str] = Field("Analyze this image in detail", description="Analysis prompt")
+    prompt: Optional[str] = Field(
+        "Analyze this image in detail", description="Analysis prompt"
+    )
     max_tokens: int = Field(2048, description="Maximum tokens in response")
 
 
@@ -126,7 +144,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting BIZRA API server...")
     runtime = BIZRARuntime(
         load_balance_strategy=LoadBalanceStrategy.LEAST_LATENCY,
-        enable_auto_recovery=True
+        enable_auto_recovery=True,
     )
     await runtime.start()
     logger.info("BIZRA API server started")
@@ -172,7 +190,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
         version="1.0.0",
         lifespan=lifespan,
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
 
     # CORS middleware
@@ -181,7 +199,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
         allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"]
+        allow_headers=["*"],
     )
 
     # ========================================================================
@@ -212,10 +230,12 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
             uptime_seconds=metrics.uptime_seconds,
             backends_healthy=metrics.backends_healthy,
             backends_total=metrics.backends_total,
-            snr_average=metrics.snr_average
+            snr_average=metrics.snr_average,
         )
 
-    @app.get("/health/backends", response_model=List[BackendHealthResponse], tags=["Health"])
+    @app.get(
+        "/health/backends", response_model=List[BackendHealthResponse], tags=["Health"]
+    )
     async def get_backend_health():
         """
         Get detailed health status of all backends.
@@ -234,7 +254,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
                 url=health.url,
                 latency_ms=health.latency_ms,
                 models_count=len(health.available_models),
-                capabilities=list(health.capabilities)
+                capabilities=list(health.capabilities),
             )
             for name, health in all_health.items()
         ]
@@ -286,7 +306,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
             max_tokens=request.max_tokens,
             temperature=request.temperature,
             system_prompt=request.system_prompt,
-            image_path=request.image_path
+            image_path=request.image_path,
         )
 
         return QueryResponse(
@@ -298,7 +318,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
             snr_score=result.snr_score,
             tokens_used=result.tokens_used,
             error=result.error,
-            metadata=result.metadata
+            metadata=result.metadata,
         )
 
     @app.post("/query/vision", response_model=QueryResponse, tags=["Query"])
@@ -313,14 +333,16 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
 
         # Verify image exists
         if not Path(request.image_path).exists():
-            raise HTTPException(status_code=400, detail=f"Image not found: {request.image_path}")
+            raise HTTPException(
+                status_code=400, detail=f"Image not found: {request.image_path}"
+            )
 
         result = await runtime.execute_query(
             query=request.prompt,
             capability="vision",
             use_orchestrator=False,
             max_tokens=request.max_tokens,
-            image_path=request.image_path
+            image_path=request.image_path,
         )
 
         return QueryResponse(
@@ -332,7 +354,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
             snr_score=result.snr_score,
             tokens_used=result.tokens_used,
             error=result.error,
-            metadata=result.metadata
+            metadata=result.metadata,
         )
 
     @app.get("/query/capabilities", tags=["Query"])
@@ -355,7 +377,9 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
         return {
             "capabilities": list(available_capabilities),
             "primary_backend": runtime.load_balancer.select_backend("text"),
-            "vision_backend": runtime.health_monitor.get_backend_for_capability("vision")
+            "vision_backend": runtime.health_monitor.get_backend_for_capability(
+                "vision"
+            ),
         }
 
     # ========================================================================
@@ -374,9 +398,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
 
         metrics = runtime.get_metrics()
 
-        success_rate = (
-            metrics.successful_requests / max(metrics.total_requests, 1)
-        )
+        success_rate = metrics.successful_requests / max(metrics.total_requests, 1)
 
         return MetricsResponse(
             uptime_seconds=metrics.uptime_seconds,
@@ -388,7 +410,7 @@ Elite-level REST interface for the BIZRA Data Lake Production Runtime.
             p95_latency_ms=metrics.p95_latency_ms,
             p99_latency_ms=metrics.p99_latency_ms,
             snr_average=metrics.snr_average,
-            ihsan_compliance=metrics.ihsan_compliance
+            ihsan_compliance=metrics.ihsan_compliance,
         )
 
     @app.get("/metrics/prometheus", tags=["Metrics"])
@@ -447,10 +469,7 @@ bizra_backends_healthy {metrics.backends_healthy}
 # TYPE bizra_backends_total gauge
 bizra_backends_total {metrics.backends_total}
 """
-        return StreamingResponse(
-            iter([prometheus_output]),
-            media_type="text/plain"
-        )
+        return StreamingResponse(iter([prometheus_output]), media_type="text/plain")
 
     # ========================================================================
     # STATUS ENDPOINTS
@@ -482,13 +501,14 @@ bizra_backends_total {metrics.backends_total}
             "docs": "/docs",
             "redoc": "/redoc",
             "health": "/health",
-            "metrics": "/metrics"
+            "metrics": "/metrics",
         }
 
 
 # ============================================================================
 # MAIN
 # ============================================================================
+
 
 def run_server(host: str = "0.0.0.0", port: int = 8000):
     """Run the BIZRA API server"""
@@ -509,13 +529,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
     print("=" * 60)
     print()
 
-    uvicorn.run(
-        "bizra_api:app",
-        host=host,
-        port=port,
-        reload=False,
-        log_level="info"
-    )
+    uvicorn.run("bizra_api:app", host=host, port=port, reload=False, log_level="info")
 
 
 if __name__ == "__main__":

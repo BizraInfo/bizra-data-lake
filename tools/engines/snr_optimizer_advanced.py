@@ -15,6 +15,7 @@ import json
 # Configuration — canonical source: core.integration.constants
 # NOTE: Uses STRICT threshold (0.99) intentionally for optimizer convergence
 from core.integration.constants import STRICT_IHSAN_THRESHOLD as IHSAN_THRESHOLD  # type: ignore[import-untyped]
+
 ACCEPTABLE_THRESHOLD = 0.95
 MAX_OPTIMIZATION_ROUNDS = 5
 
@@ -24,6 +25,7 @@ logger = logging.getLogger("SNR.Optimizer")
 
 class OptimizationStrategy(Enum):
     """Available optimization strategies"""
+
     QUERY_EXPANSION = "query_expansion"
     ENSEMBLE_FUSION = "ensemble_fusion"
     ITERATIVE_REFINEMENT = "iterative_refinement"
@@ -36,6 +38,7 @@ class OptimizationStrategy(Enum):
 @dataclass
 class OptimizationResult:
     """Result of optimization attempt"""
+
     strategy: str
     initial_snr: float
     final_snr: float
@@ -48,6 +51,7 @@ class OptimizationResult:
 @dataclass
 class SNRComponents:
     """Detailed SNR component breakdown"""
+
     signal_strength: float
     information_density: float
     symbolic_grounding: float
@@ -60,14 +64,14 @@ class SNRComponents:
             "signal_strength": 0.35,
             "information_density": 0.25,
             "symbolic_grounding": 0.25,
-            "coverage_balance": 0.15
+            "coverage_balance": 0.15,
         }
 
         components = [
             (self.signal_strength, weights["signal_strength"]),
             (self.information_density, weights["information_density"]),
             (self.symbolic_grounding, weights["symbolic_grounding"]),
-            (self.coverage_balance, weights["coverage_balance"])
+            (self.coverage_balance, weights["coverage_balance"]),
         ]
 
         # Avoid log(0)
@@ -90,7 +94,7 @@ class BaseOptimizer(ABC):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
         """
         Optimize SNR components.
@@ -118,24 +122,26 @@ class QueryExpansionOptimizer(BaseOptimizer):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         # Simulate query expansion effect
-        expanded_coverage = min(1.0, initial_snr.coverage_balance * self.expansion_factor)
+        expanded_coverage = min(
+            1.0, initial_snr.coverage_balance * self.expansion_factor
+        )
         expanded_signal = min(1.0, initial_snr.signal_strength * 1.1)
 
         optimized = SNRComponents(
             signal_strength=expanded_signal,
             information_density=initial_snr.information_density,
             symbolic_grounding=initial_snr.symbolic_grounding,
-            coverage_balance=expanded_coverage
+            coverage_balance=expanded_coverage,
         )
 
         details = {
             "expansion_factor": self.expansion_factor,
             "coverage_improvement": expanded_coverage - initial_snr.coverage_balance,
-            "expanded_terms": len(symbolic_facts) * 2
+            "expanded_terms": len(symbolic_facts) * 2,
         }
 
         self.optimization_count += 1
@@ -152,18 +158,14 @@ class EnsembleFusionOptimizer(BaseOptimizer):
 
     def __init__(self):
         super().__init__("ensemble_fusion")
-        self.ensemble_weights = {
-            "semantic": 0.4,
-            "structural": 0.3,
-            "lexical": 0.3
-        }
+        self.ensemble_weights = {"semantic": 0.4, "structural": 0.3, "lexical": 0.3}
 
     async def optimize(
         self,
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         # Simulate ensemble fusion boosting all components
@@ -173,13 +175,13 @@ class EnsembleFusionOptimizer(BaseOptimizer):
             signal_strength=min(1.0, initial_snr.signal_strength * boost),
             information_density=min(1.0, initial_snr.information_density * boost),
             symbolic_grounding=min(1.0, initial_snr.symbolic_grounding * boost),
-            coverage_balance=min(1.0, initial_snr.coverage_balance * boost)
+            coverage_balance=min(1.0, initial_snr.coverage_balance * boost),
         )
 
         details = {
             "ensemble_weights": self.ensemble_weights,
             "boost_factor": boost,
-            "methods_combined": 3
+            "methods_combined": 3,
         }
 
         self.optimization_count += 1
@@ -204,7 +206,7 @@ class IterativeRefinementOptimizer(BaseOptimizer):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         current = initial_snr
@@ -216,21 +218,24 @@ class IterativeRefinementOptimizer(BaseOptimizer):
 
             new_density = min(1.0, current.information_density * refinement_boost)
 
-            if abs(new_density - current.information_density) < self.convergence_threshold:
+            if (
+                abs(new_density - current.information_density)
+                < self.convergence_threshold
+            ):
                 break
 
             current = SNRComponents(
                 signal_strength=current.signal_strength,
                 information_density=new_density,
                 symbolic_grounding=min(1.0, current.symbolic_grounding * 1.02),
-                coverage_balance=current.coverage_balance
+                coverage_balance=current.coverage_balance,
             )
             iterations += 1
 
         details = {
             "iterations": iterations,
             "convergence_threshold": self.convergence_threshold,
-            "converged": iterations < self.max_iterations
+            "converged": iterations < self.max_iterations,
         }
 
         self.optimization_count += 1
@@ -254,7 +259,7 @@ class SymbolicBoostOptimizer(BaseOptimizer):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         # Calculate boost based on available facts
@@ -265,13 +270,13 @@ class SymbolicBoostOptimizer(BaseOptimizer):
             signal_strength=initial_snr.signal_strength,
             information_density=initial_snr.information_density,
             symbolic_grounding=min(1.0, initial_snr.symbolic_grounding * boost),
-            coverage_balance=min(1.0, initial_snr.coverage_balance * 1.05)
+            coverage_balance=min(1.0, initial_snr.coverage_balance * 1.05),
         )
 
         details = {
             "initial_facts": fact_count,
             "hop_depth": self.hop_depth,
-            "grounding_boost": boost
+            "grounding_boost": boost,
         }
 
         self.optimization_count += 1
@@ -295,15 +300,17 @@ class CoherenceFilterOptimizer(BaseOptimizer):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         # Calculate average coherence from embeddings
         if len(context_embeddings) > 1:
             similarities = []
             for i, emb1 in enumerate(context_embeddings):
-                for emb2 in context_embeddings[i+1:]:
-                    sim = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+                for emb2 in context_embeddings[i + 1 :]:
+                    sim = np.dot(emb1, emb2) / (
+                        np.linalg.norm(emb1) * np.linalg.norm(emb2)
+                    )
                     similarities.append(sim)
             avg_coherence = np.mean(similarities) if similarities else 0.5
         else:
@@ -316,14 +323,14 @@ class CoherenceFilterOptimizer(BaseOptimizer):
             signal_strength=min(1.0, initial_snr.signal_strength * filter_boost),
             information_density=min(1.0, initial_snr.information_density * 1.03),
             symbolic_grounding=initial_snr.symbolic_grounding,
-            coverage_balance=initial_snr.coverage_balance
+            coverage_balance=initial_snr.coverage_balance,
         )
 
         details = {
             "coherence_threshold": self.coherence_threshold,
             "average_coherence": float(avg_coherence),
             "filter_boost": filter_boost,
-            "items_evaluated": len(context_embeddings)
+            "items_evaluated": len(context_embeddings),
         }
 
         self.optimization_count += 1
@@ -347,7 +354,7 @@ class AttentionReweightingOptimizer(BaseOptimizer):
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
         symbolic_facts: List[str],
-        initial_snr: SNRComponents
+        initial_snr: SNRComponents,
     ) -> Tuple[SNRComponents, Dict]:
 
         if not context_embeddings:
@@ -374,13 +381,13 @@ class AttentionReweightingOptimizer(BaseOptimizer):
             signal_strength=min(1.0, initial_snr.signal_strength * attention_boost),
             information_density=min(1.0, initial_snr.information_density * 1.02),
             symbolic_grounding=initial_snr.symbolic_grounding,
-            coverage_balance=initial_snr.coverage_balance
+            coverage_balance=initial_snr.coverage_balance,
         )
 
         details = {
             "temperature": self.temperature,
             "top_attention_weights": top_attention.tolist(),
-            "attention_boost": float(attention_boost)
+            "attention_boost": float(attention_boost),
         }
 
         self.optimization_count += 1
@@ -418,7 +425,7 @@ class AdvancedSNROptimizer:
             "signal_strength": snr.signal_strength,
             "information_density": snr.information_density,
             "symbolic_grounding": snr.symbolic_grounding,
-            "coverage_balance": snr.coverage_balance
+            "coverage_balance": snr.coverage_balance,
         }
 
         weakest = min(components, key=components.get)
@@ -428,7 +435,7 @@ class AdvancedSNROptimizer:
             "signal_strength": OptimizationStrategy.ATTENTION_REWEIGHTING,
             "information_density": OptimizationStrategy.ITERATIVE_REFINEMENT,
             "symbolic_grounding": OptimizationStrategy.SYMBOLIC_BOOST,
-            "coverage_balance": OptimizationStrategy.QUERY_EXPANSION
+            "coverage_balance": OptimizationStrategy.QUERY_EXPANSION,
         }
 
         return strategy_map[weakest]
@@ -440,7 +447,7 @@ class AdvancedSNROptimizer:
         symbolic_facts: List[str],
         initial_components: Optional[SNRComponents] = None,
         strategies: Optional[List[OptimizationStrategy]] = None,
-        max_rounds: int = MAX_OPTIMIZATION_ROUNDS
+        max_rounds: int = MAX_OPTIMIZATION_ROUNDS,
     ) -> Tuple[SNRComponents, List[OptimizationResult]]:
         """
         Optimize SNR to achieve Ihsān threshold (≥0.99).
@@ -472,7 +479,9 @@ class AdvancedSNROptimizer:
         for round_num in range(max_rounds):
             # Check if already at Ihsān level
             if current_snr.overall >= IHSAN_THRESHOLD:
-                logger.info(f"🌟 Ihsān achieved at round {round_num}! SNR: {current_snr.overall:.4f}")
+                logger.info(
+                    f"🌟 Ihsān achieved at round {round_num}! SNR: {current_snr.overall:.4f}"
+                )
                 break
 
             # Select strategy
@@ -498,7 +507,7 @@ class AdvancedSNROptimizer:
                 improvement=improvement,
                 rounds=round_num + 1,
                 ihsan_achieved=optimized_snr.overall >= IHSAN_THRESHOLD,
-                details=details
+                details=details,
             )
             results.append(result)
 
@@ -524,7 +533,7 @@ class AdvancedSNROptimizer:
         self,
         query_embedding: np.ndarray,
         context_embeddings: List[np.ndarray],
-        symbolic_facts: List[str]
+        symbolic_facts: List[str],
     ) -> SNRComponents:
         """Compute initial SNR components from inputs"""
 
@@ -553,7 +562,7 @@ class AdvancedSNROptimizer:
             signal_strength=float(signal_strength),
             information_density=float(info_density),
             symbolic_grounding=float(symbolic_grounding),
-            coverage_balance=float(coverage_balance)
+            coverage_balance=float(coverage_balance),
         )
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -568,14 +577,19 @@ class AdvancedSNROptimizer:
         for strategy_type in OptimizationStrategy:
             optimizer = self.strategies[strategy_type]
             strategy_results = [
-                r for r in self.optimization_history
+                r
+                for r in self.optimization_history
                 if r.strategy == strategy_type.value
             ]
             if strategy_results:
                 strategy_stats[strategy_type.value] = {
                     "count": len(strategy_results),
-                    "avg_improvement": np.mean([r.improvement for r in strategy_results]),
-                    "ihsan_achieved": sum(1 for r in strategy_results if r.ihsan_achieved)
+                    "avg_improvement": np.mean(
+                        [r.improvement for r in strategy_results]
+                    ),
+                    "ihsan_achieved": sum(
+                        1 for r in strategy_results if r.ihsan_achieved
+                    ),
                 }
 
         return {
@@ -585,7 +599,7 @@ class AdvancedSNROptimizer:
             "ihsan_rate": ihsan_count / len(self.optimization_history),
             "avg_improvement": np.mean(improvements),
             "max_improvement": max(improvements),
-            "strategy_statistics": strategy_stats
+            "strategy_statistics": strategy_stats,
         }
 
 
@@ -593,7 +607,7 @@ class AdvancedSNROptimizer:
 async def optimize_snr(
     query_embedding: np.ndarray,
     context_embeddings: List[np.ndarray],
-    symbolic_facts: List[str]
+    symbolic_facts: List[str],
 ) -> Tuple[float, bool]:
     """
     Convenience function to optimize SNR to Ihsān level.
@@ -610,6 +624,7 @@ async def optimize_snr(
 
 # Main execution for testing
 if __name__ == "__main__":
+
     async def test_optimizer():
         print("=" * 60)
         print("BIZRA Advanced SNR Optimizer v2.0")
@@ -626,13 +641,13 @@ if __name__ == "__main__":
         optimizer = AdvancedSNROptimizer()
 
         print("\n--- Running Optimization ---")
-        final_snr, results = await optimizer.optimize_to_ihsan(
-            query, contexts, facts
-        )
+        final_snr, results = await optimizer.optimize_to_ihsan(query, contexts, facts)
 
         print(f"\n--- Final Results ---")
         print(f"Final SNR: {final_snr.overall:.4f}")
-        print(f"Ihsān Achieved: {'✅ YES' if final_snr.overall >= IHSAN_THRESHOLD else '❌ NO'}")
+        print(
+            f"Ihsān Achieved: {'✅ YES' if final_snr.overall >= IHSAN_THRESHOLD else '❌ NO'}"
+        )
 
         print(f"\n--- Component Breakdown ---")
         print(f"Signal Strength:      {final_snr.signal_strength:.4f}")
@@ -643,7 +658,9 @@ if __name__ == "__main__":
         print(f"\n--- Optimization History ---")
         for r in results:
             symbol = "✅" if r.ihsan_achieved else "▸"
-            print(f"{symbol} {r.strategy}: {r.initial_snr:.4f} → {r.final_snr:.4f} (+{r.improvement:.4f})")
+            print(
+                f"{symbol} {r.strategy}: {r.initial_snr:.4f} → {r.final_snr:.4f} (+{r.improvement:.4f})"
+            )
 
         print(f"\n--- Statistics ---")
         stats = optimizer.get_statistics()

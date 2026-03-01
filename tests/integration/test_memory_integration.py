@@ -24,7 +24,6 @@ from core.memory.orchestrator import MigrationOrchestrator
 from core.memory.sync import MemorySyncPublisher, MemorySyncSubscriber
 from core.memory.types import MemoryKind, MemoryRecord, RecordState
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 
@@ -180,10 +179,12 @@ class TestFullMemoryLifecycle:
         )
 
         # Simulate publisher serialization
-        message = json.dumps({
-            "sender_id": "agent_a",
-            "record": record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_a",
+                "record": record.to_dict(),
+            }
+        )
 
         # Subscriber receives and imports
         sub = MemorySyncSubscriber(db, agent_id="agent_b")
@@ -204,7 +205,9 @@ class TestCrossModuleIntegration:
     def test_orchestrator_then_health(self, db):
         """Migrate records, then check health reflects them."""
         lm = _FakeLivingMemory()
-        lm._memories = {f"m{i}": _FakeEntry(id=f"m{i}", content=f"memory {i}") for i in range(10)}
+        lm._memories = {
+            f"m{i}": _FakeEntry(id=f"m{i}", content=f"memory {i}") for i in range(10)
+        }
 
         orch = MigrationOrchestrator(db)
         orch.set_living_memory(lm)
@@ -254,10 +257,12 @@ class TestCrossModuleIntegration:
             updated_at=now,
             last_accessed=now,
         )
-        message = json.dumps({
-            "sender_id": "agent_c",
-            "record": remote_record.to_dict(),
-        })
+        message = json.dumps(
+            {
+                "sender_id": "agent_c",
+                "record": remote_record.to_dict(),
+            }
+        )
 
         sub = MemorySyncSubscriber(db, agent_id="node0")
         asyncio.run(sub._handle_message(message))
@@ -315,16 +320,18 @@ class TestIdempotencyAndDedup:
         local_id = db.backend.list_ids(limit=1)[0]
 
         now = datetime.now(timezone.utc)
-        msg = json.dumps({
-            "sender_id": "other",
-            "record": MemoryRecord(
-                id=local_id,
-                content="duplicate from remote",
-                created_at=now,
-                updated_at=now,
-                last_accessed=now,
-            ).to_dict(),
-        })
+        msg = json.dumps(
+            {
+                "sender_id": "other",
+                "record": MemoryRecord(
+                    id=local_id,
+                    content="duplicate from remote",
+                    created_at=now,
+                    updated_at=now,
+                    last_accessed=now,
+                ).to_dict(),
+            }
+        )
 
         sub = MemorySyncSubscriber(db, agent_id="self")
         asyncio.run(sub._handle_message(msg))

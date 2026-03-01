@@ -143,17 +143,17 @@ class TestCondaEnvironments:
             if isinstance(dep, str) and dep.startswith("python="):
                 version = dep.split("=")[1]
                 major, minor = version.split(".")[:2]
-                assert int(major) >= 3 and int(minor) >= 10, (
-                    f"Windows env Python {version} < 3.10"
-                )
+                assert (
+                    int(major) >= 3 and int(minor) >= 10
+                ), f"Windows env Python {version} < 3.10"
 
     def test_windows_no_faiss_gpu_conda(self, env_files):
         """Windows env must NOT have conda faiss-gpu (it has no Windows binaries)."""
         win_deps = env_files["conda_env_windows.yml"]["dependencies"]
         conda_deps = [d for d in win_deps if isinstance(d, str)]
-        assert "faiss-gpu" not in conda_deps, (
-            "conda faiss-gpu found in Windows env — this will fail to install"
-        )
+        assert (
+            "faiss-gpu" not in conda_deps
+        ), "conda faiss-gpu found in Windows env — this will fail to install"
 
     def test_windows_has_faiss_cpu_baseline(self, env_files):
         """Windows env should have conda faiss-cpu as baseline."""
@@ -253,9 +253,9 @@ class TestValidateEnvScript:
             timeout=60,
         )
         for section in ("Platform", "PyTorch", "FAISS", "Dependencies", "Summary"):
-            assert section in result.stdout, (
-                f"Missing section '{section}' in validate_env.py output"
-            )
+            assert (
+                section in result.stdout
+            ), f"Missing section '{section}' in validate_env.py output"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

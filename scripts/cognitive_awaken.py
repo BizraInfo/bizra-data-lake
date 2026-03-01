@@ -7,7 +7,6 @@ import random
 import networkx as nx
 
 
-
 class BIZRA_WorldModel:
     """Simulates the 'Imagination' environment based on the Hypergraph."""
 

@@ -29,6 +29,7 @@ logger = logging.getLogger("bizra.mcp_gateway")
 # Phase46 metrics (live observability — replaces hardcoded Prometheus values)
 try:
     from core.rollout.metrics import Phase46Metrics
+
     _gateway_metrics = Phase46Metrics()
 except ImportError:
     _gateway_metrics = None
@@ -36,16 +37,22 @@ except ImportError:
 # Configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-SNR_THRESHOLD = float(os.getenv("SNR_THRESHOLD", "0.85"))  # canonical: core.integration.constants
-IHSAN_THRESHOLD = float(os.getenv("IHSAN_THRESHOLD", "0.95"))  # canonical: core.integration.constants
+SNR_THRESHOLD = float(
+    os.getenv("SNR_THRESHOLD", "0.85")
+)  # canonical: core.integration.constants
+IHSAN_THRESHOLD = float(
+    os.getenv("IHSAN_THRESHOLD", "0.95")
+)  # canonical: core.integration.constants
 
 
 # ============================================================================
 # MODELS
 # ============================================================================
 
+
 class MCPRequest(BaseModel):
     """MCP JSON-RPC request format."""
+
     jsonrpc: str = "2.0"
     id: Optional[str] = None
     method: str
@@ -54,6 +61,7 @@ class MCPRequest(BaseModel):
 
 class MCPResponse(BaseModel):
     """MCP JSON-RPC response format."""
+
     jsonrpc: str = "2.0"
     id: Optional[str] = None
     result: Optional[Any] = None
@@ -62,6 +70,7 @@ class MCPResponse(BaseModel):
 
 class QueryRequest(BaseModel):
     """Unified query request."""
+
     query: str
     context: Optional[Dict[str, Any]] = None
     mode: str = "standard"  # standard, deep, vision
@@ -71,6 +80,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     """Unified query response."""
+
     response: str
     sources: List[Dict[str, Any]] = []
     ihsan_score: float
@@ -81,6 +91,7 @@ class QueryResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     version: str
     components: Dict[str, str]
@@ -90,6 +101,7 @@ class HealthResponse(BaseModel):
 
 class IngestRequest(BaseModel):
     """Document ingestion request."""
+
     content: str
     doc_type: str = "text"
     metadata: Dict[str, Any] = {}
@@ -98,6 +110,7 @@ class IngestRequest(BaseModel):
 
 class IngestResponse(BaseModel):
     """Document ingestion response."""
+
     doc_id: str
     status: str
     embedding_count: int
@@ -107,6 +120,7 @@ class IngestResponse(BaseModel):
 # ============================================================================
 # RECEIPT GENERATION
 # ============================================================================
+
 
 def generate_receipt_id(operation: str, input_data: str) -> str:
     """Generate a unique receipt ID for audit trail."""
@@ -119,20 +133,21 @@ def calculate_ihsan_score(
     correctness: float = 1.0,
     completeness: float = 1.0,
     efficiency: float = 1.0,
-    ethical_alignment: float = 1.0
+    ethical_alignment: float = 1.0,
 ) -> float:
     """Calculate Ihsan (excellence) score."""
     return (
-        correctness * 0.25 +
-        completeness * 0.25 +
-        efficiency * 0.20 +
-        ethical_alignment * 0.30
+        correctness * 0.25
+        + completeness * 0.25
+        + efficiency * 0.20
+        + ethical_alignment * 0.30
     )
 
 
 # ============================================================================
 # APPLICATION LIFECYCLE
 # ============================================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -146,7 +161,9 @@ async def lifespan(app: FastAPI):
     # Initialize HTTP client
     app.state.http_client = httpx.AsyncClient(timeout=60.0)
 
-    logger.info(f"MCP Gateway ready. SNR >= {SNR_THRESHOLD}, Ihsan >= {IHSAN_THRESHOLD}")
+    logger.info(
+        f"MCP Gateway ready. SNR >= {SNR_THRESHOLD}, Ihsan >= {IHSAN_THRESHOLD}"
+    )
 
     yield
 
@@ -164,7 +181,7 @@ app = FastAPI(
     title="BIZRA MCP Gateway",
     description="Unified Model Context Protocol endpoint for BIZRA Data Lake",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware — restrict origins in production (BIZRA_CORS_ORIGINS csv).
@@ -172,7 +189,9 @@ app = FastAPI(
 # rejected by browsers per the Fetch spec and is a security misconfiguration.
 _cors_origins = [
     o.strip()
-    for o in os.getenv("BIZRA_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+    for o in os.getenv(
+        "BIZRA_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"
+    ).split(",")
     if o.strip()
 ]
 app.add_middleware(
@@ -187,6 +206,7 @@ app.add_middleware(
 # ============================================================================
 # MCP ENDPOINTS
 # ============================================================================
+
 
 @app.post("/mcp", response_model=MCPResponse)
 async def mcp_handler(request: MCPRequest):
@@ -217,27 +237,17 @@ async def mcp_handler(request: MCPRequest):
                 id=request.id,
                 error={
                     "code": -32601,
-                    "message": f"Method not found: {request.method}"
-                }
+                    "message": f"Method not found: {request.method}",
+                },
             )
 
-        return MCPResponse(
-            id=request.id,
-            result={
-                **result,
-                "receipt_id": receipt_id
-            }
-        )
+        return MCPResponse(id=request.id, result={**result, "receipt_id": receipt_id})
 
     except Exception as e:
         logger.error(f"MCP error: {e}")
         return MCPResponse(
             id=request.id,
-            error={
-                "code": -32000,
-                "message": str(e),
-                "receipt_id": receipt_id
-            }
+            error={"code": -32000, "message": str(e), "receipt_id": receipt_id},
         )
 
 
@@ -254,7 +264,7 @@ async def handle_query(params: Dict[str, Any]) -> Dict[str, Any]:
     if ihsan_score < IHSAN_THRESHOLD:
         raise HTTPException(
             status_code=422,
-            detail=f"Ihsan score {ihsan_score} below threshold {IHSAN_THRESHOLD}"
+            detail=f"Ihsan score {ihsan_score} below threshold {IHSAN_THRESHOLD}",
         )
 
     return {
@@ -262,7 +272,7 @@ async def handle_query(params: Dict[str, Any]) -> Dict[str, Any]:
         "sources": [],
         "ihsan_score": ihsan_score,
         "snr_score": SNR_THRESHOLD,
-        "mode": mode
+        "mode": mode,
     }
 
 
@@ -280,7 +290,7 @@ async def handle_ingest(params: Dict[str, Any]) -> Dict[str, Any]:
         "doc_id": doc_id,
         "status": "ingested",
         "embedding_count": 1,
-        "doc_type": doc_type
+        "doc_type": doc_type,
     }
 
 
@@ -289,14 +299,8 @@ async def handle_health() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "components": {
-            "mcp_gateway": "operational",
-            "data_lake": "operational"
-        },
-        "thresholds": {
-            "snr": SNR_THRESHOLD,
-            "ihsan": IHSAN_THRESHOLD
-        }
+        "components": {"mcp_gateway": "operational", "data_lake": "operational"},
+        "thresholds": {"snr": SNR_THRESHOLD, "ihsan": IHSAN_THRESHOLD},
     }
 
 
@@ -310,8 +314,8 @@ async def handle_capabilities() -> Dict[str, Any]:
                 "params": {
                     "query": "string (required)",
                     "mode": "string (optional: standard|deep|vision)",
-                    "context": "object (optional)"
-                }
+                    "context": "object (optional)",
+                },
             },
             {
                 "name": "ingest",
@@ -319,28 +323,25 @@ async def handle_capabilities() -> Dict[str, Any]:
                 "params": {
                     "content": "string (required)",
                     "doc_type": "string (optional: text|pdf|image|audio)",
-                    "metadata": "object (optional)"
-                }
+                    "metadata": "object (optional)",
+                },
             },
-            {
-                "name": "health",
-                "description": "Get system health status",
-                "params": {}
-            },
+            {"name": "health", "description": "Get system health status", "params": {}},
             {
                 "name": "capabilities",
                 "description": "List available capabilities",
-                "params": {}
-            }
+                "params": {},
+            },
         ],
         "version": "1.0.0",
-        "protocol": "MCP/JSON-RPC 2.0"
+        "protocol": "MCP/JSON-RPC 2.0",
     }
 
 
 # ============================================================================
 # REST ENDPOINTS (Unified API)
 # ============================================================================
+
 
 @app.get("/health")
 @app.get("/health/live")
@@ -364,11 +365,8 @@ async def health_ready(request: Request):
 
     return {
         "status": status,
-        "components": {
-            "redis": redis_status,
-            "mcp_gateway": "ready"
-        },
-        "timestamp": datetime.utcnow().isoformat()
+        "components": {"redis": redis_status, "mcp_gateway": "ready"},
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -383,11 +381,9 @@ async def memory_query(request: QueryRequest):
     """Unified memory query endpoint."""
     receipt_id = generate_receipt_id("memory_query", request.query)
 
-    result = await handle_query({
-        "query": request.query,
-        "mode": request.mode,
-        "context": request.context
-    })
+    result = await handle_query(
+        {"query": request.query, "mode": request.mode, "context": request.context}
+    )
 
     return QueryResponse(
         response=result["response"],
@@ -395,7 +391,7 @@ async def memory_query(request: QueryRequest):
         ihsan_score=result["ihsan_score"],
         snr_score=result["snr_score"],
         receipt_id=receipt_id,
-        metadata={"mode": request.mode}
+        metadata={"mode": request.mode},
     )
 
 
@@ -404,18 +400,20 @@ async def memory_ingest(request: IngestRequest):
     """Unified memory ingestion endpoint."""
     receipt_id = generate_receipt_id("memory_ingest", request.content[:100])
 
-    result = await handle_ingest({
-        "content": request.content,
-        "doc_type": request.doc_type,
-        "metadata": request.metadata,
-        "source_path": request.source_path
-    })
+    result = await handle_ingest(
+        {
+            "content": request.content,
+            "doc_type": request.doc_type,
+            "metadata": request.metadata,
+            "source_path": request.source_path,
+        }
+    )
 
     return IngestResponse(
         doc_id=result["doc_id"],
         status=result["status"],
         embedding_count=result["embedding_count"],
-        receipt_id=receipt_id
+        receipt_id=receipt_id,
     )
 
 
@@ -429,13 +427,10 @@ async def knowledge_status():
             "raw": "active",
             "processed": "active",
             "indexed": "active",
-            "gold": "active"
+            "gold": "active",
         },
-        "thresholds": {
-            "snr": SNR_THRESHOLD,
-            "ihsan": IHSAN_THRESHOLD
-        },
-        "timestamp": datetime.utcnow().isoformat()
+        "thresholds": {"snr": SNR_THRESHOLD, "ihsan": IHSAN_THRESHOLD},
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -531,4 +526,5 @@ async def prometheus_metrics():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

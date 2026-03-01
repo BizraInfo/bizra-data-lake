@@ -45,8 +45,8 @@ from datetime import datetime
 
 # Set up path to ensure tools/ sibling imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
-_tools_dir = os.path.dirname(_mcp_dir)          # tools/
-_project_root = os.path.dirname(_tools_dir)      # BIZRA-DATA-LAKE/
+_tools_dir = os.path.dirname(_mcp_dir)  # tools/
+_project_root = os.path.dirname(_tools_dir)  # BIZRA-DATA-LAKE/
 sys.path.insert(0, os.path.join(_tools_dir, "engines"))
 sys.path.insert(0, os.path.join(_tools_dir, "bridges"))
 sys.path.insert(0, _project_root)
@@ -57,6 +57,7 @@ sys.path.insert(0, _project_root)
 _env_file = os.path.join(_project_root, ".env")
 try:
     from dotenv import load_dotenv
+
     load_dotenv(_env_file)
 except ImportError:
     if os.path.isfile(_env_file):
@@ -76,9 +77,9 @@ except ImportError:
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(levelname)s] %(asctime)s | %(name)s | %(message)s',
-    datefmt='%H:%M:%S',
-    handlers=[logging.StreamHandler(sys.stderr)]
+    format="[%(levelname)s] %(asctime)s | %(name)s | %(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger("SovereignMCP")
 
@@ -91,6 +92,7 @@ TOOL_TIMEOUT_SECONDS = 30.0
 # ===============================================================================
 # RESPONSE CACHE (LRU with TTL)
 # ===============================================================================
+
 
 class ResponseCache:
     """LRU cache with TTL for read-only MCP tool responses."""
@@ -142,8 +144,12 @@ class ResponseCache:
 # sovereign_search is cacheable (same query = same FAISS results)
 # sovereign_resonance and sovereign_predict are NOT cacheable (HMM state changes)
 CACHEABLE_TOOLS = {
-    "sovereign_query", "sovereign_patterns", "sovereign_communities",
-    "sovereign_health", "sovereign_stats", "sovereign_search"
+    "sovereign_query",
+    "sovereign_patterns",
+    "sovereign_communities",
+    "sovereign_health",
+    "sovereign_stats",
+    "sovereign_search",
 }
 
 cache = ResponseCache(max_entries=256, ttl_seconds=300.0)
@@ -161,6 +167,7 @@ _total_response_time = 0.0
 # SOVEREIGN BRAIN INTEGRATION
 # ===============================================================================
 
+
 class SovereignBrainInterface:
     """Interface to the Sovereign Brain orchestration layer."""
 
@@ -177,11 +184,13 @@ class SovereignBrainInterface:
             self.brain = SovereignBrain()
             self.brain.awaken()
 
-            self.apex_adapter = self.brain.adapters.get('apex')
-            self.nexus_adapter = self.brain.adapters.get('nexus')
+            self.apex_adapter = self.brain.adapters.get("apex")
+            self.nexus_adapter = self.brain.adapters.get("nexus")
 
             self.initialized = True
-            logger.info(f"Sovereign Brain initialized: {self.brain.state.total_nodes} nodes")
+            logger.info(
+                f"Sovereign Brain initialized: {self.brain.state.total_nodes} nodes"
+            )
             return True
 
         except ImportError as e:
@@ -202,11 +211,15 @@ class SovereignBrainInterface:
 
             return {
                 "query": query_text,
-                "results": result.results if hasattr(result, 'results') else [],
-                "snr": result.snr_score if hasattr(result, 'snr_score') else 0.0,
+                "results": result.results if hasattr(result, "results") else [],
+                "snr": result.snr_score if hasattr(result, "snr_score") else 0.0,
                 "elapsed_ms": round(elapsed, 2),
-                "engine_contributions": result.engine_contributions if hasattr(result, 'engine_contributions') else {},
-                "insights": result.insights if hasattr(result, 'insights') else []
+                "engine_contributions": (
+                    result.engine_contributions
+                    if hasattr(result, "engine_contributions")
+                    else {}
+                ),
+                "insights": result.insights if hasattr(result, "insights") else [],
             }
         except Exception as e:
             logger.error(f"Query error: {e}")
@@ -218,9 +231,16 @@ class SovereignBrainInterface:
 
         try:
             engine = self.apex_adapter.engine
-            if engine and hasattr(engine, 'pattern_layer'):
-                patterns = engine.pattern_layer.discovered if hasattr(engine.pattern_layer, 'discovered') else []
-                return [asdict(p) if hasattr(p, '__dataclass_fields__') else p for p in patterns]
+            if engine and hasattr(engine, "pattern_layer"):
+                patterns = (
+                    engine.pattern_layer.discovered
+                    if hasattr(engine.pattern_layer, "discovered")
+                    else []
+                )
+                return [
+                    asdict(p) if hasattr(p, "__dataclass_fields__") else p
+                    for p in patterns
+                ]
             return []
         except Exception as e:
             logger.error(f"Pattern fetch error: {e}")
@@ -232,13 +252,17 @@ class SovereignBrainInterface:
 
         try:
             engine = self.apex_adapter.engine
-            if engine and hasattr(engine, 'graph_layer'):
-                communities = engine.graph_layer.communities if hasattr(engine.graph_layer, 'communities') else {}
+            if engine and hasattr(engine, "graph_layer"):
+                communities = (
+                    engine.graph_layer.communities
+                    if hasattr(engine.graph_layer, "communities")
+                    else {}
+                )
                 summary = {}
                 for name, nodes in communities.items():
                     summary[name] = {
                         "size": len(nodes),
-                        "sample_nodes": list(nodes)[:5]
+                        "sample_nodes": list(nodes)[:5],
                     }
                 return summary
             return {}
@@ -266,18 +290,24 @@ class SovereignBrainInterface:
                 "brain_status": "online" if self.brain.state.is_healthy else "degraded",
                 "total_nodes": self.brain.state.total_nodes,
                 "total_edges": self.brain.state.total_edges,
-                "engines_online": len([h for h in self.brain.state.engines.values() if h.status == EngineStatus.ONLINE]),
+                "engines_online": len(
+                    [
+                        h
+                        for h in self.brain.state.engines.values()
+                        if h.status == EngineStatus.ONLINE
+                    ]
+                ),
                 "total_engines": len(self.brain.state.engines),
                 "engine_stats": {
                     name: {
                         "status": health.status.name,
                         "nodes": health.nodes,
-                        "edges": health.edges
+                        "edges": health.edges,
                     }
                     for name, health in self.brain.state.engines.items()
                 },
                 "last_health_check": self.brain.state.last_health_check,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
         except Exception as e:
             logger.error(f"Stats error: {e}")
@@ -301,16 +331,19 @@ class SovereignBrainInterface:
 
             result_list = []
             snr_score = 0.0
-            if hasattr(results, 'nodes'):
-                result_list = [{"name": n.name, "type": n.type.name, "snr": n.snr_score} for n in results.nodes]
-                snr_score = results.snr if hasattr(results, 'snr') else 0.0
+            if hasattr(results, "nodes"):
+                result_list = [
+                    {"name": n.name, "type": n.type.name, "snr": n.snr_score}
+                    for n in results.nodes
+                ]
+                snr_score = results.snr if hasattr(results, "snr") else 0.0
 
             return {
                 "question": question,
                 "reasoning_depth": depth,
                 "results": result_list,
                 "snr": snr_score,
-                "reasoning_trace": output if output else "Reasoning completed"
+                "reasoning_trace": output if output else "Reasoning completed",
             }
         except Exception as e:
             logger.error(f"Reasoning error: {e}")
@@ -326,6 +359,7 @@ brain_interface = SovereignBrainInterface()
 # Standing on Giants: Shannon (1948) · Johnson/FAISS (2021) · Rabiner (1989)
 # ===============================================================================
 
+
 class Phase46Interface:
     """Lazy-initialized Phase 46 Cognitive Resonance components.
 
@@ -339,31 +373,37 @@ class Phase46Interface:
     _ROLLBACK_MIN_REQUESTS = 10
 
     def __init__(self):
-        self._search = None       # VectorSearchEngine
-        self._resonance = None    # CognitiveResonance
-        self._hmm = None          # HMMEngine
-        self._hmm_gate = None     # HMMCallerGate (wraps _hmm)
+        self._search = None  # VectorSearchEngine
+        self._resonance = None  # CognitiveResonance
+        self._hmm = None  # HMMEngine
+        self._hmm_gate = None  # HMMCallerGate (wraps _hmm)
         self.initialized = False
 
         # Phase 47.1: Observability metrics (shared singleton)
         from core.rollout.metrics import get_shared_metrics
+
         self._metrics = get_shared_metrics()
 
         # Phase 49.3: Production rollback engine — monitors metrics and auto-rolls back
         # Receipt dir under /app/logs (writable in K8s) instead of default artifacts/ (read-only root FS)
         import os
         from core.rollout.rollback import RollbackEngine
-        _receipt_dir = os.path.join(os.getenv("BIZRA_LOG_DIR", "logs"), "rollback_receipts")
+
+        _receipt_dir = os.path.join(
+            os.getenv("BIZRA_LOG_DIR", "logs"), "rollback_receipts"
+        )
         self._rollback = RollbackEngine(receipt_dir=_receipt_dir, metrics=self._metrics)
 
         # Phase 49.6: Canary gate — rollback actually stops traffic
         from core.rollout.canary import CanaryRouter
+
         self._canary = CanaryRouter()
 
     def initialize(self) -> bool:
         """Initialize Phase 46 components. Each is independent."""
         try:
             from core.search import VectorSearchEngine
+
             self._search = VectorSearchEngine()
             logger.info("Phase 46: VectorSearchEngine ready (lazy FAISS load)")
         except Exception as e:
@@ -371,9 +411,11 @@ class Phase46Interface:
 
         try:
             from core.prediction import HMMEngine
+
             self._hmm = HMMEngine()
             # Wrap with caller isolation gate
             from core.rollout.hmm_gate import HMMCallerGate
+
             self._hmm_gate = HMMCallerGate(self._hmm)
             logger.info("Phase 46: HMMEngine + CallerGate ready (6 cognitive states)")
         except Exception as e:
@@ -381,9 +423,10 @@ class Phase46Interface:
 
         try:
             from core.resonance import CognitiveResonance
+
             self._resonance = CognitiveResonance(
                 search=self._search,
-                reasoning=None,   # GoTBridge requires async GoT engine — wire in Phase 47
+                reasoning=None,  # GoTBridge requires async GoT engine — wire in Phase 47
                 prediction=self._hmm,
             )
             logger.info("Phase 46: CognitiveResonance pipeline ready")
@@ -391,7 +434,9 @@ class Phase46Interface:
             logger.warning(f"Phase 46 resonance init failed: {e}")
 
         self.initialized = True
-        components = sum(1 for c in [self._search, self._resonance, self._hmm] if c is not None)
+        components = sum(
+            1 for c in [self._search, self._resonance, self._hmm] if c is not None
+        )
         logger.info(f"Phase 46 initialized: {components}/3 components online")
         return components > 0
 
@@ -401,7 +446,10 @@ class Phase46Interface:
 
         # Canary gate: rollback zeroing PERCENT actually stops traffic
         if not self._canary.should_route("search", query):
-            return {"error": "Search temporarily disabled by canary routing", "results": []}
+            return {
+                "error": "Search temporarily disabled by canary routing",
+                "results": [],
+            }
 
         if self._search is None:
             return {"error": "Search engine not available", "results": []}
@@ -415,13 +463,15 @@ class Phase46Interface:
             serialized = []
             for sr in results:
                 rec = sr.record
-                serialized.append({
-                    "content": rec.content[:500] if rec.content else "",
-                    "score": round(sr.score, 4),
-                    "source": rec.source or "",
-                    "source_id": rec.source_id or "",
-                    "metadata": rec.metadata or {},
-                })
+                serialized.append(
+                    {
+                        "content": rec.content[:500] if rec.content else "",
+                        "score": round(sr.score, 4),
+                        "source": rec.source or "",
+                        "source_id": rec.source_id or "",
+                        "metadata": rec.metadata or {},
+                    }
+                )
 
             if len(serialized) > 0:
                 self._metrics.inc("search_hits")
@@ -432,7 +482,11 @@ class Phase46Interface:
                 "query": query,
                 "results": serialized,
                 "count": len(serialized),
-                "index_size": self._search.vector_count if hasattr(self._search, 'vector_count') else 0,
+                "index_size": (
+                    self._search.vector_count
+                    if hasattr(self._search, "vector_count")
+                    else 0
+                ),
                 "elapsed_ms": round(elapsed, 2),
             }
         except Exception as e:
@@ -441,7 +495,9 @@ class Phase46Interface:
             self._evaluate_rollback()
             return {"error": str(e), "results": []}
 
-    async def resonance(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+    async def resonance(
+        self, query: str, context: Optional[Dict] = None
+    ) -> Dict[str, Any]:
         """Full cognitive resonance pipeline: search → predict."""
         self._metrics.inc("resonance_requests")
 
@@ -462,11 +518,13 @@ class Phase46Interface:
             # Serialize search results
             search_serialized = []
             for sr in result.search_results:
-                search_serialized.append({
-                    "content": sr.record.content[:300] if sr.record.content else "",
-                    "score": round(sr.score, 4),
-                    "source": sr.record.source or "",
-                })
+                search_serialized.append(
+                    {
+                        "content": sr.record.content[:300] if sr.record.content else "",
+                        "score": round(sr.score, 4),
+                        "source": sr.record.source or "",
+                    }
+                )
 
             # Serialize prediction
             prediction_data = None
@@ -522,7 +580,7 @@ class Phase46Interface:
                 "action": action,
                 "most_likely_state": result.most_likely_state.value,
                 "state_probabilities": {
-                    k.value if hasattr(k, 'value') else str(k): round(v, 4)
+                    k.value if hasattr(k, "value") else str(k): round(v, 4)
                     for k, v in result.state_probabilities.items()
                 },
                 "predicted_next_state": result.predicted_next_state.value,
@@ -600,8 +658,7 @@ class Phase46Interface:
             "hmm_available": self._hmm is not None,
             "resonance_available": self._resonance is not None,
             "hmm_current_state": (
-                self._hmm.current_state.value
-                if self._hmm is not None else None
+                self._hmm.current_state.value if self._hmm is not None else None
             ),
             "hmm_gate": self._hmm_gate.stats if self._hmm_gate is not None else None,
             "canary_percents": self._canary.get_active_percents(),
@@ -635,52 +692,36 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The search query. Can be natural language, technical terms, or project names."
+                        "description": "The search query. Can be natural language, technical terms, or project names.",
                     },
                     "limit": {
                         "type": "integer",
                         "description": "Maximum number of results to return (default: 10)",
-                        "default": 10
-                    }
+                        "default": 10,
+                    },
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         ),
         types.Tool(
             name="sovereign_patterns",
             description="Discover knowledge patterns in the graph. Returns Hub nodes (highly connected), Type bridges (cross-domain connections), and Co-occurrence patterns.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         types.Tool(
             name="sovereign_communities",
             description="Explore detected knowledge communities. Returns community names, sizes, and sample nodes from each cluster.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         types.Tool(
             name="sovereign_health",
             description="Get brain health diagnostics. Returns engine status, connectivity, and any detected issues.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         types.Tool(
             name="sovereign_stats",
             description="Get full system statistics. Returns node counts, edge counts, engine status, and last query info.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         types.Tool(
             name="sovereign_reason",
@@ -690,16 +731,16 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "question": {
                         "type": "string",
-                        "description": "The question to reason about."
+                        "description": "The question to reason about.",
                     },
                     "depth": {
                         "type": "integer",
                         "description": "Reasoning depth (1-5, default: 3)",
-                        "default": 3
-                    }
+                        "default": 3,
+                    },
                 },
-                "required": ["question"]
-            }
+                "required": ["question"],
+            },
         ),
         # ---- Phase 46: Cognitive Resonance Tools ----
         types.Tool(
@@ -710,16 +751,16 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Natural language search query."
+                        "description": "Natural language search query.",
                     },
                     "top_k": {
                         "type": "integer",
                         "description": "Maximum results to return (default: 10, max: 50)",
-                        "default": 10
-                    }
+                        "default": 10,
+                    },
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         ),
         types.Tool(
             name="sovereign_resonance",
@@ -729,11 +770,11 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Query to process through the resonance pipeline."
+                        "description": "Query to process through the resonance pipeline.",
                     }
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         ),
         types.Tool(
             name="sovereign_predict",
@@ -743,20 +784,16 @@ async def list_tools() -> list[types.Tool]:
                 "properties": {
                     "action": {
                         "type": "string",
-                        "description": "Action symbol to observe. Valid: search, edit, navigate, organize, review, compile, test, chat, deploy, file_open, file_save, idle."
+                        "description": "Action symbol to observe. Valid: search, edit, navigate, organize, review, compile, test, chat, deploy, file_open, file_save, idle.",
                     }
                 },
-                "required": ["action"]
-            }
+                "required": ["action"],
+            },
         ),
         types.Tool(
             name="mcp_health",
             description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
     ]
 
@@ -787,42 +824,54 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             query = arguments.get("query", "")
             limit = arguments.get("limit", 10)
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.query, query, limit),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.query, query, limit
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         elif name == "sovereign_patterns":
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.get_patterns),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.get_patterns
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
             result = {"pattern_count": len(result), "patterns": result}
 
         elif name == "sovereign_communities":
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.get_communities),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.get_communities
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
             result = {"community_count": len(result), "communities": result}
 
         elif name == "sovereign_health":
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.get_health),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.get_health
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         elif name == "sovereign_stats":
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.get_stats),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.get_stats
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         elif name == "sovereign_reason":
             question = arguments.get("question", "")
             depth = arguments.get("depth", 3)
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, brain_interface.reason, question, depth),
-                timeout=TOOL_TIMEOUT_SECONDS
+                asyncio.get_event_loop().run_in_executor(
+                    None, brain_interface.reason, question, depth
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         # ---- Phase 46: Cognitive Resonance Handlers ----
@@ -836,7 +885,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 asyncio.get_event_loop().run_in_executor(
                     None, phase46_interface.search, query, top_k
                 ),
-                timeout=TOOL_TIMEOUT_SECONDS
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         elif name == "sovereign_resonance":
@@ -844,8 +893,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 phase46_interface.initialize()
             query = arguments.get("query", "")
             result = await asyncio.wait_for(
-                phase46_interface.resonance(query),
-                timeout=TOOL_TIMEOUT_SECONDS
+                phase46_interface.resonance(query), timeout=TOOL_TIMEOUT_SECONDS
             )
 
         elif name == "sovereign_predict":
@@ -856,7 +904,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 asyncio.get_event_loop().run_in_executor(
                     None, phase46_interface.predict, action
                 ),
-                timeout=TOOL_TIMEOUT_SECONDS
+                timeout=TOOL_TIMEOUT_SECONDS,
             )
 
         elif name == "mcp_health":
@@ -869,7 +917,11 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 "error_count": _error_count,
                 "cache_hit_rate": round(cache.hit_rate, 4),
                 "cache_size": cache.size,
-                "avg_response_ms": round(_total_response_time / _query_count, 2) if _query_count > 0 else 0.0,
+                "avg_response_ms": (
+                    round(_total_response_time / _query_count, 2)
+                    if _query_count > 0
+                    else 0.0
+                ),
                 "brain_initialized": brain_interface.initialized,
                 "phase46": phase46_interface.status,
             }
@@ -879,7 +931,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             raise ValueError(f"Unknown tool: {name}")
 
         # Compact JSON for STDIO transport
-        text = json.dumps(result, default=str, separators=(',', ':'))
+        text = json.dumps(result, default=str, separators=(",", ":"))
 
         # Cache read-only tools
         if name in CACHEABLE_TOOLS:
@@ -893,15 +945,27 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         _error_count += 1
         elapsed = (time.perf_counter() - start) * 1000
         _total_response_time += elapsed
-        error = {"error": "timeout", "message": f"Tool '{name}' exceeded {TOOL_TIMEOUT_SECONDS}s timeout", "elapsed_ms": round(elapsed, 2)}
-        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+        error = {
+            "error": "timeout",
+            "message": f"Tool '{name}' exceeded {TOOL_TIMEOUT_SECONDS}s timeout",
+            "elapsed_ms": round(elapsed, 2),
+        }
+        return [
+            types.TextContent(
+                type="text", text=json.dumps(error, separators=(",", ":"))
+            )
+        ]
     except Exception as e:
         _error_count += 1
         elapsed = (time.perf_counter() - start) * 1000
         _total_response_time += elapsed
         logger.error(f"Error executing tool {name}: {e}")
         error = {"error": str(type(e).__name__), "message": str(e)}
-        return [types.TextContent(type="text", text=json.dumps(error, separators=(',', ':')))]
+        return [
+            types.TextContent(
+                type="text", text=json.dumps(error, separators=(",", ":"))
+            )
+        ]
 
 
 # ===============================================================================
@@ -914,10 +978,12 @@ _HEALTH_PORT = int(os.getenv("MCP_HTTP_PORT", "8081"))
 
 
 _MAX_HEADER_BYTES = 8192  # 8 KB — reject oversized headers (DoS mitigation)
-_DRAIN_TIMEOUT = 5.0      # seconds to wait for writer.drain()
+_DRAIN_TIMEOUT = 5.0  # seconds to wait for writer.drain()
 
 
-async def _http_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+async def _http_handler(
+    reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+) -> None:
     """Handle HTTP requests for K8s probes and Prometheus scrape.
 
     Security hardening (Phase 49.7):
@@ -934,7 +1000,9 @@ async def _http_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             total_header_bytes += len(line)
             if total_header_bytes > _MAX_HEADER_BYTES:
                 # Header bomb — send 431 and close immediately
-                writer.write(b"HTTP/1.1 431 Request Header Fields Too Large\r\nConnection: close\r\n\r\n")
+                writer.write(
+                    b"HTTP/1.1 431 Request Header Fields Too Large\r\nConnection: close\r\n\r\n"
+                )
                 await asyncio.wait_for(writer.drain(), timeout=_DRAIN_TIMEOUT)
                 return
             if line in (b"\r\n", b"\n", b""):
@@ -944,20 +1012,26 @@ async def _http_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         path = parts[1] if len(parts) >= 2 else "/"
 
         if path == "/health":
-            body = json.dumps({
-                "status": "healthy",
-                "server": "sovereign-brain-mcp",
-                "version": "1.3.0",
-                "phase46_initialized": phase46_interface.initialized,
-                "query_count": _query_count,
-                "error_count": _error_count,
-                "uptime_seconds": round(time.monotonic() - _server_start_time, 1),
-            })
+            body = json.dumps(
+                {
+                    "status": "healthy",
+                    "server": "sovereign-brain-mcp",
+                    "version": "1.3.0",
+                    "phase46_initialized": phase46_interface.initialized,
+                    "query_count": _query_count,
+                    "error_count": _error_count,
+                    "uptime_seconds": round(time.monotonic() - _server_start_time, 1),
+                }
+            )
             content_type = "application/json"
             status = "200 OK"
 
         elif path in ("/metrics", "/metrics/prometheus"):
-            snap = phase46_interface._metrics.snapshot() if phase46_interface.initialized else {}
+            snap = (
+                phase46_interface._metrics.snapshot()
+                if phase46_interface.initialized
+                else {}
+            )
             counters = snap.get("counters", {})
             search = snap.get("search", {})
             resonance = snap.get("resonance", {})
@@ -1058,16 +1132,24 @@ async def _http_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 
 async def main():
-    logger.info("Sovereign MCP Server v1.3.0 starting (SDK stdio transport + Phase 46)...")
+    logger.info(
+        "Sovereign MCP Server v1.3.0 starting (SDK stdio transport + Phase 46)..."
+    )
 
     # Start HTTP health/metrics server for K8s probes and Prometheus
     # Gracefully skip if port is already in use (e.g. bizra-refinery on 8081)
     health_server = None
     try:
-        health_server = await asyncio.start_server(_http_handler, "127.0.0.1", _HEALTH_PORT)
+        health_server = await asyncio.start_server(
+            _http_handler, "127.0.0.1", _HEALTH_PORT
+        )
         logger.info("Health/metrics HTTP server listening on port %d", _HEALTH_PORT)
     except OSError as exc:
-        logger.warning("Health server skipped (port %d in use: %s) — MCP stdio still functional", _HEALTH_PORT, exc)
+        logger.warning(
+            "Health server skipped (port %d in use: %s) — MCP stdio still functional",
+            _HEALTH_PORT,
+            exc,
+        )
 
     # Graceful shutdown via SIGTERM/SIGINT (K8s pod termination)
     shutdown_event = asyncio.Event()

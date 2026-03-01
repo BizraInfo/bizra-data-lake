@@ -88,9 +88,7 @@ def load_papers() -> list[dict[str, Any]]:
     papers: list[dict[str, Any]] = []
     skipped = 0
 
-    venue_dirs = sorted(
-        d for d in PRIOR_WORKS_DIR.iterdir() if d.is_dir()
-    )
+    venue_dirs = sorted(d for d in PRIOR_WORKS_DIR.iterdir() if d.is_dir())
     log.info("Scanning %d venue directories in %s", len(venue_dirs), PRIOR_WORKS_DIR)
 
     for venue_dir in venue_dirs:
@@ -174,21 +172,25 @@ def load_papers() -> list[dict[str, Any]]:
             if not title and synthesis:
                 metadata["text_source"] = "synthesis_narrative"
 
-            papers.append({
-                "chunk_id": chunk_id,
-                "doc_id": doc_id,
-                "chunk_index": 0,
-                "chunk_text": chunk_text,
-                "token_est": float(estimate_tokens(chunk_text)),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "chunk_metadata_json": json.dumps(metadata, ensure_ascii=False),
-                "embedding_model": EMBEDDING_MODEL_NAME,
-                "metadata": metadata,  # kept temporarily for reporting
-            })
+            papers.append(
+                {
+                    "chunk_id": chunk_id,
+                    "doc_id": doc_id,
+                    "chunk_index": 0,
+                    "chunk_text": chunk_text,
+                    "token_est": float(estimate_tokens(chunk_text)),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "chunk_metadata_json": json.dumps(metadata, ensure_ascii=False),
+                    "embedding_model": EMBEDDING_MODEL_NAME,
+                    "metadata": metadata,  # kept temporarily for reporting
+                }
+            )
 
     log.info(
         "Loaded %d papers (%d skipped) from %d venue directories",
-        len(papers), skipped, len(venue_dirs),
+        len(papers),
+        skipped,
+        len(venue_dirs),
     )
     return papers
 
@@ -225,20 +227,24 @@ def generate_embeddings(papers: list[dict[str, Any]]) -> np.ndarray:
             rate = end / elapsed if elapsed > 0 else 0
             log.info(
                 "  Embedded %d / %d (%.1f papers/sec)",
-                end, n, rate,
+                end,
+                n,
+                rate,
             )
 
     elapsed = time.time() - t0
     log.info(
         "Embedding complete: %d vectors in %.1fs (%.1f papers/sec)",
-        n, elapsed, n / elapsed if elapsed > 0 else 0,
+        n,
+        elapsed,
+        n / elapsed if elapsed > 0 else 0,
     )
 
     # Verify L2-normalization
     norms = np.linalg.norm(embeddings, axis=1)
-    assert np.allclose(norms, 1.0, atol=1e-5), (
-        f"Embeddings not L2-normalized: min={norms.min():.6f}, max={norms.max():.6f}"
-    )
+    assert np.allclose(
+        norms, 1.0, atol=1e-5
+    ), f"Embeddings not L2-normalized: min={norms.min():.6f}, max={norms.max():.6f}"
 
     return embeddings
 
@@ -246,21 +252,25 @@ def generate_embeddings(papers: list[dict[str, Any]]) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Step 3: Create research_chunks.parquet
 # ---------------------------------------------------------------------------
-def create_parquet(papers: list[dict[str, Any]], embeddings: np.ndarray) -> pd.DataFrame:
+def create_parquet(
+    papers: list[dict[str, Any]], embeddings: np.ndarray
+) -> pd.DataFrame:
     """Create and save research_chunks.parquet."""
     rows = []
     for i, paper in enumerate(papers):
-        rows.append({
-            "chunk_id": paper["chunk_id"],
-            "doc_id": paper["doc_id"],
-            "chunk_index": paper["chunk_index"],
-            "chunk_text": paper["chunk_text"],
-            "token_est": paper["token_est"],
-            "created_at": paper["created_at"],
-            "chunk_metadata_json": paper["chunk_metadata_json"],
-            "embedding": embeddings[i],
-            "embedding_model": paper["embedding_model"],
-        })
+        rows.append(
+            {
+                "chunk_id": paper["chunk_id"],
+                "doc_id": paper["doc_id"],
+                "chunk_index": paper["chunk_index"],
+                "chunk_text": paper["chunk_text"],
+                "token_est": paper["token_est"],
+                "created_at": paper["created_at"],
+                "chunk_metadata_json": paper["chunk_metadata_json"],
+                "embedding": embeddings[i],
+                "embedding_model": paper["embedding_model"],
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -274,7 +284,9 @@ def create_parquet(papers: list[dict[str, Any]], embeddings: np.ndarray) -> pd.D
     # Verify written file
     verify = pd.read_parquet(OUTPUT_PARQUET)
     assert len(verify) == len(df), "Parquet verification failed: row count mismatch"
-    log.info("Parquet verified: %d rows, columns: %s", len(verify), list(verify.columns))
+    log.info(
+        "Parquet verified: %d rows, columns: %s", len(verify), list(verify.columns)
+    )
 
     return df
 
@@ -314,7 +326,9 @@ def rebuild_faiss_index() -> int:
         if emb_matrix.shape[1] != EMBEDDING_DIM:
             log.warning(
                 "  Skipping %s: dimension %d != %d",
-                parquet_file.name, emb_matrix.shape[1], EMBEDDING_DIM,
+                parquet_file.name,
+                emb_matrix.shape[1],
+                EMBEDDING_DIM,
             )
             continue
 
@@ -348,12 +362,16 @@ def rebuild_faiss_index() -> int:
 
     log.info(
         "Building IndexIVFFlat: dim=%d, n_centroids=%d, n_probe=%d",
-        EMBEDDING_DIM, n_centroids, n_probe,
+        EMBEDDING_DIM,
+        n_centroids,
+        n_probe,
     )
 
     # Use inner product since vectors are L2-normalized (equivalent to cosine)
     quantizer = faiss.IndexFlatIP(EMBEDDING_DIM)
-    index = faiss.IndexIVFFlat(quantizer, EMBEDDING_DIM, n_centroids, faiss.METRIC_INNER_PRODUCT)
+    index = faiss.IndexIVFFlat(
+        quantizer, EMBEDDING_DIM, n_centroids, faiss.METRIC_INNER_PRODUCT
+    )
     index.nprobe = n_probe
 
     # Train the index

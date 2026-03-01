@@ -48,11 +48,11 @@ from bizra_config import INDEXED_PATH, SNR_THRESHOLD, IHSAN_CONSTRAINT
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | MARKETING-BRIDGE | %(message)s',
+    format="%(asctime)s | %(levelname)s | MARKETING-BRIDGE | %(message)s",
     handlers=[
         logging.FileHandler(INDEXED_PATH / "marketing_bridge.log"),
-        logging.StreamHandler()
-    ]
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger("MARKETING-BRIDGE")
 
@@ -61,8 +61,10 @@ logger = logging.getLogger("MARKETING-BRIDGE")
 # DATA STRUCTURES
 # ============================================================================
 
+
 class MarketingContext(Enum):
     """Marketing context types for knowledge retrieval."""
+
     CAMPAIGN_STRATEGY = "campaign_strategy"
     AUDIENCE_INSIGHT = "audience_insight"
     CREATIVE_BRIEF = "creative_brief"
@@ -75,6 +77,7 @@ class MarketingContext(Enum):
 @dataclass
 class MarketingQuery:
     """Query from marketing swarm to data lake."""
+
     query_text: str
     context_type: MarketingContext
     campaign_id: Optional[str] = None
@@ -88,6 +91,7 @@ class MarketingQuery:
 @dataclass
 class MarketingInsight:
     """Insight returned to marketing swarm."""
+
     query: str
     insights: List[Dict]
     synergies: List[Dict]
@@ -101,6 +105,7 @@ class MarketingInsight:
 # ============================================================================
 # MARKETING KNOWLEDGE RETRIEVER
 # ============================================================================
+
 
 class MarketingKnowledgeRetriever:
     """
@@ -124,6 +129,7 @@ class MarketingKnowledgeRetriever:
 
         try:
             from bizra_orchestrator import BIZRAOrchestrator
+
             self.orchestrator = BIZRAOrchestrator(enable_pat=True, enable_kep=True)
             await self.orchestrator.initialize()
             self._initialized = True
@@ -138,6 +144,7 @@ class MarketingKnowledgeRetriever:
         Retrieve marketing insights from the knowledge base.
         """
         import time
+
         start_time = time.time()
 
         if not self._initialized:
@@ -162,10 +169,12 @@ class MarketingKnowledgeRetriever:
         # Execute through orchestrator
         bizra_query = BIZRAQuery(
             text=enriched_query,
-            complexity=complexity_mapping.get(query.context_type, QueryComplexity.MODERATE),
+            complexity=complexity_mapping.get(
+                query.context_type, QueryComplexity.MODERATE
+            ),
             enable_kep=query.require_synergies,
             min_synergy_strength=0.6,
-            max_tokens=2000
+            max_tokens=2000,
         )
 
         response = await self.orchestrator.query(bizra_query)
@@ -197,8 +206,8 @@ class MarketingKnowledgeRetriever:
                 "platform": query.platform,
                 "campaign_id": query.campaign_id,
                 "ihsan_achieved": response.ihsan_achieved,
-                "learning_boost": response.learning_boost
-            }
+                "learning_boost": response.learning_boost,
+            },
         )
 
     def _enrich_query(self, query: MarketingQuery) -> str:
@@ -218,35 +227,80 @@ class MarketingKnowledgeRetriever:
 
         return f"{prefix}{query.query_text}{platform_suffix}"
 
-    def _extract_marketing_insights(self, response, query: MarketingQuery) -> List[Dict]:
+    def _extract_marketing_insights(
+        self, response, query: MarketingQuery
+    ) -> List[Dict]:
         """Extract marketing-relevant insights from response."""
         insights = []
 
-        for source in response.sources[:query.max_results]:
+        for source in response.sources[: query.max_results]:
             insight = {
                 "source_id": source.get("doc_id", "unknown"),
                 "relevance_score": source.get("score", 0.0),
                 "content_preview": source.get("text_preview", "")[:300],
                 "marketing_applicability": self._assess_marketing_applicability(
                     source, query.context_type
-                )
+                ),
             }
             insights.append(insight)
 
         return insights
 
-    def _assess_marketing_applicability(self, source: Dict, context: MarketingContext) -> str:
+    def _assess_marketing_applicability(
+        self, source: Dict, context: MarketingContext
+    ) -> str:
         """Assess how applicable a source is to marketing context."""
         text = source.get("text_preview", "").lower()
 
         marketing_keywords = {
-            MarketingContext.CAMPAIGN_STRATEGY: ["strategy", "campaign", "launch", "objective", "goal"],
-            MarketingContext.AUDIENCE_INSIGHT: ["audience", "customer", "user", "behavior", "preference"],
-            MarketingContext.CREATIVE_BRIEF: ["creative", "content", "design", "visual", "message"],
-            MarketingContext.COMPETITOR_ANALYSIS: ["competitor", "market", "industry", "benchmark"],
-            MarketingContext.BRAND_GUIDELINES: ["brand", "identity", "tone", "voice", "style"],
-            MarketingContext.PERFORMANCE_HISTORY: ["performance", "metric", "roi", "conversion", "result"],
-            MarketingContext.MARKET_TRENDS: ["trend", "growth", "opportunity", "emerging", "shift"],
+            MarketingContext.CAMPAIGN_STRATEGY: [
+                "strategy",
+                "campaign",
+                "launch",
+                "objective",
+                "goal",
+            ],
+            MarketingContext.AUDIENCE_INSIGHT: [
+                "audience",
+                "customer",
+                "user",
+                "behavior",
+                "preference",
+            ],
+            MarketingContext.CREATIVE_BRIEF: [
+                "creative",
+                "content",
+                "design",
+                "visual",
+                "message",
+            ],
+            MarketingContext.COMPETITOR_ANALYSIS: [
+                "competitor",
+                "market",
+                "industry",
+                "benchmark",
+            ],
+            MarketingContext.BRAND_GUIDELINES: [
+                "brand",
+                "identity",
+                "tone",
+                "voice",
+                "style",
+            ],
+            MarketingContext.PERFORMANCE_HISTORY: [
+                "performance",
+                "metric",
+                "roi",
+                "conversion",
+                "result",
+            ],
+            MarketingContext.MARKET_TRENDS: [
+                "trend",
+                "growth",
+                "opportunity",
+                "emerging",
+                "shift",
+            ],
         }
 
         keywords = marketing_keywords.get(context, [])
@@ -259,7 +313,9 @@ class MarketingKnowledgeRetriever:
         else:
             return "tangentially_related"
 
-    def _format_synergies_for_marketing(self, synergies: List[Dict], query: MarketingQuery) -> List[Dict]:
+    def _format_synergies_for_marketing(
+        self, synergies: List[Dict], query: MarketingQuery
+    ) -> List[Dict]:
         """Format synergies in marketing-friendly terms."""
         marketing_synergies = []
 
@@ -268,13 +324,15 @@ class MarketingKnowledgeRetriever:
                 "cross_domain_opportunity": f"{syn.get('source_domain', 'unknown')} insights applicable to {syn.get('target_domain', 'unknown')}",
                 "strength": syn.get("strength", 0.0),
                 "bridging_concepts": syn.get("bridging_concepts", []),
-                "marketing_implication": self._derive_marketing_implication(syn, query)
+                "marketing_implication": self._derive_marketing_implication(syn, query),
             }
             marketing_synergies.append(marketing_syn)
 
         return marketing_synergies
 
-    def _derive_marketing_implication(self, synergy: Dict, query: MarketingQuery) -> str:
+    def _derive_marketing_implication(
+        self, synergy: Dict, query: MarketingQuery
+    ) -> str:
         """Derive marketing implication from synergy."""
         synergy_type = synergy.get("synergy_type", "unknown")
 
@@ -284,7 +342,7 @@ class MarketingKnowledgeRetriever:
             "structural": "Consistent creative structure pattern",
             "causal": "Cause-effect relationship for attribution",
             "analogical": "Cross-category positioning opportunity",
-            "emergent": "Novel creative combination potential"
+            "emergent": "Novel creative combination potential",
         }
 
         return implications.get(synergy_type, "Potential cross-pollination opportunity")
@@ -298,15 +356,18 @@ class MarketingKnowledgeRetriever:
         base_score = response.snr_score
 
         # Check for problematic patterns in content
-        all_text = " ".join(
-            s.get("text_preview", "").lower()
-            for s in response.sources
-        )
+        all_text = " ".join(s.get("text_preview", "").lower() for s in response.sources)
 
         # Negative indicators
         risk_patterns = [
-            "controversial", "political", "sensitive", "explicit",
-            "violence", "discriminat", "illegal", "offensive"
+            "controversial",
+            "political",
+            "sensitive",
+            "explicit",
+            "violence",
+            "discriminat",
+            "illegal",
+            "offensive",
         ]
 
         risk_count = sum(1 for p in risk_patterns if p in all_text)
@@ -317,10 +378,7 @@ class MarketingKnowledgeRetriever:
         return round(brand_safety, 3)
 
     def _generate_recommendations(
-        self,
-        response,
-        query: MarketingQuery,
-        synergies: List[Dict]
+        self, response, query: MarketingQuery, synergies: List[Dict]
     ) -> List[str]:
         """Generate actionable marketing recommendations."""
         recommendations = []
@@ -329,24 +387,26 @@ class MarketingKnowledgeRetriever:
         context_recs = {
             MarketingContext.CAMPAIGN_STRATEGY: [
                 "Consider multi-channel approach based on knowledge graph connections",
-                f"Leverage {len(synergies)} detected cross-domain synergies"
+                f"Leverage {len(synergies)} detected cross-domain synergies",
             ],
             MarketingContext.AUDIENCE_INSIGHT: [
                 "Segment audiences based on behavioral patterns identified",
-                "Personalize messaging using discovered preference clusters"
+                "Personalize messaging using discovered preference clusters",
             ],
             MarketingContext.CREATIVE_BRIEF: [
                 "Use bridging concepts for headline ideation",
-                "Apply structural patterns to creative templates"
+                "Apply structural patterns to creative templates",
             ],
             MarketingContext.COMPETITOR_ANALYSIS: [
                 "Differentiate using unique synergy combinations",
-                "Monitor competitor gaps revealed in analysis"
+                "Monitor competitor gaps revealed in analysis",
             ],
         }
 
         recommendations.extend(
-            context_recs.get(query.context_type, ["Review insights for campaign optimization"])
+            context_recs.get(
+                query.context_type, ["Review insights for campaign optimization"]
+            )
         )
 
         # Based on SNR
@@ -370,18 +430,21 @@ class MarketingKnowledgeRetriever:
 # HTTP API SERVER
 # ============================================================================
 
+
 class MarketingBridgeHandler(BaseHTTPRequestHandler):
     """HTTP handler for Marketing Bridge API."""
 
     retriever: Optional[MarketingKnowledgeRetriever] = None
     loop: Optional[asyncio.AbstractEventLoop] = None
 
-    def _set_headers(self, status: int = 200, content_type: str = 'application/json'):
+    def _set_headers(self, status: int = 200, content_type: str = "application/json"):
         self.send_response(status)
-        self.send_header('Content-Type', content_type)
-        self.send_header('Access-Control-Allow-Origin', '*')  # CORS for TypeScript client
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header("Content-Type", content_type)
+        self.send_header(
+            "Access-Control-Allow-Origin", "*"
+        )  # CORS for TypeScript client
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def do_OPTIONS(self):
@@ -390,7 +453,7 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Status page."""
-        self._set_headers(200, 'text/html')
+        self._set_headers(200, "text/html")
         html = """<!DOCTYPE html>
 <html>
 <head>
@@ -457,7 +520,7 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle API requests."""
         # Validate Content-Length
-        content_length = int(self.headers.get('Content-Length', 0))
+        content_length = int(self.headers.get("Content-Length", 0))
         if content_length <= 0:
             self._set_headers(400)
             self.wfile.write(json.dumps({"error": "Missing Content-Length"}).encode())
@@ -478,11 +541,11 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
             return
 
         # Route request
-        if self.path == '/query':
+        if self.path == "/query":
             self._handle_query(request)
-        elif self.path == '/campaign_intelligence':
+        elif self.path == "/campaign_intelligence":
             self._handle_campaign_intelligence(request)
-        elif self.path == '/health':
+        elif self.path == "/health":
             self._handle_health()
         else:
             self._set_headers(404)
@@ -492,7 +555,9 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
         """Handle knowledge query."""
         try:
             # Build query
-            context_type = MarketingContext(request.get("context_type", "campaign_strategy"))
+            context_type = MarketingContext(
+                request.get("context_type", "campaign_strategy")
+            )
 
             query = MarketingQuery(
                 query_text=request.get("query_text", ""),
@@ -501,14 +566,13 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
                 platform=request.get("platform"),
                 max_results=request.get("max_results", 5),
                 require_synergies=request.get("require_synergies", True),
-                brand_safety_check=request.get("brand_safety_check", True)
+                brand_safety_check=request.get("brand_safety_check", True),
             )
 
             # Execute query in async loop
             if self.loop and self.retriever:
                 future = asyncio.run_coroutine_threadsafe(
-                    self.retriever.retrieve(query),
-                    self.loop
+                    self.retriever.retrieve(query), self.loop
                 )
                 result = future.result(timeout=30)
 
@@ -516,7 +580,9 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(asdict(result)).encode())
             else:
                 self._set_headers(503)
-                self.wfile.write(json.dumps({"error": "Service not initialized"}).encode())
+                self.wfile.write(
+                    json.dumps({"error": "Service not initialized"}).encode()
+                )
 
         except Exception as e:
             logger.error(f"Query error: {e}")
@@ -542,14 +608,13 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
             context_type=MarketingContext.CAMPAIGN_STRATEGY,
             campaign_id=campaign_id,
             require_synergies=True,
-            brand_safety_check=True
+            brand_safety_check=True,
         )
 
         try:
             if self.loop and self.retriever:
                 future = asyncio.run_coroutine_threadsafe(
-                    self.retriever.retrieve(query),
-                    self.loop
+                    self.retriever.retrieve(query), self.loop
                 )
                 result = future.result(timeout=30)
 
@@ -560,14 +625,16 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
                     "intelligence": asdict(result),
                     "recommended_actions": result.recommendations,
                     "synergy_opportunities": result.synergies,
-                    "brand_safety_clearance": result.brand_safety_score >= 0.8
+                    "brand_safety_clearance": result.brand_safety_score >= 0.8,
                 }
 
                 self._set_headers(200)
                 self.wfile.write(json.dumps(response).encode())
             else:
                 self._set_headers(503)
-                self.wfile.write(json.dumps({"error": "Service not initialized"}).encode())
+                self.wfile.write(
+                    json.dumps({"error": "Service not initialized"}).encode()
+                )
 
         except Exception as e:
             logger.error(f"Campaign intelligence error: {e}")
@@ -578,9 +645,13 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
         """Health check endpoint."""
         self._set_headers(200)
         health = {
-            "status": "healthy" if self.retriever and self.retriever._initialized else "initializing",
+            "status": (
+                "healthy"
+                if self.retriever and self.retriever._initialized
+                else "initializing"
+            ),
             "service": "marketing_bridge",
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
         self.wfile.write(json.dumps(health).encode())
 
@@ -588,6 +659,7 @@ class MarketingBridgeHandler(BaseHTTPRequestHandler):
 # ============================================================================
 # SERVER STARTUP
 # ============================================================================
+
 
 async def start_marketing_bridge(port: int = 8444):
     """Start the Marketing Bridge server."""
@@ -605,7 +677,7 @@ async def start_marketing_bridge(port: int = 8444):
     MarketingBridgeHandler.loop = asyncio.get_event_loop()
 
     # Create server (localhost only for security)
-    server_address = ('127.0.0.1', port)
+    server_address = ("127.0.0.1", port)
     httpd = HTTPServer(server_address, MarketingBridgeHandler)
 
     print(f"\nMarketing Bridge running on http://localhost:{port}")

@@ -8,28 +8,34 @@ import uuid
 from pathlib import Path
 from activate_urp import BIZRA_URP
 
+
 class SubAgent:
     def __init__(self, agent_type, resource_req):
         self.id = str(uuid.uuid4())[:8]
         self.agent_type = agent_type
-        self.resource_req = resource_req # e.g., {"cpu_cores": 2, "gpu": False}
+        self.resource_req = resource_req  # e.g., {"cpu_cores": 2, "gpu": False}
         self.status = "idle"
         self.mission_log = []
 
     def execute_task(self, task_data):
         self.status = "busy"
-        print(f"🤖 [Agent {self.id}] Starting {self.agent_type} task: {task_data['name']}")
-        
+        print(
+            f"🤖 [Agent {self.id}] Starting {self.agent_type} task: {task_data['name']}"
+        )
+
         # Simulate work based on agent type
         if self.agent_type == "Labeler":
-            time.sleep(1) # Simulate labeling latency
+            time.sleep(1)  # Simulate labeling latency
             result = f"Labeled {len(task_data['data'])} items with 99.9% confidence."
         else:
             result = "Task complete."
-            
-        self.mission_log.append({"task": task_data['name'], "result": result, "time": time.time()})
+
+        self.mission_log.append(
+            {"task": task_data["name"], "result": result, "time": time.time()}
+        )
         self.status = "idle"
         return result
+
 
 class AgentSwarm:
     def __init__(self):
@@ -39,16 +45,18 @@ class AgentSwarm:
 
     def provision_swarm(self):
         """Provisions sub-agents based on available URP resources."""
-        cpu_cores = self.urp.registry['compute']['cpu']['cores']
-        gpu_available = 'gpu' in self.urp.registry['compute']
-        
+        cpu_cores = self.urp.registry["compute"]["cpu"]["cores"]
+        gpu_available = "gpu" in self.urp.registry["compute"]
+
         # Heuristic: 1 Labeler per 4 CPU cores
         num_labelers = max(1, cpu_cores // 4)
-        print(f"🐝 Provisioning Swarm: {num_labelers} Labelers based on {cpu_cores} cores.")
-        
+        print(
+            f"🐝 Provisioning Swarm: {num_labelers} Labelers based on {cpu_cores} cores."
+        )
+
         for _ in range(num_labelers):
             self.agents.append(SubAgent("Labeler", {"cpu_cores": 2}))
-            
+
         if gpu_available:
             print("🚀 GPU Detected: Provisioning High-Inference Vision Agent.")
             self.agents.append(SubAgent("VisionAnalyst", {"gpu": True}))
@@ -63,10 +71,11 @@ class AgentSwarm:
             results.append(res)
         return results
 
+
 if __name__ == "__main__":
     print("🐝 Initializing Agentic Swarm...")
     swarm = AgentSwarm()
-    
+
     # Mock data to label
     mock_data = [["item1", "item2"], ["item3", "item4"], ["item5"]]
     swarm.dispatch_mass_labeling(mock_data)

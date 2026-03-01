@@ -38,7 +38,9 @@ def _table_counts(conn: sqlite3.Connection, tables: Iterable[str]) -> Dict[str, 
     counts: Dict[str, int] = {}
     for table in tables:
         try:
-            row = conn.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()  # nosec B608 — table names from sqlite_master
+            row = conn.execute(
+                f"SELECT COUNT(*) AS count FROM {table}"
+            ).fetchone()  # nosec B608 — table names from sqlite_master
             counts[table] = int(row["count"]) if row else 0
         except sqlite3.Error:
             counts[table] = -1
@@ -65,7 +67,9 @@ def _build_where(
         params.append(entry_type)
     if query:
         like = f"%{query}%"
-        clauses.append("(content LIKE ? OR key LIKE ? OR tags LIKE ? OR metadata LIKE ?)")
+        clauses.append(
+            "(content LIKE ? OR key LIKE ? OR tags LIKE ? OR metadata LIKE ?)"
+        )
         params.extend([like, like, like, like])
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
@@ -134,7 +138,9 @@ def _memory_entries_iter(
         yield _row_to_dict(row)
 
 
-def _to_sovereign_row(row: Dict[str, Any], snr_score: float, iso_times: bool) -> Dict[str, Any]:
+def _to_sovereign_row(
+    row: Dict[str, Any], snr_score: float, iso_times: bool
+) -> Dict[str, Any]:
     content = row.get("content") or ""
     modified_ms = row.get("updated_at") or row.get("created_at")
     modified = _ms_to_iso(modified_ms) if iso_times else modified_ms
@@ -155,8 +161,16 @@ def _to_sovereign_row(row: Dict[str, Any], snr_score: float, iso_times: bool) ->
             "tags": row.get("tags"),
             "owner_id": row.get("owner_id"),
             "access_count": row.get("access_count"),
-            "created_at": _ms_to_iso(row.get("created_at")) if iso_times else row.get("created_at"),
-            "last_accessed_at": _ms_to_iso(row.get("last_accessed_at")) if iso_times else row.get("last_accessed_at"),
+            "created_at": (
+                _ms_to_iso(row.get("created_at"))
+                if iso_times
+                else row.get("created_at")
+            ),
+            "last_accessed_at": (
+                _ms_to_iso(row.get("last_accessed_at"))
+                if iso_times
+                else row.get("last_accessed_at")
+            ),
         },
     }
 
@@ -177,11 +191,17 @@ def cmd_stats(args: argparse.Namespace) -> int:
             data["metadata"] = {r["key"]: r["value"] for r in meta_rows}
 
         if "memory_entries" in tables:
-            for field, key in (("namespace", "by_namespace"), ("type", "by_type"), ("status", "by_status")):
+            for field, key in (
+                ("namespace", "by_namespace"),
+                ("type", "by_type"),
+                ("status", "by_status"),
+            ):
                 rows = conn.execute(
                     f"SELECT {field} AS label, COUNT(*) AS count FROM memory_entries GROUP BY {field} ORDER BY count DESC"  # nosec B608 — field is internal literal
                 ).fetchall()
-                data.setdefault("memory_entries", {})[key] = {r["label"]: int(r["count"]) for r in rows}
+                data.setdefault("memory_entries", {})[key] = {
+                    r["label"]: int(r["count"]) for r in rows
+                }
 
         if "patterns" in tables:
             rows = conn.execute(
@@ -245,7 +265,9 @@ def cmd_query(args: argparse.Namespace) -> int:
             preview = content.replace("\n", " ").strip()
             if len(preview) > 120:
                 preview = preview[:117] + "..."
-            print(f"[{row.get('namespace')}] {row.get('key')} ({row.get('type')}) -> {preview}")
+            print(
+                f"[{row.get('namespace')}] {row.get('key')} ({row.get('type')}) -> {preview}"
+            )
         return 0
     finally:
         conn.close()
@@ -259,7 +281,9 @@ def cmd_export(args: argparse.Namespace) -> int:
 
         if args.format == "json":
             buffer: List[Dict[str, Any]] = []
-            for row in _memory_entries_iter(conn, args.namespace, args.entry_type, args.status):
+            for row in _memory_entries_iter(
+                conn, args.namespace, args.entry_type, args.status
+            ):
                 if args.as_sovereign:
                     row = _to_sovereign_row(row, args.snr, args.iso_times)
                 else:
@@ -273,7 +297,9 @@ def cmd_export(args: argparse.Namespace) -> int:
         # jsonl
         count = 0
         with out_path.open("w", encoding="utf-8") as handle:
-            for row in _memory_entries_iter(conn, args.namespace, args.entry_type, args.status):
+            for row in _memory_entries_iter(
+                conn, args.namespace, args.entry_type, args.status
+            ):
                 if args.as_sovereign:
                     row = _to_sovereign_row(row, args.snr, args.iso_times)
                 else:
@@ -305,7 +331,9 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument("--limit", type=int, default=20, help="Max results")
     query.add_argument("--json", action="store_true", help="Emit JSON output")
     query.add_argument("--jsonl", action="store_true", help="Emit JSONL output")
-    query.add_argument("--iso-times", action="store_true", help="Convert timestamps to ISO-8601")
+    query.add_argument(
+        "--iso-times", action="store_true", help="Convert timestamps to ISO-8601"
+    )
 
     export = sub.add_parser("export", help="Export memory entries")
     export.add_argument("--out", help="Output path")
@@ -313,9 +341,17 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--namespace", help="Filter by namespace")
     export.add_argument("--type", dest="entry_type", help="Filter by entry type")
     export.add_argument("--status", default="active", help="Filter by status")
-    export.add_argument("--as-sovereign", action="store_true", help="Map entries to Sovereign catalog style")
-    export.add_argument("--snr", type=float, default=0.0, help="SNR score for Sovereign mapping")
-    export.add_argument("--iso-times", action="store_true", help="Convert timestamps to ISO-8601")
+    export.add_argument(
+        "--as-sovereign",
+        action="store_true",
+        help="Map entries to Sovereign catalog style",
+    )
+    export.add_argument(
+        "--snr", type=float, default=0.0, help="SNR score for Sovereign mapping"
+    )
+    export.add_argument(
+        "--iso-times", action="store_true", help="Convert timestamps to ISO-8601"
+    )
 
     return parser
 

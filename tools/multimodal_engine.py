@@ -14,52 +14,68 @@ import numpy as np
 
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
 
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
 
 try:
     import cv2
+
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
 
 try:
     from transformers import CLIPProcessor, CLIPModel
+
     CLIP_AVAILABLE = True
 except ImportError:
     CLIP_AVAILABLE = False
 
 try:
     import whisper
+
     WHISPER_AVAILABLE = True
 except ImportError:
     WHISPER_AVAILABLE = False
 
 try:
     import pytesseract
+
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
 
 from bizra_config import (
-    VISION_ENABLED, AUDIO_ENABLED, CLIP_MODEL, VISION_LLM_LOCAL,
-    WHISPER_LOCAL, IMAGE_BATCH_SIZE, AUDIO_CHUNK_DURATION,
-    IMAGE_EXTENSIONS, AUDIO_EXTENSIONS, VIDEO_EXTENSIONS,
-    CLIP_EMBEDDING_DIM, MULTIMODAL_CACHE, IMAGE_EMBEDDINGS_PATH,
-    AUDIO_TRANSCRIPTS_PATH, GPU_ENABLED
+    VISION_ENABLED,
+    AUDIO_ENABLED,
+    CLIP_MODEL,
+    VISION_LLM_LOCAL,
+    WHISPER_LOCAL,
+    IMAGE_BATCH_SIZE,
+    AUDIO_CHUNK_DURATION,
+    IMAGE_EXTENSIONS,
+    AUDIO_EXTENSIONS,
+    VIDEO_EXTENSIONS,
+    CLIP_EMBEDDING_DIM,
+    MULTIMODAL_CACHE,
+    IMAGE_EMBEDDINGS_PATH,
+    AUDIO_TRANSCRIPTS_PATH,
+    GPU_ENABLED,
 )
-
 
 # ============================================================================
 # DATA STRUCTURES
 # ============================================================================
+
 
 class ModalityType(Enum):
     TEXT = "text"
@@ -71,6 +87,7 @@ class ModalityType(Enum):
 @dataclass
 class MultiModalContent:
     """Unified container for multi-modal content."""
+
     content_id: str
     modality: ModalityType
     source_path: str
@@ -83,6 +100,7 @@ class MultiModalContent:
 @dataclass
 class ImageContent(MultiModalContent):
     """Image-specific content with additional fields."""
+
     ocr_text: Optional[str] = None
     description: Optional[str] = None
     width: int = 0
@@ -93,6 +111,7 @@ class ImageContent(MultiModalContent):
 @dataclass
 class AudioContent(MultiModalContent):
     """Audio-specific content with transcription."""
+
     transcript: Optional[str] = None
     duration_seconds: float = 0.0
     language: str = "en"
@@ -102,6 +121,7 @@ class AudioContent(MultiModalContent):
 # ============================================================================
 # IMAGE PROCESSOR
 # ============================================================================
+
 
 class ImageProcessor:
     """
@@ -156,10 +176,10 @@ class ImageProcessor:
         cache_path = self._get_cache_path(image_path)
         if cache_path.exists():
             try:
-                with open(cache_path, 'r') as f:
+                with open(cache_path, "r") as f:
                     data = json.load(f)
-                    if data.get('source_path') == image_path:
-                        return np.array(data['embedding'])
+                    if data.get("source_path") == image_path:
+                        return np.array(data["embedding"])
             except Exception:
                 pass
         return None
@@ -168,16 +188,21 @@ class ImageProcessor:
         """Save embedding to cache."""
         cache_path = self._get_cache_path(image_path)
         try:
-            with open(cache_path, 'w') as f:
-                json.dump({
-                    'source_path': image_path,
-                    'embedding': embedding.tolist(),
-                    'cached_at': datetime.now().isoformat()
-                }, f)
+            with open(cache_path, "w") as f:
+                json.dump(
+                    {
+                        "source_path": image_path,
+                        "embedding": embedding.tolist(),
+                        "cached_at": datetime.now().isoformat(),
+                    },
+                    f,
+                )
         except Exception:
             pass
 
-    def extract_embedding(self, image_path: str, use_cache: bool = True) -> Optional[np.ndarray]:
+    def extract_embedding(
+        self, image_path: str, use_cache: bool = True
+    ) -> Optional[np.ndarray]:
         """
         Extract CLIP embedding from image.
 
@@ -201,7 +226,9 @@ class ImageProcessor:
 
         try:
             image = Image.open(image_path).convert("RGB")
-            inputs = self.clip_processor(images=image, return_tensors="pt").to(self.device)
+            inputs = self.clip_processor(images=image, return_tensors="pt").to(
+                self.device
+            )
 
             with torch.no_grad():
                 image_features = self.clip_model.get_image_features(**inputs)
@@ -236,7 +263,9 @@ class ImageProcessor:
             return None
 
         try:
-            inputs = self.clip_processor(text=[text], return_tensors="pt", padding=True).to(self.device)
+            inputs = self.clip_processor(
+                text=[text], return_tensors="pt", padding=True
+            ).to(self.device)
 
             with torch.no_grad():
                 text_features = self.clip_model.get_text_features(**inputs)
@@ -276,26 +305,28 @@ class ImageProcessor:
     def get_image_info(self, image_path: str) -> Dict[str, Any]:
         """Get basic image metadata."""
         info = {
-            'path': image_path,
-            'width': 0,
-            'height': 0,
-            'format': '',
-            'size_bytes': 0
+            "path": image_path,
+            "width": 0,
+            "height": 0,
+            "format": "",
+            "size_bytes": 0,
         }
 
         try:
-            info['size_bytes'] = os.path.getsize(image_path)
+            info["size_bytes"] = os.path.getsize(image_path)
 
             if PIL_AVAILABLE:
                 with Image.open(image_path) as img:
-                    info['width'], info['height'] = img.size
-                    info['format'] = img.format or ''
+                    info["width"], info["height"] = img.size
+                    info["format"] = img.format or ""
         except Exception:
             pass
 
         return info
 
-    def batch_extract_embeddings(self, image_paths: List[str], batch_size: int = IMAGE_BATCH_SIZE) -> List[Tuple[str, Optional[np.ndarray]]]:
+    def batch_extract_embeddings(
+        self, image_paths: List[str], batch_size: int = IMAGE_BATCH_SIZE
+    ) -> List[Tuple[str, Optional[np.ndarray]]]:
         """
         Extract embeddings for multiple images in batches.
 
@@ -312,8 +343,10 @@ class ImageProcessor:
         results = []
 
         for i in range(0, len(image_paths), batch_size):
-            batch = image_paths[i:i + batch_size]
-            print(f"[MULTIMODAL] Processing image batch {i//batch_size + 1}/{(len(image_paths) + batch_size - 1)//batch_size}")
+            batch = image_paths[i : i + batch_size]
+            print(
+                f"[MULTIMODAL] Processing image batch {i//batch_size + 1}/{(len(image_paths) + batch_size - 1)//batch_size}"
+            )
 
             for path in batch:
                 embedding = self.extract_embedding(path)
@@ -321,7 +354,9 @@ class ImageProcessor:
 
         return results
 
-    async def describe_image_async(self, image_path: str, use_local: bool = True) -> Optional[str]:
+    async def describe_image_async(
+        self, image_path: str, use_local: bool = True
+    ) -> Optional[str]:
         """
         Generate image description using vision LLM.
 
@@ -344,7 +379,8 @@ class ImageProcessor:
 
             # Read image as base64
             import base64
-            with open(image_path, 'rb') as f:
+
+            with open(image_path, "rb") as f:
                 image_data = base64.b64encode(f.read()).decode()
 
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -354,13 +390,13 @@ class ImageProcessor:
                         "model": VISION_LLM_LOCAL,
                         "prompt": "Describe this image in detail. Focus on the main subjects, text content, and any technical diagrams or charts.",
                         "images": [image_data],
-                        "stream": False
-                    }
+                        "stream": False,
+                    },
                 )
 
                 if response.status_code == 200:
                     result = response.json()
-                    return result.get('response', '')
+                    return result.get("response", "")
 
         except Exception as e:
             print(f"[MULTIMODAL] LLaVA description failed: {e}")
@@ -374,39 +410,43 @@ class ImageProcessor:
             import base64
 
             # Read image
-            with open(image_path, 'rb') as f:
+            with open(image_path, "rb") as f:
                 image_data = base64.standard_b64encode(f.read()).decode()
 
             # Detect media type
             ext = Path(image_path).suffix.lower()
             media_types = {
-                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.png': 'image/png', '.gif': 'image/gif',
-                '.webp': 'image/webp'
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
             }
-            media_type = media_types.get(ext, 'image/jpeg')
+            media_type = media_types.get(ext, "image/jpeg")
 
             client = anthropic.Anthropic()
             message = client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1024,
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": image_data
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": "Describe this image in detail. Focus on the main subjects, any text content, and technical diagrams or charts if present."
-                        }
-                    ]
-                }]
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": image_data,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Describe this image in detail. Focus on the main subjects, any text content, and technical diagrams or charts if present.",
+                            },
+                        ],
+                    }
+                ],
             )
 
             return message.content[0].text
@@ -416,7 +456,9 @@ class ImageProcessor:
 
         return None
 
-    def process_image(self, image_path: str, extract_ocr: bool = True, describe: bool = False) -> ImageContent:
+    def process_image(
+        self, image_path: str, extract_ocr: bool = True, describe: bool = False
+    ) -> ImageContent:
         """
         Full image processing pipeline.
 
@@ -450,19 +492,20 @@ class ImageProcessor:
             embedding=embedding,
             ocr_text=ocr_text,
             description=None,  # Set async if needed
-            width=info['width'],
-            height=info['height'],
-            format=info['format'],
+            width=info["width"],
+            height=info["height"],
+            format=info["format"],
             metadata={
-                'size_bytes': info['size_bytes'],
-                'has_ocr': ocr_text is not None
-            }
+                "size_bytes": info["size_bytes"],
+                "has_ocr": ocr_text is not None,
+            },
         )
 
 
 # ============================================================================
 # AUDIO PROCESSOR
 # ============================================================================
+
 
 class AudioProcessor:
     """
@@ -491,7 +534,9 @@ class AudioProcessor:
             return
 
         if not WHISPER_AVAILABLE:
-            print("[MULTIMODAL] Warning: whisper not installed. Audio processing disabled.")
+            print(
+                "[MULTIMODAL] Warning: whisper not installed. Audio processing disabled."
+            )
             print("[MULTIMODAL] Install with: pip install openai-whisper")
             return
 
@@ -513,9 +558,9 @@ class AudioProcessor:
         cache_path = self._get_cache_path(audio_path)
         if cache_path.exists():
             try:
-                with open(cache_path, 'r') as f:
+                with open(cache_path, "r") as f:
                     data = json.load(f)
-                    if data.get('source_path') == audio_path:
+                    if data.get("source_path") == audio_path:
                         return data
             except Exception:
                 pass
@@ -525,7 +570,7 @@ class AudioProcessor:
         """Save transcript to cache."""
         cache_path = self._get_cache_path(audio_path)
         try:
-            with open(cache_path, 'w') as f:
+            with open(cache_path, "w") as f:
                 json.dump(transcript_data, f, indent=2)
         except Exception:
             pass
@@ -555,24 +600,18 @@ class AudioProcessor:
         try:
             print(f"[MULTIMODAL] Transcribing: {audio_path}")
             result = self.whisper_model.transcribe(
-                audio_path,
-                language=None,  # Auto-detect
-                task="transcribe"
+                audio_path, language=None, task="transcribe"  # Auto-detect
             )
 
             transcript_data = {
-                'source_path': audio_path,
-                'text': result['text'],
-                'language': result.get('language', 'unknown'),
-                'segments': [
-                    {
-                        'start': seg['start'],
-                        'end': seg['end'],
-                        'text': seg['text']
-                    }
-                    for seg in result.get('segments', [])
+                "source_path": audio_path,
+                "text": result["text"],
+                "language": result.get("language", "unknown"),
+                "segments": [
+                    {"start": seg["start"], "end": seg["end"], "text": seg["text"]}
+                    for seg in result.get("segments", [])
                 ],
-                'transcribed_at': datetime.now().isoformat()
+                "transcribed_at": datetime.now().isoformat(),
             }
 
             if use_cache:
@@ -588,10 +627,20 @@ class AudioProcessor:
         """Get audio duration in seconds."""
         try:
             import subprocess
+
             result = subprocess.run(
-                ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
-                 '-of', 'default=noprint_wrappers=1:nokey=1', audio_path],
-                capture_output=True, text=True
+                [
+                    "ffprobe",
+                    "-v",
+                    "quiet",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    audio_path,
+                ],
+                capture_output=True,
+                text=True,
             )
             return float(result.stdout.strip())
         except Exception:
@@ -620,9 +669,9 @@ class AudioProcessor:
         segments = []
 
         if transcript_data:
-            text_content = transcript_data.get('text', '')
-            language = transcript_data.get('language', 'unknown')
-            segments = transcript_data.get('segments', [])
+            text_content = transcript_data.get("text", "")
+            language = transcript_data.get("language", "unknown")
+            segments = transcript_data.get("segments", [])
 
         return AudioContent(
             content_id=content_id,
@@ -634,14 +683,17 @@ class AudioProcessor:
             language=language,
             speaker_segments=segments,
             metadata={
-                'file_size': os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
-            }
+                "file_size": (
+                    os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
+                )
+            },
         )
 
 
 # ============================================================================
 # MULTI-MODAL CHUNKER
 # ============================================================================
+
 
 class MultiModalChunker:
     """
@@ -676,41 +728,51 @@ class MultiModalChunker:
         if combined_text:
             # Split into chunks if needed
             if len(combined_text) <= self.chunk_size:
-                chunks.append({
-                    'content_id': image_content.content_id,
-                    'text': combined_text,
-                    'modality': 'image',
-                    'source_path': image_content.source_path,
-                    'has_embedding': image_content.embedding is not None,
-                    'chunk_index': 0
-                })
+                chunks.append(
+                    {
+                        "content_id": image_content.content_id,
+                        "text": combined_text,
+                        "modality": "image",
+                        "source_path": image_content.source_path,
+                        "has_embedding": image_content.embedding is not None,
+                        "chunk_index": 0,
+                    }
+                )
             else:
                 # Split long text
-                for i, start in enumerate(range(0, len(combined_text), self.chunk_size - self.overlap)):
-                    chunk_text = combined_text[start:start + self.chunk_size]
-                    chunks.append({
-                        'content_id': f"{image_content.content_id}_{i}",
-                        'text': chunk_text,
-                        'modality': 'image',
-                        'source_path': image_content.source_path,
-                        'has_embedding': image_content.embedding is not None,
-                        'chunk_index': i
-                    })
+                for i, start in enumerate(
+                    range(0, len(combined_text), self.chunk_size - self.overlap)
+                ):
+                    chunk_text = combined_text[start : start + self.chunk_size]
+                    chunks.append(
+                        {
+                            "content_id": f"{image_content.content_id}_{i}",
+                            "text": chunk_text,
+                            "modality": "image",
+                            "source_path": image_content.source_path,
+                            "has_embedding": image_content.embedding is not None,
+                            "chunk_index": i,
+                        }
+                    )
         else:
             # No text content - create placeholder chunk for image-only search
-            chunks.append({
-                'content_id': image_content.content_id,
-                'text': f"[IMAGE: {Path(image_content.source_path).name}]",
-                'modality': 'image',
-                'source_path': image_content.source_path,
-                'has_embedding': image_content.embedding is not None,
-                'chunk_index': 0,
-                'image_only': True
-            })
+            chunks.append(
+                {
+                    "content_id": image_content.content_id,
+                    "text": f"[IMAGE: {Path(image_content.source_path).name}]",
+                    "modality": "image",
+                    "source_path": image_content.source_path,
+                    "has_embedding": image_content.embedding is not None,
+                    "chunk_index": 0,
+                    "image_only": True,
+                }
+            )
 
         return chunks
 
-    def chunk_audio_content(self, audio_content: AudioContent, by_segments: bool = True) -> List[Dict[str, Any]]:
+    def chunk_audio_content(
+        self, audio_content: AudioContent, by_segments: bool = True
+    ) -> List[Dict[str, Any]]:
         """
         Create chunks from audio content.
 
@@ -727,40 +789,49 @@ class MultiModalChunker:
             current_end = 0
 
             for i, seg in enumerate(audio_content.speaker_segments):
-                current_text.append(seg['text'].strip())
+                current_text.append(seg["text"].strip())
                 if i == 0:
-                    current_start = seg['start']
-                current_end = seg['end']
+                    current_start = seg["start"]
+                current_end = seg["end"]
 
                 # Create chunk if we've accumulated enough text or this is the last segment
-                combined = ' '.join(current_text)
-                if len(combined) >= self.chunk_size or i == len(audio_content.speaker_segments) - 1:
-                    chunks.append({
-                        'content_id': f"{audio_content.content_id}_{len(chunks)}",
-                        'text': combined,
-                        'modality': 'audio',
-                        'source_path': audio_content.source_path,
-                        'time_start': current_start,
-                        'time_end': current_end,
-                        'language': audio_content.language,
-                        'chunk_index': len(chunks)
-                    })
+                combined = " ".join(current_text)
+                if (
+                    len(combined) >= self.chunk_size
+                    or i == len(audio_content.speaker_segments) - 1
+                ):
+                    chunks.append(
+                        {
+                            "content_id": f"{audio_content.content_id}_{len(chunks)}",
+                            "text": combined,
+                            "modality": "audio",
+                            "source_path": audio_content.source_path,
+                            "time_start": current_start,
+                            "time_end": current_end,
+                            "language": audio_content.language,
+                            "chunk_index": len(chunks),
+                        }
+                    )
                     current_text = []
-                    current_start = seg['end']
+                    current_start = seg["end"]
         else:
             # Chunk by text length
             full_text = audio_content.text_content or ""
             if full_text:
-                for i, start in enumerate(range(0, len(full_text), self.chunk_size - self.overlap)):
-                    chunk_text = full_text[start:start + self.chunk_size]
-                    chunks.append({
-                        'content_id': f"{audio_content.content_id}_{i}",
-                        'text': chunk_text,
-                        'modality': 'audio',
-                        'source_path': audio_content.source_path,
-                        'language': audio_content.language,
-                        'chunk_index': i
-                    })
+                for i, start in enumerate(
+                    range(0, len(full_text), self.chunk_size - self.overlap)
+                ):
+                    chunk_text = full_text[start : start + self.chunk_size]
+                    chunks.append(
+                        {
+                            "content_id": f"{audio_content.content_id}_{i}",
+                            "text": chunk_text,
+                            "modality": "audio",
+                            "source_path": audio_content.source_path,
+                            "language": audio_content.language,
+                            "chunk_index": i,
+                        }
+                    )
 
         return chunks
 
@@ -769,6 +840,7 @@ class MultiModalChunker:
 # UNIFIED MULTI-MODAL ENGINE
 # ============================================================================
 
+
 class MultiModalEngine:
     """
     Unified engine for processing all multi-modal content.
@@ -776,8 +848,12 @@ class MultiModalEngine:
     """
 
     def __init__(self, use_gpu: bool = GPU_ENABLED):
-        self.image_processor = ImageProcessor(use_gpu=use_gpu) if VISION_ENABLED else None
-        self.audio_processor = AudioProcessor(use_gpu=use_gpu) if AUDIO_ENABLED else None
+        self.image_processor = (
+            ImageProcessor(use_gpu=use_gpu) if VISION_ENABLED else None
+        )
+        self.audio_processor = (
+            AudioProcessor(use_gpu=use_gpu) if AUDIO_ENABLED else None
+        )
         self.chunker = MultiModalChunker()
         self._initialized = False
 
@@ -810,7 +886,9 @@ class MultiModalEngine:
         else:
             return ModalityType.TEXT
 
-    def process_file(self, file_path: str, extract_ocr: bool = True, describe: bool = False) -> Optional[MultiModalContent]:
+    def process_file(
+        self, file_path: str, extract_ocr: bool = True, describe: bool = False
+    ) -> Optional[MultiModalContent]:
         """
         Process any supported file type.
 
@@ -846,20 +924,27 @@ class MultiModalEngine:
     def get_status(self) -> Dict[str, Any]:
         """Get engine status."""
         return {
-            'initialized': self._initialized,
-            'vision_enabled': VISION_ENABLED,
-            'audio_enabled': AUDIO_ENABLED,
-            'image_processor_ready': self.image_processor._initialized if self.image_processor else False,
-            'audio_processor_ready': self.audio_processor._initialized if self.audio_processor else False,
-            'device': 'cuda' if (TORCH_AVAILABLE and torch.cuda.is_available()) else 'cpu',
-            'supported_image_formats': list(IMAGE_EXTENSIONS),
-            'supported_audio_formats': list(AUDIO_EXTENSIONS)
+            "initialized": self._initialized,
+            "vision_enabled": VISION_ENABLED,
+            "audio_enabled": AUDIO_ENABLED,
+            "image_processor_ready": (
+                self.image_processor._initialized if self.image_processor else False
+            ),
+            "audio_processor_ready": (
+                self.audio_processor._initialized if self.audio_processor else False
+            ),
+            "device": (
+                "cuda" if (TORCH_AVAILABLE and torch.cuda.is_available()) else "cpu"
+            ),
+            "supported_image_formats": list(IMAGE_EXTENSIONS),
+            "supported_audio_formats": list(AUDIO_EXTENSIONS),
         }
 
 
 # ============================================================================
 # MAIN / DEMO
 # ============================================================================
+
 
 def main():
     """Demonstrate multi-modal engine capabilities."""

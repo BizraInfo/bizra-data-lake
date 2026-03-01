@@ -35,6 +35,7 @@ PeakMasterpieceEngine = None
 CommandType = None
 EvidencePointer = None
 
+
 def _lazy_import():
     """Lazy import heavy modules only when needed."""
     global PeakMasterpieceEngine, CommandType, EvidencePointer
@@ -43,6 +44,7 @@ def _lazy_import():
             from peak_masterpiece import PeakMasterpieceEngine as PME
             from peak_masterpiece import CommandType as CT
             from peak_masterpiece import EvidencePointer as EP
+
             PeakMasterpieceEngine = PME
             CommandType = CT
             EvidencePointer = EP
@@ -51,9 +53,11 @@ def _lazy_import():
             from peak_masterpiece import PeakMasterpieceEngine as PME
             from peak_masterpiece import CommandType as CT
             from peak_masterpiece import EvidencePointer as EP
+
             PeakMasterpieceEngine = PME
             CommandType = CT
             EvidencePointer = EP
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING SETUP
@@ -61,9 +65,9 @@ def _lazy_import():
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(levelname)s] %(asctime)s | %(name)s | %(message)s',
-    datefmt='%H:%M:%S',
-    handlers=[logging.StreamHandler(sys.stderr)]
+    format="[%(levelname)s] %(asctime)s | %(name)s | %(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger("PeakMCP")
 
@@ -78,6 +82,7 @@ SERVER_VERSION = "3.0.0-SINGULARITY"
 # ═══════════════════════════════════════════════════════════════════════════════
 # PEAK ENGINE INTERFACE
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class PeakEngineInterface:
     """Interface to the Peak Masterpiece Engine."""
@@ -98,7 +103,9 @@ class PeakEngineInterface:
 
             # Log status
             status = self.engine.get_status()
-            logger.info(f"✓ Peak Engine initialized: {status['engine']} v{status['version']}")
+            logger.info(
+                f"✓ Peak Engine initialized: {status['engine']} v{status['version']}"
+            )
             logger.info(f"✓ Kernel Invariants: {status['kernel_invariants']}")
             return True
 
@@ -124,7 +131,7 @@ class PeakEngineInterface:
                 "elapsed_ms": round(elapsed, 2),
                 "synergies": [asdict(s) for s in result.synergies],
                 "thoughts_generated": len(result.thoughts_used),
-                "discipline_coverage": result.discipline_coverage
+                "discipline_coverage": result.discipline_coverage,
             }
         except Exception as e:
             logger.error(f"Query error: {e}")
@@ -166,7 +173,9 @@ class PeakEngineInterface:
         except Exception as e:
             return {"error": f"Execution failed: {str(e)}"}
 
-    def fate_verify(self, content: str, evidence_sources: List[str] = None) -> Dict[str, Any]:
+    def fate_verify(
+        self, content: str, evidence_sources: List[str] = None
+    ) -> Dict[str, Any]:
         """SINGULARITY: LLM-verified FATE Gate verification."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
@@ -178,17 +187,18 @@ class PeakEngineInterface:
             evidence = []
             if evidence_sources:
                 for src in evidence_sources:
-                    evidence.append(EvidencePointer(
-                        pointer_type="file_path" if not src.startswith("http") else "url",
-                        value=src
-                    ))
+                    evidence.append(
+                        EvidencePointer(
+                            pointer_type=(
+                                "file_path" if not src.startswith("http") else "url"
+                            ),
+                            value=src,
+                        )
+                    )
 
             # Run LLM-verified FATE
             result = self.engine.fate_gate.verify_with_llm(
-                content=content,
-                evidence=evidence,
-                retrieved_docs=None,
-                timeout=30.0
+                content=content, evidence=evidence, retrieved_docs=None, timeout=30.0
             )
 
             return {
@@ -199,13 +209,15 @@ class PeakEngineInterface:
                 "testable_score": result.testable_score,
                 "evidence_score": result.evidence_score,
                 "violations": result.violations,
-                "singularity_mode": True
+                "singularity_mode": True,
             }
         except Exception as e:
             logger.error(f"FATE verification error: {e}")
             return {"error": str(e)}
 
-    def singularity_query(self, query_text: str, verify_fate: bool = True) -> Dict[str, Any]:
+    def singularity_query(
+        self, query_text: str, verify_fate: bool = True
+    ) -> Dict[str, Any]:
         """SINGULARITY: Maximum performance query with guaranteed Ihsān SNR."""
         if not self.initialized:
             return {"error": "Engine not initialized"}
@@ -218,30 +230,41 @@ class PeakEngineInterface:
             # Build synergies list with proper attribute names
             top_synergies = []
             for s in result.synergies[:3]:
-                top_synergies.append({
-                    "source_domain": s.source_domain,
-                    "target_domain": s.target_domain,
-                    "strength": s.strength,
-                    "type": s.synergy_type.value if hasattr(s.synergy_type, 'value') else str(s.synergy_type)
-                })
+                top_synergies.append(
+                    {
+                        "source_domain": s.source_domain,
+                        "target_domain": s.target_domain,
+                        "strength": s.strength,
+                        "type": (
+                            s.synergy_type.value
+                            if hasattr(s.synergy_type, "value")
+                            else str(s.synergy_type)
+                        ),
+                    }
+                )
 
             return {
                 "query": result.query,
                 "content": result.synthesis,
                 "snr": result.snr_score,
                 "ihsan_pass": result.ihsan_check,
-                "ihsan_grade": "🏆 IHSĀN" if result.snr_score >= 0.99 else ("✓ PASS" if result.ihsan_check else "❌ BELOW"),
+                "ihsan_grade": (
+                    "🏆 IHSĀN"
+                    if result.snr_score >= 0.99
+                    else ("✓ PASS" if result.ihsan_check else "❌ BELOW")
+                ),
                 "elapsed_ms": round(elapsed, 2),
                 "synergies_count": len(result.synergies),
                 "top_synergies": top_synergies,
                 "thoughts_generated": len(result.thoughts_used),
                 "discipline_coverage": result.discipline_coverage,
                 "singularity_mode": True,
-                "llm_fate_verified": verify_fate
+                "llm_fate_verified": verify_fate,
             }
         except Exception as e:
             logger.error(f"Singularity query error: {e}")
             return {"error": str(e)}
+
 
 # Global interface
 peak_interface = PeakEngineInterface()
@@ -259,11 +282,11 @@ MCP_TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search query or question."
+                    "description": "The search query or question.",
                 }
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "peak_verify",
@@ -273,20 +296,16 @@ MCP_TOOLS = [
             "properties": {
                 "claim": {
                     "type": "string",
-                    "description": "The specific claim to verify."
+                    "description": "The specific claim to verify.",
                 }
             },
-            "required": ["claim"]
-        }
+            "required": ["claim"],
+        },
     },
     {
         "name": "peak_status",
         "description": "Get current engine health, invariant status, and metrics.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
+        "inputSchema": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "peak_command",
@@ -296,15 +315,15 @@ MCP_TOOLS = [
             "properties": {
                 "command": {
                     "type": "string",
-                    "description": "Command symbol (e.g. '/A', '/C')"
+                    "description": "Command symbol (e.g. '/A', '/C')",
                 },
                 "context": {
                     "type": "object",
-                    "description": "Optional context dictionary"
-                }
+                    "description": "Optional context dictionary",
+                },
             },
-            "required": ["command"]
-        }
+            "required": ["command"],
+        },
     },
     {
         "name": "peak_fate_verify",
@@ -314,16 +333,16 @@ MCP_TOOLS = [
             "properties": {
                 "content": {
                     "type": "string",
-                    "description": "The synthesis or content to verify."
+                    "description": "The synthesis or content to verify.",
                 },
                 "evidence_sources": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional list of evidence source paths or URLs."
-                }
+                    "description": "Optional list of evidence source paths or URLs.",
+                },
             },
-            "required": ["content"]
-        }
+            "required": ["content"],
+        },
     },
     {
         "name": "peak_singularity_query",
@@ -333,22 +352,23 @@ MCP_TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search query or question."
+                    "description": "The search query or question.",
                 },
                 "verify_fate": {
                     "type": "boolean",
                     "description": "Whether to run LLM FATE verification (default: true).",
-                    "default": True
-                }
+                    "default": True,
+                },
             },
-            "required": ["query"]
-        }
-    }
+            "required": ["query"],
+        },
+    },
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MCP REQUEST HANDLER
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Handle MCP JSON-RPC requests."""
@@ -367,16 +387,12 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "result": {
                 "protocolVersion": MCP_PROTOCOL_VERSION,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION}
-            }
+                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+            },
         }
 
     elif method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"tools": MCP_TOOLS}
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": MCP_TOOLS}}
 
     elif method == "tools/call":
         tool_name = params.get("name")
@@ -402,35 +418,35 @@ def process_mcp_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         elif tool_name == "peak_fate_verify":
             res = peak_interface.fate_verify(
                 content=args.get("content", ""),
-                evidence_sources=args.get("evidence_sources", [])
+                evidence_sources=args.get("evidence_sources", []),
             )
             result_text = json.dumps(res, indent=2, default=str)
         elif tool_name == "peak_singularity_query":
             res = peak_interface.singularity_query(
                 query_text=args.get("query", ""),
-                verify_fate=args.get("verify_fate", True)
+                verify_fate=args.get("verify_fate", True),
             )
             result_text = json.dumps(res, indent=2, default=str)
         else:
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
-                "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}
+                "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"},
             }
 
         return {
             "jsonrpc": "2.0",
             "id": request_id,
-            "result": {
-                "content": [{"type": "text", "text": result_text}]
-            }
+            "result": {"content": [{"type": "text", "text": result_text}]},
         }
 
     return None
 
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # HTTP SERVER
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class PeakMCPHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -438,10 +454,14 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
 
-        status = peak_interface.status() if peak_interface.initialized else {"status": "inactive"}
+        status = (
+            peak_interface.status()
+            if peak_interface.initialized
+            else {"status": "inactive"}
+        )
 
         html = f"""<!DOCTYPE html>
 <html>
@@ -485,7 +505,7 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
         self.wfile.write(html.encode("utf-8"))
 
     def do_POST(self):
-        length = int(self.headers.get('Content-Length', 0))
+        length = int(self.headers.get("Content-Length", 0))
         data = self.rfile.read(length)
 
         try:
@@ -493,8 +513,8 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
             resp = process_mcp_request(req)
 
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
             if resp:
@@ -502,11 +522,12 @@ class PeakMCPHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
+
 def run_http(port=8444):
     try:
         peak_interface.initialize()
         # Bind to 0.0.0.0 in container environments, 127.0.0.1 for local dev
-        bind_addr = '0.0.0.0' if os.getenv('BIZRA_ENV') == 'production' else '127.0.0.1'
+        bind_addr = "0.0.0.0" if os.getenv("BIZRA_ENV") == "production" else "127.0.0.1"
         server = HTTPServer((bind_addr, port), PeakMCPHandler)
         logger.info(f"Serving PEAK MASTERPIECE HTTP on http://{bind_addr}:{port}")
         server.serve_forever()
@@ -515,6 +536,7 @@ def run_http(port=8444):
     except Exception as e:
         logger.critical(f"Server crashed: {e}", exc_info=True)
         sys.exit(1)
+
 
 def run_stdio():
     peak_interface.initialize()
@@ -527,6 +549,7 @@ def run_stdio():
                 sys.stdout.flush()
         except Exception as e:
             logger.debug("stdio request parse/dispatch failed: %s", e)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

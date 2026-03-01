@@ -53,33 +53,27 @@ Standing on the shoulders of: Al-Ghazali, John Rawls, Anthropic.
 Focus on beneficial outcomes, ethical considerations, and harm prevention.
 Apply the FATE gates: Ihsān (excellence ≥0.95), Adl (fairness), Harm (≤0.30), Confidence (≥0.80).
 Be wise, protective, and guide toward beneficial outcomes.""",
-
     "strategist": """You are the Strategist of a Personal Agentic Team (PAT).
 Your role is strategic planning and long-term thinking.
 Standing on the shoulders of: Sun Tzu, Clausewitz, Michael Porter.
 Focus on objectives, competitive advantage, and strategic positioning.
 Be concise but thorough.""",
-
     "researcher": """You are the Researcher of a Personal Agentic Team (PAT).
 Your role is knowledge discovery and synthesis.
 Standing on the shoulders of: Claude Shannon, Alan Turing, Edsger Dijkstra.
 Focus on finding accurate information, synthesizing knowledge, and providing insights.""",
-
     "developer": """You are the Developer of a Personal Agentic Team (PAT).
 Your role is code implementation and technical solutions.
 Standing on the shoulders of: Donald Knuth, Dennis Ritchie, Linus Torvalds.
 Focus on clean code, efficient algorithms, and robust implementation.""",
-
     "analyst": """You are the Analyst of a Personal Agentic Team (PAT).
 Your role is data analysis and insight extraction.
 Standing on the shoulders of: John Tukey, Edward Tufte, William Cleveland.
 Focus on patterns, trends, and data-driven insights.""",
-
     "reviewer": """You are the Reviewer of a Personal Agentic Team (PAT).
 Your role is quality validation and constructive feedback.
 Standing on the shoulders of: Michael Fagan, David Parnas, Fred Brooks.
 Focus on correctness, completeness, and improvement opportunities.""",
-
     "executor": """You are the Executor of a Personal Agentic Team (PAT).
 Your role is task execution and delivery.
 Standing on the shoulders of: Toyota Production System, W. Edwards Deming, Taiichi Ohno.
@@ -107,7 +101,7 @@ class LMStudioBridge:
         self.client = httpx.AsyncClient(
             base_url=BASE_URL,
             timeout=httpx.Timeout(120.0, connect=5.0),
-            headers=headers
+            headers=headers,
         )
 
     async def health_check(self) -> bool:
@@ -143,13 +137,15 @@ class LMStudioBridge:
                 except:
                     params = 0.0
 
-                models.append(ModelInfo(
-                    id=m.get("key", m.get("id", "")),
-                    name=m.get("display_name", m.get("key", m.get("id", ""))),
-                    loaded=loaded,
-                    params_b=params,
-                    context_length=m.get("max_context_length", 4096)
-                ))
+                models.append(
+                    ModelInfo(
+                        id=m.get("key", m.get("id", "")),
+                        name=m.get("display_name", m.get("key", m.get("id", ""))),
+                        loaded=loaded,
+                        params_b=params,
+                        context_length=m.get("max_context_length", 4096),
+                    )
+                )
 
             return models
         except Exception as e:
@@ -168,7 +164,7 @@ class LMStudioBridge:
         system_prompt: Optional[str] = None,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 2048
+        max_tokens: int = 2048,
     ) -> Dict[str, Any]:
         """Chat using OpenAI-compatible endpoint."""
         messages = []
@@ -180,7 +176,7 @@ class LMStudioBridge:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "stream": False
+            "stream": False,
         }
         if model:
             payload["model"] = model
@@ -195,12 +191,15 @@ class LMStudioBridge:
 
             # Strip <think>...</think> tokens from reasoning models
             import re
-            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+
+            content = re.sub(
+                r"<think>.*?</think>", "", content, flags=re.DOTALL
+            ).strip()
 
             return {
                 "content": content,
                 "model": data.get("model", "unknown"),
-                "usage": data.get("usage", {})
+                "usage": data.get("usage", {}),
             }
         except httpx.ConnectError:
             return {"error": f"Cannot connect to LM Studio at {BASE_URL}"}
@@ -230,13 +229,13 @@ async def cmd_status():
                 "host": f"{LM_STUDIO_HOST}:{LM_STUDIO_PORT}",
                 "total_models": len(models),
                 "loaded_models": len(loaded),
-                "loaded_list": [m.name for m in loaded]
+                "loaded_list": [m.name for m in loaded],
             }
         else:
             result = {
                 "status": "disconnected",
                 "host": f"{LM_STUDIO_HOST}:{LM_STUDIO_PORT}",
-                "error": "LM Studio not responding"
+                "error": "LM Studio not responding",
             }
         print(json.dumps(result, indent=2))
         return 0 if healthy else 1
@@ -255,12 +254,9 @@ async def cmd_models():
 
         result = []
         for m in models:
-            result.append({
-                "id": m.id,
-                "name": m.name,
-                "loaded": m.loaded,
-                "params_b": m.params_b
-            })
+            result.append(
+                {"id": m.id, "name": m.name, "loaded": m.loaded, "params_b": m.params_b}
+            )
         print(json.dumps({"models": result}, indent=2))
         return 0
     finally:
@@ -282,7 +278,14 @@ async def cmd_agent(agent: str, message: str):
     """Chat with PAT agent."""
     agent = agent.lower()
     if agent not in PAT_PROMPTS:
-        print(json.dumps({"error": f"Unknown agent: {agent}", "available": list(PAT_PROMPTS.keys())}))
+        print(
+            json.dumps(
+                {
+                    "error": f"Unknown agent: {agent}",
+                    "available": list(PAT_PROMPTS.keys()),
+                }
+            )
+        )
         return 1
 
     return await cmd_chat(message, system_prompt=PAT_PROMPTS[agent])
@@ -313,7 +316,7 @@ Examples:
   %(prog)s chat "Hello world"         # Simple chat
   %(prog)s agent guardian "Help me"   # Chat with PAT agent
   %(prog)s quick "Say hello"          # Quick chat (content only)
-"""
+""",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -330,7 +333,9 @@ Examples:
 
     # Agent
     agent_parser = subparsers.add_parser("agent", help="Chat with PAT agent")
-    agent_parser.add_argument("agent", choices=list(PAT_PROMPTS.keys()), help="Agent name")
+    agent_parser.add_argument(
+        "agent", choices=list(PAT_PROMPTS.keys()), help="Agent name"
+    )
     agent_parser.add_argument("message", help="Message to send")
 
     # Quick (content only output)
