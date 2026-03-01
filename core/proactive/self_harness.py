@@ -345,7 +345,7 @@ class GhostPusher:
         # Try in-process first (fastest, no network)
         if self._mode in ("auto", "in_process"):
             try:
-                from core.bridges.ghost_ws import emit_overlay_event, OverlayEvent
+                from core.bridges.ghost_ws import OverlayEvent, emit_overlay_event
 
                 event = OverlayEvent(
                     type="show_overlay",
