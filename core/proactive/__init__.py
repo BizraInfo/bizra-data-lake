@@ -14,16 +14,16 @@ Components:
 Created: 2026-02-27 | BIZRA Proactive Module v1.0
 """
 
+from core.proactive.infra_health import InfraHealthProbe
 from core.proactive.self_harness import (
-    ProactiveHarness,
-    GoalScanner,
-    SuggestionForge,
     GhostPusher,
-    SelfAssessor,
+    GoalScanner,
     MissionActivator,
+    ProactiveHarness,
+    SelfAssessor,
+    SuggestionForge,
     create_harness,
 )
-from core.proactive.infra_health import InfraHealthProbe
 
 __all__ = [
     "ProactiveHarness",
