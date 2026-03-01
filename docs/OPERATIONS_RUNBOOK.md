@@ -1,8 +1,63 @@
 # BIZRA Operations Runbook
 
-Last updated: 2026-02-14
+Last updated: 2026-03-01
 
 This runbook is the operator-focused guide for starting, validating, and troubleshooting BIZRA services.
+
+## Infrastructure Guardian
+
+The BIZRA Infrastructure Guardian is a self-healing daemon that monitors Docker, memory, disk, EXT4 filesystem errors, critical services, systemd journal health, and port collisions. It implements an OODA (Observe-Orient-Decide-Act) loop with Ihsan quality scoring.
+
+### Quick Commands
+
+```bash
+# Single health check
+python3 scripts/guardian/infra_guardian.py --check
+
+# Check + auto-correct known issues
+python3 scripts/guardian/infra_guardian.py --correct
+
+# JSON health report
+python3 scripts/guardian/infra_guardian.py --report
+
+# Install as systemd daemon
+sudo bash scripts/guardian/install_guardian.sh
+```
+
+### Probes
+
+| Probe | Monitors | Auto-Corrects |
+|-------|----------|---------------|
+| docker_socket | Socket exists, Docker reachable | Recreates symlink |
+| container_health | All containers healthy/running | Restarts unhealthy (5min backoff) |
+| memory | RAM usage % | Docker build cache prune at 92% |
+| disk | `/` and `/mnt/c` usage | Docker system prune at 95% |
+| ext4_errors | dmesg for filesystem errors | Reports (Windows-side fix required) |
+| critical_services | Redis, PostgreSQL, ChromaDB | — |
+| journal_health | systemd journal size | Vacuum to 200MB |
+| banned_services | systemd Redis conflicts | Stop + disable |
+| port_collisions | Known conflicts (8081) | Reports |
+
+### EXT4 Disk Repair (Windows-side)
+
+If the guardian reports EXT4 errors, run from Windows PowerShell (Admin):
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "C:\BIZRA-DATA-LAKE\scripts\fix_docker_disk.ps1"
+```
+
+### Programmatic Access
+
+```python
+from core.proactive import InfraHealthProbe
+
+probe = InfraHealthProbe()
+report = probe.check()           # Quick check
+report = probe.check_and_fix()   # Check + auto-correct
+score  = probe.ihsan_score()     # 0.0 - 1.0
+print(probe.summary())           # One-line status
+```
 
 ## 1. Prerequisites
 
