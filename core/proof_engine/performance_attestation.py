@@ -32,8 +32,8 @@ import logging
 import statistics
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Callable, Final, Optional
+from enum import Enum
+from typing import Any, Final, Optional
 
 logger = logging.getLogger("sovereign.performance_attestation")
 

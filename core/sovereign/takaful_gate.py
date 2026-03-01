@@ -25,7 +25,6 @@ Constitutional Principle: RIBA_ZERO (no exploitation of newcomers)
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
