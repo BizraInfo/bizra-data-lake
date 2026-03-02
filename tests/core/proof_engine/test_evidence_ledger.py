@@ -10,12 +10,8 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-002: "every verification call emits a receipt"
 """
 
-import copy
 import hashlib
 import json
-import os
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -28,7 +24,6 @@ from core.proof_engine.evidence_ledger import (
     _compute_entry_hash,
     emit_receipt,
 )
-from core.proof_engine.reason_codes import ReasonCode
 
 # =============================================================================
 # FIXTURES
@@ -433,6 +428,36 @@ class TestReceiptEmission:
         )
         assert entry.receipt["metrics"]["duration_ms"] == 42.5
 
+    def test_emit_with_diffusion_trace_fields(self, ledger):
+        """emit_receipt propagates diffusion-aware snr trace fields."""
+        entry = emit_receipt(
+            ledger,
+            receipt_id="abc123def456abca",
+            node_id="node-genesis-01",
+            snr_score=0.95,
+            ihsan_score=0.97,
+            seal_digest="f" * 64,
+            snr_trace={
+                "method": "facade_v2",
+                "engine": "v2",
+                "quality_tier": "t1_high",
+                "recommendations": ["reduce_noise"],
+                "diffusion": {
+                    "activated": True,
+                    "confidence": 0.93,
+                    "predicted_state": "analyzing",
+                    "focus": "verify",
+                },
+            },
+        )
+        snr = entry.receipt["snr"]
+        assert snr["method"] == "facade_v2"
+        assert snr["engine"] == "v2"
+        assert snr["quality_tier"] == "t1_high"
+        assert snr["recommendations"] == ["reduce_noise"]
+        assert snr["diffusion"]["activated"] is True
+        assert snr["diffusion"]["predicted_state"] == "analyzing"
+
     def test_emit_ihsan_decision_auto(self, ledger):
         """emit_receipt auto-computes ihsan decision from score vs threshold."""
         # Above threshold
@@ -500,8 +525,14 @@ class TestReceiptEmission:
                 signer_public_key_hex=wrong_public_key_hex,
             )
 
-    def test_emit_critical_receipt_includes_origin_proof(self, ledger, tmp_path):
+    def test_emit_critical_receipt_includes_origin_proof(
+        self, ledger, tmp_path, monkeypatch
+    ):
         """Critical receipts include origin + origin_digest in the signed body."""
+        # Prevent env pollution from earlier tests — explicit preconditions (Lamport)
+        monkeypatch.delenv("BIZRA_RECEIPT_PUBLIC_KEY_HEX", raising=False)
+        monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
+
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True, exist_ok=True)
         origin = {
