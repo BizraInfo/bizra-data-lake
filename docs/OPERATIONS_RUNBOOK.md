@@ -59,6 +59,159 @@ score  = probe.ihsan_score()     # 0.0 - 1.0
 print(probe.summary())           # One-line status
 ```
 
+## Node0 Performance Recovery (Windows + WSL)
+
+Use this flow when Node0 is slow despite high-end hardware and you need a safe evidence-first cleanup sequence.
+
+### Control Center Path
+
+From `scripts/ops/CONTROL-CENTER.bat`:
+
+- `8` Node0 Performance Snapshot (Analyze)
+- `9` Node0 Performance Recovery (Dry Run)
+- `10` Node0 Performance Recovery (Execute)
+- `14` VHDX Compaction Snapshot (Analyze)
+- `15` VHDX Compaction (Dry Run)
+- `16` VHDX Compaction (Execute)
+- `17` Pagefile Governance Snapshot (Analyze)
+- `18` Pagefile Governance (Dry Run Apply)
+- `19` Pagefile Governance (Execute Apply)
+- `20` Schedule Post-Reboot VHDX Compact (One-Time)
+
+### Direct Script Path
+
+Run from Windows PowerShell (Admin recommended):
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "C:\BIZRA-DATA-LAKE\scripts\ops\node0_performance_recovery.ps1" -Mode Analyze
+& "C:\BIZRA-DATA-LAKE\scripts\ops\node0_performance_recovery.ps1" -Mode Remediate -DryRun
+& "C:\BIZRA-DATA-LAKE\scripts\ops\node0_performance_recovery.ps1" -Mode Remediate -DryRun:$false
+```
+
+### Evidence Artifacts
+
+Each execution writes an immutable snapshot report to:
+
+- `C:\BIZRA-DATA-LAKE\logs\node0_performance_recovery_YYYYMMDD_HHMMSS.json`
+
+Use these reports to compare pressure trends (disk %, Docker VHDX, Ubuntu VHDX, HF cache, `.wslconfig` caps) before and after remediation.
+Reports now also include:
+- live telemetry (`cpu_total_percent`, `disk_queue_length`, `disk_busy_percent`)
+- process hotspots (`top_cpu`, `top_memory`)
+- ranked remediation queue (`recommendations`) with `recommended_next_step`
+- bottleneck summary (`dominant_bottleneck`, per-severity counts)
+
+## Docker Volume Governance (k3d + Docker)
+
+Use this workflow when active Docker/k3d volumes are the dominant storage pressure source and you need safe, auditable reclaim actions.
+
+### Control Center Path
+
+From `scripts/ops/CONTROL-CENTER.bat`:
+
+- `11` Docker Volume Governance (Inventory)
+- `12` Docker Volume Governance (Dry Run Reclaim)
+- `13` Docker Volume Governance (Execute k3d Reclaim)
+
+### Direct Script Path
+
+Run from WSL or Windows terminal with Python available:
+
+```bash
+python scripts/ops/docker_volume_governance.py inventory
+python scripts/ops/docker_volume_governance.py orphans
+python scripts/ops/docker_volume_governance.py --dry-run reclaim-k3d
+python scripts/ops/docker_volume_governance.py reclaim-k3d --restart-cluster
+python scripts/ops/docker_volume_governance.py reclaim-all --dry-run
+```
+
+Mutating commands require explicit operator confirmation (`type YES`) unless `--yes` is provided.
+
+### Evidence Artifacts
+
+Each run writes a governance report to:
+
+- `C:\BIZRA-DATA-LAKE\logs\docker_volume_governance_YYYYMMDD_HHMMSS.json`
+
+## VHDX Compaction Governance (Windows Offline)
+
+Use this flow when Docker volume cleanup has already reclaimed logical space but host disk does not improve because `docker_data.vhdx` is still large.
+
+### Direct Script Path
+
+Run from **Windows PowerShell** (Admin recommended, not inside WSL):
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "C:\BIZRA-DATA-LAKE\scripts\ops\VHDX-COMPACTION-LAUNCHER.bat" -Mode Analyze
+& "C:\BIZRA-DATA-LAKE\scripts\ops\VHDX-COMPACTION-LAUNCHER.bat" -Mode Compact -DryRun:$true -Target docker
+& "C:\BIZRA-DATA-LAKE\scripts\ops\VHDX-COMPACTION-LAUNCHER.bat" -Mode Compact -DryRun:$false -Target docker
+```
+
+### Behavior
+
+- Stops Docker service/processes.
+- Runs `wsl --shutdown` to force offline compaction window.
+- Runs deterministic `diskpart` `compact vdisk` against target VHDX.
+- Restarts Docker service afterwards.
+- Fails fast if free virtual memory is `< 2 GB` or if compact mode is not elevated.
+
+### Evidence Artifacts
+
+Each run writes a report to:
+
+- `C:\BIZRA-DATA-LAKE\logs\vhdx_compaction_governance_YYYYMMDD_HHMMSS.json`
+
+## Pagefile Governance (Windows Memory Backpressure)
+
+Use this flow when elevated Windows operations fail with low virtual memory or pagefile pressure.
+
+### Direct Script Path
+
+Run from **Windows PowerShell**:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "C:\BIZRA-DATA-LAKE\scripts\ops\PAGEFILE-GOVERNANCE-LAUNCHER.bat" -Mode Analyze
+& "C:\BIZRA-DATA-LAKE\scripts\ops\PAGEFILE-GOVERNANCE-LAUNCHER.bat" -Mode Apply -DryRun:$true -NoPrompt
+& "C:\BIZRA-DATA-LAKE\scripts\ops\PAGEFILE-GOVERNANCE-LAUNCHER.bat" -Mode Apply -DryRun:$false
+```
+
+### Behavior
+
+- Captures virtual memory + pagefile state before/after.
+- Applies deterministic `C:\pagefile.sys` sizing (default 16384 MB initial / 32768 MB max).
+- Requires elevation for non-dry-run apply.
+- Marks `reboot_required=true` when changes are applied.
+
+### Evidence Artifacts
+
+Each run writes a report to:
+
+- `C:\BIZRA-DATA-LAKE\logs\pagefile_governance_YYYYMMDD_HHMMSS.json`
+
+## Post-Reboot Auto Compaction (One-Time)
+
+Use this flow after pagefile apply when reboot is required and you want compaction to run automatically at next startup.
+
+### Direct Script Path
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+& "C:\BIZRA-DATA-LAKE\scripts\ops\schedule_post_reboot_vhdx_compaction.ps1" -Target docker
+```
+
+### Behavior
+
+- Registers one-time task `BIZRA-PostReboot-VHDX-Compact` at next user logon with highest privilege.
+- At logon, task runs `post_reboot_vhdx_compact_once.ps1`, executes compaction once, writes evidence, and unregisters itself.
+
+### Evidence Artifacts
+
+- `C:\BIZRA-DATA-LAKE\logs\schedule_post_reboot_vhdx_compaction_YYYYMMDD_HHMMSS.json`
+- `C:\BIZRA-DATA-LAKE\logs\post_reboot_vhdx_compact_once_YYYYMMDD_HHMMSS.json`
+
 ## 1. Prerequisites
 
 - Python 3.11+ with project dependencies installed
@@ -256,4 +409,3 @@ Collect these before escalating:
 5. Smoke test status (pass/fail list)
 6. Bridge status: `ping` response or connection error
 7. SEC-001 gate status: `python3 scripts/ci_blake3_gate.py`
-
