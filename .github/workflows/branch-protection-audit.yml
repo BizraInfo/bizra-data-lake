@@ -1,0 +1,66 @@
+name: Branch Protection Audit
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - ".github/branch_protection_policy.json"
+      - "scripts/ops/branch_protection_guard.py"
+      - ".github/workflows/branch-protection-audit.yml"
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "audit or apply"
+        required: false
+        default: "audit"
+        type: choice
+        options:
+          - audit
+          - apply
+
+permissions:
+  contents: read
+
+jobs:
+  branch-protection:
+    name: Branch Protection Policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Guard mode and token
+        id: guard
+        run: |
+          MODE_INPUT="${{ github.event.inputs.mode }}"
+          MODE="${MODE_INPUT:-audit}"
+          echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
+          REF="${GITHUB_REF}"
+          if [ -z "${{ secrets.BIZRA_ADMIN_TOKEN }}" ]; then
+            if [ "$REF" = "refs/heads/main" ] || [ "$REF" = "refs/heads/master" ]; then
+              echo "::error::BIZRA_ADMIN_TOKEN is required on protected branches (${REF})."
+              exit 1
+            fi
+            echo "token=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::BIZRA_ADMIN_TOKEN is not configured; skipping branch protection ${MODE} on ${REF}."
+          else
+            echo "token=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enforce branch protection policy
+        if: steps.guard.outputs.token == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BIZRA_ADMIN_TOKEN }}
+        run: |
+          python scripts/ops/branch_protection_guard.py \
+            "${{ steps.guard.outputs.mode }}" \
+            --policy .github/branch_protection_policy.json \
+            --repo "${{ github.repository }}"
