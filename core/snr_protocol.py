@@ -37,6 +37,22 @@ from typing import Any, Optional, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
+# ── Canonical Normalization ───────────────────────────────────────────────
+
+
+def normalize_snr_linear(snr_linear: float) -> float:
+    """Normalize an unbounded linear SNR ratio into [0, 1].
+
+    Formula:
+        normalized = snr_linear / (1 + snr_linear)
+
+    This is monotonic, bounded, and preserves ordering while avoiding
+    oversized values from dominating downstream policy gates.
+    """
+    snr = max(float(snr_linear), 0.0)
+    return min(snr / (1.0 + snr), 1.0)
+
+
 # ── Unified Result ──────────────────────────────────────────────────────
 
 
@@ -347,6 +363,7 @@ class SNRFacade:
 
 
 __all__ = [
+    "normalize_snr_linear",
     "SNRResult",
     "SNRProtocol",
     "SNRFacade",

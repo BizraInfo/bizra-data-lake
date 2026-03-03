@@ -1,0 +1,50 @@
+\
+syntax = "proto3";
+
+package bizra.poi.v1;
+
+import "contracts/proto/common.proto";
+import "contracts/proto/knowledge.proto";
+
+// PoI = Proof of Ihsān for promoting ARAs into the global pool.
+// This is peer-ranked: multiple nodes attest to effectiveness under their local data.
+
+message PeerAttestation {
+  bizra.common.v1.Identity peer = 1;
+  double ihsan = 2;          // 0..1 (legacy aggregate for backward compatibility)
+  double snr = 3;            // normalized
+  double utility = 4;        // optional (0..1)
+  bytes evidence_hash = 5;   // hash to local receipts/benchmarks
+  bizra.common.v1.Signature sig = 6;
+  map<string, double> ihsan_tensor = 7; // preferred multi-dimensional Ihsan evidence
+}
+
+message SubmitPoIRequest {
+  bizra.knowledge.v1.ARAHeader ara_header = 1;
+  repeated PeerAttestation attestations = 2;
+}
+
+message SubmitPoIResponse {
+  bizra.common.v1.StatusCode status = 1;
+  bizra.common.v1.Error error = 2;
+  double aggregated_poi = 3;
+  uint32 accepted_peers = 4;
+}
+
+message VerifyPoIRequest {
+  bizra.knowledge.v1.ARAHeader ara_header = 1;
+  repeated PeerAttestation attestations = 2;
+}
+
+message VerifyPoIResponse {
+  bizra.common.v1.StatusCode status = 1;
+  bizra.common.v1.Error error = 2;
+  bool valid = 3;
+  double aggregated_poi = 4;
+  uint32 peer_count = 5;
+}
+
+service ProofOfIhsan {
+  rpc SubmitPoI(SubmitPoIRequest) returns (SubmitPoIResponse);
+  rpc VerifyPoI(VerifyPoIRequest) returns (VerifyPoIResponse);
+}

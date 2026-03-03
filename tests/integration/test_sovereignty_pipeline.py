@@ -80,7 +80,9 @@ class TestSovereigntyPipelineE2E:
             analysis.ihsan_achieved
         ), f"Ihsan not achieved: SNR={analysis.snr_linear:.4f}"
         # SNR linear is a ratio (can exceed 1.0); receipt schema requires [0, 1]
-        snr_normalized = min(analysis.snr_linear / (1.0 + analysis.snr_linear), 1.0)
+        from core.snr_protocol import normalize_snr_linear
+
+        snr_normalized = normalize_snr_linear(analysis.snr_linear)
 
         # ── Layer 4: EVIDENCE — Emit signed, hash-chained receipt ──────
         from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
