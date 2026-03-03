@@ -9,6 +9,8 @@ Components:
 - safety: absence of harmful content
 - efficiency: resource usage proportionality
 - user_benefit: value delivered to the human
+- auditability: traceability and reviewability of reasoning
+- robustness: resilience under perturbation and stress
 
 Standing on Giants:
 - The concept of Ihsan (excellence as obligation) from Islamic ethics
@@ -24,25 +26,37 @@ from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.reason_codes import ReasonCode
 
 
-def _canonical_component_weights() -> Dict[str, float]:
-    """
-    Derive 4-component gate weights from the canonical 8-dim Ihsan weights.
+_GATE_COMPONENT_KEYS = (
+    "correctness",
+    "safety",
+    "efficiency",
+    "user_benefit",
+    "auditability",
+    "robustness",
+)
 
-    This gate only scores components it directly receives:
-    correctness, safety, efficiency, user_benefit.
+
+def _canonical_component_weights(
+    dimensions: Optional[list[str]] = None,
+) -> Dict[str, float]:
+    """
+    Derive gate weights from canonical Ihsan weights.
+
+    By default this gate supports 6 dimensions:
+    correctness, safety, efficiency, user_benefit, auditability, robustness.
+    If a subset of dimensions is passed, weights are projected and normalized
+    over that subset to preserve backward compatibility.
+
     To avoid split-brain drift, those weights are projected from
     `core.integration.constants.IHSAN_WEIGHTS` and normalized.
     """
-    base = {
-        "correctness": float(IHSAN_WEIGHTS["correctness"]),
-        "safety": float(IHSAN_WEIGHTS["safety"]),
-        "efficiency": float(IHSAN_WEIGHTS["efficiency"]),
-        "user_benefit": float(IHSAN_WEIGHTS["user_benefit"]),
-    }
+    dims = dimensions or list(_GATE_COMPONENT_KEYS)
+    base = {k: float(IHSAN_WEIGHTS[k]) for k in dims if k in IHSAN_WEIGHTS}
     total = sum(base.values())
     if total <= 0.0:
         # Fail-safe fallback (equal weights) if constants are ever corrupted.
-        return {k: 0.25 for k in base}
+        n = max(len(base), 1)
+        return {k: 1.0 / n for k in base}
     return {k: v / total for k, v in base.items()}
 
 
@@ -54,15 +68,22 @@ class IhsanComponents:
     safety: float = 0.0
     efficiency: float = 0.0
     user_benefit: float = 0.0
+    auditability: float | None = None
+    robustness: float | None = None
 
     def to_dict(self) -> Dict[str, float]:
         """Serialize Ihsan component scores to dictionary."""
-        return {
+        out: Dict[str, float] = {
             "correctness": self.correctness,
             "safety": self.safety,
             "efficiency": self.efficiency,
             "user_benefit": self.user_benefit,
         }
+        if self.auditability is not None:
+            out["auditability"] = self.auditability
+        if self.robustness is not None:
+            out["robustness"] = self.robustness
+        return out
 
     def composite_score(
         self,
@@ -72,15 +93,22 @@ class IhsanComponents:
 
         Default weights are derived from canonical SOT weights in
         `core.integration.constants.IHSAN_WEIGHTS` and normalized over
-        the 4 component dimensions represented in this gate.
+        the dimensions present in this component vector.
         """
-        w = weights or _canonical_component_weights()
-        return (
-            w.get("correctness", 0.0) * self.correctness
-            + w.get("safety", 0.0) * self.safety
-            + w.get("efficiency", 0.0) * self.efficiency
-            + w.get("user_benefit", 0.0) * self.user_benefit
-        )
+        components = self.to_dict()
+        active_dims = list(components.keys())
+
+        if weights is None:
+            w = _canonical_component_weights(active_dims)
+        else:
+            raw = {k: float(weights.get(k, 0.0)) for k in active_dims}
+            total = sum(max(v, 0.0) for v in raw.values())
+            if total > 0.0:
+                w = {k: max(v, 0.0) / total for k, v in raw.items()}
+            else:
+                w = _canonical_component_weights(active_dims)
+
+        return sum(w.get(k, 0.0) * v for k, v in components.items())
 
 
 @dataclass
@@ -142,6 +170,10 @@ class IhsanGate:
                 reason_codes.append("SAFETY_COMPONENT_LOW")
             if components.correctness < 0.85:
                 reason_codes.append("CORRECTNESS_COMPONENT_LOW")
+            if components.auditability is not None and components.auditability < 0.80:
+                reason_codes.append("AUDITABILITY_COMPONENT_LOW")
+            if components.robustness is not None and components.robustness < 0.80:
+                reason_codes.append("ROBUSTNESS_COMPONENT_LOW")
 
         decision = "APPROVED" if score >= self.threshold else "REJECTED"
 

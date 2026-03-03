@@ -309,6 +309,48 @@ class TestIhsanGate:
         assert high_safety.composite_score() < low_safety.composite_score()
         # But the gap should be affected by safety's higher weight
 
+    def test_backward_compat_four_dimensional_projection(self):
+        """Legacy 4-dim usage is unchanged when optional dims are not provided."""
+        legacy = IhsanComponents(
+            correctness=0.9,
+            safety=0.95,
+            efficiency=0.85,
+            user_benefit=0.8,
+        ).composite_score()
+
+        explicit_none = IhsanComponents(
+            correctness=0.9,
+            safety=0.95,
+            efficiency=0.85,
+            user_benefit=0.8,
+            auditability=None,
+            robustness=None,
+        ).composite_score()
+
+        assert legacy == pytest.approx(explicit_none, abs=1e-12)
+
+    def test_optional_six_dimensional_projection_activates_when_present(self):
+        """auditability/robustness participate only when present in the vector."""
+        score = IhsanComponents(
+            correctness=0.0,
+            safety=0.0,
+            efficiency=0.0,
+            user_benefit=0.0,
+            auditability=1.0,
+            robustness=0.0,
+        ).composite_score()
+
+        total = (
+            IHSAN_WEIGHTS["correctness"]
+            + IHSAN_WEIGHTS["safety"]
+            + IHSAN_WEIGHTS["efficiency"]
+            + IHSAN_WEIGHTS["user_benefit"]
+            + IHSAN_WEIGHTS["auditability"]
+            + IHSAN_WEIGHTS["robustness"]
+        )
+        expected = IHSAN_WEIGHTS["auditability"] / total
+        assert score == pytest.approx(expected, abs=1e-9)
+
     def test_result_to_dict_schema_compatible(self):
         """IhsanResult.to_dict() matches receipt.ihsan schema."""
         gate = IhsanGate()
