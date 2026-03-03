@@ -1,0 +1,137 @@
+version: "3.9"
+
+# ============================================================================
+# BIZRA v4.0 - Local / Single-Host Production Stack
+# - Use deploy/.env for secrets and config.
+# - Builds images locally by default.
+# ============================================================================
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  node-gateway:
+    build:
+      context: ../services
+      dockerfile: node_gateway/Dockerfile
+    image: bizra/node-gateway:local
+    env_file:
+      - .env
+    environment:
+      URP_REGISTRY_URL: ${URP_REGISTRY_URL:-http://urp-registry:8000}
+      URP_KG_URL: ${URP_KG_URL:-http://urp-knowledge-graph:8000}
+      URP_CONSENSUS_URL: ${URP_CONSENSUS_URL:-http://urp-consensus:8000}
+      URP_VERIFICATION_URL: ${URP_VERIFICATION_URL:-http://urp-verification:8000}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    ports:
+      - "8000:8000"
+      - "8090:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      urp-registry:
+        condition: service_healthy
+      urp-knowledge-graph:
+        condition: service_healthy
+      urp-consensus:
+        condition: service_healthy
+      urp-verification:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  urp-registry:
+    build:
+      context: ../services
+      dockerfile: urp_registry/Dockerfile
+    image: bizra/urp-registry:local
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8011:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  urp-knowledge-graph:
+    build:
+      context: ../services
+      dockerfile: urp_knowledge_graph/Dockerfile
+    image: bizra/urp-knowledge-graph:local
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8012:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  urp-consensus:
+    build:
+      context: ../services
+      dockerfile: urp_consensus/Dockerfile
+    image: bizra/urp-consensus:local
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8013:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  urp-verification:
+    build:
+      context: ../services
+      dockerfile: urp_verification/Dockerfile
+    image: bizra/urp-verification:local
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8014:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  redis_data:

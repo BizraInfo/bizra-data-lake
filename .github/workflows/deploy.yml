@@ -154,6 +154,21 @@ jobs:
     needs: build-push
     if: ${{ github.event.inputs.skip_staging == 'true' && github.event_name != 'release' }}
     steps:
+      - name: Block production staging bypass
+        if: ${{ github.event.inputs.environment == 'production' }}
+        run: |
+          echo "::error::Staging bypass is forbidden for production deployments."
+          echo "## BLOCKED: Staging bypass for production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ github.event.inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **DENIED:** Production deploys must pass staging and smoke tests." >> $GITHUB_STEP_SUMMARY
+          exit 1
+
       - name: Record bypass audit trail
         run: |
           echo "## Staging Bypass Audit" >> $GITHUB_STEP_SUMMARY
@@ -313,8 +328,8 @@ jobs:
     name: Production Quality Gate
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    needs: [smoke-tests, staging-bypass-audit]
-    if: ${{ (github.event.inputs.environment == 'production' || github.event_name == 'release') && (needs.smoke-tests.result == 'success' || needs.staging-bypass-audit.result == 'success') }}
+    needs: [smoke-tests]
+    if: ${{ (github.event.inputs.environment == 'production' || github.event_name == 'release') && needs.smoke-tests.result == 'success' }}
     outputs:
       approved: ${{ steps.gate.outputs.approved }}
     steps:
@@ -350,19 +365,17 @@ jobs:
           print(f"Required SNR: {SNR_THRESHOLD_T1_HIGH}")
           print()
 
-          # In production, enforce stricter thresholds
-          # This would typically query the staging environment for actual metrics
-          # For now, we use the CI quality gate results
-
-          # Check if release is tagged properly
+          smoke_tests_result = os.environ.get("SMOKE_TESTS_RESULT", "")
           is_release = os.environ.get('GITHUB_EVENT_NAME') == 'release'
 
-          if is_release:
-              print("[INFO] Release deployment - quality already validated")
+          if smoke_tests_result != "success":
+              print(f"[ERROR] Smoke tests are not successful: {smoke_tests_result!r}")
+              approved = False
+          elif is_release:
+              print("[INFO] Release deployment - staging smoke tests validated")
               approved = True
           else:
-              print("[INFO] Manual deployment - additional validation required")
-              # In a real scenario, this would check staging metrics
+              print("[INFO] Manual production deployment - staging smoke tests validated")
               approved = True
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -376,6 +389,7 @@ jobs:
           EOF
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          SMOKE_TESTS_RESULT: ${{ needs.smoke-tests.result }}
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Stage 5: Deploy to Production
