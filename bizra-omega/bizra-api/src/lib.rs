@@ -19,6 +19,10 @@ pub use error::ApiError;
 pub use state::AppState;
 
 use axum::{
+    http::{
+        header::{AUTHORIZATION, CONTENT_TYPE},
+        HeaderValue, Method,
+    },
     middleware as axum_middleware,
     routing::{get, post},
     Router,
@@ -29,20 +33,46 @@ use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLay
 /// API version
 pub const API_VERSION: &str = "v1";
 
+fn build_cors_layer(state: &Arc<AppState>) -> CorsLayer {
+    if cfg!(debug_assertions) {
+        return CorsLayer::permissive();
+    }
+
+    let mut allowed_origins: Vec<HeaderValue> = state
+        .cors_origins()
+        .iter()
+        .filter_map(|origin| origin.parse::<HeaderValue>().ok())
+        .collect();
+
+    if allowed_origins.is_empty() {
+        allowed_origins.push(
+            "http://localhost:5173"
+                .parse::<HeaderValue>()
+                .expect("static localhost origin is valid"),
+        );
+    }
+
+    CorsLayer::new()
+        .allow_origin(allowed_origins)
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
+}
+
 /// Build the complete API router
 pub fn build_router(state: Arc<AppState>) -> Router {
-    let api_routes = Router::new()
-        // Health & Status
+    // Public endpoints only: health/status for liveness checks.
+    let public_routes = Router::new()
         .route("/health", get(handlers::health::health_check))
-        .route("/status", get(handlers::status::system_status))
+        .route("/status", get(handlers::status::system_status));
+
+    // Operational endpoints are protected by API token middleware.
+    let protected_routes = Router::new()
+        // Metrics
         .route("/metrics", get(handlers::metrics::prometheus_metrics))
         // Identity
         .route("/identity/generate", post(handlers::identity::generate))
         .route("/identity/sign", post(handlers::identity::sign_message))
-        .route(
-            "/identity/verify",
-            post(handlers::identity::verify_signature),
-        )
+        .route("/identity/verify", post(handlers::identity::verify_signature))
         // PCI Protocol
         .route("/pci/envelope/create", post(handlers::pci::create_envelope))
         .route("/pci/envelope/verify", post(handlers::pci::verify_envelope))
@@ -65,13 +95,19 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(handlers::constitution::check_compliance),
         )
         // WebSocket for real-time updates
-        .route("/ws", get(websocket::ws_handler));
+        .route("/ws", get(websocket::ws_handler))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            middleware::auth::require_api_token,
+        ));
+
+    let api_routes = Router::new().merge(public_routes).merge(protected_routes);
 
     Router::new()
         .nest(&format!("/api/{API_VERSION}"), api_routes)
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
-        .layer(CorsLayer::permissive()) // TODO: restrict origins via ServerConfig in production
+        .layer(build_cors_layer(&state))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             middleware::rate_limit::rate_limiter,

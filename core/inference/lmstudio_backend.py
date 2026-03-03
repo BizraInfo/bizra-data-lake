@@ -73,7 +73,7 @@ class LMStudioConfig:
         or os.getenv("LM_STUDIO_API_KEY")
     )
     timeout: float = 120.0
-    use_native_api: bool = True  # Use /api/v1/* instead of OpenAI-compat
+    use_native_api: bool = False  # Use OpenAI-compat /v1/chat/completions (native /api/v1/chat returns 400)
     context_length: Optional[int] = None
     enable_mcp: bool = True
 

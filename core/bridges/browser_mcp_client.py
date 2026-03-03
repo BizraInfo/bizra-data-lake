@@ -1,9 +1,10 @@
-"""Browser research adapter: MCP, direct HTTP, and mock."""
+"""Browser research adapter: Brave Search, MCP, direct HTTP, and mock."""
 
 from __future__ import annotations
 
 import ipaddress
 import logging
+import os
 import re
 import socket
 from dataclasses import dataclass
@@ -150,6 +151,7 @@ class BrowserMCPClient:
             logger.warning("MCP search unavailable; falling back to mock results")
             return list(_MOCK_RESULTS[: max(1, limit)])
 
+        # direct mode: Brave Search → DDG → mock
         return await self._search_direct(query, limit)
 
     async def fetch_page(self, url: str) -> str:
@@ -239,6 +241,59 @@ class BrowserMCPClient:
         return normalized[: max(1, limit)]
 
     async def _search_direct(self, query: str, limit: int) -> list[SearchResult]:
+        # 1. Try Brave Search API (best quality, requires BRAVE_API_KEY)
+        brave_results = await self._search_brave(query, limit)
+        if brave_results:
+            return brave_results
+
+        # 2. Try DuckDuckGo Lite (no API key needed)
+        ddg_results = await self._search_ddg(query, limit)
+        if ddg_results:
+            return ddg_results
+
+        # 3. Fall back to mock data
+        return list(_MOCK_RESULTS[: max(1, limit)])
+
+    async def _search_brave(self, query: str, limit: int) -> list[SearchResult]:
+        """Search via Brave Search API (requires BRAVE_API_KEY env var)."""
+        api_key = os.environ.get("BRAVE_API_KEY", "")
+        if not api_key:
+            return []
+
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://api.search.brave.com/res/v1/web/search",
+                    params={"q": query, "count": min(limit, 20)},
+                    headers={
+                        "X-Subscription-Token": api_key,
+                        "Accept": "application/json",
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+
+            results: list[SearchResult] = []
+            for item in data.get("web", {}).get("results", []):
+                title = str(item.get("title", "")).strip()
+                url = str(item.get("url", "")).strip()
+                snippet = str(item.get("description", "")).strip()
+                if title and url:
+                    results.append(SearchResult(title=title, url=url, snippet=snippet))
+                if len(results) >= limit:
+                    break
+
+            if results:
+                logger.info("Brave Search returned %d results", len(results))
+            return results
+        except Exception as exc:
+            logger.warning("Brave Search failed (%s)", exc)
+            return []
+
+    async def _search_ddg(self, query: str, limit: int) -> list[SearchResult]:
+        """Search via DuckDuckGo Lite (no API key needed)."""
         try:
             import httpx
 
@@ -246,19 +301,23 @@ class BrowserMCPClient:
             _validate_url(ddg_url)
 
             async with httpx.AsyncClient(
-                timeout=10.0, follow_redirects=False
+                timeout=15.0, follow_redirects=False
             ) as client:
-                response = await client.get(ddg_url, params={"q": query})
+                response = await client.post(
+                    ddg_url,
+                    data={"q": query},
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
                 response.raise_for_status()
                 parsed = self._parse_ddg_lite(response.text, limit)
                 if parsed:
                     return parsed
         except SSRFValidationError as exc:
-            logger.warning("Direct search URL blocked by SSRF guard (%s)", exc)
+            logger.warning("DDG URL blocked by SSRF guard (%s)", exc)
         except Exception as exc:
-            logger.warning("Direct browser search failed (%s)", exc)
+            logger.warning("DDG search failed (%s)", exc)
 
-        return list(_MOCK_RESULTS[: max(1, limit)])
+        return []
 
     @staticmethod
     def _parse_ddg_lite(html: str, limit: int) -> list[SearchResult]:

@@ -399,15 +399,19 @@ class OllamaBackend(InferenceBackendBase):
                 self._available_models = [m["name"] for m in data.get("models", [])]
 
                 if self._available_models:
-                    # Prefer capable models over tiny ones
-                    preferred = ["deepseek-r1", "llama3.1", "llama3", "mistral", "qwen"]
+                    # Prefer fast, competent models for synthesis.
+                    # Reasoning models (deepseek-r1) are slow on CPU due to
+                    # <think> token overhead — prefer instruction-tuned models.
+                    preferred = ["phi3", "llama3.1", "mistral", "qwen", "llama3", "deepseek-r1"]
                     self._current_model = self._available_models[0]
+                    found = False
                     for pref in preferred:
                         for model in self._available_models:
                             if pref in model and "embed" not in model:
                                 self._current_model = model
+                                found = True
                                 break
-                        if self._current_model != self._available_models[0]:
+                        if found:
                             break
                     print(f"[Ollama] Available models: {self._available_models}")
                     print(f"[Ollama] Selected model: {self._current_model}")
@@ -602,7 +606,7 @@ class LMStudioBackend(InferenceBackendBase):
                 api_key=os.getenv("LM_API_TOKEN")
                 or os.getenv("LMSTUDIO_API_KEY")
                 or os.getenv("LM_STUDIO_API_KEY"),
-                use_native_api=True,
+                use_native_api=False,  # OpenAI-compat /v1/chat/completions (native /api/v1/chat returns 400)
                 enable_mcp=True,
             )
             self._client = LMStudioClient(lms_config)

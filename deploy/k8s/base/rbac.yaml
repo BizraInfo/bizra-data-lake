@@ -14,18 +14,23 @@ metadata:
   name: bizra-role
   namespace: bizra
 rules:
-  # Allow reading ConfigMaps and Secrets
+  # Allow reading ConfigMaps for runtime configuration
   - apiGroups: [""]
-    resources: ["configmaps", "secrets"]
+    resources: ["configmaps"]
     verbs: ["get", "list", "watch"]
+  # Restrict secret access to the explicitly required secret only
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["bizra-secrets"]
+    verbs: ["get"]
   # Allow reading own pod info
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get"]
   # Allow reading services for federation discovery
   - apiGroups: [""]
     resources: ["services", "endpoints"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

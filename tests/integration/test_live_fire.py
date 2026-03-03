@@ -18,9 +18,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-# Constitutional thresholds
-IHSAN_THRESHOLD = 0.95
-SNR_THRESHOLD = 0.85
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD as IHSAN_THRESHOLD
+from core.integration.constants import UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD
 
 
 @dataclass
@@ -67,9 +66,9 @@ class TestByzantineConsensus:
         honest_votes = [v for v in votes if v == correct_score]
         quorum = len(agents) * 2 // 3  # 4 out of 6
 
-        assert (
-            len(honest_votes) >= quorum
-        ), "Should reach consensus with 4 honest agents"
+        assert len(honest_votes) >= quorum, (
+            "Should reach consensus with 4 honest agents"
+        )
 
     def test_6_agent_consensus_3_malicious_fails(self):
         """Test that 3 malicious agents break consensus."""
@@ -85,9 +84,9 @@ class TestByzantineConsensus:
         quorum = len(agents) * 2 // 3
 
         # 3 honest is not enough for 2/3 quorum
-        assert (
-            len(honest_votes) < quorum
-        ), "Should NOT reach consensus with only 3 honest"
+        assert len(honest_votes) < quorum, (
+            "Should NOT reach consensus with only 3 honest"
+        )
 
     def test_consensus_score_aggregation(self):
         """Test score aggregation in consensus."""
@@ -395,9 +394,9 @@ class TestLiveFireScenario:
         results["federation_mode"] = True  # HYBRID mode available
 
         # All tests must pass
-        assert all(
-            results.values()
-        ), f"Failed tests: {[k for k, v in results.items() if not v]}"
+        assert all(results.values()), (
+            f"Failed tests: {[k for k, v in results.items() if not v]}"
+        )
 
     def test_certification_output(self):
         """Verify certification output format."""

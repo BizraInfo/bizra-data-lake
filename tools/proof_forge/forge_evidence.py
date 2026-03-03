@@ -34,6 +34,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Tuple
 
 # ─── Ed25519 Signing (True Spearpoint) ────────────────────────────────────────
 # Standing on: Bernstein (2011) — Ed25519 for tamper-evident evidence.
@@ -88,6 +89,57 @@ def _sign_receipt(receipt_body: str, private_key_hex: str) -> str:
         sk = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(private_key_hex))
         sig = sk.sign(receipt_body.encode("utf-8"))
         return sig.hex()
+
+
+def _canonical_receipt_body(receipt: dict) -> str:
+    """Return deterministic receipt body used for Ed25519 signing/verification."""
+    body = {k: v for k, v in receipt.items() if k != "signature"}
+    return json.dumps(body, sort_keys=True, separators=(",", ":"))
+
+
+def _verify_receipt_signature(receipt: dict) -> Tuple[bool, str]:
+    """Verify receipt signature over canonical body.
+
+    Returns (is_valid, reason_code).
+    """
+    signature = receipt.get("signature")
+    if not isinstance(signature, dict):
+        return False, "signature_missing"
+
+    if signature.get("algorithm") != "Ed25519":
+        return False, "signature_algorithm_invalid"
+
+    sig_hex = signature.get("value")
+    pub_hex = signature.get("signer_pubkey")
+    if not isinstance(sig_hex, str) or not isinstance(pub_hex, str):
+        return False, "signature_fields_invalid"
+    if not sig_hex or not pub_hex:
+        return False, "signature_fields_invalid"
+
+    receipt_body = _canonical_receipt_body(receipt)
+    body_bytes = receipt_body.encode("utf-8")
+
+    # Preferred path: domain-separated digest verification via core.pci.crypto
+    try:
+        from core.pci.crypto import domain_separated_digest, verify_signature
+
+        digest = domain_separated_digest(body_bytes)
+        if verify_signature(digest, sig_hex, pub_hex):
+            return True, "ok"
+    except Exception:
+        # Fall through to raw-message verification for legacy fallback signatures.
+        pass
+
+    # Compatibility path: raw message signing fallback used when core.pci.crypto
+    # is unavailable in older environments.
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+        pk = Ed25519PublicKey.from_public_bytes(bytes.fromhex(pub_hex))
+        pk.verify(bytes.fromhex(sig_hex), body_bytes)
+        return True, "ok_raw"
+    except Exception:
+        return False, "signature_invalid"
 
 
 # ─── Constants ───────────────────────────────────────────────────────────────
@@ -495,7 +547,7 @@ def forge_receipt(
     print(f"\n  ✍️  Phase 4: Signing receipt with Ed25519...")
     try:
         private_key, public_key = _load_or_create_operator_key(project_dir)
-        receipt_body = json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+        receipt_body = _canonical_receipt_body(receipt)
         signature = _sign_receipt(receipt_body, private_key)
         receipt["signature"] = {
             "algorithm": "Ed25519",
@@ -505,8 +557,10 @@ def forge_receipt(
         print(f"     Signature: {signature[:32]}...")
         print(f"     Public key: {public_key[:32]}...")
     except Exception as e:
-        print(f"     ⚠️ Signing skipped: {e}")
-        receipt["signature"] = None
+        raise RuntimeError(
+            f"Receipt signing failed (fail-closed): {e}. "
+            "Set up Ed25519 signing dependencies before forging evidence."
+        ) from e
 
     # Write receipt
     receipt_filename = f"{file_timestamp}.json"
@@ -544,7 +598,7 @@ def forge_receipt(
 # ─── Chain Verification ──────────────────────────────────────────────────────
 
 
-def verify_chain(project_dir: Path) -> dict:
+def verify_chain(project_dir: Path, allow_legacy_unsigned: bool = False) -> dict:
     """
     Verify the integrity of the entire evidence chain.
 
@@ -584,41 +638,82 @@ def verify_chain(project_dir: Path) -> dict:
         with open(receipt_path) as f:
             receipt = json.load(f)
 
-        hashes = receipt["hashes"]
+        hashes = receipt.get("hashes", {})
+        if not isinstance(hashes, dict):
+            print(f"  ❌ #{entry['position']}: Missing or invalid hashes block")
+            results.append(
+                {
+                    "position": entry["position"],
+                    "valid": False,
+                    "error": "invalid_hashes_block",
+                }
+            )
+            continue
+
+        receipt_errors = []
+
+        previous_hash = hashes.get("previous_hash")
+        chain_hash = hashes.get("chain_hash")
+        evidence_hash = hashes.get("evidence_hash")
+        if not isinstance(previous_hash, str) or not isinstance(chain_hash, str):
+            receipt_errors.append("hash_fields_invalid")
 
         # Verify chain link
-        if hashes["previous_hash"] != expected_previous:
-            print(
-                f"  ❌ #{entry['position']}: Chain break! Expected previous {expected_previous[:16]}..., got {hashes['previous_hash'][:16]}..."
+        if previous_hash != expected_previous:
+            receipt_errors.append("chain_break")
+
+        # Recompute evidence hash from canonical receipt payload
+        recomputed_evidence = None
+        try:
+            recomputed_evidence = compute_evidence_hash(
+                receipt.get("artifacts", {}).get("details", []),
+                receipt.get("verification", {}),
+                receipt.get("description", ""),
             )
-            results.append(
-                {"position": entry["position"], "valid": False, "error": "chain_break"}
-            )
-        else:
-            # Recompute chain hash
-            recomputed = compute_chain_hash(
-                hashes["evidence_hash"], hashes["previous_hash"], receipt["timestamp"]
-            )
-            if recomputed != hashes["chain_hash"]:
+        except Exception:
+            receipt_errors.append("evidence_payload_invalid")
+        if recomputed_evidence is not None and recomputed_evidence != evidence_hash:
+            receipt_errors.append("evidence_hash_mismatch")
+
+        # Recompute chain hash from recomputed evidence hash and linked previous hash
+        recomputed_chain = compute_chain_hash(
+            recomputed_evidence or "",
+            previous_hash or "",
+            receipt.get("timestamp", ""),
+        )
+        if recomputed_chain != chain_hash:
+            receipt_errors.append("chain_hash_mismatch")
+
+        sig_ok, sig_reason = _verify_receipt_signature(receipt)
+        if not sig_ok:
+            if allow_legacy_unsigned and sig_reason == "signature_missing":
                 print(
-                    f"  ❌ #{entry['position']}: Chain hash mismatch! Receipt may be tampered."
-                )
-                results.append(
-                    {
-                        "position": entry["position"],
-                        "valid": False,
-                        "error": "hash_mismatch",
-                    }
+                    f"  ⚠️  #{entry['position']}: Legacy unsigned receipt accepted by override"
                 )
             else:
-                conf = receipt.get("confidence", {})
-                label = conf.get("label", "?")
-                print(
-                    f"  ✅ #{entry['position']}: Valid — {label} — {receipt['description'][:60]}"
-                )
-                results.append({"position": entry["position"], "valid": True})
+                receipt_errors.append(sig_reason)
 
-        expected_previous = hashes["chain_hash"]
+        if receipt_errors:
+            print(
+                f"  ❌ #{entry['position']}: Verification failed ({', '.join(receipt_errors)})"
+            )
+            results.append(
+                {
+                    "position": entry["position"],
+                    "valid": False,
+                    "error": "|".join(receipt_errors),
+                }
+            )
+        else:
+            conf = receipt.get("confidence", {})
+            label = conf.get("label", "?")
+            print(
+                f"  ✅ #{entry['position']}: Valid — {label} — {receipt['description'][:60]}"
+            )
+            results.append({"position": entry["position"], "valid": True})
+
+        if isinstance(chain_hash, str):
+            expected_previous = chain_hash
 
     # Summary
     valid_count = sum(1 for r in results if r["valid"])
@@ -663,6 +758,11 @@ def main():
     parser.add_argument(
         "--verify", action="store_true", help="Verify existing chain integrity"
     )
+    parser.add_argument(
+        "--allow-legacy-unsigned",
+        action="store_true",
+        help="Allow legacy unsigned receipts during chain verification",
+    )
     parser.add_argument("--genesis", action="store_true", help="Create genesis receipt")
 
     args = parser.parse_args()
@@ -673,7 +773,10 @@ def main():
         sys.exit(1)
 
     if args.verify:
-        result = verify_chain(project_dir)
+        result = verify_chain(
+            project_dir,
+            allow_legacy_unsigned=args.allow_legacy_unsigned,
+        )
         sys.exit(0 if result["valid"] else 1)
 
     if not args.description:

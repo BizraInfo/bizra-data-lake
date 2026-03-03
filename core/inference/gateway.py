@@ -186,35 +186,43 @@ class InferenceGateway:
         # --- Fallback-enabled mode (require_local=False) ---
 
         # 1. Try LM Studio first (PRIMARY - RTX 4090 optimized)
+        primary_ready = False
         if LMSTUDIO_AVAILABLE:
             lmstudio = LMStudioBackend(self.config)
             if await lmstudio.initialize():
                 self._backends[ComputeTier.LOCAL] = lmstudio
                 self._active_backend = lmstudio
                 self.status = InferenceStatus.READY
+                primary_ready = True
                 print("[Gateway] LM Studio v1 backend ready (PRIMARY MODE)")
-                return True
 
-        # 2. Try configured fallbacks in order
+        # 2. Register configured fallbacks (even if primary succeeded)
         for fallback in self.config.fallbacks:
             if fallback == "ollama":
                 ollama = OllamaBackend(self.config)
                 if await ollama.initialize():
-                    self._backends[ComputeTier.LOCAL] = ollama
-                    self._active_backend = ollama
-                    self.status = InferenceStatus.DEGRADED
-                    print("[Gateway] Ollama fallback ready (DEGRADED MODE)")
-                    return True
+                    if not primary_ready:
+                        self._backends[ComputeTier.LOCAL] = ollama
+                        self._active_backend = ollama
+                        self.status = InferenceStatus.DEGRADED
+                        primary_ready = True
+                        print("[Gateway] Ollama fallback ready (DEGRADED MODE)")
+                    else:
+                        self._fallback_backends.append(ollama)
+                        print("[Gateway] Ollama registered as fallback")
 
             elif fallback == "lmstudio" and LMSTUDIO_AVAILABLE:
-                # LM Studio as fallback (different config or retry)
-                lmstudio = LMStudioBackend(self.config)
-                if await lmstudio.initialize():
-                    self._backends[ComputeTier.LOCAL] = lmstudio
-                    self._active_backend = lmstudio
-                    self.status = InferenceStatus.DEGRADED
-                    print("[Gateway] LM Studio fallback ready (DEGRADED MODE)")
-                    return True
+                if not primary_ready:
+                    lmstudio = LMStudioBackend(self.config)
+                    if await lmstudio.initialize():
+                        self._backends[ComputeTier.LOCAL] = lmstudio
+                        self._active_backend = lmstudio
+                        self.status = InferenceStatus.DEGRADED
+                        primary_ready = True
+                        print("[Gateway] LM Studio fallback ready (DEGRADED MODE)")
+
+        if primary_ready:
+            return True
 
         # 3. Try llama.cpp (offline/edge - embedded, sovereign)
         llamacpp = LlamaCppBackend(self.config)

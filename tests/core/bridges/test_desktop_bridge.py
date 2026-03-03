@@ -25,8 +25,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from core.bridges.desktop_bridge import (
-    BRIDGE_HOST,
-    BRIDGE_PORT,
     DesktopBridge,
     TokenBucket,
     _error,
@@ -739,6 +737,164 @@ class TestHDASkills:
             )
             if "error" in resp:
                 assert resp["error"]["code"] != -32601, f"Method '{method}' not found"
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat demo (browser + desktop)
+# ---------------------------------------------------------------------------
+
+
+class TestHeartbeatDemo:
+    @pytest.mark.asyncio
+    async def test_heartbeat_demo_success_path(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        research_payload = {
+            "query": "top vc firms",
+            "summary": "Top matches: a16z Crypto ; Paradigm",
+            "results": [
+                {
+                    "title": "a16z Crypto",
+                    "url": "https://a16zcrypto.com",
+                    "snippet": "Active investor",
+                }
+            ],
+            "mode": "mock",
+        }
+
+        with (
+            patch("core.bridges.desktop_bridge.BrowserMCPClient") as browser_cls,
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                side_effect=[
+                    {"status": "ok", "result": "opened"},
+                    {"status": "ok", "result": "typed"},
+                ],
+            ) as rpc_mock,
+        ):
+            browser = MagicMock()
+            browser.research = AsyncMock(return_value=research_payload)
+            browser_cls.return_value = browser
+
+            resp = await _send_recv(
+                "127.0.0.1",
+                free_port,
+                _jsonrpc(
+                    "heartbeat_demo",
+                    {"query": "top vc firms", "app": "notepad"},
+                ),
+            )
+
+        result = resp["result"]
+        assert result["task_complete"] is True
+        assert result["status"] == "completed"
+        assert result["flow"] == ["browser_research", "open_app", "type_text"]
+        assert result["browser"]["result_count"] == 1
+        assert result["desktop"]["open_app"]["status"] == "ok"
+        assert result["desktop"]["type_text"]["status"] == "ok"
+        assert result["typed_text"].startswith("[BIZRA HEARTBEAT]")
+        assert "stage_receipts" in result
+        assert len(result["stage_receipts"]) == 3
+        assert result["stage_receipts"][0]["stage"] == "browser_research"
+        assert result["stage_receipts"][1]["stage"] == "open_app"
+        assert result["stage_receipts"][2]["stage"] == "type_text"
+        assert result["stage_receipts"][0]["trajectory_credit"]["step_index"] == 1
+        assert result["stage_receipts"][1]["trajectory_credit"]["step_index"] == 2
+        assert result["stage_receipts"][2]["trajectory_credit"]["step_index"] == 3
+        assert (
+            result["stage_receipts"][1]["trajectory_credit"]["prefix_receipt_id"]
+            == result["stage_receipts"][0]["receipt"]["receipt_id"]
+        )
+        assert (
+            result["stage_receipts"][2]["trajectory_credit"]["prefix_receipt_id"]
+            == result["stage_receipts"][1]["receipt"]["receipt_id"]
+        )
+        assert "trajectory_credit" in result
+        assert result["trajectory_credit"]["completed_steps"] == 3
+        assert rpc_mock.await_count == 2
+        assert rpc_mock.await_args_list[0].args[0] == "open_app"
+        assert rpc_mock.await_args_list[1].args[0] == "type_text"
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_demo_missing_query_returns_error(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        resp = await _send_recv(
+            "127.0.0.1",
+            free_port,
+            _jsonrpc("heartbeat_demo", {"app": "notepad"}),
+        )
+        assert "error" in resp
+        assert resp["error"]["code"] == -32603
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_demo_ahk_unreachable(
+        self, bridge: DesktopBridge, free_port: int
+    ) -> None:
+        research_payload = {
+            "query": "heartbeat test",
+            "summary": "Top matches: demo",
+            "results": [{"title": "demo", "url": "https://example.com"}],
+            "mode": "mock",
+        }
+
+        with (
+            patch("core.bridges.desktop_bridge.BrowserMCPClient") as browser_cls,
+            patch.object(
+                bridge,
+                "_check_rust_guardian",
+                new_callable=AsyncMock,
+                return_value={"allowed": True},
+            ),
+            patch.object(
+                bridge,
+                "_validate_fate",
+                return_value={"passed": True},
+            ),
+            patch.object(
+                bridge,
+                "_rpc_to_ahk",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as rpc_mock,
+        ):
+            browser = MagicMock()
+            browser.research = AsyncMock(return_value=research_payload)
+            browser_cls.return_value = browser
+
+            resp = await _send_recv(
+                "127.0.0.1",
+                free_port,
+                _jsonrpc("heartbeat_demo", {"query": "heartbeat test"}),
+            )
+
+        result = resp["result"]
+        assert result["task_complete"] is False
+        assert result["status"] == "failed"
+        assert result["stage"] == "desktop_open_app"
+        assert "AHK bridge unreachable for open_app" in result["error"]
+        assert "stage_receipts" in result
+        assert len(result["stage_receipts"]) == 2
+        assert result["stage_receipts"][0]["status"] == "accepted"
+        assert result["stage_receipts"][1]["status"] == "rejected"
+        assert (
+            result["stage_receipts"][1]["trajectory_credit"]["prefix_receipt_id"]
+            == result["stage_receipts"][0]["receipt"]["receipt_id"]
+        )
+        assert rpc_mock.await_count == 1
 
 
 # ---------------------------------------------------------------------------

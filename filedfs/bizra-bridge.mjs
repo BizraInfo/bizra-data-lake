@@ -43,6 +43,58 @@ import { fileURLToPath } from "node:url";
 
 const DEFAULT_PORT = 9100;
 const DEFAULT_BINARY = "./bizra-node";
+const LOCALHOST_BIND = "127.0.0.1";
+const LOCAL_ORIGIN_PREFIXES = [
+  "http://localhost",
+  "https://localhost",
+  "http://127.0.0.1",
+  "https://127.0.0.1",
+];
+
+function envFlag(name) {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env[name] || "").trim().toLowerCase()
+  );
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // CLI clients typically omit Origin
+  return LOCAL_ORIGIN_PREFIXES.some((prefix) => origin.startsWith(prefix));
+}
+
+function extractAuthToken(req) {
+  const auth = req.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) {
+    return auth.slice("Bearer ".length).trim();
+  }
+  try {
+    const url = new URL(req.url || "/", `http://${LOCALHOST_BIND}`);
+    return (url.searchParams.get("token") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function validateClientUpgrade(req) {
+  const origin = req.headers.origin || null;
+  if (!isAllowedOrigin(origin)) {
+    return { allowed: false, reason: "origin_rejected" };
+  }
+
+  const expectedToken = (process.env.BIZRA_BRIDGE_TOKEN || "").trim();
+  const allowAnonymous = envFlag("BIZRA_BRIDGE_ALLOW_ANONYMOUS");
+  if (!expectedToken && !allowAnonymous) {
+    return { allowed: false, reason: "token_required" };
+  }
+  if (expectedToken) {
+    const provided = extractAuthToken(req);
+    if (provided !== expectedToken) {
+      return { allowed: false, reason: "token_invalid" };
+    }
+  }
+
+  return { allowed: true, reason: "ok" };
+}
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -362,6 +414,12 @@ async function main() {
   const wss = new WebSocketServer({ server: httpServer });
 
   wss.on("connection", (ws, req) => {
+    const validation = validateClientUpgrade(req);
+    if (!validation.allowed) {
+      ws.close(4001, validation.reason);
+      return;
+    }
+
     const addr = req.socket.remoteAddress;
     console.log(`[bridge] Client connected: ${addr}`);
 
@@ -383,6 +441,26 @@ async function main() {
       }
 
       // Translate to protocol
+      const verb = String(msg.verb || "").toUpperCase();
+      if (verb === "SHUTDOWN") {
+        const expectedShutdownToken = (
+          process.env.BIZRA_BRIDGE_SHUTDOWN_TOKEN || ""
+        ).trim();
+        const providedShutdownToken = String(
+          msg?.args?.shutdown_token || msg?.shutdown_token || ""
+        ).trim();
+        if (!expectedShutdownToken || providedShutdownToken !== expectedShutdownToken) {
+          ws.send(
+            JSON.stringify({
+              ok: false,
+              code: "UNAUTHORIZED_SHUTDOWN",
+              message: "Valid shutdown token required",
+            })
+          );
+          return;
+        }
+      }
+
       const protocolLine = jsonToProtocol(msg);
       if (!protocolLine) {
         ws.send(JSON.stringify({ ok: false, code: "BAD_COMMAND", message: `Unknown verb: ${msg.verb}` }));
@@ -398,7 +476,7 @@ async function main() {
       ws.send(JSON.stringify(response));
 
       // If shutdown, close gracefully
-      if (msg.verb?.toUpperCase() === "SHUTDOWN") {
+      if (verb === "SHUTDOWN") {
         setTimeout(() => {
           wss.clients.forEach((c) => c.close());
           httpServer.close();
@@ -416,9 +494,11 @@ async function main() {
     });
   });
 
-  httpServer.listen(config.port, () => {
-    console.log(`[bridge] WebSocket bridge listening on ws://localhost:${config.port}`);
-    console.log(`[bridge] Health check: http://localhost:${config.port}/health`);
+  httpServer.listen(config.port, LOCALHOST_BIND, () => {
+    console.log(
+      `[bridge] WebSocket bridge listening on ws://${LOCALHOST_BIND}:${config.port}`
+    );
+    console.log(`[bridge] Health check: http://${LOCALHOST_BIND}:${config.port}/health`);
     console.log(`[bridge] Ready for Alpha-100 connections`);
   });
 

@@ -5,7 +5,7 @@ import pytest
 
 from core.pci.crypto import generate_keypair, sign_message
 from core.proof_engine.canonical import hex_digest
-from core.zpk import ZeroPointKernel, ZPKPolicy
+from core.zpk import ZPKConfig, ZeroPointKernel, ZPKPolicy
 
 
 def _write_worker_bundle(
@@ -15,31 +15,32 @@ def _write_worker_bundle(
     policy_version: int = 1,
     ihsan_policy: float = 0.95,
     valid_signature: bool = True,
+    worker_code: str = (
+        "def main(context):\n    return {'ok': True, 'version': context['version']}\n"
+    ),
 ) -> Path:
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     worker_path = bundle_dir / "worker.py"
-    worker_code = (
-        "def main(context):\n    return {'ok': True, 'version': context['version']}\n"
-    )
     worker_bytes = worker_code.encode("utf-8")
     worker_path.write_bytes(
         worker_bytes
     )  # write_bytes avoids \r\n conversion on Windows
 
     worker_hash = hex_digest(worker_bytes)
-    signature = sign_message(worker_hash, release_private_key_hex)
-    if not valid_signature:
-        signature = "00" * 64
-
     manifest = {
         "version": version,
         "worker_uri": "worker.py",
         "worker_hash": worker_hash,
-        "worker_signature": signature,
         "policy_version": policy_version,
         "ihsan_policy": ihsan_policy,
     }
+    manifest_digest = ZeroPointKernel._manifest_signature_digest(manifest, worker_hash)
+    signature = sign_message(manifest_digest, release_private_key_hex)
+    if not valid_signature:
+        signature = "00" * 64
+    manifest["worker_signature"] = signature
+
     manifest_path = bundle_dir / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=True, sort_keys=True),
@@ -224,3 +225,67 @@ async def test_bootstrap_emits_signed_receipt_events(tmp_path: Path):
         receipt = event.payload["receipt"]
         assert "signature" in receipt
         assert "hash" in receipt
+
+
+@pytest.mark.asyncio
+async def test_manifest_metadata_tamper_after_signing_is_rejected(tmp_path: Path):
+    release_private_key_hex, release_public_key_hex = generate_keypair()
+    manifest_path = _write_worker_bundle(
+        tmp_path / "bundle",
+        release_private_key_hex=release_private_key_hex,
+        version="1.0.0",
+        policy_version=1,
+        ihsan_policy=0.95,
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["version"] = "9.9.9"
+    manifest["policy_version"] = 999
+    manifest["ihsan_policy"] = 0.999
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=True, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    kernel = ZeroPointKernel(
+        state_dir=tmp_path / "state",
+        release_public_key_hex=release_public_key_hex,
+    )
+    result = await kernel.bootstrap(
+        str(manifest_path),
+        policy=ZPKPolicy(
+            allowed_versions={"9.9.9"},
+            min_policy_version=500,
+            min_ihsan_policy=0.95,
+        ),
+    )
+
+    assert result.success is False
+    assert result.executed_version is None
+    assert result.reason.startswith("fetch failed: signature_invalid")
+
+
+@pytest.mark.asyncio
+async def test_sync_worker_infinite_loop_times_out(tmp_path: Path):
+    release_private_key_hex, release_public_key_hex = generate_keypair()
+    manifest_path = _write_worker_bundle(
+        tmp_path / "bundle",
+        release_private_key_hex=release_private_key_hex,
+        worker_code="def main(context):\n    while True:\n        pass\n",
+    )
+
+    kernel = ZeroPointKernel(
+        state_dir=tmp_path / "state",
+        release_public_key_hex=release_public_key_hex,
+        config=ZPKConfig(worker_timeout_seconds=0.2, max_restarts=0),
+    )
+
+    result = await kernel.bootstrap(str(manifest_path), policy=ZPKPolicy())
+    assert result.success is False
+    assert result.reason == "execution_failed"
+
+    receipts = _read_receipts(tmp_path / "state")
+    execution_receipts = [r for r in receipts if r.get("type") == "execution"]
+    assert execution_receipts
+    last_error = execution_receipts[-1]["body"]["health"]["last_error"]
+    assert "timed out" in (last_error or "")

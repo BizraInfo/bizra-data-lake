@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import signal
+
+import pytest
+
 from core.inference.rlm_bridge import REPLState, RLMSandbox, should_use_rlm
 
 
@@ -86,6 +90,26 @@ def test_execute_lm_query_with_limit() -> None:
     assert state.variables["b"] == "TWO"
     assert state.variables["c"] == "[MAX_SUB_CALLS_REACHED]"
     assert calls == ["one", "two"]
+
+
+@pytest.mark.skipif(not hasattr(signal, "SIGALRM"), reason="Unix only")
+def test_execute_infinite_loop_times_out() -> None:
+    sandbox = RLMSandbox(execution_timeout_seconds=1.0)
+    state, output = sandbox.execute("while True:\n    pass")
+
+    assert "SANDBOX_TIMEOUT" in output
+    assert state.iteration == 1
+
+
+@pytest.mark.skipif(not hasattr(signal, "SIGALRM"), reason="Unix only")
+def test_execute_timeout_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BIZRA_RLM_TIMEOUT", "1")
+
+    sandbox = RLMSandbox()
+    state, output = sandbox.execute("while True:\n    pass")
+
+    assert "SANDBOX_TIMEOUT" in output
+    assert state.iteration == 1
 
 
 def test_should_use_rlm_false_for_coordinator_executor() -> None:

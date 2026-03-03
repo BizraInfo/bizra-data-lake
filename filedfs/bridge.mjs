@@ -10,6 +10,62 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { EventEmitter } from "node:events";
 
+const LOCAL_ORIGIN_PREFIXES = [
+  "http://localhost",
+  "https://localhost",
+  "http://127.0.0.1",
+  "https://127.0.0.1",
+];
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return LOCAL_ORIGIN_PREFIXES.some((prefix) => origin.startsWith(prefix));
+}
+
+function envFlag(name) {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env[name] || "").trim().toLowerCase()
+  );
+}
+
+function extractAuthToken(req) {
+  const auth = req?.headers?.authorization || "";
+  if (auth.startsWith("Bearer ")) {
+    return auth.slice("Bearer ".length).trim();
+  }
+  try {
+    const url = new URL(req.url || "/", "http://127.0.0.1");
+    return (url.searchParams.get("token") || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function validateClientUpgrade(req) {
+  const origin = req.headers.origin || null;
+  if (!isAllowedOrigin(origin)) {
+    return { allowed: false, reason: "origin_rejected" };
+  }
+
+  const expectedToken = String(process.env.BIZRA_BRIDGE_TOKEN || "").trim();
+  const allowAnonymous = envFlag("BIZRA_BRIDGE_ALLOW_ANONYMOUS");
+  if (!expectedToken && !allowAnonymous) {
+    return { allowed: false, reason: "token_required" };
+  }
+  if (expectedToken) {
+    const providedToken = extractAuthToken(req);
+    if (providedToken !== expectedToken) {
+      return { allowed: false, reason: "token_invalid" };
+    }
+  }
+
+  return { allowed: true, reason: "ok" };
+}
+
+function sanitizeProtocolValue(value) {
+  return String(value ?? "").replace(/[\t\n\r]/g, "");
+}
+
 // ─── Configuration ───
 const DEFAULT_CONFIG = {
   port: 9470,                          // WebSocket port (B=9, I=4, Z=7, R=0 → BIZR)
@@ -199,6 +255,12 @@ class BridgeServer {
     });
 
     this.wss.on("connection", (ws, req) => {
+      const validation = validateClientUpgrade(req);
+      if (!validation.allowed) {
+        ws.close(4001, validation.reason);
+        return;
+      }
+
       this.log(`Client connected from ${req.socket.remoteAddress}`);
       this.clients.add(ws);
 
@@ -216,11 +278,11 @@ class BridgeServer {
           const msg = JSON.parse(data.toString());
           this.handleClientMessage(ws, msg);
         } catch {
-          // Raw command string
-          const cmd = data.toString().trim();
-          if (cmd) {
-            this.node.send(cmd);
-          }
+          ws.send(JSON.stringify({
+            type: "error",
+            code: "PARSE_ERROR",
+            message: "JSON message required",
+          }));
         }
       });
 
@@ -263,16 +325,56 @@ class BridgeServer {
   }
 
   handleClientMessage(ws, msg) {
+    const shutdownTokenExpected = String(
+      process.env.BIZRA_BRIDGE_SHUTDOWN_TOKEN || ""
+    ).trim();
+    const shutdownTokenProvided = String(
+      msg?.shutdown_token || msg?.args?.shutdown_token || ""
+    ).trim();
+
+    const isShutdownCommand = () => {
+      if (msg.type === "command") {
+        return String(msg.cmd || "").toUpperCase() === "SHUTDOWN";
+      }
+      if (msg.type === "raw") {
+        const raw = sanitizeProtocolValue(msg.line);
+        return raw.toUpperCase().startsWith("SHUTDOWN");
+      }
+      return false;
+    };
+
+    if (isShutdownCommand()) {
+      if (!shutdownTokenExpected || shutdownTokenProvided !== shutdownTokenExpected) {
+        ws.send(JSON.stringify({
+          type: "error",
+          code: "UNAUTHORIZED_SHUTDOWN",
+          message: "Valid shutdown token required",
+        }));
+        return;
+      }
+    }
+
     switch (msg.type) {
       case "command":
         // { type: "command", cmd: "RECEIVE", args: ["hello world"] }
-        const parts = [msg.cmd, ...(msg.args || [])];
+        const parts = [
+          sanitizeProtocolValue(msg.cmd),
+          ...(msg.args || []).map((arg) => sanitizeProtocolValue(arg)),
+        ];
         this.node.send(parts.join("\t"));
         break;
 
       case "raw":
-        // { type: "raw", line: "PING" }
-        this.node.send(msg.line);
+        if (!envFlag("BIZRA_BRIDGE_ALLOW_RAW")) {
+          ws.send(JSON.stringify({
+            type: "error",
+            code: "RAW_DISABLED",
+            message: "Raw forwarding is disabled by policy",
+          }));
+          break;
+        }
+        // { type: "raw", line: "PING" } (opt-in only)
+        this.node.send(sanitizeProtocolValue(msg.line));
         break;
 
       case "ping":

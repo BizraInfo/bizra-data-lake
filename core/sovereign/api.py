@@ -43,13 +43,20 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger("sovereign.api")
+
+
+def _env_truthy(var_name: str) -> bool:
+    """Return True when an environment flag is explicitly enabled."""
+    return os.environ.get(var_name, "").strip().lower() in {"1", "true", "yes", "on"}
+
 
 # =============================================================================
 # PYDANTIC MODELS (module-level for FastAPI schema generation)
@@ -971,8 +978,6 @@ def create_fastapi_app(runtime: Any) -> Any:
     )
 
     # CORS — Phase 23: environment-aware origin restriction
-    import os
-
     _cors_env = os.environ.get("BIZRA_CORS_ORIGINS", "")
     if _cors_env:
         allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
@@ -992,6 +997,93 @@ def create_fastapi_app(runtime: Any) -> Any:
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-type", "X-API-Key", "X-Request-ID"],
     )
+
+    def _authenticate_http_request(
+        request: Request,
+    ) -> tuple[str, Any | None, JSONResponse | None]:
+        """Authenticate an HTTP request with fail-closed defaults."""
+        allow_anonymous = _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS")
+
+        if _auth_available and _auth_middleware is not None:
+            try:
+                user = _auth_middleware.authenticate_request(request)
+            except Exception as e:
+                if not allow_anonymous:
+                    return (
+                        "",
+                        None,
+                        JSONResponse(
+                            status_code=401,
+                            content={"error": "Authentication required"},
+                        ),
+                    )
+                logger.warning(
+                    "Auth extraction failed; anonymous fallback enabled: %s", e
+                )
+                return "", None, None
+
+            if user is None:
+                if not allow_anonymous:
+                    return (
+                        "",
+                        None,
+                        JSONResponse(
+                            status_code=401,
+                            content={"error": "Authentication required"},
+                        ),
+                    )
+                return "", None, None
+
+            if not _auth_middleware.check_rate_limit(user.user_id):
+                return (
+                    "",
+                    None,
+                    JSONResponse(
+                        status_code=429,
+                        content={"error": "Rate limit exceeded"},
+                    ),
+                )
+            return user.user_id, user, None
+
+        if not allow_anonymous:
+            return (
+                "",
+                None,
+                JSONResponse(
+                    status_code=503,
+                    content={"error": "Authentication service unavailable"},
+                ),
+            )
+        return "", None, None
+
+    async def _authorize_websocket(ws: "StarletteWS") -> tuple[str, bool]:
+        """Authorize a WebSocket connection before accepting the session."""
+        allow_anonymous = _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS")
+
+        if _auth_available and _auth_middleware is not None:
+            try:
+                user = _auth_middleware.authenticate(
+                    authorization=ws.headers.get("authorization"),
+                    api_key=ws.headers.get("x-api-key"),
+                )
+            except Exception:
+                user = None
+
+            if user is None and not allow_anonymous:
+                await ws.close(code=4401, reason="Authentication required")
+                return "", False
+
+            if user is not None and not _auth_middleware.check_rate_limit(user.user_id):
+                await ws.close(code=4429, reason="Rate limit exceeded")
+                return "", False
+
+            return (user.user_id if user is not None else ""), True
+
+        if not allow_anonymous:
+            await ws.close(code=1013, reason="Authentication service unavailable")
+            return "", False
+
+        return "", True
 
     @app.get("/v1/health")
     async def health():
@@ -1079,18 +1171,14 @@ def create_fastapi_app(runtime: Any) -> Any:
         """Query endpoint — auth-aware when auth layer is available.
 
         Security: single handler prevents route-shadowing bypass (SAPE-001).
-        When auth is available, extracts user_id from JWT/API key.
-        When auth is unavailable or token invalid, proceeds as anonymous.
+        Default behavior is fail-closed for missing/invalid auth.
+        Anonymous access requires explicit BIZRA_AUTH_ALLOW_ANONYMOUS opt-in.
         """
-        user_id = ""
-        if _auth_available:
-            try:
-                user = _auth_middleware.authenticate_request(request)
-                if user is not None:
-                    user_id = user.user_id
-                    _user_store.increment_query_count(user_id)
-            except Exception as e:
-                logger.debug("Auth extraction failed (anonymous access): %s", e)
+        user_id, user, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+        if user is not None and _user_store is not None:
+            _user_store.increment_query_count(user_id)
 
         result = await runtime.query(
             body.query,
@@ -1424,8 +1512,8 @@ def create_fastapi_app(runtime: Any) -> Any:
         try:
             from core.proof_engine.receipt import (
                 Receipt,
+                ReceiptStatus,
                 ReceiptVerifier,
-                SimpleSigner,
             )
 
             receipt_json = body.receipt
@@ -1438,36 +1526,116 @@ def create_fastapi_app(runtime: Any) -> Any:
                     ).to_dict(),
                 )
 
+            status_value = str(receipt_json.get("status", "pending")).lower()
+            try:
+                receipt_status = ReceiptStatus(status_value)
+            except ValueError:
+                return VerifierResponse.rejected(
+                    reason_codes=["SCHEMA_VIOLATION"],
+                    receipt_id=receipt_json.get("receipt_id", ""),
+                    artifacts={
+                        "detail": f"Unknown receipt status: {status_value}",
+                    },
+                ).to_dict()
+
+            def _decode_hex_field(field_name: str) -> bytes:
+                raw_value = receipt_json.get(field_name, "")
+                if isinstance(raw_value, bytes):
+                    return raw_value
+                if not isinstance(raw_value, str) or not raw_value:
+                    raise ValueError(f"{field_name} is required")
+                return bytes.fromhex(raw_value)
+
+            try:
+                query_digest = _decode_hex_field("query_digest")
+                policy_digest = _decode_hex_field("policy_digest")
+                payload_digest = _decode_hex_field("payload_digest")
+                signature = _decode_hex_field("signature")
+                signer_pubkey = _decode_hex_field("signer_pubkey")
+            except ValueError as parse_err:
+                return VerifierResponse.rejected(
+                    reason_codes=["SCHEMA_VIOLATION"],
+                    receipt_id=receipt_json.get("receipt_id", ""),
+                    artifacts={"detail": str(parse_err)},
+                ).to_dict()
+
+            timestamp_raw = receipt_json.get("timestamp")
+            if isinstance(timestamp_raw, str) and timestamp_raw:
+                try:
+                    receipt_timestamp = datetime.fromisoformat(
+                        timestamp_raw.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    return VerifierResponse.rejected(
+                        reason_codes=["SCHEMA_VIOLATION"],
+                        receipt_id=receipt_json.get("receipt_id", ""),
+                        artifacts={"detail": "Invalid timestamp format"},
+                    ).to_dict()
+            else:
+                receipt_timestamp = datetime.now(timezone.utc)
+
             receipt = Receipt(
                 receipt_id=receipt_json.get("receipt_id", ""),
-                status=receipt_json.get("status", "pending"),
-                query_digest=receipt_json.get("query_digest", ""),
-                policy_digest=receipt_json.get("policy_digest", ""),
-                payload_digest=receipt_json.get("payload_digest", ""),
-                snr=receipt_json.get("snr", 0.0),
-                ihsan_score=receipt_json.get("ihsan_score", 0.0),
+                status=receipt_status,
+                query_digest=query_digest,
+                policy_digest=policy_digest,
+                payload_digest=payload_digest,
+                snr=float(receipt_json.get("snr", 0.0)),
+                ihsan_score=float(receipt_json.get("ihsan_score", 0.0)),
                 gate_passed=receipt_json.get("gate_passed", ""),
                 reason=receipt_json.get("reason"),
-                signature=receipt_json.get("signature", b""),
-                signer_pubkey=receipt_json.get("signer_pubkey", b""),
+                signature=signature,
+                signer_pubkey=signer_pubkey,
+                timestamp=receipt_timestamp,
             )
 
-            # Attempt verification with available signer
-            signer_key = getattr(runtime, "_signer_key", None)
-            if signer_key:
-                signer = SimpleSigner(signer_key)
-                verifier = ReceiptVerifier(signer)
+            is_valid = False
+            error_msg: str | None = "Signature verification failed"
+            runtime_signer = getattr(runtime, "_node_signer", None)
+
+            if runtime_signer is not None and hasattr(runtime_signer, "verify"):
+                verifier = ReceiptVerifier(runtime_signer)
                 is_valid, error_msg = verifier.verify(receipt)
-            else:
-                is_valid = bool(
-                    receipt.receipt_id and receipt.query_digest and receipt.signature
+
+                signer_pub = (
+                    runtime_signer.public_key_bytes()
+                    if hasattr(runtime_signer, "public_key_bytes")
+                    else b""
                 )
-                error_msg = None if is_valid else "Missing required fields"
+                if not is_valid and signer_pub and receipt.signer_pubkey != signer_pub:
+                    from core.pci.crypto import (
+                        verify_signature as verify_ed25519_signature,
+                    )
+                    from core.proof_engine.canonical import (
+                        hex_digest as canonical_hex_digest,
+                    )
+
+                    digest_hex = canonical_hex_digest(receipt.body_bytes())
+                    is_valid = verify_ed25519_signature(
+                        digest_hex,
+                        receipt.signature.hex(),
+                        receipt.signer_pubkey.hex(),
+                    )
+                    error_msg = None if is_valid else "Invalid signature"
+            else:
+                from core.pci.crypto import verify_signature as verify_ed25519_signature
+                from core.proof_engine.canonical import (
+                    hex_digest as canonical_hex_digest,
+                )
+
+                digest_hex = canonical_hex_digest(receipt.body_bytes())
+                is_valid = verify_ed25519_signature(
+                    digest_hex,
+                    receipt.signature.hex(),
+                    receipt.signer_pubkey.hex(),
+                )
+                error_msg = None if is_valid else "Invalid signature"
 
             artifacts = {
                 "receipt_id": receipt.receipt_id,
-                "status": receipt.status,
+                "status": receipt.status.value,
                 "quality": {"snr": receipt.snr, "ihsan": receipt.ihsan_score},
+                "signature_verified": is_valid,
             }
 
             if is_valid:
@@ -1908,12 +2076,16 @@ def create_fastapi_app(runtime: Any) -> Any:
         return stats
 
     @app.post("/v1/poi/epoch")
-    async def poi_epoch():
+    async def poi_epoch(request: Request):
         """Run a full PoI computation epoch.
 
         Computes composite PoI scores for all contributors,
         runs Gini analysis, and applies SAT rebalancing if needed.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         result = runtime.compute_poi_epoch()
         if result is None:
             return JSONResponse(
@@ -1951,12 +2123,16 @@ def create_fastapi_app(runtime: Any) -> Any:
         return stats
 
     @app.post("/v1/sat/epoch")
-    async def sat_epoch():
+    async def sat_epoch(request: Request):
         """Finalize a PoI epoch via SAT Controller.
 
         Computes PoI scores, distributes tokens, checks Gini,
         and triggers rebalancing if inequality exceeds threshold.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         result = runtime.finalize_sat_epoch()
         if result is None:
             return JSONResponse(
@@ -2045,8 +2221,12 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     # /v1/orchestrate — direct orchestrator task decomposition endpoint
     @app.post("/v1/orchestrate")
-    async def orchestrate(body: OrchestrateRequestModel):
+    async def orchestrate(body: OrchestrateRequestModel, request: Request):
         """Decompose a complex task through the orchestrator's agent swarm."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         orch = getattr(runtime, "_orchestrator", None)
         if orch is None:
             return JSONResponse(
@@ -2215,6 +2395,10 @@ def create_fastapi_app(runtime: Any) -> Any:
             - Server pushes: proactive_suggestion, task_completed, agent_status
             - Client can send: subscribe/unsubscribe topic filters
             """
+            ws_user_id, authorized = await _authorize_websocket(ws)
+            if not authorized:
+                return
+
             await ws.accept()
             _ws_clients.add(ws)
 
@@ -2225,6 +2409,7 @@ def create_fastapi_app(runtime: Any) -> Any:
                     "type": "connected",
                     "node_id": identity.get("node_id", "unknown"),
                     "version": identity.get("version", "1.0.0"),
+                    "user_id": ws_user_id,
                 }
             )
 
@@ -2239,9 +2424,26 @@ def create_fastapi_app(runtime: Any) -> Any:
 
                     elif msg_type == "query":
                         # Allow queries over WebSocket too
+                        if (
+                            ws_user_id
+                            and _auth_middleware is not None
+                            and not _auth_middleware.check_rate_limit(ws_user_id)
+                        ):
+                            await ws.send_json(
+                                {
+                                    "type": "error",
+                                    "error": "Rate limit exceeded",
+                                }
+                            )
+                            continue
+
+                        if ws_user_id and _user_store is not None:
+                            _user_store.increment_query_count(ws_user_id)
+
                         result = await runtime.query(
                             data.get("query", ""),
                             context=data.get("context", {}),
+                            user_id=ws_user_id,
                         )
                         await ws.send_json(
                             {

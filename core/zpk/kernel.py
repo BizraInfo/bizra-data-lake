@@ -14,7 +14,9 @@ import asyncio
 import inspect
 import json
 import logging
+import signal
 import socket
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -454,8 +456,9 @@ class ZeroPointKernel:
                 )
 
             signature = str(manifest.get("worker_signature", ""))
+            signature_digest = self._manifest_signature_digest(manifest, worker_hash)
             signature_ok = verify_signature(
-                worker_hash, signature, self.release_public_key_hex
+                signature_digest, signature, self.release_public_key_hex
             )
             if not signature_ok:
                 return None, FetchReceipt(
@@ -590,9 +593,9 @@ class ZeroPointKernel:
         try:
             tree = ast.parse(artifact.worker_code, filename="<zpk-worker>")
         except SyntaxError as e:
-            return ExecutionReceipt(
-                worker_version=artifact.version,
-                exit_code=1,
+                return ExecutionReceipt(
+                    worker_version=artifact.version,
+                    exit_code=1,
                 runtime_ms=0.0,
                 health={"attempts": 0, "last_error": f"syntax error: {e}"},
                 rollback_used=rollback_used,
@@ -686,11 +689,28 @@ class ZeroPointKernel:
                     "version": artifact.version,
                     "rollback": rollback_used,
                 }
-                result = entrypoint(context)
-                if inspect.isawaitable(result):
-                    await asyncio.wait_for(
-                        result, timeout=self.config.worker_timeout_seconds
+                timeout = max(0.0, float(self.config.worker_timeout_seconds))
+
+                if inspect.iscoroutinefunction(entrypoint):
+                    await asyncio.wait_for(entrypoint(context), timeout=timeout)
+                elif (
+                    hasattr(signal, "SIGALRM")
+                    and threading.current_thread() is threading.main_thread()
+                ):
+                    result = self._execute_sync_with_signal_timeout(
+                        entrypoint,
+                        context,
+                        timeout,
                     )
+                    if inspect.isawaitable(result):
+                        await asyncio.wait_for(result, timeout=timeout)
+                else:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(entrypoint, context),
+                        timeout=timeout,
+                    )
+                    if inspect.isawaitable(result):
+                        await asyncio.wait_for(result, timeout=timeout)
                 elapsed_ms = (time.perf_counter() - start_all) * 1000
                 return ExecutionReceipt(
                     worker_version=artifact.version,
@@ -846,3 +866,49 @@ class ZeroPointKernel:
 
         canonical = canonicalize_json(record, ensure_ascii=True)
         return hex_digest(canonical)
+
+    @staticmethod
+    def _manifest_signature_payload(
+        manifest: dict[str, Any], worker_hash: str
+    ) -> dict[str, Any]:
+        """Return the signed subset of manifest fields.
+
+        This binds policy-relevant metadata to the release signature, closing
+        tamper windows where metadata could be changed without changing worker code.
+        """
+        return {
+            "version": str(manifest.get("version", "unknown")),
+            "worker_uri": str(manifest.get("worker_uri", "")),
+            "worker_hash": worker_hash,
+            "policy_version": int(manifest.get("policy_version", 1)),
+            "ihsan_policy": float(manifest.get("ihsan_policy", 0.95)),
+        }
+
+    @classmethod
+    def _manifest_signature_digest(cls, manifest: dict[str, Any], worker_hash: str) -> str:
+        payload = cls._manifest_signature_payload(manifest, worker_hash)
+        return cls._digest_record(payload)
+
+    @staticmethod
+    def _execute_sync_with_signal_timeout(
+        entrypoint: Callable[[dict[str, Any]], Any],
+        context: dict[str, Any],
+        timeout_seconds: float,
+    ) -> Any:
+        """Execute sync entrypoint with SIGALRM timeout on Unix main thread."""
+        if timeout_seconds <= 0:
+            return entrypoint(context)
+
+        message = f"worker execution timed out after {timeout_seconds:.3f}s"
+
+        def _alarm_handler(signum: int, frame: Any) -> None:
+            raise TimeoutError(message)
+
+        old_handler = signal.getsignal(signal.SIGALRM)
+        signal.signal(signal.SIGALRM, _alarm_handler)
+        signal.setitimer(signal.ITIMER_REAL, timeout_seconds)
+        try:
+            return entrypoint(context)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0.0)
+            signal.signal(signal.SIGALRM, old_handler)

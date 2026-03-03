@@ -44,10 +44,14 @@ Environment="RUST_LOG=info,bizra=debug"
 Environment="RUST_BACKTRACE=1"
 Environment="BIZRA_ENV=production"
 Environment="BIZRA_NODE_TYPE=genesis"
+Environment="BIZRA_API_HOST=127.0.0.1"
+Environment="BIZRA_API_PORT=3001"
+Environment="BIZRA_API_WORKERS=4"
+Environment="BIZRA_API_MAX_CONNECTIONS=1000"
 
 # Database and cache
 Environment="DATABASE_URL=postgres://bizra:${POSTGRES_PASSWORD}@localhost:5432/bizra"
-Environment="REDIS_URL=redis://localhost:6379"
+Environment="REDIS_URL=redis://:${REDIS_PASSWORD}@127.0.0.1:6379"
 
 # Inference backends (fail-closed)
 Environment="INFERENCE_PRIMARY=http://192.168.56.1:1234"
@@ -62,10 +66,10 @@ EnvironmentFile=-/etc/bizra/secrets.env
 
 # Execute the API server
 ExecStart=/mnt/c/bizra-genesis-node/target/release/api_server \
-    --host 0.0.0.0 \
-    --port 3001 \
-    --workers 4 \
-    --max-connections 1000
+    --host ${BIZRA_API_HOST} \
+    --port ${BIZRA_API_PORT} \
+    --workers ${BIZRA_API_WORKERS} \
+    --max-connections ${BIZRA_API_MAX_CONNECTIONS}
 
 # Health check command
 ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -sf http://localhost:3001/health && exit 0 || sleep 1; done; exit 1'

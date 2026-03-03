@@ -1,10 +1,18 @@
 // filedfs/service-worker.js
 // ============================================================
-// BIZRA PWA Service Worker — network-first for API, cache-first for shell
+// BIZRA PWA Service Worker — strict static-asset caching
 // ============================================================
 
-const CACHE_NAME = "bizra-v1";
-const APP_SHELL = ["/", "/index.html", "/main.jsx", "/App.jsx", "/manifest.json"];
+const CACHE_NAME = "bizra-v2";
+const APP_SHELL = ["/", "/index.html"];
+const CACHEABLE_ASSET_REGEX = /\.(?:js|css|png|jpe?g|svg|ico|woff2?|ttf|eot)$/i;
+
+function isCacheableAssetRequest(request) {
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return false;
+  if (url.search) return false;
+  return CACHEABLE_ASSET_REGEX.test(url.pathname);
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -35,30 +43,25 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  // Network-first for API/LLM calls — never cache dynamic responses
-  if (
-    request.url.includes("/v1/") ||
-    request.url.includes("/api/") ||
-    request.url.includes("localhost:11434") ||
-    request.url.includes("localhost:1234")
-  ) {
-    return; // pass through to network
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
+    return;
   }
 
-  // Cache-first for static shell assets, network fallback
+  if (!isCacheableAssetRequest(request)) return;
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(request, clone))
-            .catch(() => {});
-          return response;
-        })
-        .catch(() => caches.match("/index.html"));
+      return fetch(request).then((response) => {
+        if (!response.ok) return response;
+        const clone = response.clone();
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, clone))
+          .catch(() => {});
+        return response;
+      });
     })
   );
 });

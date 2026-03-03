@@ -63,7 +63,9 @@ class SNROptimizer:
     - Iterative refinement until convergence
     """
 
-    IHSAN_THRESHOLD = 0.99
+    # Import strict ihsan threshold from constants
+    from core.integration.constants import STRICT_IHSAN_THRESHOLD as IHSAN_THRESHOLD
+
     MAX_ITERATIONS = 5
 
     # Component weights (must match arte_engine.py)
@@ -341,7 +343,7 @@ class SNROptimizer:
             # Diagnose bottleneck
             bottleneck, gap = self.diagnose_bottleneck(current_metrics)
             logger.info(
-                f"Iteration {iteration+1}: Bottleneck={bottleneck}, Gap={gap:.4f}"
+                f"Iteration {iteration + 1}: Bottleneck={bottleneck}, Gap={gap:.4f}"
             )
 
             # Select and apply strategies
@@ -583,7 +585,7 @@ def run_optimization_demo():
     print(f"   Original SNR:  {result.original_snr:.4f}")
     print(f"   Optimized SNR: {result.optimized_snr:.4f}")
     print(
-        f"   Improvement:   +{result.improvement:.4f} ({result.improvement/result.original_snr*100:.1f}%)"
+        f"   Improvement:   +{result.improvement:.4f} ({result.improvement / result.original_snr * 100:.1f}%)"
     )
     print(f"   Iterations:    {result.iterations}")
     print(f"   Strategies:    {', '.join(result.strategies_applied)}")
@@ -620,7 +622,7 @@ def run_optimization_demo():
         print(f"   Original SNR:  {aggressive_result.original_snr:.4f}")
         print(f"   Optimized SNR: {aggressive_result.optimized_snr:.4f}")
         print(
-            f"   Improvement:   +{aggressive_result.improvement:.4f} ({aggressive_result.improvement/aggressive_result.original_snr*100:.1f}%)"
+            f"   Improvement:   +{aggressive_result.improvement:.4f} ({aggressive_result.improvement / aggressive_result.original_snr * 100:.1f}%)"
         )
         print(f"   Iterations:    {aggressive_result.iterations}")
         print(f"   Strategies:    {', '.join(aggressive_result.strategies_applied)}")

@@ -122,6 +122,32 @@ class TestReceiptCreation:
         )
         assert engine.verify_receipt(receipt)
 
+    def test_receipt_supports_trajectory_credit(
+        self, engine: BridgeReceiptEngine
+    ) -> None:
+        receipt = engine.create_receipt(
+            method="heartbeat_demo.browser_research",
+            query_data={"query": "top vc firms"},
+            result_data={"result_count": 3},
+            fate_score=0.96,
+            snr_score=0.95,
+            gate_passed="BROWSER_RESEARCH",
+            status="accepted",
+            trajectory_credit={
+                "flow": "heartbeat_demo",
+                "stage": "browser_research",
+                "step_index": 1,
+                "step_score": 0.96,
+                "cumulative_score": 0.96,
+                "prefix_receipt_id": None,
+                "prefix_receipt_digest": None,
+            },
+        )
+        assert "trajectory_credit" in receipt
+        assert receipt["trajectory_credit"]["flow"] == "heartbeat_demo"
+        assert receipt["trajectory_credit"]["stage"] == "browser_research"
+        assert engine.verify_receipt(receipt)
+
     def test_receipt_tamper_on_origin_fails_signature(
         self, engine: BridgeReceiptEngine
     ) -> None:

@@ -500,6 +500,51 @@ class TestNoiseTransportHandshake:
         )
 
         assert session_responder is not None
+        assert session_initiator.peer_static_public == noise_transport_peer.static_public
+        assert session_responder.peer_static_public == noise_transport.static_public
+
+    def test_handshake_rejects_identity_mismatch(
+        self, noise_transport, noise_transport_peer, keypair
+    ):
+        """Initiator should reject responder identity mismatches."""
+        peer_addr = "127.0.0.1:8001"
+        initiator_addr = "127.0.0.1:8000"
+        wrong_peer_identity = bytes.fromhex(keypair[1])  # not responder identity
+
+        init_msg, init_state = noise_transport.create_handshake_init()
+        init_state["expected_peer_static_public"] = wrong_peer_identity
+
+        loop = asyncio.new_event_loop()
+        _, response = loop.run_until_complete(
+            noise_transport_peer.handshake_responder(init_msg, initiator_addr)
+        )
+        loop.close()
+
+        with pytest.raises(HandshakeError, match="identity mismatch"):
+            noise_transport.process_handshake_response(response, init_state, peer_addr)
+
+    def test_handshake_rejects_forged_identity_signature(
+        self, noise_transport, noise_transport_peer
+    ):
+        """Tampering responder identity proof should abort handshake."""
+        peer_addr = "127.0.0.1:8001"
+        initiator_addr = "127.0.0.1:8000"
+
+        init_msg, init_state = noise_transport.create_handshake_init()
+
+        loop = asyncio.new_event_loop()
+        _, response = loop.run_until_complete(
+            noise_transport_peer.handshake_responder(init_msg, initiator_addr)
+        )
+        loop.close()
+
+        tampered = bytearray(response)
+        tampered[-1] ^= 0x01
+
+        with pytest.raises(HandshakeError, match="signature invalid"):
+            noise_transport.process_handshake_response(
+                bytes(tampered), init_state, peer_addr
+            )
 
     def test_handshake_init_too_short_rejected(self, noise_transport):
         """Handshake init that's too short should be rejected."""
@@ -718,6 +763,51 @@ class TestDTLSTransportHandshake:
 
         assert session_init is not None
         assert session_resp is not None
+        assert session_init.peer_static_public == dtls_transport_peer.static_public
+        assert session_resp.peer_static_public == dtls_transport.static_public
+
+    def test_handshake_rejects_peer_identity_mismatch(
+        self, dtls_transport, dtls_transport_peer, keypair
+    ):
+        """Client should reject ServerHello when pinned identity mismatches."""
+        peer_addr = "127.0.0.1:8001"
+        initiator_addr = "127.0.0.1:8000"
+        wrong_peer_identity = bytes.fromhex(keypair[1])  # not responder identity
+
+        init_msg, init_state = dtls_transport.create_handshake_init()
+        init_state["expected_peer_static_public"] = wrong_peer_identity
+
+        loop = asyncio.new_event_loop()
+        _, response = loop.run_until_complete(
+            dtls_transport_peer.handshake_responder(init_msg, initiator_addr)
+        )
+        loop.close()
+
+        with pytest.raises(HandshakeError, match="identity mismatch"):
+            dtls_transport.process_handshake_response(response, init_state, peer_addr)
+
+    def test_handshake_rejects_forged_server_identity_signature(
+        self, dtls_transport, dtls_transport_peer
+    ):
+        """Tampered ServerHello identity signature must be rejected."""
+        peer_addr = "127.0.0.1:8001"
+        initiator_addr = "127.0.0.1:8000"
+
+        init_msg, init_state = dtls_transport.create_handshake_init()
+
+        loop = asyncio.new_event_loop()
+        _, response = loop.run_until_complete(
+            dtls_transport_peer.handshake_responder(init_msg, initiator_addr)
+        )
+        loop.close()
+
+        tampered = bytearray(response)
+        tampered[-1] ^= 0x01
+
+        with pytest.raises(HandshakeError, match="signature invalid"):
+            dtls_transport.process_handshake_response(
+                bytes(tampered), init_state, peer_addr
+            )
 
     def test_dtls_version_mismatch_rejected(self, dtls_transport):
         """Wrong DTLS version should be rejected."""

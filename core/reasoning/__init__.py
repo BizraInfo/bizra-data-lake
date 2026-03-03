@@ -33,6 +33,13 @@ from .bicameral_engine import BicameralReasoningEngine
 # Entropy Router — System 1/2 query routing
 from .entropy_router import EntropyRouter, QueryComplexity, RoutingDecision
 
+# Diffusion Reasoning Amplifier — T1 HMM -> T2 reasoning bridge
+from .diffusion_reasoning_amplifier import (
+    AmplifiedReasoningContext,
+    DiffusionAmplifierConfig,
+    DiffusionReasoningAmplifier,
+)
+
 # graph_core: Main composed class
 from .graph_core import GraphOfThoughts
 
@@ -116,6 +123,10 @@ __all__ = [
     "EntropyRouter",
     "QueryComplexity",
     "RoutingDecision",
+    # Diffusion Reasoning Amplifier
+    "DiffusionReasoningAmplifier",
+    "DiffusionAmplifierConfig",
+    "AmplifiedReasoningContext",
     # Collective (lazy-loaded)
     "CollectiveIntelligence",
     "CollectiveSynthesizer",

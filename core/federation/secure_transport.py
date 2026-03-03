@@ -31,10 +31,10 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-from cryptography.exceptions import InvalidTag
+from cryptography.exceptions import InvalidSignature, InvalidTag
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import x25519
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
@@ -49,6 +49,9 @@ NOISE_TAG_SIZE = 16  # ChaCha20-Poly1305 tag size
 NOISE_NONCE_SIZE = 12
 NOISE_KEY_SIZE = 32
 NOISE_DH_SIZE = 32  # X25519 public key size
+ED25519_PUBLIC_KEY_SIZE = 32
+ED25519_SIGNATURE_SIZE = 64
+IDENTITY_BINDING_CONTEXT = b"BIZRA-TRANSPORT-BIND-v1"
 
 # DTLS Constants
 DTLS_VERSION = 0xFEFC  # DTLS 1.3
@@ -485,6 +488,7 @@ class NoiseTransport(SecureChannel):
         static_public_key: bytes,
         node_id: str,
         send_callback: Optional[Callable[[str, bytes], None]] = None,
+        require_identity_binding: bool = True,
     ):
         """
         Initialize Noise transport.
@@ -499,6 +503,14 @@ class NoiseTransport(SecureChannel):
         self.static_public = static_public_key
         self.node_id = node_id
         self.send_callback = send_callback
+        self.require_identity_binding = require_identity_binding
+
+        self._identity_private = ed25519.Ed25519PrivateKey.from_private_bytes(
+            static_private_key
+        )
+        self._identity_public = ed25519.Ed25519PublicKey.from_public_bytes(
+            static_public_key
+        )
 
         # Convert Ed25519 keys to X25519 for DH operations
         # Note: In production, use separate X25519 keys derived from Ed25519
@@ -507,6 +519,33 @@ class NoiseTransport(SecureChannel):
         # Session cache
         self._sessions: Dict[str, SecureSession] = {}
         self._pending_handshakes: Dict[str, dict] = {}
+
+    def _identity_binding_message(
+        self, local_ephemeral: bytes, remote_ephemeral: bytes
+    ) -> bytes:
+        """Build handshake message to sign/verify for identity binding."""
+        return IDENTITY_BINDING_CONTEXT + local_ephemeral + remote_ephemeral
+
+    def _sign_identity_binding(self, local_ephemeral: bytes, remote_ephemeral: bytes) -> bytes:
+        """Sign handshake binding data with the local Ed25519 identity key."""
+        message = self._identity_binding_message(local_ephemeral, remote_ephemeral)
+        return self._identity_private.sign(message)
+
+    def _verify_identity_binding(
+        self,
+        identity_public: bytes,
+        signature: bytes,
+        local_ephemeral: bytes,
+        remote_ephemeral: bytes,
+    ) -> bool:
+        """Verify peer identity proof over handshake-specific transcript."""
+        message = self._identity_binding_message(local_ephemeral, remote_ephemeral)
+        try:
+            peer_identity = ed25519.Ed25519PublicKey.from_public_bytes(identity_public)
+            peer_identity.verify(signature, message)
+            return True
+        except (ValueError, InvalidSignature):
+            return False
 
     def _derive_x25519_keys(self) -> None:
         """Derive X25519 keys from Ed25519 keys for DH operations."""
@@ -577,6 +616,7 @@ class NoiseTransport(SecureChannel):
             "e_public": e_public,
             "handshake_id": handshake_id,
             "initiated_at": time.time(),
+            "expected_peer_static_public": peer_static_public,
         }
 
         if self.send_callback:
@@ -673,6 +713,8 @@ class NoiseTransport(SecureChannel):
         response = struct.pack("!B", MessageType.HANDSHAKE_RESPONSE)
         response += e_public
         response += encrypted_s
+        response += self.static_public
+        response += self._sign_identity_binding(e_public, re_public)
 
         # Store state for final message processing
         session_id = hashlib.sha256(e_public + re_public).hexdigest()[:16]
@@ -700,7 +742,8 @@ class NoiseTransport(SecureChannel):
         This is the initiator processing the responder's message.
         The initiator and responder must derive the same shared secrets.
         """
-        if len(response) < 1 + NOISE_DH_SIZE + NOISE_DH_SIZE + NOISE_TAG_SIZE:
+        base_response_size = 1 + NOISE_DH_SIZE + NOISE_DH_SIZE + NOISE_TAG_SIZE
+        if len(response) < base_response_size:
             raise HandshakeError("Handshake response too short")
 
         msg_type = response[0]
@@ -739,9 +782,37 @@ class NoiseTransport(SecureChannel):
         send_cipher = initiator_cipher
         recv_cipher = responder_cipher
 
+        peer_identity_public = rs_public
+        if len(response) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
+            peer_identity_public = response[offset : offset + ED25519_PUBLIC_KEY_SIZE]
+            offset += ED25519_PUBLIC_KEY_SIZE
+            peer_identity_signature = response[
+                offset : offset + ED25519_SIGNATURE_SIZE
+            ]
+            offset += ED25519_SIGNATURE_SIZE
+
+            expected_peer_identity = handshake_state.get("expected_peer_static_public")
+            if (
+                expected_peer_identity is not None
+                and peer_identity_public != expected_peer_identity
+            ):
+                raise HandshakeError("Handshake identity mismatch")
+
+            if not self._verify_identity_binding(
+                peer_identity_public,
+                peer_identity_signature,
+                re_public,
+                handshake_state["e_public"],
+            ):
+                raise HandshakeError("Handshake identity signature invalid")
+        elif self.require_identity_binding:
+            raise HandshakeError("Handshake missing responder identity proof")
+
         # Create final message (simplified - just acknowledge)
         final_msg = struct.pack("!B", MessageType.HANDSHAKE_FINAL)
         final_msg += handshake_state["e_public"]  # Echo our ephemeral as confirmation
+        final_msg += self.static_public
+        final_msg += self._sign_identity_binding(handshake_state["e_public"], re_public)
 
         # Create session
         session_id = hashlib.sha256(
@@ -751,7 +822,7 @@ class NoiseTransport(SecureChannel):
         session = SecureSession(
             session_id=session_id,
             peer_id=peer_address,
-            peer_static_public=rs_public,
+            peer_static_public=peer_identity_public,
             send_cipher=send_cipher,
             recv_cipher=recv_cipher,
         )
@@ -785,6 +856,24 @@ class NoiseTransport(SecureChannel):
         if echoed_e != pending["re_public"]:
             raise HandshakeError("Handshake final: ephemeral key mismatch")
 
+        offset = 1 + NOISE_DH_SIZE
+        peer_identity_public = pending["re_public"]
+        if len(final_msg) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
+            peer_identity_public = final_msg[offset : offset + ED25519_PUBLIC_KEY_SIZE]
+            offset += ED25519_PUBLIC_KEY_SIZE
+            peer_identity_signature = final_msg[offset : offset + ED25519_SIGNATURE_SIZE]
+            offset += ED25519_SIGNATURE_SIZE
+
+            if not self._verify_identity_binding(
+                peer_identity_public,
+                peer_identity_signature,
+                pending["re_public"],
+                pending["e_public"],
+            ):
+                raise HandshakeError("Handshake final identity signature invalid")
+        elif self.require_identity_binding:
+            raise HandshakeError("Handshake final missing initiator identity proof")
+
         # Use pre-computed cipher states from handshake_responder
         # Responder sends with responder_cipher, receives with initiator_cipher
         send_cipher = pending["send_cipher"]
@@ -794,9 +883,7 @@ class NoiseTransport(SecureChannel):
         session = SecureSession(
             session_id=pending["session_id"],
             peer_id=peer_address,
-            peer_static_public=pending[
-                "re_public"
-            ],  # Initiator's ephemeral as identity proxy
+            peer_static_public=peer_identity_public,
             send_cipher=send_cipher,
             recv_cipher=recv_cipher,
         )
@@ -899,6 +986,7 @@ class DTLSTransport(SecureChannel):
         node_id: str,
         cipher_suite: str = "chacha20-poly1305",
         enforce_cookie: bool = False,
+        require_identity_binding: bool = True,
     ):
         """
         Initialize DTLS transport.
@@ -914,6 +1002,14 @@ class DTLSTransport(SecureChannel):
         self.node_id = node_id
         self.cipher_suite = cipher_suite
         self.enforce_cookie = enforce_cookie
+        self.require_identity_binding = require_identity_binding
+
+        self._identity_private = ed25519.Ed25519PrivateKey.from_private_bytes(
+            static_private_key
+        )
+        self._identity_public = ed25519.Ed25519PublicKey.from_public_bytes(
+            static_public_key
+        )
 
         # DTLS-specific state
         self._cookie_secret = os.urandom(32)
@@ -923,6 +1019,34 @@ class DTLSTransport(SecureChannel):
         # Epoch management
         self._current_epoch = 0
         self._next_sequence = 0
+
+    def _client_identity_binding_message(
+        self, client_random: bytes, client_ephemeral: bytes
+    ) -> bytes:
+        """Build client-side DTLS identity proof message."""
+        return (
+            IDENTITY_BINDING_CONTEXT
+            + b"dtls-client"
+            + client_random
+            + client_ephemeral
+        )
+
+    def _server_identity_binding_message(
+        self,
+        client_random: bytes,
+        server_random: bytes,
+        client_ephemeral: bytes,
+        server_ephemeral: bytes,
+    ) -> bytes:
+        """Build server-side DTLS identity proof message."""
+        return (
+            IDENTITY_BINDING_CONTEXT
+            + b"dtls-server"
+            + client_random
+            + server_random
+            + client_ephemeral
+            + server_ephemeral
+        )
 
     def _generate_cookie(self, client_address: str, client_random: bytes) -> bytes:
         """Generate DTLS cookie for HelloRetryRequest."""
@@ -976,6 +1100,10 @@ class DTLSTransport(SecureChannel):
         hello += struct.pack("!B", 0)  # Session ID length (0 for new session)
         hello += struct.pack("!B", 0)  # Cookie length (0 for initial hello)
         hello += e_public  # Key share
+        hello += self.static_public
+        hello += self._identity_private.sign(
+            self._client_identity_binding_message(client_random, e_public)
+        )
 
         msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
 
@@ -986,6 +1114,7 @@ class DTLSTransport(SecureChannel):
             "e_public": e_public,
             "phase": "hello_sent",
             "initiated_at": time.time(),
+            "expected_peer_static_public": peer_static_public,
         }
 
         if hasattr(self, "send_callback") and getattr(self, "send_callback"):
@@ -1013,6 +1142,10 @@ class DTLSTransport(SecureChannel):
         hello += struct.pack("!B", 0)  # Session ID length
         hello += struct.pack("!B", 0)  # Cookie length
         hello += e_public
+        hello += self.static_public
+        hello += self._identity_private.sign(
+            self._client_identity_binding_message(client_random, e_public)
+        )
 
         msg = struct.pack("!B", MessageType.HANDSHAKE_INIT) + hello
 
@@ -1064,6 +1197,31 @@ class DTLSTransport(SecureChannel):
             raise HandshakeError("Missing DTLS cookie")
 
         client_e_public = handshake_init[offset : offset + NOISE_DH_SIZE]
+        offset += NOISE_DH_SIZE
+
+        client_identity_public = client_e_public
+        if len(handshake_init) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
+            client_identity_public = handshake_init[
+                offset : offset + ED25519_PUBLIC_KEY_SIZE
+            ]
+            offset += ED25519_PUBLIC_KEY_SIZE
+            client_identity_signature = handshake_init[
+                offset : offset + ED25519_SIGNATURE_SIZE
+            ]
+            offset += ED25519_SIGNATURE_SIZE
+
+            try:
+                identity = ed25519.Ed25519PublicKey.from_public_bytes(
+                    client_identity_public
+                )
+                identity.verify(
+                    client_identity_signature,
+                    self._client_identity_binding_message(client_random, client_e_public),
+                )
+            except (ValueError, InvalidSignature):
+                raise HandshakeError("Client identity signature invalid")
+        elif self.require_identity_binding:
+            raise HandshakeError("ClientHello missing identity proof")
 
         # Generate server random and ephemeral key
         server_random = os.urandom(32)
@@ -1087,6 +1245,12 @@ class DTLSTransport(SecureChannel):
         hello += struct.pack("!B", 16)  # Session ID length
         hello += os.urandom(16)  # Session ID
         hello += e_public
+        hello += self.static_public
+        hello += self._identity_private.sign(
+            self._server_identity_binding_message(
+                client_random, server_random, client_e_public, e_public
+            )
+        )
 
         response = struct.pack("!B", MessageType.HANDSHAKE_RESPONSE) + hello
 
@@ -1097,7 +1261,7 @@ class DTLSTransport(SecureChannel):
         session = SecureSession(
             session_id=session_id,
             peer_id=peer_address,
-            peer_static_public=client_e_public,  # Using ephemeral as static for simplicity
+            peer_static_public=client_identity_public,
             send_cipher=CipherState(key=server_key_bytes),
             recv_cipher=CipherState(key=client_key_bytes),
         )
@@ -1128,6 +1292,42 @@ class DTLSTransport(SecureChannel):
         offset += 1 + session_id_len
 
         server_e_public = response[offset : offset + NOISE_DH_SIZE]
+        offset += NOISE_DH_SIZE
+        client_random = handshake_state["client_random"]
+
+        server_identity_public = server_e_public
+        if len(response) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
+            server_identity_public = response[offset : offset + ED25519_PUBLIC_KEY_SIZE]
+            offset += ED25519_PUBLIC_KEY_SIZE
+            server_identity_signature = response[
+                offset : offset + ED25519_SIGNATURE_SIZE
+            ]
+            offset += ED25519_SIGNATURE_SIZE
+
+            expected_peer_identity = handshake_state.get("expected_peer_static_public")
+            if (
+                expected_peer_identity is not None
+                and server_identity_public != expected_peer_identity
+            ):
+                raise HandshakeError("Peer identity mismatch")
+
+            try:
+                identity = ed25519.Ed25519PublicKey.from_public_bytes(
+                    server_identity_public
+                )
+                identity.verify(
+                    server_identity_signature,
+                    self._server_identity_binding_message(
+                        client_random,
+                        server_random,
+                        handshake_state["e_public"],
+                        server_e_public,
+                    ),
+                )
+            except (ValueError, InvalidSignature):
+                raise HandshakeError("Server identity signature invalid")
+        elif self.require_identity_binding:
+            raise HandshakeError("ServerHello missing identity proof")
 
         # Compute shared secret
         e_private = handshake_state["e_private"]
@@ -1135,7 +1335,6 @@ class DTLSTransport(SecureChannel):
         shared_secret = e_private.exchange(server_key)
 
         # Derive keys
-        client_random = handshake_state["client_random"]
         client_key_bytes, server_key_bytes = self._derive_keys(
             shared_secret, client_random, server_random
         )
@@ -1147,7 +1346,7 @@ class DTLSTransport(SecureChannel):
         session = SecureSession(
             session_id=session_id,
             peer_id=peer_address,
-            peer_static_public=server_e_public,
+            peer_static_public=server_identity_public,
             send_cipher=CipherState(key=client_key_bytes),
             recv_cipher=CipherState(key=server_key_bytes),
         )
@@ -1239,6 +1438,7 @@ class SecureTransportManager:
         static_public_key: Union[str, bytes],
         node_id: str,
         transport_type: str = "noise",
+        require_identity_binding: bool = True,
     ):
         """
         Initialize secure transport manager.
@@ -1264,12 +1464,14 @@ class SecureTransportManager:
                 static_private_key=static_private_key,
                 static_public_key=static_public_key,
                 node_id=node_id,
+                require_identity_binding=require_identity_binding,
             )
         elif transport_type == "dtls":
             self.transport = DTLSTransport(
                 static_private_key=static_private_key,
                 static_public_key=static_public_key,
                 node_id=node_id,
+                require_identity_binding=require_identity_binding,
             )
         else:
             raise ValueError(f"Unknown transport type: {transport_type}")
@@ -1475,6 +1677,7 @@ def create_secure_gossip_transport(
     public_key_hex: str,
     node_id: str,
     transport_type: str = "noise",
+    require_identity_binding: bool = True,
 ) -> SecureTransportManager:
     """
     Factory function to create secure transport for gossip protocol.
@@ -1498,6 +1701,7 @@ def create_secure_gossip_transport(
         static_public_key=public_key_hex,
         node_id=node_id,
         transport_type=transport_type,
+        require_identity_binding=require_identity_binding,
     )
 
 

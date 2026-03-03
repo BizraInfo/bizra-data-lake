@@ -425,6 +425,18 @@ def emit_receipt(
             snr_section["policy_digest"] = snr_trace["policy_digest"]
         if "trace_id" in snr_trace:
             snr_section["trace_id"] = snr_trace["trace_id"]
+        if "method" in snr_trace:
+            snr_section["method"] = snr_trace["method"]
+        if "engine" in snr_trace:
+            snr_section["engine"] = snr_trace["engine"]
+        if "quality_tier" in snr_trace:
+            snr_section["quality_tier"] = snr_trace["quality_tier"]
+        if "recommendations" in snr_trace:
+            recs = snr_trace["recommendations"]
+            if isinstance(recs, (list, tuple)):
+                snr_section["recommendations"] = list(recs)
+        if "diffusion" in snr_trace and isinstance(snr_trace["diffusion"], dict):
+            snr_section["diffusion"] = snr_trace["diffusion"]
 
     receipt: Dict[str, Any] = {
         "receipt_id": receipt_id,
