@@ -22,12 +22,18 @@ Tier 4 (async):   Network consensus for edge cases → community review
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Final
 
 logger = logging.getLogger("sovereign.tiered_verification")
+
+
+def _normalize_whitespace(text: str) -> str:
+    """Collapse whitespace runs for resilient dangerous-pattern matching."""
+    return re.sub(r"\s+", " ", text.strip())
 
 
 class VerificationTier(Enum):
@@ -137,7 +143,7 @@ def tier_1_precheck(
         )
 
     # Check content for known dangerous patterns
-    content_lower = content.lower()
+    content_lower = _normalize_whitespace(content.lower())
     for pattern in KNOWN_DANGEROUS_PATTERNS:
         if pattern in content_lower:
             return TierResult(

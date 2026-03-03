@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import ast
 import builtins
+import concurrent.futures
 import inspect
 import io
 import json
 import logging
 import math
+import os
 import re
+import signal
+import threading
 from contextlib import redirect_stdout
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -224,6 +228,10 @@ class RLMSandboxError(RuntimeError):
     """Raised when code violates sandbox policy."""
 
 
+class RLMSandboxTimeoutError(RuntimeError):
+    """Raised when sandbox code exceeds execution time budget."""
+
+
 class RLMSandbox:
     """AST-validated Python REPL with restricted builtins and helpers."""
 
@@ -233,10 +241,14 @@ class RLMSandbox:
         *,
         lm_query_fn: Optional[Callable[[str], Any]] = None,
         max_sub_calls: int = 60,
+        execution_timeout_seconds: Optional[float] = None,
     ) -> None:
         self.state = state or REPLState()
         self._lm_query_fn = lm_query_fn
         self._max_sub_calls = max(0, max_sub_calls)
+        if execution_timeout_seconds is None:
+            execution_timeout_seconds = float(os.environ.get("BIZRA_RLM_TIMEOUT", "10"))
+        self._execution_timeout_seconds = max(0.1, float(execution_timeout_seconds))
 
     def validate_code(self, code: str) -> tuple[bool, str]:
         """Return `(allowed, reason)` after allowlist-based AST validation.
@@ -321,7 +333,9 @@ class RLMSandbox:
         try:
             with redirect_stdout(stream):
                 compiled = compile(stripped, "<rlm-sandbox>", "exec")  # noqa: S102
-                exec(compiled, globals_ns, locals_ns)  # noqa: S102
+                self._exec_with_timeout(compiled, globals_ns, locals_ns)
+        except RLMSandboxTimeoutError as exc:
+            output = f"[SANDBOX_TIMEOUT] {exc}"
         except Exception as exc:
             output = f"[SANDBOX_ERROR] {type(exc).__name__}: {exc}"
 
@@ -344,6 +358,40 @@ class RLMSandbox:
             self.state.variables[key] = value
 
         return self.state, output
+
+    def _exec_with_timeout(
+        self,
+        compiled: Any,
+        globals_ns: dict[str, Any],
+        locals_ns: dict[str, Any],
+    ) -> None:
+        timeout = self._execution_timeout_seconds
+        message = f"sandbox execution exceeded {timeout:.2f}s"
+
+        if (
+            hasattr(signal, "SIGALRM")
+            and threading.current_thread() is threading.main_thread()
+        ):
+            def _alarm_handler(signum: int, frame: Any) -> None:
+                raise RLMSandboxTimeoutError(message)
+
+            old_handler = signal.getsignal(signal.SIGALRM)
+            signal.signal(signal.SIGALRM, _alarm_handler)
+            signal.setitimer(signal.ITIMER_REAL, timeout)
+            try:
+                exec(compiled, globals_ns, locals_ns)  # noqa: S102
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0.0)
+                signal.signal(signal.SIGALRM, old_handler)
+            return
+
+        # Non-Unix or non-main-thread fallback.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(exec, compiled, globals_ns, locals_ns)
+            try:
+                future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError as exc:
+                raise RLMSandboxTimeoutError(message) from exc
 
 
 class BizraRLMBridge:

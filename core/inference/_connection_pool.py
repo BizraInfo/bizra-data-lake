@@ -263,12 +263,13 @@ class ConnectionPool:
 
         # Close all connections
         async with self._lock:
-            for conn_id in list(self._pool.keys()):
-                await self._destroy_connection(conn_id)
+            conn_ids = list(self._pool.keys())
+        for conn_id in conn_ids:
+            await self._destroy_connection(conn_id)
 
         print(f"[ConnectionPool] Stopped for {self.backend_type}")
 
-    async def _create_connection(self) -> PooledConnection:
+    async def _create_connection(self, *, in_use: bool = False) -> PooledConnection:
         """Create a new pooled connection."""
         from core.proof_engine.canonical import hex_digest
 
@@ -285,7 +286,7 @@ class ConnectionPool:
             last_used_at=now,
             last_health_check=now,
             is_healthy=True,
-            in_use=False,
+            in_use=in_use,
         )
 
         # Create actual connection if factory provided
@@ -303,11 +304,11 @@ class ConnectionPool:
 
     async def _destroy_connection(self, conn_id: str) -> None:
         """Destroy a pooled connection."""
-        if conn_id in self._pool:
-            del self._pool[conn_id]
+        async with self._lock:
+            self._pool.pop(conn_id, None)
+            conn = self._connections.pop(conn_id, None)
 
-        if conn_id in self._connections:
-            conn = self._connections.pop(conn_id)
+        if conn is not None:
             # Close connection if it has a close method
             if hasattr(conn, "close"):
                 try:
@@ -336,6 +337,7 @@ class ConnectionPool:
         start_time = time.time()
         pooled_conn: Optional[PooledConnection] = None
         actual_conn: Any = None
+        slot_acquired = False
 
         try:
             # Wait for available slot with timeout
@@ -344,6 +346,7 @@ class ConnectionPool:
                     self._available.acquire(),
                     timeout=self.config.acquisition_timeout_seconds,
                 )
+                slot_acquired = True
             except asyncio.TimeoutError:
                 await self.metrics.record_acquisition_timeout()
                 raise RuntimeError(
@@ -352,33 +355,39 @@ class ConnectionPool:
                 )
 
             # Find or create connection
+            stale_conn_ids: list[str] = []
             async with self._lock:
                 # Find available healthy connection (LRU order - oldest first)
-                for conn_id, conn in self._pool.items():
+                for conn_id, conn in list(self._pool.items()):
                     if not conn.in_use and conn.is_healthy:
                         # Check if connection is too old or idle
                         if (
                             conn.age_seconds > self.config.max_age_seconds
                             or conn.idle_seconds > self.config.max_idle_seconds
                         ):
-                            # Destroy old connection
-                            await self._destroy_connection(conn_id)
+                            # Destroy old connection outside lock
+                            stale_conn_ids.append(conn_id)
                             continue
 
                         # Found usable connection
                         conn.in_use = True
                         conn.last_used_at = time.time()
                         pooled_conn = conn
-                        await self.metrics.record_hit()
                         break
+
+            for conn_id in stale_conn_ids:
+                await self._destroy_connection(conn_id)
+
+            if pooled_conn is not None:
+                await self.metrics.record_hit()
 
             # No available connection - create new one if under limit
             if pooled_conn is None:
                 await self.metrics.record_miss()
                 async with self._lock:
-                    if len(self._pool) < self.config.max_size:
-                        pooled_conn = await self._create_connection()
-                        pooled_conn.in_use = True
+                    can_create = len(self._pool) < self.config.max_size
+                if can_create:
+                    pooled_conn = await self._create_connection(in_use=True)
 
             if pooled_conn is None:
                 raise RuntimeError("Failed to acquire connection")
@@ -402,7 +411,8 @@ class ConnectionPool:
                         # Move to end (most recently used)
                         self._pool.move_to_end(pooled_conn.id)
 
-            self._available.release()
+            if slot_acquired:
+                self._available.release()
 
     async def _health_check_loop(self) -> None:
         """Background task to check connection health."""
@@ -440,8 +450,7 @@ class ConnectionPool:
 
                     # Destroy unhealthy connections
                     if not is_healthy:
-                        async with self._lock:
-                            await self._destroy_connection(conn_id)
+                        await self._destroy_connection(conn_id)
 
                 # Ensure minimum connections
                 async with self._lock:
@@ -569,7 +578,7 @@ class PooledHttpClient:
             except Exception as e:
                 # Mark connection as unhealthy on error
                 logger.debug(
-                    "Connection %s marked unhealthy: %s", pooled_conn.conn_id, e
+                    "Connection %s marked unhealthy: %s", pooled_conn.id, e
                 )
                 pooled_conn.is_healthy = False
                 raise

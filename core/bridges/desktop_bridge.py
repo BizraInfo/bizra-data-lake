@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from core.bridges.browser_mcp_client import BrowserMCPClient
 from core.sovereign.origin_guard import (
     NODE_ROLE_ENV,
     enforce_node0_fail_closed,
@@ -142,6 +143,7 @@ class DesktopBridge:
       - ping: liveness check
       - status: full Node0 health snapshot
       - sovereign_query: route a query through InferenceGateway + FATE gate
+      - heartbeat_demo: browser research + HDA desktop action demo path
       - invoke_skill: route skill invocation through SkillRouter
       - list_skills: list registered skills
       - get_receipt: retrieve signed bridge receipt
@@ -189,6 +191,7 @@ class DesktopBridge:
         )
         if self._guardian_wire_mode not in {"off", "best_effort", "required"}:
             self._guardian_wire_mode = "best_effort"
+        self._extra_methods: dict[str, Any] = {}  # Dynamic method registry
         self._guardian_host = os.getenv(GUARDIAN_HOST_ENV, "127.0.0.1")
         try:
             self._guardian_port = int(os.getenv(GUARDIAN_PORT_ENV, "9741"))
@@ -286,6 +289,23 @@ class DesktopBridge:
             except Exception:
                 pass
             logger.debug(f"Client disconnected: {peer}")
+
+    # -- dynamic method registry ---------------------------------------------
+
+    def register_method(
+        self, name: str, handler: Any, *, replace: bool = False
+    ) -> None:
+        """Register a dynamic RPC method handler.
+
+        Args:
+            name: JSON-RPC method name (e.g. ``execute_mission``).
+            handler: Async callable ``(params: dict) -> dict``.
+            replace: If ``True``, overwrite an existing handler.
+        """
+        if not replace and name in self._extra_methods:
+            raise ValueError(f"Method already registered: {name}")
+        self._extra_methods[name] = handler
+        logger.info("Registered dynamic method: %s", name)
 
     # -- dispatch ------------------------------------------------------------
 
@@ -393,6 +413,7 @@ class DesktopBridge:
             "ping": self._handle_ping,
             "status": self._handle_status,
             "sovereign_query": self._handle_sovereign_query,
+            "heartbeat_demo": self._handle_heartbeat_demo,
             "invoke_skill": self._handle_invoke_skill,
             "list_skills": self._handle_list_skills,
             "get_receipt": self._handle_get_receipt,
@@ -412,7 +433,7 @@ class DesktopBridge:
             "browser_navigate": self._handle_hda_proxy,
         }
 
-        handler = handlers.get(method)
+        handler = handlers.get(method) or self._extra_methods.get(method)
         if handler is None:
             receipt = self._emit_receipt(
                 method=method,
@@ -828,6 +849,280 @@ class DesktopBridge:
                 "latency_ms": latency_ms,
                 "fate": fate_result,
             }
+
+    async def _handle_heartbeat_demo(self, params: Any) -> dict[str, Any]:
+        """Run first heartbeat flow: browser research -> open app -> type summary.
+
+        This endpoint intentionally wires one compact end-to-end path so we can
+        verify cross-channel execution with receipts:
+          1) Browser research (BrowserMCPClient)
+          2) Desktop action open_app (HDA proxy)
+          3) Desktop action type_text (HDA proxy)
+        """
+        if not isinstance(params, dict):
+            raise ValueError("params must be a dict")
+
+        query = str(params.get("query", "")).strip()
+        if not query:
+            raise ValueError("Missing 'query' in params")
+
+        app = str(params.get("app", "notepad")).strip() or "notepad"
+        browser_mode = str(params.get("browser_mode", "mock")).strip().lower() or "mock"
+        if browser_mode not in {"mock", "direct", "mcp"}:
+            raise ValueError("browser_mode must be one of: mock, direct, mcp")
+
+        try:
+            max_typed_chars = int(params.get("max_typed_chars", 240))
+        except (TypeError, ValueError):
+            max_typed_chars = 240
+        max_typed_chars = max(64, min(max_typed_chars, 1024))
+
+        stage_receipts: list[dict[str, Any]] = []
+        credit_sum = 0.0
+        prev_receipt_id: str | None = None
+        prev_receipt_digest: str | None = None
+
+        def _lookup_receipt_digest(summary: dict[str, Any] | None) -> str | None:
+            if not isinstance(summary, dict):
+                return None
+            receipt_id = summary.get("receipt_id")
+            if not isinstance(receipt_id, str) or not receipt_id:
+                return None
+            engine = self._get_receipt_engine()
+            if engine is None:
+                return None
+            full = engine.get_receipt(receipt_id)
+            if not isinstance(full, dict):
+                return None
+            digest = full.get("receipt_digest")
+            if isinstance(digest, str) and digest:
+                return digest
+            return None
+
+        def _record_stage_receipt(
+            stage: str,
+            *,
+            status: str,
+            gate: str,
+            query_data: dict[str, Any],
+            result_data: dict[str, Any],
+            step_score: float,
+            step_index: int,
+            reason: str | None = None,
+            duration_ms: float = 0.0,
+        ) -> None:
+            nonlocal credit_sum, prev_receipt_id, prev_receipt_digest
+
+            bounded_step_score = max(0.0, min(1.0, float(step_score)))
+            credit_sum += bounded_step_score
+            trajectory_credit = {
+                "flow": "heartbeat_demo",
+                "stage": stage,
+                "step_index": step_index,
+                "step_score": round(bounded_step_score, 4),
+                "cumulative_score": round(credit_sum / max(1, step_index), 4),
+                "prefix_receipt_id": prev_receipt_id,
+                "prefix_receipt_digest": prev_receipt_digest,
+            }
+            summary = self._emit_receipt(
+                method=f"heartbeat_demo.{stage}",
+                query_data=query_data,
+                result_data=result_data,
+                status=status,
+                gate=gate,
+                duration_ms=duration_ms,
+                reason=reason,
+                trajectory_credit=trajectory_credit,
+            )
+
+            stage_entry: dict[str, Any] = {
+                "stage": stage,
+                "status": status,
+                "trajectory_credit": trajectory_credit,
+            }
+            if summary is not None:
+                stage_entry["receipt"] = summary
+                prev_receipt_id = summary.get("receipt_id")
+                prev_receipt_digest = _lookup_receipt_digest(summary)
+            stage_receipts.append(stage_entry)
+
+        browser_start = time.monotonic()
+        try:
+            browser = BrowserMCPClient(mode=browser_mode)
+            research = await browser.research(query)
+        except Exception as exc:
+            browser_duration_ms = round((time.monotonic() - browser_start) * 1000, 2)
+            browser_error = {
+                "error": "Browser research failed",
+                "detail": type(exc).__name__,
+            }
+            _record_stage_receipt(
+                "browser_research",
+                status="rejected",
+                gate="BROWSER_RESEARCH",
+                query_data={"query": query, "browser_mode": browser_mode},
+                result_data=browser_error,
+                step_score=0.0,
+                step_index=1,
+                reason="browser_research_failed",
+                duration_ms=browser_duration_ms,
+            )
+            return {
+                "task_complete": False,
+                "status": "failed",
+                "stage": "browser_research",
+                "error": "Browser research failed",
+                "detail": type(exc).__name__,
+                "query": query,
+                "stage_receipts": stage_receipts,
+            }
+
+        browser_duration_ms = round((time.monotonic() - browser_start) * 1000, 2)
+        results = research.get("results", [])
+        summary = str(research.get("summary", "")).strip()
+        if not summary:
+            titles = [
+                str(item.get("title", "")).strip()
+                for item in results
+                if isinstance(item, dict) and item.get("title")
+            ]
+            summary = f"Top matches: {', '.join(titles)}" if titles else "No matches"
+
+        _record_stage_receipt(
+            "browser_research",
+            status="accepted",
+            gate="BROWSER_RESEARCH",
+            query_data={"query": query, "browser_mode": browser_mode},
+            result_data={
+                "mode": research.get("mode", browser_mode),
+                "summary": summary,
+                "result_count": len(results),
+            },
+            step_score=0.96,
+            step_index=1,
+            duration_ms=browser_duration_ms,
+        )
+
+        typed_text = f"[BIZRA HEARTBEAT] {summary}".strip()
+        if len(typed_text) > max_typed_chars:
+            typed_text = typed_text[: max_typed_chars - 3].rstrip() + "..."
+
+        async def _run_hda(method: str, payload: dict[str, Any]) -> dict[str, Any]:
+            self._current_hda_method = method
+            return await self._handle_hda_proxy(payload)
+
+        open_start = time.monotonic()
+        open_result = await _run_hda("open_app", {"app": app})
+        open_duration_ms = round((time.monotonic() - open_start) * 1000, 2)
+        if "error" in open_result:
+            _record_stage_receipt(
+                "open_app",
+                status="rejected",
+                gate="HDA_OPEN_APP",
+                query_data={"app": app},
+                result_data=open_result,
+                step_score=0.0,
+                step_index=2,
+                reason=str(open_result.get("error", "open_app failed")),
+                duration_ms=open_duration_ms,
+            )
+            return {
+                "task_complete": False,
+                "status": "failed",
+                "stage": "desktop_open_app",
+                "error": str(open_result.get("error", "open_app failed")),
+                "query": query,
+                "app": app,
+                "browser": {
+                    "mode": research.get("mode", browser_mode),
+                    "summary": summary,
+                    "result_count": len(results),
+                },
+                "desktop": {"open_app": open_result},
+                "stage_receipts": stage_receipts,
+            }
+
+        _record_stage_receipt(
+            "open_app",
+            status="accepted",
+            gate="HDA_OPEN_APP",
+            query_data={"app": app},
+            result_data=open_result,
+            step_score=0.95,
+            step_index=2,
+            duration_ms=open_duration_ms,
+        )
+
+        type_start = time.monotonic()
+        type_result = await _run_hda("type_text", {"text": typed_text})
+        type_duration_ms = round((time.monotonic() - type_start) * 1000, 2)
+        if "error" in type_result:
+            _record_stage_receipt(
+                "type_text",
+                status="rejected",
+                gate="HDA_TYPE_TEXT",
+                query_data={"text_length": len(typed_text)},
+                result_data=type_result,
+                step_score=0.0,
+                step_index=3,
+                reason=str(type_result.get("error", "type_text failed")),
+                duration_ms=type_duration_ms,
+            )
+            return {
+                "task_complete": False,
+                "status": "failed",
+                "stage": "desktop_type_text",
+                "error": str(type_result.get("error", "type_text failed")),
+                "query": query,
+                "app": app,
+                "typed_text": typed_text,
+                "browser": {
+                    "mode": research.get("mode", browser_mode),
+                    "summary": summary,
+                    "result_count": len(results),
+                },
+                "desktop": {
+                    "open_app": open_result,
+                    "type_text": type_result,
+                },
+                "stage_receipts": stage_receipts,
+            }
+
+        _record_stage_receipt(
+            "type_text",
+            status="accepted",
+            gate="HDA_TYPE_TEXT",
+            query_data={"text_length": len(typed_text)},
+            result_data=type_result,
+            step_score=0.94,
+            step_index=3,
+            duration_ms=type_duration_ms,
+        )
+
+        return {
+            "task_complete": True,
+            "status": "completed",
+            "flow": ["browser_research", "open_app", "type_text"],
+            "query": query,
+            "app": app,
+            "typed_text": typed_text,
+            "browser": {
+                "mode": research.get("mode", browser_mode),
+                "summary": summary,
+                "result_count": len(results),
+            },
+            "desktop": {
+                "open_app": open_result,
+                "type_text": type_result,
+            },
+            "stage_receipts": stage_receipts,
+            "trajectory_credit": {
+                "flow": "heartbeat_demo",
+                "steps_total": 3,
+                "completed_steps": 3,
+                "cumulative_score": round(credit_sum / 3.0, 4),
+            },
+        }
 
     # -- new handlers (Phase 2) -----------------------------------------------
 
@@ -1611,6 +1906,7 @@ class DesktopBridge:
         gate: str,
         duration_ms: float = 0.0,
         reason: Optional[str] = None,
+        trajectory_credit: Optional[dict[str, Any]] = None,
     ) -> Optional[dict[str, Any]]:
         """Emit a receipt for a bridge command. Returns summary or None."""
         engine = self._get_receipt_engine()
@@ -1638,6 +1934,7 @@ class DesktopBridge:
                 duration_ms=duration_ms,
                 reason=reason,
                 origin=self._origin_snapshot,
+                trajectory_credit=trajectory_credit,
             )
             return {"receipt_id": receipt["receipt_id"], "status": receipt["status"]}
         except Exception as exc:
@@ -1784,6 +2081,37 @@ class DesktopBridge:
 # ---------------------------------------------------------------------------
 
 
+async def _boot_mission_handler(bridge: DesktopBridge) -> None:
+    """Register execute_mission on the bridge — First Heartbeat wiring."""
+    try:
+        from core.sovereign.mission import MissionOrchestrator
+
+        orch = MissionOrchestrator(
+            {
+                "memory_path": str(
+                    Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "."))
+                    / "sovereign_state"
+                    / "mission_memory"
+                ),
+                "evidence_path": str(
+                    Path(os.getenv("BIZRA_DATA_LAKE_ROOT", "."))
+                    / "sovereign_state"
+                    / "mission_evidence.jsonl"
+                ),
+                "hda_port": 9743,
+            }
+        )
+        await orch.initialize()
+
+        async def _handle_execute_mission(params: dict) -> dict:
+            return await orch.handle_rpc(params)
+
+        bridge.register_method("execute_mission", _handle_execute_mission)
+        logger.info("MissionOrchestrator registered on execute_mission")
+    except Exception as e:
+        logger.warning("MissionOrchestrator boot failed (non-fatal): %s", e)
+
+
 async def _run() -> None:
     bridge = DesktopBridge()
     loop = asyncio.get_running_loop()
@@ -1802,6 +2130,10 @@ async def _run() -> None:
             pass  # Windows doesn't support add_signal_handler
 
     await bridge.start()
+
+    # Wire MissionOrchestrator → execute_mission RPC method
+    await _boot_mission_handler(bridge)
+
     print(f"BIZRA Desktop Bridge listening on {BRIDGE_HOST}:{BRIDGE_PORT}")
     print("Press Ctrl+C to stop.")
 

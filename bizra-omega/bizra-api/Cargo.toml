@@ -15,7 +15,7 @@ bizra-autopoiesis = { path = "../bizra-autopoiesis" }
 
 # Web framework
 axum = { version = "0.7", features = ["ws", "macros"] }
-tower = "0.4"
+tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
 
 # Async runtime
@@ -47,6 +47,7 @@ metrics-exporter-prometheus = "0.12"
 dirs = "5"
 anyhow = "1"
 reqwest.workspace = true
+dashmap = "6"
 
 [[bin]]
 name = "bizra-api"
@@ -54,3 +55,4 @@ path = "src/main.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"
+tempfile = "3"

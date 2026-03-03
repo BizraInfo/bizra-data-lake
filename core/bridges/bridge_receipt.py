@@ -96,6 +96,7 @@ class BridgeReceiptEngine:
         duration_ms: float = 0.0,
         reason: Optional[str] = None,
         origin: Optional[Dict[str, Any]] = None,
+        trajectory_credit: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Create a signed receipt for a bridge command.
@@ -110,6 +111,7 @@ class BridgeReceiptEngine:
             status: "accepted", "rejected", or "amber_restricted"
             duration_ms: Execution duration
             reason: Rejection reason (if applicable)
+            trajectory_credit: Optional per-stage trajectory scoring metadata
 
         Returns:
             Receipt dict with receipt_id, status, digests, signature
@@ -150,6 +152,8 @@ class BridgeReceiptEngine:
             "duration_ms": round(duration_ms, 2),
             "timestamp": time.time(),
         }
+        if trajectory_credit is not None:
+            body["trajectory_credit"] = trajectory_credit
 
         # Sign
         body_bytes = canonical_bytes(body)

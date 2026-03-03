@@ -1,0 +1,93 @@
+# ==============================================================================
+# BIZRA DESKTOP BRIDGE - systemd service unit
+# ==============================================================================
+#
+# Python TCP server exposing JSON-RPC 2.0 on 127.0.0.1:9742.
+# Owns the MissionOrchestrator (singleton) for the First Heartbeat flow.
+# AHK client connects here via Win+Shift+B hotkey.
+#
+# Standing on Giants: Boyd (OODA) | Shannon (SNR) | General Magic (Telescript)
+# Constitutional Constraint: Ihsan >= 0.95
+#
+# Installation:
+#   sudo cp bizra-desktop-bridge.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-desktop-bridge
+#   sudo systemctl start bizra-desktop-bridge
+#
+# ==============================================================================
+
+[Unit]
+Description=BIZRA Desktop Bridge - Sovereign Command Surface (JSON-RPC/TCP)
+Documentation=https://github.com/BizraInfo/bizra-data-lake
+After=network-online.target
+Wants=network-online.target
+
+# Start after Node0 kernel so proactive loop is available
+After=bizra-node0.service
+
+# Startup rate limit
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Working directory
+WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE
+
+# Python unbuffered so crash tracebacks are visible
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE"
+Environment="BIZRA_DATA_LAKE_ROOT=/mnt/c/BIZRA-DATA-LAKE"
+Environment="BIZRA_ENV=production"
+
+# Quality thresholds
+Environment="IHSAN_THRESHOLD=0.95"
+Environment="SNR_THRESHOLD=0.85"
+
+# Enable LLM synthesis (Ollama direct → InferenceGateway fallback)
+Environment="BIZRA_ENABLE_LLM=1"
+
+# Load secrets (bridge token, signing keys)
+EnvironmentFile=-/etc/bizra/secrets.env
+
+# Syntax check before start — prevents crash-loop on SyntaxError
+ExecStartPre=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python3 -c "import core.bridges.desktop_bridge"
+
+# Execute the bridge
+ExecStart=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python3 -m core.bridges.desktop_bridge
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=15
+
+# Restart policy
+Restart=always
+RestartSec=3
+
+# Resource limits — bridge is lightweight
+MemoryMax=512M
+MemoryHigh=384M
+CPUQuota=100%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+
+# Allow read-write to sovereign state (evidence, memory, briefings)
+ReadWritePaths=/mnt/c/BIZRA-DATA-LAKE/sovereign_state
+ReadWritePaths=/tmp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bizra-desktop-bridge
+
+[Install]
+WantedBy=multi-user.target

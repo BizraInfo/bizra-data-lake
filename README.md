@@ -144,6 +144,22 @@ cd bizra-omega && cargo test --workspace
 
 # Run with coverage
 pytest tests/ --cov=core --cov-report=term-missing
+
+# Run the Phase 56 autonomous hardening gate
+# (Graph-of-Thought execution + weighted SNR report)
+./scripts/phase56_security_gate.sh
+
+# Audit branch protection policy (requires GitHub token with repo admin scope)
+python scripts/ops/branch_protection_guard.py audit \
+  --policy .github/branch_protection_policy.json \
+  --repo <owner>/<repo>
+
+# Build full-workspace interdisciplinary atlas + SNR ranking
+python scripts/atlas/workspace_masterpiece_engine.py \
+  --files-manifest artifacts/inventory/files_all.txt \
+  --dirs-manifest artifacts/inventory/dirs_all.txt \
+  --out-json artifacts/atlas/workspace_masterpiece_report.json \
+  --out-md artifacts/atlas/workspace_masterpiece_report.md
 ```
 
 ### Test Markers

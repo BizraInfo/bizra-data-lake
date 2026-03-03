@@ -4,9 +4,12 @@
 
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::{body::Body, http::Request};
 use bizra_api::error::ApiError;
-use bizra_api::{AppState, ServerConfig, API_VERSION};
+use bizra_api::{state::TokenBucket, AppState, ServerConfig, API_VERSION};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tower::ServiceExt;
 
 // ---------------------------------------------------------------------------
 // ServerConfig
@@ -134,6 +137,13 @@ async fn api_error_rate_limit_429() {
 }
 
 #[tokio::test]
+async fn api_error_unauthorized_401() {
+    let err = ApiError::Unauthorized;
+    let resp = err.into_response();
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
 async fn api_error_bad_request_400() {
     let err = ApiError::BadRequest("missing field".into());
     let resp = err.into_response();
@@ -155,6 +165,138 @@ async fn api_error_internal_500() {
 fn build_router_does_not_panic() {
     let state = Arc::new(AppState::default());
     let _router = bizra_api::build_router(state);
+}
+
+#[tokio::test]
+async fn identity_generate_requires_token_when_configured() {
+    let mut state = AppState::default();
+    state.api_token = Some("secret-123".into());
+    let app = bizra_api::build_router(Arc::new(state));
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/v1/identity/generate")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn identity_generate_accepts_valid_token() {
+    let mut state = AppState::default();
+    state.api_token = Some("secret-123".into());
+    let app = bizra_api::build_router(Arc::new(state));
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/v1/identity/generate")
+        .header("authorization", "Bearer secret-123")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn identity_verify_requires_token_when_configured() {
+    let mut state = AppState::default();
+    state.api_token = Some("secret-123".into());
+    let app = bizra_api::build_router(Arc::new(state));
+
+    let body = r#"{"message":"hello","signature":"deadbeef","public_key":"cafebabe"}"#;
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/v1/identity/verify")
+        .header("content-type", "application/json")
+        .body(Body::from(body))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn protected_route_fails_closed_when_token_unset() {
+    let state = AppState::default();
+    let app = bizra_api::build_router(Arc::new(state));
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/v1/pci/envelope/create")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn health_and_status_remain_public() {
+    let state = AppState::default();
+    let app = bizra_api::build_router(Arc::new(state));
+
+    let health = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(health.status(), StatusCode::OK);
+
+    let status = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/status")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(status.status(), StatusCode::OK);
+}
+
+// ---------------------------------------------------------------------------
+// Token bucket
+// ---------------------------------------------------------------------------
+
+#[test]
+fn token_bucket_allows_within_limit() {
+    let mut bucket = TokenBucket::new(10.0, 60);
+    for _ in 0..10 {
+        assert!(bucket.try_consume());
+    }
+}
+
+#[test]
+fn token_bucket_rejects_burst_over_limit() {
+    let mut bucket = TokenBucket::new(10.0, 60);
+    for _ in 0..10 {
+        assert!(bucket.try_consume());
+    }
+    assert!(!bucket.try_consume());
+}
+
+#[test]
+fn token_bucket_refills_over_time() {
+    let mut bucket = TokenBucket::new(10.0, 60);
+    let start = Instant::now();
+
+    for _ in 0..10 {
+        assert!(bucket.try_consume_at(start));
+    }
+    assert!(!bucket.try_consume_at(start));
+
+    let after_refill = start + Duration::from_secs(6);
+    assert!(bucket.try_consume_at(after_refill));
 }
 
 // ---------------------------------------------------------------------------

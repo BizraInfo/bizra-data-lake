@@ -164,15 +164,19 @@ class ChannelDispatcher:
                 )
             )
 
-        if not subtasks:
-            subtasks.append(
+        # Browser research is the default channel — always include unless
+        # explicitly present.  Most missions benefit from web context.
+        has_browser = any(t.channel is Channel.BROWSER for t in subtasks)
+        if not has_browser:
+            subtasks.insert(
+                0,
                 SubTask(
                     id=f"{mission_id}-browser-default",
                     description="Default research",
                     channel=Channel.BROWSER,
                     agent="researcher",
                     params={"query": description},
-                )
+                ),
             )
 
         return MissionPlan(mission_id=mission_id, subtasks=subtasks)
@@ -243,11 +247,42 @@ class ChannelDispatcher:
             }
 
         try:
-            payload = {"query": task.params.get("description", task.description)}
+            method = str(task.params.get("desktop_method", "")).strip()
+            if not method:
+                mode = str(task.params.get("mode", "")).strip().lower()
+                heartbeat_flag = bool(task.params.get("heartbeat_demo", False))
+                method = (
+                    "heartbeat_demo"
+                    if heartbeat_flag or mode == "heartbeat"
+                    else "sovereign_query"
+                )
+
+            query = str(
+                task.params.get(
+                    "query",
+                    task.params.get("description", task.description),
+                )
+            )
+
+            if method == "heartbeat_demo":
+                payload: dict[str, Any] = {"query": query}
+                if "app" in task.params:
+                    payload["app"] = task.params["app"]
+                if "browser_mode" in task.params:
+                    payload["browser_mode"] = task.params["browser_mode"]
+                if "max_typed_chars" in task.params:
+                    payload["max_typed_chars"] = task.params["max_typed_chars"]
+            else:
+                payload = {"query": query}
+
             if hasattr(bridge, "send_command"):
-                result = await bridge.send_command("sovereign_query", payload)
+                result = await bridge.send_command(method, payload)
             elif hasattr(bridge, "dispatch"):
-                result = await bridge.dispatch(payload)
+                if method == "sovereign_query":
+                    result = await bridge.dispatch(payload)
+                else:
+                    bridged_payload = {"method": method, **payload}
+                    result = await bridge.dispatch(bridged_payload)
             else:
                 return {
                     "success": False,
@@ -257,6 +292,7 @@ class ChannelDispatcher:
             return {
                 "success": True,
                 "channel": Channel.DESKTOP.value,
+                "method": method,
                 "result": result,
             }
         except Exception as exc:

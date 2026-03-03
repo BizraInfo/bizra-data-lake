@@ -16,7 +16,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: bizra:latest
+    image: bizra:2.0.0
     container_name: bizra-api
     restart: unless-stopped
     ports:
@@ -59,7 +59,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: bizra:latest
+    image: bizra:2.0.0
     container_name: bizra-resourcepool
     restart: unless-stopped
     entrypoint: ["resourcepool-node"]
@@ -89,7 +89,7 @@ services:
   # Ollama LLM Backend
   # ═══════════════════════════════════════════════════════════════════════
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.11.7
     container_name: bizra-ollama
     restart: unless-stopped
     ports:
@@ -109,7 +109,7 @@ services:
   # Model Loader (one-shot to pull default model)
   # ═══════════════════════════════════════════════════════════════════════
   model-loader:
-    image: curlimages/curl:latest
+    image: curlimages/curl:8.12.1
     container_name: bizra-model-loader
     depends_on:
       ollama:

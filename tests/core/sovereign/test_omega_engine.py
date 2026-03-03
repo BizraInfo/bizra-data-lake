@@ -24,6 +24,7 @@ from core.sovereign.omega_engine import (  # GAP-C1: Ihsan Projector; GAP-C2: Ad
     create_omega_engine,
     ihsan_from_scores,
 )
+from core.integration.constants import ADL_GINI_THRESHOLD
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GAP-C1: IHSAN PROJECTOR TESTS
@@ -259,7 +260,7 @@ class TestAdlInvariant:
 
     def test_validate_transaction_valid(self):
         """Valid transaction should pass."""
-        adl = AdlInvariant(gini_threshold=0.40)
+        adl = AdlInvariant(gini_threshold=ADL_GINI_THRESHOLD)
 
         pre_state = {"alice": 500, "bob": 500}
         post_state = {"alice": 400, "bob": 600}  # Transfer 100
@@ -270,7 +271,7 @@ class TestAdlInvariant:
 
     def test_validate_transaction_gini_violation(self):
         """Transaction exceeding Gini threshold should be rejected."""
-        adl = AdlInvariant(gini_threshold=0.40)
+        adl = AdlInvariant(gini_threshold=ADL_GINI_THRESHOLD)
 
         pre_state = {"alice": 500, "bob": 500}
         post_state = {"alice": 950, "bob": 50}  # Extreme transfer
@@ -283,7 +284,7 @@ class TestAdlInvariant:
 
     def test_validate_transaction_conservation_violation(self):
         """Transaction violating conservation should be rejected."""
-        adl = AdlInvariant(gini_threshold=0.40)
+        adl = AdlInvariant(gini_threshold=ADL_GINI_THRESHOLD)
 
         pre_state = {"alice": 500, "bob": 500}
         post_state = {"alice": 600, "bob": 600}  # Created value!

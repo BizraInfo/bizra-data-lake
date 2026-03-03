@@ -27,6 +27,7 @@ Standing on Giants:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Any, Optional
 
@@ -158,6 +159,27 @@ def init_auth_middleware(middleware: AuthMiddleware) -> None:
     _global_middleware = middleware
 
 
+def _env_truthy(var_name: str) -> bool:
+    """Return True when an environment flag is explicitly enabled."""
+    value = os.environ.get(var_name, "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _raise_http_exception(
+    *,
+    status_code: int,
+    detail: str,
+    headers: Optional[dict[str, str]] = None,
+) -> None:
+    """Raise HTTPException when FastAPI is available, otherwise fail closed."""
+    try:
+        from fastapi import HTTPException
+    except ImportError as exc:
+        raise RuntimeError(detail) from exc
+
+    raise HTTPException(status_code=status_code, detail=detail, headers=headers)
+
+
 async def get_current_user(
     authorization: Optional[str] = None,
     x_api_key: Optional[str] = None,
@@ -174,9 +196,19 @@ async def get_current_user(
     For raw asyncio server, call authenticate() directly.
     """
     if _global_middleware is None:
-        # Auth not configured — allow anonymous access (dev mode)
-        logger.warning("Auth middleware not initialized — anonymous access allowed")
-        return None
+        if _env_truthy("BIZRA_AUTH_ALLOW_ANONYMOUS"):
+            logger.warning(
+                "Auth disabled via BIZRA_AUTH_ALLOW_ANONYMOUS — anonymous access allowed"
+            )
+            return None
+
+        logger.error(
+            "Auth middleware not initialized and anonymous mode is disabled"
+        )
+        _raise_http_exception(
+            status_code=503,
+            detail="Authentication service unavailable",
+        )
 
     user = _global_middleware.authenticate(
         authorization=authorization,
@@ -184,32 +216,21 @@ async def get_current_user(
     )
 
     if user is None:
-        # In FastAPI context, raise HTTPException
-        try:
-            from fastapi import HTTPException
-
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid or missing authentication credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except ImportError:
-            return None
+        _raise_http_exception(
+            status_code=401,
+            detail="Invalid or missing authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # Check rate limit
     if not _global_middleware.check_rate_limit(user.user_id):
-        try:
-            from fastapi import HTTPException
-
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded. Please try again later.",
-                headers={
-                    "Retry-After": "60",
-                    "X-RateLimit-Remaining": "0",
-                },
-            )
-        except ImportError:
-            return None
+        _raise_http_exception(
+            status_code=429,
+            detail="Rate limit exceeded. Please try again later.",
+            headers={
+                "Retry-After": "60",
+                "X-RateLimit-Remaining": "0",
+            },
+        )
 
     return user

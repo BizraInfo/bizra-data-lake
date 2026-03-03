@@ -165,6 +165,7 @@ class SovereignRuntime:
         self._guardian_council: Optional[GuardianProtocol] = None
         self._autonomous_loop: Optional[AutonomousLoopProtocol] = None
         self._orchestrator: Optional[object] = None
+        self._event_bus: Optional[object] = None
 
         # Genesis Identity (persistent across restarts)
         self._genesis: Optional[GenesisState] = None
@@ -418,6 +419,9 @@ class SovereignRuntime:
         self.logger.info("SOVEREIGN RUNTIME INITIALIZING")
         self.logger.info("=" * 60)
 
+        # Initialize sovereign event bus for cross-component pub/sub.
+        self._init_event_bus()
+
         # Load genesis identity (persistent node_id from ceremony)
         self._load_genesis_identity()
 
@@ -546,6 +550,17 @@ class SovereignRuntime:
         except Exception as e:
             self.logger.warning("UnifiedModelRouter init skipped: %s", e)
 
+    def _init_event_bus(self) -> None:
+        """Initialize sovereign event bus used by runtime side-channels."""
+        try:
+            from .event_bus import get_event_bus
+
+            self._event_bus = get_event_bus()
+            self.logger.info("✓ Sovereign EventBus initialized")
+        except Exception as e:
+            self._event_bus = None
+            self.logger.warning("⚠ Sovereign EventBus unavailable: %s", e)
+
     async def _dispatch_equalizer_command(self, eq_cmd: object) -> None:
         """Act on an EqualizerAgent command instead of just logging it.
 
@@ -558,14 +573,18 @@ class SovereignRuntime:
             kind = eq_cmd.kind  # type: ignore[attr-defined]
             reason = eq_cmd.reason  # type: ignore[attr-defined]
 
-            if self._event_bus is not None:
-                await self._event_bus.publish(
-                    "equalizer.command",
-                    {
+            if self._event_bus is not None and hasattr(self._event_bus, "emit"):
+                from .event_bus import EventPriority
+
+                await self._event_bus.emit(
+                    topic="equalizer.command",
+                    payload={
                         "kind": kind.value,
                         "reason": reason,
                         "batch_scale": getattr(eq_cmd, "batch_scale", 1),
                     },
+                    priority=EventPriority.HIGH,
+                    source="sovereign.runtime.equalizer",
                 )
 
             # Direct action on the runtime when possible

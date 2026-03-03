@@ -43,7 +43,7 @@ Group=bizra
 WorkingDirectory=/var/lib/bizra
 
 # Environment configuration
-Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_HOST=127.0.0.1:11434"
 Environment="OLLAMA_MODELS=/var/lib/bizra/models/ollama"
 Environment="OLLAMA_KEEP_ALIVE=24h"
 Environment="OLLAMA_NUM_PARALLEL=4"

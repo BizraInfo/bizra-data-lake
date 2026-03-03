@@ -36,6 +36,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -44,6 +45,11 @@ from enum import Enum, auto
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_whitespace(text: str) -> str:
+    """Collapse whitespace runs for resilient pattern matching."""
+    return re.sub(r"\s+", " ", text.strip())
 
 
 class GuardrailStatus(Enum):
@@ -576,7 +582,14 @@ class ToolSandbox:
             )
 
         # Check for blocked patterns in args
-        args_str = json.dumps(tool_args).lower()
+        args_str = (
+            json.dumps(tool_args)
+            .lower()
+            .replace("\\t", " ")
+            .replace("\\n", " ")
+            .replace("\\r", " ")
+        )
+        args_str = _normalize_whitespace(args_str)
         for pattern in self.BLOCKED_PATTERNS:
             if pattern in args_str:
                 return GuardrailResult(

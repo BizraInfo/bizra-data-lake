@@ -10,6 +10,7 @@ Ihsan >= 0.95 | SNR >= 0.99 | Fail-Closed Enforcement
 
 import os
 import json
+import hmac
 import hashlib
 import logging
 from datetime import datetime
@@ -18,6 +19,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import httpx
 import redis.asyncio as redis
@@ -37,12 +39,10 @@ except ImportError:
 # Configuration
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-SNR_THRESHOLD = float(
-    os.getenv("SNR_THRESHOLD", "0.85")
-)  # canonical: core.integration.constants
-IHSAN_THRESHOLD = float(
-    os.getenv("IHSAN_THRESHOLD", "0.95")
-)  # canonical: core.integration.constants
+from core.integration.constants import (
+    UNIFIED_IHSAN_THRESHOLD as IHSAN_THRESHOLD,
+    UNIFIED_SNR_THRESHOLD as SNR_THRESHOLD,
+)
 
 
 # ============================================================================
@@ -201,6 +201,76 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
+
+_PUBLIC_PATHS = {
+    "/health",
+    "/health/live",
+    "/health/ready",
+    "/api/v1/memory/health",
+    "/metrics",
+    "/metrics/prometheus",
+}
+
+
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_local_client(host: Optional[str]) -> bool:
+    if not host:
+        return False
+    return host in {"127.0.0.1", "::1", "localhost"}
+
+
+def _expected_gateway_token() -> str:
+    return (
+        os.getenv("BIZRA_MCP_GATEWAY_TOKEN", "").strip()
+        or os.getenv("BIZRA_BRIDGE_TOKEN", "").strip()
+    )
+
+
+def _extract_request_token(request: Request) -> str:
+    auth = request.headers.get("authorization", "")
+    if auth.startswith("Bearer "):
+        return auth[len("Bearer ") :].strip()
+    return request.headers.get("x-api-key", "").strip()
+
+
+def _authorize_request(request: Request) -> None:
+    if request.method.upper() == "OPTIONS":
+        return
+
+    if _env_truthy("BIZRA_MCP_ALLOW_ANONYMOUS"):
+        return
+
+    if not _env_truthy("BIZRA_MCP_ALLOW_REMOTE"):
+        client_host = request.client.host if request.client else None
+        if not _is_local_client(client_host):
+            raise HTTPException(status_code=403, detail="Remote MCP access denied")
+
+    expected = _expected_gateway_token()
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="MCP gateway auth token not configured",
+        )
+
+    provided = _extract_request_token(request)
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+
+@app.middleware("http")
+async def auth_guard_middleware(request: Request, call_next):
+    if request.url.path in _PUBLIC_PATHS:
+        return await call_next(request)
+
+    try:
+        _authorize_request(request)
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+
+    return await call_next(request)
 
 
 # ============================================================================

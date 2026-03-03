@@ -133,11 +133,14 @@ def _init_moneyshot_subsystems():
 _EVIDENCE_LEDGER = None
 _SNR_CALCULATOR = None  # Legacy — kept for backward compat
 _SNR_FACADE = None  # Phase 42: Unified SNR (v2 + maximizer ensemble)
+_HMM_ENGINE = None  # Phase 56: T1 prediction feed for diffusion amplifier
+_DIFFUSION_AMPLIFIER = None  # Phase 56: HMM -> GoT/SNR context bridge
 
 
 def _init_verified_pipeline():
     """Initialize the Verified Intelligence Pipeline (VIP) components."""
     global _EVIDENCE_LEDGER, _SNR_CALCULATOR, _SNR_FACADE
+    global _HMM_ENGINE, _DIFFUSION_AMPLIFIER
     try:
         from core.proof_engine.evidence_ledger import EvidenceLedger
 
@@ -206,6 +209,17 @@ def _init_verified_pipeline():
         logger.info(f"  SNR facade: ready (engines: {'+'.join(engines) or 'none'})")
     except Exception as e:
         logger.warning(f"  SNR facade: failed to init ({e})")
+
+    # Phase 56: HMM -> Diffusion Reasoning Amplifier bridge
+    try:
+        from core.prediction import HMMEngine
+        from core.reasoning import DiffusionReasoningAmplifier
+
+        _HMM_ENGINE = HMMEngine()
+        _DIFFUSION_AMPLIFIER = DiffusionReasoningAmplifier()
+        logger.info("  Diffusion amplifier: initialized (HMM -> GoT/SNR bridge)")
+    except Exception as e:
+        logger.warning(f"  Diffusion amplifier: unavailable ({e})")
 
 
 def _resolve_lm_token() -> str:
@@ -495,6 +509,7 @@ def _compute_real_snr(
     query: str,
     agent_outputs: list,
     model=None,
+    diffusion_context: Optional[dict] = None,
 ) -> dict:
     """Compute genuine SNR using unified SNRFacade (v2 + maximizer ensemble).
 
@@ -514,11 +529,13 @@ def _compute_real_snr(
         return {"snr_score": 0.0, "ihsan_score": 0.0, "method": "empty"}
 
     combined_text = "\n\n".join(texts)
+    diffusion = diffusion_context or _build_diffusion_query_context(query)
+    query_for_snr = diffusion.get("query", query) if diffusion else query
 
     # Phase 42: Use SNRFacade (ensemble of v2 + maximizer)
     if _SNR_FACADE is not None:
         try:
-            result = _SNR_FACADE.calculate(text=combined_text, query=query)
+            result = _SNR_FACADE.calculate(text=combined_text, query=query_for_snr)
             return {
                 "snr_score": result.score,
                 "ihsan_score": result.score,
@@ -530,6 +547,7 @@ def _compute_real_snr(
                 "quality_tier": result.metrics.get("v2_tier")
                 or result.metrics.get("quality_tier"),
                 "recommendations": result.recommendations,
+                "diffusion": diffusion.get("amplifier") if diffusion else {},
             }
         except Exception as e:
             logger.warning(f"  SNR facade failed, falling back to direct v2: {e}")
@@ -543,7 +561,7 @@ def _compute_real_snr(
         text_embs = None
 
         if model is not None:
-            query_emb = model.encode([query], normalize_embeddings=True).astype(
+            query_emb = model.encode([query_for_snr], normalize_embeddings=True).astype(
                 np.float32
             )[0]
             text_embs = model.encode(texts, normalize_embeddings=True).astype(
@@ -551,7 +569,7 @@ def _compute_real_snr(
             )
 
         components = _SNR_CALCULATOR.compute_snr(
-            query=query,
+            query=query_for_snr,
             texts=texts,
             query_embedding=query_emb,
             text_embeddings=text_embs,
@@ -567,15 +585,49 @@ def _compute_real_snr(
             "diversity": components.diversity,
             "grounding": components.grounding,
             "iaas_score": components.iaas_score,
+            "diffusion": diffusion.get("amplifier") if diffusion else {},
         }
     except Exception as e:
         logger.warning(f"  SNR computation failed: {e}")
-        return {"snr_score": 0.85, "ihsan_score": 0.85, "method": "error_fallback"}
+        return {
+            "snr_score": 0.85,
+            "ihsan_score": 0.85,
+            "method": "error_fallback",
+            "diffusion": diffusion.get("amplifier") if diffusion else {},
+        }
+
+
+def _build_diffusion_query_context(query: str) -> dict:
+    """Build HMM-informed query context for GoT and SNR routing.
+
+    Fail-closed: returns empty context if HMM/amplifier are unavailable or fail.
+    """
+    if _HMM_ENGINE is None or _DIFFUSION_AMPLIFIER is None:
+        return {}
+
+    try:
+        symbol = _DIFFUSION_AMPLIFIER.query_to_observation_symbol(query)
+        prediction = _HMM_ENGINE.observe(symbol)
+        amplified = _DIFFUSION_AMPLIFIER.amplify(
+            query=query,
+            prediction=prediction,
+            observation_symbol=symbol,
+        )
+        query_for_reasoning = _DIFFUSION_AMPLIFIER.augment_query(query, amplified)
+        return {
+            "query": query_for_reasoning,
+            "amplifier": amplified.to_dict(),
+            "router": _DIFFUSION_AMPLIFIER.context_for_router(amplified),
+        }
+    except Exception as e:
+        logger.warning(f"  Diffusion context unavailable: {e}")
+        return {}
 
 
 async def _synthesize_with_got(
     mission_desc: str,
     agent_results: list,
+    diffusion_context: Optional[dict] = None,
 ) -> dict:
     """Synthesize PAT agent outputs using Graph-of-Thoughts reasoning.
 
@@ -627,13 +679,17 @@ async def _synthesize_with_got(
             inference_gateway=gateway,
         )
 
+        reasoning_context = {
+            "domain": "mission_synthesis",
+            "facts": facts,
+        }
+        if diffusion_context and diffusion_context.get("router"):
+            reasoning_context["diffusion"] = diffusion_context["router"]
+
         # Run reasoning with agent outputs as context facts
         reasoning_result = await got.reason(
             query=mission_desc,
-            context={
-                "domain": "mission_synthesis",
-                "facts": facts,
-            },
+            context=reasoning_context,
             max_depth=3,
         )
 
@@ -737,6 +793,7 @@ def _emit_verified_receipt(mission: Dict, result: Dict, snr_data: dict) -> Dict:
                         "grounding": snr_data.get("grounding", 0.0),
                     },
                     "method": method,
+                    "diffusion": snr_data.get("diffusion", {}),
                 },
             )
 
@@ -847,6 +904,16 @@ class Node0ProactiveKernel:
             "missions_completed": 0,
             "tokens_used": 0,
             "ihsan_score": 0.95,  # Default to healthy; updated by actual mission results
+            # Diffusion telemetry (Phase 56)
+            "diffusion_total": 0,
+            "diffusion_active": 0,
+            "diffusion_inactive": 0,
+            "diffusion_high_confidence": 0,  # >= 0.90
+            "diffusion_elite_confidence": 0,  # >= 0.98
+            "diffusion_confidence_total": 0.0,
+            "diffusion_avg_confidence": 0.0,
+            "diffusion_last_state": "unknown",
+            "diffusion_last_focus": "baseline",
         }
 
         # Load baseline for impact tracking
@@ -923,6 +990,34 @@ class Node0ProactiveKernel:
         # Ihsan from constitutional config or constants.py
         constitutional = self.config.get("constitutional", {})
         self.ihsan_threshold = constitutional.get("ihsan_threshold", 0.95)
+
+    def _record_diffusion_metrics(self, diffusion_ctx: Optional[dict]) -> None:
+        """Update runtime telemetry for diffusion activation and confidence bands."""
+        self._metrics["diffusion_total"] += 1
+        amplifier = (diffusion_ctx or {}).get("amplifier") or {}
+
+        activated = bool(amplifier.get("activated"))
+        if activated:
+            self._metrics["diffusion_active"] += 1
+        else:
+            self._metrics["diffusion_inactive"] += 1
+
+        confidence = float(amplifier.get("confidence", 0.0) or 0.0)
+        if confidence >= 0.90:
+            self._metrics["diffusion_high_confidence"] += 1
+        if confidence >= 0.98:
+            self._metrics["diffusion_elite_confidence"] += 1
+
+        confidence_total = float(self._metrics.get("diffusion_confidence_total", 0.0))
+        confidence_total += confidence
+        self._metrics["diffusion_confidence_total"] = round(confidence_total, 6)
+        total = max(1, int(self._metrics.get("diffusion_total", 1)))
+        self._metrics["diffusion_avg_confidence"] = round(confidence_total / total, 6)
+
+        self._metrics["diffusion_last_state"] = str(
+            amplifier.get("predicted_state", "unknown")
+        )
+        self._metrics["diffusion_last_focus"] = str(amplifier.get("focus", "baseline"))
 
     def _load_baseline(self) -> Dict[str, Any]:
         """Load MoMo Day 0 baseline for impact tracking."""
@@ -1089,6 +1184,25 @@ class Node0ProactiveKernel:
         except Exception:
             return ""
 
+    async def _mission_boot(self) -> None:
+        """Verify MissionOrchestrator availability (owned by desktop_bridge).
+
+        The MissionOrchestrator is singleton-owned by ``desktop_bridge.py``
+        to prevent concurrent writers on the evidence chain.  Node0 only
+        verifies the import path works so it can route missions via RPC.
+
+        Standing on Giants: General Magic (Telescript, 1994)
+        """
+        self._mission_orch = None
+        try:
+            from core.sovereign.mission import MissionOrchestrator  # noqa: F401
+
+            logger.info(
+                "  MissionOrchestrator: AVAILABLE (owned by desktop_bridge:9742)"
+            )
+        except ImportError as e:
+            logger.debug("  MissionOrchestrator: unavailable (%s)", e)
+
     async def start(self):
         """Start the proactive kernel."""
         self._running = True
@@ -1099,6 +1213,10 @@ class Node0ProactiveKernel:
         # Pre-load default model fleet into VRAM at boot — zero cold-start for missions
         # Standing on Giants: Boyd (OODA pre-staging) — absorb latency before first request
         await self._preload_fleet_at_boot()
+
+        # Wire MissionOrchestrator into the Desktop Bridge — First Heartbeat
+        # Standing on Giants: General Magic (Telescript, 1994) — agents cross device boundaries
+        await self._mission_boot()
 
         mode = self.config.get("mode", "proactive_partner")
         logger.info("═" * 60)
@@ -1551,7 +1669,11 @@ class Node0ProactiveKernel:
 
         # ═══ Phase 42: GoT Synthesis (Graph-of-Thoughts on agent outputs) ═══
         # Standing on Giants: Besta (GoT, 2024) · Boyd (OODA synthesis)
-        got_data = await _synthesize_with_got(mission["description"], results)
+        diffusion_ctx = _build_diffusion_query_context(mission["description"])
+        self._record_diffusion_metrics(diffusion_ctx)
+        got_data = await _synthesize_with_got(
+            mission["description"], results, diffusion_context=diffusion_ctx
+        )
         if got_data.get("thought_count", 0) > 0:
             logger.info(
                 f"    🧠 GoT synthesis: {got_data['thought_count']} thoughts, "
@@ -1569,8 +1691,12 @@ class Node0ProactiveKernel:
 
         # Use production SNR engine with real embeddings when available
         embedding_model = getattr(self._knowledge, "_model", None)
+        snr_query = diffusion_ctx.get("query", mission["description"])
         snr_data = _compute_real_snr(
-            mission["description"], snr_inputs, model=embedding_model
+            snr_query,
+            snr_inputs,
+            model=embedding_model,
+            diffusion_context=diffusion_ctx,
         )
         ihsan_score = snr_data.get("ihsan_score", 0.0)
 
@@ -1600,6 +1726,7 @@ class Node0ProactiveKernel:
                 "llm_used": got_data.get("llm_used", False),
                 "thought_chain": got_data.get("thought_chain", []),
             },
+            "diffusion": diffusion_ctx.get("amplifier", {}),
         }
 
         # ═══ Emit hash-chained, BLAKE3-sealed evidence receipt ═══
@@ -1879,6 +2006,54 @@ async def cmd_start(args):
     await orchestrator.start()
 
 
+def _summarize_diffusion_receipts(receipts: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Aggregate diffusion telemetry from receipt.snr.diffusion payloads."""
+    summary: Dict[str, Any] = {
+        "total": 0,
+        "active": 0,
+        "inactive": 0,
+        "high_confidence": 0,
+        "elite_confidence": 0,
+        "avg_confidence": 0.0,
+        "activation_rate": 0.0,
+        "last_state": "unknown",
+        "last_focus": "baseline",
+    }
+    confidence_total = 0.0
+
+    for receipt in receipts:
+        snr = receipt.get("snr", {})
+        if not isinstance(snr, dict):
+            continue
+        diffusion = snr.get("diffusion")
+        if not isinstance(diffusion, dict):
+            continue
+
+        summary["total"] += 1
+        activated = bool(diffusion.get("activated"))
+        if activated:
+            summary["active"] += 1
+        else:
+            summary["inactive"] += 1
+
+        confidence = float(diffusion.get("confidence", 0.0) or 0.0)
+        confidence_total += confidence
+        if confidence >= 0.90:
+            summary["high_confidence"] += 1
+        if confidence >= 0.98:
+            summary["elite_confidence"] += 1
+
+        summary["last_state"] = str(diffusion.get("predicted_state", "unknown"))
+        summary["last_focus"] = str(diffusion.get("focus", "baseline"))
+
+    if summary["total"] > 0:
+        total = float(summary["total"])
+        summary["avg_confidence"] = round(confidence_total / total, 6)
+        summary["activation_rate"] = summary["active"] / total
+
+    return summary
+
+
 async def cmd_status(args):
     """Check system status."""
     import httpx
@@ -1930,6 +2105,45 @@ async def cmd_status(args):
     except Exception:
         print("\n  Rust Bus:     ○ Not available")
 
+    # Evidence + diffusion telemetry snapshot (from recent receipts)
+    ledger_path = Path(PROJECT_ROOT) / "sovereign_state" / "evidence.jsonl"
+    if ledger_path.exists():
+        try:
+            from core.proof_engine.evidence_ledger import EvidenceLedger
+
+            ledger = EvidenceLedger(ledger_path, validate_on_append=False)
+            recent_entries = ledger.entries()[-50:]
+            recent_receipts = [e.receipt for e in recent_entries]
+            diffusion = _summarize_diffusion_receipts(recent_receipts)
+
+            print()
+            print(f"  Evidence:     {ledger.sequence} receipt(s) tracked")
+            if diffusion["total"] > 0:
+                print(
+                    "  Diffusion:    "
+                    f"{diffusion['active']}/{diffusion['total']} active "
+                    f"({diffusion['activation_rate']:.0%})"
+                )
+                print(
+                    "  Confidence:   "
+                    f"avg={diffusion['avg_confidence']:.3f} | "
+                    f"high={diffusion['high_confidence']} | "
+                    f"elite={diffusion['elite_confidence']}"
+                )
+                print(
+                    "  Last Focus:   "
+                    f"state={diffusion['last_state']} | "
+                    f"focus={diffusion['last_focus']}"
+                )
+            else:
+                print("  Diffusion:    ○ No diffusion telemetry in recent receipts")
+        except Exception:
+            print("\n  Evidence:     ○ Unavailable")
+            print("  Diffusion:    ○ Could not read ledger")
+    else:
+        print("\n  Evidence:     ○ No evidence ledger yet")
+        print("  Diffusion:    ○ No runtime receipts to summarize")
+
     print("═" * 60 + "\n")
 
 
@@ -1974,6 +2188,16 @@ async def cmd_mission(args):
     snr_method = result.get("snr_method", "unknown")
     print(f"SNR Score:    {result.get('snr_score', 0):.4f} ({snr_method})")
     print(f"Ihsan Score:  {result['ihsan_score']:.2%}")
+    diffusion = result.get("diffusion", {}) or {}
+    if isinstance(diffusion, dict) and diffusion:
+        diff_state = "ACTIVE" if diffusion.get("activated") else "INACTIVE"
+        diff_conf = float(diffusion.get("confidence", 0.0) or 0.0)
+        diff_pred = diffusion.get("predicted_state", "unknown")
+        diff_focus = diffusion.get("focus", "baseline")
+        print(
+            f"Diffusion:    {diff_state} | conf={diff_conf:.3f} | "
+            f"state={diff_pred} | focus={diff_focus}"
+        )
     print(f"Status:       {'✓ PASS' if result['ihsan_score'] >= 0.95 else '⚠ REVIEW'}")
     receipt = result.get("receipt", {})
     if receipt:

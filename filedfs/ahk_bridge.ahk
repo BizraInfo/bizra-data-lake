@@ -1,7 +1,7 @@
 ; ============================================================
 ; BIZRA AHK Bridge Server — JSON-RPC 2.0 over TCP
 ; ============================================================
-; Listens on 127.0.0.1:9742 (configurable via BIZRA_BRIDGE_PORT)
+; Listens on 127.0.0.1:9743 (configurable via BIZRA_HDA_PORT)
 ; Implements: invoke_skill, actuator_execute, get_context,
 ;   open_app, switch_window, type_text, click_element,
 ;   screenshot, read_clipboard, file_open, browser_navigate
@@ -43,9 +43,9 @@ if (BRIDGE_TOKEN = "") {
     ExitApp 1
 }
 
-PORT := EnvGet("BIZRA_BRIDGE_PORT")
+PORT := EnvGet("BIZRA_HDA_PORT")
 if (PORT = "")
-    PORT := CONFIG.Has("port") ? CONFIG["port"] : 9742
+    PORT := CONFIG.Has("port") ? CONFIG["port"] : 9743
 
 LogInfo("BIZRA AHK Bridge starting on 127.0.0.1:" PORT)
 LogInfo("Skills directory: " CONFIG["skills_dir"])
@@ -973,7 +973,7 @@ SendJsonRpcError(conn, code, message, id) {
 ; --- Configuration Loader ----------------------------------------------------
 LoadConfig() {
     config := Map()
-    config["port"] := 9742
+    config["port"] := 9743
     config["skills_dir"] := A_ScriptDir "\skills"
     config["allow_run"] := "false"
     config["app_allowlist"] := ""
@@ -981,7 +981,7 @@ LoadConfig() {
     iniPath := A_ScriptDir "\bridge_config.ini"
     if FileExist(iniPath) {
         try {
-            config["port"] := IniRead(iniPath, "bridge", "port", 9742)
+            config["port"] := IniRead(iniPath, "bridge", "port", 9743)
             config["skills_dir"] := IniRead(iniPath, "bridge", "skills_dir", config["skills_dir"])
             config["allow_run"] := IniRead(iniPath, "bridge", "allow_run", "false")
             config["app_allowlist"] := IniRead(iniPath, "bridge", "app_allowlist", "")

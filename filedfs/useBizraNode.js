@@ -28,6 +28,10 @@ function parseResponse(raw) {
   return { status, ok: status === "OK", ...data };
 }
 
+function sanitizeProtocolValue(value) {
+  return String(value ?? "").replace(/[\t\n\r]/g, "");
+}
+
 // ─── Tauri Transport ───
 class TauriTransport {
   constructor() {
@@ -75,7 +79,16 @@ class WebSocketTransport {
   }
 
   connect(config = {}) {
-    const url = config.wsUrl || "ws://127.0.0.1:9470";
+    let url = config.wsUrl || "ws://127.0.0.1:9470";
+    if (config.bridgeToken) {
+      try {
+        const parsed = new URL(url);
+        parsed.searchParams.set("token", String(config.bridgeToken));
+        url = parsed.toString();
+      } catch {
+        // Keep original URL on parse failure.
+      }
+    }
 
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(url);
@@ -118,7 +131,9 @@ class WebSocketTransport {
 
     return new Promise((resolve) => {
       this.resolveNext = resolve;
-      this.ws.send(JSON.stringify({ type: "raw", line: command }));
+      const parts = String(command || "").split("\t");
+      const cmd = parts.shift() || "";
+      this.ws.send(JSON.stringify({ type: "command", cmd, args: parts }));
 
       // Timeout fallback
       setTimeout(() => {
@@ -195,9 +210,14 @@ export function useBizraNode(config = {}) {
   }, [addLog]);
 
   // Convenience methods
-  const receive = useCallback((content) => send(`RECEIVE\t${content}`), [send]);
+  const receive = useCallback(
+    (content) => send(`RECEIVE\t${sanitizeProtocolValue(content)}`),
+    [send]
+  );
   const teach = useCallback((kind, content, confidence = 9500) =>
-    send(`TEACH\t${kind}\t${content}\t${confidence}\t${Date.now()}`), [send]);
+    send(
+      `TEACH\t${sanitizeProtocolValue(kind)}\t${sanitizeProtocolValue(content)}\t${confidence}\t${Date.now()}`
+    ), [send]);
   const synthesize = useCallback(() => send("SYNTHESIZE"), [send]);
   const health = useCallback(() => send("HEALTH"), [send]);
   const queryKnowsMe = useCallback(() => send("KNOWS_ME"), [send]);

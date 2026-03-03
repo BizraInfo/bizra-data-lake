@@ -212,7 +212,18 @@ services:
     start_order: 2
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "1gb"]
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "1gb",
+        "--bind",
+        "127.0.0.1",
+        "--requirepass",
+        "${REDIS_PASSWORD:?REDIS_PASSWORD required}",
+      ]
     volumes:
       - /var/lib/bizra/redis:/data
     healthcheck:
@@ -258,7 +269,7 @@ services:
     command: ollama serve
     port: 11434
     environment:
-      OLLAMA_HOST: "0.0.0.0:11434"
+      OLLAMA_HOST: "127.0.0.1:11434"
       OLLAMA_MODELS: /var/lib/bizra/models/ollama
       OLLAMA_KEEP_ALIVE: "24h"
     healthcheck:
@@ -289,7 +300,7 @@ services:
     environment:
       RUST_LOG: info
       DATABASE_URL: "postgres://bizra:${POSTGRES_PASSWORD}@localhost:5432/bizra"
-      REDIS_URL: "redis://localhost:6379"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@127.0.0.1:6379"
       INFERENCE_PRIMARY: "http://192.168.56.1:1234"
       INFERENCE_FALLBACK: "http://localhost:11434"
     healthcheck:

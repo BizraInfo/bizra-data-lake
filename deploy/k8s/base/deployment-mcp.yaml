@@ -59,6 +59,16 @@ spec:
               value: "8080"
             - name: REDIS_URL
               value: "redis://bizra-redis:6379"
+            - name: BIZRA_MCP_ALLOW_ANONYMOUS
+              value: "false"
+            # Cluster clients are non-loopback; require token and allow remote.
+            - name: BIZRA_MCP_ALLOW_REMOTE
+              value: "true"
+            - name: BIZRA_MCP_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: bizra-secrets
+                  key: mcp-gateway-token
             - name: POD_NAME
               valueFrom:
                 fieldRef:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
 import pytest
 
 from core.bridges.channel_dispatcher import (
@@ -23,6 +25,11 @@ class _VoiceStub:
         assert text
         assert guardian
         return _Out()
+
+
+class _DesktopStub:
+    def __init__(self) -> None:
+        self.send_command = AsyncMock(return_value={"ok": True})
 
 
 @pytest.mark.asyncio
@@ -92,3 +99,63 @@ async def test_dispatch_voice_with_stub() -> None:
     results = await dispatcher.dispatch_all(plan)
     assert results["voice-1"]["success"] is True
     assert results["voice-1"]["channel"] == "voice"
+
+
+@pytest.mark.asyncio
+async def test_dispatch_desktop_default_uses_sovereign_query() -> None:
+    desktop = _DesktopStub()
+    dispatcher = ChannelDispatcher(desktop_bridge=desktop)
+    plan = MissionPlan(
+        mission_id="m-005",
+        subtasks=[
+            SubTask(
+                id="desktop-1",
+                description="Desktop execution",
+                channel=Channel.DESKTOP,
+                params={"description": "draft summary"},
+            )
+        ],
+    )
+
+    results = await dispatcher.dispatch_all(plan)
+    assert results["desktop-1"]["success"] is True
+    assert results["desktop-1"]["channel"] == "desktop"
+    assert results["desktop-1"]["method"] == "sovereign_query"
+    desktop.send_command.assert_awaited_once()
+    method, payload = desktop.send_command.await_args.args
+    assert method == "sovereign_query"
+    assert payload["query"] == "draft summary"
+
+
+@pytest.mark.asyncio
+async def test_dispatch_desktop_heartbeat_mode_calls_heartbeat_demo() -> None:
+    desktop = _DesktopStub()
+    dispatcher = ChannelDispatcher(desktop_bridge=desktop)
+    plan = MissionPlan(
+        mission_id="m-006",
+        subtasks=[
+            SubTask(
+                id="desktop-2",
+                description="first heartbeat",
+                channel=Channel.DESKTOP,
+                params={
+                    "mode": "heartbeat",
+                    "query": "top vc firms",
+                    "app": "notepad",
+                    "browser_mode": "mock",
+                    "max_typed_chars": 200,
+                },
+            )
+        ],
+    )
+
+    results = await dispatcher.dispatch_all(plan)
+    assert results["desktop-2"]["success"] is True
+    assert results["desktop-2"]["method"] == "heartbeat_demo"
+    desktop.send_command.assert_awaited_once()
+    method, payload = desktop.send_command.await_args.args
+    assert method == "heartbeat_demo"
+    assert payload["query"] == "top vc firms"
+    assert payload["app"] == "notepad"
+    assert payload["browser_mode"] == "mock"
+    assert payload["max_typed_chars"] == 200

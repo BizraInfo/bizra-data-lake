@@ -467,6 +467,75 @@ DoListSkills() {
 }
 
 ; ---------------------------------------------------------------------------
+; Win+Shift+B -> execute_mission (First Heartbeat)
+; ---------------------------------------------------------------------------
+
+#+b:: {
+    ; 1. OBSERVE — Capture desktop context
+    activeWin := WinGetTitle("A")
+    activeClass := WinGetClass("A")
+
+    ; Read clipboard (truncate to 4KB for safety)
+    clipText := A_Clipboard
+    if (StrLen(clipText) > 4096)
+        clipText := SubStr(clipText, 1, 4096)
+
+    ; 2. ORIENT — Get mission description from user
+    mission := InputBox("What should BIZRA do?", "BIZRA Mission (Win+Shift+B)", "W500 H140")
+    if (mission.Result != "OK" || mission.Value = "") {
+        return
+    }
+
+    ; 3. DECIDE — Build JSON-RPC params with desktop context
+    descEsc := JsonEscape(mission.Value)
+    winEsc := JsonEscape(activeWin)
+    classEsc := JsonEscape(activeClass)
+    clipEsc := JsonEscape(clipText)
+
+    params := '{'
+    params .= '"description":"' descEsc '",'
+    params .= '"context":{'
+    params .= '"active_window":"' winEsc '",'
+    params .= '"window_class":"' classEsc '",'
+    params .= '"clipboard":"' clipEsc '"'
+    params .= '}}'
+
+    ; 4. ACT — Send to Python bridge
+    ShowTooltip("BIZRA: Mission executing...", 10000)
+    response := SendCommand("execute_mission", params)
+    if (response = "") {
+        ShowTooltip("BIZRA: No response — bridge may be down")
+        return
+    }
+
+    ; 5. PROVE — Parse response and show result
+    status := JsonGet(response, "status")
+    errField := JsonGet(response, "error")
+    ihsan := JsonGet(response, "ihsan_score")
+    snr := JsonGet(response, "snr_score")
+    missionId := JsonGet(response, "mission_id")
+    briefing := JsonGet(response, "briefing_path")
+
+    if (errField != "") {
+        ShowTooltip("BIZRA Mission Error: " errField, 5000)
+        return
+    }
+
+    ; Build result summary
+    summary := "Mission: " status
+    summary .= "`nIhsan: " ihsan " | SNR: " snr
+    summary .= "`nID: " SubStr(missionId, 1, 12) "..."
+
+    if (briefing != "") {
+        summary .= "`nBriefing: " briefing
+        ; Auto-open briefing file
+        try Run(briefing)
+    }
+
+    ShowTooltip(summary, 8000)
+}
+
+; ---------------------------------------------------------------------------
 ; Initialization
 ; ---------------------------------------------------------------------------
 

@@ -32,6 +32,11 @@ x-mcp-common: &mcp-common
     - BIZRA_PHASE46_CANARY_SALT=bizra-phase46-canary-v1
     - BIZRA_PHASE46_HMM_CALLER_MODE=single
     - BIZRA_PHASE46_HMM_ALLOWED_CALLER=mcp
+    # MCP gateway auth posture (fail-closed by default)
+    - BIZRA_MCP_GATEWAY_TOKEN=${BIZRA_MCP_GATEWAY_TOKEN:?BIZRA_MCP_GATEWAY_TOKEN required}
+    - BIZRA_MCP_ALLOW_ANONYMOUS=0
+    # Containerized service mesh traffic is non-loopback; keep auth required.
+    - BIZRA_MCP_ALLOW_REMOTE=1
   networks:
     - bizra-network
   restart: unless-stopped
