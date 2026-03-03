@@ -142,6 +142,8 @@ htmlcov/
 # ── Logs ──────────────────────────────────────────────────────
 *.log
 *.tmp
+logs/
+missions/
 
 # ── Compiled Binaries ─────────────────────────────────────────
 bizra
@@ -237,3 +239,10 @@ BIZRA-DATA-LAKE/
 .swarm/
 tmp_state/
 sovereign_state/
+artifacts/phase56/
+artifacts/atlas/workspace_masterpiece_report.json
+artifacts/atlas/workspace_masterpiece_report.md
+artifacts/atlas/
+artifacts/inventory/
+filefgfgs_extracted/
+.tmp_prod_artifacts_v2/services/node_gateway/reflex_cache.sqlite
