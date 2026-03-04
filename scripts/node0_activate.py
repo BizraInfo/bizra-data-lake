@@ -2174,6 +2174,33 @@ async def cmd_status(args):
         print("\n  Evidence:     ○ No evidence ledger yet")
         print("  Diffusion:    ○ No runtime receipts to summarize")
 
+    # Hardware self-awareness (Phase 64)
+    try:
+        from core.elite.asset_registry import AssetRegistry
+        from core.elite.floor_constraint import FloorConstraint
+
+        registry = AssetRegistry(node_id="node0")
+        body = registry.introspect()
+        total = body.total_capacity
+        idle = body.idle_capacity
+        floor_result = FloorConstraint().check(body)
+
+        print()
+        print("  ── Hardware Body ──")
+        for key in sorted(total):
+            unit = next(
+                (a.capacity_unit for a in body.assets.values() if a.asset_type == key),
+                "",
+            )
+            idle_v = idle.get(key, 0)
+            print(f"  {key:>8s}:  {total[key]:.1f} {unit} ({idle_v:.1f} idle)")
+        print(
+            f"  Floor:        {'✓ Compliant' if floor_result.compliant else '✗ ' + '; '.join(floor_result.violations)}"
+        )
+        print(f"  Potential:    {body.contribution_potential:.0%} contributable")
+    except Exception as exc:
+        print(f"\n  Hardware:     ○ {exc}")
+
     print("═" * 60 + "\n")
 
 
