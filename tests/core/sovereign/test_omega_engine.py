@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import pytest
 
+from core.integration.constants import ADL_GINI_THRESHOLD
 from core.sovereign.omega_engine import (  # GAP-C1: Ihsan Projector; GAP-C2: Adl Invariant; GAP-C4: Treasury Mode; Unified
     AdlInvariant,
     AdlViolation,
@@ -24,7 +25,6 @@ from core.sovereign.omega_engine import (  # GAP-C1: Ihsan Projector; GAP-C2: Ad
     create_omega_engine,
     ihsan_from_scores,
 )
-from core.integration.constants import ADL_GINI_THRESHOLD
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GAP-C1: IHSAN PROJECTOR TESTS

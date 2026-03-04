@@ -41,7 +41,9 @@ def _utc_now() -> str:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
+    )
 
 
 def _read_json(path: Path, default: Any = None) -> Any:
@@ -107,7 +109,8 @@ class Node0StandaloneManager:
         integrations = assets.get("integrations", {})
         gates = {
             "identity_ready": bool(context.node_id),
-            "pat_sat_ready": bool(context.pat_agent_ids) and bool(context.sat_agent_ids),
+            "pat_sat_ready": bool(context.pat_agent_ids)
+            and bool(context.sat_agent_ids),
             "urp_signed": bool(urp_payload.get("signed", False)),
             "urp_verified": bool(urp_payload.get("signature_verified", False)),
             "assets_written": self.assets_path.exists(),
@@ -195,23 +198,29 @@ class Node0StandaloneManager:
             "backend_online": lm_online or ollama_online,
         }
 
-        overall = "ready" if all(
-            gates[k]
-            for k in (
-                "identity_credentials",
-                "lifecycle_file",
-                "assets_file",
-                "pat_awareness_file",
-                "urp_file",
-                "urp_signed",
-                "urp_verified",
+        overall = (
+            "ready"
+            if all(
+                gates[k]
+                for k in (
+                    "identity_credentials",
+                    "lifecycle_file",
+                    "assets_file",
+                    "pat_awareness_file",
+                    "urp_file",
+                    "urp_signed",
+                    "urp_verified",
+                )
             )
-        ) else "degraded"
+            else "degraded"
+        )
 
         return {
             "timestamp": _utc_now(),
             "status": overall,
-            "node_id": lifecycle.get("node_id") or awareness.get("node_id") or "unknown",
+            "node_id": lifecycle.get("node_id")
+            or awareness.get("node_id")
+            or "unknown",
             "gates": gates,
             "runtime": {
                 "proactive_pid": pid,
@@ -235,7 +244,11 @@ class Node0StandaloneManager:
         if browser_mode not in {"mock", "direct", "mcp"}:
             raise ValueError("browser_mode must be one of: mock, direct, mcp")
 
-        from core.sovereign.mission import DesktopContext, MissionOrchestrator, MissionRequest
+        from core.sovereign.mission import (
+            DesktopContext,
+            MissionOrchestrator,
+            MissionRequest,
+        )
 
         orchestrator = MissionOrchestrator(
             {
@@ -358,7 +371,11 @@ class Node0StandaloneManager:
         context: ActivationContext,
         hardware: dict[str, Any],
     ) -> dict[str, Any]:
-        from core.genesis.urp import URPPledge, pledge_resources, verify_pledge_signature
+        from core.genesis.urp import (
+            URPPledge,
+            pledge_resources,
+            verify_pledge_signature,
+        )
 
         pledge = pledge_resources(
             node_id=context.node_id,
@@ -375,7 +392,13 @@ class Node0StandaloneManager:
 
         # Defensive type reconstruction check (guards stale schema drift)
         try:
-            reconstructed = URPPledge(**{k: v for k, v in payload.items() if k in URPPledge.__dataclass_fields__})
+            reconstructed = URPPledge(
+                **{
+                    k: v
+                    for k, v in payload.items()
+                    if k in URPPledge.__dataclass_fields__
+                }
+            )
             payload["reconstructed_signed"] = bool(reconstructed.signed)
         except Exception:
             payload["reconstructed_signed"] = False
@@ -393,7 +416,9 @@ class Node0StandaloneManager:
             "mcp": self._module_available("core.skills.mcp_bridge"),
             "a2a": self._module_available("core.a2a.engine"),
             "telescript_permit": self._module_available("core.sovereign.permit"),
-            "browser_autonomy": self._module_available("core.bridges.browser_mcp_client"),
+            "browser_autonomy": self._module_available(
+                "core.bridges.browser_mcp_client"
+            ),
         }
 
         roots = [
@@ -475,10 +500,16 @@ class Node0StandaloneManager:
         except Exception:
             return False
 
-    def _maybe_execute_filesystem_action(self, description: str) -> dict[str, Any] | None:
+    def _maybe_execute_filesystem_action(
+        self, description: str
+    ) -> dict[str, Any] | None:
         text = description.strip()
 
-        write_match = re.match(r"^(?:write|create)\s+file\s+(.+?)\s*::\s*(.+)$", text, re.IGNORECASE | re.DOTALL)
+        write_match = re.match(
+            r"^(?:write|create)\s+file\s+(.+?)\s*::\s*(.+)$",
+            text,
+            re.IGNORECASE | re.DOTALL,
+        )
         if write_match:
             raw_path = write_match.group(1).strip().strip('"')
             content = write_match.group(2)
@@ -491,7 +522,9 @@ class Node0StandaloneManager:
                 "bytes": len(content.encode("utf-8")),
             }
 
-        append_match = re.match(r"^append\s+file\s+(.+?)\s*::\s*(.+)$", text, re.IGNORECASE | re.DOTALL)
+        append_match = re.match(
+            r"^append\s+file\s+(.+?)\s*::\s*(.+)$", text, re.IGNORECASE | re.DOTALL
+        )
         if append_match:
             raw_path = append_match.group(1).strip().strip('"')
             content = append_match.group(2)
@@ -523,7 +556,11 @@ class Node0StandaloneManager:
                 "preview": content[:400],
             }
 
-        list_match = re.match(r"^(?:list\s+(?:dir|files\s+in)|show\s+files\s+in)\s+(.+)$", text, re.IGNORECASE)
+        list_match = re.match(
+            r"^(?:list\s+(?:dir|files\s+in)|show\s+files\s+in)\s+(.+)$",
+            text,
+            re.IGNORECASE,
+        )
         if list_match:
             raw_path = list_match.group(1).strip().strip('"')
             path = self._resolve_workspace_path(raw_path)
@@ -595,7 +632,9 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
     except ImportError as exc:
         raise SystemExit(f"Missing API dependencies: {exc}")
 
-    api_key = os.environ.get("BIZRA_NODE0_API_KEY") or os.environ.get("BIZRA_API_KEY") or ""
+    api_key = (
+        os.environ.get("BIZRA_NODE0_API_KEY") or os.environ.get("BIZRA_API_KEY") or ""
+    )
     api_key = api_key.strip()
     if args.host not in {"127.0.0.1", "localhost"} and not api_key:
         raise SystemExit(
@@ -628,11 +667,19 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
     async def root() -> dict[str, Any]:
         return {
             "name": "BIZRA Node0 Standalone API",
-            "endpoints": ["GET /health", "POST /activate", "POST /task", "GET /assets", "GET /lifecycle"],
+            "endpoints": [
+                "GET /health",
+                "POST /activate",
+                "POST /task",
+                "GET /assets",
+                "GET /lifecycle",
+            ],
         }
 
     @app.post("/activate")
-    async def activate(req: ActivateReq, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    async def activate(
+        req: ActivateReq, x_api_key: str | None = Header(default=None)
+    ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         return manager.activate(architect=req.architect, strict=req.strict)
 
@@ -651,7 +698,9 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
         return manager.lifecycle()
 
     @app.post("/task")
-    async def task(req: TaskReq, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    async def task(
+        req: TaskReq, x_api_key: str | None = Header(default=None)
+    ) -> dict[str, Any]:
         _require_api_key(x_api_key)
         if not req.description.strip():
             raise HTTPException(status_code=400, detail="description is required")
@@ -668,18 +717,28 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="BIZRA Node0 standalone lifecycle manager")
+    parser = argparse.ArgumentParser(
+        description="BIZRA Node0 standalone lifecycle manager"
+    )
     sub = parser.add_subparsers(dest="command")
 
     p_activate = sub.add_parser("activate", help="Activate Node0 lifecycle and assets")
-    p_activate.add_argument("--architect", default="MoMo", help="Founder/owner display name")
-    p_activate.add_argument("--strict", action="store_true", help="Require every gate (including optional integrations)")
+    p_activate.add_argument(
+        "--architect", default="MoMo", help="Founder/owner display name"
+    )
+    p_activate.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require every gate (including optional integrations)",
+    )
 
     sub.add_parser("health", help="Show standalone lifecycle health")
 
     p_task = sub.add_parser("task", help="Run one autonomous task")
     p_task.add_argument("description", help="Mission description")
-    p_task.add_argument("--source", default="node0_standalone_cli", help="Task source label")
+    p_task.add_argument(
+        "--source", default="node0_standalone_cli", help="Task source label"
+    )
     p_task.add_argument(
         "--browser-mode",
         choices=["mock", "direct", "mcp"],

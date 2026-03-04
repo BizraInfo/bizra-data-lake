@@ -46,7 +46,9 @@ def build_kpi_snapshot(
         "system1_ratio": float(summary.get("system1_ratio", 0.0)),
         "avg_ihsan": float(summary.get("avg_ihsan", 0.0)),
         "avg_latency_ms": float(summary.get("avg_latency_ms", 0.0)),
-        "speedup_system1_vs_system2": float(summary.get("speedup_system1_vs_system2", 0.0)),
+        "speedup_system1_vs_system2": float(
+            summary.get("speedup_system1_vs_system2", 0.0)
+        ),
         "impt_balance": float(summary.get("impt_balance", 0.0)),
         "ledger_chain_valid": bool(summary.get("ledger_chain_valid", False)),
         "signed_receipts": bool(summary.get("signed_receipts", False)),
@@ -95,12 +97,27 @@ def _emit_github_outputs(snapshot: dict[str, Any], output_path: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate Phase65 KPI snapshot artifacts.")
-    parser.add_argument("--summary", type=Path, required=True, help="Lifecycle summary JSON path.")
-    parser.add_argument("--gate-report", type=Path, required=True, help="Phase65 gate report JSON path.")
-    parser.add_argument("--out-json", type=Path, required=True, help="Output KPI JSON path.")
-    parser.add_argument("--out-md", type=Path, default=None, help="Optional output markdown path.")
-    parser.add_argument("--github-output", type=Path, default=None, help="Optional GITHUB_OUTPUT file path.")
+    parser = argparse.ArgumentParser(
+        description="Generate Phase65 KPI snapshot artifacts."
+    )
+    parser.add_argument(
+        "--summary", type=Path, required=True, help="Lifecycle summary JSON path."
+    )
+    parser.add_argument(
+        "--gate-report", type=Path, required=True, help="Phase65 gate report JSON path."
+    )
+    parser.add_argument(
+        "--out-json", type=Path, required=True, help="Output KPI JSON path."
+    )
+    parser.add_argument(
+        "--out-md", type=Path, default=None, help="Optional output markdown path."
+    )
+    parser.add_argument(
+        "--github-output",
+        type=Path,
+        default=None,
+        help="Optional GITHUB_OUTPUT file path.",
+    )
     args = parser.parse_args()
 
     summary_payload = _load_json(args.summary)

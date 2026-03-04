@@ -30,7 +30,11 @@ from core.proof_engine.reason_codes import ReasonCode
 try:
     from bizra_constitution.generated.generated_constants import (
         IHSAN_BLOOM_ELIGIBILITY as _CONSTITUTION_BLOOM_ELIGIBILITY,
+    )
+    from bizra_constitution.generated.generated_constants import (
         IHSAN_EXCELLENCE as _CONSTITUTION_IHSAN_EXCELLENCE,
+    )
+    from bizra_constitution.generated.generated_constants import (
         IHSAN_GATE_MINIMUM as _CONSTITUTION_GATE_MINIMUM,
     )
 except Exception:  # pragma: no cover - constitution package optional

@@ -421,16 +421,16 @@ class TestSpearpointPatternEndpoint:
 
     def test_pattern_endpoint_returns_200(self):
         """Pattern endpoint returns result from orchestrator.research_pattern."""
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+
         from starlette.testclient import TestClient
 
         from core.sovereign.api import create_fastapi_app
         from core.sovereign.runtime_types import RuntimeMetrics
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
-
-        import tempfile
-        from types import SimpleNamespace
-        from pathlib import Path
 
         runtime = MagicMock()
         _sd = Path(tempfile.mkdtemp())
@@ -477,16 +477,16 @@ class TestSpearpointPatternEndpoint:
 
     def test_pattern_endpoint_passes_all_fields(self):
         """All request fields are forwarded to orchestrator.research_pattern()."""
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+
         from starlette.testclient import TestClient
 
         from core.sovereign.api import create_fastapi_app
         from core.sovereign.runtime_types import RuntimeMetrics
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
-
-        import tempfile
-        from types import SimpleNamespace
-        from pathlib import Path
 
         runtime = MagicMock()
         _sd = Path(tempfile.mkdtemp())
@@ -535,14 +535,14 @@ class TestSpearpointPatternEndpoint:
 
     def test_pattern_endpoint_503_when_orchestrator_missing(self):
         """Returns 503 when orchestrator not wired."""
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+
         from starlette.testclient import TestClient
 
         from core.sovereign.api import create_fastapi_app
         from core.sovereign.runtime_types import RuntimeMetrics
-
-        import tempfile
-        from types import SimpleNamespace
-        from pathlib import Path
 
         runtime = MagicMock()
         _sd = Path(tempfile.mkdtemp())
@@ -575,16 +575,16 @@ class TestSpearpointPatternEndpoint:
 
     def test_pattern_endpoint_defaults(self):
         """Pattern endpoint works with only required fields."""
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+
         from starlette.testclient import TestClient
 
         from core.sovereign.api import create_fastapi_app
         from core.sovereign.runtime_types import RuntimeMetrics
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
-
-        import tempfile
-        from types import SimpleNamespace
-        from pathlib import Path
 
         runtime = MagicMock()
         _sd = Path(tempfile.mkdtemp())

@@ -5,7 +5,7 @@ import pytest
 
 from core.pci.crypto import generate_keypair, sign_message
 from core.proof_engine.canonical import hex_digest
-from core.zpk import ZPKConfig, ZeroPointKernel, ZPKPolicy
+from core.zpk import ZeroPointKernel, ZPKConfig, ZPKPolicy
 
 
 def _write_worker_bundle(

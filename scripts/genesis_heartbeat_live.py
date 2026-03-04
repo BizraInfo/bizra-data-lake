@@ -31,7 +31,6 @@ if _CONST_PKG.is_dir():
 import httpx
 from mission_pipeline import MissionPipeline, MissionStatus
 
-
 # ── Ollama LLM function ─────────────────────────────────────────────────────
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -113,9 +112,11 @@ def main() -> None:
         gate_str = "PASS" if (m.ihsan_score and m.ihsan_score.passes) else "FAIL"
         reflex_str = "HIT" if m.reflex_hit else "MISS"
 
-        print(f"         Status: {status_icon} | Ihsan: {ihsan_str} | "
-              f"Gate: {gate_str} | SNR: {snr_str} | "
-              f"Reflex: {reflex_str} | {elapsed:.1f}s")
+        print(
+            f"         Status: {status_icon} | Ihsan: {ihsan_str} | "
+            f"Gate: {gate_str} | SNR: {snr_str} | "
+            f"Reflex: {reflex_str} | {elapsed:.1f}s"
+        )
 
         # Show first 120 chars of LLM output
         output_preview = m.output_text[:120].replace("\n", " ")
@@ -137,8 +138,12 @@ def main() -> None:
 
     completed = sum(1 for m in results if m.status == MissionStatus.COMPLETE)
     gate_passes = sum(1 for m in results if m.ihsan_score and m.ihsan_score.passes)
-    avg_ihsan = sum(m.ihsan_score.composite for m in results if m.ihsan_score) / len(results)
-    avg_snr = sum(m.mission_snr.snr_normalized for m in results if m.mission_snr) / len(results)
+    avg_ihsan = sum(m.ihsan_score.composite for m in results if m.ihsan_score) / len(
+        results
+    )
+    avg_snr = sum(m.mission_snr.snr_normalized for m in results if m.mission_snr) / len(
+        results
+    )
 
     print(f"  Missions:     {completed}/{len(results)} COMPLETE")
     print(f"  Gate passes:  {gate_passes}/{len(results)}")

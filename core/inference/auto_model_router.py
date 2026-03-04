@@ -186,10 +186,7 @@ class AutoModelRouter:
             if resp.status_code == 200:
                 # OpenAI-compat has no "loaded" field — assume all available
                 # models COULD be loaded; caller must verify via inference
-                return {
-                    m["id"]
-                    for m in resp.json().get("data", [])
-                }
+                return {m["id"] for m in resp.json().get("data", [])}
         return set()
 
     async def _load_model(

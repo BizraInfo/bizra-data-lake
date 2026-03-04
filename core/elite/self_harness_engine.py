@@ -44,7 +44,15 @@ class HarnessProfile:
     def from_dict(cls, data: Optional[Dict[str, Any]]) -> "HarnessProfile":
         if not data:
             return cls(
-                include_paths=["core", "tests", "scripts", "deploy", "config", ".claude", "tools"],
+                include_paths=[
+                    "core",
+                    "tests",
+                    "scripts",
+                    "deploy",
+                    "config",
+                    ".claude",
+                    "tools",
+                ],
                 exclude_path_fragments=[
                     ".git/",
                     ".venv/",
@@ -72,7 +80,9 @@ class HarnessProfile:
                     category=str(raw.get("category", "general")),
                     severity=str(raw.get("severity", "low")).lower(),
                     description=str(raw.get("description", "")),
-                    file_globs=[str(x) for x in (raw.get("file_globs", []) or ["*.py"])],
+                    file_globs=[
+                        str(x) for x in (raw.get("file_globs", []) or ["*.py"])
+                    ],
                     patterns=[str(x) for x in (raw.get("patterns", []) or [])],
                     recommendation=str(raw.get("recommendation", "")),
                 )
@@ -82,12 +92,21 @@ class HarnessProfile:
             profile_name=str(data.get("profile_name", "bizra-agentic-self-harness")),
             profile_version=str(data.get("profile_version", "1.0.0")),
             cache_ttl_s=max(1, int(data.get("cache_ttl_s", 45))),
-            max_file_size_bytes=max(10_000, int(data.get("max_file_size_bytes", 1_500_000))),
+            max_file_size_bytes=max(
+                10_000, int(data.get("max_file_size_bytes", 1_500_000))
+            ),
             max_findings_per_rule=max(1, int(data.get("max_findings_per_rule", 200))),
-            include_paths=[str(x) for x in (data.get("include_paths", []) or ["core", "tests", "scripts"])],
-            exclude_path_fragments=[str(x) for x in (data.get("exclude_path_fragments", []) or [])],
+            include_paths=[
+                str(x)
+                for x in (data.get("include_paths", []) or ["core", "tests", "scripts"])
+            ],
+            exclude_path_fragments=[
+                str(x) for x in (data.get("exclude_path_fragments", []) or [])
+            ],
             penalties={
-                "critical": float((data.get("penalties", {}) or {}).get("critical", 0.045)),
+                "critical": float(
+                    (data.get("penalties", {}) or {}).get("critical", 0.045)
+                ),
                 "high": float((data.get("penalties", {}) or {}).get("high", 0.020)),
                 "medium": float((data.get("penalties", {}) or {}).get("medium", 0.010)),
                 "low": float((data.get("penalties", {}) or {}).get("low", 0.004)),
@@ -216,7 +235,9 @@ class SelfHarnessEngine:
 
         return round(max(0.0, min(1.0, score)), 6)
 
-    def _top_actions(self, findings: List[HarnessFinding], limit: int) -> List[Dict[str, Any]]:
+    def _top_actions(
+        self, findings: List[HarnessFinding], limit: int
+    ) -> List[Dict[str, Any]]:
         bucket: Dict[str, Dict[str, Any]] = {}
         for f in findings:
             key = f.rule_id

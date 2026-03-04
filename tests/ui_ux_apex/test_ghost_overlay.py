@@ -307,9 +307,8 @@ class TestNoHardcodedSecrets:
 
     def test_source_clean(self):
         """Ghost WS source has no hardcoded secrets."""
-        from tests.ui_ux_apex.conftest import assert_no_hardcoded_secrets
-
         import core.bridges.ghost_ws as mod
+        from tests.ui_ux_apex.conftest import assert_no_hardcoded_secrets
 
         source = inspect.getsource(mod)
         assert_no_hardcoded_secrets(source)

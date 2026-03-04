@@ -39,7 +39,9 @@ def test_lifecycle_emulation_impt_balance_stays_positive(tmp_path: Path) -> None
     assert summary["impt_balance"] > 0.0
 
 
-def test_lifecycle_emulation_strict_signing_requires_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_lifecycle_emulation_strict_signing_requires_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("BIZRA_RECEIPT_PRIVATE_KEY_HEX", raising=False)
     monkeypatch.delenv("BIZRA_RECEIPT_PUBLIC_KEY_HEX", raising=False)
     with pytest.raises(RuntimeError, match="Strict signing enabled"):

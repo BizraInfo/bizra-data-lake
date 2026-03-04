@@ -263,7 +263,9 @@ class ResourceFabric:
             by_category[cat] = by_category.get(cat, 0) + 1
 
         for asset in all_assets:
-            cat_weight = float(self.profile.category_weights.get(asset["category"], 0.05))
+            cat_weight = float(
+                self.profile.category_weights.get(asset["category"], 0.05)
+            )
             asset["composite_weight"] = round(asset["weight"] * cat_weight, 6)
 
         all_assets.sort(

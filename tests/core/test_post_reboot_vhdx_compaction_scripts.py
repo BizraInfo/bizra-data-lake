@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 RUN_ONCE = ROOT / "scripts" / "ops" / "post_reboot_vhdx_compact_once.ps1"
 SCHEDULER = ROOT / "scripts" / "ops" / "schedule_post_reboot_vhdx_compaction.ps1"

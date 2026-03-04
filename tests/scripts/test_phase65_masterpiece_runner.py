@@ -41,7 +41,9 @@ def test_phase65_masterpiece_runner_emits_artifacts_and_passes(
     assert kpi["signed_receipts"] is True
     assert kpi["tier"] in {"elite-operational", "operational"}
 
-    alpha = json.loads(Path(result["alpha_packet_json_path"]).read_text(encoding="utf-8"))
+    alpha = json.loads(
+        Path(result["alpha_packet_json_path"]).read_text(encoding="utf-8")
+    )
     assert alpha["decision"] == "CONDITIONAL_GO"
 
 

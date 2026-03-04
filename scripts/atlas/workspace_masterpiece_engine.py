@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 LENSES = (
     "code",
     "operations",
@@ -297,7 +296,10 @@ def analyze_inventory(
 
     action_plan = []
     runtime_share = (
-        (global_counts.get("runtime_state", 0) + global_counts.get("build_artifacts", 0))
+        (
+            global_counts.get("runtime_state", 0)
+            + global_counts.get("build_artifacts", 0)
+        )
         / total_files
         if total_files
         else 0.0
@@ -359,10 +361,7 @@ def analyze_inventory(
             }
         )
 
-    graph_nodes = [
-        {"id": lens, "type": "lens", "label": lens}
-        for lens in LENSES
-    ]
+    graph_nodes = [{"id": lens, "type": "lens", "label": lens} for lens in LENSES]
     graph_nodes.extend(
         {
             "id": f"domain:{row.domain}",

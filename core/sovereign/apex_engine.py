@@ -1911,7 +1911,11 @@ class _FallbackSNRMaximizer:
             "snr_linear": snr,
             "snr_normalized": snr,  # already bounded
             "ihsan_achieved": snr >= self.threshold,
-            "to_dict": lambda: {"snr_linear": snr, "snr_normalized": snr, "method": "fallback"},
+            "to_dict": lambda: {
+                "snr_linear": snr,
+                "snr_normalized": snr,
+                "method": "fallback",
+            },
         }
 
 

@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -34,10 +33,10 @@ def test_systemd_services_default_to_localhost_binding():
     inference_service = _read("deploy/node0/systemd-services/bizra-inference.service")
     dashboard_service = _read("deploy/node0/systemd-services/bizra-dashboard.service")
 
-    assert "Environment=\"BIZRA_API_HOST=127.0.0.1\"" in api_service
+    assert 'Environment="BIZRA_API_HOST=127.0.0.1"' in api_service
     assert "--host ${BIZRA_API_HOST}" in api_service
-    assert "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"" in inference_service
-    assert "Environment=\"BIZRA_DASHBOARD_HOST=127.0.0.1\"" in dashboard_service
+    assert 'Environment="OLLAMA_HOST=127.0.0.1:11434"' in inference_service
+    assert 'Environment="BIZRA_DASHBOARD_HOST=127.0.0.1"' in dashboard_service
     assert "--host ${BIZRA_DASHBOARD_HOST}" in dashboard_service
 
 

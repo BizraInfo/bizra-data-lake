@@ -372,6 +372,7 @@ class RLMSandbox:
             hasattr(signal, "SIGALRM")
             and threading.current_thread() is threading.main_thread()
         ):
+
             def _alarm_handler(signum: int, frame: Any) -> None:
                 raise RLMSandboxTimeoutError(message)
 

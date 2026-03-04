@@ -15,8 +15,8 @@ from core.sovereign.event_bus import Event, EventBus, EventPriority
 from core.swarm.engine import SwarmEngine
 from core.swarm.event_bridge import SwarmEventBridge, wire_swarm_to_bus
 from core.swarm.types import (
-    AgentSpec,
     AgentRole,
+    AgentSpec,
     SwarmConfig,
     SwarmEventKind,
 )

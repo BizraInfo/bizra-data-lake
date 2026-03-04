@@ -24,14 +24,18 @@ class _DummyRequest:
 
 
 def test_extract_request_token_uses_bearer_then_api_key() -> None:
-    req = _DummyRequest(headers={"authorization": "Bearer token-1", "x-api-key": "token-2"})
+    req = _DummyRequest(
+        headers={"authorization": "Bearer token-1", "x-api-key": "token-2"}
+    )
     assert mcp_gateway._extract_request_token(req) == "token-1"
 
     req = _DummyRequest(headers={"x-api-key": "token-2"})
     assert mcp_gateway._extract_request_token(req) == "token-2"
 
 
-def test_authorize_request_requires_configured_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_authorize_request_requires_configured_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("BIZRA_MCP_GATEWAY_TOKEN", raising=False)
     monkeypatch.delenv("BIZRA_BRIDGE_TOKEN", raising=False)
     monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)
@@ -43,7 +47,9 @@ def test_authorize_request_requires_configured_token(monkeypatch: pytest.MonkeyP
     assert exc.value.status_code == 503
 
 
-def test_authorize_request_rejects_remote_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_authorize_request_rejects_remote_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("BIZRA_MCP_GATEWAY_TOKEN", "gateway-secret")
     monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)
     monkeypatch.delenv("BIZRA_MCP_ALLOW_REMOTE", raising=False)
@@ -57,7 +63,9 @@ def test_authorize_request_rejects_remote_by_default(monkeypatch: pytest.MonkeyP
     assert exc.value.status_code == 403
 
 
-def test_authorize_request_rejects_invalid_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_authorize_request_rejects_invalid_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("BIZRA_MCP_GATEWAY_TOKEN", "gateway-secret")
     monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)
     monkeypatch.delenv("BIZRA_MCP_ALLOW_REMOTE", raising=False)
@@ -68,7 +76,9 @@ def test_authorize_request_rejects_invalid_token(monkeypatch: pytest.MonkeyPatch
     assert exc.value.status_code == 401
 
 
-def test_authorize_request_accepts_valid_local_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_authorize_request_accepts_valid_local_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("BIZRA_MCP_GATEWAY_TOKEN", "gateway-secret")
     monkeypatch.delenv("BIZRA_MCP_ALLOW_ANONYMOUS", raising=False)
     monkeypatch.delenv("BIZRA_MCP_ALLOW_REMOTE", raising=False)

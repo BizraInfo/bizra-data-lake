@@ -19,7 +19,6 @@ from core.elite.floor_constraint import (
     daughter_test,
 )
 
-
 # ── Helpers ──────────────────────────────────────────────────
 
 
@@ -165,9 +164,7 @@ class TestFloorConstraintCheck:
 
     def test_never_fails_for_missing_network(self):
         """Missing network NEVER causes floor violation. Offline-first always."""
-        body = _make_node_body(
-            cpu_cores=4, ram_gb=4, disk_gb=10, has_network=False
-        )
+        body = _make_node_body(cpu_cores=4, ram_gb=4, disk_gb=10, has_network=False)
         result = FloorConstraint().check(body)
         assert result.compliant is True
         assert not any("network" in v.lower() for v in result.violations)

@@ -110,14 +110,22 @@ def build_graph(root_dir: Path) -> dict[str, CheckNode]:
             label="Ultimate hardening aggregate",
             domain="governance",
             severity="critical",
-            deps=["rust_api", "auth_guardrails", "zpk_rlm", "transport", "bridge_infra"],
+            deps=[
+                "rust_api",
+                "auth_guardrails",
+                "zpk_rlm",
+                "transport",
+                "bridge_infra",
+            ],
         ),
     }
 
     return graph
 
 
-def _walk(node_id: str, graph: dict[str, CheckNode], visiting: set[str], visited: set[str]) -> None:
+def _walk(
+    node_id: str, graph: dict[str, CheckNode], visiting: set[str], visited: set[str]
+) -> None:
     if node_id in visited:
         return
     if node_id in visiting:
@@ -137,9 +145,13 @@ def validate_graph(graph: dict[str, CheckNode]) -> None:
     for node_id in graph:
         _walk(node_id, graph, set(), visited)
 
-    total_weight = sum(node.weight for node in graph.values() if node.command is not None)
+    total_weight = sum(
+        node.weight for node in graph.values() if node.command is not None
+    )
     if abs(total_weight - 1.0) > 1e-9:
-        raise ValueError(f"Executable node weights must sum to 1.0, got {total_weight:.6f}")
+        raise ValueError(
+            f"Executable node weights must sum to 1.0, got {total_weight:.6f}"
+        )
 
 
 def _tail(text: str, max_lines: int = 60) -> str:
@@ -147,7 +159,9 @@ def _tail(text: str, max_lines: int = 60) -> str:
     return "\n".join(lines[-max_lines:])
 
 
-def _run_command(node: CheckNode, allow_offline_cargo: bool) -> tuple[int, str, str, bool]:
+def _run_command(
+    node: CheckNode, allow_offline_cargo: bool
+) -> tuple[int, str, str, bool]:
     assert node.command is not None
     process = subprocess.run(
         node.command,
@@ -220,16 +234,22 @@ def run_graph(graph: dict[str, CheckNode], allow_offline_cargo: bool) -> None:
             remaining.remove(node_id)
             progressed = True
             state = "PASS" if node.status == "passed" else "FAIL"
-            print(f"[phase56-engine] {node.label}: {state} ({node.duration_seconds:.2f}s)")
+            print(
+                f"[phase56-engine] {node.label}: {state} ({node.duration_seconds:.2f}s)"
+            )
 
         if not progressed:
             unresolved = ", ".join(sorted(remaining))
-            raise RuntimeError(f"Could not resolve graph execution for nodes: {unresolved}")
+            raise RuntimeError(
+                f"Could not resolve graph execution for nodes: {unresolved}"
+            )
 
 
 def calculate_snr(graph: dict[str, CheckNode]) -> tuple[float, float, float]:
     signal = sum(
-        node.weight for node in graph.values() if node.command is not None and node.status == "passed"
+        node.weight
+        for node in graph.values()
+        if node.command is not None and node.status == "passed"
     )
     noise = sum(
         node.weight
@@ -241,7 +261,13 @@ def calculate_snr(graph: dict[str, CheckNode]) -> tuple[float, float, float]:
     return signal, noise, snr
 
 
-def _render_markdown(graph: dict[str, CheckNode], signal: float, noise: float, snr: float, threshold: float) -> str:
+def _render_markdown(
+    graph: dict[str, CheckNode],
+    signal: float,
+    noise: float,
+    snr: float,
+    threshold: float,
+) -> str:
     lines = [
         "# Phase56 Autonomous Security Engine Report",
         "",

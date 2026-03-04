@@ -3183,7 +3183,9 @@ class SovereignRuntime:
 
             # Optional thermodynamic gate (Lyapunov + thermal Ihsan).
             # Off by default to preserve current runtime contract.
-            use_thermal_gate = os.getenv("BIZRA_ENABLE_THERMODYNAMIC_GATE", "0").lower() in {
+            use_thermal_gate = os.getenv(
+                "BIZRA_ENABLE_THERMODYNAMIC_GATE", "0"
+            ).lower() in {
                 "1",
                 "true",
                 "yes",
@@ -3191,7 +3193,9 @@ class SovereignRuntime:
             }
             if use_thermal_gate:
                 try:
-                    from core.proof_engine.thermodynamic_gate import ThermodynamicIhsanGate
+                    from core.proof_engine.thermodynamic_gate import (
+                        ThermodynamicIhsanGate,
+                    )
 
                     thermal_gate = ThermodynamicIhsanGate(
                         threshold=self.config.ihsan_threshold

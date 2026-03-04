@@ -24,10 +24,6 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-# Mocks are injected by tests/core/search/conftest.py — import from there
-from tests.core.search.conftest import mock_faiss as _mock_faiss
-from tests.core.search.conftest import mock_pd_module as _mock_pd_module
-
 # ---------------------------------------------------------------------------
 # NOW safe to import the module under test
 # ---------------------------------------------------------------------------
@@ -42,6 +38,10 @@ from core.search.vector_search import (  # noqa: E402
     VectorSearchEngine,
     _resolve_root,
 )
+
+# Mocks are injected by tests/core/search/conftest.py — import from there
+from tests.core.search.conftest import mock_faiss as _mock_faiss
+from tests.core.search.conftest import mock_pd_module as _mock_pd_module
 
 # ---------------------------------------------------------------------------
 # Fixture: reset mocks between tests so side_effect / return_value don't leak

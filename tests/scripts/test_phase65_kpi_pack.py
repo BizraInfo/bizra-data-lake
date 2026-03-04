@@ -71,4 +71,6 @@ def test_render_markdown_contains_key_rows(tmp_path: Path) -> None:
 
     output = tmp_path / "snapshot.json"
     output.write_text(json.dumps(snapshot), encoding="utf-8")
-    assert json.loads(output.read_text(encoding="utf-8"))["final_state"] == "FLOURISHING"
+    assert (
+        json.loads(output.read_text(encoding="utf-8"))["final_state"] == "FLOURISHING"
+    )

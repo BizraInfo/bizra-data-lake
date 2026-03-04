@@ -17,7 +17,6 @@ from core.iaas.snr_dual_verification import (
     compute_snr_dual,
 )
 
-
 # ---------------------------------------------------------------------------
 # DualVerificationScore tests
 # ---------------------------------------------------------------------------
@@ -36,9 +35,9 @@ class TestDualVerificationScore:
         for g in [0.0, 0.25, 0.5, 0.75, 1.0]:
             for p in [0.0, 0.25, 0.5, 0.75, 1.0]:
                 dv = DualVerificationScore(gate_score=g, pool_score=p)
-                assert 0.0 <= dv.combined <= 1.0, (
-                    f"combined={dv.combined} out of range for g={g}, p={p}"
-                )
+                assert (
+                    0.0 <= dv.combined <= 1.0
+                ), f"combined={dv.combined} out of range for g={g}, p={p}"
 
     def test_zero_gate_zero_combined(self) -> None:
         """P2: Failed gate zeroes everything."""
@@ -113,24 +112,18 @@ class TestFromPoolVotes:
 
     def test_from_pool_votes_ratio(self) -> None:
         """pool_score = honest / total."""
-        dv = DualVerificationScore.from_pool_votes(
-            honest=8, total=10, gate_score=0.9
-        )
+        dv = DualVerificationScore.from_pool_votes(honest=8, total=10, gate_score=0.9)
         assert abs(dv.pool_score - 0.8) < 1e-6
         assert abs(dv.gate_score - 0.9) < 1e-6
 
     def test_from_pool_votes_zero_total(self) -> None:
         """Zero total validators yields pool_score = 0.0."""
-        dv = DualVerificationScore.from_pool_votes(
-            honest=0, total=0, gate_score=1.0
-        )
+        dv = DualVerificationScore.from_pool_votes(honest=0, total=0, gate_score=1.0)
         assert dv.pool_score == 0.0
 
     def test_from_pool_votes_unanimous(self) -> None:
         """Unanimous approval yields pool_score = 1.0."""
-        dv = DualVerificationScore.from_pool_votes(
-            honest=5, total=5, gate_score=0.95
-        )
+        dv = DualVerificationScore.from_pool_votes(honest=5, total=5, gate_score=0.95)
         assert dv.pool_score == 1.0
 
 

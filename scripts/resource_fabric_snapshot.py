@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -40,7 +40,9 @@ def main() -> int:
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(snapshot, indent=2, ensure_ascii=True), encoding="utf-8")
+    args.output.write_text(
+        json.dumps(snapshot, indent=2, ensure_ascii=True), encoding="utf-8"
+    )
 
     print(
         json.dumps(

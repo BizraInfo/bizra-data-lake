@@ -6,6 +6,7 @@ Validates that the extended axiom system (Identity, Body, Interaction
 Boundary, Pool Consensus, Dual Verification, SAT Economy) is satisfiable
 and consistent with the Phase 60 kernel invariants.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -14,7 +15,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 
 PROOF_CHAIN_V2 = (
     Path(__file__).resolve().parents[2] / "formal_proofs" / "proof_chain_v2.smt2"
@@ -72,16 +72,16 @@ class TestZ3ProofChainV2:
     def test_z3_proof_chain_v2_is_satisfiable(self) -> None:
         """The complete proof chain v2.0 axiom system must be SAT."""
         result = run_z3(PROOF_CHAIN_V2)
-        assert result["result"] == "sat", (
-            f"Z3 returned {result['result']}: {result['output'][:500]}"
-        )
+        assert (
+            result["result"] == "sat"
+        ), f"Z3 returned {result['result']}: {result['output'][:500]}"
 
     def test_z3_proof_chain_v2_completes_quickly(self) -> None:
         """V2 verification must complete in < 30 seconds."""
         result = run_z3(PROOF_CHAIN_V2, timeout_seconds=30)
-        assert result["duration_ms"] < 30000, (
-            f"Z3 took {result['duration_ms']:.0f}ms (limit: 30000ms)"
-        )
+        assert (
+            result["duration_ms"] < 30000
+        ), f"Z3 took {result['duration_ms']:.0f}ms (limit: 30000ms)"
 
     def test_z3_identity_uniqueness_holds(self) -> None:
         """Axiom 8: same ID implies same public key — verified by Z3 SAT."""

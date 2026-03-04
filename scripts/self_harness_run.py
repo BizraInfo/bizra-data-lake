@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -33,7 +33,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    engine = SelfHarnessEngine(project_root=args.project_root, profile_path=args.profile)
+    engine = SelfHarnessEngine(
+        project_root=args.project_root, profile_path=args.profile
+    )
     report = engine.run(
         include_findings=bool(args.include_findings),
         findings_limit=max(1, args.findings_limit),
@@ -41,7 +43,9 @@ def main() -> int:
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    args.output.write_text(
+        json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8"
+    )
 
     print(
         json.dumps(

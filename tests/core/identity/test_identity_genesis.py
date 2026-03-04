@@ -142,10 +142,12 @@ class TestNodeBody:
             disk_bytes=1_000_000_000_000,
             loaded_models={"phi3:mini", "mxbai-embed-large"},
         )
-        assert body.can_execute_local({
-            "required_models": {"phi3:mini"},
-            "min_gpu_vram_mb": 8000,
-        })
+        assert body.can_execute_local(
+            {
+                "required_models": {"phi3:mini"},
+                "min_gpu_vram_mb": 8000,
+            }
+        )
 
     def test_body_cannot_execute_without_model(self):
         body = NodeBody(
@@ -156,10 +158,12 @@ class TestNodeBody:
             disk_bytes=1_000_000_000_000,
             loaded_models={"phi3:mini"},
         )
-        assert not body.can_execute_local({
-            "required_models": {"llama3.1-70b"},
-            "min_gpu_vram_mb": 40000,
-        })
+        assert not body.can_execute_local(
+            {
+                "required_models": {"llama3.1-70b"},
+                "min_gpu_vram_mb": 40000,
+            }
+        )
 
     def test_body_cpu_only_delegates_gpu_missions(self):
         body = NodeBody(

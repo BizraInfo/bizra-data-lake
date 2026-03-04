@@ -20,8 +20,9 @@ from core.sovereign.runtime_types import RuntimeMetrics
 
 def _mock_runtime(with_orchestrator: bool = True, state_dir=None) -> MagicMock:
     """Create a mock runtime with optional spearpoint orchestrator."""
-    from types import SimpleNamespace
     import tempfile
+    from types import SimpleNamespace
+
     runtime = MagicMock()
     runtime.config = SimpleNamespace(
         state_dir=_Path(state_dir) if state_dir else _Path(tempfile.mkdtemp())

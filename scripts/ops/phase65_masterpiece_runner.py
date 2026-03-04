@@ -17,19 +17,30 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from scripts.node0_lifecycle_emulation import EmulationConfig, run_lifecycle_emulation
+    from scripts.node0_lifecycle_emulation import (
+        EmulationConfig,
+        run_lifecycle_emulation,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _emit_github_outputs as _emit_alpha_outputs,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _load_json as _load_manual_checks_json,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _load_yaml as _load_blueprint_yaml,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        build_alpha_launch_packet,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        render_markdown as render_alpha_markdown,
+    )
     from scripts.ops.phase65_blueprint_gate import _load_yaml, evaluate
     from scripts.ops.phase65_kpi_pack import (
         _emit_github_outputs,
         build_kpi_snapshot,
         render_markdown,
-    )
-    from scripts.ops.phase65_alpha_launch_packet import (
-        _emit_github_outputs as _emit_alpha_outputs,
-        _load_json as _load_manual_checks_json,
-        _load_yaml as _load_blueprint_yaml,
-        build_alpha_launch_packet,
-        render_markdown as render_alpha_markdown,
     )
 except ModuleNotFoundError:  # pragma: no cover - CLI fallback
     repo_root = Path(__file__).resolve().parents[2]
@@ -38,19 +49,30 @@ except ModuleNotFoundError:  # pragma: no cover - CLI fallback
     for mod_name in list(sys.modules):
         if mod_name == "scripts" or mod_name.startswith("scripts."):
             sys.modules.pop(mod_name, None)
-    from scripts.node0_lifecycle_emulation import EmulationConfig, run_lifecycle_emulation
+    from scripts.node0_lifecycle_emulation import (
+        EmulationConfig,
+        run_lifecycle_emulation,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _emit_github_outputs as _emit_alpha_outputs,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _load_json as _load_manual_checks_json,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        _load_yaml as _load_blueprint_yaml,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        build_alpha_launch_packet,
+    )
+    from scripts.ops.phase65_alpha_launch_packet import (
+        render_markdown as render_alpha_markdown,
+    )
     from scripts.ops.phase65_blueprint_gate import _load_yaml, evaluate
     from scripts.ops.phase65_kpi_pack import (
         _emit_github_outputs,
         build_kpi_snapshot,
         render_markdown,
-    )
-    from scripts.ops.phase65_alpha_launch_packet import (
-        _emit_github_outputs as _emit_alpha_outputs,
-        _load_json as _load_manual_checks_json,
-        _load_yaml as _load_blueprint_yaml,
-        build_alpha_launch_packet,
-        render_markdown as render_alpha_markdown,
     )
 
 
@@ -129,7 +151,9 @@ def run_phase65_masterpiece(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run Phase65 lifecycle + gate + KPI pipeline.")
+    parser = argparse.ArgumentParser(
+        description="Run Phase65 lifecycle + gate + KPI pipeline."
+    )
     parser.add_argument(
         "--state-dir",
         type=Path,

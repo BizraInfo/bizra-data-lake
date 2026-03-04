@@ -45,6 +45,7 @@ def populated_telemetry():
 def mock_runtime(populated_telemetry, tmp_path):
     """Mock runtime with judgment telemetry attached."""
     from types import SimpleNamespace
+
     runtime = MagicMock()
     runtime.config = SimpleNamespace(state_dir=tmp_path / "state")
     runtime._judgment_telemetry = populated_telemetry
@@ -55,6 +56,7 @@ def mock_runtime(populated_telemetry, tmp_path):
 def mock_runtime_no_jt(tmp_path):
     """Mock runtime without judgment telemetry."""
     from types import SimpleNamespace
+
     runtime = MagicMock()
     runtime.config = SimpleNamespace(state_dir=tmp_path / "state")
     runtime._judgment_telemetry = None

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from scripts.ops.phase65_blueprint_gate import evaluate
 
+
 def _load_cfg_via_yaml() -> dict:
     import yaml
 

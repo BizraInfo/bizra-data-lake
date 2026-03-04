@@ -526,7 +526,9 @@ class NoiseTransport(SecureChannel):
         """Build handshake message to sign/verify for identity binding."""
         return IDENTITY_BINDING_CONTEXT + local_ephemeral + remote_ephemeral
 
-    def _sign_identity_binding(self, local_ephemeral: bytes, remote_ephemeral: bytes) -> bytes:
+    def _sign_identity_binding(
+        self, local_ephemeral: bytes, remote_ephemeral: bytes
+    ) -> bytes:
         """Sign handshake binding data with the local Ed25519 identity key."""
         message = self._identity_binding_message(local_ephemeral, remote_ephemeral)
         return self._identity_private.sign(message)
@@ -786,9 +788,7 @@ class NoiseTransport(SecureChannel):
         if len(response) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
             peer_identity_public = response[offset : offset + ED25519_PUBLIC_KEY_SIZE]
             offset += ED25519_PUBLIC_KEY_SIZE
-            peer_identity_signature = response[
-                offset : offset + ED25519_SIGNATURE_SIZE
-            ]
+            peer_identity_signature = response[offset : offset + ED25519_SIGNATURE_SIZE]
             offset += ED25519_SIGNATURE_SIZE
 
             expected_peer_identity = handshake_state.get("expected_peer_static_public")
@@ -861,7 +861,9 @@ class NoiseTransport(SecureChannel):
         if len(final_msg) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
             peer_identity_public = final_msg[offset : offset + ED25519_PUBLIC_KEY_SIZE]
             offset += ED25519_PUBLIC_KEY_SIZE
-            peer_identity_signature = final_msg[offset : offset + ED25519_SIGNATURE_SIZE]
+            peer_identity_signature = final_msg[
+                offset : offset + ED25519_SIGNATURE_SIZE
+            ]
             offset += ED25519_SIGNATURE_SIZE
 
             if not self._verify_identity_binding(
@@ -1025,10 +1027,7 @@ class DTLSTransport(SecureChannel):
     ) -> bytes:
         """Build client-side DTLS identity proof message."""
         return (
-            IDENTITY_BINDING_CONTEXT
-            + b"dtls-client"
-            + client_random
-            + client_ephemeral
+            IDENTITY_BINDING_CONTEXT + b"dtls-client" + client_random + client_ephemeral
         )
 
     def _server_identity_binding_message(
@@ -1200,7 +1199,10 @@ class DTLSTransport(SecureChannel):
         offset += NOISE_DH_SIZE
 
         client_identity_public = client_e_public
-        if len(handshake_init) >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE:
+        if (
+            len(handshake_init)
+            >= offset + ED25519_PUBLIC_KEY_SIZE + ED25519_SIGNATURE_SIZE
+        ):
             client_identity_public = handshake_init[
                 offset : offset + ED25519_PUBLIC_KEY_SIZE
             ]
@@ -1216,7 +1218,9 @@ class DTLSTransport(SecureChannel):
                 )
                 identity.verify(
                     client_identity_signature,
-                    self._client_identity_binding_message(client_random, client_e_public),
+                    self._client_identity_binding_message(
+                        client_random, client_e_public
+                    ),
                 )
             except (ValueError, InvalidSignature):
                 raise HandshakeError("Client identity signature invalid")

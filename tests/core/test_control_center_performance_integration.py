@@ -59,8 +59,13 @@ def test_control_center_paths_reference_real_workspace_files():
     assert "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\CloudIngestion.ps1" in content
     assert "C:\\BIZRA-DATA-LAKE\\docs\\QUICK-START.md" in content
     assert "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\VHDX-COMPACTION-LAUNCHER.bat" in content
-    assert "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\PAGEFILE-GOVERNANCE-LAUNCHER.bat" in content
-    assert "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\SCHEDULE-POST-REBOOT-COMPACTION.bat" in content
+    assert (
+        "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\PAGEFILE-GOVERNANCE-LAUNCHER.bat" in content
+    )
+    assert (
+        "C:\\BIZRA-DATA-LAKE\\scripts\\ops\\SCHEDULE-POST-REBOOT-COMPACTION.bat"
+        in content
+    )
 
 
 def test_shortcut_targets_actual_control_center_path():

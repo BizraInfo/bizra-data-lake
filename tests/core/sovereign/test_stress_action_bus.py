@@ -16,7 +16,6 @@ from core.sovereign.stress_tensor import (
     sort_by_priority,
 )
 
-
 # -- StressTensor tests ------------------------------------------------------
 
 

@@ -88,10 +88,18 @@ class AmplifiedReasoningContext:
 _STATE_PROFILE: Final[dict[str, dict[str, Any]]] = {
     HMMState.IDLE.value: {"focus": "stabilize", "hhmm_layer": 0, "branch_bias": 0},
     HMMState.EXPLORING.value: {"focus": "diverge", "hhmm_layer": 1, "branch_bias": 1},
-    HMMState.ORGANIZING.value: {"focus": "structure", "hhmm_layer": 2, "branch_bias": 0},
+    HMMState.ORGANIZING.value: {
+        "focus": "structure",
+        "hhmm_layer": 2,
+        "branch_bias": 0,
+    },
     HMMState.CREATING.value: {"focus": "synthesize", "hhmm_layer": 2, "branch_bias": 1},
     HMMState.ANALYZING.value: {"focus": "verify", "hhmm_layer": 3, "branch_bias": 1},
-    HMMState.COMMUNICATING.value: {"focus": "explain", "hhmm_layer": 1, "branch_bias": 0},
+    HMMState.COMMUNICATING.value: {
+        "focus": "explain",
+        "hhmm_layer": 1,
+        "branch_bias": 0,
+    },
 }
 
 
@@ -232,4 +240,3 @@ class DiffusionReasoningAmplifier:
             "diffusion_focus": ctx.focus,
             "diffusion_active": ctx.activated,
         }
-

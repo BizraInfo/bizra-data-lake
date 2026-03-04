@@ -1,8 +1,8 @@
 # BIZRA Test Configuration
 # Pytest fixtures and configuration
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 import pytest
