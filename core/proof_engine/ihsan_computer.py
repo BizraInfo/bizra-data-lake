@@ -18,10 +18,12 @@ Standing on Giants:
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
+from core.constitutional.energy_functions import ThermodynamicEnergySuite
 from core.proof_engine.ihsan_gate import IhsanComponents
 
 _WORD_RE = re.compile(r"[a-zA-Z0-9_']+")
@@ -101,6 +103,19 @@ class IhsanComputer:
         "metric",
     )
 
+    def __init__(
+        self,
+        *,
+        enable_thermal_mode: Optional[bool] = None,
+        thermal_suite: Optional[ThermodynamicEnergySuite] = None,
+    ) -> None:
+        if enable_thermal_mode is None:
+            raw = os.getenv("BIZRA_ENABLE_THERMODYNAMIC_IHSAN", "0").lower()
+            self.enable_thermal_mode = raw in {"1", "true", "yes", "on"}
+        else:
+            self.enable_thermal_mode = bool(enable_thermal_mode)
+        self.thermal_suite = thermal_suite or ThermodynamicEnergySuite()
+
     def compute(
         self,
         content: str,
@@ -134,6 +149,15 @@ class IhsanComputer:
             query_text=query_text,
             context=context,
         )
+        if self._thermal_mode_enabled(context):
+            thermal_components = self._compute_via_thermodynamic_mapping(
+                content=content,
+                snr_score=snr_score,
+                query_text=query_text,
+                context=context,
+            )
+            return thermal_components, signals
+
         snr = _clamp01(0.5 if snr_score is None else float(snr_score))
 
         correctness = self._score_correctness(signals, snr)
@@ -149,6 +173,70 @@ class IhsanComputer:
                 user_benefit=user_benefit,
             ),
             signals,
+        )
+
+    def _thermal_mode_enabled(self, context: Optional[Mapping[str, Any]]) -> bool:
+        if context:
+            raw_mode = context.get("ihsan_mode")
+            if isinstance(raw_mode, str) and raw_mode.lower() == "thermal":
+                return True
+            raw_enabled = context.get("enable_thermodynamic_ihsan")
+            if isinstance(raw_enabled, bool):
+                return raw_enabled
+            if isinstance(raw_enabled, str):
+                return raw_enabled.lower() in {"1", "true", "yes", "on"}
+        return self.enable_thermal_mode
+
+    def _compute_via_thermodynamic_mapping(
+        self,
+        *,
+        content: str,
+        snr_score: Optional[float],
+        query_text: str,
+        context: Optional[Mapping[str, Any]],
+    ) -> IhsanComponents:
+        step_raw = 0
+        if context:
+            step_raw = (
+                context.get("thermal_step")
+                or context.get("anneal_step")
+                or context.get("step")
+                or 0
+            )
+        try:
+            step = int(step_raw)
+        except (TypeError, ValueError):
+            step = 0
+
+        profile = self.thermal_suite.compute(
+            content=content,
+            snr_score=snr_score,
+            query_text=query_text,
+            context=context,
+            step=step,
+        )
+        dims = profile.ihsan_dimensions
+
+        correctness = _clamp01(
+            (
+                dims["moral_clarity"]
+                + dims["epistemic_humility"]
+                + dims["structural_integrity"]
+            )
+            / 3.0
+        )
+        safety = _clamp01((dims["moral_clarity"] + dims["resilience"]) / 2.0)
+        user_benefit = _clamp01(
+            (dims["contextual_relevance"] + dims["intent_alignment"]) / 2.0
+        )
+
+        return IhsanComponents(
+            correctness=correctness,
+            safety=safety,
+            efficiency=dims["efficiency"],
+            user_benefit=user_benefit,
+            auditability=dims["verifiability"],
+            robustness=dims["resilience"],
         )
 
     def _extract_signals(

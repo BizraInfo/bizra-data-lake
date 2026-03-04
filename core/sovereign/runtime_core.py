@@ -3181,6 +3181,50 @@ class SovereignRuntime:
             ihsan_score = ihsan_gate_result["score"]
             guardian_verdict = ihsan_gate_result["decision"]
 
+            # Optional thermodynamic gate (Lyapunov + thermal Ihsan).
+            # Off by default to preserve current runtime contract.
+            use_thermal_gate = os.getenv("BIZRA_ENABLE_THERMODYNAMIC_GATE", "0").lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
+            if use_thermal_gate:
+                try:
+                    from core.proof_engine.thermodynamic_gate import ThermodynamicIhsanGate
+
+                    thermal_gate = ThermodynamicIhsanGate(
+                        threshold=self.config.ihsan_threshold
+                    )
+                    thermal_step = context.get("thermal_step", 0)
+                    prev_energy = context.get("previous_total_energy")
+                    thermal_decision = thermal_gate.evaluate(
+                        content=content,
+                        snr_score=snr_score,
+                        query_text=query.text,
+                        context=context,
+                        previous_energy=(
+                            float(prev_energy) if prev_energy is not None else None
+                        ),
+                        step=thermal_step,
+                    )
+                    context["thermodynamic_ihsan"] = thermal_decision.to_dict()
+                    ihsan_score = min(
+                        ihsan_score, thermal_decision.profile.composite_ihsan
+                    )
+                    if not thermal_decision.approved:
+                        guardian_verdict = "THERMODYNAMIC_REJECTED"
+                        ihsan_gate_result["decision"] = "REJECTED"
+                        ihsan_gate_result["passed"] = False
+                        reason_codes = ihsan_gate_result.setdefault("reason_codes", [])
+                        if "THERMODYNAMIC_GATE_REJECTED" not in reason_codes:
+                            reason_codes.append("THERMODYNAMIC_GATE_REJECTED")
+                except Exception as thermal_gate_err:
+                    self.logger.debug(
+                        "Thermodynamic gate unavailable, continuing without it: %s",
+                        thermal_gate_err,
+                    )
+
             # Record in IHSAN_FLOOR watchdog (MCG governance invariant)
             if self._ihsan_watchdog is not None:
                 healthy = self._ihsan_watchdog.record(ihsan_score)

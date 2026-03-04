@@ -90,3 +90,41 @@ class TestIhsanComputer:
         )
 
         assert high_risk.safety < baseline.safety
+
+    def test_thermal_mode_populates_optional_dimensions(self) -> None:
+        computer = IhsanComputer(enable_thermal_mode=True)
+        components = computer.compute(
+            content=(
+                "Step 1: measure latency. "
+                "Step 2: optimize bottlenecks. "
+                "Step 3: verify with benchmark metrics."
+            ),
+            snr_score=0.9,
+            query_text="How do I optimize latency safely?",
+            context={"risk_score": 0.1, "thermal_step": 2},
+        )
+
+        assert components.auditability is not None
+        assert components.robustness is not None
+        assert 0.0 <= components.auditability <= 1.0
+        assert 0.0 <= components.robustness <= 1.0
+
+    def test_context_flag_enables_thermal_mode(self) -> None:
+        computer = IhsanComputer(enable_thermal_mode=False)
+        thermal = computer.compute(
+            content="Step 1: verify. Step 2: measure.",
+            snr_score=0.8,
+            query_text="verify",
+            context={"ihsan_mode": "thermal"},
+        )
+        heuristic = computer.compute(
+            content="Step 1: verify. Step 2: measure.",
+            snr_score=0.8,
+            query_text="verify",
+            context={"ihsan_mode": "heuristic"},
+        )
+
+        assert thermal.auditability is not None
+        assert thermal.robustness is not None
+        assert heuristic.auditability is None
+        assert heuristic.robustness is None
