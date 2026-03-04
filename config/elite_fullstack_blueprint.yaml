@@ -1,7 +1,7 @@
 program:
   id: elite_fullstack_masterpiece
   name: "BIZRA Elite Full-Stack Blueprint"
-  version: "1.0.0"
+  version: "2.0.0"
   intent: >
     Enforce a professional, evidence-backed implementation baseline across PMBOK,
     DevOps, CI/CD, security, performance, documentation, and ethical governance.
@@ -53,11 +53,62 @@ checks:
     min_speedup_system1_vs_system2: 8.0
     max_avg_latency_ms: 2200.0
     signed_receipts_required: true
+  pmbok_artifacts:
+    initiating:
+      - "docs/ELITE_FULLSTACK_BLUEPRINT.md"
+      - "config/elite_fullstack_blueprint.yaml"
+    planning:
+      - "config/phase65_masterpiece_roadmap.yaml"
+      - "docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md"
+    executing:
+      - "scripts/ops/phase65_masterpiece_runner.py"
+      - ".github/workflows/ci.yml"
+    monitoring_controlling:
+      - "scripts/ops/elite_fullstack_blueprint_audit.py"
+      - "scripts/ci_quality_gate.py"
+    closing:
+      - "scripts/ops/phase65_alpha_launch_packet.py"
+      - "scripts/evidence/release_pack.py"
+  pipeline_automation:
+    workflows:
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/phase65-masterpiece.yml"
+    required_job_dependencies:
+      ".github/workflows/ci.yml":
+        job: "ci-summary"
+        needs_all_of:
+          - "quality-gates"
+          - "phase65-masterpiece-gate"
+          - "evidence-accumulate"
+    required_patterns:
+      ".github/workflows/ci.yml":
+        - "evidence-accumulate"
+        - "phase65-masterpiece-gate"
+        - "phase56-security-gate"
+  qa:
+    required_test_targets:
+      - "tests/scripts/test_phase65_blueprint_gate.py"
+      - "tests/scripts/test_phase65_masterpiece_runner.py"
+      - "tests/scripts/test_elite_fullstack_blueprint_audit.py"
+    required_quality_scripts:
+      - "scripts/ci_quality_gate.py"
+      - "scripts/ci_docs_quality.py"
+    min_test_files: 200
+  ethical_integrity:
+    source_file: "core/integration/constants.py"
+    required_invariants:
+      - "RIBA_ZERO"
+      - "CLAIM_MUST_BIND"
+      - "IHSAN_FLOOR"
 
 scoring:
-  min_score: 0.95
+  min_score: 0.93
   weights:
-    files: 0.30
-    jobs: 0.20
-    readme: 0.10
-    thresholds: 0.40
+    files: 0.20
+    jobs: 0.15
+    readme: 0.05
+    thresholds: 0.25
+    pmbok: 0.10
+    pipeline: 0.10
+    qa: 0.10
+    ethics: 0.05
