@@ -3,6 +3,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+
+pytest.importorskip("redis", reason="redis not installed in CI base env")
+
 from fastapi import HTTPException
 
 from tools.mcp import mcp_gateway
