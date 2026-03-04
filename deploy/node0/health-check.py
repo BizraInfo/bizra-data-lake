@@ -60,7 +60,7 @@ SNR_THRESHOLD = 0.85
 SERVICES = {
     "api_server": {
         "name": "API Server",
-        "endpoint": "http://localhost:3001/health",
+        "endpoint": "http://localhost:3001/api/v1/health",
         "critical": True,
         "timeout": 5,
     },
@@ -72,7 +72,7 @@ SERVICES = {
     },
     "sovereign": {
         "name": "Sovereign Engine",
-        "endpoint": "http://localhost:8080/health",
+        "endpoint": "http://localhost:8080/v1/health",
         "critical": True,
         "timeout": 10,
     },
@@ -360,7 +360,7 @@ async def get_sovereign_metrics() -> tuple[float, float]:
     """Get Ihsan and SNR scores from Sovereign Engine."""
     try:
         ok, latency, content = await check_http_endpoint_async(
-            "http://localhost:8080/health", timeout=5
+            "http://localhost:8080/v1/health/deep", timeout=5
         )
         if not ok:
             return 0.0, 0.0

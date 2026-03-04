@@ -10,6 +10,8 @@ Components:
 - secure_transport: DTLS/Noise encrypted transport layer (P0-2)
 - node: Main federation node integration
 - protocol: Protocol definitions and wire formats
+- interaction_boundary: Axiom 1.6 — Pool-mediated interaction (Phase 61)
+- pool_consensus: Amended Theorem 2.4 — Pool-mediated BFT (Phase 61)
 """
 
 from .consensus import ConsensusEngine, Proposal, Vote
@@ -79,4 +81,4 @@ __all__ = [
     "create_secure_gossip_transport",
 ]
 
-__version__ = "1.1.0"  # Bumped for secure transport addition
+__version__ = "1.2.0"  # Phase 61: interaction boundary + pool consensus

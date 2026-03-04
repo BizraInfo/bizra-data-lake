@@ -431,7 +431,9 @@ class SovereignEngine:
         )
         ihsan_passed = ihsan_vector.passes_gate(self.config.ihsan_threshold)
 
-        snr_score = snr_analysis.snr_linear if snr_analysis else 0.9
+        from core.snr_protocol import normalize_snr_linear
+
+        snr_score = normalize_snr_linear(snr_analysis.snr_linear) if snr_analysis else 0.9
         confidence = self._calculate_confidence(
             snr_score, ihsan_passed, council_verdict
         )

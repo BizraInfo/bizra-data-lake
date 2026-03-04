@@ -54,9 +54,9 @@ readonly MIN_GPU_VRAM_GB=16
 readonly MIN_DISK_FREE_GB=100
 
 # Service endpoints
-readonly API_ENDPOINT="http://localhost:3001/health"
+readonly API_ENDPOINT="http://localhost:3001/api/v1/health"
 readonly DASHBOARD_ENDPOINT="http://localhost:5173/"
-readonly SOVEREIGN_ENDPOINT="http://localhost:8080/health"
+readonly SOVEREIGN_ENDPOINT="http://localhost:8080/v1/health"
 readonly BRIDGE_HOST="127.0.0.1"
 readonly BRIDGE_PORT=9742
 readonly LMSTUDIO_ENDPOINT="http://192.168.56.1:1234/v1/models"

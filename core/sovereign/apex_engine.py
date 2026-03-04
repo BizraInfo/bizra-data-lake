@@ -1403,12 +1403,15 @@ class ApexSovereignEngine:
                 analysis = self.snr_maximizer.analyze(
                     query, context.get("query_context", "")
                 )
+                from core.snr_protocol import normalize_snr_linear
+
+                raw = (
+                    analysis.snr_linear
+                    if hasattr(analysis, "snr_linear")
+                    else analysis.get("snr_linear", 0.85)
+                )
                 return {
-                    "snr_score": (
-                        analysis.snr_linear
-                        if hasattr(analysis, "snr_linear")
-                        else analysis.get("snr_linear", 0.85)
-                    ),
+                    "snr_score": normalize_snr_linear(raw),
                     "passed": getattr(analysis, "ihsan_achieved", True),
                     "components": (
                         analysis.to_dict() if hasattr(analysis, "to_dict") else {}
@@ -1903,10 +1906,12 @@ class _FallbackSNRMaximizer:
         words = text.split()
         unique_ratio = len(set(words)) / max(len(words), 1)
         snr = unique_ratio * 0.7 + 0.3
+        # snr is already in [0.3, 1.0] by construction — no normalization needed
         return {
             "snr_linear": snr,
+            "snr_normalized": snr,  # already bounded
             "ihsan_achieved": snr >= self.threshold,
-            "to_dict": lambda: {"snr_linear": snr, "method": "fallback"},
+            "to_dict": lambda: {"snr_linear": snr, "snr_normalized": snr, "method": "fallback"},
         }
 
 

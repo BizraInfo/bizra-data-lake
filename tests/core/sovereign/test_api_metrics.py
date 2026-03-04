@@ -9,8 +9,14 @@ from core.sovereign.api import SovereignAPIServer, create_fastapi_app
 from core.sovereign.runtime_types import RuntimeMetrics
 
 
-def _runtime_with_metrics() -> MagicMock:
+def _runtime_with_metrics(state_dir=None) -> MagicMock:
+    from types import SimpleNamespace
+    import tempfile
+    from pathlib import Path
     runtime = MagicMock()
+    runtime.config = SimpleNamespace(
+        state_dir=Path(state_dir) if state_dir else Path(tempfile.mkdtemp())
+    )
     runtime.metrics = RuntimeMetrics(
         queries_processed=10,
         queries_succeeded=8,
@@ -73,7 +79,8 @@ def test_fastapi_health_exposes_pat_sat_receipt_chain_summary() -> None:
     app = create_fastapi_app(runtime)
     client = TestClient(app)
 
-    resp = client.get("/v1/health")
+    # Phase 60 Step 3: pat_sat_receipt_chain is now in the deep health tier
+    resp = client.get("/v1/health/deep")
     assert resp.status_code == 200
     body = resp.json()
     assert "pat_sat_receipt_chain" in body

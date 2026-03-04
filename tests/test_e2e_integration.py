@@ -212,11 +212,15 @@ class TestQueryPipelineRouting:
 class TestFastAPIEndpoints:
     """Verify FastAPI app has orchestrate endpoint."""
 
-    def test_create_fastapi_app(self) -> None:
+    def test_create_fastapi_app(self, tmp_path) -> None:
         """create_fastapi_app returns a FastAPI instance with all routes."""
+        from types import SimpleNamespace
+
         from core.sovereign.api import create_fastapi_app
 
         mock_runtime = MagicMock()
+        mock_runtime.config = SimpleNamespace(state_dir=tmp_path / "state")
+        mock_runtime._state_dir = tmp_path / "state"
         mock_runtime.status.return_value = {
             "health": {"status": "healthy"},
             "identity": {"version": "1.0.0"},
@@ -512,11 +516,15 @@ class TestCrossSystemE2E:
 
             shutil.rmtree(tmp, ignore_errors=True)
 
-    def test_fastapi_new_endpoints(self) -> None:
+    def test_fastapi_new_endpoints(self, tmp_path) -> None:
         """FastAPI app includes WebSocket and suggestions endpoints."""
+        from types import SimpleNamespace
+
         from core.sovereign.api import create_fastapi_app
 
         mock_runtime = MagicMock()
+        mock_runtime.config = SimpleNamespace(state_dir=tmp_path / "state")
+        mock_runtime._state_dir = tmp_path / "state"
         mock_runtime.status.return_value = {
             "health": {"status": "healthy"},
             "identity": {"version": "1.0.0", "node_id": "test-node"},

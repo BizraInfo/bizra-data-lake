@@ -112,9 +112,23 @@
             "correctness": { "type": "number" },
             "safety": { "type": "number" },
             "efficiency": { "type": "number" },
-            "user_benefit": { "type": "number" }
+            "user_benefit": { "type": "number" },
+            "auditability": { "type": "number" },
+            "robustness": { "type": "number" }
           }
         },
+        "ihsan_tensor": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 },
+          "description": "Operational Ihsan tensor payload for PoI wire compatibility"
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["rejected", "acceptable", "bloom", "ihsan"],
+          "description": "Constitutional quality tier"
+        },
+        "bloom_eligible": { "type": "boolean" },
+        "is_ihsan": { "type": "boolean" },
         "version": { "type": "string" }
       }
     },

@@ -428,7 +428,14 @@ class TestSpearpointPatternEndpoint:
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
 
+        import tempfile
+        from types import SimpleNamespace
+        from pathlib import Path
+
         runtime = MagicMock()
+        _sd = Path(tempfile.mkdtemp())
+        runtime.config = SimpleNamespace(state_dir=_sd)
+        runtime._state_dir = _sd
         runtime.metrics = RuntimeMetrics(
             queries_processed=0,
             queries_succeeded=0,
@@ -477,7 +484,14 @@ class TestSpearpointPatternEndpoint:
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
 
+        import tempfile
+        from types import SimpleNamespace
+        from pathlib import Path
+
         runtime = MagicMock()
+        _sd = Path(tempfile.mkdtemp())
+        runtime.config = SimpleNamespace(state_dir=_sd)
+        runtime._state_dir = _sd
         runtime.metrics = RuntimeMetrics(
             queries_processed=0,
             queries_succeeded=0,
@@ -526,7 +540,14 @@ class TestSpearpointPatternEndpoint:
         from core.sovereign.api import create_fastapi_app
         from core.sovereign.runtime_types import RuntimeMetrics
 
+        import tempfile
+        from types import SimpleNamespace
+        from pathlib import Path
+
         runtime = MagicMock()
+        _sd = Path(tempfile.mkdtemp())
+        runtime.config = SimpleNamespace(state_dir=_sd)
+        runtime._state_dir = _sd
         runtime.metrics = RuntimeMetrics(
             queries_processed=0,
             queries_succeeded=0,
@@ -561,7 +582,14 @@ class TestSpearpointPatternEndpoint:
         from core.spearpoint.config import MissionType
         from core.spearpoint.orchestrator import MissionResult
 
+        import tempfile
+        from types import SimpleNamespace
+        from pathlib import Path
+
         runtime = MagicMock()
+        _sd = Path(tempfile.mkdtemp())
+        runtime.config = SimpleNamespace(state_dir=_sd)
+        runtime._state_dir = _sd
         runtime.metrics = RuntimeMetrics(
             queries_processed=0,
             queries_succeeded=0,

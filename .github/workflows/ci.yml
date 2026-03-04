@@ -1148,11 +1148,76 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   # Final: CI Summary
   # ═══════════════════════════════════════════════════════════════════════════
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Stage: Evidence Accumulation (Phase 60 Step 2)
+  # Produces structured evidence.json per commit — audit trail for gate results.
+  # Standing on Giants: Lamport (1978) event ordering, Merkle (1979) hash chains
+  # ═══════════════════════════════════════════════════════════════════════════
+  evidence-accumulate:
+    name: Evidence Accumulation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [lint-python, lint-rust, validate-schemas, cross-lang-sync, test-python, test-rust, quality-gates, phase56-security-gate, security-scan]
+    if: always()
+    steps:
+      - name: Produce evidence.json
+        run: |
+          cat > evidence.json <<EVIDENCE_EOF
+          {
+            "schema_version": "1.0.0",
+            "commit_sha": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}",
+            "actor": "${{ github.actor }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "constitutional_thresholds": {
+              "ihsan": "${{ env.IHSAN_THRESHOLD }}",
+              "snr": "${{ env.SNR_THRESHOLD }}"
+            },
+            "gates": {
+              "lint_python": "${{ needs.lint-python.result }}",
+              "lint_rust": "${{ needs.lint-rust.result }}",
+              "schema_validation": "${{ needs.validate-schemas.result }}",
+              "cross_lang_sync": "${{ needs.cross-lang-sync.result }}",
+              "test_python": "${{ needs.test-python.result }}",
+              "test_rust": "${{ needs.test-rust.result }}",
+              "quality_gates": "${{ needs.quality-gates.result }}",
+              "phase56_security": "${{ needs.phase56-security-gate.result }}",
+              "security_scan": "${{ needs.security-scan.result }}"
+            },
+            "all_gates_passed": $(
+              if [ "${{ needs.lint-python.result }}" = "success" ] && \
+                 [ "${{ needs.lint-rust.result }}" = "success" ] && \
+                 [ "${{ needs.validate-schemas.result }}" = "success" ] && \
+                 [ "${{ needs.cross-lang-sync.result }}" = "success" ] && \
+                 [ "${{ needs.test-python.result }}" = "success" ] && \
+                 [ "${{ needs.test-rust.result }}" = "success" ] && \
+                 [ "${{ needs.quality-gates.result }}" = "success" ] && \
+                 [ "${{ needs.phase56-security-gate.result }}" = "success" ] && \
+                 [ "${{ needs.security-scan.result }}" = "success" ]; then
+                echo "true"
+              else
+                echo "false"
+              fi
+            )
+          }
+          EVIDENCE_EOF
+          echo "::notice::Evidence artifact produced for commit ${{ github.sha }}"
+          cat evidence.json
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: evidence-${{ github.sha }}
+          path: evidence.json
+          retention-days: 90
+
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [lint-python, lint-rust, validate-schemas, test-python, test-rust, quality-gates, quality-gate-bypass-audit, phase56-security-gate, security-scan, build-python-image, build-rust-image, integration-tests]
+    needs: [lint-python, lint-rust, validate-schemas, test-python, test-rust, quality-gates, quality-gate-bypass-audit, phase56-security-gate, security-scan, build-python-image, build-rust-image, integration-tests, evidence-accumulate]
     if: always()
     steps:
       - name: Generate Summary
@@ -1180,4 +1245,5 @@ jobs:
           echo "| Quality Gate Bypass Audit | ${{ needs.quality-gate-bypass-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Phase56 Security Gate | ${{ needs.phase56-security-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Evidence Accumulation | ${{ needs.evidence-accumulate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY

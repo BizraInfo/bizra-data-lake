@@ -95,7 +95,7 @@ ExecStart=/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python -m core.sovereign \
     --persist-state
 
 # Health check (validates Ihsan score)
-ExecStartPost=/bin/bash -c 'for i in {1..60}; do curl -sf http://localhost:8080/health | grep -q "healthy" && exit 0 || sleep 1; done; exit 1'
+ExecStartPost=/bin/bash -c 'for i in {1..60}; do curl -sf http://localhost:8080/v1/health | grep -q "ready" && exit 0 || sleep 1; done; exit 1'
 
 # Graceful shutdown (checkpoint state)
 ExecStop=/mnt/c/BIZRA-DATA-LAKE/.venv/bin/python -c "import asyncio; from core.sovereign import SovereignRuntime; asyncio.run(SovereignRuntime().shutdown())"

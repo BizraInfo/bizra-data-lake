@@ -11,12 +11,13 @@ import "contracts/proto/knowledge.proto";
 
 message PeerAttestation {
   bizra.common.v1.Identity peer = 1;
-  double ihsan = 2;          // 0..1 (legacy aggregate for backward compatibility)
+  double ihsan = 2 [deprecated = true]; // legacy scalar; use ihsan_tensor + ihsan_composite
   double snr = 3;            // normalized
   double utility = 4;        // optional (0..1)
   bytes evidence_hash = 5;   // hash to local receipts/benchmarks
   bizra.common.v1.Signature sig = 6;
   map<string, double> ihsan_tensor = 7; // preferred multi-dimensional Ihsan evidence
+  double ihsan_composite = 8; // weighted aggregate derived from ihsan_tensor
 }
 
 message SubmitPoIRequest {

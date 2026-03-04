@@ -304,7 +304,7 @@ services:
       INFERENCE_PRIMARY: "http://192.168.56.1:1234"
       INFERENCE_FALLBACK: "http://localhost:11434"
     healthcheck:
-      endpoint: /health
+      endpoint: /api/v1/health
       interval: 15s
       timeout: 5s
       retries: 3
@@ -369,7 +369,7 @@ services:
       INFERENCE_PRIMARY: "http://192.168.56.1:1234"
       INFERENCE_FALLBACK: "http://localhost:11434"
     healthcheck:
-      endpoint: /health
+      endpoint: /v1/health
       interval: 30s
       timeout: 10s
       retries: 3
@@ -438,9 +438,9 @@ monitoring:
     retention: 15d
     targets:
       - job: bizra-api
-        endpoint: localhost:3001/metrics
+        endpoint: localhost:3001/api/v1/metrics
       - job: bizra-sovereign
-        endpoint: localhost:8080/metrics
+        endpoint: localhost:8080/v1/metrics
       - job: node-exporter
         endpoint: localhost:9100/metrics
       - job: nvidia-exporter

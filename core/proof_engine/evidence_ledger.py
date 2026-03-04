@@ -52,6 +52,7 @@ else:
 
 
 from core.proof_engine.schema_validator import validate_receipt
+from core.snr_protocol import assert_snr_normalized
 from core.sovereign.origin_guard import (
     ROLE_NODE0,
     normalize_node_role,
@@ -251,6 +252,26 @@ class EvidenceLedger:
             is_valid, errors = validate_receipt(receipt)
             if not is_valid:
                 raise ValueError(f"Receipt fails schema validation: {errors}")
+
+            # Phase 60 Step 4: SNR normalization contract enforcement.
+            # Any receipt SNR representation MUST be in [0.0, 1.0].
+            # Standing on Giants: Meyer (Design by Contract, 1986)
+            snr_candidates: list[tuple[str, Any]] = []
+            if "snr_score" in receipt:
+                snr_candidates.append(("snr_score", receipt.get("snr_score")))
+            snr_obj = receipt.get("snr")
+            if isinstance(snr_obj, dict) and "score" in snr_obj:
+                snr_candidates.append(("snr.score", snr_obj.get("score")))
+            for label, snr_val in snr_candidates:
+                if snr_val is None:
+                    continue
+                try:
+                    assert_snr_normalized(snr_val, label=label)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"Receipt {label} invalid: {exc}. "
+                        f"Use normalize_snr_linear() before appending."
+                    ) from exc
 
         with self._lock:  # in-process thread safety
             with _posix_file_lock(self._lock_file):  # cross-process safety (G6 fix)

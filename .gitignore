@@ -207,7 +207,8 @@ tmp_state/
 users.db
 
 # ── MagicMock / pytest file-leak artifacts ────────────────────
-<MagicMock*
+MagicMock*
+*MagicMock*
 
 # ── Audit Trail Data (generated at runtime) ───────────────────────
 bizra-omega/bizra-node/data/audit/

@@ -19,6 +19,11 @@ from .constants import (
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
 )
+from .constitution_parser import (
+    load_constitution,
+    resolve_constitution_path,
+    validate_constitution,
+)
 
 
 # Lazy import bridge to avoid circular imports with PCI
@@ -42,4 +47,7 @@ __all__ = [
     "UNIFIED_IHSAN_THRESHOLD",
     "UNIFIED_SNR_THRESHOLD",
     "UNIFIED_CLOCK_SKEW_SECONDS",
+    "load_constitution",
+    "resolve_constitution_path",
+    "validate_constitution",
 ]

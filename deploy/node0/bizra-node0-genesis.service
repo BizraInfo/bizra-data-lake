@@ -1,0 +1,60 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA NODE0 Genesis Server — systemd Service Unit
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# The Constitutional Pipeline Server (v6) — bare-metal deployment mode.
+# Separate from bizra-node0.service (proactive kernel).
+#
+# Install:
+#   sudo cp deploy/node0/bizra-node0-genesis.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable bizra-node0-genesis
+#   sudo systemctl start bizra-node0-genesis
+#
+# Standing on Giants: Lamport · Deming · Burns
+
+[Unit]
+Description=BIZRA NODE0 Genesis Constitutional Pipeline Server (v6)
+Documentation=file:///mnt/c/BIZRA-DATA-LAKE/bizra-constitution/MIGRATION.md
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE/bizra-constitution
+Environment=PYTHONPATH=/mnt/c/BIZRA-DATA-LAKE/bizra-constitution
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUTF8=1
+Environment=OLLAMA_URL=http://localhost:11434
+Environment=BIZRA_CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:7770
+EnvironmentFile=-/mnt/c/BIZRA-DATA-LAKE/.env
+
+# Preflight: check syntax before starting
+ExecStartPre=/usr/bin/mkdir -p /mnt/c/BIZRA-DATA-LAKE/logs/node0-genesis
+ExecStartPre=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python3 -c "import py_compile; py_compile.compile('/mnt/c/BIZRA-DATA-LAKE/bizra-constitution/node0_server.py', doraise=True)"
+
+ExecStart=/mnt/c/BIZRA-DATA-LAKE/.venv-linux/bin/python3 -m uvicorn \
+    node0_server:create_app \
+    --factory \
+    --host 127.0.0.1 \
+    --port 7770 \
+    --workers 1 \
+    --log-level info \
+    --timeout-keep-alive 30
+
+ExecStop=/bin/kill -SIGTERM $MAINPID
+
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+StandardOutput=append:/mnt/c/BIZRA-DATA-LAKE/logs/node0-genesis/server.log
+StandardError=append:/mnt/c/BIZRA-DATA-LAKE/logs/node0-genesis/server-error.log
+
+# Graceful shutdown
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

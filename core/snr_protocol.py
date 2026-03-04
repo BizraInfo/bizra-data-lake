@@ -32,10 +32,17 @@ the appropriate engine based on input type.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from typing import Any, Optional, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
+
+try:
+    # Constitution package integration (Step 2): single canonical normalizer.
+    from bizra_constitution.snr import normalize_snr as _constitution_normalize_snr
+except Exception:  # pragma: no cover - fallback keeps legacy behavior
+    _constitution_normalize_snr = None
 
 # ── Canonical Normalization ───────────────────────────────────────────────
 
@@ -49,8 +56,36 @@ def normalize_snr_linear(snr_linear: float) -> float:
     This is monotonic, bounded, and preserves ordering while avoiding
     oversized values from dominating downstream policy gates.
     """
+    if _constitution_normalize_snr is not None:
+        return float(_constitution_normalize_snr(float(snr_linear)))
     snr = max(float(snr_linear), 0.0)
     return min(snr / (1.0 + snr), 1.0)
+
+
+def assert_snr_normalized(value: float, *, label: str = "snr") -> float:
+    """Validate that an SNR value is properly normalized to [0, 1].
+
+    Raises ValueError if the value is outside the normalized range.
+    Use this guard at every boundary where SNR enters a receipt,
+    evidence ledger, or downstream policy gate.
+
+    Standing on Giants:
+    - Shannon (1948): bounded information measures
+    - Meyer (Design by Contract, 1986): precondition enforcement
+    """
+    if not isinstance(value, (int, float)):
+        raise TypeError(f"{label}: expected numeric, got {type(value).__name__}")
+    v = float(value)
+    if not math.isfinite(v):
+        raise ValueError(
+            f"{label}: SNR value {v} is not finite; expected normalized [0.0, 1.0]."
+        )
+    if v < 0.0 or v > 1.0:
+        raise ValueError(
+            f"{label}: SNR value {v:.6f} is outside normalized range [0.0, 1.0]. "
+            f"Use normalize_snr_linear() to map unbounded ratios before storage."
+        )
+    return v
 
 
 # ── Unified Result ──────────────────────────────────────────────────────
@@ -364,6 +399,7 @@ class SNRFacade:
 
 __all__ = [
     "normalize_snr_linear",
+    "assert_snr_normalized",
     "SNRResult",
     "SNRProtocol",
     "SNRFacade",

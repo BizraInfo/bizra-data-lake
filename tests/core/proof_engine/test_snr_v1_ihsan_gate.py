@@ -8,22 +8,19 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-004 + SP-005
 """
 
-from typing import Any, Dict
-
 import pytest
 
 from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.ihsan_gate import (
     IhsanComponents,
     IhsanGate,
-    IhsanResult,
+    IhsanTier,
 )
 from core.proof_engine.reason_codes import ReasonCode
 from core.proof_engine.snr import (
     SNREngine,
     SNRInput,
     SNRPolicy,
-    SNRTrace,
 )
 
 # =============================================================================
@@ -431,6 +428,50 @@ class TestIhsanScore:
         )
         result = gate.ihsan_score(components)
         assert result["version"] == "1.0.0"
+
+    def test_ihsan_score_emits_tensor_and_tier(self):
+        """Score payload includes tensor/tier fields for PoI migration."""
+        gate = IhsanGate(threshold=0.90)
+        result = gate.ihsan_score(
+            IhsanComponents(
+                correctness=0.98,
+                safety=0.99,
+                efficiency=0.97,
+                user_benefit=0.96,
+                auditability=0.95,
+                robustness=0.94,
+            )
+        )
+        assert "ihsan_tensor" in result
+        assert "tier" in result
+        assert "bloom_eligible" in result
+        assert "is_ihsan" in result
+        assert result["tier"] in {
+            IhsanTier.ACCEPTABLE.value,
+            IhsanTier.BLOOM.value,
+            IhsanTier.IHSAN.value,
+            IhsanTier.REJECTED.value,
+        }
+
+    def test_ihsan_result_as_evidence_shape(self):
+        """IhsanResult.as_evidence returns ledger-ready fields."""
+        gate = IhsanGate(threshold=0.85)
+        evaluated = gate.evaluate(
+            IhsanComponents(
+                correctness=0.92,
+                safety=0.94,
+                efficiency=0.90,
+                user_benefit=0.91,
+                auditability=0.93,
+                robustness=0.92,
+            )
+        )
+        evidence = evaluated.as_evidence()
+        assert "ihsan_tensor" in evidence
+        assert "ihsan_composite" in evidence
+        assert "tier" in evidence
+        assert "decision" in evidence
+        assert 0.0 <= evidence["ihsan_composite"] <= 1.0
 
 
 # =============================================================================

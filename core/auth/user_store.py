@@ -252,6 +252,8 @@ class UserStore:
     """
 
     def __init__(self, db_path: Optional[Path] = None):
+        if db_path is not None and not isinstance(db_path, Path):
+            db_path = None  # Reject non-Path values (e.g. MagicMock)
         self.db_path = db_path or Path("sovereign_state/users.db")
         self._ensure_schema()
 

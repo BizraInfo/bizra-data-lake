@@ -56,6 +56,7 @@ _SUBPACKAGES = frozenset(
         "hrm",
         "hypergraph",
         "iaas",
+        "identity",
         "inference",
         "integration",
         "living_memory",

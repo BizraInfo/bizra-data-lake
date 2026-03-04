@@ -947,11 +947,12 @@ def create_fastapi_app(runtime: Any) -> Any:
         from core.auth.user_store import UserStore
 
         _state_dir = getattr(runtime, "config", None)
-        _db_dir = (
-            getattr(_state_dir, "state_dir", _Path("sovereign_state"))
+        _db_dir_raw = (
+            getattr(_state_dir, "state_dir", None)
             if _state_dir
-            else _Path("sovereign_state")
+            else None
         )
+        _db_dir = _db_dir_raw if isinstance(_db_dir_raw, _Path) else _Path("sovereign_state")
         _user_store = UserStore(db_path=_db_dir / "users.db")
         _jwt_auth = JWTAuth()
         _auth_middleware = AuthMiddleware(user_store=_user_store, jwt_auth=_jwt_auth)
@@ -1085,28 +1086,40 @@ def create_fastapi_app(runtime: Any) -> Any:
 
         return "", True
 
-    @app.get("/v1/health")
-    async def health():
-        status = runtime.status()
-        strict_gate = status.get("health", {}).get("strict_gate", {})
-        pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
+    # ── Health Endpoint Tiering (Phase 60 Step 3) ─────────────────────
+    #
+    # Three tiers for K8s probe compatibility:
+    #   /v1/health/live  — O(1), <5ms, liveness probe
+    #   /v1/health/ready — 3 critical checks, <50ms, readiness probe
+    #   /v1/health/deep  — full 11-subsystem audit, <500ms, startup probe
+    #   /v1/health       — alias for /v1/health/ready (backward compat)
+    #
+    # Standing on Giants: Burns et al. (K8s Health Checking, 2015)
 
-        # Subsystem availability check
+    _ALL_SUBSYSTEM_CHECKS = [
+        ("graph_of_thoughts", "_graph_reasoner"),
+        ("snr_maximizer", "_snr_optimizer"),
+        ("guardian_council", "_guardian_council"),
+        ("autonomous_loop", "_autonomous_loop"),
+        ("cognitive_fusion", "_cognitive_fusion"),
+        ("embedding_service", "_embedding_service"),
+        ("memory_coordinator", "_memory_coordinator"),
+        ("evidence_ledger", "_evidence_ledger"),
+        ("rdve_engine", "_rdve_engine"),
+        ("fate_gate", "_ihsan_watchdog"),
+        ("sat_controller", "_sat_controller"),
+    ]
+
+    # Critical subsystems that must be active for readiness
+    _CRITICAL_SUBSYSTEM_CHECKS = [
+        ("evidence_ledger", "_evidence_ledger"),
+        ("snr_maximizer", "_snr_optimizer"),
+        ("guardian_council", "_guardian_council"),
+    ]
+
+    def _check_subsystems(checks: list[tuple[str, str]]) -> dict[str, str]:
         subsystems: dict[str, str] = {}
-        _checks = [
-            ("graph_of_thoughts", "_graph_reasoner"),
-            ("snr_maximizer", "_snr_optimizer"),
-            ("guardian_council", "_guardian_council"),
-            ("autonomous_loop", "_autonomous_loop"),
-            ("cognitive_fusion", "_cognitive_fusion"),
-            ("embedding_service", "_embedding_service"),
-            ("memory_coordinator", "_memory_coordinator"),
-            ("evidence_ledger", "_evidence_ledger"),
-            ("rdve_engine", "_rdve_engine"),
-            ("fate_gate", "_ihsan_watchdog"),
-            ("sat_controller", "_sat_controller"),
-        ]
-        for name, attr in _checks:
+        for name, attr in checks:
             instance = getattr(runtime, attr, None)
             if instance is None:
                 subsystems[name] = "unavailable"
@@ -1114,16 +1127,47 @@ def create_fastapi_app(runtime: Any) -> Any:
                 subsystems[name] = "stub"
             else:
                 subsystems[name] = "active"
+        return subsystems
+
+    @app.get("/v1/health/live")
+    async def health_live():
+        """Liveness probe — O(1), <5ms. Returns 200 if process is alive."""
+        return {"status": "alive", "tier": "live"}
+
+    @app.get("/v1/health/ready")
+    async def health_ready():
+        """Readiness probe — 3 critical checks, <50ms."""
+        subsystems = _check_subsystems(_CRITICAL_SUBSYSTEM_CHECKS)
+        all_ok = all(v == "active" for v in subsystems.values())
+        status_code = 200 if all_ok else 503
+
+        from starlette.responses import JSONResponse
+
+        return JSONResponse(
+            content={
+                "status": "ready" if all_ok else "not_ready",
+                "tier": "ready",
+                "critical_subsystems": subsystems,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/v1/health/deep")
+    async def health_deep():
+        """Deep health — full 11-subsystem audit, <500ms. For startup probes."""
+        status = runtime.status()
+        strict_gate = status.get("health", {}).get("strict_gate", {})
+        pat_sat_chain = status.get("pat_sat", {}).get("negotiation_receipt_chain", {})
+
+        subsystems = _check_subsystems(_ALL_SUBSYSTEM_CHECKS)
 
         stub_count = sum(1 for v in subsystems.values() if v == "stub")
         unavailable_count = sum(1 for v in subsystems.values() if v == "unavailable")
 
-        # Compute health score from subsystem availability
         total = len(subsystems)
         active_count = sum(1 for v in subsystems.values() if v == "active")
         health_score = active_count / total if total > 0 else 0.0
 
-        # Derive status from score
         if health_score >= 0.8:
             health_status = "healthy"
         elif health_score >= 0.5:
@@ -1131,12 +1175,12 @@ def create_fastapi_app(runtime: Any) -> Any:
         else:
             health_status = "unhealthy"
 
-        # Strict startup gate overrides aggregate scoring when enabled.
         if strict_gate.get("enabled") and not strict_gate.get("passed", True):
             health_status = "unhealthy"
 
         return {
             "status": health_status,
+            "tier": "deep",
             "version": status["identity"]["version"],
             "health_score": round(health_score, 4),
             "subsystems": subsystems,
@@ -1156,6 +1200,11 @@ def create_fastapi_app(runtime: Any) -> Any:
                 "latest_receipt_id": pat_sat_chain.get("latest_receipt_id"),
             },
         }
+
+    @app.get("/v1/health")
+    async def health():
+        """Backward-compatible alias — delegates to readiness check."""
+        return await health_ready()
 
     @app.get("/v1/status")
     async def status():
@@ -1326,11 +1375,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
             _runtime_cfg = getattr(runtime, "config", None)
-            state_dir = (
-                getattr(runtime, "_state_dir", None)
-                or getattr(_runtime_cfg, "state_dir", None)
-                or Path("sovereign_state")
-            )
+            _sd_raw = getattr(runtime, "_state_dir", None)
+            if not isinstance(_sd_raw, _Path):
+                _sd_raw = getattr(_runtime_cfg, "state_dir", None)
+            if not isinstance(_sd_raw, _Path):
+                _sd_raw = None
+            state_dir = _sd_raw or _Path("sovereign_state")
             role = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
             hash_validated, reason = validate_genesis_chain(state_dir)
             if not hash_validated:
@@ -1991,11 +2041,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
             _runtime_cfg = getattr(runtime, "config", None)
-            state_dir = (
-                getattr(runtime, "_state_dir", None)
-                or getattr(_runtime_cfg, "state_dir", None)
-                or Path("sovereign_state")
-            )
+            _sd_raw = getattr(runtime, "_state_dir", None)
+            if not isinstance(_sd_raw, _Path):
+                _sd_raw = getattr(_runtime_cfg, "state_dir", None)
+            if not isinstance(_sd_raw, _Path):
+                _sd_raw = None
+            state_dir = _sd_raw or _Path("sovereign_state")
             role = normalize_node_role(os.getenv(NODE_ROLE_ENV, "node"))
             hash_validated, reason = validate_genesis_chain(state_dir)
             if not hash_validated:
