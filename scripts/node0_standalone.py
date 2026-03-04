@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -234,8 +235,6 @@ class Node0StandaloneManager:
         if browser_mode not in {"mock", "direct", "mcp"}:
             raise ValueError("browser_mode must be one of: mock, direct, mcp")
 
-        fs_action = self._maybe_execute_filesystem_action(description)
-
         from core.sovereign.mission import DesktopContext, MissionOrchestrator, MissionRequest
 
         orchestrator = MissionOrchestrator(
@@ -243,6 +242,7 @@ class Node0StandaloneManager:
                 "memory_path": str(self.state_root / "memory"),
                 "evidence_path": str(self.state_root / "mission_evidence.jsonl"),
                 "hda_port": 9742,
+                "workspace_root": str(self.project_root),
             }
         )
         request = MissionRequest(
@@ -280,6 +280,23 @@ class Node0StandaloneManager:
             }
             for r in result.channels_executed
         ]
+
+        fs_action: dict[str, Any] | None = None
+        for item in channel_results:
+            if item.get("channel") != "desktop":
+                continue
+            data = item.get("data") or {}
+            action = data.get("filesystem_action")
+            if not action:
+                continue
+            fs_action = {
+                "action": action,
+                "path": data.get("path"),
+                "bytes": data.get("bytes"),
+                "entries": data.get("entries"),
+                "error": data.get("error"),
+            }
+            break
 
         payload = {
             "mission_id": result.mission_id,
@@ -573,10 +590,18 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
 
     try:
         import uvicorn
-        from fastapi import FastAPI, HTTPException
+        from fastapi import FastAPI, Header, HTTPException
         from pydantic import BaseModel
     except ImportError as exc:
         raise SystemExit(f"Missing API dependencies: {exc}")
+
+    api_key = os.environ.get("BIZRA_NODE0_API_KEY") or os.environ.get("BIZRA_API_KEY") or ""
+    api_key = api_key.strip()
+    if args.host not in {"127.0.0.1", "localhost"} and not api_key:
+        raise SystemExit(
+            "Refusing non-loopback host without API key. "
+            "Set BIZRA_NODE0_API_KEY (or BIZRA_API_KEY)."
+        )
 
     app = FastAPI(
         title="BIZRA Node0 Standalone",
@@ -593,6 +618,12 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
         source: str = "node0_standalone_api"
         browser_mode: str = "mock"
 
+    def _require_api_key(x_api_key: str | None) -> None:
+        if not api_key:
+            return
+        if not x_api_key or not hmac.compare_digest(x_api_key, api_key):
+            raise HTTPException(status_code=401, detail="invalid_api_key")
+
     @app.get("/")
     async def root() -> dict[str, Any]:
         return {
@@ -601,7 +632,8 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
         }
 
     @app.post("/activate")
-    async def activate(req: ActivateReq) -> dict[str, Any]:
+    async def activate(req: ActivateReq, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+        _require_api_key(x_api_key)
         return manager.activate(architect=req.architect, strict=req.strict)
 
     @app.get("/health")
@@ -609,15 +641,18 @@ async def _cmd_serve(args: argparse.Namespace) -> int:
         return manager.health()
 
     @app.get("/assets")
-    async def assets() -> dict[str, Any]:
+    async def assets(x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+        _require_api_key(x_api_key)
         return manager.assets()
 
     @app.get("/lifecycle")
-    async def lifecycle() -> dict[str, Any]:
+    async def lifecycle(x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+        _require_api_key(x_api_key)
         return manager.lifecycle()
 
     @app.post("/task")
-    async def task(req: TaskReq) -> dict[str, Any]:
+    async def task(req: TaskReq, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+        _require_api_key(x_api_key)
         if not req.description.strip():
             raise HTTPException(status_code=400, detail="description is required")
         return await manager.run_task(

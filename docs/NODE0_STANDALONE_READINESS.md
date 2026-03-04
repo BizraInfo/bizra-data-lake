@@ -29,6 +29,12 @@ Activation performs:
 python scripts/node0_standalone.py serve --host 127.0.0.1 --port 8091
 ```
 
+Security note:
+
+- Loopback (`127.0.0.1`) can run without an API key for local-only usage.
+- Non-loopback hosts require `BIZRA_NODE0_API_KEY` (or `BIZRA_API_KEY`) before startup.
+- When a key is set, send it in `X-API-Key` for `POST /activate`, `POST /task`, `GET /assets`, and `GET /lifecycle`.
+
 Endpoints:
 
 - `GET /health`
