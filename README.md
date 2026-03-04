@@ -13,7 +13,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![CI Status](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml/badge.svg?style=for-the-badge)](https://github.com/BizraInfo/bizra-data-lake/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Tests-CI_Verified-success?style=for-the-badge)](#testing)
+[![Discord](https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/bizra)
+[![Roadmap](https://img.shields.io/badge/Roadmap-Public-blue?style=for-the-badge)](ROADMAP.md)
 
 <br>
 
@@ -202,9 +205,24 @@ These thresholds are defined in [`core/integration/constants.py`](core/integrati
 | [Desktop Bridge](docs/DESKTOP_BRIDGE.md) | AHK hotkey integration, JSON-RPC protocol |
 | [Spearpoint (RDVE)](docs/SPEARPOINT.md) | Autonomous research engine, 15 thinking patterns |
 | [DevOps Blueprint](docs/DEVOPS_BLUEPRINT.md) | CI/CD pipeline, K8s deployment, rollback |
+| [Elite Full-Stack Blueprint](docs/ELITE_FULLSTACK_BLUEPRINT.md) | PMBOK + DevOps + CI/CD + QA executable baseline |
 | [Constitution](docs/DDAGI_CONSTITUTION_v1.1.0-FINAL.md) | Immutable constitutional rules |
 | [Security Policy](SECURITY.md) | Vulnerability reporting and security architecture |
 | [Contributing Guide](CONTRIBUTING.md) | How to contribute |
+| [Public Roadmap](ROADMAP.md) | Delivery milestones and status updates |
+| [Community Guide](COMMUNITY.md) | Contributor channels, norms, and recognition |
+| [Commit Style Guide](COMMIT_STYLE_GUIDE.md) | High-signal commit message conventions |
+| [Discord CI Setup](DISCORD_CI_SETUP.md) | Webhook-based CI notifications |
+
+---
+
+## Community
+
+- Discord: [discord.gg/bizra](https://discord.gg/bizra)
+- Discussions: [GitHub Discussions](https://github.com/BizraInfo/bizra-data-lake/discussions)
+- Public roadmap: [ROADMAP.md](ROADMAP.md)
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Community norms: [COMMUNITY.md](COMMUNITY.md)
 
 ---
 

@@ -15,14 +15,24 @@ on:
       - "scripts/ops/phase65_kpi_pack.py"
       - "scripts/ops/phase65_alpha_launch_packet.py"
       - "scripts/ops/phase65_masterpiece_runner.py"
+      - "scripts/ops/elite_fullstack_blueprint_audit.py"
       - "config/phase65_masterpiece_roadmap.yaml"
       - "config/phase65_alpha_manual_checks.template.json"
+      - "config/elite_fullstack_blueprint.yaml"
+      - "README.md"
+      - "ROADMAP.md"
+      - "COMMUNITY.md"
+      - "COMMIT_STYLE_GUIDE.md"
+      - "DISCORD_CI_SETUP.md"
+      - "README_BADGES_UPDATE.md"
       - "docs/specs/phase_65_lifecycle_protocol/**"
+      - "docs/ELITE_FULLSTACK_BLUEPRINT.md"
       - "tests/scripts/test_node0_lifecycle_emulation.py"
       - "tests/scripts/test_phase65_blueprint_gate.py"
       - "tests/scripts/test_phase65_kpi_pack.py"
       - "tests/scripts/test_phase65_alpha_launch_packet.py"
       - "tests/scripts/test_phase65_masterpiece_runner.py"
+      - "tests/scripts/test_elite_fullstack_blueprint_audit.py"
       - "core/constitutional/energy_functions.py"
       - "core/proof_engine/thermodynamic_gate.py"
       - "core/proof_engine/ihsan_computer.py"
@@ -102,8 +112,15 @@ jobs:
             tests/scripts/test_phase65_kpi_pack.py \
             tests/scripts/test_phase65_alpha_launch_packet.py \
             tests/scripts/test_phase65_masterpiece_runner.py \
+            tests/scripts/test_elite_fullstack_blueprint_audit.py \
             tests/core/constitutional/test_energy_functions.py \
             tests/core/proof_engine/test_thermodynamic_gate.py
+
+      - name: Run elite full-stack blueprint audit
+        run: |
+          python scripts/ops/elite_fullstack_blueprint_audit.py \
+            --config config/elite_fullstack_blueprint.yaml \
+            --report /tmp/phase65/elite_fullstack_blueprint_report.json
 
       - name: Upload lifecycle artifacts
         if: always()
@@ -117,4 +134,5 @@ jobs:
             /tmp/phase65/phase65_kpi_snapshot.md
             /tmp/phase65/phase65_alpha_launch_packet.json
             /tmp/phase65/phase65_alpha_launch_packet.md
+            /tmp/phase65/elite_fullstack_blueprint_report.json
           retention-days: 30

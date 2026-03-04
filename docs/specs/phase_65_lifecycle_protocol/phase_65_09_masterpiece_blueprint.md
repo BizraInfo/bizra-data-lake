@@ -27,6 +27,8 @@ Convert the full BIZRA multi-lens analysis into an executable delivery program t
   - `scripts/ops/phase65_masterpiece_runner.py`
 - Alpha launch packet generator (GO/CONDITIONAL_GO/NO_GO):
   - `scripts/ops/phase65_alpha_launch_packet.py`
+- Elite full-stack blueprint audit:
+  - `scripts/ops/elite_fullstack_blueprint_audit.py`
 - Pipeline automation:
   - `.github/workflows/phase65-masterpiece.yml`
 
@@ -101,7 +103,8 @@ Each release must carry:
 2. Resolve signer policy (protected branches require `BIZRA_RECEIPT_PRIVATE_KEY_HEX`).
 3. Run unified `phase65_masterpiece_runner` (emulation + gate + KPI).
 4. Run targeted regression tests.
-5. Publish lifecycle, gate, KPI, and launch packet artifacts.
+5. Run elite full-stack blueprint audit.
+6. Publish lifecycle, gate, KPI, launch packet, and blueprint audit artifacts.
 
 ## 4.2 Release Gate Logic
 
