@@ -1,5 +1,11 @@
 ## Contract Change Log
 
+### feat(elite): self-harness CI + MCP integration
+- Wired `self_harness_scan` tool (#11) into sovereign MCP server
+- Added self-harness quality scan step to Phase65 Masterpiece Gate in CI
+- Fixed isort compliance on `core/sovereign/api.py` Request import line
+- Files: `.github/workflows/ci.yml`, `tools/mcp/sovereign_mcp_server.py`, `core/sovereign/api.py`
+
 ### fix(api): resolve 11 pre-existing CI test failures
 - **Root cause 1 (10 tests)**: `from __future__ import annotations` + `Request` imported inside
   `create_fastapi_app()` caused FastAPI to fail type resolution → 422 in CI, 401 locally after fix.

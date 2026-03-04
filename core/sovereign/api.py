@@ -62,9 +62,7 @@ def _env_truthy(var_name: str) -> bool:
 # PYDANTIC MODELS (module-level for FastAPI schema generation)
 # =============================================================================
 try:
-    from fastapi import (
-        Request,
-    )  # Module-level so `from __future__ import annotations` can resolve it
+    from fastapi import Request  # Module-level for PEP 563 annotation resolution
     from pydantic import BaseModel as _PydanticBaseModel
 
     class QueryRequestModel(_PydanticBaseModel):

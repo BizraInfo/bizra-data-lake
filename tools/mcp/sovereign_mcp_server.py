@@ -42,6 +42,7 @@ from dataclasses import asdict
 from typing import Dict, Any, List, Optional
 from io import StringIO
 from datetime import datetime
+from pathlib import Path
 
 # Set up path to ensure tools/ sibling imports work
 _mcp_dir = os.path.dirname(os.path.abspath(__file__))
@@ -390,7 +391,8 @@ class Phase46Interface:
         from core.rollout.rollback import RollbackEngine
 
         _receipt_dir = os.path.join(
-            os.getenv("BIZRA_LOG_DIR", os.path.join(_project_root, "logs")), "rollback_receipts"
+            os.getenv("BIZRA_LOG_DIR", os.path.join(_project_root, "logs")),
+            "rollback_receipts",
         )
         self._rollback = RollbackEngine(receipt_dir=_receipt_dir, metrics=self._metrics)
 
@@ -795,6 +797,27 @@ async def list_tools() -> list[types.Tool]:
             description="Get MCP server performance metrics: uptime, query count, cache hit rate, errors, avg response time.",
             inputSchema={"type": "object", "properties": {}, "required": []},
         ),
+        # ---- Self-Harness: Proactive Quality Scan ----
+        types.Tool(
+            name="self_harness_scan",
+            description="Run the agentic self-harness quality scan. Detects CI reliability gaps, runtime hardening issues, and performance anti-patterns across the codebase. Returns a normalized score and prioritized action list.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "include_findings": {
+                        "type": "boolean",
+                        "description": "Include per-file finding details (default: false)",
+                        "default": False,
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Bypass cache and force a fresh scan (default: false)",
+                        "default": False,
+                    },
+                },
+                "required": [],
+            },
+        ),
     ]
 
 
@@ -903,6 +926,22 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
                     None, phase46_interface.predict, action
+                ),
+                timeout=TOOL_TIMEOUT_SECONDS,
+            )
+
+        elif name == "self_harness_scan":
+            from core.elite.self_harness_engine import SelfHarnessEngine
+
+            _harness = SelfHarnessEngine(
+                project_root=Path(_project_root),
+            )
+            include = bool(arguments.get("include_findings", False))
+            force = bool(arguments.get("force", False))
+            result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: _harness.run(include_findings=include, force=force),
                 ),
                 timeout=TOOL_TIMEOUT_SECONDS,
             )

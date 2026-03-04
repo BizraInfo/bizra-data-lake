@@ -1011,7 +1011,8 @@ jobs:
             tests/scripts/test_phase65_kpi_pack.py \
             tests/scripts/test_phase65_alpha_launch_packet.py \
             tests/scripts/test_phase65_masterpiece_runner.py \
-            tests/scripts/test_elite_fullstack_blueprint_audit.py
+            tests/scripts/test_elite_fullstack_blueprint_audit.py \
+            tests/core/elite/test_self_harness_engine.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -1020,6 +1021,14 @@ jobs:
           python scripts/ops/elite_fullstack_blueprint_audit.py \
             --config config/elite_fullstack_blueprint.yaml \
             --report /tmp/phase65/elite_fullstack_blueprint_report.json
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Run self-harness quality scan
+        run: |
+          python scripts/self_harness_run.py \
+            --force \
+            --output /tmp/phase65/self_harness_report.json
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -1036,6 +1045,7 @@ jobs:
             /tmp/phase65/phase65_alpha_launch_packet.json
             /tmp/phase65/phase65_alpha_launch_packet.md
             /tmp/phase65/elite_fullstack_blueprint_report.json
+            /tmp/phase65/self_harness_report.json
           retention-days: 30
 
   # ═══════════════════════════════════════════════════════════════════════════
