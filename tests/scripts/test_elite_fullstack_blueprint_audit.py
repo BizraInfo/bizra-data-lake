@@ -187,3 +187,34 @@ def test_elite_blueprint_audit_emits_priority_roadmap(tmp_path: Path) -> None:
     assert report["gate_passed"] is False
     assert report["optimization_roadmap"]
     assert report["optimization_roadmap"][0]["priority"] == "P0"
+
+
+def test_elite_blueprint_audit_emits_snr_and_graph_of_thought(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False),
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _seed_phase65_config(repo)
+
+    report = audit_repo(repo, _minimal_cfg())
+    assert "snr" in report
+    assert report["snr"]["signal"] >= 1
+    assert report["snr"]["noise"] == 0
+    assert report["snr"]["normalized"] > 0.5
+    assert "graph_of_thought" in report
+    node_ids = {n["id"] for n in report["graph_of_thought"]["nodes"]}
+    assert "files" in node_ids
+    assert "release_readiness" in node_ids
+    assert report["autonomous_next_step"]["priority"] == "P0"
