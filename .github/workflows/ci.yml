@@ -951,6 +951,9 @@ jobs:
       speedup: ${{ steps.phase65_outputs.outputs.speedup }}
       signed_receipts: ${{ steps.phase65_outputs.outputs.signed_receipts }}
       tier: ${{ steps.phase65_outputs.outputs.tier }}
+      launch_decision: ${{ steps.phase65_outputs.outputs.launch_decision }}
+      launch_ready: ${{ steps.phase65_outputs.outputs.launch_ready }}
+      packet_signed: ${{ steps.phase65_outputs.outputs.packet_signed }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
@@ -986,34 +989,16 @@ jobs:
           fi
           echo "BIZRA_RECEIPT_PRIVATE_KEY_HEX=$key" >> "$GITHUB_ENV"
 
-      - name: Run lifecycle emulation
+      - name: Run Phase65 masterpiece pipeline
+        id: phase65_outputs
         run: |
           mkdir -p /tmp/phase65
           rm -rf /tmp/phase65/state
-          python scripts/node0_lifecycle_emulation.py \
+          python scripts/ops/phase65_masterpiece_runner.py \
             --state-dir /tmp/phase65/state \
-            --output /tmp/phase65/lifecycle_summary.json
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          BIZRA_PHASE65_STRICT_SIGNING: "1"
-
-      - name: Evaluate Phase65 blueprint gate
-        run: |
-          python scripts/ops/phase65_blueprint_gate.py \
-            --summary /tmp/phase65/lifecycle_summary.json \
+            --out-dir /tmp/phase65 \
             --config config/phase65_masterpiece_roadmap.yaml \
-            --report /tmp/phase65/phase65_gate_report.json
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build KPI snapshot
-        id: phase65_outputs
-        run: |
-          python scripts/ops/phase65_kpi_pack.py \
-            --summary /tmp/phase65/lifecycle_summary.json \
-            --gate-report /tmp/phase65/phase65_gate_report.json \
-            --out-json /tmp/phase65/phase65_kpi_snapshot.json \
-            --out-md /tmp/phase65/phase65_kpi_snapshot.md \
+            --strict-signing \
             --github-output "$GITHUB_OUTPUT"
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -1023,7 +1008,9 @@ jobs:
           pytest -q \
             tests/scripts/test_node0_lifecycle_emulation.py \
             tests/scripts/test_phase65_blueprint_gate.py \
-            tests/scripts/test_phase65_kpi_pack.py
+            tests/scripts/test_phase65_kpi_pack.py \
+            tests/scripts/test_phase65_alpha_launch_packet.py \
+            tests/scripts/test_phase65_masterpiece_runner.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -1037,6 +1024,8 @@ jobs:
             /tmp/phase65/phase65_gate_report.json
             /tmp/phase65/phase65_kpi_snapshot.json
             /tmp/phase65/phase65_kpi_snapshot.md
+            /tmp/phase65/phase65_alpha_launch_packet.json
+            /tmp/phase65/phase65_alpha_launch_packet.md
           retention-days: 30
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -1296,6 +1285,9 @@ jobs:
               "phase65_speedup": "${{ needs.phase65-masterpiece-gate.outputs.speedup }}",
               "phase65_signed_receipts": "${{ needs.phase65-masterpiece-gate.outputs.signed_receipts }}",
               "phase65_tier": "${{ needs.phase65-masterpiece-gate.outputs.tier }}",
+              "phase65_launch_decision": "${{ needs.phase65-masterpiece-gate.outputs.launch_decision }}",
+              "phase65_launch_ready": "${{ needs.phase65-masterpiece-gate.outputs.launch_ready }}",
+              "phase65_packet_signed": "${{ needs.phase65-masterpiece-gate.outputs.packet_signed }}",
               "phase56_security": "${{ needs.phase56-security-gate.result }}",
               "security_scan": "${{ needs.security-scan.result }}"
             },
@@ -1373,3 +1365,6 @@ jobs:
           echo "| Speedup S1/S2 | ${{ needs.phase65-masterpiece-gate.outputs.speedup }} | >= 8.0 |" >> $GITHUB_STEP_SUMMARY
           echo "| Signed Receipts | ${{ needs.phase65-masterpiece-gate.outputs.signed_receipts }} | true |" >> $GITHUB_STEP_SUMMARY
           echo "| Tier | ${{ needs.phase65-masterpiece-gate.outputs.tier }} | elite-operational target |" >> $GITHUB_STEP_SUMMARY
+          echo "| Launch Decision | ${{ needs.phase65-masterpiece-gate.outputs.launch_decision }} | GO for activation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Launch Ready | ${{ needs.phase65-masterpiece-gate.outputs.launch_ready }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Packet Signed | ${{ needs.phase65-masterpiece-gate.outputs.packet_signed }} | true |" >> $GITHUB_STEP_SUMMARY
