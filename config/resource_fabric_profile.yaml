@@ -1,0 +1,82 @@
+profile_name: bizra-proactive-pco-fabric
+profile_version: 1.0.0
+cache_ttl_s: 60
+
+category_weights:
+  agents: 0.20
+  commands: 0.15
+  hooks: 0.15
+  skills: 0.15
+  memory: 0.15
+  mcp: 0.12
+  profiles: 0.08
+
+expected_minimums:
+  agents: 20
+  commands: 20
+  hooks: 5
+  skills: 5
+  memory: 10
+  mcp: 5
+  profiles: 5
+
+sources:
+  - name: claude_agents
+    category: agents
+    path: .claude/agents
+    patterns: ["*.md", "*.yaml"]
+    weight: 1.0
+
+  - name: claude_commands
+    category: commands
+    path: .claude/commands
+    patterns: ["*.md"]
+    weight: 1.0
+
+  - name: claude_hooks
+    category: hooks
+    path: .claude/hooks
+    patterns: ["*.py", "*.sh", "*.js"]
+    weight: 1.0
+
+  - name: core_skills
+    category: skills
+    path: core/skills
+    patterns: ["*.py"]
+    weight: 1.0
+
+  - name: claude_skills
+    category: skills
+    path: .claude/skills
+    patterns: ["**/SKILL.md"]
+    weight: 1.1
+
+  - name: core_memory
+    category: memory
+    path: core/memory
+    patterns: ["*.py"]
+    weight: 1.0
+
+  - name: core_living_memory
+    category: memory
+    path: core/living_memory
+    patterns: ["*.py"]
+    weight: 0.9
+
+  - name: mcp_tools
+    category: mcp
+    path: tools/mcp
+    patterns: ["*.py"]
+    weight: 1.0
+
+  - name: cli_profiles
+    category: profiles
+    path: bizra-omega/bizra-cli/config
+    patterns: ["*.yaml"]
+    weight: 1.0
+
+  - name: proactive_config
+    category: profiles
+    path: config
+    patterns: ["*profile*.yaml", "*proactive*.yaml", "*config*.yaml"]
+    weight: 0.7

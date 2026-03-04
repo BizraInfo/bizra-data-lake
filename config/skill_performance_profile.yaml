@@ -1,0 +1,27 @@
+profile_name: elite-interdisciplinary-snr
+profile_version: 1.0.0
+top_n_default: 12
+min_invocations_for_confidence: 20
+latency_target_ms: 1200.0
+max_tag_boost: 0.20
+
+weights:
+  success_rate: 0.38
+  latency: 0.18
+  usage_confidence: 0.14
+  ihsan_floor: 0.18
+  tag_boost: 0.12
+
+tag_boosts:
+  interdisciplinary: 0.06
+  graph-of-thoughts: 0.06
+  snr: 0.07
+  autonomous: 0.05
+  giants-protocol: 0.05
+  architecture: 0.04
+  security: 0.06
+  performance: 0.06
+  testing: 0.04
+  reliability: 0.05
+  integration: 0.04
+  documentation: 0.03

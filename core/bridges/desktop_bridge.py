@@ -1229,6 +1229,50 @@ class DesktopBridge:
             else:
                 all_skills = router.registry.list_all()
             filter_status = params.get("filter") if isinstance(params, dict) else None
+            ranked = False
+            limit = 10
+            ihsan = 1.0
+            include_fabric = False
+            fabric_limit = 25
+            if isinstance(params, dict):
+                ranked = bool(params.get("ranked", False)) or (
+                    str(params.get("mode", "")).lower() in {"ranked", "top"}
+                )
+                include_fabric = bool(params.get("include_fabric", False))
+                try:
+                    limit = max(1, min(int(params.get("limit", 10)), 100))
+                except (TypeError, ValueError):
+                    limit = 10
+                try:
+                    fabric_limit = max(1, min(int(params.get("fabric_limit", 25)), 200))
+                except (TypeError, ValueError):
+                    fabric_limit = 25
+                try:
+                    ihsan = float(params.get("ihsan", 1.0))
+                except (TypeError, ValueError):
+                    ihsan = 1.0
+
+            if ranked and hasattr(router, "get_top_skills"):
+                ranked_skills = router.get_top_skills(limit=limit, ihsan_score=ihsan)
+                response = {
+                    "skills": ranked_skills,
+                    "count": len(ranked_skills),
+                    "mode": "ranked",
+                }
+                if (
+                    hasattr(router.registry, "get_performance_profile")
+                    and callable(router.registry.get_performance_profile)
+                ):
+                    response["performance_profile"] = (
+                        router.registry.get_performance_profile()
+                    )
+                if include_fabric and hasattr(router, "get_resource_fabric_summary"):
+                    response["resource_fabric"] = router.get_resource_fabric_summary(
+                        limit=fabric_limit,
+                        include_assets=True,
+                        force=False,
+                    )
+                return response
 
             skills = []
             for s in all_skills:
@@ -1244,7 +1288,14 @@ class DesktopBridge:
                     }
                 )
 
-            return {"skills": skills, "count": len(skills)}
+            response = {"skills": skills, "count": len(skills)}
+            if include_fabric and hasattr(router, "get_resource_fabric_summary"):
+                response["resource_fabric"] = router.get_resource_fabric_summary(
+                    limit=fabric_limit,
+                    include_assets=True,
+                    force=False,
+                )
+            return response
         except Exception as exc:
             return {"error": str(exc), "skills": []}
 

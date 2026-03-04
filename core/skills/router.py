@@ -334,6 +334,38 @@ class SkillRouter:
         skills = self.registry.find_by_agent(agent_name)
         return [s.manifest.name for s in skills]
 
+    def get_top_skills(
+        self,
+        limit: int = 10,
+        ihsan_score: float = 1.0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Return top-ranked skills using registry performance profile.
+
+        Falls back to a minimal available-skill list if registry does not
+        implement ranking (backward compatibility).
+        """
+        if hasattr(self.registry, "get_top_skills"):
+            return self.registry.get_top_skills(limit=limit, ihsan_score=ihsan_score)
+
+        names = self.get_available_skills(ihsan_score=ihsan_score)[: max(1, limit)]
+        return [{"name": n} for n in names]
+
+    def get_resource_fabric_summary(
+        self,
+        limit: int = 25,
+        include_assets: bool = False,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        """Return cross-surface resource fabric health snapshot."""
+        if hasattr(self.registry, "get_resource_fabric_summary"):
+            return self.registry.get_resource_fabric_summary(
+                limit=limit,
+                include_assets=include_assets,
+                force=force,
+            )
+        return {"error": "Resource fabric not supported by registry"}
+
     def get_stats(self) -> Dict[str, Any]:
         """Get router statistics."""
         return {

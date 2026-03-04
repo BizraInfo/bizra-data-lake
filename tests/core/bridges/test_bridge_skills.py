@@ -19,7 +19,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -296,6 +296,75 @@ class TestListSkills:
             result = resp["result"]
             assert result["count"] == 1
             assert result["skills"][0]["name"] == "active"
+        finally:
+            await bridge.stop()
+
+    @pytest.mark.asyncio
+    async def test_list_skills_ranked_mode(self) -> None:
+        port = _free_port()
+        bridge = DesktopBridge(host="127.0.0.1", port=port)
+
+        mock_registry = MagicMock()
+        mock_registry.get_all.return_value = []
+        mock_registry.get_performance_profile.return_value = {
+            "profile_name": "elite-interdisciplinary-snr"
+        }
+
+        mock_router = MagicMock()
+        mock_router.registry = mock_registry
+        mock_router.get_top_skills.return_value = [
+            {
+                "name": "ranked-skill",
+                "performance_score": 0.98,
+                "agent": "sovereign-coder",
+            }
+        ]
+        bridge._skill_router = mock_router
+
+        await bridge.start()
+        try:
+            resp = await _tcp_call(
+                port, "list_skills", {"mode": "ranked", "limit": 1, "ihsan": 0.95}
+            )
+            result = resp["result"]
+            assert result["mode"] == "ranked"
+            assert result["count"] == 1
+            assert result["skills"][0]["name"] == "ranked-skill"
+            assert result["performance_profile"]["profile_name"] == (
+                "elite-interdisciplinary-snr"
+            )
+        finally:
+            await bridge.stop()
+
+    @pytest.mark.asyncio
+    async def test_list_skills_include_resource_fabric(self) -> None:
+        port = _free_port()
+        bridge = DesktopBridge(host="127.0.0.1", port=port)
+
+        mock_registry = MagicMock()
+        mock_registry.get_all.return_value = [
+            _MockSkillEntry(_MockManifest("skill-a", "Skill A", "coder", ["dev"]))
+        ]
+
+        mock_router = MagicMock()
+        mock_router.registry = mock_registry
+        mock_router.get_resource_fabric_summary.return_value = {
+            "fabric_score": 0.91,
+            "coverage_score": 0.93,
+        }
+        bridge._skill_router = mock_router
+
+        await bridge.start()
+        try:
+            resp = await _tcp_call(
+                port,
+                "list_skills",
+                {"include_fabric": True, "fabric_limit": 5},
+            )
+            result = resp["result"]
+            assert result["count"] == 1
+            assert "resource_fabric" in result
+            assert result["resource_fabric"]["fabric_score"] == 0.91
         finally:
             await bridge.stop()
 

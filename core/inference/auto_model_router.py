@@ -172,15 +172,23 @@ class AutoModelRouter:
         headers = self._auth_headers()
         async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
             resp = await client.get(f"{self._base_url}/api/v1/models")
-            if resp.status_code != 200:
-                # Fall back to /v1/models (OpenAI-compat endpoint)
-                resp = await client.get(f"{self._base_url}/v1/models")
             if resp.status_code == 200:
-                data = resp.json().get("data", [])
+                data = resp.json()
+                # Native API: {"models": [...]} with "key" and "loaded_instances"
+                models = data.get("models", data.get("data", []))
+                return {
+                    m.get("key", m.get("id", ""))
+                    for m in models
+                    if m.get("loaded_instances") or m.get("loaded")
+                }
+            # Fall back to /v1/models (OpenAI-compat — no loaded field)
+            resp = await client.get(f"{self._base_url}/v1/models")
+            if resp.status_code == 200:
+                # OpenAI-compat has no "loaded" field — assume all available
+                # models COULD be loaded; caller must verify via inference
                 return {
                     m["id"]
-                    for m in data
-                    if m.get("loaded", True)  # default True for /v1/models
+                    for m in resp.json().get("data", [])
                 }
         return set()
 

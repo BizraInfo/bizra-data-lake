@@ -9,7 +9,6 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-from pathlib import Path
 
 import pytest
 
@@ -192,6 +191,65 @@ class TestSkillRegistry:
         s = r.get_stats()
         assert s["total_skills"] >= 1
         assert "by_agent" in s
+        assert "performance_profile" in s
+        assert "resource_fabric" in s
+
+    def test_get_top_skills_has_scoring_fields(self, mock_skill_dir):
+        r = SkillRegistry(skills_dir=str(mock_skill_dir))
+        r.load_all()
+        skill = r.get("test-skill")
+        assert skill is not None
+        skill.record_invocation(success=True, duration_ms=120.0)
+        skill.record_invocation(success=True, duration_ms=180.0)
+
+        ranked = r.get_top_skills(limit=5, ihsan_score=0.99)
+        assert len(ranked) == 1
+        row = ranked[0]
+        assert row["name"] == "test-skill"
+        assert 0 <= row["performance_score"] <= 1
+        assert "score_components" in row
+        assert set(row["score_components"].keys()) == {
+            "success_rate",
+            "latency",
+            "usage_confidence",
+            "ihsan_floor",
+            "tag_boost",
+        }
+
+    def test_get_top_skills_sorts_by_score(self, tmp_path):
+        alpha = tmp_path / "alpha-skill"
+        beta = tmp_path / "beta-skill"
+        alpha.mkdir()
+        beta.mkdir()
+
+        (alpha / "SKILL.md").write_text(
+            "---\nname: alpha\ndescription: Alpha\nagent: sovereign-coder\n"
+            "context: fork\ntags: [security, performance]\n---\n\n# Alpha\n",
+            encoding="utf-8",
+        )
+        (beta / "SKILL.md").write_text(
+            "---\nname: beta\ndescription: Beta\nagent: sovereign-coder\n"
+            "context: fork\ntags: [documentation]\n---\n\n# Beta\n",
+            encoding="utf-8",
+        )
+
+        r = SkillRegistry(skills_dir=str(tmp_path))
+        r.load_all()
+        a = r.get("alpha")
+        b = r.get("beta")
+        assert a is not None and b is not None
+
+        # Alpha: high reliability + low latency
+        for _ in range(8):
+            a.record_invocation(success=True, duration_ms=90.0)
+        # Beta: lower success and slower latency
+        for _ in range(4):
+            b.record_invocation(success=True, duration_ms=900.0)
+        for _ in range(4):
+            b.record_invocation(success=False, duration_ms=900.0)
+
+        ranked = r.get_top_skills(limit=2, ihsan_score=1.0)
+        assert [x["name"] for x in ranked] == ["alpha", "beta"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
