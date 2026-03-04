@@ -1,0 +1,121 @@
+name: Phase65 Masterpiece Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_strict_signing:
+        description: "Allow fallback key on protected branches (emergency only)"
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    paths:
+      - "scripts/node0_lifecycle_emulation.py"
+      - "scripts/ops/phase65_blueprint_gate.py"
+      - "scripts/ops/phase65_kpi_pack.py"
+      - "config/phase65_masterpiece_roadmap.yaml"
+      - "docs/specs/phase_65_lifecycle_protocol/**"
+      - "tests/scripts/test_node0_lifecycle_emulation.py"
+      - "tests/scripts/test_phase65_blueprint_gate.py"
+      - "tests/scripts/test_phase65_kpi_pack.py"
+      - "core/constitutional/energy_functions.py"
+      - "core/proof_engine/thermodynamic_gate.py"
+      - "core/proof_engine/ihsan_computer.py"
+
+jobs:
+  phase65-gate:
+    name: Emulation + Blueprint Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      gate_passed: ${{ steps.phase65_outputs.outputs.gate_passed }}
+      snr_score: ${{ steps.phase65_outputs.outputs.snr_score }}
+      avg_ihsan: ${{ steps.phase65_outputs.outputs.avg_ihsan }}
+      avg_latency_ms: ${{ steps.phase65_outputs.outputs.avg_latency_ms }}
+      speedup: ${{ steps.phase65_outputs.outputs.speedup }}
+      signed_receipts: ${{ steps.phase65_outputs.outputs.signed_receipts }}
+      tier: ${{ steps.phase65_outputs.outputs.tier }}
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      BIZRA_PHASE65_STRICT_SIGNING: "1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyyaml pytest
+
+      - name: Resolve signer policy
+        shell: bash
+        env:
+          BRANCH_SIGNER_KEY: ${{ secrets.BIZRA_RECEIPT_PRIVATE_KEY_HEX }}
+          SKIP_STRICT: ${{ github.event.inputs.skip_strict_signing || 'false' }}
+        run: |
+          protected=false
+          if [[ "${GITHUB_REF}" == "refs/heads/main" || "${GITHUB_REF}" == "refs/heads/master" ]]; then
+            protected=true
+          fi
+          key="${BRANCH_SIGNER_KEY:-}"
+          if [[ -z "$key" && "$protected" == "true" && "${SKIP_STRICT}" != "true" ]]; then
+            echo "::error::BIZRA_RECEIPT_PRIVATE_KEY_HEX secret is required on protected branches."
+            exit 1
+          fi
+          if [[ -z "$key" ]]; then
+            key="1111111111111111111111111111111111111111111111111111111111111111"
+            echo "::notice::Using deterministic fallback signing key for non-protected branch."
+          fi
+          echo "BIZRA_RECEIPT_PRIVATE_KEY_HEX=$key" >> "$GITHUB_ENV"
+
+      - name: Run lifecycle emulation
+        run: |
+          mkdir -p /tmp/phase65
+          rm -rf /tmp/phase65/state
+          python scripts/node0_lifecycle_emulation.py \
+            --state-dir /tmp/phase65/state \
+            --output /tmp/phase65/lifecycle_summary.json
+
+      - name: Run blueprint quality gate
+        run: |
+          python scripts/ops/phase65_blueprint_gate.py \
+            --summary /tmp/phase65/lifecycle_summary.json \
+            --config config/phase65_masterpiece_roadmap.yaml \
+            --report /tmp/phase65/phase65_gate_report.json
+
+      - name: Build KPI snapshot
+        id: phase65_outputs
+        run: |
+          python scripts/ops/phase65_kpi_pack.py \
+            --summary /tmp/phase65/lifecycle_summary.json \
+            --gate-report /tmp/phase65/phase65_gate_report.json \
+            --out-json /tmp/phase65/phase65_kpi_snapshot.json \
+            --out-md /tmp/phase65/phase65_kpi_snapshot.md \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Run targeted tests
+        run: |
+          pytest -q \
+            tests/scripts/test_node0_lifecycle_emulation.py \
+            tests/scripts/test_phase65_blueprint_gate.py \
+            tests/scripts/test_phase65_kpi_pack.py \
+            tests/core/constitutional/test_energy_functions.py \
+            tests/core/proof_engine/test_thermodynamic_gate.py
+
+      - name: Upload lifecycle artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: phase65-masterpiece-artifacts
+          path: |
+            /tmp/phase65/lifecycle_summary.json
+            /tmp/phase65/phase65_gate_report.json
+            /tmp/phase65/phase65_kpi_snapshot.json
+            /tmp/phase65/phase65_kpi_snapshot.md
+          retention-days: 30
