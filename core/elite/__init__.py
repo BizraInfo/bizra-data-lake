@@ -165,6 +165,35 @@ def __getattr__(name: str):
         from .self_harness_engine import SelfHarnessEngine
 
         return SelfHarnessEngine
+    # v1.4.0: Phase 64 — Self-Harness Sovereign
+    elif name == "AssetRegistry":
+        from .asset_registry import AssetRegistry
+
+        return AssetRegistry
+    elif name == "HardwareAsset":
+        from .asset_registry import HardwareAsset
+
+        return HardwareAsset
+    elif name == "NodeBody":
+        from .asset_registry import NodeBody
+
+        return NodeBody
+    elif name == "FloorConstraint":
+        from .floor_constraint import FloorConstraint
+
+        return FloorConstraint
+    elif name == "FloorProfile":
+        from .floor_constraint import FloorProfile
+
+        return FloorProfile
+    elif name == "FloorCheckResult":
+        from .floor_constraint import FloorCheckResult
+
+        return FloorCheckResult
+    elif name == "daughter_test":
+        from .floor_constraint import daughter_test
+
+        return daughter_test
     raise AttributeError(f"module 'core.elite' has no attribute '{name}'")
 
 
@@ -201,4 +230,12 @@ __all__ = [
     "create_inference_license",
     # v1.3.0: Agentic Self Harness
     "SelfHarnessEngine",
+    # v1.4.0: Phase 64 — Self-Harness Sovereign
+    "AssetRegistry",
+    "HardwareAsset",
+    "NodeBody",
+    "FloorConstraint",
+    "FloorProfile",
+    "FloorCheckResult",
+    "daughter_test",
 ]
