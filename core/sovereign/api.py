@@ -62,6 +62,9 @@ def _env_truthy(var_name: str) -> bool:
 # PYDANTIC MODELS (module-level for FastAPI schema generation)
 # =============================================================================
 try:
+    from fastapi import (
+        Request,
+    )  # Module-level so `from __future__ import annotations` can resolve it
     from pydantic import BaseModel as _PydanticBaseModel
 
     class QueryRequestModel(_PydanticBaseModel):
@@ -191,6 +194,7 @@ try:
     SpearpointPatternModel.model_rebuild()
 
 except ImportError:
+    Request = None  # type: ignore[assignment,misc]
     QueryRequestModel = None  # type: ignore[assignment,misc]
     OrchestrateRequestModel = None  # type: ignore[assignment,misc]
     RegisterRequestModel = None  # type: ignore[assignment,misc]
