@@ -131,9 +131,8 @@ def _compute_entry_hash_legacy_sha256(
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
-    return hashlib.sha256(
-        canonical
-    ).hexdigest()  # noqa: S324  # noqa: SEC-001 legacy compat
+    digest = hashlib.sha256(canonical).hexdigest()  # noqa: S324  # noqa: SEC-001
+    return digest
 
 
 class EvidenceLedger:
