@@ -1268,12 +1268,16 @@ def create_fastapi_app(runtime: Any) -> Any:
 
     # /v1/validate — standalone content validation via SNR + Ihsān
     @app.post("/v1/validate")
-    async def validate(body: ValidateRequestModel):
+    async def validate(body: ValidateRequestModel, request: Request):
         """Validate content quality using the sovereign SNR and Ihsān engines.
 
         Returns quality scores without executing a full query pipeline.
         Useful for TUI/CLI post-hoc validation of generated content.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         try:
             # Use the runtime's SNR optimizer for quality scoring
             snr_optimizer = getattr(runtime, "_snr_optimizer", None)
@@ -2324,8 +2328,12 @@ def create_fastapi_app(runtime: Any) -> Any:
     # missions, plus orchestrator statistics.
 
     @app.post("/v1/spearpoint/reproduce")
-    async def spearpoint_reproduce(body: SpearpointReproduceModel):
+    async def spearpoint_reproduce(body: SpearpointReproduceModel, request: Request):
         """Evaluate/verify a claim through the Spearpoint evaluator gate."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         orch = getattr(runtime, "_spearpoint_orchestrator", None)
         if orch is None:
             return JSONResponse(
@@ -2349,8 +2357,12 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
     @app.post("/v1/spearpoint/improve")
-    async def spearpoint_improve(body: SpearpointImproveModel):
+    async def spearpoint_improve(body: SpearpointImproveModel, request: Request):
         """Generate and evaluate improvement hypotheses through the evaluator gate."""
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         orch = getattr(runtime, "_spearpoint_orchestrator", None)
         if orch is None:
             return JSONResponse(
@@ -2392,12 +2404,16 @@ def create_fastapi_app(runtime: Any) -> Any:
             )
 
     @app.post("/v1/spearpoint/pattern")
-    async def spearpoint_pattern(body: "SpearpointPatternModel"):
+    async def spearpoint_pattern(body: "SpearpointPatternModel", request: Request):
         """Pattern-aware research using Sci-Reasoning thinking patterns.
 
         Routes to SpearpointOrchestrator.research_pattern() which uses the
         15 cognitive moves from Li et al. (2025) to seed hypothesis generation.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         orch = getattr(runtime, "_spearpoint_orchestrator", None)
         if orch is None:
             return JSONResponse(
@@ -2608,12 +2624,16 @@ def create_fastapi_app(runtime: Any) -> Any:
             return JSONResponse(status_code=500, content={"error": str(e)})
 
     @app.post("/v1/sel/retrieve")
-    async def sel_retrieve(body: SELRetrieveModel):
+    async def sel_retrieve(body: SELRetrieveModel, request: Request):
         """Retrieve episodes using RIR (Recency-Importance-Relevance) algorithm.
 
         Returns top_k most relevant episodes for the given query text.
         Standing on: Park et al. (2023) — generative agent retrieval.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         sel = getattr(runtime, "_experience_ledger", None)
         if sel is None:
             return JSONResponse(
@@ -2673,12 +2693,16 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── AgentDB Memory Search Endpoint (V3 Unified Memory) ──────────
 
     @app.post("/v1/memory/search")
-    async def memory_search(body: MemorySearchModel):
+    async def memory_search(body: MemorySearchModel, request: Request):
         """Hybrid memory search using AgentDB (HNSW + FTS5 + score fusion).
 
         Returns top_k most relevant memory records for the given query.
         Standing on: Malkov & Yashunin (2016) — HNSW; Robertson (2009) — BM25.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         agent_db = getattr(runtime, "_agent_db", None)
         if agent_db is None:
             return JSONResponse(
@@ -2736,13 +2760,17 @@ def create_fastapi_app(runtime: Any) -> Any:
     # ─── Cognitive Fusion Endpoints (Phase 31) ──────────────────────
 
     @app.post("/v1/cognitive/fuse")
-    async def cognitive_fuse(body: CognitiveFuseModel):
+    async def cognitive_fuse(body: CognitiveFuseModel, request: Request):
         """Run a query through the full Cognitive Fusion pipeline.
 
         4-stage pipeline: MoE Route → HRM Reason → HyperGraph RAG → NorthStar Gate.
         Returns complexity classification, HRM reasoning, RAG context, and quality scores.
         Standing on: Vaswani (MoE) + Simon (hierarchy) + Shannon (SNR) + Besta (GoT).
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         fusion_engine = getattr(runtime, "_cognitive_fusion", None)
         if fusion_engine is None:
             return JSONResponse(
@@ -2872,11 +2900,15 @@ def create_fastapi_app(runtime: Any) -> Any:
         epoch_cap: int = 1000
 
     @app.post("/v1/judgment/simulate")
-    async def judgment_simulate(body: EpochSimulateModel):
+    async def judgment_simulate(body: EpochSimulateModel, request: Request):
         """Simulate proportional epoch distribution (no tokens emitted).
 
         Pure mathematical rehearsal for genesis economy modeling.
         """
+        _, _, auth_error = _authenticate_http_request(request)
+        if auth_error is not None:
+            return auth_error
+
         from core.sovereign.judgment_telemetry import simulate_epoch_distribution
 
         result = simulate_epoch_distribution(body.impacts, body.epoch_cap)
