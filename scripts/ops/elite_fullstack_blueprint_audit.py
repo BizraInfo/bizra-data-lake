@@ -438,6 +438,96 @@ def _build_optimization_roadmap(
     return roadmap
 
 
+def _build_snr(total_checks: int, failed_checks: int) -> dict[str, Any]:
+    passed_checks = max(total_checks - failed_checks, 0)
+    # Keep noise floor at 1 to avoid divide-by-zero and preserve monotonic behavior.
+    snr_raw = passed_checks / (failed_checks + 1)
+    snr_normalized = snr_raw / (snr_raw + 1.0)
+    return {
+        "signal": passed_checks,
+        "noise": failed_checks,
+        "raw": round(snr_raw, 4),
+        "normalized": round(snr_normalized, 4),
+    }
+
+
+def _build_graph_of_thought(
+    sections: dict[str, dict[str, Any]],
+    gate_passed: bool,
+) -> dict[str, Any]:
+    nodes = [
+        {
+            "id": name,
+            "score": section["score"],
+            "status": "PASS" if section["score"] >= 0.999 else "DEGRADED",
+        }
+        for name, section in sections.items()
+    ]
+    nodes.append(
+        {
+            "id": "release_readiness",
+            "score": 1.0 if gate_passed else 0.0,
+            "status": "PASS" if gate_passed else "BLOCKED",
+        }
+    )
+
+    edges = [
+        {"from": "pmbok", "to": "files"},
+        {"from": "files", "to": "jobs"},
+        {"from": "files", "to": "pipeline"},
+        {"from": "jobs", "to": "thresholds"},
+        {"from": "pipeline", "to": "qa"},
+        {"from": "qa", "to": "thresholds"},
+        {"from": "thresholds", "to": "ethics"},
+        {"from": "ethics", "to": "release_readiness"},
+        {"from": "readme", "to": "release_readiness"},
+    ]
+    return {"nodes": nodes, "edges": edges}
+
+
+def _build_interdisciplinary_lenses(
+    sections: dict[str, dict[str, Any]]
+) -> dict[str, float]:
+    def _avg(*names: str) -> float:
+        values = [float(sections[name]["score"]) for name in names if name in sections]
+        return round(sum(values) / len(values), 4) if values else 0.0
+
+    return {
+        "architecture": _avg("files", "jobs"),
+        "devops": _avg("pipeline", "jobs"),
+        "quality": _avg("qa", "thresholds"),
+        "governance": _avg("pmbok", "ethics"),
+        "documentation": _avg("readme"),
+        "performance": _avg("thresholds", "qa"),
+    }
+
+
+def _derive_autonomous_next_step(
+    gate_passed: bool, optimization_roadmap: list[dict[str, str]]
+) -> dict[str, str]:
+    if gate_passed:
+        return {
+            "priority": "P0",
+            "owner": "release-management",
+            "action": (
+                "Promote to protected branch, run Phase65 + Phase56 gates, "
+                "then publish evidence artifacts."
+            ),
+        }
+    if optimization_roadmap:
+        top = optimization_roadmap[0]
+        return {
+            "priority": top["priority"],
+            "owner": top["owner"],
+            "action": top["action"],
+        }
+    return {
+        "priority": "P1",
+        "owner": "engineering",
+        "action": "Investigate failed gate and rebuild verification evidence.",
+    }
+
+
 def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     checks_cfg = cfg.get("checks") or {}
     scoring_cfg = cfg.get("scoring") or {}
@@ -498,6 +588,20 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     hard_fail = any(not c["passed"] for c in all_checks)
     gate_passed = (not hard_fail) and (weighted_score >= min_score)
     failed_checks = [c for c in all_checks if not c["passed"]]
+    optimization_roadmap = _build_optimization_roadmap(failed_checks)
+    snr = _build_snr(len(all_checks), len(failed_checks))
+    graph_of_thought = _build_graph_of_thought(sections, gate_passed)
+    interdisciplinary_lenses = _build_interdisciplinary_lenses(sections)
+    autonomous_next_step = _derive_autonomous_next_step(
+        gate_passed, optimization_roadmap
+    )
+    giants_protocol = (cfg.get("program") or {}).get("giants_protocol") or [
+        "Shannon:SNR maximization",
+        "Deming:PDCA quality discipline",
+        "Lamport:deterministic evidence ordering",
+        "PMBOK:lifecycle governance",
+        "Al-Ghazali:Ihsan as hard floor",
+    ]
 
     return {
         "program_id": (cfg.get("program") or {}).get("id"),
@@ -507,9 +611,14 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "weighted_score": round(weighted_score, 4),
         "min_score": min_score,
         "weights_total": weights_total,
+        "snr": snr,
+        "graph_of_thought": graph_of_thought,
+        "interdisciplinary_lenses": interdisciplinary_lenses,
+        "standing_on_giants_protocol": giants_protocol,
+        "autonomous_next_step": autonomous_next_step,
         "sections": sections,
         "failed_checks": failed_checks,
-        "optimization_roadmap": _build_optimization_roadmap(failed_checks),
+        "optimization_roadmap": optimization_roadmap,
         "pmbok_domains": cfg.get("pmbok_domains") or [],
     }
 

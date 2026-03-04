@@ -5,6 +5,12 @@ program:
   intent: >
     Enforce a professional, evidence-backed implementation baseline across PMBOK,
     DevOps, CI/CD, security, performance, documentation, and ethical governance.
+  giants_protocol:
+    - "Shannon:SNR maximization"
+    - "Deming:PDCA quality discipline"
+    - "Lamport:deterministic evidence ordering"
+    - "PMBOK:lifecycle governance"
+    - "Al-Ghazali:Ihsan as hard floor"
 
 pmbok_domains:
   - initiating

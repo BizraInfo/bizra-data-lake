@@ -117,6 +117,14 @@ The audit now emits an `optimization_roadmap` with prioritized remediation:
 
 This converts the blueprint from static compliance to an actionable execution queue.
 
+v2 audit output now includes:
+
+- `snr` (signal/noise, raw, normalized)
+- `graph_of_thought` (nodes/edges dependency graph across control planes)
+- `interdisciplinary_lenses` (architecture/devops/quality/governance/documentation/performance scores)
+- `standing_on_giants_protocol` (traceable methodological anchors)
+- `autonomous_next_step` (highest-priority executable action)
+
 ## Definition of Elite Readiness
 
 Elite readiness is achieved only when:
