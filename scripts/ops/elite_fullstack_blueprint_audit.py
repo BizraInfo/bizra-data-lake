@@ -154,6 +154,290 @@ def _check_phase65_thresholds(
     return (passed / total) if total else 1.0, checks
 
 
+def _check_pmbok_artifacts(
+    repo_root: Path, pmbok_cfg: dict[str, list[str]]
+) -> tuple[float, list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    total = 0
+    passed = 0
+    for domain, rel_paths in pmbok_cfg.items():
+        for rel in rel_paths:
+            exists = (repo_root / rel).exists()
+            checks.append(
+                {
+                    "name": f"pmbok:{domain}:{rel}",
+                    "passed": exists,
+                    "expected": "exists",
+                    "actual": "exists" if exists else "missing",
+                }
+            )
+            total += 1
+            passed += int(exists)
+    return (passed / total) if total else 1.0, checks
+
+
+def _check_pipeline_automation(
+    repo_root: Path, pipeline_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    total = 0
+    passed = 0
+
+    for rel in pipeline_cfg.get("workflows") or []:
+        exists = (repo_root / rel).exists()
+        checks.append(
+            {
+                "name": f"pipeline:workflow:{rel}",
+                "passed": exists,
+                "expected": "exists",
+                "actual": "exists" if exists else "missing",
+            }
+        )
+        total += 1
+        passed += int(exists)
+
+    dep_cfg = pipeline_cfg.get("required_job_dependencies") or {}
+    for rel_file, spec in dep_cfg.items():
+        path = repo_root / rel_file
+        job_name = str(spec.get("job", ""))
+        if not path.exists():
+            checks.append(
+                {
+                    "name": f"pipeline:deps:{rel_file}:{job_name}",
+                    "passed": False,
+                    "expected": "workflow and job present",
+                    "actual": "workflow_missing",
+                }
+            )
+            total += 1
+            continue
+
+        payload = _load_yaml(path)
+        jobs = payload.get("jobs") or {}
+        job_payload = jobs.get(job_name)
+        if not isinstance(job_payload, dict):
+            checks.append(
+                {
+                    "name": f"pipeline:deps:{rel_file}:{job_name}",
+                    "passed": False,
+                    "expected": "job present",
+                    "actual": "job_missing",
+                }
+            )
+            total += 1
+            continue
+
+        needs_raw = job_payload.get("needs", [])
+        if isinstance(needs_raw, str):
+            needs = [needs_raw]
+        elif isinstance(needs_raw, list):
+            needs = [str(x) for x in needs_raw]
+        else:
+            needs = []
+
+        needs_all = [str(x) for x in (spec.get("needs_all_of") or [])]
+        needs_any = [str(x) for x in (spec.get("needs_any_of") or [])]
+
+        if needs_all:
+            ok_all = all(req in needs for req in needs_all)
+            checks.append(
+                {
+                    "name": f"pipeline:deps_all:{rel_file}:{job_name}",
+                    "passed": ok_all,
+                    "expected": needs_all,
+                    "actual": needs,
+                }
+            )
+            total += 1
+            passed += int(ok_all)
+
+        if needs_any:
+            ok_any = any(req in needs for req in needs_any)
+            checks.append(
+                {
+                    "name": f"pipeline:deps_any:{rel_file}:{job_name}",
+                    "passed": ok_any,
+                    "expected": f"any_of:{needs_any}",
+                    "actual": needs,
+                }
+            )
+            total += 1
+            passed += int(ok_any)
+
+    pattern_cfg = pipeline_cfg.get("required_patterns") or {}
+    for rel_file, patterns in pattern_cfg.items():
+        path = repo_root / rel_file
+        text = path.read_text(encoding="utf-8") if path.exists() else ""
+        for pattern in patterns or []:
+            ok = pattern in text
+            checks.append(
+                {
+                    "name": f"pipeline:pattern:{rel_file}:{pattern}",
+                    "passed": ok,
+                    "expected": "present",
+                    "actual": "present" if ok else "missing",
+                }
+            )
+            total += 1
+            passed += int(ok)
+
+    return (passed / total) if total else 1.0, checks
+
+
+def _check_qa_controls(
+    repo_root: Path, qa_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    total = 0
+    passed = 0
+
+    for rel in qa_cfg.get("required_test_targets") or []:
+        exists = (repo_root / rel).exists()
+        checks.append(
+            {
+                "name": f"qa:test:{rel}",
+                "passed": exists,
+                "expected": "exists",
+                "actual": "exists" if exists else "missing",
+            }
+        )
+        total += 1
+        passed += int(exists)
+
+    for rel in qa_cfg.get("required_quality_scripts") or []:
+        exists = (repo_root / rel).exists()
+        checks.append(
+            {
+                "name": f"qa:script:{rel}",
+                "passed": exists,
+                "expected": "exists",
+                "actual": "exists" if exists else "missing",
+            }
+        )
+        total += 1
+        passed += int(exists)
+
+    min_test_files = qa_cfg.get("min_test_files")
+    if isinstance(min_test_files, int) and min_test_files >= 0:
+        observed = len(list((repo_root / "tests").rglob("test_*.py")))
+        ok = observed >= min_test_files
+        checks.append(
+            {
+                "name": "qa:min_test_files",
+                "passed": ok,
+                "expected": min_test_files,
+                "actual": observed,
+            }
+        )
+        total += 1
+        passed += int(ok)
+
+    return (passed / total) if total else 1.0, checks
+
+
+def _check_ethical_integrity(
+    repo_root: Path, ethics_cfg: dict[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    if not ethics_cfg:
+        return 1.0, []
+
+    checks: list[dict[str, Any]] = []
+    total = 0
+    passed = 0
+
+    required_invariants = [str(x) for x in (ethics_cfg.get("required_invariants") or [])]
+    rel_source_raw = ethics_cfg.get("source_file")
+    if not required_invariants and rel_source_raw is None:
+        return 1.0, []
+
+    rel_source = str(rel_source_raw or "core/integration/constants.py")
+    source_path = repo_root / rel_source
+    text = source_path.read_text(encoding="utf-8") if source_path.exists() else ""
+
+    checks.append(
+        {
+            "name": f"ethics:source:{rel_source}",
+            "passed": source_path.exists(),
+            "expected": "exists",
+            "actual": "exists" if source_path.exists() else "missing",
+        }
+    )
+    total += 1
+    passed += int(source_path.exists())
+
+    for invariant in required_invariants:
+        ok = invariant in text
+        checks.append(
+            {
+                "name": f"ethics:invariant:{invariant}",
+                "passed": ok,
+                "expected": "present",
+                "actual": "present" if ok else "missing",
+            }
+        )
+        total += 1
+        passed += int(ok)
+
+    return (passed / total) if total else 1.0, checks
+
+
+def _recommendation_from_check(check_name: str) -> dict[str, str]:
+    if check_name.startswith("phase65:") or check_name.startswith("ethics:"):
+        return {
+            "priority": "P0",
+            "owner": "governance",
+            "action": "Restore constitutional thresholds/invariants before any release.",
+        }
+    if check_name.startswith("pipeline:") or check_name.startswith("job:"):
+        return {
+            "priority": "P1",
+            "owner": "devops",
+            "action": "Fix CI/CD orchestration and job dependency chain.",
+        }
+    if check_name.startswith("qa:"):
+        return {
+            "priority": "P1",
+            "owner": "quality",
+            "action": "Recover required test and quality-control coverage.",
+        }
+    if check_name.startswith("pmbok:"):
+        return {
+            "priority": "P2",
+            "owner": "program-management",
+            "action": "Restore PMBOK artifact traceability for lifecycle control.",
+        }
+    if check_name.startswith("file:"):
+        return {
+            "priority": "P2",
+            "owner": "architecture",
+            "action": "Restore missing blueprint dependencies (files/scripts/docs).",
+        }
+    return {
+        "priority": "P3",
+        "owner": "docs",
+        "action": "Fix visibility/README hygiene requirements.",
+    }
+
+
+def _build_optimization_roadmap(
+    failed_checks: list[dict[str, Any]]
+) -> list[dict[str, str]]:
+    roadmap: list[dict[str, str]] = []
+    priority_order = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+    for check in failed_checks:
+        rec = _recommendation_from_check(str(check.get("name", "")))
+        roadmap.append(
+            {
+                "priority": rec["priority"],
+                "owner": rec["owner"],
+                "check": str(check.get("name", "")),
+                "action": rec["action"],
+            }
+        )
+    roadmap.sort(key=lambda item: priority_order.get(item["priority"], 99))
+    return roadmap
+
+
 def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     checks_cfg = cfg.get("checks") or {}
     scoring_cfg = cfg.get("scoring") or {}
@@ -177,6 +461,16 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     threshold_score, threshold_checks = _check_phase65_thresholds(
         repo_root, checks_cfg.get("phase65_thresholds") or {}
     )
+    pmbok_score, pmbok_checks = _check_pmbok_artifacts(
+        repo_root, checks_cfg.get("pmbok_artifacts") or {}
+    )
+    pipeline_score, pipeline_checks = _check_pipeline_automation(
+        repo_root, checks_cfg.get("pipeline_automation") or {}
+    )
+    qa_score, qa_checks = _check_qa_controls(repo_root, checks_cfg.get("qa") or {})
+    ethics_score, ethics_checks = _check_ethical_integrity(
+        repo_root, checks_cfg.get("ethical_integrity") or {}
+    )
 
     sections = {
         "files": {
@@ -186,24 +480,24 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "jobs": {"score": round(job_score, 4), "checks": job_checks},
         "readme": {"score": round(readme_score, 4), "checks": readme_checks},
         "thresholds": {"score": round(threshold_score, 4), "checks": threshold_checks},
+        "pmbok": {"score": round(pmbok_score, 4), "checks": pmbok_checks},
+        "pipeline": {"score": round(pipeline_score, 4), "checks": pipeline_checks},
+        "qa": {"score": round(qa_score, 4), "checks": qa_checks},
+        "ethics": {"score": round(ethics_score, 4), "checks": ethics_checks},
     }
 
-    weighted_score = (
-        sections["files"]["score"] * float(weights.get("files", 0.0))
-        + sections["jobs"]["score"] * float(weights.get("jobs", 0.0))
-        + sections["readme"]["score"] * float(weights.get("readme", 0.0))
-        + sections["thresholds"]["score"] * float(weights.get("thresholds", 0.0))
-    )
+    weighted_score = 0.0
+    for section_name, section_payload in sections.items():
+        weighted_score += section_payload["score"] * float(weights.get(section_name, 0.0))
     min_score = float(scoring_cfg.get("min_score", 0.0))
+    weights_total = round(sum(float(v) for v in weights.values()), 4)
 
-    all_checks = (
-        sections["files"]["checks"]
-        + sections["jobs"]["checks"]
-        + sections["readme"]["checks"]
-        + sections["thresholds"]["checks"]
-    )
+    all_checks: list[dict[str, Any]] = []
+    for section in sections.values():
+        all_checks.extend(section["checks"])
     hard_fail = any(not c["passed"] for c in all_checks)
     gate_passed = (not hard_fail) and (weighted_score >= min_score)
+    failed_checks = [c for c in all_checks if not c["passed"]]
 
     return {
         "program_id": (cfg.get("program") or {}).get("id"),
@@ -212,8 +506,10 @@ def audit_repo(repo_root: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "hard_fail": hard_fail,
         "weighted_score": round(weighted_score, 4),
         "min_score": min_score,
+        "weights_total": weights_total,
         "sections": sections,
-        "failed_checks": [c for c in all_checks if not c["passed"]],
+        "failed_checks": failed_checks,
+        "optimization_roadmap": _build_optimization_roadmap(failed_checks),
         "pmbok_domains": cfg.get("pmbok_domains") or [],
     }
 

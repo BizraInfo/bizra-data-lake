@@ -118,3 +118,72 @@ def test_elite_blueprint_audit_fails_when_requirements_missing(tmp_path: Path) -
     assert report["gate_passed"] is False
     assert report["hard_fail"] is True
     assert len(report["failed_checks"]) > 0
+
+
+def test_elite_blueprint_audit_checks_ethical_invariants(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump(
+            {"jobs": {"phase65-masterpiece-gate": {}, "deploy": {"needs": []}}},
+            sort_keys=False,
+        ),
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _seed_phase65_config(repo)
+    _write(
+        repo / "core/integration/constants.py",
+        "KERNEL_INVARIANTS = ('RIBA_ZERO', 'CLAIM_MUST_BIND')\n",
+    )
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["ethical_integrity"] = {
+        "source_file": "core/integration/constants.py",
+        "required_invariants": ["RIBA_ZERO", "CLAIM_MUST_BIND", "IHSAN_FLOOR"],
+    }
+    cfg["scoring"]["weights"]["ethics"] = 0.10
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is False
+    assert any(
+        check["name"] == "ethics:invariant:IHSAN_FLOOR"
+        for check in report["failed_checks"]
+    )
+
+
+def test_elite_blueprint_audit_emits_priority_roadmap(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / ".github/workflows/ci.yml",
+        yaml.safe_dump({"jobs": {"phase65-masterpiece-gate": {}}}, sort_keys=False),
+    )
+    _write(
+        repo / ".github/workflows/phase65-masterpiece.yml",
+        yaml.safe_dump({"jobs": {"phase65-gate": {}}}, sort_keys=False),
+    )
+    _write(repo / "scripts/ops/phase65_masterpiece_runner.py", "# runner\n")
+    _write(
+        repo / "README.md",
+        "\n".join(["[![CI Status]", "[![Roadmap]", "## Community"]),
+    )
+    _write(repo / "ROADMAP.md", "# roadmap\n")
+    _write(repo / "COMMUNITY.md", "# community\n")
+    _seed_phase65_config(repo)
+
+    cfg = _minimal_cfg()
+    cfg["checks"]["phase65_thresholds"]["min_avg_ihsan"] = 0.95
+
+    report = audit_repo(repo, cfg)
+    assert report["gate_passed"] is False
+    assert report["optimization_roadmap"]
+    assert report["optimization_roadmap"][0]["priority"] == "P0"

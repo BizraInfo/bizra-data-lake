@@ -1,6 +1,6 @@
 # Elite Full-Stack Blueprint
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 ## Objective
 
@@ -99,6 +99,24 @@ python scripts/ops/elite_fullstack_blueprint_audit.py \
   --report /tmp/phase65/elite_fullstack_blueprint_report.json
 ```
 
+## v2 Control Extensions
+
+The v2 blueprint adds four machine-checkable control planes:
+
+1. PMBOK artifact traceability (`checks.pmbok_artifacts`)
+2. Pipeline dependency integrity (`checks.pipeline_automation`)
+3. QA control coverage (`checks.qa`)
+4. Ethical invariant enforcement (`checks.ethical_integrity`)
+
+The audit now emits an `optimization_roadmap` with prioritized remediation:
+
+- `P0`: Constitutional and ethical hard-stop failures
+- `P1`: CI/CD orchestration and QA control failures
+- `P2`: PMBOK traceability and architecture file debt
+- `P3`: Documentation/readme visibility hygiene
+
+This converts the blueprint from static compliance to an actionable execution queue.
+
 ## Definition of Elite Readiness
 
 Elite readiness is achieved only when:
@@ -107,5 +125,5 @@ Elite readiness is achieved only when:
 2. Required CI jobs are present.
 3. README contains required visibility markers.
 4. Phase65 thresholds match configured governance baseline.
-5. Weighted blueprint score meets minimum and no hard checks fail.
-
+5. PMBOK artifacts, pipeline dependencies, QA controls, and ethical invariants pass.
+6. Weighted blueprint score meets minimum and no hard checks fail.
