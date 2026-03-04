@@ -18,6 +18,12 @@ from core.sovereign.api import create_fastapi_app
 from core.sovereign.runtime_types import RuntimeMetrics
 
 
+@pytest.fixture(autouse=True)
+def _allow_anonymous(monkeypatch):
+    """Bypass auth layer — these tests validate routing, not auth."""
+    monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+
+
 def _mock_runtime(with_orchestrator: bool = True, state_dir=None) -> MagicMock:
     """Create a mock runtime with optional spearpoint orchestrator."""
     import tempfile

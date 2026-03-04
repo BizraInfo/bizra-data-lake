@@ -419,6 +419,11 @@ class TestOrchestratorResearchPattern:
 class TestSpearpointPatternEndpoint:
     """POST /v1/spearpoint/pattern API tests."""
 
+    @pytest.fixture(autouse=True)
+    def _allow_anonymous(self, monkeypatch):
+        """Bypass auth layer — these tests validate routing, not auth."""
+        monkeypatch.setenv("BIZRA_AUTH_ALLOW_ANONYMOUS", "true")
+
     def test_pattern_endpoint_returns_200(self):
         """Pattern endpoint returns result from orchestrator.research_pattern."""
         import tempfile
