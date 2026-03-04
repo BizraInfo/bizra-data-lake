@@ -161,6 +161,10 @@ def __getattr__(name: str):
         from .compute_market import create_inference_license
 
         return create_inference_license
+    elif name == "SelfHarnessEngine":
+        from .self_harness_engine import SelfHarnessEngine
+
+        return SelfHarnessEngine
     raise AttributeError(f"module 'core.elite' has no attribute '{name}'")
 
 
@@ -195,4 +199,6 @@ __all__ = [
     "ComputeMarket",
     "create_market",
     "create_inference_license",
+    # v1.3.0: Agentic Self Harness
+    "SelfHarnessEngine",
 ]

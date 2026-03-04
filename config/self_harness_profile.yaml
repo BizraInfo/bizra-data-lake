@@ -1,0 +1,77 @@
+profile_name: bizra-agentic-self-harness
+profile_version: 1.0.0
+cache_ttl_s: 45
+max_file_size_bytes: 1500000
+max_findings_per_rule: 200
+
+include_paths:
+  - core
+  - tests
+  - scripts
+  - deploy
+  - config
+  - .claude
+  - tools
+
+exclude_path_fragments:
+  - .git/
+  - .venv/
+  - .venv-linux/
+  - node_modules/
+  - 04_GOLD/
+  - 99_QUARANTINE/
+  - __pycache__/
+
+penalties:
+  critical: 0.045
+  high: 0.020
+  medium: 0.010
+  low: 0.004
+
+rules:
+  - id: pytest_tail_masking
+    category: ci_reliability
+    severity: critical
+    description: "pytest output piped to tail can hide failing exit code"
+    file_globs: ["*.sh", "*.bash", "*.zsh", "*.yml", "*.yaml"]
+    patterns:
+      - "pytest[^\\n]*\\|\\s*tail"
+    recommendation: "Capture pytest exit code before tailing logs; fail closed."
+
+  - id: wildcard_cors
+    category: runtime_hardening
+    severity: high
+    description: "Wildcard CORS origin weakens production boundary control"
+    file_globs: ["*.py", "*.js", "*.ts"]
+    patterns:
+      - "allow_origins\\s*=\\s*\\[\\s*\"\\*\"\\s*\\]"
+    recommendation: "Use explicit allowlist origins and constrained methods/headers."
+
+  - id: broad_exception_pass
+    category: runtime_resilience
+    severity: medium
+    description: "Broad exception handlers can suppress actionable failures"
+    file_globs: ["*.py"]
+    patterns:
+      - "except\\s+Exception\\s*:\\s*pass"
+      - "except\\s*:\\s*pass"
+    recommendation: "Catch specific exceptions and log context-rich diagnostics."
+
+  - id: unbounded_recursive_scan
+    category: performance
+    severity: medium
+    description: "Unbounded recursive scans can degrade large-repo performance"
+    file_globs: ["*.sh", "*.py"]
+    patterns:
+      - "find\\s+\\.\\s+-type"
+      - "rglob\\(\\s*\"\\*\""
+    recommendation: "Bound scans with include roots, maxdepth, and prune lists."
+
+  - id: missing_timeout_on_http
+    category: performance
+    severity: high
+    description: "Network calls without timeout can stall pipelines"
+    file_globs: ["*.py"]
+    patterns:
+      - "requests\\.(get|post|put|patch|delete)\\([^\\)]*$"
+    recommendation: "Set explicit timeout for external calls and retries."

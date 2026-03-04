@@ -193,6 +193,7 @@ class TestSkillRegistry:
         assert "by_agent" in s
         assert "performance_profile" in s
         assert "resource_fabric" in s
+        assert "self_harness" in s
 
     def test_get_top_skills_has_scoring_fields(self, mock_skill_dir):
         r = SkillRegistry(skills_dir=str(mock_skill_dir))

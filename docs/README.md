@@ -38,6 +38,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 3. [Desktop Bridge](DESKTOP_BRIDGE.md)
 4. [Threat Model](THREAT-MODEL-V3.md)
 5. [Security Architecture](SECURITY-ARCHITECTURE.md)
+6. [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md)
 
 ### 3. Security / Compliance Reviewer
 
@@ -78,6 +79,7 @@ The handover document covers: identity, architecture, metrics (582K lines, 7,907
 
 | Domain | Primary Doc | Source of Truth in Code |
 |---|---|---|
+| Node0 standalone lifecycle | [Node0 Standalone Readiness](NODE0_STANDALONE_READINESS.md) | `scripts/node0_standalone.py`, `scripts/node0_activate.py`, `core/sovereign/mission.py` |
 | Runtime architecture | [Architecture Blueprint](ARCHITECTURE_BLUEPRINT_v2.3.0.md) | `core/sovereign/`, `core/integration/constants.py` |
 | Canonical cognitive flow | [Peak Hidden Thoughts Flow v1.0](architecture/PEAK_HIDDEN_THOUGHTS_FLOW_v1.0.md) | `core/pci/`, `core/reasoning/`, `core/sovereign/`, `core/bridges/` |
 | API contracts | [Integration Contracts](INTEGRATION_CONTRACTS.md) | `core/sovereign/api.py`, `bizra-omega/bizra-api/` |

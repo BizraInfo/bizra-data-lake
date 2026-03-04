@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -529,7 +530,10 @@ class MissionOrchestrator:
     ) -> dict[str, Any]:
         from core.bridges.browser_mcp_client import BrowserMCPClient
 
-        client = BrowserMCPClient(mode="direct")
+        mode = os.environ.get("BIZRA_BROWSER_MODE", "direct").strip().lower()
+        if mode not in {"mock", "direct", "mcp"}:
+            mode = "direct"
+        client = BrowserMCPClient(mode=mode)
         query = subtask.params.get("query", request.description)
         research = await client.research(query)
 
@@ -538,6 +542,7 @@ class MissionOrchestrator:
             "results_count": len(research.get("results", [])),
             "results": research.get("results", [])[:5],
             "summary": research.get("summary", ""),
+            "mode": mode,
         }
 
     async def _execute_desktop(
@@ -554,12 +559,131 @@ class MissionOrchestrator:
             except Exception as exc:
                 logger.warning("HDA get_context failed: %s", exc)
 
+        local_fs = self._execute_local_filesystem(subtask, request)
+        if local_fs is not None:
+            local_fs["hda_connected"] = False
+            return local_fs
+
         return {
             "context_captured": False,
             "hda_connected": False,
             "fallback": "python_file_io",
             "active_window": request.context.active_window_title,
         }
+
+    def _execute_local_filesystem(
+        self,
+        subtask: Any,
+        request: MissionRequest,
+    ) -> dict[str, Any] | None:
+        """Execute explicit local filesystem intents when HDA is unavailable.
+
+        Accepted intent formats:
+        - ``write file <relative-path> :: <content>``
+        - ``append file <relative-path> :: <content>``
+        - ``read file <relative-path>``
+        - ``list dir <relative-path>``
+        """
+        description = str(
+            (getattr(subtask, "params", {}) or {}).get(
+                "description",
+                request.description,
+            )
+        ).strip()
+
+        if not description:
+            return None
+
+        write_match = re.match(
+            r"^(?:write|create)\\s+file\\s+(.+?)\\s*::\\s*(.+)$",
+            description,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if write_match:
+            path = self._resolve_workspace_path(write_match.group(1))
+            content = write_match.group(2)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+            return {
+                "context_captured": True,
+                "filesystem_action": "write",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+            }
+
+        append_match = re.match(
+            r"^append\\s+file\\s+(.+?)\\s*::\\s*(.+)$",
+            description,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if append_match:
+            path = self._resolve_workspace_path(append_match.group(1))
+            content = append_match.group(2)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(content)
+            return {
+                "context_captured": True,
+                "filesystem_action": "append",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+            }
+
+        read_match = re.match(r"^read\\s+file\\s+(.+)$", description, re.IGNORECASE)
+        if read_match:
+            path = self._resolve_workspace_path(read_match.group(1))
+            if not path.exists():
+                return {
+                    "context_captured": True,
+                    "filesystem_action": "read",
+                    "path": str(path),
+                    "error": "file_not_found",
+                }
+            content = path.read_text(encoding="utf-8", errors="replace")
+            return {
+                "context_captured": True,
+                "filesystem_action": "read",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+                "preview": content[:400],
+            }
+
+        list_match = re.match(
+            r"^(?:list\\s+(?:dir|files\\s+in)|show\\s+files\\s+in)\\s+(.+)$",
+            description,
+            re.IGNORECASE,
+        )
+        if list_match:
+            path = self._resolve_workspace_path(list_match.group(1))
+            if not path.exists() or not path.is_dir():
+                return {
+                    "context_captured": True,
+                    "filesystem_action": "list",
+                    "path": str(path),
+                    "error": "directory_not_found",
+                }
+            entries = sorted(p.name for p in path.iterdir())[:200]
+            return {
+                "context_captured": True,
+                "filesystem_action": "list",
+                "path": str(path),
+                "entries": entries,
+            }
+
+        return None
+
+    def _resolve_workspace_path(self, raw_path: str) -> Path:
+        """Resolve and confine filesystem actions to the active workspace."""
+        candidate = Path(raw_path.strip().strip("\""))
+        if candidate.is_absolute():
+            resolved = candidate.resolve()
+        else:
+            resolved = (Path.cwd() / candidate).resolve()
+
+        workspace = Path.cwd().resolve()
+        if resolved == workspace or workspace in resolved.parents:
+            return resolved
+        raise ValueError(f"path_outside_workspace:{resolved}")
 
     # ── Private: Synthesis ──────────────────────────────────────────
 
