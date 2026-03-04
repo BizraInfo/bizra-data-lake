@@ -34,7 +34,7 @@ from core.proof_engine.canonical import blake3_digest, canonical_bytes, canonica
 from core.proof_engine.poi_engine import PoIReasonCode
 
 # CAHT chain builder from fixtures package
-from tests.fixtures.caht_chain import CAHTChain, GENESIS_HASH
+from tests.fixtures.caht_chain import GENESIS_HASH, CAHTChain
 
 # =============================================================================
 # FIXTURES

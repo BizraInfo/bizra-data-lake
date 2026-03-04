@@ -103,7 +103,9 @@ def test_summarize_diffusion_receipts_aggregates_recent_receipts() -> None:
     assert summary["last_focus"] == "stabilize"
 
 
-def test_emit_verified_receipt_forwards_diffusion_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_emit_verified_receipt_forwards_diffusion_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured = {}
 
     def fake_emit_receipt(*args, **kwargs):
@@ -121,7 +123,11 @@ def test_emit_verified_receipt_forwards_diffusion_trace(monkeypatch: pytest.Monk
     monkeypatch.setattr(evidence_ledger, "emit_receipt", fake_emit_receipt)
 
     mission = {"id": "m-1", "description": "secure transport hardening"}
-    result = {"agents": [{"agent": "strategist"}], "total_tokens": 100, "duration_ms": 23}
+    result = {
+        "agents": [{"agent": "strategist"}],
+        "total_tokens": 100,
+        "duration_ms": 23,
+    }
     snr_data = {
         "snr_score": 0.94,
         "ihsan_score": 0.96,
@@ -166,7 +172,9 @@ async def test_cmd_status_surfaces_diffusion_from_ledger(
     import core.sovereign.event_bus as event_bus
     from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
 
-    monkeypatch.setattr(event_bus, "create_rust_event_bridge", lambda production=False: None)
+    monkeypatch.setattr(
+        event_bus, "create_rust_event_bridge", lambda production=False: None
+    )
     monkeypatch.setattr(node0, "PROJECT_ROOT", str(tmp_path))
 
     state_dir = tmp_path / "sovereign_state"
@@ -285,12 +293,15 @@ async def test_execute_mission_updates_diffusion_metrics_and_result(
     monkeypatch.setattr(node0, "_emit_verified_receipt", fake_receipt)
     monkeypatch.setattr(node0, "_CHANNEL_DISPATCHER", None)
     monkeypatch.setattr(node0, "_RLM_BRIDGE", None)
-    monkeypatch.setattr(node0, "_AGENT_STRATEGIES", {"strategist": SimpleNamespace(use_rlm=False)})
+    monkeypatch.setattr(
+        node0, "_AGENT_STRATEGIES", {"strategist": SimpleNamespace(use_rlm=False)}
+    )
     monkeypatch.setattr(
         node0,
         "_build_diffusion_query_context",
         lambda q: {
-            "query": "[DIFFUSION_CONTEXT]\\nstate=analyzing\\n[/DIFFUSION_CONTEXT]\\n" + q,
+            "query": "[DIFFUSION_CONTEXT]\\nstate=analyzing\\n[/DIFFUSION_CONTEXT]\\n"
+            + q,
             "amplifier": {
                 "activated": True,
                 "confidence": 0.95,

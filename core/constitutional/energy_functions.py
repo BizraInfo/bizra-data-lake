@@ -214,12 +214,18 @@ class ThermodynamicEnergySuite:
             + 0.05 * _clamp01(signals.hedge_hits / 4.0)
         )
 
-        expected_accuracy = _clamp01(0.5 * snr + 0.3 * evidence + 0.2 * signals.query_alignment)
+        expected_accuracy = _clamp01(
+            0.5 * snr + 0.3 * evidence + 0.2 * signals.query_alignment
+        )
         overconfidence = max(0.0, confidence - expected_accuracy)
-        epistemic_humility = ((confidence - expected_accuracy) ** 2) + (0.15 * overconfidence)
+        epistemic_humility = ((confidence - expected_accuracy) ** 2) + (
+            0.15 * overconfidence
+        )
 
         structural_integrity = 1.0 - _clamp01(
-            0.45 * actionable + 0.35 * signals.query_alignment + 0.20 * signals.unique_ratio
+            0.45 * actionable
+            + 0.35 * signals.query_alignment
+            + 0.20 * signals.unique_ratio
         )
 
         verifiability = 1.0 - _clamp01(0.45 * evidence + 0.30 * snr + 0.25 * actionable)

@@ -40,7 +40,7 @@ class SATRole(Enum):
 
 # Constitutional minimums for role allocation (immutable)
 ROLE_MINIMUMS: Dict[SATRole, float] = {
-    SATRole.INFRASTRUCTURE: 0.20,       # 20% minimum to infrastructure
+    SATRole.INFRASTRUCTURE: 0.20,  # 20% minimum to infrastructure
     SATRole.CONSENSUS_VALIDATOR: 0.10,  # 10% minimum to consensus
 }
 
@@ -120,7 +120,7 @@ def compute_gdp_scaling(node_count: int) -> dict:
 
     log_n = math.log(node_count) if node_count > 1 else 1.0
     gdp_lower = node_count / log_n
-    gdp_upper = node_count ** 1.2
+    gdp_upper = node_count**1.2
 
     return {
         "node_count": node_count,

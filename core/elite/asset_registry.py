@@ -66,9 +66,7 @@ class NodeBody:
     node_id: str
     hostname: str
     assets: Dict[str, HardwareAsset] = field(default_factory=dict)
-    snapshot_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    snapshot_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     sovereignty_tier: str = "SEED"
     floor_compliant: bool = True
 
@@ -131,9 +129,9 @@ class AssetRegistry:
         self._contrib_floor = contribution_floor
         self._contrib_ceiling = contribution_ceiling
         self._thermal_throttle = thermal_throttle_c
-        self._lm_url = lm_studio_url or os.getenv(
-            "LM_STUDIO_URL", ""
-        ).rstrip("/v1").rstrip("/")
+        self._lm_url = lm_studio_url or os.getenv("LM_STUDIO_URL", "").rstrip(
+            "/v1"
+        ).rstrip("/")
         self._lm_token = lm_studio_token or os.getenv("LM_API_TOKEN", "")
         self._last_snapshot: Optional[NodeBody] = None
         self._last_refresh: float = 0.0
@@ -372,7 +370,9 @@ class AssetRegistry:
         for key in total:
             if total[key] > 0:
                 ratio = idle.get(key, 0.0) / total[key]
-                headroom[key] = f"{ratio:.0%} idle ({idle.get(key, 0):.1f} / {total[key]:.1f} {next((a.capacity_unit for a in body.assets.values() if a.asset_type == key), '')})"
+                headroom[key] = (
+                    f"{ratio:.0%} idle ({idle.get(key, 0):.1f} / {total[key]:.1f} {next((a.capacity_unit for a in body.assets.values() if a.asset_type == key), '')})"
+                )
         return {
             "node_id": body.node_id,
             "hostname": body.hostname,

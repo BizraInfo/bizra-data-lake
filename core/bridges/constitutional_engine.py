@@ -36,7 +36,9 @@ if _CONSTITUTION_PKG.is_dir() and str(_CONSTITUTION_PKG) not in sys.path:
 
 try:
     from ihsan_gate import IhsanGate as ConstitutionalIhsanGate
-    from ihsan_gate import IhsanScore, IhsanTier as ConstitutionalIhsanTier
+    from ihsan_gate import IhsanScore
+    from ihsan_gate import IhsanTier as ConstitutionalIhsanTier
+
     HAS_CONSTITUTIONAL_GATE = True
 except ImportError:
     ConstitutionalIhsanGate = None  # type: ignore[assignment,misc]
@@ -51,11 +53,12 @@ except ImportError:
 
 try:
     from mission_pipeline import (
-        MissionPipeline,
         Mission,
+        MissionPipeline,
         MissionStatus,
         PatAgent,
     )
+
     HAS_MISSION_PIPELINE = True
 except ImportError:
     MissionPipeline = None  # type: ignore[assignment,misc]
@@ -71,12 +74,15 @@ except ImportError:
 
 try:
     from hhmm_router import (
-        HhmmRouter,
-        ComplexityTier as ConstitutionalComplexityTier,
-        ClassificationResult,
         ActionBus,
+        ClassificationResult,
+    )
+    from hhmm_router import ComplexityTier as ConstitutionalComplexityTier
+    from hhmm_router import (
+        HhmmRouter,
         MissionTicket,
     )
+
     HAS_HHMM_ROUTER = True
 except ImportError:
     HhmmRouter = None  # type: ignore[assignment,misc]
@@ -92,7 +98,8 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from reflex_cache import ReflexCache, ReflexEntry, CacheStats
+    from reflex_cache import CacheStats, ReflexCache, ReflexEntry
+
     HAS_REFLEX_CACHE = True
 except ImportError:
     ReflexCache = None  # type: ignore[assignment,misc]
@@ -106,10 +113,11 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
+    from evidence_receipt import EvidenceLedger as ConstitutionalEvidenceLedger
     from evidence_receipt import (
         EvidenceReceipt,
-        EvidenceLedger as ConstitutionalEvidenceLedger,
     )
+
     HAS_EVIDENCE_RECEIPT = True
 except ImportError:
     EvidenceReceipt = None  # type: ignore[assignment,misc]
@@ -122,7 +130,8 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from snr import normalize_snr, compute_sape_composite, SapeScore, MissionSNR
+    from snr import MissionSNR, SapeScore, compute_sape_composite, normalize_snr
+
     HAS_SNR = True
 except ImportError:
     normalize_snr = None  # type: ignore[assignment]
@@ -137,7 +146,8 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from bizra_constitution import load_constitution, Constitution
+    from bizra_constitution import Constitution, load_constitution
+
     HAS_CONSTITUTION = True
 except ImportError:
     load_constitution = None  # type: ignore[assignment]
@@ -150,8 +160,14 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from identity_genesis import create_identity, NodeIdentity, AgentKey
-    from identity_genesis import save_identity, load_public_record
+    from identity_genesis import (
+        AgentKey,
+        NodeIdentity,
+        create_identity,
+        load_public_record,
+        save_identity,
+    )
+
     HAS_IDENTITY_GENESIS = True
 except ImportError:
     create_identity = None  # type: ignore[assignment]
@@ -167,8 +183,14 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 try:
-    from ollama_provider import OllamaProvider, InferenceResult
-    from ollama_provider import CircuitBreaker, CircuitState, ModelMetrics
+    from ollama_provider import (
+        CircuitBreaker,
+        CircuitState,
+        InferenceResult,
+        ModelMetrics,
+        OllamaProvider,
+    )
+
     HAS_OLLAMA_PROVIDER = True
 except ImportError:
     OllamaProvider = None  # type: ignore[assignment,misc]
@@ -185,6 +207,7 @@ except ImportError:
 
 try:
     from production_pipeline import ProductionPipeline, create_node0
+
     HAS_PRODUCTION_PIPELINE = True
 except ImportError:
     ProductionPipeline = None  # type: ignore[assignment,misc]
@@ -198,6 +221,7 @@ except ImportError:
 
 try:
     from node0_wire import GenesisWire, WireResult, wire_genesis_engine
+
     HAS_GENESIS_WIRE = True
 except ImportError:
     GenesisWire = None  # type: ignore[assignment,misc]
@@ -211,24 +235,28 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # v5: Library mode — no external dependencies
-GENESIS_ENGINE_AVAILABLE: bool = all([
-    HAS_CONSTITUTIONAL_GATE,
-    HAS_MISSION_PIPELINE,
-    HAS_HHMM_ROUTER,
-    HAS_REFLEX_CACHE,
-    HAS_EVIDENCE_RECEIPT,
-    HAS_SNR,
-    HAS_CONSTITUTION,
-])
+GENESIS_ENGINE_AVAILABLE: bool = all(
+    [
+        HAS_CONSTITUTIONAL_GATE,
+        HAS_MISSION_PIPELINE,
+        HAS_HHMM_ROUTER,
+        HAS_REFLEX_CACHE,
+        HAS_EVIDENCE_RECEIPT,
+        HAS_SNR,
+        HAS_CONSTITUTION,
+    ]
+)
 
 # v6: Production mode — identity + Ollama + server
-NODE0_PRODUCTION_AVAILABLE: bool = all([
-    GENESIS_ENGINE_AVAILABLE,
-    HAS_IDENTITY_GENESIS,
-    HAS_OLLAMA_PROVIDER,
-    HAS_PRODUCTION_PIPELINE,
-    HAS_GENESIS_WIRE,
-])
+NODE0_PRODUCTION_AVAILABLE: bool = all(
+    [
+        GENESIS_ENGINE_AVAILABLE,
+        HAS_IDENTITY_GENESIS,
+        HAS_OLLAMA_PROVIDER,
+        HAS_PRODUCTION_PIPELINE,
+        HAS_GENESIS_WIRE,
+    ]
+)
 
 
 def availability_report() -> dict[str, Any]:

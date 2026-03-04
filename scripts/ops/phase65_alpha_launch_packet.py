@@ -78,7 +78,9 @@ def _file_blake3(path: Path) -> str:
     return hasher.hexdigest()
 
 
-def _check(name: str, passed: bool, expected: Any, actual: Any, source: str) -> dict[str, Any]:
+def _check(
+    name: str, passed: bool, expected: Any, actual: Any, source: str
+) -> dict[str, Any]:
     return {
         "name": name,
         "passed": bool(passed),
@@ -115,14 +117,16 @@ def _build_automated_checks(
         ),
         _check(
             "snr_score",
-            float(gate.get("snr_score", 0.0)) >= float(scoring.get("min_snr_score", 0.0)),
+            float(gate.get("snr_score", 0.0))
+            >= float(scoring.get("min_snr_score", 0.0)),
             f">={scoring.get('min_snr_score', 0.0)}",
             gate.get("snr_score"),
             "gate_report.snr_score",
         ),
         _check(
             "ledger_chain_valid",
-            bool(summary.get("ledger_chain_valid")) is bool(required.get("ledger_chain_valid", True)),
+            bool(summary.get("ledger_chain_valid"))
+            is bool(required.get("ledger_chain_valid", True)),
             required.get("ledger_chain_valid", True),
             summary.get("ledger_chain_valid"),
             "summary.ledger_chain_valid",
@@ -136,7 +140,8 @@ def _build_automated_checks(
         ),
         _check(
             "avg_ihsan",
-            float(summary.get("avg_ihsan", 0.0)) >= float(required.get("min_avg_ihsan", 0.0)),
+            float(summary.get("avg_ihsan", 0.0))
+            >= float(required.get("min_avg_ihsan", 0.0)),
             f">={required.get('min_avg_ihsan', 0.0)}",
             summary.get("avg_ihsan"),
             "summary.avg_ihsan",
@@ -151,7 +156,8 @@ def _build_automated_checks(
         ),
         _check(
             "avg_latency_ms",
-            float(summary.get("avg_latency_ms", 1e9)) <= float(required.get("max_avg_latency_ms", 1e9)),
+            float(summary.get("avg_latency_ms", 1e9))
+            <= float(required.get("max_avg_latency_ms", 1e9)),
             f"<={required.get('max_avg_latency_ms', 1e9)}",
             summary.get("avg_latency_ms"),
             "summary.avg_latency_ms",
@@ -221,7 +227,9 @@ def build_alpha_launch_packet(
     )
     automated_pass = all(c["passed"] for c in automated_checks)
 
-    manual_checks, manual_passed, manual_failed, manual_pending = _build_manual_checks(manual_values)
+    manual_checks, manual_passed, manual_failed, manual_pending = _build_manual_checks(
+        manual_values
+    )
     if strict_manual:
         manual_blocking = manual_failed > 0 or manual_pending > 0
     else:
@@ -363,18 +371,33 @@ def _emit_github_outputs(packet: dict[str, Any], output_path: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate Phase65 alpha launch readiness packet.")
-    parser.add_argument("--summary", type=Path, required=True, help="Lifecycle summary JSON path.")
-    parser.add_argument("--gate-report", type=Path, required=True, help="Gate report JSON path.")
-    parser.add_argument("--kpi", type=Path, required=True, help="KPI snapshot JSON path.")
+    parser = argparse.ArgumentParser(
+        description="Generate Phase65 alpha launch readiness packet."
+    )
+    parser.add_argument(
+        "--summary", type=Path, required=True, help="Lifecycle summary JSON path."
+    )
+    parser.add_argument(
+        "--gate-report", type=Path, required=True, help="Gate report JSON path."
+    )
+    parser.add_argument(
+        "--kpi", type=Path, required=True, help="KPI snapshot JSON path."
+    )
     parser.add_argument(
         "--config",
         type=Path,
         default=Path("config/phase65_masterpiece_roadmap.yaml"),
         help="Blueprint config YAML path.",
     )
-    parser.add_argument("--manual-checks", type=Path, default=None, help="Optional manual checks JSON path.")
-    parser.add_argument("--alpha-users-target", type=int, default=100, help="Alpha user cohort target.")
+    parser.add_argument(
+        "--manual-checks",
+        type=Path,
+        default=None,
+        help="Optional manual checks JSON path.",
+    )
+    parser.add_argument(
+        "--alpha-users-target", type=int, default=100, help="Alpha user cohort target."
+    )
     parser.add_argument(
         "--require-tier",
         type=str,
@@ -386,16 +409,24 @@ def main() -> int:
         action="store_true",
         help="Fail launch decision if any manual check is pending.",
     )
-    parser.add_argument("--out-json", type=Path, required=True, help="Output packet JSON path.")
-    parser.add_argument("--out-md", type=Path, default=None, help="Optional output markdown path.")
-    parser.add_argument("--github-output", type=Path, default=None, help="Optional GITHUB_OUTPUT path.")
+    parser.add_argument(
+        "--out-json", type=Path, required=True, help="Output packet JSON path."
+    )
+    parser.add_argument(
+        "--out-md", type=Path, default=None, help="Optional output markdown path."
+    )
+    parser.add_argument(
+        "--github-output", type=Path, default=None, help="Optional GITHUB_OUTPUT path."
+    )
     args = parser.parse_args()
 
     summary_payload = _load_json(args.summary)
     gate_payload = _load_json(args.gate_report)
     kpi_payload = _load_json(args.kpi)
     cfg = _load_yaml(args.config)
-    manual_values = _load_json(args.manual_checks) if args.manual_checks is not None else None
+    manual_values = (
+        _load_json(args.manual_checks) if args.manual_checks is not None else None
+    )
 
     # Explicit signer key for packet signing is optional but recommended.
     # Uses same key as receipt signing when present.

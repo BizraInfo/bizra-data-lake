@@ -39,6 +39,7 @@ def main():
 
     # ── 1. Verify Ollama reachability ──
     import urllib.request
+
     try:
         resp = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=5)
         data = json.loads(resp.read())
@@ -80,7 +81,9 @@ def main():
 
     # Sprint A: baseline chain count for delta assertions
     _baseline_health = wire.health() if wire else {}
-    _baseline_chain_count = (_baseline_health.get("pipeline_health", {}) or {}).get("evidence_chain_count", 0)
+    _baseline_chain_count = (_baseline_health.get("pipeline_health", {}) or {}).get(
+        "evidence_chain_count", 0
+    )
 
     for i, text in enumerate(missions, 1):
         t0 = time.time()
@@ -89,19 +92,25 @@ def main():
 
         assert result is not None, f"Mission {i} returned None"
         assert result.success, f"Mission {i} failed: {result}"
-        assert result.ihsan_composite >= 0.0, f"Ihsan negative: {result.ihsan_composite}"
+        assert (
+            result.ihsan_composite >= 0.0
+        ), f"Ihsan negative: {result.ihsan_composite}"
         assert result.snr_normalized > 0, f"SNR zero: {result.snr_normalized}"
         assert result.signed, f"Mission {i} not signed"
         assert len(result.node_id) == 64, f"Bad node_id length: {len(result.node_id)}"
         assert result.evidence_receipt_id is not None, "No evidence receipt"
-        assert len(result.output) > 50, f"Output too short ({len(result.output)} chars) — may be template"
+        assert (
+            len(result.output) > 50
+        ), f"Output too short ({len(result.output)} chars) — may be template"
 
         label = text[:35] + "..."
         print(f"  [{i}/{len(missions)}] {label}")
-        print(f"    Ihsan: {result.ihsan_composite:.3f} | "
-              f"SNR: {result.snr_normalized:.3f} | "
-              f"Signed: {'YES' if result.signed else 'NO'} | "
-              f"~{elapsed:.1f}s")
+        print(
+            f"    Ihsan: {result.ihsan_composite:.3f} | "
+            f"SNR: {result.snr_normalized:.3f} | "
+            f"Signed: {'YES' if result.signed else 'NO'} | "
+            f"~{elapsed:.1f}s"
+        )
         results.append(result)
 
     # ── 4. Verify event bus payload format ──
@@ -125,21 +134,31 @@ def main():
     chain_valid = pipeline_health["evidence_chain_valid"]
     chain_count = pipeline_health["evidence_chain_count"]
     print()
-    print(f"  Evidence chain: {chain_count} receipts, "
-          f"{'VALID' if chain_valid else 'INVALID'}")
+    print(
+        f"  Evidence chain: {chain_count} receipts, "
+        f"{'VALID' if chain_valid else 'INVALID'}"
+    )
     assert chain_valid, "Evidence chain integrity FAILED"
     # Sprint A: delta-based assertion (replaces absolute count)
     _delta_chain = chain_count - _baseline_chain_count
-    assert _delta_chain == len(missions), f"Expected +{len(missions)}, got +{_delta_chain}"
+    assert _delta_chain == len(
+        missions
+    ), f"Expected +{len(missions)}, got +{_delta_chain}"
 
     # ── 6. Verify wire metrics ──
     assert health["total_missions"] == 3, f"total_missions: {health['total_missions']}"
-    assert health["genesis_missions"] == 3, f"genesis_missions: {health['genesis_missions']}"
-    assert health["fallback_missions"] == 0, f"fallback_missions: {health['fallback_missions']}"
+    assert (
+        health["genesis_missions"] == 3
+    ), f"genesis_missions: {health['genesis_missions']}"
+    assert (
+        health["fallback_missions"] == 0
+    ), f"fallback_missions: {health['fallback_missions']}"
     assert health["genesis_rate"] == 1.0, f"genesis_rate: {health['genesis_rate']}"
     assert health["avg_latency_ms"] > 0, f"avg_latency: {health['avg_latency_ms']}"
-    print(f"  Wire metrics: {health['total_missions']}/{health['total_missions']} genesis "
-          f"(100%), avg {health['avg_latency_ms']:.0f}ms")
+    print(
+        f"  Wire metrics: {health['total_missions']}/{health['total_missions']} genesis "
+        f"(100%), avg {health['avg_latency_ms']:.0f}ms"
+    )
 
     # ── 7. Verify identity ──
     assert len(node_id) == 64, f"Bad node_id: {node_id}"

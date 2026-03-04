@@ -676,7 +676,7 @@ class MissionOrchestrator:
 
     def _resolve_workspace_path(self, raw_path: str) -> Path:
         """Resolve and confine filesystem actions to the active workspace."""
-        candidate = Path(raw_path.strip().strip("\""))
+        candidate = Path(raw_path.strip().strip('"'))
         if candidate.is_absolute():
             resolved = candidate.resolve()
         else:
@@ -1014,9 +1014,7 @@ def _load_or_create_node_signer(
     from core.pci.crypto import generate_keypair
 
     # Resolve signer storage path
-    state_dir = Path(
-        config.get("sovereign_state_dir", "sovereign_state")
-    ).resolve()
+    state_dir = Path(config.get("sovereign_state_dir", "sovereign_state")).resolve()
     signer_path = state_dir / _SIGNER_FILENAME
 
     # 1. Try loading existing mission signer
@@ -1057,9 +1055,7 @@ def _load_or_create_node_signer(
     return priv, pub
 
 
-def _persist_signer(
-    path: Path, private_hex: str, public_hex: str, source: str
-) -> None:
+def _persist_signer(path: Path, private_hex: str, public_hex: str, source: str) -> None:
     """Write signer keypair to disk with restricted permissions."""
     data = {
         "private_key_hex": private_hex,

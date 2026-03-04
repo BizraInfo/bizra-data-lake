@@ -402,7 +402,14 @@ class OllamaBackend(InferenceBackendBase):
                     # Prefer fast, competent models for synthesis.
                     # Reasoning models (deepseek-r1) are slow on CPU due to
                     # <think> token overhead — prefer instruction-tuned models.
-                    preferred = ["phi3", "llama3.1", "mistral", "qwen", "llama3", "deepseek-r1"]
+                    preferred = [
+                        "phi3",
+                        "llama3.1",
+                        "mistral",
+                        "qwen",
+                        "llama3",
+                        "deepseek-r1",
+                    ]
                     self._current_model = self._available_models[0]
                     found = False
                     for pref in preferred:

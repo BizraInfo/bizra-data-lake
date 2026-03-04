@@ -577,8 +577,6 @@ class PooledHttpClient:
 
             except Exception as e:
                 # Mark connection as unhealthy on error
-                logger.debug(
-                    "Connection %s marked unhealthy: %s", pooled_conn.id, e
-                )
+                logger.debug("Connection %s marked unhealthy: %s", pooled_conn.id, e)
                 pooled_conn.is_healthy = False
                 raise

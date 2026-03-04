@@ -14,7 +14,9 @@ class TestThermodynamicEnergySuite:
         )
 
         assert set(profile.energies.keys()) == set(IHSAN_CANONICAL_WEIGHTS.keys())
-        assert set(profile.ihsan_dimensions.keys()) == set(IHSAN_CANONICAL_WEIGHTS.keys())
+        assert set(profile.ihsan_dimensions.keys()) == set(
+            IHSAN_CANONICAL_WEIGHTS.keys()
+        )
         assert 0.0 <= profile.composite_ihsan <= 1.0
         assert profile.total_energy >= 0.0
         assert all(0.0 <= v <= 1.0 for v in profile.ihsan_dimensions.values())

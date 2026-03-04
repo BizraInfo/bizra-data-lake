@@ -35,7 +35,12 @@ def test_verify_chain_detects_tampered_receipt_body(tmp_path: Path) -> None:
     _, receipt_path = forge_evidence.forge_receipt(
         project_dir=project_dir,
         description="initial receipt",
-        verification={"checks": [], "checks_run": 0, "checks_passed": 0, "overall_pass": None},
+        verification={
+            "checks": [],
+            "checks_run": 0,
+            "checks_passed": 0,
+            "overall_pass": None,
+        },
     )
 
     receipt_file = Path(receipt_path)
@@ -46,7 +51,8 @@ def test_verify_chain_detects_tampered_receipt_body(tmp_path: Path) -> None:
     result = forge_evidence.verify_chain(project_dir)
     assert result["valid"] is False
     assert any(
-        "evidence_hash_mismatch" in r.get("error", "") for r in result.get("results", [])
+        "evidence_hash_mismatch" in r.get("error", "")
+        for r in result.get("results", [])
     )
 
 
@@ -55,7 +61,12 @@ def test_verify_chain_requires_signature_by_default(tmp_path: Path) -> None:
     _, receipt_path = forge_evidence.forge_receipt(
         project_dir=project_dir,
         description="signed receipt",
-        verification={"checks": [], "checks_run": 0, "checks_passed": 0, "overall_pass": None},
+        verification={
+            "checks": [],
+            "checks_run": 0,
+            "checks_passed": 0,
+            "overall_pass": None,
+        },
     )
 
     receipt_file = Path(receipt_path)

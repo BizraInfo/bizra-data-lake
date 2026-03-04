@@ -46,7 +46,9 @@ class BranchProtectionPolicy:
                 raw.get("required_approving_review_count", 1)
             ),
             dismiss_stale_reviews=bool(raw.get("dismiss_stale_reviews", True)),
-            require_code_owner_reviews=bool(raw.get("require_code_owner_reviews", False)),
+            require_code_owner_reviews=bool(
+                raw.get("require_code_owner_reviews", False)
+            ),
             require_conversation_resolution=bool(
                 raw.get("require_conversation_resolution", True)
             ),
@@ -132,9 +134,7 @@ def extract_actual_contexts(required_status_checks: dict[str, Any]) -> set[str]:
     return contexts
 
 
-def evaluate_drift(
-    actual: dict[str, Any], policy: BranchProtectionPolicy
-) -> list[str]:
+def evaluate_drift(actual: dict[str, Any], policy: BranchProtectionPolicy) -> list[str]:
     drifts: list[str] = []
     actual_rss = actual.get("required_status_checks") or {}
     actual_contexts = extract_actual_contexts(actual_rss)
@@ -154,11 +154,20 @@ def evaluate_drift(
 
     if bool(reviews.get("dismiss_stale_reviews")) != policy.dismiss_stale_reviews:
         drifts.append("dismiss_stale_reviews mismatch")
-    if bool(reviews.get("require_code_owner_reviews")) != policy.require_code_owner_reviews:
+    if (
+        bool(reviews.get("require_code_owner_reviews"))
+        != policy.require_code_owner_reviews
+    ):
         drifts.append("require_code_owner_reviews mismatch")
-    if bool_field(actual.get("required_conversation_resolution")) != policy.require_conversation_resolution:
+    if (
+        bool_field(actual.get("required_conversation_resolution"))
+        != policy.require_conversation_resolution
+    ):
         drifts.append("required_conversation_resolution mismatch")
-    if bool_field(actual.get("required_linear_history")) != policy.require_linear_history:
+    if (
+        bool_field(actual.get("required_linear_history"))
+        != policy.require_linear_history
+    ):
         drifts.append("required_linear_history mismatch")
     if bool_field(actual.get("allow_force_pushes")) != policy.allow_force_pushes:
         drifts.append("allow_force_pushes mismatch")

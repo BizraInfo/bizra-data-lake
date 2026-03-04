@@ -10,9 +10,10 @@ from core.sovereign.runtime_types import RuntimeMetrics
 
 
 def _runtime_with_metrics(state_dir=None) -> MagicMock:
-    from types import SimpleNamespace
     import tempfile
     from pathlib import Path
+    from types import SimpleNamespace
+
     runtime = MagicMock()
     runtime.config = SimpleNamespace(
         state_dir=Path(state_dir) if state_dir else Path(tempfile.mkdtemp())

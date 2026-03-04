@@ -500,7 +500,9 @@ class TestNoiseTransportHandshake:
         )
 
         assert session_responder is not None
-        assert session_initiator.peer_static_public == noise_transport_peer.static_public
+        assert (
+            session_initiator.peer_static_public == noise_transport_peer.static_public
+        )
         assert session_responder.peer_static_public == noise_transport.static_public
 
     def test_handshake_rejects_identity_mismatch(

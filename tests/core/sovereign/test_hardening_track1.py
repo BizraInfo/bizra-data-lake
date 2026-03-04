@@ -21,7 +21,6 @@ from starlette.responses import JSONResponse
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.sovereign.api import create_fastapi_app
 
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -219,9 +218,7 @@ class TestAuthGuardsOnPostRoutes:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("route", _GUARDED_POST_ROUTES)
-    async def test_post_route_denies_anonymous(
-        self, route, tmp_path, monkeypatch
-    ):
+    async def test_post_route_denies_anonymous(self, route, tmp_path, monkeypatch):
         """POST route returns 401 or 503 without credentials."""
         monkeypatch.delenv("BIZRA_AUTH_ALLOW_ANONYMOUS", raising=False)
         runtime = _runtime(tmp_path)
@@ -234,12 +231,13 @@ class TestAuthGuardsOnPostRoutes:
         body = MagicMock()
         resp = await endpoint(body, _Request())
 
-        assert isinstance(resp, JSONResponse), (
-            f"{route} should return JSONResponse for anonymous request"
-        )
-        assert resp.status_code in {401, 503}, (
-            f"{route} should deny anonymous (got {resp.status_code})"
-        )
+        assert isinstance(
+            resp, JSONResponse
+        ), f"{route} should return JSONResponse for anonymous request"
+        assert resp.status_code in {
+            401,
+            503,
+        }, f"{route} should deny anonymous (got {resp.status_code})"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("route", _GUARDED_POST_ROUTES)
@@ -262,14 +260,14 @@ class TestAuthGuardsOnPostRoutes:
             # Auth error codes would be 401/503-from-auth. Backend errors
             # (missing orchestrator etc.) are 404/500/503-from-service.
             body_data = json.loads(resp.body.decode("utf-8"))
-            assert resp.status_code != 401, (
-                f"{route} rejected with 401 despite anonymous opt-in"
-            )
+            assert (
+                resp.status_code != 401
+            ), f"{route} rejected with 401 despite anonymous opt-in"
             # 503 from auth = "Authentication service unavailable"
             if resp.status_code == 503:
-                assert "Authentication" not in body_data.get("error", ""), (
-                    f"{route} auth layer blocked despite anonymous opt-in"
-                )
+                assert "Authentication" not in body_data.get(
+                    "error", ""
+                ), f"{route} auth layer blocked despite anonymous opt-in"
 
 
 # ── 5. Verify /v1/verify/* endpoints remain intentionally open ───────
@@ -301,9 +299,9 @@ class TestVerifyRoutesRemainOpen:
         sig = inspect.signature(endpoint)
         param_names = list(sig.parameters.keys())
         # These routes should only accept a body, not a Request
-        assert "request" not in param_names, (
-            f"{route} should remain open for external auditors"
-        )
+        assert (
+            "request" not in param_names
+        ), f"{route} should remain open for external auditors"
 
 
 # ── 6. Auth bootstrap routes remain open ─────────────────────────────

@@ -30,7 +30,6 @@ from core.integration.constitution_parser import (
     validate_constitution,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # §1: Constitution Loads and Has Required Sections
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -119,9 +118,7 @@ class TestIhsanTensor:
     def test_operational_dimensions_subset_of_canonical(self):
         data = load_constitution()
         canonical = set(data["ihsan_tensor"]["canonical_weights"].keys())
-        operational = set(
-            data["ihsan_tensor"]["operational_dimensions"]["dimensions"]
-        )
+        operational = set(data["ihsan_tensor"]["operational_dimensions"]["dimensions"])
         assert operational.issubset(canonical)
 
     def test_six_operational_dimensions(self):

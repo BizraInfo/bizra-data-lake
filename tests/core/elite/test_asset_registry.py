@@ -186,9 +186,9 @@ class TestAssetRegistry:
         registry = AssetRegistry(node_id="test-util")
         body = registry.introspect()
         for asset in body.assets.values():
-            assert 0.0 <= asset.utilization <= 1.0, (
-                f"{asset.asset_id} utilization out of bounds: {asset.utilization}"
-            )
+            assert (
+                0.0 <= asset.utilization <= 1.0
+            ), f"{asset.asset_id} utilization out of bounds: {asset.utilization}"
 
     def test_cpu_introspection_directly(self):
         """_introspect_cpu returns valid HardwareAsset."""

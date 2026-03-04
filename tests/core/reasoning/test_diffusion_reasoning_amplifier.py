@@ -90,4 +90,3 @@ class TestDiffusionReasoningAmplifier:
         assert "got_depth" in payload
         assert "snr_target" in payload
         assert payload["diffusion_active"] is True
-

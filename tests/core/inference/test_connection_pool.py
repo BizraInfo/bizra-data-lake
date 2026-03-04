@@ -16,7 +16,9 @@ async def test_acquire_create_path_does_not_deadlock() -> None:
     pool = ConnectionPool(
         backend_type="test",
         endpoint="http://localhost",
-        config=ConnectionPoolConfig(min_size=0, max_size=1, acquisition_timeout_seconds=0.2),
+        config=ConnectionPoolConfig(
+            min_size=0, max_size=1, acquisition_timeout_seconds=0.2
+        ),
         connection_factory=lambda: asyncio.sleep(0, result=object()),
     )
 
@@ -33,7 +35,9 @@ async def test_timeout_does_not_over_release_semaphore() -> None:
     pool = ConnectionPool(
         backend_type="test",
         endpoint="http://localhost",
-        config=ConnectionPoolConfig(min_size=0, max_size=1, acquisition_timeout_seconds=0.05),
+        config=ConnectionPoolConfig(
+            min_size=0, max_size=1, acquisition_timeout_seconds=0.05
+        ),
         connection_factory=lambda: asyncio.sleep(0, result=object()),
     )
 
@@ -53,7 +57,9 @@ async def test_pooled_http_client_preserves_original_request_error(monkeypatch) 
     pool = ConnectionPool(
         backend_type="test",
         endpoint="http://localhost",
-        config=ConnectionPoolConfig(min_size=0, max_size=1, acquisition_timeout_seconds=0.2),
+        config=ConnectionPoolConfig(
+            min_size=0, max_size=1, acquisition_timeout_seconds=0.2
+        ),
     )
     client = PooledHttpClient(pool=pool, base_url="http://localhost")
 

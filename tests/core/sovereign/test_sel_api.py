@@ -199,11 +199,12 @@ class TestAsyncioServerRoutes:
 
     def test_sel_episodes_route_exists(self):
         """The SovereignAPIServer should handle /v1/sel/episodes."""
-        from core.sovereign.api import SovereignAPIServer
-
-        from types import SimpleNamespace
         import tempfile
         from pathlib import Path
+        from types import SimpleNamespace
+
+        from core.sovereign.api import SovereignAPIServer
+
         _rt = MagicMock()
         _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
         server = SovereignAPIServer(runtime=_rt)
@@ -213,11 +214,12 @@ class TestAsyncioServerRoutes:
 
     def test_sel_verify_route_exists(self):
         """The SovereignAPIServer should handle /v1/sel/verify."""
-        from core.sovereign.api import SovereignAPIServer
-
-        from types import SimpleNamespace
         import tempfile
         from pathlib import Path
+        from types import SimpleNamespace
+
+        from core.sovereign.api import SovereignAPIServer
+
         _rt = MagicMock()
         _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
         server = SovereignAPIServer(runtime=_rt)
@@ -226,11 +228,12 @@ class TestAsyncioServerRoutes:
 
     def test_sel_retrieve_route_exists(self):
         """The SovereignAPIServer should handle /v1/sel/retrieve."""
-        from core.sovereign.api import SovereignAPIServer
-
-        from types import SimpleNamespace
         import tempfile
         from pathlib import Path
+        from types import SimpleNamespace
+
+        from core.sovereign.api import SovereignAPIServer
+
         _rt = MagicMock()
         _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
         server = SovereignAPIServer(runtime=_rt)
@@ -239,11 +242,12 @@ class TestAsyncioServerRoutes:
 
     def test_sel_episode_by_hash_route_exists(self):
         """The SovereignAPIServer should handle /v1/sel/episodes/{hash}."""
-        from core.sovereign.api import SovereignAPIServer
-
-        from types import SimpleNamespace
         import tempfile
         from pathlib import Path
+        from types import SimpleNamespace
+
+        from core.sovereign.api import SovereignAPIServer
+
         _rt = MagicMock()
         _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
         server = SovereignAPIServer(runtime=_rt)

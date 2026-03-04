@@ -9,7 +9,6 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-
 import pytest
 
 pytest.importorskip("yaml")

@@ -236,10 +236,7 @@ class FloorConstraint:
         if gpu_assets:
             gpu_str = f", {sum(a.capacity_total for a in gpu_assets):.0f}GB GPU"
         node_desc = (
-            f"{cpu:.0f}-core, "
-            f"{ram:.0f}GB RAM, "
-            f"{disk:.0f}GB disk"
-            f"{gpu_str}"
+            f"{cpu:.0f}-core, " f"{ram:.0f}GB RAM, " f"{disk:.0f}GB disk" f"{gpu_str}"
         )
 
         return {

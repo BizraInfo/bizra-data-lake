@@ -105,9 +105,9 @@ class IdentityGenesis:
     def assert_uniqueness(self, other: IdentityGenesis) -> None:
         """P1: id_i = id_j implies pk_i = pk_j."""
         if self.identity_id == other.identity_id:
-            assert self.public_key == other.public_key, (
-                "Identity collision: same ID, different keys"
-            )
+            assert (
+                self.public_key == other.public_key
+            ), "Identity collision: same ID, different keys"
 
 
 @dataclass
@@ -145,9 +145,7 @@ class NodeBody:
             "gpu_vram_free_mb": max(
                 0, self.gpu_vram_mb - current_util.get("gpu_used_mb", 0)
             ),
-            "ram_free_bytes": max(
-                0, self.ram_bytes - current_util.get("ram_used", 0)
-            ),
+            "ram_free_bytes": max(0, self.ram_bytes - current_util.get("ram_used", 0)),
             "disk_free_bytes": max(
                 0, self.disk_bytes - current_util.get("disk_used", 0)
             ),

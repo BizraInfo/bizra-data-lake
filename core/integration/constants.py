@@ -148,14 +148,14 @@ IHSAN_WEIGHTS: Final[dict] = {
 # Used by: bizra-constitution/ihsan_gate.py (6-dim operational projection)
 
 IHSAN_CANONICAL_WEIGHTS: Final[dict] = {
-    "moral_clarity": 0.1200,         # وضوح أخلاقي — ethical transparency
-    "epistemic_humility": 0.1400,    # تواضع معرفي — knowing what you don't know
+    "moral_clarity": 0.1200,  # وضوح أخلاقي — ethical transparency
+    "epistemic_humility": 0.1400,  # تواضع معرفي — knowing what you don't know
     "structural_integrity": 0.1300,  # سلامة بنيوية — coherent architecture
-    "verifiability": 0.1300,         # قابلية التحقق — provable claims
+    "verifiability": 0.1300,  # قابلية التحقق — provable claims
     "contextual_relevance": 0.1100,  # ملاءمة سياقية — right answer, right time
-    "intent_alignment": 0.1400,      # توافق النية — serves the user's true need
-    "resilience": 0.1100,            # مرونة — graceful under failure
-    "efficiency": 0.1200,            # كفاءة — minimum waste, maximum signal
+    "intent_alignment": 0.1400,  # توافق النية — serves the user's true need
+    "resilience": 0.1100,  # مرونة — graceful under failure
+    "efficiency": 0.1200,  # كفاءة — minimum waste, maximum signal
 }
 
 # 6-dim operational projection (excludes contextual_relevance + efficiency, renormalized)
@@ -172,8 +172,12 @@ IHSAN_OPERATIONAL_WEIGHTS: Final[dict] = {
 IHSAN_DIMENSIONS_CANONICAL: Final[int] = 8
 IHSAN_DIMENSIONS_OPERATIONAL: Final[int] = 6
 IHSAN_OPERATIONAL_NAMES: Final[list] = [
-    "moral_clarity", "epistemic_humility", "structural_integrity",
-    "verifiability", "intent_alignment", "resilience",
+    "moral_clarity",
+    "epistemic_humility",
+    "structural_integrity",
+    "verifiability",
+    "intent_alignment",
+    "resilience",
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -181,10 +185,10 @@ IHSAN_OPERATIONAL_NAMES: Final[list] = [
 # ═══════════════════════════════════════════════════════════════════════════════
 # Source: constitution.toml §3 [ihsan_tensor.thresholds]
 
-IHSAN_GATE_MINIMUM: Final[float] = 0.85       # Hard floor — fail-closed below this
-IHSAN_POI_CONSENSUS: Final[float] = 0.85       # PoI attestation minimum
-IHSAN_BLOOM_ELIGIBILITY: Final[float] = 0.90   # BLOOM token minting threshold
-IHSAN_CONFORMANCE_JOIN: Final[float] = 0.95    # Network join conformance
+IHSAN_GATE_MINIMUM: Final[float] = 0.85  # Hard floor — fail-closed below this
+IHSAN_POI_CONSENSUS: Final[float] = 0.85  # PoI attestation minimum
+IHSAN_BLOOM_ELIGIBILITY: Final[float] = 0.90  # BLOOM token minting threshold
+IHSAN_CONFORMANCE_JOIN: Final[float] = 0.95  # Network join conformance
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SNR (Signal-to-Noise Ratio) THRESHOLDS
@@ -491,9 +495,9 @@ HMM_EXPANSION_TRIGGER: Final[int] = 1000  # Missions before state expansion
 # Source: constitution.toml §7 [hhmm.tiers]
 # Latency budget per complexity tier (HHMM classification output)
 
-TIER_TRIVIAL_BUDGET_MS: Final[int] = 100      # Reflex cache hit (S1)
-TIER_SIMPLE_BUDGET_MS: Final[int] = 3000      # Single agent pipeline
-TIER_COMPLEX_BUDGET_MS: Final[int] = 15000    # Mission orchestrator (full PAT)
+TIER_TRIVIAL_BUDGET_MS: Final[int] = 100  # Reflex cache hit (S1)
+TIER_SIMPLE_BUDGET_MS: Final[int] = 3000  # Single agent pipeline
+TIER_COMPLEX_BUDGET_MS: Final[int] = 15000  # Mission orchestrator (full PAT)
 TIER_SOVEREIGN_BUDGET_MS: Final[int] = 60000  # Multi-model sovereign pipeline
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -503,10 +507,10 @@ TIER_SOVEREIGN_BUDGET_MS: Final[int] = 60000  # Multi-model sovereign pipeline
 # 5 alpha gates with weights summing to 1.0. Fail mode: closed.
 
 GATE_WEIGHTS: Final[dict] = {
-    "alpha_4": 0.15,   # Fallback gate
-    "alpha_7": 0.25,   # Verification gate
-    "alpha_8": 0.20,   # Dark matter gate
-    "alpha_9": 0.25,   # Attestation gate
+    "alpha_4": 0.15,  # Fallback gate
+    "alpha_7": 0.25,  # Verification gate
+    "alpha_8": 0.20,  # Dark matter gate
+    "alpha_9": 0.25,  # Attestation gate
     "alpha_10": 0.15,  # Binary gate
 }
 GATE_FAIL_MODE: Final[str] = "closed"
@@ -520,21 +524,21 @@ GATE_OVERHEAD_BUDGET_MS: Final[int] = 50
 
 REFLEX_STORE_TYPE: Final[str] = "HashMap"
 REFLEX_MAX_ENTRIES: Final[int] = 500
-REFLEX_PRECIPITATION_HITS: Final[int] = 3        # Consecutive high-quality hits
-REFLEX_PRECIPITATION_IHSAN: Final[float] = 0.90   # Minimum Ihsan for precipitation
+REFLEX_PRECIPITATION_HITS: Final[int] = 3  # Consecutive high-quality hits
+REFLEX_PRECIPITATION_IHSAN: Final[float] = 0.90  # Minimum Ihsan for precipitation
 REFLEX_SIMILARITY_THRESHOLD: Final[float] = 0.95  # Template matching threshold
-REFLEX_INVALIDATION_INTERVAL: Final[int] = 100    # Hits between validation checks
-REFLEX_INVALIDATION_DELTA: Final[float] = 0.05    # Max Ihsan drift before invalidation
-REFLEX_STALENESS_DAYS: Final[int] = 30            # Force invalidation after N days
+REFLEX_INVALIDATION_INTERVAL: Final[int] = 100  # Hits between validation checks
+REFLEX_INVALIDATION_DELTA: Final[float] = 0.05  # Max Ihsan drift before invalidation
+REFLEX_STALENESS_DAYS: Final[int] = 30  # Force invalidation after N days
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ACTION BUS — v5.0.0-GENESIS
 # ═══════════════════════════════════════════════════════════════════════════════
 # Source: constitution.toml §10 [action_bus]
 
-ACTION_BUS_GCD_TICK_MS: Final[int] = 100    # Greatest common divisor tick
+ACTION_BUS_GCD_TICK_MS: Final[int] = 100  # Greatest common divisor tick
 ACTION_BUS_MAX_CONCURRENT: Final[int] = 10  # Max parallel missions
-ACTION_BUS_MAX_PER_HOUR: Final[int] = 100   # Hourly rate limit
+ACTION_BUS_MAX_PER_HOUR: Final[int] = 100  # Hourly rate limit
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAT/SAT AGENT CONFIGURATION — v5.0.0-GENESIS
@@ -543,24 +547,41 @@ ACTION_BUS_MAX_PER_HOUR: Final[int] = 100   # Hourly rate limit
 
 PAT_AGENT_COUNT: Final[int] = 7
 PAT_AGENT_NAMES: Final[list] = [
-    "Planner", "Researcher", "Coder",
-    "Evaluator", "Ethicist", "Publisher", "Integrator",
+    "Planner",
+    "Researcher",
+    "Coder",
+    "Evaluator",
+    "Ethicist",
+    "Publisher",
+    "Integrator",
 ]
 PAT_TRUST_STAGES: Final[list] = [
-    "abstracting", "gathering", "executing",
-    "attesting", "certifying", "publishing", "chaining",
+    "abstracting",
+    "gathering",
+    "executing",
+    "attesting",
+    "certifying",
+    "publishing",
+    "chaining",
 ]
 
 SAT_AGENTS_PER_NODE: Final[int] = 5
 SAT_BOOTSTRAP_ROLES: Final[list] = [
-    "ComputeScheduler", "SecurityMonitor", "PerformanceAnalyzer",
-    "ConsensusValidator", "NetworkOrchestrator",
+    "ComputeScheduler",
+    "SecurityMonitor",
+    "PerformanceAnalyzer",
+    "ConsensusValidator",
+    "NetworkOrchestrator",
 ]
 SAT_INFRASTRUCTURE_FLOOR_PCT: Final[int] = 20  # Minimum % devoted to infra
 SAT_REBALANCE_INTERVAL_S: Final[int] = 300
 SAT_SERVICE_TYPES: Final[list] = [
-    "ComputeAllocation", "NetworkRoute", "ConsensusVerification",
-    "SecurityCheck", "TemplatePublish", "EconomicSettlement",
+    "ComputeAllocation",
+    "NetworkRoute",
+    "ConsensusVerification",
+    "SecurityCheck",
+    "TemplatePublish",
+    "EconomicSettlement",
 ]
 IDENTITY_AGENTS_PER_NODE: Final[int] = 12  # PAT(7) + SAT(5)
 
@@ -571,7 +592,7 @@ IDENTITY_AGENTS_PER_NODE: Final[int] = 12  # PAT(7) + SAT(5)
 
 SEED_YEARLY_CAP: Final[int] = 1_000_000
 ZAKAT_RATE: Final[float] = 0.025  # 2.5% — applied at mint time
-NO_RIBA: Final[bool] = True   # Kernel invariant: zero exploitation
+NO_RIBA: Final[bool] = True  # Kernel invariant: zero exploitation
 NO_GHARAR: Final[bool] = True  # Kernel invariant: zero deception
 
 # Constitutional Gini threshold (0.45) vs operational (0.35) — pending governance review.

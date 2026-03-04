@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 
 from core.sovereign.node_state import NodeState
 
-
 # -- Mock objects using structural typing (no core.identity import) ----------
 
 
@@ -124,9 +123,7 @@ class TestPhysicalLayer:
         """Body changes when mission loads a new model."""
         state = _make_default_state()
         result = {"loaded_models": ["llama3"], "ihsan_score": 0.95}
-        new_state = state.transition(
-            observation="model_loaded", mission_result=result
-        )
+        new_state = state.transition(observation="model_loaded", mission_result=result)
         assert "llama3" in new_state.body.loaded_models
 
     def test_body_unchanged_without_model_load(self) -> None:
@@ -156,9 +153,7 @@ class TestRoutingDecision:
         """Node without required model delegates to Pool."""
         state = _make_default_state()
         state.body.loaded_models = set()
-        assert not state.can_execute_locally(
-            {"required_models": {"llama3.1-70b"}}
-        )
+        assert not state.can_execute_locally({"required_models": {"llama3.1-70b"}})
 
 
 # -- TDD Anchor 5: Cognitive layer ------------------------------------------

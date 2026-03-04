@@ -1268,9 +1268,8 @@ class DesktopBridge:
                     "count": len(ranked_skills),
                     "mode": "ranked",
                 }
-                if (
-                    hasattr(router.registry, "get_performance_profile")
-                    and callable(router.registry.get_performance_profile)
+                if hasattr(router.registry, "get_performance_profile") and callable(
+                    router.registry.get_performance_profile
                 ):
                     response["performance_profile"] = (
                         router.registry.get_performance_profile()

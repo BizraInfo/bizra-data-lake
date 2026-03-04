@@ -22,6 +22,7 @@ from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from core.pci.crypto import PrivateKeyWrapper
 from core.proof_engine.evidence_ledger import EvidenceLedger, emit_receipt
 from core.proof_engine.ihsan_computer import IhsanComputer
@@ -164,7 +165,11 @@ def run_lifecycle_emulation(
             step=min(thermal_step, 2),
         )
         ihsan_score = gate_result.score
-        decision = "APPROVED" if gate_result.decision == "APPROVED" and thermal_result.approved else "REJECTED"
+        decision = (
+            "APPROVED"
+            if gate_result.decision == "APPROVED" and thermal_result.approved
+            else "REJECTED"
+        )
 
         receipt = emit_receipt(
             ledger,
@@ -180,7 +185,9 @@ def run_lifecycle_emulation(
             snr_score=snr_score,
             ihsan_score=ihsan_score,
             ihsan_threshold=max(ihsan_gate.threshold, cfg.thermal_threshold),
-            seal_digest=hashlib.sha256(f"{intent}|{action_seq}".encode("utf-8")).hexdigest(),
+            seal_digest=hashlib.sha256(
+                f"{intent}|{action_seq}".encode("utf-8")
+            ).hexdigest(),
             duration_ms=latency_ms,
             signer_private_key_hex=signer_priv,
             signer_public_key_hex=signer_pub,
@@ -188,7 +195,9 @@ def run_lifecycle_emulation(
             node_role="node0",
             state_dir=state_dir,
         )
-        reward = _sigmoid_reward(ihsan_score, efficiency_bonus=0.1 if latency_ms <= 1500 else 0.0)
+        reward = _sigmoid_reward(
+            ihsan_score, efficiency_bonus=0.1 if latency_ms <= 1500 else 0.0
+        )
         if decision == "APPROVED":
             impt += reward
 
@@ -249,7 +258,9 @@ def run_lifecycle_emulation(
     successful_learning_actions = sum(
         1
         for e in events
-        if e.get("phase") == "action" and e.get("mode") == "system2" and e.get("decision") == "APPROVED"
+        if e.get("phase") == "action"
+        and e.get("mode") == "system2"
+        and e.get("decision") == "APPROVED"
     )
     myelinated = successful_learning_actions >= cfg.compile_threshold
     if myelinated:
@@ -311,8 +322,12 @@ def run_lifecycle_emulation(
     # Phase 7: convergence summary
     action_events = [e for e in events if e.get("phase") == "action"]
     system1_actions = [e for e in action_events if e.get("mode") == "system1"]
-    avg_latency = sum(float(e["latency_ms"]) for e in action_events) / max(len(action_events), 1)
-    avg_ihsan = sum(float(e["ihsan_score"]) for e in action_events) / max(len(action_events), 1)
+    avg_latency = sum(float(e["latency_ms"]) for e in action_events) / max(
+        len(action_events), 1
+    )
+    avg_ihsan = sum(float(e["ihsan_score"]) for e in action_events) / max(
+        len(action_events), 1
+    )
     speedup = (
         float(first["latency_ms"]) / float(fast["latency_ms"])
         if float(fast["latency_ms"]) > 0

@@ -947,12 +947,10 @@ def create_fastapi_app(runtime: Any) -> Any:
         from core.auth.user_store import UserStore
 
         _state_dir = getattr(runtime, "config", None)
-        _db_dir_raw = (
-            getattr(_state_dir, "state_dir", None)
-            if _state_dir
-            else None
+        _db_dir_raw = getattr(_state_dir, "state_dir", None) if _state_dir else None
+        _db_dir = (
+            _db_dir_raw if isinstance(_db_dir_raw, _Path) else _Path("sovereign_state")
         )
-        _db_dir = _db_dir_raw if isinstance(_db_dir_raw, _Path) else _Path("sovereign_state")
         _user_store = UserStore(db_path=_db_dir / "users.db")
         _jwt_auth = JWTAuth()
         _auth_middleware = AuthMiddleware(user_store=_user_store, jwt_auth=_jwt_auth)

@@ -89,6 +89,6 @@ def test_service_worker_uses_asset_allowlist_caching() -> None:
     sw = sw_path.read_text(encoding="utf-8")
 
     assert "CACHEABLE_ASSET_REGEX" in sw
-    assert "request.mode === \"navigate\"" in sw
+    assert 'request.mode === "navigate"' in sw
     assert "if (!isCacheableAssetRequest(request)) return;" in sw
     assert "manifest.json" not in sw

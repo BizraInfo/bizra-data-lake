@@ -22,8 +22,8 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.elite.self_harness_engine import SelfHarnessEngine
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.skills.resource_fabric import ResourceFabric
 
 logger = logging.getLogger(__name__)
@@ -198,7 +198,9 @@ class SkillPerformanceProfile:
             profile.normalize_weights()
             return profile
 
-        weights = data.get("weights", {}) if isinstance(data.get("weights"), dict) else {}
+        weights = (
+            data.get("weights", {}) if isinstance(data.get("weights"), dict) else {}
+        )
         profile = cls(
             profile_name=str(data.get("profile_name", "elite-performance-v1")),
             profile_version=str(data.get("profile_version", "1.0.0")),
@@ -211,7 +213,9 @@ class SkillPerformanceProfile:
             weight_success_rate=float(
                 weights.get("success_rate", data.get("weight_success_rate", 0.40))
             ),
-            weight_latency=float(weights.get("latency", data.get("weight_latency", 0.20))),
+            weight_latency=float(
+                weights.get("latency", data.get("weight_latency", 0.20))
+            ),
             weight_usage_confidence=float(
                 weights.get(
                     "usage_confidence",

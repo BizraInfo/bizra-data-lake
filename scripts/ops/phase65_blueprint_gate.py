@@ -49,7 +49,9 @@ def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _check_signed_receipts(payload: dict[str, Any], summary: dict[str, Any]) -> tuple[bool, str]:
+def _check_signed_receipts(
+    payload: dict[str, Any], summary: dict[str, Any]
+) -> tuple[bool, str]:
     """Verify receipts are signed based on ledger artifacts or summary fallback."""
     artifacts = payload.get("artifacts", {}) if isinstance(payload, dict) else {}
     ledger_path = artifacts.get("ledger_path")
@@ -58,7 +60,9 @@ def _check_signed_receipts(payload: dict[str, Any], summary: dict[str, Any]) -> 
         if not path.exists():
             return False, f"ledger file missing: {path}"
         try:
-            lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+            lines = [
+                ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()
+            ]
             if not lines:
                 return False, "ledger has no entries"
             for ln in lines:
@@ -68,12 +72,18 @@ def _check_signed_receipts(payload: dict[str, Any], summary: dict[str, Any]) -> 
                 if isinstance(signature, str):
                     if not signature:
                         return False, "empty receipt signature"
-                    if not isinstance(receipt.get("signer_pubkey"), str) or not receipt.get("signer_pubkey"):
+                    if not isinstance(
+                        receipt.get("signer_pubkey"), str
+                    ) or not receipt.get("signer_pubkey"):
                         return False, "missing signer_pubkey"
                 elif isinstance(signature, dict):
-                    if not isinstance(signature.get("value"), str) or not signature.get("value"):
+                    if not isinstance(signature.get("value"), str) or not signature.get(
+                        "value"
+                    ):
                         return False, "missing signature.value"
-                    if not isinstance(signature.get("public_key"), str) or not signature.get("public_key"):
+                    if not isinstance(
+                        signature.get("public_key"), str
+                    ) or not signature.get("public_key"):
                         return False, "missing signature.public_key"
                 else:
                     return False, "missing receipt signature"
@@ -109,7 +119,8 @@ def evaluate(
         CheckResult(
             name="ledger_chain_valid",
             stream="security",
-            passed=bool(summary.get("ledger_chain_valid")) is bool(gates["ledger_chain_valid"]),
+            passed=bool(summary.get("ledger_chain_valid"))
+            is bool(gates["ledger_chain_valid"]),
             actual=summary.get("ledger_chain_valid"),
             expected=gates["ledger_chain_valid"],
             weight=float(weights["security"]),
@@ -117,7 +128,8 @@ def evaluate(
         CheckResult(
             name="avg_ihsan",
             stream="quality",
-            passed=float(summary.get("avg_ihsan", 0.0)) >= float(gates["min_avg_ihsan"]),
+            passed=float(summary.get("avg_ihsan", 0.0))
+            >= float(gates["min_avg_ihsan"]),
             actual=summary.get("avg_ihsan"),
             expected=f">={gates['min_avg_ihsan']}",
             weight=float(weights["quality"]),
@@ -143,7 +155,8 @@ def evaluate(
         CheckResult(
             name="impt_balance",
             stream="economics",
-            passed=float(summary.get("impt_balance", 0.0)) >= float(gates["min_impt_balance"]),
+            passed=float(summary.get("impt_balance", 0.0))
+            >= float(gates["min_impt_balance"]),
             actual=summary.get("impt_balance"),
             expected=f">={gates['min_impt_balance']}",
             weight=float(weights["economics"]),
@@ -152,9 +165,7 @@ def evaluate(
             name="signed_receipts",
             stream="trust",
             passed=(
-                signed_ok
-                if bool(gates.get("signed_receipts_required", True))
-                else True
+                signed_ok if bool(gates.get("signed_receipts_required", True)) else True
             ),
             actual=signed_detail,
             expected="all receipts signed",
@@ -182,7 +193,9 @@ def evaluate(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate Phase65 blueprint quality gates.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate Phase65 blueprint quality gates."
+    )
     parser.add_argument(
         "--summary",
         type=Path,

@@ -1,15 +1,14 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "ops" / "node0_performance_recovery.ps1"
 
 
 def test_script_exists_and_has_modes():
     content = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet(\"Analyze\", \"Remediate\")]" in content
+    assert '[ValidateSet("Analyze", "Remediate")]' in content
     assert "[bool]$DryRun = $true" in content
-    assert "if ($Mode -eq \"Analyze\")" in content
+    assert 'if ($Mode -eq "Analyze")' in content
 
 
 def test_script_detects_known_pressure_paths():

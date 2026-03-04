@@ -11,7 +11,7 @@ def test_script_exposes_modes_and_safety_flags():
     assert "Resolve-Bool" in content
     assert "[switch]$SkipElevation" in content
     assert "[switch]$RequireAdminForCompact = $true" in content
-    assert "Start-Process -FilePath \"powershell.exe\"" in content
+    assert 'Start-Process -FilePath "powershell.exe"' in content
     assert "-Verb RunAs" in content
     assert "[double]$MinFreeVirtualMemoryGB = 1.0" in content
     assert "[double]$MinPagefileAllocatedGB = 8.0" in content

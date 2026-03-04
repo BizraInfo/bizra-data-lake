@@ -593,9 +593,9 @@ class ZeroPointKernel:
         try:
             tree = ast.parse(artifact.worker_code, filename="<zpk-worker>")
         except SyntaxError as e:
-                return ExecutionReceipt(
-                    worker_version=artifact.version,
-                    exit_code=1,
+            return ExecutionReceipt(
+                worker_version=artifact.version,
+                exit_code=1,
                 runtime_ms=0.0,
                 health={"attempts": 0, "last_error": f"syntax error: {e}"},
                 rollback_used=rollback_used,
@@ -885,7 +885,9 @@ class ZeroPointKernel:
         }
 
     @classmethod
-    def _manifest_signature_digest(cls, manifest: dict[str, Any], worker_hash: str) -> str:
+    def _manifest_signature_digest(
+        cls, manifest: dict[str, Any], worker_hash: str
+    ) -> str:
         payload = cls._manifest_signature_payload(manifest, worker_hash)
         return cls._digest_record(payload)
 

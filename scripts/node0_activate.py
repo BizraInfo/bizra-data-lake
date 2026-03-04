@@ -1950,7 +1950,9 @@ class Node0Orchestrator:
         # Try LM Studio first
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-                resp = await client.get(f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models")
+                resp = await client.get(
+                    f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models"
+                )
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     loaded = [m for m in models if m.get("loaded")]
@@ -2017,7 +2019,9 @@ class Node0Orchestrator:
 async def cmd_start(args):
     """Start Node0."""
     orchestrator = Node0Orchestrator()
-    orchestrator._allow_degraded_backend = not bool(getattr(args, "strict_backend", False))
+    orchestrator._allow_degraded_backend = not bool(
+        getattr(args, "strict_backend", False)
+    )
     await orchestrator.start()
 
 
@@ -2091,8 +2095,7 @@ async def cmd_status(args):
                 data = resp.json()
                 models = data.get("models", data.get("data", []))
                 loaded = [
-                    m for m in models
-                    if m.get("loaded_instances") or m.get("loaded")
+                    m for m in models if m.get("loaded_instances") or m.get("loaded")
                 ]
                 print("  LM Studio:    ✓ Connected")
                 print(f"  Models:       {len(models)} available, {len(loaded)} loaded")
@@ -2105,7 +2108,9 @@ async def cmd_status(args):
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     print("  LM Studio:    ✓ Connected")
-                    print(f"  Models:       {len(models)} available (load state unknown)")
+                    print(
+                        f"  Models:       {len(models)} available (load state unknown)"
+                    )
                 else:
                     print(f"  LM Studio:    ✗ Error {resp.status_code}")
     except Exception as e:

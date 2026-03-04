@@ -39,13 +39,27 @@ def _base_inputs(tmp_path: Path) -> tuple[dict, dict, dict, dict, Path, Path, Pa
     summary_path = _write_json(tmp_path / "summary.json", summary_payload)
     gate_path = _write_json(tmp_path / "gate.json", gate_payload)
     kpi_path = _write_json(tmp_path / "kpi.json", kpi_payload)
-    return summary_payload, gate_payload, kpi_payload, cfg, summary_path, gate_path, kpi_path
+    return (
+        summary_payload,
+        gate_payload,
+        kpi_payload,
+        cfg,
+        summary_path,
+        gate_path,
+        kpi_path,
+    )
 
 
 def test_alpha_packet_conditional_go_when_manual_pending(tmp_path: Path) -> None:
-    summary_payload, gate_payload, kpi_payload, cfg, summary_path, gate_path, kpi_path = _base_inputs(
-        tmp_path
-    )
+    (
+        summary_payload,
+        gate_payload,
+        kpi_payload,
+        cfg,
+        summary_path,
+        gate_path,
+        kpi_path,
+    ) = _base_inputs(tmp_path)
     packet = build_alpha_launch_packet(
         summary_payload=summary_payload,
         gate_payload=gate_payload,
@@ -67,9 +81,15 @@ def test_alpha_packet_conditional_go_when_manual_pending(tmp_path: Path) -> None
 
 
 def test_alpha_packet_go_with_manual_checks_and_signature(tmp_path: Path) -> None:
-    summary_payload, gate_payload, kpi_payload, cfg, summary_path, gate_path, kpi_path = _base_inputs(
-        tmp_path
-    )
+    (
+        summary_payload,
+        gate_payload,
+        kpi_payload,
+        cfg,
+        summary_path,
+        gate_path,
+        kpi_path,
+    ) = _base_inputs(tmp_path)
     manual = {
         "website_updated": True,
         "unified_installer_ready": True,
@@ -103,9 +123,15 @@ def test_alpha_packet_go_with_manual_checks_and_signature(tmp_path: Path) -> Non
 
 
 def test_alpha_packet_no_go_when_automated_fails(tmp_path: Path) -> None:
-    summary_payload, gate_payload, kpi_payload, cfg, summary_path, gate_path, kpi_path = _base_inputs(
-        tmp_path
-    )
+    (
+        summary_payload,
+        gate_payload,
+        kpi_payload,
+        cfg,
+        summary_path,
+        gate_path,
+        kpi_path,
+    ) = _base_inputs(tmp_path)
     gate_payload["gate_passed"] = False
     packet = build_alpha_launch_packet(
         summary_payload=summary_payload,
@@ -126,9 +152,15 @@ def test_alpha_packet_no_go_when_automated_fails(tmp_path: Path) -> None:
 
 
 def test_alpha_packet_no_go_when_strict_manual_and_pending(tmp_path: Path) -> None:
-    summary_payload, gate_payload, kpi_payload, cfg, summary_path, gate_path, kpi_path = _base_inputs(
-        tmp_path
-    )
+    (
+        summary_payload,
+        gate_payload,
+        kpi_payload,
+        cfg,
+        summary_path,
+        gate_path,
+        kpi_path,
+    ) = _base_inputs(tmp_path)
     packet = build_alpha_launch_packet(
         summary_payload=summary_payload,
         gate_payload=gate_payload,

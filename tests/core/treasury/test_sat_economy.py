@@ -17,7 +17,6 @@ from core.treasury.sat_economy import (
     zakat_mint,
 )
 
-
 # -- Workforce tests ---------------------------------------------------------
 
 
@@ -96,9 +95,9 @@ class TestSustainability:
                 missions_per_day=1000,
                 cache_hit_rate=rho,
             )
-            assert result["local"]["viable"] is True, (
-                f"Local should be viable at rho={rho}"
-            )
+            assert (
+                result["local"]["viable"] is True
+            ), f"Local should be viable at rho={rho}"
 
     def test_cloud_models_need_high_cache(self) -> None:
         """Cloud models need high rho (at $0.02/mission, $0.01 revenue).
@@ -139,9 +138,9 @@ class TestZakat:
         """net + zakat = gross (no value created or destroyed)."""
         for amount in [0.01, 1.0, 100.0, 1_000_000.0]:
             result = zakat_mint(amount)
-            assert abs(result["net"] + result["zakat"] - result["gross"]) < 1e-10, (
-                f"Conservation violated at amount={amount}"
-            )
+            assert (
+                abs(result["net"] + result["zakat"] - result["gross"]) < 1e-10
+            ), f"Conservation violated at amount={amount}"
 
     def test_zakat_zero_mint(self) -> None:
         """Zero mint -> zero everything."""

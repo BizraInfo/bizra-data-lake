@@ -202,9 +202,7 @@ async def get_current_user(
             )
             return None
 
-        logger.error(
-            "Auth middleware not initialized and anonymous mode is disabled"
-        )
+        logger.error("Auth middleware not initialized and anonymous mode is disabled")
         _raise_http_exception(
             status_code=503,
             detail="Authentication service unavailable",
