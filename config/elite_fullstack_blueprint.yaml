@@ -1,0 +1,63 @@
+program:
+  id: elite_fullstack_masterpiece
+  name: "BIZRA Elite Full-Stack Blueprint"
+  version: "1.0.0"
+  intent: >
+    Enforce a professional, evidence-backed implementation baseline across PMBOK,
+    DevOps, CI/CD, security, performance, documentation, and ethical governance.
+
+pmbok_domains:
+  - initiating
+  - planning
+  - executing
+  - monitoring_controlling
+  - closing
+
+checks:
+  files:
+    workflows:
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/phase65-masterpiece.yml"
+      - ".github/workflows/phase56-security-gate.yml"
+    scripts:
+      - "scripts/ops/phase65_masterpiece_runner.py"
+      - "scripts/ops/phase65_blueprint_gate.py"
+      - "scripts/ops/phase65_kpi_pack.py"
+      - "scripts/ops/phase65_alpha_launch_packet.py"
+    docs:
+      - "docs/specs/phase_65_lifecycle_protocol/phase_65_09_masterpiece_blueprint.md"
+      - "ROADMAP.md"
+      - "COMMUNITY.md"
+      - "COMMIT_STYLE_GUIDE.md"
+      - "DISCORD_CI_SETUP.md"
+      - "README_BADGES_UPDATE.md"
+  jobs:
+    ".github/workflows/ci.yml":
+      - "phase65-masterpiece-gate"
+      - "phase56-security-gate"
+      - "security-scan"
+      - "evidence-accumulate"
+    ".github/workflows/phase65-masterpiece.yml":
+      - "phase65-gate"
+  readme:
+    required_patterns:
+      - "[![CI Status]"
+      - "[![Discord]"
+      - "[![Roadmap]"
+      - "[Public Roadmap](ROADMAP.md)"
+      - "[Community Guide](COMMUNITY.md)"
+      - "## Community"
+  phase65_thresholds:
+    min_snr_score: 0.90
+    min_avg_ihsan: 0.75
+    min_speedup_system1_vs_system2: 8.0
+    max_avg_latency_ms: 2200.0
+    signed_receipts_required: true
+
+scoring:
+  min_score: 0.95
+  weights:
+    files: 0.30
+    jobs: 0.20
+    readme: 0.10
+    thresholds: 0.40
