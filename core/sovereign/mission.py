@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
 from core.snr_protocol import normalize_snr_linear
 
 logger = logging.getLogger(__name__)
@@ -165,6 +166,7 @@ class MissionOrchestrator:
             config.get("evidence_path", "/tmp/bizra-mission/evidence.jsonl")
         )
         self._hda_port = int(config.get("hda_port", 9743))
+        self._workspace_root = Path(config.get("workspace_root", Path.cwd())).resolve()
 
         # Lazy-initialized components
         self._memory: Any = None
@@ -269,13 +271,13 @@ class MissionOrchestrator:
             else:
                 logger.info("AHK HDA not available (Level 0 mode)")
 
-        # Generate ephemeral signing keypair
+        # Load persistent node-anchored signer (or generate + persist)
         try:
-            from core.pci.crypto import generate_keypair
-
-            self._signer_private_hex, self._signer_public_hex = generate_keypair()
+            self._signer_private_hex, self._signer_public_hex = (
+                _load_or_create_node_signer(self._config)
+            )
         except Exception as exc:
-            logger.warning("Keypair generation failed: %s", exc)
+            logger.warning("Node signer init failed: %s", exc)
 
         self._initialized = True
 
@@ -391,7 +393,7 @@ class MissionOrchestrator:
 
         duration_ms = (time.monotonic() - start_time) * 1000
 
-        status = "COMPLETE" if ihsan_score >= 0.50 else "PARTIAL"
+        status = "COMPLETE" if ihsan_score >= UNIFIED_IHSAN_THRESHOLD else "PARTIAL"
 
         result = MissionResult(
             mission_id=mission_id,
@@ -595,7 +597,7 @@ class MissionOrchestrator:
             return None
 
         write_match = re.match(
-            r"^(?:write|create)\\s+file\\s+(.+?)\\s*::\\s*(.+)$",
+            r"^(?:write|create)\s+file\s+(.+?)\s*::\s*(.+)$",
             description,
             re.IGNORECASE | re.DOTALL,
         )
@@ -612,7 +614,7 @@ class MissionOrchestrator:
             }
 
         append_match = re.match(
-            r"^append\\s+file\\s+(.+?)\\s*::\\s*(.+)$",
+            r"^append\s+file\s+(.+?)\s*::\s*(.+)$",
             description,
             re.IGNORECASE | re.DOTALL,
         )
@@ -629,7 +631,7 @@ class MissionOrchestrator:
                 "bytes": len(content.encode("utf-8")),
             }
 
-        read_match = re.match(r"^read\\s+file\\s+(.+)$", description, re.IGNORECASE)
+        read_match = re.match(r"^read\s+file\s+(.+)$", description, re.IGNORECASE)
         if read_match:
             path = self._resolve_workspace_path(read_match.group(1))
             if not path.exists():
@@ -649,7 +651,7 @@ class MissionOrchestrator:
             }
 
         list_match = re.match(
-            r"^(?:list\\s+(?:dir|files\\s+in)|show\\s+files\\s+in)\\s+(.+)$",
+            r"^(?:list\s+(?:dir|files\s+in)|show\s+files\s+in)\s+(.+)$",
             description,
             re.IGNORECASE,
         )
@@ -678,9 +680,9 @@ class MissionOrchestrator:
         if candidate.is_absolute():
             resolved = candidate.resolve()
         else:
-            resolved = (Path.cwd() / candidate).resolve()
+            resolved = (self._workspace_root / candidate).resolve()
 
-        workspace = Path.cwd().resolve()
+        workspace = self._workspace_root
         if resolved == workspace or workspace in resolved.parents:
             return resolved
         raise ValueError(f"path_outside_workspace:{resolved}")
@@ -859,7 +861,8 @@ class MissionOrchestrator:
         request: MissionRequest,
     ) -> tuple[float, float]:
         if not self._snr_engine:
-            return 0.85, 0.80
+            # Fail-honest: without quality engine, score below threshold → PARTIAL
+            return 0.80, 0.75
 
         try:
             successful_channels = sum(1 for r in channel_results if r.success)
@@ -891,7 +894,8 @@ class MissionOrchestrator:
             return ihsan_score, snr_normalized
         except Exception as exc:
             logger.warning("SNR scoring failed: %s", exc)
-            return 0.85, 0.80
+            # Fail-honest: scoring failure → below threshold → PARTIAL
+            return 0.80, 0.75
 
     # ── Private: Evidence ───────────────────────────────────────────
 
@@ -992,3 +996,80 @@ class MissionOrchestrator:
             await self._event_bus.emit(topic, payload)
         except Exception:
             pass
+
+
+# ── Persistent Node Signer ─────────────────────────────────────────────
+
+_SIGNER_FILENAME = "mission_signer.json"
+
+
+def _load_or_create_node_signer(
+    config: dict[str, Any],
+) -> tuple[str, str]:
+    """Load persistent Ed25519 keypair from sovereign_state, or create + persist.
+
+    Anchors mission receipts to stable node identity across restarts.
+    Falls back to sovereign_state/identity/credentials.json if available.
+    """
+    from core.pci.crypto import generate_keypair
+
+    # Resolve signer storage path
+    state_dir = Path(
+        config.get("sovereign_state_dir", "sovereign_state")
+    ).resolve()
+    signer_path = state_dir / _SIGNER_FILENAME
+
+    # 1. Try loading existing mission signer
+    if signer_path.exists():
+        try:
+            data = json.loads(signer_path.read_text(encoding="utf-8"))
+            priv = data["private_key_hex"]
+            pub = data["public_key_hex"]
+            if isinstance(priv, str) and isinstance(pub, str) and len(priv) == 64:
+                logger.info("Loaded persistent mission signer from %s", signer_path)
+                return priv, pub
+        except (json.JSONDecodeError, KeyError, TypeError):
+            logger.warning("Corrupt signer file at %s, regenerating", signer_path)
+
+    # 2. Try inheriting from node identity credentials
+    creds_path = state_dir / "identity" / "credentials.json"
+    if creds_path.exists():
+        try:
+            creds = json.loads(creds_path.read_text(encoding="utf-8"))
+            priv = creds.get("private_key")
+            pub = creds.get("public_key")
+            if isinstance(priv, str) and isinstance(pub, str) and len(priv) == 64:
+                # Persist as mission signer for future loads
+                _persist_signer(signer_path, priv, pub, source="node_identity")
+                logger.info(
+                    "Inherited mission signer from node identity (%s)",
+                    creds.get("node_id", "unknown"),
+                )
+                return priv, pub
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
+
+    # 3. Generate new keypair and persist
+    priv, pub = generate_keypair()
+    state_dir.mkdir(parents=True, exist_ok=True)
+    _persist_signer(signer_path, priv, pub, source="generated")
+    logger.info("Generated and persisted new mission signer at %s", signer_path)
+    return priv, pub
+
+
+def _persist_signer(
+    path: Path, private_hex: str, public_hex: str, source: str
+) -> None:
+    """Write signer keypair to disk with restricted permissions."""
+    data = {
+        "private_key_hex": private_hex,
+        "public_key_hex": public_hex,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "source": source,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass  # Windows/WSL may not support chmod
