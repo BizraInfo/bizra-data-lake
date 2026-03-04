@@ -168,7 +168,7 @@ curl http://localhost:11434/api/tags
 
 ### Low Ihsan Score
 
-1. Check Sovereign Engine health: `curl localhost:8080/health`
+1. Check Sovereign Engine health: `curl localhost:8080/v1/health`
 2. Review recent queries: Check logs for validation failures
 3. Investigate SNR scores: May indicate data quality issues
 

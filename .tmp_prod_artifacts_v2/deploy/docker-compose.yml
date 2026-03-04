@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ============================================================================
 # BIZRA v4.0 - Local / Single-Host Production Stack
 # - Use deploy/.env for secrets and config.
@@ -10,8 +8,6 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -22,8 +18,8 @@ services:
 
   node-gateway:
     build:
-      context: ../services
-      dockerfile: node_gateway/Dockerfile
+      context: ../..
+      dockerfile: .tmp_prod_artifacts_v2/services/node_gateway/Dockerfile
     image: bizra/node-gateway:local
     env_file:
       - .env

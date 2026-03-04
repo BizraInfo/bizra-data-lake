@@ -348,6 +348,20 @@ class TestSchemaValidation:
         with pytest.raises(ValueError, match="schema validation"):
             validated_ledger.append(receipt)
 
+    def test_rejects_non_normalized_legacy_snr_score_field(self, validated_ledger):
+        """Out-of-range legacy snr_score is rejected by append-time checks."""
+        receipt = _minimal_receipt()
+        receipt["snr_score"] = 1.5
+        with pytest.raises(ValueError, match="snr_score invalid"):
+            validated_ledger.append(receipt)
+
+    def test_rejects_nan_snr_score_field(self, validated_ledger):
+        """NaN snr.score is rejected even if schema parsing accepts it."""
+        receipt = _minimal_receipt()
+        receipt["snr"]["score"] = float("nan")
+        with pytest.raises(ValueError, match="not finite"):
+            validated_ledger.append(receipt)
+
 
 # =============================================================================
 # RECEIPT EMISSION

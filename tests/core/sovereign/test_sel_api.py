@@ -201,7 +201,12 @@ class TestAsyncioServerRoutes:
         """The SovereignAPIServer should handle /v1/sel/episodes."""
         from core.sovereign.api import SovereignAPIServer
 
-        server = SovereignAPIServer(runtime=MagicMock())
+        from types import SimpleNamespace
+        import tempfile
+        from pathlib import Path
+        _rt = MagicMock()
+        _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
+        server = SovereignAPIServer(runtime=_rt)
         # Check that _handle_sel_episodes method exists
         assert hasattr(server, "_handle_sel_episodes")
         assert callable(server._handle_sel_episodes)
@@ -210,7 +215,12 @@ class TestAsyncioServerRoutes:
         """The SovereignAPIServer should handle /v1/sel/verify."""
         from core.sovereign.api import SovereignAPIServer
 
-        server = SovereignAPIServer(runtime=MagicMock())
+        from types import SimpleNamespace
+        import tempfile
+        from pathlib import Path
+        _rt = MagicMock()
+        _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
+        server = SovereignAPIServer(runtime=_rt)
         assert hasattr(server, "_handle_sel_verify")
         assert callable(server._handle_sel_verify)
 
@@ -218,7 +228,12 @@ class TestAsyncioServerRoutes:
         """The SovereignAPIServer should handle /v1/sel/retrieve."""
         from core.sovereign.api import SovereignAPIServer
 
-        server = SovereignAPIServer(runtime=MagicMock())
+        from types import SimpleNamespace
+        import tempfile
+        from pathlib import Path
+        _rt = MagicMock()
+        _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
+        server = SovereignAPIServer(runtime=_rt)
         assert hasattr(server, "_handle_sel_retrieve")
         assert callable(server._handle_sel_retrieve)
 
@@ -226,7 +241,12 @@ class TestAsyncioServerRoutes:
         """The SovereignAPIServer should handle /v1/sel/episodes/{hash}."""
         from core.sovereign.api import SovereignAPIServer
 
-        server = SovereignAPIServer(runtime=MagicMock())
+        from types import SimpleNamespace
+        import tempfile
+        from pathlib import Path
+        _rt = MagicMock()
+        _rt.config = SimpleNamespace(state_dir=Path(tempfile.mkdtemp()))
+        server = SovereignAPIServer(runtime=_rt)
         assert hasattr(server, "_handle_sel_episode_by_hash")
         assert callable(server._handle_sel_episode_by_hash)
 

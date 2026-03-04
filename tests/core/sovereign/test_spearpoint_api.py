@@ -8,6 +8,7 @@ SpearpointOrchestrator wired into runtime_core.py.
 Standing on Giants: Boyd (OODA), Goldratt (Theory of Constraints)
 """
 
+from pathlib import Path as _Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,9 +18,14 @@ from core.sovereign.api import create_fastapi_app
 from core.sovereign.runtime_types import RuntimeMetrics
 
 
-def _mock_runtime(with_orchestrator: bool = True) -> MagicMock:
+def _mock_runtime(with_orchestrator: bool = True, state_dir=None) -> MagicMock:
     """Create a mock runtime with optional spearpoint orchestrator."""
+    from types import SimpleNamespace
+    import tempfile
     runtime = MagicMock()
+    runtime.config = SimpleNamespace(
+        state_dir=_Path(state_dir) if state_dir else _Path(tempfile.mkdtemp())
+    )
     runtime.metrics = RuntimeMetrics(
         queries_processed=0,
         queries_succeeded=0,

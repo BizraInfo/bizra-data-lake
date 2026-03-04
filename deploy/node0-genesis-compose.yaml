@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIZRA NODE0 Genesis Server — Docker Compose
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Usage:
+#   docker compose -f deploy/node0-genesis-compose.yaml up -d
+#   docker compose -f deploy/node0-genesis-compose.yaml logs -f node0-genesis
+#   docker compose -f deploy/node0-genesis-compose.yaml down
+#
+# Standing on Giants: Burns (12-factor) · Lamport (distributed reliability)
+# Constitutional Constraint: Ihsan >= 0.95
+
+services:
+  node0-genesis:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.node0-genesis
+    container_name: bizra-node0-genesis
+    ports:
+      - "7770:7770"
+    environment:
+      # Ollama inference — access host Ollama from inside container
+      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL_CHAIN=${OLLAMA_MODEL_CHAIN:-phi3:mini}
+      # CORS — default dev ports (Vite, Grafana, self)
+      - BIZRA_CORS_ORIGINS=${BIZRA_CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:7770}
+      # Data directory inside container
+      - NODE0_DATA_DIR=/app/data
+      # Python environment
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/bizra-constitution
+    volumes:
+      # Persistent evidence chain + identity + cache
+      - node0-data:/app/data
+      # Optional: mount host 04_GOLD for cross-system evidence sharing
+      - ../04_GOLD/node0_evidence:/app/shared_evidence:rw
+    networks:
+      - bizra-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7770/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "node0-genesis"
+    labels:
+      - "bizra.service=node0-genesis"
+      - "bizra.version=6.0.0"
+      - "bizra.constitution=5.0.0-GENESIS"
+      - "bizra.port=7770"
+      - "prometheus.scrape=true"
+      - "prometheus.port=7770"
+      - "prometheus.path=/health"
+
+volumes:
+  node0-data:
+    driver: local
+    labels:
+      bizra.purpose: "NODE0 evidence chain, identity, cache"
+
+networks:
+  bizra-network:
+    external: true

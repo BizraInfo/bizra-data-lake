@@ -32,8 +32,8 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=bizra
+Group=bizra
 
 # Working directory
 WorkingDirectory=/mnt/c/BIZRA-DATA-LAKE

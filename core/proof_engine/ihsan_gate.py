@@ -19,11 +19,24 @@ Standing on Giants:
 - BIZRA Spearpoint PRD SP-005: "fail-closed excellence constraint"
 """
 
+import os
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from core.integration.constants import IHSAN_WEIGHTS, UNIFIED_IHSAN_THRESHOLD
 from core.proof_engine.reason_codes import ReasonCode
+
+try:
+    from bizra_constitution.generated.generated_constants import (
+        IHSAN_BLOOM_ELIGIBILITY as _CONSTITUTION_BLOOM_ELIGIBILITY,
+        IHSAN_EXCELLENCE as _CONSTITUTION_IHSAN_EXCELLENCE,
+        IHSAN_GATE_MINIMUM as _CONSTITUTION_GATE_MINIMUM,
+    )
+except Exception:  # pragma: no cover - constitution package optional
+    _CONSTITUTION_GATE_MINIMUM = 0.85
+    _CONSTITUTION_BLOOM_ELIGIBILITY = 0.90
+    _CONSTITUTION_IHSAN_EXCELLENCE = 0.95
 
 
 _GATE_COMPONENT_KEYS = (
@@ -58,6 +71,15 @@ def _canonical_component_weights(
         n = max(len(base), 1)
         return {k: 1.0 / n for k in base}
     return {k: v / total for k, v in base.items()}
+
+
+class IhsanTier(str, Enum):
+    """Constitution-aligned quality tiers for mission output."""
+
+    REJECTED = "rejected"
+    ACCEPTABLE = "acceptable"
+    BLOOM = "bloom"
+    IHSAN = "ihsan"
 
 
 @dataclass
@@ -121,6 +143,9 @@ class IhsanResult:
     components: IhsanComponents
     reason_codes: List[str] = field(default_factory=list)
     version: str = "1.0.0"
+    tier: str = IhsanTier.REJECTED.value
+    bloom_eligible: bool = False
+    is_ihsan: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Schema-compatible dict for receipt embedding."""
@@ -130,6 +155,27 @@ class IhsanResult:
             "decision": self.decision,
             "components": self.components.to_dict(),
             "version": self.version,
+            "ihsan_tensor": self.as_tensor_dict(),
+            "tier": self.tier,
+            "bloom_eligible": self.bloom_eligible,
+            "is_ihsan": self.is_ihsan,
+        }
+
+    def as_tensor_dict(self) -> Dict[str, float]:
+        """Return the current operational tensor payload."""
+        return self.components.to_dict()
+
+    def as_evidence(self) -> Dict[str, Any]:
+        """Return structured evidence fields for PoI / receipt integration."""
+        return {
+            "ihsan_tensor": self.as_tensor_dict(),
+            "ihsan_composite": self.score,
+            "tier": self.tier,
+            "bloom_eligible": self.bloom_eligible,
+            "is_ihsan": self.is_ihsan,
+            "decision": self.decision,
+            "threshold": self.threshold,
+            "reason_codes": list(self.reason_codes),
         }
 
 
@@ -143,10 +189,20 @@ class IhsanGate:
 
     def __init__(
         self,
-        threshold: float = UNIFIED_IHSAN_THRESHOLD,
+        threshold: Optional[float] = None,
         weights: Optional[Dict[str, float]] = None,
     ):
-        self.threshold = threshold
+        use_constitution_floor = os.getenv(
+            "BIZRA_USE_CONSTITUTION_GATE_MINIMUM", "0"
+        ).lower() in {"1", "true", "yes"}
+        if threshold is None:
+            self.threshold = (
+                float(_CONSTITUTION_GATE_MINIMUM)
+                if use_constitution_floor
+                else UNIFIED_IHSAN_THRESHOLD
+            )
+        else:
+            self.threshold = float(threshold)
         self.weights = weights
 
     def evaluate(
@@ -176,6 +232,16 @@ class IhsanGate:
                 reason_codes.append("ROBUSTNESS_COMPONENT_LOW")
 
         decision = "APPROVED" if score >= self.threshold else "REJECTED"
+        bloom_eligible = score >= float(_CONSTITUTION_BLOOM_ELIGIBILITY)
+        is_ihsan = score >= float(_CONSTITUTION_IHSAN_EXCELLENCE)
+        if decision == "REJECTED":
+            tier = IhsanTier.REJECTED.value
+        elif is_ihsan:
+            tier = IhsanTier.IHSAN.value
+        elif bloom_eligible:
+            tier = IhsanTier.BLOOM.value
+        else:
+            tier = IhsanTier.ACCEPTABLE.value
 
         return IhsanResult(
             score=score,
@@ -183,6 +249,9 @@ class IhsanGate:
             decision=decision,
             components=components,
             reason_codes=reason_codes,
+            tier=tier,
+            bloom_eligible=bloom_eligible,
+            is_ihsan=is_ihsan,
         )
 
     def ihsan_score(
@@ -212,6 +281,10 @@ class IhsanGate:
             "version": result.version,
             "passed": result.decision == "APPROVED",
             "reason_codes": result.reason_codes,
+            "ihsan_tensor": result.as_tensor_dict(),
+            "tier": result.tier,
+            "bloom_eligible": result.bloom_eligible,
+            "is_ihsan": result.is_ihsan,
         }
 
 
@@ -292,5 +365,6 @@ __all__ = [
     "IhsanGate",
     "IhsanResult",
     "IhsanComponents",
+    "IhsanTier",
     "IhsanFloorWatchdog",
 ]

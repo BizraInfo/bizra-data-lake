@@ -101,6 +101,17 @@ scrape_configs:
   #   metrics_path: /metrics
   #   scrape_interval: 15s
 
+  # =========================================================================
+  # NODE0 Genesis Constitutional Pipeline Server (v6)
+  # =========================================================================
+
+  - job_name: 'node0-genesis'
+    static_configs:
+      - targets: ['host.docker.internal:7770']
+    metrics_path: /health
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
   # Docker daemon metrics (if available)
   - job_name: 'docker'
     static_configs:

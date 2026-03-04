@@ -13,11 +13,15 @@ Tests cover:
 5. SNRv2Adapter protocol conformance (Phase 42 Spec 02)
 """
 
-import math
-
 import pytest
 
-from core.snr_protocol import SNRFacade, SNRProtocol, SNRResult
+from core.snr_protocol import (
+    SNRFacade,
+    SNRProtocol,
+    SNRResult,
+    assert_snr_normalized,
+    normalize_snr_linear,
+)
 from core.sovereign.snr_maximizer import SNRMaximizer
 
 # =============================================================================
@@ -142,3 +146,67 @@ class TestSNRProtocol:
             pass
 
         assert not isinstance(NotAnEngine(), SNRProtocol)
+
+
+# =============================================================================
+# 5. assert_snr_normalized — Phase 60 Step 4 Contract Guard
+# =============================================================================
+
+
+class TestAssertSNRNormalized:
+    """Phase 60 Step 4: Design-by-Contract guard for SNR values at boundaries."""
+
+    def test_valid_zero(self):
+        assert assert_snr_normalized(0.0) == 0.0
+
+    def test_valid_one(self):
+        assert assert_snr_normalized(1.0) == 1.0
+
+    def test_valid_mid(self):
+        assert assert_snr_normalized(0.85) == 0.85
+
+    def test_rejects_negative(self):
+        with pytest.raises(ValueError, match="outside normalized range"):
+            assert_snr_normalized(-0.01)
+
+    def test_rejects_above_one(self):
+        with pytest.raises(ValueError, match="outside normalized range"):
+            assert_snr_normalized(1.01)
+
+    def test_rejects_unbounded_linear(self):
+        """Raw snr_linear (e.g., 15.7) must be caught before storage."""
+        with pytest.raises(ValueError, match="outside normalized range"):
+            assert_snr_normalized(15.7)
+
+    def test_rejects_nan(self):
+        with pytest.raises(ValueError, match="not finite"):
+            assert_snr_normalized(float("nan"))
+
+    def test_rejects_infinity(self):
+        with pytest.raises(ValueError, match="not finite"):
+            assert_snr_normalized(float("inf"))
+
+    def test_rejects_non_numeric(self):
+        with pytest.raises(TypeError, match="expected numeric"):
+            assert_snr_normalized("high")
+
+    def test_accepts_integer(self):
+        assert assert_snr_normalized(1) == 1.0
+        assert assert_snr_normalized(0) == 0.0
+
+    def test_label_in_error(self):
+        with pytest.raises(ValueError, match="my_score"):
+            assert_snr_normalized(5.0, label="my_score")
+
+    def test_normalize_then_assert_roundtrip(self):
+        """normalize_snr_linear output always passes assert_snr_normalized."""
+        for raw in [0.0, 0.5, 1.0, 5.0, 100.0, 1e10]:
+            normalized = normalize_snr_linear(raw)
+            assert assert_snr_normalized(normalized) == normalized
+
+    def test_normalize_matches_constitution_function(self):
+        """core.snr_protocol normalization matches constitution module."""
+        from bizra_constitution.snr import normalize_snr
+
+        for raw in [0.0, 0.1, 1.0, 9.0, 19.0, 1_000_000.0]:
+            assert normalize_snr_linear(raw) == pytest.approx(normalize_snr(raw))

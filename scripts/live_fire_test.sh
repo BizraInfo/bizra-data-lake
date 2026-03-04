@@ -223,13 +223,18 @@ echo "════════════════════════�
 
 cd "$PROJECT_ROOT"
 if command -v pytest &> /dev/null; then
-    if pytest tests/ -v --tb=short 2>&1 | tail -20; then
+    PYTEST_LOG="$(mktemp -t bizra_live_fire_pytest.XXXXXX.log)"
+    if pytest tests/ -v --tb=short >"$PYTEST_LOG" 2>&1; then
+        tail -20 "$PYTEST_LOG" || true
         echo -e "${GREEN}  ✓ Python tests passed${NC}"
         ((TESTS_PASSED++))
     else
-        echo -e "${YELLOW}  ⚠ Some Python tests may have issues${NC}"
-        ((TESTS_PASSED++))  # Don't fail the overall test for this
+        PYTEST_EXIT=$?
+        tail -20 "$PYTEST_LOG" || true
+        echo -e "${RED}  ✗ Python tests failed (exit $PYTEST_EXIT)${NC}"
+        ((TESTS_FAILED++))
     fi
+    rm -f "$PYTEST_LOG"
 else
     echo -e "${YELLOW}  ⚠ pytest not found, skipping${NC}"
 fi

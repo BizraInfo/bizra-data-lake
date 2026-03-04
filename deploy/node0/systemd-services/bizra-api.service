@@ -72,7 +72,7 @@ ExecStart=/mnt/c/bizra-genesis-node/target/release/api_server \
     --max-connections ${BIZRA_API_MAX_CONNECTIONS}
 
 # Health check command
-ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -sf http://localhost:3001/health && exit 0 || sleep 1; done; exit 1'
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -sf http://localhost:3001/api/v1/health && exit 0 || sleep 1; done; exit 1'
 
 # Graceful shutdown
 ExecStop=/bin/kill -SIGTERM $MAINPID

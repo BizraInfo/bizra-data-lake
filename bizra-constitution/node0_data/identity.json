@@ -1,0 +1,60 @@
+{
+  "node_id": "08e2994fab7cbb83790359cccda1e12424188c8c54440b4fcf9a8670ea52c48e",
+  "public_key_hex": "f0f9923a2f92a06e12512aea763d6e96939f3890731d7649c05cc82126013c5d",
+  "genesis_timestamp": 1772581230.3004103,
+  "genesis_domain": "bizra-identity-genesis-v1",
+  "pat_agents": [
+    {
+      "name": "Planner",
+      "public_key": "4c973b3b0a9e696bb05c4132f2ae97cfd7e07ad547a1d45462156241c2e05084"
+    },
+    {
+      "name": "Researcher",
+      "public_key": "88046db092243e2bed38fc5ae109011d7edcaa4928d44ba4ed812f1782ad184b"
+    },
+    {
+      "name": "Coder",
+      "public_key": "776465a2810921acdfc88ecd3ed2e9d0e4cfaa56f0767ecb495486f27e54b67e"
+    },
+    {
+      "name": "Evaluator",
+      "public_key": "ce53cf3ebdab33cc9d50d6f5f3919d83a2428924ad6b216beeae230fdaaab53b"
+    },
+    {
+      "name": "Ethicist",
+      "public_key": "a9e4b9e82a255f3d1f7f88ed0f9785eff74fd998a6ed10c2178bfb4ac755ee61"
+    },
+    {
+      "name": "Publisher",
+      "public_key": "6827b132b5208e637d0b782a7758a8796604d5a33887746fcc026a8f479625a5"
+    },
+    {
+      "name": "Integrator",
+      "public_key": "7904ba6dc3efd607f79e369cf7664179a04415ca135763219a3095bd32ad316c"
+    }
+  ],
+  "sat_agents": [
+    {
+      "name": "ComputeScheduler",
+      "public_key": "0388bbe96c098161c0ee37baf9c11460e114bc8feb45b5bc1b697b2820b0afd0"
+    },
+    {
+      "name": "SecurityMonitor",
+      "public_key": "9c51718f144fec0455729364e32bafaf57658b823afb69fc343bbda24adf3dc9"
+    },
+    {
+      "name": "PerformanceAnalyzer",
+      "public_key": "9f25eb677c22c308e3d3d84ff673e7273246c8ef7d33dd9d1aff24dfacee3601"
+    },
+    {
+      "name": "ConsensusValidator",
+      "public_key": "2cbd7444c480c8b80345902985e4b80d51451f338454fbad08a290a6e529483f"
+    },
+    {
+      "name": "NetworkOrchestrator",
+      "public_key": "0b93294b0ef46aa90895c4005aaad31154ccc4706dfc0ab88339bcf58cb757c1"
+    }
+  ],
+  "total_agents": 12,
+  "saved_at": 1772581230.3021624
+}

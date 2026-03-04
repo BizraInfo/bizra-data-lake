@@ -6,7 +6,7 @@ BIZRA Integration Constants — AUTHORITATIVE SOURCE OF TRUTH
 ║   Do NOT define IHSAN_THRESHOLD or SNR_THRESHOLD elsewhere.                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-Genesis Strict Synthesis v2.2.2 — Cross-Repository Constants
+Genesis Strict Synthesis v3.0.0 — Cross-Repository Constants
 
 Unified constants across all core modules to ensure consistency.
 These values override module-specific constants when using the
@@ -14,17 +14,28 @@ IntegrationBridge.
 
 Sovereignty: Single source of truth for quality thresholds.
 
-Canonical Values (v2.2.2):
-- IHSAN: 0.95 (standard), 0.99 (strict/consensus), 1.0 (runtime/Z3-proven)
+v3.0.0 Convergence (Constitution v5.0.0-GENESIS):
+- Absorbs 30+ new constitutional constants from bizra-constitution/
+- Ihsan operational thresholds: 0.85 (gate), 0.90 (bloom), 0.95 (excellence)
+- Ihsan constitutional tensor: 8-dim canonical, 6-dim operational projection
 - SNR: 0.85 (minimum/museum floor), 0.95 (T1), 0.98 (T0/elite)
+- Gate configuration: 5 alpha gates, fail-closed
+- HHMM: 47-state taxonomy (5 initial live), 4 complexity tiers
+- Reflex cache: precipitation at 3 consecutive hits with Ihsan >= 0.90
+- Action bus: 100ms GCD tick, 10 concurrent, 100/hour rate limit
+
+Legacy Operational Values (v2.2.2):
+- IHSAN: 0.95 (standard), 0.99 (strict/consensus), 1.0 (runtime/Z3-proven)
+- ADL_GINI_THRESHOLD: 0.35 (operational, pending constitutional review → 0.45)
 
 Cross-repo alignment:
 - BIZRA-DATA-LAKE: core/integration/constants.py (this file)
 - BIZRA-Dual-Agentic-system: core/constants.py
 - bizra-omega (Rust): bizra-core/src/lib.rs
+- bizra-constitution/generated: generated_constants.py (constitutional source)
 - TypeScript: src/core/sovereign/capability-card.ts
 
-Standing on Giants: Shannon • Lamport • Vaswani • Anthropic
+Standing on Giants: Shannon • Lamport • Vaswani • Anthropic • Al-Ghazali
 """
 
 import os
@@ -112,9 +123,10 @@ IHSAN_THRESHOLD_CI: Final[float] = 0.90
 IHSAN_THRESHOLD_DEV: Final[float] = 0.80
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# IHSĀN DIMENSION WEIGHTS
+# IHSĀN DIMENSION WEIGHTS — Legacy Operational (v2.x)
 # ═══════════════════════════════════════════════════════════════════════════════
 # 8-dimensional ethical scoring (must sum to 1.0)
+# Used by: core/proof_engine/ihsan_gate.py, core/constitutional/omega_engine.py
 
 IHSAN_WEIGHTS: Final[dict] = {
     "correctness": 0.22,  # Is it right?
@@ -126,6 +138,53 @@ IHSAN_WEIGHTS: Final[dict] = {
     "robustness": 0.06,  # Is it resilient?
     "adl_fairness": 0.04,  # Is it fair (عدل)?
 }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IHSĀN CONSTITUTIONAL TENSOR — v5.0.0-GENESIS (8-dim canonical)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standing on Giants: Al-Ghazali (Ihsan, 1095) · Shannon (information entropy)
+# Source: constitution.toml §3 [ihsan_tensor.weights]
+# Migration: constitutional tensor supersedes legacy IHSAN_WEIGHTS over time.
+# Used by: bizra-constitution/ihsan_gate.py (6-dim operational projection)
+
+IHSAN_CANONICAL_WEIGHTS: Final[dict] = {
+    "moral_clarity": 0.1200,         # وضوح أخلاقي — ethical transparency
+    "epistemic_humility": 0.1400,    # تواضع معرفي — knowing what you don't know
+    "structural_integrity": 0.1300,  # سلامة بنيوية — coherent architecture
+    "verifiability": 0.1300,         # قابلية التحقق — provable claims
+    "contextual_relevance": 0.1100,  # ملاءمة سياقية — right answer, right time
+    "intent_alignment": 0.1400,      # توافق النية — serves the user's true need
+    "resilience": 0.1100,            # مرونة — graceful under failure
+    "efficiency": 0.1200,            # كفاءة — minimum waste, maximum signal
+}
+
+# 6-dim operational projection (excludes contextual_relevance + efficiency, renormalized)
+# This is the scoring tensor used by the constitutional IhsanGate at runtime.
+IHSAN_OPERATIONAL_WEIGHTS: Final[dict] = {
+    "moral_clarity": 0.1558,
+    "epistemic_humility": 0.1818,
+    "structural_integrity": 0.1688,
+    "verifiability": 0.1688,
+    "intent_alignment": 0.1818,
+    "resilience": 0.1429,
+}
+
+IHSAN_DIMENSIONS_CANONICAL: Final[int] = 8
+IHSAN_DIMENSIONS_OPERATIONAL: Final[int] = 6
+IHSAN_OPERATIONAL_NAMES: Final[list] = [
+    "moral_clarity", "epistemic_humility", "structural_integrity",
+    "verifiability", "intent_alignment", "resilience",
+]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IHSĀN CONSTITUTIONAL THRESHOLDS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §3 [ihsan_tensor.thresholds]
+
+IHSAN_GATE_MINIMUM: Final[float] = 0.85       # Hard floor — fail-closed below this
+IHSAN_POI_CONSENSUS: Final[float] = 0.85       # PoI attestation minimum
+IHSAN_BLOOM_ELIGIBILITY: Final[float] = 0.90   # BLOOM token minting threshold
+IHSAN_CONFORMANCE_JOIN: Final[float] = 0.95    # Network join conformance
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SNR (Signal-to-Noise Ratio) THRESHOLDS
@@ -254,16 +313,17 @@ CROSS_REPO_CONSTANTS = {
     "bizra-data-lake": "/mnt/c/BIZRA-DATA-LAKE/core/integration/constants.py",
     "dual-agentic-system": "/mnt/c/BIZRA-Dual-Agentic-system--main/core/constants.py",
     "bizra-omega-rust": "/mnt/c/BIZRA-DATA-LAKE/bizra-omega/bizra-core/src/lib.rs",
+    "bizra-constitution": "/mnt/c/BIZRA-DATA-LAKE/bizra-constitution/generated/generated_constants.py",
 }
 
-# Canonical threshold values for cross-repo validation
+# Canonical threshold values for cross-repo validation (numeric only)
 CANONICAL_THRESHOLDS = {
     "IHSAN_THRESHOLD": 0.95,
     "SNR_THRESHOLD_MINIMUM": 0.85,
     "SNR_THRESHOLD_T0_ELITE": 0.98,
     "MUSEUM_SNR_FLOOR": 0.85,
     "RUNTIME_IHSAN": 1.0,
-    "ADL_GINI_THRESHOLD": 0.35,  # Justice invariant - anti-plutocracy
+    "ADL_GINI_THRESHOLD": 0.35,  # Operational — constitutional target is 0.45
 }
 
 
@@ -409,13 +469,150 @@ FAISS_GOLD_DIR: Final[str] = "04_GOLD"
 FAISS_EMBEDDING_DIM: Final[int] = 384
 FAISS_DEFAULT_TOP_K: Final[int] = 10
 FAISS_SIMILARITY_FLOOR: Final[float] = 0.35
-HMM_NUM_HIDDEN_STATES: Final[int] = 6
+HMM_NUM_HIDDEN_STATES: Final[int] = 6  # Operational (legacy Phase 46)
 HMM_OBSERVATION_WINDOW: Final[int] = 50
 HMM_CONVERGENCE_THRESHOLD: Final[float] = 1e-4
 HMM_MAX_EM_ITERATIONS: Final[int] = 100
 GOT_MAX_HYPOTHESES: Final[int] = 5
 GOT_CONVERGENCE_SNR: Final[float] = 0.90
 GOT_MAX_DEPTH: Final[int] = 4
+
+# HHMM Constitutional Taxonomy — v5.0.0-GENESIS
+# Source: constitution.toml §7 [hhmm]
+# 47 states is the full taxonomy; 5 initial live at genesis.
+# HMM_NUM_HIDDEN_STATES (6) is the Phase 46 operational count.
+HMM_FULL_TAXONOMY_STATES: Final[int] = 47
+HMM_INITIAL_LIVE_STATES: Final[int] = 5
+HMM_EXPANSION_TRIGGER: Final[int] = 1000  # Missions before state expansion
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPLEXITY TIER BUDGETS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §7 [hhmm.tiers]
+# Latency budget per complexity tier (HHMM classification output)
+
+TIER_TRIVIAL_BUDGET_MS: Final[int] = 100      # Reflex cache hit (S1)
+TIER_SIMPLE_BUDGET_MS: Final[int] = 3000      # Single agent pipeline
+TIER_COMPLEX_BUDGET_MS: Final[int] = 15000    # Mission orchestrator (full PAT)
+TIER_SOVEREIGN_BUDGET_MS: Final[int] = 60000  # Multi-model sovereign pipeline
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSTITUTIONAL GATE CONFIGURATION — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §5 [gates]
+# 5 alpha gates with weights summing to 1.0. Fail mode: closed.
+
+GATE_WEIGHTS: Final[dict] = {
+    "alpha_4": 0.15,   # Fallback gate
+    "alpha_7": 0.25,   # Verification gate
+    "alpha_8": 0.20,   # Dark matter gate
+    "alpha_9": 0.25,   # Attestation gate
+    "alpha_10": 0.15,  # Binary gate
+}
+GATE_FAIL_MODE: Final[str] = "closed"
+GATE_OVERHEAD_BUDGET_MS: Final[int] = 50
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REFLEX CACHE — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §9 [reflex]
+# O(1) HashMap cache with precipitation model (Theorem 2.2)
+
+REFLEX_STORE_TYPE: Final[str] = "HashMap"
+REFLEX_MAX_ENTRIES: Final[int] = 500
+REFLEX_PRECIPITATION_HITS: Final[int] = 3        # Consecutive high-quality hits
+REFLEX_PRECIPITATION_IHSAN: Final[float] = 0.90   # Minimum Ihsan for precipitation
+REFLEX_SIMILARITY_THRESHOLD: Final[float] = 0.95  # Template matching threshold
+REFLEX_INVALIDATION_INTERVAL: Final[int] = 100    # Hits between validation checks
+REFLEX_INVALIDATION_DELTA: Final[float] = 0.05    # Max Ihsan drift before invalidation
+REFLEX_STALENESS_DAYS: Final[int] = 30            # Force invalidation after N days
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ACTION BUS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §10 [action_bus]
+
+ACTION_BUS_GCD_TICK_MS: Final[int] = 100    # Greatest common divisor tick
+ACTION_BUS_MAX_CONCURRENT: Final[int] = 10  # Max parallel missions
+ACTION_BUS_MAX_PER_HOUR: Final[int] = 100   # Hourly rate limit
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAT/SAT AGENT CONFIGURATION — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §4 [pat], §6 [sat]
+
+PAT_AGENT_COUNT: Final[int] = 7
+PAT_AGENT_NAMES: Final[list] = [
+    "Planner", "Researcher", "Coder",
+    "Evaluator", "Ethicist", "Publisher", "Integrator",
+]
+PAT_TRUST_STAGES: Final[list] = [
+    "abstracting", "gathering", "executing",
+    "attesting", "certifying", "publishing", "chaining",
+]
+
+SAT_AGENTS_PER_NODE: Final[int] = 5
+SAT_BOOTSTRAP_ROLES: Final[list] = [
+    "ComputeScheduler", "SecurityMonitor", "PerformanceAnalyzer",
+    "ConsensusValidator", "NetworkOrchestrator",
+]
+SAT_INFRASTRUCTURE_FLOOR_PCT: Final[int] = 20  # Minimum % devoted to infra
+SAT_REBALANCE_INTERVAL_S: Final[int] = 300
+SAT_SERVICE_TYPES: Final[list] = [
+    "ComputeAllocation", "NetworkRoute", "ConsensusVerification",
+    "SecurityCheck", "TemplatePublish", "EconomicSettlement",
+]
+IDENTITY_AGENTS_PER_NODE: Final[int] = 12  # PAT(7) + SAT(5)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSTITUTIONAL ECONOMICS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §8 [economics]
+
+SEED_YEARLY_CAP: Final[int] = 1_000_000
+ZAKAT_RATE: Final[float] = 0.025  # 2.5% — applied at mint time
+NO_RIBA: Final[bool] = True   # Kernel invariant: zero exploitation
+NO_GHARAR: Final[bool] = True  # Kernel invariant: zero deception
+
+# Constitutional Gini threshold (0.45) vs operational (0.35) — pending governance review.
+# constitution.toml §8 sets 0.45; existing code enforces 0.35.
+# ADL_GINI_THRESHOLD remains 0.35 (operational) until cross-repo alignment completes.
+CONSTITUTIONAL_GINI_THRESHOLD: Final[float] = 0.45
+GINI_MEASUREMENT_INTERVAL_S: Final[int] = 3600
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOMAIN SEPARATION STRINGS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §2 [identity.domain_separation]
+
+DOMAIN_EVIDENCE_RECEIPT: Final[str] = "bizra-evidence-v1"
+DOMAIN_URP_LEASE: Final[str] = "bizra-urp-lease-v1"
+DOMAIN_POI_ATTESTATION: Final[str] = "bizra-poi-v1"
+DOMAIN_IDENTITY_GENESIS: Final[str] = "bizra-identity-genesis-v1"
+DOMAIN_TELESCRIPT_PUBLISH: Final[str] = "bizra-telescript-v1"
+DOMAIN_BLOOM_MINT: Final[str] = "bizra-bloom-mint-v1"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFORMANCE TARGETS — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §11 [conformance]
+
+CONFORMANCE_HHMM_ACCURACY: Final[float] = 1.0
+CONFORMANCE_POI_VARIANCE: Final[float] = 0.01
+CONFORMANCE_CROWN_ENTROPY: Final[float] = 0.95
+CONFORMANCE_REFLEX_SEMANTIC: Final[float] = 0.90
+CONFORMANCE_POOL_LATENCY_MS: Final[int] = 200
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIVACY — v5.0.0-GENESIS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Source: constitution.toml §12 [privacy]
+
+PRIVACY_CLASSES: Final[list] = ["LOCAL_ONLY", "ABSTRACT_OK", "SHAREABLE"]
+PRIVACY_DEFAULT: Final[str] = "LOCAL_ONLY"
+
+# Constitution reference
+CONSTITUTION_VERSION: Final[str] = "5.0.0-GENESIS"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SAFE ACTIVATION — Phase 47.1

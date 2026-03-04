@@ -410,5 +410,8 @@ class TestModuleExports:
             "UNIFIED_IHSAN_THRESHOLD",
             "UNIFIED_SNR_THRESHOLD",
             "UNIFIED_CLOCK_SKEW_SECONDS",
+            "load_constitution",
+            "resolve_constitution_path",
+            "validate_constitution",
         }
         assert set(integration_module.__all__) == expected

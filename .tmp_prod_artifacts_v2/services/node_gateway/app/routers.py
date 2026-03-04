@@ -25,11 +25,16 @@ except Exception:  # pragma: no cover - local import fallback
             candidate_str = str(candidate)
             if candidate_str not in sys.path:
                 sys.path.insert(0, candidate_str)
-        from services._shared.app.health import (
-            build_health_payload,
-            check_http,
-            check_redis,
-        )
+        try:
+            # Prefer direct _shared import to avoid collision with foreign
+            # top-level "services" packages present on developer machines.
+            from _shared.app.health import build_health_payload, check_http, check_redis
+        except Exception:
+            from services._shared.app.health import (
+                build_health_payload,
+                check_http,
+                check_redis,
+            )
 
 router = APIRouter()
 APP_VERSION = "4.0.1"
