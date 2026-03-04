@@ -169,8 +169,10 @@ fn build_router_does_not_panic() {
 
 #[tokio::test]
 async fn identity_generate_requires_token_when_configured() {
-    let mut state = AppState::default();
-    state.api_token = Some("secret-123".into());
+    let state = AppState {
+        api_token: Some("secret-123".into()),
+        ..Default::default()
+    };
     let app = bizra_api::build_router(Arc::new(state));
 
     let request = Request::builder()
@@ -185,8 +187,10 @@ async fn identity_generate_requires_token_when_configured() {
 
 #[tokio::test]
 async fn identity_generate_accepts_valid_token() {
-    let mut state = AppState::default();
-    state.api_token = Some("secret-123".into());
+    let state = AppState {
+        api_token: Some("secret-123".into()),
+        ..Default::default()
+    };
     let app = bizra_api::build_router(Arc::new(state));
 
     let request = Request::builder()
@@ -202,8 +206,10 @@ async fn identity_generate_accepts_valid_token() {
 
 #[tokio::test]
 async fn identity_verify_requires_token_when_configured() {
-    let mut state = AppState::default();
-    state.api_token = Some("secret-123".into());
+    let state = AppState {
+        api_token: Some("secret-123".into()),
+        ..Default::default()
+    };
     let app = bizra_api::build_router(Arc::new(state));
 
     let body = r#"{"message":"hello","signature":"deadbeef","public_key":"cafebabe"}"#;
