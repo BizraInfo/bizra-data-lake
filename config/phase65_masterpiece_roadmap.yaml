@@ -127,6 +127,7 @@ roadmap:
     deliverables:
       - "Phase 65 blueprint spec"
       - "Risk register and dependency map"
+      - "config/phase65_alpha_manual_checks.template.json"
     done_when:
       - "Docs link to executable scripts"
       - "Owners and milestones assigned"
