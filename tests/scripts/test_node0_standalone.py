@@ -46,3 +46,20 @@ def test_health_is_degraded_without_activation(tmp_path: Path) -> None:
     assert report["status"] == "degraded"
     assert report["gates"]["identity_credentials"] is False
     assert report["gates"]["assets_file"] is False
+
+
+@pytest.mark.asyncio
+async def test_run_task_reports_filesystem_action(tmp_path: Path) -> None:
+    manager = Node0StandaloneManager(project_root=tmp_path)
+
+    result = await manager.run_task(
+        "write file missions/from_mission.txt :: hello from mission",
+        browser_mode="mock",
+    )
+
+    fs = result.get("filesystem_action")
+    assert fs is not None
+    assert fs["action"] == "write"
+    target = tmp_path / "missions" / "from_mission.txt"
+    assert target.exists()
+    assert target.read_text(encoding="utf-8") == "hello from mission"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -88,6 +89,7 @@ class TestMissionOrchestrator:
             "memory_path": str(tmp_path / "memory"),
             "evidence_path": str(tmp_path / "evidence.jsonl"),
             "hda_port": 59999,  # Non-listening port
+            "workspace_root": str(tmp_path),
         }
 
     @pytest.fixture
@@ -179,6 +181,36 @@ class TestMissionOrchestrator:
         )
         assert browser is not None
         assert browser.data.get("results_count", 0) > 0
+
+    def test_local_filesystem_write_intent(self, orchestrator):
+        request = MissionRequest(
+            mission_id="e" * 32,
+            description="write file missions/demo.txt :: hello",
+            context=DesktopContext("Test Window", "", {}),
+            timestamp=time.time(),
+            source="test",
+        )
+        subtask = SimpleNamespace(params={"description": request.description})
+
+        result = orchestrator._execute_local_filesystem(subtask, request)
+        assert result is not None
+        assert result["filesystem_action"] == "write"
+        target = orchestrator._workspace_root / "missions" / "demo.txt"
+        assert target.exists()
+        assert target.read_text(encoding="utf-8") == "hello"
+
+    def test_local_filesystem_blocks_outside_workspace(self, orchestrator):
+        request = MissionRequest(
+            mission_id="f" * 32,
+            description="read file /tmp/escape.txt",
+            context=DesktopContext("Test Window", "", {}),
+            timestamp=time.time(),
+            source="test",
+        )
+        subtask = SimpleNamespace(params={"description": request.description})
+
+        with pytest.raises(ValueError, match="path_outside_workspace"):
+            orchestrator._execute_local_filesystem(subtask, request)
 
 
 # ── Template Synthesis Tests ────────────────────────────────────────
