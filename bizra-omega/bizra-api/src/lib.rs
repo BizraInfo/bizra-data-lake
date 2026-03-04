@@ -72,7 +72,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         // Identity
         .route("/identity/generate", post(handlers::identity::generate))
         .route("/identity/sign", post(handlers::identity::sign_message))
-        .route("/identity/verify", post(handlers::identity::verify_signature))
+        .route(
+            "/identity/verify",
+            post(handlers::identity::verify_signature),
+        )
         // PCI Protocol
         .route("/pci/envelope/create", post(handlers::pci::create_envelope))
         .route("/pci/envelope/verify", post(handlers::pci::verify_envelope))
