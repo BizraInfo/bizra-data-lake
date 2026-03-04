@@ -53,6 +53,10 @@ jobs:
       launch_decision: ${{ steps.phase65_outputs.outputs.launch_decision }}
       launch_ready: ${{ steps.phase65_outputs.outputs.launch_ready }}
       packet_signed: ${{ steps.phase65_outputs.outputs.packet_signed }}
+      blueprint_gate_passed: ${{ steps.blueprint_outputs.outputs.blueprint_gate_passed }}
+      blueprint_score: ${{ steps.blueprint_outputs.outputs.blueprint_score }}
+      blueprint_weights_total: ${{ steps.blueprint_outputs.outputs.blueprint_weights_total }}
+      blueprint_failed_checks: ${{ steps.blueprint_outputs.outputs.blueprint_failed_checks }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       BIZRA_PHASE65_STRICT_SIGNING: "1"
@@ -121,6 +125,35 @@ jobs:
           python scripts/ops/elite_fullstack_blueprint_audit.py \
             --config config/elite_fullstack_blueprint.yaml \
             --report /tmp/phase65/elite_fullstack_blueprint_report.json
+
+      - name: Extract elite blueprint outputs
+        id: blueprint_outputs
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("/tmp/phase65/elite_fullstack_blueprint_report.json").read_text(encoding="utf-8")
+          )
+          out_path = Path(os.environ["GITHUB_OUTPUT"])
+          with out_path.open("a", encoding="utf-8") as fh:
+              fh.write(f"blueprint_gate_passed={str(report.get('gate_passed', False)).lower()}\n")
+              fh.write(f"blueprint_score={report.get('weighted_score', 0.0)}\n")
+              fh.write(f"blueprint_weights_total={report.get('weights_total', 0.0)}\n")
+              fh.write(f"blueprint_failed_checks={len(report.get('failed_checks') or [])}\n")
+          PY
+
+      - name: Append elite blueprint summary
+        run: |
+          echo "## Elite Blueprint v2 Audit" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Blueprint Gate Passed | ${{ steps.blueprint_outputs.outputs.blueprint_gate_passed }} | true |" >> $GITHUB_STEP_SUMMARY
+          echo "| Blueprint Score | ${{ steps.blueprint_outputs.outputs.blueprint_score }} | >= 0.93 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Weights Total | ${{ steps.blueprint_outputs.outputs.blueprint_weights_total }} | 1.0 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed Checks | ${{ steps.blueprint_outputs.outputs.blueprint_failed_checks }} | 0 |" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload lifecycle artifacts
         if: always()
