@@ -390,7 +390,7 @@ class Phase46Interface:
         from core.rollout.rollback import RollbackEngine
 
         _receipt_dir = os.path.join(
-            os.getenv("BIZRA_LOG_DIR", "logs"), "rollback_receipts"
+            os.getenv("BIZRA_LOG_DIR", os.path.join(_project_root, "logs")), "rollback_receipts"
         )
         self._rollback = RollbackEngine(receipt_dir=_receipt_dir, metrics=self._metrics)
 

@@ -21,8 +21,10 @@ This script activates your local Node0 with:
 Usage:
     # Token auto-loaded from .env (LM_API_TOKEN or LM_STUDIO_API_KEY)
     python scripts/node0_activate.py              # Start full node
-    python scripts/node0_activate.py --status     # Check status
-    python scripts/node0_activate.py --mission "task"  # Assign mission
+    python scripts/node0_activate.py status       # Check status
+    python scripts/node0_activate.py mission "task"  # Assign mission
+    python scripts/node0_activate.py --status     # Compatibility shortcut
+    python scripts/node0_activate.py --mission "task"  # Compatibility shortcut
 """
 
 import argparse
@@ -1885,15 +1887,27 @@ class Node0Orchestrator:
         config = _load_proactive_config()
         self.kernel = Node0ProactiveKernel(config)
         self._shutdown_event = asyncio.Event()
+        allow_degraded = os.environ.get("BIZRA_ALLOW_DEGRADED_BACKEND", "1")
+        self._allow_degraded_backend = allow_degraded.lower() not in (
+            "0",
+            "false",
+            "no",
+        )
 
     async def start(self):
         """Start Node0."""
         self._print_banner()
 
         # Check LM Studio connection
-        if not await self._check_connection():
-            logger.error("Cannot connect to LM Studio. Exiting.")
+        connected = await self._check_connection()
+        if not connected and not self._allow_degraded_backend:
+            logger.error("Cannot connect to any LLM backend in strict mode. Exiting.")
             return
+        if not connected:
+            logger.warning(
+                "Starting in degraded mode: no LLM backend reachable; template "
+                "synthesis path remains available."
+            )
 
         # Write PID file for process management
         pid_file = (
@@ -1936,7 +1950,7 @@ class Node0Orchestrator:
         # Try LM Studio first
         try:
             async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-                resp = await client.get(f"{self._LM_STUDIO_URL}/v1/models")
+                resp = await client.get(f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models")
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     loaded = [m for m in models if m.get("loaded")]
@@ -2003,6 +2017,7 @@ class Node0Orchestrator:
 async def cmd_start(args):
     """Start Node0."""
     orchestrator = Node0Orchestrator()
+    orchestrator._allow_degraded_backend = not bool(getattr(args, "strict_backend", False))
     await orchestrator.start()
 
 
@@ -2289,6 +2304,27 @@ def main():
         description="BIZRA Node0 — Local Sovereign AI Home Base",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Compatibility shortcut for `status` subcommand.",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Compatibility shortcut for `verify` subcommand.",
+    )
+    parser.add_argument(
+        "--mission",
+        type=str,
+        default=None,
+        help="Compatibility shortcut for `mission <task>` subcommand.",
+    )
+    parser.add_argument(
+        "--strict-backend",
+        action="store_true",
+        help="Fail startup if neither LM Studio nor Ollama is reachable.",
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -2306,6 +2342,14 @@ def main():
     subparsers.add_parser("verify", help="Verify evidence chain integrity")
 
     args = parser.parse_args()
+
+    if args.status:
+        args.command = "status"
+    elif args.verify:
+        args.command = "verify"
+    elif args.mission:
+        args.command = "mission"
+        args.task = args.mission
 
     if not args.command:
         # Default to start

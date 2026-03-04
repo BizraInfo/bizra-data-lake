@@ -1,0 +1,687 @@
+#!/usr/bin/env python3
+"""BIZRA Node0 standalone lifecycle manager.
+
+Unified entrypoint for single-node readiness before Alpha-100.
+
+Commands:
+  - activate: mint/load identity, activate URP, publish PAT/SAT awareness
+  - health:   lifecycle and integration health report
+  - task:     autonomous mission execution (filesystem + browser channels)
+  - serve:    local API for website/UI integration
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import logging
+import os
+import re
+import socket
+import sys
+import time
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+logger = logging.getLogger("node0.standalone")
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+
+def _read_json(path: Path, default: Any = None) -> Any:
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return default
+
+
+def _tcp_open(host: str, port: int, timeout_s: float = 0.4) -> bool:
+    sock: socket.socket | None = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout_s)
+        sock.connect((host, port))
+    except OSError:
+        return False
+    finally:
+        if sock is not None:
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+    if sock is not None:
+        return True
+
+
+@dataclass
+class ActivationContext:
+    node_id: str
+    pat_agent_ids: list[str]
+    sat_agent_ids: list[str]
+    private_key_hex: str
+
+
+class Node0StandaloneManager:
+    """Single-node activation manager for Node0 first-user readiness."""
+
+    def __init__(self, project_root: Path = PROJECT_ROOT) -> None:
+        self.project_root = project_root
+        self.state_root = project_root / "sovereign_state"
+        self.identity_dir = self.state_root / "identity"
+        self.assets_path = self.state_root / "node0_assets.json"
+        self.awareness_path = self.state_root / "pat_awareness.json"
+        self.urp_path = self.state_root / "urp_pledge.json"
+        self.lifecycle_path = self.state_root / "node0_lifecycle.json"
+        self.identity_dir.mkdir(parents=True, exist_ok=True)
+
+    def activate(
+        self,
+        architect: str = "MoMo",
+        strict: bool = False,
+    ) -> dict[str, Any]:
+        context = self._ensure_identity(architect)
+        hardware = self._scan_hardware()
+        urp_payload = self._activate_urp(context, hardware)
+        assets = self._build_assets(context, hardware, urp_payload)
+        awareness = self._build_pat_awareness(context, assets)
+
+        integrations = assets.get("integrations", {})
+        gates = {
+            "identity_ready": bool(context.node_id),
+            "pat_sat_ready": bool(context.pat_agent_ids) and bool(context.sat_agent_ids),
+            "urp_signed": bool(urp_payload.get("signed", False)),
+            "urp_verified": bool(urp_payload.get("signature_verified", False)),
+            "assets_written": self.assets_path.exists(),
+            "awareness_written": self.awareness_path.exists(),
+            "desktop_bridge_reachable": bool(integrations.get("ahk_hda_bridge", False)),
+            "mcp_available": bool(integrations.get("mcp", False)),
+            "a2a_available": bool(integrations.get("a2a", False)),
+            "telescript_available": bool(integrations.get("telescript_permit", False)),
+        }
+        required = [
+            "identity_ready",
+            "pat_sat_ready",
+            "urp_signed",
+            "urp_verified",
+            "assets_written",
+            "awareness_written",
+        ]
+        ready = all(gates[k] for k in required)
+        if strict:
+            ready = ready and all(gates.values())
+
+        lifecycle = {
+            "version": "1.0.0",
+            "updated_at": _utc_now(),
+            "status": "ready" if ready else "degraded",
+            "strict_mode": bool(strict),
+            "node_id": context.node_id,
+            "identity": {
+                "pat_agents": len(context.pat_agent_ids),
+                "sat_agents": len(context.sat_agent_ids),
+            },
+            "urp": {
+                "signed": urp_payload.get("signed", False),
+                "verified": urp_payload.get("signature_verified", False),
+                "enforced": urp_payload.get("enforced", False),
+                "reason_code": urp_payload.get("reason_code"),
+            },
+            "artifacts": {
+                "assets": str(self.assets_path),
+                "pat_awareness": str(self.awareness_path),
+                "urp": str(self.urp_path),
+                "identity": str(self.identity_dir / "credentials.json"),
+            },
+            "gates": gates,
+        }
+        _write_json(self.lifecycle_path, lifecycle)
+
+        return {
+            "ok": ready,
+            "lifecycle": lifecycle,
+            "assets": assets,
+            "pat_awareness": awareness,
+        }
+
+    def health(self) -> dict[str, Any]:
+        lifecycle = _read_json(self.lifecycle_path, default={}) or {}
+        assets = _read_json(self.assets_path, default={}) or {}
+        awareness = _read_json(self.awareness_path, default={}) or {}
+        urp = _read_json(self.urp_path, default={}) or {}
+
+        pid_path = self.state_root / "proactive.pid"
+        pid_alive = False
+        pid = None
+        if pid_path.exists():
+            try:
+                pid = int(pid_path.read_text(encoding="utf-8").strip())
+                os.kill(pid, 0)
+                pid_alive = True
+            except (ValueError, OSError):
+                pid_alive = False
+
+        bridge_online = _tcp_open("127.0.0.1", 9742)
+        lm_online = self._check_http("http://127.0.0.1:1234/v1/models")
+        ollama_online = self._check_http("http://127.0.0.1:11434/v1/models")
+
+        gates = {
+            "identity_credentials": (self.identity_dir / "credentials.json").exists(),
+            "lifecycle_file": self.lifecycle_path.exists(),
+            "assets_file": self.assets_path.exists(),
+            "pat_awareness_file": self.awareness_path.exists(),
+            "urp_file": self.urp_path.exists(),
+            "urp_signed": bool(urp.get("signed", False)),
+            "urp_verified": bool(urp.get("signature_verified", False)),
+            "bridge_online": bridge_online,
+            "backend_online": lm_online or ollama_online,
+        }
+
+        overall = "ready" if all(
+            gates[k]
+            for k in (
+                "identity_credentials",
+                "lifecycle_file",
+                "assets_file",
+                "pat_awareness_file",
+                "urp_file",
+                "urp_signed",
+                "urp_verified",
+            )
+        ) else "degraded"
+
+        return {
+            "timestamp": _utc_now(),
+            "status": overall,
+            "node_id": lifecycle.get("node_id") or awareness.get("node_id") or "unknown",
+            "gates": gates,
+            "runtime": {
+                "proactive_pid": pid,
+                "proactive_running": pid_alive,
+                "desktop_bridge": bridge_online,
+                "lm_studio": lm_online,
+                "ollama": ollama_online,
+            },
+            "identity": lifecycle.get("identity", {}),
+            "integrations": assets.get("integrations", {}),
+        }
+
+    async def run_task(
+        self,
+        description: str,
+        source: str = "node0_standalone",
+        browser_mode: str = "mock",
+    ) -> dict[str, Any]:
+        if not description.strip():
+            raise ValueError("Task description must not be empty")
+        if browser_mode not in {"mock", "direct", "mcp"}:
+            raise ValueError("browser_mode must be one of: mock, direct, mcp")
+
+        fs_action = self._maybe_execute_filesystem_action(description)
+
+        from core.sovereign.mission import DesktopContext, MissionOrchestrator, MissionRequest
+
+        orchestrator = MissionOrchestrator(
+            {
+                "memory_path": str(self.state_root / "memory"),
+                "evidence_path": str(self.state_root / "mission_evidence.jsonl"),
+                "hda_port": 9742,
+            }
+        )
+        request = MissionRequest(
+            mission_id=uuid.uuid4().hex,
+            description=description,
+            context=DesktopContext(active_window_title="node0-standalone"),
+            timestamp=time.time(),
+            source=source,
+        )
+
+        previous_browser_mode = os.environ.get("BIZRA_BROWSER_MODE")
+        os.environ["BIZRA_BROWSER_MODE"] = browser_mode
+        try:
+            result = await orchestrator.execute(request)
+        finally:
+            if previous_browser_mode is None:
+                os.environ.pop("BIZRA_BROWSER_MODE", None)
+            else:
+                os.environ["BIZRA_BROWSER_MODE"] = previous_browser_mode
+
+        hda_client = getattr(orchestrator, "_hda_client", None)
+        if hda_client is not None:
+            try:
+                await hda_client.close()
+            except Exception:
+                pass
+
+        channel_results = [
+            {
+                "channel": r.channel,
+                "success": r.success,
+                "duration_ms": round(r.duration_ms, 2),
+                "error": r.error,
+                "data": r.data,
+            }
+            for r in result.channels_executed
+        ]
+
+        payload = {
+            "mission_id": result.mission_id,
+            "status": result.status,
+            "ihsan_score": result.ihsan_score,
+            "snr_score": result.snr_score,
+            "duration_ms": round(result.duration_ms, 2),
+            "briefing_path": result.briefing_path,
+            "evidence_receipt_id": result.evidence_receipt_id,
+            "channels": channel_results,
+            "filesystem_action": fs_action,
+            "browser_mode": browser_mode,
+            "synthesis": result.synthesis,
+        }
+        return payload
+
+    def lifecycle(self) -> dict[str, Any]:
+        return _read_json(self.lifecycle_path, default={}) or {}
+
+    def assets(self) -> dict[str, Any]:
+        return _read_json(self.assets_path, default={}) or {}
+
+    def _check_http(self, url: str) -> bool:
+        try:
+            import httpx
+
+            resp = httpx.get(url, timeout=1.2)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    def _ensure_identity(self, architect: str) -> ActivationContext:
+        from core.pat.onboarding import OnboardingWizard
+
+        wizard = OnboardingWizard(node_dir=self.identity_dir)
+        existing = wizard.load_existing_credentials()
+
+        if existing is None:
+            credentials = wizard.onboard(name=architect)
+        else:
+            credentials = existing
+
+        return ActivationContext(
+            node_id=credentials.node_id,
+            pat_agent_ids=list(credentials.pat_agent_ids),
+            sat_agent_ids=list(credentials.sat_agent_ids),
+            private_key_hex=credentials.private_key,
+        )
+
+    def _scan_hardware(self) -> dict[str, Any]:
+        from core.genesis.hardware import HardwareScanner
+
+        scanner = HardwareScanner()
+        hw = scanner.scan()
+        return hw.to_dict()
+
+    def _activate_urp(
+        self,
+        context: ActivationContext,
+        hardware: dict[str, Any],
+    ) -> dict[str, Any]:
+        from core.genesis.urp import URPPledge, pledge_resources, verify_pledge_signature
+
+        pledge = pledge_resources(
+            node_id=context.node_id,
+            hardware_info=hardware,
+            signing_private_key_hex=context.private_key_hex,
+        )
+        verified = verify_pledge_signature(pledge)
+
+        payload = pledge.to_dict()
+        payload["signature_verified"] = bool(verified)
+        payload["updated_at"] = _utc_now()
+
+        _write_json(self.urp_path, payload)
+
+        # Defensive type reconstruction check (guards stale schema drift)
+        try:
+            reconstructed = URPPledge(**{k: v for k, v in payload.items() if k in URPPledge.__dataclass_fields__})
+            payload["reconstructed_signed"] = bool(reconstructed.signed)
+        except Exception:
+            payload["reconstructed_signed"] = False
+
+        return payload
+
+    def _build_assets(
+        self,
+        context: ActivationContext,
+        hardware: dict[str, Any],
+        urp: dict[str, Any],
+    ) -> dict[str, Any]:
+        integrations = {
+            "ahk_hda_bridge": _tcp_open("127.0.0.1", 9742),
+            "mcp": self._module_available("core.skills.mcp_bridge"),
+            "a2a": self._module_available("core.a2a.engine"),
+            "telescript_permit": self._module_available("core.sovereign.permit"),
+            "browser_autonomy": self._module_available("core.bridges.browser_mcp_client"),
+        }
+
+        roots = [
+            str(self.project_root),
+            str(self.state_root),
+            str(self.project_root / "missions"),
+            str(self.project_root / "04_GOLD"),
+        ]
+
+        payload = {
+            "node_id": context.node_id,
+            "updated_at": _utc_now(),
+            "hardware": hardware,
+            "urp_budget": urp.get("resource_budget", {}),
+            "filesystem_roots": roots,
+            "integrations": integrations,
+            "space_awareness": {
+                "workspace": str(self.project_root),
+                "state": str(self.state_root),
+                "identity": str(self.identity_dir),
+            },
+        }
+        _write_json(self.assets_path, payload)
+        return payload
+
+    def _build_pat_awareness(
+        self,
+        context: ActivationContext,
+        assets: dict[str, Any],
+    ) -> dict[str, Any]:
+        pat_caps = [
+            "filesystem.read",
+            "filesystem.write",
+            "browser.research",
+            "hda.execute",
+            "mcp.context",
+            "a2a.delegate",
+            "telescript.permit",
+        ]
+        sat_caps = [
+            "resource.pool",
+            "governance.guard",
+            "network.health",
+            "distribution.fairness",
+            "proof.validation",
+        ]
+
+        payload = {
+            "node_id": context.node_id,
+            "updated_at": _utc_now(),
+            "assets_path": str(self.assets_path),
+            "pat": [
+                {
+                    "agent_id": agent_id,
+                    "capabilities": pat_caps,
+                    "asset_awareness": {
+                        "filesystem_roots": assets.get("filesystem_roots", []),
+                        "integrations": assets.get("integrations", {}),
+                    },
+                }
+                for agent_id in context.pat_agent_ids
+            ],
+            "sat": [
+                {
+                    "agent_id": agent_id,
+                    "capabilities": sat_caps,
+                }
+                for agent_id in context.sat_agent_ids
+            ],
+        }
+
+        _write_json(self.awareness_path, payload)
+        return payload
+
+    def _module_available(self, module_name: str) -> bool:
+        try:
+            __import__(module_name)
+            return True
+        except Exception:
+            return False
+
+    def _maybe_execute_filesystem_action(self, description: str) -> dict[str, Any] | None:
+        text = description.strip()
+
+        write_match = re.match(r"^(?:write|create)\s+file\s+(.+?)\s*::\s*(.+)$", text, re.IGNORECASE | re.DOTALL)
+        if write_match:
+            raw_path = write_match.group(1).strip().strip('"')
+            content = write_match.group(2)
+            path = self._resolve_workspace_path(raw_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+            return {
+                "action": "write",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+            }
+
+        append_match = re.match(r"^append\s+file\s+(.+?)\s*::\s*(.+)$", text, re.IGNORECASE | re.DOTALL)
+        if append_match:
+            raw_path = append_match.group(1).strip().strip('"')
+            content = append_match.group(2)
+            path = self._resolve_workspace_path(raw_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(content)
+            return {
+                "action": "append",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+            }
+
+        read_match = re.match(r"^read\s+file\s+(.+)$", text, re.IGNORECASE)
+        if read_match:
+            raw_path = read_match.group(1).strip().strip('"')
+            path = self._resolve_workspace_path(raw_path)
+            if not path.exists():
+                return {
+                    "action": "read",
+                    "path": str(path),
+                    "error": "file_not_found",
+                }
+            content = path.read_text(encoding="utf-8", errors="replace")
+            return {
+                "action": "read",
+                "path": str(path),
+                "bytes": len(content.encode("utf-8")),
+                "preview": content[:400],
+            }
+
+        list_match = re.match(r"^(?:list\s+(?:dir|files\s+in)|show\s+files\s+in)\s+(.+)$", text, re.IGNORECASE)
+        if list_match:
+            raw_path = list_match.group(1).strip().strip('"')
+            path = self._resolve_workspace_path(raw_path)
+            if not path.exists() or not path.is_dir():
+                return {
+                    "action": "list",
+                    "path": str(path),
+                    "error": "directory_not_found",
+                }
+            entries = sorted(p.name for p in path.iterdir())[:200]
+            return {
+                "action": "list",
+                "path": str(path),
+                "entries": entries,
+            }
+
+        return None
+
+    def _resolve_workspace_path(self, candidate: str) -> Path:
+        raw = Path(candidate)
+        if raw.is_absolute():
+            resolved = raw.resolve()
+        else:
+            resolved = (self.project_root / raw).resolve()
+
+        root = self.project_root.resolve()
+        if root == resolved or root in resolved.parents:
+            return resolved
+
+        raise ValueError(f"Path outside workspace is blocked: {resolved}")
+
+
+def _print_json(payload: dict[str, Any]) -> None:
+    print(json.dumps(payload, indent=2, ensure_ascii=True))
+
+
+async def _cmd_activate(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = manager.activate(architect=args.architect, strict=args.strict)
+    _print_json(result)
+    return 0 if result.get("ok") else 2
+
+
+async def _cmd_health(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = manager.health()
+    _print_json(result)
+    return 0 if result.get("status") == "ready" else 2
+
+
+async def _cmd_task(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+    result = await manager.run_task(
+        args.description,
+        source=args.source,
+        browser_mode=args.browser_mode,
+    )
+    _print_json(result)
+    return 0 if result.get("status") in {"COMPLETE", "PARTIAL"} else 1
+
+
+async def _cmd_serve(args: argparse.Namespace) -> int:
+    manager = Node0StandaloneManager()
+
+    try:
+        import uvicorn
+        from fastapi import FastAPI, HTTPException
+        from pydantic import BaseModel
+    except ImportError as exc:
+        raise SystemExit(f"Missing API dependencies: {exc}")
+
+    app = FastAPI(
+        title="BIZRA Node0 Standalone",
+        version="1.0.0",
+        description="Single-node lifecycle API (activate, health, task)",
+    )
+
+    class ActivateReq(BaseModel):
+        architect: str = "MoMo"
+        strict: bool = False
+
+    class TaskReq(BaseModel):
+        description: str
+        source: str = "node0_standalone_api"
+        browser_mode: str = "mock"
+
+    @app.get("/")
+    async def root() -> dict[str, Any]:
+        return {
+            "name": "BIZRA Node0 Standalone API",
+            "endpoints": ["GET /health", "POST /activate", "POST /task", "GET /assets", "GET /lifecycle"],
+        }
+
+    @app.post("/activate")
+    async def activate(req: ActivateReq) -> dict[str, Any]:
+        return manager.activate(architect=req.architect, strict=req.strict)
+
+    @app.get("/health")
+    async def health() -> dict[str, Any]:
+        return manager.health()
+
+    @app.get("/assets")
+    async def assets() -> dict[str, Any]:
+        return manager.assets()
+
+    @app.get("/lifecycle")
+    async def lifecycle() -> dict[str, Any]:
+        return manager.lifecycle()
+
+    @app.post("/task")
+    async def task(req: TaskReq) -> dict[str, Any]:
+        if not req.description.strip():
+            raise HTTPException(status_code=400, detail="description is required")
+        return await manager.run_task(
+            req.description,
+            source=req.source,
+            browser_mode=req.browser_mode,
+        )
+
+    config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="BIZRA Node0 standalone lifecycle manager")
+    sub = parser.add_subparsers(dest="command")
+
+    p_activate = sub.add_parser("activate", help="Activate Node0 lifecycle and assets")
+    p_activate.add_argument("--architect", default="MoMo", help="Founder/owner display name")
+    p_activate.add_argument("--strict", action="store_true", help="Require every gate (including optional integrations)")
+
+    sub.add_parser("health", help="Show standalone lifecycle health")
+
+    p_task = sub.add_parser("task", help="Run one autonomous task")
+    p_task.add_argument("description", help="Mission description")
+    p_task.add_argument("--source", default="node0_standalone_cli", help="Task source label")
+    p_task.add_argument(
+        "--browser-mode",
+        choices=["mock", "direct", "mcp"],
+        default="mock",
+        help="Browser channel mode for mission research.",
+    )
+
+    p_serve = sub.add_parser("serve", help="Start local lifecycle API server")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8091)
+
+    return parser
+
+
+async def _dispatch(args: argparse.Namespace) -> int:
+    handlers = {
+        "activate": _cmd_activate,
+        "health": _cmd_health,
+        "task": _cmd_task,
+        "serve": _cmd_serve,
+    }
+    command = args.command or "health"
+    return await handlers[command](args)
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
+    parser = build_parser()
+    args = parser.parse_args()
+
+    try:
+        code = asyncio.run(_dispatch(args))
+    except KeyboardInterrupt:
+        code = 130
+
+    raise SystemExit(code)
+
+
+if __name__ == "__main__":
+    main()

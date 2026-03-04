@@ -369,6 +369,38 @@ class TestListSkills:
             await bridge.stop()
 
     @pytest.mark.asyncio
+    async def test_list_skills_include_self_harness(self) -> None:
+        port = _free_port()
+        bridge = DesktopBridge(host="127.0.0.1", port=port)
+
+        mock_registry = MagicMock()
+        mock_registry.get_all.return_value = [
+            _MockSkillEntry(_MockManifest("skill-a", "Skill A", "coder", ["dev"]))
+        ]
+
+        mock_router = MagicMock()
+        mock_router.registry = mock_registry
+        mock_router.get_self_harness_report.return_value = {
+            "harness_score": 0.97,
+            "total_findings": 3,
+        }
+        bridge._skill_router = mock_router
+
+        await bridge.start()
+        try:
+            resp = await _tcp_call(
+                port,
+                "list_skills",
+                {"include_harness": True, "harness_findings_limit": 25},
+            )
+            result = resp["result"]
+            assert result["count"] == 1
+            assert "self_harness" in result
+            assert result["self_harness"]["harness_score"] == 0.97
+        finally:
+            await bridge.stop()
+
+    @pytest.mark.asyncio
     async def test_list_skills_no_registry(self) -> None:
         port = _free_port()
         bridge = DesktopBridge(host="127.0.0.1", port=port)

@@ -1234,11 +1234,14 @@ class DesktopBridge:
             ihsan = 1.0
             include_fabric = False
             fabric_limit = 25
+            include_harness = False
+            harness_findings_limit = 100
             if isinstance(params, dict):
                 ranked = bool(params.get("ranked", False)) or (
                     str(params.get("mode", "")).lower() in {"ranked", "top"}
                 )
                 include_fabric = bool(params.get("include_fabric", False))
+                include_harness = bool(params.get("include_harness", False))
                 try:
                     limit = max(1, min(int(params.get("limit", 10)), 100))
                 except (TypeError, ValueError):
@@ -1247,6 +1250,12 @@ class DesktopBridge:
                     fabric_limit = max(1, min(int(params.get("fabric_limit", 25)), 200))
                 except (TypeError, ValueError):
                     fabric_limit = 25
+                try:
+                    harness_findings_limit = max(
+                        1, min(int(params.get("harness_findings_limit", 100)), 1000)
+                    )
+                except (TypeError, ValueError):
+                    harness_findings_limit = 100
                 try:
                     ihsan = float(params.get("ihsan", 1.0))
                 except (TypeError, ValueError):
@@ -1272,6 +1281,12 @@ class DesktopBridge:
                         include_assets=True,
                         force=False,
                     )
+                if include_harness and hasattr(router, "get_self_harness_report"):
+                    response["self_harness"] = router.get_self_harness_report(
+                        include_findings=True,
+                        findings_limit=harness_findings_limit,
+                        force=False,
+                    )
                 return response
 
             skills = []
@@ -1293,6 +1308,12 @@ class DesktopBridge:
                 response["resource_fabric"] = router.get_resource_fabric_summary(
                     limit=fabric_limit,
                     include_assets=True,
+                    force=False,
+                )
+            if include_harness and hasattr(router, "get_self_harness_report"):
+                response["self_harness"] = router.get_self_harness_report(
+                    include_findings=True,
+                    findings_limit=harness_findings_limit,
                     force=False,
                 )
             return response

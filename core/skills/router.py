@@ -366,6 +366,21 @@ class SkillRouter:
             )
         return {"error": "Resource fabric not supported by registry"}
 
+    def get_self_harness_report(
+        self,
+        include_findings: bool = False,
+        findings_limit: int = 200,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        """Return proactive self-harness report from registry."""
+        if hasattr(self.registry, "get_self_harness_report"):
+            return self.registry.get_self_harness_report(
+                include_findings=include_findings,
+                findings_limit=findings_limit,
+                force=force,
+            )
+        return {"error": "Self harness not supported by registry"}
+
     def get_stats(self) -> Dict[str, Any]:
         """Get router statistics."""
         return {

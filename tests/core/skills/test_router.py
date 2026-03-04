@@ -132,6 +132,11 @@ class TestRouterSync:
         assert isinstance(summary, dict)
         assert "profile" in summary or "error" in summary
 
+    def test_get_self_harness_report(self, router):
+        report = router.get_self_harness_report(include_findings=False)
+        assert isinstance(report, dict)
+        assert "harness_score" in report or "error" in report
+
     def test_stats_initial(self, router):
         s = router.get_stats()
         assert s["total_invocations"] == 0

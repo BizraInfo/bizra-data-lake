@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.elite.self_harness_engine import SelfHarnessEngine
 from core.skills.resource_fabric import ResourceFabric
 
 logger = logging.getLogger(__name__)
@@ -381,6 +382,7 @@ class SkillRegistry:
         self._profile_path = self._resolve_profile_path()
         self._performance_profile = self._load_performance_profile(self._profile_path)
         self._resource_fabric = self._init_resource_fabric()
+        self._self_harness = self._init_self_harness()
 
     def _find_skills_dir(self) -> Path:
         """Find the skills directory."""
@@ -417,6 +419,13 @@ class SkillRegistry:
         if project_root.name == ".claude":
             project_root = project_root.parent
         return ResourceFabric(project_root=project_root)
+
+    def _init_self_harness(self) -> SelfHarnessEngine:
+        """Initialize proactive self-harness engine."""
+        project_root = self.skills_dir.parent
+        if project_root.name == ".claude":
+            project_root = project_root.parent
+        return SelfHarnessEngine(project_root=project_root)
 
     def _load_performance_profile(self, profile_path: Path) -> SkillPerformanceProfile:
         """Load performance ranking profile from YAML, fallback to defaults."""
@@ -468,6 +477,25 @@ class SkillRegistry:
             return {
                 "error": str(exc),
                 "profile": self._resource_fabric.get_profile(),
+            }
+
+    def get_self_harness_report(
+        self,
+        include_findings: bool = False,
+        findings_limit: int = 200,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        """Run proactive self-harness and return report."""
+        try:
+            return self._self_harness.run(
+                include_findings=include_findings,
+                findings_limit=findings_limit,
+                force=force,
+            )
+        except Exception as exc:
+            return {
+                "error": str(exc),
+                "profile_name": "bizra-agentic-self-harness",
             }
 
     def _latency_score(self, avg_duration_ms: float) -> float:
@@ -710,6 +738,8 @@ class SkillRegistry:
                 include_assets=False,
                 force=False,
             ),
+            # Keep stats non-blocking: do not trigger a cold full-repo scan.
+            "self_harness": self._self_harness.peek_report(include_findings=False),
         }
 
 
