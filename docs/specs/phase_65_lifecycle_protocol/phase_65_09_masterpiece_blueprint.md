@@ -23,6 +23,10 @@ Convert the full BIZRA multi-lens analysis into an executable delivery program t
   - `scripts/node0_lifecycle_emulation.py`
 - Blueprint quality gate (SNR-scored release decision):
   - `scripts/ops/phase65_blueprint_gate.py`
+- Unified orchestration runner (single-command execution):
+  - `scripts/ops/phase65_masterpiece_runner.py`
+- Alpha launch packet generator (GO/CONDITIONAL_GO/NO_GO):
+  - `scripts/ops/phase65_alpha_launch_packet.py`
 - Pipeline automation:
   - `.github/workflows/phase65-masterpiece.yml`
 
@@ -39,7 +43,9 @@ Each release must carry:
 
 1. Verifiable lifecycle output (`lifecycle_summary.json`)
 2. Blueprint gate report (`phase65_gate_report.json`)
-3. Targeted test evidence for thermal/Ihsan/lifecycle integrity
+3. KPI snapshot (`phase65_kpi_snapshot.json`)
+4. Alpha launch packet (`phase65_alpha_launch_packet.json`)
+5. Targeted test evidence for thermal/Ihsan/lifecycle integrity
 
 ---
 
@@ -92,10 +98,10 @@ Each release must carry:
 ## 4.1 Pipeline Stages
 
 1. Build runtime context (dependencies + deterministic config).
-2. Execute lifecycle emulation.
-3. Run blueprint quality gate.
+2. Resolve signer policy (protected branches require `BIZRA_RECEIPT_PRIVATE_KEY_HEX`).
+3. Run unified `phase65_masterpiece_runner` (emulation + gate + KPI).
 4. Run targeted regression tests.
-5. Publish lifecycle and gate artifacts.
+5. Publish lifecycle, gate, KPI, and launch packet artifacts.
 
 ## 4.2 Release Gate Logic
 
@@ -178,21 +184,23 @@ Soft scoring:
 
 ## 8. Execution Commands
 
-Run lifecycle emulation:
+Run unified Phase65 pipeline:
 
 ```bash
-python scripts/node0_lifecycle_emulation.py \
+python scripts/ops/phase65_masterpiece_runner.py \
   --state-dir /tmp/phase65/state \
-  --output /tmp/phase65/lifecycle_summary.json
-```
-
-Run blueprint gate:
-
-```bash
-python scripts/ops/phase65_blueprint_gate.py \
-  --summary /tmp/phase65/lifecycle_summary.json \
+  --out-dir /tmp/phase65 \
   --config config/phase65_masterpiece_roadmap.yaml \
-  --report /tmp/phase65/phase65_gate_report.json
+  --strict-signing
+
+# Optional strict launch sign-off (requires manual checks file)
+python scripts/ops/phase65_masterpiece_runner.py \
+  --state-dir /tmp/phase65/state \
+  --out-dir /tmp/phase65 \
+  --config config/phase65_masterpiece_roadmap.yaml \
+  --strict-signing \
+  --strict-manual \
+  --manual-checks /tmp/phase65/manual_checks.json
 ```
 
 ---
@@ -205,4 +213,5 @@ Masterpiece increment is accepted only when:
 2. receipt chain verifies with zero errors
 3. blueprint gate returns `gate_passed=true`
 4. targeted regression tests are green
-5. artifacts are published and traceable to commit SHA
+5. alpha launch packet is emitted with non-`NO_GO` decision
+6. artifacts are published and traceable to commit SHA

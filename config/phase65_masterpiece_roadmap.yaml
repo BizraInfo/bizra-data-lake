@@ -110,11 +110,14 @@ roadmap:
     title: "Phase65 Masterpiece Pipeline Automation"
     objective: "Automate emulation, gate checks, and artifact publication."
     deliverables:
+      - "scripts/ops/phase65_masterpiece_runner.py"
       - ".github/workflows/phase65-masterpiece.yml"
       - "scripts/ops/phase65_blueprint_gate.py"
+      - "scripts/ops/phase65_kpi_pack.py"
+      - "scripts/ops/phase65_alpha_launch_packet.py"
     done_when:
       - "Workflow runs on dispatch and PR paths"
-      - "Gate report artifact uploaded"
+      - "Gate, KPI, and launch packet artifacts uploaded"
 
   - id: R6
     priority: P1

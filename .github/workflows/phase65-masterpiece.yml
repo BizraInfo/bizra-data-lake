@@ -13,11 +13,15 @@ on:
       - "scripts/node0_lifecycle_emulation.py"
       - "scripts/ops/phase65_blueprint_gate.py"
       - "scripts/ops/phase65_kpi_pack.py"
+      - "scripts/ops/phase65_alpha_launch_packet.py"
+      - "scripts/ops/phase65_masterpiece_runner.py"
       - "config/phase65_masterpiece_roadmap.yaml"
       - "docs/specs/phase_65_lifecycle_protocol/**"
       - "tests/scripts/test_node0_lifecycle_emulation.py"
       - "tests/scripts/test_phase65_blueprint_gate.py"
       - "tests/scripts/test_phase65_kpi_pack.py"
+      - "tests/scripts/test_phase65_alpha_launch_packet.py"
+      - "tests/scripts/test_phase65_masterpiece_runner.py"
       - "core/constitutional/energy_functions.py"
       - "core/proof_engine/thermodynamic_gate.py"
       - "core/proof_engine/ihsan_computer.py"
@@ -35,6 +39,9 @@ jobs:
       speedup: ${{ steps.phase65_outputs.outputs.speedup }}
       signed_receipts: ${{ steps.phase65_outputs.outputs.signed_receipts }}
       tier: ${{ steps.phase65_outputs.outputs.tier }}
+      launch_decision: ${{ steps.phase65_outputs.outputs.launch_decision }}
+      launch_ready: ${{ steps.phase65_outputs.outputs.launch_ready }}
+      packet_signed: ${{ steps.phase65_outputs.outputs.packet_signed }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       BIZRA_PHASE65_STRICT_SIGNING: "1"
@@ -74,29 +81,16 @@ jobs:
           fi
           echo "BIZRA_RECEIPT_PRIVATE_KEY_HEX=$key" >> "$GITHUB_ENV"
 
-      - name: Run lifecycle emulation
+      - name: Run Phase65 masterpiece pipeline
+        id: phase65_outputs
         run: |
           mkdir -p /tmp/phase65
           rm -rf /tmp/phase65/state
-          python scripts/node0_lifecycle_emulation.py \
+          python scripts/ops/phase65_masterpiece_runner.py \
             --state-dir /tmp/phase65/state \
-            --output /tmp/phase65/lifecycle_summary.json
-
-      - name: Run blueprint quality gate
-        run: |
-          python scripts/ops/phase65_blueprint_gate.py \
-            --summary /tmp/phase65/lifecycle_summary.json \
+            --out-dir /tmp/phase65 \
             --config config/phase65_masterpiece_roadmap.yaml \
-            --report /tmp/phase65/phase65_gate_report.json
-
-      - name: Build KPI snapshot
-        id: phase65_outputs
-        run: |
-          python scripts/ops/phase65_kpi_pack.py \
-            --summary /tmp/phase65/lifecycle_summary.json \
-            --gate-report /tmp/phase65/phase65_gate_report.json \
-            --out-json /tmp/phase65/phase65_kpi_snapshot.json \
-            --out-md /tmp/phase65/phase65_kpi_snapshot.md \
+            --strict-signing \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Run targeted tests
@@ -105,6 +99,8 @@ jobs:
             tests/scripts/test_node0_lifecycle_emulation.py \
             tests/scripts/test_phase65_blueprint_gate.py \
             tests/scripts/test_phase65_kpi_pack.py \
+            tests/scripts/test_phase65_alpha_launch_packet.py \
+            tests/scripts/test_phase65_masterpiece_runner.py \
             tests/core/constitutional/test_energy_functions.py \
             tests/core/proof_engine/test_thermodynamic_gate.py
 
@@ -118,4 +114,6 @@ jobs:
             /tmp/phase65/phase65_gate_report.json
             /tmp/phase65/phase65_kpi_snapshot.json
             /tmp/phase65/phase65_kpi_snapshot.md
+            /tmp/phase65/phase65_alpha_launch_packet.json
+            /tmp/phase65/phase65_alpha_launch_packet.md
           retention-days: 30
