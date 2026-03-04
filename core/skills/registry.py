@@ -12,6 +12,7 @@ Standing on Giants:
 """
 
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -22,6 +23,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from core.integration.constants import UNIFIED_IHSAN_THRESHOLD
+from core.skills.resource_fabric import ResourceFabric
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +150,131 @@ class SkillManifest:
         )
 
 
+@dataclass
+class SkillPerformanceProfile:
+    """
+    Runtime scoring profile for ranking top skills by execution quality.
+
+    The profile is configurable via YAML and combines reliability, latency,
+    usage confidence, Ihsān floor, and strategic-tag boost into one score.
+    """
+
+    profile_name: str = "elite-performance-v1"
+    profile_version: str = "1.0.0"
+    top_n_default: int = 10
+    min_invocations_for_confidence: int = 20
+    latency_target_ms: float = 1200.0
+    max_tag_boost: float = 0.20
+
+    # Score weights (normalized on load)
+    weight_success_rate: float = 0.40
+    weight_latency: float = 0.20
+    weight_usage_confidence: float = 0.15
+    weight_ihsan_floor: float = 0.15
+    weight_tag_boost: float = 0.10
+
+    # Domain-level strategic boosts
+    tag_boosts: Dict[str, float] = field(
+        default_factory=lambda: {
+            "security": 0.06,
+            "performance": 0.05,
+            "reasoning": 0.05,
+            "architecture": 0.04,
+            "integration": 0.03,
+            "documentation": 0.02,
+            "testing": 0.03,
+            "reliability": 0.04,
+            "research": 0.03,
+            "autonomous": 0.05,
+        }
+    )
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "SkillPerformanceProfile":
+        """Create profile from YAML dict with safe defaults and normalized weights."""
+        if not data:
+            profile = cls()
+            profile.normalize_weights()
+            return profile
+
+        weights = data.get("weights", {}) if isinstance(data.get("weights"), dict) else {}
+        profile = cls(
+            profile_name=str(data.get("profile_name", "elite-performance-v1")),
+            profile_version=str(data.get("profile_version", "1.0.0")),
+            top_n_default=max(1, int(data.get("top_n_default", 10))),
+            min_invocations_for_confidence=max(
+                1, int(data.get("min_invocations_for_confidence", 20))
+            ),
+            latency_target_ms=max(1.0, float(data.get("latency_target_ms", 1200.0))),
+            max_tag_boost=max(0.0, float(data.get("max_tag_boost", 0.20))),
+            weight_success_rate=float(
+                weights.get("success_rate", data.get("weight_success_rate", 0.40))
+            ),
+            weight_latency=float(weights.get("latency", data.get("weight_latency", 0.20))),
+            weight_usage_confidence=float(
+                weights.get(
+                    "usage_confidence",
+                    data.get("weight_usage_confidence", 0.15),
+                )
+            ),
+            weight_ihsan_floor=float(
+                weights.get("ihsan_floor", data.get("weight_ihsan_floor", 0.15))
+            ),
+            weight_tag_boost=float(
+                weights.get("tag_boost", data.get("weight_tag_boost", 0.10))
+            ),
+            tag_boosts=(
+                data.get("tag_boosts")
+                if isinstance(data.get("tag_boosts"), dict)
+                else cls().tag_boosts
+            ),
+        )
+        profile.normalize_weights()
+        return profile
+
+    def normalize_weights(self):
+        """Normalize all score weights so their sum is exactly 1.0."""
+        total = (
+            self.weight_success_rate
+            + self.weight_latency
+            + self.weight_usage_confidence
+            + self.weight_ihsan_floor
+            + self.weight_tag_boost
+        )
+        if total <= 0:
+            self.weight_success_rate = 0.40
+            self.weight_latency = 0.20
+            self.weight_usage_confidence = 0.15
+            self.weight_ihsan_floor = 0.15
+            self.weight_tag_boost = 0.10
+            total = 1.0
+
+        self.weight_success_rate /= total
+        self.weight_latency /= total
+        self.weight_usage_confidence /= total
+        self.weight_ihsan_floor /= total
+        self.weight_tag_boost /= total
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize profile for diagnostics and API exposure."""
+        return {
+            "profile_name": self.profile_name,
+            "profile_version": self.profile_version,
+            "top_n_default": self.top_n_default,
+            "min_invocations_for_confidence": self.min_invocations_for_confidence,
+            "latency_target_ms": self.latency_target_ms,
+            "max_tag_boost": self.max_tag_boost,
+            "weights": {
+                "success_rate": self.weight_success_rate,
+                "latency": self.weight_latency,
+                "usage_confidence": self.weight_usage_confidence,
+                "ihsan_floor": self.weight_ihsan_floor,
+                "tag_boost": self.weight_tag_boost,
+            },
+            "tag_boosts": dict(self.tag_boosts),
+        }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # REGISTERED SKILL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -251,6 +378,9 @@ class SkillRegistry:
         self._skills: Dict[str, RegisteredSkill] = {}
         self._by_tag: Dict[str, List[str]] = {}  # tag -> [skill_names]
         self._by_agent: Dict[str, List[str]] = {}  # agent -> [skill_names]
+        self._profile_path = self._resolve_profile_path()
+        self._performance_profile = self._load_performance_profile(self._profile_path)
+        self._resource_fabric = self._init_resource_fabric()
 
     def _find_skills_dir(self) -> Path:
         """Find the skills directory."""
@@ -267,6 +397,185 @@ class SkillRegistry:
 
         # Fallback to first candidate
         return candidates[0]
+
+    def _resolve_profile_path(self) -> Path:
+        """
+        Resolve the skill performance profile YAML path.
+
+        Order:
+        1. BIZRA_SKILL_PROFILE_PATH env var
+        2. ./config/skill_performance_profile.yaml
+        """
+        env_path = os.environ.get("BIZRA_SKILL_PROFILE_PATH")
+        if env_path:
+            return Path(env_path)
+        return Path("config/skill_performance_profile.yaml")
+
+    def _init_resource_fabric(self) -> ResourceFabric:
+        """Initialize cross-surface resource fabric scanner."""
+        project_root = self.skills_dir.parent
+        if project_root.name == ".claude":
+            project_root = project_root.parent
+        return ResourceFabric(project_root=project_root)
+
+    def _load_performance_profile(self, profile_path: Path) -> SkillPerformanceProfile:
+        """Load performance ranking profile from YAML, fallback to defaults."""
+        if not profile_path.exists():
+            logger.info(
+                "Skill performance profile not found at %s, using defaults",
+                profile_path,
+            )
+            return SkillPerformanceProfile()
+
+        try:
+            raw = profile_path.read_text(encoding="utf-8")
+            data = yaml.safe_load(raw) or {}
+            profile = SkillPerformanceProfile.from_dict(data)
+            logger.info(
+                "Loaded skill profile '%s' from %s",
+                profile.profile_name,
+                profile_path,
+            )
+            return profile
+        except Exception as exc:
+            logger.warning(
+                "Failed to load skill profile from %s: %s. Using defaults.",
+                profile_path,
+                exc,
+            )
+            return SkillPerformanceProfile()
+
+    def get_performance_profile(self) -> Dict[str, Any]:
+        """Return active performance profile config."""
+        payload = self._performance_profile.to_dict()
+        payload["profile_path"] = str(self._profile_path)
+        return payload
+
+    def get_resource_fabric_summary(
+        self,
+        limit: int = 25,
+        include_assets: bool = False,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        """Return unified resource fabric status across agents/commands/hooks/memory."""
+        try:
+            return self._resource_fabric.snapshot(
+                limit=limit,
+                include_assets=include_assets,
+                force=force,
+            )
+        except Exception as exc:
+            return {
+                "error": str(exc),
+                "profile": self._resource_fabric.get_profile(),
+            }
+
+    def _latency_score(self, avg_duration_ms: float) -> float:
+        """
+        Convert latency to [0,1] where lower is better.
+
+        Formula is smooth and bounded:
+            score = target / (target + latency)
+        """
+        if avg_duration_ms <= 0:
+            return 1.0
+
+        target = max(1.0, self._performance_profile.latency_target_ms)
+        return max(0.0, min(1.0, target / (target + avg_duration_ms)))
+
+    def _usage_confidence_score(self, invocation_count: int) -> float:
+        """Convert invocation count to [0,1] confidence score."""
+        denom = max(1, self._performance_profile.min_invocations_for_confidence)
+        return max(0.0, min(1.0, invocation_count / denom))
+
+    def _tag_boost_score(self, tags: List[str]) -> float:
+        """Compute normalized tag boost score in [0,1]."""
+        if not tags:
+            return 0.0
+
+        raw_boost = 0.0
+        for tag in tags:
+            raw_boost += float(self._performance_profile.tag_boosts.get(tag, 0.0))
+
+        capped = min(self._performance_profile.max_tag_boost, raw_boost)
+        if self._performance_profile.max_tag_boost <= 0:
+            return 0.0
+        return max(0.0, min(1.0, capped / self._performance_profile.max_tag_boost))
+
+    def _compute_performance_score(
+        self, skill: RegisteredSkill
+    ) -> tuple[float, Dict[str, float]]:
+        """Compute weighted performance score and per-component breakdown."""
+        profile = self._performance_profile
+        success = max(0.0, min(1.0, skill.success_rate))
+        latency = self._latency_score(skill.avg_duration_ms)
+        usage = self._usage_confidence_score(skill.invocation_count)
+        ihsan_floor = max(0.0, min(1.0, skill.manifest.ihsan_floor))
+        tag_boost = self._tag_boost_score(skill.manifest.tags)
+
+        score = (
+            profile.weight_success_rate * success
+            + profile.weight_latency * latency
+            + profile.weight_usage_confidence * usage
+            + profile.weight_ihsan_floor * ihsan_floor
+            + profile.weight_tag_boost * tag_boost
+        )
+
+        components = {
+            "success_rate": round(success, 6),
+            "latency": round(latency, 6),
+            "usage_confidence": round(usage, 6),
+            "ihsan_floor": round(ihsan_floor, 6),
+            "tag_boost": round(tag_boost, 6),
+        }
+        return round(score, 6), components
+
+    def get_top_skills(
+        self,
+        limit: Optional[int] = None,
+        ihsan_score: float = 1.0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Return highest-quality skills ranked by performance profile.
+
+        Only skills currently invokable at the provided Ihsān level are included.
+        """
+        if limit is None:
+            limit = self._performance_profile.top_n_default
+        limit = max(1, min(int(limit), 100))
+
+        ranked: List[Dict[str, Any]] = []
+        for skill in self.get_all():
+            if not self.can_invoke(skill.manifest.name, ihsan_score):
+                continue
+
+            score, components = self._compute_performance_score(skill)
+            ranked.append(
+                {
+                    "name": skill.manifest.name,
+                    "description": skill.manifest.description,
+                    "status": skill.status.value,
+                    "agent": skill.manifest.agent,
+                    "tags": list(skill.manifest.tags),
+                    "performance_score": score,
+                    "score_components": components,
+                    "invocation_count": skill.invocation_count,
+                    "success_rate": round(skill.success_rate, 6),
+                    "avg_duration_ms": round(skill.avg_duration_ms, 3),
+                    "ihsan_floor": round(skill.manifest.ihsan_floor, 6),
+                }
+            )
+
+        ranked.sort(
+            key=lambda item: (
+                item["performance_score"],
+                item["success_rate"],
+                -item["avg_duration_ms"],
+                item["invocation_count"],
+            ),
+            reverse=True,
+        )
+        return ranked[:limit]
 
     def load_all(self) -> int:
         """
@@ -396,6 +705,11 @@ class SkillRegistry:
             "total_invocations": total_invocations,
             "overall_success_rate": total_success / max(total_invocations, 1),
             "skills_dir": str(self.skills_dir),
+            "performance_profile": self.get_performance_profile(),
+            "resource_fabric": self.get_resource_fabric_summary(
+                include_assets=False,
+                force=False,
+            ),
         }
 
 

@@ -9,8 +9,7 @@ Standing on the Shoulders of Giants:
 إحسان — Excellence in all things.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -18,11 +17,7 @@ pytest.importorskip("yaml")
 
 from core.skills.mcp_bridge import MCPBridge
 from core.skills.registry import (
-    RegisteredSkill,
-    SkillContext,
-    SkillManifest,
     SkillRegistry,
-    SkillStatus,
 )
 from core.skills.router import (
     SkillInvocationResult,
@@ -126,6 +121,16 @@ class TestRouterSync:
     def test_get_skills_by_agent(self, router):
         names = router.get_skills_by_agent("sovereign-coder")
         assert "router-test" in names
+
+    def test_get_top_skills(self, router):
+        skills = router.get_top_skills(limit=5, ihsan_score=0.95)
+        assert len(skills) >= 1
+        assert skills[0]["name"] == "router-test"
+
+    def test_get_resource_fabric_summary(self, router):
+        summary = router.get_resource_fabric_summary(limit=5, include_assets=False)
+        assert isinstance(summary, dict)
+        assert "profile" in summary or "error" in summary
 
     def test_stats_initial(self, router):
         s = router.get_stats()

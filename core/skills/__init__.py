@@ -23,10 +23,12 @@ from .mcp_bridge import (
 from .registry import (
     RegisteredSkill,
     SkillManifest,
+    SkillPerformanceProfile,
     SkillRegistry,
     SkillStatus,
     get_skill_registry,
 )
+from .resource_fabric import ResourceFabric, ResourceFabricProfile
 from .router import (
     SkillInvocationResult,
     SkillRouter,
@@ -37,11 +39,15 @@ __all__ = [
     "SkillManifest",
     "SkillStatus",
     "RegisteredSkill",
+    "SkillPerformanceProfile",
     "SkillRegistry",
     "get_skill_registry",
     # Router
     "SkillRouter",
     "SkillInvocationResult",
+    # Resource fabric
+    "ResourceFabric",
+    "ResourceFabricProfile",
     # MCP Bridge
     "SkillToolMapping",
     "SKILL_TOOL_MAP",

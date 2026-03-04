@@ -2065,19 +2065,34 @@ async def cmd_status(args):
     token = _resolve_lm_token()
     headers = {"Authorization": f"Bearer {token}"} if token else {}
 
-    # Check LM Studio
+    # Check LM Studio — prefer native /api/v1/models (has loaded_instances),
+    # fall back to OpenAI-compat /v1/models if native endpoint unavailable.
     try:
+        base = Node0ProactiveKernel._LM_STUDIO_URL.rstrip("/v1").rstrip("/")
         async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
-            resp = await client.get(f"{Node0ProactiveKernel._LM_STUDIO_URL}/v1/models")
+            # Try native API first (accurate loaded_instances field)
+            resp = await client.get(f"{base}/api/v1/models")
             if resp.status_code == 200:
-                models = resp.json().get("data", [])
-                loaded = [m for m in models if m.get("loaded")]
+                data = resp.json()
+                models = data.get("models", data.get("data", []))
+                loaded = [
+                    m for m in models
+                    if m.get("loaded_instances") or m.get("loaded")
+                ]
                 print("  LM Studio:    ✓ Connected")
                 print(f"  Models:       {len(models)} available, {len(loaded)} loaded")
                 for m in loaded:
-                    print(f"    → {m['id']}")
+                    name = m.get("key", m.get("id", "?"))
+                    print(f"    → {name}")
             else:
-                print(f"  LM Studio:    ✗ Error {resp.status_code}")
+                # Fall back to OpenAI-compat
+                resp = await client.get(f"{base}/v1/models")
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    print("  LM Studio:    ✓ Connected")
+                    print(f"  Models:       {len(models)} available (load state unknown)")
+                else:
+                    print(f"  LM Studio:    ✗ Error {resp.status_code}")
     except Exception as e:
         print(f"  LM Studio:    ✗ {e}")
 
