@@ -16,6 +16,7 @@ on:
       - "scripts/ops/phase65_alpha_launch_packet.py"
       - "scripts/ops/phase65_masterpiece_runner.py"
       - "config/phase65_masterpiece_roadmap.yaml"
+      - "config/phase65_alpha_manual_checks.template.json"
       - "docs/specs/phase_65_lifecycle_protocol/**"
       - "tests/scripts/test_node0_lifecycle_emulation.py"
       - "tests/scripts/test_phase65_blueprint_gate.py"

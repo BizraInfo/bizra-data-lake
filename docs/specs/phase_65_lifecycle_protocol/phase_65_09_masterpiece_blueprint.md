@@ -194,6 +194,8 @@ python scripts/ops/phase65_masterpiece_runner.py \
   --strict-signing
 
 # Optional strict launch sign-off (requires manual checks file)
+# cp config/phase65_alpha_manual_checks.template.json /tmp/phase65/manual_checks.json
+# edit /tmp/phase65/manual_checks.json and set all checks to true before GO
 python scripts/ops/phase65_masterpiece_runner.py \
   --state-dir /tmp/phase65/state \
   --out-dir /tmp/phase65 \

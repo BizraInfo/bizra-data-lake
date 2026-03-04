@@ -1,0 +1,11 @@
+{
+  "website_updated": false,
+  "unified_installer_ready": false,
+  "onboarding_lifecycle_ready": false,
+  "urp_active": false,
+  "identity_activated": false,
+  "pat_minted": false,
+  "sat_minted": false,
+  "local_filesystem_automation_ready": false,
+  "web_autonomy_ready": false
+}
