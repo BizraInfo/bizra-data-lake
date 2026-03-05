@@ -35,6 +35,8 @@ from typing import Any, Dict, List, Optional
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core.integration.constants import LMSTUDIO_URL
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -420,7 +422,7 @@ class PATEvaluator:
             # Check for LM Studio at default endpoint
             async with httpx.AsyncClient(timeout=3.0) as client:
                 try:
-                    resp = await client.get("http://192.168.56.1:1234/v1/models")
+                    resp = await client.get(f"{LMSTUDIO_URL}/v1/models")
                     if resp.status_code == 200:
                         logger.info("✓ LM Studio backend available")
                         return True
@@ -468,7 +470,7 @@ class PATEvaluator:
                             "temperature": 0.7,
                         }
                         resp = await client.post(
-                            "http://192.168.56.1:1234/v1/chat/completions",
+                            f"{LMSTUDIO_URL}/v1/chat/completions",
                             json=payload,
                         )
                         if resp.status_code == 200:

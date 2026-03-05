@@ -175,7 +175,7 @@ impl Default for PATInferenceConfig {
 
         Self {
             lmstudio_host: std::env::var("LMSTUDIO_HOST")
-                .unwrap_or_else(|_| "192.168.56.1".to_string()),
+                .unwrap_or_else(|_| "172.22.48.1".to_string()),
             lmstudio_port: std::env::var("LMSTUDIO_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())

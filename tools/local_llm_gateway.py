@@ -4,7 +4,7 @@ BIZRA LOCAL LLM GATEWAY (Data Lake Integration)
 
 This module provides the Data Lake with access to the local LLM infrastructure
 already configured in BIZRA-TaskMaster:
-- LM Studio (http://192.168.56.1:1234) - OpenAI-compatible API, 10+ models
+- LM Studio (auto-detected WSL gateway) - OpenAI-compatible API, 10+ models
 - Ollama (http://localhost:11434) - Native Ollama API
 
 Supports offline operation with automatic model discovery and fallback.
@@ -17,10 +17,12 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
+from core.integration.constants import LMSTUDIO_URL
+
 # ═══════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════
-LM_STUDIO_URL = "http://192.168.56.1:1234"
+LM_STUDIO_URL = LMSTUDIO_URL
 OLLAMA_URL = "http://localhost:11434"
 
 

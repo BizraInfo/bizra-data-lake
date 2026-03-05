@@ -162,10 +162,10 @@ pub fn exec_status() -> Result<()> {
                         println!("  Active Model: {loaded_list}");
                     }
                 } else {
-                    println!("  LM Studio:    ✗ Not connected (192.168.56.1:1234)");
+                    println!("  LM Studio:    ✗ Not connected (LMSTUDIO_HOST:1234)");
                 }
             } else {
-                println!("  LM Studio:    ✗ Not connected (192.168.56.1:1234)");
+                println!("  LM Studio:    ✗ Not connected (LMSTUDIO_HOST:1234)");
             }
         }
         Err(_) => {

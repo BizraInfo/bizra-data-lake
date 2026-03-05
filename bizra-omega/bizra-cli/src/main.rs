@@ -806,7 +806,7 @@ fn render_settings(f: &mut ratatui::Frame, _app: &app::App, area: ratatui::layou
     let lines = vec![
         Line::from(vec![
             Span::styled("LM Studio: ", Theme::muted()),
-            Span::styled("192.168.56.1:1234", Theme::text()),
+            Span::styled("auto-detected:1234", Theme::text()),
         ]),
         Line::from(vec![
             Span::styled("Voice Port: ", Theme::muted()),

@@ -5,7 +5,7 @@ Detects available local inference backends (LM Studio, Ollama, llama.cpp)
 and returns the best available option. Enables zero-token operation on Node0.
 
 Architecture:
-  Priority 1: LM Studio (192.168.56.1:1234) - RTX 4090 native
+  Priority 1: LM Studio (WSL gateway (auto-detected)) - RTX 4090 native
   Priority 2: Ollama (localhost:11434) - Fallback
   Priority 3: llama.cpp (embedded) - Offline-capable edge
 
@@ -104,7 +104,7 @@ class LocalFirstDetector:
 
     @classmethod
     async def _probe_lmstudio(cls) -> BackendStatus:
-        """Check LM Studio availability (192.168.56.1:1234)."""
+        """Check LM Studio availability (WSL gateway (auto-detected))."""
         import time
 
         start = time.perf_counter()

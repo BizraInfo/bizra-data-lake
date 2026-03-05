@@ -14,8 +14,10 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any, Union, Tuple
 import httpx
 
+from core.integration.constants import LMSTUDIO_URL
+
 # Configuration
-LM_STUDIO_URL = "http://192.168.56.1:1234/v1"
+LM_STUDIO_URL = LMSTUDIO_URL + "/v1"
 OLLAMA_URL = "http://localhost:11434"
 DEFAULT_TIMEOUT = 120.0
 VISION_TIMEOUT = 180.0

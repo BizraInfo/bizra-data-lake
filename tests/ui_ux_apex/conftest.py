@@ -32,8 +32,8 @@ def assert_no_hardcoded_secrets(component_source: str) -> None:
         if match:
             # Whitelist known safe patterns (version numbers, hash constants)
             text = match.group(0)
-            if text in ("127.0.0.1", "0.0.0.0", "192.168.56.1"):
-                continue  # Known dev IPs
+            if text in ("127.0.0.1", "0.0.0.0"):
+                continue  # Known safe IPs (loopback/bind-all)
             raise AssertionError(
                 f"Hardcoded secret candidate found: {text!r} (pattern: {pattern})"
             )

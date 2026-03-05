@@ -184,7 +184,7 @@ impl ChannelHandler for LlmChannel {
             BizraAction::LlmQuery {
                 model, user_prompt, ..
             } => {
-                // STUB: In production, HTTP POST to LM Studio at 192.168.56.1:1234
+                // STUB: In production, HTTP POST to LM Studio at WSL gateway
                 Ok(ActionPayload::Text(format!(
                     "STUB: LLM response from '{}' to '{}...'",
                     model,

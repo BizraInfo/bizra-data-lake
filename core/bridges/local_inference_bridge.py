@@ -5,7 +5,7 @@ LOCAL INFERENCE BRIDGE — Apex Engine ↔ MultiModelManager Integration
 Bridges the Apex Sovereign Engine to the MultiModelManager for true local-first
 inference. This is the critical integration point that enables:
 
-1. Local LM Studio inference (192.168.56.1:1234)
+1. Local LM Studio inference (WSL gateway (auto-detected))
 2. Purpose-based model routing (reasoning, vision, agentic)
 3. Automatic model loading/unloading
 4. Bicameral orchestration (Cold Core + Warm Surface)

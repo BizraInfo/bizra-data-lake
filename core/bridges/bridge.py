@@ -231,7 +231,7 @@ class InferenceConnector(SubsystemConnector):
 
     Supports:
     - Ollama (localhost:11434)
-    - LM Studio (192.168.56.1:1234)
+    - LM Studio (WSL gateway (auto-detected))
     - LiteLLM proxy
     - Direct API (Claude, OpenAI)
     """

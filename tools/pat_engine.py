@@ -19,6 +19,7 @@ import hashlib
 
 import base64
 from bizra_config import SNR_THRESHOLD, IHSAN_CONSTRAINT
+from core.integration.constants import LMSTUDIO_URL
 
 # Import DualAgenticBridge for vision capabilities
 try:
@@ -324,10 +325,10 @@ class LMStudioBackend(LLMBackend):
     LM Studio Backend (OpenAI-compatible)
 
     Connects to local LM Studio server for multi-model inference.
-    Default endpoint: http://192.168.56.1:1234/v1
+    Default endpoint: auto-detected WSL gateway via constants.
     """
 
-    def __init__(self, base_url: str = "http://192.168.56.1:1234/v1"):
+    def __init__(self, base_url: str = LMSTUDIO_URL + "/v1"):
         self.base_url = base_url
         self.client = httpx.AsyncClient(
             timeout=300.0

@@ -19,6 +19,8 @@ import time
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
+from core.integration.constants import LMSTUDIO_URL
+
 # PAT Agent Definitions
 PAT_AGENTS = {
     "strategist": {
@@ -70,7 +72,7 @@ async def run_agent(agent_id: str, task: str, token: str) -> dict:
 
     async with httpx.AsyncClient(headers=headers, timeout=180.0) as client:
         resp = await client.post(
-            "http://192.168.56.1:1234/v1/chat/completions",
+            f"{LMSTUDIO_URL}/v1/chat/completions",
             json={
                 "model": "deepseek/deepseek-r1-0528-qwen3-8b",
                 "messages": [

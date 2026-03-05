@@ -29,9 +29,23 @@ except ImportError:
     sys.exit(1)
 
 
-# Configuration
-LM_STUDIO_HOST = os.environ.get("LM_STUDIO_HOST", "192.168.56.1")
-LM_STUDIO_PORT = int(os.environ.get("LM_STUDIO_PORT", "1234"))
+# Configuration — detect WSL gateway for LM Studio host
+def _detect_wsl_gateway() -> str:
+    """Detect WSL2 default gateway IP for reaching Windows host."""
+    try:
+        with open("/proc/net/route", "r") as f:
+            for line in f:
+                fields = line.strip().split()
+                if len(fields) >= 3 and fields[1] == "00000000":
+                    hex_ip = fields[2]
+                    return ".".join(str(int(hex_ip[i : i + 2], 16)) for i in (6, 4, 2, 0))
+    except (FileNotFoundError, ValueError):
+        pass
+    return "127.0.0.1"
+
+
+LM_STUDIO_HOST = os.environ.get("LM_STUDIO_HOST") or os.environ.get("LMSTUDIO_HOST") or _detect_wsl_gateway()
+LM_STUDIO_PORT = int(os.environ.get("LM_STUDIO_PORT") or os.environ.get("LMSTUDIO_PORT") or "1234")
 LM_STUDIO_API_KEY = os.environ.get("LM_STUDIO_API_KEY", "")  # Optional auth
 BASE_URL = f"http://{LM_STUDIO_HOST}:{LM_STUDIO_PORT}"
 

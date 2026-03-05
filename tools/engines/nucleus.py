@@ -81,9 +81,11 @@ NUCLEUS_STATE_PATH = Path(
 )
 NUCLEUS_LOG_PATH = Path(os.getenv("BIZRA_NUCLEUS_LOG", "/var/log/bizra/nucleus.log"))
 
+from core.integration.constants import LMSTUDIO_URL as _LMSTUDIO_DEFAULT
+
 # Component URLs (configurable)
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", "http://192.168.56.1:1234")
+LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", _LMSTUDIO_DEFAULT)
 FLYWHEEL_URL = os.getenv("FLYWHEEL_URL", "http://localhost:8100")
 
 # Boot timeouts

@@ -71,8 +71,14 @@ Environment="AUTONOMOUS_ENABLED=true"
 Environment="LOOP_INTERVAL_SECONDS=60"
 
 # Inference backends
+# NOTE: INFERENCE_PRIMARY default assumes WSL2 gateway IP.
+# Override via /etc/bizra/sovereign.env or /etc/bizra/lmstudio.env
+# Auto-detect on WSL2: ip route show default | awk '/via/ {print $3}'
 Environment="INFERENCE_PRIMARY=http://192.168.56.1:1234"
 Environment="INFERENCE_FALLBACK=http://localhost:11434"
+
+# Optional: override inference host from a per-machine env file
+EnvironmentFile=-/etc/bizra/lmstudio.env
 
 # Data paths
 Environment="DATA_LAKE_ROOT=/mnt/c/BIZRA-DATA-LAKE"

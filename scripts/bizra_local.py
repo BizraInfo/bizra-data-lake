@@ -22,6 +22,8 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
+from core.integration.constants import LMSTUDIO_URL
+
 
 async def cmd_status(args):
     """Show system status and available models."""
@@ -33,7 +35,7 @@ async def cmd_status(args):
     print("═" * 60)
     print("BIZRA LOCAL SYSTEM STATUS")
     print("═" * 60)
-    print("  LM Studio: http://192.168.56.1:1234")
+    print(f"  LM Studio: {LMSTUDIO_URL}")
     print(f"  Models Available: {len(models)}")
     print()
 
@@ -98,7 +100,7 @@ async def cmd_reason(args):
 
     async with httpx.AsyncClient(headers=headers, timeout=300.0) as client:
         resp = await client.post(
-            "http://192.168.56.1:1234/v1/chat/completions",
+            f"{LMSTUDIO_URL}/v1/chat/completions",
             json={
                 "model": "deepseek/deepseek-r1-0528-qwen3-8b",
                 "messages": [{"role": "user", "content": args.query}],
@@ -150,7 +152,7 @@ Focus on practical execution."""
 
     async with httpx.AsyncClient(headers=headers, timeout=120.0) as client:
         resp = await client.post(
-            "http://192.168.56.1:1234/v1/chat/completions",
+            f"{LMSTUDIO_URL}/v1/chat/completions",
             json={
                 "model": "agentflow-planner-7b-i1",
                 "messages": [

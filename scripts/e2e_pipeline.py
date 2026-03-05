@@ -47,6 +47,8 @@ from typing import Any, Dict, List, Optional
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
+from core.integration.constants import LMSTUDIO_URL
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -58,7 +60,7 @@ class E2EConfig:
     """Configuration for E2E testing."""
 
     # LLM settings
-    lm_studio_url: str = "http://192.168.56.1:1234"
+    lm_studio_url: str = field(default_factory=lambda: LMSTUDIO_URL)
     lm_studio_token: str = field(
         default_factory=lambda: os.environ.get("LM_API_TOKEN", "")
     )

@@ -49,7 +49,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # CONFIGURATION
 # ════════════════════════════════════════════════════════════════════════════════
 
-LM_STUDIO_URL = "http://192.168.56.1:1234"
+try:
+    from core.integration.constants import LMSTUDIO_URL
+
+    LM_STUDIO_URL = LMSTUDIO_URL
+except ImportError:
+    LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "http://172.22.48.1:1234")
 LM_STUDIO_TOKEN = os.environ.get("LM_API_TOKEN", "")
 
 # Agent system prompts (Giants Protocol)

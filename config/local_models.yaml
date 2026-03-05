@@ -1,8 +1,9 @@
 # BIZRA Local Model Configuration
-# Your LM Studio setup at 192.168.56.1:1234
+# Your LM Studio setup — WSL gateway auto-detected at runtime
+# Override with env: LMSTUDIO_HOST / LMSTUDIO_PORT
 
-# API Configuration
-LM_STUDIO_URL: "http://192.168.56.1:1234"
+# API Configuration (WSL gateway IP — use `ip route show default | awk '/via/ {print $3}'`)
+LM_STUDIO_URL: "http://172.22.48.1:1234"
 LM_API_TOKEN: "${LM_API_TOKEN}"
 
 # Model Routing by Task Type

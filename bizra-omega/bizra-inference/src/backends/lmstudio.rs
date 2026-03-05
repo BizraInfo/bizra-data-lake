@@ -6,7 +6,7 @@
 //! - Vision models (LLaVA, Qwen-VL)
 //! - Voice models (Whisper, TTS)
 //!
-//! LM Studio runs at 192.168.56.1:1234 with OpenAI-compatible API
+//! LM Studio runs on the Windows host (WSL gateway, env: LMSTUDIO_HOST)
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -17,8 +17,8 @@ use super::{Backend, BackendError};
 use crate::gateway::{InferenceRequest, InferenceResponse};
 use crate::selector::ModelTier;
 
-/// LM Studio host configuration
-const DEFAULT_LMSTUDIO_HOST: &str = "192.168.56.1";
+/// LM Studio host configuration (WSL2 gateway — use env LMSTUDIO_HOST to override)
+const DEFAULT_LMSTUDIO_HOST: &str = "172.22.48.1";
 const DEFAULT_LMSTUDIO_PORT: u16 = 1234;
 
 /// Model capability categories

@@ -17,7 +17,7 @@ Tiers:
 - POOL/LARGE: Federated URP compute (70B+ models)
 
 Backends:
-- LM Studio (192.168.56.1:1234) - Primary, native v1 API with MCP + stateful chats
+- LM Studio (auto-detected WSL gateway) - Primary, native v1 API with MCP + stateful chats
 - Ollama (localhost:11434) - Fallback
 
 Bicameral Architecture (Jaynes, 1976):
