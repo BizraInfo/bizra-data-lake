@@ -78,6 +78,7 @@ import numpy as np
 
 # Import unified thresholds from authoritative source
 from core.integration.constants import (
+    ADL_GINI_THRESHOLD as _ADL_GINI_THRESHOLD,
     IHSAN_WEIGHTS,
     UNIFIED_IHSAN_THRESHOLD,
     UNIFIED_SNR_THRESHOLD,
@@ -101,10 +102,8 @@ IHSAN_DIMENSIONS: Final[tuple[str, ...]] = (
     "adl_fairness",
 )
 
-# Adl (Justice) constraint
-ADL_GINI_THRESHOLD: Final[float] = (
-    0.35  # Constitutional maximum — aligned with constants.py
-)
+# Adl (Justice) constraint — imported from constants.py
+ADL_GINI_THRESHOLD: Final[float] = _ADL_GINI_THRESHOLD
 ADL_GINI_EMERGENCY: Final[float] = 0.60  # Emergency redistribution trigger
 
 # Byzantine consensus
@@ -617,7 +616,7 @@ class AdlInvariant:
     def suggest_redistribution(
         self,
         distribution: dict[str, float],
-        target_gini: float = 0.35,
+        target_gini: float = ADL_GINI_THRESHOLD,
     ) -> dict[str, float]:
         """
         Suggest redistribution to achieve target Gini.

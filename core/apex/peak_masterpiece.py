@@ -65,14 +65,16 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Final, Optional
 
+from core.integration.constants import SNR_THRESHOLD_T0_ELITE, SNR_THRESHOLD_T1_HIGH
+
 # ════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION & CONSTANTS
 # ════════════════════════════════════════════════════════════════════════════════
 
 
-# Peak Masterpiece targets (highest tier)
-PEAK_SNR_TARGET: Final[float] = 0.99  # Ultimate excellence
-PEAK_SNR_FLOOR: Final[float] = 0.95  # Ihsān minimum
+# Peak Masterpiece targets — imported from constants.py
+PEAK_SNR_TARGET: Final[float] = SNR_THRESHOLD_T0_ELITE  # Ultimate excellence
+PEAK_SNR_FLOOR: Final[float] = SNR_THRESHOLD_T1_HIGH  # Ihsān minimum
 PEAK_MAX_ITERATIONS: Final[int] = 7  # Optimization ceiling
 PEAK_DISCIPLINE_COUNT: Final[int] = 47  # Interdisciplinary synthesis
 

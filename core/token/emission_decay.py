@@ -33,11 +33,13 @@ import logging
 import math
 from typing import Any, Dict, List
 
+from core.integration.constants import ADL_GINI_THRESHOLD
+
 logger = logging.getLogger(__name__)
 
 # Default parameters aligned with ADL kernel constants
 DEFAULT_EMISSION_MAX = 1000.0  # Maximum SEED emission per epoch
-DEFAULT_GINI_TARGET = 0.35  # Target Gini coefficient
+DEFAULT_GINI_TARGET = ADL_GINI_THRESHOLD  # Target Gini coefficient
 DEFAULT_STEEPNESS = 20.0  # Logistic curve steepness
 
 

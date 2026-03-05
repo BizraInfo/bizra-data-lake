@@ -36,18 +36,13 @@ from datetime import datetime, timezone
 from enum import IntEnum
 from typing import Any, Callable, Optional
 
-# Import unified thresholds from authoritative source
+from core.integration.constants import ADL_GINI_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
 # =============================================================================
 # CONSTANTS - CONSTITUTIONAL THRESHOLDS
 # =============================================================================
-
-# The Adl threshold - Gini coefficient must not exceed this value
-# 0.40 represents moderate inequality - below most developed nations
-# This is a HARD GATE, not a soft warning
-ADL_GINI_THRESHOLD: float = 0.35
 
 # Harberger tax rate (annual, applied continuously)
 # 7% — aligned with core/integration/constants.py ADL_HARBERGER_TAX_RATE

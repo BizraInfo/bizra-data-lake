@@ -40,16 +40,13 @@ from datetime import datetime, timezone
 from enum import IntEnum
 from typing import Any, Optional
 
+from core.integration.constants import ADL_GINI_THRESHOLD
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
 # CONSTITUTIONAL CONSTANTS
 # =============================================================================
-
-# The Adl Gini threshold - HARD GATE
-# 0.35 is stricter than the legacy 0.40 threshold
-# This aligns with Ihsan Vector's anti_centralization dimension
-ADL_GINI_THRESHOLD: float = 0.35
 
 # Alert threshold - trigger warnings before breach
 ADL_GINI_ALERT_THRESHOLD: float = 0.30

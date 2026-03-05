@@ -531,8 +531,10 @@ class TestConstants:
     """Tests for module constants."""
 
     def test_apex_snr_target(self):
-        """APEX_SNR_TARGET should be 0.99."""
-        assert APEX_SNR_TARGET == 0.99
+        """APEX_SNR_TARGET should match SNR_THRESHOLD_T0_ELITE (0.98)."""
+        from core.integration.constants import SNR_THRESHOLD_T0_ELITE
+
+        assert APEX_SNR_TARGET == SNR_THRESHOLD_T0_ELITE
 
     def test_apex_snr_floor(self):
         """APEX_SNR_FLOOR should be 0.95 (Ihsān threshold)."""
